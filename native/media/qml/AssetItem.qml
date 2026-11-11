@@ -16,6 +16,7 @@ Rectangle {
         else browser.openFolder(asset.id)
     }
     property bool selected: false
+    property bool externalDrag: false
     function cancelDrag() { dragPoint.Drag.cancel() }
     signal selectedByUser()
     signal previewRequested()
@@ -255,9 +256,17 @@ Rectangle {
     }
     MouseArea {
         id: mouse
+        // The browser starts a platform drag that can leave the window, as the
+        // node editor catalog does.
+        DragHandler {
+            objectName: "assetExternalDrag"
+            enabled: tile.externalDrag && !tile.isFolder && !!tile.browser.dragAsset
+            target: null
+            onActiveChanged: if (active) tile.browser.dragAsset(tile.asset)
+        }
         objectName: "assetDragPointer"
         anchors.fill: parent
-        drag.target: tile.isFolder ? null : dragPoint
+        drag.target: tile.isFolder || tile.externalDrag ? null : dragPoint
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: tile.dragging ? (tile.dropAllowed ? (tile.dragAction === Qt.MoveAction ? Qt.DragMoveCursor : Qt.DragCopyCursor) : Qt.ForbiddenCursor) : Qt.OpenHandCursor
         onDoubleClicked: { if (tile.isFolder) tile.openFolder(); else tile.previewRequested() }

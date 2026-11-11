@@ -1,0 +1,92 @@
+[
+  {
+    "id": "button-default",
+    "state": "default",
+    "source": "web/src/components/editor_ui/EditorButton.tsx"
+  },
+  {
+    "id": "button-primary",
+    "state": "primary",
+    "source": "web/src/components/editor_ui/EditorButton.tsx"
+  },
+  {
+    "id": "button-disabled",
+    "state": "disabled",
+    "source": "web/src/components/editor_ui/EditorButton.tsx"
+  },
+  {
+    "id": "text-field",
+    "state": "default",
+    "source": "web/src/components/editor_ui/NodeTextField.tsx"
+  },
+  {
+    "id": "text-field-focus",
+    "state": "focus",
+    "source": "web/src/components/editor_ui/NodeTextField.tsx"
+  },
+  {
+    "id": "text-field-disabled",
+    "state": "disabled",
+    "source": "web/src/components/editor_ui/NodeTextField.tsx"
+  },
+  {
+    "id": "text-label",
+    "state": "default",
+    "source": "web/src/components/ui_primitives/Label.tsx"
+  },
+  {
+    "id": "text-caption",
+    "state": "default",
+    "source": "web/src/components/ui_primitives/Caption.tsx"
+  },
+  {
+    "id": "surface-panel",
+    "state": "default",
+    "source": "web/src/components/ui_primitives/Surface.tsx"
+  },
+  {
+    "id": "inspector-field",
+    "state": "default",
+    "source": "web/src/components/ui_primitives/InspectorFieldRow.tsx"
+  },
+  {
+    "id": "node-card",
+    "state": "default",
+    "source": "web/src/components/node/BaseNode.tsx",
+    "fixture": "graph",
+    "selector": ".react-flow__node[data-id=\"source\"] .base-node"
+  },
+  {
+    "id": "node-selected",
+    "state": "selected",
+    "source": "web/src/components/node/BaseNode.tsx",
+    "fixture": "graph",
+    "selector": ".react-flow__node[data-id=\"target\"] .base-node"
+  },
+  {
+    "id": "port-input",
+    "state": "default",
+    "source": "web/src/components/node/HandleOnlyField.tsx",
+    "fixture": "graph",
+    "selector": ".react-flow__node[data-id=\"source\"] .react-flow__handle-left"
+  },
+  {
+    "id": "port-output",
+    "state": "connected",
+    "source": "web/src/components/node/NodeOutput.tsx",
+    "fixture": "graph",
+    "selector": ".react-flow__node[data-id=\"source\"] .react-flow__handle-right"
+  },
+  {
+    "id": "connection",
+    "state": "default",
+    "source": "web/src/components/node_editor/CustomEdge.tsx",
+    "fixture": "graph",
+    "selector": ".react-flow__edge[data-id=\"connection\"]"
+  },
+  {
+    "id": "catalog-row",
+    "state": "default",
+    "source": "web/src/components/node_menu/NodeItem.tsx"
+  }
+]

@@ -1,7 +1,12 @@
 import type { AppRunContext, AppRunCostAccount, AppRunDocumentRef } from "./run-context.js";
 import { getRunTraceScope, type RunTraceScope } from "./run-trace-context.js";
-import { withSpan } from "./tracing-helpers.js";
 import { traceStorageAdapter } from "./traced-storage.js";
+import { CostLedger } from "@nodetool-ai/runtime-core/cost-ledger";
+import type { GenerationHost } from "./node-context/context-host.js";
+import * as generation from "./node-context/generation.js";
+import { waitForRetry } from "./node-context/generation.js";
+import * as messageMedia from "./node-context/message-media.js";
+import * as providerDispatch from "./node-context/provider-dispatch.js";
 /**
  * ProcessingContext – runtime context for node execution.
  *
@@ -17,8 +22,6 @@ import { traceStorageAdapter } from "./traced-storage.js";
 import type {
   AssetRef,
   Entity,
-  EntityKind,
-  EntitySource,
   GenerationOrigin,
   GenerationReceipt,
   ProcessingMessage,
@@ -26,7 +29,6 @@ import type {
 } from "@nodetool-ai/protocol";
 import {
   assetFileNameCandidates,
-  buildAssetGenerationMetadata,
   isShortResourceId,
   packageAssetHttpPath,
   parsePackageAssetUri
@@ -38,48 +40,44 @@ import {
   setNodeCost
 } from "./invocation-account.js";
 import { VariableChannel } from "./variable-channel.js";
-import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
-import {
-  objectTrackingRequestSchema,
-  parseObjectTrackingResult
-} from "./providers/object-tracking.js";
+import { loadMediaRefBytes } from "./media-ref-bytes.js";
 import {
   requestVideoToAudio,
   VIDEO_TO_AUDIO_TASK,
   VideoToAudioRequest
 } from "./providers/video-to-audio.js";
-import { encodeRawImageRef, validateImageEvidence } from "./image-codec.js";
+import { encodeRawImageRef } from "./image-codec.js";
 import { extForImageMime, sniffImageMime } from "./providers/image-mime.js";
 import {
-  GenerationScopeError,
   type GenerationProviderRequestOptions,
   type GenerationReceiptScopeOptions,
   currentGenerationReceipt,
-  insideGenerationScope,
-  isAuthoritativeProviderTerminalError,
-  runWithGenerationReceipt
+  insideGenerationScope
 } from "./generation-receipt.js";
 import { generationRegistry, type GenerationDelivery } from "./generation-registry.js";
 import {
-  redactGenerationOutput,
-  redactGenerationParams
-} from "./redact-params.js";
-import {
   isCallable,
-  isBoolean,
   isNonEmptyString,
   isObjectLike,
-  isNumber,
   isRecord,
   isString
 } from "@nodetool-ai/protocol";
-import {
-  expandAssetReferences,
-  expandEntityRefs,
-  inlineTextAssetRefs
-} from "./prompt-asset-refs.js";
 import { getNodeBuiltinSync, readPackageMedia } from "@nodetool-ai/config";
 import type { StorageAdapter, StorageEntry } from "@nodetool-ai/storage";
+import type {
+  AssetInfoEntry,
+  AssetOutputMode,
+  EntityUpsertResult,
+  FolderAssetEntry,
+  MessageCreateRequestLike,
+  ModelInterfaceArgs,
+  NodeContext,
+  NodeContextCopyOptions,
+  NodeContextTypes,
+  PersistedRecordLike,
+  ProcessingContextModelInterfaces,
+  ThreadMessagesResultLike
+} from "@nodetool-ai/runtime-core";
 import type { Workspace } from "./workspace.js";
 
 // `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
@@ -126,27 +124,6 @@ const randomUUID = nodeCrypto?.randomUUID
 const safeProcessEnv = (): Record<string, string | undefined> =>
   typeof process !== "undefined" && process.env ? process.env : {};
 
-function waitForRetry(
-  delayMs: number,
-  signal?: AbortSignal | null
-): Promise<void> {
-  return new Promise((resolveWait, rejectWait) => {
-    if (signal?.aborted) {
-      rejectWait(signal.reason ?? new Error("HTTP request aborted"));
-      return;
-    }
-    const onAbort = () => {
-      clearTimeout(timer);
-      rejectWait(signal?.reason ?? new Error("HTTP request aborted"));
-    };
-    const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort);
-      resolveWait();
-    }, delayMs);
-    signal?.addEventListener("abort", onAbort, { once: true });
-  });
-}
-
 // Eager local bindings; unavailable off-Node, throw at call time.
 function notOnNode(api: string): never {
   throw new Error(
@@ -188,21 +165,10 @@ import type {
   EndpointProgress
 } from "./providers/base-provider.js";
 import type {
-  Model3D,
   EncodedAudioResult,
-  EntityReference,
-  ImageBox,
   Message,
-  MessageContent,
-  OutpaintPadding,
-  ProviderStreamItem,
-  SegmentPoint
+  ProviderStreamItem
 } from "./providers/types.js";
-import {
-  CONTENT_FILTER_MAX_RETRIES,
-  contentFilterRetryDelayMs,
-  isContentFilterRefusal
-} from "./providers/content-filter.js";
 import type { NodeExecutor } from "./node-executor.js";
 import {
   getProcessSandboxModuleCatalog,
@@ -283,34 +249,23 @@ export type {
 } from "@nodetool-ai/storage";
 
 /**
- * Controls how asset-like values (ImageRef / AudioRef / VideoRef) are
- * materialized when {@link ProcessingContext.normalizeOutputValue} runs.
- *
- * Pick the mode by where the consumer lives:
- * - `native`: in-process JS/TS code that knows how to handle the live
- *   object as-is (DSL, tests, kernel-internal handoffs). Inline `data`
- *   bytes stay attached.
- * - `data_uri`: anything that renders a `data:image/png;base64,...` URI
- *   inline (markdown, simple HTML).
- * - `temp_url`: HTTP-fetching client over a short-lived URL — bytes are
- *   uploaded to the temp storage adapter and `data` is dropped.
- * - `storage_url`: same as `temp_url` but persistent storage.
- * - `workspace`: write the bytes to a file inside `workspaceDir` and
- *   return that file URI.
- * - `raw`: keep bytes embedded in the asset's `data` field.
- *
- * NOTE: this used to be called `"python"` (mirroring the Python enum,
- * where it accurately meant "Python-native object"). The rename to
- * `"native"` makes the contract language-agnostic and matches what the
- * mode actually does in the TS runtime.
+ * The node-facing contract and the persistence port live in
+ * `@nodetool-ai/runtime-core`. They are re-exported here for existing imports.
  */
-export type AssetOutputMode =
-  | "native"
-  | "data_uri"
-  | "temp_url"
-  | "storage_url"
-  | "workspace"
-  | "raw";
+export type {
+  AssetCreateParamsLike,
+  AssetInfoEntry,
+  AssetOutputMode,
+  EntityUpsertArgs,
+  EntityUpsertResult,
+  FolderAssetEntry,
+  MessageCreateRequestLike,
+  NodeContext,
+  PersistedRecordLike,
+  ProcessingContextModelInterfaces,
+  ThreadMessagesResultLike
+} from "@nodetool-ai/runtime-core";
+
 export type ProviderCapability =
   | "generate_message"
   | "generate_messages"
@@ -353,13 +308,6 @@ export type ProviderCapability =
    * (`timeline-track-object.ts`).
    */
   | "track_object";
-
-type PredictionStatus =
-  | "pending"
-  | "running"
-  | "completed"
-  | "failed"
-  | "cancelled";
 
 export type ProviderPredictionRequest = {
   provider: string;
@@ -414,13 +362,7 @@ export interface GenerationResult<T = ProviderPredictionResult> {
   delivery?: GenerationDelivery;
 }
 
-/** Raised by a durable host when an idempotent request is already owned. */
-export class GenerationAlreadyAcceptedError extends Error {
-  constructor(readonly generationId: string) {
-    super(`Generation ${generationId} was already accepted`);
-    this.name = "GenerationAlreadyAcceptedError";
-  }
-}
+export { GenerationAlreadyAcceptedError } from "./node-context/generation.js";
 
 export interface GenerationRunOptions {
   /** Deliver saved output before the generation becomes observable as settled. */
@@ -527,49 +469,6 @@ export type HttpRequestOptions = Omit<
   retry?: HttpRetryOptions;
 };
 
-export interface MessageCreateRequestLike {
-  thread_id: string;
-  role: string;
-  content?: unknown;
-  tool_calls?: unknown;
-  workflow_id?: string | null;
-  name?: string | null;
-  tool_call_id?: string | null;
-}
-
-export interface ThreadMessagesResultLike {
-  messages: Array<Record<string, unknown>>;
-  next: string | null;
-}
-
-export interface AssetCreateParamsLike {
-  userId: string;
-  workflowId: string | null;
-  jobId: string;
-  projectId?: string | null;
-  name: string;
-  contentType: string;
-  content: Uint8Array;
-  parentId?: string | null;
-  nodeId?: string | null;
-  /** Stored on the asset row; the generation seam stamps `generation_id`. */
-  metadata?: Record<string, unknown> | null;
-}
-
-/** A non-folder asset surfaced when listing a folder's contents. */
-export interface FolderAssetEntry {
-  id: string;
-  content_type: string;
-  name: string;
-}
-
-/** An asset's identity + metadata, as surfaced by {@link ProcessingContext.getAssetInfo}. */
-export interface AssetInfoEntry {
-  id: string;
-  content_type: string;
-  name: string;
-  metadata: Record<string, unknown> | null;
-}
 
 /**
  * An executable tool the run's owner injects into the context for agent nodes
@@ -601,223 +500,6 @@ export interface InjectedTool {
   // (`execute` is a HOLDOUT for the same reason as `process` above.)
 }
 
-/**
- * A record the host's persistence layer answers with.
- *
- * The row and response types live in `@nodetool-ai/models`, which sits above
- * `runtime`, so the port names the field every caller reads — the record's
- * identity — and each caller re-reads the document fields it knows how to
- * interpret.
- */
-export interface PersistedRecordLike {
-  id: string;
-}
-
-export interface ProcessingContextModelInterfaces {
-  /** Read a non-secret setting owned by the current user. */
-  getSetting?: (args: {
-    userId: string;
-    key: string;
-  }) => Promise<string | null>;
-  getJob?: (args: {
-    userId: string;
-    jobId: string;
-  }) => Promise<PersistedRecordLike | null>;
-  /**
-   * HOLDOUT (anti-slop/no-unknown-returns): narrowing this to the created
-   * record's shape breaks the `as Record<string, unknown>` assertions on the
-   * result in `image-nodes` and `audio-nodes` — an interface without an index
-   * signature is not comparable to that type. Typing it honestly means editing
-   * those call sites too.
-   */
-  createAsset?: (args: AssetCreateParamsLike) => Promise<unknown>;
-  /**
-   * Replace an existing asset's bytes in place, keeping its id. Returns `null`
-   * when the asset does not exist or is not owned by the user.
-   *
-   * An editing loop needs this: creating a new asset per save would give the
-   * caller a different id after every edit, and the handles it already handed
-   * out would point at a stale version.
-   */
-  updateAssetBytes?: (args: {
-    userId: string;
-    assetId: string;
-    content: Uint8Array;
-    contentType?: string;
-    name?: string;
-  }) => Promise<AssetInfoEntry | null>;
-  /**
-   * Recursively list the non-folder assets contained in `folderId`. Returns
-   * `null` when the id is not a folder (or does not exist) so callers can tell
-   * "not a folder" apart from "empty folder" (`[]`).
-   */
-  listFolderAssets?: (args: {
-    userId: string;
-    folderId: string;
-  }) => Promise<FolderAssetEntry[] | null>;
-  /**
-   * Look up one owned asset's identity + metadata (no bytes). Returns `null`
-   * when the asset does not exist or is not owned by the user.
-   */
-  getAssetInfo?: (args: {
-    userId: string;
-    assetId: string;
-  }) => Promise<AssetInfoEntry | null>;
-  createMessage?: (args: {
-    userId: string;
-    req: MessageCreateRequestLike;
-  }) => Promise<PersistedRecordLike>;
-  getMessages?: (args: {
-    userId: string;
-    threadId: string;
-    limit?: number;
-    startKey?: string | null;
-    reverse?: boolean;
-  }) => Promise<ThreadMessagesResultLike>;
-  /** Load a persisted sketch (image document) by id; null when missing or not owned. */
-  getImageDocument?: (args: {
-    userId: string;
-    id: string;
-  }) => Promise<PersistedRecordLike | null>;
-  /** Create a persisted sketch (image document); returns the created document response. */
-  createImageDocument?: (args: {
-    userId: string;
-    name: string;
-    projectId?: string;
-    width: number;
-    height: number;
-    document: unknown;
-  }) => Promise<PersistedRecordLike>;
-  /** Load a persisted timeline sequence by id; null when missing or not owned. */
-  getTimelineSequence?: (args: {
-    userId: string;
-    id: string;
-  }) => Promise<PersistedRecordLike | null>;
-  /** Create a persisted timeline sequence from a full sequence document. */
-  createTimelineSequence?: (args: {
-    userId: string;
-    sequence: unknown;
-  }) => Promise<PersistedRecordLike>;
-  /** Replace a persisted timeline sequence's document; null when missing or not owned. */
-  updateTimelineSequence?: (args: {
-    userId: string;
-    id: string;
-    sequence: unknown;
-  }) => Promise<PersistedRecordLike | null>;
-  /** Load a persisted script by id; null when missing or not owned. */
-  getScript?: (args: {
-    userId: string;
-    id: string;
-  }) => Promise<PersistedRecordLike | null>;
-  /** Create a persisted script from a name + document. */
-  createScript?: (args: {
-    userId: string;
-    name?: string;
-    projectId?: string;
-    document: unknown;
-  }) => Promise<PersistedRecordLike>;
-  /** Replace a persisted script's document (and optional timeline link); null when missing or not owned. */
-  updateScript?: (args: {
-    userId: string;
-    id: string;
-    document?: unknown;
-    timelineId?: string | null;
-    baseUpdatedAt?: string;
-  }) => Promise<PersistedRecordLike | null>;
-  /** Load a persisted storyboard by id; null when missing or not owned. */
-  getStoryboard?: (args: {
-    userId: string;
-    id: string;
-  }) => Promise<PersistedRecordLike | null>;
-  /** The caller's storyboards, optionally narrowed by project. */
-  listStoryboards?: (args: {
-    userId: string;
-    projectId?: string;
-    limit?: number;
-  }) => Promise<PersistedRecordLike[]>;
-  /**
-   * The copy a previous run derived from `templateId` for that `recastKey`;
-   * null when there is none. Scoped rather than listed, because a listing is
-   * windowed and a batch bigger than the window would keep re-deriving — and
-   * re-rendering — copies it already has.
-   */
-  findRecastStoryboard?: (args: {
-    userId: string;
-    projectId?: string;
-    templateId: string;
-    recastKey: string;
-  }) => Promise<PersistedRecordLike | null>;
-  /** Create a persisted storyboard from a name + document. */
-  createStoryboard?: (args: {
-    userId: string;
-    name?: string;
-    projectId?: string;
-    document: unknown;
-  }) => Promise<PersistedRecordLike>;
-  /** Replace a persisted storyboard's document (and optional timeline link); null when missing or not owned. */
-  updateStoryboard?: (args: {
-    userId: string;
-    id: string;
-    document?: unknown;
-    timelineId?: string | null;
-    baseUpdatedAt?: string;
-  }) => Promise<PersistedRecordLike | null>;
-  /** The caller's entity library, optionally narrowed by project, kind, tags or name. */
-  listEntities?: (args: {
-    userId: string;
-    projectId?: string;
-    kind?: EntityKind;
-    tags?: string[];
-    nameContains?: string;
-    limit?: number;
-  }) => Promise<Entity[]>;
-  /** Read one owned entity by id; null when missing, not owned, or not tagged. */
-  getEntity?: (args: { userId: string; id: string }) => Promise<Entity | null>;
-  /**
-   * Create or update one entity, identified by `source.key` when given and by
-   * (project, kind, name) otherwise. A re-run of the same graph therefore
-   * updates the entity it made last time instead of growing the library.
-   */
-  upsertEntity?: (args: EntityUpsertArgs) => Promise<EntityUpsertResult>;
-}
-
-/** The arguments {@link ProcessingContextModelInterfaces.upsertEntity} takes. */
-export interface EntityUpsertArgs {
-  userId: string;
-  projectId?: string;
-  kind: EntityKind;
-  name: string;
-  descriptor: string;
-  /** The image asset the entity shows; also the row a new entity is tagged on. */
-  imageAssetId: string;
-  description?: string;
-  tags?: string[];
-  voiceId?: string | null;
-  /** Stored verbatim on the marker, so a re-run finds its own row. */
-  source?: EntitySource;
-}
-
-/**
- * What an upsert did. The host owns the match rule (`source.key`, then
- * project/kind/name), so it is the only place that can say whether the row is
- * new — a caller re-deriving that from a probe duplicates the rule and drifts
- * from it the moment the host's changes.
- */
-export interface EntityUpsertResult {
-  entity: Entity;
-  created: boolean;
-}
-
-/**
- * The arguments one model interface takes, minus the `userId` every
- * {@link ProcessingContext} forwarder binds from the run. Derived so the shape
- * is declared once, on the interface.
- */
-type ModelInterfaceArgs<K extends keyof ProcessingContextModelInterfaces> =
-  Omit<
-    Parameters<NonNullable<ProcessingContextModelInterfaces[K]>>[0],
-    "userId"
-  >;
 
 let defaultModelInterfaces: ProcessingContextModelInterfaces | null = null;
 
@@ -871,117 +553,6 @@ function stableStringifyDeep(value: unknown): string {
         )}`
     );
   return `{${entries.join(",")}}`;
-}
-
-/**
- * Normalize the image input for image-to-image / image-to-video predictions
- * into a list of byte buffers. Accepts the modern `images` array as well as
- * the legacy singular `image` field so older callers keep working.
- */
-function coerceImageList(params: Record<string, unknown>): Uint8Array[] {
-  const list = params.images;
-  if (Array.isArray(list)) {
-    return list.filter((b): b is Uint8Array => b instanceof Uint8Array);
-  }
-  const single = params.image;
-  return single instanceof Uint8Array ? [single] : [];
-}
-
-/**
- * Read an outpaint padding bag off the loose params. Only the four side keys
- * are read, and only when numeric: a caller that passes nothing gets
- * `undefined`, which lets the provider fall back to its endpoint's default
- * expansion rather than sending zeros that would outpaint nothing.
- */
-function coerceOutpaintPadding(value: unknown): OutpaintPadding | undefined {
-  if (!isObjectLike(value)) return undefined;
-  const side = (key: string): number | undefined =>
-    isNumber(value[key]) ? value[key] : undefined;
-  const padding: OutpaintPadding = {
-    left: side("left"),
-    right: side("right"),
-    top: side("top"),
-    bottom: side("bottom")
-  };
-  return Object.values(padding).some((v) => v !== undefined)
-    ? padding
-    : undefined;
-}
-
-function coerceByteList(value: unknown): Uint8Array[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter(
-    (item): item is Uint8Array =>
-      item instanceof Uint8Array && item.byteLength > 0
-  );
-}
-
-function coerceStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter(isNonEmptyString);
-}
-
-function firstNonEmptyByteList(value: Uint8Array[]): Uint8Array {
-  return value.find((bytes) => bytes.byteLength > 0) ?? new Uint8Array();
-}
-
-function isAbortSignal(value: unknown): value is AbortSignal {
-  return (
-    isObjectLike(value) &&
-    isBoolean(value.aborted) &&
-    isCallable(value.addEventListener)
-  );
-}
-
-/**
- * Normalize `params.entities` into provider-level {@link EntityReference}s.
- *
- * Consumers send entities in whatever shape they hold: a full protocol Entity
- * (`reference_images` list), a lean `{name, descriptor, image}` where `image`
- * is bytes, an ImageRef-like object, or a bare URI string. Images are resolved
- * to bytes here — the last point with a ProcessingContext — so providers only
- * ever see `Uint8Array`s. Entities without a name are dropped; an unresolvable
- * image degrades to a text-only entity (the descriptor still applies).
- */
-async function coerceEntityList(
-  params: Record<string, unknown>,
-  context: ProcessingContext
-): Promise<EntityReference[] | undefined> {
-  const raw = params.entities;
-  if (!Array.isArray(raw) || raw.length === 0) return undefined;
-
-  const out: EntityReference[] = [];
-  for (const item of raw) {
-    if (!isObjectLike(item)) continue;
-    const entity = item as Record<string, unknown>;
-    const name = isString(entity.name) ? entity.name.trim() : "";
-    if (!name) continue;
-    const descriptor = isString(entity.descriptor)
-      ? entity.descriptor
-      : undefined;
-
-    const imageSource =
-      entity.image ??
-      (Array.isArray(entity.reference_images)
-        ? entity.reference_images[0]
-        : undefined);
-    let image: Uint8Array | undefined;
-    if (imageSource instanceof Uint8Array) {
-      image = imageSource;
-    } else if (isNonEmptyString(imageSource)) {
-      image =
-        (await loadMediaRefBytes(
-          { type: "image", uri: imageSource },
-          context
-        )) ?? undefined;
-    } else if (isObjectLike(imageSource)) {
-      image =
-        (await loadMediaRefBytes(imageSource as MediaRefValue, context)) ??
-        undefined;
-    }
-    out.push({ name, descriptor, image });
-  }
-  return out.length > 0 ? out : undefined;
 }
 
 /**
@@ -1104,7 +675,31 @@ function findListedAsset(
   });
 }
 
-export class ProcessingContext {
+/** Binds the runtime-owned slots of {@link NodeContext}. */
+export interface RuntimeNodeContextTypes extends NodeContextTypes {
+  provider: BaseProvider;
+  message: Message;
+  providerCapability: ProviderCapability;
+  providerRequest: ProviderPredictionRequest;
+  generationRequest: GenerationRequest;
+  generationResult: GenerationResult;
+  encodedAudio: EncodedAudioResult;
+  endpointProgress: EndpointProgress;
+  endpointResult: EndpointCallResult;
+  injectedTool: InjectedTool;
+  sandboxModuleCatalog: SandboxModuleCatalog;
+  nodeExecutor: NodeExecutor;
+  copyOptions: NodeContextCopyOptions & {
+    appRunContext?: AppRunContext;
+    runTraceContext?: RunTraceScope;
+    generationLifecycle?: GenerationLifecycleHooks;
+  };
+}
+
+/** The context node code receives, with the runtime's types bound. */
+export type RuntimeNodeContext = NodeContext<RuntimeNodeContextTypes>;
+
+export class ProcessingContext implements RuntimeNodeContext {
   /** Host policy inherited by native calls and copied contexts. */
   readonly nodeExecutorGuard?: (executor: import("./node-executor.js").NodeExecutor, nodeType: string, inputs: Record<string, unknown>) => import("./node-executor.js").NodeExecutor;
   readonly jobId: string;
@@ -1288,10 +883,8 @@ export class ProcessingContext {
         descriptorDefaults?: Record<string, unknown>;
       } | null>)
     | null = null;
-  /** Total cost tracked for operations executed via this context. */
-  private _totalCost = 0;
-  /** Per-operation cost entries. */
-  private _operationCosts: Array<Record<string, unknown>> = [];
+  /** Total cost and per-operation entries of operations run via this context. */
+  private _costs = new CostLedger();
   private readonly _generationLifecycle: GenerationLifecycleHooks | null;
 
   constructor(opts: {
@@ -1479,8 +1072,7 @@ export class ProcessingContext {
     next._sendControlEvent = this._sendControlEvent;
     next._injectedTools = this._injectedTools;
     next._providers = new Map(this._providers);
-    next._totalCost = this._totalCost;
-    next._operationCosts = this._operationCosts.map((c) => ({ ...c }));
+    next._costs = this._costs.clone();
     return next;
   }
 
@@ -2026,28 +1618,19 @@ export class ProcessingContext {
     cost: number,
     metadata?: Record<string, unknown>
   ): void {
-    const safeCost = Number.isFinite(cost) ? cost : 0;
-    this._totalCost += safeCost;
-    this._operationCosts.push({
-      operation,
-      cost: safeCost,
-      timestamp: new Date().toISOString(),
-      ...(metadata ?? {})
-    });
+    this._costs.track(operation, cost, metadata);
   }
 
   addToTotalCost(cost: number): void {
-    const safeCost = Number.isFinite(cost) ? cost : 0;
-    this._totalCost += safeCost;
+    this._costs.add(cost);
   }
 
   resetTotalCost(): void {
-    this._totalCost = 0;
-    this._operationCosts = [];
+    this._costs.reset();
   }
 
   getTotalCost(): number {
-    return this._totalCost;
+    return this._costs.total;
   }
 
   /** Null means at least one LLM call could not be priced. */
@@ -2077,7 +1660,7 @@ export class ProcessingContext {
   }
 
   getOperationCosts(): ReadonlyArray<Record<string, unknown>> {
-    return this._operationCosts;
+    return this._costs.operations;
   }
 
   // -----------------------------------------------------------------------
@@ -2981,101 +2564,14 @@ export class ProcessingContext {
   // Provider prediction pipeline
   // -----------------------------------------------------------------------
 
-  private emitPrediction(
-    status: PredictionStatus,
-    req: ProviderPredictionRequest,
-    id: string,
-    data?: unknown,
-    error?: string,
-    startedAt?: number,
-    extra?: {
-      origin?: GenerationOrigin;
-      asset_ids?: string[];
-      receipt?: GenerationReceipt | null;
-    }
-  ): void {
-    const message: Extract<ProcessingMessage, { type: "prediction" }> = {
-      type: "prediction",
-      id,
-      user_id: this.userId,
-      node_id: req.nodeId ?? "",
-      workflow_id: req.workflowId ?? this.workflowId ?? null,
-      provider: req.provider,
-      model: req.model,
-      capability: req.capability,
-      status,
-      // Redacted: bytes and data URLs become their length. The row stores
-      // this bag and every listener receives it.
-      params: redactGenerationParams(req.params),
-      data: data ?? null,
-      error: error ?? null,
-      duration: startedAt ? Date.now() - startedAt : null,
-      origin: extra?.origin ?? this.generationOrigin(req),
-      receipt: extra?.receipt ?? null
+  /** The host the shared generation envelope runs against. */
+  private generationHost(): GenerationHost {
+    return {
+      context: this,
+      lifecycle: this._generationLifecycle,
+      registry: generationRegistry,
+      insideAppRun: () => Boolean(this.appRunContext)
     };
-    // Only a terminal message names assets; `running` has none to name.
-    if (extra?.asset_ids) message.asset_ids = extra.asset_ids;
-    this.emit(message);
-  }
-
-  /**
-   * Who asked, defaulted from the context: a chat turn names its thread, a
-   * run names its job and node. A capability passes `surface` and its
-   * `tool_call_id` explicitly, the one id the context does not hold.
-   */
-  private generationOrigin(
-    req: ProviderPredictionRequest,
-    override?: Partial<GenerationOrigin>
-  ): GenerationOrigin {
-    const base: GenerationOrigin = this.threadId
-      ? {
-          surface: "chat",
-          thread_id: this.threadId,
-          job_id: this.jobId || null,
-          node_id: req.nodeId ?? null
-        }
-      : {
-          surface: "workflow",
-          job_id: this.jobId || null,
-          node_id: req.nodeId ?? null
-        };
-    if (!override) return base;
-    const merged: GenerationOrigin = { ...base };
-    if (override.surface !== undefined) merged.surface = override.surface;
-    if (override.thread_id !== undefined) merged.thread_id = override.thread_id;
-    if (override.tool_call_id !== undefined)
-      merged.tool_call_id = override.tool_call_id;
-    if (override.request_id !== undefined)
-      merged.request_id = override.request_id;
-    if (override.job_id !== undefined) merged.job_id = override.job_id;
-    if (override.node_id !== undefined) merged.node_id = override.node_id;
-    return merged;
-  }
-
-  /**
-   * Retrieve raw bytes for a media URI referenced in message content. Handles
-   * the `asset://<id>` reference scheme (via {@link resolveAssetBytes}) as well
-   * as opaque storage URIs (memory/file/s3) via the storage adapter.
-   */
-  private async retrieveMediaBytes(uri: string): Promise<Uint8Array | null> {
-    // `/api/storage/<key>` (and its slash-less `api/storage/<key>` form) is the
-    // browser-facing route, not a storage-adapter uri — the InMemory/S3 adapters
-    // only accept `memory://`/`s3://`, so route it through resolveAssetBytes
-    // (which parses the key) like `asset://`.
-    if (
-      uri.startsWith("asset://") ||
-      uri.startsWith("/api/storage/") ||
-      uri.startsWith("api/storage/")
-    ) {
-      const { bytes } = await this.resolveAssetBytes(uri);
-      return bytes;
-    }
-    for (const adapter of [this.assetStorage, this.storage]) {
-      if (!adapter) continue;
-      const bytes = await adapter.retrieve(uri);
-      if (bytes) return bytes;
-    }
-    return null;
   }
 
   /**
@@ -3084,679 +2580,14 @@ export class ProcessingContext {
    * storage URIs as well as the `asset://<id>` reference scheme (assets
    * mentioned inline in a prompt). Text parts that contain `asset://<id>.<ext>`
    * image / audio tokens are first split into proper blocks via
-   * {@link expandAssetReferences} so the same provider path handles chat
+   * `expandAssetReferences` so the same provider path handles chat
    * surfaces (where the user typed / dropped a reference) and workflow node
    * surfaces (where the agent node builds the message). Text document mentions
    * (`asset://doc.md`, `.txt`, `.csv`, …) are inlined as their decoded
    * contents in place of the token.
    */
   async resolveMessageMediaUris(messages: Message[]): Promise<Message[]> {
-    const IMAGE_MIME: Record<string, string> = {
-      png: "image/png",
-      jpg: "image/jpeg",
-      jpeg: "image/jpeg",
-      gif: "image/gif",
-      webp: "image/webp"
-    };
-    const AUDIO_MIME: Record<string, string> = {
-      mp3: "audio/mpeg",
-      wav: "audio/wav",
-      ogg: "audio/ogg",
-      m4a: "audio/mp4",
-      flac: "audio/flac"
-    };
-    const VIDEO_MIME: Record<string, string> = {
-      mp4: "video/mp4",
-      m4v: "video/mp4",
-      webm: "video/webm",
-      mov: "video/quicktime",
-      avi: "video/x-msvideo"
-    };
-
-    // Strict, anchored sanitizer for the URIs that may flow into the asset /
-    // storage retrieval path. Accept asset references, the browser-facing
-    // storage route, and URIs from configured storage adapters. External URLs
-    // and unrecognized schemes stay out of the storage adapter. `:` is allowed
-    // for named owner ids such as `projects/personal:<user_id>/assets/…`.
-    const RESOLVABLE_URI_RE =
-      /^(?:asset:\/\/|\/?api\/storage\/|(?:memory|file|s3|supabase):\/\/)[A-Za-z0-9._~/%:-]+$/;
-    const isResolvableUri = (uri: string): boolean =>
-      RESOLVABLE_URI_RE.test(uri);
-
-    // An `asset://` reference that cannot be dereferenced must not reach the
-    // provider: providers `fetch` a non-data URI, and the SSRF guard then
-    // rejects `asset://…` with "Refusing to fetch unsafe URL", which fails the
-    // whole turn on a message the user cannot fix. Replace the block with a
-    // note the model can act on instead — a stale attachment in the history
-    // must not break every later turn in the thread.
-    const unresolvedNote = (kind: string, uri: string): MessageContent => ({
-      type: "text",
-      text: `[attached ${kind} could not be ${kind === "image" ? "shown" : "loaded"}: ${uri}]`
-    });
-
-    // A resolved block reaches the provider as a `data:` URI, which the model
-    // cannot pass to a tool. Emit the stored handle beside it so "make it like
-    // this" can become `edit_image({input_file: "asset://…"})` — only for the
-    // URIs `isResolvableUri` admits, never for a `data:` URI the caller already
-    // inlined.
-    const attachedNote = (kind: string, uri: string): MessageContent => ({
-      type: "text",
-      text: `[attached ${kind} ${uri}]`
-    });
-
-    const resolvePart = async (
-      part: MessageContent,
-      // Parts split out of a text block already carry the literal token next
-      // to them (see `expandAssetReferences`), so a note there would repeat it.
-      fromText = false
-    ): Promise<MessageContent[]> => {
-      if (
-        part.type === "image_url" &&
-        part.image.uri &&
-        isResolvableUri(part.image.uri)
-      ) {
-        const bytes = await this.retrieveMediaBytes(part.image.uri);
-        if (bytes) {
-          const ext = part.image.uri.split(".").pop()?.toLowerCase() ?? "png";
-          const mimeType =
-            IMAGE_MIME[ext] ?? part.image.mimeType ?? "image/png";
-          const b64 = Buffer.from(bytes).toString("base64");
-          const block: MessageContent = {
-            type: "image_url",
-            image: { uri: `data:${mimeType};base64,${b64}`, mimeType }
-          };
-          return fromText
-            ? [block]
-            : [block, attachedNote("image", part.image.uri)];
-        }
-        return [unresolvedNote("image", part.image.uri)];
-      }
-      if (
-        part.type === "audio" &&
-        part.audio.uri &&
-        isResolvableUri(part.audio.uri)
-      ) {
-        const bytes = await this.retrieveMediaBytes(part.audio.uri);
-        if (bytes) {
-          const ext = part.audio.uri.split(".").pop()?.toLowerCase() ?? "mp3";
-          const mimeType =
-            AUDIO_MIME[ext] ?? part.audio.mimeType ?? "audio/mpeg";
-          const b64 = Buffer.from(bytes).toString("base64");
-          const block: MessageContent = {
-            type: "audio",
-            audio: { uri: `data:${mimeType};base64,${b64}`, mimeType }
-          };
-          return fromText
-            ? [block]
-            : [block, attachedNote("audio", part.audio.uri)];
-        }
-        return [unresolvedNote("audio", part.audio.uri)];
-      }
-      if (
-        part.type === "video" &&
-        part.video.uri &&
-        isResolvableUri(part.video.uri)
-      ) {
-        const bytes = await this.retrieveMediaBytes(part.video.uri);
-        if (bytes) {
-          const ext = part.video.uri.split(".").pop()?.toLowerCase() ?? "mp4";
-          const mimeType =
-            VIDEO_MIME[ext] ?? part.video.mimeType ?? "video/mp4";
-          const b64 = Buffer.from(bytes).toString("base64");
-          const block: MessageContent = {
-            type: "video",
-            video: { uri: `data:${mimeType};base64,${b64}`, mimeType }
-          };
-          return fromText
-            ? [block]
-            : [block, attachedNote("video", part.video.uri)];
-        }
-        return [unresolvedNote("video", part.video.uri)];
-      }
-      if (part.type === "text") {
-        // Entity mentions resolve first: each `entity://<id>` becomes the
-        // entity's name inline, a "Consistency references" line carrying its
-        // descriptor, and an `asset://` token for its reference image — which
-        // the asset pass below then turns into a real image block. Resolving
-        // here, per turn, is what makes a later rename or re-description
-        // reach every message that already mentions the entity.
-        const text = await expandEntityRefs(part.text, this, true);
-        if (!text.includes("asset://")) {
-          return text === part.text ? [part] : [{ type: "text", text }];
-        }
-        // First split out image / audio mentions into their own blocks; what
-        // stays as text is then run through the document inliner so any
-        // .md/.txt/.csv mentions become their decoded contents. The image and
-        // audio blocks fall through to the URI-resolution branches above on a
-        // second pass so the provider receives data URIs.
-        const expanded = expandAssetReferences(text);
-        const out: MessageContent[] = [];
-        for (const sub of expanded) {
-          if (sub.type === "text") {
-            const inlined = await inlineTextAssetRefs(sub.text, this);
-            if (inlined) out.push({ type: "text", text: inlined });
-          } else {
-            const resolved = await resolvePart(sub, true);
-            out.push(...resolved);
-          }
-        }
-        return out;
-      }
-      return [part];
-    };
-
-    const resolved: Message[] = [];
-    for (const msg of messages) {
-      if (!Array.isArray(msg.content)) {
-        resolved.push(msg);
-        continue;
-      }
-      const parts: MessageContent[] = [];
-      for (const part of msg.content) {
-        parts.push(...(await resolvePart(part)));
-      }
-      resolved.push({ ...msg, content: parts });
-    }
-    return resolved;
-  }
-
-  private async resolveRequiredImageEvidence(
-    messages: Message[],
-    required: readonly string[] = []
-  ): Promise<Message[]> {
-    const evidence = new Map<string, MessageContent>();
-    const resolve = async (ref: MediaRefValue): Promise<MessageContent> => {
-      const identity = ref.uri?.startsWith("data:")
-        ? "inline image"
-        : ref.uri ?? ref.asset_id ?? "inline image";
-      const cached = ref.uri ? evidence.get(ref.uri) : undefined;
-      if (cached) {
-        return cached;
-      }
-      try {
-        const bytes = await loadMediaRefBytes(ref, this);
-        if (!bytes?.length) {
-          throw new Error("no image bytes");
-        }
-        const mimeType = sniffImageMime(bytes);
-        if (
-          !mimeType ||
-          !["image/png", "image/jpeg", "image/webp", "image/gif"].includes(
-            mimeType
-          )
-        ) {
-          throw new Error("unsupported image format");
-        }
-        await validateImageEvidence(bytes);
-        const block: MessageContent = {
-          type: "image_url",
-          image: {
-            uri: `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`,
-            mimeType
-          }
-        };
-        if (ref.uri) {
-          evidence.set(ref.uri, block);
-        }
-        return block;
-      } catch (error) {
-        throw new Error(
-          `Required image evidence unavailable: ${identity} (${error instanceof Error ? error.message : String(error)})`
-        );
-      }
-    };
-    for (const uri of required) {
-      await resolve({ type: "image", uri });
-    }
-    const result: Message[] = [];
-    for (const message of messages) {
-      if (!Array.isArray(message.content)) {
-        result.push(message);
-        continue;
-      }
-      const content: MessageContent[] = [];
-      let imageIndex = 0;
-      for (const part of message.content) {
-        if (part.type === "image_url") {
-          imageIndex++;
-          content.push(await resolve(part.image), {
-            type: "text",
-            text: `[required image ${
-              part.image.uri && !part.image.uri.startsWith("data:")
-                ? part.image.uri
-                : `inline image ${imageIndex}`
-            }]`
-          });
-        } else {
-          content.push(part);
-        }
-      }
-      result.push({ ...message, content });
-    }
-    return result;
-  }
-
-  private async dispatchCapability(
-    provider: BaseProvider,
-    req: ProviderPredictionRequest
-  ): Promise<ProviderPredictionResult> {
-    const params = req.params ?? {};
-    switch (req.capability) {
-      case "generate_message":
-        return provider.generateMessageTraced({
-          messages:
-            params.strict_image_evidence === true
-              ? await this.resolveRequiredImageEvidence(
-                  (params.messages as Message[]) ?? [],
-                  Array.isArray(params.required_images)
-                    ? params.required_images.filter(isString)
-                    : []
-                )
-              : await this.resolveMessageMediaUris(
-                  (params.messages as Message[]) ?? []
-                ),
-          model: req.model,
-          tools: params.tools as Parameters<
-            BaseProvider["generateMessage"]
-          >[0]["tools"],
-          toolChoice: params.tool_choice as string | undefined,
-          maxTokens: params.max_tokens as number | undefined,
-          temperature: params.temperature as number | undefined,
-          topP: params.top_p as number | undefined,
-          presencePenalty: params.presence_penalty as number | undefined,
-          frequencyPenalty: params.frequency_penalty as number | undefined
-        });
-      case "text_to_image":
-        return provider.textToImage({
-          signal: params.signal as AbortSignal | undefined,
-          prompt: String(params.prompt ?? ""),
-          entities: await coerceEntityList(params, this),
-          model: { id: req.model, name: req.model, provider: req.provider },
-          width: params.width as number | undefined,
-          height: params.height as number | undefined,
-          aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined,
-          negativePrompt: params.negative_prompt as string | undefined,
-          quality: params.quality as string | undefined
-        });
-      case "image_to_image":
-        return provider.imageToImage(coerceImageList(params), {
-          signal: params.signal as AbortSignal | undefined,
-          prompt: String(params.prompt ?? ""),
-          entities: await coerceEntityList(params, this),
-          model: { id: req.model, name: req.model, provider: req.provider },
-          negativePrompt: params.negative_prompt as string | undefined,
-          targetWidth: params.target_width as number | undefined,
-          targetHeight: params.target_height as number | undefined,
-          aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined,
-          strength: params.strength as number | undefined,
-          quality: params.quality as string | undefined
-        });
-      case "inpainting":
-        return provider.inpaint(coerceImageList(params), {
-          prompt: String(params.prompt ?? ""),
-          entities: await coerceEntityList(params, this),
-          model: { id: req.model, name: req.model, provider: req.provider },
-          mask: params.mask as Uint8Array,
-          negativePrompt: params.negative_prompt as string | undefined,
-          targetWidth: params.target_width as number | undefined,
-          targetHeight: params.target_height as number | undefined,
-          aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined,
-          strength: params.strength as number | undefined,
-          quality: params.quality as string | undefined
-        });
-      case "text_to_video":
-        return provider.textToVideo({
-          signal: params.signal as AbortSignal | undefined,
-          prompt: String(params.prompt ?? ""),
-          entities: await coerceEntityList(params, this),
-          model: { id: req.model, name: req.model, provider: req.provider },
-          negativePrompt: params.negative_prompt as string | undefined,
-          numFrames: params.num_frames as number | undefined,
-          durationSeconds: params.duration_seconds as number | undefined,
-          aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined,
-          timeoutSeconds: params.timeout_seconds as number | undefined
-        });
-      case "image_to_video":
-        return provider.imageToVideo(
-          firstNonEmptyByteList(coerceImageList(params)),
-          {
-            signal: params.signal as AbortSignal | undefined,
-            prompt: params.prompt as string | undefined,
-            endImage: coerceByteList([params.end_image])[0],
-            seed: isNumber(params.seed) ? params.seed : undefined,
-            entities: await coerceEntityList(params, this),
-            model: { id: req.model, name: req.model, provider: req.provider },
-            negativePrompt: params.negative_prompt as string | undefined,
-            numFrames: params.num_frames as number | undefined,
-            durationSeconds: params.duration_seconds as number | undefined,
-            aspectRatio: params.aspect_ratio as string | undefined,
-            resolution: params.resolution as string | undefined,
-            timeoutSeconds: params.timeout_seconds as number | undefined
-          }
-        );
-      case "reference_to_video": {
-        const images = coerceByteList(params.reference_images);
-        const videos = coerceByteList(params.reference_videos);
-        if (images.length === 0 && videos.length === 0) {
-          throw new Error(
-            "reference_to_video requires at least one reference image or video"
-          );
-        }
-        return provider.referenceToVideo(
-          { images, videos },
-          {
-            model: { id: req.model, name: req.model, provider: req.provider },
-            prompt: isString(params.prompt) ? params.prompt : "",
-            entities: await coerceEntityList(params, this),
-            useReferenceVideoAudio: isBoolean(params.use_reference_video_audio)
-              ? params.use_reference_video_audio
-              : undefined,
-            negativePrompt: isString(params.negative_prompt)
-              ? params.negative_prompt
-              : undefined,
-            numFrames: isNumber(params.num_frames)
-              ? params.num_frames
-              : undefined,
-            durationSeconds: isNumber(params.duration_seconds)
-              ? params.duration_seconds
-              : undefined,
-            aspectRatio: isString(params.aspect_ratio)
-              ? params.aspect_ratio
-              : undefined,
-            resolution: isString(params.resolution)
-              ? params.resolution
-              : undefined,
-            timeoutSeconds: isNumber(params.timeout_seconds)
-              ? params.timeout_seconds
-              : undefined,
-            signal: isAbortSignal(params.signal) ? params.signal : undefined
-          }
-        );
-      }
-      case "outpaint_image":
-        return provider.outpaintImage(coerceImageList(params), {
-          signal: params.signal as AbortSignal | undefined,
-          prompt: params.prompt as string | undefined,
-          entities: await coerceEntityList(params, this),
-          model: { id: req.model, name: req.model, provider: req.provider },
-          negativePrompt: params.negative_prompt as string | undefined,
-          padding: coerceOutpaintPadding(params.padding),
-          aspectRatio: params.aspect_ratio as string | undefined,
-          seed: params.seed as number | undefined
-        });
-      case "upscale_image":
-        return provider.upscaleImage(params.image as Uint8Array, {
-          model: { id: req.model, name: req.model, provider: req.provider },
-          scale: params.scale as number | undefined,
-          prompt: params.prompt as string | undefined,
-          creativity: params.creativity as number | undefined,
-          seed: params.seed as number | undefined
-        });
-      case "remove_background":
-        return provider.removeBackground(params.image as Uint8Array, {
-          model: { id: req.model, name: req.model, provider: req.provider }
-        });
-      case "relight_image":
-        return provider.relightImage(params.image as Uint8Array, {
-          model: { id: req.model, name: req.model, provider: req.provider },
-          prompt: params.prompt as string | undefined,
-          negativePrompt: params.negative_prompt as string | undefined,
-          seed: params.seed as number | undefined
-        });
-      case "segment_image":
-        return provider.segmentImage(params.image as Uint8Array, {
-          signal: params.signal as AbortSignal | undefined,
-          model: { id: req.model, name: req.model, provider: req.provider },
-          prompt: params.prompt as string | undefined,
-          points: params.points as SegmentPoint[] | undefined,
-          box: params.box as ImageBox | undefined,
-          maxMasks: params.max_masks as number | undefined,
-          minConfidence: params.min_confidence as number | undefined
-        });
-      case "vectorize_image":
-        return provider.vectorizeImage(params.image as Uint8Array, {
-          model: { id: req.model, name: req.model, provider: req.provider }
-        });
-      case "estimate_depth":
-        return provider.estimateDepth(params.image as Uint8Array, {
-          model: { id: req.model, name: req.model, provider: req.provider },
-          signal: isAbortSignal(params.signal) ? params.signal : this.signal
-        });
-      case "rerank":
-        return provider.rerank({
-          model: req.model,
-          query: isString(params.query) ? params.query : "",
-          // Every entry stays, so result indices point into the caller's list.
-          documents: Array.isArray(params.documents)
-            ? params.documents.map((doc) => (isString(doc) ? doc : String(doc)))
-            : [],
-          topK: isNumber(params.top_k) ? params.top_k : undefined,
-          signal: isAbortSignal(params.signal) ? params.signal : this.signal
-        });
-      case "track_object": {
-        const request = objectTrackingRequestSchema.parse(params);
-        if (!provider.getCapabilities().includes("track_object")) {
-          throw new Error(
-            "The selected provider does not support object tracking."
-          );
-        }
-        const signal =
-          params.signal instanceof AbortSignal ? params.signal : this.signal;
-        signal.throwIfAborted();
-        const video = await loadMediaRefBytes(
-          { type: "video", asset_id: request.sourceAssetId },
-          this
-        );
-        if (!video?.byteLength) {
-          throw new Error("The tracking source video could not be loaded.");
-        }
-        signal.throwIfAborted();
-        const output = await provider.trackObject(video, {
-          ...request,
-          model: req.model,
-          signal
-        });
-        signal.throwIfAborted();
-        return parseObjectTrackingResult(output, request);
-      }
-      case "video_to_video": {
-        const signal = isAbortSignal(params.signal)
-          ? params.signal
-          : this.signal;
-        const referenceImages = coerceByteList(
-          params.reference_images ?? params.referenceImages
-        );
-        const referenceAssetIds = coerceStringList(
-          params.reference_asset_ids ?? params.referenceAssetIds
-        );
-        signal.throwIfAborted();
-        return provider.videoToVideo(params.video as Uint8Array, {
-          model: { id: req.model, name: req.model, provider: req.provider },
-          prompt: params.prompt as string | undefined,
-          referenceImages:
-            referenceImages.length > 0 ? referenceImages : undefined,
-          referenceAssetIds:
-            referenceAssetIds.length > 0 ? referenceAssetIds : undefined,
-          signal,
-          entities: await coerceEntityList(params, this),
-          negativePrompt: params.negative_prompt as string | undefined,
-          strength: params.strength as number | undefined,
-          durationSeconds: params.duration_seconds as number | undefined,
-          resolution: params.resolution as string | undefined,
-          seed: params.seed as number | undefined
-        });
-      }
-      case "video_to_audio": {
-        const source = isRecord(params.source)
-          ? {
-              assetId: params.source.assetId ?? params.source.asset_id,
-              durationSeconds:
-                params.source.durationSeconds ?? params.source.duration_seconds,
-              startSeconds:
-                params.source.startSeconds ?? params.source.start_seconds,
-              endSeconds: params.source.endSeconds ?? params.source.end_seconds
-            }
-          : params.source;
-        const request = VideoToAudioRequest.parse({
-          task: VIDEO_TO_AUDIO_TASK,
-          model: {
-            id: req.model,
-            provider: req.provider,
-            supportedTasks: [VIDEO_TO_AUDIO_TASK]
-          },
-          source,
-          sceneContext: params.sceneContext ?? params.scene_context
-        });
-        const video =
-          params.video instanceof Uint8Array
-            ? params.video
-            : await loadMediaRefBytes(
-                { type: "video", asset_id: request.source.assetId },
-                this
-              );
-        if (!video?.byteLength) {
-          throw new Error(
-            "video_to_audio requires nonempty source video bytes"
-          );
-        }
-        return requestVideoToAudio(provider, video, request, {
-          signal: params.signal as AbortSignal | undefined
-        });
-      }
-      case "extend_video": {
-        if (
-          (params.mode !== "start" && params.mode !== "end") ||
-          typeof params.duration_seconds !== "number" ||
-          !Number.isFinite(params.duration_seconds) ||
-          params.duration_seconds <= 0
-        ) {
-          throw new Error(
-            "extend_video requires start/end mode and positive duration_seconds"
-          );
-        }
-        return provider.extendVideo(params.video as Uint8Array, {
-          model: { id: req.model, name: req.model, provider: req.provider },
-          prompt: typeof params.prompt === "string" ? params.prompt : "",
-          mode: params.mode,
-          durationSeconds: params.duration_seconds
-        });
-      }
-      case "upscale_video":
-        return provider.upscaleVideo(params.video as Uint8Array, {
-          signal: params.signal as AbortSignal | undefined,
-          model: { id: req.model, name: req.model, provider: req.provider },
-          scale: params.scale as number | undefined,
-          targetResolution: params.target_resolution as string | undefined,
-          prompt: params.prompt as string | undefined,
-          creativity: params.creativity as number | undefined,
-          seed: params.seed as number | undefined,
-          timeoutSeconds: params.timeout_seconds as number | undefined
-        });
-      case "interpolate_video":
-        return provider.interpolateVideo(params.video as Uint8Array, {
-          signal: params.signal as AbortSignal | undefined,
-          model: { id: req.model, name: req.model, provider: req.provider },
-          targetFps: params.target_fps as number | undefined,
-          factor: params.factor as number | undefined,
-          seed: params.seed as number | undefined,
-          timeoutSeconds: params.timeout_seconds as number | undefined
-        });
-      case "outpaint_video":
-        return provider.outpaintVideo(params.video as Uint8Array, {
-          signal: params.signal as AbortSignal | undefined,
-          model: { id: req.model, name: req.model, provider: req.provider },
-          prompt: params.prompt as string | undefined,
-          entities: await coerceEntityList(params, this),
-          negativePrompt: params.negative_prompt as string | undefined,
-          padding: coerceOutpaintPadding(params.padding),
-          expandRatio: params.expand_ratio as number | undefined,
-          aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined,
-          seed: params.seed as number | undefined,
-          timeoutSeconds: params.timeout_seconds as number | undefined
-        });
-      case "matte_video":
-        return provider.matteVideo(params.video as Uint8Array, {
-          signal: params.signal as AbortSignal | undefined,
-          model: { id: req.model, name: req.model, provider: req.provider },
-          timeoutSeconds: params.timeout_seconds as number | undefined
-        });
-      case "lip_sync":
-        return provider.lipSync(params.video as Uint8Array, {
-          model: { id: req.model, name: req.model, provider: req.provider },
-          audio: params.audio as Uint8Array,
-          visualMimeType: params.visualMimeType as string | undefined,
-          audioMimeType: params.audioMimeType as string | undefined,
-          seed: params.seed as number | undefined
-        });
-      case "text_to_music":
-        return provider.textToMusic({
-          prompt: String(params.prompt ?? ""),
-          model: { id: req.model, name: req.model, provider: req.provider },
-          lyrics: params.lyrics as string | undefined,
-          durationSeconds: params.duration_seconds as number | undefined,
-          seed: params.seed as number | undefined,
-          audioFormat: params.audioFormat as string | undefined,
-          timeoutSeconds: params.timeout_seconds as number | undefined
-        });
-      case "audio_to_audio":
-        return provider.audioToAudio(params.audio as Uint8Array, {
-          model: { id: req.model, name: req.model, provider: req.provider },
-          prompt: params.prompt as string | undefined,
-          voice: params.voice as string | undefined,
-          strength: params.strength as number | undefined,
-          seed: params.seed as number | undefined,
-          audioFormat: params.audioFormat as string | undefined,
-          timeoutSeconds: params.timeout_seconds as number | undefined
-        });
-      case "automatic_speech_recognition":
-        return provider.automaticSpeechRecognition({
-          audio: params.audio as Uint8Array,
-          model: req.model,
-          language: params.language as string | undefined,
-          prompt: params.prompt as string | undefined,
-          temperature: params.temperature as number | undefined
-        });
-      case "generate_embedding":
-        return provider.generateEmbedding({
-          text: (params.text as string | string[]) ?? "",
-          model: req.model,
-          dimensions: params.dimensions as number | undefined
-        });
-      case "text_to_3d":
-        return provider.textTo3D({
-          model: model3dOf(params, req),
-          prompt: String(params.prompt ?? ""),
-          negativePrompt:
-            (params.negative_prompt as string | undefined) ?? null,
-          artStyle: (params.art_style as string | undefined) ?? null,
-          outputFormat: params.output_format as string | undefined,
-          seed: (params.seed as number | undefined) ?? null,
-          timeoutSeconds:
-            (params.timeout_seconds as number | undefined) ?? null,
-          enableTextures: params.enable_textures as boolean | undefined
-        });
-      case "image_to_3d":
-        return provider.imageTo3D(
-          coerceImageList(params)[0] ?? new Uint8Array(),
-          {
-            model: model3dOf(params, req),
-            prompt: (params.prompt as string | undefined) ?? null,
-            outputFormat: params.output_format as string | undefined,
-            seed: (params.seed as number | undefined) ?? null,
-            timeoutSeconds:
-              (params.timeout_seconds as number | undefined) ?? null
-          }
-        );
-      default:
-        throw new Error(
-          `Capability '${req.capability}' requires streaming API`
-        );
-    }
+    return messageMedia.resolveMessageMediaUris(this, messages);
   }
 
   /**
@@ -3780,18 +2611,7 @@ export class ProcessingContext {
    * those into the row. Design: docs/media-generation-tracking-design.md § 5.
    */
   async runGeneration(req: GenerationRequest): Promise<GenerationResult> {
-    return this.runGenerationWith(req, (provider, signal) => {
-      if (!provider) {
-        throw new Error("Provider generation requires a provider.");
-      }
-      const dispatchReq: ProviderPredictionRequest = {
-        ...req,
-        params: { ...(req.params ?? {}), signal }
-      };
-      return this.retryContentFilterRefusal(req, () =>
-        this.dispatchCapability(provider, dispatchReq)
-      );
-    });
+    return generation.runGeneration(this.generationHost(), req);
   }
 
   /**
@@ -3808,199 +2628,7 @@ export class ProcessingContext {
     call: (provider: BaseProvider | null, signal: AbortSignal) => Promise<T>,
     opts?: GenerationRunOptions
   ): Promise<GenerationResult<T>> {
-    const id = req.id ?? randomUUID();
-    return withSpan("generation", { "generation.id": id, "generation.provider": req.provider, "generation.kind": req.capability }, async () => {
-    const startedAt = Date.now();
-    const origin = this.generationOrigin(req, req.origin);
-    const controller = new AbortController();
-    const signals: AbortSignal[] = [controller.signal, this.signal];
-    if (req.signal) signals.push(req.signal);
-    const signal = AbortSignal.any(signals);
-    const accept =
-      opts?.onGenerationAccepted ??
-      this._generationLifecycle?.onGenerationAccepted;
-    const terminal =
-      opts?.onGenerationTerminal ??
-      this._generationLifecycle?.onGenerationTerminal;
-    let durableAccepted = false;
-    let terminalAttempted = false;
-    try {
-      const accepted = await accept?.({ generationId: id, request: req });
-      if (accepted?.skipProvider) {
-        throw new GenerationAlreadyAcceptedError(
-          accepted.existingGenerationId ?? id
-        );
-      }
-      durableAccepted = accepted?.durable === true;
-      generationRegistry.register(id, {
-        userId: this.userId,
-        abort: () => controller.abort(new Error("Generation cancelled"))
-      });
-      this.emitPrediction("running", req, id, null, undefined, startedAt, {
-        origin
-      });
-      const provider = opts?.withoutProvider
-        ? null
-        : await this.getProvider(req.provider);
-      const {
-        value: output,
-        receipt: recorded,
-        providerResult
-      } = await runWithGenerationReceipt(() => call(provider, signal), {
-        providerRequestOptions: accepted ?? undefined,
-        onProviderRequestAccepted:
-          opts?.onProviderRequestAccepted ??
-          this._generationLifecycle?.onProviderRequestAccepted,
-        onProviderRequestBound:
-          opts?.onProviderRequestBound ??
-          this._generationLifecycle?.onProviderRequestBound
-      });
-      const encoded = encodedAudioOf(output);
-      const persistedAssets = req.persist
-        ? await this.persistGenerationBytes(
-            id,
-            req,
-            encoded ? [encoded.data] : mediaBuffers(output),
-            encoded?.mimeType
-          )
-        : [];
-      const assets = persistedAssets.filter(
-        (asset): asset is AssetRef => asset !== null
-      );
-      let delivery: GenerationDelivery | undefined;
-      if (opts?.finalizeOutput) {
-        try {
-          delivery = await opts.finalizeOutput(output, assets);
-        } catch (error) {
-          delivery = {
-            status: "failed",
-            error: error instanceof Error ? error.message : String(error)
-          };
-        }
-      }
-      const deliveryFields: { delivery?: GenerationDelivery } = {};
-      if (delivery) {
-        deliveryFields.delivery = delivery;
-      }
-      const late = opts?.receiptAfterPersist?.() ?? null;
-      const receipt: GenerationReceipt | null =
-        late || recorded ? { ...(recorded ?? {}), ...(late ?? {}) } : null;
-      const assetIds = assets
-        .map((asset) => asset.asset_id)
-        .filter((assetId): assetId is string => typeof assetId === "string");
-      const durableAssetIds = persistedAssets.map(
-        (asset) => asset?.asset_id ?? null
-      );
-      try {
-        terminalAttempted = true;
-        await terminal?.({
-          generationId: id,
-          request: req,
-          status: "completed",
-          output: providerResult ?? output,
-          receipt,
-          assetIds: durableAssetIds,
-          ...deliveryFields
-        });
-      } catch (terminalError) {
-        this.emit({
-          type: "log_update",
-          node_id: req.nodeId ?? "",
-          node_name: req.nodeId ?? "",
-          workflow_id: req.workflowId ?? this.workflowId ?? null,
-          severity: "warning",
-          content: `Generation ${id} completed but durable finalization will be recovered: ${terminalError instanceof Error ? terminalError.message : String(terminalError)}`
-        });
-      }
-      this.emitPrediction(
-        "completed",
-        req,
-        id,
-        delivery ? { delivery } : generationResultData(req.capability, output),
-        undefined,
-        startedAt,
-        { origin, asset_ids: assetIds, receipt }
-      );
-      generationRegistry.settle(id, {
-        status: "completed",
-        asset_ids: assetIds,
-        receipt,
-        ...deliveryFields
-      });
-      return {
-        id,
-        output,
-        assets,
-        receipt,
-        duration_ms: Date.now() - startedAt,
-        ...deliveryFields
-      };
-    } catch (error) {
-      const cause = error instanceof GenerationScopeError ? error.cause : error;
-      const receipt =
-        error instanceof GenerationScopeError ? error.receipt : null;
-      const providerResult =
-        error instanceof GenerationScopeError
-          ? error.providerResult
-          : undefined;
-      const message = cause instanceof Error ? cause.message : String(cause);
-      if (cause instanceof GenerationAlreadyAcceptedError) {
-        throw cause;
-      }
-      const status: PredictionStatus = signal.aborted
-        ? durableAccepted
-          ? "running"
-          : "cancelled"
-        : durableAccepted && !isAuthoritativeProviderTerminalError(cause)
-          ? "running"
-          : "failed";
-      if (durableAccepted && !terminalAttempted) {
-        try {
-          terminalAttempted = true;
-          await terminal?.({
-            generationId: id,
-            request: req,
-            status: isAuthoritativeProviderTerminalError(cause)
-              ? "failed"
-              : "recovering",
-            output: providerResult,
-            error: message,
-            receipt,
-            assetIds: []
-          });
-        } catch {
-          // The provider observation remains authoritative. The durable row
-          // can be finalized by the recovery worker.
-        }
-      }
-      if (this.appRunContext && !durableAccepted && !terminalAttempted) {
-        try {
-          terminalAttempted = true;
-          await terminal?.({
-            generationId: id,
-            request: req,
-            status: signal.aborted ? "cancelled" : "failed",
-            error: message,
-            receipt,
-            assetIds: []
-          });
-        } catch {
-          // Preserve the provider failure; the live ledger can retry its write.
-        }
-      }
-      this.emitPrediction(status, req, id, null, message, startedAt, {
-        origin,
-        receipt
-      });
-      generationRegistry.settle(id, {
-        status,
-        error: message,
-        asset_ids: [],
-        receipt
-      });
-      throw cause;
-    }
-    });
+    return generation.runGenerationWith(this.generationHost(), req, call, opts);
   }
 
   /**
@@ -4108,136 +2736,12 @@ export class ProcessingContext {
   }
 
   /**
-   * Save a generation's media output as assets, stamping the generation id
-   * on each. Bytes only: a segmentation result, a transcript or an embedding
-   * is a result and stays on the message.
-   */
-  private async persistGenerationBytes(
-    id: string,
-    req: GenerationRequest,
-    buffers: Uint8Array[],
-    mimeOverride?: string
-  ): Promise<Array<AssetRef | null>> {
-    if (!this.hasModelInterface("createAsset")) {
-      return buffers.map(() => null);
-    }
-    const assets: Array<AssetRef | null> = [];
-    // The prompt and settings ride on the asset, not only on the ledger row:
-    // the row has its own retention and lives in another table, while the
-    // asset is what somebody opens weeks later to make a variant.
-    const provenance = buildAssetGenerationMetadata({
-      prompt: req.params?.prompt,
-      provider: req.provider,
-      model: req.model,
-      capability: req.capability,
-      params: req.params
-    });
-    const metadata = { generation_id: id, ...provenance };
-    for (const [index, bytes] of buffers.entries()) {
-      const mime =
-        req.persist?.mime ??
-        mimeOverride ??
-        generationMime(req.capability, bytes);
-      const ext = extForGenerationMime(mime);
-      // The asset's `uri` takes its extension from the name, so a caller's
-      // bare name (`shot-1-still`) gets the one the bytes have; otherwise the
-      // row reads `asset://<id>` while this result says `asset://<id>.<ext>`.
-      const persistName =
-        req.persist?.name && !/\.[a-z0-9]+$/i.test(req.persist.name)
-          ? `${req.persist.name}.${ext}`
-          : req.persist?.name;
-      const name =
-        buffers.length === 1 || !persistName
-          ? (persistName ?? `${req.capability}-${startedName(id)}.${ext}`)
-          : persistName.replace(/(\.[a-z0-9]+)?$/i, `-${index + 1}$1`);
-      try {
-        const created = await this.createAsset({
-          name,
-          contentType: mime,
-          content: bytes,
-          parentId: req.persist?.parentId ?? null,
-          nodeId: req.nodeId ?? null,
-          metadata: { ...metadata }
-        });
-        const assetId =
-          isRecord(created) && typeof created.id === "string"
-            ? created.id
-            : null;
-        if (!assetId) {
-          assets.push(null);
-          continue;
-        }
-        assets.push({
-          type: assetRefType(mime),
-          uri: `asset://${assetId}.${ext}`,
-          asset_id: assetId,
-          metadata: { ...metadata }
-        });
-      } catch (error) {
-        assets.push(null);
-        // The generation happened and was billed; a failed save must not turn
-        // it into a failed generation. The caller still gets the bytes.
-        this.emit({
-          type: "log_update",
-          node_id: req.nodeId ?? "",
-          node_name: req.nodeId ?? "",
-          workflow_id: req.workflowId ?? this.workflowId ?? null,
-          severity: "warning",
-          content: `Generated ${mime} could not be saved as an asset: ${
-            error instanceof Error ? error.message : String(error)
-          }`
-        });
-      }
-    }
-    return assets;
-  }
-
-  /**
-   * Run a prediction, retrying a content-filter refusal a bounded number of
-   * times. The filter is non-deterministic — Veo refused one shot of a
-   * five-shot trailer on an ordinary cinematic prompt and passed the same
-   * prompt on retry — and a refused take is not charged, so the cheap answer to
-   * a refusal is to ask again before failing the node that asked.
-   *
-   * A refusal that survives the retries is rethrown as-is, so the kernel can
-   * still drop the item rather than the run.
-   */
-  private async retryContentFilterRefusal<T>(
-    req: ProviderPredictionRequest,
-    attemptFn: () => Promise<T>
-  ): Promise<T> {
-    for (let attempt = 1; ; attempt++) {
-      try {
-        return await attemptFn();
-      } catch (error) {
-        if (
-          !isContentFilterRefusal(error) ||
-          attempt > CONTENT_FILTER_MAX_RETRIES
-        ) {
-          throw error;
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        this.emit({
-          type: "log_update",
-          node_id: req.nodeId ?? "",
-          node_name: req.nodeId ?? "",
-          workflow_id: req.workflowId ?? this.workflowId ?? null,
-          severity: "warning",
-          content: `${req.provider}/${req.model} content-filtered this request (attempt ${attempt} of ${CONTENT_FILTER_MAX_RETRIES + 1}); retrying. ${message}`
-        });
-        await waitForRetry(contentFilterRetryDelayMs(attempt), this.signal);
-      }
-    }
-  }
-
-  /**
    * Whether a provider streams raw PCM for text-to-speech. When false, the
    * caller should use {@link textToSpeechEncoded} (the provider returns an
    * encoded audio file rather than samples).
    */
   async providerSupportsStreamingTTS(providerId: string): Promise<boolean> {
-    const provider = await this.getProvider(providerId);
-    return provider.supportsStreamingTextToSpeech();
+    return providerDispatch.providerSupportsStreamingTTS(this, providerId);
   }
 
   /**
@@ -4259,179 +2763,7 @@ export class ProcessingContext {
   async textToSpeechEncoded(
     req: GenerationRequest
   ): Promise<EncodedAudioResult | null> {
-    return this.runEncodedGeneration(req, async (provider) => {
-      const params = req.params ?? {};
-      return provider.textToSpeechEncoded({
-        text: String(params.text ?? ""),
-        model: req.model,
-        voice: params.voice as string | undefined,
-        speed: params.speed as number | undefined,
-        referenceAudio: params.reference_audio as Uint8Array | undefined,
-        referenceText: params.reference_text as string | undefined,
-        language: params.language as string | undefined,
-        instructions: params.instructions as string | undefined,
-        audioFormat: params.audioFormat as string | undefined
-      });
-    });
-  }
-
-  /**
-   * The generation lifecycle for the encoded-audio paths: same id on every
-   * message, origin on `running`, the receipt on the terminal message,
-   * `cancelled` on abort. These return an encoded result rather than bytes,
-   * so the caller persists.
-   */
-  private async runEncodedGeneration<T>(
-    req: GenerationRequest,
-    call: (provider: BaseProvider, signal: AbortSignal) => Promise<T>
-  ): Promise<T> {
-    const id = req.id ?? randomUUID();
-    const startedAt = Date.now();
-    const origin = this.generationOrigin(req, req.origin);
-    const controller = new AbortController();
-    const signals: AbortSignal[] = [controller.signal, this.signal];
-    if (req.signal) signals.push(req.signal);
-    const signal = AbortSignal.any(signals);
-    const accept = this._generationLifecycle?.onGenerationAccepted;
-    const terminal = this._generationLifecycle?.onGenerationTerminal;
-    let durableAccepted = false;
-    let terminalAttempted = false;
-    let accepted: GenerationProviderRequestOptions | void;
-    try {
-      accepted = await accept?.({ generationId: id, request: req });
-      if (accepted?.skipProvider) {
-        throw new GenerationAlreadyAcceptedError(
-          accepted.existingGenerationId ?? id
-        );
-      }
-      durableAccepted = accepted?.durable === true;
-      generationRegistry.register(id, {
-        userId: this.userId,
-        abort: () => controller.abort(new Error("Generation cancelled"))
-      });
-      this.emitPrediction("running", req, id, null, undefined, startedAt, {
-        origin
-      });
-      const provider = await this.getProvider(req.provider);
-      const { value, receipt, providerResult } = await runWithGenerationReceipt(
-        () => call(provider, signal),
-        {
-          providerRequestOptions: accepted ?? undefined,
-          onProviderRequestAccepted:
-            this._generationLifecycle?.onProviderRequestAccepted,
-          onProviderRequestBound:
-            this._generationLifecycle?.onProviderRequestBound
-        }
-      );
-      const encoded = encodedAudioOf(value);
-      const persistedAssets =
-        req.persist && encoded
-          ? await this.persistGenerationBytes(
-              id,
-              req,
-              [encoded.data],
-              encoded.mimeType
-            )
-          : [];
-      const assets = persistedAssets.filter(
-        (asset): asset is AssetRef => asset !== null
-      );
-      const assetIds = assets
-        .map((asset) => asset.asset_id)
-        .filter((assetId): assetId is string => typeof assetId === "string");
-      const durableAssetIds = persistedAssets.map(
-        (asset) => asset?.asset_id ?? null
-      );
-      try {
-        terminalAttempted = true;
-        await terminal?.({
-          generationId: id,
-          request: req,
-          status: "completed",
-          output: providerResult ?? value,
-          receipt,
-          assetIds: durableAssetIds
-        });
-      } catch {
-        // Provider success remains authoritative even when durable finalization
-        // needs a later recovery attempt.
-      }
-      this.emitPrediction("completed", req, id, null, undefined, startedAt, {
-        origin,
-        asset_ids: assetIds,
-        receipt
-      });
-      generationRegistry.settle(id, {
-        status: "completed",
-        asset_ids: assetIds,
-        receipt
-      });
-      return value;
-    } catch (error) {
-      const cause = error instanceof GenerationScopeError ? error.cause : error;
-      const receipt =
-        error instanceof GenerationScopeError ? error.receipt : null;
-      const providerResult =
-        error instanceof GenerationScopeError
-          ? error.providerResult
-          : undefined;
-      const message = cause instanceof Error ? cause.message : String(cause);
-      if (cause instanceof GenerationAlreadyAcceptedError) {
-        throw cause;
-      }
-      const status: PredictionStatus = signal.aborted
-        ? durableAccepted
-          ? "running"
-          : "cancelled"
-        : durableAccepted && !isAuthoritativeProviderTerminalError(cause)
-          ? "running"
-          : "failed";
-      if (durableAccepted && !terminalAttempted) {
-        try {
-          terminalAttempted = true;
-          await terminal?.({
-            generationId: id,
-            request: req,
-            status: isAuthoritativeProviderTerminalError(cause)
-              ? "failed"
-              : "recovering",
-            output: providerResult,
-            error: message,
-            receipt,
-            assetIds: []
-          });
-        } catch {
-          // Keep the provider outcome visible while durable finalization is
-          // retried by the recovery worker.
-        }
-      }
-      if (this.appRunContext && !durableAccepted && !terminalAttempted) {
-        try {
-          terminalAttempted = true;
-          await terminal?.({
-            generationId: id,
-            request: req,
-            status: signal.aborted ? "cancelled" : "failed",
-            error: message,
-            receipt,
-            assetIds: []
-          });
-        } catch {
-          // Preserve the provider failure; the live ledger can retry its write.
-        }
-      }
-      this.emitPrediction(status, req, id, null, message, startedAt, {
-        origin,
-        receipt
-      });
-      generationRegistry.settle(id, {
-        status,
-        error: message,
-        asset_ids: [],
-        receipt
-      });
-      throw cause;
-    }
+    return generation.textToSpeechEncoded(this.generationHost(), req);
   }
 
   /**
@@ -4440,18 +2772,7 @@ export class ProcessingContext {
    * provider returns a fully-encoded audio file rather than streaming PCM.
    */
   async textToMusic(req: GenerationRequest): Promise<EncodedAudioResult> {
-    return this.runEncodedGeneration(req, async (provider) => {
-      const params = req.params ?? {};
-      return provider.textToMusic({
-        prompt: String(params.prompt ?? ""),
-        model: { id: req.model, name: req.model, provider: req.provider },
-        lyrics: params.lyrics as string | undefined,
-        durationSeconds: params.duration_seconds as number | undefined,
-        seed: params.seed as number | undefined,
-        audioFormat: params.audioFormat as string | undefined,
-        timeoutSeconds: params.timeout_seconds as number | undefined
-      });
-    });
+    return generation.textToMusic(this.generationHost(), req);
   }
 
   /**
@@ -4460,22 +2781,7 @@ export class ProcessingContext {
    * the source bytes ride in `params.audio`.
    */
   async audioToAudio(req: GenerationRequest): Promise<EncodedAudioResult> {
-    return this.runEncodedGeneration(req, async (provider) => {
-      const params = req.params ?? {};
-      const audio = params.audio;
-      if (!(audio instanceof Uint8Array) || audio.length === 0) {
-        throw new Error("audio_to_audio needs source audio bytes");
-      }
-      return provider.audioToAudio(audio, {
-        model: { id: req.model, name: req.model, provider: req.provider },
-        prompt: params.prompt as string | undefined,
-        voice: params.voice as string | undefined,
-        strength: params.strength as number | undefined,
-        seed: params.seed as number | undefined,
-        audioFormat: params.audioFormat as string | undefined,
-        timeoutSeconds: params.timeout_seconds as number | undefined
-      });
-    });
+    return generation.audioToAudio(this.generationHost(), req);
   }
 
   /**
@@ -4484,7 +2790,7 @@ export class ProcessingContext {
    * the source video's soundtrack or timeline placement.
    */
   async videoToAudio(req: GenerationRequest): Promise<EncodedAudioResult> {
-    return this.runEncodedGeneration(req, async (provider, signal) => {
+    return generation.runEncodedGeneration(this.generationHost(), req, async (provider, signal) => {
       const params = req.params ?? {};
       const source = isRecord(params.source)
         ? {
@@ -4523,75 +2829,7 @@ export class ProcessingContext {
   async *streamProviderPrediction(
     req: GenerationRequest
   ): AsyncGenerator<ProviderStreamItem | unknown> {
-    const id = req.id ?? randomUUID();
-    const startedAt = Date.now();
-    const origin = this.generationOrigin(req, req.origin);
-    this.emitPrediction("running", req, id, null, undefined, startedAt, {
-      origin
-    });
-    let terminalStatusEmitted = false;
-    try {
-      const provider = await this.getProvider(req.provider);
-      const params = req.params ?? {};
-
-      if (req.capability === "generate_messages") {
-        for await (const item of provider.generateMessagesTraced({
-          messages: await this.resolveMessageMediaUris(
-            (params.messages as Message[]) ?? []
-          ),
-          model: req.model,
-          tools: params.tools as Parameters<
-            BaseProvider["generateMessages"]
-          >[0]["tools"],
-          maxTokens: params.max_tokens as number | undefined,
-          temperature: params.temperature as number | undefined,
-          topP: params.top_p as number | undefined,
-          presencePenalty: params.presence_penalty as number | undefined,
-          frequencyPenalty: params.frequency_penalty as number | undefined,
-          audio: params.audio as Record<string, unknown> | undefined,
-          threadId: params.thread_id as string | undefined
-        })) {
-          yield item;
-        }
-      } else if (req.capability === "text_to_speech") {
-        for await (const item of provider.textToSpeech({
-          text: String(params.text ?? ""),
-          model: req.model,
-          voice: params.voice as string | undefined,
-          speed: params.speed as number | undefined,
-          referenceAudio: params.reference_audio as Uint8Array | undefined,
-          referenceText: params.reference_text as string | undefined,
-          language: params.language as string | undefined,
-          instructions: params.instructions as string | undefined
-        })) {
-          yield item;
-        }
-      } else {
-        throw new Error(`Capability '${req.capability}' is not streamable`);
-      }
-
-      this.emitPrediction("completed", req, id, null, undefined, startedAt, {
-        origin,
-        asset_ids: []
-      });
-      terminalStatusEmitted = true;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      const status: PredictionStatus =
-        this.signal.aborted || req.signal?.aborted ? "cancelled" : "failed";
-      this.emitPrediction(status, req, id, null, message, startedAt, {
-        origin
-      });
-      terminalStatusEmitted = true;
-      throw error;
-    } finally {
-      if (!terminalStatusEmitted) {
-        this.emitPrediction("completed", req, id, null, undefined, startedAt, {
-          origin,
-          asset_ids: []
-        });
-      }
-    }
+    yield* generation.streamGeneration(this, req);
   }
 
   // -----------------------------------------------------------------------
@@ -4942,153 +3180,4 @@ export function mediaResolverFor(
   if (!context || !isCallable(context.resolveMessageMediaUris))
     return undefined;
   return (messages) => context.resolveMessageMediaUris(messages);
-}
-
-// ---------------------------------------------------------------------------
-// Generation seam helpers
-// ---------------------------------------------------------------------------
-
-/**
- * The 3D model a request names: the full `Model3D` the node resolved (with
- * its supported tasks and formats) when it passed one, else the minimal ref.
- */
-function model3dOf(
-  params: Record<string, unknown>,
-  req: ProviderPredictionRequest
-): Model3D {
-  const given = params.model;
-  if (
-    isRecord(given) &&
-    typeof given.id === "string" &&
-    typeof given.provider === "string"
-  ) {
-    return given as unknown as Model3D;
-  }
-  return {
-    id: req.model,
-    name: req.model,
-    provider: req.provider as Model3D["provider"]
-  };
-}
-
-/** The media buffers a capability result carries, if any. */
-function mediaBuffers(output: unknown): Uint8Array[] {
-  if (output instanceof Uint8Array) return [output];
-  if (
-    Array.isArray(output) &&
-    output.length > 0 &&
-    output.every((item) => item instanceof Uint8Array)
-  ) {
-    return output as Uint8Array[];
-  }
-  return [];
-}
-
-/** An encoded-audio result (`{data, mimeType}`), or null for anything else. */
-function encodedAudioOf(
-  value: unknown
-): { data: Uint8Array; mimeType?: string } | null {
-  if (!isRecord(value)) return null;
-  const data = value.data;
-  if (!(data instanceof Uint8Array) || data.length === 0) return null;
-  const mimeType = value.mimeType;
-  return {
-    data,
-    mimeType: typeof mimeType === "string" ? mimeType : undefined
-  };
-}
-
-/** What a `completed` prediction message carries as `data`: never bytes. */
-function generationResultData(
-  capability: ProviderCapability,
-  output: unknown
-): unknown {
-  if (output instanceof Uint8Array) return null;
-  if (encodedAudioOf(output)) return null;
-  if (Array.isArray(output)) {
-    if (output.every((item) => item instanceof Uint8Array)) {
-      return { count: output.length };
-    }
-    if (capability === "segment_image") {
-      return output.map((item) => {
-        if (!isRecord(item)) return item;
-        const { mask: _mask, ...rest } = item;
-        return rest;
-      });
-    }
-    if (capability === "generate_embedding") {
-      const first = output[0];
-      return {
-        count: output.length,
-        dimensions: Array.isArray(first) ? first.length : null
-      };
-    }
-    return { count: output.length };
-  }
-  return redactGenerationOutput(output) ?? null;
-}
-
-const VIDEO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
-  "text_to_video",
-  "image_to_video",
-  "reference_to_video",
-  "video_to_video",
-  "extend_video",
-  "lip_sync"
-]);
-const AUDIO_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
-  "text_to_speech",
-  "text_to_music",
-  "audio_to_audio",
-  "video_to_audio"
-]);
-const MODEL3D_CAPABILITIES: ReadonlySet<ProviderCapability> = new Set([
-  "text_to_3d",
-  "image_to_3d"
-]);
-
-/** The MIME a generation's bytes carry when the caller stated none. */
-function generationMime(
-  capability: ProviderCapability,
-  bytes: Uint8Array
-): string {
-  if (VIDEO_CAPABILITIES.has(capability)) return "video/mp4";
-  if (AUDIO_CAPABILITIES.has(capability)) return "audio/mpeg";
-  if (MODEL3D_CAPABILITIES.has(capability)) return "model/gltf-binary";
-  if (capability === "vectorize_image") return "image/svg+xml";
-  return sniffImageMime(bytes) ?? "image/png";
-}
-
-const GENERATION_MIME_EXT: Record<string, string> = {
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-  "audio/mpeg": "mp3",
-  "audio/mp3": "mp3",
-  "audio/wav": "wav",
-  "audio/x-wav": "wav",
-  "audio/flac": "flac",
-  "audio/ogg": "ogg",
-  "model/gltf-binary": "glb",
-  "model/gltf+json": "gltf",
-  "image/svg+xml": "svg"
-};
-
-function extForGenerationMime(mime: string): string {
-  if (mime.startsWith("image/") && mime !== "image/svg+xml") {
-    return extForImageMime(mime) ?? "bin";
-  }
-  return GENERATION_MIME_EXT[mime] ?? "bin";
-}
-
-function assetRefType(mime: string): AssetRef["type"] {
-  if (mime.startsWith("image/")) return "image";
-  if (mime.startsWith("video/")) return "video";
-  if (mime.startsWith("audio/")) return "audio";
-  return "asset";
-}
-
-/** A short, sortable name fragment for an unnamed generation asset. */
-function startedName(id: string): string {
-  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return `${stamp}-${id.slice(0, 8)}`;
 }

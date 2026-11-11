@@ -158,6 +158,7 @@ private:
     std::optional<QSet<QString>> m_changedClipIds;
     QSet<QString> m_changedTrackIds;
     quint64 m_takesRevision = 0;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<const nt::Timeline> m_timeline;
     TrackListModel* m_tracks;
     QUndoStack* m_undo;

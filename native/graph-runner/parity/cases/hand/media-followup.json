@@ -1,0 +1,66 @@
+{
+ "cases": [
+  {
+   "id": "nodetool.image.SaveImageFile#real-media",
+   "node": "nodetool.image.SaveImageFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.image.SaveImageFile",
+      "properties": {
+       "filename": "saved.png",
+       "image": {
+        "type": "image",
+        "data": "iVBORw0KGgoAAAANSUhEUgAAABAAAAAMCAYAAABr5z2BAAAB/UlEQVR4nFXQIaqFYBCG4dmCye4C/mKwTBR3YBTLcFYguAQFZwNWo8UyRdyCxWQZu3DABZzyXYx3AS+8PETEiEiQkCIlQ06OkhgfErSk6MkwkmMmPjeSZSftLrL6Ic9ATESxIIoVSWxIY0ceM8pY8IkVbWzoY8cYM+ZYzi3WZY+tu2Kvn5gzxEJEQREFQxIcaWDkQVAGxScY2uDoA2MMgjnouQVb9uDdFbh+gmQISkSFISocScFIC0FeKMrC8CkcbcHoC8FYKObCzq3wZS+4uwqpn0IzFEZElSOqGEklSCtFXhl+X8fvy/h9Bb+vYqwMc+XnVvGyV9JdldZPZRkqJ6KGETWCpFGkjSFv/se/r2FsHHPD59bIsjfaXY3VT+MZmhdxEESDIhkM6eDIh//xezMOjHmQcxt02QfrrsHrZ+AMw4s4KaLJkEyOdGLk0//4vRknwTzpuU227JN318T1M0mG6UVcDdHqSFZGugryVVGuhs/qaFdGvwrGVTGvdm6rL/vK3bVK/ayaYX0RD0d0MJJDkB6K/DCUh+NzMNpD0B+K8TDMh5/bwct+SHcdWj+HZThexJsR3YLkVqS3Ib8d5c343IL2VvS3Ybwd883ndsuy39pdt9XP7RnuFxGCCIoEhhSOHIwSgg8ULQw9HCMYM+TcoMsO6y54/YAzQOgPmlvOdMGSpcUAAAAASUVORK5CYII="
+       }
+      }
+     }
+    ],
+    "edges": []
+   }
+  },
+  {
+   "id": "nodetool.model3d.SaveModel3DFile#real-media",
+   "node": "nodetool.model3d.SaveModel3DFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.SaveModel3DFile",
+      "properties": {
+       "filename": "saved.glb",
+       "model": {
+        "type": "model_3d",
+        "uri": "data:model/gltf-binary;base64,Z2xURgIAAAAwAAAAHAAAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAifX0g",
+        "format": "glb"
+       }
+      }
+     }
+    ],
+    "edges": []
+   }
+  },
+  {
+   "id": "nodetool.model3d.SaveModel3D#real-media",
+   "node": "nodetool.model3d.SaveModel3D",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.SaveModel3D",
+      "properties": {
+       "name": "saved.glb",
+       "model": {
+        "type": "model_3d",
+        "uri": "data:model/gltf-binary;base64,Z2xURgIAAAAwAAAAHAAAAEpTT057ImFzc2V0Ijp7InZlcnNpb24iOiIyLjAifX0g",
+        "format": "glb"
+       }
+      }
+     }
+    ],
+    "edges": []
+   }
+  }
+ ]
+}

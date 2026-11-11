@@ -537,6 +537,7 @@ private slots:
     // The meter of the mix: the device callback feeds it and the test reads it from another thread, as the panel does.
     void theLiveMeterReadsTheMixTheEnginePlays() {
         const auto path = wav("live.wav", tone(8, 997, 0.1f));
+        // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
         auto timeline = std::make_shared<const nt::Timeline>(parse(document({audioTrack("a", 0)}, {audioClip("t", "a", path, 0, 8000)}, 8000)));
         nt::audio::LoudnessReadout readout;
         nt::audio::AudioEngine engine;

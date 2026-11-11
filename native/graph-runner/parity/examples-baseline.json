@@ -1,0 +1,4780 @@
+{
+ "counts": {
+  "comfy": 540,
+  "unrunnable": 2,
+  "completed": 89,
+  "failed": 43,
+  "timeout": 0
+ },
+ "examples": {
+  "50 Ad Variants Overnight.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.control.Collect",
+    "nodetool.generators.ListGenerator",
+    "nodetool.input.ImageInput",
+    "nodetool.input.IntegerInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.text.Template",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "A Gradient Card as PNG.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"img\" failed: Native sharp resize supports fit: fill",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "lib.svg.SVGToImage",
+    "nodetool.code.Code",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "lib.svg.SVGToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "A Poster in Portrait.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.String",
+    "nodetool.image.TextToImage",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "A Repeating Texture Tile.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.String",
+    "nodetool.image.TextToImage",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "A Run Button for Any Job.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.output.Output",
+    "nodetool.triggers.ManualTrigger",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.triggers.ManualTrigger": "skipped",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "A Webhook That Answers.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.code.Code",
+    "nodetool.output.Output",
+    "nodetool.triggers.WebhookTrigger",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.triggers.WebhookTrigger": "skipped",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "AI Spokesperson.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.audio.FadeIn",
+    "nodetool.audio.FadeOut",
+    "nodetool.audio.Normalize",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.input.StringInput",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.video.LipSync",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.video.LipSync": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Action Items from a Meeting Recording.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"ex\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.video.ExtractAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Ad Copy in Three Registers.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Ad Loop from a Product Photo.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"slow\" (nodetool.video.SetSpeed)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.video.ImageToVideo",
+    "nodetool.video.SetSpeed",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.video.SetSpeed": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Album Art from a Mood.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.String",
+    "nodetool.image.TextToImage",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Assemble a UGC Product Video.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"overlay\" (nodetool.video.Overlay)",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.video.Overlay",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.Overlay": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Audio To Image.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.TextToImage",
+    "nodetool.input.AudioInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "B-Roll Reel from a Brief.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"cut\" (nodetool.video.Transition)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.video.TextToVideo",
+    "nodetool.video.Transition",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.TextToVideo": "reference-unavailable",
+    "nodetool.video.Transition": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Brand Asset Generator.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "lib.image.draw.RenderText",
+    "nodetool.agents.Agent",
+    "nodetool.control.Collect",
+    "nodetool.generators.ListGenerator",
+    "nodetool.image.TextToImage",
+    "nodetool.input.ColorInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Brand a UGC Product Video.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"extract-audio\" (nodetool.video.ExtractAudio)",
+   "providers": false,
+   "ts": "cannot complete",
+   "nodes": [
+    "nodetool.code.Code",
+    "nodetool.input.ColorInput",
+    "nodetool.input.SelectInput",
+    "nodetool.input.StringInput",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.timeline.RenderTimeline",
+    "nodetool.video.ExtractAudio",
+    "nodetool.video.GetVideoInfo",
+    "nodetool.workflows.base_node.Comment",
+    "openai.audio.Transcribe"
+   ],
+   "not_at_parity": {
+    "nodetool.timeline.RenderTimeline": "skipped",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline",
+    "openai.audio.Transcribe": "reference-unavailable"
+   }
+  },
+  "Bring a Still to Life.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Camera Move Contact Sheet.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.control.Collect",
+    "nodetool.control.ForEach",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.input.StringListInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Camera Move.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.ImageInput",
+    "nodetool.input.IntegerInput",
+    "nodetool.input.SelectInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Chapter Markers for a Long Recording.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"ex\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.video.ExtractAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Character in Any Scene.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"scene_still\" failed: Package asset not found: package://nodetool-base/recipe-inputs/ugc-creator-reference.png; Node \"scene_clip\" failed: A non-empty input image is required for Image To Video.",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.ImageToImage",
+    "nodetool.input.ImageInput",
+    "nodetool.input.SelectInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.ImageToImage": "reference-unavailable",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Chat With Your Documents.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.code.Code",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment",
+    "vector.Collection",
+    "vector.IndexTextChunk",
+    "vector.QueryText"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Circles and Lines.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "lib.svg.Document",
+    "nodetool.code.Code",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Clean Up a Rough Voice Recording.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "lib.audio.Compress",
+    "lib.audio.HighPassFilter",
+    "lib.audio.Limiter",
+    "lib.audio.NoiseGate",
+    "nodetool.input.AudioInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Clip on Kie.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.video.TextToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.TextToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Cold Outreach Co-Pilot.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment",
+    "nodetool.workflows.base_node.Preview"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Color Boost Video.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.pngFrames is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"<uuid>\" (nodetool.video.ForEachFrame)",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "lib.image.color_grading.Exposure",
+    "lib.image.color_grading.SaturationVibrance",
+    "nodetool.input.FloatInput",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.video.ForEachFrame",
+    "nodetool.video.FrameToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.ForEachFrame": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Comfy 1 Click Multiple Character Angles.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy 1 Image to Car Product Shots.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy 1 click Multiple Scene Angles.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy 1 image input Split Stack - Qwen Multiangle + Wan 2.2.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy 1 input and multiple editing model comparison (templates_all_in_one_image_edit_models.app).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy 1 input and multiple editing model comparison.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy 360 Full-body Turnaround.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy 3x3 Brand Icon Assets Grid.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy 3x3 Grid For Product Ads.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ACE Step v1 M2M Editing.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ACE Step v1 Text to Song.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ACE-Step 1.5 AI Lyric Song Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ACE-Step 1.5 Music Generation (4B LLM ).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ACE-Step 1.5 Music Generation AIO.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ACE-Step 1.5 Music Generation Workflow.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ACE-Step 1.5 XL Turbo.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ACE-Step 1.5XL Base- Text to Music.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ACE-Step 1.5XL SFT- Text to Music.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ACE-Step v1 Text to Instrumentals Music.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy AIrt MAchIne (API version).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy AIrt MAchIne.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Add Color to Line Art Illustration.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Add Product to Character’s Hand, AI UGC.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Albedo Estimation- Marigold V2.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Anima Anime Text-to-Image Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Anima Base v1- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Anima Lllite- Any Control to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Anima Lllite- Depth Control to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Anima Lllite- Image Inpainting.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Apply Glitch And Distortion Effects.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Apply Texture + Elements to Logo.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Apply Texture to Logo.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Aspect Ratio Extend- Kling O3.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Audio Separation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Audio-Driven Character Lip Sync Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Batch Process Text Prompts From List.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Bernini-R- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Bernini-R- Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Boogu Turbo- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Boogu image 0.1 Edit Int8.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Boogu image 0.1 Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Bria- FIBO 2.0 Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Bria- FIBO 2.0 Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Bria- Guided Background Removal.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Bria- Image Outpainting.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Bria- Product Holding.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Bria- Virtual Try-On.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Capybara- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Capybara- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Capybara- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Capybara- Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Causal Forcing- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Character & Outfit to Fashion Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Character + Clothing (OOTD) Flat Lay to Studio Photoshoot.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Character Portrait Relighting.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Character Turnaround Sheet Generator.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Character × 4 Scene Explorer.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Chatter Box- Multi-Speaker Conversation with Cloned Voices.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Chatter Box- Multilingual Text-to-Speech with Voice Cloning.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Chatter Box- Voice Cloning Audio Conversion.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Chatter Box- Voice Cloning with TTS.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Chroma- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Chroma1 Radiance Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ChronoEdit 14B- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Clarity AI- Crystal Upscaler.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Clarity AI- Crystal Video Upscaler.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Composite your Product + Scene and Relight.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Depth Estimation- Lotus.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Depth Estimation- Marigold V2.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Depth Map- Depth Anything 3.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Dynamic 3D Logo Animations.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Eleven v4- Text to Dialogue.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Eleven v4- Text to Speech.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ElevenLabs- Speech to Speech.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ElevenLabs- Text to Sound Effects.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ElevenLabs- Text to Speech.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy ElevenLabs- Voice Isolation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Equirectangular HDR Skybox Generator.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Ernie Image Turbo- Text To Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Ernie Image- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX 3 Image- Bounding Box Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX 3 Image- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX 3 Image- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX 3 Max- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX 3 Max- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX 3 Video- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX 3 Video- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX.2 Dev Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX.2 Dev.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX.2 [Klein] 4B Distilled- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX.2 [Klein] 4B- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX.2 [Klein] 4B- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX.2 [Klein] 9B- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FLUX.2 [Klein] 9B- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Fashion Editorial Shots.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy FireRed Image Edit 1.1- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux Kontext Dev Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Canny Model.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Dev USO Reference Image Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Dev fp8- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Dev- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Inpaint.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Kontext Max.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Kontext Multiple Image Input.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Kontext Pro.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Krea Dev.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Outpaint.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Redux Model.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Schnell FP8.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 Schnell Full- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Flux.1 [Pro]- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Frame Interpolation- FILM or RIFE.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Game Asset Style Transfer Sprite Generator.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Gemini Omni 1.1 Flash- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Gemini Omni 1.1 Flash- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Gemini Omni 1.1 Flash- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Gemini Omni 1.1 Flash- Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Gemini Omni Flash- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Gemini Omni Flash- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Gemini Omni Flash- Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Generate 3D Model From Single Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Generate Brand Packaging from Dieline.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Generate Multiple Angles with 3D Camera Node.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Generate Poster-Ad Asset with your Product.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Generate Realistic Variations.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Generate UGC Video With Voice Clone.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Graphic Design Recomposer.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Green Screen- Bria.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Grok Imagine Image 2.0- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Grok Imagine Image Quality- Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Grok Imagine Image Quality- Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Grok Imagine Video 1.5 Lite- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Grok Imagine Video 1.5 Lite- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Grok Imagine Video 1.5- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Grok- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Grok- Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Grok- Video generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HY 3D- Image to Model.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HY Image 3.5 Preview- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HY Image 3.5 Preview- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HappyHorse 1.1- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HappyHorse 1.1- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HappyHorse- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HappyHorse- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HeyGen Video 1.0- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HeyGen Video 1.0- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HeyGen Video 1.0- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HeyGen Voice 1.0 Turbo- Voice Clone to Speech.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HeyGen Voice 1.0- Voice Clone to Speech.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HeyGen- Avatar Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HeyGen- Talking Photo.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HeyGen- Text to Speech.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HeyGen- Video Translate.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HiDream E1 Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HiDream E1.1 Image Editing.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HiDream I1 Dev.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HiDream I1 Fast.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HiDream I1 Full.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HiDream O1 Dev.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HiDream O1 Full- Image generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Higgsfield Genjutsu- Motion Transfer.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy HuMo Video Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Hunyuan Video 1.5 Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Hunyuan Video 1.5.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Hunyuan Video Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Hunyuan3D- Text to Model.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Ideogram 4.5 Precise Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Ideogram 4.5- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Ideogram 4.5- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Ideogram P-Image- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Ideogram v4 Int8- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Ideogram v4- Text to Image (API).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Ideogram v4- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Illustration to Realism (templates-image_to_real).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Illustration to Realism.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Inflation Effect with INFL8 LoRA.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Outpainting- Bria.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Outpainting- FLUX.2 Klein 9B.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Outpainting- Flux.1.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Relight.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Stitch 2x2 Grid.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Bria Increase Resolution.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- HitPaw Portrait.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Magnific Creative.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Magnific Precise.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Nano Banana Pro Illustration.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Nano Banana Pro Product.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Nano Banana Pro.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Recraft Creative.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Recraft Crisp.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- SeedVR2 3B Int8.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- SeedVR2 7B Int8.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- SeedVR2.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Topaz Bloom 2.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Topaz Illustration.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Topaz Reimagine Landscape.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Topaz Reimagine.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Topaz Wonder 3.5.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Topaz Wonder 4.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Traditional Interpolation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Wan 2.2 Two-Stage.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- WaveSpeed SeedVR2.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- WaveSpeed.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image Upscale- Z-Image-Turbo 2K.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image to Script to Kling Video Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Inpainting- Bria Generative Fill.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Isometric Miniatures from a Selfie.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kandinsky 5.0 Image Lite- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kandinsky 5.0 Video Lite Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kandinsky 5.0 Video Lite Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling 3.0- First Last Frame to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling 3.0- Motion Control.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling 3.0- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling 3.0- Video Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling 4.0- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling 4.0- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling 4.0- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling 4.0- Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling O1- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling O1- Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling O1- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling O1- Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling O1- Video to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling O3- FLF2V.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling O3- Image Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling O3- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling O3- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling O3- Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling- Virtual Try On.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling2.6- Animate Images with Audio.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling2.6- Motion Control.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Kling2.6- Storytelling Videos with Audio.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Krea 2 Turbo.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Krea 3- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Krea 3- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Krea-2 Int8- Image Style Reference.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Krea-2- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LED Billboard Message.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX 2.3 IC-LoRA Union Control.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2 Canny to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2 Depth to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2 Image to Video (Distilled).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2 Pose to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2 Text to Video (Distilled).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2 Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2- Audio to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.3 IC-LoRA- Reference Sheet Control.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.3 Style Transition.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.3- FLF2V.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.3- ID LoRA.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.3- Image Audio to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.3- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.3- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.5 (Pro)- FLF2V.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.5 (Pro)- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.5 (Pro)- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.5- FLF2V.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.5- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTX-2.5- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTXV Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LTXV Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Layer Decomposition- Qwen-Image-Layered Control.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Layer Decomposition- Qwen-Image-Layered.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Layer Decomposition- Seedream 5.0 Pro.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Lens Turbo- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Lens- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Light Migration for Character Portrait.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LongCat Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy LongCat Image- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Looped Restyler.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Luma Photon- Image to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Luma Photon- Style Reference.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Luma Ray 3.2- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Luma Ray 3.2- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Luma Ray 3.2- Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MAI Image 2.6 Flash- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MAI Image 2.6- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MOSS Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Magazine Cover & Package Design.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Mage-Flow Turbo- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Mage-Flow- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Mage-Flow-Edit Turbo- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Mage-Flow-Edit- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Magnific- Style Reference.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Mai Image 2.6 Flash- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Mai Image 2.6- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MelBandRoFormer Audio Separation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax H3 Max Turbo- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax H3 Max- FLF2V.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax H3 Max- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax H3 Max- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax H3 Max- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax H3 Turbo- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax H3- FLF2V.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax H3- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax H3- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax H3- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy MiniMax Music 3.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Mirelo SFX 2.0- Text to SFX.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Mirelo SFX 2.0- Video to SFX.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Multi-Keyframe Video Stitching.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Muse Image 1.0- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Muse Image 1.0- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Nano Banana Pro.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Nano Banana.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy NetaYume Lumina Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy NewBie Exp0.1- Anime Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Object Removal- Bria Eraser.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Object Removal- Flux.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy OmniGen2 Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy OmniGen2- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Outpaint to Any Aspect Ratio - Nano Banana Pro.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Ovis-Image Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Patina- Image to Material.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Patina- Material Extract.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Patina- PBR Maps.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Patina- Text to Material.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Phone Image to Product Video- Shoe.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Photo to Blueprint to Model.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy PixVerse 6.0- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy PixVerse 6.0- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy PixVerse 6.0- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy PixVerse Templates- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy PixVerse V6 Max- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy PixVerse V6 Max- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy PixVerse- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy PixVerse- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Pixel Sort Glitch Effect Image Transformation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy PixelDiT- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Portrait Enhancement- Magnific.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Portrait Relight.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Pose Detection- SDPose Multi-Person (utility_sdpose_multi_person_video).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Pose Detection- SDPose Multi-Person.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Pose Map- SDPose-OOD (utility_sdpose_ood_video_to_pose_map).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Pose Map- SDPose-OOD.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Poster Scene Mockups.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Product Ad Cinematic Sequence Generator.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Product Mockup(FLUX.2 Dev FP8).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Profile Picture Stylized Variations.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Prompt Multi Batch Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Pruna P-Video 2- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Pruna P-Video 2- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen Image 2.1.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen Image 2512- 360 Panorama Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen Image 2512.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen Image 3.0 Pro- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen Image Edit 2509.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen Image Edit 2511 - Material Replacement.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen Image Edit 2511 Int8- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen Image- Gummy Animals LoRA.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen Image- Illustration LoRA.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen-Image 2512 Turbo.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen-Image 2512- Fun Union ControlNet.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen-Image ControlNet Model Patch.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen-Image InstantX Inpainting ControlNet.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen-Image InstantX Union ControlNet.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen-Image Union Control.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Qwen-Image- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy RTX Video Enhance- HDR.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Realistic 2k Images - Quick Variations.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Realistic Poster Redesign With Character Transformation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Recraft 4.1 flash- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Recraft 4.1- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Recraft Style Reference Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Recraft V4- Style-Reference Image Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Recraft v4- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Recraft- Color Control Image Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Recraft- Style Control Image Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Relight Composited Product.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Relight- Beeble SwitchX.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Relight- Magnific.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Remove Background- Bria Local.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Remove Background- Bria Solid Color.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Remove Background- Bria.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Remove Object from Video - LTX 2.3 Obscura Remova LoRA.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Remove Subtitles from Video - LTX 2.3 LoRA.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Remove Watermark from Video - LTX 2.3 LoRA.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Replace Background- Bria.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Restore Archival Footage - LTX 2.3 Dearchive LoRA.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Runway Aleph2- Video Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Runway- Gen4 Turbo Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Runway- Reference to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Runway- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SCAIL-2 Int8- Character Replacement.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SCAIL-2- Character Replacement.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SD3.5 Large Blur.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SD3.5 Large Canny ControlNet.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SD3.5 Large Depth.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SD3.5 Simple.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SDXL Refiner Prompt.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SDXL Revision Text Prompts.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SDXL Simple.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SDXL Turbo.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SDXL1.0- Text to Image (Simple).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy SVD Text to Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seed Audio 1.0- Text to Audio.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance 1.0 Pro- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance 2.0 + LLM Prompt Helper.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance 2.0 Mini- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance 2.0 Mini- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance 2.0- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance 2.0- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance 2.5- FLF2V.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance 2.5- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance 2.5- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance1.0 Pro- Start End to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance1.0 Pro- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance2.0 4K- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance2.0 Real Human- FLF2V.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance2.0 Real Human- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance2.0- First-Last-Frame to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance2.5 1080P- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance2.5 1080P- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance2.5 Draft- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance2.5 Draft- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance2.5 Draft- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedance2.5- Video Editing.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedream 4.0- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedream 5.0 Flash- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedream 5.0 Flash- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedream 5.0 Lite- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedream 5.0 Lite- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedream 5.0 Pro- Image Edit.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Seedream 5.0 Pro- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Selfie + Text Prompt to Studio Photoshoot Doodle.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Single Image to 3D model.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Single Image to Animated Sprite Sheet.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Single Image to Multiple Consistent Shots.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Skin Enhancer + Upscaler.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Sonilo- Text to Music Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Sonilo- Video Soundtrack Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Sprite Sheet Generator.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Squish Anything with LTX-2 I2V and LoRA.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Stable Audio 1.0- Text to Audio.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Stable Audio 3 Medium.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Stable Audio 3.0 Medium Base.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Step 1- Contact Sheet Workflow.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Step 2- Contact Sheet Workflow.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Step 3- Contact Sheet Workflow.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Style Transfer - Recraft Text-to-Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Surface Normal Estimation- Marigold V2.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Swap Product Into a Reference AD.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Swap Product in Character’s Hand, UGC Style.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Switch Node.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Sync 3- Talking Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Sync 3- Video Lip-Sync.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy TripoSplat- Image to Gaussian Splat.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy VEED Clean Audio- Speech Cleanup.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy VEED Clean Audio- Video Speech Cleanup.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy VEED Dubbing- Video Translation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy VEED Fabric 1.0- Talking Photo.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy VEED Lipsync 2.0- Lip Sync.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy VEED Remove Video Background- Matte Export.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Edit- Beeble SwitchX.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Extend- Gemini Omni 1.1 Flash.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Extend- Grok.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Extend- Seedance 2.5.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Extend- Vidu Q2.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Inpainting- VOID.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- ByteDance vCube.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- FLUX 3.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- HitPaw.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- Real-ESRGAN.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- SeedVR2 3B Int8.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- SeedVR2.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- Topaz Astra 2 Creative.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- Topaz Astra Fast.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- Topaz Starlight Precise 2.5.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- Wan 2.2 Creative.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Video Upscale- WaveSpeed FlashVSR.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q1- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q1- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q1- Start End to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q1- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q2- FLF2V.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q2- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q2- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q2- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q3 Audio-Visual Video Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q3 Image-to-Video with Audio.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q4 Preview- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Vidu Q4 Preview- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Virtual Try On with Character - 4 in 1.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Virtual Try-On- Flux.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy WAN2.6- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.1 ControlNet.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.1 FLF2V 720p F16.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.1 Fun Camera 1.3B.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.1 Fun Camera 14B.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.1 Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.1 Inpainting.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.1 Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.2 14B First-Last Frame to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.2 14B Fun Camera Control.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.2 14B Fun Control.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.2 14B Fun Inpaint.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.2 14B Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.2 5B Fun Control.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.2 5B Fun Inpaint.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.2 5B Video Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan 2.2 T2V A14B.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan Animate 2 Distilled- Motion Transfer.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan Animate 2- Motion Transfer.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan Dancer- Music to Dance.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan-Move Motion-Control Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.1 ATI.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.1 Alpha T2V.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.1 SCAIL.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.1 VACE Control Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.1 VACE First-Last Frame.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.1 VACE Inpainting.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.1 VACE Outpainting.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.1 VACE Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.1 VACE Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.2 Animate, Character Animation and Replacement.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.2-S2V Audio-Driven Video Generation.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.5- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.5- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.5- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.6- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.6- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.7- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan2.7- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan3.0- Image to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan3.0- Reference to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Wan3.0- Text to Video.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy YouTube Thumbnail Generator.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy YuE 2.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Z-Image Int8- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Z-Image Turbo.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Z-Image- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Z-Image-Turbo Fun Union ControlNet.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Comfy Z-Image-Turbo Int8- Text to Image.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Compose Directed Campaign Formats.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"portrait-png\" failed: Native sharp resize supports fit: fill; Node \"story-png\" failed: Native sharp resize supports fit: fill; Node \"layout-finalize\" failed: Error: media.bytes: could not read a image ref with no uri, asset_id, or data",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "lib.svg.Document",
+    "lib.svg.SVGToImage",
+    "nodetool.code.Code",
+    "nodetool.input.DocumentInput",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "lib.svg.SVGToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Concept Art Iteration Board.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.generators.ListGenerator",
+    "nodetool.image.TextToImage",
+    "nodetool.input.IntegerInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Concept Art, Then a Moving Version.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.TextToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Consistent Cast Storyboard.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime.imageModelSupportsTask is unavailable in the native runner (not-yet-ported: a pure helper of the runtime's image model table) on node \"stills\" (nodetool.storyboard.RenderStills)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.code.Code",
+    "nodetool.creative.Director",
+    "nodetool.entity.CreateEntity",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.storyboard.AssembleTimeline",
+    "nodetool.storyboard.CreateStoryboard",
+    "nodetool.storyboard.RenderClips",
+    "nodetool.storyboard.RenderStills",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.creative.Director": "reference-unavailable",
+    "nodetool.storyboard.AssembleTimeline": "mismatch",
+    "nodetool.storyboard.CreateStoryboard": "reference-unavailable",
+    "nodetool.storyboard.RenderClips": "reference-unavailable",
+    "nodetool.storyboard.RenderStills": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Cut Out the Subject.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.RemoveBackground",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.RemoveBackground": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Cut a Landscape Clip for Vertical.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"rs\" (nodetool.video.Resize)",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.video.Resize",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.Resize": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Cut a Product Out of Its Background.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "lib.image.channel.Merge",
+    "lib.image.filter.GaussianBlur",
+    "nodetool.image.RemoveBackground",
+    "nodetool.image.SaveImageFile",
+    "nodetool.input.FloatInput",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.RemoveBackground": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Data Generator.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.generators.DataGenerator",
+    "nodetool.input.IntegerInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.generators.DataGenerator": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Direct a Short Film.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime.loadMediaModule is unavailable in the native runner (native-addon: loads the runtime's node-av media module) on node \"chain\" (nodetool.creative.ShotChain)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.creative.Director",
+    "nodetool.creative.ShotBatch",
+    "nodetool.creative.ShotChain",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.timeline.AddClips",
+    "nodetool.timeline.RenderTimeline",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.creative.Director": "reference-unavailable",
+    "nodetool.creative.ShotChain": "reference-unavailable",
+    "nodetool.timeline.RenderTimeline": "skipped",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Directed Film to Timeline.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"render\" failed: NodeTool's media build has no \"libx264\" encoder, which the \"mp4\" format needs. Render to another format, or pick another video codec.",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.control.Collect",
+    "nodetool.creative.Director",
+    "nodetool.creative.ScreenplayShots",
+    "nodetool.image.TextToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.timeline.AddClips",
+    "nodetool.timeline.RenderTimeline",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.creative.Director": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.timeline.RenderTimeline": "skipped",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Draw a Badge in SVG.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "lib.svg.Document",
+    "nodetool.code.Code",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Dub a Video into 5 Languages.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"extract_audio\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.control.Collect",
+    "nodetool.control.ForEach",
+    "nodetool.input.StringListInput",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.text.Template",
+    "nodetool.video.ExtractAudio",
+    "nodetool.video.LipSync",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.video.LipSync": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Dungeon and Ruins Starter Pack.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.Model3D",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Edit a Still with Words.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.ImageToImage",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.ImageToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Editorial Still from a Line.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.TextToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Effects Gallery.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.ImageInput",
+    "nodetool.input.SelectInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Every Hour, On the Hour.json": {
+   "group": "unrunnable",
+   "ts": "skipped",
+   "unrunnable": [
+    "nodetool.triggers.IntervalTrigger"
+   ]
+  },
+  "Explainer Clip from a Paragraph.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"mix\" (nodetool.video.AddAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.video.AddAudio",
+    "nodetool.video.TextToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.video.AddAudio": "native-unsupported",
+    "nodetool.video.TextToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Five Headlines for a Landing Page.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Flashcard Generator.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.code.Code",
+    "nodetool.generators.DataGenerator",
+    "nodetool.input.IntegerInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.generators.DataGenerator": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Generate a Native-Audio UGC Testimonial.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.ImagesToList",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.video.ReferenceToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.ReferenceToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Generate then Upscale a Poster.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.String",
+    "nodetool.image.TextToImage",
+    "nodetool.image.Upscale",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.image.Upscale": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Hacker News Agent.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Hook & Thumbnail Factory.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "lib.image.color.BrightnessContrast",
+    "nodetool.control.Collect",
+    "nodetool.generators.ListGenerator",
+    "nodetool.image.TextToImage",
+    "nodetool.input.IntegerInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment",
+    "nodetool.workflows.base_node.Preview"
+   ],
+   "not_at_parity": {
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "How Long Is This Transcript.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"ex\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.code.Code",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.video.ExtractAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Image Enhance.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "lib.image.color.BrightnessContrast",
+    "lib.image.color.HSB",
+    "lib.image.filter.GaussianBlur",
+    "lib.image.filter.UnsharpMask",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Image To Audio Story.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Image to Video Animation.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.TextToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Lens and Look.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.TextToImage",
+    "nodetool.input.SelectInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Lip-sync a Clip to a Voice Track.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.audio.FadeIn",
+    "nodetool.audio.FadeOut",
+    "nodetool.audio.Normalize",
+    "nodetool.input.AudioInput",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.video.LipSync",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.LipSync": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Localise a Script and Revoice It.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.audio.FadeIn",
+    "nodetool.audio.FadeOut",
+    "nodetool.audio.Normalize",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Localized Explainer.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"script\" failed: WriteScript: brief is empty — there is nothing to write; Node \"shots\" failed: StoryboardShots: storyboard input is empty — connect a Constant Storyboard node and pick a board",
+   "providers": true,
+   "ts": "cannot complete",
+   "nodes": [
+    "nodetool.constant.Entity",
+    "nodetool.constant.Storyboard",
+    "nodetool.control.Collect",
+    "nodetool.control.Collection",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.script.ScriptToSubtitles",
+    "nodetool.script.ScriptToTimeline",
+    "nodetool.script.VoiceScript",
+    "nodetool.script.WriteScript",
+    "nodetool.storyboard.StoryboardShots",
+    "nodetool.timeline.AddClips",
+    "nodetool.timeline.RenderTimeline",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.script.WriteScript": "reference-unavailable",
+    "nodetool.timeline.RenderTimeline": "skipped",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Low-poly Adventure Starter Pack.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.Model3D",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Low-poly Seaside Starter Pack.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.Model3D",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Master a Voice Track.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "lib.audio.Compress",
+    "lib.audio.Gain",
+    "lib.audio.Limiter",
+    "nodetool.input.AudioInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Meeting Transcript Summarizer.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Summarizer",
+    "nodetool.code.Code",
+    "nodetool.control.If",
+    "nodetool.generators.DataGenerator",
+    "nodetool.input.AudioInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Summarizer": "reference-unavailable",
+    "nodetool.generators.DataGenerator": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Model Arena.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Moodboard Frame from a Theme.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.String",
+    "nodetool.image.TextToImage",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Movie Posters.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.control.Reroute",
+    "nodetool.generators.ListGenerator",
+    "nodetool.generators.StructuredOutputGenerator",
+    "nodetool.image.TextToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.generators.StructuredOutputGenerator": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Movie Trailer Generator.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.concatCopy is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"concat\" (nodetool.video.Concat)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.control.Collect",
+    "nodetool.creative.Director",
+    "nodetool.creative.ScreenplayShots",
+    "nodetool.image.TextToImage",
+    "nodetool.input.IntegerInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.video.Concat",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.creative.Director": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.video.Concat": "native-unsupported",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Music Video Visualizer.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"final_video\" (nodetool.video.AddAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.audio.GetAudioInfo",
+    "nodetool.audio.Normalize",
+    "nodetool.code.Code",
+    "nodetool.control.Collect",
+    "nodetool.control.ForEach",
+    "nodetool.control.RepeatValue",
+    "nodetool.generators.ListGenerator",
+    "nodetool.image.ResizeImage",
+    "nodetool.image.SaveImageFile",
+    "nodetool.image.TextToImage",
+    "nodetool.input.AudioInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.text.Prompt",
+    "nodetool.video.AddAudio",
+    "nodetool.video.FrameToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.AddAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Name a File from Its Narration.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"ex\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.code.Code",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.video.ExtractAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Narrate a Script.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.audio.TextToSpeech",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Narration with a Music Bed.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "lib.audio.Gain",
+    "nodetool.audio.FadeIn",
+    "nodetool.audio.FadeOut",
+    "nodetool.audio.GetAudioInfo",
+    "nodetool.audio.Normalize",
+    "nodetool.audio.OverlayAudio",
+    "nodetool.audio.TextToMusic",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.audio.Trim",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.OverlayAudio": "mismatch",
+    "nodetool.audio.TextToMusic": "reference-unavailable",
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Per-SKU Ad Factory.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime.imageModelSupportsTask is unavailable in the native runner (not-yet-ported: a pure helper of the runtime's image model table) on node \"stills\" (nodetool.storyboard.RenderStills)",
+   "providers": true,
+   "ts": "cannot complete",
+   "nodes": [
+    "nodetool.code.Code",
+    "nodetool.constant.Storyboard",
+    "nodetool.entity.CreateEntity",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.storyboard.AssembleTimeline",
+    "nodetool.storyboard.RecastStoryboard",
+    "nodetool.storyboard.RenderClips",
+    "nodetool.storyboard.RenderStills",
+    "nodetool.timeline.FillTimelineText",
+    "nodetool.timeline.RenderTimeline",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.storyboard.AssembleTimeline": "mismatch",
+    "nodetool.storyboard.RenderClips": "reference-unavailable",
+    "nodetool.storyboard.RenderStills": "reference-unavailable",
+    "nodetool.timeline.RenderTimeline": "skipped",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Photo Enhancement Suite.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"3\" failed: The input image is empty.",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "lib.image.color.BrightnessContrast",
+    "lib.image.color.HSB",
+    "lib.image.enhance.AutoContrast",
+    "lib.image.filter.UnsharpMask",
+    "nodetool.control.Collect",
+    "nodetool.control.ForEach",
+    "nodetool.image.ImageToImage",
+    "nodetool.input.FloatInput",
+    "nodetool.input.ImageListInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.ImageToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Platformer Playground Starter Pack.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.Model3D",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Podcast Episode to Show Notes.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"ex\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.video.ExtractAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Podcast Repurposing Studio.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.generators.ListGenerator",
+    "nodetool.image.TextToImage",
+    "nodetool.input.AudioInput",
+    "nodetool.input.IntegerInput",
+    "nodetool.input.StringInput",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment",
+    "nodetool.workflows.base_node.Preview"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Pokemon Maker.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.generators.ListGenerator",
+    "nodetool.image.TextToImage",
+    "nodetool.input.SelectInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Poster on Kie.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.TextToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Private Assistant.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Product Mockup Generator.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "lib.image.color.BrightnessContrast",
+    "nodetool.agents.Agent",
+    "nodetool.generators.ListGenerator",
+    "nodetool.image.ImageToImage",
+    "nodetool.image.TextToImage",
+    "nodetool.input.ImageInput",
+    "nodetool.input.IntegerInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.image.ImageToImage": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Product Spot from Text.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.TextToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Product URL to CGI Commercial.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.image.TextToImage",
+    "nodetool.input.SelectInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.text.Template",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Product URL to UGC Ad.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"avatar_base\" failed: Package asset not found: package://nodetool-base/recipe-inputs/ugc-creator-reference.png; Node \"synced_ugc\" failed: The input video is empty.",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.audio.Normalize",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.video.ImageToVideo",
+    "nodetool.video.LipSync",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.video.LipSync": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Product Video Generator.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Prompt Template.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Propose Three Campaign Directions.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"direction-parser\" failed: Error: The direction model returned malformed JSON. Run the proposal again; no image was generated.",
+   "providers": true,
+   "ts": "cannot complete",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.code.Code",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Pull a Still from a Clip.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.pngFrames is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"frame\" (nodetool.video.ExtractFrame)",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.video.ExtractFrame",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.ExtractFrame": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Pull the Quotable Lines Out of an Interview.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"ex\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.video.ExtractAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Put a Product on a Studio Backdrop.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"comp\" failed: The input image is empty.",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "lib.image.channel.Merge",
+    "lib.image.filter.GaussianBlur",
+    "nodetool.image.ImageToImage",
+    "nodetool.image.RemoveBackground",
+    "nodetool.input.FloatInput",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.ImageToImage": "reference-unavailable",
+    "nodetool.image.RemoveBackground": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Put a Voice Over a Music Bed.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "lib.audio.Gain",
+    "nodetool.audio.FadeIn",
+    "nodetool.audio.FadeOut",
+    "nodetool.audio.GetAudioInfo",
+    "nodetool.audio.Normalize",
+    "nodetool.audio.OverlayAudio",
+    "nodetool.audio.TextToMusic",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.audio.Trim",
+    "nodetool.constant.String",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.OverlayAudio": "mismatch",
+    "nodetool.audio.TextToMusic": "reference-unavailable",
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Relight a Product for a Seasonal Campaign.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.Relight",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.Relight": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Render a Directed Campaign Hero.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.code.Code",
+    "nodetool.image.ImageToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.ImageToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Reopen a Directed Campaign.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"validate-record\" failed: Error: media.info: could not read a document ref with no uri, asset_id, or data",
+   "providers": false,
+   "ts": "cannot complete",
+   "nodes": [
+    "nodetool.code.Code",
+    "nodetool.control.If",
+    "nodetool.input.DocumentInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Research Agent.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Research a Brand from Its Website.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.agents.Extractor",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.agents.Extractor": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Restyle a Photo as an Illustration.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.ImageToImage",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.ImageToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Revise an Accepted Campaign Hero.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.code.Code",
+    "nodetool.image.ImageToImage",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.ImageToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "SEO Content Engine.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.generators.ListGenerator",
+    "nodetool.image.TextToImage",
+    "nodetool.input.IntegerInput",
+    "nodetool.input.StringInput",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment",
+    "nodetool.workflows.base_node.Preview"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Sci-fi Game Model Starter Pack.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.Model3D",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Sci-fi Outpost Expansion.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.Model3D",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Score a Clip from Its Own Mood.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"mix\" (nodetool.video.AddAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.audio.TextToMusic",
+    "nodetool.input.StringInput",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.video.AddAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.audio.TextToMusic": "reference-unavailable",
+    "nodetool.video.AddAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Score a Silent Clip.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"mix\" (nodetool.video.AddAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.audio.FadeIn",
+    "nodetool.audio.FadeOut",
+    "nodetool.audio.Normalize",
+    "nodetool.audio.TextToMusic",
+    "nodetool.audio.Trim",
+    "nodetool.input.StringInput",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.video.AddAudio",
+    "nodetool.video.GetVideoInfo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.TextToMusic": "reference-unavailable",
+    "nodetool.video.AddAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Script to Narrated Clip.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"mix\" (nodetool.video.AddAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.audio.TextToSpeech",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.video.AddAudio",
+    "nodetool.video.TextToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.video.AddAudio": "native-unsupported",
+    "nodetool.video.TextToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Script to Screen.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.concatCopy is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"cut\" (nodetool.video.Concat)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.audio.TextToMusic",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.control.Collect",
+    "nodetool.generators.ListGenerator",
+    "nodetool.generators.StructuredOutputGenerator",
+    "nodetool.image.ImageToImage",
+    "nodetool.image.TextToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.video.AddAudio",
+    "nodetool.video.Concat",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.audio.TextToMusic": "reference-unavailable",
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.generators.ListGenerator": "reference-unavailable",
+    "nodetool.generators.StructuredOutputGenerator": "reference-unavailable",
+    "nodetool.image.ImageToImage": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.video.AddAudio": "native-unsupported",
+    "nodetool.video.Concat": "native-unsupported",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Shot Director (LTX-2.3).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Shot Director (Wan 2.2 14B).json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Shot Director.json": {
+   "group": "comfy",
+   "ts": "skipped"
+  },
+  "Shot List from a Synopsis.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Single Shot from a Line.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.video.TextToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.TextToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Speak a Line, Then Trim the Silence.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.audio.RemoveSilence",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.constant.String",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Spin a Packshot into a Turntable Clip.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.video.ImageToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Still on Replicate.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.TextToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Subtitle Lines from a Script.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.LanguageModelInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.input.LanguageModelInput": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Subtitle Text from a Recording.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"ex\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.video.ExtractAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Summarise a Recorded Call.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"ex\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.video.ExtractAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Take a Product Shot to Print Resolution.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "lib.image.filter.UnsharpMask",
+    "nodetool.image.SaveImageFile",
+    "nodetool.image.Upscale",
+    "nodetool.input.FloatInput",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.Upscale": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Take the First Few Seconds of a Bed.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.audio.SliceAudio",
+    "nodetool.audio.TextToMusic",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.TextToMusic": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Talking Avatar from a Photo and a Script.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"talking_head\" failed: Package asset not found: package://nodetool-base/recipe-inputs/ugc-creator-reference.png; Node \"sync\" failed: The input video is empty.",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.audio.FadeIn",
+    "nodetool.audio.FadeOut",
+    "nodetool.audio.Normalize",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.video.ImageToVideo",
+    "nodetool.video.LipSync",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.video.ImageToVideo": "reference-unavailable",
+    "nodetool.video.LipSync": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Three Ratios.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"vertical\" failed: Timeline input is empty — connect a Constant Timeline node and pick a timeline; Node \"square\" failed: Timeline input is empty — connect a Constant Timeline node and pick a timeline; Node \"r_source\" failed: Timeline input is empty — connect a Constant Timeline node and pick a ...",
+   "providers": false,
+   "ts": "cannot complete",
+   "nodes": [
+    "nodetool.constant.Timeline",
+    "nodetool.output.Output",
+    "nodetool.timeline.RenderTimeline",
+    "nodetool.timeline.RetargetTimeline",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.timeline.RenderTimeline": "skipped",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Top-down Native Asset Pack.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: sharp.default is unavailable in the native runner (native-addon: the libvips addon, which the image nodes replace with the native image adapter) on node \"export\" (nodetool.game.StageGameAssets)",
+   "providers": true,
+   "ts": "cannot complete",
+   "nodes": [
+    "nodetool.audio.TextToMusic",
+    "nodetool.constant.Entity",
+    "nodetool.control.Collect",
+    "nodetool.control.FilterCode",
+    "nodetool.control.ForEach",
+    "nodetool.control.Reroute",
+    "nodetool.game.LoadGameTemplate",
+    "nodetool.game.MusicLoop",
+    "nodetool.game.SeamlessImage",
+    "nodetool.game.SlotPrompt",
+    "nodetool.game.SoundEffect",
+    "nodetool.game.SpriteSheet",
+    "nodetool.game.StageGameAssets",
+    "nodetool.game.Tileset",
+    "nodetool.image.TextToImage",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.TextToMusic": "reference-unavailable",
+    "nodetool.game.StageGameAssets": "mismatch",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Trailer Beats from a Premise.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Train a Character.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Node \"character_entity\" failed: Package asset not found: package://nodetool-base/recipe-inputs/ugc-creator-reference.png; Node \"turnaround_sheet\" failed: Package asset not found: package://nodetool-base/recipe-inputs/ugc-creator-reference.png",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.entity.CreateEntity",
+    "nodetool.image.ImageToImage",
+    "nodetool.input.ImageInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.ImageToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Transcribe Audio.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.AudioInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Transcribe a Clip.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"ex\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.video.ExtractAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Translate a Script for Dubbing.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.LanguageModelInput",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Template",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.input.LanguageModelInput": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Trim a Clip.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"op\" (nodetool.video.Trim)",
+   "providers": false,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.video.Trim",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.Trim": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Turn a Logo into Print-Ready Vector.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.Vectorize",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.Vectorize": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Turn a Talk into a Blog Post.json": {
+   "group": "run",
+   "status": "failed",
+   "error": "Before execution: @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"ex\" (nodetool.video.ExtractAudio)",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.AutomaticSpeechRecognition",
+    "nodetool.video.ExtractAudio",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.text.AutomaticSpeechRecognition": "reference-unavailable",
+    "nodetool.video.ExtractAudio": "native-unsupported",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Upscale a Still.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.image.Upscale",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.Upscale": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Vectorize a Generated Logo.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.constant.String",
+    "nodetool.image.TextToImage",
+    "nodetool.image.Vectorize",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.image.Vectorize": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Video Restyle Studio.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.input.StringInput",
+    "nodetool.input.VideoInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.video.VideoToVideo",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.video.VideoToVideo": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Voice a Script in Two Voices.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.audio.Concat",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Watch a Folder, Act on What Lands.json": {
+   "group": "unrunnable",
+   "ts": "skipped",
+   "unrunnable": [
+    "nodetool.triggers.FileWatchTrigger"
+   ]
+  },
+  "Widen a Mono Voice.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.audio.MonoToStereo",
+    "nodetool.audio.TextToSpeech",
+    "nodetool.constant.String",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.audio.MonoToStereo": "mismatch",
+    "nodetool.audio.TextToSpeech": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Workflow As A Tool.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.text.Prompt",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Write a Listing from the Product Photo.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.input.ImageInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  },
+  "Write the Prompt, Then Make the Image.json": {
+   "group": "run",
+   "status": "completed",
+   "providers": true,
+   "ts": "completes",
+   "nodes": [
+    "nodetool.agents.Agent",
+    "nodetool.image.TextToImage",
+    "nodetool.input.StringInput",
+    "nodetool.output.Output",
+    "nodetool.workflows.base_node.Comment"
+   ],
+   "not_at_parity": {
+    "nodetool.agents.Agent": "reference-unavailable",
+    "nodetool.image.TextToImage": "reference-unavailable",
+    "nodetool.workflows.base_node.Comment": "not in parity baseline"
+   }
+  }
+ }
+}

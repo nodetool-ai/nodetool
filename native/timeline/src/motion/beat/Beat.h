@@ -41,7 +41,10 @@ inline std::shared_ptr<const std::vector<scene::AnimationDef>> resolvedBeatDefin
         double start, bpm, offset;
         std::shared_ptr<const std::vector<scene::AnimationDef>> resolved;
     };
+    // native-rules #10: mutex does not say that it guards the cache
+    // native-rules #14: static mutex
     static std::mutex mutex;
+    // native-rules #14: static mutable cache
     static std::unordered_multimap<const void*, Entry> cache;
     const double bpm = tempo.value(u"bpm").toDouble(120);
     const double offset = tempo.value(u"offsetMs").toDouble(0);

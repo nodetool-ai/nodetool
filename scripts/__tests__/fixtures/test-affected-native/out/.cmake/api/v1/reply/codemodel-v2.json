@@ -1,0 +1,49 @@
+{
+  "kind": "codemodel",
+  "paths": {
+    "source": "@ROOT@/native/graph-runner",
+    "build": "@BUILD@"
+  },
+  "configurations": [
+    {
+      "name": "Release",
+      "targets": [
+        {
+          "name": "gr_util",
+          "id": "gr_util::@6890427a1f51a3e7e1df",
+          "jsonFile": "target-gr_util-Release.json"
+        },
+        {
+          "name": "gr_core",
+          "id": "gr_core::@6890427a1f51a3e7e1df",
+          "jsonFile": "target-gr_core-Release.json"
+        },
+        {
+          "name": "gr_bundle",
+          "id": "gr_bundle::@6890427a1f51a3e7e1df",
+          "jsonFile": "target-gr_bundle-Release.json"
+        },
+        {
+          "name": "gr_core_tests",
+          "id": "gr_core_tests::@6890427a1f51a3e7e1df",
+          "jsonFile": "target-gr_core_tests-Release.json"
+        },
+        {
+          "name": "gr_ctx_tests",
+          "id": "gr_ctx_tests::@6890427a1f51a3e7e1df",
+          "jsonFile": "target-gr_ctx_tests-Release.json"
+        },
+        {
+          "name": "gr_standalone_tests",
+          "id": "gr_standalone_tests::@6890427a1f51a3e7e1df",
+          "jsonFile": "target-gr_standalone_tests-Release.json"
+        },
+        {
+          "name": "nodetool-graph-runner",
+          "id": "nodetool-graph-runner::@6890427a1f51a3e7e1df",
+          "jsonFile": "target-nodetool-graph-runner-Release.json"
+        }
+      ]
+    }
+  ]
+}

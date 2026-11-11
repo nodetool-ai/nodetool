@@ -1,0 +1,531 @@
+{
+ "module": "@nodetool-ai/video-nodes/nodes/model3d",
+ "cases": [
+  {
+   "id": "nodetool.model3d.LoadModel3DFile#default",
+   "node": "nodetool.model3d.LoadModel3DFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.LoadModel3DFile",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.SaveModel3DFile#default",
+   "node": "nodetool.model3d.SaveModel3DFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.SaveModel3DFile",
+      "properties": {
+       "filename": "parity.glb"
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.SaveModel3D#default",
+   "node": "nodetool.model3d.SaveModel3D",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.SaveModel3D",
+      "properties": {
+       "name": "parity.glb"
+      }
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.FormatConverter#default",
+   "node": "nodetool.model3d.FormatConverter",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.FormatConverter",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.GetModel3DMetadata#default",
+   "node": "nodetool.model3d.GetModel3DMetadata",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.GetModel3DMetadata",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.Transform3D#default",
+   "node": "nodetool.model3d.Transform3D",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.Transform3D",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.Decimate#default",
+   "node": "nodetool.model3d.Decimate",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.Decimate",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.Boolean3D#default",
+   "node": "nodetool.model3d.Boolean3D",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.Boolean3D",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.RecalculateNormals#default",
+   "node": "nodetool.model3d.RecalculateNormals",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.RecalculateNormals",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.CenterMesh#default",
+   "node": "nodetool.model3d.CenterMesh",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.CenterMesh",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.FlipNormals#default",
+   "node": "nodetool.model3d.FlipNormals",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.FlipNormals",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.NormalizeModel3D#default",
+   "node": "nodetool.model3d.NormalizeModel3D",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.NormalizeModel3D",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.ExtractLargestComponent#default",
+   "node": "nodetool.model3d.ExtractLargestComponent",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.ExtractLargestComponent",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.RepairMesh#default",
+   "node": "nodetool.model3d.RepairMesh",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.RepairMesh",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.MergeMeshes#default",
+   "node": "nodetool.model3d.MergeMeshes",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.MergeMeshes",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.TextTo3D#default",
+   "node": "nodetool.model3d.TextTo3D",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.TextTo3D",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.ImageTo3D#default",
+   "node": "nodetool.model3d.ImageTo3D",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.ImageTo3D",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.model3d.RenderToImage#default",
+   "node": "nodetool.model3d.RenderToImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.model3d.RenderToImage",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

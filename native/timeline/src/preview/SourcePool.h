@@ -53,6 +53,7 @@ struct MediaReport {
     std::string fallback;  // why VideoToolbox is not used (--decode auto)
 };
 
+// native-rules #9: shared with a retire thread and read from any thread, no thread affinity comment
 class SourcePool {
 public:
     SourcePool();

@@ -69,6 +69,7 @@ public:
     void setVisible(bool) override {}
     QPlatformMenuItem* menuItemAt(int position) const override { return items.value(position); }
     QPlatformMenuItem* menuItemForTag(quintptr) const override { return nullptr; }
+    // native-rules #4: returns a raw owning pointer that the caller must free
     QPlatformMenuItem* createMenuItem() const override { return new RecordingItem; }
     RecordingItem* named(const QString& label) const {
         for (auto* item : items) {
@@ -80,6 +81,7 @@ public:
 class RecordingBar : public QPlatformMenuBar {
     Q_OBJECT
 public:
+    // native-rules #14: test-only static
     static inline QPointer<RecordingBar> last;
     QList<RecordingMenu*> menus;
     RecordingBar() { last = this; }
@@ -97,8 +99,11 @@ public:
 };
 class RecordingTheme : public QPlatformTheme {
 public:
+    // native-rules #4: returns a raw owning pointer that the caller must free
     QPlatformMenuItem* createPlatformMenuItem() const override { return new RecordingItem; }
+    // native-rules #4: returns a raw owning pointer that the caller must free
     QPlatformMenu* createPlatformMenu() const override { return new RecordingMenu; }
+    // native-rules #4: returns a raw owning pointer that the caller must free
     QPlatformMenuBar* createPlatformMenuBar() const override { return new RecordingBar; }
 };
 }
@@ -832,6 +837,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         menus.setAnchor(view.rootObject());
         // The registry outlives this test, so what its entries capture must too.
         // `run` receives the editor's objects.
+        // native-rules #14: test-only static
         static QVariantMap seen;
         QVERIFY(registerShellMenuItem({"Clip", "test.run", "Run", {}, {}, {}, 0, {}, {},
             [](const QVariantMap& context) { seen = context; return true; }}));
@@ -840,7 +846,9 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         QCOMPARE(seen.value("timeline").value<QObject*>(), &model);
         QVERIFY(qobject_cast<ClipGestureController*>(seen.value("gestures").value<QObject*>()));
         // A disabled entry does not run.
+        // native-rules #14: test-only static counter
         static int runs = 0;
+        // native-rules #14: test-only static gate
         static bool allowed = false;
         QVERIFY(registerShellMenuItem({"Clip", "test.guarded", "Guarded", {}, {}, {}, 0,
             [](const QVariantMap&) { return allowed; }, {},
@@ -874,7 +882,9 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         auto* original = QGuiApplicationPrivate::platform_theme;
         QGuiApplicationPrivate::platform_theme = &theme;
         const auto restore = qScopeGuard([original] { QGuiApplicationPrivate::platform_theme = original; });
+        // native-rules #14: test-only static gate
         static bool on = false;
+        // native-rules #14: test-only static counter
         static int runs = 0;
         QVERIFY(registerShellMenuItem({"Window", "test.toggle", "Toggle thing", {}, {}, {}, 0,
             [](const QVariantMap&) { return on; }, [](const QVariantMap&) { return on; },

@@ -6,6 +6,7 @@
 namespace {
 struct Section { QString id; QUrl source; int order; QString title; QString panel; };
 std::vector<Section>& registeredSections() {
+    // native-rules #14: static mutable registry, unsynchronized
     static std::vector<Section> sections;
     return sections;
 }

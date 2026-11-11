@@ -172,6 +172,7 @@ void PremiereTransfer::run(std::function<Outcome(const std::function<void(Progre
     const quint64 epoch = ++m_epoch;
     m_running = true;
     emit changed();
+    // native-rules #12: lambda captures raw this and runs on a worker thread
     auto* worker = QThread::create([this, epoch, work = std::move(work)] {
         QElapsedTimer sinceReport;
         sinceReport.start();

@@ -1,0 +1,13 @@
+{
+  "nodes": [
+    { "id": "items", "type": "nodetool.constant.List", "properties": { "value": ["x", "y", "z"] } },
+    { "id": "each", "type": "nodetool.control.ForEach", "properties": {} },
+    { "id": "collect", "type": "nodetool.control.Collect", "properties": {} },
+    { "id": "out", "type": "nodetool.output.Output", "properties": { "name": "items" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "items", "sourceHandle": "output", "target": "each", "targetHandle": "input_list" },
+    { "id": "e2", "source": "each", "sourceHandle": "output", "target": "collect", "targetHandle": "input_item" },
+    { "id": "e3", "source": "collect", "sourceHandle": "output", "target": "out", "targetHandle": "value" }
+  ]
+}

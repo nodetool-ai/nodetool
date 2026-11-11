@@ -34,6 +34,7 @@ struct Document {
     std::unique_ptr<OffscreenFrames> frames;
     bool image = false;
 };
+// native-rules #9: a reader jthread enqueues into it while the main thread drains it, no affinity comment
 class FrameServer : public QObject {
 public:
     void enqueue(QJsonObject request) {
@@ -183,6 +184,7 @@ private:
     }
     std::deque<QJsonObject> m_requests;
     std::list<std::unique_ptr<Document>> m_documents;
+    // native-rules #10: mutex does not say which members it guards
     std::mutex m_mutex;
     std::set<int> m_cancelled;
     std::atomic<bool> m_eof = false;

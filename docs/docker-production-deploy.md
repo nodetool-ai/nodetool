@@ -45,7 +45,11 @@ workflow to finish triggers the release. It rejects a commit superseded on
 `main`. It retains the historical filename
 [fly-deploy.yml](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/fly-deploy.yml), but does not invoke Fly or
 use its credentials. Manual dispatch follows the same gates and uses the
-dispatch commit, never a mutable image tag.
+dispatch commit, never a mutable image tag. Its `skip_test_gate` input releases
+the current `main` commit when Test has failed or has not finished. Docker and
+User Journeys must still succeed, and the run logs a warning naming the Test
+result. The host's forced command checks only Docker, User Journeys and the
+current `main`, so it accepts such a release.
 
 The **Deploy server** job connects to the host over SSH and sends only the full
 commit SHA. A host-side forced command validates the SHA, rechecks the build

@@ -151,6 +151,7 @@ private:
         QJsonObject capturedDocument;
     };
     QHash<QString, AudioSettlement> m_settlements;
+    // native-rules #1: std::shared_ptr MediaProtection, no comment on why unique ownership is impossible
     std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
     bool m_reconciling = false;
     std::optional<nt::server::SaveTarget> m_target;
@@ -170,6 +171,7 @@ private:
     bool m_favoritesOnly = false;
     quint64 m_queryGeneration = 0;
     quint64 m_documentEpoch = 0;
+    // native-rules #1: std::shared_ptr atomic flag shared with a worker, no justification comment
     std::shared_ptr<std::atomic_bool> m_activeQueryCancel;
     bool m_hasQueried = false;
     QString m_libraryProject;
@@ -183,6 +185,7 @@ private:
         std::function<Result(nt::server::ServerClient&)> work;
         std::function<void(const Result&)> done;
         std::optional<quint64> documentEpoch;
+        // native-rules #1: std::shared_ptr atomic flag shared with a worker, no justification comment
         std::shared_ptr<std::atomic_bool> queryCancel;
     };
     std::deque<Request> m_requests;

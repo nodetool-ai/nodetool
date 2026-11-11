@@ -12,6 +12,7 @@ struct Registry {
     std::vector<std::pair<MatteStageToken, MatteStageFactory>> mattes;
     std::vector<std::pair<SecondSourceToken, SecondSourceProvider>> sources;
 };
+// native-rules #14: static process-wide mutable registry
 Registry& registry() { static Registry value; return value; }
 }
 BlendHandlerToken registerBlendHandler(std::string mode, BlendHandlerFactory factory) {

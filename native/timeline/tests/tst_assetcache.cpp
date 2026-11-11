@@ -297,6 +297,7 @@ private slots:
         const QString root = m_dir.path();
         constexpr int kThreads = 4;
         std::vector<FetchResult> results(kThreads);
+        // native-rules #1: raw QThread* in a vector owns the threads and deletes them by hand
         std::vector<QThread*> threads;
         std::atomic<int> done{0};
         for (int i = 0; i < kThreads; ++i) {
@@ -311,6 +312,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(done.load(), kThreads, 20000);
         for (QThread* t : threads) {
             t->wait();
+            // native-rules #2: naked delete of a QThread from QThread::create
             delete t;
         }
         int downloads = 0;

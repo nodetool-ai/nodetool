@@ -58,6 +58,7 @@ void ProviderSettings::request(bool write, const QString& procedure, const QJson
     const auto epoch = m_epoch;
     const auto call = m_call;
     const QPointer<ProviderSettings> guard(this);
+    // native-rules #13: worker is not interrupted or joined when the owner is destroyed
     auto* worker = QThread::create([guard, target, epoch, call, write, procedure, input, done = std::move(done)] {
         nt::server::QueryResult result;
         if (call) { result = call(write, procedure, input); }

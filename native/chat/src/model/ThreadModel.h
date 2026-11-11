@@ -15,6 +15,8 @@ public:
   void setStatus(const QString &, const QString &);
   QJsonObject get(const QString &) const;
   void clear();
+  QList<QJsonObject> rows() const { return m_rows; }
+  void remove(const QString &id);
 
 private:
   QList<QJsonObject> m_rows;

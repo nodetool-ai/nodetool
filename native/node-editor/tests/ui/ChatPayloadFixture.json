@@ -1,0 +1,987 @@
+{
+  "source": "web/src/stores/GlobalChatStore.ts trySendMessage",
+  "cases": [
+    {
+      "name": "chat",
+      "mode": "chat",
+      "prompt": "Edit this workflow",
+      "chatModel": {
+        "provider": "openai",
+        "id": "gpt-5",
+        "name": "gpt-5"
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "openai",
+          "model": "gpt-5",
+          "content": [
+            {
+              "type": "text",
+              "text": "Edit this workflow"
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": null,
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "chat-selection",
+      "mode": "chat",
+      "prompt": "Explain the selection",
+      "chatModel": {
+        "provider": "openai",
+        "id": "gpt-5",
+        "name": "gpt-5"
+      },
+      "selection": [
+        "node-chat"
+      ],
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "openai",
+          "model": "gpt-5",
+          "content": [
+            {
+              "type": "text",
+              "text": "Explain the selection"
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": {
+              "node_ids": [
+                "node-chat"
+              ]
+            },
+            "source": "workflow_canvas"
+          },
+          "media_generation": null,
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "chat-reasoning",
+      "mode": "chat",
+      "prompt": "Plan the graph",
+      "chatModel": {
+        "provider": "anthropic",
+        "id": "claude-opus-4-6",
+        "name": "claude-opus-4-6"
+      },
+      "reasoning": "high",
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "anthropic",
+          "model": "claude-opus-4-6",
+          "content": [
+            {
+              "type": "text",
+              "text": "Plan the graph"
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": null,
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default",
+          "reasoning_effort": "high"
+        }
+      }
+    },
+    {
+      "name": "chat-reasoning-kept",
+      "mode": "chat",
+      "prompt": "Still reasoning",
+      "chatModel": {
+        "provider": "openai",
+        "id": "gpt-4o",
+        "name": "gpt-4o"
+      },
+      "reasoning": "low",
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "openai",
+          "model": "gpt-4o",
+          "content": [
+            {
+              "type": "text",
+              "text": "Still reasoning"
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": null,
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default",
+          "reasoning_effort": "low"
+        }
+      }
+    },
+    {
+      "name": "chat-attachments",
+      "mode": "chat",
+      "prompt": "",
+      "chatModel": {
+        "provider": "openai",
+        "id": "gpt-5",
+        "name": "gpt-5"
+      },
+      "attachments": [
+        {
+          "id": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+          "name": "photo.png",
+          "content_type": "image/png"
+        },
+        {
+          "id": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",
+          "name": "brief",
+          "content_type": "application/pdf"
+        },
+        {
+          "id": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+          "name": "notes.bin",
+          "content_type": "application/octet-stream"
+        },
+        {
+          "id": "c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4",
+          "name": "voice",
+          "content_type": "audio/wav"
+        },
+        {
+          "id": "c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5",
+          "name": "clip.MOV",
+          "content_type": "video/quicktime"
+        }
+      ],
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "openai",
+          "model": "gpt-5",
+          "content": [
+            {
+              "type": "image_url",
+              "image": {
+                "type": "image",
+                "uri": "asset://c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1.png"
+              }
+            },
+            {
+              "type": "document",
+              "document": {
+                "type": "document",
+                "uri": "asset://c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2.pdf"
+              }
+            },
+            {
+              "type": "text",
+              "text": "notes.bin"
+            },
+            {
+              "type": "audio",
+              "audio": {
+                "type": "audio",
+                "uri": "asset://c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4c4.wav"
+              }
+            },
+            {
+              "type": "video",
+              "video": {
+                "type": "video",
+                "uri": "asset://c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5.mov"
+              }
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": null,
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "image",
+      "mode": "image",
+      "prompt": "A lighthouse at dusk",
+      "chatModel": {
+        "provider": "openai",
+        "id": "gpt-5",
+        "name": "gpt-5"
+      },
+      "reasoning": "high",
+      "settings": {
+        "image": {
+          "model": {
+            "type": "image_model",
+            "provider": "fal",
+            "id": "fal-ai/flux/dev",
+            "name": "fal-ai/flux/dev"
+          },
+          "aspectRatio": "1:1",
+          "resolution": "2K",
+          "variations": 2
+        }
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "fal",
+          "model": "fal-ai/flux/dev",
+          "content": [
+            {
+              "type": "text",
+              "text": "A lighthouse at dusk"
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": {
+            "mode": "image",
+            "provider": "fal",
+            "model": "fal-ai/flux/dev",
+            "width": 2048,
+            "height": 2048,
+            "aspect_ratio": "1:1",
+            "resolution": "2K",
+            "variations": 2
+          },
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "image-defaults",
+      "mode": "image",
+      "prompt": "Wide landscape",
+      "chatModel": {
+        "provider": "openai",
+        "id": "gpt-5",
+        "name": "gpt-5"
+      },
+      "settings": {
+        "image": {
+          "model": {
+            "type": "image_model",
+            "provider": "openai",
+            "id": "gpt-image-1",
+            "name": "gpt-image-1"
+          }
+        }
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "openai",
+          "model": "gpt-image-1",
+          "content": [
+            {
+              "type": "text",
+              "text": "Wide landscape"
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": {
+            "mode": "image",
+            "provider": "openai",
+            "model": "gpt-image-1",
+            "width": 1820,
+            "height": 1024,
+            "aspect_ratio": "16:9",
+            "resolution": "1K",
+            "variations": 4
+          },
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "image-edit",
+      "mode": "image_edit",
+      "prompt": "Make it night",
+      "chatModel": {
+        "provider": "openai",
+        "id": "gpt-5",
+        "name": "gpt-5"
+      },
+      "attachments": [
+        {
+          "id": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+          "name": "photo.png",
+          "content_type": "image/png"
+        }
+      ],
+      "settings": {
+        "imageEdit": {
+          "model": {
+            "type": "image_model",
+            "provider": "fal",
+            "id": "fal-ai/flux/dev/image-to-image",
+            "name": "fal-ai/flux/dev/image-to-image"
+          },
+          "strength": 0.85,
+          "numInferenceSteps": 40
+        }
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "fal",
+          "model": "fal-ai/flux/dev/image-to-image",
+          "content": [
+            {
+              "type": "text",
+              "text": "Make it night"
+            },
+            {
+              "type": "image_url",
+              "image": {
+                "type": "image",
+                "uri": "asset://c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1.png"
+              }
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": {
+            "mode": "image_edit",
+            "provider": "fal",
+            "model": "fal-ai/flux/dev/image-to-image",
+            "width": 1024,
+            "height": 1024,
+            "aspect_ratio": "1:1",
+            "resolution": "1K",
+            "variations": 1,
+            "strength": 0.85,
+            "num_inference_steps": 40
+          },
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "video",
+      "mode": "video",
+      "prompt": "Waves on rocks",
+      "settings": {
+        "video": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal",
+            "id": "fal-ai/veo3",
+            "name": "fal-ai/veo3"
+          },
+          "duration": 5,
+          "resolution": "720p",
+          "aspectRatio": "9:16"
+        }
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "fal",
+          "model": "fal-ai/veo3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Waves on rocks"
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": {
+            "mode": "video",
+            "provider": "fal",
+            "model": "fal-ai/veo3",
+            "aspect_ratio": "9:16",
+            "resolution": "720p",
+            "duration": 5
+          },
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "image-to-video",
+      "mode": "image_to_video",
+      "prompt": "Animate the photo",
+      "attachments": [
+        {
+          "id": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+          "name": "photo.png",
+          "content_type": "image/png"
+        }
+      ],
+      "settings": {
+        "imageToVideo": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal",
+            "id": "fal-ai/kling/image-to-video",
+            "name": "fal-ai/kling/image-to-video"
+          }
+        }
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "fal",
+          "model": "fal-ai/kling/image-to-video",
+          "content": [
+            {
+              "type": "text",
+              "text": "Animate the photo"
+            },
+            {
+              "type": "image_url",
+              "image": {
+                "type": "image",
+                "uri": "asset://c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1.png"
+              }
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": {
+            "mode": "image_to_video",
+            "provider": "fal",
+            "model": "fal-ai/kling/image-to-video",
+            "aspect_ratio": "16:9",
+            "resolution": "1080p",
+            "duration": 4,
+            "num_inference_steps": 30
+          },
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "reference-to-video",
+      "mode": "reference_to_video",
+      "prompt": "Same character walking",
+      "settings": {
+        "referenceToVideo": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal",
+            "id": "fal-ai/vidu/reference",
+            "name": "fal-ai/vidu/reference"
+          },
+          "useReferenceVideoAudio": true
+        }
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "fal",
+          "model": "fal-ai/vidu/reference",
+          "content": [
+            {
+              "type": "text",
+              "text": "Same character walking"
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": {
+            "mode": "reference_to_video",
+            "provider": "fal",
+            "model": "fal-ai/vidu/reference",
+            "aspect_ratio": "16:9",
+            "resolution": "1080p",
+            "duration": 5,
+            "use_reference_video_audio": true
+          },
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "retake",
+      "mode": "retake",
+      "prompt": "Make it rain",
+      "attachments": [
+        {
+          "id": "c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5",
+          "name": "clip.MOV",
+          "content_type": "video/quicktime"
+        }
+      ],
+      "settings": {
+        "retake": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal",
+            "id": "fal-ai/retake",
+            "name": "fal-ai/retake"
+          }
+        }
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "fal",
+          "model": "fal-ai/retake",
+          "content": [
+            {
+              "type": "text",
+              "text": "Make it rain"
+            },
+            {
+              "type": "video",
+              "video": {
+                "type": "video",
+                "uri": "asset://c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5.mov"
+              }
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": {
+            "mode": "retake",
+            "provider": "fal",
+            "model": "fal-ai/retake"
+          },
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "extend",
+      "mode": "extend",
+      "prompt": "Continue the shot",
+      "attachments": [
+        {
+          "id": "c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5",
+          "name": "clip.MOV",
+          "content_type": "video/quicktime"
+        }
+      ],
+      "settings": {
+        "extend": {
+          "model": {
+            "type": "video_model",
+            "provider": "fal",
+            "id": "fal-ai/extend",
+            "name": "fal-ai/extend"
+          },
+          "direction": "start",
+          "duration": 5
+        }
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "fal",
+          "model": "fal-ai/extend",
+          "content": [
+            {
+              "type": "text",
+              "text": "Continue the shot"
+            },
+            {
+              "type": "video",
+              "video": {
+                "type": "video",
+                "uri": "asset://c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5.mov"
+              }
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": {
+            "mode": "extend",
+            "provider": "fal",
+            "model": "fal-ai/extend",
+            "extend_direction": "start",
+            "duration": 5
+          },
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "audio",
+      "mode": "audio",
+      "prompt": "Welcome to the studio",
+      "settings": {
+        "audio": {
+          "model": {
+            "type": "tts_model",
+            "provider": "openai",
+            "id": "gpt-4o-mini-tts",
+            "name": "gpt-4o-mini-tts"
+          },
+          "voice": "nova",
+          "speed": 1.25,
+          "format": "wav"
+        }
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "openai",
+          "model": "gpt-4o-mini-tts",
+          "content": [
+            {
+              "type": "text",
+              "text": "Welcome to the studio"
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": {
+            "mode": "audio",
+            "provider": "openai",
+            "model": "gpt-4o-mini-tts",
+            "voice": "nova",
+            "speed": 1.25,
+            "audio_format": "wav"
+          },
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    },
+    {
+      "name": "music",
+      "mode": "music",
+      "prompt": "Calm piano",
+      "settings": {
+        "music": {
+          "model": {
+            "type": "music_model",
+            "provider": "elevenlabs",
+            "id": "music_v1",
+            "name": "music_v1"
+          },
+          "duration": 60
+        }
+      },
+      "expected": {
+        "command": "chat_message",
+        "data": {
+          "type": "message",
+          "name": "",
+          "role": "user",
+          "provider": "elevenlabs",
+          "model": "music_v1",
+          "content": [
+            {
+              "type": "text",
+              "text": "Calm piano"
+            }
+          ],
+          "ui_context": {
+            "focused": {
+              "type": "workflow",
+              "id": "workflow-chat",
+              "title": "Chat fixture"
+            },
+            "open": [
+              {
+                "type": "workflow",
+                "id": "workflow-chat",
+                "title": "Chat fixture"
+              }
+            ],
+            "selection": null,
+            "source": "workflow_canvas"
+          },
+          "media_generation": {
+            "mode": "music",
+            "provider": "elevenlabs",
+            "model": "music_v1",
+            "duration": 60
+          },
+          "workflow_id": "workflow-chat",
+          "project_id": "default",
+          "thread_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "permission_mode": "default"
+        }
+      }
+    }
+  ]
+}

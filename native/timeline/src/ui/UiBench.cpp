@@ -50,6 +50,7 @@ double nowMs() {
 
 const QPointingDevice* touchpad() {
     static const QPointingDevice* device = [] {
+        // native-rules #2: naked new QPointingDevice with no parent, leaked into a static pointer
         auto* d = new QPointingDevice(QStringLiteral("ui-bench touchpad"), 4243, QInputDevice::DeviceType::TouchPad,
                                       QPointingDevice::PointerType::Finger, QInputDevice::Capability::Position, 2, 0);
         QWindowSystemInterface::registerInputDevice(d);
@@ -400,6 +401,7 @@ int runWindowed(TimelineModel& model, PlaybackClock& clock, const UiBenchOptions
 
     Script script{&window, area, options.frames, 0};
     Samples s;
+    // native-rules #10: mutex does not say which sample data it guards
     std::mutex mutex;
     std::atomic<double> frameStart{0.0};
     std::atomic<double> inputMs{0.0};

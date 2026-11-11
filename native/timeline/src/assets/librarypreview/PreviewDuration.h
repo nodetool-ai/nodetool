@@ -30,12 +30,14 @@ inline PreviewMediaFacts probePreviewMedia(const std::string& path, const std::f
         bool expired() const { return (interrupted && interrupted()) || std::chrono::steady_clock::now() >= end; }
     } deadline{interrupted};
     if (path.empty() || deadline.expired()) { return {}; }
+    // native-rules #6: raw AVFormatContext not wrapped until after avformat_open_input
     AVFormatContext* opened = avformat_alloc_context();
     if (!opened) { return {}; }
     opened->interrupt_callback = {[](void* opaque) {
         return static_cast<ProbeDeadline*>(opaque)->expired() ? 1 : 0;
     }, &deadline};
     // The resolver supplies a cache file, never a URL or a nested network input.
+    // native-rules #6: raw AVDictionary freed by hand with av_dict_free
     AVDictionary* options = nullptr;
     av_dict_set(&options, "protocol_whitelist", "file", 0);
     const int status = avformat_open_input(&opened, path.c_str(), nullptr, &options);

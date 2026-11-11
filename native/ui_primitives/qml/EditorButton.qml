@@ -18,6 +18,7 @@ Basic.Button {
     property string accessibleName: text
     property int density: 1
     property int variant: 0
+    property bool circular: false
     property bool active: false
     property bool loading: false
     property string disabledReason: ""
@@ -69,9 +70,10 @@ Basic.Button {
         Ui.Icon { id: trailingIcon; objectName: "nativeButtonTrailingIcon"; anchors.verticalCenter: parent.verticalCenter; visible: root.trailingIconName !== "" && root.display !== Basic.AbstractButton.IconOnly; name: root.trailingIconName; tone: root.iconTone }
     }
     }
+    opacity: !enabled && circular ? 0.7 : 1
     background: Rectangle {
-        radius: Metrics.radiusControl
-        color: !root.enabled ? Theme.actionDisabled : root.variant === 3 ? (root.down || root.hovered ? Theme.destructiveHover : Theme.destructivePrimary) : root.variant === 1 ? (root.down || root.hovered ? Theme.accentHover : Theme.accentPrimary) : root.down ? Theme.actionPressed : root.checked || root.active ? Theme.actionSelected : root.hovered ? Theme.actionHover : root.variant === 2 ? "transparent" : Theme.surfacePanel
+        radius: root.circular ? Metrics.radiusPill : Metrics.radiusControl
+        color: !root.enabled && !root.circular ? Theme.actionDisabled : root.variant === 3 ? (root.down || root.hovered ? Theme.destructiveHover : Theme.destructivePrimary) : root.variant === 1 ? (root.down || root.hovered ? Theme.accentHover : Theme.accentPrimary) : root.down ? Theme.actionPressed : root.checked || root.active ? Theme.actionSelected : root.hovered ? Theme.actionHover : root.variant === 2 ? "transparent" : Theme.surfacePanel
         border.width: root.visualFocus ? Metrics.focus : Metrics.border
         border.color: root.visualFocus ? Theme.borderFocus : root.variant === 2 || root.variant === 1 || root.variant === 3 ? "transparent" : Theme.borderControl
     }

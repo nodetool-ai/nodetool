@@ -151,6 +151,7 @@ void AssetBrowser::request(std::function<Result(nt::server::ServerClient&)> work
         return;
     }
     m_activeQueryCancel = std::move(queryCancel);
+    // native-rules #1: std::shared_ptr result shared with the worker, no justification comment
     auto result = std::make_shared<Result>();
     const auto target = *m_target;
     auto* thread = QThread::create([work = std::move(work), target, result] {
@@ -275,6 +276,7 @@ void AssetBrowser::refresh() {
     m_pending.clear();
     m_poll.stop();
     emit queryStarted();
+    // native-rules #1: std::shared_ptr atomic flag shared with a worker, no justification comment
     const auto cancelled = std::make_shared<std::atomic_bool>(false);
     request([cancelled, folder = m_folderId, search = m_searchText.trimmed(), type = m_typeFilter,
              tag = m_tagFilter.trimmed(), favorites = m_favoritesOnly, project = projectId(), generation](nt::server::ServerClient& client) {

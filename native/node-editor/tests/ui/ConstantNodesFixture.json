@@ -1,0 +1,1219 @@
+[
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.ASRModelConstant",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "asr_model",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": null,
+    "name": "value",
+    "required": true,
+    "title": "Value",
+    "type": {
+     "type": "asr_model",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "ASR Model Constant"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Bool",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "bool",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": false,
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "bool",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Bool"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.DataFrame",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "dataframe",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "asset_id": null,
+     "columns": null,
+     "data": null,
+     "metadata": null,
+     "type": "dataframe",
+     "uri": ""
+    },
+    "name": "value",
+    "required": false,
+    "title": "DataFrame",
+    "type": {
+     "type": "dataframe",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Data Frame"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "year",
+   "month"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Date",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "date",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": 1900,
+    "description": "Year of the date",
+    "max": 9999,
+    "min": 1,
+    "name": "year",
+    "required": false,
+    "title": "Year",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   },
+   {
+    "default": 1,
+    "description": "Month of the date",
+    "max": 12,
+    "min": 1,
+    "name": "month",
+    "required": false,
+    "title": "Month",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   },
+   {
+    "default": 1,
+    "description": "Day of the date",
+    "max": 31,
+    "min": 1,
+    "name": "day",
+    "required": false,
+    "title": "Day",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Date"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "year",
+   "month"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.DateTime",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "datetime",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": 1900,
+    "description": "Year of the datetime",
+    "max": 9999,
+    "min": 1,
+    "name": "year",
+    "required": false,
+    "title": "Year",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   },
+   {
+    "default": 1,
+    "description": "Month of the datetime",
+    "max": 12,
+    "min": 1,
+    "name": "month",
+    "required": false,
+    "title": "Month",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   },
+   {
+    "default": 1,
+    "description": "Day of the datetime",
+    "max": 31,
+    "min": 1,
+    "name": "day",
+    "required": false,
+    "title": "Day",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   },
+   {
+    "default": 0,
+    "description": "Hour of the datetime",
+    "max": 23,
+    "min": 0,
+    "name": "hour",
+    "required": false,
+    "title": "Hour",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   },
+   {
+    "default": 0,
+    "description": "Minute of the datetime",
+    "max": 59,
+    "min": 0,
+    "name": "minute",
+    "required": false,
+    "title": "Minute",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   },
+   {
+    "default": 0,
+    "description": "Second of the datetime",
+    "max": 59,
+    "min": 0,
+    "name": "second",
+    "required": false,
+    "title": "Second",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   },
+   {
+    "default": 0,
+    "description": "Millisecond of the datetime",
+    "max": 999,
+    "min": 0,
+    "name": "millisecond",
+    "required": false,
+    "title": "Millisecond",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   },
+   {
+    "default": "UTC",
+    "description": "Timezone of the datetime",
+    "name": "tzinfo",
+    "required": false,
+    "title": "Tzinfo",
+    "type": {
+     "type": "str",
+     "type_args": []
+    }
+   },
+   {
+    "default": 0,
+    "description": "UTC offset of the datetime in minutes",
+    "max": 840,
+    "min": -720,
+    "name": "utc_offset",
+    "required": false,
+    "title": "Utc Offset",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Date Time"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Dict",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "dict",
+     "type_args": [
+      {
+       "type": "str",
+       "type_args": []
+      },
+      {
+       "type": "any",
+       "type_args": []
+      }
+     ]
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {},
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "dict",
+     "type_args": [
+      {
+       "type": "str",
+       "type_args": []
+      },
+      {
+       "type": "any",
+       "type_args": []
+      }
+     ]
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Dict"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Document",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "document",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "asset_id": null,
+     "data": null,
+     "metadata": null,
+     "type": "document",
+     "uri": ""
+    },
+    "name": "value",
+    "required": false,
+    "title": "Document",
+    "type": {
+     "type": "document",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Document"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.EmbeddingModelConstant",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "embedding_model",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": null,
+    "name": "value",
+    "required": true,
+    "title": "Value",
+    "type": {
+     "type": "embedding_model",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Embedding Model Constant"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Entity",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "entity",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "descriptor": "",
+     "id": "",
+     "kind": "prop",
+     "name": "",
+     "type": "entity"
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "entity",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Entity"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Float",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "float",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": 0,
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "float",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Float"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.ImageModelConstant",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "image_model",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": null,
+    "name": "value",
+    "required": true,
+    "title": "Value",
+    "type": {
+     "type": "image_model",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Image Model Constant"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.ImageSize",
+  "outputs": [
+   {
+    "name": "image_size",
+    "type": {
+     "type": "image_size",
+     "type_args": []
+    }
+   },
+   {
+    "name": "width",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   },
+   {
+    "name": "height",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "height": 1024,
+     "width": 1024
+    },
+    "name": "value",
+    "required": true,
+    "title": "Value",
+    "type": {
+     "type": "image_size",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Image Size"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Integer",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": 0,
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "int",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Integer"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.JSON",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "json",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "asset_id": null,
+     "data": null,
+     "metadata": null,
+     "type": "json",
+     "uri": ""
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "json",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "JSON"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.LanguageModelConstant",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "language_model",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": null,
+    "name": "value",
+    "required": true,
+    "title": "Value",
+    "type": {
+     "type": "language_model",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Language Model Constant"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.List",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "any",
+       "type_args": []
+      }
+     ]
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": [],
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "any",
+       "type_args": []
+      }
+     ]
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "List"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Model3D",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "model_3d",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "asset_id": null,
+     "data": null,
+     "format": null,
+     "material_file": null,
+     "metadata": null,
+     "texture_files": [],
+     "type": "model_3d",
+     "uri": ""
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "model_3d",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Model 3D"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Script",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "script",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "data": null,
+     "id": null,
+     "type": "script"
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "script",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Script"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Select",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "str",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": "",
+    "description": "The currently selected value.",
+    "json_schema_extra": {
+     "type": "select"
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "str",
+     "type_args": []
+    }
+   },
+   {
+    "default": [],
+    "description": "The list of available options to choose from.",
+    "name": "options",
+    "required": false,
+    "title": "Options",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "str",
+       "type_args": []
+      }
+     ]
+    }
+   },
+   {
+    "default": "",
+    "description": "The enum type name this select corresponds to (for type matching).",
+    "name": "enum_type_name",
+    "required": false,
+    "title": "Enum Type Name",
+    "type": {
+     "type": "str",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Select"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [
+   "image",
+   "mask"
+  ],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Sketch",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "sketch",
+     "type_args": []
+    }
+   },
+   {
+    "name": "image",
+    "type": {
+     "type": "image",
+     "type_args": []
+    }
+   },
+   {
+    "name": "mask",
+    "type": {
+     "type": "image",
+     "type_args": []
+    }
+   },
+   {
+    "name": "layers",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "image",
+       "type_args": []
+      }
+     ]
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "data": null,
+     "id": null,
+     "type": "sketch"
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "sketch",
+     "type_args": []
+    }
+   },
+   {
+    "default": "",
+    "description": "Serialized editor document (managed by the UI).",
+    "name": "sketch_data",
+    "required": false,
+    "title": "Sketch data",
+    "type": {
+     "type": "str",
+     "type_args": []
+    }
+   },
+   {
+    "default": {
+     "asset_id": null,
+     "data": null,
+     "metadata": null,
+     "type": "image",
+     "uri": ""
+    },
+    "description": "Flattened composite (filled when you edit in the UI).",
+    "name": "image",
+    "required": false,
+    "title": "Image",
+    "type": {
+     "type": "image",
+     "type_args": []
+    }
+   },
+   {
+    "default": {
+     "asset_id": null,
+     "data": null,
+     "metadata": null,
+     "type": "image",
+     "uri": ""
+    },
+    "description": "Mask output when configured in the editor.",
+    "name": "mask",
+    "required": false,
+    "title": "Mask",
+    "type": {
+     "type": "image",
+     "type_args": []
+    }
+   },
+   {
+    "default": [],
+    "description": "List of exposed layer image references.",
+    "name": "layers",
+    "required": false,
+    "title": "Layers",
+    "type": {
+     "type": "list",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": true,
+  "supports_dynamic_outputs": true,
+  "title": "Sketch"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Storyboard",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "storyboard",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "data": null,
+     "id": null,
+     "type": "storyboard"
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "storyboard",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Storyboard"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.String",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "str",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": "",
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "str",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "String"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.TextList",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "str",
+       "type_args": []
+      }
+     ]
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": null,
+    "description": "List of text strings",
+    "name": "value",
+    "required": true,
+    "title": "Value",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "str",
+       "type_args": []
+      }
+     ]
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Text List"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Timeline",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "timeline",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": {
+     "data": null,
+     "id": null,
+     "type": "timeline"
+    },
+    "name": "value",
+    "required": false,
+    "title": "Value",
+    "type": {
+     "type": "timeline",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Timeline"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.TTSModelConstant",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "tts_model",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": null,
+    "name": "value",
+    "required": true,
+    "title": "Value",
+    "type": {
+     "type": "tts_model",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "TTS Model Constant"
+ },
+ {
+  "body": "default",
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "layout": "default",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.VideoModelConstant",
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "video_model",
+     "type_args": []
+    }
+   }
+  ],
+  "properties": [
+   {
+    "default": null,
+    "name": "value",
+    "required": true,
+    "title": "Value",
+    "type": {
+     "type": "video_model",
+     "type_args": []
+    }
+   }
+  ],
+  "supports_dynamic_inputs": false,
+  "title": "Video Model Constant"
+ }
+]

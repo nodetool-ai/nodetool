@@ -27,6 +27,7 @@ const bool views = [] {
 }();
 const QPointingDevice* touchpad() {
     static const QPointingDevice* device = [] {
+        // native-rules #2: naked new QPointingDevice with no parent, never freed
         auto* d = new QPointingDevice("tst touchpad", 7001, QInputDevice::DeviceType::TouchPad,
             QPointingDevice::PointerType::Finger, QInputDevice::Capability::Position, 2, 0);
         QWindowSystemInterface::registerInputDevice(d);

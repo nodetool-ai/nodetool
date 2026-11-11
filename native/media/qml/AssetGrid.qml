@@ -9,6 +9,8 @@ Item {
     property Component scrubOverlay: null
     property string selectedId: ""
     property var navigateFolder: null
+    // A drag leaves the window as an application/x-nodetool-drag asset payload, as on the web.
+    property bool externalDrag: false
     signal previewRequested(var asset)
     signal actionsRequested(var asset)
     signal importRequested()
@@ -45,6 +47,7 @@ Item {
         onContentYChanged: if (grid.scrub) grid.scrub.clear()
         delegate: AssetItem {
             browser: grid.browser
+            externalDrag: grid.externalDrag
             scrub: grid.scrub
             scrubOverlay: grid.scrubOverlay
             navigateFolder: grid.navigateFolder

@@ -1,0 +1,856 @@
+{
+ "module": "@nodetool-ai/audio-nodes/nodes/audio",
+ "cases": [
+  {
+   "id": "nodetool.audio.Normalize#default",
+   "node": "nodetool.audio.Normalize",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.Normalize",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.OverlayAudio#default",
+   "node": "nodetool.audio.OverlayAudio",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.OverlayAudio",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.RemoveSilence#default",
+   "node": "nodetool.audio.RemoveSilence",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.RemoveSilence",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.SliceAudio#default",
+   "node": "nodetool.audio.SliceAudio",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.SliceAudio",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.MonoToStereo#default",
+   "node": "nodetool.audio.MonoToStereo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.MonoToStereo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.StereoToMono#default",
+   "node": "nodetool.audio.StereoToMono",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.StereoToMono",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.Reverse#default",
+   "node": "nodetool.audio.Reverse",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.Reverse",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.FadeIn#default",
+   "node": "nodetool.audio.FadeIn",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.FadeIn",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.FadeOut#default",
+   "node": "nodetool.audio.FadeOut",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.FadeOut",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.Repeat#default",
+   "node": "nodetool.audio.Repeat",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.Repeat",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.AudioMixer#default",
+   "node": "nodetool.audio.AudioMixer",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.AudioMixer",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.Trim#default",
+   "node": "nodetool.audio.Trim",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.Trim",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.CreateSilence#default",
+   "node": "nodetool.audio.CreateSilence",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.CreateSilence",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.Concat#default",
+   "node": "nodetool.audio.Concat",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.Concat",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.ConcatList#default",
+   "node": "nodetool.audio.ConcatList",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.ConcatList",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.ChunkToAudio#default",
+   "node": "nodetool.audio.ChunkToAudio",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.ChunkToAudio",
+      "properties": {}
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.GetAudioInfo#default",
+   "node": "nodetool.audio.GetAudioInfo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.GetAudioInfo",
+      "properties": {}
+     },
+     {
+      "id": "out_duration",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "duration"
+      }
+     },
+     {
+      "id": "out_sample_rate",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "sample_rate"
+      }
+     },
+     {
+      "id": "out_channels",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "channels"
+      }
+     },
+     {
+      "id": "out_format",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "format"
+      }
+     },
+     {
+      "id": "out_size_bytes",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "size_bytes"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_duration",
+      "source": "n",
+      "sourceHandle": "duration",
+      "target": "out_duration",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_sample_rate",
+      "source": "n",
+      "sourceHandle": "sample_rate",
+      "target": "out_sample_rate",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_channels",
+      "source": "n",
+      "sourceHandle": "channels",
+      "target": "out_channels",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_format",
+      "source": "n",
+      "sourceHandle": "format",
+      "target": "out_format",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_size_bytes",
+      "source": "n",
+      "sourceHandle": "size_bytes",
+      "target": "out_size_bytes",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.LoadAudioAssets#default",
+   "node": "nodetool.audio.LoadAudioAssets",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.LoadAudioAssets",
+      "properties": {}
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     },
+     {
+      "id": "out_name",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "name"
+      }
+     },
+     {
+      "id": "out_audios",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audios"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_name",
+      "source": "n",
+      "sourceHandle": "name",
+      "target": "out_name",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_audios",
+      "source": "n",
+      "sourceHandle": "audios",
+      "target": "out_audios",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.LoadAudioFile#default",
+   "node": "nodetool.audio.LoadAudioFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.LoadAudioFile",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.LoadAudioFolder#default",
+   "node": "nodetool.audio.LoadAudioFolder",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.LoadAudioFolder",
+      "properties": {}
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     },
+     {
+      "id": "out_path",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "path"
+      }
+     },
+     {
+      "id": "out_audios",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audios"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_path",
+      "source": "n",
+      "sourceHandle": "path",
+      "target": "out_path",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_audios",
+      "source": "n",
+      "sourceHandle": "audios",
+      "target": "out_audios",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.SaveAudio#default",
+   "node": "nodetool.audio.SaveAudio",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.SaveAudio",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.SaveAudioFile#default",
+   "node": "nodetool.audio.SaveAudioFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.SaveAudioFile",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.TextToSpeech#default",
+   "node": "nodetool.audio.TextToSpeech",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.TextToSpeech",
+      "properties": {}
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.TextToMusic#default",
+   "node": "nodetool.audio.TextToMusic",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.TextToMusic",
+      "properties": {}
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.AudioToAudio#default",
+   "node": "nodetool.audio.AudioToAudio",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.AudioToAudio",
+      "properties": {}
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+{
+  "nodes": [
+    { "id": "pick", "type": "nodetool.constant.Select", "properties": { "value": "c", "options": ["a", "b"] } },
+    { "id": "out", "type": "nodetool.output.Output", "properties": { "name": "picked" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "pick", "sourceHandle": "output", "target": "out", "targetHandle": "value" }
+  ]
+}

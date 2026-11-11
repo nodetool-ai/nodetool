@@ -153,6 +153,7 @@ QString mediaLogLine(const MediaReportEntry& r) {
 
 // Samples the bench collects while the event loop runs. Shared with the
 // callbacks by shared_ptr, so it outlives the block that creates it.
+// native-rules #9: used across threads (mutex, written from the render thread) and declares no thread affinity at its top
 struct BenchRun {
     enum class Phase { Warmup, Measure, Close, Done };
     Phase phase = Phase::Warmup;
@@ -177,6 +178,7 @@ struct BenchRun {
     double cpuWallMs = 0.0;
     int64_t processUsed = -1, mainUsed = -1, renderUsed = -1;
     std::shared_ptr<bool> completed;
+    // native-rules #10: mutex does not say which data it guards (submitNs)
     std::mutex submitMutex;
     std::vector<qint64> submitNs;  // frameSwapped times, steady clock
 };
@@ -417,6 +419,8 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
             }
         }
     } else {
+        // native-rules #2: naked new, the object is then owned by rootObject
+        // native-rules #3: rootObject.reset(item) and setParentItem(window.contentItem()) both own this item
         auto* item = new PreviewCompositor();
         rootObject.reset(item);
         item->setTimeline(&model);
@@ -1210,6 +1214,7 @@ int main(int argc, char** argv) {
 
     // The loader report (D10a): log each media clip once, as the pool opens it.
     if (compositor) {
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto logged = std::make_shared<std::set<QString>>();
         // The compositor is the context: the teardown test deletes it mid-run.
         QObject::connect(&view, &QQuickWindow::afterAnimating, compositor, [compositor, logged]() {
@@ -1222,6 +1227,7 @@ int main(int argc, char** argv) {
 
     // Set when a bench or screenshot run reached its report. Closing the
     // window first ends app.exec() with 0, which must not read as a pass.
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     auto completed = std::make_shared<bool>(false);
     // The callbacks below run from app.exec(), after this block's locals are
     // gone, so they own their state through value captures.
@@ -1257,6 +1263,7 @@ int main(int argc, char** argv) {
         const double refreshHz = view.screen() ? view.screen()->refreshRate() : 0.0;
         const double startMs = clock.time();
         const QString decodeName = selectedDecodeMode;
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto scheduling = std::make_shared<QJsonObject>();
         // F7 diagnostics: exposure changes of the bench window, with a
         // steady-clock time, next to the occlusion log.
@@ -1266,7 +1273,9 @@ int main(int argc, char** argv) {
         // sends no afterAnimating, so a run would wait forever. After 3 s with
         // no rendered frame the bench ends with an invalid report and exit 1.
         auto watchdog = new QTimer(&app);
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto lastFrames = std::make_shared<long long>(-1);
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto stillFor = std::make_shared<QElapsedTimer>();
         stillFor->start();
         QObject::connect(watchdog, &QTimer::timeout, &app, [&app, compositor, run, lastFrames, stillFor, exposeLogger]() {
@@ -1414,14 +1423,19 @@ int main(int argc, char** argv) {
         // layer must report nothing. 60 frames of playback, delete, 60 more.
         clock.setLoop(true);
         clock.play();
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto frames = std::make_shared<int>(0);
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto deleted = std::make_shared<bool>(false);
         QObject::connect(&view, &QQuickWindow::afterAnimating, &app,
+                         // native-rules #12: lambda captures a raw compositor pointer that it deletes while it runs later
                          [&app, &view, compositor, frames, deleted, completed]() mutable {
                              ++*frames;
                              if (!*deleted && *frames >= 60) {
                                  *deleted = true;
                                  compositor->setParentItem(nullptr);
+                                 // native-rules #2: naked delete on a raw pointer
+                                 // native-rules #1: deletes an object that rootObject or the QML tree also owns
                                  delete compositor;
                                  std::fprintf(stderr, "teardown: preview deleted at frame %d\n", *frames);
                              }

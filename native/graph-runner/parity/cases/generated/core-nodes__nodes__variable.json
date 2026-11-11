@@ -1,0 +1,63 @@
+{
+ "module": "@nodetool-ai/core-nodes/nodes/variable",
+ "cases": [
+  {
+   "id": "nodetool.variable.SetVariable#default",
+   "node": "nodetool.variable.SetVariable",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.variable.SetVariable",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.variable.GetVariable#default",
+   "node": "nodetool.variable.GetVariable",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.variable.GetVariable",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

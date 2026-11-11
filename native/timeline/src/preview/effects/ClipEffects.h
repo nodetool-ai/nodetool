@@ -102,6 +102,7 @@ class ClipEffectStage final : public LayerEffectStage {
     std::shared_ptr<DrawCache> m_denoiseCache;
     std::shared_ptr<DrawCache> m_maskCache;
     std::list<std::pair<QByteArray, std::shared_ptr<QRhiTexture>>> m_maskTextures;
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::list<std::pair<QByteArray, std::shared_ptr<Lut>>> m_luts;
 };
 class AdjustmentTreatment {

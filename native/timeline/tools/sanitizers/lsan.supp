@@ -1,32 +1,47 @@
 # libdbus allocations on the xcb/NVIDIA platform path survive process teardown (GPU run 1).
+# native-rules #15: leak suppression for a library leak on the project GPU run path
 leak:libdbus-1.so
 # NVIDIA VAAPI 0.0.18 leaks its surface-export list storage on its own resolveSurfaces thread.
+# native-rules #15: leak suppressed in a VAAPI driver, hides leaks of project decoder teardown
 leak:direct_realiseSurface
 # NVIDIA VAAPI 0.0.18 leaks allocateObject's config-list storage after decoder teardown.
+# native-rules #15: leak suppressed in a VAAPI driver, hides leaks of project decoder teardown
 leak:nvCreateConfig
 # NVIDIA VAAPI 0.0.18 leaks allocateObject's slice-buffer list storage after decoder teardown.
+# native-rules #15: leak suppressed in a VAAPI driver, hides leaks of project decoder teardown
 leak:nvCreateBuffer
 # V-LEAK-2: injected unconfirmed fence waits deliberately retain Vulkan resources for process lifetime (B3).
+# native-rules #15: suppresses a deliberate leak in a project test instead of freeing it
 leak:TestVulkanInterop::teardownRequiresConfirmedFenceWait
 # V-LEAK-2: injected unconfirmed acquire deliberately retains images/memory, checked by B3 destructionStats.
+# native-rules #15: suppresses a deliberate leak in a project test instead of freeing it
 leak:TestVulkanInterop::teardownRetainsUnreleasedImagesAfterUnconfirmedAcquire
 # V-EXT-4: Qt Quick pixmap reader startup/jobs survive view teardown. Also matches project-triggered QML image-load leaks through TestTracksUi::load.
+# native-rules #15: suppression also hides project QML image-load leaks
 leak:QQuickPixmap::load
 # V-EXT-4: Qt SVG decoding storage held by reader jobs. Also hides SVG-plugin allocations retained by project image owners.
+# native-rules #15: suppression also hides SVG-plugin leaks of project image owners
 leak:libqsvg.so
 # V-EXT-4: Qt Quick reader texture factories survive teardown. Also hides factories leaked by project callers.
+# native-rules #15: suppression also hides texture factories leaked by project callers
 leak:QQuickTextureFactory::textureFactoryForImage
 # V-EXT-4: Qt pixmap reader's GLib dispatcher survives teardown. Also hides dispatcher leaks from project-owned Qt threads.
+# native-rules #15: suppression also hides dispatcher leaks of project Qt threads
 leak:QEventDispatcherGlib::QEventDispatcherGlib
 # V-EXT-4: Qt reader's deferred-delete event storage survives teardown. Also hides deferred-deletion event leaks from project QObject callers.
+# native-rules #15: suppression also hides deferred-delete leaks of project QObjects
 leak:QObject::deleteLater
 # V-EXT-4: Qt reader's 32-byte-per-loop QArrayData allocation under QEventLoop::exec survives teardown. Also hides leaks in project Qt worker event loops.
+# native-rules #15: suppression also hides leaks in project worker event loops
 leak:QThread::exec
 # NVIDIA GL driver 610.57 internal allocations with no project frame survive process teardown (A document tests under the sanitize preset).
+# native-rules #15: leak suppressed in a driver with no project frame
 leak:libnvidia-glcore.so
 # libxcb connection storage allocated with no project frame survives process teardown (A document tests under the sanitize preset).
+# native-rules #15: leak suppressed in a library with no project frame
 leak:libxcb.so
 # V-EXT-6: Qt/fontconfig retains MixerFader's U+221E fallback pattern through tst_wiringw process teardown.
+# native-rules #15: leak suppressed in Qt for a project test (tst_wiringw)
 leak:QFontEngineMultiFontConfig::getMatchPatternForFallback
 # V-EXT-7: Qt Quick Canvas (Context2D) paint buffers drawn in the window's polish step while assistant_capture loads a document survive teardown on CI's threaded Vulkan loop. Every leaked block is indirect and the owner is not reported. Also hides any other leak allocated under TestAssistantCommands::loadDocument.
 leak:TestAssistantCommands::loadDocument

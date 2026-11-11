@@ -24,6 +24,7 @@ class DrawCache {
     std::unique_ptr<QRhiSampler> m_sampler;
     std::unique_ptr<QRhiShaderResourceBindings> m_layout;
     std::vector<Pipeline> m_pipelines;
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<nt::motion::ScratchPool> m_scratch;
 };
 } // namespace nt::effects

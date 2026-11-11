@@ -105,6 +105,7 @@ void EntityLibrary::load(bool images) {
     if (!loading) { if (images) finishUpload(); return; }
     const auto project = m_projectId;
     const QPointer<EntityLibrary> guard(this);
+    // native-rules #13: worker is not interrupted or joined when the owner is destroyed
     auto* worker = QThread::create([guard, target, project, revision, images] {
         nt::server::ServerClient client(target.server, target.token);
         QString error;
@@ -211,6 +212,7 @@ void EntityLibrary::write(const QVariantMap& draft, Write mode) {
     const bool hasBaseline = mode == Write::Save && !creating && m_listedMarkers.contains(id);
     const auto baseline = m_listedMarkers.value(id);
     const QPointer<EntityLibrary> guard(this);
+    // native-rules #13: worker is not interrupted or joined when the owner is destroyed
     auto* worker = QThread::create([guard, target, project, draft, id, creating, removing, mode, restoring, epoch, hasBaseline, baseline] {
         nt::server::ServerClient client(target.server, target.token);
         client.setExpectedInstance(target.expectedInstance);
@@ -324,6 +326,7 @@ void EntityLibrary::uploadImages(const QList<QUrl>& files) {
     const auto epoch = m_scopeEpoch;
     const auto project = m_projectId;
     const QPointer<EntityLibrary> guard(this);
+    // native-rules #13: worker is not interrupted or joined when the owner is destroyed
     auto* worker = QThread::create([guard, target, project, epoch, files] {
         nt::server::ServerClient client(target.server, target.token);
         client.setExpectedInstance(target.expectedInstance);
@@ -377,6 +380,7 @@ void EntityLibrary::resolveImages(const QStringList& ids) {
     if (wanted.isEmpty() || target.server.isEmpty()) return;
     const auto epoch = m_scopeEpoch;
     const QPointer<EntityLibrary> guard(this);
+    // native-rules #13: worker is not interrupted or joined when the owner is destroyed
     auto* worker = QThread::create([guard, target, epoch, wanted] {
         nt::server::ServerClient client(target.server, target.token);
         std::vector<std::pair<QString, QJsonObject>> calls;

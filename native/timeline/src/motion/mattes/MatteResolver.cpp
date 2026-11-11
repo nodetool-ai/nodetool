@@ -55,6 +55,7 @@ void MatteResolver::next() {
     const auto generation = m_model->documentGeneration();
     const auto protectionGeneration = m_protection->generation();
     const auto root = QDir::cleanPath(QDir(m_target.backupDir).absoluteFilePath("../../.."));
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     auto result = std::make_shared<nt::Clip>();
     const auto target = m_target;
     auto* worker = QThread::create([target, lookupId, root, protection = m_protection, protectionGeneration, result] {

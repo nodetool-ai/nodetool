@@ -37,6 +37,7 @@ public:
         return m_capacity - (m_writeEnd.load(std::memory_order_relaxed) - m_readFloor.load(std::memory_order_acquire));
     }
     // Appends up to `frames` interleaved stereo frames; returns the count written.
+    // native-rules #5: raw const float* sample buffer crosses the module boundary
     std::int64_t write(const float* stereo, std::int64_t frames) {
         const std::int64_t n = std::min(frames, freeFrames());
         std::int64_t w = m_writeEnd.load(std::memory_order_relaxed);

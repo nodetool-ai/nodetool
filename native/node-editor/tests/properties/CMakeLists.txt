@@ -1,0 +1,32 @@
+# Can be included by the host or configured independently for document-only tests.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    cmake_minimum_required(VERSION 3.24)
+    project(NodeEditorPropertyTests LANGUAGES CXX)
+    enable_testing()
+endif()
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Test)
+include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/CodeInference.cmake)
+set(CMAKE_AUTOMOC ON)
+add_library(node_editor_properties STATIC
+    ../../src/document/WorkflowDocument.cpp
+    ../../src/document/WorkflowDocument.h)
+node_editor_use_code_inference(node_editor_properties)
+target_compile_features(node_editor_properties PUBLIC cxx_std_20)
+target_include_directories(node_editor_properties PUBLIC ../../src)
+target_link_libraries(node_editor_properties PUBLIC Qt6::Core Qt6::Gui)
+add_executable(node_editor_properties_tests PropertyFieldsTest.cpp)
+target_link_libraries(node_editor_properties_tests PRIVATE node_editor_properties Qt6::Test)
+add_test(NAME node_editor_properties COMMAND node_editor_properties_tests)
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets Quick QuickControls2 Qml Svg)
+    qt_standard_project_setup(REQUIRES 6.12)
+    add_subdirectory(../../../ui_primitives ui_primitives)
+    qt_add_executable(node_editor_structured_ui_tests StructuredPropertyUiTest.cpp)
+    target_link_libraries(node_editor_structured_ui_tests PRIVATE Qt6::Widgets Qt6::Quick Qt6::Qml Qt6::Test)
+    qt_add_resources(node_editor_structured_ui_tests structured_qml PREFIX /editor BASE ../../qml FILES
+        ../../qml/StructuredPropertyEditor.qml ../../qml/EditorRoles.qml ../../qml/NodeButton.qml)
+    nodetool_use_ui_primitives(node_editor_structured_ui_tests)
+    add_test(NAME node_editor_structured_ui COMMAND node_editor_structured_ui_tests)
+    set_tests_properties(node_editor_structured_ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()

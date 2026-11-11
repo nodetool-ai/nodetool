@@ -44,5 +44,6 @@ private:
     QList<QMetaObject::Connection> m_connections;
     bool m_active = false;
     bool m_follows = false;
+    // native-rules #14: static mutable pointer to the active tracker
     static QPointer<TooltipTracker> s_current;
 };

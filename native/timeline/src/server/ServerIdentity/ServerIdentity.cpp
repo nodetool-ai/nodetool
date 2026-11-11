@@ -16,6 +16,7 @@
 
 namespace nt::server::identity {
 namespace {
+// native-rules #14: thread_local mutable global hook
 thread_local BeforeWriteHook hook;
 
 constexpr qsizetype maxResponse = 64 * 1024 * 1024;

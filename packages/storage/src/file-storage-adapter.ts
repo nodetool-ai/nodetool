@@ -16,7 +16,7 @@ import type {
   StorageListResult,
   StorageStat
 } from "./storage-adapter.js";
-import { normalizeStorageKey } from "./storage-keys.js";
+import { compareStorageKeys, normalizeStorageKey } from "./storage-keys.js";
 import { getMaxLocalUploadBytes } from "./storage-limits.js";
 
 export function isWithinRoot(root: string, target: string): boolean {
@@ -286,7 +286,7 @@ export class FileStorageAdapter implements StorageAdapter {
         }
       }
       return {
-        entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+        entries: entries.sort((a, b) => compareStorageKeys(a.key, b.key)),
         commonPrefixes: [...commonPrefixes].sort()
       };
     }
@@ -330,7 +330,7 @@ export class FileStorageAdapter implements StorageAdapter {
       }
     }
     return {
-      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+      entries: entries.sort((a, b) => compareStorageKeys(a.key, b.key)),
       commonPrefixes: []
     };
   }

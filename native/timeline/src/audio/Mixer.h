@@ -65,12 +65,14 @@ private:
     bool activeInQuantum_ = false;
 };
 
+// native-rules #9: read on the render thread while the plan is built elsewhere, no affinity comment
 class ParameterSource {
 public:
     virtual ~ParameterSource() = default;
     virtual double valueAt(double timelineMs, double baseValue) const noexcept = 0;
 };
 
+// native-rules #1: std::shared_ptr BlockProcessor list, no comment on why unique ownership is impossible
 using Processors = std::vector<std::shared_ptr<BlockProcessor>>;
 
 struct TrackPlan {
@@ -78,6 +80,7 @@ struct TrackPlan {
     double gain = 1.0;
     double pan = 0.0;
     Processors processors;
+    // native-rules #1: std::shared_ptr ParameterSource, no comment on why unique ownership is impossible
     std::shared_ptr<const ParameterSource> gainSource;
     std::shared_ptr<const ParameterSource> panSource;
 };
@@ -101,6 +104,7 @@ struct VoicePlan {
     std::size_t trackIndex = 0;
     double tailMs = 0.0;
     Processors processors;
+    // native-rules #1: std::shared_ptr ParameterSource, no comment on why unique ownership is impossible
     std::shared_ptr<const ParameterSource> gainSource;
 
     // The source frame (at `sampleRate`) that timeline time `timelineMs`
@@ -115,8 +119,10 @@ struct MixPlan {
     double masterGain = 1.0;
     std::vector<TrackPlan> tracks;
     Processors processors;
+    // native-rules #1: std::shared_ptr ParameterSource, no comment on why unique ownership is impossible
     std::shared_ptr<const ParameterSource> gainSource;
     struct State;
+    // native-rules #1: std::shared_ptr State, no comment on why unique ownership is impossible
     std::shared_ptr<State> state;
 };
 
@@ -157,6 +163,7 @@ struct MixStats {
 // prepares once and increments stats.preparations. AudioEngine can avoid this
 // by preparing with its selected device rate before publishing the plan.
 void mixBlock(const MixPlan& plan, VoicePcm* pcm, double sampleRate, double timelineMs0, double msPerFrame,
+              // native-rules #5: raw float* output buffer crosses the module boundary
               int frames, float* out, MixStats& stats);
 
 }  // namespace nt::audio

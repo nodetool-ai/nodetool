@@ -99,6 +99,7 @@ public:
         still.compositor()->setAlphaDisplay(true);
         still.compositor()->workingObserver = [this](QRhi* rhi, QRhiCommandBuffer* cb, QRhiTexture* texture,
                                                    bool ready, bool prev, int index, bool copied) {
+            // native-rules #14: static mutable state
             static bool loggedBackend = false;
             if (!loggedBackend) {
                 qInfo() << "scene backend" << rhi->backendName() << rhi->driverInfo().deviceName;

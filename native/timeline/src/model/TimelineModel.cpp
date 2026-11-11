@@ -62,6 +62,7 @@ nt::Timeline copyWithoutClips(const nt::Timeline& t) {
 }
 
 quint64 nextCommandToken() {
+    // native-rules #14: static mutable revision counter
     static std::atomic<quint64> next{1};
     return next.fetch_add(1, std::memory_order_relaxed);
 }
@@ -448,6 +449,7 @@ QString TimelineModel::addMarker(double timeMs, const QString& label) {
     after.append(QJsonObject{{QStringLiteral("id"), id},
                              {QStringLiteral("timeMs"), std::max(0.0, std::round(timeMs))},
                              {QStringLiteral("label"), label}});
+    // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
     m_undo->push(new MarkersCommand(this, markersJson(), after, QStringLiteral("Add marker")));
     return id;
 }
@@ -459,6 +461,7 @@ bool TimelineModel::deleteMarker(const QString& markerId) {
         if (m.toObject().value(u"id").toString() != markerId) after.append(m);
     }
     if (after.size() == before.size()) return false;
+    // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
     m_undo->push(new MarkersCommand(this, before, after, QStringLiteral("Delete marker")));
     return true;
 }

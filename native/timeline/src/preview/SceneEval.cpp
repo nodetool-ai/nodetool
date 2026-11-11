@@ -195,7 +195,9 @@ std::shared_ptr<const std::vector<scene::CompiledAnimation>> compiledFor(
         int staggerCount;
         std::shared_ptr<const std::vector<scene::CompiledAnimation>> compiled;
     };
+    // native-rules #14: static mutable state
     static std::mutex mutex;
+    // native-rules #14: static mutable cache
     static std::unordered_map<const void*, Entry> cache;
     const scene::CompileContext ctx = compileContext(clip, w, h, flexWidth);
     std::lock_guard lock(mutex);
@@ -420,8 +422,11 @@ struct FlexCacheEntry {
     std::string textKey;
     std::shared_ptr<const scene::FlexResult> result;
 };
+// native-rules #14: global mutable state
 std::mutex gFlexMutex;
+// native-rules #14: global mutable state
 std::deque<FlexCacheEntry> gFlexCache;  // most recent first
+// native-rules #14: global mutable state
 std::atomic<std::uint64_t> gFlexHits{0}, gFlexMisses{0};
 constexpr size_t kFlexCacheMax = 64;
 

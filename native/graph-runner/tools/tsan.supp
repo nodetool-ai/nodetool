@@ -1,0 +1,58 @@
+# Wasmtime is prebuilt Rust without TSan instrumentation, so TSan cannot see
+# the locks of its Cranelift compile threads and reports races between them.
+called_from_lib:libwasmtime.so
+
+# Pango's fontconfig font map loads the default configuration on a GLib
+# thread. GLib, Pango and fontconfig are uninstrumented system libraries, so
+# TSan cannot see the GMutex and GAsyncQueue that hand data between that
+# thread and the caller, and reports their malloc and free calls as races.
+called_from_lib:libglib-2.0.so
+called_from_lib:libpangoft2-1.0.so
+called_from_lib:libfontconfig.so
+
+# libvips decodes on GLib worker threads with libpng and zlib, and GObject
+# guards its type registry with a recursive GRecMutex. These system libraries
+# are uninstrumented, so TSan sees their allocations and lock calls without
+# the synchronization between them.
+called_from_lib:libgobject-2.0.so
+# GLib's mutex calls tail-call pthread, so TSan attributes a lock or unlock
+# to whichever library called GLib. Ignoring GObject but not Pango made TSan
+# drop a GRecMutex lock taken through GObject and then report Pango's unlock
+# of it as an unlock of an unlocked mutex. Ignore every Pango library too.
+called_from_lib:libpango-1.0.so
+called_from_lib:libpangocairo-1.0.so
+# GIO takes GLib mutexes for libvips' file loaders, so it needs the same
+# treatment, and libvips encodes WebP on its GLib worker threads with
+# libwebp, then muxes the result on the caller's thread with libwebpmux.
+called_from_lib:libgio-2.0.so
+called_from_lib:libwebp.so
+called_from_lib:libwebpmux.so
+# libvips rasterizes SVG with librsvg, whose Rust code hands buffers between
+# GLib worker threads without instrumentation.
+called_from_lib:librsvg-2.so
+# The rest of libvips' codec and support libraries, which run on the same
+# GLib worker threads and free on the caller's thread. Listed as a set so a
+# new image format does not surface the same false race one library at a time.
+called_from_lib:libwebpdemux.so
+called_from_lib:libsharpyuv.so
+called_from_lib:libxml2.so
+called_from_lib:libjpeg.so
+called_from_lib:libtiff.so
+called_from_lib:libgif.so
+called_from_lib:libexif.so
+called_from_lib:liblcms2.so
+called_from_lib:libexpat.so
+called_from_lib:libcairo.so
+called_from_lib:libpixman-1.so
+called_from_lib:libfreetype.so
+called_from_lib:libharfbuzz.so
+called_from_lib:libvips.so
+called_from_lib:libpng16.so
+called_from_lib:libz.so
+# Mesa lavapipe (the CI Vulkan driver) destroys a queue mutex while its
+# llvmpipe threads finish, synchronized through uninstrumented code.
+called_from_lib:libvulkan_lvp.so
+# Lavapipe's LLVM JIT takes LLVM's own mutexes while Device::acquire holds the
+# device mutex. LLVM is uninstrumented, so TSan sees only some of its lock
+# calls and reports a lock-order inversion with the device mutex.
+called_from_lib:libLLVM.so

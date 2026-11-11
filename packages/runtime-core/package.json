@@ -11,11 +11,13 @@
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "node ../../scripts/run-vitest.mjs run",
-    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit",
+    "check:node-context": "node scripts/node-context-members.mjs --check && node scripts/node-context-usage.mjs --check"
   },
   "dependencies": {
     "openai": "^6.35.0",
     "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*",
     "@nodetool-ai/storage": "*",
     "@opentelemetry/api": "~1.9.0"
   },
@@ -34,6 +36,11 @@
       "nodetool-dev": "./src/safe-url.ts",
       "types": "./dist/safe-url.d.ts",
       "import": "./dist/safe-url.js"
+    },
+    "./cost-ledger": {
+      "nodetool-dev": "./src/cost-ledger.ts",
+      "types": "./dist/cost-ledger.d.ts",
+      "import": "./dist/cost-ledger.js"
     }
   },
   "license": "MIT",

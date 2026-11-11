@@ -1,0 +1,493 @@
+{
+ "module": "@nodetool-ai/llm-nodes/nodes/openai",
+ "cases": [
+  {
+   "id": "openai.text.Embedding#default",
+   "node": "openai.text.Embedding",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.text.Embedding",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.text.WebSearch#default",
+   "node": "openai.text.WebSearch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.text.WebSearch",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.text.Moderation#default",
+   "node": "openai.text.Moderation",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.text.Moderation",
+      "properties": {}
+     },
+     {
+      "id": "out_flagged",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "flagged"
+      }
+     },
+     {
+      "id": "out_categories",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "categories"
+      }
+     },
+     {
+      "id": "out_category_scores",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "category_scores"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_flagged",
+      "source": "n",
+      "sourceHandle": "flagged",
+      "target": "out_flagged",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_categories",
+      "source": "n",
+      "sourceHandle": "categories",
+      "target": "out_categories",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_category_scores",
+      "source": "n",
+      "sourceHandle": "category_scores",
+      "target": "out_category_scores",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.image.CreateImage#default",
+   "node": "openai.image.CreateImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.image.CreateImage",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.image.EditImage#default",
+   "node": "openai.image.EditImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.image.EditImage",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.image.ImageVariation#default",
+   "node": "openai.image.ImageVariation",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.image.ImageVariation",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.audio.TextToSpeech#default",
+   "node": "openai.audio.TextToSpeech",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.audio.TextToSpeech",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.audio.Translate#default",
+   "node": "openai.audio.Translate",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.audio.Translate",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.audio.Transcribe#default",
+   "node": "openai.audio.Transcribe",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.audio.Transcribe",
+      "properties": {}
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_words",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "words"
+      }
+     },
+     {
+      "id": "out_segments",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "segments"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_words",
+      "source": "n",
+      "sourceHandle": "words",
+      "target": "out_words",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_segments",
+      "source": "n",
+      "sourceHandle": "segments",
+      "target": "out_segments",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.agents.RealtimeAgent#default",
+   "node": "openai.agents.RealtimeAgent",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.agents.RealtimeAgent",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.agents.RealtimeTranscription#default",
+   "node": "openai.agents.RealtimeTranscription",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.agents.RealtimeTranscription",
+      "properties": {}
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "openai.agents.LiveAgent#default",
+   "node": "openai.agents.LiveAgent",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "openai.agents.LiveAgent",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_input_transcript",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "input_transcript"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_input_transcript",
+      "source": "n",
+      "sourceHandle": "input_transcript",
+      "target": "out_input_transcript",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

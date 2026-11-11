@@ -151,6 +151,7 @@ private slots:
         AssistController controller; controller.setModel(&model);
         const QJsonObject shot{{"id", "shot"}, {"index", 0}, {"clip", QJsonObject{{"asset_id", "video"}, {"duration", 3}}}};
         const QJsonObject board{{"id", "board"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"shots", QJsonArray{shot}}, {"screenplay", QJsonObject{{"script_id", "script"}}}}}};
+        // native-rules #1: std::shared_ptr shared with a worker, no justification comment
         const auto release = std::make_shared<QSemaphore>();
         const auto started = std::make_shared<std::atomic_bool>(false);
         const auto writes = std::make_shared<std::atomic_int>(0);
@@ -179,6 +180,7 @@ private slots:
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
         TimelineModel model; model.setTimeline(*parsed.timeline);
         AssistController controller; controller.setModel(&model);
+        // native-rules #1: std::shared_ptr with no justification comment
         const auto calls = std::make_shared<QStringList>();
         const auto linkedInput = std::make_shared<QJsonObject>();
         const QJsonObject created{{"id", "script"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"cast", QJsonArray{}}, {"sections", QJsonArray{}}}}};
@@ -235,6 +237,7 @@ private slots:
         TimelineModel model; model.setTimeline(*parsed.timeline);
         const QJsonObject line{{"id", "line"}, {"text", "Original"}, {"takes", QJsonArray{}}};
         const QJsonObject section{{"id", "section"}, {"lines", QJsonArray{line}}};
+        // native-rules #1: std::shared_ptr with no justification comment
         const auto resource = std::make_shared<QJsonObject>(QJsonObject{{"id", "script"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"cast", QJsonArray{}}, {"sections", QJsonArray{section}}}}});
         const auto fail = std::make_shared<std::atomic_bool>(true);
         AssistController controller; controller.setModel(&model);
@@ -260,6 +263,7 @@ private slots:
         const QJsonObject document{{"id", "sequence"}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}};
         const auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson()); QVERIFY(parsed.timeline.has_value());
         TimelineModel model; model.setTimeline(*parsed.timeline);
+        // native-rules #1: std::shared_ptr shared with a worker, no justification comment
         const auto release = std::make_shared<QSemaphore>();
         const auto started = std::make_shared<std::atomic_bool>(false);
         const auto writes = std::make_shared<std::atomic_int>(0);
@@ -293,6 +297,7 @@ private slots:
         const auto parsed = nt::parseTimelineJson(R"({"id":"sequence","tracks":[],"clips":[]})"); QVERIFY(parsed.timeline.has_value()); model.setTimeline(*parsed.timeline);
         const QJsonObject line{{"id", "line"}, {"text", "Original"}, {"takes", QJsonArray{}}};
         const QJsonObject section{{"id", "section"}, {"lines", QJsonArray{line}}};
+        // native-rules #1: std::shared_ptr with no justification comment
         const auto source = std::make_shared<QJsonObject>(QJsonObject{{"id", "script"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"sections", QJsonArray{section}}}}});
         AssistController controller; controller.setModel(&model);
         controller.setCall([source](bool, const QString&, const QJsonObject&) { return nt::server::QueryResult{*source, {}}; });
@@ -313,6 +318,7 @@ private slots:
         QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
         model.setTimeline(*parsed.timeline);
         const QJsonObject line{{"id", "line"}, {"text", "Original"}, {"takes", QJsonArray{}}};
+        // native-rules #1: std::shared_ptr with no justification comment
         auto resource = std::make_shared<QJsonObject>(QJsonObject{{"id", "script"}, {"updatedAt", "revision"}, {"document", QJsonObject{{"cast", QJsonArray{}}, {"sections", QJsonArray{QJsonObject{{"id", "section"}, {"lines", QJsonArray{line}}}}}}}});
         const auto writes = std::make_shared<std::atomic_int>(0);
         const auto correctCas = std::make_shared<std::atomic_bool>(true);
@@ -363,6 +369,7 @@ private slots:
         }
         AssistController controller;
         controller.setModel(&model);
+        // native-rules #1: std::shared_ptr shared with a worker, no justification comment
         auto release = std::make_shared<QSemaphore>();
         auto started = std::make_shared<std::atomic_bool>(false);
         controller.setCall([release, started](bool, const QString&, const QJsonObject&) {

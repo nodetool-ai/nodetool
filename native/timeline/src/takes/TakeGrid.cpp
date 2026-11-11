@@ -187,6 +187,7 @@ void TakeGrid::startRound() {
         const auto takeId = takes[i].value(u"id").toString();
         const auto path = m_switcher->mediaPath(takes[i].value(u"assetId").toString(), false);
         if (path.isEmpty()) { continue; }
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         auto requestId = std::make_shared<int>(0);
         *requestId = m_capture->captureSource(path, takeSourceMs(m_clip, takeId, timeMs),
             [self, round, takeId, requestId](const FrameCaptureResult& result) {

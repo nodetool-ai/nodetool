@@ -9,6 +9,7 @@
 
 namespace nt::edit::clipboard {
 namespace {
+// native-rules #14: mutable namespace-scope clipboard shared by every caller
 ClipList clipboard;
 const QMap<QString, QStringList> fields{{"motion", {"transform", "crop", "borderRadius"}},
                                         {"opacity", {"opacity", "blendMode"}},

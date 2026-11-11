@@ -100,7 +100,9 @@ void FrameExporter::captureSource(const QVariantMap& asset, const QString& previ
     if (target && !raw.value("id").toString().isEmpty()) {
         const auto cacheRoot = QDir::cleanPath(QDir(target->backupDir).absoluteFilePath("../../.."));
         const auto serial = m_serial;
+        // native-rules #1: std::shared_ptr MediaProtection shared with a worker, no justification comment
         auto protection = std::make_shared<nt::assets::MediaProtection>();
+        // native-rules #1: std::shared_ptr result shared with a worker, no justification comment
         auto resolved = std::make_shared<nt::server::FetchResult>();
         worker([target = *target, cacheRoot, id = raw.value("id").toString(), protection, resolved] {
             nt::server::ServerClient client(target.server, target.token);
@@ -134,6 +136,7 @@ void FrameExporter::saveToFile(const QUrl& file, const QString& format) {
     m_state = "saving";
     const auto image = m_image;
     const auto path = file.toLocalFile();
+    // native-rules #1: std::shared_ptr result shared with a worker, no justification comment
     auto error = std::make_shared<QString>();
     worker([image, path, format, error] { *error = writeImage(image, path, format); }, [this, path, error] {
         m_error = *error;
@@ -158,6 +161,7 @@ void FrameExporter::saveToLibrary(const QString& name, const QString& format, co
     const auto image = m_image;
     const auto project = timeline() ? timeline()->timeline().raw.value("projectId").toString() : QString{};
     struct Saved { QString error; QJsonObject asset; };
+    // native-rules #1: std::shared_ptr result shared with a worker, no justification comment
     auto result = std::make_shared<Saved>();
     worker([image, cleaned, format, target = *target, project, folderId, result] {
         QTemporaryDir directory;

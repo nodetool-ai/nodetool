@@ -24,7 +24,9 @@ struct Draw {
 };
 struct Resources {
     std::shared_ptr<DrawCache> cache;
+    // native-rules #1: type-erased shared_ptr without a comment on why unique ownership is impossible
     std::vector<std::shared_ptr<void>> luts;
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::vector<std::shared_ptr<nt::motion::ScratchPool::Surface>> surfaces;
     std::vector<std::unique_ptr<Draw>> draws;
 };
@@ -39,6 +41,7 @@ LayerFrame frameFor(QRhiTexture *texture, bool flip) {
 class Encoder {
     const EffectContext &m_ctx;
     std::shared_ptr<Resources> m_resources = std::make_shared<Resources>();
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<nt::motion::ScratchPool> m_scratch;
     nt::motion::ScratchPool::Lease m_lease;
 

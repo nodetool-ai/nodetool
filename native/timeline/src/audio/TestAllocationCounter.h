@@ -25,7 +25,9 @@
 namespace nt::testing {
 // Volatile because GCC assumes new and delete leave globals alone, so it would drop plain
 // stores around an allocation (-fassume-sane-operators-new-delete).
+// native-rules #14: inline thread_local mutable global
 inline thread_local volatile bool countAllocations = false;
+// native-rules #14: inline thread_local mutable global
 inline thread_local volatile std::size_t allocations = 0;
 inline void noteAllocation() noexcept {
     if (countAllocations) {
@@ -34,10 +36,13 @@ inline void noteAllocation() noexcept {
 }
 // The check's own control: a zero count means nothing unless this returns true.
 inline bool countsAnAllocation() {
+    // native-rules #14: function-local static mutable pointer
     static int* volatile sink = nullptr;
     allocations = 0;
     countAllocations = true;
+    // native-rules #2: naked new int, owned only by a static pointer
     sink = new int(1);
+    // native-rules #2: naked delete of a raw pointer
     delete sink;
     countAllocations = false;
     return allocations > 0;

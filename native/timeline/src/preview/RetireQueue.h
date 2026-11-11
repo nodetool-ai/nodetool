@@ -37,6 +37,7 @@ public:
 
 private:
     struct Entry {
+        // native-rules #1: type-erased shared_ptr without a comment on why unique ownership is impossible
         std::shared_ptr<void> resource;
         long long lastUse;
     };

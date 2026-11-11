@@ -64,6 +64,18 @@ const VALIDATE_EXAMPLES = {
   args: ["scripts/validate-examples.mjs"]
 };
 
+/**
+ * The CMake projects under native/ whose ctest tests
+ * `scripts/test-affected-native.mjs` selects from each build's dependency
+ * model. One run covers every project, so a change that spans several still
+ * runs one step.
+ */
+export const NATIVE_CTEST = {
+  label: "native ctest: affected tests",
+  command: "node",
+  args: ["scripts/test-affected-native.mjs"]
+};
+
 function websocketTest(name) {
   return {
     label: `websocket: tests/${name}.test.ts`,
@@ -88,6 +100,7 @@ export const PATH_CHECKS = [
       { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
     ]
   },
+  { path: /^native\/(?:graph-runner|jobs|model-picker|node-editor|timeline)\//, steps: [NATIVE_CTEST] },
   {
     path: /^native\/chat\//,
     steps: [{ label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }]
@@ -99,6 +112,10 @@ export const PATH_CHECKS = [
   {
     path: /^scripts\/(?:test-affected\.mjs|smoke-backend-bundle\.mjs|__tests__\/(?:test-affected|smoke-backend-bundle|desktop-release-recovery)\.test\.mjs)$/,
     steps: [{ label: "script regressions", command: "npm", args: ["run", "test:scripts"] }]
+  },
+  {
+    path: /^scripts\/(?:test-affected-native\.mjs$|__tests__\/(?:test-affected-native\.test\.mjs$|fixtures\/test-affected-native\/))/,
+    steps: [{ label: "native test selection", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/test-affected-native.test.mjs"] }]
   },
   {
     path: /^scripts\/(?:bump-version\.mjs|__tests__\/bump-version\.test\.mjs)$/,

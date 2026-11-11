@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    { "id": "src", "type": "nodetool.constant.Integer", "properties": { "value": 5 } },
+    { "id": "pass_a", "type": "nodetool.control.Reroute", "properties": {} },
+    { "id": "pass_b", "type": "nodetool.control.Reroute", "properties": {} },
+    { "id": "out_a", "type": "nodetool.output.Output", "properties": { "name": "a" } },
+    { "id": "out_b", "type": "nodetool.output.Output", "properties": { "name": "b" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "src", "sourceHandle": "output", "target": "pass_a", "targetHandle": "input_value" },
+    { "id": "e2", "source": "src", "sourceHandle": "output", "target": "pass_b", "targetHandle": "input_value" },
+    { "id": "e3", "source": "pass_a", "sourceHandle": "output", "target": "out_a", "targetHandle": "value" },
+    { "id": "e4", "source": "pass_b", "sourceHandle": "output", "target": "out_b", "targetHandle": "value" }
+  ]
+}

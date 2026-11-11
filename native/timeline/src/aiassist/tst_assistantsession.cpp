@@ -424,6 +424,7 @@ private slots:
     AssistantSession session;
     session.setTimeline(&model);
     session.setGenerationController(&generator);
+    // native-rules #1: std::shared_ptr with no justification comment
     auto checkpoints = std::make_shared<QList<QJsonObject>>();
     session.setPlanningPersist(
         [checkpoints, &generator](const QJsonObject &checkpoint) {
@@ -739,6 +740,7 @@ private slots:
     model.setTimeline(*parsed.timeline);
     AssistantSession session;
     session.setTimeline(&model);
+    // native-rules #1: std::shared_ptr with no justification comment
     auto requests = std::make_shared<QList<QJsonObject>>();
     session.setHistoryCall([=](const QString &procedure,
                                const QJsonObject &input) {
@@ -887,6 +889,7 @@ private slots:
     model.setTimeline(*parsed.timeline);
     AssistantSession session;
     session.setTimeline(&model);
+    // native-rules #1: std::shared_ptr shared with a worker, no justification comment
     auto release = std::make_shared<QSemaphore>();
     auto started = std::make_shared<std::atomic_bool>(false),
          finished = std::make_shared<std::atomic_bool>(false);

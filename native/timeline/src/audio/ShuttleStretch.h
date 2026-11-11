@@ -28,6 +28,7 @@ public:
     virtual ~ShuttleSource() = default;
     // Overwrites interleaved stereo with the 1x mix. Requests never precede
     // the anchor, never decrease, and contain at most kShuttleMaxRequestFrames.
+    // native-rules #5: raw float* sample buffer crosses the module boundary
     virtual void mix(double timelineMs, int frames, float* out) = 0;
 };
 
@@ -35,6 +36,7 @@ class ShuttleStretcher {
 public:
     explicit ShuttleStretcher(double sampleRate);
     void begin(double rate, double anchorMs) noexcept;
+    // native-rules #5: raw float* sample buffer crosses the module boundary
     void render(ShuttleSource& source, std::int64_t outFrame, int frames, float* out) noexcept;
 private:
     void grain(ShuttleSource& source, std::int64_t centre, bool match) noexcept;

@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    { "id": "cond", "type": "nodetool.constant.Bool", "properties": { "value": true } },
+    { "id": "payload", "type": "nodetool.constant.String", "properties": { "value": "routed" } },
+    { "id": "branch", "type": "nodetool.control.If", "properties": {} },
+    { "id": "out_true", "type": "nodetool.output.Output", "properties": { "name": "taken" } },
+    { "id": "out_false", "type": "nodetool.output.Output", "properties": { "name": "skipped" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "cond", "sourceHandle": "output", "target": "branch", "targetHandle": "condition" },
+    { "id": "e2", "source": "payload", "sourceHandle": "output", "target": "branch", "targetHandle": "value" },
+    { "id": "e3", "source": "branch", "sourceHandle": "if_true", "target": "out_true", "targetHandle": "value" },
+    { "id": "e4", "source": "branch", "sourceHandle": "if_false", "target": "out_false", "targetHandle": "value" }
+  ]
+}

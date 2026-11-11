@@ -1,0 +1,279 @@
+{
+ "cases": [
+  {
+   "id": "nodetool.constant.String#value",
+   "node": "nodetool.constant.String",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.String",
+      "properties": {
+       "value": "héllo ✓"
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Integer#value",
+   "node": "nodetool.constant.Integer",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Integer",
+      "properties": {
+       "value": -42
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Float#value",
+   "node": "nodetool.constant.Float",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Float",
+      "properties": {
+       "value": 3.25
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Bool#value",
+   "node": "nodetool.constant.Bool",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Bool",
+      "properties": {
+       "value": true
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.List#value",
+   "node": "nodetool.constant.List",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.List",
+      "properties": {
+       "value": [
+        1,
+        "a",
+        null,
+        {
+         "b": [
+          2
+         ]
+        }
+       ]
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.TextList#value",
+   "node": "nodetool.constant.TextList",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.TextList",
+      "properties": {
+       "value": [
+        "one",
+        "two"
+       ]
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.Dict#value",
+   "node": "nodetool.constant.Dict",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.Dict",
+      "properties": {
+       "value": {
+        "k": 1,
+        "nested": {
+         "x": [
+          true
+         ]
+        }
+       }
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.constant.JSON#value",
+   "node": "nodetool.constant.JSON",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.constant.JSON",
+      "properties": {
+       "value": {
+        "type": "json",
+        "uri": "",
+        "asset_id": null,
+        "data": {
+         "a": 1
+        },
+        "metadata": null
+       }
+      }
+     },
+     {
+      "id": "o",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e1",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "o",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

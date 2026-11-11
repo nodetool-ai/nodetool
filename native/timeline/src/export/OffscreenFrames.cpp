@@ -78,6 +78,8 @@ struct OffscreenFrames::Impl {
     ~Impl() {
         // Destroy the item before the target, window and render control, in
         // that order. The render control owns the QRhi and must die last.
+        // native-rules #3: compositor has a QQuickItem parent and is also deleted by hand here
+        // native-rules #2: naked delete of an item that Qt also owns through its parent
         delete compositor;
         window.setRenderTarget({});
     }

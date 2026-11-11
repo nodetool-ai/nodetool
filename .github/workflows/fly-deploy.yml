@@ -8,6 +8,11 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      skip_test_gate:
+        description: "Release even if the Test workflow failed. Docker and User Journeys must still pass."
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -38,6 +43,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       RELEASE_REPO: ${{ github.repository }}
+      SKIP_TEST_GATE: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_test_gate }}
     steps:
       - name: Check release workflows on the exact commit
         id: poll
@@ -69,6 +75,10 @@ jobs:
           docker_conclusion="$(conclusion_for docker.yml)"
           journeys_conclusion="$(conclusion_for user-journeys.yml)"
           test_conclusion="$(test_conclusion_for)"
+          if [[ "$SKIP_TEST_GATE" == true && "$test_conclusion" != success ]]; then
+            echo "::warning::Test is $test_conclusion for $sha. Releasing anyway because skip_test_gate is set."
+            test_conclusion=none
+          fi
           echo "Docker=$docker_conclusion User Journeys=$journeys_conclusion Test=$test_conclusion"
           if [[ "$docker_conclusion" == success && "$journeys_conclusion" == success &&
                 ( "$test_conclusion" == success || "$test_conclusion" == none ) ]]; then

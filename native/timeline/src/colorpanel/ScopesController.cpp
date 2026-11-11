@@ -125,6 +125,7 @@ void ScopesController::compute(const QImage& frame, double timeMs) {
 void ScopesController::startCompute() {
     if (m_nextFrame.isNull()) return;
     m_computing = true;
+    // native-rules #12: lambda captures raw this and runs on a pool thread
     m_pool.start([this, frame = std::exchange(m_nextFrame, {}), timeMs = m_nextFrameTime, scopes = m_scopes] {
         Images images;
         images.timeMs = timeMs;
@@ -171,6 +172,7 @@ void ScopesController::readNumbers(double timeMs, const nt::scopes::NumbersOptio
             callback(QJsonObject{{QStringLiteral("error"), result.cancelled ? QStringLiteral("The frame capture was cancelled.") : result.error}});
             return;
         }
+        // native-rules #12: lambda captures a raw owner pointer and runs on a pool thread
         self->m_pool.start([owner = self.data(), frame = result.image, timeMs = result.timeMs, options, callback = std::move(callback)]() mutable {
             auto numbers = nt::scopes::readNumbers(nt::scopes::decimate(frame), options);
             numbers.insert(QStringLiteral("timeMs"), timeMs);

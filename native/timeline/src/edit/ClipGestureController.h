@@ -318,13 +318,16 @@ private:
     // Bumped by a document replacement: older probe results are dropped.
     quint64 m_probeGeneration = 0;
     int m_liveUpdates = 0;
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     mutable std::shared_ptr<const QHash<QString, int>> m_editIndex;
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     mutable std::shared_ptr<const std::unordered_map<std::string, std::size_t>> m_editIndexSource;
     // A move's changed clips (start, duration) and its whole result, while
     // the document does not have them.
     QHash<QString, QPair<double, double>> m_live;
     nt::edit::ClipList m_liveClips;
     // The snapshot the lanes last heard of while a move shows its steps live.
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<const nt::Timeline> m_liveBase;
     double m_trackDropY = -1;
     QStringList m_trackOrder;

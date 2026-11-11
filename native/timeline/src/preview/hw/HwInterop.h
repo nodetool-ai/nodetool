@@ -95,17 +95,21 @@ int pixelFormat();
 // Sets up hardware decode on `ctx` before avcodec_open2: the device context
 // and get_format. `device` receives the reference the caller keeps. Empty on
 // success, else why not; the source then decodes in software (D15).
+// native-rules #5: raw AVCodecContext* and AVBufferRef** cross a module boundary
 std::string setUpDecoder(AVCodecContext* ctx, const AVCodec* codec, const std::string& codecName, AVBufferRef** device);
 
 // Empty when a decoded hardware frame is one the interop can wrap (8-bit
 // 4:2:0), else why not.
+// native-rules #5: raw AVFrame* crosses a module boundary
 std::string checkFrame(const AVFrame* frame);
 
 // Bytes the hardware frame holds (its surface allocation), for the cache
 // budget.
+// native-rules #5: raw AVFrame* crosses a module boundary
 std::size_t frameBytes(const AVFrame* frame);
 
 // Wraps a hardware frame as two textures. Null with `error` set on failure.
+// native-rules #5: raw AVFrame* crosses a module boundary
 std::shared_ptr<FrameRef> wrapFrame(PlatformInterop& interop, const AVFrame* frame, std::string* error);
 
 #if NT_HW_VAAPI
@@ -113,6 +117,7 @@ std::shared_ptr<FrameRef> wrapFrame(PlatformInterop& interop, const AVFrame* fra
 // finished (vaSyncSurface). nvidia-vaapi-driver can leave a surface whose
 // first sync comes from the render thread, while the decoder thread decodes
 // into the same context, waiting forever. 0, or a negative AVERROR.
+// native-rules #5: raw AVFrame* crosses a module boundary
 int syncFrame(const AVFrame* frame);
 
 // A system-memory NV12 copy of a VAAPI frame, which the scrub cache keeps in
@@ -125,6 +130,7 @@ struct CacheFrameFree {
     void operator()(AVFrame* frame) const;
 };
 using CacheFrame = std::unique_ptr<AVFrame, CacheFrameFree>;
+// native-rules #5: raw AVFrame* crosses a module boundary
 CacheFrame cacheCopy(const AVFrame* frame);
 #endif
 
