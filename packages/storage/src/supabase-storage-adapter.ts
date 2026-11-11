@@ -13,7 +13,7 @@ import type {
   UploadUrlOptions
 } from "./storage-adapter.js";
 import { SIGNED_URL_TTL } from "@nodetool-ai/config";
-import { normalizeStorageKey } from "./storage-keys.js";
+import { compareStorageKeys, normalizeStorageKey } from "./storage-keys.js";
 import { assertUploadWithinLimit } from "./storage-limits.js";
 import { objectCacheControl } from "./cache-control.js";
 
@@ -194,7 +194,7 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       entries.push(entry);
     }
     return {
-      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+      entries: entries.sort((a, b) => compareStorageKeys(a.key, b.key)),
       commonPrefixes: commonPrefixes.sort()
     };
   }

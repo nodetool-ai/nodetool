@@ -1,0 +1,179 @@
+{
+ "module": "@nodetool-ai/audio-nodes/nodes/realtime-audio",
+ "cases": [
+  {
+   "id": "nodetool.audio.realtime.AudioToChunks#default",
+   "node": "nodetool.audio.realtime.AudioToChunks",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.realtime.AudioToChunks",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.realtime.AudioOutput#default",
+   "node": "nodetool.audio.realtime.AudioOutput",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.realtime.AudioOutput",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.realtime.ChunksToAudio#default",
+   "node": "nodetool.audio.realtime.ChunksToAudio",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.realtime.ChunksToAudio",
+      "properties": {}
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.realtime.StreamingGain#default",
+   "node": "nodetool.audio.realtime.StreamingGain",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.realtime.StreamingGain",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.realtime.StreamingLowPass#default",
+   "node": "nodetool.audio.realtime.StreamingLowPass",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.realtime.StreamingLowPass",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.realtime.StreamingHighPass#default",
+   "node": "nodetool.audio.realtime.StreamingHighPass",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.realtime.StreamingHighPass",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

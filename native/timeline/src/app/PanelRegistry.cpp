@@ -6,6 +6,7 @@
 
 namespace {
 std::vector<nt::app::Panel>& panels() {
+    // native-rules #14: static mutable registry
     static std::vector<nt::app::Panel> value;
     return value;
 }

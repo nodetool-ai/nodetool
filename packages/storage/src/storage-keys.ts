@@ -21,6 +21,15 @@ export function normalizeStorageKey(key: string): string {
   return cleaned;
 }
 
+/**
+ * Orders storage keys by UTF-16 code unit. Keys are identifiers, not text, so
+ * locale collation buys nothing, and this is the order `commonPrefixes` and
+ * S3 listings already use.
+ */
+export function compareStorageKeys(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 export function joinStorageKey(
   prefix: string | undefined,
   key: string

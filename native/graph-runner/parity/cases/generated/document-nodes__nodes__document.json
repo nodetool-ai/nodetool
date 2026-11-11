@@ -1,0 +1,91 @@
+{
+ "module": "@nodetool-ai/document-nodes/nodes/document",
+ "cases": [
+  {
+   "id": "nodetool.document.LoadDocumentFile#default",
+   "node": "nodetool.document.LoadDocumentFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.document.LoadDocumentFile",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.document.SaveDocumentFile#default",
+   "node": "nodetool.document.SaveDocumentFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.document.SaveDocumentFile",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  },
+  {
+   "id": "nodetool.document.ListDocuments#default",
+   "node": "nodetool.document.ListDocuments",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.document.ListDocuments",
+      "properties": {}
+     },
+     {
+      "id": "out_document",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "document"
+      }
+     },
+     {
+      "id": "out_documents",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "documents"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_document",
+      "source": "n",
+      "sourceHandle": "document",
+      "target": "out_document",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_documents",
+      "source": "n",
+      "sourceHandle": "documents",
+      "target": "out_documents",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

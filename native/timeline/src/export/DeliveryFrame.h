@@ -145,6 +145,7 @@ inline QImage rgba64(const QImage& straight) {
     }
     return straight.convertToFormat(QImage::Format_RGBA64);
 }
+// native-rules #5: raw plane pointers cross the module boundary
 inline void quantizePlane(const uint8_t* source, int sourceStride, uint8_t* target,
                           int targetStride, int width, int height) {
     for (int y = 0; y < height; ++y) {

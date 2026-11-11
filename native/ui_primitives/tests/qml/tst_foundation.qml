@@ -4,6 +4,7 @@ import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 
 TestCase {
+    id: testCase
     name: "Foundation"
     visible: true
     when: windowShown
@@ -49,6 +50,14 @@ TestCase {
     Ui.Toggle { id: toggle; x: 100; y: 150; accessibleName: "Enable" }
     SignalSpy { id: toggled; target: toggle; signalName: "checkedChangedByUser" }
     Ui.Select { id: select; x: 100; y: 90; width: 100; value: "a"; accessibleName: "Choice"; options: [{label: "Alpha", value: "a"}, {label: "Beta", value: "b"}] }
+    property var runChoices: [{jobId: "old", status: "completed"}]
+    property string runChoice: "old"
+    Ui.Select {
+        id: runSelect
+        visible: false
+        value: testCase.runChoice
+        options: testCase.runChoices.map(run => ({label: run.jobId + " · " + run.status, value: run.jobId}))
+    }
     SignalSpy { id: selected; target: select; signalName: "valueCommitted" }
     Ui.NumberField { id: number; x: 0; y: 90; width: 100; value: 5; from: 0; to: 10; stepSize: 1; accessibleName: "Amount" }
     SignalSpy { id: numberPreview; target: number; signalName: "valuePreviewed" }
@@ -70,9 +79,18 @@ TestCase {
     SignalSpy { id: previews; target: fader; signalName: "valuePreviewed" }
     SignalSpy { id: commits; target: fader; signalName: "valueCommitted" }
     SignalSpy { id: cancels; target: fader; signalName: "editCanceled" }
+    Ui.SelectionCard {
+        id: previewCard
+        visible: false
+        z: 1000
+        text: "Ada"
+        subtitle: "character"
+        preview: Component { MouseArea { objectName: "previewInput"; anchors.fill: parent } }
+    }
+    SignalSpy { id: previewCardClicked; target: previewCard; signalName: "clicked" }
     SignalSpy { id: clicked; target: button; signalName: "clicked" }
     SignalSpy { id: buttonFocusChanges; target: button; signalName: "activeFocusChanged" }
-    function init() { Ui.Theme.preference = Ui.Theme.System; Ui.Theme.systemScheme = Ui.Theme.Unknown; Ui.Theme.uiScale = 1; Ui.Theme.textScale = 1; clicked.clear() }
+    function init() { Ui.Theme.preference = Ui.Theme.System; Ui.Theme.systemScheme = Ui.Theme.Unknown; Ui.Theme.uiScale = 1; Ui.Theme.textScale = 1; clicked.clear(); previewCard.visible = false; previewCardClicked.clear() }
     function test_invalid_enums() {
         Ui.Theme.preference = 99; compare(Ui.Theme.preference, Ui.Theme.System)
         Ui.Theme.systemScheme = 99; compare(Ui.Theme.systemScheme, Ui.Theme.Unknown)
@@ -463,6 +481,16 @@ TestCase {
         keyClick(Qt.Key_Escape); tryVerify(() => !dialog.visible)
         verify(button.activeFocus)
     }
+    function test_select_replaced_model_tracks_controlled_value() {
+        tryCompare(runSelect, "currentValue", "old")
+        testCase.runChoice = "new"
+        testCase.runChoices = [{jobId: "old", status: "completed"}, {jobId: "new", status: "running"}]
+        tryCompare(runSelect, "currentValue", "new")
+        compare(runSelect.displayText, "new · running")
+        testCase.runChoices = [{jobId: "old", status: "completed"}, {jobId: "new", status: "completed"}]
+        tryCompare(runSelect, "currentValue", "new")
+        compare(runSelect.displayText, "new · completed")
+    }
     function test_select_pointer() {
         selected.clear(); select.value = "a"; mouseClick(select)
         verify(select.popup.visible)
@@ -779,5 +807,13 @@ TestCase {
         compare(clicked.count, 3)
         keyClick(Qt.Key_Enter)
         compare(clicked.count, 4)
+    }
+    function test_selection_card_preview_click_selects() {
+        previewCard.visible = true
+        const area = findChild(previewCard, "previewInput")
+        verify(area)
+        tryVerify(() => area.width > 0 && area.height > 0)
+        mouseClick(area)
+        compare(previewCardClicked.count, 1)
     }
 }

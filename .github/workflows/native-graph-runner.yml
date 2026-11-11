@@ -1,0 +1,182 @@
+# Native graph runner (native/graph-runner/): build the QuickJS runner and run
+# its ctest suite on Linux x86_64, once as a release build and once each under
+# AddressSanitizer with UndefinedBehaviorSanitizer and under ThreadSanitizer
+# (native/AGENTS.md rule 15). Linux x86_64 is the one platform where CMake
+# fetches Wasmtime itself. The GPU tests run wgpu-native on Mesa lavapipe.
+#
+# The image adapter pins libvips 8.18.7 and libwebp 1.6.0 exactly, and OCR
+# needs Tesseract 5.5.3 or newer. Ubuntu ships older versions, so the deps step
+# builds these three from SHA-256-pinned sources into a cached prefix.
+name: Native graph runner
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "native/graph-runner/**"
+      - "native/jobs/**"
+      - ".github/workflows/native-graph-runner.yml"
+  push:
+    branches: [main]
+    paths:
+      - "native/graph-runner/**"
+      - "native/jobs/**"
+      - ".github/workflows/native-graph-runner.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-graph-runner-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  VIPS_VERSION: "8.18.7"
+  VIPS_SHA256: 5baaead3b0bb20ffdb9e9ff09aa9fda08620923df77b63b436654cb5e0b3bf94
+  WEBP_VERSION: "1.6.0"
+  WEBP_SHA256: e4ab7009bf0629fd11982d4c2aa83964cf244cffba7347ecd39019a9e38c4564
+  TESSERACT_VERSION: "5.5.3"
+  TESSERACT_SHA256: 9218e62793116d42a9f6d14cd9348518b27f382096eea3d0f2d1a24616bb5884
+  DEPS_PREFIX: /opt/nt-graph-runner-deps
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_COMPILERCHECK: content
+  CCACHE_MAXSIZE: 2G
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Release
+            flags: ""
+            build_type: Release
+          - name: ASan and UBSan
+            flags: "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
+            build_type: RelWithDebInfo
+          - name: TSan
+            flags: "-fsanitize=thread"
+            build_type: RelWithDebInfo
+    # Job level, so the runner's compile step in "Build guest bundle and shader
+    # catalog" gets the same options as the tests.
+    env:
+      ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+      LSAN_OPTIONS: suppressions=${{ github.workspace }}/native/graph-runner/tools/lsan.supp
+      # Hosted runners are about twice as slow as the machine the tests' wall-clock
+      # budgets were measured on (unittests/sanitizer_build.h).
+      GR_TEST_TIME_SCALE: "2"
+      TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1:suppressions=${{ github.workspace }}/native/graph-runner/tools/tsan.supp
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Native C++ jobs install their system packages with apt on the runner
+      # (docker/ci/README.md).
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-0 \
+            build-essential cmake ninja-build meson pkg-config ccache \
+            libicu-dev libcurl4-openssl-dev \
+            libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev \
+            libswscale-dev libswresample-dev \
+            libcairo2-dev libpango1.0-dev libfontconfig-dev \
+            libglib2.0-dev libexpat1-dev libjpeg-turbo8-dev libpng-dev \
+            libtiff-dev librsvg2-dev libgif-dev liblcms2-dev libexif-dev \
+            libarchive-dev libleptonica-dev tesseract-ocr-eng \
+            mesa-vulkan-drivers
+
+      # The guest bundle reads the node packages' dist/ output.
+      - name: Set up and build backend packages
+        uses: ./.github/actions/setup-build
+        with:
+          package-media: "false"
+
+      - name: Restore pinned native dependencies
+        id: deps-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.DEPS_PREFIX }}
+          key: graph-runner-deps-${{ runner.os }}-vips${{ env.VIPS_VERSION }}-webp${{ env.WEBP_VERSION }}-tess${{ env.TESSERACT_VERSION }}
+
+      - name: Build pinned native dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          sudo mkdir -p "$DEPS_PREFIX" && sudo chown "$USER" "$DEPS_PREFIX"
+          src="$RUNNER_TEMP/deps-src" && mkdir -p "$src" && cd "$src"
+          fetch() { curl -sfL -o "$2" "$1" && echo "$3  $2" | sha256sum -c -; }
+          export PKG_CONFIG_PATH="$DEPS_PREFIX/lib/pkgconfig:$DEPS_PREFIX/lib/x86_64-linux-gnu/pkgconfig"
+
+          fetch "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-$WEBP_VERSION.tar.gz" webp.tar.gz "$WEBP_SHA256"
+          tar -xzf webp.tar.gz
+          cmake -S "libwebp-$WEBP_VERSION" -B webp-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$DEPS_PREFIX" -DBUILD_SHARED_LIBS=ON \
+            -DWEBP_BUILD_ANIM_UTILS=OFF -DWEBP_BUILD_CWEBP=OFF -DWEBP_BUILD_DWEBP=OFF \
+            -DWEBP_BUILD_GIF2WEBP=OFF -DWEBP_BUILD_IMG2WEBP=OFF -DWEBP_BUILD_VWEBP=OFF \
+            -DWEBP_BUILD_WEBPINFO=OFF -DWEBP_BUILD_WEBPMUX=OFF -DWEBP_BUILD_EXTRAS=OFF
+          cmake --build webp-build && cmake --install webp-build
+
+          fetch "https://github.com/libvips/libvips/releases/download/v$VIPS_VERSION/vips-$VIPS_VERSION.tar.xz" vips.tar.xz "$VIPS_SHA256"
+          tar -xJf vips.tar.xz
+          meson setup vips-build "vips-$VIPS_VERSION" --prefix="$DEPS_PREFIX" --libdir=lib \
+            --buildtype=release -Dintrospection=disabled -Dmodules=disabled -Dexamples=false
+          meson install -C vips-build
+
+          fetch "https://github.com/tesseract-ocr/tesseract/archive/refs/tags/$TESSERACT_VERSION.tar.gz" tesseract.tar.gz "$TESSERACT_SHA256"
+          tar -xzf tesseract.tar.gz
+          cmake -S "tesseract-$TESSERACT_VERSION" -B tess-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$DEPS_PREFIX" -DBUILD_SHARED_LIBS=ON -DBUILD_TRAINING_TOOLS=OFF \
+            -DDISABLE_CURL=ON -DDISABLE_ARCHIVE=ON -DGRAPHICS_DISABLED=ON -DOPENMP_BUILD=OFF
+          cmake --build tess-build && cmake --install tess-build
+
+      - name: Use pinned native dependencies
+        run: |
+          echo "PKG_CONFIG_PATH=$DEPS_PREFIX/lib/pkgconfig:$DEPS_PREFIX/lib/x86_64-linux-gnu/pkgconfig" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$DEPS_PREFIX/lib:$DEPS_PREFIX/lib/x86_64-linux-gnu" >> "$GITHUB_ENV"
+
+      - name: Restore compiler cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: graph-runner-ccache-${{ matrix.name }}-${{ github.sha }}
+          restore-keys: graph-runner-ccache-${{ matrix.name }}-
+
+      - name: Configure
+        working-directory: native/graph-runner
+        env:
+          CCACHE_DIR: ${{ runner.temp }}/ccache
+          SAN_FLAGS: ${{ matrix.flags }}
+        run: |
+          # GCC 13 stops with an internal compiler error in catalog_support.cpp.
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_C_FLAGS="$SAN_FLAGS" -DCMAKE_CXX_FLAGS="$SAN_FLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$SAN_FLAGS" -DCMAKE_SHARED_LINKER_FLAGS="$SAN_FLAGS" \
+            -DGR_TEST_TESSDATA=/usr/share/tesseract-ocr/5/tessdata
+
+      - name: Build
+        working-directory: native/graph-runner
+        env:
+          CCACHE_DIR: ${{ runner.temp }}/ccache
+        run: cmake --build build
+
+      - name: Build guest bundle and shader catalog
+        working-directory: native/graph-runner
+        run: |
+          node guest/build.mjs
+          node guest/host/gpu-catalog.mjs build/gpu-catalog.json
+          ./build/nodetool-graph-runner compile --bundle build/guest.js --out build/guest.bin
+
+      - name: Test
+        working-directory: native/graph-runner
+        run: ctest --test-dir build --output-on-failure --timeout 900

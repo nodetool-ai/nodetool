@@ -133,7 +133,11 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let sigma = clamp(v.amount, 0.0, 1.0) * 0.2 * response;
   let blend = clamp(vec3f(0.5) + n * sigma, vec3f(0.0), vec3f(1.0));
   let grained = vec3f(softLight(straight.r, blend.r), softLight(straight.g, blend.g), softLight(straight.b, blend.b));
-  textureStore(layout.$.outputTexture, coords, vec4f(clamp(grained, vec3f(0.0), vec3f(1.0)) * color.a, color.a));
+  // Quantize explicitly: storage-texture UNORM conversion differs by device
+  // near byte boundaries, and un-premultiplication magnifies that difference.
+  let premultiplied = vec4f(clamp(grained, vec3f(0.0), vec3f(1.0)) * color.a, color.a);
+  let bytes = floor(premultiplied * 255.0 + vec4f(0.5));
+  textureStore(layout.$.outputTexture, coords, bytes / 255.0);
 }
 `,
   io: {

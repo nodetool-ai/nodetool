@@ -36,6 +36,7 @@ using namespace juce;
 using namespace vsthost;
 
 static constexpr int PROTOCOL = 1;
+// native-rules #14: process-wide stdout mutex
 static std::mutex outMutex;
 
 static void send(const var& message) {
@@ -44,6 +45,7 @@ static void send(const var& message) {
     std::cout << line << std::endl;
 }
 
+// native-rules #2: naked new, ownership passes to a JUCE ref-counted var
 static var object() { return var(new DynamicObject()); }
 
 static void reply(const var& id, var body) {
@@ -88,6 +90,7 @@ private:
     std::function<void()> onClose_;
 };
 
+// native-rules #9: used from the message, render, scan and reader threads, no affinity comment
 class Host : private Timer {
 public:
     Host() { startTimer(400); }
@@ -168,6 +171,7 @@ private:
         if (auto* arr = req["dirs"].getArray())
             for (auto& d : *arr) dirs.add(d.toString());
         const bool all = (bool)req["includeEffects"];
+        // native-rules #13: detached thread is not joined or cancelled at shutdown
         std::thread([id, dirs, all] {
             Array<var> list;
             for (auto& p : scan(dirs, !all)) {
@@ -197,6 +201,7 @@ private:
         const File out(req["out"].toString());
         if (!File::isAbsolutePath(req["out"].toString())) { fail(id, "Render output must be an absolute path"); return; }
         const String state = req["state"].toString();
+        // native-rules #13: detached thread is not joined or cancelled at shutdown
         std::thread([id, inst = std::move(inst), events, rate, frames, out, state, applyState]() mutable {
             [&] {
                 AudioBuffer<float> buffer;
@@ -230,6 +235,7 @@ private:
         Process::makeForegroundProcess();
         Editor e;
         e.window = std::make_unique<EditorWindow>(title.isNotEmpty() ? title : plugin->getName(), editor,
+            // native-rules #12: lambdas capture raw this and run later on the message thread
             [this, key] { MessageManager::callAsync([this, key] { closeEditor(key, true); }); });
         e.lastState = inst.getState();
         editors_[key] = std::move(e);
@@ -266,6 +272,7 @@ private:
         std::unique_ptr<EditorWindow> window;
         String lastState;
     };
+    // native-rules #1: shared with render threads, no comment says why unique fails
     std::map<String, std::shared_ptr<Instance>> instances_;
     std::map<String, Editor> editors_;
 };
@@ -278,12 +285,14 @@ int main(int, char**) {
     auto host = std::make_unique<Host>();
     auto* hostPtr = host.get();
     // stdin closing (the caller exited) ends the helper.
+    // native-rules #12: lambda captures raw Host pointer and runs on the reader thread
     std::thread reader([hostPtr] {
         std::string line;
         while (std::getline(std::cin, line)) {
             if (line.empty()) continue;
             const var req = JSON::parse(String::fromUTF8(line.c_str()));
             if (!req.isObject()) { fail(var(), "Request is not a JSON object"); continue; }
+            // native-rules #12: lambda captures raw Host pointer and runs later
             MessageManager::callAsync([hostPtr, req] { hostPtr->handle(req); });
             if (req["cmd"].toString() == "quit") return;
         }
@@ -291,6 +300,7 @@ int main(int, char**) {
     });
     MessageManager::getInstance()->runDispatchLoop();
     host.reset();
+    // native-rules #13: detached reader can still call the Host after host.reset()
     reader.detach();
     return 0;
 }

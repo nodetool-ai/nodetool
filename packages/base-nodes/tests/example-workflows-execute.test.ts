@@ -4,7 +4,8 @@
  * Each workflow JSON under `nodetool/examples/nodetool-base/*.json` is:
  *   1. Prepared the way the editor prepares it before Run: empty model
  *      fields get the fake provider's model, and empty media inputs get a
- *      shipped sample.
+ *      shipped sample. `support/example-run-preparation.ts` does this, and
+ *      the native graph-runner harness uses the same file.
  *   2. Hydrated through `Graph.loadFromDict` against the live registry so
  *      unregistered nodes (Python-only, sibling packages) are dropped.
  *   3. Handed to a `WorkflowRunner` whose execution context is a
@@ -43,7 +44,12 @@ import {
   resetDefaultVectorProvider
 } from "@nodetool-ai/vectorstore";
 import { registerBaseNodes } from "../src/index.js";
-import { COMFY_CLOUD_GRAPH_NODE_TYPE, collapseComfyGraph } from "@nodetool-ai/protocol";
+import { collapseComfyGraph } from "@nodetool-ai/protocol";
+import {
+  CANNOT_COMPLETE,
+  prepareForFakeRun,
+  unrunnableNodeTypes
+} from "./support/example-run-preparation.js";
 
 // Nodes that bypass the ProcessingContext fetch indirection (e.g. SerpAPI
 // search nodes) call `fetch` directly. Replace `globalThis.fetch` for the
@@ -160,143 +166,14 @@ function loadWorkflows(): WorkflowFile[] {
 }
 
 /**
- * Node types that bypass the provider abstraction and open real network
- * connections (WebSocket, raw HTTP) using API keys directly. The fake
- * context cannot intercept these — running them would either time out
- * or hit the real endpoint with a junk key. Workflows that contain any
- * of these nodes are skipped. `lib.comfy.RunWorkflowOnCloud` submits its
- * graph through the Comfy API v2 SDK with `COMFY_API_KEY`, not through a
- * provider. Native Comfy graphs collapse to the same kind of network-backed
- * runner before execution, so they are classified after that collapse too.
+ * Examples containing a node that cannot finish under fakes. The node-type
+ * sets and the reasons live in `support/example-run-preparation.ts`, shared
+ * with the native graph-runner harness. Native Comfy graphs are classified
+ * after `collapseComfyGraph`.
  */
-const NETWORK_BYPASSING_NODES = new Set<string>([
-  "openai.agents.RealtimeAgent",
-  "openai.agents.LiveAgent",
-  "lib.comfy.RunWorkflowOnCloud",
-  COMFY_CLOUD_GRAPH_NODE_TYPE
-]);
-
-/**
- * Trigger nodes whose adapter listens forever. Their `genProcess` waits on a
- * live scheduler or filesystem watcher, and this harness supplies neither — so
- * the run never ends and only stops at the per-workflow timeout, burning 30 s
- * to learn nothing. That is a property of the node, not a fault in the
- * workflow: an interval trigger left at `max_events: 0` is *supposed* to tick
- * forever.
- *
- * Only the two adapter-backed triggers qualify. Webhook and manual triggers
- * have no `genProcess` to loop in, so they finish immediately and stay in the
- * executed set.
- *
- * Delivered-event coverage for all four lives in `trigger-examples-run.test.ts`,
- * which wakes the node with an event instead of waiting for an adapter.
- */
-const NON_TERMINATING_NODES = new Set<string>([
-  "nodetool.triggers.IntervalTrigger",
-  "nodetool.triggers.FileWatchTrigger"
-]);
-
 function workflowIsUnrunnable(w: WorkflowFile): boolean {
-  return collapseComfyGraph(w.data.graph).nodes.some(
-    (n) =>
-      typeof n.type === "string" &&
-      (NETWORK_BYPASSING_NODES.has(n.type as string) ||
-        NON_TERMINATING_NODES.has(n.type as string))
-  );
+  return unrunnableNodeTypes(collapseComfyGraph(w.data.graph)).length > 0;
 }
-
-/**
- * Sample media for an input the example ships empty. A person picks a file
- * before running these; the harness picks one of the shipped samples.
- */
-const SAMPLE_MEDIA: Record<string, { type: string; uri: string }> = {
-  "nodetool.input.ImageInput": {
-    type: "image",
-    uri: "package://nodetool-base/recipe-inputs/coffee.jpg"
-  },
-  "nodetool.input.AudioInput": {
-    type: "audio",
-    uri: "package://nodetool-base/recipe-inputs/voice.wav"
-  },
-  "nodetool.input.VideoInput": {
-    type: "video",
-    uri: "package://nodetool-base/recipe-inputs/presenter.mp4"
-  }
-};
-
-function isEmptyModel(value: unknown): value is Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-  const v = value as Record<string, unknown>;
-  return (
-    typeof v.type === "string" &&
-    v.type.endsWith("_model") &&
-    !v.provider &&
-    !v.id
-  );
-}
-
-function isEmptyMedia(value: unknown): boolean {
-  if (value === null || value === undefined) return true;
-  if (typeof value !== "object" || Array.isArray(value)) return false;
-  const v = value as Record<string, unknown>;
-  return !v.uri && !v.asset_id && !v.data;
-}
-
-/**
- * Do what the editor does before a person presses Run. Examples ship model
- * fields empty, and the app fills each from the user's default model
- * (`web/src/utils/applyDefaultModels.ts`); here every empty model becomes
- * a fake one. The provider id names the node because a FakeProvider answers
- * tool calls once per instance, and the context caches one per id: two
- * ListGenerators sharing an id would leave the second with no items. Media
- * inputs a person must fill get a shipped sample.
- */
-function prepareForFakeRun(
-  graph: WorkflowFile["data"]["graph"]
-): WorkflowFile["data"]["graph"] {
-  const nodes = graph.nodes.map((node) => {
-    const data = { ...((node.data as Record<string, unknown>) ?? {}) };
-    for (const [key, value] of Object.entries(data)) {
-      if (isEmptyModel(value)) {
-        data[key] = {
-          ...value,
-          provider: `fake-${String(node.id)}`,
-          id: "fake-model",
-          name: "Fake"
-        };
-      }
-    }
-    const sample = SAMPLE_MEDIA[node.type as string];
-    if (sample && isEmptyMedia(data.value)) {
-      data.value = { ...sample };
-    }
-    return { ...node, data };
-  });
-  return { ...graph, nodes };
-}
-
-/**
- * Examples that cannot complete under this harness, and why. Each must fail;
- * one that starts completing has to come off the list.
- */
-const CANNOT_COMPLETE: Record<string, string> = {
-  "Brand a UGC Product Video.json":
-    "openai.audio.Transcribe calls the OpenAI API directly for word timings",
-  "Reopen a Directed Campaign.json":
-    "reads a saved directed-campaign.json record",
-  "Propose Three Campaign Directions.json":
-    "parses JSON directions from the model; the fake replies with plain text",
-  "Localized Explainer.json":
-    "needs a storyboard picked on its Constant Storyboard node",
-  "Per-SKU Ad Factory.json":
-    "needs a storyboard and timeline picked; covered by per-sku-ad-factory.fake.json",
-  "Three Ratios.json":
-    "needs a timeline picked; covered by three-ratios.fake.json",
-  "Top-down Native Asset Pack.json":
-    "checks sprite grids and sound lengths the 1x1 fake media cannot pass; covered by topdown-native-asset-pack.fake.json"
-};
 
 const allWorkflows = loadWorkflows();
 const workflows = allWorkflows.filter((w) => !workflowIsUnrunnable(w));
@@ -424,13 +301,7 @@ describe("example workflows execute end-to-end with fakes", () => {
   it.each(skippedWorkflows)(
     "skips $fileName because this harness cannot run it to completion",
     ({ fileName, data }) => {
-      const types = collapseComfyGraph(data.graph).nodes.map((n) => n.type);
-      const unrunnable = types.filter(
-        (t) =>
-          typeof t === "string" &&
-          (NETWORK_BYPASSING_NODES.has(t as string) ||
-            NON_TERMINATING_NODES.has(t as string))
-      );
+      const unrunnable = unrunnableNodeTypes(collapseComfyGraph(data.graph));
       expect(unrunnable.length, fileName).toBeGreaterThan(0);
     }
   );

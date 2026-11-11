@@ -118,9 +118,13 @@ private:
     friend class VulkanInterop;
     FrameRef() = default;
 
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<VulkanInterop> m_interop;
+    // native-rules #6: raw AVFrame*, freed by hand, not an RAII handle
     AVFrame* m_drm = nullptr;                 // the DRM PRIME mapping: keeps the surface
+    // native-rules #6: raw Vulkan handles, destroyed by hand, no RAII type
     std::array<std::uint64_t, 2> m_images{};  // VkImage
+    // native-rules #6: raw Vulkan handles, freed by hand, no RAII type
     std::array<std::uint64_t, 2> m_memory{};  // VkDeviceMemory
     std::array<std::unique_ptr<QRhiTexture>, 2> m_planes;
     QSize m_size;
@@ -132,12 +136,15 @@ private:
 void trackCompletion(QRhiCommandBuffer* cb, long long frameNumber);
 long long completedFrame();
 
+// native-rules #1: shared ownership without a comment on why unique ownership is impossible
+// native-rules #9: used from decoder and render threads (ledger mutex, atomics), no thread affinity comment
 class VulkanInterop : public std::enable_shared_from_this<VulkanInterop> {
 public:
     // Null when `rhi` is not a Vulkan QRhi or its device lacks an extension.
     static std::shared_ptr<VulkanInterop> create(QRhi* rhi);
     ~VulkanInterop();
 
+    // native-rules #5: raw AVFrame* crosses a module boundary
     std::shared_ptr<FrameRef> wrap(const AVFrame* frame, std::string* error);
     // Frees the resources of the submissions that have completed.
     void flush();
@@ -154,6 +161,7 @@ private:
     VulkanInterop();
     // Called by ~FrameRef: releases the planes to the foreign queue family
     // and frees them, with the DRM frame, once that has completed.
+    // native-rules #5: raw AVFrame* and raw Vulkan handles cross a module boundary
     void retire(std::array<std::uint64_t, 2> images, std::array<std::uint64_t, 2> memory, AVFrame* drm, bool acquired);
 
     QRhi* m_rhi = nullptr;

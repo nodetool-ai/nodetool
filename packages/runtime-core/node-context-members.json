@@ -1,0 +1,461 @@
+{
+  "$comment": "Generated from src/node-context.ts by scripts/node-context-members.mjs. Do not edit.",
+  "members": [
+    {
+      "name": "addMessageListener",
+      "group": "messages",
+      "kind": "method",
+      "type": "(listener: (msg: ProcessingMessage) => void) => () => void"
+    },
+    {
+      "name": "addToTotalCost",
+      "group": "messages",
+      "kind": "method",
+      "type": "(cost: number) => void"
+    },
+    {
+      "name": "audioToAudio",
+      "group": "providers",
+      "kind": "method",
+      "type": "(req: Types[\"generationRequest\"]) => Promise<Types[\"encodedAudio\"]>"
+    },
+    {
+      "name": "callProviderEndpoint",
+      "group": "providers",
+      "kind": "method",
+      "type": "(args: {provider: string; capability: Types[\"providerCapability\"]; model: string; input: Record<string, unknown>; route?: string; nodeId?: string; onProgress?: (event: Types[\"endpointProgress\"]) => void; signal?: AbortSignal;}) => Promise<Types[\"endpointResult\"]>"
+    },
+    {
+      "name": "clearMessages",
+      "group": "messages",
+      "kind": "method",
+      "type": "() => void"
+    },
+    {
+      "name": "clearProviderCost",
+      "group": "messages",
+      "kind": "method",
+      "type": "() => void"
+    },
+    {
+      "name": "closeAllChannels",
+      "group": "variables",
+      "kind": "method",
+      "type": "() => void"
+    },
+    {
+      "name": "copy",
+      "group": "subgraph",
+      "kind": "method",
+      "type": "(opts?: Types[\"copyOptions\"]) => NodeContext<Types>"
+    },
+    {
+      "name": "createAsset",
+      "group": "assets",
+      "kind": "method",
+      "type": "(args: Omit<ModelInterfaceArgs<\"createAsset\">, \"workflowId\" | \"jobId\" | \"content\"> & {content?: Uint8Array | null; instructions?: Uint8Array | null;}) => Promise<unknown>"
+    },
+    {
+      "name": "createImageDocument",
+      "group": "documents",
+      "kind": "method",
+      "type": "(args: ModelInterfaceArgs<\"createImageDocument\">) => Promise<PersistedRecordLike>"
+    },
+    {
+      "name": "createMessage",
+      "group": "documents",
+      "kind": "method",
+      "type": "(req: MessageCreateRequestLike) => Promise<PersistedRecordLike>"
+    },
+    {
+      "name": "createScript",
+      "group": "documents",
+      "kind": "method",
+      "type": "(args: ModelInterfaceArgs<\"createScript\">) => Promise<PersistedRecordLike>"
+    },
+    {
+      "name": "createStoryboard",
+      "group": "documents",
+      "kind": "method",
+      "type": "(args: ModelInterfaceArgs<\"createStoryboard\">) => Promise<PersistedRecordLike>"
+    },
+    {
+      "name": "createTimelineSequence",
+      "group": "documents",
+      "kind": "method",
+      "type": "(sequence: unknown) => Promise<PersistedRecordLike>"
+    },
+    {
+      "name": "downloadProviderMedia",
+      "group": "providers",
+      "kind": "method",
+      "type": "(args: {provider: string; url: string; signal?: AbortSignal;}) => Promise<Uint8Array>"
+    },
+    {
+      "name": "emit",
+      "group": "messages",
+      "kind": "method",
+      "type": "(msg: ProcessingMessage) => void"
+    },
+    {
+      "name": "findRecastStoryboard",
+      "group": "documents",
+      "kind": "method",
+      "type": "(args: ModelInterfaceArgs<\"findRecastStoryboard\">) => Promise<PersistedRecordLike | null>"
+    },
+    {
+      "name": "get",
+      "group": "variables",
+      "kind": "method",
+      "type": "<T = unknown>(key: string, defaultValue?: T) => T"
+    },
+    {
+      "name": "getAssetInfo",
+      "group": "assets",
+      "kind": "method",
+      "type": "(assetId: string) => Promise<AssetInfoEntry | null>"
+    },
+    {
+      "name": "getChannel",
+      "group": "variables",
+      "kind": "method",
+      "type": "<T = unknown>(name: string) => NodeChannel<T>"
+    },
+    {
+      "name": "getEntity",
+      "group": "documents",
+      "kind": "method",
+      "type": "(id: string) => Promise<Entity | null>"
+    },
+    {
+      "name": "getImageDocument",
+      "group": "documents",
+      "kind": "method",
+      "type": "(id: string) => Promise<PersistedRecordLike | null>"
+    },
+    {
+      "name": "getInjectedTool",
+      "group": "agents",
+      "kind": "method",
+      "type": "(name: string) => Types[\"injectedTool\"] | null"
+    },
+    {
+      "name": "getProvider",
+      "group": "providers",
+      "kind": "method",
+      "type": "(providerId: string) => Promise<Types[\"provider\"]>"
+    },
+    {
+      "name": "getProviderCost",
+      "group": "messages",
+      "kind": "method",
+      "type": "() => ProviderCost | null"
+    },
+    {
+      "name": "getResolvedSecretValues",
+      "group": "secrets",
+      "kind": "method",
+      "type": "() => ReadonlySet<string>"
+    },
+    {
+      "name": "getScript",
+      "group": "documents",
+      "kind": "method",
+      "type": "(id: string) => Promise<PersistedRecordLike | null>"
+    },
+    {
+      "name": "getSecret",
+      "group": "secrets",
+      "kind": "method",
+      "type": "(key: string) => Promise<string | null>"
+    },
+    {
+      "name": "getSetting",
+      "group": "secrets",
+      "kind": "method",
+      "type": "(key: string) => Promise<string | null>"
+    },
+    {
+      "name": "getStoryboard",
+      "group": "documents",
+      "kind": "method",
+      "type": "(id: string) => Promise<PersistedRecordLike | null>"
+    },
+    {
+      "name": "getThreadMessages",
+      "group": "documents",
+      "kind": "method",
+      "type": "(threadId: string, limit?: number, startKey?: string | null, reverse?: boolean) => Promise<ThreadMessagesResultLike>"
+    },
+    {
+      "name": "getTimelineSequence",
+      "group": "documents",
+      "kind": "method",
+      "type": "(id: string) => Promise<PersistedRecordLike | null>"
+    },
+    {
+      "name": "getTotalCost",
+      "group": "messages",
+      "kind": "method",
+      "type": "() => number"
+    },
+    {
+      "name": "hasChannelWriters",
+      "group": "variables",
+      "kind": "method",
+      "type": "(name: string) => boolean"
+    },
+    {
+      "name": "hasControlEventSupport",
+      "group": "agents",
+      "kind": "property",
+      "readonly": true,
+      "type": "boolean"
+    },
+    {
+      "name": "hasModelInterface",
+      "group": "documents",
+      "kind": "method",
+      "type": "(name: keyof ProcessingContextModelInterfaces) => boolean"
+    },
+    {
+      "name": "jobId",
+      "group": "run",
+      "kind": "property",
+      "readonly": true,
+      "type": "string"
+    },
+    {
+      "name": "listEntities",
+      "group": "documents",
+      "kind": "method",
+      "type": "(args?: ModelInterfaceArgs<\"listEntities\">) => Promise<Entity[]>"
+    },
+    {
+      "name": "listFolderAssets",
+      "group": "assets",
+      "kind": "method",
+      "type": "(folderId: string) => Promise<FolderAssetEntry[] | null>"
+    },
+    {
+      "name": "listStoryboards",
+      "group": "documents",
+      "kind": "method",
+      "type": "(args?: ModelInterfaceArgs<\"listStoryboards\">) => Promise<PersistedRecordLike[]>"
+    },
+    {
+      "name": "localPath",
+      "group": "assets",
+      "kind": "method",
+      "type": "(uri: string) => Promise<string | null>"
+    },
+    {
+      "name": "markChannelWriterDone",
+      "group": "variables",
+      "kind": "method",
+      "type": "(name: string) => void"
+    },
+    {
+      "name": "normalizeOutputValue",
+      "group": "assets",
+      "kind": "method",
+      "type": "(value: unknown, mode?: AssetOutputMode) => Promise<unknown>"
+    },
+    {
+      "name": "persistOutputAssets",
+      "group": "run",
+      "kind": "property",
+      "readonly": true,
+      "type": "boolean"
+    },
+    {
+      "name": "postMessage",
+      "group": "messages",
+      "kind": "method",
+      "type": "(msg: ProcessingMessage) => void"
+    },
+    {
+      "name": "providerSupportsStreamingTTS",
+      "group": "providers",
+      "kind": "method",
+      "type": "(providerId: string) => Promise<boolean>"
+    },
+    {
+      "name": "registerChannelWriters",
+      "group": "variables",
+      "kind": "method",
+      "type": "(name: string, count: number) => void"
+    },
+    {
+      "name": "resolveAssetBytes",
+      "group": "assets",
+      "kind": "method",
+      "type": "(assetId: string, options?: {requireOwnedAsset?: boolean}) => Promise<{bytes: Uint8Array | null; attempts: string[]}>"
+    },
+    {
+      "name": "resolveExecutor",
+      "group": "subgraph",
+      "kind": "property",
+      "readonly": true,
+      "type": "| ((node: NodeContextExecutorRequest) => Types[\"nodeExecutor\"]) | null"
+    },
+    {
+      "name": "resolveMessageMediaUris",
+      "group": "providers",
+      "kind": "method",
+      "type": "(messages: Types[\"message\"][]) => Promise<Types[\"message\"][]>"
+    },
+    {
+      "name": "resolveNodeType",
+      "group": "subgraph",
+      "kind": "property",
+      "readonly": true,
+      "type": "| ((nodeType: string) => Promise<NodeContextResolvedType | null>) | null"
+    },
+    {
+      "name": "runGeneration",
+      "group": "providers",
+      "kind": "method",
+      "type": "(req: Types[\"generationRequest\"]) => Promise<Types[\"generationResult\"]>"
+    },
+    {
+      "name": "runProviderPrediction",
+      "group": "providers",
+      "kind": "method",
+      "type": "(req: Types[\"providerRequest\"]) => Promise<unknown>"
+    },
+    {
+      "name": "sandboxModuleCatalog",
+      "group": "run",
+      "kind": "property",
+      "readonly": true,
+      "type": "Types[\"sandboxModuleCatalog\"] | null"
+    },
+    {
+      "name": "sendControlEvent",
+      "group": "agents",
+      "kind": "method",
+      "type": "(targetNodeId: string, properties: Record<string, unknown>) => Promise<Record<string, unknown> | null>"
+    },
+    {
+      "name": "set",
+      "group": "variables",
+      "kind": "method",
+      "type": "(key: string, value: unknown) => void"
+    },
+    {
+      "name": "setProviderCost",
+      "group": "messages",
+      "kind": "method",
+      "type": "(provider: string, amount: number, unit: string, details?: Pick<ProviderCost, | \"model\" | \"billing_unit\" | \"quantity\" | \"unit_price\" | \"currency\" | \"provider_request_id\" | \"input_tokens\" | \"output_tokens\" | \"cached_tokens\">) => void"
+    },
+    {
+      "name": "setResolveExecutor",
+      "group": "subgraph",
+      "kind": "method",
+      "type": "(fn: (node: NodeContextExecutorRequest) => Types[\"nodeExecutor\"]) => void"
+    },
+    {
+      "name": "setResolveNodeType",
+      "group": "subgraph",
+      "kind": "method",
+      "type": "(fn: (nodeType: string) => Promise<NodeContextResolvedType | null>) => void"
+    },
+    {
+      "name": "setSendControlEvent",
+      "group": "agents",
+      "kind": "method",
+      "type": "(fn: (targetNodeId: string, properties: Record<string, unknown>) => Promise<Record<string, unknown>>) => void"
+    },
+    {
+      "name": "signal",
+      "group": "run",
+      "kind": "property",
+      "readonly": false,
+      "type": "AbortSignal"
+    },
+    {
+      "name": "storage",
+      "group": "assets",
+      "kind": "property",
+      "readonly": true,
+      "type": "StorageAdapter | null"
+    },
+    {
+      "name": "streamProviderPrediction",
+      "group": "providers",
+      "kind": "method",
+      "type": "(req: Types[\"generationRequest\"]) => AsyncGenerator<unknown>"
+    },
+    {
+      "name": "textToMusic",
+      "group": "providers",
+      "kind": "method",
+      "type": "(req: Types[\"generationRequest\"]) => Promise<Types[\"encodedAudio\"]>"
+    },
+    {
+      "name": "textToSpeechEncoded",
+      "group": "providers",
+      "kind": "method",
+      "type": "(req: Types[\"generationRequest\"]) => Promise<Types[\"encodedAudio\"] | null>"
+    },
+    {
+      "name": "triggerEvent",
+      "group": "run",
+      "kind": "property",
+      "readonly": false,
+      "type": "{node_id: string; payload: unknown; input_id: string} | null"
+    },
+    {
+      "name": "updateScript",
+      "group": "documents",
+      "kind": "method",
+      "type": "(id: string, args: Omit<ModelInterfaceArgs<\"updateScript\">, \"id\">) => Promise<PersistedRecordLike | null>"
+    },
+    {
+      "name": "updateStoryboard",
+      "group": "documents",
+      "kind": "method",
+      "type": "(id: string, args: Omit<ModelInterfaceArgs<\"updateStoryboard\">, \"id\">) => Promise<PersistedRecordLike | null>"
+    },
+    {
+      "name": "updateTimelineSequence",
+      "group": "documents",
+      "kind": "method",
+      "type": "(id: string, sequence: unknown) => Promise<PersistedRecordLike | null>"
+    },
+    {
+      "name": "uploadProviderMedia",
+      "group": "providers",
+      "kind": "method",
+      "type": "(args: {provider: string; bytes: Uint8Array; mimeType: string; filename?: string; signal?: AbortSignal;}) => Promise<string>"
+    },
+    {
+      "name": "upsertEntity",
+      "group": "documents",
+      "kind": "method",
+      "type": "(args: ModelInterfaceArgs<\"upsertEntity\">) => Promise<EntityUpsertResult>"
+    },
+    {
+      "name": "workflowId",
+      "group": "run",
+      "kind": "property",
+      "readonly": true,
+      "type": "string | null"
+    },
+    {
+      "name": "workspace",
+      "group": "assets",
+      "kind": "property",
+      "readonly": true,
+      "type": "Workspace | null"
+    },
+    {
+      "name": "workspaceDir",
+      "group": "assets",
+      "kind": "property",
+      "readonly": true,
+      "type": "string | null"
+    }
+  ]
+}

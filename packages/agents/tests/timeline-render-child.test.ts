@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { promisify } from "node:util";
 import { mkdtemp, writeFile, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -66,9 +67,7 @@ describe("preview child ownership", () => {
     const result = await promisify(execFile)(process.execPath, [new URL("./fixtures/preview-child-parent-exit.mjs", import.meta.url).pathname], { timeout: 10_000 });
     const pid = Number(result.stdout.trim());
     try {
-      await expect.poll(() => {
-        try { process.kill(pid, 0); return false; } catch { return true; }
-      }, { timeout: 10_000 }).toBe(true);
+      await expect.poll(() => hasExited(pid), { timeout: 10_000 }).toBe(true);
     } finally {
       try { process.kill(pid, "SIGKILL"); } catch { /* The process has already exited. */ }
     }
@@ -150,3 +149,13 @@ describe("preview child ownership", () => {
     }
   });
 });
+
+/**
+ * Whether a process is gone. The child is orphaned when its parent exits, so
+ * inside a container whose PID 1 does not reap (the CI image's job container)
+ * it stays a zombie that `kill(pid, 0)` still finds.
+ */
+function hasExited(pid: number): boolean {
+  try { process.kill(pid, 0); } catch { return true; }
+  try { return /^\d+ \(.*\) Z /.test(readFileSync(`/proc/${pid}/stat`, "utf8")); } catch { return true; }
+}

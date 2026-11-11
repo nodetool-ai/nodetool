@@ -1,0 +1,10 @@
+{
+  "kind": "cmakeFiles",
+  "paths": { "source": "@ROOT@/native/graph-runner", "build": "@BUILD@" },
+  "inputs": [
+    { "path": "CMakeLists.txt" },
+    { "path": "cmake/deps.cmake" },
+    { "path": "@BUILD@/CMakeFiles/4.4.4/CMakeSystem.cmake", "isGenerated": true },
+    { "path": "/usr/share/cmake/Modules/FetchContent.cmake", "isExternal": true, "isCMake": true }
+  ]
+}

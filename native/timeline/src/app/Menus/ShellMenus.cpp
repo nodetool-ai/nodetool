@@ -312,6 +312,7 @@ void ShellMenus::rebuild() {
     m_registered.clear();
     if (auto* bar = qobject_cast<QPlatformMenuBar*>(m_bar.data())) {
         bar->handleReparent(nullptr);
+        // native-rules #2: naked delete of a platform menu bar that is held by a QPointer
         delete bar;
     }
     if (!m_anchor || !m_anchor->window()) {

@@ -7,6 +7,7 @@
 #include <QQuickTextDocument>
 #include <QColor>
 #include <QSet>
+#include <QTimer>
 #include <map>
 #include <memory>
 namespace nt::chat {
@@ -30,6 +31,20 @@ public:
   Q_PROPERTY(QString model READ model WRITE setModel NOTIFY stateChanged)
   Q_PROPERTY(nt::modelpicker::Catalog *modelCatalog READ modelCatalog CONSTANT)
   Q_PROPERTY(QVariantList attachments READ attachments NOTIFY stateChanged)
+    Q_PROPERTY(QString mediaMode READ mediaMode WRITE setMediaMode NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList mediaModes READ mediaModes CONSTANT)
+    Q_PROPERTY(QVariantMap mediaSettings READ mediaSettings NOTIFY stateChanged)
+    Q_PROPERTY(nt::modelpicker::Catalog *mediaCatalog READ mediaCatalog CONSTANT)
+    Q_PROPERTY(QString mediaModelName READ mediaModelName NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList mediaChips READ mediaChips NOTIFY stateChanged)
+    Q_PROPERTY(QString mediaModelPlaceholder READ mediaModelPlaceholder NOTIFY stateChanged)
+    Q_PROPERTY(QString mediaModelHint READ mediaModelHint NOTIFY stateChanged)
+    Q_PROPERTY(QString reasoningEffort READ reasoningEffort WRITE setReasoningEffort NOTIFY stateChanged)
+    Q_PROPERTY(bool reasoningSupported READ reasoningSupported NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList reasoningLevels READ reasoningLevels CONSTANT)
+    Q_PROPERTY(QVariantList assetResults READ assetResults NOTIFY assetsChanged)
+    Q_PROPERTY(QVariantList recentAssets READ recentAssets NOTIFY assetsChanged)
+    Q_PROPERTY(bool hasMoreAssets READ hasMoreAssets NOTIFY assetsChanged)
 public:
   explicit ChatSession(QObject *parent = nullptr);
   ~ChatSession() override;
@@ -55,8 +70,44 @@ public:
     emit stateChanged();
   }
   QVariantList attachments() const;
+    QString mediaMode() const { return m_mediaMode; }
+    void setMediaMode(const QString &mode);
+    QVariantList mediaModes() const;
+    QVariantMap mediaSettings() const;
+    nt::modelpicker::Catalog *mediaCatalog() { return &m_mediaCatalog; }
+    QString mediaModelName() const;
+    QVariantList mediaChips() const;
+    QString mediaModelPlaceholder() const;
+    QString mediaModelHint() const;
+    QString reasoningEffort() const { return m_reasoningEffort; }
+    void setReasoningEffort(const QString &effort);
+    bool reasoningSupported() const;
+    QVariantList reasoningLevels() const;
+    QVariantList assetResults() const { return m_assetResults; }
+    QVariantList recentAssets() const;
+    bool hasMoreAssets() const { return !m_assetCursor.isEmpty(); }
+    Q_INVOKABLE void setMediaSetting(const QString &key, const QVariant &value);
+    Q_INVOKABLE QVariantList mediaOptions(const QString &key) const;
+    // The media_generation field the next send carries, or null in chat mode.
+    Q_INVOKABLE QVariantMap mediaRequest() const;
+    Q_INVOKABLE void searchAssets(const QString &query);
+    Q_INVOKABLE void loadMoreAssets();
+    Q_INVOKABLE void closeAssetSearch();
+    Q_INVOKABLE void attachAsset(const QVariantMap &asset);
+    Q_INVOKABLE QVariantMap mentionTrigger(const QString &text, int caret) const;
+    Q_INVOKABLE QVariantMap removeMention(const QString &text, int start, int end) const;
+    // Workflow threads matching the search, with web relative-date headings.
+    Q_INVOKABLE QVariantList workflowThreadRows(const QString &query) const;
   Q_INVOKABLE void selectThread(const QString &);
-  Q_INVOKABLE void createThread();
+    Q_PROPERTY(QVariantList workflowThreads READ workflowThreads NOTIFY stateChanged)
+    Q_PROPERTY(QString threadTitle READ threadTitle NOTIFY stateChanged)
+    QVariantList workflowThreads() const;
+    QString threadTitle() const;
+    Q_INVOKABLE void setWorkflow(const QString &id);
+    Q_INVOKABLE void deleteThread(const QString &id);
+    Q_INVOKABLE void retry();
+    bool hasActiveTurns() const;
+  Q_INVOKABLE void createThread(const QString &draft = {});
   Q_INVOKABLE void send();
   Q_INVOKABLE void stop();
   Q_INVOKABLE void refresh();
@@ -91,6 +142,9 @@ signals:
   void resourceRequested(QString uri);
   void hostToolRequested(QString id, QString name, QVariantMap args);
   void hostResponseReceived(QJsonObject response);
+    void assetsChanged();
+    // A send was refused because the selected mode has no model picked.
+    void modelPickerRequested();
 
 private:
   struct State {
@@ -99,6 +153,8 @@ private:
     bool uncertainReplay = false;
     QJsonArray bufferedEvents;
     std::unique_ptr<MessageModel> messages;
+    QString lastPrompt;
+    QVariantList lastAttachments;
     QString draft, status = "idle", cursor, error;
     qint64 sequence = 0;
     QVariantList attachments;
@@ -109,11 +165,26 @@ private:
   void fail(const QString &);
   void resolveMedia(const QString &, const QJsonObject &,
                     const QString &projectionKey = {});
+  QSet<QString> m_creatingWorkflows;
+  QString m_workflow;
+  QHash<QString, QString> m_threadWorkflows, m_workflowThreads;
   QStringList m_resourceKinds;
   ThreadModel m_threads;
   MessageModel m_empty;
   ChatClient m_client;
   nt::modelpicker::Catalog m_catalog;
+    nt::modelpicker::Catalog m_mediaCatalog;
+    QString m_mediaMode = "chat";
+    QHash<QString, QVariantMap> m_mediaSettings;
+    QString m_reasoningEffort;
+    QVariantList m_assetResults;
+    QVariantList m_recentAssets;
+    QString m_assetQuery;
+    QString m_assetCursor;
+    bool m_assetSearchOpen = false;
+    quint64 m_assetSearch = 0;
+    QTimer *m_assetTimer = nullptr;
+    void requestAssets(bool append);
   std::map<QString, State> m_states;
   QSet<QString> m_answeredActions;
   QHash<QString, QJsonObject> m_actions, m_hostCalls;

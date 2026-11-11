@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realtime Graph Runner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #090b10;
+    --bg-1: #0f1218;
+    --bg-2: #141922;
+    --bg-3: #1b212d;
+    --border: #232a37;
+    --border-bright: #343e51;
+    --text-0: #e8ecf2;
+    --text-1: #a3adbd;
+    --text-2: #6b7587;
+    --accent-blue: #5b9cff;
+    --accent-cyan: #4fd1c5;
+    --accent-green: #4ade80;
+    --accent-amber: #f2b84b;
+    --accent-orange: #f08a4b;
+    --accent-red: #f87171;
+    --accent-purple: #b18cff;
+    --accent-pink: #f07ab8;
+    --blue-soft: rgba(91, 156, 255, 0.12);
+    --blue-line: rgba(91, 156, 255, 0.45);
+    --radius-sm: 6px;
+    --radius: 10px;
+    --shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px -12px rgba(0,0,0,0.6);
+    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-0);
+    color: var(--text-0);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 10px; border: 2px solid var(--bg-1); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::selection { background: var(--blue-line); }
+
+  /* Header */
+  header {
+    background: linear-gradient(180deg, #11151d 0%, var(--bg-1) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .brand::before {
+    content: "";
+    width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+    background:
+      radial-gradient(circle at 30% 30%, var(--accent-cyan) 0 3px, transparent 3.5px),
+      radial-gradient(circle at 72% 70%, var(--accent-blue) 0 3px, transparent 3.5px),
+      linear-gradient(135deg, #1d2a3f, #142033);
+    border: 1px solid var(--border-bright);
+  }
+  .brand h1 { font-size: 14px; font-weight: 600; letter-spacing: -0.015em; white-space: nowrap; }
+
+  .badge-rev {
+    background: var(--blue-soft);
+    color: #9cc3ff;
+    border: 1px solid rgba(91, 156, 255, 0.28);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .nav-tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--bg-0);
+    padding: 3px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+  }
+  .nav-tab {
+    background: transparent;
+    color: var(--text-1);
+    border: none;
+    padding: 6px 14px;
+    font: 500 12.5px var(--font-sans);
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  }
+  .nav-tab:hover { color: var(--text-0); }
+  .nav-tab.active {
+    background: var(--bg-3);
+    color: var(--text-0);
+    box-shadow: 0 0 0 1px var(--border-bright) inset, 0 1px 2px rgba(0,0,0,0.4);
+  }
+
+  .header-controls { display: flex; align-items: center; gap: 10px; }
+  .header-controls > span { text-transform: uppercase; letter-spacing: 0.08em; font-size: 10px !important; font-weight: 600; }
+
+  .host-toggle {
+    display: flex;
+    background: var(--bg-0);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .host-btn {
+    background: transparent;
+    color: var(--text-2);
+    border: none;
+    padding: 4px 10px;
+    font: 500 11.5px var(--font-sans);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+  }
+  .host-btn:hover { color: var(--text-0); }
+  .host-btn.active { background: rgba(79, 209, 197, 0.12); color: var(--accent-cyan); }
+
+  /* Layout */
+  .workspace {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .main-stage {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
+  }
+  .view-panel { display: none; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+  .view-panel.active { display: flex; animation: fadeIn 0.2s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+
+  /* Toolbar */
+  .scenario-bar {
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  .scenario-select-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .scenario-select-group label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-2);
+    font-weight: 600;
+  }
+
+  select, .btn {
+    background: var(--bg-2);
+    color: var(--text-0);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 11px;
+    font: 500 12px var(--font-sans);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  select {
+    appearance: none;
+    padding-right: 30px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%), linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+    background-position: calc(100% - 15px) 50%, calc(100% - 10px) 50%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+    max-width: 460px;
+  }
+  select:focus-visible, .btn:focus-visible, .search-input:focus-visible, .nav-tab:focus-visible, .host-btn:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 1px;
+  }
+  .btn:hover { background: var(--bg-3); border-color: var(--border-bright); }
+  .btn.primary { background: var(--blue-soft); border-color: var(--blue-line); color: #a9cbff; }
+  .btn.primary:hover { background: rgba(91, 156, 255, 0.2); }
+  .btn.active-toggle { background: rgba(74, 222, 128, 0.12); border-color: rgba(74, 222, 128, 0.45); color: var(--accent-green); }
+
+  .stepper-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .step-dots { display: flex; gap: 3px; margin: 0 4px; }
+  .step-dot {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg-0);
+    color: var(--text-2);
+    font: 500 11px var(--font-mono);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .step-dot:hover { color: var(--text-0); border-color: var(--border-bright); }
+  .step-dot.active {
+    background: var(--accent-blue);
+    color: #fff;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(91, 156, 255, 0.2);
+  }
+
+  /* Step banner */
+  .step-banner {
+    background: linear-gradient(90deg, rgba(91,156,255,0.07), transparent 60%), var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    border-left: 3px solid var(--accent-blue);
+    padding: 11px 18px 11px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .step-banner > div:first-child { max-width: 80ch; }
+  .step-title {
+    display: block;
+    font-weight: 600;
+    color: #a9cbff;
+    font-size: 12px;
+    letter-spacing: 0.01em;
+    margin-bottom: 2px;
+  }
+  .step-desc { color: var(--text-1); font-size: 12.5px; }
+
+  .step-refs { display: flex; gap: 4px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .ref-pill {
+    font: 500 10.5px var(--font-mono);
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(79, 209, 197, 0.08);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(79, 209, 197, 0.25);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .ref-pill:hover { background: var(--accent-cyan); color: var(--bg-0); border-color: var(--accent-cyan); }
+
+  /* Canvas */
+  .canvas-wrap {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    overflow: auto;
+    background-color: var(--bg-0);
+    background-image: radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px);
+    background-size: 18px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+  }
+  svg#arch-svg { width: 100%; height: 100%; min-width: 920px; min-height: 500px; user-select: none; }
+  svg text { font-family: var(--font-sans); }
+
+  .svg-node { cursor: pointer; transition: opacity 0.2s; }
+  .svg-node rect { transition: stroke 0.15s, stroke-width 0.15s, fill 0.15s; }
+  .svg-node:hover rect { stroke: #a9cbff !important; stroke-width: 1.8px !important; }
+  .svg-node.selected rect { stroke: #fff !important; stroke-width: 2px !important; filter: drop-shadow(0 0 6px rgba(91,156,255,0.55)); }
+  .svg-node.dimmed { opacity: 0.25; }
+  .svg-edge { cursor: pointer; transition: opacity 0.2s; }
+  .svg-edge.dimmed { opacity: 0.14; }
+  .svg-edge.active-edge path.edge-line {
+    stroke-width: 2.6px !important;
+    stroke-dasharray: 6 4;
+    animation: dashFlow 0.7s linear infinite;
+    filter: drop-shadow(0 0 3px currentColor);
+  }
+  @keyframes dashFlow { to { stroke-dashoffset: -20; } }
+
+  /* Telemetry */
+  .telemetry-strip {
+    background: var(--bg-1);
+    border-top: 1px solid var(--border);
+    padding: 8px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    font: 11px var(--font-mono);
+  }
+  .telemetry-strip > div:last-child { font-family: var(--font-sans); font-size: 11.5px; white-space: nowrap; }
+  .telem-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .telem-item {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--bg-0);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 3px 4px 3px 8px;
+  }
+  .telem-key { color: var(--text-2); }
+  .telem-val {
+    color: var(--text-0);
+    background: var(--bg-2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.2s, background 0.2s;
+  }
+  .telem-val.highlight { color: var(--accent-green); background: rgba(74, 222, 128, 0.1); }
+  .telem-val.warn { color: var(--accent-amber); background: rgba(242, 184, 75, 0.12); }
+
+  /* Inspector */
+  .inspector { background: var(--bg-1); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .inspector-header {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .inspector-header h2 { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-2); }
+  .inspector-body { padding: 16px 18px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .inspector-body p { line-height: 1.6; }
+
+  .insp-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .insp-card h3 {
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .insp-subtitle { font: 11px var(--font-mono); color: var(--accent-cyan); margin-bottom: 10px; }
+  .insp-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-2);
+    margin: 14px 0 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .insp-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .insp-list li { font-size: 12.5px; line-height: 1.55; color: var(--text-1); padding-left: 14px; position: relative; }
+  .insp-list li::before {
+    content: "";
+    position: absolute; left: 2px; top: 0.62em;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent-blue);
+    opacity: 0.8;
+  }
+
+  pre.code-block {
+    background: var(--bg-0);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font: 11px/1.55 var(--font-mono);
+    color: #b5d4ff;
+    overflow-x: auto;
+    tab-size: 2;
+  }
+
+  /* View 2 */
+  .partition-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 16px;
+    padding: 18px;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+  .node-card-list { display: flex; flex-direction: column; gap: 6px; }
+  .graph-node-row {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  }
+  .graph-node-row:hover { background: var(--bg-3); border-top-color: var(--border-bright); border-right-color: var(--border-bright); border-bottom-color: var(--border-bright); }
+  .graph-node-row.region-batch { border-left-color: var(--accent-amber); }
+  .graph-node-row.region-control { border-left-color: var(--accent-purple); }
+  .graph-node-row.region-render { border-left-color: var(--accent-blue); }
+  .graph-node-row.region-audio { border-left-color: var(--accent-green); }
+
+  .node-badges { display: flex; gap: 5px; align-items: center; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+  .tag {
+    font: 500 10px var(--font-mono);
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: var(--bg-3);
+    color: var(--text-1);
+    white-space: nowrap;
+  }
+  .tag.dirty { background: rgba(248, 113, 113, 0.12); color: #fca5a5; border-color: rgba(248, 113, 113, 0.32); }
+  .tag.clean { background: rgba(74, 222, 128, 0.1); color: #86efac; border-color: rgba(74, 222, 128, 0.3); }
+  .tag.volatile { background: rgba(242, 184, 75, 0.12); color: #fcd34d; border-color: rgba(242, 184, 75, 0.32); }
+  .tag.retained { background: rgba(79, 209, 197, 0.1); color: #7ee7dc; border-color: rgba(79, 209, 197, 0.3); }
+
+  /* View 3 */
+  .lab-container { padding: 18px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; flex: 1; }
+  .lab-box {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .lab-box h3 {
+    font-size: 13.5px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .lab-box h3 > div { flex-wrap: wrap; }
+  .lab-box svg { background: var(--bg-0) !important; border-radius: var(--radius-sm) !important; }
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px 22px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    flex-wrap: wrap;
+  }
+  .slider-row label { font-size: 12px; color: var(--text-1); display: flex; align-items: center; gap: 8px; }
+  .slider-row span { font-variant-numeric: tabular-nums; }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 150px; height: 4px;
+    background: var(--bg-3);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--text-0);
+    border: 3px solid var(--accent-blue);
+    box-shadow: 0 0 0 3px rgba(91,156,255,0.18);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--text-0);
+    border: 3px solid var(--accent-blue);
+  }
+
+  /* View 4 */
+  .matrix-toolbar {
+    padding: 12px 18px;
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .search-input {
+    background: var(--bg-0);
+    border: 1px solid var(--border);
+    color: var(--text-0);
+    padding: 7px 12px 7px 30px;
+    border-radius: var(--radius-sm);
+    font: 12px var(--font-sans);
+    width: 260px;
+    margin-right: 6px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%236b7587' stroke-width='2' viewBox='0 0 24 24'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 10px 50%;
+  }
+  .search-input::placeholder { color: var(--text-2); }
+  .matrix-filter { border-radius: 999px; padding: 5px 12px; }
+
+  .matrix-list {
+    padding: 18px;
+    overflow-y: auto;
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+    align-content: start;
+  }
+  .matrix-card {
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    line-height: 1.55;
+    transition: border-color 0.15s, transform 0.15s, background 0.15s;
+  }
+  .matrix-card:hover { border-color: var(--blue-line); background: var(--bg-2); transform: translateY(-1px); }
+  .matrix-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .matrix-code { font: 600 12px var(--font-mono); color: #a9cbff; }
+  .matrix-cat {
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--bg-3);
+    color: var(--text-2);
+  }
+
+  .sim-side { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .sim-budget { height: 8px; background: var(--bg-0); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+  .sim-budget-fill { height: 100%; background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan)); transition: width 0.2s ease-out; }
+  .sim-history { display: flex; align-items: flex-end; gap: 1px; height: 56px; background: var(--bg-0); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px; }
+  .sim-hbar { flex: 1; min-width: 1px; background: var(--accent-blue); border-radius: 1px; opacity: 0.85; }
+  .sim-hbar.idle { background: var(--accent-green); opacity: 0.5; }
+  .sim-counters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+  .sim-counter { background: var(--bg-0); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 8px; }
+  .sim-counter span { display: block; font: 600 15px var(--font-mono); font-variant-numeric: tabular-nums; }
+  .sim-counter label { font-size: 10px; color: var(--text-2); }
+  .sim-log-card { flex: 1; min-height: 160px; display: flex; flex-direction: column; }
+  .sim-log { overflow-y: auto; flex: 1; max-height: 260px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+  .sim-log-row { color: var(--text-1); padding: 3px 0 3px 8px; border-left: 2px solid var(--border-bright); }
+  .sim-log-row span { font: 500 10.5px var(--font-mono); color: var(--text-2); margin-right: 8px; }
+  .sim-log-row.edit { border-left-color: var(--accent-blue); }
+  .sim-log-row.batch { border-left-color: var(--accent-amber); }
+  .sim-log-row.warn { border-left-color: var(--accent-red); }
+  .sim-log-row.idle { border-left-color: var(--accent-green); }
+  .sim-runs { font: 10.5px var(--font-mono); color: var(--text-2); min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+  .graph-node-row.sim-flash { animation: simFlash 0.5s ease-out; }
+  @keyframes simFlash { from { background: rgba(91,156,255,0.18); } to { background: var(--bg-2); } }
+  details.insp-card summary { cursor: pointer; list-style: none; }
+  details.insp-card summary::-webkit-details-marker { display: none; }
+  details.insp-card summary::before { content: "▸ "; color: var(--text-2); }
+  details[open].insp-card summary::before { content: "▾ "; }
+
+  @media (max-width: 1280px) {
+    header { flex-wrap: wrap; }
+    .workspace { grid-template-columns: 1fr 320px; }
+  }
+  @media (max-width: 900px) {
+    body { height: auto; overflow: auto; }
+    .workspace { grid-template-columns: 1fr; }
+    .main-stage { border-right: none; min-height: 80vh; }
+    .partition-grid { grid-template-columns: 1fr; }
+    .nav-tabs { overflow-x: auto; max-width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Realtime Graph Runner</h1>
+    <span class="badge-rev">rev 3</span>
+  </div>
+
+  <div class="nav-tabs" role="tablist">
+    <button class="nav-tab active" data-tab="view-arch">Threads</button>
+    <button class="nav-tab" data-tab="view-partition">Partition</button>
+    <button class="nav-tab" data-tab="view-clock">Clock Lab</button>
+    <button class="nav-tab" data-tab="view-matrix">Decisions &amp; Risks</button>
+  </div>
+
+  <div class="header-controls">
+    <span style="font-size:11px;color:var(--text-2);">Host §12</span>
+    <div class="host-toggle">
+      <button class="host-btn active" id="host-desktop" title="C++ / wgpu-native / miniaudio">Desktop</button>
+      <button class="host-btn" id="host-browser" title="WebGPU / AudioWorklet WASM">Browser</button>
+    </div>
+  </div>
+</header>
+
+<div class="workspace">
+  <div class="main-stage">
+
+    <!-- ==================== VIEW 1: THREADS & SCENARIO SIMULATOR ==================== -->
+    <section class="view-panel active" id="view-arch">
+      <div class="scenario-bar">
+        <div class="scenario-select-group">
+          <label for="scenario-select">Scenario</label>
+          <select id="scenario-select">
+            <option value="S1">S1. Graph Partition &amp; Initial Plan Compile (§5, §6)</option>
+            <option value="S2">S2. Live Parameter Change: Immediate vs Audio vs Synced (§11.1, F46)</option>
+            <option value="S3">S3. Live Graph Edit, State Preservation &amp; Offset Ramp (§11.3, F47–F49)</option>
+            <option value="S4">S4. Slow Batch Model Run Feeding a Live Slot (§5.5, §9.5, F45)</option>
+            <option value="S5">S5. Shared GPU Queue Gate &amp; Error-Scope Isolation (§9.2, §9.6, F44)</option>
+            <option value="S6">S6. Transport Pause, Idle Skip &amp; Visual Clock Re-Anchor (D7c, §9.4, F51)</option>
+            <option value="S7">S7. Failure Isolation &amp; ~LiveSession() Teardown (§7, §17, F50)</option>
+          </select>
+        </div>
+
+        <div class="stepper-controls">
+          <button class="btn" id="step-prev">←</button>
+          <div class="step-dots" id="step-dots"></div>
+          <button class="btn" id="step-next">→</button>
+          <button class="btn primary" id="step-play">▶ Auto</button>
+        </div>
+      </div>
+
+      <div class="step-banner">
+        <div>
+          <span class="step-title" id="step-title">Step 1</span>
+          <span class="step-desc" id="step-desc">Select a scenario step or click any thread, state store, or channel in the diagram.</span>
+        </div>
+        <div class="step-refs" id="step-refs"></div>
+      </div>
+
+      <div class="canvas-wrap">
+        <svg id="arch-svg" viewBox="0 0 1060 565" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrow-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#5b9cff"/>
+            </marker>
+            <marker id="arrow-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#4fd1c5"/>
+            </marker>
+            <marker id="arrow-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#4ade80"/>
+            </marker>
+            <marker id="arrow-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#f2b84b"/>
+            </marker>
+            <marker id="arrow-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#b18cff"/>
+            </marker>
+            <marker id="arrow-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 1 L 10 5 L 0 9 z" fill="#f87171"/>
+            </marker>
+          </defs>
+
+          <!-- Swimlane Backgrounds -->
+          <g id="swimlanes"></g>
+          <!-- Carrier Edges -->
+          <g id="arch-edges"></g>
+          <!-- Nodes / Thread Boxes -->
+          <g id="arch-nodes"></g>
+        </svg>
+      </div>
+
+      <div class="telemetry-strip">
+        <div class="telem-group">
+          <div class="telem-item"><span class="telem-key">planRevision:</span><span class="telem-val" id="tel-rev">1</span></div>
+          <div class="telem-item"><span class="telem-key">clockGen:</span><span class="telem-val" id="tel-gen">1</span></div>
+          <div class="telem-item"><span class="telem-key">audioStreamFrame:</span><span class="telem-val highlight" id="tel-aframe">2048 (46.4 ms)</span></div>
+          <div class="telem-item"><span class="telem-key">audibleFrame:</span><span class="telem-val" id="tel-vframe">512 (11.6 ms)</span></div>
+          <div class="telem-item"><span class="telem-key">ringFill:</span><span class="telem-val" id="tel-ring">8 quanta (23.2 ms)</span></div>
+          <div class="telem-item"><span class="telem-key">gpuGate:</span><span class="telem-val" id="tel-gate">Frame Priority (0 batch ahead)</span></div>
+          <div class="telem-item"><span class="telem-key">retireQueues:</span><span class="telem-val" id="tel-retire">R:0 / A:0 (cap maxSlots+2)</span></div>
+        </div>
+        <div style="color:var(--text-2);">Click any box or arrow to inspect its spec contract</div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 2: GRAPH PARTITION & DIRTY/RETENTION ==================== -->
+    <section class="view-panel" id="view-partition">
+      <div class="scenario-bar">
+        <div class="scenario-select-group">
+          <button class="btn primary" id="sim-run-btn">▶ Run sim</button>
+          <button class="btn" id="sim-step-btn" title="Advance one 60 Hz frame">Step frame</button>
+          <button class="btn" id="sim-speed-btn" title="Simulation speed">1×</button>
+          <button class="btn" id="sim-reset-btn">Reset</button>
+        </div>
+        <div class="stepper-controls">
+          <button class="btn active-toggle" id="sim-transport-btn">Transport: PLAYING</button>
+          <button class="btn" id="sim-tweak-blur" title="Immediate param">Blur radius</button>
+          <button class="btn" id="sim-tweak-cutoff" title="Synced param">Filter cutoff</button>
+          <button class="btn" id="sim-new-slot" title="Batch run delivers a new Slot 0 texture">Batch slot</button>
+          <button class="btn" id="sim-resize">Resize</button>
+          <button class="btn" id="sim-evict" title="Evict LRU retained texture">Evict</button>
+        </div>
+      </div>
+
+      <div class="step-banner">
+        <div>
+          <span class="step-title" id="sim-frame-status">Frame Decision: WORK EXISTS</span>
+          <span class="step-desc" id="sim-frame-explain">Transport is playing and the Render Plan has volatile passes. Clean retained passes skip GPU execution and reuse their texture.</span>
+        </div>
+        <div class="step-refs">
+          <span class="ref-pill" data-ref="D4">D4</span>
+          <span class="ref-pill" data-ref="D15">D15</span>
+          <span class="ref-pill" data-ref="F37">F37</span>
+          <span class="ref-pill" data-ref="F47">F47</span>
+          <span class="ref-pill" data-ref="F51">F51</span>
+        </div>
+      </div>
+
+      <div class="partition-grid">
+        <div class="node-card-list" id="partition-nodes-list"></div>
+        <div class="sim-side">
+          <div class="insp-card">
+            <h3>Frame budget <span class="badge-rev" id="sim-budget-label">0.0 / 16.67 ms</span></h3>
+            <div class="sim-budget" id="sim-budget"></div>
+            <div class="insp-section-title">Last 90 frames</div>
+            <div class="sim-history" id="sim-history"></div>
+            <div class="sim-counters" id="sim-counters"></div>
+            <div class="insp-section-title">Queued changes</div>
+            <div id="sim-pending" style="display:flex;gap:4px;flex-wrap:wrap;font-size:12px;"></div>
+          </div>
+          <div class="insp-card sim-log-card">
+            <h3>Event log</h3>
+            <div class="sim-log" id="sim-log"></div>
+          </div>
+          <details class="insp-card">
+            <summary><h3 style="display:inline">Compiled PlanIR (§6.2)</h3></summary>
+            <pre class="code-block" id="plan-ir-json" style="margin-top:10px;max-height:340px;overflow:auto;"></pre>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 3: CLOCK, RING LEAD & AUDIO SWAP LAB ==================== -->
+    <section class="view-panel" id="view-clock">
+      <div class="lab-container">
+        <!-- Box 1: Ring Lead & Synced Change Timing -->
+        <div class="lab-box">
+          <h3>
+            <span>1. Stream Time, Audio Ring Lead &amp; Synced Change Alignment (§8 D7a–D7h, §11.1, F46)</span>
+            <span class="badge-rev">1 quantum = 128 frames = 2.90 ms @ 44.1 kHz</span>
+          </h3>
+          <div class="slider-row">
+            <label>Ring Lead (quanta): <input type="range" id="lab-lead-slider" min="4" max="16" value="8"> <span id="lab-lead-val" style="font-family:var(--font-mono);color:var(--accent-cyan);">8 quanta (23.2 ms)</span></label>
+            <label>Device Latency (ms): <input type="range" id="lab-dev-slider" min="4" max="25" value="10"> <span id="lab-dev-val" style="font-family:var(--font-mono);color:var(--accent-cyan);">10.0 ms</span></label>
+            <label>Scrub Change Quantum (Q_edit): <input type="range" id="lab-editq-slider" min="2" max="12" value="5"> <span id="lab-editq-val" style="font-family:var(--font-mono);color:var(--accent-green);">Q5 (frame 640)</span></label>
+          </div>
+          <svg id="clock-svg" viewBox="0 0 980 215" style="width:100%;height:215px;background:var(--bg-0);border:1px solid var(--border);border-radius:5px;"></svg>
+        </div>
+
+        <!-- Box 2: Slope-Extrapolated Offset Ramp (F48) -->
+        <div class="lab-box">
+          <h3>
+            <span>2. Glitch-Free Audio Plan Swap: Slope-Extrapolated 256-Frame Offset Ramp (§11.3, F48)</span>
+            <div style="display:flex;gap:6px;">
+              <button class="btn" id="ramp-mode-none">No Ramp (Hard Step Click)</button>
+              <button class="btn" id="ramp-mode-rev2">Rev 2: ZOH (old[N-1] - new[0])</button>
+              <button class="btn primary" id="ramp-mode-rev3">Rev 3: Slope Extrapolated (2·old[N-1] - old[N-2])</button>
+              <button class="btn" id="ramp-mode-hash">Unchanged subgraphHash (Bit-Identical)</button>
+            </div>
+          </h3>
+          <div class="slider-row">
+            <label>New Plan Phase Shift (°): <input type="range" id="ramp-phase-slider" min="0" max="180" value="55"> <span id="ramp-phase-val" style="font-family:var(--font-mono);color:var(--accent-cyan);">55°</span></label>
+            <label>New Plan Gain: <input type="range" id="ramp-gain-slider" min="50" max="150" value="100"> <span id="ramp-gain-val" style="font-family:var(--font-mono);color:var(--accent-cyan);">1.00×</span></label>
+            <span id="ramp-math-readout" style="font-family:var(--font-mono);font-size:11.5px;color:var(--accent-green);"></span>
+          </div>
+          <svg id="ramp-svg" viewBox="0 0 980 210" style="width:100%;height:210px;background:var(--bg-0);border:1px solid var(--border);border-radius:5px;"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 4: DECISIONS, FINDINGS & RISKS MATRIX ==================== -->
+    <section class="view-panel" id="view-matrix">
+      <div class="matrix-toolbar">
+        <input type="text" class="search-input" id="matrix-search" placeholder="Filter by ID (F44, D7g, R2, P0) or keyword...">
+        <button class="btn primary matrix-filter" data-cat="ALL">All</button>
+        <button class="btn matrix-filter" data-cat="DECISION">Decisions (D1–D15)</button>
+        <button class="btn matrix-filter" data-cat="REV3">Rev 3 Findings (F44–F51)</button>
+        <button class="btn matrix-filter" data-cat="REV2">Rev 2 Findings (F28–F43)</button>
+        <button class="btn matrix-filter" data-cat="RISK">Risks (R1–R13)</button>
+        <button class="btn matrix-filter" data-cat="PHASE">Delivery Phases (P0–P7)</button>
+        <button class="btn matrix-filter" data-cat="QUESTION">Open Questions (Q1–Q10)</button>
+      </div>
+      <div class="matrix-list" id="matrix-list"></div>
+    </section>
+
+  </div>
+
+  <!-- ==================== RIGHT INSPECTOR PANEL ==================== -->
+  <aside class="inspector">
+    <div class="inspector-header">
+      <h2>Spec Contract Inspector</h2>
+      <span class="badge-rev" id="insp-badge">THREAD / CHANNEL</span>
+    </div>
+    <div class="inspector-body" id="inspector-body"></div>
+  </aside>
+</div>
+
+<script>
+// ============================================================================
+// 1. ARCHITECTURE MODEL (7 THREADS, OWNED STATE, LOCK-FREE CARRIERS)
+// ============================================================================
+const SWIMLANES = [
+  { id: "lane-gui",     y: 12,  h: 64, label: "1. Host GUI Thread",      subDesktop: "Qt GUI / Transport / QWindow",        subBrowser: "Main Thread / UI Controls",          color: "#5b9cff" },
+  { id: "lane-worker",  y: 84,  h: 76, label: "2. Runner Worker",        subDesktop: "Loop + QuickJS-ng + Batch Jobs",      subBrowser: "Main / Worker TS Compiler + Runner", color: "#f2b84b" },
+  { id: "lane-prepare", y: 168, h: 84, label: "3. Prepare Thread",       subDesktop: "Pipelines + StateStore + wgpu Poll",  subBrowser: "Async Pipeline Builder + Decode",    color: "#b18cff" },
+  { id: "lane-render",  y: 260, h: 92, label: "4. Render Thread (60Hz)", subDesktop: "wgpu-native + FramePool + PLL Clock", subBrowser: "WebGPU Executor + rAF Loop (Q8)",    color: "#4fd1c5" },
+  { id: "lane-audio",   y: 360, h: 84, label: "5. Audio Render (128f)",  subDesktop: "C++ DSP Executor + Realtime Policy",  subBrowser: "AudioWorklet Single WASM Module",    color: "#4ade80" },
+  { id: "lane-device",  y: 452, h: 52, label: "6. Device Callback",      subDesktop: "miniaudio Ring Read + Clock Pair",    subBrowser: "WebAudio Output Quantum Copy",       color: "#86efac" },
+  { id: "lane-analysis",y: 510, h: 46, label: "7. Analysis Thread",      subDesktop: "Native C++ FFT & Onset Detector",     subBrowser: "WASM Analysis Worker",               color: "#f07ab8" }
+];
+
+const ARCH_NODES = [
+  // GUI Lane
+  {
+    id: "node-livesession", lane: 0, x: 185, y: 20, w: 230, h: 48,
+    title: "LiveSession Handle",
+    subDesktop: "std::unique_ptr<LiveSession>",
+    subBrowser: "LiveSession Controller",
+    color: "#5b9cff",
+    section: "§7, §14.1",
+    refs: ["D1", "D14", "F50"],
+    owns: [
+      "Unique owner of prepare, render, audio render, and analysis threads",
+      "Shares std::shared_ptr<SessionToken> with in-flight batch runs on GraphRunner (F50)",
+      "GUI-thread calls: update(), setParam(), play(), pause(), reset(), resizeSurface(), detachSurface()",
+      "~LiveSession() closes SessionToken, cancels batch runs, stops device, joins Audio -> Render -> Prepare, then destroys plans & StateStore"
+    ],
+    never: ["Never runs GPU commands or audio DSP on the GUI thread", "GraphRunner must outlive LiveSession (F50)"]
+  },
+  {
+    id: "node-paramtable", lane: 0, x: 475, y: 20, w: 255, h: 48,
+    title: "ParamTable (SeqLock Array)",
+    subDesktop: "Single-writer SeqLock per slot",
+    subBrowser: "SharedArrayBuffer SeqLock / postMessage",
+    color: "#5b9cff",
+    section: "§11.1, §11.4",
+    refs: ["D7g", "F36", "F46", "R10"],
+    owns: [
+      "Fixed table of continuous values (float, vec2..4, int, bool)",
+      "Writers (Host GUI & Runner Worker) serialized by a non-realtime mutex",
+      "Realtime readers call tryLoad(64 attempts); never blocks or overflows",
+      "Policies: Immediate (next frame), Audio (next quantum), Synced (quantum + audibleFrame match)"
+    ],
+    never: ["Never allocates or queues unbounded history"]
+  },
+  {
+    id: "node-stats", lane: 0, x: 785, y: 20, w: 245, h: 48,
+    title: "LiveStats & Surface Window",
+    subDesktop: "SeqLock stats + QWindow container",
+    subBrowser: "Canvas + Telemetry Readout",
+    color: "#5b9cff",
+    section: "§9.1, §13, §14.2",
+    refs: ["D14", "F10", "F41", "R1"],
+    owns: [
+      "stats() is callable from any thread over seqlocks",
+      "Reports worst quantum render time, min ring fill, underruns, frame misses, late/stale analysis reads",
+      "Host calls detachSurface() before destroying the native window"
+    ],
+    never: ["Never uses QQuickWidget offscreen composition on the GUI thread (F10)"]
+  },
+
+  // Worker Lane
+  {
+    id: "node-compiler", lane: 1, x: 185, y: 92, w: 265, h: 60,
+    title: "Plan Compiler (compileLivePlan)",
+    subDesktop: "QuickJS-ng Task on Loop (between steps)",
+    subBrowser: "TypeScript Plan Compiler",
+    color: "#f2b84b",
+    section: "§5.5, §6.1, §6.2",
+    refs: ["D3", "D4", "F45", "F47", "F48"],
+    owns: [
+      "Partitions graph into Batch, Control, Render, and Audio regions",
+      "Scheduled directly on Loop between actor steps so it never waits behind run_queue_ (F45)",
+      "Assigns retention classes (Volatile vs Retained), stateful control domains (F47), and audio sink subgraphHash (F48)"
+    ],
+    never: ["Never runs per-frame or per-quantum (N1, N5)"]
+  },
+  {
+    id: "node-batch", lane: 1, x: 505, y: 92, w: 280, h: 60,
+    title: "Finite Kernel & Slot-Write Node",
+    subDesktop: "Actor DAG + Detach GPU Texture (F45)",
+    subBrowser: "Workflow Runner + Slot Publisher",
+    color: "#f2b84b",
+    section: "§5.2, §5.5, §9.5",
+    refs: ["D1", "D6", "F45"],
+    owns: [
+      "Runs models, Python, network, and Code nodes with retries and lineage",
+      "Synthetic slot-write node publishes each live-boundary output immediately when its upstream finishes",
+      "Detaches in-process image/x-gpu-texture from ContextGpu before releaseRunResources runs (F45)"
+    ],
+    never: ["Never touches an active realtime plan after handover"]
+  },
+
+  // Prepare Lane
+  {
+    id: "node-prepare", lane: 2, x: 185, y: 176, w: 315, h: 68,
+    title: "Prepare Builder & Media Decoder",
+    subDesktop: "Async Pipelines + libav Decode/Resample",
+    subBrowser: "createRenderPipelineAsync + WebCodecs",
+    color: "#b18cff",
+    section: "§6.4, §9.2, §9.5, §9.6",
+    refs: ["D9", "F44", "F45"],
+    owns: [
+      "Compiles WGSL via wgpuShaderModuleGetCompilationInfo & wgpuDeviceCreateRenderPipelineAsync (no device-wide error scope race, F44)",
+      "Decodes encoded image/audio refs from batch nodes; resamples audio to session.sampleRate (F45)",
+      "Alone polls wgpuDevicePoll so callbacks never fire on the render thread",
+      "Rejects broken shaders or over-budget plans while old plan keeps running"
+    ],
+    never: ["Never runs inside a frame or audio quantum"]
+  },
+  {
+    id: "node-statestore", lane: 2, x: 545, y: 176, w: 245, h: 68,
+    title: "StateStore & Retire Reclaimer",
+    subDesktop: "Keyed Node States + SPSC Drain",
+    subBrowser: "WASM Linear Memory Arena + Retire",
+    color: "#b18cff",
+    section: "§7, §11.3, §11.4",
+    refs: ["D9", "F31", "F47", "F49"],
+    owns: [
+      "Links existing state blocks when stateKey matches across a plan swap",
+      "Drains Render & Audio SPSC retire queues (cap maxSlots+2) before publishing",
+      "Reclaims unconsumed pending.exchange(newPtr) pointers directly so inactive domains never stall (F49)"
+    ],
+    never: ["Never frees a state block while any active plan still references it"]
+  },
+
+  // Render Lane
+  {
+    id: "node-renderexec", lane: 3, x: 185, y: 268, w: 325, h: 76,
+    title: "Render Executor & FramePool",
+    subDesktop: "Active RenderPlan + Retained/Volatile Passes",
+    subBrowser: "WebGPU Render Executor (TS or WASM, Q8)",
+    color: "#4fd1c5",
+    section: "§9.2–§9.7, §11.2",
+    refs: ["D5", "D14", "F37", "F46", "F51"],
+    owns: [
+      "Checks for work before surface acquire; paused clean session uses 0 GPU time (§9.4)",
+      "Two-revision local staging for Synced plans so rapid edits within 36 ms ring lead are not lost (F46)",
+      "Evaluates Render-domain control ops (including render-only dampers, F47)",
+      "Encodes dirty passes only; 512 MiB texture budget with LRU eviction of Retained outputs"
+    ],
+    never: ["Never compiles shaders, allocates in steady state, or waits on worker"]
+  },
+  {
+    id: "node-gpugate", lane: 3, x: 545, y: 268, w: 245, h: 76,
+    title: "GPU Submit Gate (WGPUQueue)",
+    subDesktop: "Atomic Write+Submit + Max 1 Batch In Flight",
+    subBrowser: "Shared GPUQueue Pacing Gate",
+    color: "#4fd1c5",
+    section: "§9.2",
+    refs: ["F38", "F44", "R2"],
+    owns: [
+      "Serializes wgpuQueueWriteBuffer / WriteTexture with command buffer submit in one atomic gate step (F44)",
+      "Submits Render frame first; allows at most 1 batch submission in flight via wgpuQueueOnSubmittedWorkDone",
+      "Batch texture enters slot only after its submission finishes"
+    ],
+    never: ["Never allows batch uploads to stage onto WGPUQueue ahead of a frame"]
+  },
+  {
+    id: "node-vclock", lane: 3, x: 815, y: 268, w: 215, h: 76,
+    title: "Visual Clock PLL",
+    subDesktop: "Measured Refresh + Drift Filter",
+    subBrowser: "rAF Timestamp PLL against AudioTime",
+    color: "#4fd1c5",
+    section: "§8 (D7c–D7e), §9.7",
+    refs: ["D7c", "F22", "F51"],
+    owns: [
+      "Advances by k refresh periods between consecutive active frames while playing",
+      "Re-anchors on play(), reset(), device change, or wake after idle skip (!hadWork, F51)",
+      "Smoothly removes drift against predicted audible position; steps if error > 0.5 period"
+    ],
+    never: ["Never uses raw jittery callback interpolation directly (F22)"]
+  },
+
+  // Audio Render Lane
+  {
+    id: "node-audioexec", lane: 4, x: 185, y: 368, w: 345, h: 68,
+    title: "Audio Executor & C DSP Kernels (128f)",
+    subDesktop: "nt_dsp_kernel + 256f Slope Offset Ramp",
+    subBrowser: "AudioWorklet Single Linear-Memory WASM",
+    color: "#4ade80",
+    section: "§10.1–§10.5, §11.3",
+    refs: ["D8", "F31", "F42", "F48", "N6"],
+    owns: [
+      "Runs 128-frame quanta (2.9 ms @ 44.1 kHz); zero allocations, zero locks (F13)",
+      "Steps Audio-domain stateful control ops once per quantum (D15, F47)",
+      "Applies 256-frame slope-extrapolated ramp (pred = 2*old[N-1] - old[N-2]) when sink subgraphHash changes (F48)",
+      "Scans sinks for NaN/Inf and substitutes silence (§17)"
+    ],
+    never: ["Never locks, allocates, logs, or runs JS/Python on the audio thread"]
+  },
+  {
+    id: "node-appliedseqlock", lane: 4, x: 565, y: 368, w: 255, h: 68,
+    title: "AudioAppliedState (SeqLock)",
+    subDesktop: "(planRevision, clockGen, streamFrame)",
+    subBrowser: "Shared SeqLock State Table",
+    color: "#4ade80",
+    section: "§8 (D7g), §11.1, §11.2",
+    refs: ["D7g", "F32", "F46"],
+    owns: [
+      "Published at each quantum start with applied planRevision, clockGeneration, streamFrame, and per-slot param revisions",
+      "Read by Render Thread via tryLoad each frame to align Synced params & dual-plan swaps without dropped-notice stalls (F46)"
+    ],
+    never: ["Never delays audio to wait for video (D7g)"]
+  },
+  {
+    id: "node-pcmring", lane: 4, x: 840, y: 368, w: 190, h: 68,
+    title: "Output & Tap Rings (SPSC)",
+    subDesktop: "PcmRing (≥8 quanta lead ≈ 23 ms)",
+    subBrowser: "Worklet Ring / Capture Ring",
+    color: "#4ade80",
+    section: "§10.2, §10.4",
+    refs: ["F13", "F36"],
+    owns: [
+      "Separate single-producer single-consumer ring per sink (device, analysis tap, capture)",
+      "Buffered driver absorbs single late quanta; minRingFill tracks margin to underrun"
+    ],
+    never: ["Never shares one ring across multiple consumers (F36)"]
+  },
+
+  // Device Callback Lane
+  {
+    id: "node-devcb", lane: 5, x: 565, y: 458, w: 465, h: 40,
+    title: "Audio Device Callback & AudioClockFeed",
+    subDesktop: "miniaudio Callback + SeqLock (framesWritten, hostTimeNs, clockGen)",
+    subBrowser: "AudioContext Output + getOutputTimestamp()",
+    color: "#86efac",
+    section: "§8 (D7b), §10.2, §17",
+    refs: ["F12", "F13", "F46"],
+    owns: [
+      "Copies rendered PCM from Output PcmRing to hardware buffer",
+      "Publishes clock anchor pair and increments clockGeneration on device re-anchor"
+    ],
+    never: ["Never does anything except memory copy and SeqLock clock write"]
+  },
+
+  // Analysis Lane
+  {
+    id: "node-analysis", lane: 6, x: 185, y: 514, w: 635, h: 38,
+    title: "Analysis Thread & SignalHistory (Timestamped Ring)",
+    subDesktop: "1024-frame FFT / Onsets -> SignalHistory (streamTime, value)",
+    subBrowser: "WASM FFT -> Timestamped History",
+    color: "#f07ab8",
+    section: "§8 (D7h), §10.4",
+    refs: ["D7h", "F20", "F39", "F47"],
+    owns: [
+      "Reads Tap Ring, computes spectrum/onsets stamped with streamTime of last window sample",
+      "Also carries shared stateful control values from Audio Thread to Render Thread (F47)",
+      "Render thread reads newest entry <= audibleFrame (never extrapolates; >100 ms counted stale)"
+    ],
+    never: ["Never runs on the audio callback thread"]
+  }
+];
+
+const ARCH_EDGES = [
+  { id: "edge-gui-worker",   from: [300, 68],  to: [300, 92],  color: "#5b9cff", marker: "arrow-blue",   label: "update(graphJson)", section: "§5.5, §14.1", desc: "Schedules compileLivePlan on Loop between actor steps (F45)." },
+  { id: "edge-worker-prep",  from: [310, 152], to: [310, 176], color: "#f2b84b", marker: "arrow-amber",  label: "PlanIR + Slot Outputs", section: "§6.2, §5.5", desc: "Delivers compiled PlanIR, detached GPU textures, or encoded media refs to Prepare (F45)." },
+  { id: "edge-prep-render",  from: [340, 244], to: [340, 268], color: "#b18cff", marker: "arrow-purple", label: "pending.exchange (Plan/Slots)", section: "§11.2, §11.4", desc: "Single-slot atomic pointer exchange for RenderPlan and Slot values; unconsumed pointers reclaimed by Prepare (F49)." },
+  { id: "edge-prep-audio",   from: [240, 244], to: [240, 368], color: "#b18cff", marker: "arrow-purple", label: "pending.exchange", section: "§11.2, §11.4", desc: "Single-slot atomic pointer exchange for AudioPlan and decoded PCM slots." },
+  { id: "edge-retire-r",     from: [630, 268], to: [630, 244], color: "#4fd1c5", marker: "arrow-cyan",   label: "Render Retire SPSC", section: "§11.4", desc: "Bounded SPSC retire queue (cap maxSlots+2) returning replaced active RenderPlan and slot refs to Prepare (F49)." },
+  { id: "edge-retire-a",     from: [730, 368], to: [730, 244], color: "#4ade80", marker: "arrow-green",  label: "Audio Retire SPSC", section: "§11.4", desc: "Bounded SPSC retire queue (cap maxSlots+2) returning replaced active AudioPlan and slot refs to Prepare (F49)." },
+  { id: "edge-param-render", from: [550, 68],  to: [430, 268], color: "#5b9cff", marker: "arrow-blue",   label: "tryLoad Params", section: "§11.1", desc: "Render thread snapshots ParamTable via bounded SeqLock tryLoad(64)." },
+  { id: "edge-param-audio",  from: [600, 68],  to: [460, 368], color: "#5b9cff", marker: "arrow-blue",   label: "tryLoad Params", section: "§10.3, §11.1", desc: "Audio thread snapshots ParamTable at quantum start and ramps [param_begin, param_end]." },
+  { id: "edge-batch-gate",   from: [665, 152], to: [665, 268], color: "#f2b84b", marker: "arrow-amber",  label: "Batch GPU Submit", section: "§9.2", desc: "Batch GPU uploads and command buffers pass through the session Submit Gate (max 1 in flight, F44)." },
+  { id: "edge-applied-sync", from: [680, 368], to: [480, 344], color: "#4ade80", marker: "arrow-green",  label: "AudioApplied SeqLock", section: "§8 D7g, §11.1", desc: "Render reads (planRevision, clockGen, streamFrame) via tryLoad to trigger Synced params & dual-plan swaps (F46)." },
+  { id: "edge-audio-ring",   from: [530, 402], to: [840, 402], color: "#4ade80", marker: "arrow-green",  label: "Write 128f PCM", section: "§10.2, §10.4", desc: "Audio render thread writes 128-frame quanta into Output PcmRing and Tap Ring." },
+  { id: "edge-ring-dev",     from: [920, 436], to: [920, 458], color: "#86efac", marker: "arrow-green",  label: "Callback Pull", section: "§10.2", desc: "Hardware callback pulls frames from Output PcmRing." },
+  { id: "edge-dev-clock",    from: [890, 458], to: [890, 344], color: "#86efac", marker: "arrow-cyan",   label: "AudioClockFeed", section: "§8 D7b, D7c", desc: "Visual Clock PLL predicts audible frame at presentation time from AudioClockFeed." },
+  { id: "edge-tap-analysis", from: [860, 436], to: [520, 514], color: "#f07ab8", marker: "arrow-purple", label: "Tap Ring -> FFT", section: "§10.4", desc: "Analysis thread reads Tap Ring and writes timestamped spectra to SignalHistory." },
+  { id: "edge-hist-render",  from: [350, 514], to: [350, 344], color: "#f07ab8", marker: "arrow-purple", label: "Read <= audibleFrame", section: "§8 D7h, §5.4", desc: "Render thread reads newest SignalHistory entry at or before audibleFrame (never extrapolates)." }
+];
+
+// ============================================================================
+// 2. WALKTHROUGH SCENARIOS (S1 - S7)
+// ============================================================================
+const SCENARIOS = {
+  S1: {
+    steps: [
+      {
+        title: "1. Creator starts a LiveSession",
+        desc: "Host GUI opens LiveSession on GraphRunner and calls update(graphJson). The call schedules compileLivePlan on the runner worker's Loop between actor steps so it never queues behind a batch job (F45).",
+        refs: ["D1", "D3", "F45", "F50"],
+        nodes: ["node-livesession", "node-compiler"],
+        edges: ["edge-gui-worker"],
+        telem: { rev: "1 (compiling)", gen: "1", aframe: "0", vframe: "0", ring: "0 quanta", gate: "Idle", retire: "R:0 / A:0" }
+      },
+      {
+        title: "2. Graph Partitioning into 4 Regions",
+        desc: "The TypeScript compiler in QuickJS partitions the DAG into Batch (Flux image model), Control (uniform & param expressions, dampers), Render (Kaleidoscope -> Feedback -> Blur), and Audio (Oscillator -> Biquad -> Output + Tap).",
+        refs: ["D4", "D15", "F47", "F48"],
+        nodes: ["node-compiler", "node-batch"],
+        edges: ["edge-worker-prep"],
+        telem: { rev: "1 (IR ready)", gen: "1", aframe: "0", vframe: "0", ring: "0 quanta", gate: "Idle", retire: "R:0 / A:0" }
+      },
+      {
+        title: "3. Async Pipeline Build & State Allocation on Prepare Thread",
+        desc: "Prepare builds RenderPlan and AudioPlan off-thread: checks WGSL via wgpuShaderModuleGetCompilationInfo, compiles pipelines via wgpuDeviceCreateRenderPipelineAsync (no error scope stack race, F44), and allocates cleared state blocks in StateStore.",
+        refs: ["D9", "F44"],
+        nodes: ["node-prepare", "node-statestore"],
+        edges: ["edge-prep-render", "edge-prep-audio"],
+        telem: { rev: "1 (prepared)", gen: "1", aframe: "0", vframe: "0", ring: "0 quanta", gate: "Polling async", retire: "R:0 / A:0" }
+      },
+      {
+        title: "4. Handoff & Steady-State Execution",
+        desc: "Prepare publishes both plans via pending.exchange(newPtr). Audio Render pre-fills 8 quanta (23.2 ms) into PcmRing; Device Callback starts AudioClockFeed; Render Thread locks its Visual Clock PLL to predicted audibleFrame.",
+        refs: ["D7c", "D8", "F12"],
+        nodes: ["node-renderexec", "node-vclock", "node-audioexec", "node-pcmring", "node-devcb"],
+        edges: ["edge-audio-ring", "edge-ring-dev", "edge-dev-clock"],
+        telem: { rev: "1 (active)", gen: "1", aframe: "1024 (23.2 ms)", vframe: "0 (0.0 ms)", ring: "8 quanta (23.2 ms)", gate: "Frame Priority", retire: "R:0 / A:0" }
+      }
+    ]
+  },
+  S2: {
+    steps: [
+      {
+        title: "1. Host GUI calls setParam()",
+        desc: "Creator drags a slider. setParam() writes the new float value and revision into the slot's single-writer SeqLock in ParamTable. Zero JSON re-parse of the graph, zero memory allocation.",
+        refs: ["D7g", "F36"],
+        nodes: ["node-livesession", "node-paramtable"],
+        edges: ["edge-param-render", "edge-param-audio"],
+        telem: { rev: "1", gen: "1", aframe: "2048 (46.4 ms)", vframe: "512 (11.6 ms)", ring: "8 quanta (23.2 ms)", gate: "Frame Priority", retire: "R:0 / A:0" }
+      },
+      {
+        title: "2. Immediate Policy (Render-only param)",
+        desc: "If the param only feeds the Render Plan, Render Thread reads it via tryLoad(64) on the very next frame, evaluates its control expression, marks affected passes dirty, and presents within ~2 frames.",
+        refs: ["D7g", "R10"],
+        nodes: ["node-paramtable", "node-renderexec"],
+        edges: ["edge-param-render"],
+        telem: { rev: "1", gen: "1", aframe: "2176 (49.3 ms)", vframe: "640 (14.5 ms)", ring: "8 quanta", gate: "Frame Priority", retire: "R:0 / A:0" }
+      },
+      {
+        title: "3. Synced Policy — Audio Thread Applies at Quantum Q (streamFrame 2304)",
+        desc: "For a Synced param, Audio Render snapshots ParamTable at quantum start (streamFrame = 2304), ramps the kernel from param_begin to param_end, and writes (slotRev, streamFrame=2304, clockGen=1) into AudioAppliedState SeqLock (F46).",
+        refs: ["D7g", "F32", "F46"],
+        nodes: ["node-paramtable", "node-audioexec", "node-appliedseqlock"],
+        edges: ["edge-param-audio", "edge-applied-sync"],
+        telem: { rev: "1", gen: "1", aframe: "2304 (52.2 ms)", vframe: "768 (17.4 ms)", ring: "8 quanta", gate: "Frame Priority", retire: "R:0 / A:0" }
+      },
+      {
+        title: "4. Synced Policy — Render Applies when audibleFrame >= 2304",
+        desc: "Because of the ~36 ms ring + device lead, frame 768 is currently audible. Render Thread reads AudioAppliedState via tryLoad and holds the old value until the frame whose predicted audibleFrame reaches 2304 (~36 ms later), matching sound and picture.",
+        refs: ["D7g", "F46", "R10"],
+        nodes: ["node-appliedseqlock", "node-renderexec", "node-vclock"],
+        edges: ["edge-applied-sync", "edge-dev-clock"],
+        telem: { rev: "1", gen: "1", aframe: "3840 (87.1 ms)", vframe: "2304 (52.2 ms — SYNCED!)", ring: "8 quanta", gate: "Frame Priority", retire: "R:0 / A:0" }
+      }
+    ]
+  },
+  S3: {
+    steps: [
+      {
+        title: "1. Live Graph Edit & State Key Matching",
+        desc: "Creator inserts a new node or edits connections. Worker compiles revision 2 IR. Prepare builds revision 2 plans and links existing oscillator/filter/damper state blocks in StateStore whose stateKey matches (F31, F47).",
+        refs: ["D9", "F31", "F47"],
+        nodes: ["node-compiler", "node-prepare", "node-statestore"],
+        edges: ["edge-gui-worker", "edge-worker-prep"],
+        telem: { rev: "2 (preparing)", gen: "1", aframe: "4096", vframe: "2560", ring: "8 quanta", gate: "Frame Priority", retire: "R:0 / A:0" }
+      },
+      {
+        title: "2. Handoff via pending.exchange & Render Local Staging (F46)",
+        desc: "Prepare writes revision 2 into both pending slots via pending.exchange(newPtr). Render moves its pending plan into its 2-slot local staging buffer so even if revision 3 arrives within 36 ms, revision 2 is not lost before its streamFrame is audible (F46).",
+        refs: ["D7g", "F46", "F49"],
+        nodes: ["node-statestore", "node-renderexec", "node-audioexec"],
+        edges: ["edge-prep-render", "edge-prep-audio"],
+        telem: { rev: "2 (staged)", gen: "1", aframe: "4224", vframe: "2688", ring: "8 quanta", gate: "Frame Priority", retire: "R:0 / A:0" }
+      },
+      {
+        title: "3. Audio Swap & 256-Frame Slope-Extrapolated Offset Ramp (F48)",
+        desc: "Audio Thread swaps to rev 2 at streamFrame 4352 and records (rev=2, gen=1, frame=4352) in AudioAppliedState. If the sink's subgraphHash changed, it predicts pred = 2*old[N-1] - old[N-2] and decays diff = pred - new[0] over 256 frames (F48).",
+        refs: ["F48", "R11"],
+        nodes: ["node-audioexec", "node-appliedseqlock", "node-pcmring"],
+        edges: ["edge-applied-sync", "edge-audio-ring"],
+        telem: { rev: "Audio:2 / Render:1->2", gen: "1", aframe: "4352 (Swap+Ramp)", vframe: "2816", ring: "8 quanta", gate: "Frame Priority", retire: "R:0 / A:1" }
+      },
+      {
+        title: "4. Render Swap at Audible Frame & Retire Reclamation (F49)",
+        desc: "When audibleFrame reaches 4352, Render swaps to rev 2 and pushes rev 1 onto Render Retire SPSC. Prepare drains both retire queues and frees rev 1 plans and any unreferenced StateStore blocks (F49).",
+        refs: ["F46", "F49"],
+        nodes: ["node-renderexec", "node-statestore"],
+        edges: ["edge-retire-r", "edge-retire-a"],
+        telem: { rev: "2 (both active)", gen: "1", aframe: "5888", vframe: "4352 (Swap!)", ring: "8 quanta", gate: "Frame Priority", retire: "Drained (0)" }
+      }
+    ]
+  },
+  S4: {
+    steps: [
+      {
+        title: "1. Batch Model Runs While Live Session Continues at 60 Hz",
+        desc: "A slow image generator (Flux) or audio generator runs on the Runner Worker. The Render and Audio threads continue running at 60 Hz and 128-frame quanta using the current latched slot values.",
+        refs: ["D1", "D6"],
+        nodes: ["node-batch", "node-renderexec", "node-audioexec"],
+        edges: [],
+        telem: { rev: "2", gen: "1", aframe: "8192", vframe: "6656", ring: "8 quanta", gate: "Frame Priority", retire: "R:0 / A:0" }
+      },
+      {
+        title: "2. Detach GPU Texture or Decode Media on Prepare (F45)",
+        desc: "When the upstream batch node finishes, the synthetic slot-write node fires immediately. In-process GPU textures are detached from ContextGpu before releaseRunResources runs; encoded image/audio refs are decoded (and resampled to session.sampleRate) on Prepare (F45).",
+        refs: ["D6", "F45"],
+        nodes: ["node-batch", "node-prepare", "node-gpugate"],
+        edges: ["edge-worker-prep", "edge-batch-gate"],
+        telem: { rev: "2", gen: "1", aframe: "9216", vframe: "7680", ring: "8 quanta", gate: "1 Batch Submitted", retire: "R:0 / A:0" }
+      },
+      {
+        title: "3. Wait for wgpuQueueOnSubmittedWorkDone Before Slot Publish",
+        desc: "Prepare waits for the wgpuQueueOnSubmittedWorkDone callback on its own poll loop (§9.2 rule 3). The new texture or planar PCM buffer is published via pending.exchange only after GPU/decode work is complete.",
+        refs: ["F38", "F44", "F49"],
+        nodes: ["node-prepare", "node-statestore", "node-renderexec"],
+        edges: ["edge-prep-render", "edge-retire-r"],
+        telem: { rev: "2 (Slot 0 updated)", gen: "1", aframe: "9600", vframe: "8064", ring: "8 quanta", gate: "Frame Priority (0 ahead)", retire: "R:1->0 / A:0" }
+      }
+    ]
+  },
+  S5: {
+    steps: [
+      {
+        title: "1. Atomic Queue-Write + Command Submit Gate (F44)",
+        desc: "wgpuQueueWriteBuffer and wgpuQueueWriteTexture stage onto the next submission on the shared WGPUQueue. Both Render and Batch pass their queue writes + command buffer through the Submit Gate atomically so batch uploads never leak into a frame submit (F44).",
+        refs: ["F38", "F44"],
+        nodes: ["node-renderexec", "node-gpugate", "node-batch"],
+        edges: ["edge-batch-gate"],
+        telem: { rev: "2", gen: "1", aframe: "10240", vframe: "8704", ring: "8 quanta", gate: "Render Submit First", retire: "R:0 / A:0" }
+      },
+      {
+        title: "2. Pacing Batch Submissions Behind Present",
+        desc: "Render submits its frame and presents first. After present, the gate submits at most ONE batch command buffer and holds the next batch buffer until wgpuQueueOnSubmittedWorkDone fires (§9.2 rule 2).",
+        refs: ["F38", "R2"],
+        nodes: ["node-gpugate", "node-prepare"],
+        edges: ["edge-batch-gate"],
+        telem: { rev: "2", gen: "1", aframe: "10368", vframe: "8832", ring: "8 quanta", gate: "1 Batch In Flight (gated)", retire: "R:0 / A:0" }
+      },
+      {
+        title: "3. Error-Scope-Free Shader & Pipeline Checks (F44)",
+        desc: "Because wgpuDevicePushErrorScope / PopErrorScope is a device-wide stack on WGPUDevice, Prepare never pushes device error scopes concurrently; it inspects wgpuShaderModuleGetCompilationInfo and async pipeline creation status callbacks (F44).",
+        refs: ["F44"],
+        nodes: ["node-prepare"],
+        edges: [],
+        telem: { rev: "2", gen: "1", aframe: "10496", vframe: "8960", ring: "8 quanta", gate: "Frame Priority", retire: "R:0 / A:0" }
+      }
+    ]
+  },
+  S6: {
+    steps: [
+      {
+        title: "1. Session Paused — Zero GPU Time When Clean (§9.4)",
+        desc: "Creator clicks Pause. Before acquiring a swapchain texture, Render checks for work. With transport paused and no pending plan/slot/param/resize, Render acquires nothing and presents nothing; the window holds its last frame.",
+        refs: ["F37", "F51"],
+        nodes: ["node-livesession", "node-renderexec", "node-vclock"],
+        edges: [],
+        telem: { rev: "2 (PAUSED)", gen: "1", aframe: "10496 (held)", vframe: "8960 (idle skip)", ring: "Paused", gate: "0 GPU work", retire: "R:0 / A:0" }
+      },
+      {
+        title: "2. Parameter Tweak While Paused",
+        desc: "Creator adjusts a uniform parameter while paused. Work now exists for 1 frame! Dirty passes (and any upstream volatile pass whose frame-pool texture expired) re-run at the paused timestamp, present once, and return to 0 GPU load.",
+        refs: ["F37"],
+        nodes: ["node-paramtable", "node-renderexec"],
+        edges: ["edge-param-render"],
+        telem: { rev: "2 (PAUSED)", gen: "1", aframe: "10496 (held)", vframe: "8960 (1 frame rendered)", ring: "Paused", gate: "1 Frame Submit", retire: "R:0 / A:0" }
+      },
+      {
+        title: "3. Resume / Wake Re-Anchors Visual Clock (F51)",
+        desc: "When play() is called or Render wakes after an idle skip (!hadWork), Visual Clock re-anchors to the predicted audio position instead of advancing by k skipped refresh periods, avoiding false frame-miss counts or time jumps (D7c, F51).",
+        refs: ["D7c", "F51"],
+        nodes: ["node-vclock", "node-renderexec", "node-devcb"],
+        edges: ["edge-dev-clock"],
+        telem: { rev: "2 (PLAYING)", gen: "1", aframe: "10624", vframe: "9088 (Re-anchored!)", ring: "8 quanta", gate: "Frame Priority", retire: "R:0 / A:0" }
+      }
+    ]
+  },
+  S7: {
+    steps: [
+      {
+        title: "1. Invalid WGSL Shader or Over-Budget Plan Rejected (§6.4, §17)",
+        desc: "Creator writes a syntax error in a custom WGSL shader. Prepare catches the error via wgpuShaderModuleGetCompilationInfo, sends a node_update error to the Worker, and drops the candidate plan. The active plan never stops.",
+        refs: ["F44"],
+        nodes: ["node-prepare", "node-renderexec"],
+        edges: ["edge-worker-prep"],
+        telem: { rev: "2 (rev 3 rejected)", gen: "1", aframe: "12032", vframe: "10496", ring: "8 quanta", gate: "Frame Priority", retire: "R:0 / A:0" }
+      },
+      {
+        title: "2. Audio Device Re-Anchor increments clockGeneration (§17, F46)",
+        desc: "User switches headphones. miniaudio notifies the session: the ring flushes, AudioClockFeed increments clockGeneration to 2, Visual Clock re-anchors (D7c), and any pending Synced change waiting on generation 1 applies immediately (F46).",
+        refs: ["D7c", "D7g", "F46"],
+        nodes: ["node-devcb", "node-appliedseqlock", "node-vclock"],
+        edges: ["edge-dev-clock", "edge-applied-sync"],
+        telem: { rev: "2", gen: "2 (Re-anchored!)", aframe: "12160", vframe: "10624", ring: "8 quanta (flushed)", gate: "Frame Priority", retire: "R:0 / A:0" }
+      },
+      {
+        title: "3. Deterministic ~LiveSession() Teardown (§7, F50)",
+        desc: "Host destroys LiveSession: (1) marks SessionToken closed so late batch callbacks drop results, (2) cancels batch runs on GraphRunner, (3) stops audio device, (4) joins Audio Render -> Render -> Prepare in order, (5) destroys plans & StateStore.",
+        refs: ["F50"],
+        nodes: ["node-livesession", "node-batch", "node-prepare", "node-renderexec", "node-audioexec"],
+        edges: [],
+        telem: { rev: "Closed", gen: "2", aframe: "Stopped", vframe: "Stopped", ring: "Drained", gate: "Closed", retire: "All freed" }
+      }
+    ]
+  }
+};
+
+// ============================================================================
+// 3. VIEW 2 DATA: PARTITION & DIRTY/RETENTION SIMULATOR
+// ============================================================================
+const PARTITION_NODES = [
+  { id: "n_flux",   name: "1. Flux Image Generator",    region: "batch",   retention: "Slot 0 (512 MiB Session Acct)", role: "Batch node on Runner Worker; detaches GPU texture from ContextGpu before releaseRunResources (F45)." },
+  { id: "n_osc",    name: "2. Audio Oscillator + Biquad",region: "audio",  retention: "StateStore (Keyed)",            role: "128-frame C DSP kernels on Audio Thread; cutoff param is Synced across sound & picture." },
+  { id: "n_tap",    name: "3. Spectrum Tap (1024 FFT)", region: "audio",   retention: "SignalHistory Ring",            role: "Audio Thread writes Tap Ring -> Analysis Thread writes (streamTime, spectrum) to SignalHistory." },
+  { id: "n_damp_a", name: "4. Audio-Shared Damper",     region: "control", retention: "StateStore (domain: audio)",    role: "Reaches both plans -> stepped on Audio Thread once per quantum; written to SignalHistory (D15, F47)." },
+  { id: "n_damp_r", name: "5. Render-Only UI Damper",   region: "control", retention: "StateStore (domain: render)",   role: "Reaches Render Plan only -> stepped on Render Thread with zero 36 ms audio ring lead delay (F47)." },
+  { id: "n_grade",  name: "6. Color Grade (on Slot 0)", region: "render",  retention: "Retained (Owned Texture)",      role: "Depends only on Slot 0 texture & static params -> Retained class! Skips GPU execution when clean (§9.4)." },
+  { id: "n_kaleid", name: "7. Kaleidoscope (Audio-Driven)", region: "render", retention: "Volatile (FramePool)",       role: "Reads SignalHistory spectrum -> Volatile class! Runs every frame while playing; uses FramePool." },
+  { id: "n_feed",   name: "8. Feedback Ping-Pong",      region: "render",  retention: "Feedback Pair (2× rgba16f)",    role: "Swaps its two owned textures once per frame while playing; holds textures while paused (§9.4)." },
+  { id: "n_blur",   name: "9. Post Blur -> Present",    region: "render",  retention: "Volatile (Downstream)",         role: "Downstream of Volatile Kaleidoscope & Feedback; encodes into the single frame command buffer." }
+];
+
+
+
+// ============================================================================
+// 4. VIEW 4 DATA: DECISIONS, FINDINGS, RISKS & DELIVERY PHASES
+// ============================================================================
+const MATRIX_ITEMS = [
+  { code: "D1",  cat: "DECISION", section: "§4",    title: "Finite kernel stays unchanged", desc: "Models, Python, network & scripts stay on the actor kernel; realtime plans run alongside it." },
+  { code: "D4",  cat: "DECISION", section: "§4, §5",title: "Four-part graph partition", desc: "A graph with a live output splits into Batch, Control plan, Render plan, and Audio plan." },
+  { code: "D7c", cat: "DECISION", section: "§8",    title: "Visual Clock PLL with idle/pause re-anchor", desc: "Advances by k refresh periods while playing, filters drift against audio clock, and re-anchors after pause or idle skip (F51)." },
+  { code: "D7g", cat: "DECISION", section: "§8",    title: "Effective stream time via AudioAppliedState SeqLock", desc: "Audio applies changes at quantum start and writes (planRevision, clockGen, streamFrame) to a SeqLock; Render applies when audibleFrame reaches streamFrame (F46)." },
+  { code: "D7h", cat: "DECISION", section: "§8",    title: "SignalHistory timestamp & no-extrapolation rule", desc: "Render reads newest analysis entry <= audibleFrame; >100 ms is counted stale; target match is 1 refresh period (16.7 ms)." },
+  { code: "D9",  cat: "DECISION", section: "§4, §11.3", title: "Immutable plans & keyed StateStore", desc: "Edits compile a new immutable plan on Prepare; nodes with matching stateKey keep their state block across the swap." },
+  { code: "D14", cat: "DECISION", section: "§4, §9.2", title: "Surface-agnostic Render Executor", desc: "Draws into a given texture view via Surface presenter (Fifo/Mailbox), HostTarget (renderFrame), or offscreen Texture." },
+  { code: "D15", cat: "DECISION", section: "§4, §5.4", title: "Domain-placed stateful control operations", desc: "Stateful control ops advance in fixed 1-quantum steps of stream time: on Audio Thread if they reach Audio, or on Render Thread if render-only (F47)." },
+
+  { code: "F44", cat: "REV3", section: "§3.6, §9.2, §9.6", title: "WGPUQueue write serialization & error-scope removal", desc: "wgpuQueueWriteBuffer/WriteTexture are gated atomically with command buffer submit; Prepare uses wgpuShaderModuleGetCompilationInfo & async pipeline callbacks instead of device-wide error scopes." },
+  { code: "F45", cat: "REV3", section: "§3.6, §5.5, §9.5, §10.4", title: "Loop compiler scheduling, GPU texture detach & media decode", desc: "compileLivePlan runs on Loop between actor steps; batch GPU textures detach from ContextGpu before releaseRunResources; encoded media refs decode/resample on Prepare." },
+  { code: "F46", cat: "REV3", section: "§3.6, D7g, §11.1, §11.2", title: "AudioAppliedState SeqLock & 2-revision Render staging", desc: "Replaces droppable applied-notice queue with a SeqLock table and 2-slot render staging so dual-plan swaps within the 36 ms ring lead never overwrite or hang." },
+  { code: "F47", cat: "REV3", section: "§3.6, D15, §5.4, §6.2, §11.3", title: "Render-only stateful control placement & state key", desc: "Render-only dampers step on the Render Thread without 36 ms audio ring lag and carry a formal stateKey across swaps and domain transitions." },
+  { code: "F48", cat: "REV3", section: "§3.6, §6.2, §11.3", title: "Slope-extrapolated 256-frame offset ramp & subgraphHash", desc: "Predicts pred = 2*old[N-1] - old[N-2] to avoid ZOH slope steps on continuous waves, and skips the ramp when sink subgraphHash is unchanged." },
+  { code: "F49", cat: "REV3", section: "§3.6, §11.4", title: "Non-blocking SPSC retire queues & unconsumed pending reclamation", desc: "Prepare reclaims unconsumed pending.exchange pointers directly and drains per-domain SPSC queues (cap maxSlots+2) so inactive domains never stall reclamation." },
+  { code: "F50", cat: "REV3", section: "§3.6, §7, §14.1", title: "GraphRunner > LiveSession lifetime & SessionToken", desc: "Specifies thread affinity for all LiveSession methods, shared SessionToken for in-flight worker tasks, and deterministic join order in ~LiveSession()." },
+  { code: "F51", cat: "REV3", section: "§3.6, D7c, §9.4, §9.7", title: "Visual Clock re-anchor after pause or idle skip", desc: "Re-anchors the visual clock on play, reset, device change, or wake after an idle frame skip (!hadWork) so pauses are not counted as missed frames." },
+
+  { code: "F28", cat: "REV2", section: "§3.4, §12", title: "QuickJS vs Native/WASM audio DSP benchmark", desc: "Compiled C/WASM runs an 8-section stereo biquad 14–16× faster than QuickJS-ng; deadline threads run compiled code only (N1)." },
+  { code: "F31", cat: "REV2", section: "§11.3", title: "Single-plan swap with state handover", desc: "Two plans never advance the same stateful node simultaneously; state moves at the tick boundary and a sink offset ramp removes the step." },
+  { code: "F36", cat: "REV2", section: "§10.4, §11.4", title: "Bounded realtime exchanges & single-consumer rings", desc: "Every SeqLock read uses bounded tryLoad; every sink has its own SPSC ring." },
+  { code: "F37", cat: "REV2", section: "§9.4", title: "Unified dirty tracking & retention classes", desc: "A pass is skipped only when clean AND its texture from an earlier frame is still valid (Retained vs Volatile)." },
+  { code: "F38", cat: "REV2", section: "§9.2", title: "Shared GPU queue contention & Submit Gate", desc: "Limits batch backlog to at most 1 batch submission ahead of a frame via wgpuQueueOnSubmittedWorkDone." },
+  { code: "F40", cat: "REV2", section: "§15.1", title: "Three levels of cross-host determinism", desc: "Defines Level 1 (Repeatable), Level 2 (Tolerance <= -90 dBFS), and Level 3 (Bit-identical across C++ & WASM without FMA/fast-math)." },
+  { code: "F41", cat: "REV2", section: "§13", title: "Worst-case audio criteria over 10-minute runs", desc: "0 underruns and minRingFill >= 1 device period across 206,700 quanta under 5 load profiles." },
+  { code: "F42", cat: "REV2", section: "§6.2, §10.1", title: "Explicit color contract, channel layout & sample rate in IR", desc: "IR carries texture format/colorSpace/alphaMode, audio channel counts, session sampleRate, and quantum size." },
+
+  { code: "R1",  cat: "RISK", section: "§18", title: "wgpu surface in Qt container across platforms", desc: "P0 proves macOS first; Wayland occluded Fifo surfaces need an acquire timeout." },
+  { code: "R2",  cat: "RISK", section: "§18", title: "Heavy local model on the same GPU", desc: "Submit gate bounds queue backlog on the shared device but cannot preempt one long kernel; P0 compares a second WGPUDevice." },
+  { code: "R10", cat: "RISK", section: "§11.1, §18", title: "Synced param visual latency (~36 ms)", desc: "Aligning picture to sound delays the picture by the ring lead; nodes can opt into Immediate policy for fast UI feel." },
+  { code: "R11", cat: "RISK", section: "§11.3, §18", title: "Offset ramp on large timbre jumps", desc: "Removes step clicks; if P0 shows a low thump on radical topology swaps, O7 crossfade with dual state is the fallback." },
+  { code: "R13", cat: "RISK", section: "§15.1, §18", title: "Subnormal floats without flush-to-zero", desc: "Level 3 bit-identity forbids FTZ; kernels clear small decaying state in source and are tested with silence after signal." },
+
+  { code: "P0",  cat: "PHASE", section: "§16", title: "Phase P0: macOS Spike & Hardware Measurements", desc: "wgpu surface in Qt container, buffered audio driver, 1 Hz plan swap, shared GPU load test, camera+mic sync measurement, WASM AudioWorklet parity." },
+  { code: "P1",  cat: "PHASE", section: "§16", title: "Phase P1: native/realtime Headless Core & CLI", desc: "IR loader, control/render/audio executors, first kernels, offline driver, nodetool-graph-runner live CLI, wasm32 render prototype to decide Q8." },
+  { code: "P2",  cat: "PHASE", section: "§16", title: "Phase P2: audio-io Extraction, Buffered Driver & Submit Gate", desc: "Extracts native/audio-io from timeline, adds surface presenter, submit gate, PLL clock, and sync policies; passes 500 ms worker stall test." },
+  { code: "P3",  cat: "PHASE", section: "§16", title: "Phase P3: Compiler, Live Node Descriptors & Editor Transport", desc: "TypeScript plan compiler, catalog shader & audio node descriptors, slots, slot-write node, and Qt editor live view." },
+  { code: "P4",  cat: "PHASE", section: "§16", title: "Phase P4: Custom WGSL Node, Analysis Taps & Feedback", desc: "Custom fragment shader node, FFT/onset analysis thread + SignalHistory, and ping-pong feedback pairs." },
+  { code: "P5",  cat: "PHASE", section: "§16", title: "Phase P5: Browser Executors", desc: "WebAudio AudioWorklet WASM module and browser WebGPU render executor." },
+  { code: "P6",  cat: "PHASE", section: "§16", title: "Phase P6: Encoded Export, Capture Sinks & Session Log", desc: "Offline encoded export, live capture rings, taps into batch regions, and deterministic session-log replay." },
+  { code: "P7",  cat: "PHASE", section: "§16", title: "Phase P7: User & Pack WASM Kernels in Isolated Mode", desc: "Zero-import fixed-memory WASM kernels running on a worker thread with epoch/terminate guards (§10.6)." },
+
+  { code: "Q8",  cat: "QUESTION", section: "§14.5, §19", title: "Browser Render Executor: TS Executor vs C++ WASM", desc: "Decided at the end of P1 by 3 numbers: header diff lines, 64-pass frame CPU time, and WASM bundle size." },
+  { code: "Q9",  cat: "QUESTION", section: "§10.6, §19", title: "User WASM Kernels: Isolated Mode vs Metered Fuel", desc: "Isolated worker mode ships in P7; deadline-thread fuel metering requires benchmark proof first." }
+];
+
+// ============================================================================
+// 5. RENDERING & INTERACTION LOGIC
+// ============================================================================
+let currentHost = "desktop";
+let currentScenario = "S1";
+let currentStepIdx = 0;
+let selectedNodeId = "node-livesession";
+let autoPlayTimer = null;
+
+function renderArchDiagram() {
+  const lanesG = document.getElementById("swimlanes");
+  const edgesG = document.getElementById("arch-edges");
+  const nodesG = document.getElementById("arch-nodes");
+  lanesG.innerHTML = "";
+  edgesG.innerHTML = "";
+  nodesG.innerHTML = "";
+
+  const stepObj = SCENARIOS[currentScenario].steps[currentStepIdx];
+  const activeNodes = new Set(stepObj.nodes || []);
+  const activeEdges = new Set(stepObj.edges || []);
+
+  // Draw Swimlanes
+  SWIMLANES.forEach((lane) => {
+    const sub = currentHost === "desktop" ? lane.subDesktop : lane.subBrowser;
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.innerHTML = `
+      <rect x="10" y="${lane.y}" width="1040" height="${lane.h}" rx="6"
+            fill="#0f1218" stroke="#1f2633" stroke-width="1"/>
+      <rect x="10" y="${lane.y}" width="5" height="${lane.h}" rx="2" fill="${lane.color}"/>
+      <text x="24" y="${lane.y + 24}" fill="#e6edf3" font-size="12" font-weight="600">${lane.label}</text>
+      <text x="24" y="${lane.y + 42}" fill="#6e8098" font-size="10.5" font-family="JetBrains Mono, SFMono-Regular, monospace">${sub}</text>
+    `;
+    lanesG.appendChild(g);
+  });
+
+  // Draw Edges
+  ARCH_EDGES.forEach((edge) => {
+    const isAct = activeEdges.has(edge.id);
+    const isDim = (activeNodes.size > 0 || activeEdges.size > 0) && !isAct;
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("class", `svg-edge ${isAct ? "active-edge" : ""} ${isDim ? "dimmed" : ""}`);
+    const [x1, y1] = edge.from;
+    const [x2, y2] = edge.to;
+    const midY = (y1 + y2) / 2;
+    const d = x1 === x2
+      ? `M ${x1} ${y1} L ${x2} ${y2}`
+      : `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+
+    const labelX = (x1 + x2) / 2 + (x1 === x2 ? 6 : 0);
+    const labelY = (y1 + y2) / 2 - 3;
+
+    g.innerHTML = `
+      <path d="${d}" stroke="transparent" stroke-width="14" fill="none"/>
+      <path class="edge-line" d="${d}" stroke="${edge.color}" stroke-width="${isAct ? 2.6 : 1.5}"
+            fill="none" marker-end="url(#${edge.marker})"/>
+      <text x="${labelX}" y="${labelY}" fill="${isAct ? "#fff" : "#9fb0c7"}"
+            font-size="10" font-family="JetBrains Mono, SFMono-Regular, monospace"
+            text-anchor="${x1 === x2 ? "start" : "middle"}">${edge.label}</text>
+    `;
+    g.addEventListener("click", () => inspectEdge(edge));
+    edgesG.appendChild(g);
+  });
+
+  // Draw Nodes
+  ARCH_NODES.forEach((node) => {
+    const isAct = activeNodes.has(node.id);
+    const isDim = activeNodes.size > 0 && !isAct;
+    const isSel = selectedNodeId === node.id;
+    const sub = currentHost === "desktop" ? node.subDesktop : node.subBrowser;
+
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("class", `svg-node ${isSel ? "selected" : ""} ${isDim ? "dimmed" : ""}`);
+    g.innerHTML = `
+      <rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="6"
+            fill="${isAct ? "#1b2536" : "#141922"}"
+            stroke="${isAct ? node.color : "#2d3a52"}"
+            stroke-width="${isAct ? 2.2 : 1.2}"/>
+      <text x="${node.x + 10}" y="${node.y + 19}" fill="#e6edf3" font-size="12" font-weight="600">${node.title}</text>
+      <text x="${node.x + 10}" y="${node.y + 35}" fill="#8b9eb7" font-size="10.5" font-family="JetBrains Mono, SFMono-Regular, monospace">${sub}</text>
+      <text x="${node.x + node.w - 8}" y="${node.y + 18}" fill="${node.color}" font-size="10" font-family="JetBrains Mono, SFMono-Regular, monospace" text-anchor="end">${node.section}</text>
+    `;
+    g.addEventListener("click", () => {
+      selectedNodeId = node.id;
+      renderArchDiagram();
+      inspectNode(node);
+    });
+    nodesG.appendChild(g);
+  });
+}
+
+function updateScenarioStepUI() {
+  const scen = SCENARIOS[currentScenario];
+  const step = scen.steps[currentStepIdx];
+
+  document.getElementById("step-title").textContent = step.title;
+  document.getElementById("step-desc").textContent = step.desc;
+
+  // Step dots
+  const dotsEl = document.getElementById("step-dots");
+  dotsEl.innerHTML = "";
+  scen.steps.forEach((_, idx) => {
+    const b = document.createElement("button");
+    b.className = `step-dot ${idx === currentStepIdx ? "active" : ""}`;
+    b.textContent = idx + 1;
+    b.addEventListener("click", () => {
+      currentStepIdx = idx;
+      updateScenarioStepUI();
+    });
+    dotsEl.appendChild(b);
+  });
+
+  // Ref pills
+  const refsEl = document.getElementById("step-refs");
+  refsEl.innerHTML = "";
+  (step.refs || []).forEach((r) => {
+    const span = document.createElement("span");
+    span.className = "ref-pill";
+    span.textContent = r;
+    span.addEventListener("click", () => inspectRefCode(r));
+    refsEl.appendChild(span);
+  });
+
+  // Telemetry values
+  if (step.telem) {
+    document.getElementById("tel-rev").textContent = step.telem.rev;
+    document.getElementById("tel-gen").textContent = step.telem.gen;
+    document.getElementById("tel-aframe").textContent = step.telem.aframe;
+    document.getElementById("tel-vframe").textContent = step.telem.vframe;
+    document.getElementById("tel-ring").textContent = step.telem.ring;
+    document.getElementById("tel-gate").textContent = step.telem.gate;
+    document.getElementById("tel-retire").textContent = step.telem.retire;
+  }
+
+  if (step.nodes && step.nodes.length > 0) {
+    selectedNodeId = step.nodes[0];
+    const targetNode = ARCH_NODES.find((n) => n.id === selectedNodeId);
+    if (targetNode) {
+      inspectNode(targetNode);
+    }
+  }
+  renderArchDiagram();
+}
+
+function inspectNode(node) {
+  document.getElementById("insp-badge").textContent = node.section;
+  const body = document.getElementById("inspector-body");
+  const refsHtml = (node.refs || [])
+    .map((r) => `<span class="ref-pill" onclick="inspectRefCode('${r}')">${r}</span>`)
+    .join(" ");
+
+  body.innerHTML = `
+    <div class="insp-card">
+      <h3>${node.title}</h3>
+      <div class="insp-subtitle">Desktop: ${node.subDesktop}<br>Browser: ${node.subBrowser}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">${refsHtml}</div>
+      <div class="insp-section-title">Owns &amp; Guarantees</div>
+      <ul class="insp-list">
+        ${node.owns.map((item) => `<li>${item}</li>`).join("")}
+      </ul>
+      <div class="insp-section-title">Forbidden on this Boundary</div>
+      <ul class="insp-list">
+        ${node.never.map((item) => `<li>${item}</li>`).join("")}
+      </ul>
+    </div>
+  `;
+}
+
+function inspectEdge(edge) {
+  document.getElementById("insp-badge").textContent = edge.section;
+  const body = document.getElementById("inspector-body");
+  body.innerHTML = `
+    <div class="insp-card">
+      <h3>Channel: ${edge.label}</h3>
+      <div class="insp-subtitle">Spec Reference: ${edge.section}</div>
+      <p style="color:var(--text-1);font-size:12.5px;margin-top:6px;">${edge.desc}</p>
+    </div>
+  `;
+}
+
+function inspectRefCode(code) {
+  const item = MATRIX_ITEMS.find((m) => m.code === code);
+  if (!item) return;
+  document.getElementById("insp-badge").textContent = `${item.code} (${item.section})`;
+  const body = document.getElementById("inspector-body");
+  body.innerHTML = `
+    <div class="insp-card">
+      <h3>${item.code}: ${item.title}</h3>
+      <div class="insp-subtitle">Category: ${item.cat} • Spec: ${item.section}</div>
+      <p style="color:var(--text-1);font-size:12.5px;">${item.desc}</p>
+    </div>
+  `;
+}
+
+// ============================================================================
+// 6. VIEW 2 LOGIC: PARTITION & DIRTY/RETENTION SIMULATOR
+// ============================================================================
+// Frame-ticking dirty/retention simulator. Each tick is one 60 Hz frame.
+const SIM_EDGES = [
+  ["n_flux", "n_grade"], ["n_osc", "n_tap"], ["n_tap", "n_kaleid"], ["n_damp_a", "n_kaleid"],
+  ["n_grade", "n_feed"], ["n_kaleid", "n_feed"], ["n_feed", "n_blur"], ["n_damp_r", "n_blur"]
+];
+const SIM_COST_MS = { n_grade: 2.1, n_kaleid: 3.4, n_feed: 1.2, n_blur: 1.8 };
+const SIM_RENDER_ORDER = ["n_grade", "n_kaleid", "n_feed", "n_blur"];
+const FRAME_BUDGET_MS = 16.67;
+const SYNCED_DELAY_FRAMES = 2; // ring lead 23.2 ms + device 10 ms ≈ 2 frames
+const SIM_SPEEDS = [{ label: "0.25×", ms: 1000 }, { label: "1×", ms: 250 }, { label: "4×", ms: 62 }];
+
+let simState;
+let simTimer = null;
+let simSpeedIdx = 1;
+
+function simReset() {
+  simState = {
+    frame: 0,
+    playing: true,
+    wasIdle: false,
+    pending: [],           // { kind, applyAt, value }
+    blurRadius: 6.0,
+    cutoff: 900.0,
+    cutoffAudible: 900.0,
+    slotVersion: 1,
+    surface: "1920×1080",
+    gradeResident: true,
+    history: [],           // per-frame { ms, idle, passes }
+    log: [],
+    node: Object.fromEntries(PARTITION_NODES.map((n) => [n.id, { runs: 0, lastRun: -1, status: "idle", flash: false }])),
+    totals: { rendered: 0, skipped: 0, passes: 0 }
+  };
+  simLog("Session started. Plan revision 1 installed.", "info");
+}
+
+function simLog(text, kind = "info") {
+  simState.log.unshift({ f: simState.frame, text, kind });
+  simState.log.length = Math.min(simState.log.length, 40);
+}
+
+function simDownstream(seeds) {
+  const out = new Set(seeds);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const [a, b] of SIM_EDGES) {
+      if (out.has(a) && !out.has(b)) { out.add(b); grew = true; }
+    }
+  }
+  return out;
+}
+
+function simQueue(kind) {
+  const f = simState.frame + 1;
+  if (kind === "blur") {
+    simState.pending.push({ kind, applyAt: f, value: simState.blurRadius === 6.0 ? 14.0 : 6.0 });
+    simLog("Immediate param p_blur_radius queued for next frame.", "edit");
+  } else if (kind === "cutoff") {
+    const v = simState.cutoff === 900.0 ? 1800.0 : 900.0;
+    simState.cutoff = v; // audio thread applies at the next quantum
+    simState.pending.push({ kind, applyAt: f + SYNCED_DELAY_FRAMES, value: v });
+    simLog(`Synced cutoff → ${v} Hz. Audio applies at next quantum; picture follows at f${f + SYNCED_DELAY_FRAMES} when audible (F46).`, "edit");
+  } else if (kind === "slot") {
+    simState.pending.push({ kind, applyAt: f + 3 });
+    simLog(`Batch run started on Runner Worker. Slot 0 v${simState.slotVersion + 1} lands at f${f + 3} (F45).`, "batch");
+  } else if (kind === "resize") {
+    simState.pending.push({ kind, applyAt: f });
+    simLog("Surface resize requested. All owned textures reallocate next frame.", "edit");
+  } else if (kind === "evict") {
+    simState.gradeResident = false;
+    simLog("Budget pressure: LRU evicts Color Grade's retained texture.", "warn");
+  }
+  simRender();
+}
+
+function simTick() {
+  const s = simState;
+  s.frame += 1;
+  // A Synced change reaches the picture only when it becomes audible, so it waits while paused.
+  if (!s.playing) s.pending.forEach((p) => { if (p.kind === "cutoff") p.applyAt = Math.max(p.applyAt, s.frame + 1); });
+  const due = s.pending.filter((p) => p.applyAt <= s.frame);
+  s.pending = s.pending.filter((p) => p.applyAt > s.frame);
+
+  const seeds = new Set();
+  let reallocMs = 0;
+  for (const p of due) {
+    if (p.kind === "blur") { s.blurRadius = p.value; seeds.add("n_blur"); }
+    if (p.kind === "cutoff") { s.cutoffAudible = p.value; seeds.add("n_kaleid"); }
+    if (p.kind === "slot") { s.slotVersion += 1; seeds.add("n_grade"); simLog(`Slot 0 v${s.slotVersion} published; texture detached from batch GPU.`, "batch"); }
+    if (p.kind === "resize") {
+      s.surface = s.surface === "1920×1080" ? "2560×1440" : "1920×1080";
+      SIM_RENDER_ORDER.forEach((id) => seeds.add(id));
+      reallocMs = 1.5;
+      simLog(`Surface now ${s.surface}. Owned textures reallocated.`, "edit");
+    }
+  }
+  if (!s.gradeResident) { seeds.add("n_grade"); s.gradeResident = true; simLog("Color Grade re-rendered into a fresh texture (F37).", "warn"); }
+  if (s.playing) { seeds.add("n_kaleid"); seeds.add("n_feed"); }
+
+  const dirty = simDownstream([...seeds]);
+  const runSet = SIM_RENDER_ORDER.filter((id) => dirty.has(id));
+  const idle = runSet.length === 0;
+
+  if (idle && !s.wasIdle) simLog("No work due: idle skip. No swapchain acquire, 0 GPU time (§9.4).", "idle");
+  if (!idle && s.wasIdle) simLog("Woke from idle skip. Visual Clock re-anchored to audio clock (D7c, F51).", "info");
+  s.wasIdle = idle;
+
+  let ms = idle ? 0 : reallocMs + 0.4; // 0.4 ms acquire + present
+  for (const n of PARTITION_NODES) {
+    const st = s.node[n.id];
+    st.flash = false;
+    if (n.region === "batch") {
+      st.status = s.pending.some((p) => p.kind === "slot") ? "running" : (due.some((p) => p.kind === "slot") ? "published" : "idle");
+      if (st.status === "published") { st.runs += 1; st.lastRun = s.frame; st.flash = true; }
+    } else if (n.region === "audio" || n.id === "n_damp_a") {
+      st.status = s.playing ? "stepping" : "held";
+      if (s.playing) { st.runs += 1; st.lastRun = s.frame; }
+    } else if (n.id === "n_damp_r") {
+      const steps = !idle && (s.playing || dirty.has("n_blur"));
+      st.status = steps ? "stepping" : "held";
+      if (steps) { st.runs += 1; st.lastRun = s.frame; }
+    } else if (runSet.includes(n.id)) {
+      st.status = "ran"; st.runs += 1; st.lastRun = s.frame; st.flash = true;
+      ms += SIM_COST_MS[n.id];
+    } else {
+      st.status = idle ? "skipped" : "reused";
+    }
+  }
+
+  s.history.push({ ms, idle, passes: runSet.length });
+  if (s.history.length > 90) s.history.shift();
+  if (idle) s.totals.skipped += 1; else s.totals.rendered += 1;
+  s.totals.passes += runSet.length;
+  simRender();
+}
+
+const SIM_STATUS_VIEW = {
+  ran:       ["dirty",    (st) => "RAN this frame"],
+  reused:    ["clean",    () => "CLEAN · reuses texture"],
+  skipped:   ["retained", () => "IDLE SKIP"],
+  stepping:  ["clean",    () => "stepping"],
+  held:      ["retained", () => "held"],
+  running:   ["volatile", () => "batch running…"],
+  published: ["volatile", () => "published slot"],
+  idle:      ["retained", () => "latched"]
+};
+
+function renderPartitionSimulator() { simRender(); }
+
+function simRender() {
+  const s = simState;
+  const last = s.history[s.history.length - 1] || { ms: 0, idle: false, passes: 0 };
+
+  const statusEl = document.getElementById("sim-frame-status");
+  const explainEl = document.getElementById("sim-frame-explain");
+  statusEl.textContent = `Frame ${s.frame} · ${last.idle ? "IDLE SKIP — 0 GPU time" : `${last.passes} of ${SIM_RENDER_ORDER.length} passes ran · ${last.ms.toFixed(1)} ms`}`;
+  statusEl.style.color = last.idle ? "#86efac" : "#a9cbff";
+  explainEl.textContent = last.idle
+    ? "Transport is paused and nothing is due. Render acquires nothing and the window holds its last frame."
+    : s.playing
+      ? "Volatile passes run every frame while playing. Retained passes skip unless their slot, param, size or residency changed."
+      : "Paused, but a change is due: only the affected passes and their downstream passes re-run at the paused timestamp.";
+
+  const listEl = document.getElementById("partition-nodes-list");
+  listEl.innerHTML = "";
+  PARTITION_NODES.forEach((n) => {
+    const st = s.node[n.id];
+    const [cls, label] = SIM_STATUS_VIEW[st.status] || ["retained", () => st.status];
+    const cost = SIM_COST_MS[n.id] && st.status === "ran" ? ` · ${SIM_COST_MS[n.id].toFixed(1)} ms` : "";
+    const row = document.createElement("div");
+    row.className = `graph-node-row region-${n.region}${st.flash ? " sim-flash" : ""}`;
+    row.innerHTML = `
+      <div style="min-width:0;">
+        <div style="font-weight:600;color:var(--text-0);">${n.name}</div>
+        <div style="font-size:11.5px;color:var(--text-1);margin-top:2px;">${n.role}</div>
+      </div>
+      <div class="node-badges">
+        <span class="tag">${n.retention}</span>
+        <span class="tag ${cls}">${label(st)}${cost}</span>
+        <span class="sim-runs" title="Runs / last frame">${st.runs}× · ${st.lastRun < 0 ? "—" : "f" + st.lastRun}</span>
+      </div>`;
+    row.addEventListener("click", () => inspectRefCode(n.region === "render" ? "F37" : n.region === "control" ? "F47" : n.region === "batch" ? "F45" : "D15"));
+    listEl.appendChild(row);
+  });
+
+  // Budget bar for the last frame
+  const bar = document.getElementById("sim-budget");
+  if (bar) {
+    const pct = Math.min(100, (last.ms / FRAME_BUDGET_MS) * 100);
+    bar.innerHTML = `<div class="sim-budget-fill" style="width:${pct}%"></div>`;
+    document.getElementById("sim-budget-label").textContent = `${last.ms.toFixed(1)} / ${FRAME_BUDGET_MS} ms`;
+  }
+
+  // Frame history
+  const hist = document.getElementById("sim-history");
+  if (hist) {
+    hist.innerHTML = s.history.map((h) => {
+      const hgt = h.idle ? 3 : Math.max(6, (h.ms / FRAME_BUDGET_MS) * 100);
+      return `<div class="sim-hbar${h.idle ? " idle" : ""}" style="height:${hgt}%" title="${h.idle ? "idle skip" : h.ms.toFixed(1) + " ms, " + h.passes + " passes"}"></div>`;
+    }).join("");
+  }
+
+  const counters = document.getElementById("sim-counters");
+  if (counters) {
+    const total = s.totals.rendered + s.totals.skipped;
+    const saved = total ? (1 - s.totals.passes / (total * SIM_RENDER_ORDER.length)) * 100 : 0;
+    counters.innerHTML = [
+      ["frames rendered", s.totals.rendered],
+      ["idle skips", s.totals.skipped],
+      ["passes avoided", `${saved.toFixed(0)}%`],
+      ["pending", s.pending.length]
+    ].map(([k, v]) => `<div class="sim-counter"><span>${v}</span><label>${k}</label></div>`).join("");
+  }
+
+  const pend = document.getElementById("sim-pending");
+  if (pend) {
+    pend.innerHTML = s.pending.length
+      ? s.pending.map((p) => `<span class="tag volatile">${p.kind} @ f${p.applyAt}</span>`).join(" ")
+      : `<span style="color:var(--text-2);">nothing queued</span>`;
+  }
+
+  const logEl = document.getElementById("sim-log");
+  if (logEl) {
+    logEl.innerHTML = s.log.map((e) => `<div class="sim-log-row ${e.kind}"><span>f${e.f}</span>${e.text}</div>`).join("");
+  }
+
+  const irObj = {
+    version: 1,
+    revision: 1,
+    sampleRate: 44100,
+    quantum: 128,
+    surface: s.surface,
+    slots: [{ id: "slot_0", kind: "texture", sourceNode: "n_flux", version: s.slotVersion, detachFromBatchGpu: true }],
+    params: [
+      { id: "p_blur_radius", node: "n_blur", field: "radius", type: "float", value: s.blurRadius, sync: "Immediate" },
+      { id: "p_biquad_cutoff", node: "n_osc", field: "cutoff", type: "float", audioValue: s.cutoff, pictureValue: s.cutoffAudible, sync: "Synced" }
+    ],
+    control: {
+      exprs: ["u_blur = param(p_blur_radius) * stateful(n_damp_r)", "u_kaleid = history(tap_spec) * stateful(n_damp_a)"],
+      stateful: [
+        { node: "n_damp_a", op: "damper", domain: "audio" },
+        { node: "n_damp_r", op: "damper", domain: "render" }
+      ]
+    },
+    render: {
+      passes: [
+        { id: "pass_grade", node: "n_grade", retention: "Retained", resident: s.gradeResident },
+        { id: "pass_kaleid", node: "n_kaleid", retention: "Volatile" },
+        { id: "pass_blur", node: "n_blur", retention: "Volatile" }
+      ],
+      feedback: [{ node: "n_feed", format: "rgba16float" }]
+    },
+    audio: {
+      sinks: [
+        { kind: "device", channels: 2, subgraphHash: "a94f81c2e011b73d" },
+        { kind: "tap", id: "tap_spec", fftSize: 1024 }
+      ]
+    }
+  };
+  document.getElementById("plan-ir-json").textContent = JSON.stringify(irObj, null, 2);
+}
+
+function simSetRunning(run) {
+  if (simTimer) { clearInterval(simTimer); simTimer = null; }
+  if (run) simTimer = setInterval(simTick, SIM_SPEEDS[simSpeedIdx].ms);
+  const btn = document.getElementById("sim-run-btn");
+  btn.textContent = run ? "⏸ Pause sim" : "▶ Run sim";
+  btn.classList.toggle("primary", !run);
+}
+
+simReset();
+
+// ============================================================================
+// 7. VIEW 3 LOGIC: CLOCK, RING LEAD & SWAP RAMP LAB
+// ============================================================================
+let rampMode = "rev3";
+
+function renderClockLab() {
+  const leadQuanta = parseInt(document.getElementById("lab-lead-slider").value, 10);
+  const devMs = parseInt(document.getElementById("lab-dev-slider").value, 10);
+  const editQ = parseInt(document.getElementById("lab-editq-slider").value, 10);
+
+  const qMs = (128 / 44100) * 1000; // 2.902 ms
+  const leadMs = leadQuanta * qMs;
+  const totalAudioDelayMs = leadMs + devMs;
+
+  document.getElementById("lab-lead-val").textContent = `${leadQuanta} quanta (${leadMs.toFixed(1)} ms)`;
+  document.getElementById("lab-dev-val").textContent = `${devMs.toFixed(1)} ms`;
+  document.getElementById("lab-editq-val").textContent = `Q${editQ} (streamFrame ${editQ * 128})`;
+
+  const svg = document.getElementById("clock-svg");
+  const x0 = 155;
+  const pxPerMs = 11.5;
+
+  let html = `
+    <text x="14" y="34" fill="#4ade80" font-size="11.5" font-weight="600">Audio Render (128f)</text>
+    <text x="14" y="84" fill="#86efac" font-size="11.5" font-weight="600">Speaker Audible Time</text>
+    <text x="14" y="136" fill="#f07ab8" font-size="11.5" font-weight="600">SignalHistory (FFT)</text>
+    <text x="14" y="184" fill="#4fd1c5" font-size="11.5" font-weight="600">Render Frames (60Hz)</text>
+  `;
+
+  // Draw 22 audio quanta produced on Audio Render thread
+  for (let q = 0; q < 22; q++) {
+    const x = x0 + q * qMs * pxPerMs;
+    const w = qMs * pxPerMs - 2;
+    const isEdit = q === editQ;
+    const isAfter = q > editQ;
+    const fill = isEdit ? "#f2b84b" : (isAfter ? "rgba(63,185,80,0.35)" : "#1b212d");
+    const stroke = isEdit ? "#fff" : (isAfter ? "#4ade80" : "#2f3e56");
+    html += `<rect x="${x.toFixed(1)}" y="16" width="${w.toFixed(1)}" height="26" rx="3" fill="${fill}" stroke="${stroke}"/>`;
+    if (q % 2 === 0) {
+      html += `<text x="${(x + w / 2).toFixed(1)}" y="33" fill="#e6edf3" font-size="9" text-anchor="middle">Q${q}</text>`;
+    }
+  }
+
+  // Draw when Q_edit becomes audible at the speaker (shifted by leadMs + devMs)
+  const editProdX = x0 + editQ * qMs * pxPerMs;
+  const editAudibleMs = editQ * qMs + totalAudioDelayMs;
+  const editAudibleX = x0 + editAudibleMs * pxPerMs;
+
+  html += `
+    <line x1="${editProdX.toFixed(1)}" y1="42" x2="${editAudibleX.toFixed(1)}" y2="68" stroke="#f2b84b" stroke-width="1.8" stroke-dasharray="4 3"/>
+    <rect x="${editAudibleX.toFixed(1)}" y="66" width="${(qMs * pxPerMs).toFixed(1)}" height="26" rx="3" fill="#f2b84b" stroke="#fff"/>
+    <text x="${(editAudibleX + 4).toFixed(1)}" y="59" fill="#fcd34d" font-size="10" font-family="JetBrains Mono, SFMono-Regular, monospace">
+      Audible after ${totalAudioDelayMs.toFixed(1)} ms (lead ${leadMs.toFixed(1)} + dev ${devMs.toFixed(1)} ms)
+    </text>
+  `;
+
+  // SignalHistory entry written shortly after Q_edit is produced (well before it is audible!)
+  const analysisReadyX = editProdX + 4.5 * pxPerMs;
+  html += `
+    <rect x="${analysisReadyX.toFixed(1)}" y="118" width="125" height="24" rx="3" fill="rgba(219,97,162,0.22)" stroke="#f07ab8"/>
+    <text x="${(analysisReadyX + 6).toFixed(1)}" y="134" fill="#f9a8d4" font-size="10" font-family="JetBrains Mono, SFMono-Regular, monospace">
+      History[t=${editQ * 128}] ready early!
+    </text>
+  `;
+
+  // Draw 60 Hz Render frames (16.67 ms each) and highlight the first frame whose audibleFrame >= editQ*128
+  const frameMs = 16.667;
+  let syncedFrameFound = false;
+  for (let f = 0; f < 5; f++) {
+    const fx = x0 + f * frameMs * pxPerMs;
+    const fw = frameMs * pxPerMs - 3;
+    const fPresentMs = (f + 1) * frameMs;
+    const isSyncedFrame = !syncedFrameFound && fPresentMs >= editAudibleMs;
+    if (isSyncedFrame) syncedFrameFound = true;
+
+    const fill = isSyncedFrame ? "rgba(57,197,187,0.35)" : "#161b25";
+    const stroke = isSyncedFrame ? "#4fd1c5" : "#2f3e56";
+    html += `
+      <rect x="${fx.toFixed(1)}" y="166" width="${fw.toFixed(1)}" height="28" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${isSyncedFrame ? 2 : 1}"/>
+      <text x="${(fx + 8).toFixed(1)}" y="184" fill="#e6edf3" font-size="10" font-family="JetBrains Mono, SFMono-Regular, monospace">
+        Frame ${f} ${isSyncedFrame ? "★ Synced Apply (audible >= Q" + editQ + ")" : "(Old Plan/Param)"}
+      </text>
+    `;
+  }
+
+  svg.innerHTML = html;
+}
+
+function renderRampLab() {
+  const phaseDeg = parseInt(document.getElementById("ramp-phase-slider").value, 10);
+  const gainPct = parseInt(document.getElementById("ramp-gain-slider").value, 10);
+  document.getElementById("ramp-phase-val").textContent = `${phaseDeg}°`;
+  document.getElementById("ramp-gain-val").textContent = `${(gainPct / 100).toFixed(2)}×`;
+
+  const svg = document.getElementById("ramp-svg");
+  const W = 980;
+  const H = 210;
+  const midY = H / 2;
+  const swapIdx = 60; // sample index where swap occurs
+  const totalSamples = 200;
+  const rampLen = 110; // visual representation of the 256-frame decay window
+  const freq = 0.085;
+  const phaseRad = (phaseDeg * Math.PI) / 180;
+  const gain = gainPct / 100;
+
+  const oldWave = (i) => Math.sin(i * freq);
+  const newWave = (i) => (rampMode === "hash" ? Math.sin(i * freq) : gain * Math.sin(i * freq + phaseRad));
+
+  const oldN2 = oldWave(swapIdx - 2);
+  const oldN1 = oldWave(swapIdx - 1);
+  const predRev3 = 2 * oldN1 - oldN2;
+  const new0 = newWave(swapIdx);
+
+  let diff = 0;
+  let explain = "";
+  if (rampMode === "none") {
+    diff = 0;
+    explain = `No ramp: step discontinuity at sample 0 = ${(new0 - oldN1).toFixed(3)}`;
+  } else if (rampMode === "rev2") {
+    diff = oldN1 - new0;
+    explain = `Rev 2 ZOH (old[N-1] - new[0]): duplicates old[N-1]=${oldN1.toFixed(3)}, leaving slope error ${(predRev3 - oldN1).toFixed(3)}`;
+  } else if (rampMode === "rev3") {
+    diff = predRev3 - new0;
+    explain = `Rev 3 Slope-Extrapolated: pred = 2·old[N-1] - old[N-2] = ${predRev3.toFixed(3)}, diff = ${diff.toFixed(3)} decayed over 256f (F48)`;
+  } else {
+    diff = 0;
+    explain = `Unchanged subgraphHash: ramp skipped -> bit-identical output across swap (§6.2, §11.3, F48)`;
+  }
+  document.getElementById("ramp-math-readout").textContent = explain;
+
+  const xOf = (i) => 40 + (i / totalSamples) * (W - 60);
+  const yOf = (v) => midY - v * 68;
+
+  // Build paths
+  let dOldGhost = "";
+  let dNewRaw = "";
+  let dOut = "";
+
+  for (let i = 0; i <= totalSamples; i++) {
+    const x = xOf(i).toFixed(1);
+    const yIdeal = yOf(oldWave(i)).toFixed(1);
+    dOldGhost += (i === 0 ? `M ${x} ${yIdeal}` : ` L ${x} ${yIdeal}`);
+
+    if (i >= swapIdx) {
+      const yRaw = yOf(newWave(i)).toFixed(1);
+      dNewRaw += (i === swapIdx ? `M ${x} ${yRaw}` : ` L ${x} ${yRaw}`);
+    }
+
+    let outVal;
+    if (i < swapIdx) {
+      outVal = oldWave(i);
+    } else {
+      const k = i - swapIdx;
+      const decay = k < rampLen ? 1 - k / rampLen : 0;
+      outVal = newWave(i) + diff * decay;
+    }
+    const yOut = yOf(outVal).toFixed(1);
+    dOut += (i === 0 ? `M ${x} ${yOut}` : ` L ${x} ${yOut}`);
+  }
+
+  const swapX = xOf(swapIdx).toFixed(1);
+  svg.innerHTML = `
+    <line x1="40" y1="${midY}" x2="${W - 20}" y2="${midY}" stroke="#222c3f" stroke-width="1"/>
+    <line x1="${swapX}" y1="12" x2="${swapX}" y2="${H - 12}" stroke="#f2b84b" stroke-width="1.5" stroke-dasharray="4 4"/>
+    <text x="${swapX - 8}" y="24" fill="#9fb0c7" font-size="10.5" text-anchor="end">Old AudioPlan</text>
+    <text x="${parseFloat(swapX) + 8}" y="24" fill="#f2b84b" font-size="10.5">Swap Quantum Boundary (256-frame decay)</text>
+
+    <!-- Ideal continuation of old wave -->
+    <path d="${dOldGhost}" stroke="#3b4c66" stroke-width="1.2" stroke-dasharray="3 3" fill="none"/>
+    <!-- Raw un-ramped new wave -->
+    <path d="${dNewRaw}" stroke="rgba(248,81,73,0.45)" stroke-width="1.4" fill="none"/>
+    <!-- Actual output wave -->
+    <path d="${dOut}" stroke="#4ade80" stroke-width="2.4" fill="none"/>
+
+    <circle cx="${xOf(swapIdx - 2).toFixed(1)}" cy="${yOf(oldN2).toFixed(1)}" r="3.5" fill="#a9cbff"/>
+    <circle cx="${xOf(swapIdx - 1).toFixed(1)}" cy="${yOf(oldN1).toFixed(1)}" r="3.5" fill="#a9cbff"/>
+    <circle cx="${xOf(swapIdx).toFixed(1)}" cy="${yOf(newWave(swapIdx) + diff).toFixed(1)}" r="4.5" fill="#4ade80" stroke="#fff"/>
+  `;
+}
+
+// ============================================================================
+// 8. VIEW 4 LOGIC: REFERENCE MATRIX
+// ============================================================================
+let currentMatrixCat = "ALL";
+
+function renderMatrix() {
+  const q = document.getElementById("matrix-search").value.trim().toLowerCase();
+  const listEl = document.getElementById("matrix-list");
+  listEl.innerHTML = "";
+
+  MATRIX_ITEMS.filter((item) => {
+    if (currentMatrixCat !== "ALL" && item.cat !== currentMatrixCat) return false;
+    if (!q) return true;
+    return (
+      item.code.toLowerCase().includes(q) ||
+      item.title.toLowerCase().includes(q) ||
+      item.desc.toLowerCase().includes(q) ||
+      item.section.toLowerCase().includes(q)
+    );
+  }).forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "matrix-card";
+    card.innerHTML = `
+      <div class="matrix-card-head">
+        <span class="matrix-code">${item.code} — ${item.title}</span>
+        <span class="matrix-cat">${item.cat} • ${item.section}</span>
+      </div>
+      <div style="color:var(--text-1);font-size:12px;">${item.desc}</div>
+    `;
+    card.addEventListener("click", () => inspectRefCode(item.code));
+    listEl.appendChild(card);
+  });
+}
+
+// ============================================================================
+// 9. EVENT LISTENERS & INITIALIZATION
+// ============================================================================
+document.querySelectorAll(".nav-tab").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-tab").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".view-panel").forEach((p) => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
+document.getElementById("host-desktop").addEventListener("click", () => {
+  currentHost = "desktop";
+  document.getElementById("host-desktop").classList.add("active");
+  document.getElementById("host-browser").classList.remove("active");
+  renderArchDiagram();
+  const node = ARCH_NODES.find((n) => n.id === selectedNodeId);
+  if (node) inspectNode(node);
+});
+
+document.getElementById("host-browser").addEventListener("click", () => {
+  currentHost = "browser";
+  document.getElementById("host-browser").classList.add("active");
+  document.getElementById("host-desktop").classList.remove("active");
+  renderArchDiagram();
+  const node = ARCH_NODES.find((n) => n.id === selectedNodeId);
+  if (node) inspectNode(node);
+});
+
+document.getElementById("scenario-select").addEventListener("change", (e) => {
+  currentScenario = e.target.value;
+  currentStepIdx = 0;
+  updateScenarioStepUI();
+});
+
+document.getElementById("step-prev").addEventListener("click", () => {
+  const steps = SCENARIOS[currentScenario].steps;
+  currentStepIdx = (currentStepIdx - 1 + steps.length) % steps.length;
+  updateScenarioStepUI();
+});
+
+document.getElementById("step-next").addEventListener("click", () => {
+  const steps = SCENARIOS[currentScenario].steps;
+  currentStepIdx = (currentStepIdx + 1) % steps.length;
+  updateScenarioStepUI();
+});
+
+document.getElementById("step-play").addEventListener("click", (e) => {
+  if (autoPlayTimer) {
+    clearInterval(autoPlayTimer);
+    autoPlayTimer = null;
+    e.target.textContent = "▶ Auto";
+  } else {
+    e.target.textContent = "⏸ Pause";
+    autoPlayTimer = setInterval(() => {
+      const steps = SCENARIOS[currentScenario].steps;
+      currentStepIdx = (currentStepIdx + 1) % steps.length;
+      updateScenarioStepUI();
+    }, 3200);
+  }
+});
+
+// View 2 buttons
+document.getElementById("sim-transport-btn").addEventListener("click", (e) => {
+  simState.playing = !simState.playing;
+  simLog(simState.playing ? "Transport PLAYING." : "Transport PAUSED. Audio holds; render waits for work.", "info");
+  e.target.textContent = simState.playing ? "Transport: PLAYING" : "Transport: PAUSED";
+  e.target.classList.toggle("active-toggle", simState.playing);
+  simRender();
+});
+document.getElementById("sim-tweak-blur").addEventListener("click", () => simQueue("blur"));
+document.getElementById("sim-tweak-cutoff").addEventListener("click", () => simQueue("cutoff"));
+document.getElementById("sim-new-slot").addEventListener("click", () => simQueue("slot"));
+document.getElementById("sim-resize").addEventListener("click", () => simQueue("resize"));
+document.getElementById("sim-evict").addEventListener("click", () => simQueue("evict"));
+document.getElementById("sim-run-btn").addEventListener("click", () => simSetRunning(!simTimer));
+document.getElementById("sim-step-btn").addEventListener("click", () => { simSetRunning(false); simTick(); });
+document.getElementById("sim-speed-btn").addEventListener("click", (e) => {
+  simSpeedIdx = (simSpeedIdx + 1) % SIM_SPEEDS.length;
+  e.target.textContent = SIM_SPEEDS[simSpeedIdx].label;
+  if (simTimer) simSetRunning(true);
+});
+document.getElementById("sim-reset-btn").addEventListener("click", () => {
+  simReset();
+  const t = document.getElementById("sim-transport-btn");
+  t.textContent = "Transport: PLAYING";
+  t.classList.add("active-toggle");
+  simRender();
+});
+
+document.querySelectorAll("#view-partition .ref-pill").forEach((pill) => {
+  pill.addEventListener("click", () => inspectRefCode(pill.dataset.ref));
+});
+
+// View 3 sliders & buttons
+["lab-lead-slider", "lab-dev-slider", "lab-editq-slider"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", renderClockLab);
+});
+
+["ramp-phase-slider", "ramp-gain-slider"].forEach((id) => {
+  document.getElementById(id).addEventListener("input", renderRampLab);
+});
+
+[
+  ["ramp-mode-none", "none"],
+  ["ramp-mode-rev2", "rev2"],
+  ["ramp-mode-rev3", "rev3"],
+  ["ramp-mode-hash", "hash"]
+].forEach(([btnId, mode]) => {
+  document.getElementById(btnId).addEventListener("click", (e) => {
+    rampMode = mode;
+    ["ramp-mode-none", "ramp-mode-rev2", "ramp-mode-rev3", "ramp-mode-hash"].forEach((id) => {
+      document.getElementById(id).classList.remove("primary");
+    });
+    e.target.classList.add("primary");
+    renderRampLab();
+  });
+});
+
+// View 4 filters
+document.getElementById("matrix-search").addEventListener("input", renderMatrix);
+document.querySelectorAll(".matrix-filter").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".matrix-filter").forEach((b) => b.classList.remove("primary"));
+    btn.classList.add("primary");
+    currentMatrixCat = btn.dataset.cat;
+    renderMatrix();
+  });
+});
+
+// Initial render
+updateScenarioStepUI();
+renderPartitionSimulator();
+renderClockLab();
+renderRampLab();
+renderMatrix();
+</script>
+</body>
+</html>

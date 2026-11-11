@@ -17,6 +17,8 @@ Basic.Button {
     property string accessibleName: text
     property int density: 1
     property int variant: 0
+    property bool circular: false
+    property real iconSize: Metrics.iconSm
     property bool active: false
     property bool loading: false
     property string disabledReason: ""
@@ -60,7 +62,7 @@ Basic.Button {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Metrics.sm
         layoutDirection: root.mirrored ? Qt.RightToLeft : Qt.LeftToRight
-        Ui.Icon { id: buttonIcon; anchors.verticalCenter: parent.verticalCenter; visible: !root.loading && root.providerEntry === "" && root.iconName !== "" && root.display !== Basic.AbstractButton.TextOnly; name: root.iconName; tone: root.iconTone }
+        Ui.Icon { id: buttonIcon; anchors.verticalCenter: parent.verticalCenter; visible: !root.loading && root.providerEntry === "" && root.iconName !== "" && root.display !== Basic.AbstractButton.TextOnly; name: root.iconName; size: root.iconSize; tone: root.iconTone }
         Ui.ProviderIcon { id: provider; anchors.verticalCenter: parent.verticalCenter; visible: !root.loading && root.providerEntry !== "" && root.display !== Basic.AbstractButton.TextOnly; entry: root.providerEntry; tone: root.iconTone }
         Ui.BusyIndicator { id: spinner; anchors.verticalCenter: parent.verticalCenter; visible: root.loading; running: visible; width: Metrics.iconSm; height: width; tone: (root.variant === 1 || root.variant === 3) ? Ui.Text.OnAccent : Ui.Text.Primary }
         // A proportional line height leaves its slack under the glyphs, which pushes a one-line label above center.
@@ -68,9 +70,10 @@ Basic.Button {
         Ui.Icon { id: trailingIcon; objectName: "nativeButtonTrailingIcon"; anchors.verticalCenter: parent.verticalCenter; visible: root.trailingIconName !== "" && root.display !== Basic.AbstractButton.IconOnly; name: root.trailingIconName; tone: root.iconTone }
     }
     }
+    opacity: !enabled && circular ? 0.7 : 1
     background: Rectangle {
-        radius: Metrics.radiusControl
-        color: !root.enabled ? Theme.actionDisabled : root.variant === 3 ? (root.down || root.hovered ? Theme.destructiveHover : Theme.destructivePrimary) : root.variant === 1 ? (root.down || root.hovered ? Theme.accentHover : Theme.accentPrimary) : root.down ? Theme.actionPressed : root.checked || root.active ? Theme.actionSelected : root.hovered ? Theme.actionHover : root.variant === 2 ? "transparent" : Theme.surfacePanel
+        radius: root.circular ? Metrics.radiusPill : Metrics.radiusControl
+        color: !root.enabled && !root.circular ? Theme.actionDisabled : root.variant === 3 ? (root.down || root.hovered ? Theme.destructiveHover : Theme.destructivePrimary) : root.variant === 1 ? (root.down || root.hovered ? Theme.accentHover : Theme.accentPrimary) : root.down ? Theme.actionPressed : root.checked || root.active ? Theme.actionSelected : root.hovered ? Theme.actionHover : root.variant === 2 ? "transparent" : Theme.surfacePanel
         border.width: root.visualFocus ? Metrics.focus : Metrics.border
         border.color: root.visualFocus ? Theme.borderFocus : root.variant === 2 || root.variant === 1 || root.variant === 3 ? "transparent" : Theme.borderControl
     }

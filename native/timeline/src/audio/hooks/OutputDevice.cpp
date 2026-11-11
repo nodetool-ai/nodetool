@@ -5,6 +5,7 @@
 namespace nt::audio {
 namespace {
 struct Registry {
+    // native-rules #10: mutex does not say that it guards provider
     std::mutex mutex;
     OutputDeviceProvider provider;
 };

@@ -68,10 +68,12 @@ private slots:
         auto document = fixture(false);
         QVERIFY(!document.clips.empty());
         nt::FfmpegSource source(document.clips[0].mediaPath, 0.0, {640, 360}, nt::DecodeMode::Software);
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         std::shared_ptr<nt::DecodedFrame> decoded;
         QTRY_VERIFY_WITH_TIMEOUT((decoded = source.decoder().frameAt(0.0)) && source.decoder().exact(), 15000);
         QVERIFY(!decoded->hardware);
         const int bytesPerPixel = decoded->layout == nt::PlaneLayout::Rgba ? 4 : 1;
+        // native-rules #5: raw AVFrame* read from DecodedFrame across a module boundary
         const auto* frame = decoded->frame;
         const QByteArray original(reinterpret_cast<const char*>(frame->data[0]), frame->linesize[0] * frame->height);
         QByteArray expected;

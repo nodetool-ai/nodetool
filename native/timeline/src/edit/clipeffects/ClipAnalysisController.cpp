@@ -222,9 +222,11 @@ void ClipAnalysisController::analyze() {
     }
     const auto request=++m_request;
     m_error.clear(); m_progress=0; m_busy=true; emit changed();
+    // native-rules #12: lambda captures raw this and runs on the worker thread
     m_worker=std::jthread([this,path,key=m_key,request](std::stop_token stop) {
         QJsonObject result; QString error;
         try {
+            // native-rules #12: progress lambda captures raw this and runs on the worker thread
             result=analyzeSource(path,key,stop,[this,request](int percent) {
                 QMetaObject::invokeMethod(this,[this,request,percent] { if (m_request==request) { m_progress=percent; emit changed(); } },Qt::QueuedConnection);
             });

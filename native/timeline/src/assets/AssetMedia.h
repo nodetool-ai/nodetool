@@ -10,6 +10,7 @@
 #include <vector>
 
 namespace nt::assets {
+// native-rules #9: used from worker threads and the UI thread, no affinity comment
 class MediaProtection {
 public:
     using Lease = nt::server::AssetCache::Lease;
@@ -25,6 +26,7 @@ public:
     void evict(const QString& root, qint64 budget, const QString& justFetched,
                const std::function<void()>& afterScan = {});
 private:
+    // native-rules #10: mutex does not say which members it guards
     mutable std::mutex m_mutex;
     std::map<QString, Lease> m_paths;
     std::map<QString, Lease> m_fetched;

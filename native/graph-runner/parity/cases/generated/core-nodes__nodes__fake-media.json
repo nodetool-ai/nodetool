@@ -1,0 +1,63 @@
+{
+ "module": "@nodetool-ai/core-nodes/nodes/fake-media",
+ "cases": [
+  {
+   "id": "nodetool.fake.GenerateImage#default",
+   "node": "nodetool.fake.GenerateImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.fake.GenerateImage",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.fake.ColorGrade#default",
+   "node": "nodetool.fake.ColorGrade",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.fake.ColorGrade",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

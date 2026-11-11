@@ -207,6 +207,7 @@
     "test": "npm run test:web && npm run test:electron && npm run test:mobile",
     "test:all": "node scripts/run-turbo.mjs run test",
     "test:affected": "node scripts/test-affected.mjs",
+    "test:affected:native": "node scripts/test-affected-native.mjs",
     "test:web": "npm test --workspace=web",
     "test:electron": "npm test --workspace=electron",
     "test:mobile": "npm --prefix mobile test",
@@ -289,12 +290,14 @@
     "concurrently": "^9.2.5",
     "eslint": "^9.39.4",
     "oxlint": "^1.78.0",
+    "text-encoding": "^0.7.0",
     "tsx": "^4.0.0",
     "turbo": "^2.9.6",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-eslint": "8.70.0",
     "vite": "~8.0.16",
     "vitest": "^5.1.0",
+    "whatwg-url": "^14.2.0",
     "zod": "~4.4.3"
   },
   "dependencies": {

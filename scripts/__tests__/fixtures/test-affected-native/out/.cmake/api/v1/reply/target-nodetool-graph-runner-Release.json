@@ -1,0 +1,25 @@
+{
+  "name": "nodetool-graph-runner",
+  "id": "nodetool-graph-runner::@6890427a1f51a3e7e1df",
+  "type": "EXECUTABLE",
+  "paths": {
+    "source": ".",
+    "build": "."
+  },
+  "artifacts": [
+    {
+      "path": "nodetool-graph-runner"
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/main.cpp",
+      "compileGroupIndex": 0
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "gr_core::@6890427a1f51a3e7e1df"
+    }
+  ]
+}

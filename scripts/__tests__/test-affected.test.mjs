@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 
 import { computeAffected } from "../../packages/cli-harness/src/affected/affected.ts";
-import { buildGateArgv, buildPlan, DOC_ONLY, MOBILE_DEPS } from "../test-affected.mjs";
+import { buildGateArgv, buildPlan, DOC_ONLY, MOBILE_DEPS, NATIVE_CTEST } from "../test-affected.mjs";
 
 /** web and electron are named after the product, not their directories. */
 const PACKAGES = [
@@ -236,6 +236,34 @@ describe("buildPlan", () => {
     expect(plan([file]).steps).toEqual([
       { label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }
     ]);
+  });
+
+  it.each([
+    "native/graph-runner/src/kernel/task.cpp",
+    "native/graph-runner/CMakeLists.txt",
+    "native/graph-runner/guest/host/provider-jobs.mjs",
+    "native/jobs/src/job_core.cpp",
+    "native/node-editor/src/main.cpp",
+    "native/model-picker/CMakeLists.txt",
+    "native/timeline/src/main.cpp"
+  ])("selects the affected native ctest tests for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(plan([file]).steps).toEqual([
+      { label: "native ctest: affected tests", command: "node", args: ["scripts/test-affected-native.mjs"] }
+    ]);
+  });
+
+  it("runs the native selection once for changes in several native projects", () => {
+    expect(plan(["native/graph-runner/src/main.cpp", "native/timeline/src/main.cpp"]).steps).toEqual([NATIVE_CTEST]);
+  });
+
+  it.each([
+    "scripts/test-affected-native.mjs",
+    "scripts/__tests__/test-affected-native.test.mjs",
+    "scripts/__tests__/fixtures/test-affected-native/ctest.json"
+  ])("tests the native selection rules for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(labels([file])).toEqual(["native test selection"]);
   });
 
   it.each([

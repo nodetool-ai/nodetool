@@ -7,7 +7,10 @@
 namespace nt::wiring {
 namespace {
 struct Duration { QString version; double ms; };
+// native-rules #10: mutex does not say that it guards durations
+// native-rules #14: global mutex
 QMutex mutex;
+// native-rules #14: global mutable cache
 QHash<QString, Duration> durations;
 }
 void rememberSourceDuration(const QString& file, const QString& version, double durationMs) {

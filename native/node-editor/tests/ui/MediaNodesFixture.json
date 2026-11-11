@@ -1,0 +1,564 @@
+[
+ {
+  "title": "Audio",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Audio",
+  "layout": "default",
+  "body": "default",
+  "properties": [
+   {
+    "name": "value",
+    "type": {
+     "type": "audio",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Value",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    }
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "audio",
+     "type_args": []
+    }
+   }
+  ],
+  "recommended_models": [],
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "required_settings": [],
+  "required_runtimes": [],
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "retry_safe": true,
+  "effect": "external",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ]
+ },
+ {
+  "title": "Audio List",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.AudioList",
+  "layout": "default",
+  "body": "default",
+  "properties": [
+   {
+    "name": "value",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "audio",
+       "type_args": []
+      }
+     ]
+    },
+    "required": true,
+    "title": "Value",
+    "default": null
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "audio",
+       "type_args": []
+      }
+     ]
+    }
+   }
+  ],
+  "recommended_models": [],
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "required_settings": [],
+  "required_runtimes": [],
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "retry_safe": true,
+  "append_static_inputs": [
+   "value"
+  ],
+  "effect": "external",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ]
+ },
+ {
+  "title": "Image",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Image",
+  "layout": "default",
+  "body": "default",
+  "properties": [
+   {
+    "name": "value",
+    "type": {
+     "type": "image",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Value",
+    "default": {
+     "type": "image",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    }
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "image",
+     "type_args": []
+    }
+   }
+  ],
+  "recommended_models": [],
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "required_settings": [],
+  "required_runtimes": [],
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "retry_safe": true,
+  "effect": "external",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ]
+ },
+ {
+  "title": "Image List",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.ImageList",
+  "layout": "default",
+  "body": "default",
+  "properties": [
+   {
+    "name": "value",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "image",
+       "type_args": []
+      }
+     ]
+    },
+    "required": true,
+    "title": "Value",
+    "default": null
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "image",
+       "type_args": []
+      }
+     ]
+    }
+   }
+  ],
+  "recommended_models": [],
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "required_settings": [],
+  "required_runtimes": [],
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "retry_safe": true,
+  "append_static_inputs": [
+   "value"
+  ],
+  "effect": "external",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ]
+ },
+ {
+  "title": "Video",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.Video",
+  "layout": "default",
+  "body": "default",
+  "properties": [
+   {
+    "name": "value",
+    "type": {
+     "type": "video",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Value",
+    "default": {
+     "type": "video",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null,
+     "duration": null,
+     "format": null
+    }
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "video",
+     "type_args": []
+    }
+   }
+  ],
+  "recommended_models": [],
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "required_settings": [],
+  "required_runtimes": [],
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "retry_safe": true,
+  "effect": "external",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ]
+ },
+ {
+  "title": "Video List",
+  "namespace": "nodetool.constant",
+  "node_type": "nodetool.constant.VideoList",
+  "layout": "default",
+  "body": "default",
+  "properties": [
+   {
+    "name": "value",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "video",
+       "type_args": []
+      }
+     ]
+    },
+    "required": true,
+    "title": "Value",
+    "default": null
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "list",
+     "type_args": [
+      {
+       "type": "video",
+       "type_args": []
+      }
+     ]
+    }
+   }
+  ],
+  "recommended_models": [],
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "required_settings": [],
+  "required_runtimes": [],
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "retry_safe": true,
+  "append_static_inputs": [
+   "value"
+  ],
+  "effect": "external",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ]
+ },
+ {
+  "title": "Audio Input",
+  "namespace": "nodetool.input",
+  "node_type": "nodetool.input.AudioInput",
+  "layout": "default",
+  "body": "default",
+  "properties": [
+   {
+    "name": "name",
+    "type": {
+     "type": "str",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Name",
+    "default": ""
+   },
+   {
+    "name": "value",
+    "type": {
+     "type": "audio",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Value",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    }
+   },
+   {
+    "name": "description",
+    "type": {
+     "type": "str",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Description",
+    "default": ""
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "audio",
+     "type_args": []
+    }
+   }
+  ],
+  "recommended_models": [],
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "required_settings": [],
+  "required_runtimes": [],
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "retry_safe": true,
+  "effect": "external",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ]
+ },
+ {
+  "title": "Image Input",
+  "namespace": "nodetool.input",
+  "node_type": "nodetool.input.ImageInput",
+  "layout": "default",
+  "body": "default",
+  "properties": [
+   {
+    "name": "name",
+    "type": {
+     "type": "str",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Name",
+    "default": ""
+   },
+   {
+    "name": "value",
+    "type": {
+     "type": "image",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Value",
+    "default": {
+     "type": "image",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    }
+   },
+   {
+    "name": "description",
+    "type": {
+     "type": "str",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Description",
+    "default": ""
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "image",
+     "type_args": []
+    }
+   }
+  ],
+  "recommended_models": [],
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "required_settings": [],
+  "required_runtimes": [],
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "retry_safe": true,
+  "effect": "external",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ]
+ },
+ {
+  "title": "Video Input",
+  "namespace": "nodetool.input",
+  "node_type": "nodetool.input.VideoInput",
+  "layout": "default",
+  "body": "default",
+  "properties": [
+   {
+    "name": "name",
+    "type": {
+     "type": "str",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Name",
+    "default": ""
+   },
+   {
+    "name": "value",
+    "type": {
+     "type": "video",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Value",
+    "default": {
+     "type": "video",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null,
+     "duration": null,
+     "format": null
+    }
+   },
+   {
+    "name": "description",
+    "type": {
+     "type": "str",
+     "type_args": []
+    },
+    "required": false,
+    "title": "Description",
+    "default": ""
+   }
+  ],
+  "outputs": [
+   {
+    "name": "output",
+    "type": {
+     "type": "video",
+     "type_args": []
+    }
+   }
+  ],
+  "recommended_models": [],
+  "inline_fields": [
+   "value"
+  ],
+  "input_fields": [],
+  "required_settings": [],
+  "required_runtimes": [],
+  "is_streaming_input": false,
+  "is_streaming_output": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "retry_safe": true,
+  "effect": "external",
+  "platforms": [
+   "node",
+   "workers",
+   "edge",
+   "browser"
+  ]
+ }
+]

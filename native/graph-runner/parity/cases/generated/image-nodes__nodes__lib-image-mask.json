@@ -1,0 +1,92 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-mask",
+ "cases": [
+  {
+   "id": "lib.image.mask.Apply#default",
+   "node": "lib.image.mask.Apply",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.mask.Apply",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.mask.FromImage#default",
+   "node": "lib.image.mask.FromImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.mask.FromImage",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.mask.Invert#default",
+   "node": "lib.image.mask.Invert",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.mask.Invert",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

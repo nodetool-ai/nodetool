@@ -1,0 +1,13 @@
+# Configure independently for focused native planner checks.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    cmake_minimum_required(VERSION 3.24)
+    project(NodeEditorPlannerTests LANGUAGES CXX)
+    enable_testing()
+    set(CMAKE_AUTOMOC ON)
+    set(CMAKE_CXX_STANDARD 20)
+    find_package(Qt6 REQUIRED COMPONENTS Core Qml Test)
+endif()
+add_executable(node_editor_partial_planner_tests PartialRunPlannerTest.cpp ../../src/run/PartialRunPlanner.cpp)
+target_include_directories(node_editor_partial_planner_tests PRIVATE ../../src)
+target_link_libraries(node_editor_partial_planner_tests PRIVATE Qt6::Core Qt6::Qml Qt6::Test)
+add_test(NAME node_editor_partial_planner COMMAND node_editor_partial_planner_tests)

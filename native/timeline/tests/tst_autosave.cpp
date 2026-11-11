@@ -103,6 +103,7 @@ public:
                     s->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " +
                              QByteArray::number(m_body.size()) + "\r\n\r\n");
                     auto* timer = new QTimer(s);
+                    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
                     auto offset = std::make_shared<int>(0);
                     QPointer<QTcpSocket> guard(s);
                     connect(timer, &QTimer::timeout, s, [this, guard, timer, offset]() {
@@ -854,12 +855,14 @@ private slots:
         const QString folder = m_dir.filePath("earlier-recovery");
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, "BAD_REQUEST"); });
         make("u0", folder);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const QString oldPath = m_save->saveNow().keptCopy;
         QVERIFY(QFileInfo::exists(oldPath));
         m_save.reset();
         make("u0", folder);
         m_http->setPost([](const QByteArray&, const QByteArray&) { return ok("u1"); });
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().ok);
         // Enumerate the files, so this fails on the old deletion before
@@ -879,12 +882,14 @@ private slots:
         const QString folder = m_dir.filePath("second-conflict");
         m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
         make("u0", folder);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
         QTRY_COMPARE(m_save->externalState(), QString("error"));
         QVERIFY(m_save->conflict());
         m_save.reset();
         make("u0", folder);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
         const QStringList copies = QDir(folder).entryList({"seq.local*.json"}, QDir::Files);
@@ -901,6 +906,7 @@ private slots:
         const QString folder = m_dir.filePath("restore-earlier");
         m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
         make("u0", folder);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
         QTRY_COMPARE(m_save->externalState(), QString("error"));
@@ -939,12 +945,14 @@ private slots:
         const QString folder = m_dir.filePath("discard-earlier");
         m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
         make("u0", folder);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
         QTRY_COMPARE(m_save->externalState(), QString("error"));
         QVERIFY(m_save->conflict());
         m_save.reset();
         make("u0", folder);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
         const QString earlier = m_save->property("earlierCopy").toString();
@@ -1035,9 +1043,11 @@ private slots:
         make("u0", folder);
         m_save->setAutosave(true);
         m_save->setDebounceMs(25);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
         const QString path = m_save->keptCopy();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QTRY_VERIFY_WITH_TIMEOUT(!m_save->keptCopy().isEmpty(), 2000);
         QFile copy(path);
@@ -1065,6 +1075,7 @@ private slots:
         make("u0", m_dir.filePath(QString::fromLatin1(QTest::currentDataTag())));
         m_save->setAutosave(true);
         m_save->setDebounceMs(25);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         if (acknowledged) {
             QVERIFY(m_save->saveNow().ok);
@@ -1275,6 +1286,7 @@ private slots:
         m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
         make();
         QVERIFY(!m_save->dirty());
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->dirty());
         const SaveResult r = m_save->saveNow();
@@ -1288,6 +1300,7 @@ private slots:
         QCOMPARE(sent.value(u"document").toObject().value(u"clips").toArray().at(0).toObject().value(u"startMs").toInt(), 1);
         QVERIFY(!sent.value(u"document").toObject().contains(QStringLiteral("updatedAt")));
         // The next save uses the new base.
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().ok);
         QCOMPARE(QJsonDocument::fromJson(m_http->requests().back().body).object().value(u"baseUpdatedAt").toString(),
@@ -1299,10 +1312,12 @@ private slots:
 
     void anEditDuringTheSaveStaysDirty() {
         m_http->setPost([this](const QByteArray&, const QByteArray&) {
+            // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             m_undo->push(new Bump(&m_value));  // the user edits while the request is out
             return ok(QStringLiteral("u1"));
         });
         make();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().ok);
         QVERIFY2(m_save->dirty(), "the edit made during the save is not on the server");
@@ -1311,6 +1326,7 @@ private slots:
     void conflictKeepsTheLocalDocument() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
         make();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const SaveResult r = m_save->saveNow();
         QVERIFY(!r.ok);
@@ -1335,6 +1351,7 @@ private slots:
         });
         make();
         QSignalSpy spy(m_save.get(), &AutosaveController::strippedWarning);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const SaveResult r = m_save->saveNow();
         QVERIFY(r.ok);
@@ -1347,6 +1364,7 @@ private slots:
     void noBaseNoSave() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
         make(QString());
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const SaveResult r = m_save->saveNow();
         QVERIFY(!r.ok);
@@ -1357,10 +1375,12 @@ private slots:
 
     void anEditMergedDuringTheSaveIsDirty() {
         m_http->setPost([this](const QByteArray&, const QByteArray&) {
+            // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             m_undo->push(new Nudge(&m_value));  // merges into the command being saved
             return ok(QStringLiteral("u1"));
         });
         make();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Nudge(&m_value));
         const int index = m_undo->index();
         QVERIFY(m_save->saveNow().ok);
@@ -1375,6 +1395,7 @@ private slots:
             return ok(QStringLiteral("u1"));
         });
         make();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().ok);
         QCOMPARE(m_value, 0);
@@ -1384,6 +1405,7 @@ private slots:
     void aRedoBackToTheSavedContentIsClean() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
         make();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().ok);
         m_undo->undo();
@@ -1403,6 +1425,7 @@ private slots:
         m_save->setRetryBaseMs(100);
         m_save->setAutosave(true);
         m_save->setDebounceMs(50);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QTRY_COMPARE_WITH_TIMEOUT(posts(), 1, 3000);
         const QString recovery = QDir(m_dir.path()).filePath(QStringLiteral("seq.recovery.json"));
@@ -1417,6 +1440,7 @@ private slots:
         m_save->setRetryBaseMs(50);
         m_save->setAutosave(true);
         m_save->setDebounceMs(50);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QTRY_COMPARE_WITH_TIMEOUT(posts(), 1, 3000);
         QTest::qWait(600);
@@ -1425,10 +1449,12 @@ private slots:
 
     void theConflictCopyHoldsTheCurrentDocument() {
         m_http->setPost([this](const QByteArray&, const QByteArray&) {
+            // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             m_undo->push(new Bump(&m_value));  // an edit made while the request was out
             return conflict();
         });
         make();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const SaveResult r = m_save->saveNow();
         QVERIFY(r.conflict);
@@ -1444,6 +1470,7 @@ private slots:
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const SaveResult r = m_save->saveNow();
         QVERIFY(!r.ok);
@@ -1457,6 +1484,7 @@ private slots:
         m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
         make();
         QCOMPARE(m_save->keptCopy(), QString());
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const auto states = recordStates();
         const SaveResult r = m_save->saveNow();
@@ -1482,6 +1510,7 @@ private slots:
             return ok(QStringLiteral("u1"), QJsonArray{QStringLiteral("clips.0.invented")});
         });
         make();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const SaveResult r = m_save->saveNow();
         QVERIFY(r.ok);
@@ -1497,6 +1526,7 @@ private slots:
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const SaveResult r = m_save->saveNow();
         QVERIFY(!r.recoveryError.isEmpty());
@@ -1511,6 +1541,7 @@ private slots:
             return ++calls == 1 ? failure(400, QStringLiteral("BAD_REQUEST")) : ok(QStringLiteral("u1"));
         });
         make();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(!m_save->saveNow().ok);
         const QString recovery = m_save->keptCopy();
@@ -1535,6 +1566,7 @@ private slots:
         m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
         make();
         m_save->setAutosave(true);  // 750 ms debounce, not elapsed at quit
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->flushBeforeQuit(5000));
         QCOMPARE(posts(), 1);
@@ -1544,6 +1576,7 @@ private slots:
     void quitWithAFailedSaveKeepsARecoveryFile() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR")); });
         make();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(!m_save->flushBeforeQuit(2000));
         QFile f(QDir(m_dir.path()).filePath(QStringLiteral("seq.recovery.json")));
@@ -1562,10 +1595,12 @@ private slots:
         make();
         const QString fallback = m_dir.filePath(QStringLiteral("strip-fallback"));
         m_save->setQuitFallbackDirs({fallback});
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(!m_save->saveNow().ok);
         const QString recovery = m_dir.filePath(QStringLiteral("seq.recovery.json"));
         QVERIFY(QFileInfo::exists(recovery));
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));  // v2 differs from the recovery v1
         QFile::remove(m_dir.filePath(QStringLiteral("seq.stripped.json")));
         QVERIFY(QDir(m_dir.path()).mkpath(QStringLiteral("seq.stripped.json")));
@@ -1585,6 +1620,7 @@ private slots:
         QCOMPARE(posts(), beforeQuit);
         // A later strip written in the backup folder also replaces recovery.
         QVERIFY(QDir(m_dir.path()).rmdir(QStringLiteral("seq.stripped.json")));
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().ok);
         QCOMPARE(m_save->keptCopy(), m_dir.filePath(QStringLiteral("seq.stripped.json")));
@@ -1602,6 +1638,7 @@ private slots:
         QVERIFY(blocker.open(QIODevice::WriteOnly));
         blocker.close();
         m_save->setQuitFallbackDirs({blocked});
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(!m_save->saveNow().ok);
         const QString recovery = m_save->keptCopy();
@@ -1634,8 +1671,10 @@ private slots:
         QFile blockedFallback(m_dir.filePath(QStringLiteral("blocked-fallback")));
         QVERIFY(blockedFallback.open(QIODevice::WriteOnly));
         blockedFallback.close();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(!m_save->saveNow().ok);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         // Keep v1 on disk while making every primary copy path unwritable.
         QVERIFY(QDir().rename(backup, oldBackup));
@@ -1665,6 +1704,7 @@ private slots:
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QElapsedTimer clock;
         clock.start();
@@ -1688,6 +1728,7 @@ private slots:
         m_save->setAutosave(false);
         const QString fallback = m_dir.filePath(QStringLiteral("fallback"));
         m_save->setQuitFallbackDirs({m_dir.filePath("blocked/also-not"), fallback});
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QVERIFY(!m_save->flushBeforeQuit(2000));
         QVERIFY2(m_save->keptCopy().startsWith(fallback), qPrintable(m_save->keptCopy()));
@@ -1728,8 +1769,11 @@ private slots:
         secondSave.setAutosave(false);
         firstSave.setQuitFallbackDirs({fallback});
         secondSave.setQuitFallbackDirs({fallback});
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         firstUndo.push(new Bump(&firstValue));
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         secondUndo.push(new Bump(&secondValue));
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         secondUndo.push(new Bump(&secondValue));
         QVERIFY(!firstSave.flushBeforeQuit(2000));
         QVERIFY(!secondSave.flushBeforeQuit(2000));
@@ -1763,6 +1807,7 @@ private slots:
         m_save->setAutosave(false);
         m_save->setQuitFallbackDirs({blocked});
         m_save->setLastResortStream(stream.get());
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), kExitUnsavedEditsLost);
         QCOMPARE(m_save->keptCopy(), QString());
@@ -1795,6 +1840,7 @@ private slots:
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
         m_save->setQuitFallbackDirs({m_dir.filePath("blocked/also-not")});
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), kExitUnsavedEditsLost);
         QCOMPARE(m_save->keptCopy(), QString());
@@ -1813,6 +1859,7 @@ private slots:
     void quitExitCodeKeepsTheRunsCodeWhenACopyIsKept() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR")); });
         make();
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), 7);
         QVERIFY(QFileInfo::exists(m_save->keptCopy()));
@@ -1829,6 +1876,7 @@ private slots:
         m_save = std::make_unique<AutosaveController>(target, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const auto result = m_save->saveNow();
         QVERIFY2(result.ok, qPrintable(result.error));
@@ -1850,6 +1898,7 @@ private slots:
         m_save->setRetryBaseMs(50);
         m_save->setExternalSync(false);
         m_save->setAutosave(false);
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_undo->push(new Bump(&m_value));
         const SaveResult r = m_save->saveNow();
         QVERIFY(!r.ok);
@@ -1873,6 +1922,7 @@ private slots:
         t.start();
         for (int i = 0; i < 3; ++i) {
             if (i > 0) QTest::qWait(200);
+            // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
             m_undo->push(new Bump(&m_value));
         }
         const qint64 lastEdit = t.elapsed();

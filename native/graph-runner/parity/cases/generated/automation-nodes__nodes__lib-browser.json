@@ -1,0 +1,34 @@
+{
+ "module": "@nodetool-ai/automation-nodes/nodes/lib-browser",
+ "cases": [
+  {
+   "id": "lib.browser.Screenshot#default",
+   "node": "lib.browser.Screenshot",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.browser.Screenshot",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

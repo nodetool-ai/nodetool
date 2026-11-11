@@ -1,0 +1,1116 @@
+{
+ "module": "@nodetool-ai/video-nodes/nodes/video",
+ "cases": [
+  {
+   "id": "nodetool.video.TextToVideo#default",
+   "node": "nodetool.video.TextToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.TextToVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.ImageToVideo#default",
+   "node": "nodetool.video.ImageToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.ImageToVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.ReferenceToVideo#default",
+   "node": "nodetool.video.ReferenceToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.ReferenceToVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.LoadVideoFile#default",
+   "node": "nodetool.video.LoadVideoFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.LoadVideoFile",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.SaveVideoFile#default",
+   "node": "nodetool.video.SaveVideoFile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.SaveVideoFile",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.LoadVideoAssets#default",
+   "node": "nodetool.video.LoadVideoAssets",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.LoadVideoAssets",
+      "properties": {}
+     },
+     {
+      "id": "out_video",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "video"
+      }
+     },
+     {
+      "id": "out_name",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "name"
+      }
+     },
+     {
+      "id": "out_videos",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "videos"
+      }
+     },
+     {
+      "id": "out_names",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "names"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_video",
+      "source": "n",
+      "sourceHandle": "video",
+      "target": "out_video",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_name",
+      "source": "n",
+      "sourceHandle": "name",
+      "target": "out_name",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_videos",
+      "source": "n",
+      "sourceHandle": "videos",
+      "target": "out_videos",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_names",
+      "source": "n",
+      "sourceHandle": "names",
+      "target": "out_names",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.SaveVideo#default",
+   "node": "nodetool.video.SaveVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.SaveVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.ForEachFrame#default",
+   "node": "nodetool.video.ForEachFrame",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.ForEachFrame",
+      "properties": {}
+     },
+     {
+      "id": "out_frame",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "frame"
+      }
+     },
+     {
+      "id": "out_index",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "index"
+      }
+     },
+     {
+      "id": "out_fps",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "fps"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_frame",
+      "source": "n",
+      "sourceHandle": "frame",
+      "target": "out_frame",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_index",
+      "source": "n",
+      "sourceHandle": "index",
+      "target": "out_index",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_fps",
+      "source": "n",
+      "sourceHandle": "fps",
+      "target": "out_fps",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Fps#default",
+   "node": "nodetool.video.Fps",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Fps",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.FrameToVideo#default",
+   "node": "nodetool.video.FrameToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.FrameToVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Concat#default",
+   "node": "nodetool.video.Concat",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Concat",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Trim#default",
+   "node": "nodetool.video.Trim",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Trim",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Resize#default",
+   "node": "nodetool.video.Resize",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Resize",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Rotate#default",
+   "node": "nodetool.video.Rotate",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Rotate",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.SetSpeed#default",
+   "node": "nodetool.video.SetSpeed",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.SetSpeed",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.EaseCurve#default",
+   "node": "nodetool.video.EaseCurve",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.EaseCurve",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Overlay#default",
+   "node": "nodetool.video.Overlay",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Overlay",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.ColorBalance#default",
+   "node": "nodetool.video.ColorBalance",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.ColorBalance",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Denoise#default",
+   "node": "nodetool.video.Denoise",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Denoise",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Stabilize#default",
+   "node": "nodetool.video.Stabilize",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Stabilize",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Sharpness#default",
+   "node": "nodetool.video.Sharpness",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Sharpness",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Blur#default",
+   "node": "nodetool.video.Blur",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Blur",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Saturation#default",
+   "node": "nodetool.video.Saturation",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Saturation",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.AddSubtitles#default",
+   "node": "nodetool.video.AddSubtitles",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.AddSubtitles",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Reverse#default",
+   "node": "nodetool.video.Reverse",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Reverse",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Transition#default",
+   "node": "nodetool.video.Transition",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Transition",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.AddAudio#default",
+   "node": "nodetool.video.AddAudio",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.AddAudio",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.ChromaKey#default",
+   "node": "nodetool.video.ChromaKey",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.ChromaKey",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.ExtractAudio#default",
+   "node": "nodetool.video.ExtractAudio",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.ExtractAudio",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.ExtractFrame#default",
+   "node": "nodetool.video.ExtractFrame",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.ExtractFrame",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.GetVideoInfo#default",
+   "node": "nodetool.video.GetVideoInfo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.GetVideoInfo",
+      "properties": {}
+     },
+     {
+      "id": "out_duration",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "duration"
+      }
+     },
+     {
+      "id": "out_width",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "width"
+      }
+     },
+     {
+      "id": "out_height",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "height"
+      }
+     },
+     {
+      "id": "out_fps",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "fps"
+      }
+     },
+     {
+      "id": "out_frame_count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "frame_count"
+      }
+     },
+     {
+      "id": "out_codec",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "codec"
+      }
+     },
+     {
+      "id": "out_has_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "has_audio"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_duration",
+      "source": "n",
+      "sourceHandle": "duration",
+      "target": "out_duration",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_width",
+      "source": "n",
+      "sourceHandle": "width",
+      "target": "out_width",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_height",
+      "source": "n",
+      "sourceHandle": "height",
+      "target": "out_height",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_fps",
+      "source": "n",
+      "sourceHandle": "fps",
+      "target": "out_fps",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_frame_count",
+      "source": "n",
+      "sourceHandle": "frame_count",
+      "target": "out_frame_count",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_codec",
+      "source": "n",
+      "sourceHandle": "codec",
+      "target": "out_codec",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_has_audio",
+      "source": "n",
+      "sourceHandle": "has_audio",
+      "target": "out_has_audio",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.VideoToVideo#default",
+   "node": "nodetool.video.VideoToVideo",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.VideoToVideo",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.LipSync#default",
+   "node": "nodetool.video.LipSync",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.LipSync",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -60,6 +60,7 @@ std::unique_ptr<AudioSource> AudioSource::open(const std::string& path, int samp
         if (error) *error = why;
         return nullptr;
     };
+    // native-rules #2: naked new AudioSource handed to unique_ptr, use make_unique with a factory ctor
     std::unique_ptr<AudioSource> src(new AudioSource());
     src->m_impl = std::make_unique<Impl>();
     Impl& d = *src->m_impl;

@@ -695,6 +695,7 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
     const auto key = m_projectionKeys[i.row()];
     auto *parts = m_partModels.value(key, nullptr);
     if (!parts) {
+      // native-rules #2: Qt parent is not documented
       parts = new PartModel(const_cast<MessageModel *>(this));
       m_partModels[key] = parts;
       parts->setParts(projectedParts(m, m_results, m_partOffsets.value(key)));
@@ -715,6 +716,7 @@ void MessageModel::attachChildren(PartModel *parts) const {
 }
 MessageModel *MessageModel::child(const QString &key) {
   if (!m_children.contains(key)) {
+    // native-rules #2: Qt parent is not documented
     auto *model = new MessageModel(this);
     m_children[key] = model;
     for (auto *parts : m_partModels) { parts->setChild(key, model, 0); }
@@ -1009,6 +1011,7 @@ void MessageModel::appendChunk(const QString &input, bool done, bool thinking) {
   }
   m_dirtyRow = rowCount() - 1;
   if (!m_frameTimer) {
+    // native-rules #2: Qt parent is not documented
     m_frameTimer = new QTimer(this);
     m_frameTimer->setSingleShot(true);
     m_frameTimer->setInterval(16);

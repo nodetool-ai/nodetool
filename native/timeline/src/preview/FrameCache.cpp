@@ -12,6 +12,7 @@ namespace nt {
 FrameCache::FrameCache(size_t budgetBytes) : m_budget(budgetBytes) {}
 
 FrameCache& FrameCache::shared() {
+    // native-rules #14: static process-wide mutable cache
     static FrameCache cache;
     return cache;
 }

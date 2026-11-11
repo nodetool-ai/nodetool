@@ -39,6 +39,7 @@ import { importOptionalModule } from "@nodetool-ai/config";
 import { transcodeVideo } from "@nodetool-ai/runtime/media";
 import {
   BUNDLED_FONT_FILES,
+  bundledFontFaceCss,
   googleFontFaceCss,
   type TimelineSequence
 } from "@nodetool-ai/timeline";
@@ -376,9 +377,11 @@ function openOutputWriter(
   };
 }
 
-/** The page's own HTML: one module script and nothing else. */
+/** The exporter loads bundled faces before its first canvas raster. */
 const PAGE_HTML =
-  '<!doctype html><html><head><meta charset="utf-8"></head>' +
+  '<!doctype html><html><head><meta charset="utf-8"><style>' +
+  bundledFontFaceCss() +
+  '</style></head>' +
   '<body style="margin:0"><script type="module" src="render.js"></script></body></html>';
 
 const FONT_CONTENT_TYPES: Record<string, string> = {

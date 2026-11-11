@@ -7,6 +7,7 @@ import type { NodeData } from "../../stores/NodeData";
 import type { Node } from "@xyflow/react";
 
 jest.mock("../../config/snippetMetadata", () => ({
+  ...jest.requireActual("../../config/snippetMetadata"),
   findSnippetByNodeType: jest.fn()
 }));
 

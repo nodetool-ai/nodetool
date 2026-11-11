@@ -76,6 +76,7 @@ AudioRoles::~AudioRoles() {
     if (m_cancel) m_cancel->store(true);
     if (m_thread) {
         m_thread->wait();
+        // native-rules #2: naked delete of a raw QThread*
         delete m_thread;
         m_thread = nullptr;
     }
@@ -274,6 +275,7 @@ void AudioRoles::matchLoudness(const QStringList& ids) {
     const auto settingsTargets = m_targets;
     m_measurements.clear();
     start(QStringLiteral("match"), [](const nt::Timeline& t) { return analysisKey(t, false, {}); },
+        // native-rules #12: lambda captures raw this and runs on the worker thread, writes m_measurements
         [this, snapshot, list, settingsTargets](const CancelFn& cancelled, const ProgressFn& progress) {
             const Goal goal{[settingsTargets](const nt::Clip& clip) {
                 return settingsTargets.value(effectiveRole(clip.raw), defaultTargetLufs({})).toDouble();
@@ -316,6 +318,7 @@ void AudioRoles::normalize(const QStringList& ids, const QString& mode, double t
     const auto snapshot = m_timeline->snapshot();
     m_measurements.clear();
     start(QStringLiteral("normalize"), [](const nt::Timeline& t) { return analysisKey(t, false, {}); },
+        // native-rules #12: lambda captures raw this and runs on the worker thread, writes m_measurements
         [this, snapshot, list, peak, target](const CancelFn& cancelled, const ProgressFn& progress) {
             const Goal goal{[target](const nt::Clip&) { return target; }, peak};
             m_measurements = measureClips(*snapshot, list, goal, cancelled, progress);
@@ -358,6 +361,7 @@ void AudioRoles::duck(const QStringList& ids) {
     m_plans.clear();
     const QSet<QString> targets(chosen.begin(), chosen.end());
     start(QStringLiteral("duck"), [targets](const nt::Timeline& t) { return analysisKey(t, true, targets); },
+        // native-rules #12: lambda captures raw this and runs on the worker thread, writes m_plans
         [this, snapshot, list, settings](const CancelFn& cancelled, const ProgressFn& progress) {
             m_plans = planDucking(*snapshot, list, settings, cancelled, progress);
         },

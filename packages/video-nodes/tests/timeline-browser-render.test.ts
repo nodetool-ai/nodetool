@@ -12,7 +12,7 @@
  * set `CHROME_PATH` to a Chromium or install Playwright's. The parity case
  * also needs the Node compositor's WebGPU device.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, onTestFailed } from "vitest";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -38,6 +38,7 @@ const HEIGHT = 180;
 const FPS = 10;
 let directory = "";
 let clipPath = "";
+let preserveArtifacts = false;
 
 beforeAll(async () => {
   directory = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-browser-render-"));
@@ -59,7 +60,11 @@ beforeAll(async () => {
 }, 60_000);
 
 afterAll(async () => {
-  if (directory) await fs.rm(directory, { recursive: true, force: true });
+  if (preserveArtifacts) {
+    process.stderr.write(`Browser parity artifacts: ${directory}\n`);
+  } else if (directory) {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
 });
 
 
@@ -288,6 +293,7 @@ describe.runIf(!noBrowserReason)("renderTimelineInBrowser", () => {
   }, 120_000);
 
   it.runIf(!noAdapterReason)("matches the Node compositor at ten timestamps", async () => {
+    onTestFailed(() => { preserveArtifacts = true; });
     const durationMs = 3000;
     // PNG frames on both sides, so the comparison is the compositors' and not
     // two lossy encoders'.

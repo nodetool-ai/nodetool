@@ -1,0 +1,237 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-warp",
+ "cases": [
+  {
+   "id": "lib.image.warp.Offset#default",
+   "node": "lib.image.warp.Offset",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.warp.Offset",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.warp.Pad#default",
+   "node": "lib.image.warp.Pad",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.warp.Pad",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.warp.Tile#default",
+   "node": "lib.image.warp.Tile",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.warp.Tile",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.warp.Affine#default",
+   "node": "lib.image.warp.Affine",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.warp.Affine",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.warp.CornerPin#default",
+   "node": "lib.image.warp.CornerPin",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.warp.CornerPin",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.warp.PolarRemap#default",
+   "node": "lib.image.warp.PolarRemap",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.warp.PolarRemap",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.warp.Displace#default",
+   "node": "lib.image.warp.Displace",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.warp.Displace",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.warp.Spherize#default",
+   "node": "lib.image.warp.Spherize",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.warp.Spherize",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

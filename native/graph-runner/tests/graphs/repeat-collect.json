@@ -1,0 +1,13 @@
+{
+  "nodes": [
+    { "id": "count", "type": "nodetool.constant.Integer", "properties": { "value": 3 } },
+    { "id": "repeat", "type": "nodetool.control.RepeatCount", "properties": { "count": 1 } },
+    { "id": "collect", "type": "nodetool.control.Collect", "properties": {} },
+    { "id": "out", "type": "nodetool.output.Output", "properties": { "name": "items" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "count", "sourceHandle": "output", "target": "repeat", "targetHandle": "count" },
+    { "id": "e2", "source": "repeat", "sourceHandle": "output", "target": "collect", "targetHandle": "input_item" },
+    { "id": "e3", "source": "collect", "sourceHandle": "output", "target": "out", "targetHandle": "value" }
+  ]
+}

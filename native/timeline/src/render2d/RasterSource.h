@@ -13,6 +13,7 @@ class RasterSource final : public LayerSource {
   private:
     ActiveLayer m_layer;
     RasterCache m_cache;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<QRhiTexture> m_texture;
     qint64 m_uploadedKey = 0;
     long long m_lastUse = 0;

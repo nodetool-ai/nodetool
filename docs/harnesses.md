@@ -2669,6 +2669,35 @@ database, providers, and caches by default — no server required. Pass
 `--api-url <url>` (env: `NODETOOL_API_URL`) to route through a remote server
 instead.
 
+## Native node editor
+
+Run the standalone workflow graph editor's native build and tests:
+
+```bash
+node native/node-editor/scripts/check.mjs
+node --test native/node-editor/scripts/check.test.mjs
+```
+
+The check configures CMake with testing enabled, builds with Ninja, then runs
+CTest offscreen with software rendering. Configuration, build, test failures,
+and an empty test registry return a nonzero exit. The script regression suite
+uses real CMake/CTest fixtures, including deliberate build and test failures.
+
+Prerequisites are CMake 3.24 or newer, Ninja, a C++20 compiler, and Qt 6.12
+or newer with the modules listed in
+[`CMakeLists.txt`](https://github.com/nodetool-ai/nodetool/blob/main/native/node-editor/CMakeLists.txt).
+Set `CMAKE_PREFIX_PATH` to the Qt kit, or install a Qt 6.12 kit under `~/qt`.
+Set `NODETOOL_NODE_EDITOR_BUILD_DIR` to choose a separate build directory.
+First configure needs Git and access to the pinned QtNodes repository unless
+its FetchContent source is already cached. Missing prerequisites fail the
+check and remain visible in its command output.
+
+Changes under `native/node-editor/` select `native-node-editor` in the harness
+registry. The root gate reports it as manual work requiring these native
+prerequisites. Run the check explicitly to establish native test results.
+Offscreen tests do not establish platform input, accessibility, or installed-app
+rendering acceptance. See the [editor plan](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/native-node-editor.md).
+
 ## Native Qt presentation checks
 
 The native UI library has a standalone [build and test interface](https://github.com/nodetool-ai/nodetool/blob/main/native/ui_primitives/README.md).
@@ -2933,3 +2962,28 @@ npm run test:journeys --workspace=web -- app-instances.spec.ts run-observability
 The registry lists browser journeys as manual checks. Instance tabs retain the
 application and instance IDs separately. Selecting a historical run is inspection
 state and does not replace working variables or invoke an operation.
+
+
+### Native graph runner
+
+```bash
+node scripts/check-native-graph-runner.mjs
+```
+
+The default gate lists this check as manual work for `native/graph-runner/`
+and the native editor's local execution bridge, because it needs native
+libraries that the gate's runner does not install. The
+`native-graph-runner.yml` workflow builds and tests the runner in CI. The check parses the guest and harness JavaScript
+modules, rebuilds the guest and shader catalog, configures and builds the
+C++ runner, runs CTest with empty test registries rejected, and compares
+fixture message streams against the TypeScript reference. This is focused
+conformance, not the full node parity inventory. Editor changes also retain
+the separate manual Qt editor check.
+
+Install the workspace dependencies first. The check requires Node, CMake
+3.28 or newer, a C++20 compiler, and a GPU adapter or software Vulkan ICD for
+GPU tests. CMake fetches dependencies pinned in the runner's CMake files on
+the first build. Set `NODETOOL_GRAPH_RUNNER_BUILD_DIR` to reuse a populated
+CMake build directory. The default is `native/graph-runner/build`. The wrapper
+always rebuilds sources and guest artifacts before testing, including when
+reusing a build. Missing prerequisites and failed commands return nonzero.

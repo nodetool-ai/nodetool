@@ -248,6 +248,7 @@ void decorateMasks(ActiveLayer &layer, const Clip &clip, const SceneDecorationCo
     if (path.isEmpty()) {
         return;
     }
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     auto source = std::make_shared<ActiveLayer>(layer);
     source->matte.reset();
     // Exporter output keeps resolved clip treatments and the animated layer mask,

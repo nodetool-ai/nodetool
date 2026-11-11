@@ -1,0 +1,77 @@
+{
+ "module": "@nodetool-ai/llm-nodes/nodes/codex",
+ "cases": [
+  {
+   "id": "codex.text.WebSearch#default",
+   "node": "codex.text.WebSearch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "codex.text.WebSearch",
+      "properties": {}
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_sources",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "sources"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_sources",
+      "source": "n",
+      "sourceHandle": "sources",
+      "target": "out_sources",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "codex.image.CreateImage#default",
+   "node": "codex.image.CreateImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "codex.image.CreateImage",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

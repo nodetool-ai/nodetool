@@ -20,6 +20,7 @@ struct FrameCaptureResult {
     bool ok() const { return !image.isNull(); }
 };
 
+// native-rules #9: QThreadPool jobs call back into it from other threads, no affinity comment
 class FrameCapture : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -57,6 +58,7 @@ private:
         double timeMs = 0;
         QString path;
         Callback callback;
+        // native-rules #1: std::shared_ptr Snapshot shared with pool jobs, no justification comment
         std::shared_ptr<Snapshot> snapshot;
         FrameCaptureResult result;
         bool sequence = false;
@@ -78,6 +80,7 @@ private:
     QThreadPool m_pool;
     QTemporaryDir m_directory;
     QMap<int, Request> m_requests;
+    // native-rules #1: std::shared_ptr Snapshot shared with pool jobs, no justification comment
     std::shared_ptr<Snapshot> m_snapshot;
     QString m_executable;
     QByteArray m_stdout;

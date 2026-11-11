@@ -108,6 +108,7 @@ QVariantMap TimelineChatHost::execute(const QString& name, const QVariantMap& ar
         const auto after = nt::markers::add(before, {{"id", id}, {"timeMs", ms}, {"label", args.value("label").toString()},
                                                      {"note", args.value("note").toString()}, {"color", args.value("color").toString()},
                                                      {"durationMs", durationMs}, {"author", QStringLiteral("Assistant")}});
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         m_model.undoStack()->push(new AddMarkerCommand(m_model, before, after));
         for (const auto& marker : m_model.markers()) {
             if (marker.toMap().value("id").toString() == id) { return {{"ok", true}, {"marker", marker}}; }

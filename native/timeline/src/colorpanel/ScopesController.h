@@ -16,6 +16,7 @@
 // Keeps the scope images of the frame at the playhead. It asks the editor's FrameCapture for one
 // frame at a time and computes on its own worker thread. It reads the model and the clock and
 // writes neither, so playback and seeks update nothing but the images here.
+// native-rules #9: used across threads (QThreadPool worker) and declares no thread affinity at its top
 class ScopesController : public QObject {
     Q_OBJECT
     QML_ELEMENT

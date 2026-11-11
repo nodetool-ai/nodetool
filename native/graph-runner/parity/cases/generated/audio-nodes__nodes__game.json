@@ -1,0 +1,91 @@
+{
+ "module": "@nodetool-ai/audio-nodes/nodes/game",
+ "cases": [
+  {
+   "id": "nodetool.game.SoundEffect#default",
+   "node": "nodetool.game.SoundEffect",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.game.SoundEffect",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "out_fill",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "fill"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_fill",
+      "source": "n",
+      "sourceHandle": "fill",
+      "target": "out_fill",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.game.MusicLoop#default",
+   "node": "nodetool.game.MusicLoop",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.game.MusicLoop",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "out_fill",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "fill"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_fill",
+      "source": "n",
+      "sourceHandle": "fill",
+      "target": "out_fill",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

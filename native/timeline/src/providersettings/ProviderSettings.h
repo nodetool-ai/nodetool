@@ -7,6 +7,7 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <functional>
 
+// native-rules #9: used across threads (QThread worker) and declares no thread affinity at its top
 class ProviderSettings : public QObject {
     Q_OBJECT
     QML_ELEMENT

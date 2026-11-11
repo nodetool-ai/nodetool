@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    { "id": "val", "type": "nodetool.constant.String", "properties": { "value": "hello" } },
+    { "id": "fb", "type": "nodetool.constant.String", "properties": { "value": "fallback" } },
+    { "id": "trycatch", "type": "nodetool.control.TryCatch", "properties": {} },
+    { "id": "out_value", "type": "nodetool.output.Output", "properties": { "name": "value" } },
+    { "id": "out_error", "type": "nodetool.output.Output", "properties": { "name": "error" } },
+    { "id": "out_has_error", "type": "nodetool.output.Output", "properties": { "name": "has_error" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "val", "sourceHandle": "output", "target": "trycatch", "targetHandle": "value" },
+    { "id": "e2", "source": "fb", "sourceHandle": "output", "target": "trycatch", "targetHandle": "fallback" },
+    { "id": "e3", "source": "trycatch", "sourceHandle": "output", "target": "out_value", "targetHandle": "value" },
+    { "id": "e4", "source": "trycatch", "sourceHandle": "error", "target": "out_error", "targetHandle": "value" },
+    { "id": "e5", "source": "trycatch", "sourceHandle": "has_error", "target": "out_has_error", "targetHandle": "value" }
+  ]
+}

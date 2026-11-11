@@ -47,6 +47,7 @@ struct BackdropRegistry {
     BackdropStageToken next = 1;
     std::vector<std::pair<BackdropStageToken, BackdropStageFactory>> factories;
 };
+// native-rules #14: static process-wide mutable registry
 BackdropRegistry& backdropRegistry() { static BackdropRegistry value; return value; }
 }
 BackdropStageToken registerBackdropStage(BackdropStageFactory factory) {
@@ -143,6 +144,7 @@ void writeMatrix(LayerUniforms& u, const QMatrix4x4& m) {
 
 }  // namespace
 
+// native-rules #9: holds a mutex shared with the readback callback, no thread affinity comment
 class PreviewCompositorRenderer final : public QQuickRhiItemRenderer {
 public:
     ~PreviewCompositorRenderer() override {
@@ -333,6 +335,7 @@ private:
     double m_capturedTimeMs = 0.0;
     bool m_captureInFlight = false;
     QRhiReadbackResult m_readback;
+    // native-rules #10: guards m_captured and related fields, but the guarded data is not documented
     std::mutex m_captureMutex;
     QImage m_captured;
     bool m_waitingForFrames = false;  // a still is pending on decode
@@ -427,6 +430,7 @@ void PreviewCompositor::setClock(PlaybackClock* clock) {
 }
 
 QQuickRhiItemRenderer* PreviewCompositor::createRenderer() {
+    // native-rules #2: naked new, ownership passes to Qt with no documented parent
     return new PreviewCompositorRenderer();
 }
 
@@ -1646,6 +1650,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         const auto format = m_canvas->format() == QRhiTexture::RGBA16F
             ? QImage::Format_RGBA16FPx4_Premultiplied : QImage::Format_RGBA8888_Premultiplied;
         // Readback rows follow the backend framebuffer orientation. Copy before reuse.
+        // native-rules #12: lambda captures raw this and runs later, when the readback completes
         m_readback.completed = [this, captureTime, format, request = m_captureRequest, flip = m_rhi->isYUpInFramebuffer()] {
             const QImage img(reinterpret_cast<const uchar*>(m_readback.data.constData()), m_readback.pixelSize.width(),
                              m_readback.pixelSize.height(), format);

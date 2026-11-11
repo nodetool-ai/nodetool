@@ -1,0 +1,142 @@
+#include "NodeLayout.h"
+#include <QFile>
+#include <QHash>
+#include <QSet>
+
+namespace nodetool {
+QColor typeColor(const QString &type) {
+  static const QHash<QString, QString> colors{
+      {"any", "#6880A0"}, {"none", "#6880A0"}, {"notype", "#A7B1BF"},
+      {"str", "#FFA808"}, {"text", "#FFA808"}, {"message", "#FFA808"}, {"thread", "#FFA808"},
+      {"bool", "#0DD49A"}, {"float", "#18E0F8"}, {"image_size", "#18E0F8"},
+      {"datetime", "#18E0F8"}, {"date", "#18E0F8"}, {"int", "#0891B2"},
+      {"image", "#E838FF"}, {"entity", "#E838FF"}, {"video_element", "#E838FF"},
+      {"video", "#9460FF"}, {"timeline", "#9460FF"}, {"storyboard", "#9460FF"},
+      {"keyframe", "#9460FF"}, {"shot", "#9460FF"}, {"audio", "#08B8FF"}, {"script", "#08B8FF"},
+      {"sketch", "#B0F030"}, {"game_slot", "#B0F030"}, {"slot_fill", "#B0F030"},
+      {"list", "#FFD612"}, {"dict", "#FFD612"}, {"enum", "#FFD612"}, {"chunk", "#FFD612"},
+      {"dataframe", "#FFD612"}, {"collection", "#FFD612"}, {"object", "#FFD612"}, {"json", "#FFD612"},
+      {"tensor", "#5B5EFF"}, {"torch_tensor", "#5B5EFF"}, {"np_array", "#5B5EFF"},
+      {"task", "#FF3060"}, {"cv", "#FF3060"}};
+  if (const auto found = colors.constFind(type); found != colors.cend()) { return QColor(*found); }
+  // The web colors its remaining file-like and model reference types blue.
+  return QColor(type.isEmpty() ? QStringLiteral("#6880A0") : QStringLiteral("#3888FF"));
+}
+
+QString typeIcon(const QString &type) {
+  static const QHash<QString, QString> icons{
+      {"str", "quote"}, {"text", "quote"}, {"message", "quote"}, {"image", "image"},
+      {"video", "movie"}, {"audio", "equalizer"}, {"bool", "toggle"}, {"int", "number"},
+      {"float", "number"}, {"list", "list"}, {"dict", "braces"}, {"json", "braces"},
+      {"object", "braces"}, {"dataframe", "table"}, {"document", "document"}, {"folder", "folder"},
+      {"any", "help"}, {"preview", "visibility"}};
+  return icons.value(type, QStringLiteral("help"));
+}
+
+QString iconPath(const QString &name) {
+  // Material icon paths. See native/ui_primitives/resources/licenses/MATERIAL-ICONS.md.
+  static const QHash<QString, QString> paths{
+      {"accountTree", "M22 11V3h-7v3H9V3H2v8h7V8h2v12h4v3h7v-8h-7v3h-2V8h2v3z"},
+      {"quote", "M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"},
+      {"image", "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2M8.5 13.5l2.5 3.01L14.5 12l4.5 6H5z"},
+      {"movie", "M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H5L3 4H2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4z"},
+      {"equalizer", "M7 18h2V6H7zm4 4h2V2h-2zm-8-8h2v-4H3zm12 4h2V6h-2zm4-8v4h2v-4z"},
+      {"toggle", "M17 7H7a5 5 0 0 0 0 10h10a5 5 0 0 0 0-10m0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6"},
+      {"number", "M20 10V8h-4V4h-2v4h-4V4H8v4H4v2h4v4H4v2h4v4h2v-4h4v4h2v-4h4v-2h-4v-4zm-6 4h-4v-4h4z"},
+      {"list", "M3 13h2v-2H3zm0 4h2v-2H3zm0-8h2V7H3zm4 4h14v-2H7zm0 4h14v-2H7zM7 7v2h14V7z"},
+      {"braces", "M4 7v2c0 .55-.45 1-1 1H2v4h1c.55 0 1 .45 1 1v2c0 1.65 1.35 3 3 3h3v-2H7c-.55 0-1-.45-1-1v-2c0-1.3-.84-2.42-2-2.83v-.34C5.16 11.42 6 10.3 6 9V7c0-.55.45-1 1-1h3V4H7C5.35 4 4 5.35 4 7m17 3c-.55 0-1-.45-1-1V7c0-1.65-1.35-3-3-3h-3v2h3c.55 0 1 .45 1 1v2c0 1.3.84 2.42 2 2.83v.34c-1.16.41-2 1.52-2 2.83v2c0 .55-.45 1-1 1h-3v2h3c1.65 0 3-1.35 3-3v-2c0-.55.45-1 1-1h1v-4z"},
+      {"table", "M3 3v18h18V3zm8 16H5v-6h6zm0-8H5V5h6zm8 8h-6v-6h6zm0-8h-6V5h6z"},
+      {"document", "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8zm2 16H8v-2h8zm0-4H8v-2h8zm-3-5V3.5L18.5 9z"},
+      {"folder", "M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8z"},
+      {"help", "M11.07 12.85c.77-1.39 2.25-2.21 3.11-3.44.91-1.29.4-3.7-2.18-3.7-1.69 0-2.52 1.28-2.87 2.34L6.54 6.96C7.25 4.83 9.18 3 11.99 3c2.35 0 3.96 1.07 4.78 2.41.7 1.15 1.11 3.3.03 4.9-1.2 1.77-2.35 2.31-2.97 3.45-.25.46-.35.76-.35 2.24h-2.89c-.01-.78-.13-2.05.48-3.15M14 20c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2"},
+      {"search", "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"},
+      {"save", "M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3m3-10H5V5h10z"},
+      {"folderOpen", "M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2m0 12H4V8h16z"},
+      {"addCircle", "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m5 11h-4v4h-2v-4H7v-2h4V7h2v4h4z"},
+      {"hub", "M8.4 18.2c.38.5.6 1.12.6 1.8 0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3c.44 0 .85.09 1.23.26l1.41-1.77c-.92-1.03-1.29-2.39-1.09-3.69l-2.03-.68c-.54.83-1.46 1.38-2.52 1.38-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3c0 .07 0 .14-.01.21l2.03.68c.64-1.21 1.82-2.09 3.22-2.32V5.91C9.96 5.57 9 4.4 9 3c0-1.66 1.34-3 3-3s3 1.34 3 3c0 1.4-.96 2.57-2.25 2.91v2.16c1.4.23 2.58 1.11 3.22 2.32l2.03-.68c-.01-.07-.01-.14-.01-.21 0-1.66 1.34-3 3-3s3 1.34 3 3-1.34 3-3 3c-1.06 0-1.98-.55-2.52-1.38l-2.03.68c.2 1.29-.16 2.65-1.09 3.69l1.41 1.77c.38-.17.79-.26 1.23-.26 1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3c0-.68.22-1.3.6-1.8l-1.41-1.77c-1.35.75-3.01.76-4.37 0z"},
+      {"article", "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-5 14H7v-2h7zm3-4H7v-2h10zm0-4H7V7h10z"},
+      {"visibility", "M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5M12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5m0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"},
+      {"textFields", "M2.5 4v3h5v12h3V7h5V4zm19 5h-9v3h3v7h3v-7h3z"},
+      {"output", "M17 17L22 12L17 7L15.59 8.41L18.17 11H9v2h9.17l-2.58 2.59zM19 19H5V5h14v2h2V5c0-1.1-.89-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.11 0 2-.9 2-2v-2h-2z"},
+      {"link", "M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1M8 13h8v-2H8zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5"},
+      {"linkOff", "M17 7h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1 0 1.43-.98 2.63-2.31 2.98l1.46 1.46C20.88 15.61 22 13.95 22 12c0-2.76-2.24-5-5-5m-1 4h-2.19l2 2H16zM2 4.27l3.11 3.11C3.29 8.12 2 9.91 2 12c0 2.76 2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1 0-1.59 1.21-2.9 2.76-3.07L8.73 11H8v2h2.73L13 15.27V17h1.73l4.01 4L20 19.74 3.27 3z"},
+      {"add", "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"},
+      {"arrowDropDown", "M7 10l5 5 5-5z"},
+      // Compare, Flip, RestartAlt, OpenInFull and ContentCopy, used by the card bodies.
+      {"compare", "M10 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h5v2h2V1h-2zm0 15H5l5-6zm9-15h-5v2h5v13l-5-6v9h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2"},
+      {"flip", "M15 21h2v-2h-2zm4-12h2V7h-2zM3 5v14c0 1.1.9 2 2 2h4v-2H5V5h4V3H5c-1.1 0-2 .9-2 2m16-2v2h2c0-1.1-.9-2-2-2m-8 20h2V1h-2zm8-6h2v-2h-2zM15 5h2V3h-2zm4 8h2v-2h-2zm0 8c1.1 0 2-.9 2-2h-2z"},
+      {"restartAlt", "M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 2.97-2.17 5.43-5 5.91v2.02c3.95-.49 7-3.85 7-7.93 0-4.42-3.58-8-8-8m-6 8c0-1.65.67-3.15 1.76-4.24L6.34 7.34C4.9 8.79 4 10.79 4 13c0 4.08 3.05 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91"},
+      {"openInFull", "M21 11V3h-8l3.29 3.29-10 10L3 13v8h8l-3.29-3.29 10-10z"},
+      {"playArrow", "M8 5v14l11-7z"},
+      {"contentCopy", "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2m0 16H8V7h11z"},
+      // EditOutlined and CloseOutlined, the dynamic property actions in PropertyInput.tsx.
+      {"edit", "m14.06 9.02.92.92L5.92 19H5v-.92zM17.66 3c-.25 0-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29m-3.6 3.19L3 17.25V21h3.75L17.81 9.94z"},
+      {"close", "M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"},
+      {"swapHoriz", "M6.99 11 3 15l3.99 4v-3H14v-2H6.99zM21 9l-3.99-4v3H10v2h7.01v3z"},
+      {"lock", "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2m-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2m3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1z"},
+      {"lockOpen", "M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2m6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2m0 12H6V10h12z"},
+      {"moreVert", "M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2m0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2m0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2"},
+      {"brush", "M7 14c-1.66 0-3 1.34-3 3 0 1.31-1.16 2-2 2 .92 1.22 2.49 2 4 2 2.21 0 4-1.79 4-4 0-1.66-1.34-3-3-3m13.71-9.37-1.34-1.34a.996.996 0 0 0-1.41 0L9 12.25 11.75 15l8.96-8.96a.996.996 0 0 0 0-1.41"},
+      {"viewCarousel", "M7 19h10V4H7zM2 17h4V6H2zM18 6v11h4V6z"},
+      {"uploadFile", "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8zm4 18H6V4h7v5h5zM8 15.01l1.41 1.41L11 14.84V19h2v-4.16l1.59 1.59L16 15.01 12.01 11z"}};
+  return paths.value(name);
+}
+
+QString webTypeIcon(const QString &type) {
+    // Aliases from iconMap in web/src/config/IconForType.tsx. Other names use
+    // their own icon when one exists, and "any" otherwise.
+    static const QHash<QString, QString> aliases{
+        {"bytes", "file"}, {"cv", "audio"}, {"collection", "database"}, {"embedding_model", "tensor"},
+        {"rerank_model", "tensor"}, {"font", "document"}, {"image_size", "language_model"},
+        {"model_ref", "model"}, {"llama_cpp_model", "language_model"}, {"llama_model", "language_model"},
+        {"mistral_model", "language_model"}, {"model_3d_model", "model_3d"}, {"model3d", "model_3d"},
+        {"none", "notype"}, {"sketch", "image"}, {"timeline", "video"}, {"keyframe", "image"},
+        {"video_element", "image"}, {"shot", "video"}, {"message", "thread_message"},
+        {"torch_tensor", "tensor"}, {"tts_model", "audio"}, {"asr_model", "audio"},
+        {"music_model", "audio"}, {"audio_to_audio_model", "audio"}, {"video_model", "video"},
+        {"workflow", "dataframe"}, {"object", "dict"}, {"json", "dict"}};
+    // Keys with an SVG in resources/data_types that iconMap also lists by name.
+    static const QSet<QString> named{
+        "any", "notype", "asset", "audio", "bool", "chunk", "preview", "dataframe", "dict", "enum",
+        "file", "float", "folder", "image", "int", "list", "model", "language_model", "image_model",
+        "str", "tensor", "text", "union", "video", "task", "thread", "datetime", "date", "np_array",
+        "document", "model_3d"};
+    auto name = type;
+    if (name.startsWith(QStringLiteral("nodetool."))) {
+        name = name.mid(9);
+    }
+    if (name.isEmpty()) {
+        return QStringLiteral("notype");
+    }
+    if (const auto alias = aliases.constFind(name); alias != aliases.cend()) {
+        return *alias;
+    }
+    if (name.startsWith(QStringLiteral("tjs."))) {
+        return QStringLiteral("language_model");
+    }
+    return named.contains(name) ? name : QStringLiteral("any");
+}
+
+QByteArray webTypeIconSvg(const QString &key, const QColor &color) {
+    // native-rules #14: function-static mutable SVG cache
+    static QHash<QString, QByteArray> sources;
+    auto found = sources.find(key);
+    if (found == sources.end()) {
+        QFile file(QStringLiteral(":/editor/data_types/%1.svg").arg(key));
+        found = sources.insert(key, file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray{});
+    }
+    if (found->isEmpty()) {
+        return {};
+    }
+    auto svg = *found;
+    svg.replace("currentColor", color.name(QColor::HexRgb).toLatin1());
+    return svg;
+}
+
+QString displayName(const QString &name) {
+  auto result = name;
+  result.replace('_', ' ');
+  if (!result.isEmpty()) { result[0] = result[0].toUpper(); }
+  return result;
+}
+} // namespace nodetool

@@ -91,6 +91,7 @@ struct ThumbnailSet {
 // Decoding, on the calling thread. Empty or null on failure, when `cancel`
 // turns true (checked at every read, the open and probe included), or when
 // the open and probe take longer than `openTimeoutMs`.
+// native-rules #1: std::shared_ptr result with no comment on why unique ownership is impossible
 std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int count = FULL_ASSET_PEAK_COUNT,
                                                     const std::atomic<bool>* cancel = nullptr,
                                                     int openTimeoutMs = OPEN_TIMEOUT_MS);
@@ -102,6 +103,7 @@ std::vector<Thumbnail> extractThumbnails(const QString& path, int count = THUMBN
 std::vector<Thumbnail> loadImageThumbnail(const QString& path, int width = 2 * THUMBNAIL_WIDTH_PX,
                                           const std::atomic<bool>* cancel = nullptr, int openTimeoutMs = OPEN_TIMEOUT_MS);
 // The thumbnails with their atlas.
+// native-rules #1: std::shared_ptr result with no comment on why unique ownership is impossible
 std::shared_ptr<const ThumbnailSet> makeThumbnailSet(std::vector<Thumbnail> thumbs);
 
 // audioPeaks.ts samplePeaksWindow: the maximum of the full peaks over each
@@ -122,6 +124,7 @@ int filmstripCellAt(const std::vector<Thumbnail>& thumbnails, int cellCount, dou
 // beyondSourceFraction: the share of the window past the last sampled frame.
 double beyondSourceFraction(const std::vector<Thumbnail>& thumbnails, double inPointMs, double outPointMs);
 
+// native-rules #9: decode pool threads and the GUI thread both touch it, no thread affinity comment
 class MediaPreviewCache : public QObject {
     Q_OBJECT
 public:
@@ -182,10 +185,13 @@ private:
                 std::shared_ptr<const ThumbnailSet> thumbs);
     bool failedRecently(const QString& key) const;
 
+    // native-rules #1: std::shared_ptr cache entries with no comment on why unique ownership is impossible
     QHash<QString, std::shared_ptr<const AudioPeaks>> m_peaks;  // by version key
+    // native-rules #1: std::shared_ptr cache entries with no comment on why unique ownership is impossible
     QHash<QString, std::shared_ptr<const ThumbnailSet>> m_thumbs;
     std::list<QString> m_thumbLru;  // front: most recent
     QHash<QString, qint64> m_failedAtMs;
+    // native-rules #1: std::shared_ptr Job shared with a pool thread, no justification comment
     QHash<QString, std::shared_ptr<Job>> m_jobs;
     QHash<const QObject*, QMetaObject::Connection> m_watched;
     int m_decodes = 0;
@@ -293,6 +299,7 @@ protected:
 private:
     std::vector<QRectF> computeBars(Span span) const;
     QColor m_color;
+    // native-rules #1: std::shared_ptr shared with the cache, no justification comment
     std::shared_ptr<const nt::ui::AudioPeaks> m_peaks;
     int m_lastWidth = -1;
     int m_barCount = 0;
@@ -344,6 +351,7 @@ private:
     QString m_kind = QStringLiteral("video");
     double m_clipWidth = 0;
     QColor m_stripe;
+    // native-rules #1: std::shared_ptr shared with the cache, no justification comment
     std::shared_ptr<const nt::ui::ThumbnailSet> m_thumbs;
     // The textures the current node uses, by image key, in the window's cache.
     QPointer<QQuickWindow> m_textureWindow;

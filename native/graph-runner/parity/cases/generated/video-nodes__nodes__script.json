@@ -1,0 +1,291 @@
+{
+ "module": "@nodetool-ai/video-nodes/nodes/script",
+ "cases": [
+  {
+   "id": "nodetool.script.LoadScript#default",
+   "node": "nodetool.script.LoadScript",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.script.LoadScript",
+      "properties": {}
+     },
+     {
+      "id": "out_text",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "text"
+      }
+     },
+     {
+      "id": "out_lines",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "lines"
+      }
+     },
+     {
+      "id": "out_name",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "name"
+      }
+     },
+     {
+      "id": "out_line_count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "line_count"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_text",
+      "source": "n",
+      "sourceHandle": "text",
+      "target": "out_text",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_lines",
+      "source": "n",
+      "sourceHandle": "lines",
+      "target": "out_lines",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_name",
+      "source": "n",
+      "sourceHandle": "name",
+      "target": "out_name",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_line_count",
+      "source": "n",
+      "sourceHandle": "line_count",
+      "target": "out_line_count",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.script.VoiceScript#default",
+   "node": "nodetool.script.VoiceScript",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.script.VoiceScript",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "out_voiced_count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "voiced_count"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_voiced_count",
+      "source": "n",
+      "sourceHandle": "voiced_count",
+      "target": "out_voiced_count",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.script.ScriptToTimeline#default",
+   "node": "nodetool.script.ScriptToTimeline",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.script.ScriptToTimeline",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.script.ScriptToSubtitles#default",
+   "node": "nodetool.script.ScriptToSubtitles",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.script.ScriptToSubtitles",
+      "properties": {}
+     },
+     {
+      "id": "out_subtitles",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "subtitles"
+      }
+     },
+     {
+      "id": "out_cue_count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "cue_count"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_subtitles",
+      "source": "n",
+      "sourceHandle": "subtitles",
+      "target": "out_subtitles",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_cue_count",
+      "source": "n",
+      "sourceHandle": "cue_count",
+      "target": "out_cue_count",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.script.WriteScript#default",
+   "node": "nodetool.script.WriteScript",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.script.WriteScript",
+      "properties": {}
+     },
+     {
+      "id": "out_script",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "script"
+      }
+     },
+     {
+      "id": "out_line_count",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "line_count"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_script",
+      "source": "n",
+      "sourceHandle": "script",
+      "target": "out_script",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_line_count",
+      "source": "n",
+      "sourceHandle": "line_count",
+      "target": "out_line_count",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.script.FillScript#default",
+   "node": "nodetool.script.FillScript",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.script.FillScript",
+      "properties": {}
+     },
+     {
+      "id": "out_script",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "script"
+      }
+     },
+     {
+      "id": "out_filled",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "filled"
+      }
+     },
+     {
+      "id": "out_unresolved",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "unresolved"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_script",
+      "source": "n",
+      "sourceHandle": "script",
+      "target": "out_script",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_filled",
+      "source": "n",
+      "sourceHandle": "filled",
+      "target": "out_filled",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_unresolved",
+      "source": "n",
+      "sourceHandle": "unresolved",
+      "target": "out_unresolved",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

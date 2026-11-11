@@ -71,10 +71,16 @@ bool isCacheFrame(const AVFrame* frame) {
 
 namespace {
 
+// native-rules #14: global mutable state
 std::atomic<int> g_liveFrameRefs{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_releasedInFlight{0};
+// native-rules #14: global mutable state
 std::atomic<long long> g_completedFrame{-1};
+// native-rules #14: global mutable state
 std::mutex g_deviceMutex;
+// native-rules #6: raw COM pointer with manual AddRef and Release
+// native-rules #14: global mutable state
 ID3D11Device* g_sharedDevice = nullptr;  // one reference while set
 
 std::string avError(int rc) {
@@ -147,6 +153,7 @@ std::shared_ptr<D3D11Interop> D3D11Interop::create(QRhi* rhi) {
     } else {
         return nullptr;
     }
+    // native-rules #2: naked new inside shared_ptr, use make_shared
     std::shared_ptr<D3D11Interop> interop(new D3D11Interop());
     interop->m_rhi = rhi;
     device->AddRef();
@@ -249,6 +256,7 @@ std::shared_ptr<FrameRef> D3D11Interop::wrap(const AVFrame* frame, std::string* 
         ->CopySubresourceRegion(static_cast<ID3D11Texture2D*>(tex), 0, 0, 0, 0, array, slice, &box);
     hwctx->unlock(hwctx->lock_ctx);
 
+    // native-rules #2: naked new inside shared_ptr, use make_shared
     std::shared_ptr<FrameRef> ref(new FrameRef());
     ++g_liveFrameRefs;
     ref->m_interop = shared_from_this();
@@ -294,6 +302,7 @@ std::string setUpDecoder(AVCodecContext* ctx, const AVCodec* codec, const std::s
     if (!supported) return "no D3D11VA decoder for " + codecName;
     auto* shared = static_cast<ID3D11Device*>(D3D11Interop::acquireSharedDevice());
     if (!shared) return "no D3D11 device from the renderer yet";
+    // native-rules #6: raw AVBufferRef*, not wrapped at the call site
     AVBufferRef* ref = av_hwdevice_ctx_alloc(AV_HWDEVICE_TYPE_D3D11VA);
     if (!ref) {
         shared->Release();

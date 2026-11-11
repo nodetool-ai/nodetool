@@ -53,6 +53,7 @@ const QString& fontDirectory() {
     return directory;
 }
 void loadFonts() {
+    // native-rules #14: static once_flag
     static std::once_flag once;
     std::call_once(once, [] {
         const auto& directory = fontDirectory();
@@ -136,6 +137,7 @@ struct ShapedText {
 bool colorFont(const QRawFont& font) {
     // Reading a bitmap table can copy megabytes. Cache the font identity,
     // and inspect its small palette/location tables before bitmap data.
+    // native-rules #14: thread_local mutable cache
     thread_local std::vector<std::pair<QRawFont, bool>> cache;
     const auto found = std::find_if(cache.begin(), cache.end(),
                                    [&](const auto& entry) { return entry.first == font; });
@@ -189,6 +191,7 @@ ShapedText shapeText(const QString& text, const scene::TextStyle& style, double 
     // Qt's simple Latin kerning differs from HarfBuzz's full GPOS walk on
     // Lora and Space Grotesk. Use the same shaper as Canvas/Skia, on Qt's
     // selected bundled face, for both advances and glyph placement.
+    // native-rules #14: thread_local mutable cache
     thread_local std::unordered_map<std::string, Font> fonts;
     const auto filename = bundledFaceFile(raw.familyName(), style);
     const auto key = (font.key() + u'/' + filename + u'/' + QString::number(style.fontWeight)).toStdString();
@@ -207,6 +210,7 @@ ShapedText shapeText(const QString& text, const scene::TextStyle& style, double 
                           return hb_blob_create(table.constData(), static_cast<unsigned>(table.size()),
                                                 HB_MEMORY_MODE_DUPLICATE, nullptr, nullptr);
                       },
+                      // native-rules #2: naked delete in a callback after tableFont.release()
                       tableFont.release(), [](void* data) { delete static_cast<QRawFont*>(data); }),
                   hb_face_destroy);
         // A platform font matcher may choose the variable Inter face even
@@ -275,6 +279,7 @@ FT_Face freeTypeFace(const QRawFont& raw, const scene::TextStyle& style, double 
     if (filename.isEmpty()) {
         return nullptr;
     }
+    // native-rules #14: thread_local mutable cache
     thread_local std::unordered_map<std::string, RasterFont> faces;
     const auto key = filename.toStdString();
     auto found = faces.find(key);

@@ -104,6 +104,7 @@ private slots:
         program.scrub(500); QVERIFY(!monitor.clock()->playing());
         monitor.setProgramClock(nullptr); program.pause(); monitor.shuttle(1); program.play(); QVERIFY(monitor.clock()->playing());
         monitor.pause();
+        // native-rules #2: naked new and delete of a QObject with no parent
         auto* temporary = new PlaybackClock; monitor.setProgramClock(temporary); delete temporary; monitor.togglePlay(); QVERIFY(monitor.clock()->playing());
     }
     void onlyNormalSpeedHasSound() {

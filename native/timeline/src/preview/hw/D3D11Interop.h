@@ -36,8 +36,11 @@ struct CacheFrameFree {
     void operator()(AVFrame* frame) const;
 };
 using CacheFrame = std::unique_ptr<AVFrame, CacheFrameFree>;
+// native-rules #5: raw AVFrame* crosses a module boundary
 CacheFrame cacheCopy(const AVFrame* frame);
+// native-rules #5: raw AVFrame* crosses a module boundary
 bool isCacheFrame(const AVFrame* frame);
+// native-rules #5: raw AVFrame* crosses a module boundary
 bool cacheDeviceMatches(const AVFrame* frame);
 
 // One displayed hardware frame: plane 0 is Y (R8), plane 1 CbCr (RG8), both
@@ -59,7 +62,9 @@ private:
     friend class D3D11Interop;
     FrameRef() = default;
 
+    // native-rules #1: shared_ptr, comment names the role but not why unique ownership is impossible
     std::shared_ptr<D3D11Interop> m_interop;  // owns the texture pool
+    // native-rules #6: raw COM pointer released by hand, no RAII wrapper
     void* m_texture = nullptr;                 // ID3D11Texture2D*, one reference
     std::array<std::unique_ptr<QRhiTexture>, 2> m_planes;
     QSize m_size;
@@ -72,6 +77,8 @@ private:
 void trackCompletion(QRhiCommandBuffer* cb, long long frameNumber);
 long long completedFrame();
 
+// native-rules #1: shared ownership without a comment on why unique ownership is impossible
+// native-rules #9: used from decoder and render threads (pool mutex), no thread affinity comment
 class D3D11Interop : public std::enable_shared_from_this<D3D11Interop> {
 public:
     // Null when `rhi` is not a D3D11 QRhi.
@@ -80,11 +87,13 @@ public:
 
     // Copies and wraps an AV_PIX_FMT_D3D11 frame. Null with `error` set when
     // the frame is not 8-bit NV12 or lives on another device.
+    // native-rules #5: raw AVFrame* crosses a module boundary
     std::shared_ptr<FrameRef> wrap(const AVFrame* frame, std::string* error);
     void flush() {}
 
     // The QRhi's device, AddRef'd for the caller (an ID3D11Device*), or null
     // before the first create(). The decoder opens on it (D15).
+    // native-rules #4: returns an AddRef-ed raw COM pointer the caller must release
     static void* acquireSharedDevice();
 
 private:
@@ -94,9 +103,12 @@ private:
     void recycle(void* texture, QSize size);
 
     QRhi* m_rhi = nullptr;
+    // native-rules #6: raw COM pointer released by hand, no RAII wrapper
     void* m_device = nullptr;   // ID3D11Device*, one reference
+    // native-rules #6: raw COM pointer released by hand, no RAII wrapper
     void* m_context = nullptr;  // ID3D11DeviceContext*, one reference
     std::mutex m_poolMutex;
+    // native-rules #6: raw COM pointers released by hand, no RAII wrapper
     std::vector<std::pair<QSize, void*>> m_pool;
 };
 
