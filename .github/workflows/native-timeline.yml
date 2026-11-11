@@ -273,7 +273,8 @@ jobs:
           failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
           status=0
           xvfb-run -a -s "-screen 0 1920x1080x24" \
-            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render \
+            | tee "$RUNNER_TEMP/non-render.log" || status=$?
           cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
           QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" xvfb-run -a -s "-screen 0 1920x1080x24" \
             ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
@@ -283,6 +284,13 @@ jobs:
             { echo "::error::the render tests did not run on Vulkan"; exit 1; }
           grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep "using this physical device" > /dev/null ||
             { echo "::error::the render tests did not run on lavapipe"; exit 1; }
+          # The verbose render log buries the other tests' failures, so repeat them last.
+          if [[ -s "$RUNNER_TEMP/failed-non-render.log" ]]; then
+            echo "::error::non-render tests failed: $(cut -d: -f2 "$RUNNER_TEMP/failed-non-render.log" | paste -sd ' ')"
+            echo "::group::Non-render test output"
+            tail -n 2000 "$RUNNER_TEMP/non-render.log"
+            echo "::endgroup::"
+          fi
           exit "$status"
 
       - name: Test (headless, Windows)
