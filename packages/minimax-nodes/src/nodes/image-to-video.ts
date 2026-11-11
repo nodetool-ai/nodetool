@@ -58,6 +58,15 @@ export class MinimaxImageToVideoNode extends BaseNode {
   declare image: any;
 
   @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null },
+    title: "End Image",
+    description:
+      "Optional frame the video ends on. Only MiniMax-Hailuo-02 takes one."
+  })
+  declare end_image: any;
+
+  @prop({
     type: "str",
     default: "",
     title: "Prompt",
@@ -110,6 +119,13 @@ export class MinimaxImageToVideoNode extends BaseNode {
       body.subject_reference = [{ type: "character", image: [dataUrl] }];
     } else {
       body.first_frame_image = dataUrl;
+    }
+    const endBytes = await loadMediaRefBytes(this.end_image, context);
+    if (endBytes && endBytes.length > 0) {
+      if (model !== "MiniMax-Hailuo-02") {
+        throw new Error(`MiniMax model ${model} takes no end frame`);
+      }
+      body.last_frame_image = `data:${inferImageMime(endBytes)};base64,${bytesToBase64(endBytes)}`;
     }
     const prompt = String(this.prompt ?? "");
     if (prompt) body.prompt = prompt;

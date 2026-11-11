@@ -543,6 +543,15 @@ export class ImageToVideoNode extends BaseNode {
   declare image: ImageRef[];
 
   @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null, metadata: null },
+    title: "End Image",
+    description:
+      "Optional frame the clip ends on. The run fails on a model that takes no last frame."
+  })
+  declare end_image: ImageRef;
+
+  @prop({
     type: "video_model",
     default: {
       type: "video_model",
@@ -661,6 +670,13 @@ export class ImageToVideoNode extends BaseNode {
     if (image.length === 0) {
       throw new Error("A non-empty input image is required for Image To Video.");
     }
+    let endImage: Uint8Array | undefined;
+    if (imageRefHasSource(this.end_image)) {
+      endImage = await imageBytesAsync(this.end_image, context);
+      if (endImage.length === 0) {
+        throw new Error("The end image for Image To Video could not be read.");
+      }
+    }
     const { providerId, modelId } = modelConfig(this.serialize());
     if (!canUseProvider(context, providerId, modelId)) {
       throw new Error("No provider available for image-to-video generation.");
@@ -672,6 +688,7 @@ export class ImageToVideoNode extends BaseNode {
       model: modelId,
       params: {
         image,
+        end_image: endImage,
         prompt,
         seed: this.seed >= 0 ? this.seed : undefined,
         negative_prompt: this.negative_prompt,

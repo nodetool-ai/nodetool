@@ -905,6 +905,11 @@ export class TogetherProvider extends OpenAICompatProvider {
       height,
       frame_images: [{ input_image: inputImage, frame: "first" }]
     };
+    // Together keys each conditioning frame by position; a model without
+    // last-frame support answers with its own error.
+    if (params.endImage?.length) {
+      (body.frame_images as unknown[]).push({ input_image: bytesToImageDataUri(params.endImage), frame: "last" });
+    }
 
     // Together's API expects seconds as a string (e.g. "6"), not a number
     if (params.durationSeconds != null)

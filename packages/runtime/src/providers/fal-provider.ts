@@ -79,6 +79,8 @@ import {
   loadTTSModels,
   loadVideoModels,
   selectPrimaryImageInput,
+  selectEndFrameInput,
+  endFrameUnsupportedError,
   sizeEnumToAspect,
   type ModelImageInput
 } from "./manifest-models.js";
@@ -619,6 +621,24 @@ class FalArgsBuilder {
       this.args[fallbackApiName ?? `${kind}_url`] = urls[0];
     }
     return this;
+  }
+
+  /**
+   * The field the endpoint declares for the last frame of an image-to-video
+   * clip, whatever its declared type. Throws when the endpoint declares none
+   * or is not in the manifest, so an end frame is never dropped without a
+   * word.
+   */
+  endFrameField(): ModelImageInput {
+    const field = selectEndFrameInput(
+      this.fields.map((f) => ({
+        apiName: f.apiParamName ?? f.name,
+        name: f.name,
+        isList: f.propType.toLowerCase().startsWith("list[")
+      }))
+    );
+    if (!field) throw endFrameUnsupportedError("FAL", this.modelId);
+    return field;
   }
 
   referenceAssetInputs(kind: "image" | "video"): ModelImageInput[] {
@@ -1467,8 +1487,14 @@ export class FalProvider extends BaseProvider {
     const urls = await this.uploadImages(images);
 
     const b = new FalArgsBuilder(modelId);
-    b.attachAssets("image", urls)
-      .set("prompt", params.prompt)
+    b.attachAssets("image", urls);
+    if (params.endImage?.length) {
+      // Resolved before the upload, so a model without one fails first.
+      const field = b.endFrameField();
+      const [endUrl] = await this.uploadImages([params.endImage]);
+      if (endUrl) b.args[field.apiName] = field.isList ? [endUrl] : endUrl;
+    }
+    b.set("prompt", params.prompt)
       .set("negative_prompt", params.negativePrompt)
       .set("num_frames", params.numFrames)
       .set("duration", params.durationSeconds)

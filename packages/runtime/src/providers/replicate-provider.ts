@@ -56,7 +56,9 @@ import {
   loadAudioToAudioModels,
   loadVideoModels,
   selectMaskImageInput,
-  selectPrimaryImageInput
+  selectPrimaryImageInput,
+  selectEndFrameInput,
+  endFrameUnsupportedError
 } from "./manifest-models.js";
 import type { ReferenceToVideoInputs, ReferenceToVideoParams } from "./types.js";
 
@@ -1133,6 +1135,19 @@ export class ReplicateProvider extends BaseProvider {
       params.model.id,
       [image]
     );
+    if (params.endImage?.length) {
+      const endField = selectEndFrameInput(
+        [
+          ...getModelInputNames(
+            "@nodetool-ai/replicate-nodes",
+            "replicate-manifest.json",
+            params.model.id
+          )
+        ].map((name) => ({ apiName: name, name }))
+      );
+      if (!endField) throw endFrameUnsupportedError("Replicate", params.model.id);
+      input[endField.apiName] = this.imageDataUri(params.endImage);
+    }
     if (params.prompt) input.prompt = params.prompt;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;

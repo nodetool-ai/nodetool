@@ -669,6 +669,21 @@ export class ImageToVideoGeminiNode extends BaseNode {
   declare image: ImageRef;
 
   @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "End Image",
+    description:
+      "Optional frame the video ends on. Veo interpolates between the two frames in an 8-second clip."
+  })
+  declare end_image: ImageRef;
+
+  @prop({
     type: "str",
     default: "",
     title: "Prompt",
@@ -743,6 +758,16 @@ export class ImageToVideoGeminiNode extends BaseNode {
         }
       ]
     };
+    if (isRefSet(this.end_image)) {
+      const endBytes = await getMediaBytes(this.end_image, "image", context);
+      if (!endBytes) throw new Error("End image data is required");
+      (body.instances as Record<string, unknown>[])[0].lastFrame = {
+        bytesBase64Encoded: Buffer.from(endBytes).toString("base64"),
+        mimeType: "image/png"
+      };
+      // Veo interpolates between two frames only in an 8-second clip.
+      parameters.durationSeconds = 8;
+    }
     if (Object.keys(parameters).length > 0) body.parameters = parameters;
 
     const res = await endpoint.postModel(model, method, body, context?.signal);

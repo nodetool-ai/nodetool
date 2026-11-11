@@ -23,6 +23,7 @@ export function textToVideo(inputs: TextToVideoInputs, options?: NodeOptions): N
 // Image To Video — gemini.video.ImageToVideo
 export type ImageToVideoInputs = {
   image?: Connectable<ImageRef>;
+  end_image?: Connectable<ImageRef>;
   prompt?: Connectable<string>;
   model?: Connectable<unknown>;
   aspect_ratio?: Connectable<"16:9" | "9:16">;
