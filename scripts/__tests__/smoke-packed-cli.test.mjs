@@ -68,15 +68,16 @@ it("keeps the required core-smoke status dependent on verification and the indep
   const scripts = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")).scripts;
   const jobs = partitionPlan(fullPlan(), readPackages({}), scripts);
   const checks = jobs.flatMap(({ commands }) => commands).map(({ command, args }) => [command, ...args].join(" "));
-  expect(workflow.jobs.verification.needs).toBe("verification-plan");
+  expect(workflow.jobs.verification.needs).toEqual(["ci-image", "verification-plan"]);
   expect(workflow.jobs.verification.strategy.matrix).toBe("${{ fromJSON(needs.verification-plan.outputs.matrix) }}");
   expect(workflow.jobs.verification.steps.map(step => step.run)).toContain('node scripts/packed-verification.mjs run "$RUNNER_TEMP/packed-verification.json" "$PACKED_TASK"');
   expect(jobs.filter(({ id }) => id.startsWith("test-packages-")).length).toBeGreaterThan(0);
   for (const command of ["npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main --jobs 1", "npm run backend:smoke"]) {
     expect(checks).toContain(command);
   }
-  expect(workflow.jobs["packed-install"].needs).toBeUndefined();
-  expect(workflow.jobs["packed-install"].steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]?.split(/\s+/)).toContain("libsecret-1-dev");
+  // Only the CI image, which ships libsecret, gates the packed install.
+  expect(workflow.jobs["packed-install"].needs).toBe("ci-image");
+  expect(workflow.jobs["packed-install"].container.image).toBe("${{ needs.ci-image.outputs.image }}");
   const packedChecks = workflow.jobs["packed-install"].steps.map(step => step.run);
   expect(packedChecks).toContain("node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts");
   expect(packedChecks.indexOf("node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts")).toBeLessThan(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts"));
@@ -106,7 +107,7 @@ it("keeps the required core-smoke status dependent on verification and the indep
 it("leaves verification to the Quality Gate only on pull requests into main", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
   expect(workflow.jobs["verification-plan"].if).toBe("github.event_name != 'pull_request' || github.base_ref != 'main'");
-  expect(workflow.jobs.verification.needs).toBe("verification-plan");
+  expect(workflow.jobs.verification.needs).toEqual(["ci-image", "verification-plan"]);
   expect(workflow.jobs.verification.if).toBeUndefined();
   expect(workflow.jobs["core-smoke"].steps[0].env.QUALITY_GATE_VERIFIES)
     .toBe("${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}");
@@ -125,18 +126,25 @@ it("prepares sandboxed Chromium before packed verification runs browser suites",
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
   const steps = workflow.jobs.verification.steps;
   const affectedIndex = steps.findIndex(step => step.name === "Run the selected verification bucket");
-  const installIndex = steps.findIndex(step => step.run === "npx playwright install --with-deps chromium");
+  const installIndex = steps.findIndex(step => step.run === "npx playwright install chromium");
   const sandboxIndex = steps.findIndex(step => step.name === "Enable and verify the Chromium sandbox");
   expect(affectedIndex).toBeGreaterThan(0);
   expect(installIndex).toBeGreaterThanOrEqual(0);
   expect(sandboxIndex).toBeGreaterThan(installIndex);
   expect(affectedIndex).toBeGreaterThan(sandboxIndex);
-  expect(steps[sandboxIndex].run).toContain("chromiumSandbox: true");
-  expect(steps[sandboxIndex].run).toContain("sudo apparmor_parser -r");
+  expect(steps[sandboxIndex].uses).toBe("./.github/actions/chromium-sandbox");
+  const action = yaml.load(readFileSync(new URL("../../.github/actions/chromium-sandbox/action.yml", import.meta.url), "utf8"));
+  const sandboxRuns = action.runs.steps.map(step => step.run).join("\n");
+  expect(sandboxRuns).toContain("kernel.apparmor_restrict_unprivileged_userns=0");
+  expect(sandboxRuns).toContain("chromiumSandbox: true");
+  expect(sandboxRuns).toContain("await browser.close()");
+  expect(sandboxRuns).not.toContain("--no-sandbox");
   const mobileIndex = steps.findIndex(step => step.run === "npm --prefix mobile ci");
   expect(mobileIndex).toBeGreaterThanOrEqual(0);
   expect(mobileIndex).toBeLessThan(affectedIndex);
-  expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("mesa-vulkan-drivers");
+  // The CI image ships the Vulkan driver, and the sandbox needs a non-root, privileged container.
+  expect(workflow.jobs.verification.container.image).toBe("${{ needs.ci-image.outputs.image }}");
+  expect(workflow.jobs.verification.container.options).toBe("--init --user 1001 --privileged");
 });
 
 it("keeps the bucket exit status when Chromium diagnostics run", () => {
