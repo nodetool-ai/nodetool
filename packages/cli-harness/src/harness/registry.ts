@@ -1359,6 +1359,16 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "realtime-audio-worklet-spike",
+    title: "Realtime native and AudioWorklet offline parity spike",
+    command:
+      "node native/realtime/spike/audio-worklet/build.mjs && " +
+      "node native/realtime/spike/audio-worklet/verify.mjs",
+    kind: "execution",
+    capabilities: ["json", "browser", "no-db"],
+    docs: "native/realtime/spike/audio-worklet/README.md"
+  },
+  {
     id: "native-graph-runner",
     title: "Native QuickJS graph runner",
     command: "node scripts/check-native-graph-runner.mjs",
@@ -2563,6 +2573,16 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli-harness/tests/capability-coverage.test.ts",
       "scripts/sync-capability-coverage.mjs"
     ]
+  },
+  {
+    id: "realtime-audio-worklet-spike",
+    title: "Realtime native and AudioWorklet offline parity spike",
+    harnesses: ["realtime-audio-worklet-spike"],
+    paths: ["native/realtime/spike/audio-worklet/"],
+    gap:
+      "The offline parity check needs clang with wasm-ld (or Zig) and an installed Chrome channel. " +
+      "Run its documented build and verification commands separately from the root gate. " +
+      "Live worklet timing and the macOS M0 measurements remain separate qualification work."
   },
   {
     id: "native-graph-runner",
