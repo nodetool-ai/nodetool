@@ -47,7 +47,7 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-      options: --user 1001
+      options: --init --user 1001
       volumes:
         - /usr/share/dotnet:/reclaim/dotnet
         - /usr/local/lib/android:/reclaim/android

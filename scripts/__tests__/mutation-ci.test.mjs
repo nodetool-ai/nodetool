@@ -335,7 +335,7 @@ describe("bounded source partitions", () => {
 
 it("pins every CI checkout and preserves complete target, budget, and aggregate contracts", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-changed.yml", import.meta.url), "utf8"));
-  expect(workflow.permissions).toEqual({ contents: "read" });
+  expect(workflow.permissions).toEqual({ contents: "read", packages: "read" });
   const jobs = workflow.jobs;
   expect(jobs["mutate-changed"].strategy).toEqual({ "fail-fast": false, "max-parallel": 32, matrix: "${{ fromJSON(needs.plan.outputs.matrix) }}" });
   expect(jobs.plan.outputs.matrix).toBe("${{ steps.plan.outputs.matrix }}");
@@ -346,7 +346,10 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
     "node", "scripts/mutation-ci.mjs", "aggregate", ".metrics/mutation-ci/plan.json",
     ".metrics/mutation-ci/results"
   ]);
-  for (const job of Object.values(jobs)) {
+  // ci-image calls the reusable image workflow, which sets its own timeout.
+  expect(jobs["ci-image"].uses).toBe("./.github/workflows/ci-image.yml");
+  for (const [name, job] of Object.entries(jobs)) {
+    if (name === "ci-image") { continue; }
     expect(job["timeout-minutes"]).toBe(job === jobs["mutate-changed"] ? 180 : 45);
     const checkout = job.steps.find((step) => step.uses?.startsWith("actions/checkout@"));
     expect(checkout.with["fetch-depth"]).toBe(0);
@@ -361,10 +364,10 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
   }
   expect(jobs.plan.steps.find((step) => step.id === "plan").env.BASE).toBe("${{ steps.base.outputs.base }}");
   expect(jobs.plan.steps.find((step) => step.id === "base").run).toBe('node scripts/mutation-ci.mjs base "$PREVIOUS"');
-  expect(jobs.plan.permissions).toEqual({ contents: "read", actions: "read" });
+  expect(jobs.plan.permissions).toEqual({ contents: "read", actions: "read", packages: "read" });
   expect(jobs["mutate-changed"].if).toBe("needs.plan.outputs.mutants != '0'");
   expect(jobs["mutation-complete"].if).toBe("always() && needs.plan.outputs.mutants != '0'");
-  expect(jobs["mutation-complete"].needs).toEqual(["plan", "mutate-changed"]);
+  expect(jobs["mutation-complete"].needs).toEqual(["ci-image", "plan", "mutate-changed"]);
   const guard = jobs["mutation-complete"].steps[0];
   expect(guard.env).toEqual({ PLAN: "${{ needs.plan.result }}", MUTATIONS: "${{ needs.mutate-changed.result }}" });
   for (const plan of ["success", "failure", "cancelled", "skipped"]) {
@@ -415,17 +418,22 @@ it("prepares sandboxed Chromium before mutation baselines execute browser tests"
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-changed.yml", import.meta.url), "utf8"));
   const steps = workflow.jobs["mutate-changed"].steps;
   const mutation = steps.findIndex(step => step.name === "Mutate every assigned changed-function site");
-  const install = steps.findIndex(step => step.run === "npx playwright install --with-deps chromium");
+  const install = steps.findIndex(step => step.run === "npx playwright install chromium");
   const sandbox = steps.findIndex(step => step.name === "Enable and verify the Chromium sandbox");
   expect(install).toBeGreaterThanOrEqual(0);
   expect(sandbox).toBeGreaterThan(install);
   expect(mutation).toBeGreaterThan(sandbox);
   expect(steps[install].if).toBeUndefined();
   expect(steps[sandbox].if).toBeUndefined();
-  expect(steps[sandbox].run).toContain("sudo apparmor_parser -r");
-  expect(steps[sandbox].run).toContain("chromiumSandbox: true");
-  expect(steps[sandbox].run).toContain("await browser.close()");
-  expect(steps[sandbox].run).not.toContain("--no-sandbox");
+  expect(steps[sandbox].uses).toBe("./.github/actions/chromium-sandbox");
+  // The sandbox needs a non-root, privileged container (docker/ci/README.md).
+  expect(workflow.jobs["mutate-changed"].container.options).toBe("--init --user 1001 --privileged");
+  const action = yaml.load(readFileSync(new URL("../../.github/actions/chromium-sandbox/action.yml", import.meta.url), "utf8"));
+  const sandboxRuns = action.runs.steps.map(step => step.run).join("\n");
+  expect(sandboxRuns).toContain("kernel.apparmor_restrict_unprivileged_userns=0");
+  expect(sandboxRuns).toContain("chromiumSandbox: true");
+  expect(sandboxRuns).toContain("await browser.close()");
+  expect(sandboxRuns).not.toContain("--no-sandbox");
 });
 
 
