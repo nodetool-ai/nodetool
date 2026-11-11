@@ -142,8 +142,7 @@ Everything beyond the direct tools goes through `execute_code`, which runs sandb
 | `execute_code` | Run sandboxed JavaScript that calls the `nodetool.*` modules. The main tool. |
 | `view_image` | Return an image as MCP image content so the agent can see the pixels. Takes an asset id, `asset://` URI, public `https://` URL, or `data:` URI. A local connection also accepts an absolute disk path. For a stored asset or an `https://` input, the result also carries a public `url` the chat can display. It shows the image at its stored size, with no crop or downscale. |
 | `upload_asset` | Save bytes in your asset library. Takes `content_base64`, or an absolute `file_path` on a local connection. Returns the asset id and URI. |
-| `download_asset` | Return an asset you own as base64, or write it to an absolute `output_path` on a local connection. |
-| `get_asset_url` | Return a signed public URL for an asset you own, of any type, so the chat can display or link it. The URL expires. A server that serves assets only through its own `/api/storage` route has none to give. |
+| `download_asset` | Return a signed public `url` for an asset you own, or write it to an absolute `output_path` on a local connection. It never returns the bytes inline. |
 | `list_directory` | List files and subdirectories in a workspace directory. |
 | `download_file` | Download a file from a URL, or from an `asset://` URI, a `/api/storage/` key, or a `data:` URI, into the workspace. |
 | `run_subtask` | Hand a task to a child agent that has the NodeTool toolbelt. |

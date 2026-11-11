@@ -2276,10 +2276,9 @@ browser tools:
   observation envelope.
 - **`upload_asset`** — save base64 bytes in the user's asset library, or read an
   absolute path on the local NodeTool server. It returns the asset ID and URI.
-- **`download_asset`** — return an owned asset's bytes as base64, or write them
-  to an absolute path on the local NodeTool server. Remote MCP sessions use base64.
-- **`get_asset_url`** — return a signed public URL for an owned asset of any
-  type, so the chat client can display or link it.
+- **`download_asset`** — return a signed public URL for an owned asset, or write
+  its bytes to an absolute path on the local NodeTool server. It never returns
+  the bytes inline.
 - **`open_app`** — open a mini app. It links to the `ui://nodetool/mini-app.html`
   renderer, so an MCP Apps host shows the app's screen. The page runs operations
   through the app-only `run_app_operation` and `poll_app_run` tools. See

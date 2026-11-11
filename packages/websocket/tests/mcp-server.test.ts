@@ -188,7 +188,6 @@ describe("MCP server surface", () => {
           "view_image",
           "upload_asset",
           "download_asset",
-          "get_asset_url",
           ...MINI_APP_TOOL_NAMES
         ].includes(name)
       )
@@ -207,7 +206,6 @@ describe("MCP server surface", () => {
         "view_image",
         "upload_asset",
         "download_asset",
-        "get_asset_url",
         "find_model",
         "list_models",
         "list_providers",
@@ -263,11 +261,12 @@ describe("MCP server surface", () => {
       name: "download_asset",
       arguments: { asset_id: saved.asset_id }
     });
-    expect(download.isError).toBeFalsy();
-    const downloaded = JSON.parse(download.content[0].text as string) as {
-      content_base64: string;
-    };
-    expect(Buffer.from(downloaded.content_base64, "base64")).toEqual(bytes);
+    // File storage has no public URL, and the bytes never come back inline.
+    expect(download.isError).toBe(true);
+    expect(JSON.stringify(download.content)).toContain("output_path");
+    expect(JSON.stringify(download.content)).not.toContain(
+      bytes.toString("base64")
+    );
 
     const toFile = await client.callTool({
       name: "download_asset",
@@ -618,8 +617,7 @@ describe("MCP server surface", () => {
           "execute_code",
           "view_image",
           "upload_asset",
-          "download_asset",
-          "get_asset_url"
+          "download_asset"
         ].includes(name)
       )
         continue;

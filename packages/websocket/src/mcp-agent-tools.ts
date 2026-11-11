@@ -1409,9 +1409,12 @@ export function registerAgentMcpTools(
 
   server.tool(
     "download_asset",
-    "Download an asset owned by this user. Returns content_base64, or writes " +
-      "to an absolute output_path on a local connection. The path is on the " +
-      "NodeTool server, not on a remote MCP client's machine.",
+    "Get an asset owned by this user, of any type. Returns a signed public " +
+      "`url` that needs no NodeTool credentials, or on a local connection " +
+      "writes the bytes to an absolute output_path on the NodeTool server. It " +
+      "never returns the bytes inline. To show the asset in the chat, embed an " +
+      "image as a Markdown image (![name](url)) and link any other type " +
+      "([name](url)). The url expires, so call this again for a fresh one.",
     {
       asset_id: z
         .string()
@@ -1433,58 +1436,24 @@ export function registerAgentMcpTools(
         }
         const asset = await Asset.find(scope.userId, asset_id);
         if (!asset || asset.isFolder) throw new Error("Asset not found.");
+        const described = {
+          asset_id: asset.id,
+          name: asset.name,
+          content_type: asset.content_type
+        };
+        if (!output_path) {
+          const url = await signedAssetUrl(asset);
+          if (!url) {
+            throw new Error(
+              "This server has no public URL for its assets. On a local MCP connection, pass output_path to write the file."
+            );
+          }
+          return toToolResponse({ ...described, url });
+        }
         const bytes = await loadMediaRefBytes({ asset_id: asset.id }, context);
         if (!bytes) throw new Error("Asset bytes not found.");
-        if (output_path) await writeFile(output_path, bytes);
-        return toToolResponse({
-          asset_id: asset.id,
-          name: asset.name,
-          content_type: asset.content_type,
-          size: bytes.length,
-          ...(output_path
-            ? { output_path }
-            : { content_base64: Buffer.from(bytes).toString("base64") })
-        });
-      } catch (err) {
-        return errorResponse(err);
-      }
-    }
-  );
-
-  server.tool(
-    "get_asset_url",
-    "Get a public URL for one of this user's assets of any type: image, " +
-      "video, audio, document or other file. The URL is signed, needs no " +
-      "NodeTool credentials, and expires, so call this again for a fresh one " +
-      "instead of reusing an old url. To show the asset in the chat, embed an " +
-      "image as a Markdown image (![name](url)) and link any other type " +
-      "([name](url)). Use view_image when you need to see an image's pixels " +
-      "yourself.",
-    {
-      asset_id: z
-        .string()
-        .describe("Asset ID or asset:// URI, as list_assets or a generation returned it.")
-    },
-    async ({ asset_id }) => {
-      try {
-        const id = asset_id
-          .trim()
-          .replace(/^asset:\/\//, "")
-          .replace(/\.[A-Za-z0-9]{1,8}$/, "");
-        const asset = await Asset.find(scope.userId, id);
-        if (!asset || asset.isFolder) throw new Error("Asset not found.");
-        const url = await signedAssetUrl(asset);
-        if (!url) {
-          throw new Error(
-            "This server serves assets only to signed-in NodeTool clients, so it has no public URL for them."
-          );
-        }
-        return toToolResponse({
-          asset_id: asset.id,
-          name: asset.name,
-          content_type: asset.content_type,
-          url
-        });
+        await writeFile(output_path, bytes);
+        return toToolResponse({ ...described, size: bytes.length, output_path });
       } catch (err) {
         return errorResponse(err);
       }
@@ -1496,8 +1465,7 @@ export function registerAgentMcpTools(
     session.providerTool.name,
     ...directToolNames,
     "upload_asset",
-    "download_asset",
-    "get_asset_url"
+    "download_asset"
   ]);
   server.registerResource(
     "NodeTool Capabilities",
@@ -1581,7 +1549,6 @@ export function registerAgentMcpTools(
       ...(viewImage ? ["view_image"] : []),
       "upload_asset",
       "download_asset",
-      "get_asset_url",
       ...MINI_APP_TOOL_NAMES
     ],
     beltSize: belt.length
