@@ -15,6 +15,12 @@ called_from_lib:libfontconfig.so
 # are uninstrumented, so TSan sees their allocations and lock calls without
 # the synchronization between them.
 called_from_lib:libgobject-2.0.so
+# GLib's mutex calls tail-call pthread, so TSan attributes a lock or unlock
+# to whichever library called GLib. Ignoring GObject but not Pango made TSan
+# drop a GRecMutex lock taken through GObject and then report Pango's unlock
+# of it as an unlock of an unlocked mutex. Ignore every Pango library too.
+called_from_lib:libpango-1.0.so
+called_from_lib:libpangocairo-1.0.so
 called_from_lib:libvips.so
 called_from_lib:libpng16.so
 called_from_lib:libz.so
