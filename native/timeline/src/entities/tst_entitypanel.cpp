@@ -1874,7 +1874,12 @@ private slots:
         click(find("entitySave"));
         QTRY_VERIFY_WITH_TIMEOUT(!editor->property("visible").toBool() && fake->writes.size() == 1, 10000);
         QTRY_COMPARE(host->property("reloads").toInt(), 1);
-        QTRY_VERIFY_WITH_TIMEOUT(find("libraryAsset_" + id(12)) != nullptr, 10000);
+        // The reload answers later than it starts, so wait for the tile that carries the new entity.
+        QTRY_VERIFY_WITH_TIMEOUT(([&] {
+            auto* refreshed = find("libraryAsset_" + id(12));
+            const auto metadata = refreshed ? refreshed->property("asset").toMap().value("metadata").toMap() : QVariantMap();
+            return metadata.contains("nodetool_entity");
+        })(), 10000);
         openMenu();
         QCOMPARE(textOf(action), QString("Edit entity…"));
         // Cancelling the editor from the menu returns focus to the Library tile.
