@@ -86,23 +86,23 @@ test.describe("marketing smoke", () => {
     page
   }) => {
     await page.goto("/");
-    // site-editorial.spec.md § Homepage: hero, finished films, mechanism,
-    // cost behaviour, way in. A new h2 here means a section was added without
+    // site-editorial.spec.md § Homepage: hero, workflow payoff, finished
+    // films, cost behaviour, way in. A new h2 here means a section was added without
     // removing one.
     await expect(page.locator("#content h2")).toHaveText([
+      "Made it once? Run it again.",
       "Finished films, with the brief behind each.",
-      "From an idea to a video you can edit.",
       "Approve the still before you pay for the clip.",
       "Frequently asked questions",
       "Start making with NodeTool."
     ]);
-    // Three cards: films, the agent, node workflows. Developer surfaces stay
-    // on /developers.
+    // Three cards: films, the agent, the live timeline. Node workflows have
+    // their own section, and developer surfaces stay on /developers.
     const pillars = page
       .getByRole("list", { name: "What NodeTool makes" })
       .locator("a");
     await expect(pillars).toHaveCount(3);
-    for (const href of ["/studio", "/agents", "/node-based-workflows"]) {
+    for (const href of ["/studio", "/agents", "/ai-video-editor"]) {
       await expect(pillars.and(page.locator(`[href="${href}"]`))).toHaveCount(1);
     }
     // The plan sign-in sits by Download, and "alpha" stays out of the buttons.

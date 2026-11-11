@@ -7,7 +7,7 @@ product: NodeTool
 ---
 # NodeTool
 
-NodeTool turns one sentence into a short film you can edit. The agent writes the story, draws a still for every shot, and cuts the clips on a timeline. You approve each still before you pay for its clip, and you can redo one shot without touching the rest. Keep a process that worked as a node workflow and run it again on new inputs. In Studio, sign in with your ChatGPT or Claude plan and the agent runs on it, or add your own provider keys and pay list price. Studio saves projects on your computer.
+NodeTool turns one sentence into a short film you can edit. The agent writes the story, draws a still for every shot, and cuts the clips on a timeline. Approve each still before you pay for its clip, reshoot any shot on its own, and save what works as a workflow you can run again. Underneath every project is a node graph: run it on the next episode or twenty ad variants, bring a ComfyUI workflow you already have, or ask the agent to build the graph. In Studio, sign in with your ChatGPT or Claude plan and the agent runs on it, or add your own provider keys and pay list price. Studio saves projects on your computer.
 
 ## Editions
 

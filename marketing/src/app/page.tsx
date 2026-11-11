@@ -7,13 +7,13 @@ import { useGridParallax } from "../lib/useGridParallax";
 import SiteHeader from "../components/SiteHeader";
 import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
-import ProjectSection from "../components/ProjectSection";
+import HeroDemoPlayer from "../components/HeroDemoPlayer";
 import SurfaceShowcase, {
   STORYBOARD_COST_COPY,
 } from "../components/SurfaceShowcase";
 import StoryboardTeaser from "../components/storyboards/StoryboardTeaser";
 import FaqBlock from "../components/FaqBlock";
-import { Download } from "lucide-react";
+import { ArrowRight, Download } from "lucide-react";
 import { SmartDownloadButton } from "./SmartDownloadButton";
 import { track } from "../lib/analytics";
 
@@ -23,8 +23,8 @@ const sectionNarrow = "mx-auto max-w-2xl px-6";
 
 /*
  * Five blocks, in this order (marketing/site-editorial.spec.md § Homepage):
- * the overview, finished films, the mechanism, the cost behaviour, and the
- * way in.
+ * the overview, the workflow payoff, finished films, the cost behaviour, and
+ * the way in.
  * Detail lives on the page that owns it: the ad library on /marketing, models
  * on /models, plans and keys on /pricing, the node canvas on
  * /node-based-workflows, editions on /studio and /cloud, the API, CLI and MCP
@@ -121,7 +121,43 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 2. Finished films, each with the brief it started from. The cards
+        {/* 2. The workflow payoff: the pipeline behind a film is a node graph
+            you run again. The node reel loads lazily below the fold. */}
+        <section aria-labelledby="run-again-title" className="relative py-16 sm:py-24">
+          <div className={sectionContainer}>
+            <div className="mx-auto max-w-3xl text-center">
+              <h2
+                id="run-again-title"
+                className="text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl"
+              >
+                Made it once? Run it again.
+              </h2>
+              <p className="mt-5 text-pretty text-lg leading-relaxed text-slate-300">
+                Underneath every project is a node graph. Save the pipeline
+                that worked and run it on the next episode, twenty ad variants,
+                or the same character in a new scene. Bring a ComfyUI workflow
+                you already have, wire nodes by hand, or ask the agent to build
+                the graph and check it before a paid run.
+              </p>
+              <a
+                href="/node-based-workflows"
+                className="mt-6 inline-flex items-center gap-2 rounded text-sm font-medium text-blue-300 hover:text-blue-200 focus-ring"
+              >
+                Explore node workflows
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
+            <div className="mx-auto mt-10 max-w-5xl rounded-2xl border border-white/10 bg-slate-950/60 p-2 shadow-2xl shadow-black/70">
+              <HeroDemoPlayer
+                mediaBase="/hero-nodes"
+                priority={false}
+                alt="A NodeTool workflow is wired, a mismatched wire is refused, five shots run through For Each, Text To Image, Image To Video, Collect, and Concatenate Video into one cut, and the image model is swapped"
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* 3. Finished films, each with the brief it started from. The cards
             open the storyboard page, which leads with the film. */}
         <StoryboardTeaser
           slugs={HOME_FILMS}
@@ -130,10 +166,6 @@ export default function Home() {
           body="Each film started as a short brief. Open one to watch it and see every shot with its camera and direction."
           showBrief
         />
-
-        {/* 3. The mechanism: one note sends one shot back, and the cut keeps
-            every other shot */}
-        <ProjectSection />
 
         {/* 4. The cost behaviour: settle shots on stills before paying for
             video. Prices come from the calculator catalog (stageCosts.ts). */}

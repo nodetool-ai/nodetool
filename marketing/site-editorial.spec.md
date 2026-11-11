@@ -36,7 +36,7 @@ breaks a rule here fixes the rule or the page in the same PR.
 
 | Route | Thesis | Proof | Leaves to other pages |
 |---|---|---|---|
-| `/` | One sentence to a short film you can edit, with clips paid for only after their stills are approved. | The hero reel, three finished films with their briefs, the project demo (`ProjectSection`), the cheap-stills cost example | Ad library, recipes, the seven-editor tour, model lists, plan table, comparisons, Studio vs Cloud, API, CLI and MCP |
+| `/` | One sentence to a short film you can edit, with clips paid for only after their stills are approved. | The hero reel, the node reel, three finished films with their briefs, the cheap-stills cost example | Ad library, recipes, the seven-editor tour, model lists, plan table, comparisons, Studio vs Cloud, API, CLI and MCP |
 | `/agents` | The agent works inside the same editors and records as you, and the harness catches its mistakes. | The failed-run-and-repair session, the build-validate-run-inspect-repair loop, what validation reports, the permission modes | MCP install, CLI, HTTP API (linked to `/developers`), film production pitch, plan and key explanations |
 | `/studio` | The desktop app: every editor, and the project stays on your computer. | The seven-editor tour (its storyboard panel shows a shot edited by hand), the films that open as timelines, local models and setup | The still-versus-clip cost example (homepage), plan and key explanations, ad and recipe catalogues |
 | `/node-based-workflows` | A graph you can check before a paid run, and run again. | The node reel, the node-by-node walkthrough | Plan explanation, Studio facts |
@@ -55,14 +55,16 @@ Five blocks, in order:
    film you can edit, with clips paid for only after their stills are
    approved. Under Download, one line says Studio signs in with a ChatGPT or
    Claude plan or uses your own provider keys at list price. Then the hero
-   reel and three linked cards for films, the agent, and node workflows. The
-   cards carry no `h2`. Developer surfaces (API, CLI, MCP) stay on
-   `/developers`.
-2. **Finished films.** Three films from `/storyboards`, each with the brief it
+   reel and three linked cards for films, the agent, and the live timeline
+   (a clip bound to a workflow goes stale when its inputs change). The cards
+   carry no `h2`. Developer surfaces (API, CLI, MCP) stay on `/developers`.
+2. **The workflow payoff.** "Made it once? Run it again." The project is a
+   node graph you run again, a ComfyUI workflow can come along, and the agent
+   checks the graph before a paid run. The node reel (`/hero-nodes`) loads
+   lazily.
+3. **Finished films.** Three films from `/storyboards`, each with the brief it
    started from, its shot count and length (`StoryboardTeaser` with
    `showBrief`). Add a cost only when the render recorded one.
-3. **The mechanism.** One note sends one shot back, and the cut keeps every
-   other shot (`ProjectSection`, the `agent-redo` reel).
 4. **The cost behaviour.** Approve the still before paying for the clip. The
    prices come from `src/data/stageCosts.ts`.
 5. **The way in.** Five short FAQ answers cover hardware, accounts, costs, editions and

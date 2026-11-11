@@ -1,18 +1,21 @@
 import React from "react";
-import { ArrowRight, Bot, Download, Film, Workflow } from "lucide-react";
+import { ArrowRight, Bot, Download, Film, Layers } from "lucide-react";
 import HeroDemoPlayer from "./HeroDemoPlayer";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
 import { track } from "../lib/analytics";
 
 /*
- * The three things the homepage is about, each linked to the page that owns
- * it (site-editorial.spec.md § Homepage). Models, local projects, other media
- * and the developer surfaces (API, CLI, MCP) live on their own pages.
+ * Three cards, each linked to the page that owns it (site-editorial.spec.md
+ * § Homepage). Node workflows have their own section below the hero. Models,
+ * local projects, other media and the developer surfaces (API, CLI, MCP) live
+ * on their own pages. The timeline card rests on packages/timeline
+ * staleSet.ts: a clip bound to a workflow is stale when one of its inputs
+ * changes.
  */
 const pillars = [
   {
     title: "Films",
-    body: "Write, storyboard, and cut a film on a timeline. Change one shot and the rest of the cut stays.",
+    body: "Write the script, storyboard every shot, and cut the clips on a timeline, all in one project.",
     href: "/studio",
     linkLabel: "About the desktop app",
     icon: Film,
@@ -25,11 +28,11 @@ const pillars = [
     icon: Bot,
   },
   {
-    title: "Node workflows",
-    body: "Keep a process that worked as a graph of nodes. Swap a model and run it again on new inputs.",
-    href: "/node-based-workflows",
-    linkLabel: "Explore node workflows",
-    icon: Workflow,
+    title: "A live timeline",
+    body: "Bind a workflow to a clip. Change one of its inputs and the clip shows it is out of date, so you regenerate that take while the rest of the cut stays.",
+    href: "/ai-video-editor",
+    linkLabel: "About the video editor",
+    icon: Layers,
   },
 ];
 
@@ -37,10 +40,12 @@ export default function NodeToolHero() {
   return (
     <div className="relative w-full text-slate-200">
       <div className="hero-rise mx-auto flex max-w-4xl flex-col items-center text-center">
-        {/* The category line stays visible above the headline, and the
-            metadata stays category-led (NARRATIVE.md § Positioning line). */}
+        {/* The category line stays visible above the headline
+            (NARRATIVE.md § Positioning line). */}
         <p className="inline-flex max-w-full items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.06em] text-blue-300 sm:text-[11px] sm:tracking-[0.18em]">
-          Open-source agent-first creative workspace
+          Open-source AI film studio
+          {/* The second half wraps the badge onto two lines on a phone. */}
+          <span className="hidden sm:inline">&nbsp;· agent + node workflows</span>
         </p>
 
         <h1
@@ -53,8 +58,9 @@ export default function NodeToolHero() {
 
         <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-slate-300 sm:mt-6 sm:text-xl">
           The agent writes the story, draws a still for every shot, and cuts
-          the clips on a timeline. You approve each still before you pay for
-          its clip, and you can redo one shot without touching the rest.
+          the clips on a timeline. Approve each still
+          before you pay for its clip, reshoot any shot on its own, and save
+          what works as a workflow you can run again.
         </p>
 
         <div className="mt-7 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
