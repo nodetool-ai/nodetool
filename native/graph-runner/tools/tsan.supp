@@ -27,6 +27,9 @@ called_from_lib:libpangocairo-1.0.so
 called_from_lib:libgio-2.0.so
 called_from_lib:libwebp.so
 called_from_lib:libwebpmux.so
+# libvips rasterizes SVG with librsvg, whose Rust code hands buffers between
+# GLib worker threads without instrumentation.
+called_from_lib:librsvg-2.so
 called_from_lib:libvips.so
 called_from_lib:libpng16.so
 called_from_lib:libz.so

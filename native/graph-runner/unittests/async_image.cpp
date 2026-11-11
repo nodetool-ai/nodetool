@@ -86,7 +86,7 @@ public:
   void begin(const char* name) {
     std::lock_guard lock(watch_->mutex);
     watch_->test = name;
-    watch_->deadline = Clock::now() + std::chrono::seconds(60);
+    watch_->deadline = Clock::now() + std::chrono::seconds(60 * gr::test::timeBudgetScale());
   }
   int failures() const { return failures_; }
   int checks() const { return checks_; }
