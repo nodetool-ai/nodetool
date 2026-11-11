@@ -1,0 +1,64 @@
+name: Select native compiler cache
+description: >
+  Use sccache on the shared Cloudflare R2 bucket when the job has R2
+  credentials, and ccache with the Actions cache otherwise. Writes
+  NT_COMPILER_LAUNCHER (sccache or ccache) to the job environment.
+inputs:
+  r2:
+    description: "'true' when the caller has R2 credentials for its compile steps"
+    required: true
+  key-prefix:
+    description: Object key prefix inside the bucket, one per platform and build flavour
+    required: true
+runs:
+  using: composite
+  # The github-env ignore below: native-timeline.yml calls this action on
+  # pull_request, push and schedule only, never on an untrusted trigger such
+  # as pull_request_target, and the values written are a tool path, the
+  # bucket settings and the key prefix, not input from a pull request. The
+  # credentials stay in the environment of the caller's compile steps
+  # (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY), where sccache reads them.
+  steps:
+    - name: Select compiler cache
+      shell: bash
+      env:
+        R2: ${{ inputs.r2 }}
+        KEY_PREFIX: ${{ inputs.key-prefix }}
+      run: | # zizmor: ignore[github-env]
+        set -euo pipefail
+        if [[ "$R2" != true ]]; then
+          # Fork pull requests and repositories without the R2 secrets.
+          echo "No R2 credentials: ccache with the Actions cache"
+          echo "NT_COMPILER_LAUNCHER=ccache" >> "$GITHUB_ENV"
+          exit 0
+        fi
+        version=v0.17.0
+        case "$RUNNER_OS" in
+          Linux) asset=sccache-$version-x86_64-unknown-linux-musl.tar.gz
+                 sum=67c4a96dd237c1f518f6b36083f270f9976d516f1e57fce891755ea782e50006 ;;
+          macOS) asset=sccache-$version-aarch64-apple-darwin.tar.gz
+                 sum=0c560bfba31aef5bdfb4fb3d2677f6e61d71c5c00952f2a83344f47aa31f00f1 ;;
+          Windows) asset=sccache-$version-x86_64-pc-windows-msvc.zip
+                   sum=e94cfc5b58cbe439302f586c1d1bd7980c2cd371d47bdf385ade657411e6f3ac ;;
+          *) echo "::error::no sccache build for $RUNNER_OS"; exit 1 ;;
+        esac
+        curl -fsSL --retry 5 -o "$RUNNER_TEMP/$asset" \
+          "https://github.com/mozilla/sccache/releases/download/$version/$asset"
+        (cd "$RUNNER_TEMP" && echo "$sum  $asset" | sha256sum -c -)
+        if [[ "$asset" == *.zip ]]; then
+          7z x -y -o"$RUNNER_TEMP" "$RUNNER_TEMP/$asset" > /dev/null
+        else
+          tar xzf "$RUNNER_TEMP/$asset" -C "$RUNNER_TEMP"
+        fi
+        dir=${asset%.tar.gz}
+        echo "$RUNNER_TEMP/${dir%.zip}" >> "$GITHUB_PATH"
+        {
+          echo "NT_COMPILER_LAUNCHER=sccache"
+          echo "SCCACHE_BUCKET=nodetool-ci-compiler-cache"
+          echo "SCCACHE_ENDPOINT=https://04992e86424bb7251902eb727c402dbc.r2.cloudflarestorage.com"
+          echo "SCCACHE_REGION=auto"
+          echo "SCCACHE_S3_KEY_PREFIX=$KEY_PREFIX"
+          # The server outlives the build so the macOS package step reuses it.
+          echo "SCCACHE_IDLE_TIMEOUT=0"
+        } >> "$GITHUB_ENV"
+        echo "sccache on R2, prefix $KEY_PREFIX"
