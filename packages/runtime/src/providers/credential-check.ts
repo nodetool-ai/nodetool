@@ -107,6 +107,12 @@ const PROBES: Record<string, CredentialProbe> = {
     url: () => "https://api.stdcmpt.com/v1/models",
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
+  // /v1/models is public on UberLLM; /v1/balance answers 401 without a valid key.
+  UBERLLM_API_KEY: {
+    label: "UberLLM",
+    url: () => "https://api.uberllm.dev/v1/balance",
+    headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
   DEEPSEEK_API_KEY: {
     label: "DeepSeek",
     url: () => "https://api.deepseek.com/v1/models",

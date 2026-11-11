@@ -9072,6 +9072,10 @@
           "button": "Standard Compute-API-Schlüssel abrufen",
           "tooltip": "Zur Standard Compute-API-Schlüsselseite"
         },
+        "UBERLLM_API_KEY": {
+          "button": "UberLLM-API-Schlüssel abrufen",
+          "tooltip": "Zur UberLLM-API-Schlüsselseite"
+        },
         "HF_TOKEN": {
           "button": "Hugging-Face-Token abrufen",
           "tooltip": "Zur Hugging-Face-Token-Seite"
