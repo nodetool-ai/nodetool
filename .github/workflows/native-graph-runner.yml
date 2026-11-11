@@ -77,20 +77,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Native C++ jobs install their system packages with apt on the runner
+      # (docker/ci/README.md).
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-0 \
+            build-essential cmake ninja-build meson pkg-config ccache \
+            libicu-dev libcurl4-openssl-dev \
+            libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev \
+            libswscale-dev libswresample-dev \
+            libcairo2-dev libpango1.0-dev libfontconfig-dev \
+            libglib2.0-dev libexpat1-dev libjpeg-turbo8-dev libpng-dev \
+            libtiff-dev librsvg2-dev libgif-dev liblcms2-dev libexif-dev \
+            libarchive-dev libleptonica-dev tesseract-ocr-eng \
+            mesa-vulkan-drivers
+
       # The guest bundle reads the node packages' dist/ output.
       - name: Set up and build backend packages
         uses: ./.github/actions/setup-build
         with:
-          extra-apt: >-
-            build-essential cmake ninja-build meson pkg-config ccache
-            libicu-dev libcurl4-openssl-dev
-            libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev
-            libswscale-dev libswresample-dev
-            libcairo2-dev libpango1.0-dev libfontconfig-dev
-            libglib2.0-dev libexpat1-dev libjpeg-turbo8-dev libpng-dev
-            libtiff-dev librsvg2-dev libgif-dev liblcms2-dev libexif-dev
-            libarchive-dev libleptonica-dev tesseract-ocr-eng
-            mesa-vulkan-drivers
           package-media: "false"
 
       - name: Restore pinned native dependencies
