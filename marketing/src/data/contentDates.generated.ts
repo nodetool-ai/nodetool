@@ -39,8 +39,8 @@ export const contentDates: {
       "hash": "f6cbe1983f0825ce"
     },
     "/studio": {
-      "date": "2026-11-09",
-      "hash": "38a31388bf0c55b6"
+      "date": "2026-11-11",
+      "hash": "b19bf2ea276f5de6"
     },
     "/storyboards": {
       "date": "2026-10-17",

@@ -255,7 +255,7 @@ a loop the host never constructed (an `AgentNode` reached through `run_node`,
 a JS script) reads it with `gateFromContext` instead of building an ungated run
 of its own; absence resolves to a headless gate that runs `auto` and denies
 what the ladder escalates, so a host that sets nothing fails closed. The
-per-host table is in `packages/agents/AGENTS.md` § Where the permission gate is
+per-host table is in `packages/agents/docs/permission-gate.md` § Where the permission gate is
 set.
 
 ### `ui_*` capabilities: in the pack surface, outside its implementation

@@ -32,4 +32,4 @@ npm run test  --workspace=packages/agents
 npm run lint  --workspace=packages/agents
 ```
 
-Architecture, parallel execution, skills, and tuning: [packages/agents/AGENTS.md](./AGENTS.md).
+Package rules: [AGENTS.md](./AGENTS.md). Implementation notes on the sandbox, capabilities, planning, evals and tuning: [docs/](./docs/).

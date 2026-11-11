@@ -10,7 +10,7 @@
  * only what a host needs to say "this run is headless".
  *
  * Design: docs/AGENTS.md § "The permission gate",
- * packages/agents/AGENTS.md § "Where the permission gate is set".
+ * packages/agents/docs/permission-gate.md § "Where the permission gate is set".
  */
 
 /**

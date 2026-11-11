@@ -8,6 +8,8 @@ interface StoryboardTeaserProps {
   readonly kicker?: string;
   readonly heading: string;
   readonly body?: string;
+  /** Show each film's brief under its title. */
+  readonly showBrief?: boolean;
 }
 
 /**
@@ -18,7 +20,8 @@ export default function StoryboardTeaser({
   slugs,
   kicker = "Example storyboards",
   heading,
-  body = "Watch the finished film, then see every shot behind it."
+  body = "Watch the finished film, then see every shot behind it.",
+  showBrief = false
 }: StoryboardTeaserProps) {
   const boards = storyboardsBySlug(slugs);
   if (boards.length === 0) {
@@ -51,10 +54,12 @@ export default function StoryboardTeaser({
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </a>
         </div>
-        <ul className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+        <ul
+          className={`grid gap-x-6 gap-y-12 sm:grid-cols-2 ${boards.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}
+        >
           {boards.map((board) => (
             <li key={board.slug}>
-              <StoryboardCard board={board} />
+              <StoryboardCard board={board} showBrief={showBrief} />
             </li>
           ))}
         </ul>

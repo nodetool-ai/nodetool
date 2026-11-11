@@ -9072,6 +9072,10 @@
           "button": "获取 Standard Compute API 密钥",
           "tooltip": "前往 Standard Compute API 密钥页面"
         },
+        "UBERLLM_API_KEY": {
+          "button": "获取 UberLLM API 密钥",
+          "tooltip": "前往 UberLLM API 密钥页面"
+        },
         "HF_TOKEN": {
           "button": "获取 Hugging Face 令牌",
           "tooltip": "前往 Hugging Face 令牌页面"

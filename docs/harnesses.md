@@ -96,9 +96,9 @@ Chat flags:
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
                          moonshot, minimax, cerebras, meta, alibaba, together,
                          openrouter, requesty, opper, cheaperinference, api_route,
-                         runcrate, standardcompute, huggingface, replicate, kie,
-                         aki, ollama, lmstudio, claude_agent_sdk, codex, gmi, mlx,
-                         node_llama_cpp
+                         runcrate, standardcompute, uberllm, huggingface, replicate,
+                         kie, aki, ollama, lmstudio, claude_agent_sdk, codex, gmi,
+                         mlx, node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
 -m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
@@ -1800,7 +1800,7 @@ structurally: `tool-loop` (graph editor), `workflow-escalation`, `script-tools`,
 `jsscript-tools`, `sketch-tools`, `timeline-tools`, `storyboard-tools`,
 `model3d-tools`, `svg-tools`, `audio-tools`, `app-tools`, `memory-tools`, and
 `creative-pipeline`. Same flags, metrics, and `--min-success` CI gate as `graph-planner`. Details:
-[packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md).
+[packages/agents/docs/evals.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/evals.md#tool-loop-eval-suites-frontend-ui_-surfaces).
 
 `workflow-escalation` runs the graph tools over objectives that are missing
 something only the user can decide — a name, permission to delete, a choice
@@ -2265,7 +2265,7 @@ is stale or when a new capability arrives with no check and no gap note. It
 also carries a fingerprint of what each capability *declares*, so
 `harness gate --base <ref>` can refuse a contract change that left its coverage
 mapping untouched while saying nothing about an ordinary refactor. See
-[packages/agents/AGENTS.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md).
+[packages/agents/docs/capabilities.md § Capability coverage](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/capabilities.md#capability-coverage--every-capability-names-its-check).
 
 ### nodetool reliability (Cross-Surface Journey Diffs)
 
@@ -2803,7 +2803,7 @@ Each line in the file is one span:
 }
 ```
 
-See [packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md) for agent architecture, parallel execution, skills, and tuning.
+See [packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md) for the agent package rules and its index of implementation notes on parallel execution, skills, and tuning.
 
 ## App runs phase 1
 

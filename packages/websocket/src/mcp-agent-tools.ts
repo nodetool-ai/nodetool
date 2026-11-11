@@ -307,6 +307,41 @@ export function toToolResponse(result: unknown) {
     : withError;
 }
 
+const STORAGE_ROUTE_PREFIX = "/api/storage/";
+
+/**
+ * Read the bytes behind one image `view_image` answered with.
+ *
+ * A crop or a downscale is stored under a key and answered as
+ * `/api/storage/<key>`, the browser route. That is not a uri the S3 or
+ * Supabase adapter accepts, and under the cloud profile `loadMediaRefBytes`
+ * refuses an absolute path with a `/` in its key before it asks storage, so
+ * every `region` and `detail: "low"` call failed on the hosted server. Read the
+ * key from the adapter that stored it instead. `view_image` checked ownership
+ * of anything it answers with this form.
+ */
+async function loadViewedImageBytes(
+  image: Parameters<typeof loadMediaRefBytes>[0],
+  context: ProcessingContext
+): Promise<Uint8Array | null> {
+  const uri = image.uri;
+  if (uri?.startsWith(STORAGE_ROUTE_PREFIX) && context.storage) {
+    let key: string;
+    try {
+      key = decodeURIComponent(uri.slice(STORAGE_ROUTE_PREFIX.length));
+    } catch {
+      key = uri.slice(STORAGE_ROUTE_PREFIX.length);
+    }
+    const stored = await context.storage.retrieve(
+      context.storage.uriForKey(key)
+    );
+    if (stored?.length) {
+      return stored;
+    }
+  }
+  return loadMediaRefBytes(image, context);
+}
+
 async function toImageToolResponse(
   result: unknown,
   context: ProcessingContext
@@ -319,7 +354,7 @@ async function toImageToolResponse(
   const response = toToolResponse(stripImagePayload(result));
   const images = await Promise.all(
     extracted.images.map(async ({ image }) => {
-      const bytes = await loadMediaRefBytes(image, context);
+      const bytes = await loadViewedImageBytes(image, context);
       if (!bytes?.length) {
         throw new Error("Could not load image bytes for the MCP response.");
       }

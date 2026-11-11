@@ -1201,6 +1201,7 @@ export const PROVIDER_IDS = {
   API_ROUTE: "api_route",
   RUNCRATE: "runcrate",
   STANDARD_COMPUTE: "standardcompute",
+  UBERLLM: "uberllm",
   TOGETHER: "together",
   ALIBABA: "alibaba",
   CEREBRAS: "cerebras",

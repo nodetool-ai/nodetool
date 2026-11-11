@@ -9212,6 +9212,10 @@
           "button": "Ottieni la chiave API Standard Compute",
           "tooltip": "Vai alla piattaforma Standard Compute per ottenere la tua chiave API"
         },
+        "UBERLLM_API_KEY": {
+          "button": "Ottieni la chiave API UberLLM",
+          "tooltip": "Vai alla piattaforma UberLLM per ottenere la tua chiave API"
+        },
         "API_ROUTE_API_KEY": {
           "button": "Ottieni la chiave del percorso API",
           "tooltip": "Vai alla pagina delle chiavi API del percorso API"
