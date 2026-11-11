@@ -1,9 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 // An iPhone 13 viewport (390x664). Each check is a defect the home
-// page had on a phone, or a layout the spec strip must keep: a two-line
-// category badge, the download button below the fold, and rows that run off
-// screen.
+// page had on a phone: a two-line category badge, the download button below
+// the fold, and content that runs off screen.
 test.describe("home page on a phone", () => {
   test.use({ viewport: { width: 390, height: 664 }, hasTouch: true });
 
@@ -29,19 +28,5 @@ test.describe("home page on a phone", () => {
     const ctaBox = await cta.boundingBox();
     expect(ctaBox).not.toBeNull();
     expect((ctaBox?.y ?? 0) + (ctaBox?.height ?? 0)).toBeLessThanOrEqual(viewport?.height ?? 0);
-  });
-
-  test("the spec strip stacks to one column inside the screen", async ({ page }) => {
-    const rows = page.locator("#specs dl > div");
-    await rows.first().scrollIntoViewIfNeeded();
-    const boxes = await rows.evaluateAll((items) =>
-      items.map((item) => {
-        const box = item.getBoundingClientRect();
-        return { left: Math.round(box.left), right: box.right };
-      })
-    );
-    expect(boxes).toHaveLength(2);
-    expect(new Set(boxes.map((box) => box.left)).size).toBe(1);
-    expect(boxes.every((box) => box.right <= 390)).toBe(true);
   });
 });

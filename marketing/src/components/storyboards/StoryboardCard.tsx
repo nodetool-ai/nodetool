@@ -4,12 +4,18 @@ import { ArrowUpRight } from "lucide-react";
 import { categoryLabel, isVertical } from "@/data/storyboards";
 import type { Storyboard } from "@/data/storyboards";
 
+interface StoryboardCardProps {
+  readonly board: Storyboard;
+  /** Show the brief the storyboard started from instead of the one-line description. */
+  readonly showBrief?: boolean;
+}
+
 /**
  * A storyboard card: the film's poster above its title. The film plays muted
  * while the pointer or keyboard focus is on the card, and rests on its poster
  * otherwise. Decorative: the card's own text names the film.
  */
-export function StoryboardCard({ board }: { board: Storyboard }) {
+export function StoryboardCard({ board, showBrief = false }: StoryboardCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fit =
     board.aspectRatio === "16:9" ? "object-cover" : "object-contain";
@@ -61,6 +67,7 @@ export function StoryboardCard({ board }: { board: Storyboard }) {
         />
         <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 font-jetbrains text-[11px] font-medium text-white backdrop-blur">
           {board.aspectRatio} · {board.shots.length} shots
+          {showBrief && ` · ${Math.round(board.video.duration)} s`}
         </span>
       </div>
       <div className="flex flex-1 flex-col px-1 pt-5">
@@ -77,9 +84,16 @@ export function StoryboardCard({ board }: { board: Storyboard }) {
             aria-hidden="true"
           />
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-slate-400">
-          {board.description}
-        </p>
+        {showBrief ? (
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">
+            <span className="font-medium text-slate-300">Brief: </span>
+            {board.brief}
+          </p>
+        ) : (
+          <p className="mt-2 text-sm leading-relaxed text-slate-400">
+            {board.description}
+          </p>
+        )}
       </div>
     </a>
   );

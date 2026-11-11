@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
 import { recipeEntries } from "../../src/data/recipes";
-import { SPEC_ITEMS } from "../../src/components/SpecStrip";
 
 // Static route/metadata/media coverage lives in static-seo.spec.ts and uses
 // HTTP responses. Browser work stays representative so hydration and user
@@ -87,30 +86,36 @@ test.describe("marketing smoke", () => {
     page
   }) => {
     await page.goto("/");
-    // site-editorial.spec.md § Homepage: hero, mechanism, cost behaviour,
-    // spec strip, way in. A new h2 here means a section was added without
+    // site-editorial.spec.md § Homepage: hero, finished films, mechanism,
+    // cost behaviour, way in. A new h2 here means a section was added without
     // removing one.
     await expect(page.locator("#content h2")).toHaveText([
+      "Finished films, with the brief behind each.",
       "From an idea to a video you can edit.",
       "Approve the still before you pay for the clip.",
-      "Plans and costs",
       "Frequently asked questions",
       "Start making with NodeTool."
     ]);
-    // Six short selling points link to their detailed pages.
+    // Three cards: films, the agent, node workflows. Developer surfaces stay
+    // on /developers.
     const pillars = page
-      .getByRole("list", { name: "What you can do with NodeTool" })
+      .getByRole("list", { name: "What NodeTool makes" })
       .locator("a");
-    await expect(pillars).toHaveCount(6);
-    for (const href of ["/studio", "/studio#surfaces", "/agents", "/node-based-workflows", "/models", "/developers"]) {
+    await expect(pillars).toHaveCount(3);
+    for (const href of ["/studio", "/agents", "/node-based-workflows"]) {
       await expect(pillars.and(page.locator(`[href="${href}"]`))).toHaveCount(1);
     }
-    const specs = page.getByRole("region", { name: "Plans and costs" });
-    for (const item of [SPEC_ITEMS.plan, SPEC_ITEMS.cost]) {
-      await expect(specs.locator(`a[href="${item.href}"]`)).toHaveText(
-        item.value
-      );
-    }
+    // The plan sign-in sits by Download, and "alpha" stays out of the buttons.
+    await expect(
+      page.getByText(/sign in with your ChatGPT or Claude plan and the agent runs on it/i)
+    ).toBeVisible();
+    await expect(
+      page
+        .locator('section[aria-labelledby="hero-title"], section[aria-labelledby="closing-cta-title"]')
+        .getByRole("link", { name: /alpha/i })
+    ).toHaveCount(0);
+    // Each film shows the brief it started from.
+    await expect(page.getByText("Brief:")).toHaveCount(3);
     await expect(page.getByText(/Made with working creatives/i)).toHaveCount(0);
   });
 
