@@ -2248,6 +2248,25 @@ describe("ProcessingContext – dispatchCapability edge cases", () => {
     expect(receivedSeed).toBe(20261031);
   });
 
+  it("forwards end_image to image_to_video as endImage", async () => {
+    let receivedEnd: Uint8Array | null | undefined;
+    class I2VProvider extends MockProvider {
+      override async imageToVideo(_image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
+        receivedEnd = params.endImage;
+        return new Uint8Array([7]);
+      }
+    }
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    ctx.registerProvider("i2v", new I2VProvider());
+    await ctx.runProviderPrediction({
+      provider: "i2v",
+      capability: "image_to_video",
+      model: "m",
+      params: { image: new Uint8Array([1]), end_image: new Uint8Array([2]) }
+    });
+    expect(receivedEnd).toEqual(new Uint8Array([2]));
+  });
+
   it("dispatches ordered reference image and video inputs and rejects empties", async () => {
     let received: { images: Uint8Array[]; videos: Uint8Array[] } | undefined;
     class RefProvider extends MockProvider {

@@ -482,7 +482,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "animate_image",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "27e054e25e26",
+    contract: "63b2518ee929",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
