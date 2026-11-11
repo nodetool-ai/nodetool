@@ -101,6 +101,9 @@ QFont fontFor(const scene::TextStyle& style, double spacing = 0) {
             std::clamp(static_cast<int>(std::round(staticFace ? weight : style.fontWeight)), 1, 1000)));
     } else {
         font.setVariableAxis(QFont::Tag("wght"), static_cast<float>(style.fontWeight));
+        // The server renderer, like a browser canvas, sets the optical-size
+        // axis to the font size. Faces without an opsz axis ignore it.
+        font.setVariableAxis(QFont::Tag("opsz"), static_cast<float>(std::max(1.0, style.fontSizePx)));
     }
     font.setHintingPreference(QFont::PreferVerticalHinting);
     font.setStyleStrategy(static_cast<QFont::StyleStrategy>(QFont::PreferAntialias | QFont::PreferTypoLineMetrics));
@@ -311,9 +314,16 @@ FT_Face freeTypeFace(const QRawFont& raw, const scene::TextStyle& style, double 
             const std::unique_ptr<FT_MM_Var, decltype(freeAxes)> ownedAxes(axes, freeAxes);
             std::vector<FT_Fixed> coordinates(axes->num_axis);
             for (unsigned i = 0; i < axes->num_axis; ++i) {
-                coordinates[i] = axes->axis[i].tag == FT_MAKE_TAG('w', 'g', 'h', 't')
-                                     ? static_cast<FT_Fixed>(style.fontWeight * 65536)
-                                     : axes->axis[i].def;
+                const auto& axis = axes->axis[i];
+                if (axis.tag == FT_MAKE_TAG('w', 'g', 'h', 't')) {
+                    coordinates[i] = static_cast<FT_Fixed>(style.fontWeight * 65536);
+                } else if (axis.tag == FT_MAKE_TAG('o', 'p', 's', 'z')) {
+                    // Optical size follows the font size, as on the server.
+                    const auto size = static_cast<FT_Fixed>(std::max(1.0, style.fontSizePx) * 65536);
+                    coordinates[i] = std::clamp(size, axis.minimum, axis.maximum);
+                } else {
+                    coordinates[i] = axis.def;
+                }
             }
             FT_Set_Var_Design_Coordinates(font.face.get(), static_cast<FT_UInt>(coordinates.size()),
                                           coordinates.data());
