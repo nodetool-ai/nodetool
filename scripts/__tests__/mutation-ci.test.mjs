@@ -335,7 +335,6 @@ describe("bounded source partitions", () => {
 
 it("pins every CI checkout and preserves complete target, budget, and aggregate contracts", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-changed.yml", import.meta.url), "utf8"));
-  // packages: read pulls the CI image from GHCR.
   expect(workflow.permissions).toEqual({ contents: "read", packages: "read" });
   const jobs = workflow.jobs;
   expect(jobs["mutate-changed"].strategy).toEqual({ "fail-fast": false, "max-parallel": 32, matrix: "${{ fromJSON(needs.plan.outputs.matrix) }}" });
@@ -347,9 +346,10 @@ it("pins every CI checkout and preserves complete target, budget, and aggregate 
     "node", "scripts/mutation-ci.mjs", "aggregate", ".metrics/mutation-ci/plan.json",
     ".metrics/mutation-ci/results"
   ]);
-  // ci-image calls a reusable workflow and has no steps of its own.
+  // ci-image calls the reusable image workflow, which sets its own timeout.
   expect(jobs["ci-image"].uses).toBe("./.github/workflows/ci-image.yml");
-  for (const job of Object.values(jobs).filter((candidate) => candidate !== jobs["ci-image"])) {
+  for (const [name, job] of Object.entries(jobs)) {
+    if (name === "ci-image") { continue; }
     expect(job["timeout-minutes"]).toBe(job === jobs["mutate-changed"] ? 180 : 45);
     const checkout = job.steps.find((step) => step.uses?.startsWith("actions/checkout@"));
     expect(checkout.with["fetch-depth"]).toBe(0);
@@ -419,16 +419,21 @@ it("prepares sandboxed Chromium before mutation baselines execute browser tests"
   const steps = workflow.jobs["mutate-changed"].steps;
   const mutation = steps.findIndex(step => step.name === "Mutate every assigned changed-function site");
   const install = steps.findIndex(step => step.run === "npx playwright install chromium");
-  const sandbox = steps.findIndex(step => step.uses === "./.github/actions/chromium-sandbox");
+  const sandbox = steps.findIndex(step => step.name === "Enable and verify the Chromium sandbox");
   expect(install).toBeGreaterThanOrEqual(0);
   expect(sandbox).toBeGreaterThan(install);
   expect(mutation).toBeGreaterThan(sandbox);
   expect(steps[install].if).toBeUndefined();
   expect(steps[sandbox].if).toBeUndefined();
-  const action = readFileSync(new URL("../../.github/actions/chromium-sandbox/action.yml", import.meta.url), "utf8");
-  expect(action).toContain("chromiumSandbox: true");
-  expect(action).toContain("await browser.close()");
-  expect(action).not.toContain("--no-sandbox");
+  expect(steps[sandbox].uses).toBe("./.github/actions/chromium-sandbox");
+  // The sandbox needs a non-root, privileged container (docker/ci/README.md).
+  expect(workflow.jobs["mutate-changed"].container.options).toBe("--init --user 1001 --privileged");
+  const action = yaml.load(readFileSync(new URL("../../.github/actions/chromium-sandbox/action.yml", import.meta.url), "utf8"));
+  const sandboxRuns = action.runs.steps.map(step => step.run).join("\n");
+  expect(sandboxRuns).toContain("kernel.apparmor_restrict_unprivileged_userns=0");
+  expect(sandboxRuns).toContain("chromiumSandbox: true");
+  expect(sandboxRuns).toContain("await browser.close()");
+  expect(sandboxRuns).not.toContain("--no-sandbox");
 });
 
 

@@ -75,7 +75,7 @@ it("keeps the required core-smoke status dependent on verification and the indep
   for (const command of ["npm run typecheck", "npm run lint", "npm run dev:nodetool -- harness gate --base origin/main --jobs 1", "npm run backend:smoke"]) {
     expect(checks).toContain(command);
   }
-  // The CI image carries libsecret-1-dev for keytar (docker/ci/Dockerfile).
+  // Only the CI image, which ships libsecret, gates the packed install.
   expect(workflow.jobs["packed-install"].needs).toBe("ci-image");
   expect(workflow.jobs["packed-install"].container.image).toBe("${{ needs.ci-image.outputs.image }}");
   const packedChecks = workflow.jobs["packed-install"].steps.map(step => step.run);
@@ -127,17 +127,24 @@ it("prepares sandboxed Chromium before packed verification runs browser suites",
   const steps = workflow.jobs.verification.steps;
   const affectedIndex = steps.findIndex(step => step.name === "Run the selected verification bucket");
   const installIndex = steps.findIndex(step => step.run === "npx playwright install chromium");
-  const sandboxIndex = steps.findIndex(step => step.uses === "./.github/actions/chromium-sandbox");
+  const sandboxIndex = steps.findIndex(step => step.name === "Enable and verify the Chromium sandbox");
   expect(affectedIndex).toBeGreaterThan(0);
   expect(installIndex).toBeGreaterThanOrEqual(0);
   expect(sandboxIndex).toBeGreaterThan(installIndex);
   expect(affectedIndex).toBeGreaterThan(sandboxIndex);
-  const sandbox = readFileSync(new URL("../../.github/actions/chromium-sandbox/action.yml", import.meta.url), "utf8");
-  expect(sandbox).toContain("chromiumSandbox: true");
+  expect(steps[sandboxIndex].uses).toBe("./.github/actions/chromium-sandbox");
+  const action = yaml.load(readFileSync(new URL("../../.github/actions/chromium-sandbox/action.yml", import.meta.url), "utf8"));
+  const sandboxRuns = action.runs.steps.map(step => step.run).join("\n");
+  expect(sandboxRuns).toContain("kernel.apparmor_restrict_unprivileged_userns=0");
+  expect(sandboxRuns).toContain("chromiumSandbox: true");
+  expect(sandboxRuns).toContain("await browser.close()");
+  expect(sandboxRuns).not.toContain("--no-sandbox");
   const mobileIndex = steps.findIndex(step => step.run === "npm --prefix mobile ci");
   expect(mobileIndex).toBeGreaterThanOrEqual(0);
   expect(mobileIndex).toBeLessThan(affectedIndex);
+  // The CI image ships the Vulkan driver, and the sandbox needs a non-root, privileged container.
   expect(workflow.jobs.verification.container.image).toBe("${{ needs.ci-image.outputs.image }}");
+  expect(workflow.jobs.verification.container.options).toBe("--init --user 1001 --privileged");
 });
 
 it("keeps the bucket exit status when Chromium diagnostics run", () => {
