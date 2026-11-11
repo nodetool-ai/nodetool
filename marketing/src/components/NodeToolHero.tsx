@@ -52,13 +52,13 @@ export default function NodeToolHero() {
           id="hero-title"
           className="mt-5 text-balance text-[2.125rem] font-bold leading-[1.05] tracking-tight text-slate-50 sm:mt-6 sm:text-6xl lg:text-7xl"
         >
-          Turn one sentence into{" "}
-          <span className="text-sky-200">a short film you can edit.</span>
+          Direct AI films,{" "}
+          <span className="text-sky-200">shot by shot.</span>
         </h1>
 
         <p className="mt-5 max-w-2xl text-pretty text-base leading-relaxed text-slate-300 sm:mt-6 sm:text-xl">
-          The agent writes the story, draws a still for every shot, and cuts
-          the clips on a timeline. Approve each still
+          Start with one sentence. The agent writes the story, draws a still
+          for every shot, and cuts the clips on a timeline. Approve each still
           before you pay for its clip, reshoot any shot on its own, and save
           what works as a workflow you can run again.
         </p>
