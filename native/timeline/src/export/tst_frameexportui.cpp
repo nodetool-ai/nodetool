@@ -17,6 +17,25 @@
 #include <algorithm>
 #include <functional>
 
+// Records which items a mouse press or release is sent to.
+class PointerTrace : public QObject {
+public:
+    QStringList reached;
+    bool eventFilter(QObject* receiver, QEvent* event) override {
+        if (event->type() != QEvent::MouseButtonPress && event->type() != QEvent::MouseButtonRelease) { return false; }
+        auto* quick = qobject_cast<QQuickItem*>(receiver);
+        if (!quick) { return false; }
+        QString owner;
+        for (auto* up = quick; up && owner.isEmpty(); up = up->parentItem()) { owner = up->objectName(); }
+        reached.append(QStringLiteral("%1 %2 in %3 at %4,%5 %6x%7")
+            .arg(event->type() == QEvent::MouseButtonPress ? "press" : "release",
+                 QString::fromLatin1(quick->metaObject()->className()), owner)
+            .arg(quick->mapToScene({0, 0}).x()).arg(quick->mapToScene({0, 0}).y())
+            .arg(quick->width()).arg(quick->height()));
+        return false;
+    }
+};
+
 class TestFrameExportUi : public WiringFixture {
     Q_OBJECT
     QTemporaryDir folder;
@@ -191,28 +210,14 @@ private slots:
         };
         const auto target = reached();
         QSignalSpy buttonClicks(item("exportFrameButton"), SIGNAL(clicked()));
+        // Names every item that the press and release reach, in delivery order.
+        PointerTrace trace;
+        qApp->installEventFilter(&trace);
         click("exportFrameButton");
+        qApp->removeEventFilter(&trace);
         const auto outcome = [&] {
-            // An open popup puts the overlay above the button and can take the press.
-            QStringList popups;
-            std::function<void(QObject*)> collect = [&](QObject* node) {
-                if (node->inherits("QQuickPopup") && node->property("opened").toBool()) {
-                    QString owner;
-                    for (auto* up = node->parent(); up && owner.isEmpty(); up = up->parent()) { owner = up->objectName(); }
-                    popups.append(QStringLiteral("%1 %2 in %3 modal %4 at %5,%6 %7x%8")
-                        .arg(QString::fromLatin1(node->metaObject()->className()), node->objectName(), owner)
-                        .arg(node->property("modal").toBool())
-                        .arg(node->property("x").toDouble()).arg(node->property("y").toDouble())
-                        .arg(node->property("width").toDouble()).arg(node->property("height").toDouble()));
-                }
-                for (auto* child : node->children()) { collect(child); }
-            };
-            collect(view->contentItem());
-            collect(view->rootObject());
-            popups.removeDuplicates();
-            return target + QStringLiteral("; open popups: [%1]").arg(popups.join("; "))
-                + QStringLiteral("; button clicked %1 times, reason dialog %2: %3")
-                .arg(buttonClicks.count()).arg(shown("exportFrameReasonDialog"))
+            return target + QStringLiteral("; delivered: [%1]; button clicked %2 times, reason dialog %3: %4")
+                .arg(trace.reached.join("; ")).arg(buttonClicks.count()).arg(shown("exportFrameReasonDialog"))
                 .arg(object("exportFrameReason") ? object("exportFrameReason")->property("text").toString() : QString());
         };
         QTRY_VERIFY2(shown("exportFrameDialog"), qPrintable(outcome()));
