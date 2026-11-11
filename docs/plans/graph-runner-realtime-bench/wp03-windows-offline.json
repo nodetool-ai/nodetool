@@ -1,0 +1,32 @@
+{
+  "build": {
+    "compiler": "clang version 19.1.7 (https://github.com/ziglang/zig-bootstrap de1b01a8c1dddf75a560123ac1c2ab182b4830da)",
+    "flags": [
+      "-O2",
+      "-fno-fast-math",
+      "-ffp-contract=off",
+      "-Wall",
+      "-Wextra",
+      "-Werror"
+    ],
+    "wasmTarget": "wasm32-freestanding"
+  },
+  "platform": "win32",
+  "architecture": "x64",
+  "browser": "156.0.8078.80",
+  "blocks": 512,
+  "frames": 65536,
+  "sampleRate": 44100,
+  "bytesCompared": 524288,
+  "sha256": "0df66eb1467ab839f933a0e861b5246cc15d443e3c43f85220ae3bf026d38ad6",
+  "nativeRepeatable": true,
+  "nodeWasmEqual": true,
+  "audioWorkletEqual": true,
+  "negativeControls": [
+    "truncated input",
+    "corrupted output",
+    "empty output"
+  ],
+  "offlineRunWallMs": 7462.396,
+  "limits": "Offline wall time includes setup and transfer. It is not per-quantum render time or live-device evidence."
+}
