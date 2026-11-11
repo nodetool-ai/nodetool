@@ -23,6 +23,7 @@
  * `dist/` is not built (see ../nodetool.ts).
  */
 import type { Command } from "commander";
+import { spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { printCommandError } from "@nodetool-ai/pack-manager/command-errors";
@@ -739,6 +740,25 @@ function selfcheckEnv(): NodeJS.ProcessEnv {
 /** Kill switches for every selfcheck process group still running. */
 const liveGroups = new Set<() => void>();
 
+function killProcessTree(child: ChildProcess): void {
+  if (child.pid === undefined) {
+    return;
+  }
+  if (process.platform === "win32") {
+    // Windows has no POSIX process groups. Wait for the tree before continuing.
+    spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], {
+      stdio: "ignore",
+      windowsHide: true
+    });
+    return;
+  }
+  try {
+    process.kill(-child.pid, "SIGKILL");
+  } catch {
+    child.kill("SIGKILL");
+  }
+}
+
 function killLiveGroups(): void {
   for (const kill of liveGroups) kill();
 }
@@ -792,7 +812,8 @@ async function runCheckSerial(
       cwd: o.repoRoot,
       shell: true,
       stdio: o.json ? ["ignore", "pipe", "pipe"] : "inherit",
-      detached: true,
+      detached: process.platform !== "win32",
+      windowsHide: true,
       env: selfcheckEnv()
     });
     let groupKilled = false;
@@ -801,13 +822,7 @@ async function runCheckSerial(
         return;
       }
       groupKilled = true;
-      try {
-        if (child.pid !== undefined) {
-          process.kill(-child.pid, "SIGKILL");
-        }
-      } catch {
-        child.kill("SIGKILL");
-      }
+      killProcessTree(child);
     };
     const release = trackGroup(killGroup);
     const kill = (reason: string): void => {
@@ -879,18 +894,15 @@ async function runCheckAsync(
       cwd: o.repoRoot,
       shell: true,
       stdio: ["ignore", "pipe", "pipe"],
-      detached: true,
+      detached: process.platform !== "win32",
+      windowsHide: true,
       env: selfcheckEnv()
     });
     let groupKilled = false;
     const killGroup = (): void => {
       if (groupKilled) return;
       groupKilled = true;
-      try {
-        if (child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
-      } catch {
-        child.kill("SIGKILL");
-      }
+      killProcessTree(child);
     };
     const release = trackGroup(killGroup);
     const settle = (

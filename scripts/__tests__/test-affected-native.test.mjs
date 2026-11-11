@@ -9,7 +9,7 @@
  */
 import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -52,13 +52,26 @@ function write(path, text) {
   writeFileSync(path, text);
 }
 
+it("reads Windows CRLF CMake cache entries without changing paths or values", () => {
+  const build = mkdtempSync(join(tmpdir(), "native-cache-"));
+  temporary.push(build);
+  write(join(build, "CMakeCache.txt"),
+    "// comment\r\nCMAKE_HOME_DIRECTORY:INTERNAL=C:/repo/native/realtime\r\n" +
+    "CMAKE_GENERATOR:INTERNAL=Visual Studio 17 2022\r\nEMPTY:STRING=\r\n");
+  expect(readCache(build)).toEqual({
+    CMAKE_HOME_DIRECTORY: "C:/repo/native/realtime",
+    CMAKE_GENERATOR: "Visual Studio 17 2022",
+    EMPTY: ""
+  });
+});
+
 /** Copy the fixture, fill in its paths, and build the model. */
 function setup({ drop = [], unbuilt = [], config } = {}) {
   const tmp = mkdtempSync(join(tmpdir(), "native-affected-"));
   temporary.push(tmp);
   const root = join(tmp, "repo");
   const build = join(tmp, "out");
-  const fill = (text) => text.replaceAll("@ROOT@", root).replaceAll("@BUILD@", build);
+  const fill = (text) => text.replaceAll("@ROOT@", root.replaceAll("\\", "/")).replaceAll("@BUILD@", build.replaceAll("\\", "/"));
   cpSync(join(FIXTURE, "out"), build, { recursive: true });
   for (const path of filesUnder(build)) writeFileSync(path, fill(readFileSync(path, "utf8")));
   for (const path of drop) rmSync(join(build, path));
@@ -366,23 +379,23 @@ describe("planProjects", () => {
 describe("build directories and helpers", () => {
   it("derives the environment variable from the project name", () => {
     expect(resolveBuildDir("node-editor", {}, { NODETOOL_NODE_EDITOR_BUILD_DIR: "/b/editor" }, "/repo")).toEqual({
-      dir: "/b/editor",
+      dir: resolve("/b/editor"),
       source: "NODETOOL_NODE_EDITOR_BUILD_DIR"
     });
-    expect(resolveBuildDir("graph-runner", { "graph-runner": "/b/gr" }, { NODETOOL_GRAPH_RUNNER_BUILD_DIR: "/b/env" }, "/repo").dir).toBe("/b/gr");
-    expect(resolveBuildDir("timeline", {}, {}, "/repo")).toEqual({ dir: "/repo/native/timeline/build", source: "default" });
+    expect(resolveBuildDir("graph-runner", { "graph-runner": "/b/gr" }, { NODETOOL_GRAPH_RUNNER_BUILD_DIR: "/b/env" }, "/repo").dir).toBe(resolve("/b/gr"));
+    expect(resolveBuildDir("timeline", {}, {}, "/repo")).toEqual({ dir: join("/repo", "native", "timeline", "build"), source: "default" });
     expect(configureCommand("graph-runner")).toBe("cmake -S native/graph-runner -B native/graph-runner/build -DCMAKE_BUILD_TYPE=Release");
   });
 
   it("parses Makefile depfiles with continuations, escaped spaces and relative paths", () => {
     const parsed = parseMakeDepfile("CMakeFiles/t.dir/a.cpp.o: ../src/a.cpp \\\n /abs/my\\ dir/b.h \\\n  c.h\n", "/build/sub");
-    expect(parsed).toEqual({ object: "CMakeFiles/t.dir/a.cpp.o", files: ["/build/src/a.cpp", "/abs/my dir/b.h", "/build/sub/c.h"] });
+    expect(parsed).toEqual({ object: "CMakeFiles/t.dir/a.cpp.o", files: ["/build/src/a.cpp", "/abs/my dir/b.h", "/build/sub/c.h"].map(path => resolve(path)) });
   });
 
   it("parses ninja -t deps output", () => {
     const text = "CMakeFiles/gr_js.dir/src/js/engine.cpp.o: #deps 2, deps mtime 1 (VALID)\n    ../src/js/engine.cpp\n    /usr/include/stdio.h\n\n";
     expect(parseNinjaDeps(text, "/repo/build")).toEqual([
-      { object: "CMakeFiles/gr_js.dir/src/js/engine.cpp.o", files: ["/repo/src/js/engine.cpp", "/usr/include/stdio.h"] }
+      { object: "CMakeFiles/gr_js.dir/src/js/engine.cpp.o", files: ["/repo/src/js/engine.cpp", "/usr/include/stdio.h"].map(path => resolve(path)) }
     ]);
     expect(targetOfObject("_deps/quickjs-build/CMakeFiles/qjs.dir/quickjs.c.o")).toBe("qjs");
   });
