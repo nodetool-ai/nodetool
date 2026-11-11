@@ -30,6 +30,22 @@ called_from_lib:libwebpmux.so
 # libvips rasterizes SVG with librsvg, whose Rust code hands buffers between
 # GLib worker threads without instrumentation.
 called_from_lib:librsvg-2.so
+# The rest of libvips' codec and support libraries, which run on the same
+# GLib worker threads and free on the caller's thread. Listed as a set so a
+# new image format does not surface the same false race one library at a time.
+called_from_lib:libwebpdemux.so
+called_from_lib:libsharpyuv.so
+called_from_lib:libxml2.so
+called_from_lib:libjpeg.so
+called_from_lib:libtiff.so
+called_from_lib:libgif.so
+called_from_lib:libexif.so
+called_from_lib:liblcms2.so
+called_from_lib:libexpat.so
+called_from_lib:libcairo.so
+called_from_lib:libpixman-1.so
+called_from_lib:libfreetype.so
+called_from_lib:libharfbuzz.so
 called_from_lib:libvips.so
 called_from_lib:libpng16.so
 called_from_lib:libz.so
