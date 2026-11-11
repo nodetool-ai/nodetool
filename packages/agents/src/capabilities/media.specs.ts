@@ -233,6 +233,11 @@ export const ANIMATE_IMAGE_SCHEMA: JsonSchema = {
       description:
         "Workspace-relative path of the source image (or asset:// URI)."
     },
+    end_frame_file: {
+      type: "string" as const,
+      description:
+        "Optional workspace-relative path (or asset:// URI) of the image the clip ends on. Only models that take a last frame accept it; the call fails on one that does not."
+    },
     output_file: {
       type: "string" as const,
       description: "Optional workspace-relative path to also write the result."

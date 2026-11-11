@@ -653,6 +653,9 @@ export class ComfyCloudProvider extends BaseProvider {
           `${workflowModel.name} is off. ${workflowModel.licenseNote ?? ""} Set ${COMFY_RESTRICTED_MODELS_ENV}=1 on the server only where its license permits use.`
         );
       }
+      if (params.endImage?.length) {
+        throw new Error(`${workflowModel.name} takes no end frame`);
+      }
       return runComfyWorkflowModel(workflowModel, {
         apiKey: this.requireApiKey(),
         image,
@@ -675,7 +678,11 @@ export class ComfyCloudProvider extends BaseProvider {
     ) {
       throw new Error(`Comfy model ${modelId} takes no start image`);
     }
-    if (params.endImage) b.attachMedia(END_IMAGE_FIELDS, [this.image(params.endImage)]);
+    // A last frame the model cannot take would be dropped without a word, and
+    // the caller would get a clip that never reaches the frame it asked for.
+    if (params.endImage?.length && !b.attachMedia(END_IMAGE_FIELDS, [this.image(params.endImage)])) {
+      throw new Error(`Comfy model ${modelId} takes no end frame`);
+    }
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal,
       timeoutSeconds: params.timeoutSeconds

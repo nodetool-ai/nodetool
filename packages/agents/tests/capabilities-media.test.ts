@@ -1254,6 +1254,57 @@ describe("animate_image takes its shape from the still", () => {
     expect(sentParams(context)["aspect_ratio"]).toBe("1:1");
   });
 
+  it("reads end_frame_file and sends it as the end image", async () => {
+    const start = pngOf(720, 1280);
+    const end = pngOf(720, 1281);
+    const reads: string[] = [];
+    const context = withGenerationSeam({
+      userId: "user-1",
+      runProviderPrediction: vi.fn(async () => new Uint8Array([1, 2, 3])),
+      workspace: {
+        localDir: null,
+        write: async () => {},
+        read: async (path: string) => {
+          reads.push(path);
+          return path === "end.png" ? end : start;
+        },
+        key: (p: string) => p
+      }
+    }) as unknown as ProcessingContext;
+    await asTool(animateImage).process(context, {
+      provider: "comfy_cloud",
+      model: "kling/kling-v3",
+      input_file: "start.png",
+      end_frame_file: "end.png",
+      prompt: "Smooth cinematic transition"
+    });
+    expect(reads).toEqual(["start.png", "end.png"]);
+    const sent = sentParams(context);
+    expect(sent["image"]).toBe(start);
+    expect(sent["end_image"]).toBe(end);
+  });
+
+  it("names a missing end frame instead of animating without it", async () => {
+    const context = withGenerationSeam({
+      userId: "user-1",
+      runProviderPrediction: vi.fn(async () => new Uint8Array([1, 2, 3])),
+      workspace: {
+        localDir: null,
+        write: async () => {},
+        read: async (path: string) => (path === "start.png" ? pngOf(16, 16) : null),
+        key: (p: string) => p
+      }
+    }) as unknown as ProcessingContext;
+    const result = (await asTool(animateImage).process(context, {
+      provider: "comfy_cloud",
+      model: "kling/kling-v3",
+      input_file: "start.png",
+      end_frame_file: "missing.png"
+    })) as { error?: string };
+    expect(result.error).toContain("missing.png");
+    expect(context.runProviderPrediction).not.toHaveBeenCalled();
+  });
+
   it("says nothing when the bytes are not an image it can read", async () => {
     const context = contextFor(new Uint8Array([9, 9, 9]));
     await asTool(animateImage).process(context, {
