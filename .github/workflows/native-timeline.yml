@@ -143,8 +143,18 @@ jobs:
       - name: Set up native dependencies
         uses: ./.github/actions/setup-native-timeline
 
+      # sccache on the shared R2 bucket keeps every object across pull
+      # requests and branches. Without the R2 secrets (fork pull requests),
+      # ccache with the Actions cache takes over.
+      - name: Select compiler cache
+        uses: ./.github/actions/native-compiler-cache
+        with:
+          r2: ${{ secrets.NATIVE_CACHE_R2_READ_KEY_ID != '' && secrets.NATIVE_CACHE_R2_WRITE_KEY_ID != '' }}
+          key-prefix: native-timeline/${{ runner.os }}/release
+
       - name: Restore compiler cache
         id: compiler-cache
+        if: env.NT_COMPILER_LAUNCHER == 'ccache'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -153,6 +163,7 @@ jobs:
             native-ccache-${{ runner.os }}-qt${{ env.QT_VERSION }}-
 
       - name: Bound restored compiler cache
+        if: env.NT_COMPILER_LAUNCHER == 'ccache'
         run: |
           ccache --cleanup
           ccache --zero-stats
@@ -167,27 +178,29 @@ jobs:
 
       - name: Configure
         run: |
-          launcher=()
-          if command -v ccache >/dev/null 2>&1; then
-            launcher=(-DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
-            if [[ "$RUNNER_OS" == macOS ]]; then launcher+=(-DCMAKE_OBJCXX_COMPILER_LAUNCHER=ccache); fi
-          fi
+          launcher=(-DCMAKE_CXX_COMPILER_LAUNCHER="$NT_COMPILER_LAUNCHER")
+          if [[ "$RUNNER_OS" == macOS ]]; then launcher+=(-DCMAKE_OBJCXX_COMPILER_LAUNCHER="$NT_COMPILER_LAUNCHER"); fi
           cmake -S native/timeline -B native/timeline/build-ci -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$QT_PREFIX" "${launcher[@]}"
 
       - name: Build
         id: native-build
+        env:
+          # Pushes write the shared R2 compiler cache. Other runs only read it.
+          AWS_ACCESS_KEY_ID: ${{ github.event_name == 'push' && secrets.NATIVE_CACHE_R2_WRITE_KEY_ID || secrets.NATIVE_CACHE_R2_READ_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ github.event_name == 'push' && secrets.NATIVE_CACHE_R2_WRITE_SECRET || secrets.NATIVE_CACHE_R2_READ_SECRET }}
         # -k 0 reports every failing file in one run, not only the first.
         run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" cmake --build native/timeline/build-ci --parallel 3 -- -k 0
 
       - name: Show compiler cache statistics
         if: success() || failure()
         continue-on-error: true
-        run: ccache --show-stats
+        run: |
+          "$NT_COMPILER_LAUNCHER" --show-stats
 
       # Preserve successful compilation even when a later test fails.
       - name: Save compiler cache
-        if: steps.compiler-cache.outputs.cache-hit != 'true'
+        if: env.NT_COMPILER_LAUNCHER == 'ccache' && steps.compiler-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.CCACHE_DIR }}
@@ -322,10 +335,21 @@ jobs:
           path: ${{ runner.temp }}/matte-gdb.log
           if-no-files-found: ignore
 
+      # package-macos.sh configures its own build directory. These variables
+      # route that build through the compiler cache, which already holds the
+      # objects of the Build step. Without them the step compiled for about
+      # 18 minutes.
       - name: Package (macOS, unsigned)
         if: github.event_name != 'push' && runner.os == 'macOS'
+        env:
+          CMAKE_CXX_COMPILER_LAUNCHER: ${{ env.NT_COMPILER_LAUNCHER }}
+          CMAKE_OBJCXX_COMPILER_LAUNCHER: ${{ env.NT_COMPILER_LAUNCHER }}
+          AWS_ACCESS_KEY_ID: ${{ github.event_name == 'push' && secrets.NATIVE_CACHE_R2_WRITE_KEY_ID || secrets.NATIVE_CACHE_R2_READ_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ github.event_name == 'push' && secrets.NATIVE_CACHE_R2_WRITE_SECRET || secrets.NATIVE_CACHE_R2_READ_SECRET }}
         run: |
+          "$NT_COMPILER_LAUNCHER" --zero-stats
           native/timeline/scripts/package-macos.sh
+          "$NT_COMPILER_LAUNCHER" --show-stats
           DEV_BIN=build-ci/nodetool-timeline native/timeline/scripts/check-package-macos.sh
 
       # Not verified: written for M6 (review F12); no run has checked it.
@@ -370,9 +394,10 @@ jobs:
 
   sanitizers:
     name: Linux ${{ matrix.preset }}
-    # Base branch runs only seed the build job's compiler caches.
+    # Base branch runs only build and seed the compiler caches, as the build
+    # job does. Pull requests restore them and run the checks.
     needs: changes
-    if: github.event_name != 'push' && needs.changes.outputs.run == 'true'
+    if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     strategy:
@@ -387,7 +412,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set native temporary paths
-        run: echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+        run: |
+          echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Set up Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -438,26 +465,65 @@ jobs:
         run: |
           node scripts/check-ci-prerequisites.mjs
           scripts/make-fixtures.sh
+      # Without a cache the ASan build takes about 70 minutes. Without the R2
+      # secrets, only base branch runs save the Actions cache, so the pull
+      # request runs of five jobs do not each add a cache and evict the others.
+      - name: Select compiler cache
+        uses: ./.github/actions/native-compiler-cache
+        with:
+          r2: ${{ secrets.NATIVE_CACHE_R2_READ_KEY_ID != '' && secrets.NATIVE_CACHE_R2_WRITE_KEY_ID != '' }}
+          key-prefix: native-timeline/${{ runner.os }}/${{ matrix.preset }}
+      - name: Restore compiler cache
+        id: compiler-cache
+        if: env.NT_COMPILER_LAUNCHER == 'ccache'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: native-ccache-${{ runner.os }}-${{ matrix.preset }}-qt${{ env.QT_VERSION }}-${{ github.sha }}
+          restore-keys: |
+            native-ccache-${{ runner.os }}-${{ matrix.preset }}-qt${{ env.QT_VERSION }}-
+      - name: Bound restored compiler cache
+        if: env.NT_COMPILER_LAUNCHER == 'ccache'
+        run: |
+          ccache --cleanup
+          ccache --zero-stats
       - name: Configure
         run: |
           # ELF compression keeps line tables without duplicating large debug sections.
           cmake --preset "${{ matrix.preset }}" -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
             -DCMAKE_EXE_LINKER_FLAGS="-Wl,--compress-debug-sections=zlib" \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+            -DCMAKE_C_COMPILER_LAUNCHER="$NT_COMPILER_LAUNCHER" -DCMAKE_CXX_COMPILER_LAUNCHER="$NT_COMPILER_LAUNCHER"
       - name: Build
+        env:
+          # Pushes write the shared R2 compiler cache. Other runs only read it.
+          AWS_ACCESS_KEY_ID: ${{ github.event_name == 'push' && secrets.NATIVE_CACHE_R2_WRITE_KEY_ID || secrets.NATIVE_CACHE_R2_READ_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ github.event_name == 'push' && secrets.NATIVE_CACHE_R2_WRITE_SECRET || secrets.NATIVE_CACHE_R2_READ_SECRET }}
         run: bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" nice -n 10 cmake --build --preset "${{ matrix.preset }}" -j 3
+      - name: Show compiler cache statistics
+        if: success() || failure()
+        continue-on-error: true
+        run: |
+          "$NT_COMPILER_LAUNCHER" --show-stats
+      - name: Save compiler cache
+        if: env.NT_COMPILER_LAUNCHER == 'ccache' && github.event_name == 'push' && steps.compiler-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
       - name: Verify checker fixtures
+        if: github.event_name != 'push'
         run: |
           node tools/sanitizers/check-plants.mjs --self-test
           node tools/sanitizers/check-plants.mjs "${{ matrix.preset }}"
       - name: Test on lavapipe
+        if: github.event_name != 'push'
         env:
           QT_QPA_PLATFORM: xcb
           QSG_RHI_BACKEND: vulkan
           QSG_INFO: "1"
         run: xvfb-run -a ctest --preset "${{ matrix.preset }}" --output-on-failure
       - name: Upload sanitizer logs
-        if: always()
+        if: github.event_name != 'push' && always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: native-timeline-${{ matrix.preset }}
