@@ -251,6 +251,36 @@ describe("ComfyCloudProvider — generation through the queue", () => {
     expect(download.headers["X-API-Key"]).toBeUndefined();
   });
 
+  it("imageToVideo sends the end frame to the model's last-frame field", async () => {
+    const { fetchFn, calls } = fakeRouter({
+      "kling/kling-v3": {
+        schema: openapi({
+          prompt: { type: "string" },
+          image_url: { type: "string", format: "uri" },
+          tail_image_url: { type: "string", format: "uri" }
+        }, ["prompt", "image_url"]),
+        result: { video: "https://cdn.test/out.mp4" }
+      }
+    });
+    await new TestProvider(fetchFn).imageToVideo(PNG, { model: { ...VIDEO_MODEL }, prompt: "transition", endImage: PNG });
+    const submit = calls.find((c) => c.method === "POST")!.body as Record<string, unknown>;
+    expect(String(submit.image_url)).toMatch(/^data:image\/png;base64,/);
+    expect(String(submit.tail_image_url)).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("imageToVideo refuses an end frame the model cannot take", async () => {
+    const { fetchFn, calls } = fakeRouter({
+      "kling/kling-v3": {
+        schema: openapi({ prompt: { type: "string" }, image_url: { type: "string", format: "uri" } }, ["prompt", "image_url"]),
+        result: { video: "https://cdn.test/out.mp4" }
+      }
+    });
+    await expect(
+      new TestProvider(fetchFn).imageToVideo(PNG, { model: { ...VIDEO_MODEL }, prompt: "transition", endImage: PNG })
+    ).rejects.toThrow("Comfy model kling/kling-v3 takes no end frame");
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
   it("reads a raw binary result", async () => {
     const { fetchFn } = fakeRouter({
       "elevenlabs/eleven_v3": {

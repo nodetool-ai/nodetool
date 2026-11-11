@@ -686,7 +686,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "static",
     capabilities: ["no-db"],
     agentTool: "ui_audio_edit",
-    docs: "packages/agents/AGENTS.md § Tool-loop eval suites",
+    docs: "packages/agents/docs/evals.md § Tool-loop eval suites",
     selfcheck: { command: ASSET_EDITOR_TOOL_SUITES, cost: "cheap" }
   },
   {
@@ -1049,7 +1049,7 @@ export const HARNESSES: HarnessEntry[] = [
     // leg, but no workflow names this filtered command specifically, so it
     // is not a `gated:*` harness by the substring-in-a-workflow rule.
     capabilities: ["no-db"],
-    docs: "packages/agents/AGENTS.md § Capability coverage",
+    docs: "packages/agents/docs/capabilities.md § Capability coverage",
     selfcheck: {
       // `capabilities:check` re-derives the table from the live registry, so
       // a capability added without a mapping fails here rather than in review.

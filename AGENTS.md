@@ -67,7 +67,7 @@ Editorial Spec](docs/docs-editorial.spec.md).
 - **[Production Deploy (Docker)](docs/docker-production-deploy.md)** — How `main` reaches api.nodetool.ai: the release gates, restricted SSH, and rolling drain
 - **[Dev Environment](docs/dev-environment.md)** — Sandboxed/proxied `npm install`, WebGPU without a Vulkan driver, building the VST instrument host
 - **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`), and the index of the per-package overlays
-- **[Agent System](packages/agents/AGENTS.md)** — Planning, execution, parallelism, skills, tuning
+- **[Agent System](packages/agents/AGENTS.md)** — Package rules and the index of implementation notes: sandbox, capabilities, planning, evals, tuning
 - **[Agent Architecture & Tools](docs/AGENTS.md)** — Agent architecture, tools, skills, workflow nodes
 - **[JavaScript Sandbox](docs/javascript-sandbox.md)** — The QuickJS guest: capabilities, limits, imports, security model, and how the Code node and CodeAct use it
 - **[Web UI](web/src/AGENTS.md)** — React web application

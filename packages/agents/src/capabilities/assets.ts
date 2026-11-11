@@ -228,6 +228,8 @@ interface ImageExtractOptions {
 interface ViewImageResult {
   ok: true;
   image_id: string;
+  /** The stored asset the image came from, when it came from one. */
+  asset_id?: string;
   mimeType: string | undefined;
   detail: "low" | "high";
   width?: number;
@@ -1072,6 +1074,7 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
     note,
     image_content: { uri: outUri, mimeType: outMime }
   };
+  if (storedAssetId) result.asset_id = storedAssetId;
   if (width) result.width = width;
   if (height) result.height = height;
   return result;

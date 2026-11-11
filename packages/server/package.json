@@ -39,7 +39,7 @@
     "fabric": "^7.4.0",
     "imapflow": "^1.7.1",
     "js-tiktoken": "^1.0.21",
-    "mailparser": "^3.9.15",
+    "mailparser": "^3.14.2",
     "mammoth": "^1.11.0",
     "node-llama-cpp": "^3.0.0",
     "office-text-extractor": "^4.0.0",

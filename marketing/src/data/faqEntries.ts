@@ -88,7 +88,7 @@ const seeds: FaqSeed[] = [
     slug: "what-is-nodetool",
     question: "What is NodeTool?",
     answerMd:
-      "NodeTool is an open-source AI video editor with tools for images, audio, text and node workflows. Ask the agent to create or edit a project, then make changes yourself. Connect your provider accounts or run supported models locally.",
+      "NodeTool is an open-source AI video editor with tools for images, audio, text and node workflows. Ask the agent to create or edit a project, then make changes yourself. Sign in with your ChatGPT or Claude plan, use your own provider keys, or run supported models locally.",
     category: "general",
     relatedRoute: "/",
     surfaces: ["landing", "comparison"],

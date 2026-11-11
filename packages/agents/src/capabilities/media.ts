@@ -788,9 +788,16 @@ const animateImage: CapabilityExport = {
     const inputFile = params["input_file"];
     if (!isNonEmptyString(inputFile))
       return { error: "input_file is required" };
+    const endFrameFile = params["end_frame_file"];
+    if (endFrameFile !== undefined && !isNonEmptyString(endFrameFile))
+      return { error: "end_frame_file must be a non-empty string" };
     let image: Uint8Array;
+    let endImage: Uint8Array | undefined;
     try {
       image = await readWorkspaceOrAssetFile(context, inputFile);
+      if (endFrameFile !== undefined) {
+        endImage = await readWorkspaceOrAssetFile(context, endFrameFile);
+      }
     } catch (e) {
       return predictionError("image_to_video", m, e);
     }
@@ -811,7 +818,7 @@ const animateImage: CapabilityExport = {
       type: "video",
       namePrefix: "animated-video",
       mime: "video/mp4",
-      params: { image, prompt: params["prompt"], ...shape }
+      params: { image, end_image: endImage, prompt: params["prompt"], ...shape }
     });
   }
 };

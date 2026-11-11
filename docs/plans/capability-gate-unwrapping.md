@@ -7,7 +7,7 @@ Scope: the conversions between `Tool` and capability in
 migration this finishes are in
 [tool-class-retirement-design.md](../tool-class-retirement-design.md#where-the-permission-gate-lives).
 The per-host gate table is in
-[packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md#where-the-permission-gate-is-set).
+[packages/agents/docs/permission-gate.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/docs/permission-gate.md#where-the-permission-gate-is-set).
 
 ## 1. The problem
 

@@ -25,5 +25,5 @@ npm run test  --workspace=packages/runtime
 npm run lint  --workspace=packages/runtime
 ```
 
-See [packages/agents/AGENTS.md](../agents/AGENTS.md) for the agent-memory model
+See [shared memory](../agents/docs/shared-memory.md) for the agent-memory model
 and the root [AGENTS.md](../../AGENTS.md) for provider/telemetry details.

@@ -164,8 +164,10 @@ does next, how the light shifts. Re-describing what is already in the frame
 spends words and invites the model to re-render it slightly differently.
 A start image plus an end image (`end_image_url` on fal, `tail_image_url` on
 fal's 2.5-turbo, `end_image` on AtlasCloud and Replicate) gives you a move with
-a fixed landing frame. `animate_image` sends one image, so an end frame needs
-the route's own node. Aspect ratio follows the input image; the parameter is
+a fixed landing frame. `animate_image` takes the end image as `end_frame_file`
+and forwards it on Comfy Cloud, AtlasCloud and other providers that read one.
+The fal and Replicate providers drop it, so there an end frame needs the
+route's own node. Aspect ratio follows the input image; the parameter is
 ignored.
 
 ## Motion control is not a prompt job
