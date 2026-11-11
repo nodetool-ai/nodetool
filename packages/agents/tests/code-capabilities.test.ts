@@ -7,7 +7,7 @@
  * cases against expected finals and expected emits.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { toolForCapabilityName } from "../src/capabilities/index.js";
 import { capabilityCategoryFor } from "../src/capabilities/registry.js";
@@ -171,6 +171,62 @@ return { ignored: true };`,
     expect(result.ok).toBe(false);
     expect(result.error).toContain("cannot be resolved in this process");
   });
+});
+
+describe("timeout_seconds", () => {
+  // The run deadline is the one setTimeout armed with the timeout in ms.
+  async function armedDeadlines(
+    name: "run_code" | "test_code",
+    timeout: number
+  ): Promise<number[]> {
+    const spy = vi.spyOn(globalThis, "setTimeout");
+    try {
+      const tool = toolForCapabilityName(name);
+      const params =
+        name === "run_code"
+          ? { code: "output('ok', 1);", timeout_seconds: timeout }
+          : {
+              code: "output('ok', 1);",
+              cases: [{ name: "runs", inputs: {} }],
+              timeout_seconds: timeout
+            };
+      const result = (await tool.execute(context(), params)) as { ok: boolean };
+      expect(result.ok).toBe(true);
+      return spy.mock.calls
+        .map(([, delay]) => Number(delay))
+        .filter((delay) => delay >= 60_000);
+    } finally {
+      spy.mockRestore();
+    }
+  }
+
+  it.each(["run_code", "test_code"] as const)(
+    "%s honours a timeout above the former 120 s cap",
+    async (name) => {
+      expect(await armedDeadlines(name, 900)).toContain(900_000);
+    }
+  );
+
+  it.each(["run_code", "test_code"] as const)(
+    "%s clamps the timeout to 1800 s",
+    async (name) => {
+      const deadlines = await armedDeadlines(name, 5000);
+      expect(deadlines).toContain(1_800_000);
+      expect(deadlines).not.toContain(5_000_000);
+    }
+  );
+
+  it.each(["run_code", "test_code"] as const)(
+    "%s advertises the 1800 s maximum",
+    (name) => {
+      const schema = toolForCapabilityName(name).inputSchema as {
+        properties: { timeout_seconds: { description: string } };
+      };
+      expect(schema.properties.timeout_seconds.description).toContain(
+        "max 1800"
+      );
+    }
+  );
 });
 
 describe("test_code", () => {

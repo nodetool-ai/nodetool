@@ -150,13 +150,15 @@ describe("harness registry", () => {
       "demo/scripts/encode-hero.mjs",
       "demo/scripts/vibe-track.ts",
       "demo/scripts/build-pattern-cast-media.mjs",
+      "demo/scripts/record-comfy-challenge.mjs",
       "demo/webpack-stubs/"
     ]);
 
     const plan = planGate([
       "demo/src/components/FocusCamera.tsx",
       "demo/scripts/render-tutorials.ts",
-      "demo/scripts/render-marketing.ts"
+      "demo/scripts/render-marketing.ts",
+      "demo/scripts/record-comfy-challenge.mjs"
     ]);
     expect(plan.unmappedFiles).toEqual([]);
     expect(plan.surfaces).toEqual([
@@ -165,7 +167,8 @@ describe("harness registry", () => {
         files: [
           "demo/src/components/FocusCamera.tsx",
           "demo/scripts/render-tutorials.ts",
-          "demo/scripts/render-marketing.ts"
+          "demo/scripts/render-marketing.ts",
+          "demo/scripts/record-comfy-challenge.mjs"
         ]
       }
     ]);
