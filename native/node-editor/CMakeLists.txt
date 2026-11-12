@@ -12,9 +12,20 @@ add_subdirectory(../ui_primitives ui_primitives)
 add_subdirectory(../model-picker model-picker)
 add_subdirectory(../chat chat)
 add_subdirectory(../media media)
+# The C++ interfaces that editor QML components take as required properties,
+# with what they need and nothing of the editor window. A component test links
+# these, node_editor_qml and the UI primitives only.
+add_library(node_editor_interfaces STATIC
+ src/interfaces/NodeCatalog.cpp src/interfaces/NodeCatalog.h
+ src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
+ src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
+ src/server/PackSetup.cpp src/server/PackSetup.h)
+target_include_directories(node_editor_interfaces PUBLIC src)
+target_link_libraries(node_editor_interfaces PUBLIC Qt6::Core Qt6::Gui Qt6::Network)
+# QML_FOREIGN in the module and qmllint read these types from the metatypes.
+qt_extract_metatypes(node_editor_interfaces)
 add_library(node_editor_core STATIC
  src/server/AccountJobs.cpp src/server/AccountJobs.h
- src/server/PackSetup.cpp src/server/PackSetup.h
  src/server/SetupController.cpp src/server/SetupController.h
  src/layout/AutoLayout.cpp src/layout/AutoLayout.h
  src/layout/SelectionLayout.cpp src/layout/SelectionLayout.h
@@ -47,8 +58,6 @@ add_library(node_editor_core STATIC
  src/graph/CompatibleNodePicker.cpp src/graph/CompatibleNodePicker.h
  src/graph/BodyConnectionRules.cpp src/graph/BodyConnectionRules.h
  src/graph/NodeCreation.cpp src/graph/NodeCreation.h
- src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
- src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
  src/graph/RerouteTypes.cpp src/graph/RerouteTypes.h
  src/run/RunTraceController.cpp src/run/RunTraceController.h
  src/run/GenerationHistory.cpp src/run/GenerationHistory.h
@@ -89,9 +98,12 @@ qt_add_qml_module(node_editor_qml
     URI NodeTool.NodeEditor
     RESOURCE_PREFIX /qt/qml
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/NodeEditor
-    QML_FILES ${node_editor_qml_files})
-target_link_libraries(node_editor_qml PUBLIC nodetool_ui_primitives Qt6::Qml Qt6::Quick Qt6::QuickControls2)
-target_link_libraries(node_editor_core PUBLIC node_editor_qml node_editor_qmlplugin)
+    QML_FILES ${node_editor_qml_files}
+    SOURCES src/qml/EditorQmlTypes.h)
+# The generated type registrations include EditorQmlTypes.h by its bare name.
+target_include_directories(node_editor_qml PRIVATE src/qml)
+target_link_libraries(node_editor_qml PUBLIC node_editor_interfaces nodetool_ui_primitives Qt6::Qml Qt6::Quick Qt6::QuickControls2)
+target_link_libraries(node_editor_core PUBLIC node_editor_interfaces node_editor_qml node_editor_qmlplugin)
 qt_add_resources(node_editor_core editor_assets PREFIX /editor/resources BASE resources FILES resources/nodetool_48px.png)
 # The web data type icons from web/src/icons/data_types/nodetool, drawn in card headers.
 qt_add_resources(node_editor_core editor_type_icons PREFIX /editor/data_types BASE resources/data_types FILES resources/data_types/any.svg resources/data_types/asset.svg resources/data_types/assistant.svg resources/data_types/audio.svg resources/data_types/bool.svg resources/data_types/chunk.svg resources/data_types/database.svg resources/data_types/dataframe.svg resources/data_types/date.svg resources/data_types/datetime.svg resources/data_types/dict.svg resources/data_types/document.svg resources/data_types/enum.svg resources/data_types/file.svg resources/data_types/float.svg resources/data_types/flow.svg resources/data_types/folder.svg resources/data_types/help.svg resources/data_types/image_model.svg resources/data_types/image.svg resources/data_types/int.svg resources/data_types/language_model.svg resources/data_types/list.svg resources/data_types/model_3d.svg resources/data_types/model.svg resources/data_types/notype.svg resources/data_types/np_array.svg resources/data_types/preview.svg resources/data_types/star.svg resources/data_types/string.svg resources/data_types/str.svg resources/data_types/task.svg resources/data_types/tensor.svg resources/data_types/text.svg resources/data_types/thread_message.svg resources/data_types/thread.svg resources/data_types/union.svg resources/data_types/video.svg)
@@ -320,6 +332,12 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_catalog_tests)
  add_test(NAME node_editor_catalog COMMAND node_editor_catalog_tests)
  set_tests_properties(node_editor_catalog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+ # NodeMenu.qml with a fixture catalog: no EditorWindow, graph runner, QtNodes or media.
+ qt_add_executable(node_editor_node_menu_component_tests tests/ui/NodeMenuComponentTest.cpp)
+ target_link_libraries(node_editor_node_menu_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_node_menu_component_tests)
+ add_test(NAME node_editor_node_menu_component COMMAND node_editor_node_menu_component_tests)
+ set_tests_properties(node_editor_node_menu_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
 if(BUILD_TESTING)

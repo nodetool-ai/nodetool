@@ -54,8 +54,9 @@ test("the checked-in page covers every QML file and every read member", () => {
   assert.deepEqual(inv.unknown, []);
   const groups = readGroups(readFileSync(join(root, "docs/component-interfaces.md"), "utf8"));
   assert.doesNotThrow(() => render(inv, groups));
+  const [group, [member]] = Object.entries(groups)[0];
   const missing = structuredClone(groups);
-  missing.NodeCatalog = missing.NodeCatalog.filter((m) => m !== "addNode");
-  assert.throws(() => render(inv, missing), /no proposed interface: addNode/);
+  missing[group] = missing[group].filter((m) => m !== member);
+  assert.throws(() => render(inv, missing), new RegExp(`no proposed interface: ${member}$`));
   assert.throws(() => render(inv, { ...groups, Extra: ["notReadAnywhere"] }), /no QML file reads: notReadAnywhere/);
 });

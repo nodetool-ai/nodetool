@@ -220,6 +220,19 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
         refresh();
         setup_.offerWorkflow(document_.snapshot(), metadata_);
     });
+  // Catalog state goes down to the interface, and its requests come back here.
+  connect(this, &EditorWindow::catalogChanged, this, [this] { nodeCatalog_.setNodes(catalog()); });
+  connect(this, &EditorWindow::catalogRecentChanged, this, [this] { nodeCatalog_.setRecent(catalogRecent()); });
+  connect(this, &EditorWindow::catalogFavoritesChanged, this, [this] { nodeCatalog_.setFavorites(catalogFavorites()); });
+  connect(this, &EditorWindow::panelChanged, this, [this] { nodeCatalog_.setReadOnly(readOnly()); });
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::addRequested, this, &EditorWindow::addNode);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::dragRequested, this, &EditorWindow::dragNode);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::toggleFavoriteRequested, this, &EditorWindow::toggleCatalogFavorite);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::clearFavoritesRequested, this, &EditorWindow::clearCatalogFavorites);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::clearRecentRequested, this, &EditorWindow::clearCatalogRecent);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::closeMenuRequested, this, &EditorWindow::closeNodeMenu);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::moveMenuRequested, this, &EditorWindow::moveNodeMenu);
+  syncNodeCatalog();
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
@@ -565,12 +578,21 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   };
   // The web node library is a fixed panel over the canvas, so opening it keeps
   // the canvas size and zoom (web/src/components/panels/PanelLeft.tsx).
-  catalogPanel_ = panel("Catalog");
+  // The library and the node menu take the catalog interface, not the window.
+  const QVariantMap catalogProperties{{"catalog", QVariant::fromValue(&nodeCatalog_)},
+                                      {"packSetup", QVariant::fromValue(packSetup())}};
+  catalogPanel_ = panel("Catalog", catalogProperties);
+  {
+    // Hover text goes up as a signal, and the window shows it.
+    const auto *root = catalogPanel_->rootObject()->metaObject();
+    connect(catalogPanel_->rootObject(), root->method(root->indexOfSignal("toolTipRequested(QString)")), this,
+            metaObject()->method(metaObject()->indexOfMethod("showToolTip(QString)")));
+  }
   catalogPanel_->setParent(dockHost_);
   catalogPanel_->setObjectName("catalog-panel");
   catalogPanel_->setFocusPolicy(Qt::StrongFocus);
   catalogPanel_->installEventFilter(this);
-  nodeMenu_ = panel("NodeMenu");
+  nodeMenu_ = panel("NodeMenu", catalogProperties);
   nodeMenu_->setParent(dockHost_);
   nodeMenu_->setObjectName("node-menu");
   nodeMenu_->setFocusPolicy(Qt::StrongFocus);
@@ -964,12 +986,15 @@ EditorWindow::~EditorWindow() {
   // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete scene_;
 }
-QQuickWidget *EditorWindow::panel(const QString &file) {
+QQuickWidget *EditorWindow::panel(const QString &file, const QVariantMap &properties) {
   // One engine keeps a single Theme singleton across every panel.
   auto w = new QQuickWidget(engine_, this);
   w->setResizeMode(QQuickWidget::SizeRootObjectToView);
     if (file == "Inspector") {
         w->setAcceptDrops(true);
+    }
+    if (!properties.isEmpty()) {
+        w->setInitialProperties(properties);
     }
   w->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/" + file + ".qml"));
   return w;
@@ -2103,9 +2128,6 @@ QVariantList EditorWindow::catalog() const {
   }
   return r;
 }
-QVariantList EditorWindow::catalogCategories() const {
-    return nodetool::catalogCategories();
-}
 bool EditorWindow::miniMapVisible() const {
     if (!tabOwner_) { return activeEditor_->miniMapVisible(); }
     return miniMapVisible_;
@@ -2258,20 +2280,6 @@ bool EditorWindow::addConnectedNode(const QString &sourceId, const QString &outp
   }
   return false;
 }
-QVariantList EditorWindow::rankCatalog(const QVariantList &nodes, const QString &query) const {
-    QList<CatalogSearchNode> searchNodes;
-    searchNodes.reserve(nodes.size());
-    for (const auto &value : nodes) {
-        const auto node = value.toMap();
-        searchNodes.append({node["type"].toString(), node["label"].toString(), node["namespace"].toString(),
-                            node["description"].toString(), node["deprecated"].toBool()});
-    }
-    QVariantList order;
-    for (const int index : catalogRanker_.rank(searchNodes, query, catalogRecent())) {
-        order.append(index);
-    }
-    return order;
-}
 QStringList EditorWindow::catalogRecent() const {
     return QSettings().value("catalog/recentNodes").toStringList();
 }
@@ -2313,8 +2321,11 @@ void EditorWindow::clearCatalogRecent() {
     for (auto tab : owner->tabs_) { emit tab->catalogRecentChanged(); }
     emit owner->catalogRecentChanged();
 }
-QVariantList EditorWindow::catalogQuickActions() const {
-    return catalogQuickActionSections();
+void EditorWindow::syncNodeCatalog() {
+    nodeCatalog_.setNodes(catalog());
+    nodeCatalog_.setRecent(catalogRecent());
+    nodeCatalog_.setFavorites(catalogFavorites());
+    nodeCatalog_.setReadOnly(readOnly());
 }
 void EditorWindow::addNode(const QString &type) {
   if (!tabOwner_) { activeEditor_->addNode(type); return; }

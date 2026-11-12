@@ -11,6 +11,7 @@
 #include <QQuickWindow>
 #include <QRegularExpression>
 #include <QSettings>
+#include <QToolTip>
 #include <QtTest>
 
 // F01: catalog search, keyboard paths and pointer placement against the web
@@ -131,6 +132,21 @@ private slots:
     // Recent nodes persist in settings. Each test starts without any.
     void init() {
         QSettings().remove("catalog/recentNodes");
+    }
+
+    // The library sends hover text up as a signal, and the window shows it.
+    void libraryHoverTextReachesTheWindowToolTip() {
+        EditorWindow window;
+        window.setCatalog(catalogFixture());
+        window.show();
+        window.action("Toggle nodes");
+        QTest::qWait(100);
+        auto catalogWidget = catalogPanel(window);
+        QVERIFY(catalogWidget);
+        QVERIFY(QMetaObject::invokeMethod(catalogWidget->rootObject(), "toolTipRequested", Q_ARG(QString, "Node library")));
+        QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), QString("Node library"), 1000);
+        QVERIFY(QMetaObject::invokeMethod(catalogWidget->rootObject(), "toolTipRequested", Q_ARG(QString, QString())));
+        QTRY_VERIFY_WITH_TIMEOUT(!QToolTip::isVisible(), 1000);
     }
 
     // With no query the web library still ranks: recent nodes, then the quick

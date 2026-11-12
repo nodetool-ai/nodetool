@@ -55,16 +55,23 @@ shadowed, because the local `id` wins over the context property.
 
 ## Proposed interfaces
 
-Each interface is a QObject owned by the tab-owning `EditorWindow` by value,
-used on the UI thread only, and destroyed with the window. QML gets a
+Each interface is a QObject that a tab's `EditorWindow` owns by value, used on
+the UI thread only, and destroyed with the tab after its panels. QML gets a
 non-owning pointer through a `required property`. Members keep their current
 names unless a note says otherwise, so each move is a mechanical change.
 
-The window forwards most getters to `activeEditor()`, the editor of the active
-tab. An interface object must therefore read the active tab's state and emit
-its change signals when the active tab changes. Today one `panelChanged`
-signal notifies 44 properties. Each interface gets its own signals, which is
-also where the refactor can stop re-evaluating unrelated bindings.
+Every tab is an `EditorWindow` with its own QML engine and panels. The root
+window holds the tabs, creates no panels, and forwards its getters to
+`activeEditor()`. A tab's interface therefore reads that tab's state and needs
+no active-tab forwarding. Today one `panelChanged` signal notifies 44
+properties. Each interface gets its own signals, which is also where the
+refactor can stop re-evaluating unrelated bindings.
+
+Moved so far: `NodeCatalog` (`src/interfaces/NodeCatalog.h`), which
+`Catalog.qml` and `NodeMenu.qml` take with the existing `PackSetup`.
+`tests/ui/NodeMenuComponentTest.cpp` loads `NodeMenu.qml` with a fixture
+catalog and links only `node_editor_interfaces`, `node_editor_qml` and the UI
+primitives.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
@@ -137,8 +144,8 @@ candidate list, not a plan to move them.
 ## Open questions
 
 - Q1. Should `readOnly` live in `DocumentState` only, or should `NodeCatalog`
-  also expose `canAddNodes` so the catalog reads one interface? The second keeps
-  each component on one or two interfaces at the cost of a duplicated flag.
+  also expose `canAddNodes` so the catalog reads one interface? `NodeCatalog`
+  now carries its own `readOnly`, so the catalog components read one interface.
 - Q2. Should `workflowTabs`, `notifications` and `catalog` become
   `QAbstractListModel` in the same PR as the interface split, or in a follow-up?
   A list model changes delegate bindings (`modelData` to roles), so it is not a
@@ -151,7 +158,6 @@ candidate list, not a plan to move them.
 <!-- INTERFACES -->
 ```json
 {
-  "NodeCatalog": ["addNode", "catalog", "catalogCategories", "catalogFavorites", "catalogQuickActions", "catalogRecent", "clearCatalogFavorites", "clearCatalogRecent", "closeNodeMenu", "dragNode", "moveNodeMenu", "rankCatalog", "toggleCatalogFavorite"],
   "PackSetup": ["packSetup", "setupAction", "guideReadiness", "guideStarted", "guideVisible"],
   "DocumentState": ["readOnly", "readOnlyReason", "message", "documentEpoch", "credentialsEpoch"],
   "Selection": ["selection", "selectionInfo", "selectedCount", "selectionDisabled", "selectionMostlyDisabled", "showNodeMenu"],
@@ -171,16 +177,14 @@ candidate list, not a plan to move them.
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 41 read a root context property, 27 of them read the editor window. `EditorWindow.h` exposes 69 properties and 60 invokable methods or slots (129 members) and 15 signals.
+Scanned 78 files in `qml/`. 39 read a root context property, 25 of them read the editor window. `EditorWindow.h` exposes 65 properties and 51 invokable methods or slots (116 members) and 15 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
 | TabBar.qml | 18 |  |
 | Inspector.qml | 14 via `propertyHost`, passed on |  |
-| NodeMenu.qml | 14 |  |
 | HeaderRow.qml | 13 |  |
 | StatusBar.qml | 13 |  |
-| Catalog.qml | 11 |  |
 | GenerationHistory.qml | 8 via `propertyHost` |  |
 | SelectionToolbar.qml | 8 |  |
 | PropertyField.qml | 7 via `host` |  |
@@ -227,14 +231,10 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `editor`: activateTab, activeTab, closeTab, dropTab, newTab, on tabRenameRequested, on tabsChanged, openSettings, projectName, renameTab, setTabStripOffset, showNotifications, showProjectMenu, showTabMenu, showTabToolTip, tabStripOffset, unreadNotifications, workflowTabs
 - **Inspector.qml**
   - `editor` (as `propertyHost`): action, costEstimate, dynamicPorts, message, properties, readOnly, readOnlyReason, runProgress, runSelectedNodes, selection, selectionInfo, showToolTip, shownRunActive, userAction passed on as propertyHost:, host:, sourceComponent:
-- **NodeMenu.qml**
-  - `editor`: addNode, catalog, catalogFavorites, catalogQuickActions, catalogRecent, clearCatalogFavorites, clearCatalogRecent, closeNodeMenu, dragNode, moveNodeMenu, packSetup, rankCatalog, readOnly, toggleCatalogFavorite
 - **HeaderRow.qml**
   - `editor`: action, canRedo, canUndo, chatVisible, documentSaveStatus, inspectorVisible, miniMapVisible, renameWorkflow, setMiniMapVisible, showToolTip, toggleChat, workflowName, workflowRenamable
 - **StatusBar.qml**
   - `editor`: action, connectionDetail, connectionStatus, edgeCount, nodeCount, outputVisible, queueAvailable, queuedCount, showToolTip, systemStats, toggleStatusView, traceVisible, versionsVisible
-- **Catalog.qml**
-  - `editor`: addNode, catalog, catalogCategories, catalogFavorites, catalogRecent, dragNode, packSetup, rankCatalog, readOnly, showToolTip, toggleCatalogFavorite
 - **GenerationHistory.qml**
   - `editor` (as `propertyHost`): clearReplayGenerations, generationHistory, pinGeneration, pinnedGeneration, readOnly, replayGenerations, selection, toggleReplayGeneration
 - **SelectionToolbar.qml**
@@ -319,31 +319,17 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 ### Editor members by proposed interface
 
-- **NodeCatalog** (13 members, read by 2 files: Catalog.qml, NodeMenu.qml)
-  - `addNode` method: Catalog.qml, NodeMenu.qml
-  - `catalog` property: Catalog.qml, NodeMenu.qml
-  - `catalogCategories` property: Catalog.qml
-  - `catalogFavorites` property: Catalog.qml, NodeMenu.qml
-  - `catalogQuickActions` method: NodeMenu.qml
-  - `catalogRecent` property: Catalog.qml, NodeMenu.qml
-  - `clearCatalogFavorites` method: NodeMenu.qml
-  - `clearCatalogRecent` method: NodeMenu.qml
-  - `closeNodeMenu` method: NodeMenu.qml
-  - `dragNode` method: Catalog.qml, NodeMenu.qml
-  - `moveNodeMenu` method: NodeMenu.qml
-  - `rankCatalog` method: Catalog.qml, NodeMenu.qml
-  - `toggleCatalogFavorite` method: Catalog.qml, NodeMenu.qml
-- **PackSetup** (5 members, read by 4 files: Catalog.qml, NodeMenu.qml, OptionalPacksSection.qml, SetupGuide.qml)
+- **PackSetup** (5 members, read by 2 files: OptionalPacksSection.qml, SetupGuide.qml)
   - `guideReadiness` property: SetupGuide.qml
   - `guideStarted` property: SetupGuide.qml
   - `guideVisible` property: SetupGuide.qml
-  - `packSetup` property: Catalog.qml, NodeMenu.qml, OptionalPacksSection.qml
+  - `packSetup` property: OptionalPacksSection.qml
   - `setupAction` method: OptionalPacksSection.qml, SetupGuide.qml
-- **DocumentState** (5 members, read by 9 files: AuthoredControls.qml, Catalog.qml, GenerationHistory.qml, Inspector.qml, NodeMenu.qml, PropertyField.qml, RunOutput.qml, SelectionToolbar.qml, Toolbar.qml)
+- **DocumentState** (5 members, read by 7 files: AuthoredControls.qml, GenerationHistory.qml, Inspector.qml, PropertyField.qml, RunOutput.qml, SelectionToolbar.qml, Toolbar.qml)
   - `credentialsEpoch` property: PropertyField.qml
   - `documentEpoch` property: PropertyField.qml
   - `message` property: Inspector.qml, RunOutput.qml
-  - `readOnly` property: AuthoredControls.qml, Catalog.qml, GenerationHistory.qml, Inspector.qml, NodeMenu.qml, PropertyField.qml, SelectionToolbar.qml, Toolbar.qml
+  - `readOnly` property: AuthoredControls.qml, GenerationHistory.qml, Inspector.qml, PropertyField.qml, SelectionToolbar.qml, Toolbar.qml
   - `readOnlyReason` property: Inspector.qml
 - **Selection** (6 members, read by 4 files: GenerationHistory.qml, Inspector.qml, PropertyField.qml, SelectionToolbar.qml)
   - `selectedCount` property: SelectionToolbar.qml
@@ -435,11 +421,11 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `beginChatGeometry` method: EditorChat.qml
   - `changeChatGeometry` method: EditorChat.qml
   - `resetChatPosition` method: EditorChat.qml
-- **EditorCommands** (5 members, read by 14 files: AssetPropertyEditor.qml, Catalog.qml, HeaderRow.qml, Inspector.qml, LibraryPanel.qml, NotificationsPanel.qml, PropertyField.qml, Rail.qml, SelectionToolbar.qml, StatusBar.qml, TabBar.qml, Toolbar.qml, ViewportIndicator.qml, WorkflowBrowser.qml)
+- **EditorCommands** (5 members, read by 13 files: AssetPropertyEditor.qml, HeaderRow.qml, Inspector.qml, LibraryPanel.qml, NotificationsPanel.qml, PropertyField.qml, Rail.qml, SelectionToolbar.qml, StatusBar.qml, TabBar.qml, Toolbar.qml, ViewportIndicator.qml, WorkflowBrowser.qml)
   - `action` method: HeaderRow.qml, Inspector.qml, LibraryPanel.qml, Rail.qml, SelectionToolbar.qml, StatusBar.qml, Toolbar.qml, WorkflowBrowser.qml
   - `copyText` method: NotificationsPanel.qml
   - `openSettings` method: TabBar.qml
-  - `showToolTip` method: AssetPropertyEditor.qml, Catalog.qml, HeaderRow.qml, Inspector.qml, PropertyField.qml, Rail.qml, StatusBar.qml, Toolbar.qml
+  - `showToolTip` method: AssetPropertyEditor.qml, HeaderRow.qml, Inspector.qml, PropertyField.qml, Rail.qml, StatusBar.qml, Toolbar.qml
   - `userAction` method: Inspector.qml, ViewportIndicator.qml
 - **Leaves the window** (6 members, read by 5 files: OptionalPacksSection.qml, TextOutput.qml, Toolbar.qml, TypeIcon.qml, WorkflowBrowser.qml)
   - `deleteWorkflow` method: WorkflowBrowser.qml
