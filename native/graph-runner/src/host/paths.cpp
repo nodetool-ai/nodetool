@@ -11,6 +11,8 @@
 #include <windows.h>
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
+#include <iterator>
 #endif
 
 namespace gr::host {
@@ -108,6 +110,34 @@ const Root* rootOf(const std::vector<Root>& roots, const std::string& real) {
 }
 
 const char* kOutside = "outside the directories the native runner grants";
+
+// Whether a symlink can explain why the canonical form of `lexicalForm` differs
+// from its expected spelling below `root`.
+bool linkBelowRoot(const Root& root, bool viaGiven, const std::string& lexicalForm) {
+#ifdef _WIN32
+  // Names match without case, and 8.3 short names alias long ones, so the
+  // spelling differs for link-free paths too. Look at the input's own
+  // components below the root instead, and refuse any reparse point there.
+  if (!viaGiven && !isWithinInput(root.dir, lexicalForm)) return true;
+  const auto base = std::filesystem::u8path(viaGiven ? root.given : root.dir);
+  const auto skip = std::distance(base.begin(), base.end());
+  std::filesystem::path current;
+  std::ptrdiff_t index = 0;
+  for (const auto& part : std::filesystem::u8path(lexicalForm)) {
+    current /= part;
+    if (++index <= skip) continue;
+    const auto encoded = current.generic_u8string();
+    fsapi::FileStat st {};
+    if (fsapi::lstat(std::string(encoded.begin(), encoded.end()).c_str(), &st) != 0 || S_ISLNK(st.st_mode)) return true;
+  }
+  return false;
+#else
+  (void)root;
+  (void)viaGiven;
+  (void)lexicalForm;
+  return true;
+#endif
+}
 
 }  // namespace
 
@@ -219,7 +249,7 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
     // resolved when the root was granted. Only a symlink below it is refused.
     const bool viaGiven = root->given != "/" && isWithinInput(root->given, lexicalForm);
     const std::string expected = viaGiven ? root->dir + lexicalForm.substr(root->given.size()) : lexicalForm;
-    if (noSymlinks && real != expected) {
+    if (noSymlinks && real != expected && linkBelowRoot(*root, viaGiven, lexicalForm)) {
       throw FsError("EACCES", syscall, path, "symbolic links are refused here");
     }
     if (access != Access::Read && !root->writable) {
