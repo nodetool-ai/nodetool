@@ -27,6 +27,7 @@ on:
       - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
+      - "docker/ci-native/**"
   # A pull request can restore only its own caches and its base branch's. This
   # run builds the base branch and saves its compiler caches, so the first run
   # of each pull request does not compile from scratch.
@@ -39,6 +40,7 @@ on:
       - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
+      - "docker/ci-native/**"
 
 permissions:
   contents: read
@@ -90,12 +92,39 @@ jobs:
           echo "No reference package changed since $since"
           echo "run=false" >> "$GITHUB_OUTPUT"
 
+  # The Linux legs run in the native CI image (docker/ci-native/) instead of
+  # installing their system packages with apt.
+  ci-image:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    uses: ./.github/workflows/ci-image.yml
+    with:
+      image: ci-native
+    permissions:
+      contents: read
+      packages: write
+
   build:
     name: ${{ matrix.name }}
-    needs: changes
+    needs: [changes, ci-image]
     if: needs.changes.outputs.run == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: read
+    # An empty image runs the job on the runner itself: macOS and Windows.
+    container:
+      image: ${{ matrix.os == 'ubuntu-24.04' && needs.ci-image.outputs.image || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     strategy:
       fail-fast: false
       matrix:
@@ -244,7 +273,8 @@ jobs:
           failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
           status=0
           xvfb-run -a -s "-screen 0 1920x1080x24" \
-            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render \
+            | tee "$RUNNER_TEMP/non-render.log" || status=$?
           cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
           QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" xvfb-run -a -s "-screen 0 1920x1080x24" \
             ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
@@ -254,6 +284,13 @@ jobs:
             { echo "::error::the render tests did not run on Vulkan"; exit 1; }
           grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep "using this physical device" > /dev/null ||
             { echo "::error::the render tests did not run on lavapipe"; exit 1; }
+          # The verbose render log buries the other tests' failures, so repeat them last.
+          if [[ -s "$RUNNER_TEMP/failed-non-render.log" ]]; then
+            echo "::error::non-render tests failed: $(cut -d: -f2 "$RUNNER_TEMP/failed-non-render.log" | paste -sd ' ')"
+            echo "::group::Non-render test output"
+            tail -n 2000 "$RUNNER_TEMP/non-render.log"
+            echo "::endgroup::"
+          fi
           exit "$status"
 
       - name: Test (headless, Windows)
@@ -396,10 +433,27 @@ jobs:
     name: Linux ${{ matrix.preset }}
     # Base branch runs only build and seed the compiler caches, as the build
     # job does. Pull requests restore them and run the checks.
-    needs: changes
+    needs: [changes, ci-image]
     if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: read
+    # TSan re-executes itself through personality(ADDR_NO_RANDOMIZE) when the
+    # kernel's mmap randomization is too wide for its shadow memory. Docker's
+    # default seccomp profile refuses that call.
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001 --security-opt seccomp=unconfined
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     strategy:
       fail-fast: false
       matrix:
@@ -427,39 +481,10 @@ jobs:
           bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm ci --ignore-scripts
           npm run rebuild:native
           npm run build:packages
-      # Hosted runners have run out of disk while building FFmpeg (No space left on device).
-      - name: Free disk space
-        run: |
-          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
-          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
-
-      - name: Install dependencies (Linux)
-        working-directory: .
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libclang-rt-dev ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev libvulkan-dev \
-            mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
-            libasound2-dev libpulse-dev libharfbuzz-dev libfreetype-dev \
-            xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
-            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 \
-            libxcb-xinerama0 libxcb-xkb1
-          # Vulkan on lavapipe only: the loader sees no other driver.
-          icd=$(compgen -G '/usr/share/vulkan/icd.d/lvp_icd*.json' | head -1 || true)
-          if [[ -z "$icd" ]]; then
-            echo "::error::mesa-vulkan-drivers installed no lavapipe ICD"
-            exit 1
-          fi
-          echo "VK_DRIVER_FILES=$icd" >> "$GITHUB_ENV"
-          echo "VK_ICD_FILENAMES=$icd" >> "$GITHUB_ENV"
-          VK_DRIVER_FILES=$icd vulkaninfo --summary | tee "$RUNNER_TEMP/vulkaninfo.txt"
-          grep -qi "llvmpipe" "$RUNNER_TEMP/vulkaninfo.txt"
-          pipx run aqtinstall install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
-          echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
-          # FFmpeg as LGPL shared libraries, as the packages ship it.
-          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" native/timeline/scripts/build-ffmpeg-lgpl.sh
-          echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib/pkgconfig" >> "$GITHUB_ENV"
-          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib" >> "$GITHUB_ENV"
+      # The native CI image has the system packages, Clang among them. This
+      # frees disk, then installs Qt and builds the LGPL FFmpeg.
+      - name: Set up native dependencies
+        uses: ./.github/actions/setup-native-timeline
 
       - name: Verify prerequisites and prepare media
         run: |
