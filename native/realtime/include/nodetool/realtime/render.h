@@ -74,6 +74,9 @@ public:
     // Slot textures first, then separate volatile and retained pools. Allocate
     // these once before activating the schedule. Retained pool cells use LRU.
     std::span<const RenderTextureSpec> textures() const noexcept;
+    // Fixed possible output indices, for prepare-time GPU bind-group caching.
+    // Unreachable passes have no candidates. Span lasts for this schedule.
+    std::span<const unsigned> outputCandidates(unsigned pass) const noexcept;
     std::size_t textureBytes() const noexcept;
     RenderColorSpace presentationColorSpace() const noexcept;
     // No allocation, JSON, I/O or GPU calls. An accepted frame with present=true
