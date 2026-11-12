@@ -176,11 +176,25 @@ describe("ComfyCloudProvider — catalog", () => {
     const fits = (task: string, inputs: { image: number; video: number; audio: number }) =>
       comfyGpuTemplateFits({ task, inputs } as Parameters<typeof comfyGpuTemplateFits>[0]);
     expect(fits("image_to_video", { image: 1, video: 0, audio: 0 })).toBe(true);
-    expect(fits("image_to_video", { image: 2, video: 0, audio: 0 })).toBe(false);
+    // A first-last-frame template takes the start image and the end frame.
+    expect(fits("image_to_video", { image: 2, video: 0, audio: 0 })).toBe(true);
+    expect(fits("image_to_video", { image: 3, video: 0, audio: 0 })).toBe(false);
     expect(fits("reference_to_video", { image: 3, video: 0, audio: 0 })).toBe(true);
     expect(fits("reference_to_video", { image: 1, video: 0, audio: 1 })).toBe(false);
     expect(fits("reference_to_video", { image: 0, video: 0, audio: 0 })).toBe(false);
     expect(fits("text_to_video", { image: 0, video: 0, audio: 0 })).toBe(true);
+  });
+
+  it("lists first-last-frame templates as needing an end frame", async () => {
+    const failing = (async () => {
+      throw new Error("offline");
+    }) as typeof fetch;
+    const models = await new TestProvider(failing).getAvailableVideoModels();
+    const byId = new Map(models.map((m) => [m.id, m]));
+    expect(byId.get("comfyui-gpu/video_wan2_2_14B_flf2v")?.endFrame).toBe("required");
+    expect(byId.get("comfyui-gpu/video_ltx2_3_flf2v")?.endFrame).toBe("required");
+    expect(byId.get("comfyui-gpu/image_to_video_wan")?.endFrame).toBe("none");
+    expect(byId.get("comfyui-gpu/video_wan2_2_14B_flf2v")?.supportedTasks).toEqual(["image_to_video"]);
   });
 
   it("takes each model's tasks from its schema modalities", () => {
