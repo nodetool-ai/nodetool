@@ -10,13 +10,13 @@ import {
   ChunksToAudioNode,
   StreamingGainNode,
   StreamingLowPassNode,
-  applyBiquadToWav,
   encodeWav,
   parseWavBytes,
   pcm16ToFloat32,
   float32ToPcm16,
   DEFAULT_Q
 } from "@nodetool-ai/audio-nodes";
+import { loadKernels } from "@nodetool-ai/kernels";
 
 const SAMPLE_RATE = 16000;
 
@@ -263,7 +263,7 @@ describe("StreamingGain", () => {
 });
 
 describe("StreamingLowPass", () => {
-  it("chunked filtering equals whole-buffer applyBiquadToWav (state continuity)", async () => {
+  it("chunked filtering equals a whole-buffer biquad pass (state continuity)", async () => {
     const samples = testSamples(4096);
     const pcm = float32ToPcm16(samples);
 
@@ -290,13 +290,13 @@ describe("StreamingLowPass", () => {
     }
 
     // Reference: the same quantized input filtered in a single pass.
-    const reference = applyBiquadToWav(
-      { samples: pcm16ToFloat32(pcm), sampleRate: SAMPLE_RATE, numChannels: 1 },
-      "lowpass",
-      1000,
-      DEFAULT_Q,
-      0
-    ).samples;
+    const kernels = await loadKernels();
+    const reference = kernels.biquadProcess(
+      kernels.biquadDesign("rbj", "lowpass", SAMPLE_RATE, 1000, DEFAULT_Q),
+      kernels.createBiquadState(1),
+      pcm16ToFloat32(pcm),
+      1
+    );
 
     expect(streamed.length).toBe(reference.length);
     // Only output PCM16 quantization separates the two paths.

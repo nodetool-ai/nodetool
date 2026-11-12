@@ -228,6 +228,41 @@ describe("ReplicateProvider", () => {
     vi.unstubAllGlobals();
   });
 
+  it("imageToVideo sends the end frame to the field the schema declares", async () => {
+    const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.mp4");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
+      })
+    );
+    const provider = createProvider({ run: runMock });
+    for (const [id, field] of [["minimax/hailuo-02", "last_frame_image"], ["luma/ray-2-540p", "end_image"]] as const) {
+      runMock.mockClear();
+      await provider.imageToVideo(new Uint8Array([1, 2, 3]), {
+        model: { id, name: id, provider: "replicate" },
+        prompt: "transition",
+        endImage: new Uint8Array([4, 5, 6])
+      });
+      const input = runMock.mock.calls[0][1].input;
+      expect(input[field]).toMatch(/^data:image\/png;base64,/);
+    }
+    vi.unstubAllGlobals();
+  });
+
+  it("imageToVideo refuses an end frame on a model that declares none", async () => {
+    const runMock = vi.fn();
+    const provider = createProvider({ run: runMock });
+    await expect(provider.imageToVideo(new Uint8Array([1, 2, 3]), {
+      model: { id: "minimax/video-01", name: "video-01", provider: "replicate" },
+      prompt: "transition",
+      endImage: new Uint8Array([4, 5, 6])
+    })).rejects.toThrow("Replicate model minimax/video-01 takes no end frame");
+    expect(runMock).not.toHaveBeenCalled();
+  });
+
   it("imageToImage uses the model schema's list field for multiple images", async () => {
     const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
     vi.stubGlobal(

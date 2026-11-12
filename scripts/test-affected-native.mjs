@@ -110,7 +110,7 @@ export const PROJECTS = {
   "graph-runner": {
     envVar: "NODETOOL_GRAPH_RUNNER_BUILD_DIR",
     configureArgs: ["-DCMAKE_BUILD_TYPE=Release"],
-    dependsOn: ["jobs"],
+    dependsOn: ["jobs", "kernels"],
     prepare: [
       { cacheVar: "NODETOOL_GUEST_BUNDLE", label: "guest bundle", script: "native/graph-runner/guest/build.mjs" },
       { cacheVar: "NODETOOL_GPU_CATALOG", label: "GPU catalog", script: "native/graph-runner/guest/host/gpu-catalog.mjs" }
@@ -123,7 +123,7 @@ export const PROJECTS = {
   // (native/node-editor/scripts/run.mjs), so the default follows them there.
   "node-editor": {
     windowsBuildDir: "build-windows",
-    dependsOn: ["jobs"],
+    dependsOn: ["jobs", "kernels"],
     prepare: [
       {
         cacheVar: "NODETOOL_GUEST_BUNDLE",

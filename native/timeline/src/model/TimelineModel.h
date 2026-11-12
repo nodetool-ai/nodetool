@@ -153,6 +153,8 @@ private:
     };
     std::optional<Transient> m_transient;
     void markAllChanged();
+    // Marks only these clips and tracks changed, with no takes change.
+    void markClipsChanged(QSet<QString> clipIds, QSet<QString> trackIds);
     std::optional<QSet<QString>> m_changedClipIds;
     QSet<QString> m_changedTrackIds;
     quint64 m_takesRevision = 0;

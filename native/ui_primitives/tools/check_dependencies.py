@@ -15,6 +15,12 @@ FORBIDDEN = re.compile(
     r'(?:^|[\s/"\'])web/|'
     r'(?:\.\./)+(?:timeline|chat|model-picker|web|packages)(?:[/\s"\']|$)|'
     r'\b(?:npm|npx|yarn|pnpm)\s+(?:run|install|exec|build)\b', re.MULTILINE)
+FORBIDDEN_STORYBOARD = re.compile(
+    r'NodeTool\.(?:Timeline|Chat)|'
+    r'\b(?:FFmpeg|FFMPEG|GuiPrivate|QRhi|node_modules)\b|'
+    r'(?:^|[\s/"\'])web/|'
+    r'(?:\.\./)+(?:timeline|chat|web|packages)(?:[/\s"\']|$)|'
+    r'\b(?:npm|npx|yarn|pnpm)\s+(?:run|install|exec|build)\b', re.MULTILINE)
 ARGUMENTS = re.compile(r'#[^\n]*|"(?:\\.|[^"\\])*"|[()]|[^\s()"]+')
 
 
@@ -44,7 +50,46 @@ def cmake_calls(text):
         index = cursor
 
 
-def cmake_path_errors(text, path, module):
+def module_policy(module):
+    if module.name == 'media':
+        return {
+            'subdirs': {'../ui_primitives'},
+            'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.Media'},
+            'targets': {'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin', 'nodetool_media', 'nodetool_mediaplugin'},
+            'forbidden': FORBIDDEN,
+        }
+    if module.name == 'entities':
+        return {
+            'subdirs': {'../ui_primitives', '../media'},
+            'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.Media', 'NodeTool.Entities'},
+            'targets': {
+                'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin',
+                'nodetool_media', 'nodetool_mediaplugin',
+                'nodetool_entities', 'nodetool_entitiesplugin',
+            },
+            'forbidden': FORBIDDEN,
+        }
+    if module.name == 'storyboard':
+        return {
+            'subdirs': {'../ui_primitives', '../media', '../model-picker'},
+            'qml_imports': {'NodeTool.UiPrimitives', 'NodeTool.Media', 'NodeTool.ModelPicker', 'NodeTool.Storyboard'},
+            'targets': {
+                'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin',
+                'nodetool_media', 'nodetool_mediaplugin',
+                'nodetool_model_picker', 'nodetool_model_pickerplugin',
+                'nodetool_storyboard', 'nodetool_storyboardplugin',
+            },
+            'forbidden': FORBIDDEN_STORYBOARD,
+        }
+    return {
+        'subdirs': set(),
+        'qml_imports': {'NodeTool.UiPrimitives'},
+        'targets': {'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin'},
+        'forbidden': FORBIDDEN,
+    }
+
+
+def cmake_path_errors(text, path, module, allowed_subdirs=()):
     errors = []
     variables = {
         'CMAKE_CURRENT_SOURCE_DIR': str(path.parent),
@@ -98,6 +143,8 @@ def cmake_path_errors(text, path, module):
                 check(pattern)
             variables[args[1]] = ';'.join(expand(pattern) for pattern in patterns)
         if command in {'include', 'add_subdirectory'}:
+            if command == 'add_subdirectory' and args[0] in allowed_subdirs:
+                continue
             if command != 'include' or args[0] not in {'CTest', 'GNUInstallDirs', 'CMakePackageConfigHelpers'}:
                 check(args[0])
         if command == 'configure_file':
@@ -149,6 +196,7 @@ def source_files(module):
 
 def audit_module(module):
     module = module.resolve()
+    policy = module_policy(module)
     files = source_files(module)
     errors = []
     if not files:
@@ -166,11 +214,17 @@ def audit_module(module):
             continue
         text = path.read_text(encoding='utf-8')
         label = str(path.relative_to(module))
-        for match in FORBIDDEN.finditer(text):
+        for match in policy['forbidden'].finditer(text):
             errors.append('{}: forbidden dependency {}'.format(label, match.group().strip()))
         if path.suffix == '.qml':
             for imported in re.findall(r'^\s*import\s+([^\s;]+)', text, re.MULTILINE):
-                if not (imported == 'NodeTool.UiPrimitives' or imported.split('.')[0] in {'QtQuick', 'QtQml', 'QtTest'}):
+                if imported.startswith('"') and imported.endswith('"'):
+                    try:
+                        (path.parent / imported[1:-1]).resolve().relative_to(module)
+                    except ValueError:
+                        errors.append('{}: QML import escapes module {}'.format(label, imported))
+                    continue
+                if not (imported in policy['qml_imports'] or imported.split('.')[0] in {'QtQuick', 'QtQml', 'QtTest'}):
                     errors.append('{}: external QML import {}'.format(label, imported))
         if path.suffix in {'.cpp', '.h', '.hpp'}:
             for include in re.findall(r'^\s*#include\s+"([^"]+)"', text, re.MULTILINE):
@@ -189,7 +243,7 @@ def audit_module(module):
             except ET.ParseError:
                 errors.append('{}: malformed resource XML'.format(label))
         if path.suffix == '.cmake' or path.name == 'CMakeLists.txt':
-            errors.extend('{}: {}'.format(label, error) for error in cmake_path_errors(text, path, module))
+            errors.extend('{}: {}'.format(label, error) for error in cmake_path_errors(text, path, module, policy['subdirs']))
             for qt_target in re.findall(r'Qt6::([A-Za-z0-9_]+)', text):
                 if qt_target not in ALLOWED_QT:
                     errors.append('{}: forbidden Qt dependency {}'.format(label, qt_target))
@@ -200,7 +254,7 @@ def audit_module(module):
                 for target in links.split()[1:]:
                     if target in {'PUBLIC', 'PRIVATE', 'INTERFACE'}:
                         continue
-                    if target in {'nodetool_ui_primitives', 'nodetool_ui_primitivesplugin'}:
+                    if target in policy['targets']:
                         continue
                     if target.startswith('Qt6::') and target[5:] in ALLOWED_QT:
                         continue
@@ -210,9 +264,15 @@ def audit_module(module):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--module-root', type=Path, default=MODULE)
+    parser.add_argument('--module-root', type=Path, default=None)
     args = parser.parse_args()
-    files, errors = audit_module(args.module_root)
+    roots = [args.module_root] if args.module_root is not None else [MODULE, MODULE.parent / 'media', MODULE.parent / 'entities', MODULE.parent / 'storyboard']
+    files = []
+    errors = []
+    for root in roots:
+        root_files, root_errors = audit_module(root)
+        files.extend(root_files)
+        errors.extend(root_errors)
     print('Inspected {} native module source files'.format(len(files)))
     for error in errors:
         print(error, file=sys.stderr)

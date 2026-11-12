@@ -1,11 +1,12 @@
 import type { TemporalSources } from "./denoise.js";
 import { stabilizationNeutral } from "./stabilization.js";
 import { secondaryCurveTransfer, secondaryNeutral } from "./secondaryColor.js";
+import { hueSatCurvesNeutral, hueSatCurvesTransfer } from "./hueSatCurves.js";
 import { curveTransfer } from "./curveTransfer.js";
 import { GENERATOR_MODES, STYLIZE_MODES, type ClipEffect, type TrackEffect } from "../types.js";
 import {
   isClipBlurEffect,
-  isClipDenoiseEffect, isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipExposureEffect,
+  isClipDenoiseEffect, isClipStabilizeEffect, isClipDebandEffect, isClipSecondaryColorEffect, isClipHueSatCurvesEffect, isClipExposureEffect,
   isClipChromaKeyEffect,
   isClipColorEffect,
   isClipCurvesEffect,
@@ -24,7 +25,7 @@ import {
   createLabeledTexture,
   createRecipeRunner,
   LabeledTexture,
-  filtersDenoiseSpatialV1, filtersDenoiseTemporalV1, transformStabilizeV1, filterDebandV1, colorSecondaryV1, colorExposureLinearV1,
+  filtersDenoiseSpatialV1, filtersDenoiseTemporalV1, transformStabilizeV1, filterDebandV1, colorSecondaryV1, colorHueSatCurvesV1, colorExposureLinearV1,
   colorCdlV1,
   colorCurveTransferV1,
   colorGradeV1,
@@ -44,6 +45,7 @@ import {
   filtersVisualFxV1,
   chromaKeyV1,
   maskApplyV1,
+  maskMixV1,
   maskFromImageV1,
   alphaPremulToStraightV1,
   alphaStraightToPremulV1,
@@ -60,6 +62,7 @@ import type { AnyWgslStruct, Infer } from "typegpu/data";
 import { parseCssColorOrBlack } from "./color.js";
 import { parseCubeLut, type CubeLut } from "./cubeLut.js";
 import { trackEffectsAsClipEffects } from "./trackEffects.js";
+import { effectMaskCoverage, effectMasksOf, isMaskedEffect } from "../effectMasks.js";
 
 interface AggregatedColor {
   brightness: number;
@@ -89,6 +92,13 @@ interface IntermediatePool {
   textures: [LabeledTexture, LabeledTexture];
   /** Currently holds the latest pixel state (input to next pass). */
   currentIndex: 0 | 1;
+  /** The input of a masked effect, held for the mix after it. */
+  saved?: LabeledTexture;
+}
+
+interface CachedCoverage {
+  key: string;
+  texture: GPUTexture;
 }
 
 interface CachedLut {
@@ -157,6 +167,7 @@ export class WebGPUEffectsProcessor {
 
   private pools = new Map<string, IntermediatePool>();
   private lutTextures = new Map<string, CachedLut>();
+  private coverages = new Map<string, CachedCoverage>();
 
   constructor(device: GPUDevice, private readonly workingFormat: "rgba8unorm" | "rgba16float" = "rgba8unorm") {
     this.device = device;
@@ -216,7 +227,8 @@ export class WebGPUEffectsProcessor {
     frameEncoder?: GPUCommandEncoder,
     temporalSources?: TemporalSources<GPUTexture>
   ): GPUTexture {
-    const enabledClip = clipEffects.filter((e) => e.enabled);
+    const enabledClip = clipEffects.filter((e) => e.enabled && !(isMaskedEffect(e) && (isClipColorEffect(e) || isClipBlurEffect(e))));
+    const maskedAggregates = clipEffects.filter((e) => isMaskedEffect(e) && (isClipColorEffect(e) || isClipBlurEffect(e)));
     const enabledTrack = trackEffectsAsClipEffects(trackEffects).filter(
       (e) => e.enabled
     );
@@ -233,7 +245,10 @@ export class WebGPUEffectsProcessor {
     const sharpenActive = sharpen != null && sharpen.amount > 0.001;
     const vignetteActive = vignette != null && vignette.amount > 0.001;
     const chromaKeyActive = chromaKey != null && chromaKey.tolerance > 0.001;
-    const shaderClip = [...enabledClip.filter(isShaderStepEffect), ...enabledTrack.filter(isClipExposureEffect)];
+    const shaderClip = [
+      ...clipEffects.filter((e) => e.enabled && (isShaderStepEffect(e) || maskedAggregates.includes(e))),
+      ...enabledTrack.filter(isClipExposureEffect)
+    ];
 
     if (
       !colorActive &&
@@ -368,6 +383,47 @@ export class WebGPUEffectsProcessor {
           dispatch: { kind: "fragment" }
         });
         settle(outIdx, colorCubeLutV1.io.output.alpha);
+      } else if (isMaskedEffect(effect)) {
+        let before: LabeledTexture;
+        if (pendingFirst) {
+          before = sourceLabeled;
+        } else {
+          const current = pool.textures[pool.currentIndex];
+          pool.saved ??= this.makeIntermediate(`preview-effects-${poolKey}-saved`, width, height, workingFormat);
+          encoder.copyTextureToTexture({ texture: current.texture }, { texture: pool.saved.texture }, [width, height, 1]);
+          pool.saved.meta.alpha = current.meta.alpha;
+          before = pool.saved;
+        }
+        if (isClipColorEffect(effect)) {
+          const own = aggregateColor([effect], []);
+          if (isColorActive(own)) step(colorGradeV1, { ...own });
+        } else if (isClipBlurEffect(effect)) {
+          const radius = aggregateBlurRadius([effect], []);
+          if (radius >= 0.5) {
+            step(blurGaussianV1, { radius, sigma: radius / 3, direction: d.vec2f(1, 0) });
+            step(blurGaussianV1, { radius, sigma: radius / 3, direction: d.vec2f(0, 1) });
+          }
+        } else {
+          this.stepClipEffect(effect, width, height, step, stepRecipe);
+        }
+        if (pendingFirst) continue;
+        const coverage = this.coverageTexture(poolKey, effect, width, height);
+        const { input, outIdx } = pick();
+        this.executor.encode({
+          ctx: this.ctx,
+          workingFormat,
+          module: maskMixV1,
+          encoder,
+          inputs: {
+            source: input,
+            base: before,
+            mask: this.label(coverage, `${poolKey}-effect-mask`, width, height, "premultiplied")
+          },
+          output: pool.textures[outIdx],
+          params: { amount: 1 },
+          dispatch: { kind: "fragment" }
+        });
+        settle(outIdx, maskMixV1.io.output.alpha);
       } else {
         this.stepClipEffect(effect, width, height, step, stepRecipe);
       }
@@ -462,7 +518,11 @@ export class WebGPUEffectsProcessor {
       return;
     }
     if (isClipExposureEffect(effect)) {
-      step(colorExposureLinearV1, {exposure: effect.exposure ?? 0, rolloff: effect.rolloff ?? 0, whites: effect.whites ?? 0});
+      step(colorExposureLinearV1, {exposure: effect.exposure ?? 0, rolloff: effect.rolloff ?? 0, whites: effect.whites ?? 0, blacks: effect.blacks ?? 0});
+      return;
+    }
+    if (isClipHueSatCurvesEffect(effect)) {
+      step(colorHueSatCurvesV1, {table: hueSatCurvesTransfer(effect).map(value => d.vec4f(...value))});
       return;
     }
     if (effect.type === "stylize" && typeof effect.mode === "string") {
@@ -863,6 +923,45 @@ export class WebGPUEffectsProcessor {
     });
   }
 
+  private makeIntermediate(label: string, width: number, height: number, format: "rgba8unorm" | "rgba16float"): LabeledTexture {
+    return createLabeledTexture(this.device, {
+      label,
+      width,
+      height,
+      format,
+      usage: intermediateUsage(),
+      meta: { colorSpace: "encoded-sdr", alpha: "premultiplied" }
+    });
+  }
+
+  /** The effect's mask coverage in alpha (RGB = alpha, valid premultiplied), cached per effect. */
+  private coverageTexture(poolKey: string, effect: ClipEffect, width: number, height: number): GPUTexture {
+    const masks = effectMasksOf(effect);
+    const id = `${poolKey}:${effect.id}`;
+    const key = `${width}x${height}:${JSON.stringify(masks)}`;
+    const cached = this.coverages.get(id);
+    if (cached && cached.key === key) return cached.texture;
+    cached?.texture.destroy();
+    const coverage = effectMaskCoverage(masks, width, height) ?? new Float32Array(width * height).fill(1);
+    const bytesPerRow = Math.ceil(width * 4 / 256) * 256;
+    const bytes = new Uint8Array(bytesPerRow * height);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const v = Math.round(Math.max(0, Math.min(1, coverage[y * width + x]!)) * 255);
+        bytes.fill(v, y * bytesPerRow + x * 4, y * bytesPerRow + x * 4 + 4);
+      }
+    }
+    const texture = this.device.createTexture({
+      label: `preview-effects-${id}-mask`,
+      size: [width, height],
+      format: "rgba8unorm",
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
+    });
+    this.device.queue.writeTexture({ texture }, bytes, { bytesPerRow }, [width, height]);
+    this.coverages.set(id, { key, texture });
+    return texture;
+  }
+
   private getPool(key: string, width: number, height: number, format: "rgba8unorm" | "rgba16float" = "rgba8unorm"): IntermediatePool {
     const existing = this.pools.get(key);
     if (existing && existing.width === width && existing.height === height && existing.textures[0].format === format) {
@@ -871,6 +970,7 @@ export class WebGPUEffectsProcessor {
     if (existing) {
       existing.textures[0].destroy();
       existing.textures[1].destroy();
+      existing.saved?.destroy();
     }
     // `alpha` here is only the label a fresh, never-written texture carries.
     // Every pass re-labels its output with what that module declares it wrote,
@@ -961,8 +1061,11 @@ export class WebGPUEffectsProcessor {
     for (const pool of this.pools.values()) {
       pool.textures[0].destroy();
       pool.textures[1].destroy();
+      pool.saved?.destroy();
     }
     this.pools.clear();
+    for (const coverage of this.coverages.values()) coverage.texture.destroy();
+    this.coverages.clear();
     for (const lut of this.lutTextures.values()) lut.texture.destroy();
     this.lutTextures.clear();
     this.ctx.scratch.dispose();
@@ -1058,7 +1161,8 @@ function isShaderStepEffect(effect: ClipEffect): boolean {
     (isClipStabilizeEffect(effect) && !stabilizationNeutral(effect)) ||
     (isClipDebandEffect(effect) && (effect.strength ?? 0) > 0) ||
     (isClipSecondaryColorEffect(effect) && !secondaryNeutral(effect)) ||
-    (isClipExposureEffect(effect) && !!(effect.exposure || effect.rolloff || effect.whites)) ||
+    (isClipHueSatCurvesEffect(effect) && !hueSatCurvesNeutral(effect)) ||
+    (isClipExposureEffect(effect) && !!(effect.exposure || effect.rolloff || effect.whites || effect.blacks)) ||
     effect.type === "lut" ||
     effect.type === "stylize" ||
     effect.type === "generator" ||
@@ -1080,7 +1184,7 @@ function isShaderStepEffect(effect: ClipEffect): boolean {
 
 /** Enabled effect types the GPU chain cannot execute, including future types. */
 export function unsupportedGpuEffectTypes(layers: readonly { effects?: ClipEffect[]; trackEffects?: TrackEffect[] }[]): string[] {
-  const supported = new Set(["denoise", "stabilize", "deband", "secondaryColor", "exposure", "color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
+  const supported = new Set(["denoise", "stabilize", "deband", "secondaryColor", "hueSatCurves", "exposure", "color", "blur", "dropShadow", "glow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"]);
   const found = new Set<string>();
   for (const layer of layers) {
     for (const effect of [...layer.effects ?? [], ...trackEffectsAsClipEffects(layer.trackEffects)]) {

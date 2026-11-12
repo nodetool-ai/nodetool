@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import "ClipEffectsCatalog.js" as Catalog
+import "EffectMaskEdits.js" as MaskEdits
 import "../inspectorsections" as Sections
 import NodeTool.UiPrimitives as Ui
 
@@ -23,6 +24,12 @@ Column {
         clipId: root.editor.clip.id || ""
         effectId: root.effectId
         locked: root.editor.locked
+    }
+    EffectMasksSection {
+        visible: MaskEdits.maskable(root.effectType)
+        width: parent.width
+        editor: root.editor
+        effectId: root.effectId
     }
     Ui.EditorButton {
         objectName: "effects_" + root.effectId + "_analyze"
@@ -228,8 +235,20 @@ Column {
         onGestureCancelled: root.editor.cancel()
         onPatch: (change, phase) => root.editor.patch(root.effectId, change, phase)
     }
+    ToneCurveEditor {
+        width: parent.width
+        visible: root.effectType === "hueSatCurves"
+        objectName: visible ? "effects_" + root.effectId + "_hueSatCurves" : ""
+        height: visible ? implicitHeight : 0
+        customChannels: Catalog.hueSatChannels.map(item => Object.assign({}, item, {label: item.short}))
+        curves: root.effect
+        disabled: root.editor.locked
+        onGestureStarted: root.editor.begin()
+        onGestureCancelled: root.editor.cancel()
+        onPatch: (change, phase) => root.editor.patch(root.effectId, change, phase)
+    }
     Sections.InspectorCaption {
-        visible: root.allDefinitions.length === 0 && root.effectType !== "curves"
+        visible: root.allDefinitions.length === 0 && root.effectType !== "curves" && root.effectType !== "hueSatCurves"
         width: parent.width
         text: Catalog.readOnlyDescription(root.effectType)
     }

@@ -161,7 +161,7 @@ private slots:
         controller.configure(server.url());
         QQuickView view;
         view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-        view.setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
         QVERIFY(view.status() == QQuickView::Ready);
         view.setResizeMode(QQuickView::SizeRootObjectToView);
         view.resize(1500, 1000); view.show();
@@ -191,7 +191,7 @@ private slots:
         controller.configure(server.url());
         QQuickView view;
         view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-        view.setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
         QVERIFY(view.status() == QQuickView::Ready);
         view.setResizeMode(QQuickView::SizeRootObjectToView);
         view.resize(1500, 1000); view.show();
@@ -221,7 +221,7 @@ private slots:
         controller.configure(server.url());
         QQuickView view;
         view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-        view.setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
         QVERIFY2(view.status() == QQuickView::Ready, qPrintable(view.errors().isEmpty() ? QString{} : view.errors().first().toString()));
         view.setResizeMode(QQuickView::SizeRootObjectToView);
         view.resize(1500, 1000); view.show();
@@ -391,7 +391,7 @@ private slots:
         controller.configure(server.url());
         QQuickView view;
         view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-        view.setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
         QVERIFY(view.status() == QQuickView::Ready);
         view.setResizeMode(QQuickView::SizeRootObjectToView);
         view.resize(1200, 900); view.show();
@@ -459,7 +459,7 @@ private slots:
         controller.configure(server.url());
         QQuickView view;
         view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-        view.setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
         QVERIFY2(view.status() == QQuickView::Ready, qPrintable(view.errors().isEmpty() ? QString{} : view.errors().first().toString()));
         view.setResizeMode(QQuickView::SizeRootObjectToView);
         view.resize(1200, 900);
@@ -563,7 +563,7 @@ private slots:
         controller.configure(server.url());
         QQuickView view;
         view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-        view.setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
         QVERIFY(view.status() == QQuickView::Ready);
         view.setResizeMode(QQuickView::SizeRootObjectToView);
         view.resize(340, 900);
@@ -594,7 +594,7 @@ private slots:
         controller.configure(server.url());
         QQuickView view;
         view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-        view.setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
         QVERIFY(view.status() == QQuickView::Ready);
         view.setResizeMode(QQuickView::SizeRootObjectToView);
         view.resize(900, 700);
@@ -631,7 +631,7 @@ private slots:
         controller.configure(server.url());
         QQuickView view;
         view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-        view.setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
         QVERIFY(view.status() == QQuickView::Ready);
         view.setResizeMode(QQuickView::SizeRootObjectToView);
         view.resize(900, 900);
@@ -754,7 +754,7 @@ private slots:
         controller.setWorkflow("workflow-a", "Workflow");
         QQuickView view;
         view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-        view.setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
         QVERIFY2(view.status() == QQuickView::Ready, qPrintable(view.errors().isEmpty() ? QString{} : view.errors().first().toString()));
         view.setResizeMode(QQuickView::SizeRootObjectToView);
         view.resize(900, 1000);

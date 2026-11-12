@@ -176,11 +176,25 @@ describe("ComfyCloudProvider — catalog", () => {
     const fits = (task: string, inputs: { image: number; video: number; audio: number }) =>
       comfyGpuTemplateFits({ task, inputs } as Parameters<typeof comfyGpuTemplateFits>[0]);
     expect(fits("image_to_video", { image: 1, video: 0, audio: 0 })).toBe(true);
-    expect(fits("image_to_video", { image: 2, video: 0, audio: 0 })).toBe(false);
+    // A first-last-frame template takes the start image and the end frame.
+    expect(fits("image_to_video", { image: 2, video: 0, audio: 0 })).toBe(true);
+    expect(fits("image_to_video", { image: 3, video: 0, audio: 0 })).toBe(false);
     expect(fits("reference_to_video", { image: 3, video: 0, audio: 0 })).toBe(true);
     expect(fits("reference_to_video", { image: 1, video: 0, audio: 1 })).toBe(false);
     expect(fits("reference_to_video", { image: 0, video: 0, audio: 0 })).toBe(false);
     expect(fits("text_to_video", { image: 0, video: 0, audio: 0 })).toBe(true);
+  });
+
+  it("lists first-last-frame templates as needing an end frame", async () => {
+    const failing = (async () => {
+      throw new Error("offline");
+    }) as typeof fetch;
+    const models = await new TestProvider(failing).getAvailableVideoModels();
+    const byId = new Map(models.map((m) => [m.id, m]));
+    expect(byId.get("comfyui-gpu/video_wan2_2_14B_flf2v")?.endFrame).toBe("required");
+    expect(byId.get("comfyui-gpu/video_ltx2_3_flf2v")?.endFrame).toBe("required");
+    expect(byId.get("comfyui-gpu/image_to_video_wan")?.endFrame).toBe("none");
+    expect(byId.get("comfyui-gpu/video_wan2_2_14B_flf2v")?.supportedTasks).toEqual(["image_to_video"]);
   });
 
   it("takes each model's tasks from its schema modalities", () => {
@@ -886,6 +900,28 @@ describe("ComfyCloudProvider — request shapes from ComfyUI's partner nodes", (
       p.imageToImage([PNG, PNG], { model: m, prompt: "x" })
     );
     expect(body.image_style_references).toEqual([{ url: DATA_PNG, strength: 1 }, { url: DATA_PNG, strength: 1 }]);
+  });
+
+  it("FLUX.2: an aspect ratio alone sets width and height when the schema has no aspect field", async () => {
+    // BFL's FLUX.2 endpoints take width and height and no aspect ratio. Without
+    // a size field to fill, "16:9" used to be dropped and the model answered
+    // at its 1024x1024 default.
+    const props = {
+      prompt: { type: "string" },
+      input_image: { type: "string" },
+      width: { type: "integer" },
+      height: { type: "integer" },
+      seed: { type: "integer" }
+    };
+    const edit = await bodyFor("bfl/flux-2-max", props, (p, m) => p.imageToImage([PNG], { model: m, prompt: "x", aspectRatio: "16:9" }));
+    expect(edit).toMatchObject({ width: 1536, height: 864 });
+    const still = await bodyFor("bfl/flux-2-pro", props, (p, m) => p.textToImage({ model: m, prompt: "x", aspectRatio: "9:16" }));
+    expect(still).toMatchObject({ width: 864, height: 1536 });
+  });
+
+  it("refuses an aspect ratio it cannot map to width and height", async () => {
+    const props = { prompt: { type: "string" }, input_image: { type: "string" }, width: { type: "integer" }, height: { type: "integer" } };
+    await refused("bfl/flux-2-max", props, (p, m) => p.imageToImage([PNG], { model: m, prompt: "x", aspectRatio: "5:4" }), "or width and height (target_width and target_height for an edit)");
   });
 
   it("H3 Max: image_url and end_image_url, and references in reference_image_urls and reference_audio_urls", async () => {

@@ -5,7 +5,11 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { BaseProvider } from "@nodetool-ai/runtime";
+import {
+  BaseProvider,
+  ComfyCloudProvider,
+  ComfyRouterClient
+} from "@nodetool-ai/runtime";
 import type {
   AudioToAudioModel,
   ImageModel,
@@ -337,6 +341,78 @@ describe("find_model through the adapter", () => {
     })) as { total: number; note: string };
     expect(result.total).toBe(0);
     expect(result.note).toMatch(/none declares text_to_video/);
+  });
+
+  it("finds Comfy first-last-frame templates by name and says which take an end frame", async () => {
+    // The Router listing is offline here, so the whole catalog is offered and
+    // no request leaves the test.
+    class OfflineComfy extends ComfyCloudProvider {
+      constructor() {
+        super({ COMFY_API_KEY: "test-key" });
+      }
+      protected override createRouter(): ComfyRouterClient {
+        return new ComfyRouterClient({
+          apiKey: "test-key",
+          baseUrl: "https://router.test",
+          fetch: (async () => {
+            throw new Error("offline");
+          }) as typeof fetch
+        });
+      }
+    }
+    const tool = asTool(findModel, {
+      comfy_cloud: new OfflineComfy(),
+      fal_ai: new FakeVideoProvider("fal_ai" as ProviderId, [
+        {
+          id: "fal-ai/wan-flf2v",
+          name: "Wan FLF2V",
+          provider: "fal_ai",
+          supportedTasks: ["image_to_video"]
+        } as VideoModel
+      ])
+    });
+
+    const found = (await tool.process(ctx, {
+      capability: "image_to_video",
+      provider_hint: "comfy_cloud",
+      query: "flf2v",
+      limit: 20
+    })) as {
+      results: { provider: string; model_id: string; end_frame?: string }[];
+    };
+    const comfy = found.results.filter((r) => r.provider === "comfy_cloud");
+    expect(comfy.map((r) => r.model_id)).toContain(
+      "comfyui-gpu/video_wan2_2_14B_flf2v"
+    );
+    expect(
+      comfy.find((r) => r.model_id === "comfyui-gpu/video_wan2_2_14B_flf2v")
+        ?.end_frame
+    ).toBe("required");
+    for (const result of found.results) {
+      expect(["required", "optional", "none", "unknown"]).toContain(
+        result.end_frame
+      );
+    }
+
+    const startOnly = (await tool.process(ctx, {
+      capability: "image_to_video",
+      provider_hint: "comfy_cloud",
+      query: "wan 2.1 image to video"
+    })) as { results: { model_id: string; end_frame?: string }[] };
+    expect(
+      startOnly.results.find(
+        (r) => r.model_id === "comfyui-gpu/image_to_video_wan"
+      )?.end_frame
+    ).toBe("none");
+
+    const t2v = (await tool.process(ctx, {
+      capability: "text_to_video",
+      provider_hint: "comfy_cloud"
+    })) as { results: Record<string, unknown>[] };
+    expect(t2v.results.length).toBeGreaterThan(0);
+    for (const result of t2v.results) {
+      expect(result).not.toHaveProperty("end_frame");
+    }
   });
 
   it("keeps a model that declares no tasks at all", async () => {

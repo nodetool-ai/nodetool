@@ -43,3 +43,5 @@ leak:libxcb.so
 # V-EXT-6: Qt/fontconfig retains MixerFader's U+221E fallback pattern through tst_wiringw process teardown.
 # native-rules #15: leak suppressed in Qt for a project test (tst_wiringw)
 leak:QFontEngineMultiFontConfig::getMatchPatternForFallback
+# V-EXT-7: Qt Quick Canvas (Context2D) paint buffers drawn in the window's polish step while assistant_capture loads a document survive teardown on CI's threaded Vulkan loop. Every leaked block is indirect and the owner is not reported. Also hides any other leak allocated under TestAssistantCommands::loadDocument.
+leak:TestAssistantCommands::loadDocument

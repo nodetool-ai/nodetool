@@ -11,6 +11,8 @@ ColumnLayout {
     required property var value
     required property bool writable
     required property string nodeId
+    // Hover text for the window's tool tip; empty hides it.
+    signal toolTipRequested(string text)
     property var controller: typeof assetPickerController === "undefined" ? null : assetPickerController
     property var dialogProvider: null
     property var resolver: typeof mediaResolver === "undefined" ? null : mediaResolver
@@ -325,7 +327,7 @@ ColumnLayout {
         Keys.onSpacePressed: root.chooseFiles()
         HoverHandler {
             id: zoneHover
-            onHoveredChanged: if (typeof editor !== "undefined" && editor) editor.showToolTip(hovered ? root.dropTooltip : "")
+            onHoveredChanged: root.toolTipRequested(hovered ? root.dropTooltip : "")
         }
         TapHandler { onTapped: root.chooseFiles() }
         Ui.Text {

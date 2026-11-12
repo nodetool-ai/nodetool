@@ -22,6 +22,7 @@ void installSecrets(js::Engine&, const js::Value&, const HostOptions&);
 void installHttp(js::Engine&, const js::Value&, const HostOptions&);
 void installProcess(js::Engine&, const js::Value&, const HostOptions&);
 void installTimers(js::Engine&, const js::Value&, const HostOptions&);
+void installKernels(js::Engine&, const js::Value&, const HostOptions&);
 
 const std::vector<Capability>& capabilities() {
   // One line per capability: {"name", installName}.
@@ -35,6 +36,7 @@ const std::vector<Capability>& capabilities() {
       {"http", installHttp},
       {"process", installProcess},
       {"timers", installTimers},
+      {"kernels", installKernels},
       {"image", installImage},
       {"media", [](js::Engine& e, const js::Value& o, const HostOptions& options) {
         MediaOptions media;

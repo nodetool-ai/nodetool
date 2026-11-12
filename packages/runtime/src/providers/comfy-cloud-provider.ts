@@ -19,7 +19,7 @@
  */
 
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
-import { ComfyGpuClient, comfyGpuTemplate, comfyGpuTemplateFits, listedComfyGpuTemplates, type ComfyGpuInput } from "./comfy-gpu-models.js";
+import { ComfyGpuClient, comfyGpuEndFrame, comfyGpuTemplate, comfyGpuTemplateFits, listedComfyGpuTemplates, type ComfyGpuInput } from "./comfy-gpu-models.js";
 import type { MusicModel, TextToMusicParams, AudioToAudioModel, AudioToAudioParams, Model3D, TextTo3DParams, ImageTo3DParams } from "./types.js";
 import { comfyTemplate, listedComfyTemplates, runComfyTemplate } from "./comfy-template-models.js";
 import {
@@ -66,6 +66,7 @@ import type {
   ToolCall,
   TTSModel,
   VideoModel,
+  VideoEndFrame,
   VideoToVideoParams
 } from "./types.js";
 
@@ -398,6 +399,18 @@ const NO_LAST_FRAME = new Set([
 ]);
 
 /**
+ * What the Router path knows about a model's end frame before it reads the
+ * live schema: the models it refuses one for, and the omni models whose body
+ * always carries an optional last frame. The rest depend on fields only the
+ * schema names, so they stay unreported.
+ */
+function routerEndFrame(modelId: string): VideoEndFrame | undefined {
+  if (NO_LAST_FRAME.has(modelId)) return "none";
+  if (OMNI_VIDEO.test(modelId)) return "optional";
+  return undefined;
+}
+
+/**
  * Seedance 2.5 refuses a concrete `ratio` with a first frame: the output
  * keeps the frame's own aspect ratio, so only `adaptive` is accepted. Both
  * the Router schema and ComfyUI's ByteDance2FirstLastFrameNode say so.
@@ -551,10 +564,12 @@ export class ComfyCloudProvider extends BaseProvider {
 
   private gpuModels(task: string) {
     return listedComfyGpuTemplates().filter((entry) => entry.task === task && comfyGpuTemplateFits(entry)).map((entry) => {
-      const model: { id: string; name: string; provider: string; supportedTasks: string[]; inputs?: typeof entry.inputs } = {
+      const model: { id: string; name: string; provider: string; supportedTasks: string[]; inputs?: typeof entry.inputs; endFrame?: VideoEndFrame } = {
         id: entry.id, name: `${entry.name} (Comfy GPU)`, provider: PROVIDER_IDS.COMFY_CLOUD, supportedTasks: [entry.task]
       };
       if (entry.inputs) { model.inputs = entry.inputs; }
+      const endFrame = entry.task === "image_to_video" ? comfyGpuEndFrame(entry) : undefined;
+      if (endFrame) { model.endFrame = endFrame; }
       return model;
     });
   }
@@ -656,19 +671,26 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    // A pinned workflow graph has no end-frame slot: imageToVideo refuses one.
     const workflowModels: VideoModel[] = listedComfyWorkflowModels(process.env).map((model) => ({
       id: model.id,
       name: model.name,
       provider: PROVIDER_IDS.COMFY_CLOUD,
-      supportedTasks: ["image_to_video"]
+      supportedTasks: ["image_to_video"],
+      endFrame: "none"
     }));
-    const router = (await this.entries("video")).map((entry) => ({
-      id: entry.id,
-      name: routerModelName(entry.id),
-      provider: PROVIDER_IDS.COMFY_CLOUD,
-      supportedTasks: [...entry.tasks],
-      ...announcedOptions(entry.id)
-    }));
+    const router = (await this.entries("video")).map((entry) => {
+      const model: VideoModel = {
+        id: entry.id,
+        name: routerModelName(entry.id),
+        provider: PROVIDER_IDS.COMFY_CLOUD,
+        supportedTasks: [...entry.tasks],
+        ...announcedOptions(entry.id)
+      };
+      const endFrame = entry.tasks.includes("image_to_video") ? routerEndFrame(entry.id) : undefined;
+      if (endFrame) { model.endFrame = endFrame; }
+      return model;
+    });
     const templates: VideoModel[] = listedComfyTemplates(process.env)
       .filter((template) => template.task === "text_to_video")
       .map((template) => ({
@@ -911,10 +933,26 @@ export class ComfyCloudProvider extends BaseProvider {
       b.setFirst(SIZE_FIELDS, acceptedSize(modelId, width, height));
       return;
     }
-    if (aspect && !b.firstDeclared(ASPECT_FIELDS) && IMAGE_SIZES[aspect]) {
-      const [w, h] = IMAGE_SIZES[aspect].split("x").map(Number);
-      b.setFirst(SIZE_FIELDS, acceptedSize(modelId, w, h));
+    if (!aspect || b.firstDeclared(ASPECT_FIELDS)) return;
+    // A schema with no aspect field takes the ratio as a size: one size
+    // string, or width and height (BFL's FLUX.2). With neither filled the
+    // model answers at its default size and the ratio is lost.
+    const pair = b.declares("width") && b.declares("height");
+    if (!pair && !b.firstDeclared(SIZE_FIELDS)) return;
+    const preset = IMAGE_SIZES[aspect];
+    if (!preset) {
+      throw new Error(
+        `Comfy model ${modelId} takes a pixel size, and aspect ratio "${aspect}" has no preset size. ` +
+          `Pass one of ${Object.keys(IMAGE_SIZES).join(", ")}, or width and height ` +
+          "(target_width and target_height for an edit)."
+      );
     }
+    const [w, h] = preset.split("x").map(Number);
+    if (pair) {
+      b.set("width", w).set("height", h);
+      return;
+    }
+    b.setFirst(SIZE_FIELDS, acceptedSize(modelId, w, h));
   }
 
   private setVideoTiming(b: RouterArgsBuilder, modelId: string, durationSeconds?: number | null, numFrames?: number | null): void {

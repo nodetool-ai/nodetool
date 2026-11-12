@@ -174,9 +174,9 @@ describe("DelayNode_", () => {
   });
 });
 
-// The thresholds below are deliberately loose: `applyFilter` prefers WebAudio's
-// biquad and falls back to the pure-JS one, and the two agree on the direction
-// and rough size of each response but not on the exact figure.
+// These tests check the direction and rough size of each response.
+// `lib-audio-dsp-filters.test.ts` in audio-nodes checks the exact samples
+// against WebAudio's OfflineAudioContext.
 
 describe("HighPassFilterNode", () => {
   it("attenuates below the cutoff and passes above it", async () => {

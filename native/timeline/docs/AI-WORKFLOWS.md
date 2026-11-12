@@ -5,6 +5,8 @@ This checklist extends the original native editor scope to AI workflows.
 [PLAN-GAPS.md](PLAN-GAPS.md) covers the earlier editing parity work. Their
 original AI exclusions do not define completion for this extension. The source
 viewer named F10 in PLAN-GAPS is a separate editing feature.
+[MUSIC-MODE.md](MUSIC-MODE.md) is the design for music mode. Music mode is not
+implemented and is not part of this checklist.
 
 ## Status and completion rule
 

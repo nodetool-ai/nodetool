@@ -68,11 +68,11 @@ The toolbar above the tracks toggles **Select** and **Cut** tools, **Ripple** (t
 - **Add** — drag media from the Asset Explorer onto a track, or add a generated clip from the add menu. Images and video fit video and overlay tracks, audio fits audio tracks, and 3D models fit video and overlay tracks. A drop on an incompatible track is refused. A drop in the second half of a clip starts at that clip's end, so the clip keeps its length. In **Overlap** mode, and in a clip's first half, the drop starts where you release it.
 - **Select** — click a clip. `Shift`/`Ctrl`-click to multi-select.
 - **Move / trim** — drag the body to move, drag the edges to trim the in/out points.
-- **Split** — position the playhead and press `S` to cut a clip in two.
-- **Duplicate / delete** — `Ctrl/⌘ + D` to duplicate, `Delete` to remove.
+- **Split** — position the playhead and press `Ctrl/⌘ + Alt + K` to cut a clip in two.
+- **Duplicate / delete** — `Alt + D` to duplicate, `Delete` to remove.
 - **Snapping** — clips snap to the playhead and to neighbouring clip boundaries for clean alignment. Hold `Alt` while dragging to turn snapping off.
 - **Insert on drop** — hold `Ctrl/⌘` when releasing a dragged clip to push later clips right.
-- **Ripple delete** — `Shift + Delete` removes a clip and closes the gap in the NodeTool layout.
+- **Ripple delete** — `Shift + Delete` removes a clip and closes the gap in the Premiere Pro layout.
 - **Roll edit** — `Ctrl/⌘`-drag a clip edge to move the cut with its neighbour.
 - **Markers and range** — `M` adds a marker, `I` and `O` mark the in and out points of a loop range.
 - **Transitions** — `Ctrl/⌘ + T` cross-fades into the selected clips. Other transition types are `dipToColor`, `wipe`, `push`, `slide`, `zoom`, `whip`, `zoomBlur`, `glitch`, `gradientWipe`, `iris`, and `lightLeak`, set from the clip's **Transition** section.
@@ -210,25 +210,25 @@ changing the original edit. See [AI Timeline Editing](ai-timeline-editing.md).
 | `V` / `C`                | Select tool / cut tool             |
 | `A` / `B` / `R` / `Y`    | Track select, ripple, rate stretch, slip tools |
 | `U` / `H` / `Z`          | Slide, hand, zoom tools            |
-| `S`                      | Split clip at playhead             |
+| `Ctrl/⌘ + Alt + K`       | Split clip at playhead             |
 | `Ctrl/⌘ + Shift + K`     | Cut all tracks at playhead         |
 | `Delete` / `Backspace`   | Delete selected clip(s)            |
 | `Shift + Delete`         | Ripple delete                      |
 | `Ctrl/⌘ + C` / `X` / `V` | Copy / cut / paste clips           |
-| `Ctrl/⌘ + D`             | Duplicate selected clip(s)         |
+| `Alt + D`                | Duplicate selected clip(s)         |
 | `Ctrl/⌘ + A`             | Select all clips                   |
-| `←` / `→`                | Nudge selection one frame          |
-| `Alt + ←` / `Alt + →`    | Step the playhead one frame        |
+| `Alt + ←` / `Alt + →`    | Nudge selection one frame          |
+| `←` / `→`                | Step the playhead one frame        |
 | `J` / `K` / `L`          | Shuttle back / stop / forward      |
 | `I` / `O`                | Mark in / mark out                 |
 | `M`                      | Add marker                         |
-| `N`                      | Toggle snapping                    |
+| `S`                      | Toggle snapping                    |
 | `Ctrl/⌘ + Z`             | Undo                               |
 | `Ctrl/⌘ + Shift + Z`     | Redo                               |
 | `Ctrl/⌘ + scroll`        | Zoom timeline (anchored at cursor) |
 | `?`                      | Open the full shortcut sheet       |
 
-These are the NodeTool layout. The shortcut sheet (`?`) also offers Premiere Pro and Final Cut Pro layouts, stored in the `timelineKeyboardPreset` setting, and lists every binding for the layout you pick.
+These are the Premiere Pro layout, the default. The shortcut sheet (`?`) also offers the Final Cut Pro layout, stored in the `timelineKeyboardPreset` setting, and lists every binding for the layout you pick.
 
 ---
 
@@ -237,7 +237,7 @@ These are the NodeTool layout. The shortcut sheet (`?`) also offers Premiere Pro
 ### Assemble a rough cut from your assets
 
 1. Open a new sequence and drag clips from the Asset Explorer onto the video track.
-2. Trim and reorder clips. Use `S` to split and `Delete` to remove.
+2. Trim and reorder clips. Use `Ctrl/⌘ + Alt + K` to split and `Delete` to remove.
 3. Add an audio track for music or narration and adjust per-clip volume and fades.
 4. Scrub the preview to check timing, then **Export** to MP4.
 

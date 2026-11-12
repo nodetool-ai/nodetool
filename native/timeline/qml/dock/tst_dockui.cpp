@@ -791,7 +791,7 @@ private slots:
             if (child->metaObject()->indexOfSignal("assetsChanged()") >= 0) { libraryBrowser = child; break; }
         }
         QVERIFY(libraryBrowser && libraryBrowser->metaObject()->indexOfSignal("assetsChanged()") >= 0);
-        QSignalSpy refreshed(libraryBrowser, SIGNAL(assetsChanged()));
+        QSignalSpy refreshed(libraryBrowser, SIGNAL(queryStarted()));
         QVERIFY(QMetaObject::invokeMethod(root, "refreshLibrary"));
         QVERIFY2(refreshed.count() >= 1, "refreshLibrary must reload the Library");
         QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "storyboard"}}));
@@ -952,7 +952,7 @@ private slots:
         QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "source"}}));
         render();
         root->setWidth(400);
-        render();
+        QTRY_VERIFY(program->width() + source->width() < 128);
         auto* groupResize = named(root, "dockResizeGroups_viewport_0");
         QVERIFY(groupResize);
         const double pairLength = program->width() + source->width();

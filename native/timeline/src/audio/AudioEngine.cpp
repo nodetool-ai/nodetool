@@ -142,6 +142,8 @@ struct AudioEngine::Impl {
     std::map<std::string, std::unique_ptr<AudioSource>> sources;  // by clip id and path
     std::vector<std::unique_ptr<Session>> sessions;               // current is last
     std::atomic<std::int64_t> sessionCount{0};
+    std::atomic<std::int64_t> planBuilds{0};
+    std::atomic<std::int64_t> workerWakes{0};
     std::atomic<std::int64_t> ringsRetained{0};
     std::vector<float> chunk = std::vector<float>(static_cast<std::size_t>(kChunkFrames) * 2);
 
@@ -618,12 +620,25 @@ struct AudioEngine::Impl {
     std::uint64_t lastScrubArmed = 0;
     std::chrono::steady_clock::time_point lastScrubBuild{};
 
+    // Paused with nothing to fill: the worker sleeps until a new plan, a stop,
+    // or the slow poll that catches transport commands (written without a notify).
+    static constexpr auto kIdlePoll = std::chrono::milliseconds(10);
+    static constexpr auto kBusyPoll = std::chrono::milliseconds(2);
+
     void workerLoop() {
+        bool idle = false;
+        std::uint64_t seenVersion = 0;
         for (;;) {
             {
                 std::unique_lock lock(mutex);
-                wake.wait_for(lock, std::chrono::milliseconds(2));
+                if (idle) {
+                    wake.wait_for(lock, kIdlePoll, [&] { return stopWorker || planVersion != seenVersion; });
+                } else {
+                    wake.wait_for(lock, kBusyPoll);
+                }
                 if (stopWorker) return;
+                workerWakes.fetch_add(1, std::memory_order_relaxed);
+                seenVersion = planVersion;
             }
             const playback::TransportCommand cmd = feed.command.load();
             Session* current = published.load();
@@ -680,6 +695,9 @@ struct AudioEngine::Impl {
             produceShuttle(current);
             evictSources(current);
             retire();
+            idle = !cmd.playing && (!current || (current->seekSeq.load() == cmd.seekSeq &&
+                                                 current->primed.load(std::memory_order_acquire) &&
+                                                 !(cmd.scrub && cmd.seekSeq != lastScrubArmed)));
         }
     }
 };
@@ -699,18 +717,30 @@ bool AudioEngine::running() const {
 }
 
 void AudioEngine::setTimeline(std::shared_ptr<const Timeline> timeline) {
-    auto plan = std::make_shared<MixPlan>(timeline ? buildMixPlan(*timeline) : MixPlan{});
+    const auto version = publishPlan(std::move(timeline));
     Impl& d = *m_impl;
-    prepareMixPlan(*plan, d.sampleRate);
     std::unique_lock lock(d.mutex);
-    d.plan = std::move(plan);
-    const auto version = ++d.planVersion;
-    d.wake.notify_all();
     // The caller may wait for the worker, never the real-time callback.
     // On return, any callback that starts observes this plan or a newer one.
     d.wake.wait(lock, [&d, version] {
         return !d.running.load() || d.stopWorker || d.publishedPlanVersion >= version;
     });
+}
+
+void AudioEngine::setTimelineAsync(std::shared_ptr<const Timeline> timeline) {
+    publishPlan(std::move(timeline));
+}
+
+std::uint64_t AudioEngine::publishPlan(std::shared_ptr<const Timeline> timeline) {
+    auto plan = std::make_shared<MixPlan>(timeline ? buildMixPlan(*timeline) : MixPlan{});
+    Impl& d = *m_impl;
+    prepareMixPlan(*plan, d.sampleRate);
+    d.planBuilds.fetch_add(1);
+    std::lock_guard lock(d.mutex);
+    d.plan = std::move(plan);
+    const auto version = ++d.planVersion;
+    d.wake.notify_all();
+    return version;
 }
 
 bool AudioEngine::start(const Options& options, std::string* error) {
@@ -853,6 +883,8 @@ AudioEngine::Stats AudioEngine::stats() const {
     s.outputLatencySec = d.latencySec.load();
     s.generation = d.generation.load();
     s.sessions = d.sessionCount.load();
+    s.planBuilds = d.planBuilds.load();
+    s.workerWakes = d.workerWakes.load();
     s.ringsRetained = d.ringsRetained.load();
     s.backend = d.backendName;
     s.deviceName = d.deviceName;

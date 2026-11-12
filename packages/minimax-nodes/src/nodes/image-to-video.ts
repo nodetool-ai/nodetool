@@ -34,7 +34,7 @@ export class MinimaxImageToVideoNode extends BaseNode {
     "- Create animated intros from a key frame";
   static readonly metadataOutputTypes = { output: "video" };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["image", "prompt"];
+  static readonly inputFields: string[] = ["image", "end_image", "prompt"];
   static readonly requiredSettings = ["MINIMAX_API_KEY"];
   static readonly autoSaveAsset = true;
 
@@ -56,6 +56,15 @@ export class MinimaxImageToVideoNode extends BaseNode {
       "a character reference instead)."
   })
   declare image: any;
+
+  @prop({
+    type: "image",
+    default: { type: "image", uri: "", asset_id: null, data: null },
+    title: "End Image",
+    description:
+      "Optional frame the video ends on. Only MiniMax-Hailuo-02 takes one."
+  })
+  declare end_image: any;
 
   @prop({
     type: "str",
@@ -110,6 +119,13 @@ export class MinimaxImageToVideoNode extends BaseNode {
       body.subject_reference = [{ type: "character", image: [dataUrl] }];
     } else {
       body.first_frame_image = dataUrl;
+    }
+    const endBytes = await loadMediaRefBytes(this.end_image, context);
+    if (endBytes && endBytes.length > 0) {
+      if (model !== "MiniMax-Hailuo-02") {
+        throw new Error(`MiniMax model ${model} takes no end frame`);
+      }
+      body.last_frame_image = `data:${inferImageMime(endBytes)};base64,${bytesToBase64(endBytes)}`;
     }
     const prompt = String(this.prompt ?? "");
     if (prompt) body.prompt = prompt;

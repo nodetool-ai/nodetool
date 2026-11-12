@@ -97,7 +97,7 @@ Ui.Dialog {
                     label: "Keyboard layout"
                     width: Math.min(Ui.Metrics.dialogWidth / 2, parent.width)
                     value: sheet.preferences.keyboardLayout
-                    options: [{label: "NodeTool", value: "nodetool"}, {label: "Premiere Pro", value: "premiere"}, {label: "Final Cut Pro", value: "fcp"}]
+                    options: [{label: "Premiere Pro", value: "premiere"}, {label: "Final Cut Pro", value: "fcp"}]
                     onChange: value => sheet.preferences.keyboardLayout = value
                 }
             }

@@ -21,7 +21,6 @@ export * from "./nodes/synthesis.js";
 export * from "./lib/audio-wav.js";
 export * from "./lib/biquad.js";
 export * from "./lib/cv.js";
-export * from "./lib/synth-dsp.js";
 
 export const ALL_AUDIO_NODES: readonly NodeClass[] = [
   ...OUTPUT_NODES,

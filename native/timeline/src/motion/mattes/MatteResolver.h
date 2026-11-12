@@ -17,7 +17,7 @@ public:
     ~MatteResolver() override;
 private:
     void reset();
-    void scan();
+    void scan(bool all);
     void next();
     QPointer<TimelineModel> m_model;
     nt::server::SaveTarget m_target;

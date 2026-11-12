@@ -18,6 +18,9 @@ class TransformGizmoController : public QQuickPaintedItem {
     Q_PROPERTY(PlaybackClock* clock READ clock WRITE setClock NOTIFY bindingsChanged)
     Q_PROPERTY(QStringList selection READ selection WRITE setSelection NOTIFY bindingsChanged)
     Q_PROPERTY(bool available READ available NOTIFY geometryChanged)
+    // The clip picture's corners (top-left, top-right, bottom-right, bottom-left) in this item's
+    // coordinates. Effect mask overlays map clip-normalized points through them.
+    Q_PROPERTY(QVariantList clipCorners READ clipCorners NOTIFY geometryChanged)
     Q_PROPERTY(bool alignmentEnabled READ alignmentEnabled WRITE setAlignmentEnabled NOTIFY optionsChanged)
     Q_PROPERTY(QColor guideColor READ guideColor WRITE setGuideColor NOTIFY optionsChanged)
     Q_PROPERTY(QVariantMap alignmentGuides READ alignmentGuides NOTIFY gestureChanged)
@@ -41,6 +44,11 @@ public:
     QString gestureFeedback() const { return m_gestureFeedback; }
     QPointF gesturePosition() const { return m_lastPointer + m_origin; }
     nt::gizmo::Geometry box() const { return m_box; }
+    QVariantList clipCorners() const {
+        QVariantList result;
+        if (m_available) { for (auto p : m_box.corners) { result.append(p + m_origin); } }
+        return result;
+    }
     Q_INVOKABLE void discover();
     Q_INVOKABLE bool begin(const QString& target, QPointF pointer);
     Q_INVOKABLE void move(QPointF pointer, bool shift = false, bool bypass = false);

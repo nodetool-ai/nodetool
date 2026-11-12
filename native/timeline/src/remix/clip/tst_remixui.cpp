@@ -402,7 +402,7 @@ private slots:
         const auto enabled = [&](const QString& action, const QString& select) {
             gestures()->setSelection({select});
             QVariantMap context{{"kind", "shell"}, {"gestures", QVariant::fromValue<QObject*>(gestures())}, {"timeline", QVariant::fromValue<QObject*>(&model)}};
-            for (const auto& menu : nt::app::shellMenuDescription("nodetool", {}, context)) {
+            for (const auto& menu : nt::app::shellMenuDescription("premiere", {}, context)) {
                 if (menu.label != "Clip") { continue; }
                 for (const auto& item : menu.items) {
                     if (item.action == action) { return std::optional<bool>(item.enabled); }

@@ -2,6 +2,7 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { AudioRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { loadKernels, type BiquadType } from "@nodetool-ai/kernels";
 import {
   requireAudioBytes,
   audioRefFromWav,
@@ -9,13 +10,8 @@ import {
   encodeWav,
   type WavData
 } from "../lib/audio-wav.js";
-import {
-  loadOfflineAudioContext,
-  type OfflineAudioContextCtor
-} from "../lib/audio-context.js";
-import { applyBiquadToWav, DEFAULT_Q, type BiquadType } from "../lib/biquad.js";
 
-// ── Part B: Audio filter/effect nodes (WebAudio / biquad) ─────────
+// ── Part B: Audio filter/effect nodes (biquad) ─────────────────────
 
 export interface BiquadSpec {
   type: BiquadType;
@@ -24,79 +20,36 @@ export interface BiquadSpec {
   gainDb?: number;
 }
 
-async function renderFilterWebAudio(
-  Ctor: OfflineAudioContextCtor,
-  wav: WavData,
-  spec: BiquadSpec
-): Promise<WavData> {
-  const frameSamples = Math.floor(wav.samples.length / wav.numChannels);
-  const ctx = new Ctor(wav.numChannels, frameSamples, wav.sampleRate);
-  const buffer = ctx.createBuffer(
-    wav.numChannels,
-    frameSamples,
-    wav.sampleRate
-  );
-
-  for (let ch = 0; ch < wav.numChannels; ch++) {
-    const channelData = buffer.getChannelData(ch);
-    for (let i = 0; i < frameSamples; i++) {
-      channelData[i] = wav.samples[i * wav.numChannels + ch];
-    }
-  }
-
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  const filter = ctx.createBiquadFilter();
-  filter.type = spec.type;
-  filter.frequency.value = spec.frequency;
-  if (spec.q !== undefined) filter.Q.value = spec.q;
-  if (spec.gainDb !== undefined) filter.gain.value = spec.gainDb;
-  source.connect(filter);
-  filter.connect(ctx.destination);
-  source.start();
-
-  const renderedBuffer = await ctx.startRendering();
-
-  const outSamples = new Float32Array(
-    renderedBuffer.length * wav.numChannels
-  );
-  for (let ch = 0; ch < wav.numChannels; ch++) {
-    const channelData = renderedBuffer.getChannelData(ch);
-    for (let i = 0; i < renderedBuffer.length; i++) {
-      outSamples[i * wav.numChannels + ch] = channelData[i];
-    }
-  }
-
-  return {
-    samples: outSamples,
-    sampleRate: wav.sampleRate,
-    numChannels: wav.numChannels
-  };
-}
+/** BiquadFilterNode's default Q, which the high- and low-pass nodes keep. */
+const WEBAUDIO_DEFAULT_Q = 1;
 
 /**
- * Apply a biquad filter to whole WAV data, preferring WebAudio's
- * `OfflineAudioContext` (node-web-audio-api on Node, the global in the
- * browser) and falling back to the pure-JS RBJ biquad when WebAudio is
- * unavailable (e.g. Web Workers without it). Exported for tests.
+ * Apply a biquad filter to whole WAV data with the Web Audio
+ * BiquadFilterNode design (lowpass and highpass Q in dB, shelves without Q).
+ * The kernel gives the same samples as node-web-audio-api's
+ * OfflineAudioContext, on every host, and needs no WebAudio. Exported for
+ * tests.
  */
 export async function applyFilter(
   wav: WavData,
   spec: BiquadSpec
 ): Promise<AudioRef> {
-  const Ctor = await loadOfflineAudioContext();
-  const filtered = Ctor
-    ? await renderFilterWebAudio(Ctor, wav, spec)
-    : applyBiquadToWav(
-        wav,
-        spec.type,
-        spec.frequency,
-        spec.q ?? DEFAULT_Q,
-        spec.gainDb ?? 0
-      );
-  return audioRefFromWav(
-    encodeWav(filtered.samples, filtered.sampleRate, filtered.numChannels)
+  const kernels = await loadKernels();
+  const coeffs = kernels.biquadDesign(
+    "webaudio",
+    spec.type,
+    wav.sampleRate,
+    spec.frequency,
+    spec.q ?? WEBAUDIO_DEFAULT_Q,
+    spec.gainDb ?? 0
   );
+  const filtered = kernels.biquadProcess(
+    coeffs,
+    kernels.createBiquadState(wav.numChannels),
+    wav.samples,
+    wav.numChannels
+  );
+  return audioRefFromWav(encodeWav(filtered, wav.sampleRate, wav.numChannels));
 }
 
 /** Output handles GainNode_.process() emits. */
@@ -146,13 +99,9 @@ export class GainNode_ extends BaseNode {
 
     const bytes = await requireAudioBytes(audio, context);
 
-    // A gain is a plain per-sample multiply — no WebAudio context needed.
     const wav = await decodeAudioToWav(bytes);
-    const factor = Math.pow(10, gainDb / 20);
-    const outSamples = new Float32Array(wav.samples.length);
-    for (let i = 0; i < wav.samples.length; i++) {
-      outSamples[i] = wav.samples[i] * factor;
-    }
+    const kernels = await loadKernels();
+    const outSamples = kernels.scaleOffset(wav.samples, Math.pow(10, gainDb / 20));
 
     return {
       output: audioRefFromWav(
@@ -231,34 +180,13 @@ export class DelayNode_ extends BaseNode {
     const bytes = await requireAudioBytes(audio, context);
 
     const wav = await decodeAudioToWav(bytes);
-    const frameSamples = Math.floor(wav.samples.length / wav.numChannels);
-    const delaySamples = Math.floor(delaySec * wav.sampleRate);
-
-    // Process delay manually for better control over feedback
-    const outLength = frameSamples + delaySamples * 4; // extra space for echoes
-    const outSamples = new Float32Array(outLength * wav.numChannels);
-
-    for (let ch = 0; ch < wav.numChannels; ch++) {
-      const dry = new Float32Array(outLength);
-      const wet = new Float32Array(outLength);
-
-      // Copy dry signal
-      for (let i = 0; i < frameSamples; i++) {
-        dry[i] = wav.samples[i * wav.numChannels + ch];
-      }
-
-      // Wet = echoes only (delayed dry plus feedback of the delay line), so
-      // `mix` truly blends dry against wet instead of always passing dry.
-      for (let i = delaySamples; i < outLength; i++) {
-        wet[i] = dry[i - delaySamples] + wet[i - delaySamples] * feedback;
-      }
-
-      // Mix dry and wet
-      for (let i = 0; i < outLength; i++) {
-        outSamples[i * wav.numChannels + ch] =
-          dry[i] * (1 - mix) + wet[i] * mix;
-      }
-    }
+    // The output holds the input and four echoes of the delay.
+    const kernels = await loadKernels();
+    const outSamples = kernels.delay(wav.samples, wav.numChannels, wav.sampleRate, {
+      delaySeconds: delaySec,
+      feedback,
+      mix
+    });
 
     return {
       output: audioRefFromWav(

@@ -225,6 +225,33 @@ allocations. Replacing only that tick with `inf` removed the report.
 `leak:QFontEngineMultiFontConfig::getMatchPatternForFallback` removes exactly
 those 49 allocations.
 
+## V-EXT-7: Qt Quick Canvas buffers in assistant_capture
+
+Kind: 34 indirect leaks, about 30 KB, with no direct leak. Test:
+`assistant_capture` (`tst_assistantcommands readScopesAndCaptureFrame`, xcb,
+threaded render loop, Vulkan on lavapipe). Top project frame:
+`TestAssistantCommands::loadDocument`, which pumps events while the window
+polishes. Owner: Qt 6.12 Canvas (`QQuickContext2D`, `qquickcontext2d.cpp`).
+
+```text
+malloc -> QImageData::create -> QImage::QImage -> libQt6Quick (Context2D)
+  -> QQuickWindowPrivate::polishItems -> ... -> TestAssistantCommands::loadDocument
+new -> QRasterPaintEngine -> QPainter::begin -> libQt6Quick (Context2D)
+  -> QQuickWindowPrivate::polishItems
+realloc -> QBezier::addToPolygon / QStroker -> QPaintEngineEx::stroke
+  -> libQt6Quick (Context2D) -> QQuickWindowPrivate::polishItems
+```
+
+Every block is a Canvas paint buffer, its raster engine or stroke storage,
+allocated in the polish step. The unnamed Quick frames resolve, against the
+same Qt build ID, next to `qt_color_from_string` in `qquickcontext2d.cpp`.
+Nothing reports the owner, so it was allocated on a path that another entry
+suppresses. The report appears only on CI's sanitize run. Local runs of the
+same preset, with the same Qt build, platform, backend and lavapipe driver,
+pass. `leak:TestAssistantCommands::loadDocument` removes it. The test runs with
+`fast_unwind_on_malloc=0:malloc_context_size=96` (`cmake/Sanitizers.cmake`)
+because the fast unwinder stops in Qt before it reaches the test frame.
+
 ## V-LEAK-2: expected Vulkan failure-path retention
 
 File: `src/preview/hw/VulkanInterop.cpp`. Kind: deliberate process-lifetime

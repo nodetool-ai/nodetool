@@ -25,6 +25,17 @@ more than 1024 logical pixels therefore bends less than React Flow's.
 `NodeButton` and `PanelRow` are editor controls for the web's button and row
 styles. Other native apps keep the [native design](../ui_primitives/DESIGN.md).
 
+The panels form the `NodeTool.NodeEditor` QML module. A panel that has moved off
+the `editor` context property takes small interface objects as required
+properties instead, such as [`NodeCatalog`](src/interfaces/NodeCatalog.h) for
+the node library and the node menu, and
+[`NodeInspector`](src/interfaces/NodeInspector.h) for the inspector, its
+property fields and its History tab. The tab bar and the subgraph strips take
+[`DocumentTabs`](src/interfaces/DocumentTabs.h), and the tab bar's bell and the
+notification list take [`Notifications`](src/interfaces/Notifications.h).
+[Component interfaces](docs/component-interfaces.md) tracks which panels still
+read `EditorWindow`.
+
 ## Build and run
 
 Install CMake, a C++20 compiler, Git, and Qt 6.12 with Widgets, QuickWidgets,
@@ -343,6 +354,20 @@ scope changes. Run them with `ctest --test-dir <build> -R
 provider chip and pointer placement. Run it with `ctest --test-dir <build> -R
 'node_editor_catalog$' --output-on-failure`. `NODETOOL_CATALOG_CAPTURE_DIR`
 writes its captures in both themes.
+[NodeMenuComponentTest](tests/ui/NodeMenuComponentTest.cpp) loads `NodeMenu.qml`
+with a fixture catalog and no `EditorWindow`, so it links no graph runner,
+QtNodes or media. Run it with `ctest --test-dir <build> -R
+'node_editor_node_menu_component$' --output-on-failure`.
+[InspectorComponentTest](tests/ui/InspectorComponentTest.cpp) loads
+`Inspector.qml` with a fixture inspector and no `EditorWindow`, commits a field,
+blocks a read-only edit and sends the run and close requests. Run it with
+`ctest --test-dir <build> -R 'node_editor_inspector_component$'
+--output-on-failure`.
+[TabBarComponentTest](tests/ui/TabBarComponentTest.cpp) loads `TabBar.qml`,
+`CanvasTabStrip.qml` and `NotificationsPanel.qml` with fixture tabs and
+notifications and no `EditorWindow`. It activates, closes, renames and drops
+tabs, opens the notifications and copies one. Run it with `ctest --test-dir
+<build> -R 'node_editor_tab_bar_component$' --output-on-failure`.
 Complete successful-reconnect acceptance, inferred Code ports, dedicated canvas
 add-variable targets, full Agent-control presentation, value/code convenience
 actions remain outside these subsets.

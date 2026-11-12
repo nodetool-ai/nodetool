@@ -14,7 +14,7 @@ Item {
         when: windowShown
         function test_truncatedAssetNameRevealsItsFullText() {
             const browser = createTemporaryObject(browserComponent, host)
-            const component = Qt.createComponent("qrc:/qt/qml/NodeTool/Timeline/qml/assets/AssetItem.qml")
+            const component = Qt.createComponent("qrc:/qt/qml/NodeTool/Media/qml/AssetItem.qml")
             compare(component.status, Component.Ready, component.errorString())
             const name = "A long descriptive asset name ".repeat(10)
             const tile = createTemporaryObject(component, host, {
@@ -60,10 +60,11 @@ Item {
             typeText("reference")
             keyClick(Qt.Key_Return)
             compare(panel.browser.tagFilter, "reference")
-            const types = findChild(panel, "libraryTypeFilter")
-            types.forceActiveFocus()
-            keyClick(Qt.Key_Down)
-            keyClick(Qt.Key_Down)
+            mouseClick(findChild(panel, "libraryTypeFilter"))
+            const typeMenu = findChild(panel, "libraryTypeMenu")
+            tryVerify(() => typeMenu.opened)
+            typeMenu.itemAt(2).triggered()
+            typeMenu.close()
             compare(panel.browser.typeFilter, "video")
             findChild(panel, "libraryFavoritesButton").forceActiveFocus()
             keyClick(Qt.Key_Space)
@@ -81,14 +82,18 @@ Item {
             compare(panel.filtersExpanded, false)
             const types = findChild(panel, "libraryTypeFilter")
             verify(types.visible)
+            const menu = findChild(panel, "libraryTypeMenu")
             const values = ["", "image", "video", "audio", "folder", "other"]
-            types.forceActiveFocus()
-            for (let i = 0; i < values.length; ++i) {
-                if (i > 0) keyClick(Qt.Key_Down)
-                compare(panel.browser.typeFilter, values[i])
+            for (const index of [1, 2, 3, 4, 5, 0]) {
+                const value = values[index]
+                compare(menu.itemAt(index).objectName, "libraryType_" + (value || "all"))
+                menu.itemAt(index).triggered()
+                compare(panel.browser.typeFilter, value)
+                compare(types.active, value !== "")
             }
+            panel.browser.typeFilter = "audio"
             panel.clearFilters()
-            compare(types.currentIndex, 0)
+            compare(types.active, false)
         }
         function test_folderPromptRequiresNameAndKeyboardConfirms() {
             const panel = mount()

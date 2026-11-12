@@ -51,6 +51,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
 
   // Durable memory (user-scoped notes + asset references, every thread)
   "memory_save",
+  "memory_get",
   "memory_list",
   "memory_search",
   "memory_update",

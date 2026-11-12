@@ -9,6 +9,7 @@ const effectLabels = [
     {value: "deband", label: "Deband"},
     {value: "secondaryColor", label: "Secondary color"},
     {value: "exposure", label: "Exposure / highlights"},
+    {value: "hueSatCurves", label: "Hue Saturation Curves"},
     {value: "blur", label: "Blur"}, {value: "glow", label: "Glow"},
     {value: "dropShadow", label: "Drop shadow"}, {value: "vignette", label: "Vignette"},
     {value: "sharpen", label: "Sharpen"}, {value: "chromaKey", label: "Chroma key"},
@@ -20,7 +21,7 @@ const effectLabels = [
 // The Color panel creates and edits these grades. They stay in the catalog so a clip that has one
 // still names and draws it, and Effect Controls lists it.
 function gradedInColorPanel(type) {
-    return ["color", "curves", "liftGammaGain", "vignette"].includes(type);
+    return ["color", "curves", "liftGammaGain", "vignette", "hueSatCurves"].includes(type);
 }
 const addableEffects = effectLabels.filter(effect => !gradedInColorPanel(effect.value));
 function makeEffect(type, id) {
@@ -31,7 +32,8 @@ function makeEffect(type, id) {
     case "deflicker": return Object.assign(base, {strength: 1, windowMs: 500, maxCorrection: 1});
     case "deband": return Object.assign(base, {strength: 0, range: 16, threshold: 0.02, dither: 0.5});
     case "secondaryColor": return Object.assign(base, {hueCenter: 0, hueWidth: 180, hueSoftness: 15, rangeSoftness: 0.1, saturationMin: 0, saturationMax: 1, lightnessMin: 0, lightnessMax: 1, hueShift: 0, saturation: 1, lightness: 0});
-    case "exposure": return Object.assign(base, {exposure: 0, rolloff: 0, whites: 0});
+    case "exposure": return Object.assign(base, {exposure: 0, rolloff: 0, whites: 0, blacks: 0});
+    case "hueSatCurves": return base;
     case "blur": return Object.assign(base, {radius: 8});
     case "glow": return Object.assign(base, {radius: 8, intensity: 1});
     case "dropShadow": return Object.assign(base, {offsetX: 8, offsetY: 8, blur: 12, color: "#000000", opacity: 0.6});
@@ -53,7 +55,7 @@ function name(type) {
     return type === "color" ? "Color" : (effectLabels.find(item => item.value === type)?.label || type);
 }
 function known(type) {
-    return ["denoise", "stabilize", "deflicker", "deband", "secondaryColor", "exposure", "color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
+    return ["denoise", "stabilize", "deflicker", "deband", "secondaryColor", "exposure", "hueSatCurves", "color", "blur", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain", "pixelate", "posterize", "directionalBlur", "lensDistortion", "stylize", "generator", "lut"].includes(type);
 }
 function readOnlyDescription(type) {
     switch (type) {
@@ -63,6 +65,14 @@ function readOnlyDescription(type) {
     default: return 'This build does not draw "' + type + '". Its settings are kept as written.';
     }
 }
+// The curves of a hueSatCurves effect, in Premiere's order. Every curve is neutral at 0.5.
+const hueSatChannels = [
+    {value: "hueVsSat", label: "Hue vs Sat", short: "Hue Sat", periodic: true, strip: "hue", caption: "Input: hue. Output: 0× at bottom, 1× at center, 2× saturation at top."},
+    {value: "hueVsHue", label: "Hue vs Hue", short: "Hue Hue", periodic: true, strip: "hue", caption: "Input: hue. Output: -180° at bottom, 0° at center, +180° at top."},
+    {value: "hueVsLuma", label: "Hue vs Luma", short: "Hue Luma", periodic: true, strip: "hue", caption: "Input: hue. Output: darker at bottom, brighter at top, scaled by saturation."},
+    {value: "lumaVsSat", label: "Luma vs Sat", short: "Luma Sat", periodic: false, strip: "luma", caption: "Input: lightness. Output: 0× at bottom, 1× at center, 2× saturation at top."},
+    {value: "satVsSat", label: "Sat vs Sat", short: "Sat Sat", periodic: false, strip: "saturation", caption: "Input: saturation. Output: 0× at bottom, 1× at center, 2× saturation at top."}
+];
 const colorFields = [
     {key: "brightness", label: "Brightness", min: -1, max: 1, origin: 0, step: 0.01},
     {key: "contrast", label: "Contrast", min: 0, max: 4, origin: 1, step: 0.01},
@@ -135,7 +145,7 @@ function fields(type) {
         slider("hueShift", "Hue shift", 0, 180, -180, 1, {unit: "°", decimals: 0}),
         slider("saturation", "Saturation", 1, 4), slider("lightness", "Lightness", 0, 1, -1)
     ];
-    case "exposure": return [slider("exposure", "Exposure", 0, 5, -5, 0.1, {unit: "stops", decimals: 1}), slider("rolloff", "Highlight roll-off", 0), slider("whites", "Whites", 0, 2, -2, 0.1, {unit: "stops", decimals: 1})];
+    case "exposure": return [slider("exposure", "Exposure", 0, 5, -5, 0.1, {unit: "stops", decimals: 1}), slider("rolloff", "Highlight roll-off", 0), slider("whites", "Whites", 0, 2, -2, 0.1, {unit: "stops", decimals: 1}), slider("blacks", "Blacks", 0, 1, -1, 0.01, {origin: 0})];
     case "color": return colorFields.map(field => Object.assign({kind: "slider", fallback: field.origin, resetValue: field.origin}, field));
     case "pixelate": return [slider("cellSize", "Cell size", 8, 128, 1, 1, {unit: "px", decimals: 0, resetValue: 1})];
     case "posterize": return [slider("levels", "Levels", 4, 256, 2, 1, {decimals: 0, resetValue: 256})];
@@ -148,7 +158,7 @@ function fields(type) {
         {kind: "color", key: "color", label: "Color", fallback: "#000000"},
         slider("opacity", "Opacity", 1, 1, 0, 0.01, {resetValue: 1})
     ];
-    case "vignette": return [slider("amount", "Amount", 0.4, 1, 0, 0.01, {resetValue: 0}), slider("radius", "Radius", 0.9, 1.5, 0.1, 0.01, {resetValue: 0.9}), slider("softness", "Softness", 0.5), slider("centerX", "Center X", 0.5), slider("centerY", "Center Y", 0.5), slider("roundness", "Roundness", 0)];
+    case "vignette": return [slider("amount", "Amount", 0.4, 1, 0, 0.01, {resetValue: 0}), slider("radius", "Radius", 0.9, 1.5, 0.1, 0.01, {resetValue: 0.9}), slider("softness", "Softness", 0.5), slider("centerX", "Center X", 0.5), slider("centerY", "Center Y", 0.5), slider("roundness", "Roundness", 0, 1, -1, 0.01, {origin: 0})];
     case "sharpen": return [slider("amount", "Amount", 0.5, 2, 0, 0.01, {resetValue: 0}), number("radius", "Radius", 1, 0)];
     case "chromaKey": return [{kind: "color", key: "color", label: "Key color", fallback: "#00ff00"}, slider("tolerance", "Tolerance", 0.2), slider("softness", "Softness", 0.1), slider("spill", "Spill", 0.5)];
     case "levels": return [slider("inBlack", "In black", 0), slider("inWhite", "In white", 1), number("gamma", "Gamma", 1, 0, 0.01, {exclusiveMin: true}), slider("outBlack", "Out black", 0), slider("outWhite", "Out white", 1)];

@@ -38,3 +38,13 @@ it("extracts optional track exposure without adding a pass to old tracks", () =>
   const converted = trackEffectsAsClipEffects([{...track, exposure: 1, rolloff: 0.5, whites: -1}]);
   expect(converted[0]).toMatchObject({type: "exposure", exposure: 1, rolloff: 0.5, whites: -1});
 });
+it("blacks lifts or crushes the black point and leaves white alone", () => {
+  expect(exposeRgb([0, 0, 0], 0, 0, 0, 1)[0]).toBeCloseTo(0.15);
+  expect(exposeRgb([0, 0, 0], 0, 0, 0, -1)[0]).toBeCloseTo(-0.15);
+  expect(exposeRgb([1, 1, 1], 0, 0, 0, 1)[0]).toBeCloseTo(1);
+  expect(exposeRgb([0.5, 0.5, 0.5], 0, 0, 0, 1)[0]).toBeCloseTo(0.5 + 0.15 * 0.125);
+  expect(exposeRgb([0.5, 0.5, 0.5], 0, 0, 0, 5)[0]).toBeCloseTo(0.5 + 0.15 * 0.125);
+  const pixels = {width: 1, height: 1, data: new Uint8ClampedArray([0, 0, 0, 255])};
+  applyCpuLegacyEffects(pixels, [{id: "e", type: "exposure", enabled: true, blacks: 1}]);
+  expect(pixels.data[0]).toBe(38);
+});

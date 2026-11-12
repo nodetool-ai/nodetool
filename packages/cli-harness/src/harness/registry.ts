@@ -2458,11 +2458,14 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/elevenlabs-nodes/",
       "packages/fal-nodes/",
       // Shared by the node packages, not a node package itself: the blend-mode
-      // catalog/WGSL functions (gpu) and HuggingFace cache/discovery
-      // (huggingface, paired with huggingface-nodes). CI groups both with the
-      // `*-nodes` filter in quality-checks.yml's test-packages-nodes leg.
+      // catalog/WGSL functions (gpu), HuggingFace cache/discovery
+      // (huggingface, paired with huggingface-nodes) and the C++ kernel
+      // library as WebAssembly (kernels, used by audio-nodes and image-nodes).
+      // CI groups gpu and huggingface with the `*-nodes` filter in
+      // quality-checks.yml's test-packages-nodes leg.
       "packages/gpu/",
       "packages/huggingface/",
+      "packages/kernels/",
       "packages/huggingface-nodes/",
       "packages/higgsfield-nodes/",
       "packages/image-nodes/",
@@ -2570,6 +2573,8 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: ["native-graph-runner"],
     paths: [
       "native/graph-runner/",
+      // The kernel library the runner links for its kernels capability.
+      "native/kernels/",
       "scripts/check-native-graph-runner.mjs",
       "native/node-editor/CMakeLists.txt",
       "native/node-editor/src/server/WorkflowSession.cpp",
@@ -2612,6 +2617,9 @@ export const SURFACES: SurfaceEntry[] = [
       "native/node-editor/qml/",
       "native/node-editor/src/ui/",
       "native/model-picker/qml/",
+      "native/media/",
+      "native/entities/",
+      "native/storyboard/",
       "native/timeline/qml/",
       "native/timeline/src/"
     ],

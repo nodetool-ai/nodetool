@@ -4,6 +4,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
+import NodeTool.Entities
+import NodeTool.Media
 import "../assets/AssetContext.js" as Context
 
 Ui.Surface {
@@ -311,9 +313,13 @@ Ui.Surface {
                 Qt.callLater(() => { contentY = Math.max(0, Math.min(heldY, contentHeight - height)) })
             }
             ScrollBar.vertical: Ui.ScrollBar {}
+            GridReflow { id: reflow; columns: grid.columns; enabled: grid.count > 0 }
             delegate: EntityCard {
+                id: entityCard
                 required property var modelData
                 required property int index
+                transform: glide.shift
+                GridGlide { id: glide; target: entityCard; active: reflow.active }
                 entity: modelData
                 imageUrl: store.imageUrls[modelData.referenceAssetId] || ""
                 selected: panel.selectedId === modelData.id

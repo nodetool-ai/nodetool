@@ -1,5 +1,5 @@
 #include "storyworkspace/StoryWorkspace.h"
-#include "storyworkspace/StoryDrafts.h"
+#include "StoryDrafts.h"
 #include "server/ServerSource.h"
 #include <QCryptographicHash>
 #include <QJsonDocument>

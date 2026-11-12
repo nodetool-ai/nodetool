@@ -17,6 +17,12 @@ if(NOT TARGET nodetool_jobs)
   add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../jobs ${CMAKE_CURRENT_BINARY_DIR}/jobs)
 endif()
 
+# The buffer kernel library (native/kernels) behind the kernels capability
+# (src/host/kernels.cpp).
+if(NOT TARGET nodetool_kernels)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../kernels ${CMAKE_CURRENT_BINARY_DIR}/kernels)
+endif()
+
 include(FetchContent)
 
 # QuickJS-ng v0.18.0, pinned by commit. Always a static library, so a host
@@ -150,7 +156,8 @@ add_library(gr_kernel STATIC
   src/host/secrets.cpp
   src/host/http.cpp
   src/host/process.cpp
-  src/host/timers.cpp)
+  src/host/timers.cpp
+  src/host/kernels.cpp)
 target_include_directories(gr_kernel PUBLIC src include)
 if(WIN32)
   target_sources(gr_kernel PRIVATE src/host/platform_fs_windows.cpp)
@@ -166,7 +173,7 @@ target_link_libraries(gr_kernel PUBLIC nodetool_jobs nlohmann_json::nlohmann_jso
 include(src/host/canvas.cmake)
 find_package(ICU REQUIRED COMPONENTS i18n uc)
 target_link_libraries(gr_kernel PRIVATE ICU::i18n ICU::uc)
-target_link_libraries(gr_kernel PRIVATE qjs gr_sqlite ${CMAKE_DL_LIBS})
+target_link_libraries(gr_kernel PRIVATE qjs gr_sqlite nodetool_kernels ${CMAKE_DL_LIBS})
 include(cmake/host-wasm.cmake)
 include(cmake/host-ocr.cmake)
 include(cmake/webassembly.cmake)
@@ -195,6 +202,11 @@ if(PROJECT_IS_TOP_LEVEL)
                         nlohmann_json::nlohmann_json)
 
   enable_testing()
+  # The kernel library's own tests (native/kernels), so every runner build,
+  # the sanitizer builds of CI included, runs them.
+  add_executable(gr_kernels_tests ${CMAKE_CURRENT_LIST_DIR}/../kernels/tests/kernels_tests.cpp)
+  target_link_libraries(gr_kernels_tests PRIVATE nodetool_kernels)
+  add_test(NAME gr_kernels_tests COMMAND gr_kernels_tests)
   add_executable(gr_cancel_listener_tests unittests/cancel-listeners.cpp)
   target_link_libraries(gr_cancel_listener_tests PRIVATE gr_kernel gr_js)
   add_test(NAME gr_cancel_listener_tests COMMAND gr_cancel_listener_tests)
@@ -256,7 +268,7 @@ if(PROJECT_IS_TOP_LEVEL)
 
   # The host capabilities (src/host/), called from JavaScript.
   add_executable(gr_host_tests unittests/host.cpp)
-  target_link_libraries(gr_host_tests PRIVATE gr_kernel gr_js)
+  target_link_libraries(gr_host_tests PRIVATE gr_kernel gr_js nodetool_kernels)
   if(CURL_FOUND)
     target_compile_definitions(gr_host_tests PRIVATE GR_HAVE_CURL)
   endif()

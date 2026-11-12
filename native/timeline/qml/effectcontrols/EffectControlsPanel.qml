@@ -123,6 +123,8 @@ Rectangle {
     property real requestedListWidth: 0
     readonly property real listWidth: Math.max(minListWidth, Math.min(requestedListWidth > 0 ? requestedListWidth : Math.max(wideListWidth, width * 0.5), width - minLaneWidth - dividerWidth))
     readonly property real laneX: listWidth + dividerWidth
+    // The column where every row's values start, after the labels.
+    readonly property real valueX: Math.round(listWidth * 0.48)
     readonly property real laneWidth: Math.max(1, width - laneX)
     readonly property real minVisibleMs: Math.min(durationMs, 4000 / Math.max(1, fps))
     // Fitted, the lanes follow the clip's length. Zoomed, they keep their own view of it.
@@ -275,6 +277,7 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
             role: Ui.Typography.SansLabel
+            domainColor: TimelineVisuals.editBlue
             text: root.clipData.name || ""
         }
         EffectControlsRuler {
@@ -285,11 +288,30 @@ Rectangle {
             height: TimelineMetrics.rulerHeight
             panel: root
         }
+        // The clip as a bar over the lanes, as Premiere draws it under its ruler.
+        Rectangle {
+            objectName: "effectControlsClipBar"
+            x: root.laneX + root.xOf(0)
+            y: ruler.height + Ui.Metrics.border
+            width: Math.max(Ui.Metrics.xs, root.xOf(root.durationMs) - root.xOf(0))
+            height: Ui.Metrics.lg
+            color: TimelineVisuals.targetFill
+            Ui.Text {
+                x: Ui.Metrics.xs
+                width: parent.width - Ui.Metrics.sm
+                height: parent.height
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.OnAccent
+                text: root.clipData.name || ""
+            }
+        }
         Ui.Separator { y: ruler.height; width: parent.width }
         Flickable {
             id: rowsView
             objectName: "effectControlsRows"
-            y: ruler.height + Ui.Metrics.border
+            y: ruler.height + Ui.Metrics.border + Ui.Metrics.lg
             width: parent.width
             height: footer.y - y
             contentWidth: width
@@ -380,9 +402,13 @@ Rectangle {
                     model: root.groups
                     delegate: EffectControlsGroup {
                         required property var modelData
+                        required property int index
                         width: rowsColumn.width
                         panel: root
                         group: modelData
+                        readonly property var previous: index > 0 ? root.groups[index - 1] : undefined
+                        readonly property bool previousSound: !!previous && (previous.kind === "audioEffect" || previous.id === "volume")
+                        category: index === 0 ? (sound ? "Audio" : "Video") : sound && !previousSound ? "Audio" : ""
                     }
                 }
                 Item {
@@ -412,7 +438,7 @@ Rectangle {
             y: ruler.height
             width: Ui.Metrics.border
             height: footer.y - y
-            color: TimelineVisuals.overlay
+            color: TimelineVisuals.editBlue
             z: TimelineMetrics.clipOverlayLayer
         }
         MouseArea {
@@ -448,7 +474,7 @@ Rectangle {
                 height: parent.height
                 verticalAlignment: Text.AlignVCenter
                 role: Ui.Typography.MonoCaption
-                tone: Ui.Text.Secondary
+                domainColor: TimelineVisuals.editBlue
                 text: TimelineFormat.playheadTimecode(inspector.clock ? inspector.clock.time : 0, root.fps)
             }
             Row {

@@ -133,6 +133,8 @@ For a NodeTool server on another machine, create an access token in
 
 ## What the agent gets
 
+Direct tools answer with full 32-character resource ids. Inside `execute_code`, results carry the 12-character prefix of each id instead, to save tokens. Every tool, direct or in the sandbox, accepts either form.
+
 Everything beyond the direct tools goes through `execute_code`, which runs sandboxed JavaScript that calls `nodetool.<namespace>.<method>()`. The agent finds a tool with `nodetool.searchTools("query")`. The full list of sandbox tools is in the [CLI reference](cli.md#what-the-mcp-server-exposes).
 
 ### Direct tools
@@ -140,7 +142,7 @@ Everything beyond the direct tools goes through `execute_code`, which runs sandb
 | Tool | Purpose |
 |---|---|
 | `execute_code` | Run sandboxed JavaScript that calls the `nodetool.*` modules. The main tool. |
-| `view_image` | Return an image as MCP image content so the agent can see the pixels. Takes an asset id, `asset://` URI, public `https://` URL, or `data:` URI. A local connection also accepts an absolute disk path. For a stored asset or an `https://` input, the result also carries a public `url` the chat can display. It shows the image at its stored size, with no crop or downscale. |
+| `view_image` | Return an image as MCP image content so the agent can see the pixels. Takes an asset id, `asset://` URI, public `https://` URL, or `data:` URI. A local connection also accepts an absolute disk path. For a stored asset or an `https://` input, the result also carries a public `url` the chat can display. It shows the image at its stored size, or downscaled to 768 pixels on the long side with `detail: "low"`, and the result reports which. It does not crop. |
 | `upload_asset` | Save bytes in your asset library. Takes `content_base64`, or an absolute `file_path` on a local connection. Returns the asset id and URI. |
 | `download_asset` | Return a signed public `url` for an asset you own, or write it to an absolute `output_path` on a local connection. It never returns the bytes inline. |
 | `list_skills` | List NodeTool skills, the shipped ones and your own, by name and description. Takes an optional `query`. |
@@ -148,6 +150,9 @@ Everything beyond the direct tools goes through `execute_code`, which runs sandb
 | `list_directory` | List files and subdirectories in a workspace directory. |
 | `download_file` | Download a file from a URL, or from an `asset://` URI, a `/api/storage/` key, or a `data:` URI, into the workspace. |
 | `run_subtask` | Hand a task to a child agent that has the NodeTool toolbelt. |
+| `list_generations` | List your media generations, newest first, with status, cost and asset ids. Generations an MCP tool call started are included. |
+| `get_generation` | Return one generation's record by its `generation_id`. |
+| `await_generation` | Wait for a generation started with `background: true` to settle, then return its record with the asset ids. |
 | `find_model` | Find a real provider and model id for a capability such as image, video, or speech. |
 | `list_providers` | List configured providers, their capabilities, the tool that runs each capability, and `unavailable_reason` when a provider cannot serve calls here. |
 | `list_models` | List the models available from the providers you configured. |
@@ -157,9 +162,15 @@ Everything beyond the direct tools goes through `execute_code`, which runs sandb
 | `list_nodes` | List node types, optionally filtered by namespace. |
 | `open_app` | Open one of your mini apps. Hosts that support MCP Apps show the app's screen in the conversation. See [Mini apps in the host](#mini-apps-in-the-host). |
 
-One tool per provider capability is also direct: `generate_text`, `generate_image`, `edit_image`, `segment_image`, `generate_video`, `animate_image`, `generate_video_from_references`, `generate_speech`, `generate_music`, `transcribe_audio`, and `embed_text`. Each takes a `provider` and `model` from `find_model`. Generated media is saved as an asset and the result carries its `asset://` URI.
+One tool per provider capability is also direct: `generate_text`, `generate_image`, `edit_image`, `segment_image`, `generate_video`, `animate_image`, `generate_video_from_references`, `generate_speech`, `generate_music`, `transcribe_audio`, and `embed_text`. Each takes a `provider` and `model` from `find_model`. Generated media is saved as an asset and the result carries its `asset://` URI. With `background: true` a generation tool answers at once with a `generation_id`. Collect the result with `await_generation`.
 
 `search_nodes`, `get_node_info`, and `list_nodes` are offered only when the session has the node registry loaded. `read_file`, `write_file`, `edit_file`, `glob`, `grep`, and `web_search` are not direct tools, because Claude Code and similar clients provide their own. `browser`, `http_request`, and `todo_write` are also not direct on this server. All of them stay available inside `execute_code`.
+
+### Tool list updates
+
+The `tools/list` schema of a direct tool and the signature `nodetool.searchTools()` shows inside `execute_code` come from the same capability spec. `packages/websocket/tests/mcp-schema-parity.test.ts` fails when they differ.
+
+A client reads the tool list when it connects and may keep it after that. This server cannot tell a connected client that the list changed. It answers every request as JSON and offers no SSE stream, so `notifications/tools/list_changed` has no channel to travel on, and a session revived after a deploy keeps its id, so the client sees no new handshake. After a server update, remove and re-add the connector, or start a new conversation, to load new parameters. Inside `execute_code` the new parameters work at once.
 
 ### Resources and prompts
 

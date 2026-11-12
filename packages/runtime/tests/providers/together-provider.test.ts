@@ -820,6 +820,29 @@ describe("TogetherProvider", () => {
       /^data:image\/jpeg;base64,/
     );
   });
+
+  it("imageToVideo sends an end image as the last frame", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: "job-1", status: "completed", outputs: { video_url: "https://cdn.example.com/clip.mp4" } }) })
+      .mockResolvedValue({ ok: true, json: async () => ({ id: "job-1", status: "completed", outputs: { video_url: "https://cdn.example.com/clip.mp4" } }), arrayBuffer: async () => new Uint8Array([1]).buffer });
+    vi.useFakeTimers();
+    const provider = new TogetherProvider(
+      { TOGETHER_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
+    const pending = provider.imageToVideo(jpeg, {
+      model: { id: "minimax/hailuo-02", name: "Hailuo 02", provider: "together" },
+      prompt: "transition",
+      endImage: jpeg
+    });
+    await vi.runAllTimersAsync();
+    await pending;
+    vi.useRealTimers();
+    const createBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+    expect(createBody.frame_images.map((f: { frame: string }) => f.frame)).toEqual(["first", "last"]);
+  });
 });
 
 describe("TogetherProvider endpoint calls", () => {

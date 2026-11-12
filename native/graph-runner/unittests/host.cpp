@@ -8,6 +8,7 @@
 #include "host/context.h"
 #include "host/http.h"
 #include "js/engine.h"
+#include "nodetool/kernels.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -684,6 +685,71 @@ void httpPolicyMatchesSafeFetch() {
 
 }  // namespace
 
+// --- kernels ----------------------------------------------------------------
+
+// The kernels capability gives the bytes of a direct call of the C function.
+void kernelsMatchTheCFunctions() {
+  auto e = engineWith(gr::HostOptions{});
+  const std::vector<uint8_t> image = {10, 40, 90, 255, 20, 50, 80, 128, 200, 0, 7, 0, 30, 30, 30, 9};
+  std::vector<uint8_t> want(image.size());
+  CHECK(nt_image_equalize(image.data(), want.data(), 2, 2) == NT_OK);
+  std::string expected = "0:1:";
+  for (size_t i = 0; i < want.size(); i++) expected += (i ? "," : "") + std::to_string(want[i]);
+  CHECK(run(*e, "(() => { const o = []; const r = __host.kernels.call('nt_image_equalize', "
+                "[new Uint8Array([10,40,90,255,20,50,80,128,200,0,7,0,30,30,30,9]), new Uint8Array(16), 2, 2], "
+                "'ionn', o); return r + ':' + o.length + ':' + Array.from(o[0]).join(','); })()") == expected);
+
+  // State comes back with the output, in argument order.
+  CHECK(run(*e, "(() => { const o = []; const state = new Float64Array(2); "
+                "__host.kernels.call('nt_sample_hold_process', [state, new Float32Array([1, 2, 3]), "
+                "new Float32Array([0, 1, 1]), new Float32Array(3), 3], 'xiion', o); "
+                "return o.length + ':' + Array.from(new Float64Array(o[0].buffer)).join(',') + ':' + "
+                "Array.from(new Float32Array(o[1].buffer)).join(','); })()") == "2:2,1:0,2,2");
+
+  // Zero frames pass a valid pointer, as in the WebAssembly host.
+  CHECK(run(*e, "__host.kernels.call('nt_audio_bitcrush', [new Float32Array(0), new Float32Array(0), 0, 2, 8, 1], "
+                "'ionnnn', [])") == "0");
+  // The kernel's own refusal is a result, not a throw.
+  CHECK(run(*e, "__host.kernels.call('nt_audio_delay', [new Float32Array(4), new Float32Array(4), 4, 1, 1000, NaN, 0, 1], "
+                "'ionnnnnn', [])") == std::to_string(NT_ERR_ARGS));
+  CHECK(run(*e, "__host.kernels.call('nt_audio_delay_output_frames', [10, 10, 0.3], 'nnn', [])") == "22");
+}
+
+// The guest cannot make a kernel read or write past a buffer it passed.
+void kernelsRefuseBadArguments() {
+  auto e = engineWith(gr::HostOptions{});
+  const auto call = [&](const std::string& args) { return run(*e, "__host.kernels.call(" + args + ")"); };
+  CHECK(startsWith(call("'nt_image_equalize', [new Uint8Array(15), new Uint8Array(16), 2, 2], 'ionn', []"),
+                   "error: kernels.call: argument 0 of nt_image_equalize holds 15 bytes, 16 required"));
+  CHECK(startsWith(call("'nt_image_equalize', [new Uint8Array(16), new Uint8Array(15), 2, 2], 'ionn', []"),
+                   "error: kernels.call: argument 1"));
+  CHECK(startsWith(call("'nt_image_equalize', [new Uint8Array(16), new Uint8Array(16), 2.5, 2], 'ionn', []"),
+                   "error: kernels.call: argument 2 of nt_image_equalize must be an integer"));
+  CHECK(startsWith(call("'nt_image_equalize', [new Uint8Array(16), new Uint8Array(16), -1, 2], 'ionn', []"),
+                   "error: kernels.call: argument 2"));
+  CHECK(startsWith(call("'nt_image_equalize', [new Uint8Array(16), new Uint8Array(16), 4294967296, 2], 'ionn', []"),
+                   "error: kernels.call: argument 2"));
+  CHECK(startsWith(call("'nt_image_equalize', [new Uint8Array(16), new Uint8Array(16), 65536, 65536], 'ionn', []"),
+                   "error: kernels.call: argument 0 of nt_image_equalize holds 16 bytes"));
+  CHECK(startsWith(call("'nt_image_equalize', [new Uint8Array(16), new Uint8Array(16), 2, 2], 'iinn', []"),
+                   "error: kernels.call: argument 1 of nt_image_equalize must have mode o"));
+  CHECK(startsWith(call("'nt_image_equalize', [new Uint8Array(16), new Uint8Array(16), '2', 2], 'ionn', []"),
+                   "error: kernels.call: argument 2 of nt_image_equalize must be a number"));
+  CHECK(startsWith(call("'nt_image_equalize', [new Uint8Array(16), new Uint8Array(16), 2], 'ion', []"),
+                   "error: kernels.call: nt_image_equalize takes 4 arguments, got 3"));
+  CHECK(startsWith(call("'nt_osc_process', [new Float64Array(2), 0, 440, 1, 0.5, 0, 48000, new Float32Array(3), null, "
+                        "new Float32Array(4), 4], 'xnnnnnnizon', []"),
+                   "error: kernels.call: argument 7 of nt_osc_process holds 12 bytes, 16 required"));
+  CHECK(startsWith(call("'nt_biquad_process', [new Float64Array(5), new Float64Array(4), new Float32Array(8), "
+                        "new Float32Array(8), 4, 2], 'xxionn', []"),
+                   "error: kernels.call: argument 0 of nt_biquad_process must have mode i"));
+  CHECK(startsWith(call("'nt_biquad_process', [new Float64Array(5), new Float64Array(4), new Float32Array(8), "
+                        "new Float32Array(8), 4, 2], 'ixionn', []"),
+                   "error: kernels.call: argument 1 of nt_biquad_process holds 32 bytes, 64 required"));
+  CHECK(startsWith(call("'nt_alloc', [], '', []"), "error: kernels.call: no kernel nt_alloc"));
+  CHECK(startsWith(call("'nt_image_equalize'"), "error: kernels.call: expected (name, args, modes, outputs)"));
+}
+
 int main() {
   std::vector<std::pair<const char*, std::function<void()>>> tests = {
       {"filesGrantNothingByDefault", filesGrantNothingByDefault},
@@ -707,6 +773,8 @@ int main() {
       {"secretsComeFromTheEmbedderOnly", secretsComeFromTheEmbedderOnly},
       {"httpIsOffByDefault", httpIsOffByDefault},
       {"httpPolicyMatchesSafeFetch", httpPolicyMatchesSafeFetch},
+      {"kernelsMatchTheCFunctions", kernelsMatchTheCFunctions},
+      {"kernelsRefuseBadArguments", kernelsRefuseBadArguments},
   };
   for (const auto& [name, fn] : tests) {
     int before = failures;

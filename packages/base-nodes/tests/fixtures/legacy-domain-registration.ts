@@ -21898,6 +21898,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: []
       },
       {
+        name: 'end_image',
+        type: { type: 'image', type_args: [] },
+        required: false,
+        title: 'End Image',
+        description: 'Optional frame the clip ends on. The run fails on a model that takes no last frame.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'image',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
         name: 'model',
         type: {
           type: 'video_model',
@@ -22111,6 +22129,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [],
     input_fields: [
       'image',
+      'end_image',
       'prompt'
     ],
     required_settings: [],
@@ -48238,6 +48257,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         }
       },
       {
+        name: 'end_image',
+        type: { type: 'image', type_args: [] },
+        required: false,
+        title: 'End Image',
+        description: 'Optional frame the video ends on. Veo interpolates between the two frames in an 8-second clip.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'image',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
         name: 'prompt',
         type: { type: 'str', type_args: [] },
         required: false,
@@ -48310,7 +48347,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'image' ],
+    input_fields: [ 'prompt', 'image', 'end_image' ],
     required_settings: [ 'GEMINI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
@@ -48983,6 +49020,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         }
       },
       {
+        name: 'end_image',
+        type: { type: 'image', type_args: [] },
+        required: false,
+        title: 'End Image',
+        description: 'Optional frame the video ends on. Veo interpolates between the two frames in an 8-second clip.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'image',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
         name: 'prompt',
         type: { type: 'str', type_args: [] },
         required: false,
@@ -49055,7 +49110,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'image' ],
+    input_fields: [ 'prompt', 'image', 'end_image' ],
     required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
     required_runtimes: [],
     is_streaming_input: false,

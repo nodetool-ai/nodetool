@@ -28,7 +28,13 @@ import type {
 } from "@nodetool-ai/node-sdk";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
-import { deinterleave, interleave } from "../lib/audio-wav.js";
+import {
+  loadKernels,
+  STATE_LEN,
+  type LfoParams,
+  type OscillatorParams,
+  type Waveform
+} from "@nodetool-ai/kernels";
 import {
   alignedSignalStreams,
   CHUNK_PROP_DEFAULT,
@@ -41,27 +47,13 @@ import {
   SYNTH_SAMPLE_RATE,
   type SignalEncoding
 } from "../lib/cv.js";
-import {
-  biquadCoeffs,
-  createBiquadState,
-  processBiquad,
-  DEFAULT_Q,
-  type BiquadState
-} from "../lib/biquad.js";
-import {
-  adsrCoeff,
-  adsrStep,
-  createAdsrState,
-  GATE_THRESHOLD,
-  oscSample,
-  type Waveform
-} from "../lib/synth-dsp.js";
+import { DEFAULT_Q } from "../lib/biquad.js";
 
 // ── Shared generator scaffolding ───────────────────────────────────
 
 /**
- * Run a free-running generator loop: calls `fill` to produce each chunk's
- * samples, paces emission with the wall clock, and runs until cancellation
+ * Run a free-running generator loop: calls `fill(count, startFrame)` for each
+ * chunk's samples, paces emission with the wall clock, and runs until cancellation
  * (`signal`) — free-running synth sources have no other end; they play
  * until the patch is stopped. Pacing is what keeps the infinite stream
  * legal: inbox buffering is unbounded by default, and an unpaced infinite
@@ -74,7 +66,7 @@ async function runGenerator(
     sampleRate: number;
     encoding: SignalEncoding;
     signal: AbortSignal;
-    fill: (buf: Float32Array, startFrame: number) => void;
+    fill: (count: number, startFrame: number) => Float32Array;
   }
 ): Promise<void> {
   const { slot, sampleRate, encoding, signal } = opts;
@@ -82,8 +74,7 @@ async function runGenerator(
   const chunkMs = (SYNTH_CHUNK_FRAMES / sampleRate) * 1000;
   let emitted = 0;
   while (await pacer.waitNext(chunkMs)) {
-    const buf = new Float32Array(SYNTH_CHUNK_FRAMES);
-    opts.fill(buf, emitted);
+    const buf = opts.fill(SYNTH_CHUNK_FRAMES, emitted);
     await outputs.emit(
       slot,
       makeSignalChunk(buf, sampleRate, 1, false, encoding)
@@ -91,16 +82,6 @@ async function runGenerator(
     emitted += SYNTH_CHUNK_FRAMES;
   }
   await outputs.emit(slot, makeDoneSignalChunk(sampleRate, 1, encoding));
-}
-
-/** Channel 0 of an interleaved chunk — CV inputs are conceptually mono. */
-function chunkMono(samples: Float32Array, channels: number): Float32Array {
-  const ch = Math.max(1, channels);
-  if (ch === 1) return samples;
-  const frames = Math.floor(samples.length / ch);
-  const out = new Float32Array(frames);
-  for (let i = 0; i < frames; i++) out[i] = samples[i * ch];
-  return out;
 }
 
 // ── Oscillator (VCO) ───────────────────────────────────────────────
@@ -198,10 +179,10 @@ export class OscillatorNode extends BaseNode {
   }
 
   /** Current property values — read per chunk so live updates apply. */
-  private params() {
+  private params(): OscillatorParams {
     return {
       waveform: this.waveform,
-      baseFreq: this.frequency,
+      frequency: this.frequency,
       amplitude: this.amplitude,
       pulseWidth: this.pulse_width,
       fmAmount: this.fm_amount
@@ -209,21 +190,12 @@ export class OscillatorNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    // Double-precision phase accumulator carried across chunks — no drift.
-    // Properties are re-read at every chunk boundary (params()), so live
-    // updates pushed via applyProperties land on the next chunk.
-    let phase = 0;
-    type OscParams = ReturnType<OscillatorNode["params"]>;
-    const sampleAt = (
-      p: OscParams,
-      freq: number,
-      sampleRate: number
-    ): number => {
-      const f = Math.min(Math.max(freq, 0), sampleRate / 2 - 1e-6);
-      const out = p.amplitude * oscSample(p.waveform, phase, p.pulseWidth);
-      phase = (phase + f / sampleRate) % 1;
-      return out;
-    };
+    // The kernel carries the double-precision phase (no drift) and the noise
+    // seed across chunks in `state`. Properties are re-read at every chunk
+    // boundary (params()), so live updates pushed via applyProperties land
+    // on the next chunk.
+    const kernels = await loadKernels();
+    const state = kernels.createOscillatorState(Math.floor(Math.random() * 2 ** 32));
 
     const hasPitch = inputs.hasStream("pitch_cv");
     const hasFm = inputs.hasStream("fm");
@@ -238,17 +210,17 @@ export class OscillatorNode extends BaseNode {
         primary,
         cvHandles: [secondary]
       })) {
-        const p = this.params();
         sampleRate = frame.primary.sampleRate;
-        const drive = chunkMono(frame.primary.samples, frame.primary.channels);
+        const drive = kernels.extractChannel(frame.primary.samples, frame.primary.channels);
         const other = frame.cv[secondary];
-        const buf = new Float32Array(drive.length);
-        for (let i = 0; i < drive.length; i++) {
-          const pitch = hasPitch ? drive[i] : (other?.[i] ?? 0);
-          const fm = hasPitch ? (other?.[i] ?? 0) : drive[i];
-          const freq = p.baseFreq * Math.pow(2, pitch) * (1 + p.fmAmount * fm);
-          buf[i] = sampleAt(p, freq, sampleRate);
-        }
+        const buf = kernels.oscillator(
+          state,
+          this.params(),
+          sampleRate,
+          drive.length,
+          hasPitch ? drive : other,
+          hasPitch ? other : drive
+        );
         await outputs.emit(
           "chunk",
           makeSignalChunk(buf, sampleRate, 1, false, "pcm16le")
@@ -267,12 +239,7 @@ export class OscillatorNode extends BaseNode {
       sampleRate,
       encoding: "pcm16le",
       signal: inputs.signal,
-      fill: (buf) => {
-        const p = this.params();
-        for (let i = 0; i < buf.length; i++) {
-          buf[i] = sampleAt(p, p.baseFreq, sampleRate);
-        }
-      }
+      fill: (count) => kernels.oscillator(state, this.params(), sampleRate, count)
     });
   }
 }
@@ -353,7 +320,7 @@ export class LfoNode extends BaseNode {
   }
 
   /** Current property values — read per chunk so live updates apply. */
-  private params() {
+  private params(): LfoParams {
     return {
       waveform: this.waveform,
       rateHz: this.rate_hz,
@@ -363,27 +330,21 @@ export class LfoNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    let phase = 0;
+    const kernels = await loadKernels();
+    // {phase, clock was high}, carried across chunks by the kernel.
+    const state = new Float64Array(STATE_LEN.lfo);
 
     if (inputs.hasStream("clock")) {
       let sampleRate = SYNTH_SAMPLE_RATE;
-      let clockWasHigh = false;
       for await (const item of inputs.stream("clock")) {
         const chunk = readSignalChunk(item);
         if (!chunk) continue;
         if (chunk.done) break;
         if (chunk.samples.length === 0) continue;
-        const p = this.params();
         sampleRate = chunk.sampleRate;
-        const clock = chunkMono(chunk.samples, chunk.channels);
-        const buf = new Float32Array(clock.length);
-        for (let i = 0; i < clock.length; i++) {
-          const high = clock[i] >= GATE_THRESHOLD;
-          if (high && !clockWasHigh) phase = 0; // sample-accurate reset
-          clockWasHigh = high;
-          buf[i] = p.offset + p.depth * oscSample(p.waveform, phase);
-          phase = (phase + p.rateHz / sampleRate) % 1;
-        }
+        // A clock rising edge resets the phase at that sample.
+        const clock = kernels.extractChannel(chunk.samples, chunk.channels);
+        const buf = kernels.lfo(state, this.params(), sampleRate, clock.length, clock);
         await outputs.emit(
           "cv",
           makeSignalChunk(buf, sampleRate, 1, false, "f32le")
@@ -399,13 +360,7 @@ export class LfoNode extends BaseNode {
       sampleRate,
       encoding: "f32le",
       signal: inputs.signal,
-      fill: (buf) => {
-        const p = this.params();
-        for (let i = 0; i < buf.length; i++) {
-          buf[i] = p.offset + p.depth * oscSample(p.waveform, phase);
-          phase = (phase + p.rateHz / sampleRate) % 1;
-        }
-      }
+      fill: (count) => kernels.lfo(state, this.params(), sampleRate, count)
     });
   }
 }
@@ -476,7 +431,9 @@ export class AdsrNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const state = createAdsrState();
+    const kernels = await loadKernels();
+    // {stage, envelope, gate was high}, carried across chunks by the kernel.
+    const state = new Float64Array(STATE_LEN.adsr);
     let sampleRate = SYNTH_SAMPLE_RATE;
 
     for await (const item of inputs.stream("gate")) {
@@ -485,19 +442,20 @@ export class AdsrNode extends BaseNode {
       if (chunk.done) break;
       if (chunk.samples.length === 0) continue;
       sampleRate = chunk.sampleRate;
-      // Coefficients recomputed per chunk from the current property values
-      // (three exp() calls per ~21 ms chunk) so live updates apply.
-      const params = {
-        attackCoeff: adsrCoeff(this.attack, sampleRate),
-        decayCoeff: adsrCoeff(this.decay, sampleRate),
-        releaseCoeff: adsrCoeff(this.release, sampleRate),
-        sustain: this.sustain
-      };
-      const gate = chunkMono(chunk.samples, chunk.channels);
-      const buf = new Float32Array(gate.length);
-      for (let i = 0; i < gate.length; i++) {
-        buf[i] = adsrStep(state, gate[i] >= GATE_THRESHOLD, params);
-      }
+      // Times are read per chunk from the current property values, so live
+      // updates apply.
+      const gate = kernels.extractChannel(chunk.samples, chunk.channels);
+      const buf = kernels.adsr(
+        state,
+        {
+          attack: this.attack,
+          decay: this.decay,
+          sustain: this.sustain,
+          release: this.release
+        },
+        sampleRate,
+        gate
+      );
       await outputs.emit(
         "cv",
         makeSignalChunk(buf, sampleRate, 1, false, "f32le")
@@ -565,6 +523,7 @@ export class GateNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+    const kernels = await loadKernels();
     const sampleRate = this.sample_rate;
 
     await runGenerator(outputs, {
@@ -572,26 +531,18 @@ export class GateNode extends BaseNode {
       sampleRate,
       encoding: "f32le",
       signal: inputs.signal,
-      fill: (buf, startFrame) => {
-        // Timing re-read per chunk so live updates apply; the phase derives
-        // from the absolute frame counter, so a period change just re-grids
-        // the pattern instead of glitching it.
-        const onFrames = Math.max(
-          1,
-          Math.round(this.on_duration * sampleRate)
-        );
-        const periodFrames =
-          onFrames +
-          Math.max(
-            1,
-            Math.round(this.off_duration * sampleRate)
-          );
-        const amplitude = this.amplitude;
-        for (let i = 0; i < buf.length; i++) {
-          buf[i] =
-            (startFrame + i) % periodFrames < onFrames ? amplitude : 0;
-        }
-      }
+      // Timing re-read per chunk so live updates apply; the phase derives
+      // from the absolute frame counter, so a period change just re-grids
+      // the pattern instead of glitching it.
+      fill: (count, startFrame) =>
+        kernels.gate(
+          startFrame,
+          this.on_duration,
+          this.off_duration,
+          this.amplitude,
+          sampleRate,
+          count
+        )
     });
   }
 }
@@ -640,6 +591,7 @@ export class VcaNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+    const kernels = await loadKernels();
     let sampleRate = SYNTH_SAMPLE_RATE;
     let channels = 1;
 
@@ -647,17 +599,10 @@ export class VcaNode extends BaseNode {
       primary: "audio",
       cvHandles: ["cv"]
     })) {
-      const gain = this.gain; // per chunk — live updates apply
       sampleRate = frame.primary.sampleRate;
       channels = frame.primary.channels;
-      const input = frame.primary.samples;
-      const cv = frame.cv["cv"];
-      const buf = new Float32Array(input.length);
-      for (let i = 0; i < input.length; i++) {
-        const level =
-          cv !== undefined ? Math.max(0, cv[Math.floor(i / channels)]) : 1;
-        buf[i] = input[i] * gain * level;
-      }
+      // Gain per chunk — live updates apply. Negative CV is clamped to 0.
+      const buf = kernels.vca(frame.primary.samples, frame.cv["cv"], channels, this.gain);
       await outputs.emit(
         "chunk",
         makeSignalChunk(buf, sampleRate, channels, false, "pcm16le")
@@ -671,9 +616,6 @@ export class VcaNode extends BaseNode {
 }
 
 // ── VCF ────────────────────────────────────────────────────────────
-
-/** Control-rate block size for cutoff recomputation (frames). */
-const VCF_CONTROL_BLOCK = 64;
 
 export class VcfNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.synth.VCF";
@@ -747,58 +689,36 @@ export class VcfNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+    const kernels = await loadKernels();
     let sampleRate = SYNTH_SAMPLE_RATE;
     let channels = 1;
-    let states: BiquadState[] = [];
+    let state: Float64Array | undefined;
 
     for await (const frame of alignedSignalStreams(inputs, {
       primary: "audio",
       cvHandles: ["cutoff_cv"]
     })) {
-      // Per chunk — live updates apply (coefficients are recomputed per
-      // 64-frame control block below anyway).
-      const mode = this.mode;
-      const cutoffHz = this.cutoff_hz;
-      const q = this.q;
-      const cvAmount = this.cv_amount;
       sampleRate = frame.primary.sampleRate;
-      if (states.length !== frame.primary.channels) {
+      if (!state || channels !== frame.primary.channels) {
         channels = frame.primary.channels;
-        states = Array.from({ length: channels }, createBiquadState);
+        state = kernels.createBiquadState(channels);
       }
-      const cv = frame.cv["cutoff_cv"];
-      const planes = deinterleave(frame.primary.samples, channels);
-      const outPlanes = planes.map(() => new Float32Array(planes[0].length));
-
-      // Control-rate cutoff: recompute coefficients per 64-frame block from
-      // the CV value at block start (biquadCoeffs clamps to Nyquist).
-      const frames = planes[0].length;
-      for (let block = 0; block < frames; block += VCF_CONTROL_BLOCK) {
-        const end = Math.min(block + VCF_CONTROL_BLOCK, frames);
-        const fc =
-          cv !== undefined
-            ? cutoffHz * Math.pow(2, cv[block] * cvAmount)
-            : cutoffHz;
-        const coeffs = biquadCoeffs(mode, sampleRate, fc, q, 0);
-        for (let ch = 0; ch < channels; ch++) {
-          const filtered = processBiquad(
-            coeffs,
-            states[ch],
-            planes[ch].subarray(block, end)
-          );
-          outPlanes[ch].set(filtered, block);
-        }
-      }
-
+      // Properties per chunk — live updates apply. The kernel recomputes the
+      // cutoff every 64 frames from the CV value at the block start.
+      const buf = kernels.vcf(
+        state,
+        this.mode,
+        sampleRate,
+        this.cutoff_hz,
+        this.q,
+        this.cv_amount,
+        frame.cv["cutoff_cv"],
+        frame.primary.samples,
+        channels
+      );
       await outputs.emit(
         "chunk",
-        makeSignalChunk(
-          interleave(outPlanes),
-          sampleRate,
-          channels,
-          false,
-          "pcm16le"
-        )
+        makeSignalChunk(buf, sampleRate, channels, false, "pcm16le")
       );
     }
     await outputs.emit(
@@ -854,6 +774,7 @@ export class AttenuverterNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+    const kernels = await loadKernels();
     let sampleRate = SYNTH_SAMPLE_RATE;
     let channels = 1;
 
@@ -862,12 +783,10 @@ export class AttenuverterNode extends BaseNode {
       if (!chunk) continue;
       if (chunk.done) break;
       if (chunk.samples.length === 0) continue;
-      const scale = this.scale; // per chunk — live updates apply
-      const offset = this.offset;
       sampleRate = chunk.sampleRate;
       channels = chunk.channels;
-      const buf = chunk.samples;
-      for (let i = 0; i < buf.length; i++) buf[i] = buf[i] * scale + offset;
+      // Scale and offset per chunk — live updates apply.
+      const buf = kernels.scaleOffset(chunk.samples, this.scale, this.offset);
       await outputs.emit(
         "cv",
         makeSignalChunk(buf, sampleRate, channels, false, "f32le")
@@ -914,24 +833,18 @@ export class SampleHoldNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+    const kernels = await loadKernels();
+    // {held value, trigger was high}, carried across chunks by the kernel.
+    const state = new Float64Array(STATE_LEN.sampleHold);
     let sampleRate = SYNTH_SAMPLE_RATE;
-    let held = 0;
-    let triggerWasHigh = false;
 
     for await (const frame of alignedSignalStreams(inputs, {
       primary: "signal",
       cvHandles: ["trigger"]
     })) {
       sampleRate = frame.primary.sampleRate;
-      const signal = chunkMono(frame.primary.samples, frame.primary.channels);
-      const trigger = frame.cv["trigger"];
-      const buf = new Float32Array(signal.length);
-      for (let i = 0; i < signal.length; i++) {
-        const high = trigger !== undefined && trigger[i] >= GATE_THRESHOLD;
-        if (high && !triggerWasHigh) held = signal[i];
-        triggerWasHigh = high;
-        buf[i] = held;
-      }
+      const signal = kernels.extractChannel(frame.primary.samples, frame.primary.channels);
+      const buf = kernels.sampleHold(state, signal, frame.cv["trigger"]);
       await outputs.emit(
         "cv",
         makeSignalChunk(buf, sampleRate, 1, false, "f32le")
@@ -1033,6 +946,7 @@ export class MixerNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+    const kernels = await loadKernels();
     // Read per emitted block — live updates apply.
     const levels = () => ({
       in1: this.level1,
@@ -1056,9 +970,7 @@ export class MixerNode extends BaseNode {
       for (const h of connected) {
         // Ended/short inputs contribute zeros — silence is correct for
         // finished audio, unlike CV's hold-last.
-        const part = fifos.get(h)!.pull(n, "zero");
-        const level = lv[h];
-        for (let i = 0; i < n; i++) buf[i] += level * part[i];
+        kernels.mixAdd(buf, fifos.get(h)!.pull(n, "zero"), lv[h]);
       }
       await outputs.emit(
         "chunk",

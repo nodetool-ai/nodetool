@@ -15,7 +15,7 @@
  * so any pipeline that builds the bundle gets the check.
  *
  * Standalone usage: node scripts/verify-backend-bundle.mjs [bundleDir]
- *                   [--profile desktop|server]
+ *                   [--profile desktop|server|timeline]
  *                   Defaults: electron/backend-bundle, desktop profile. The
  *                   profile names the artifact in the log; every check below
  *                   applies to both, webgpu included (D9).
@@ -182,7 +182,7 @@ function packageFileAvailable(bundleDir, packageName, relative) {
  * applies to both profiles — the server renders timelines on the same GPU
  * compositor the desktop app does, so webgpu is required there too (D9).
  */
-export function verifyBackendBundle(bundleDir) {
+export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
   const errors = [];
   const summary = [];
 
@@ -442,13 +442,15 @@ export function verifyBackendBundle(bundleDir) {
     summary.push("native host entry staged");
   }
 
-  // 3. webgpu dawn binaries, on every profile. The GPU compositor loads
+  // 3. webgpu dawn binaries, on every profile except timeline. The GPU compositor loads
   //    `webgpu` through a variable-specifier dynamic import esbuild can't see,
   //    so nothing else fails the build when it's missing from _modules/.
   const dawnFiles = (
     listFiles(path.join(bundleDir, "_modules", "webgpu", "dist")) ?? []
   ).filter((f) => f.endsWith(".dawn.node"));
-  if (dawnFiles.length === 0) {
+  if (!requireWebgpu) {
+    summary.push("webgpu not staged (timeline profile)");
+  } else if (dawnFiles.length === 0) {
     errors.push(
       "no *.dawn.node binary under _modules/webgpu/dist — the packaged GPU " +
         'compositor would fail with "requires the optional \'webgpu\' package", ' +
@@ -716,9 +718,9 @@ if (isCli) {
   if (profileIdx !== -1) {
     profile = args[profileIdx + 1];
     args.splice(profileIdx, 2);
-    if (profile !== "desktop" && profile !== "server") {
+    if (!["desktop", "server", "timeline"].includes(profile)) {
       console.error(
-        `--profile must be "desktop" or "server", got: ${profile}`
+        `--profile must be "desktop", "server" or "timeline", got: ${profile}`
       );
       process.exit(1);
     }
@@ -733,7 +735,7 @@ if (isCli) {
       )
   );
   try {
-    for (const line of verifyBackendBundle(bundleDir)) {
+    for (const line of verifyBackendBundle(bundleDir, { requireWebgpu: profile !== "timeline" })) {
       console.log(`verify-backend-bundle: ${line}`);
     }
     console.log(`verify-backend-bundle: ${bundleDir} OK (${profile} profile)`);

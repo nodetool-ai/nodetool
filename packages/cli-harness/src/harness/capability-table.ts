@@ -1524,6 +1524,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "memory_get",
+    module: "memory",
+    impl: "packages/agents/src/capabilities/memory.ts",
+    contract: "dee3a2a0f890",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-memory.test.ts",
+    ],
+  },
+  {
     name: "memory_list",
     module: "memory",
     impl: "packages/agents/src/capabilities/memory.ts",

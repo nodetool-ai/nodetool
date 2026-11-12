@@ -11,7 +11,7 @@ const wrap = (v: number): number => v - Math.floor(v);
 const smooth = (v: number): number => { const t = clamp(v); return t * t * (3 - 2 * t); };
 
 /** Periodic piecewise-linear hue curves. Duplicate red endpoints share x=0. */
-function cyclicCurve(points: readonly CurvePoint[] | undefined): (x: number) => number {
+export function cyclicCurve(points: readonly CurvePoint[] | undefined): (x: number) => number {
   const knots = new Map<number, number>();
   for (const p of points ?? []) {
     if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) { continue; }

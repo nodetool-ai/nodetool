@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.Media
 import NodeTool.UiPrimitives as Ui
 import "AssetContext.js" as Context
 
@@ -14,19 +15,15 @@ Ui.Surface {
     property alias browser: browserModel
     property alias selectedId: grid.selectedId
     property var actionCallback: null
-    property string tagAssetId: ""
-    property string tagBaseText: ""
-    property string tagDraft: ""
     readonly property string libraryIdentity: browserModel.libraryScope
     onLibraryIdentityChanged: Qt.callLater(() => {
         action.close(); moveDialog.close()
         actionCallback = null
         grid.selectedId = ""
-        tagAssetId = ""; tagBaseText = ""; tagDraft = ""
         preview.closePreview()
     })
     readonly property var selectedAsset: grid.selectedAsset
-    implicitWidth: TimelineMetrics.trackHeaderWidth
+    implicitWidth: Ui.Metrics.panelWidth
     readonly property bool docked: !!parent && !!parent.dock
     width: docked ? parent.width : implicitWidth
     height: docked ? parent.height : parent && parent.parent ? parent.parent.height : TimelineMetrics.trackHeight * 9
@@ -35,6 +32,47 @@ Ui.Surface {
     AssetGallery {
         id: gallery
         browser: browserModel
+        videoPreview: Component {
+            Item {
+                id: galleryPlayer
+                property string assetId: ""
+                property string mediaType: ""
+                property real durationMs: 0
+                readonly property bool ready: galleryReview.ready
+                readonly property bool busy: galleryReview.busy
+                readonly property string error: galleryReview.error
+                readonly property bool playing: galleryReview.previewClock.playing
+                readonly property real time: galleryReview.previewClock.time
+                function togglePlay() { if (galleryReview.ready) galleryReview.togglePlay() }
+                function seek(ms) { galleryReview.previewClock.seek(ms) }
+                function load() {
+                    galleryReview.close()
+                    if (assetId !== "" && (mediaType === "video" || mediaType === "audio")) {
+                        galleryReview.preview(assetId, mediaType, durationMs)
+                    }
+                }
+                onAssetIdChanged: load()
+                onMediaTypeChanged: load()
+                Component.onCompleted: load()
+                Component.onDestruction: galleryReview.close()
+                CandidatePreview {
+                    id: galleryReview
+                    timeline: browserModel.timeline
+                    audioMode: "system"
+                }
+                FrameAnimation {
+                    running: galleryReview.previewClock.playing
+                    onTriggered: galleryReview.previewClock.tick()
+                }
+                PreviewCompositor {
+                    objectName: "assetGalleryVideo"
+                    anchors.fill: parent
+                    visible: galleryPlayer.mediaType === "video" && galleryReview.ready
+                    timeline: galleryReview.previewTimeline
+                    clock: galleryReview.previewClock
+                }
+            }
+        }
     }
     AssetBrowser {
         id: browserModel
@@ -67,16 +105,9 @@ Ui.Surface {
     }
     onSelectedAssetChanged: {
         if (preview && preview.asset && (!selectedAsset || preview.asset.id !== selectedAsset.id)) preview.closePreview()
-        const row = selectedAsset
-        if (!row) return
-        const tags = row.metadata ? row.metadata.tags : null
-        const loaded = tags && typeof tags.join === "function" ? tags.join(", ") : ""
-        if (row.id !== tagAssetId || tagDraft === tagBaseText || tagDraft === loaded) {
-            tagAssetId = row.id; tagBaseText = loaded; tagDraft = loaded
-            tagEditor.cancelEdit()
-        }
     }
-    function ask(title, explanation, value, callback, destructive = false, needsValue = true) {
+    function ask(title, explanation, value, callback, destructive = false, needsValue = true, allowEmpty = false, fieldLabel = "Name") {
+        action.allowEmpty = allowEmpty; action.fieldLabel = fieldLabel
         action.title = title; action.explanation = explanation; action.initialValue = value
         action.actionLabel = title; action.destructive = destructive; action.needsValue = needsValue
         action.returnFocusTo = explorer.Window.window ? explorer.Window.window.activeFocusItem : null
@@ -86,6 +117,18 @@ Ui.Surface {
         const row = selectedAsset
         if (!row) return
         ask("Rename", "Rename “" + row.name + "”.", row.name, value => browserModel.renameAsset(row.id, value))
+    }
+    function editTagsSelected() {
+        const row = selectedAsset
+        if (!row) return
+        const tags = row.metadata ? row.metadata.tags : null
+        const current = tags && typeof tags.join === "function" ? tags.join(", ") : ""
+        ask("Edit tags", "Tags for “" + row.name + "”, separated by commas.", current,
+            value => browserModel.setAssetTags(row.id, value.split(",").map(tag => tag.trim()).filter(tag => tag !== "")), false, true, true, "Tags")
+    }
+    function toggleFavoriteSelected() {
+        const row = selectedAsset
+        if (row) browserModel.setFavorite(row.id, !row.favorite)
     }
     function deleteSelected() {
         const row = selectedAsset
@@ -108,9 +151,7 @@ Ui.Surface {
     }
     function showPreview(row) {
         preview.openAsset(row)
-        detailsExpanded = false
     }
-    property bool detailsExpanded: true
     property bool filtersExpanded: false
 
     ScrollView {
@@ -118,10 +159,16 @@ Ui.Surface {
         anchors.fill: parent
         anchors.margins: Ui.Metrics.md
         contentWidth: width
+        contentHeight: libraryColumn.height
+        // The panel sets the size. An implicit size from the content makes a height binding loop.
+        implicitHeight: 0
         ScrollBar.vertical: Ui.ScrollBar {}
         clip: true
         ColumnLayout {
+            id: libraryColumn
             width: libraryScroll.width
+            // The grid fills the panel and scrolls itself. The page scrolls only when the panel is too short.
+            height: Math.max(implicitHeight, libraryScroll.height)
             spacing: Ui.Metrics.sm
             RowLayout {
                 Layout.fillWidth: true
@@ -147,6 +194,33 @@ Ui.Surface {
                 onAccepted: { searchDelay.stop(); browserModel.searchText = text }
                 Timer { id: searchDelay; interval: 250; onTriggered: browserModel.searchText = search.text }
             }
+                Ui.MenuButton {
+                    id: types
+                    objectName: "libraryTypeFilter"
+                    readonly property var options: [{label:"All types",value:""},{label:"Images",value:"image"},{label:"Video",value:"video"},{label:"Audio",value:"audio"},{label:"Folders",value:"folder"},{label:"Other",value:"other"}]
+                    readonly property var current: options.find(option => option.value === browserModel.typeFilter) || options[0]
+                    density: Ui.EditorButton.Compact
+                    iconName: "categoryOutlined"
+                    active: browserModel.typeFilter !== ""
+                    accessibleName: "Asset type: " + current.label
+                    menu: typeMenu
+                    Ui.ContextMenu {
+                        id: typeMenu
+                        objectName: "libraryTypeMenu"
+                        returnFocusTo: types
+                        Repeater {
+                            model: types.options
+                            delegate: Ui.MenuItem {
+                                required property var modelData
+                                objectName: "libraryType_" + (modelData.value || "all")
+                                text: modelData.label
+                                checkable: true
+                                checked: browserModel.typeFilter === modelData.value
+                                onTriggered: browserModel.typeFilter = modelData.value
+                            }
+                        }
+                    }
+                }
                 LibraryButton { objectName: "libraryFiltersButton"; iconName: "tune"; accessibleName: "Filters"; checkable: true; checked: explorer.filtersExpanded; onClicked: explorer.filtersExpanded = checked }
             }
             RowLayout {
@@ -170,15 +244,6 @@ Ui.Surface {
                 onTextEdited: tagDelay.restart()
                 onAccepted: { tagDelay.stop(); browserModel.tagFilter = text.trim() }
                 Timer { id: tagDelay; interval: 250; onTriggered: browserModel.tagFilter = tagSearch.text.trim() }
-            }
-            Ui.Select {
-                id: types
-                objectName: "libraryTypeFilter"
-                Layout.fillWidth: true
-                options: [{label:"All types",value:""},{label:"Images",value:"image"},{label:"Video",value:"video"},{label:"Audio",value:"audio"},{label:"Folders",value:"folder"},{label:"Other",value:"other"}]
-                value: browserModel.typeFilter
-                accessibleName: "Asset type"
-                onValueCommitted: next => browserModel.typeFilter = next
             }
             RowLayout {
                 Layout.fillWidth: true
@@ -213,7 +278,7 @@ Ui.Surface {
             LibraryLabel { Layout.fillWidth: true; visible: grid.filtered; text: "Filters search across all folders." }
             RowLayout {
                 Layout.fillWidth: true
-                LibraryLabel { Layout.fillWidth: true; text: browserModel.assets.length + " assets" }
+                LibraryLabel { Layout.fillWidth: true; text: browserModel.assetModel.count + " assets" }
                 Ui.Slider {
                     objectName: "libraryTileSize"
                     Layout.preferredWidth: Ui.Metrics.comfortable * 4
@@ -232,116 +297,37 @@ Ui.Surface {
                 id: grid
                 objectName: "libraryGrid"
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(TimelineMetrics.trackHeight * 2, explorer.height - Ui.Metrics.comfortable * (explorer.filtersExpanded ? 10 : 8))
+                Layout.fillHeight: true
+                // A fixed preferred height keeps the column height independent of the grid content.
+                Layout.preferredHeight: TimelineMetrics.trackHeight
                 Layout.minimumHeight: TimelineMetrics.trackHeight
                 browser: browserModel
+                scrub: LibraryScrub
+                scrubOverlay: Component {
+                    Item {
+                        LibraryScrubFrame {
+                            objectName: "libraryScrubFrame"
+                            x: Ui.Metrics.border
+                            y: Ui.Metrics.border
+                            width: parent.width - 2 * Ui.Metrics.border
+                            height: parent.height - 2 * Ui.Metrics.border
+                            visible: LibraryScrub.frameReady
+                            scrub: LibraryScrub
+                        }
+                        Rectangle {
+                            objectName: "libraryScrubPlayhead"
+                            x: Math.round(LibraryScrub.fraction * (parent.width - width))
+                            width: Ui.Metrics.focus
+                            height: parent.height
+                            color: TimelineVisuals.overlay
+                        }
+                    }
+                }
                 navigateFolder: id => explorer.navigateFolder(id)
                 onPreviewRequested: row => gallery.openAsset(row)
                 onActionsRequested: row => { selectedId = row.id; assetMenu.returnFocusTo = explorer.Window.window ? explorer.Window.window.activeFocusItem : null; assetMenu.popup() }
                 onImportRequested: files.open()
                 onClearFiltersRequested: explorer.clearFilters()
-            }
-            RowLayout {
-                visible: !!explorer.selectedAsset
-                Layout.fillWidth: true
-                LibraryButton {
-                    Layout.fillWidth: true
-                    text: explorer.selectedAsset ? explorer.selectedAsset.name : ""
-                    onClicked: explorer.detailsExpanded = !explorer.detailsExpanded
-                    Accessible.name: "Show asset details"
-                }
-                LibraryButton {
-                    text: "Actions"
-                    onClicked: { assetMenu.returnFocusTo = explorer.Window.window ? explorer.Window.window.activeFocusItem : null; assetMenu.popup() }
-                }
-                LibraryButton {
-                    text: explorer.selectedAsset && explorer.selectedAsset.content_type === "folder" ? "Open" : "Preview"
-                    onClicked: {
-                        const row = explorer.selectedAsset
-                        if (row.content_type === "folder") explorer.navigateFolder(row.id)
-                        else explorer.showPreview(row)
-                    }
-                }
-            }
-            ScrollView {
-                visible: !!explorer.selectedAsset && explorer.detailsExpanded
-                Layout.fillWidth: true
-                Layout.preferredHeight: Math.min(details.implicitHeight, explorer.height / 4)
-                contentWidth: availableWidth
-                clip: true
-                ColumnLayout {
-                    id: details
-                    width: parent.width
-                    spacing: Ui.Metrics.sm
-                    LibraryLabel {
-                        Layout.fillWidth: true
-                        text: {
-                            const row = explorer.selectedAsset
-                            if (!row) return ""
-                            let text = row.content_type || "File"
-                            if (typeof row.size === "number") text += " · " + row.size + " bytes"
-                            if (row.duration) text += " · " + row.duration + " seconds"
-                            const metadata = row.metadata || {}
-                            if (metadata.width && metadata.height) text += " · " + metadata.width + " × " + metadata.height
-                            return text
-                        }
-                    }
-                    LibraryLabel { text: "Tags (comma separated)" }
-                    LibraryField {
-                        id: tagEditor
-                        objectName: "libraryTagEditor"
-                        Layout.fillWidth: true
-                        accessibleName: "Asset tags"
-                        value: explorer.tagDraft
-                        onTextEdited: explorer.tagDraft = text
-                    }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        LibraryButton {
-                            objectName: "librarySaveTags"
-                            text: "Save tags"
-                            enabled: !browserModel.busy
-                            onClicked: browserModel.setAssetTags(grid.selectedId, tagEditor.text.split(",").map(tag => tag.trim()).filter(tag => tag !== ""))
-                        }
-                        LibraryButton {
-                            objectName: "libraryFavorite"
-                            Layout.fillWidth: true
-                            text: explorer.selectedAsset && explorer.selectedAsset.favorite ? "Unfavorite" : "Favorite"
-                            onClicked: browserModel.setFavorite(grid.selectedId, !explorer.selectedAsset.favorite)
-                        }
-                    }
-                    LibraryLabel {
-                        Layout.fillWidth: true
-                        text: explorer.selectedAsset && explorer.selectedAsset.offline ? "The original file is offline." : ""
-                        visible: text !== ""
-                        tone: Ui.Text.Warning
-                    }
-                    LibraryButton {
-                        id: moreMetadata
-                        text: "More metadata"
-                        checkable: true
-                        visible: !!explorer.selectedAsset
-                    }
-                    LibraryLabel {
-                        Layout.fillWidth: true
-                        text: explorer.selectedAsset && explorer.selectedAsset.created_at ? "Created: " + explorer.selectedAsset.created_at : ""
-                        visible: text !== ""
-                    }
-                    LibraryLabel {
-                        Layout.fillWidth: true
-                        text: explorer.selectedAsset && explorer.selectedAsset.metadata ? JSON.stringify(explorer.selectedAsset.metadata, null, 2) : ""
-                        visible: moreMetadata.checked && text !== "" && text !== "{}"
-                        role: Ui.Typography.MonoCaption
-                        wrapMode: Text.WrapAnywhere
-                    }
-                    LibraryLabel {
-                        Layout.fillWidth: true
-                        text: explorer.selectedAsset ? "ID: " + explorer.selectedAsset.id : ""
-                        visible: moreMetadata.checked
-                        role: Ui.Typography.MonoCaption
-                        wrapMode: Text.WrapAnywhere
-                    }
-                }
             }
             Ui.Toggle {
                 objectName: "libraryPreviewAudio"
@@ -396,6 +382,13 @@ Ui.Surface {
         }
         Ui.MenuItem { text: "Rename"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: explorer.renameSelected() }
         Ui.MenuItem { text: "Move to folder…"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: moveDialog.open() }
+        Ui.MenuItem { objectName: "libraryEditTags"; text: "Edit tags…"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: explorer.editTagsSelected() }
+        Ui.MenuItem {
+            objectName: "libraryFavorite"
+            text: explorer.selectedAsset && explorer.selectedAsset.favorite ? "Remove from Favorites" : "Add to Favorites"
+            enabled: !!explorer.selectedAsset && !browserModel.busy
+            onTriggered: explorer.toggleFavoriteSelected()
+        }
 
 
         Ui.Separator {}
@@ -412,7 +405,7 @@ Ui.Surface {
         property string movingId: ""
         property string destinationId: ""
         title: "Move asset"
-        width: Math.min(TimelineMetrics.trackHeaderWidth, parent ? parent.width - Ui.Metrics.xl * 2 : TimelineMetrics.trackHeaderWidth)
+        width: Math.min(Ui.Metrics.panelWidth, parent ? parent.width - Ui.Metrics.xl * 2 : Ui.Metrics.panelWidth)
         height: Math.min(implicitHeight, parent ? parent.height - Ui.Metrics.xl * 2 : implicitHeight)
         onOpened: { movingId = grid.selectedId; destinationId = ""; destinationBrowser.refresh() }
         ColumnLayout {

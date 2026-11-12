@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
+import NodeTool.NodeEditor
 
 // The web node menu (components/node_menu/NodeMenu.tsx, NamespaceList.tsx): a
 // floating panel with a search field, a namespace tree, the node rows and the
@@ -12,6 +13,8 @@ import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: root
     EditorRoles { id: roles }
+    required property NodeCatalog catalog
+    required property PackSetup packSetup
     color: Ui.Theme.surfaceOverlay
     radius: Ui.Metrics.radiusOverlay
     border.width: Ui.Metrics.border
@@ -36,22 +39,20 @@ Rectangle {
         highlighted = -1
     }
     function close() {
-        if (editor) {
-            editor.closeNodeMenu()
-        }
+        root.catalog.closeMenu()
     }
 
-    readonly property var nodes: editor ? editor.catalog : []
+    readonly property var nodes: root.catalog.nodes
     // Nodes whose provider key is missing stay out unless the user shows them
     // (web hooks/useNodeProviderFilter.ts), as in the node library.
-    readonly property var configuredKeys: editor ? editor.packSetup.configuredKeys : []
-    readonly property bool keyFilterActive: !!editor && editor.packSetup.secretsLoaded
-    readonly property bool showWithoutKey: !!editor && editor.packSetup.showNodesWithoutKey
+    readonly property var configuredKeys: root.packSetup.configuredKeys
+    readonly property bool keyFilterActive: root.packSetup.secretsLoaded
+    readonly property bool showWithoutKey: root.packSetup.showNodesWithoutKey
     readonly property var listedNodes: showWithoutKey ? nodes : nodes.filter(node => !(keyFilterActive && !!node.keyGate && !configuredKeys.includes(node.keyGate)))
     // Optional packs that are off hide their nodes. A search still finds them.
     readonly property var browsable: {
-        const optionalCategories = editor.packSetup.categories
-        return listedNodes.filter(node => editor.packSetup.namespaceVisible(node.namespace))
+        const optionalCategories = root.packSetup.categories
+        return listedNodes.filter(node => root.packSetup.namespaceVisible(node.namespace))
     }
     function inPath(node, path) {
         const prefix = path.join(".")
@@ -128,13 +129,13 @@ Rectangle {
 
     // The search order of the node library (utils/nodeSearch.ts rankSearchNodes),
     // ranked in src/graph/CatalogSearch.cpp. A search covers every listed node.
-    readonly property var recentTypes: editor ? editor.catalogRecent : []
+    readonly property var recentTypes: root.catalog.recent
     readonly property var searchMatches: {
         if (!searching) {
             return []
         }
         void recentTypes
-        return editor.rankCatalog(listedNodes, query).map(index => listedNodes[index])
+        return root.catalog.rank(listedNodes, query).map(index => listedNodes[index])
     }
     readonly property var visibleNodes: {
         if (searching) {
@@ -145,7 +146,7 @@ Rectangle {
         }
         void recentTypes
         const listed = browsable.filter(node => inPath(node, selectedPath))
-        return editor.rankCatalog(listed, "").map(index => listed[index])
+        return root.catalog.rank(listed, "").map(index => listed[index])
     }
     // NamespaceList.tsx InfoBox buildContextMessage.
     readonly property string infoText: {
@@ -200,15 +201,15 @@ Rectangle {
         rows.positionViewAtIndex(highlighted, ListView.Contain)
     }
     function addHighlighted() {
-        if (highlighted < 0 || highlighted >= visibleNodes.length || !editor || editor.readOnly) {
+        if (highlighted < 0 || highlighted >= visibleNodes.length || root.catalog.readOnly) {
             return false
         }
-        editor.addNode(visibleNodes[highlighted].type)
+        root.catalog.add(visibleNodes[highlighted].type)
         return true
     }
 
-    readonly property var quickActions: editor ? editor.catalogQuickActions() : []
-    readonly property var favoriteTypes: editor ? editor.catalogFavorites : []
+    readonly property var quickActions: root.catalog.quickActions
+    readonly property var favoriteTypes: root.catalog.favorites
     readonly property var quickActionTypeList: {
         const types = []
         for (const section of quickActions) {
@@ -244,11 +245,11 @@ Rectangle {
         implicitHeight: Ui.Metrics.compact
         height: Ui.Metrics.compact
         text: tileLabel
-        enabled: !!node && !!editor && !editor.readOnly
-        onClicked: editor.addNode(tileType)
+        enabled: !!node && !root.catalog.readOnly
+        onClicked: root.catalog.add(tileType)
         DragHandler {
             target: null
-            onActiveChanged: if (active && editor && tile.node) editor.dragNode(tile.tileType)
+            onActiveChanged: if (active && tile.node) root.catalog.drag(tile.tileType)
         }
         onHoveredChanged: if (node) root.hovered = hovered ? node : null
         RowLayout {
@@ -351,11 +352,11 @@ Rectangle {
                 property point last
                 onActiveChanged: if (active) last = centroid.scenePosition
                 onCentroidChanged: {
-                    if (!active || !editor) {
+                    if (!active) {
                         return
                     }
                     const point = centroid.scenePosition
-                    editor.moveNodeMenu(point.x - last.x, point.y - last.y)
+                    root.catalog.moveMenu(point.x - last.x, point.y - last.y)
                 }
             }
             HoverHandler { cursorShape: headerDrag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor }
@@ -500,8 +501,8 @@ Rectangle {
                         removable: true
                         clearName: "catalog-favorites-clear"
                         clearLabel: qsTr("Clear all favorites")
-                        onCleared: editor.clearCatalogFavorites()
-                        onRemoved: type => editor.toggleCatalogFavorite(type)
+                        onCleared: root.catalog.clearFavorites()
+                        onRemoved: type => root.catalog.toggleFavorite(type)
                     }
                     TileSection {
                         objectName: "catalog-recent"
@@ -512,7 +513,7 @@ Rectangle {
                         tiles: root.recentTiles.map(type => ({ type: type, label: root.tileLabel(type) }))
                         clearName: "catalog-recent-clear"
                         clearLabel: qsTr("Clear recent nodes")
-                        onCleared: editor.clearCatalogRecent()
+                        onCleared: root.catalog.clearRecent()
                     }
                     Repeater {
                         model: root.quickActions
@@ -547,13 +548,13 @@ Rectangle {
                     height: root.searching ? 54 : 40
                     implicitHeight: height
                     text: modelData.label
-                    enabled: editor && !editor.readOnly
+                    enabled: !root.catalog.readOnly
                     objectName: "catalog-node-" + modelData.type
-                    onClicked: editor.addNode(modelData.type)
+                    onClicked: root.catalog.add(modelData.type)
                     DragHandler {
                         objectName: "catalog-drag-" + nodeRow.modelData.type
                         target: null
-                        onActiveChanged: if (active && editor) editor.dragNode(nodeRow.modelData.type)
+                        onActiveChanged: if (active) root.catalog.drag(nodeRow.modelData.type)
                     }
                     onHoveredChanged: if (hovered) root.hovered = modelData
                     RowLayout {
@@ -600,7 +601,7 @@ Rectangle {
                             implicitWidth: Ui.Metrics.small
                             implicitHeight: Ui.Metrics.small
                             accessibleName: active ? qsTr("Remove from favorites") : qsTr("Add to favorites")
-                            onClicked: editor.toggleCatalogFavorite(nodeRow.modelData.type)
+                            onClicked: root.catalog.toggleFavorite(nodeRow.modelData.type)
                         }
                     }
                     HoverHandler { id: rowHover }

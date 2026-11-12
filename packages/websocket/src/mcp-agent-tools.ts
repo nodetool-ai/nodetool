@@ -62,6 +62,7 @@ import {
   PROVIDER_TOOL_NAMES
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { attachRunCostLedger } from "@nodetool-ai/execution";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { missingPackDetailsOf } from "@nodetool-ai/protocol";
@@ -79,6 +80,7 @@ import {
 import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import {
   createLogger,
+  getDefaultAssetsPath,
   getNodetoolDataDir,
   isGoogleWorkspaceEnabled
 } from "@nodetool-ai/config";
@@ -90,6 +92,8 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "./lib/storage.js";
+import { createTempUrlResolver } from "./lib/temp-url-resolver.js";
+import { registerDslFlowBackend } from "./flow-backend.js";
 import { normalizeAssetContentType } from "./lib/asset-paths.js";
 import { toAssetResponse } from "./lib/asset-response.js";
 import {
@@ -139,6 +143,18 @@ export const MCP_SKILL_TOOL_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Direct on this mount only. Every generation tool takes `background: true`
+ * and answers with a `generation_id` and a hint to call `await_generation` or
+ * `get_generation`. Elsewhere a chat turn reaches those through its actions;
+ * an MCP client follows the hint literally, so the tools it names are listed.
+ */
+export const MCP_GENERATION_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "list_generations",
+  "get_generation",
+  "await_generation"
+]);
+
+/**
  * Per-user workspace directory the bridged file tools (read_file, write_file,
  * glob, grep, …) are rooted at. Kept under the NodeTool data dir rather than a
  * temp dir because an MCP session is long-lived and spans many calls — a file
@@ -172,7 +188,23 @@ function buildAgentToolContext(userId: string): ProcessingContext {
     secretResolver: (key: string) => getSecret(key, userId),
     storage,
     workspaceDir,
-    workspaceStorage: new FileStorageAdapter(workspaceDir)
+    workspaceStorage: new FileStorageAdapter(workspaceDir),
+    // `download_file` and the other binary tools answer with a URL the client
+    // renders. Without a resolver that URL was the raw `supabase://` or
+    // `s3://` storage uri, which no MCP client can load. The resolver signs a
+    // cloud object, as the chat runner's context does.
+    tempUrlResolver: createTempUrlResolver(storage, getDefaultAssetsPath())
+  });
+  // The generation tracker. Every generation tool writes its record through
+  // the prediction messages this context emits, and `get_generation`,
+  // `await_generation` and `list_generations` read that record. Without a
+  // listener no row was written, so a background generation could never be
+  // collected by its id, and no MCP generation was ledgered. The listener
+  // lives as long as the session's context.
+  attachRunCostLedger(context, {
+    userId,
+    workflowId: null,
+    resolveSecret: (key) => context.getSecret(key)
   });
   context.setModelInterfaces({
     createAsset: createAssetModelInterface,
@@ -971,6 +1003,7 @@ export function registerAgentMcpTools(
   // without an explicit user binding has no surface at all — a default user
   // here would cross the tenant boundary on any mount serving more than one
   // caller. `createMcpServer` refuses such a session before reaching here.
+  registerDslFlowBackend();
   const scope = options.agentToolsScope;
   if (!scope) {
     throw new Error(
@@ -1027,11 +1060,10 @@ export function registerAgentMcpTools(
     const isImageTool = tool.name === "view_image";
     const schema = { ...jsonSchemaToZodShape(tool.inputSchema) };
     if (isImageTool) {
-      // The MCP mount shows the stored image as it is. Crops and downscales
-      // are stored copies with no asset row, so they had no public URL to
-      // hand a chat client, and the client can scale the original itself.
+      // A crop is a stored copy with no asset row, so it has no public URL to
+      // hand a chat client. `detail: "low"` keeps working: the downscaled
+      // pixels ride the MCP image content and `url` links the original.
       delete schema["region"];
-      delete schema["detail"];
       schema["image_id"] = z
         .string()
         .describe(
@@ -1048,7 +1080,6 @@ export function registerAgentMcpTools(
           const input: Record<string, unknown> = { ...args };
           if (isImageTool) {
             delete input["region"];
-            delete input["detail"];
           }
           const imageId =
             isImageTool && isString(input["image_id"])
@@ -1266,7 +1297,8 @@ export function registerAgentMcpTools(
       ((DIRECT_TOOL_NAMES.has(tool.name) &&
         !SDK_NATIVE_TOOL_REPLACEMENTS.has(tool.name)) ||
         PROVIDER_TOOL_NAMES.has(tool.name) ||
-        MCP_SKILL_TOOL_NAMES.has(tool.name))
+        MCP_SKILL_TOOL_NAMES.has(tool.name) ||
+        MCP_GENERATION_TOOL_NAMES.has(tool.name))
   );
   // They stay on the belt: an action still calls them from code. Listing them
   // as direct only moves where the prompt documents them.

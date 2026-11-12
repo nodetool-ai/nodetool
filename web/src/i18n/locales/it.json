@@ -16985,7 +16985,6 @@
       "press": "Premere",
       "toggleHint": "in qualsiasi momento per attivare/disattivare questo pannello · Ctrl risponde anche a ⌘ su macOS",
       "presets": {
-        "nodetool": "NodeTool",
         "premiere": "PremierePro",
         "fcp": "Final Cut Pro"
       },

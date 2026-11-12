@@ -404,10 +404,72 @@ void PreviewCompositor::setTimeline(TimelineModel* timeline) {
     }
     m_timeline = timeline;
     if (m_timeline) {
-        connect(m_timeline, &TimelineModel::timelineChanged, this, &QQuickItem::update);
-        connect(m_timeline, &TimelineModel::previewChanged, this, &QQuickItem::update);
+        // timelineChanged follows every clipsChanged, and previewChanged covers transient steps.
+        connect(m_timeline, &TimelineModel::timelineChanged, this, &PreviewCompositor::timelineEdited);
+        connect(m_timeline, &TimelineModel::previewChanged, this, &PreviewCompositor::timelineEdited);
+        m_visualSnapshot = m_timeline->snapshot();
+        m_visualGeneration = m_timeline->documentGeneration();
+    } else {
+        m_visualSnapshot.reset();
     }
+    ++m_visualRevision;
     emit timelineChanged();
+    update();
+}
+
+namespace {
+// Keys that only the mix reads. A difference in any other key counts as visual, so an unknown
+// field costs one repaint and never a stale frame.
+bool sameIgnoring(const QJsonObject& a, const QJsonObject& b, std::initializer_list<const char*> keys) {
+    if (a == b) { return true; }
+    QJsonObject x = a, y = b;
+    for (const char* key : keys) { x.remove(QLatin1String(key)); y.remove(QLatin1String(key)); }
+    return x == y;
+}
+bool audioOnlyClip(const nt::Timeline& t, const nt::Clip& c) {
+    if (c.mediaType == nt::MediaType::Audio || c.mediaType == nt::MediaType::Midi) { return true; }
+    const nt::Track* track = t.findTrack(c.trackId);
+    return track && (track->type == nt::TrackType::Audio || track->type == nt::TrackType::Midi ||
+                     track->type == nt::TrackType::Chord);
+}
+// True when no frame can differ: only audio clips, mix fields, names or markers changed.
+bool sameVisualContent(const nt::Timeline& a, const nt::Timeline& b) {
+    if (a.width != b.width || a.height != b.height || a.fps != b.fps || a.matteClipId != b.matteClipId ||
+        a.matteEffectId != b.matteEffectId || a.tracks.size() != b.tracks.size()) { return false; }
+    if (!sameIgnoring(a.raw, b.raw, {"clips", "tracks", "markers", "master", "tempo", "name", "durationMs"})) { return false; }
+    for (std::size_t i = 0; i < a.tracks.size(); ++i) {
+        if (a.tracks[i].id != b.tracks[i].id ||
+            !sameIgnoring(a.tracks[i].raw, b.tracks[i].raw,
+                          {"muted", "solo", "volumeDb", "pan", "automation", "locked", "name", "heightPx", "instrument", "chords"})) {
+            return false;
+        }
+    }
+    std::size_t i = 0, j = 0;
+    for (;;) {
+        while (i < a.clips.size() && audioOnlyClip(a, a.clips[i])) { ++i; }
+        while (j < b.clips.size() && audioOnlyClip(b, b.clips[j])) { ++j; }
+        if (i == a.clips.size() || j == b.clips.size()) { return i == a.clips.size() && j == b.clips.size(); }
+        const nt::Clip& x = a.clips[i++];
+        const nt::Clip& y = b.clips[j++];
+        if (x.id != y.id || !sameIgnoring(x.raw, y.raw, {"volumeDb", "muted", "name", "audioPath", "linkId", "audioEffects", "audioRole"})) {
+            return false;
+        }
+    }
+}
+}  // namespace
+
+void PreviewCompositor::timelineEdited() {
+    if (!m_timeline) { return; }
+    auto next = m_timeline->snapshot();
+    const auto generation = m_timeline->documentGeneration();
+    if (m_visualSnapshot && next && generation == m_visualGeneration && sameVisualContent(*m_visualSnapshot, *next)) {
+        m_visualSnapshot = std::move(next);
+        return;
+    }
+    m_visualSnapshot = std::move(next);
+    m_visualGeneration = generation;
+    ++m_visualRevision;
+    ++m_visualEdits;
     update();
 }
 
@@ -595,9 +657,9 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     const double frameMs = m_fps > 0 ? 1000.0 / m_fps : 1000.0 / 30.0;
     const bool transportChanged = seekSerial != m_blurSeekSerial || m_playing != m_blurPlaying || rate != m_blurRate;
     const bool nextTime = clockTime != m_blurFrameTime && (!m_playing || m_blurComplete || m_tapTimes.size() <= 1);
-    if (workingFormatChanged || (sourceChanged && m_workingFormat == nt::WorkingFormat::Rgba16F) || clearChanged || transportChanged || nextTime || m_blurRevision != m_timeline->revision || m_canvasSize != m_wantedCanvas) {
+    if (workingFormatChanged || (sourceChanged && m_workingFormat == nt::WorkingFormat::Rgba16F) || clearChanged || transportChanged || nextTime || m_blurRevision != item->m_visualRevision || m_canvasSize != m_wantedCanvas) {
         m_blurFrameTime = clockTime;
-        m_blurRevision = m_timeline->revision;
+        m_blurRevision = item->m_visualRevision;
         m_blurSeekSerial = seekSerial;
         m_blurPlaying = m_playing;
         m_blurRate = rate;

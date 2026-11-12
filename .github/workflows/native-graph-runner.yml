@@ -15,12 +15,14 @@ on:
     paths:
       - "native/graph-runner/**"
       - "native/jobs/**"
+      - "native/kernels/**"
       - ".github/workflows/native-graph-runner.yml"
   push:
     branches: [main]
     paths:
       - "native/graph-runner/**"
       - "native/jobs/**"
+      - "native/kernels/**"
       - ".github/workflows/native-graph-runner.yml"
 
 permissions:
@@ -199,8 +201,10 @@ jobs:
             --force .github/workflows/native-graph-runner.yml --force scripts/test-affected-native.mjs \
             --force scripts/test-affected.mjs --force scripts/native-ci-test-selection.mjs
 
-      # Two tests at a time: the suite ran one at a time, and a TSan run took
-      # about 55 minutes, most of it in a few long tests.
+      # One test at a time. Several tests have wall-clock deadlines: with two at
+      # a time, TSan missed sandbox deadlines in gr_context_tests,
+      # gr_public_state_tests and gr_public_subgraph_durable_tests, and Release
+      # failed gr_async_image_tests' runningJobStopsBeforeEncoding.
       - name: Test
         if: steps.select.outputs.run != 'false'
         working-directory: native/graph-runner
@@ -209,4 +213,4 @@ jobs:
         run: |
           sel=()
           if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
-          ctest --test-dir build --output-on-failure --timeout 900 -j 2 "${sel[@]}"
+          ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"

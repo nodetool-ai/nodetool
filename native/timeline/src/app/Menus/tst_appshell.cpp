@@ -242,7 +242,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         QCOMPARE(shell->parentItem()->parentItem()->objectName(), QString("panelSlot_overlay"));
     }
     void menus() {
-        const auto menus = shellMenuDescription("nodetool");
+        const auto menus = shellMenuDescription("premiere");
         QStringList names;
         for (const auto& menu : menus) {
             names << menu.label;
@@ -274,7 +274,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
                 if (menu.label == "File" || !registered(item) || item.separator || !item.children.empty()) {
                     continue;
                 }
-                const auto preset = nt::edit::formatActionShortcut("nodetool", item.action);
+                const auto preset = nt::edit::formatActionShortcut("premiere", item.action);
                 if (!preset.isEmpty()) {
                     QCOMPARE(item.shortcut, preset);
                 }
@@ -305,7 +305,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
                 self(self, item.children, seen, clashes);
             }
         };
-        for (const QString preset : {"nodetool", "premiere", "fcp"}) {
+        for (const QString preset : {"premiere", "fcp"}) {
             QHash<QKeySequence, QString> seen;
             QStringList clashes;
             for (const auto& menu : shellMenuDescription(preset)) { visit(visit, menu.items, seen, clashes); }
@@ -325,7 +325,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
             {Qt::Key_Up,"ArrowUp"},{Qt::Key_Down,"ArrowDown"},{Qt::Key_Delete,"Delete"},
             {Qt::Key_Backspace,"Backspace"},{Qt::Key_Home,"Home"},{Qt::Key_End,"End"},
             {Qt::Key_PageUp,"PageUp"},{Qt::Key_PageDown,"PageDown"},{Qt::Key_Escape,"Escape"},{Qt::Key_Space," "}};
-        for (const QString preset : {"nodetool", "premiere", "fcp"}) {
+        for (const QString preset : {"premiere", "fcp"}) {
             for (const auto& menu : shellMenuDescription(preset)) {
                 for (const auto& item : menu.items) {
                     if (menu.label == "File" || item.action == "playPause" || item.separator) {
@@ -355,25 +355,25 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
     }
     void preferencesStore() {
         Preferences store;
-        QCOMPARE(store.keyboardLayout(), QString("nodetool"));
+        QCOMPARE(store.keyboardLayout(), QString("premiere"));
         QCOMPARE(store.cacheBudgetMb(), qint64(20480));
         QCOMPARE(store.cacheFolder(), QString());
         QCOMPARE(store.decoderMode(), QString("sw"));
         QCOMPARE(store.audioDevice(), QString());
-        store.setKeyboardLayout("premiere");
+        store.setKeyboardLayout("fcp");
         store.setCacheFolder("/tmp/timeline-cache");
         store.setCacheBudgetMb(512);
         store.setDecoderMode("auto");
         store.setAudioDevice("Test playback device");
         Preferences loaded;
-        QCOMPARE(loaded.keyboardLayout(), QString("premiere"));
+        QCOMPARE(loaded.keyboardLayout(), QString("fcp"));
         QCOMPARE(loaded.cacheFolder(), QString("/tmp/timeline-cache"));
         QCOMPARE(loaded.cacheBudgetMb(), qint64(512));
         QCOMPARE(preferredDecodeMode(), QString("auto"));
         QCOMPARE(preferredAudioDevice(), QString("Test playback device"));
         store.setKeyboardLayout("invalid");
         store.setDecoderMode("invalid");
-        QCOMPARE(store.keyboardLayout(), QString("premiere"));
+        QCOMPARE(store.keyboardLayout(), QString("fcp"));
         QCOMPARE(store.decoderMode(), QString("auto"));
         store.setCacheBudgetMb(0);
         QCOMPARE(store.cacheBudgetMb(), qint64(0));
@@ -381,6 +381,13 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         QCOMPARE(store.cacheBudgetMb(), qint64(-1));
         store.setCacheFolder("");
         QCOMPARE(store.cacheFolder(), QString());
+    }
+    void removedNodeToolLayoutFallsBackToPremiere() {
+        {
+            QSettings raw(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"), QSettings::IniFormat);
+            raw.setValue("keyboardLayout", "nodetool");
+        }
+        QCOMPARE(Preferences().keyboardLayout(), QString("premiere"));
     }
     void appearancePreferences() {
         Preferences store;
@@ -473,10 +480,10 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         preferences->setKeyboardLayout("fcp");
         QCOMPARE(gestures->keyboardPreset(), QString("fcp"));
         QCOMPARE(second.keyboardPreset(), QString("fcp"));
-        gestures->setKeyboardPreset("nodetool");
-        QCOMPARE(preferences->keyboardLayout(), QString("nodetool"));
-        QCOMPARE(second.keyboardPreset(), QString("nodetool"));
-        QCOMPARE(Preferences().keyboardLayout(), QString("nodetool"));
+        gestures->setKeyboardPreset("premiere");
+        QCOMPARE(preferences->keyboardLayout(), QString("premiere"));
+        QCOMPARE(second.keyboardPreset(), QString("premiere"));
+        QCOMPARE(Preferences().keyboardLayout(), QString("premiere"));
     }
     void preferencesDialog() {
         TimelineModel model;
@@ -557,7 +564,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         menus.setAnchor(view.rootObject());
         const auto find = [&](const QString& action) -> ShellMenuItem {
             QVariantMap context{{"gestures", QVariant::fromValue<QObject*>(gestures)}, {"timeline", QVariant::fromValue<QObject*>(&model)}};
-            for (const auto& menu : shellMenuDescription("nodetool", {}, context)) {
+            for (const auto& menu : shellMenuDescription("premiere", {}, context)) {
                 for (const auto& item : menu.items) {
                     if (item.action == action) { return item; }
                 }
@@ -659,7 +666,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         target.server = QUrl("https://example.test");
         target.timelineId = "full-timeline-id";
         preferences.addRecentServer("Same name", target);
-        const auto menus = shellMenuDescription("nodetool", preferences.recentTimelines());
+        const auto menus = shellMenuDescription("premiere", preferences.recentTimelines());
         const auto& recent = menus[0].items[0].children;
         QCOMPARE(recent.size(), size_t(4));
         QCOMPARE(recent[0].label, QString("Same name (example.test)"));
@@ -722,7 +729,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         QVERIFY(state->msPerPx() < zoom);
         const double menuZoom = state->msPerPx();
         state->zoomTo(zoom, 0);
-        QTest::keyClick(&view, Qt::Key_Plus);
+        QTest::keyClick(&view, Qt::Key_Equal);
         QCOMPARE(state->msPerPx(), menuZoom);
         const auto before = model.documentJson();
         QVERIFY(model.applyEdit("addMarker", {{"id", "menu-test"}, {"timeMs", 100}}));
@@ -769,7 +776,7 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
         QVERIFY(registerShellMenuItem({"Clip", "nudgeLeft", "Link here", "F9", {}, {}, 0,
             [](const QVariantMap& context) { return context.value("allow").toBool(); },
             [](const QVariantMap& context) { return context.value("tick").toBool(); }}));
-        const auto menus = shellMenuDescription("nodetool");
+        const auto menus = shellMenuDescription("premiere");
         QStringList names;
         for (const auto& menu : menus) {
             names << menu.label;
@@ -806,12 +813,12 @@ Ui.TextField { property string draft: "Clip"; width: 200; value: draft; onValueC
             return *std::find_if(clipMenu.items.begin(), clipMenu.items.end(), [](const ShellMenuItem& item) { return item.action == "nudgeLeft"; });
         };
         const auto& linkHere = inClip(menu("Clip"));
-        QCOMPARE(linkHere.shortcut, nt::edit::formatActionShortcut("nodetool", "nudgeLeft"));
+        QCOMPARE(linkHere.shortcut, nt::edit::formatActionShortcut("premiere", "nudgeLeft"));
         QVERIFY(linkHere.shortcut != "F9");
         QVERIFY(linkHere.checkable);
         QVERIFY(!linkHere.enabled);
         QVERIFY(!linkHere.checked);
-        const auto allowed = shellMenuDescription("nodetool", {}, {{"allow", true}, {"tick", true}});
+        const auto allowed = shellMenuDescription("premiere", {}, {{"allow", true}, {"tick", true}});
         const auto clip = std::find_if(allowed.begin(), allowed.end(), [](const Menu& m) { return m.label == "Clip"; });
         QVERIFY(inClip(*clip).enabled);
         QVERIFY(inClip(*clip).checked);

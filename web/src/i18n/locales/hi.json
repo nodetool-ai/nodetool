@@ -16693,7 +16693,6 @@
       "press": "प्रेस",
       "toggleHint": "किसी भी समय इस पैनल को टॉगल करने के लिए · Ctrl भी macOS पर UD को जवाब देता है",
       "presets": {
-        "nodetool": "NodeTool",
         "premiere": "प्रीमियर प्रो",
         "fcp": "अंतिम कट प्रो"
       },

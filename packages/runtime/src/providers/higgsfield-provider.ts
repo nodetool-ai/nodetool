@@ -5,6 +5,7 @@ import { BaseProvider, type EndpointCallRequest, type EndpointCallResult, type M
 import { providerGeneration, type ProviderGeneration, type ProviderGenerationLookup } from "./provider-generations.js";
 import type { ExtendVideoParams, ImageModel, ImageToImageParams, ImageToVideoParams, Message, ProviderStreamItem, ReferenceToVideoInputs, ReferenceToVideoParams, TextToImageParams, TextToVideoParams, VideoModel, VideoToVideoParams } from "./types.js";
 import { higgsfieldAwaitResult, higgsfieldCancelByRequestId, higgsfieldCreateUploadUrl, higgsfieldDownloadResult, higgsfieldEstimate, higgsfieldGetStatusByRequestId, higgsfieldOutputUrls, higgsfieldSubmit, higgsfieldUploadMedia, type HiggsfieldCredentials, type HiggsfieldEstimate, type HiggsfieldStatus } from "./higgsfield-transport.js";
+import { endFrameUnsupportedError } from "./manifest-models.js";
 
 const log = createLogger("nodetool.runtime.providers.higgsfield");
 interface ManifestEntry { modelId: string; outputType: "image" | "video"; title: string; task: string; supportedTasks?: string[]; timeoutSeconds: number; }
@@ -141,6 +142,7 @@ export class HiggsfieldProvider extends BaseProvider {
     return this.run(params.model.id, clean({ prompt: params.prompt, duration: params.durationSeconds, aspect_ratio: params.aspectRatio, resolution: params.resolution, sound: isKling ? "on" : undefined, cfg_scale: isKling ? params.guidanceScale : undefined }), params.signal, params.timeoutSeconds ?? undefined);
   }
   override async imageToVideo(image: Uint8Array, params: ImageToVideoParams): Promise<Uint8Array> {
+    if (params.endImage?.length) throw endFrameUnsupportedError("Higgsfield", params.model.id);
     const imageUrl = await this.upload(image, "image/png", params.signal);
     const isKling = params.model.id.startsWith("kling-video/");
     return this.run(params.model.id, clean({ prompt: params.prompt, image_url: imageUrl, duration: params.durationSeconds, aspect_ratio: params.aspectRatio, resolution: params.resolution, sound: isKling ? "on" : undefined, cfg_scale: isKling ? params.guidanceScale : undefined }), params.signal, params.timeoutSeconds ?? undefined);

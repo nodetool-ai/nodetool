@@ -1,3 +1,4 @@
+#include "interfaces/GenerationReplay.h"
 #include "ui/EditorWindow.h"
 #include <QBuffer>
 #include <QDir>
@@ -44,18 +45,6 @@ QQuickItem *find(QQuickItem *root,const QString &name){if(root->objectName()==na
 QQuickWidget *inspector(EditorWindow &window){for(auto panel:window.findChildren<QQuickWidget *>()){if(panel->source().fileName()=="Inspector.qml"){return panel;}}return nullptr;}
 void click(QQuickWidget *panel,QQuickItem *item){QVERIFY(item);for(auto parent=item->parentItem();parent;parent=parent->parentItem()){if(parent->metaObject()->indexOfProperty("contentY")>=0){const auto y=item->mapToItem(parent,QPointF()).y();parent->setProperty("contentY",parent->property("contentY").toDouble()+y-30);break;}}QCoreApplication::processEvents();for(auto parent=item->parentItem();parent;parent=parent->parentItem()){parent->ensurePolished();}item->ensurePolished();QTest::mouseClick(panel->quickWindow(),Qt::LeftButton,Qt::NoModifier,item->mapToScene(QPointF(item->width()/2,item->height()/2)).toPoint());QCoreApplication::processEvents();}
 }
-class HistoryHost final:public QObject{
- Q_OBJECT
- Q_PROPERTY(QObject* generationHistory READ history CONSTANT)
- Q_PROPERTY(QString selection READ selection CONSTANT)
- Q_PROPERTY(QString pinnedGeneration READ pinnedGeneration CONSTANT)
- Q_PROPERTY(QStringList replayGenerations READ replayGenerations CONSTANT)
- Q_PROPERTY(bool readOnly READ readOnly CONSTANT)
-public:
- explicit HistoryHost(node_editor::GenerationHistory *value):history_(value){}
- QObject *history()const{return history_;}QString selection()const{return NodeId;}QString pinnedGeneration()const{return {};}QStringList replayGenerations()const{return {};}bool readOnly()const{return false;}
-private:node_editor::GenerationHistory *history_;
-};
 class GenerationHistoryUiTest final:public QObject{
  Q_OBJECT
 private slots:
@@ -64,8 +53,8 @@ private slots:
   Server server;node_editor::ExecutionGenerationStore store;store.submitted("multi",workflow(),metadata(),{NodeId});
   const auto media=[](const QString &id){return QJsonObject{{"type","image"},{"asset_id",id},{"uri","asset://"+id}};};
   store.ingest("multi",{{"type","generation_complete"},{"node_id",NodeId},{"outputs",QJsonObject{{"first",media(Image)},{"second",media(OtherImage)}}}},1000);
-  node_editor::GenerationHistory history(&store);history.configure(server.url(),{},"1");history.setWorkflow(workflow());history.selectNode(NodeId);HistoryHost host(&history);node_editor::MediaResolver resolver;resolver.configure(server.url(),{});
-  QQuickWidget widget;widget.setResizeMode(QQuickWidget::SizeRootObjectToView);widget.rootContext()->setContextProperty("mediaResolver",&resolver);widget.setInitialProperties({{"propertyHost",QVariant::fromValue(&host)}});widget.setSource(QUrl("qrc:/editor/GenerationHistory.qml"));widget.resize(350,700);widget.show();QVERIFY(widget.status()==QQuickWidget::Ready);
+  node_editor::GenerationHistory history(&store);history.configure(server.url(),{},"1");history.setWorkflow(workflow());history.selectNode(NodeId);node_editor::GenerationReplay replay;replay.setGenerationHistory(&history);replay.setSelection(NodeId);node_editor::MediaResolver resolver;resolver.configure(server.url(),{});
+  QQuickWidget widget;widget.setResizeMode(QQuickWidget::SizeRootObjectToView);widget.rootContext()->setContextProperty("mediaResolver",&resolver);widget.setInitialProperties({{"generations",QVariant::fromValue(&replay)}});widget.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/GenerationHistory.qml"));widget.resize(350,700);widget.show();QVERIFY(widget.status()==QQuickWidget::Ready);
   QList<QQuickItem*> images;const auto collect=[&](auto &&self,QQuickItem *item)->void{if(item->objectName()=="preview-image"){images.append(item);}for(auto child:item->childItems()){self(self,child);}};
   QTRY_VERIFY([&]{images.clear();collect(collect,widget.rootObject());return images.size()==2;}());
   QTRY_COMPARE(images[0]->property("status").toInt(),1);QTRY_COMPARE(images[1]->property("status").toInt(),1);

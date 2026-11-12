@@ -18,7 +18,12 @@ struct Result { QVariantList rows; QString jobCursor, generationCursor, error; b
 ActivityController::ActivityController(QObject* parent) : QObject(parent) {
     m_poll.setInterval(5000);
     connect(&m_poll, &QTimer::timeout, this, &ActivityController::refresh);
-    m_poll.start();
+}
+void ActivityController::setActive(bool value) {
+    if (m_active == value) { return; }
+    m_active = value;
+    if (value) { m_poll.start(); refresh(); } else { m_poll.stop(); }
+    emit activeChanged();
 }
 ActivityController::~ActivityController() { if (m_worker) { m_worker->requestInterruption(); m_worker->wait(); } }
 QString ActivityController::projectId() const { return m_timeline ? m_timeline->timeline().raw.value("projectId").toString() : QString{}; }
@@ -39,7 +44,7 @@ void ActivityController::reset() {
     if (!m_explicitTarget) { m_target = nt::server::serverSaveTarget(); }
     m_rows.clear(); m_jobCursor.clear(); m_generationCursor.clear(); m_jobHeadCursor.clear(); m_generationHeadCursor.clear(); m_error.clear(); m_lastUpdated.clear(); m_stale = true;
     emit changed();
-    QTimer::singleShot(0, this, &ActivityController::refresh);
+    if (m_active) { QTimer::singleShot(0, this, &ActivityController::refresh); }
 }
 QVariantList ActivityController::rows() const {
     auto result = m_rows;

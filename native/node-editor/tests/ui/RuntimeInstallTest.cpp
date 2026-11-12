@@ -57,7 +57,7 @@ bool click(QQuickWidget &view, const QString &name) {
 void panel(QQuickWidget &view, SetupController &controller) {
     view.setResizeMode(QQuickWidget::SizeRootObjectToView);
     view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-    view.setSource(QUrl("qrc:/editor/SetupPanel.qml"));
+    view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/SetupPanel.qml"));
     view.resize(660, 860);
     view.show();
 }

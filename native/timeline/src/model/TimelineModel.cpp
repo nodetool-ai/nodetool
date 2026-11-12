@@ -24,6 +24,43 @@ QString mediaKey(const QJsonObject& raw) {
            QChar(0x1f) + raw.value(u"currentAssetId").toString();
 }
 
+// The top-level keys whose values differ between two documents, in one pass.
+QSet<QString> differingKeys(const QJsonObject& a, const QJsonObject& b) {
+    QSet<QString> keys;
+    for (auto it = a.begin(); it != a.end(); ++it) {
+        if (b.value(it.key()) != it.value()) keys.insert(it.key());
+    }
+    for (auto it = b.begin(); it != b.end(); ++it) {
+        if (!a.contains(it.key())) keys.insert(it.key());
+    }
+    return keys;
+}
+
+bool onlyKey(const QSet<QString>& keys, const QString& key) {
+    return keys.size() == 1 && keys.contains(key);
+}
+
+// Every field of `t` but the clips, which the caller sets.
+nt::Timeline copyWithoutClips(const nt::Timeline& t) {
+    nt::Timeline next;
+    next.id = t.id;
+    next.name = t.name;
+    next.fps = t.fps;
+    next.dropFrame = t.dropFrame;
+    next.width = t.width;
+    next.height = t.height;
+    next.durationMs = t.durationMs;
+    next.masterVolumeDb = t.masterVolumeDb;
+    next.tracks = t.tracks;
+    next.scene = t.scene;
+    next.raw = t.raw;
+    next.revision = t.revision;
+    next.clipIndex = t.clipIndex;
+    next.matteClipId = t.matteClipId;
+    next.matteEffectId = t.matteEffectId;
+    return next;
+}
+
 quint64 nextCommandToken() {
     // native-rules #14: static mutable revision counter
     static std::atomic<quint64> next{1};
@@ -284,8 +321,8 @@ bool TimelineModel::applyClips(const QJsonArray& clips, const std::vector<int>& 
         nextClips.push_back(std::move(next));
     }
     // Every other field (the sequence's and the tracks') stays as loaded.
-    nt::Timeline full = old;
-    full.raw = raw;
+    nt::Timeline full = copyWithoutClips(old);
+    full.raw = std::move(raw);
     full.clips = std::move(nextClips);
     full.revision = nt::nextTimelineRevision();
     if (!sameIds) full.indexClips();
@@ -332,6 +369,18 @@ void TimelineModel::markAllChanged() {
     ++m_takesRevision;
 }
 
+void TimelineModel::markClipsChanged(QSet<QString> clipIds, QSet<QString> trackIds) {
+    if (m_transient) {
+        // The notification also carries the transient changes before it.
+        clipIds.unite(m_transient->clipIds);
+        trackIds.unite(m_transient->trackIds);
+        if (m_transient->takesChanged) ++m_takesRevision;
+        m_transient.reset();
+    }
+    m_changedClipIds = std::move(clipIds);
+    m_changedTrackIds = std::move(trackIds);
+}
+
 quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId,
                                bool continuation) {
     const QJsonArray savedBefore = before;
@@ -342,9 +391,10 @@ quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before,
     const auto restored = clipsJson();
     // An external command may have been computed against a transient preview.
     // Apply only its observable changes to the restored committed clips.
-    const auto commandBefore = liveBefore == restored ? savedBefore : restored;
-    const auto commandAfter = liveBefore == restored ? savedAfter : nt::motion::rebaseClipDelta(restored, savedBefore, savedAfter);
-    if (commandBefore == commandAfter) return false;
+    const bool rebased = liveBefore != restored;
+    const auto commandBefore = rebased ? restored : savedBefore;
+    const auto commandAfter = rebased ? nt::motion::rebaseClipDelta(restored, savedBefore, savedAfter) : savedAfter;
+    if (rebased && commandBefore == commandAfter) return false;
     auto beforeDocument = m_timeline->raw;
     beforeDocument.insert("clips", commandBefore);
     auto afterDocument = m_timeline->raw;
@@ -357,15 +407,17 @@ quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before,
 }
 
 bool TimelineModel::moveClip(const QString& clipId, double startMs) {
-    QJsonArray clips = clipsJson();
-    for (int i = 0; i < clips.size(); ++i) {
-        QJsonObject c = clips.at(i).toObject();
-        if (c.value(u"id").toString() != clipId) continue;
-        c.insert(QStringLiteral("startMs"), std::max(0.0, startMs));
-        clips.replace(i, c);
-        return commitEdit(QStringLiteral("Move clip"), clipsJson(), clips);
-    }
-    return false;
+    const nt::Clip* clip = findClip(clipId);
+    if (!clip) return false;
+    const QJsonArray before = clipsJson();
+    // The typed clips keep the raw array's order.
+    const auto i = static_cast<int>(clip - m_timeline->clips.data());
+    if (i >= before.size() || before.at(i).toObject().value(u"id").toString() != clipId) return false;
+    QJsonObject c = clip->raw;
+    c.insert(QStringLiteral("startMs"), std::max(0.0, startMs));
+    QJsonArray clips = before;
+    clips.replace(i, c);
+    return commitEdit(QStringLiteral("Move clip"), before, clips);
 }
 
 QJsonArray TimelineModel::markersJson() const {
@@ -384,7 +436,7 @@ bool TimelineModel::replaceMarkers(const QJsonArray& incoming) {
     next.raw.insert(QStringLiteral("markers"), markers);
     next.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
-    markAllChanged();
+    // No clip changed: the clip change state and the takes stay.
     m_tracks->rebind(m_timeline.get());
     emit markersChanged();
     return true;
@@ -428,19 +480,15 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
     if (!edit) {
         return false;
     }
+    // False when nothing changed or `after` is not a valid document. `before` is the current document.
     const auto valid = [this](const QJsonObject& before, const QJsonObject& after) {
-        auto beforeFields = before;
-        auto afterFields = after;
-        beforeFields.remove("clips");
-        afterFields.remove("clips");
-        if (beforeFields == afterFields) {
+        const auto keys = differingKeys(before, after);
+        if (keys.isEmpty()) {
+            return false;
+        }
+        if (onlyKey(keys, QStringLiteral("clips"))) {
             if (!after.value("clips").isArray()) {
                 return false;
-            }
-            QHash<QString, QJsonObject> existing;
-            existing.reserve(static_cast<int>(m_timeline->clips.size()));
-            for (const auto& clip : m_timeline->clips) {
-                existing.insert(QString::fromStdString(clip.id), clip.raw);
             }
             QJsonArray changed;
             for (const auto& value : after.value("clips").toArray()) {
@@ -448,7 +496,8 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
                     return false;
                 }
                 const auto clip = value.toObject();
-                if (existing.value(clip.value("id").toString()) != clip) {
+                const nt::Clip* existing = m_timeline->findClip(clip.value("id").toString().toStdString());
+                if (!existing || existing->raw != clip) {
                     changed.append(clip);
                 }
             }
@@ -460,30 +509,24 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
                     return false;
                 }
             }
-        } else {
-            beforeFields = before;
-            afterFields = after;
-            beforeFields.remove("markers");
-            afterFields.remove("markers");
-            if (beforeFields == afterFields) {
-                if (!after.value("markers").isArray()) {
-                    return false;
-                }
-            } else if (!nt::parseTimeline(after).timeline) {
+        } else if (onlyKey(keys, QStringLiteral("markers"))) {
+            if (!after.value("markers").isArray()) {
                 return false;
             }
+        } else if (!nt::parseTimeline(after).timeline) {
+            return false;
         }
         return true;
     };
-    auto before = m_timeline->raw;
+    const auto snapshot = m_timeline;
+    auto before = snapshot->raw;
     auto after = edit(before, payload);
-    if (before == after || !valid(before, after)) { return false; }
+    if (!valid(before, after)) { return false; }
     emit beforeCommand();
-    const auto restored = m_timeline->raw;
-    if (restored != before) {
-        before = restored;
+    if (m_timeline != snapshot && m_timeline->raw != before) {
+        before = m_timeline->raw;
         after = edit(before, payload);
-        if (before == after || !valid(before, after)) { return false; }
+        if (!valid(before, after)) { return false; }
     }
     const auto token = nextCommandToken();
     auto command = std::make_unique<DocumentCommand>(name, before, after,
@@ -495,48 +538,69 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
 bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
     const QJsonObject raw = incoming;
     emit beforeCommand();
-    if (raw == m_timeline->raw) {
+    const auto keys = differingKeys(m_timeline->raw, raw);
+    if (keys.isEmpty()) {
         return false;
     }
-    auto beforeFields = m_timeline->raw;
-    auto afterFields = raw;
-    beforeFields.remove("clips");
-    afterFields.remove("clips");
-    if (beforeFields == afterFields && raw.contains("clips")) {
+    if (onlyKey(keys, QStringLiteral("clips")) && raw.contains("clips")) {
         return replaceClips(raw.value("clips").toArray());
     }
-    beforeFields = m_timeline->raw;
-    afterFields = raw;
-    beforeFields.remove("markers");
-    afterFields.remove("markers");
-    if (beforeFields == afterFields && raw.contains("markers")) {
+    if (onlyKey(keys, QStringLiteral("markers")) && raw.contains("markers")) {
         return replaceMarkers(raw.value("markers").toArray());
     }
-    auto parsed = nt::parseTimeline(raw);
-    if (!parsed.timeline) {
-        return false;
-    }
-    const bool tracksChanged = raw.value("tracks") != m_timeline->raw.value("tracks");
-    const bool markersChangedValue = raw.value("markers") != m_timeline->raw.value("markers");
-    auto next = std::move(*parsed.timeline);
-    next.matteClipId = m_timeline->matteClipId;
-    next.matteEffectId = m_timeline->matteEffectId;
-    for (auto& clip : next.clips) {
-        clip.generatedMattePath = m_mattes.value(clip.raw.value("generatedMatte").toObject().value("assetId").toString());
-        const auto media = m_media.constFind(mediaKey(clip.raw));
-        if (media != m_media.constEnd()) {
-            clip.mediaPath = media->picture;
-            clip.originalMediaPath = media->originalPicture;
-            clip.audioPath = media->audio;
+    const bool clipsSame = !keys.contains(QStringLiteral("clips"));
+    const bool tracksChanged = keys.contains(QStringLiteral("tracks"));
+    const bool markersChangedValue = keys.contains(QStringLiteral("markers"));
+    // Keeps the old snapshot alive: the track rows compare against it.
+    const auto previous = m_timeline;
+    nt::Timeline next;
+    if (clipsSame) {
+        // Only the sequence's fields or the tracks changed: parse them alone and keep the typed clips.
+        auto part = raw;
+        part.remove(QStringLiteral("clips"));
+        auto parsed = nt::parseTimeline(part);
+        if (!parsed.timeline) {
+            return false;
+        }
+        QSet<QString> trackIds;
+        for (const auto& track : parsed.timeline->tracks) trackIds.insert(QString::fromStdString(track.id));
+        for (const auto& clip : previous->clips) {
+            if (!trackIds.contains(QString::fromStdString(clip.trackId))) return false;
+        }
+        next = std::move(*parsed.timeline);
+        next.raw = raw;
+        next.clips = previous->clips;
+        next.clipIndex = previous->clipIndex;
+    } else {
+        auto parsed = nt::parseTimeline(raw);
+        if (!parsed.timeline) {
+            return false;
+        }
+        next = std::move(*parsed.timeline);
+        for (auto& clip : next.clips) {
+            clip.generatedMattePath = m_mattes.value(clip.raw.value("generatedMatte").toObject().value("assetId").toString());
+            const auto media = m_media.constFind(mediaKey(clip.raw));
+            if (media != m_media.constEnd()) {
+                clip.mediaPath = media->picture;
+                clip.originalMediaPath = media->originalPicture;
+                clip.audioPath = media->audio;
+            }
         }
     }
+    next.matteClipId = previous->matteClipId;
+    next.matteEffectId = previous->matteEffectId;
     next.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
-    markAllChanged();
-    if (tracksChanged) {
-        m_tracks->reset(m_timeline.get());
+    if (clipsSame) {
+        // No clip changed: every lane keeps its rows and rebases.
+        markClipsChanged({}, {});
     } else {
+        markAllChanged();
+    }
+    if (!tracksChanged) {
         m_tracks->rebind(m_timeline.get());
+    } else if (!m_tracks->refresh(m_timeline.get())) {
+        m_tracks->reset(m_timeline.get());
     }
     emit clipsChanged();
     emit timelineChanged();
@@ -554,8 +618,10 @@ void TimelineModel::registerMedia(const nt::Clip& media) {
         m_mattes.insert(matteId, media.generatedMattePath);
     }
     auto next = *m_timeline;
-    bool changed = false;
+    QSet<QString> changedIds;
+    QSet<QString> changedTracks;
     for (auto& clip : next.clips) {
+        bool changed = false;
         if (mediaKey(clip.raw) == key &&
             (clip.mediaPath != media.mediaPath || clip.originalMediaPath != media.originalMediaPath ||
              clip.audioPath != media.audioPath)) {
@@ -570,11 +636,16 @@ void TimelineModel::registerMedia(const nt::Clip& media) {
             clip.generatedMattePath = media.generatedMattePath;
             changed = true;
         }
+        if (changed) {
+            changedIds.insert(QString::fromStdString(clip.id));
+            changedTracks.insert(QString::fromStdString(clip.trackId));
+        }
     }
-    if (!changed) { return; }
+    if (changedIds.isEmpty()) { return; }
     next.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
-    markAllChanged();
+    // Only the matching clips changed, and no take did.
+    markClipsChanged(std::move(changedIds), std::move(changedTracks));
     m_tracks->rebind(m_timeline.get());
     emit clipsChanged();
     emit timelineChanged();
@@ -597,18 +668,21 @@ void TimelineModel::registerMatteMedia(const QString& assetId, const std::string
     if (assetId.isEmpty()) { return; }
     m_mattes.insert(assetId, path);
     auto next = *m_timeline;
-    bool changed = false;
+    QSet<QString> changedIds;
+    QSet<QString> changedTracks;
     for (auto& clip : next.clips) {
         if (clip.raw.value("generatedMatte").toObject().value("assetId").toString() == assetId &&
             clip.generatedMattePath != path) {
             clip.generatedMattePath = path;
-            changed = true;
+            changedIds.insert(QString::fromStdString(clip.id));
+            changedTracks.insert(QString::fromStdString(clip.trackId));
         }
     }
-    if (!changed) { return; }
+    if (changedIds.isEmpty()) { return; }
     next.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
-    markAllChanged();
+    // Only the matching clips changed, and no take did.
+    markClipsChanged(std::move(changedIds), std::move(changedTracks));
     m_tracks->rebind(m_timeline.get());
     emit clipsChanged();
     emit timelineChanged();

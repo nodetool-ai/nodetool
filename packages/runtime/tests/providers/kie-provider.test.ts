@@ -272,6 +272,29 @@ describe("KieProvider — imageToVideo", () => {
     expect(createdInputs[0].duration).toBe("5");
   });
 
+  it("sends the end frame to the field the model declares for it", async () => {
+    const { createdInputs } = mockKieFlow(["https://kie.cdn/start.png", "https://kie.cdn/end.png"]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+    await provider.imageToVideo(new Uint8Array([9]), {
+      model: { id: "kling/v2-1-pro", name: "Kling", provider: "kie" },
+      prompt: "transition",
+      endImage: new Uint8Array([8])
+    });
+    expect(createdInputs[0].image_url).toBe("https://kie.cdn/start.png");
+    expect(createdInputs[0].tail_image_url).toBe("https://kie.cdn/end.png");
+  });
+
+  it("refuses an end frame on a model that declares none", async () => {
+    const { createdInputs } = mockKieFlow(["https://kie.cdn/start.png"]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+    await expect(provider.imageToVideo(new Uint8Array([9]), {
+      model: { id: "grok-imagine/image-to-video", name: "Grok", provider: "kie" },
+      prompt: "transition",
+      endImage: new Uint8Array([8])
+    })).rejects.toThrow("Kie model grok-imagine/image-to-video takes no end frame");
+    expect(createdInputs).toHaveLength(0);
+  });
+
   it("snaps a durationSeconds request to the nearest declared enum value", async () => {
     const { createdInputs } = mockKieFlow(["https://kie.cdn/frame.png"]);
     const provider = new KieProvider({ KIE_API_KEY: "k" });

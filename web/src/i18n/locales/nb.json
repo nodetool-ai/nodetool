@@ -16693,7 +16693,6 @@
       "press": "Trykk på",
       "toggleHint": "når som helst for å veksle mellom dette panelet · Ctrl svarer også på ⌘ på macOS",
       "presets": {
-        "nodetool": "Nodeverktøy",
         "premiere": "Premiere Pro",
         "fcp": "Final Cut Pro"
       },

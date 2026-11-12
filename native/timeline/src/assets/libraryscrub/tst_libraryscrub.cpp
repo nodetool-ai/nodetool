@@ -27,6 +27,8 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 const QString kClip = QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4");
 const char* kTile = R"(import QtQuick
 import NodeTool.Timeline
+import NodeTool.Media
+import NodeTool.UiPrimitives as Ui
 Item {
     id: root
     width: 400; height: 200
@@ -34,11 +36,34 @@ Item {
     property int unhandled: 0
     property alias field: field
     AssetBrowser { id: library }
+    Component {
+        id: scrubOverlayComponent
+        Item {
+            LibraryScrubFrame {
+                objectName: "libraryScrubFrame"
+                x: Ui.Metrics.border
+                y: Ui.Metrics.border
+                width: parent.width - 2 * Ui.Metrics.border
+                height: parent.height - 2 * Ui.Metrics.border
+                visible: LibraryScrub.frameReady
+                scrub: LibraryScrub
+            }
+            Rectangle {
+                objectName: "libraryScrubPlayhead"
+                x: Math.round(LibraryScrub.fraction * (parent.width - width))
+                width: Ui.Metrics.focus
+                height: parent.height
+                color: TimelineVisuals.overlay
+            }
+        }
+    }
     AssetItem {
         id: tile
         objectName: "tile"
         width: 84; height: 84
         browser: library
+        scrub: LibraryScrub
+        scrubOverlay: scrubOverlayComponent
         asset: ({id: "clip", name: "take.mp4", content_type: "video/mp4", duration: 10})
     }
     AssetItem {
@@ -46,6 +71,8 @@ Item {
         x: 100
         width: 84; height: 84
         browser: library
+        scrub: LibraryScrub
+        scrubOverlay: scrubOverlayComponent
         asset: ({id: "still", name: "photo.png", content_type: "image/png", duration: 0})
     }
     TextInput { id: field; objectName: "field"; x: 200; y: 20; width: 100; height: 20 }
@@ -272,6 +299,7 @@ private slots:
         QQmlComponent component(&engine);
         component.setData(R"(import QtQuick
 import NodeTool.Timeline
+import NodeTool.Media
 Item {
     id: root
     width: 400; height: 480
@@ -287,6 +315,7 @@ Item {
             required property int index
             width: 80; height: 80
             browser: library
+            scrub: LibraryScrub
             asset: ({id: "a" + index, name: "take" + index + ".mp4", content_type: index % 2 ? "video/mp4" : "image/png", duration: 10})
         }
     }

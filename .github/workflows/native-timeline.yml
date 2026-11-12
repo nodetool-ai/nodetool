@@ -8,6 +8,7 @@
 # null backend. Hosted runners have no hardware video decoder, so the
 # hardware decode tests are skipped (NT_NO_HW_DECODE=1); the benches and the
 # window checks (scripts/window-checks.sh) need a reference machine.
+# Packaging the app runs only in native-timeline-release.yml, on release tags.
 name: Native timeline
 
 # Pull requests and main pushes run only when native code or this workflow
@@ -111,9 +112,39 @@ jobs:
       contents: read
       packages: write
 
+  # The TypeScript package build output is platform-independent, so one Linux
+  # leg builds it and every native leg below downloads the artifact instead
+  # of each rebuilding ~55 packages from scratch (previously five full builds
+  # per run). Mirrors the `build` job in quality-checks.yml.
+  ts-dist:
+    name: TypeScript package dist
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node, install deps, build packages
+        uses: ./.github/actions/setup-build
+        with:
+          build-packages: "true"
+
+      - name: Upload package dist
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packages-dist
+          path: packages/*/dist
+          retention-days: 1
+          if-no-files-found: error
+
   build:
     name: ${{ matrix.name }}
-    needs: [changes, ci-image]
+    needs: [changes, ci-image, ts-dist]
     if: needs.changes.outputs.run == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 240
@@ -158,27 +189,24 @@ jobs:
           echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
           echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
 
-      - name: Set up Node
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version-file: ".nvmrc"
-
-      # Motion contracts and golden checks read the shipped example media.
-      - name: Restore package media
-        uses: ./.github/actions/package-media
-
       # Scratch-server and golden checks also load decorated node packages.
-      - name: Build the server and timeline packages
-        env:
-          NODETOOL_TURBO_CONCURRENCY: "2"
-        run: |
-          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm ci --ignore-scripts
-          npm run rebuild:native
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            npm run build:packages:tsc
-          else
-            npm run build:packages
-          fi
+      # The TypeScript build output is platform-independent, so the `ts-dist`
+      # job below builds it once and every native leg downloads it instead of
+      # rebuilding it (previously five full builds per run). The shared setup
+      # still installs node_modules (cached per OS) and restores the example
+      # media; only the dist comes from the artifact.
+      - name: Install dependencies
+        uses: ./.github/actions/setup-build
+        with:
+          build-packages: "false"
+          turbo: "off"
+          cache: read-only
+
+      - name: Download TypeScript package dist
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages-dist
+          path: packages
 
       - name: Set up native dependencies
         uses: ./.github/actions/setup-native-timeline
@@ -430,68 +458,11 @@ jobs:
           path: ${{ runner.temp }}/matte-gdb.log
           if-no-files-found: ignore
 
-      # package-macos.sh configures its own build directory. These variables
-      # route that build through the compiler cache, which already holds the
-      # objects of the Build step. Without them the step compiled for about
-      # 18 minutes.
-      - name: Package (macOS, unsigned)
-        if: github.event_name != 'push' && runner.os == 'macOS'
-        env:
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ env.NT_COMPILER_LAUNCHER }}
-          CMAKE_OBJCXX_COMPILER_LAUNCHER: ${{ env.NT_COMPILER_LAUNCHER }}
-          AWS_ACCESS_KEY_ID: ${{ github.event_name == 'push' && secrets.NATIVE_CACHE_R2_WRITE_KEY_ID || secrets.NATIVE_CACHE_R2_READ_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ github.event_name == 'push' && secrets.NATIVE_CACHE_R2_WRITE_SECRET || secrets.NATIVE_CACHE_R2_READ_SECRET }}
-        run: |
-          "$NT_COMPILER_LAUNCHER" --zero-stats
-          native/timeline/scripts/package-macos.sh
-          "$NT_COMPILER_LAUNCHER" --show-stats
-          DEV_BIN=build-ci/nodetool-timeline native/timeline/scripts/check-package-macos.sh
-
-      # Not verified: written for M6 (review F12); no run has checked it.
-      # The smoke runs use a copy of the package in a fresh folder, with PATH
-      # cut to the Windows system folders and no Qt variable, so a DLL, a
-      # plug-in or a QML import missing from the package cannot load from the
-      # Qt or FFmpeg folders of the build (review F3). They render the whole
-      # QML editor (--screenshot) and decode video through the packaged
-      # FFmpeg (--stills).
-      - name: Package (Windows, windeployqt, unverified)
-        if: github.event_name != 'push' && runner.os == 'Windows'
-        run: |
-          bash native/timeline/scripts/package-windows.sh
-          out=native/timeline/build-ci/package-windows
-          tmp=$(cygpath -u "$RUNNER_TEMP")
-          copy="$tmp/package-copy"
-          rm -rf "$copy" && cp -R "$out" "$copy"
-          smoke="$tmp/package-smoke"
-          rm -rf "$smoke" && mkdir -p "$smoke"
-          cd native/timeline
-          (
-            export PATH="/c/Windows/System32:/c/Windows:/c/Windows/System32/Wbem"
-            unset QT_PLUGIN_PATH QML_IMPORT_PATH QML2_IMPORT_PATH QT_QPA_PLATFORM_PLUGIN_PATH QT_QPA_PLATFORM
-            export QSG_RHI_BACKEND=d3d11 QSG_RHI_PREFER_SOFTWARE_RENDERER=1
-            exe="$copy/nodetool-timeline.exe"
-            "$exe" fixtures/three-tracks.json --dump-plan --times 0,8500 > /dev/null
-            dry=$("$exe" fixtures/av-sync.json --audio-dry-run)
-            [[ "$dry" == "audio mode: system" ]] || { echo "::error::--audio-dry-run printed '$dry'"; exit 1; }
-            "$exe" fixtures/three-tracks.json --screenshot "$smoke/editor.png" --audio none
-            [[ -s "$smoke/editor.png" ]] || { echo "::error::--screenshot of the packaged editor wrote nothing"; exit 1; }
-            "$exe" fixtures/video-cuts.json --stills "$smoke/stills" --still-frames 0,59,60 --audio none
-            shopt -s nullglob  # only bash builtins here: PATH has no Git tools
-            stills=("$smoke"/stills/frame_*.png)
-            [[ ${#stills[@]} == 3 ]] || { echo "::error::expected 3 stills from the package, got ${#stills[@]}"; exit 1; }
-          )
-
-      # Not verified: written for M6 (review F12); no run has checked it.
-      - name: Package (Linux AppImage, unverified)
-        if: github.event_name != 'push' && runner.os == 'Linux'
-        run: |
-          bash native/timeline/scripts/package-linux.sh
-
   sanitizers:
     name: Linux ${{ matrix.preset }}
     # Base branch runs only build and seed the compiler caches, as the build
     # job does. Pull requests restore them and run the checks.
-    needs: [changes, ci-image]
+    needs: [changes, ci-image, ts-dist]
     if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -531,18 +502,21 @@ jobs:
         run: |
           echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
           echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - name: Set up Node
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      # Same shared TypeScript build as the platform legs: the dist comes
+      # from the `ts-dist` artifact, so the sanitizer presets skip the build
+      # (and the Turbo download) entirely.
+      - name: Install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-      - name: Restore package media
-        uses: ./.github/actions/package-media
-      - name: Build the server and timeline packages
-        working-directory: .
-        run: |
-          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm ci --ignore-scripts
-          npm run rebuild:native
-          npm run build:packages
+          build-packages: "false"
+          turbo: "off"
+          cache: read-only
+
+      - name: Download TypeScript package dist
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages-dist
+          path: packages
       # The native CI image has the system packages, Clang among them. This
       # frees disk, then installs Qt and builds the LGPL FFmpeg.
       - name: Set up native dependencies
