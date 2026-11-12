@@ -47,6 +47,20 @@ constexpr double kLoopOut = 1500.0;
 constexpr std::int64_t kLoopFrames = 24000;
 constexpr std::int64_t kFadeFrames = 144;  // 3 ms at 48 kHz
 
+// The stress case's wall time per 10 ms block. TSan slows the worker about
+// tenfold, and the case must still wrap to exercise the wrap paths.
+#if defined(__SANITIZE_THREAD__)
+constexpr int kStressPaceUs = 1500;
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+constexpr int kStressPaceUs = 1500;
+#else
+constexpr int kStressPaceUs = 400;
+#endif
+#else
+constexpr int kStressPaceUs = 400;
+#endif
+
 std::int64_t steadyNs() {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch())
         .count();
@@ -495,15 +509,17 @@ private slots:
 
     // MR6: the callback reads two sessions, so a mistake in the hazard slots
     // is a use-after-free on the real-time thread. Short loops at 25 times
-    // real time, with edits, seeks and range changes, exercise every path
+    // real time (about 7 under TSan), with edits, seeks and range changes,
+    // exercise every path
     // that replaces or withdraws a wrap session while the callback may claim
     // it. The sanitizer builds of this test are the check: misses may occur
     // here and fall back to the seek, but nothing may crash or race.
     void editsSeeksAndRangesDuringLoops() {
         const auto base = mixTimeline();
-        auto other = std::make_shared<Timeline>(*base);
+        auto quieter = std::make_shared<Timeline>(*base);
+        quieter->clips[1].volumeDb = -12;
+        auto other = std::make_shared<Timeline>(*quieter);
         other->clips[0].mediaPath = NT_FIXTURES_DIR "/media/tone-440-48k-mono.wav";
-        other->clips[1].volumeDb = -12;
         AudioEngine engine;
         engine.setTimeline(base);
         AudioEngine::Options options;
@@ -540,10 +556,12 @@ private slots:
             engine.renderManual(block, blockNs);
             frame += kPeriod;
             ++n;
-            if (n % 7 == 0) engine.setTimelineAsync(n % 14 == 0 ? base : other);
+            // Gain edits keep every ring. A take switch every tenth edit
+            // decodes the new take into both sessions.
+            if (n % 7 == 0) engine.setTimelineAsync(n % 70 == 0 ? other : (n % 14 == 0 ? base : quieter));
             if (n % 131 == 0) clock.seek(1000 + (n % 200));
             if (n % 293 == 0) clock.setRangeOut(n % 586 == 0 ? 1250 : 1180);
-            std::this_thread::sleep_for(std::chrono::microseconds(400));
+            std::this_thread::sleep_for(std::chrono::microseconds(kStressPaceUs));
         }
         const AudioEngine::Stats s = engine.stats();
         clock.setAudioFeed(nullptr);
