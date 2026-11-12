@@ -2,6 +2,7 @@
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/WorkflowGraphModel.h"
+#include "interfaces/PropertyHost.h"
 #include "media/MediaResolver.h"
 #include "media/VideoFrameView.h"
 #include "run/NodeRuntimeModel.h"
@@ -13,7 +14,6 @@
 #include <QGraphicsView>
 #include <QMediaPlayer>
 #include <QQmlComponent>
-#include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -58,11 +58,11 @@ struct Fixture {
   QQmlEngine engine;
   node_editor::MediaResolver resolver;
   node_editor::NodeRuntimeModel runtime;
-  InlinePropertyPresenter inlineEditor{model, scene, view, &engine};
-  CanvasMediaPresenter presenter{model, scene, view, &engine};
+  node_editor::PropertyHost host;
+  InlinePropertyPresenter inlineEditor{model, scene, view, &engine, host};
+  CanvasMediaPresenter presenter{model, scene, view, &engine, resolver};
   QVariantList sources;
   Fixture() {
-    engine.rootContext()->setContextProperty("mediaResolver", &resolver);
     QJsonArray nodes{node("audio", 0, 0), node("video", 330, 0), node("hidden", 5000, 0)};
     QJsonArray edges{QJsonObject{{"id", "audio-video"}, {"source", "audio"}, {"target", "video"}, {"sourceHandle", "value"}, {"targetHandle", "input"}}};
     for (int i = 0; i < 20; ++i) { nodes.append(node("context-" + QString::number(i), (i % 5) * 320, 400 + (i / 5) * 180)); }

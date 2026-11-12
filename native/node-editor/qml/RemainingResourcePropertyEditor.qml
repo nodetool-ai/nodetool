@@ -9,7 +9,9 @@ ColumnLayout {
     required property var value
     required property bool writable
     required property string nodeId
-    property var controller: typeof resourcePickerController === "undefined" ? null : resourcePickerController
+    // The tab's ResourcePickerController and MediaResolver, from the property host.
+    property var controller: null
+    property var resolver: null
     property string requestKey: "remaining-" + String(root)
     property int generation: 0
     readonly property string key: requestKey + "-" + generation
@@ -251,12 +253,13 @@ ColumnLayout {
                             placeholderIcon: root.kindIcon(modelData.kind)
                             checked: root.selected.some(item => item.id === modelData.id)
                             enabled: root.writable
-                            preview: typeof mediaResolver !== "undefined" && mediaResolver && modelData.reference_images && modelData.reference_images.length ? referencePreview : null
+                            preview: root.resolver && modelData.reference_images && modelData.reference_images.length ? referencePreview : null
                             Component {
                                 id: referencePreview
                                 MediaPreview {
                                     mediaKind: "image"
                                     locator: modelData.reference_images[0]
+                                    resolver: root.resolver
                                     showFilename: false
                                     fillPreview: true
                                 }

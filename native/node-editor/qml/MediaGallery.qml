@@ -17,6 +17,8 @@ ColumnLayout {
     onImplicitHeightChanged: if (active && implicitHeight > 0) retainedHeight = implicitHeight
     property string scopeKey: "gallery-" + String(root)
     property string notice: ""
+    // The tab's MediaResolver, which reads every gallery item.
+    property var resolver: null
     readonly property var selected: gallery.selected
     readonly property int count: gallery.count
     readonly property int currentIndex: gallery.currentIndex
@@ -37,7 +39,7 @@ ColumnLayout {
     onScopeKeyChanged: imageViewer.dismiss()
     onActiveChanged: if (!active) imageViewer.dismiss()
     MediaViewerHost { id: viewerHost }
-    ImageViewer { id: imageViewer; scopeKey: root.scopeKey }
+    ImageViewer { id: imageViewer; scopeKey: root.scopeKey; resolver: root.resolver }
     function release() {
         imageViewer.dismiss()
         if (viewer.item && viewer.item.reset) viewer.item.reset()
@@ -70,6 +72,7 @@ ColumnLayout {
         MediaPreview {
             id: selectedPreview
             objectName: "gallery-selected-media"
+            resolver: root.resolver
             mediaKind: root.selected.kind || "image"
             locator: root.selected.locator || ""
             filename: root.selected.filename || ""
@@ -137,6 +140,7 @@ ColumnLayout {
                         MediaPreview {
                             mediaKind: "image"
                             locator: tile.galleryItem.locator
+                            resolver: root.resolver
                             requestKey: root.scopeKey + ":tile:" + tile.galleryItem.itemKey + ':' + String(tile)
                             showFilename: false
                             showDownload: false

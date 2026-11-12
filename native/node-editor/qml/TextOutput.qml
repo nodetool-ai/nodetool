@@ -4,6 +4,8 @@ import NodeTool.UiPrimitives as Ui
 ColumnLayout {
     id: root
     required property var output
+    // The tab's MediaResolver, which reads a text output held as media.
+    property var resolver: null
     property string requestKey: "text-" + String(root)
     property bool ready: false
     property string content: ""
@@ -11,24 +13,26 @@ ColumnLayout {
     property bool loading: false
     property string pendingLink: ""
     function reset() {
-        mediaResolver.cancel(requestKey)
-        mediaResolver.release(requestKey)
+        if (resolver) {
+            resolver.cancel(requestKey)
+            resolver.release(requestKey)
+        }
         content = ""; failure = ""; loading = false; pendingLink = ""
     }
     function load() {
         reset()
-        if (!output.textUri) return
+        if (!output.textUri || !resolver) return
         loading = true
-        mediaResolver.resolve(requestKey, output.textUri)
+        resolver.resolve(requestKey, output.textUri)
     }
     onOutputChanged: if (ready) load()
     Component.onCompleted: { ready = true; load() }
     Component.onDestruction: reset()
     Connections {
-        target: mediaResolver
+        target: root.resolver
         function onResolved(key, url) {
             if (key !== root.requestKey) return
-            root.content = mediaResolver.resolvedText(key)
+            root.content = root.resolver.resolvedText(key)
             root.loading = false
         }
         function onFailed(key, message) {

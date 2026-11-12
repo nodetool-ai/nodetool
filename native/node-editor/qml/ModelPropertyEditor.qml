@@ -11,7 +11,8 @@ ColumnLayout {
     required property var descriptor
     required property var value
     required property bool writable
-    property var controller: typeof modelPickerController === "undefined" ? null : modelPickerController
+    // The tab's ModelPickerController, from the property host.
+    property var controller: null
     readonly property string modelType: descriptor.modelType || "language_model"
     readonly property bool huggingFace: modelType.startsWith("hf.")
     readonly property var catalog: controller ? controller.catalogFor(modelType, descriptor.allowedProviders || [], descriptor.modelTasks || [], descriptor.nodeType || "") : null

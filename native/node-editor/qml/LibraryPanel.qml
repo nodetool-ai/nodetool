@@ -14,6 +14,8 @@ Rectangle {
     required property StatusModel status
     // The account's assets in the open folder, and the filters.
     required property LibraryBrowser library
+    // The tab's AssetPickerController, which uploads imported files.
+    required property var assets
     EditorRoles { id: roles }
     color: roles.panel
     implicitWidth: Ui.Metrics.dialogCompactWidth
@@ -156,7 +158,7 @@ Rectangle {
     FileDialog {
         id: importDialog
         fileMode: FileDialog.OpenFiles
-        onAccepted: selectedFiles.forEach((file, index) => assetPickerController.upload("library-import:" + index, "asset", file))
+        onAccepted: selectedFiles.forEach((file, index) => root.assets.upload("library-import:" + index, "asset", file))
     }
     Ui.Dialog {
         id: folderDialog
@@ -173,7 +175,7 @@ Rectangle {
         onAccepted: root.library.createFolder(folderName.text)
     }
     Connections {
-        target: assetPickerController
+        target: root.assets
         function onUploaded(key) { if (key.startsWith("library-import:")) root.library.refresh() }
         function onFailed(key, message) { if (key.startsWith("library-import:")) importError.text = message }
     }

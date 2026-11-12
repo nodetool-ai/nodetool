@@ -21,12 +21,11 @@ no longer read, and when it finds no QML files or no `EditorWindow` members.
 
 ## What the scan covers
 
-`EditorWindow::EditorWindow` set ten root context properties. It now sets
-five: `mediaResolver`, `modelPickerController`, `assetPickerController`,
-`resourcePickerController` and `documentPickerController`. `editor`,
-`workflowBrowser`, `libraryBrowser`, `runOutput` and `workflowSession` are
-gone. The scan still lists `editor`, so it fails if a file reads the window
-again.
+`EditorWindow::EditorWindow` set ten root context properties: `editor`,
+`workflowBrowser`, `libraryBrowser`, `runOutput`, `workflowSession`,
+`mediaResolver`, `modelPickerController`, `assetPickerController`,
+`resourcePickerController` and `documentPickerController`. It now sets none.
+The scan still lists `editor`, so it fails if a file reads the window again.
 
 The window used to reach QML under other names. `EditorChat.cpp` and
 `InlineTitlePresenter.cpp` passed the window as `host` through
@@ -150,21 +149,20 @@ Moved so far:
   which keep the geometry. `EditorChat.qml` also needs the chat session, so
   `tests/ui/ChatWindowComponentTest.cpp` checks the interface's requests and
   `EditorChatTest::geometryAndPersistence` covers the window wiring.
-- The `editor`, `libraryBrowser`, `runOutput` and `workflowSession` context
-  properties are gone. `QueueOverlay.qml` takes `RunState` for the debounced
-  queue, the connection, the open workflow, the selected run and the cancel
-  and select requests. `RunOutput.qml` reads the run output's runs, selected
-  run, collections and rich entries from `RunState`, which sends its select
-  and clear requests to `RunOutputModel` and its cancel request to
-  `WorkflowSession`. `RunState` holds the two item models through `QPointer`
-  and does not own them. `LibraryPanel.qml` takes the existing
-  `LibraryBrowser` as `library`. It moved into `node_editor_interfaces`, which
-  now links `nodetool_media` for its asset list model. The window's
-  `shownQueue` property is gone. `ServerSyncPanel.qml` already took the session
-  as a `required property var workflowSession`, because `WorkflowSession` lives
-  in `node_editor_core` and cannot be a QML type of the module.
-  `tests/ui/RunOutputComponentTest.cpp` loads `QueueOverlay.qml` with a fixture
-  `RunState`, and `tests/ui/QueueUiTest.cpp` fills one as the window does.
+- The media resolver and the four picker controllers. `PropertyHost` carries
+  them as `media`, `modelPicker`, `assetPicker`, `resourcePicker` and
+  `documentPicker`, set once by the window through `setServices`.
+  `PropertyField.qml` passes them to each property editor as `controller`,
+  `resolver` and `resourceController`, `Inspector.qml` passes `media` to the
+  History tab, and `InlinePropertyEditor.qml` takes the same `PropertyHost` as
+  `host` from `InlinePropertyPresenter`. The media and output views take a
+  `resolver` property from their parent: `RunOutput.qml` from the window,
+  `CanvasMedia.qml`, `CardMediaPlayer.qml` and the canvas image viewer from
+  `CanvasMediaPresenter`. `LibraryPanel.qml` takes the asset picker as
+  `assets` for its uploads. The services are `QObject` pointers, and the
+  editors declare `var` properties, because the classes live in
+  `node_editor_core` and several tests load the editors outside the QML
+  module. The tests pass the fixture objects as initial properties.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
@@ -174,7 +172,7 @@ Moved so far:
 | `DocumentState` (not needed) | Read-only state and reason, status message, document and credential epochs | Covered by `NodeInspector`, `PropertyHost`, `EditorCommands` and `StatusModel` |
 | `Selection` (moved for the selection toolbar) | Selected count, single item, disabled state, node context menu | `SelectionToolbar.qml` |
 | `NodeInspector` (moved) | Selection header, property rows, dynamic ports, read-only reason and message, run selected, run progress, cost estimate | `Inspector.qml` |
-| `PropertyHost` (moved) | Selected id, read-only state, document and credential epochs, commit and remove a value | `PropertyField.qml` |
+| `PropertyHost` (moved) | Selected id, read-only state, document and credential epochs, commit and remove a value, media resolver and pickers | `PropertyField.qml`, `InlinePropertyEditor.qml`, `Inspector.qml` |
 | `GenerationReplay` (moved) | Generation history, pinned generation, replay set | `GenerationHistory.qml` |
 | `DocumentTabs` (moved) | Workspace tabs, active tab, project name, tab actions, canvas strips (subgraph surfaces), strip offset, settings | `TabBar.qml`, `CanvasTabStrip.qml` |
 | `WorkflowHeader` (moved) | Workflow name and rename, save readout and its action, undo and redo, More menu | `HeaderRow.qml` |
@@ -215,10 +213,9 @@ as a `required property` instead of reading the global:
   `RunState`.
 - `workflowSession`: removed. `QueueOverlay.qml` reads it through `RunState`,
   and `ServerSyncPanel.qml` takes it as a required property.
-- `mediaResolver`: the media and output views.
-- The four picker controllers: the property editors. They read the global
-  through `typeof x === "undefined" ? null : x` guards today, which a required
-  property removes.
+- `mediaResolver`: removed. The media and output views take it as `resolver`.
+- The four picker controllers: removed. The property editors take them as
+  `controller` and `resourceController` from `PropertyHost`.
 
 ## Components the timeline duplicates or needs
 
@@ -260,26 +257,10 @@ candidate list, not a plan to move them.
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 16 read a root context property, 0 of them read the editor window. `EditorWindow.h` exposes 11 properties and 12 invokable methods or slots (23 members) and 14 signals.
+Scanned 78 files in `qml/`. 0 read a root context property, 0 of them read the editor window. `EditorWindow.h` exposes 11 properties and 12 invokable methods or slots (23 members) and 14 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
-| AssetPropertyEditor.qml |  | `mediaResolver` (0, passed on), `assetPickerController` (0, passed on), `resourcePickerController` (0, passed on) |
-| CanvasMedia.qml |  | `mediaResolver` (6) |
-| CardMediaPlayer.qml |  | `mediaResolver` (6) |
-| CollectionPropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
-| DocumentPropertyEditor.qml |  | `documentPickerController` (0, passed on) |
-| ImageComparisonOutput.qml |  | `mediaResolver` (6) |
-| ImageViewer.qml |  | `mediaResolver` (1) |
-| InlinePropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
-| LibraryPanel.qml |  | `assetPickerController` (3) |
-| MediaParameterPropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
-| MediaPreview.qml |  | `mediaResolver` (14) |
-| Model3DPropertyEditor.qml |  | `assetPickerController` (0, passed on) |
-| ModelPropertyEditor.qml |  | `modelPickerController` (0, passed on) |
-| RemainingResourcePropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
-| TextOutput.qml |  | `mediaResolver` (7) |
-| WorkflowPropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
 
 Files where a local `id` hides a context property, so their reads are local: CodePropertyEditor.qml (`editor`), InlinePropertyEditor.qml (`editor`).
 
@@ -287,40 +268,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 `passed on` means the file hands the whole object to a child, such as `propertyHost: editor`.
 
-- **AssetPropertyEditor.qml**
-  - `mediaResolver`: none passed on as resolver:
-  - `assetPickerController`: none passed on as controller:
-  - `resourcePickerController`: none passed on as resourceController:
-- **CanvasMedia.qml**
-  - `mediaResolver`: on assetSaveFailed, on assetSaved, on saveFailed, on saved, saveText, saveTextToAssets
-- **CardMediaPlayer.qml**
-  - `mediaResolver`: cancel, on cleared, on failed, on resolved, release, resolve
-- **CollectionPropertyEditor.qml**
-  - `resourcePickerController`: none passed on as controller:
-- **DocumentPropertyEditor.qml**
-  - `documentPickerController`: none passed on as controller:
-- **ImageComparisonOutput.qml**
-  - `mediaResolver`: cancel, on cleared, on failed, on resolved, release, resolve
-- **ImageViewer.qml**
-  - `mediaResolver`: on cleared
-- **InlinePropertyEditor.qml**
-  - `resourcePickerController`: none passed on as controller:
-- **LibraryPanel.qml**
-  - `assetPickerController`: on failed, on uploaded, upload
-- **MediaParameterPropertyEditor.qml**
-  - `resourcePickerController`: none passed on as controller:
-- **MediaPreview.qml**
-  - `mediaResolver`: cancel, on assetSaveFailed, on assetSaved, on cleared, on failed, on resolved, on saveFailed, on saved, release, resolve, resolvedBytes, saveResolved, saveToAssets, suggestedFilename
-- **Model3DPropertyEditor.qml**
-  - `assetPickerController`: none passed on as controller:
-- **ModelPropertyEditor.qml**
-  - `modelPickerController`: none passed on as controller:
-- **RemainingResourcePropertyEditor.qml**
-  - `resourcePickerController`: none passed on as controller:
-- **TextOutput.qml**
-  - `mediaResolver`: cancel, on cleared, on failed, on resolved, release, resolve, resolvedText
-- **WorkflowPropertyEditor.qml**
-  - `resourcePickerController`: none passed on as controller:
 
 ### Editor members by proposed interface
 

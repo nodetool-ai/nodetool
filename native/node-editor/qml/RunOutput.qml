@@ -10,6 +10,8 @@ Rectangle {
     required property PanelLayout panels
     required property StatusModel status
     required property RunState runs
+    // The tab's MediaResolver, which reads the outputs held as media.
+    required property var resolver
     EditorRoles { id: roles }
     color: roles.panel
     implicitHeight: Ui.Metrics.comfortable * 10
@@ -113,6 +115,7 @@ Rectangle {
                             items: collectionItems
                             scopeKey: "panel:" + collectionKey
                             notice: collectionNotice
+                            resolver: root.resolver
                         }
                     }
                 }
@@ -144,6 +147,7 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.bottomMargin: Ui.Metrics.sm
                             modelData: row.modelData
+                            resolver: root.resolver
                         }
                         Ui.Separator { Layout.fillWidth: true }
                     }
