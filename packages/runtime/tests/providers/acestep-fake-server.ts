@@ -6,9 +6,15 @@
  * the error bodies and the multipart/mixed synth result. Every behaviour
  * cites the line it mirrors. Paths are relative to the acestep.cpp checkout.
  *
- * One deliberate difference: generated audio is shorter than requested
- * (`lengthScale`), so the tests move kilobytes, not megabytes. The WAV
- * container, sample format and track count are the real ones.
+ * Generated audio has the real length rule: a whole number of 1920-frame
+ * latent steps, sized from the code count, the source or the duration
+ * (`synthFrames`). It is then scaled by `lengthScale`, default 0.01, so the
+ * tests move kilobytes, not megabytes; a test that checks lengths passes 1.
+ * The WAV container, sample format and track count are the real ones.
+ *
+ * Models are known by file name. The real registry classifies each `.gguf`
+ * by its `general.architecture` key (`src/model-registry.h:70-99`); the fake
+ * classifies by name (`classifyModel`), since its files hold no GGUF header.
  *
  * The file uses only erasable TypeScript, so `acestep-fake-server-bin.mjs`
  * can run it as a child process under Node's type stripping.
@@ -57,8 +63,15 @@ export interface FakeAceOptions {
   jobMs?: number;
   /** Hold every job in the running state until {@link FakeAceServer.release}. */
   holdJobs?: boolean;
-  /** Fraction of the requested length that is rendered. */
+  /** Fraction of the real output length that is rendered. */
   lengthScale?: number;
+  /**
+   * The `.gguf` file names the startup scan found (`ace-server.cpp:1706-1711`).
+   * Default: the five files of the NodeTool catalog.
+   */
+  models?: readonly string[];
+  /** Delay the `{"id"}` answer of a submission, after the job is queued. */
+  submitDelayMs?: number;
   /** Called when a job starts on the worker, before it runs. */
   onJobStart?: (job: { id: string; kind: "lm" | "synth" }) => void;
   /** stderr lines, as ace-server writes them. */
@@ -76,6 +89,12 @@ export interface FakeAceServer {
   release(id?: string): void;
   /** Drop every job, as a restarted process would (GET /job then answers 404). */
   forgetJobs(): void;
+  /**
+   * What SIGTERM does to ace-server: stop listening, finish the current job,
+   * discard the pending ones (`ace-server.cpp:137-141, 1891-1897`). Resolves
+   * when the current job has finished.
+   */
+  shutdown(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -86,12 +105,84 @@ const MULTIPART_BOUNDARY = "ace-batch-boundary";
 const LATENT_CHANNELS = 64;
 const OUTPUT_FORMATS = new Set(["mp3", "wav16", "wav24", "wav32"]);
 const TASKS_WITHOUT_CAPTION = new Set(["lego", "extract", "complete"]);
+/** src/vae.h:8 and src/vae-enc.h:6: one latent step is 1920 audio frames. */
+const FRAMES_PER_LATENT = 1920;
+/** pipeline-synth-ops.cpp:309: 25 Hz latents. */
+const LATENTS_PER_SECOND = 25;
+/**
+ * `acestep.patch_size` of the DiT GGUF (src/dit.h:285). The fake assumes 2,
+ * the ACE-Step 1.5 value; the real server reads it from the model.
+ */
+const PATCH_SIZE = 2;
+
+/** The NodeTool catalog (`@nodetool-ai/config` acestep-models.ts). */
+export const FAKE_ACE_DEFAULT_MODELS: readonly string[] = [
+  "Qwen3-Embedding-0.6B-Q8_0.gguf",
+  "acestep-5Hz-lm-4B-Q8_0.gguf",
+  "acestep-v15-turbo-Q8_0.gguf",
+  "acestep-v15-base-Q8_0.gguf",
+  "vae-BF16.gguf"
+];
+
+type ModelBucket = "lm" | "dit" | "textEnc" | "vae";
+
+/** The registry bucket of a file, by name (see the file comment). */
+export function classifyModel(name: string): ModelBucket {
+  if (/-lm-/i.test(name)) return "lm";
+  if (/^vae/i.test(name)) return "vae";
+  if (/embedding/i.test(name)) return "textEnc";
+  return "dit";
+}
+
+/** src/model-registry.h:204-237: sorted names in four buckets. */
+function scanRegistry(names: readonly string[]): Record<ModelBucket, string[]> {
+  const registry: Record<ModelBucket, string[]> = { lm: [], dit: [], textEnc: [], vae: [] };
+  for (const name of [...names].sort()) {
+    registry[classifyModel(name)].push(name);
+  }
+  return registry;
+}
+
+/**
+ * ace-server.cpp:531-545 resolve_name, then registry_find: the requested
+ * name, else the first in the bucket. The fake does not track the loaded
+ * model, which only matters when a request names none.
+ */
+function findModel(bucket: string[], requested: unknown): { name: string; found: boolean } {
+  const name = text(requested) || bucket[0] || "";
+  return { name, found: bucket.includes(name) };
+}
+
+/**
+ * Frames of one rendered track before `lengthScale`: the latent count T
+ * (pipeline-synth-ops.cpp:306-322) rounded up to the patch size (line 323),
+ * times 1920 (src/vae.h:443). A source sets T from its encoded latents, one
+ * per 1920 frames; audio codes set T to five latents per code (5 Hz codes,
+ * 25 Hz latents); otherwise the duration does.
+ */
+export function synthFrames(request: Record<string, unknown>, sourceFrames: number | null): number {
+  let latents: number;
+  if (sourceFrames !== null) {
+    latents = Math.floor(sourceFrames / FRAMES_PER_LATENT);
+  } else if (text(request.audio_codes)) {
+    latents = text(request.audio_codes).split(",").length * 5;
+  } else {
+    latents = Math.trunc(Number(request.duration) * LATENTS_PER_SECOND);
+  }
+  latents = Math.ceil(latents / PATCH_SIZE) * PATCH_SIZE;
+  return latents * FRAMES_PER_LATENT;
+}
 
 export async function startFakeAceServer(options: FakeAceOptions = {}): Promise<FakeAceServer> {
   const maxBatch = Math.min(9, Math.max(1, options.maxBatch ?? 1));
   const jobMs = options.jobMs ?? 20;
   const lengthScale = options.lengthScale ?? 0.01;
   const log = options.log ?? ((): void => undefined);
+  const registry = scanRegistry(options.models ?? FAKE_ACE_DEFAULT_MODELS);
+  const submitDelayMs = options.submitDelayMs ?? 0;
+  let stopping = false;
+  let current: FakeJob | null = null;
+  let drained: (() => void) | null = null;
   const requests: RecordedRequest[] = [];
   const started: Array<{ id: string; kind: "lm" | "synth" }> = [];
   const jobs = new Map<string, FakeJob>();
@@ -139,11 +230,12 @@ export async function startFakeAceServer(options: FakeAceOptions = {}): Promise<
       return;
     }
     working = true;
-    while (queue.length > 0) {
+    while (queue.length > 0 && !stopping) {
       const job = queue.shift()!;
       if (!jobs.has(job.id)) {
         continue;
       }
+      current = job;
       started.push({ id: job.id, kind: job.kind });
       options.onJobStart?.({ id: job.id, kind: job.kind });
       // lm_worker and synth_worker check the cancel flag first
@@ -166,7 +258,18 @@ export async function startFakeAceServer(options: FakeAceOptions = {}): Promise<
       }
       await job.run(job);
     }
+    current = null;
     working = false;
+    drained?.();
+  };
+
+  /** Answer a submission with its job id, after the optional delay. */
+  const sendJobId = async (res: ServerResponse, job: FakeJob): Promise<void> => {
+    if (submitDelayMs > 0) {
+      await delay(submitDelayMs);
+    }
+    // ace-server.cpp:696-697 and 1062-1064.
+    sendRaw(res, 200, "application/json", Buffer.from(`{"id":"${job.id}"}`));
   };
 
   const handle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
@@ -189,6 +292,10 @@ export async function startFakeAceServer(options: FakeAceOptions = {}): Promise<
     }
     if (route === "POST /lm") {
       // ace-server.cpp:624-698.
+      if (registry.lm.length === 0) {
+        sendError(res, 501, "No LM models in registry");
+        return;
+      }
       const parsed = parseRequestArray(body.toString("utf8"));
       recorded.json = safeJson(body.toString("utf8"));
       if (!parsed) {
@@ -225,6 +332,14 @@ export async function startFakeAceServer(options: FakeAceOptions = {}): Promise<
         items = parsed.map((item) => ({ ...item, lm_seed: resolveSeed(item.lm_seed), seed: resolveSeed(item.seed) }));
       }
       const job = createJob("lm", async (j) => {
+        // ace-server.cpp:556-562: an unknown model fails the job; the reason
+        // is only in the log.
+        const lm = findModel(registry.lm, parsed[0]!.lm_model);
+        if (!lm.found) {
+          log(`[Server] LM not found: ${lm.name}`);
+          j.status = "failed";
+          return;
+        }
         // ace-server.cpp:597-609: a JSON array of enriched requests, serialised
         // by request_to_json (src/request.cpp:324-475), which always writes
         // caption, seed, solver, lm_mode, output_format and task_type.
@@ -235,12 +350,15 @@ export async function startFakeAceServer(options: FakeAceOptions = {}): Promise<
         log(`[Server] Job ${j.id} done (LM, ${out.length} results)`);
       });
       log(`[Server] Job ${job.id} created (LM, N=${items.length})`);
-      // ace-server.cpp:696-697.
-      sendRaw(res, 200, "application/json", Buffer.from(`{"id":"${job.id}"}`));
+      await sendJobId(res, job);
       return;
     }
     if (route === "POST /synth") {
       // ace-server.cpp:913-1065.
+      if (registry.dit.length === 0 || registry.textEnc.length === 0 || registry.vae.length === 0) {
+        sendError(res, 501, "No synth models in registry (need dit + text-encoder + vae)");
+        return;
+      }
       let parsed: Record<string, unknown>[] | null;
       let source: Uint8Array | null = null;
       if (contentType.toLowerCase().startsWith("multipart/form-data")) {
@@ -300,24 +418,36 @@ export async function startFakeAceServer(options: FakeAceOptions = {}): Promise<
         return;
       }
       const job = createJob("synth", async (j) => {
+        // ace-server.cpp:735-761: an unknown DiT, or a missing text encoder
+        // or VAE, fails the job; the reason is only in the log.
+        const dit = findModel(registry.dit, first.synth_model);
+        if (!dit.found) {
+          log(`[Server] DiT not found: ${dit.name}`);
+          j.status = "failed";
+          return;
+        }
+        const vae = findModel(registry.vae, first.vae);
+        if (!vae.found) {
+          log(`[Server] VAE not found: ${vae.name}`);
+          j.status = "failed";
+          return;
+        }
         // ace-server.cpp:714-726 and 794-818: synth_batch_size variants per
-        // request, seeds base + i, clamped to nine tracks.
-        const tracks: Array<{ seed: number; seconds: number }> = [];
+        // request, seeds base + i, clamped to nine tracks. The batch shares
+        // one T (pipeline-synth-ops.cpp:269-283 takes the longest code list).
+        const sourceFrames = source ? (wavFrames(source) ?? 0) : null;
+        const length = Math.max(...parsed!.map((request) => synthFrames(request, sourceFrames)));
+        const frames = Math.max(1, Math.round(length * lengthScale));
+        const tracks: number[] = [];
         for (const request of parsed!) {
           const variants = Math.min(9, Math.max(1, integer(request.synth_batch_size, 1)));
           const seed = resolveSeed(request.seed);
-          const seconds = source
-            ? (wavFrames(source) ?? 0) / SAMPLE_RATE
-            : Number(request.duration) > 0
-              ? Number(request.duration)
-              : 1;
           for (let i = 0; i < variants && tracks.length < 9; i++) {
-            tracks.push({ seed: seed + i, seconds });
+            tracks.push(seed + i);
           }
         }
-        const frames = (seconds: number): number => Math.max(1, Math.round(seconds * SAMPLE_RATE * lengthScale));
-        const audio = tracks.map((track) =>
-          format === "mp3" ? Buffer.from("ID3fake-mp3") : encodeWav(frames(track.seconds), format, track.seed)
+        const audio = tracks.map((seed) =>
+          format === "mp3" ? Buffer.from("ID3fake-mp3") : encodeWav(frames, format, seed)
         );
         // ace-server.cpp:276-302 and 884-889.
         j.resultBody = multipartAudioLatent(audio, format === "mp3" ? "audio/mpeg" : "audio/wav");
@@ -326,7 +456,7 @@ export async function startFakeAceServer(options: FakeAceOptions = {}): Promise<
         log(`[Server] Job ${j.id} done (${tracks.length} tracks)`);
       });
       log(`[Server] Job ${job.id} created (${parsed.length} requests)`);
-      sendRaw(res, 200, "application/json", Buffer.from(`{"id":"${job.id}"}`));
+      await sendJobId(res, job);
       return;
     }
     if (url.pathname === "/job") {
@@ -410,6 +540,16 @@ export async function startFakeAceServer(options: FakeAceOptions = {}): Promise<
       jobs.clear();
       order.length = 0;
     },
+    shutdown: async () => {
+      stopping = true;
+      server.close();
+      server.closeAllConnections();
+      if (current) {
+        await new Promise<void>((resolve) => {
+          drained = resolve;
+        });
+      }
+    },
     close: () =>
       new Promise<void>((resolve) => {
         for (const job of jobs.values()) {
@@ -424,7 +564,10 @@ export async function startFakeAceServer(options: FakeAceOptions = {}): Promise<
 
 /**
  * request_to_json (src/request.cpp:324-475) of an LM result. The language
- * model fills `audio_codes`; the fake derives them from the seed.
+ * model fills `audio_codes`, five per second of the duration it was given.
+ * Its prompt holds the duration as a whole number of seconds
+ * (src/prompt.h:252-254), so a fractional duration loses its fraction; the
+ * fake writes exactly that many codes. They derive from the seed.
  */
 function lmOutput(item: Record<string, unknown>, mode: string): Record<string, unknown> {
   const out: Record<string, unknown> = { ...item };
@@ -433,7 +576,8 @@ function lmOutput(item: Record<string, unknown>, mode: string): Record<string, u
   out.lm_seed = item.lm_seed;
   if (mode === "generate" && !text(item.audio_codes)) {
     const seed = Number(item.seed);
-    out.audio_codes = [seed % 64000, (seed + 7) % 64000, (seed + 13) % 64000].join(",");
+    const duration = Number(item.duration) > 0 ? Math.trunc(Number(item.duration)) : 10;
+    out.audio_codes = Array.from({ length: duration * 5 }, (_, i) => (seed + 7 * i) % 64000).join(",");
   }
   out.solver = text(item.solver) || "euler";
   out.lm_mode = mode;

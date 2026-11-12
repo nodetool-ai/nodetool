@@ -200,8 +200,9 @@ describe("acestep provider requests", () => {
     expect(result.candidates.map((candidate) => candidate.seed)).toEqual([7, 8]);
     expect(result.candidates.every((candidate) => candidate.audioCodes === undefined)).toBe(true);
     expect(result.timing.lmMs).toBe(0);
-    // The fake renders the source length, scaled.
-    expect(wavFrames(result.candidates[0]!.audio)).toBe(48);
+    // The fake renders whole 1920-frame latents of the source (two here,
+    // 3840 frames), scaled by 0.01.
+    expect(wavFrames(result.candidates[0]!.audio)).toBe(38);
   });
 
   it("sends lego with track bass and the base DiT through /lm and /synth (MM5 exit 5)", async () => {
@@ -293,6 +294,36 @@ describe("acestep provider requests", () => {
     expect(result.candidates[0]!.seed).toBe(sent);
   });
 
+  it("asks for whole seconds that cover the window, so the output is not short (F2)", async () => {
+    // The language model sees the duration as whole seconds (src/prompt.h:253)
+    // and /synth sizes the output from the codes it writes.
+    const server = await fake({ lengthScale: 1 });
+    const durationSec = 10.71;
+    const result = await provider(server).musicTask({ ...base, durationSec, candidates: 1 });
+    expect((posts(server, "/lm")[0]!.json as Record<string, unknown>).duration).toBe(11);
+    expect(wavFrames(result.candidates[0]!.audio)).toBeGreaterThanOrEqual(Math.ceil(durationSec * 48000));
+  });
+
+  it("fails a job whose model the server did not find at startup", async () => {
+    // ace-server.cpp:735-743: the job fails, and only the log says why.
+    const server = await fake({ models: ["Qwen3-Embedding-0.6B-Q8_0.gguf", "acestep-5Hz-lm-4B-Q8_0.gguf", ACESTEP_TURBO_DIT, "vae-BF16.gguf"] });
+    await expect(provider(server).musicTask({ ...base, task: "lego", trackRole: "bass", sourceAudio: floatWav(9600), candidates: 1 })).rejects.toThrow(
+      /ace-server job failed/
+    );
+    expect(posts(server, "/synth")).toHaveLength(1);
+  });
+
+  it("keeps a remote server's error body out of the message (item 9)", async () => {
+    // Without a language model, POST /lm answers 501 (ace-server.cpp:625-628).
+    const server = await fake({ models: ["Qwen3-Embedding-0.6B-Q8_0.gguf", ACESTEP_TURBO_DIT, "vae-BF16.gguf"] });
+    const error = await provider(server).musicTask(base).then(
+      () => null,
+      (reason: unknown) => reason as Error
+    );
+    expect(error?.message).toMatch(/ace-server HTTP 501/);
+    expect(error?.message).not.toContain("No LM models");
+  });
+
   it("reports the backend's error body", async () => {
     const server = await fake({ maxBatch: 1 });
     // --max-batch 1 refuses an array of two (ace-server.cpp:636-639). The
@@ -325,6 +356,21 @@ describe("acestep provider job control", () => {
     expect(cancel?.query).toEqual({ id: jobId, cancel: "1" });
     expect(server.jobStatus(jobId)).toBe("cancelled");
     expect(posts(server, "/synth")).toHaveLength(0);
+  });
+
+  it("cancels a job whose submission was in flight when the signal aborted (item 7)", async () => {
+    const server = await fake({ holdJobs: true, submitDelayMs: 300 });
+    const controller = new AbortController();
+    const pending = provider(server).musicTask({ ...base, signal: controller.signal });
+    // The job is queued; its id has not reached the provider yet.
+    await waitFor(() => server.started.length === 1);
+    const jobId = server.started[0]!.id;
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    const cancel = server.requests.find((request) => request.method === "POST" && request.path === "/job");
+    expect(cancel?.query).toEqual({ id: jobId, cancel: "1" });
+    expect(server.jobStatus(jobId)).toBe("cancelled");
   });
 
   it("reports a second job as queued until the first finishes, then runs it (MM3 exit 6)", async () => {
