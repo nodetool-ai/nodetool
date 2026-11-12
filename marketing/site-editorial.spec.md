@@ -84,6 +84,13 @@ One template renders every `/alternatives/<slug>` page. It keeps:
 - the short list of alternatives (it matches the page title and the ItemList
   schema), and the FAQ.
 
+The list may carry three optional fields from the record. `listAnswer` is one
+paragraph that names the alternatives in a sentence, for the list queries
+answer engines send. `listFacts` is one line per tool with its platforms and
+licence. `otherTools` names tools that have no comparison page, each with a
+source URL and one `checked` date for the set, and links to the project's own
+page. The ComfyUI record uses all three.
+
 A FAQ row must not restate the short answer or the table. A record may set
 `answer` when the generic short answer would only repeat the hero, and `hero`
 when the category promise does not fit (the ComfyUI page does both).

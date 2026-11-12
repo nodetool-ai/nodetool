@@ -16,19 +16,48 @@ import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 const BASE_URL = "https://nodetool.ai";
 
 export const metadata: Metadata = {
-  title: "AI Workflow Templates — NodeTool",
+  title: "AI Workflow Templates and Mini Apps | NodeTool",
   description:
-    "Browse editable NodeTool workflow templates for image, video, audio, agents, and marketing. Open any in Studio, or explore simplified runnable mini apps.",
+    "Editable AI workflow templates and AI mini apps for image, video, audio, agents, and marketing. Open one in NodeTool Studio and run it on your own keys.",
   alternates: { canonical: `${BASE_URL}/templates` },
   openGraph: {
     images: DEFAULT_OG_IMAGES,
-    title: "AI Workflow Templates — NodeTool",
+    title: "AI Workflow Templates and Mini Apps | NodeTool",
     description:
-      "Browse editable NodeTool workflow templates for image, video, audio, agents, and marketing. Open any in Studio, or explore simplified runnable mini apps.",
+      "Editable AI workflow templates and AI mini apps for image, video, audio, agents, and marketing. Open one in NodeTool Studio and run it on your own keys.",
     url: `${BASE_URL}/templates`,
     type: "website",
   },
 };
+
+// Mini apps that ship with Studio: names and summaries from
+// packages/base-nodes/nodetool/examples/apps/*.app.json.
+const MINI_APPS = [
+  {
+    name: "Photo Studio",
+    body: "A live photo editor and a batch retoucher. The single-photo grade runs on GPU filters with no API key.",
+  },
+  {
+    name: "Directed Campaign Kit",
+    body: "Upload one product image, approve a hero, then build two formats and one revision.",
+  },
+  {
+    name: "Dubbing Desk",
+    body: "Transcribe a presenter clip, translate the script, then voice and subtitle the translation.",
+  },
+  {
+    name: "Model Arena",
+    body: "Three models answer side by side, then a judge model scores them without knowing which wrote which.",
+  },
+  {
+    name: "Catalog Motion",
+    body: "Upload a product catalog as CSV and every product photo becomes a short video.",
+  },
+  {
+    name: "Trailer Room",
+    body: "One agent writes the beats and the shot list, renders every shot, cuts them together, and adds a score.",
+  },
+];
 
 // Hub grouping order — most visual categories first.
 const CATEGORY_ORDER = [
@@ -152,6 +181,45 @@ export default function TemplatesHub() {
                     >
                       {recipe.name}
                     </TrackedLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Mini apps — the "AI mini apps" searches that used to land on /apps. */}
+        <section aria-labelledby="mini-apps-title" className="relative py-6">
+          <div className="mx-auto max-w-6xl px-6 lg:px-8">
+            <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-6 sm:p-8">
+              <h2
+                id="mini-apps-title"
+                className="text-xl font-bold tracking-tight md:text-2xl"
+              >
+                AI mini apps
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-400">
+                A mini app is a screen over one or more workflows. The person
+                running it sees fields, a Run button, and a result instead of
+                the graph. These ship with Studio, and you can build your own
+                from any workflow. Read the{" "}
+                <a
+                  href="https://docs.nodetool.ai/mini-apps"
+                  className="text-sky-300 underline underline-offset-2 hover:text-sky-200"
+                >
+                  mini apps guide
+                </a>
+                .
+              </p>
+              <ul className="mt-5 grid gap-x-8 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">
+                {MINI_APPS.map((app) => (
+                  <li key={app.name}>
+                    <h3 className="text-sm font-semibold text-white">
+                      {app.name}
+                    </h3>
+                    <p className="mt-1 text-sm leading-relaxed text-slate-400">
+                      {app.body}
+                    </p>
                   </li>
                 ))}
               </ul>
