@@ -5,8 +5,8 @@ import { test } from "node:test";
 
 const source = fs.readFileSync(new URL("../../qml/color/ColorWheelMath.js", import.meta.url), "utf8").replace(/^\.pragma library\s*/, "");
 const context = vm.createContext({});
-vm.runInContext(`${source}\nglobalThis.math = {wheel, channels, clampToDisc, insertionIndex, identity, ringColor};`, context);
-const { wheel, channels, clampToDisc, insertionIndex, identity, ringColor } = context.math;
+vm.runInContext(`${source}\nglobalThis.math = {wheel, channels, clampToDisc, insertionIndex, identity, ringColor, stripColor};`, context);
+const { wheel, channels, clampToDisc, insertionIndex, identity, ringColor, stripColor } = context.math;
 const near = (a, b, tolerance = 1e-3) => assert.ok(Math.abs(a - b) <= tolerance, `${a} is not near ${b}`);
 
 test("an untouched wheel is the identity for every field", () => {
@@ -51,6 +51,24 @@ test("a new effect takes the panel's place in the chain and changes nothing", ()
   assert.equal(identity("vignette", "a").amount, 0);
   assert.deepEqual([...identity("liftGammaGain", "a").gamma], [1, 1, 1]);
   assert.equal(identity("blur", "a"), null);
+  // Light controls sit before the wheels, Hue Saturation Curves after the RGB curves.
+  assert.equal(insertionIndex(chain, "exposure"), 1);
+  assert.equal(insertionIndex(chain, "hueSatCurves"), 2);
+  assert.equal(identity("exposure", "a").blacks, 0);
+  assert.deepEqual(Object.keys(identity("hueSatCurves", "a")), ["id", "type", "enabled"]);
+});
+
+test("curve strips draw plain hex in input order", () => {
+  for (const kind of ["hue", "luma", "saturation"]) {
+    for (const t of [0, 0.25, 0.5, 1]) { assert.match(stripColor(kind, t), /^#[0-9a-f]{6}$/); }
+  }
+  assert.equal(stripColor("hue", 0), "#ff0000");
+  assert.equal(stripColor("hue", 1 / 3), "#00ff00");
+  assert.equal(stripColor("hue", 2 / 3), "#0000ff");
+  assert.equal(stripColor("luma", 0), "#000000");
+  assert.equal(stripColor("luma", 1), "#ffffff");
+  assert.equal(stripColor("saturation", 0), "#808080");
+  assert.equal(stripColor("saturation", 1), "#ff0000");
 });
 
 test("the ring is drawn in plain hex, with each hue where the vectorscope has it", () => {

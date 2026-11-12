@@ -3,6 +3,7 @@
 #include "model/TimelineModel.h"
 #include "model/TrackWindowModel.h"
 #include "assets/AssetMedia.h"
+#include "AssetListModel.h"
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QPointer>
@@ -27,7 +28,9 @@ class AssetBrowser : public QObject {
     Q_PROPERTY(QVariantMap originals READ originals NOTIFY thumbnailsChanged)
     // The name and entity kind of each asset requestThumbnail fetched.
     Q_PROPERTY(QVariantMap details READ details NOTIFY thumbnailsChanged)
+    // A cached copy of the rows for script callers. Views use assetModel.
     Q_PROPERTY(QVariantList assets READ assets NOTIFY assetsChanged)
+    Q_PROPERTY(AssetListModel* assetModel READ assetModel CONSTANT)
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(QString searchText READ searchText WRITE setSearchText NOTIFY filtersChanged)
     Q_PROPERTY(QString typeFilter READ typeFilter WRITE setTypeFilter NOTIFY filtersChanged)
@@ -49,7 +52,8 @@ public:
     Q_INVOKABLE void requestThumbnail(const QString& assetId);
     // Asks the server for one asset. assetLocated follows when it exists.
     Q_INVOKABLE void locateAsset(const QString& assetId);
-    QVariantList assets() const { return m_assets.toVariantList(); }
+    QVariantList assets() const { return m_assetList; }
+    AssetListModel* assetModel() { return &m_model; }
     QString searchText() const { return m_searchText; }
     QString typeFilter() const { return m_typeFilter; }
     QString tagFilter() const { return m_tagFilter; }
@@ -92,6 +96,8 @@ signals:
     void transfersChanged();
     void stateChanged();
     void assetsChanged();
+    // refresh() sent a new query. The rows change only when its result differs.
+    void queryStarted();
     void timelineChanged();
     void folderChanged();
     void assetLocated(const QVariantMap& asset);
@@ -126,6 +132,8 @@ private:
     QueuedImport takeNextImport();
     void pollProxies();
     void receive(const Result& result);
+    // Diffs next into the model. reset clears the view, for a new folder, project or filter.
+    void applyAssets(const QJsonArray& next, bool reset = false);
     bool applyDrop(const QJsonObject& payload, const QString& editName = "assets.dropAsset");
     void queueMedia(const QJsonObject& asset, const QJsonObject& clip,
                     QPointer<TimelineModel> model, quint64 generation);
@@ -134,6 +142,8 @@ private:
                           const QJsonObject& capturedResult, const QString& createdAudioTrackId);
     void resetDocumentState();
     void protectDocumentMedia();
+    void scheduleProtectDocumentMedia();
+    bool m_protectQueued = false;
     void reconcileLinkedAudio();
     struct AudioSettlement {
         quint64 token;
@@ -148,6 +158,8 @@ private:
     QPointer<TimelineModel> m_timeline;
     QPointer<QThread> m_thread;
     QJsonArray m_assets;
+    QVariantList m_assetList;
+    AssetListModel m_model;
     QVariantMap m_thumbnails;
     QVariantMap m_originals;
     QVariantMap m_details;

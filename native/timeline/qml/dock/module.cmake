@@ -7,7 +7,7 @@ function(nt_dock_tests)
 endfunction()
 nt_tests(nt_dock_tests)
 
-nt_qml_sources(qml/dock/DockLayoutStore.h qml/dock/DockLayoutStore.cpp)
+nt_qml_sources(qml/dock/DockLayoutStore.h qml/dock/DockLayoutStore.cpp qml/dock/DockPolishTick.h)
 function(nt_dock_store_tests)
     qt_add_executable(tst_dockstore qml/dock/tst_dockstore.cpp
         qml/dock/DockLayoutStore.h qml/dock/DockLayoutStore.cpp)

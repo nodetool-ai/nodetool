@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
+import NodeTool.Media
 import "shotDraft.js" as Draft
 
 // One cell of the storyboard grid: the clip or current still, the status, the hover actions, and
@@ -11,7 +12,7 @@ Rectangle {
     required property var boardDocument
     property string caption: ""
     property var mediaBrowser: null
-    property var timeline: null
+    property Component clipPlayer: null
     property bool selected: false
     property bool stillsOnly: false
     property bool readOnly: false
@@ -19,6 +20,9 @@ Rectangle {
     property bool dropTarget: false
     property real ratio: 16 / 9
     property bool playing: false
+    property int cardIndex: Math.max(0, Number(shot.index) || 0)
+    // False when the card shows a shot that was on the board before, so a rebuild does not fade it again.
+    property bool animateIn: true
     signal selectRequested()
     signal editRequested()
     signal renderRequested(string kind)
@@ -74,6 +78,26 @@ Rectangle {
     color: Ui.Theme.surfacePanel
     border.width: dropTarget ? Ui.Metrics.focus : Ui.Metrics.border
     border.color: dropTarget || selected ? Ui.Theme.accentPrimary : generating ? Ui.Theme.statusInfo : Ui.Theme.borderSubtle
+    Behavior on border.color {
+        enabled: !Ui.Theme.reducedMotion
+        ColorAnimation { duration: Ui.Metrics.motionQuick }
+    }
+    opacity: Ui.Theme.reducedMotion || !animateIn ? 1 : 0
+    Component.onCompleted: if (!Ui.Theme.reducedMotion && animateIn) appear.start()
+    Connections {
+        target: Ui.Theme
+        function onReducedMotionChanged() {
+            if (Ui.Theme.reducedMotion) {
+                appear.stop()
+                card.opacity = 1
+            }
+        }
+    }
+    SequentialAnimation {
+        id: appear
+        PauseAnimation { duration: Ui.Theme.reducedMotion ? 0 : Math.min(card.cardIndex, 8) * (Ui.Metrics.motionQuick / 5) }
+        NumberAnimation { target: card; property: "opacity"; from: 0; to: 1; duration: Ui.Theme.reducedMotion ? 0 : Ui.Metrics.motionNormal; easing.type: Easing.OutCubic }
+    }
     clip: true
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
@@ -97,16 +121,25 @@ Rectangle {
             id: media
             Layout.fillWidth: true
             Layout.preferredHeight: width / card.ratio
+            clip: true
             Rectangle { anchors.fill: parent; color: Ui.Theme.actionHover }
-            Image {
+            StableImage {
                 id: still
                 objectName: "shotCardImage_" + card.shot.id
                 anchors.fill: parent
                 source: card.previewClip ? card.thumbnail(card.previewClip) || card.thumbnail(card.shot.keyframe) : card.hasKeyframe ? card.thumbnail(card.shot.keyframe) : ""
-                visible: !card.playing && status === Image.Ready
+                opacity: !card.playing && loaded ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity {
+                    enabled: !Ui.Theme.reducedMotion
+                    NumberAnimation { duration: Ui.Metrics.motionNormal; easing.type: Easing.OutCubic }
+                }
+                scale: hover.hovered && !Ui.Theme.reducedMotion ? 1.03 : 1
+                Behavior on scale {
+                    enabled: !Ui.Theme.reducedMotion
+                    NumberAnimation { duration: Ui.Metrics.motionNormal; easing.type: Easing.OutCubic }
+                }
                 fillMode: Image.PreserveAspectCrop
-                asynchronous: true
-                sourceSize: Qt.size(card.width * 2, card.width * 2 / card.ratio)
             }
             Ui.Text {
                 anchors.centerIn: parent
@@ -120,10 +153,9 @@ Rectangle {
             }
             Loader {
                 anchors.fill: parent
-                active: card.playing && !!card.previewClip
-                source: "ShotClipPlayer.qml"
+                active: card.playing && !!card.previewClip && !!card.clipPlayer
+                sourceComponent: card.clipPlayer
                 onLoaded: {
-                    item.timeline = Qt.binding(() => card.timeline)
                     item.durationMs = Qt.binding(() => { const seconds = Number(card.previewClip ? card.previewClip.duration : 0); return isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0 })
                     item.assetId = Qt.binding(() => card.assetId(card.previewClip))
                     item.togglePlay()
@@ -153,7 +185,13 @@ Rectangle {
                 height: actions.implicitHeight + 2 * Ui.Metrics.micro
                 radius: Ui.Metrics.radiusControl
                 color: Ui.Theme.surfaceOverlay
-                visible: hover.hovered || card.activeFocus || card.menu.opened
+                readonly property bool shown: hover.hovered || card.activeFocus || card.menu.opened
+                opacity: shown ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity {
+                    enabled: !Ui.Theme.reducedMotion
+                    NumberAnimation { duration: Ui.Metrics.motionQuick; easing.type: Easing.OutCubic }
+                }
                 Row {
                     id: actions
                     anchors.centerIn: parent

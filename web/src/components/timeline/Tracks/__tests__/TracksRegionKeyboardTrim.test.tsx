@@ -1,5 +1,5 @@
 /**
- * Keyboard trims (E, Ctrl+Shift+arrow) honour the source length like the
+ * Keyboard trims (E, Ctrl+Alt+arrow) honour the source length like the
  * pointer trim does (F18).
  */
 import { describe, it, expect, jest, afterEach } from "@jest/globals";
@@ -77,7 +77,7 @@ describe("keyboard frame steps stay on the frame grid", () => {
         key: "ArrowLeft",
         code: "ArrowLeft",
         ctrlKey: true,
-        shiftKey: true
+        altKey: true
       });
     }
     // Three frames off 1000 ms (frame 30) is frame 27: 900 ms, not 901.
@@ -90,7 +90,7 @@ describe("keyboard frame steps stay on the frame grid", () => {
       useTimelineUIStore.getState().setSelection([clip.id]);
     });
     for (let i = 0; i < 3; i++) {
-      fireEvent.keyDown(window, { key: "ArrowRight", code: "ArrowRight" });
+      fireEvent.keyDown(window, { key: "ArrowRight", code: "ArrowRight", altKey: true });
     }
     const moved = useTimelineStore.getState().clips.find((c) => c.id === clip.id)!;
     expect(moved.startMs).toBe(100);

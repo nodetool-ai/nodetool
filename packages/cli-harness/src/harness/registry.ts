@@ -2612,6 +2612,9 @@ export const SURFACES: SurfaceEntry[] = [
       "native/node-editor/qml/",
       "native/node-editor/src/ui/",
       "native/model-picker/qml/",
+      "native/media/",
+      "native/entities/",
+      "native/storyboard/",
       "native/timeline/qml/",
       "native/timeline/src/"
     ],

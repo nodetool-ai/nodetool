@@ -19,6 +19,8 @@ class ActivityController : public QObject {
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QString scopeLabel READ scopeLabel NOTIFY changed)
     Q_PROPERTY(QString lastUpdated READ lastUpdated NOTIFY changed)
+    // True while the panel is visible. Polling runs only then.
+    Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 public:
     using Call = std::function<nt::server::QueryResult(bool, const QString&, const QJsonObject&)>;
     explicit ActivityController(QObject* parent = nullptr);
@@ -34,6 +36,9 @@ public:
     QString error() const { return m_error; }
     QString scopeLabel() const;
     QString lastUpdated() const { return m_lastUpdated; }
+    bool active() const { return m_active; }
+    void setActive(bool value);
+    bool polling() const { return m_poll.isActive(); }
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void loadMore();
     Q_INVOKABLE void cancel(const QString& id, const QString& source = {});
@@ -41,6 +46,7 @@ public:
     static QVariantMap generationRow(const QJsonObject& value);
 signals:
     void changed();
+    void activeChanged();
 private:
     void request(bool more, const QString& cancelId = {}, const QString& cancelSource = {});
     void reset();
@@ -56,4 +62,5 @@ private:
     QString m_jobCursor, m_generationCursor, m_error, m_lastUpdated;
     QString m_jobHeadCursor, m_generationHeadCursor;
     bool m_stale = true;
+    bool m_active = false;
 };

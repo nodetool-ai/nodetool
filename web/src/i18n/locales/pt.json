@@ -16985,7 +16985,6 @@
       "press": "Pressione",
       "toggleHint": "a qualquer momento para alternar este painel · Ctrl também responde a ⌘ no macOS",
       "presets": {
-        "nodetool": "NodeTool",
         "premiere": "Premiere Pro",
         "fcp": "Final Cut Pro"
       },

@@ -570,7 +570,11 @@ function formatUiContext(uiContext?: UiContext | null): string {
 
   const hasTimeline =
     focused?.type === "timeline" || open.some((ref) => ref.type === "timeline");
-  if (hasTimeline) {
+  if (source === "timeline_assistant") {
+    lines.push(
+      "This is the native timeline editor. It edits, inspects and renders the open timeline itself, through its `ui_timeline_*` tools. Read it with `ui_timeline_get_state`. Run any editor command (trim, ripple, markers, tracks, mix, effects, text, undo) with `ui_timeline_list_commands` and `ui_timeline_run_command`. Look at the composited picture with `ui_timeline_capture_frame`, and check levels with `ui_timeline_read_scopes`. Generate media for a clip with `ui_timeline_generate_clip`. The server timeline, render and media tools are not available here."
+    );
+  } else if (hasTimeline) {
     lines.push(
       "After editing a timeline sequence, call `validate_timeline` with its id. It statically catches clips on missing tracks, overlaps, fades longer than their clip, and timings that cannot render — before the user renders."
     );

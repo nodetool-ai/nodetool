@@ -5,6 +5,8 @@ import NodeTool.UiPrimitives as Ui
 ToolTip {
     id: root
     property Item trigger: null
+    // Set when a host reads anchorPoint or triggerBounds while the tooltip is hidden.
+    property bool followsTrigger: false
     parent: trigger ? trigger.Overlay.overlay : Overlay.overlay
     delay: Metrics.tooltipDelay
     padding: Metrics.sm
@@ -21,6 +23,7 @@ ToolTip {
         trigger: root.trigger
         overlay: root.parent
         active: root.visible
+        followsTrigger: root.followsTrigger
         onDismissed: root.close()
     }
     contentItem: Ui.Text { text: root.text; role: Typography.SansCaption; wrapMode: Text.Wrap; clip: true }

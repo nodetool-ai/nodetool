@@ -84,7 +84,7 @@ test('QML-only packages discover resources, singletons, panels and nested module
     for (const entry of ['packages', 'web']) {
       symlinkSync(path.resolve(source, '../..', entry), path.join(scratch, entry), 'dir');
     }
-    for (const sibling of ['chat', 'model-picker', 'ui_primitives']) {
+    for (const sibling of ['chat', 'model-picker', 'ui_primitives', 'media', 'entities', 'storyboard']) {
       symlinkSync(path.resolve(source, '..', sibling), path.join(scratch, 'native', sibling), 'dir');
     }
     for (const entry of readdirSync(source)) {

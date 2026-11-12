@@ -288,7 +288,7 @@ private:
     void nudge(double deltaMs, bool merge);
     void dropGesture();
     std::optional<double> sourceCap(const QJsonObject& clip);
-    void probeSources();
+    void probeSources(bool all = true);
     void syncPlaybackRange();
     // Ends a selection of clips, an edge and a gap, leaving trim mode's edit points.
     void clearClipSelection();
@@ -306,7 +306,7 @@ private:
     bool m_linked = true;
     QString m_dropMode = QStringLiteral("overwrite");
     QString m_tool = QStringLiteral("select");
-    QString m_preset = QStringLiteral("nodetool");
+    QString m_preset = QStringLiteral("premiere");
     Gesture m_gesture;
     QTimer m_autoScrollTimer;
     double m_snapGuideMs = -1;

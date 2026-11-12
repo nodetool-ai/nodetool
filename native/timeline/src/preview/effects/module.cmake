@@ -1,6 +1,7 @@
 nt_sources(decode src/preview/effects/BlendModes.h src/preview/effects/BlendModes.cpp
     src/preview/effects/DrawCache.h src/preview/effects/DrawCache.cpp
     src/preview/effects/Masks.h src/preview/effects/Masks.cpp
+    src/preview/effects/EffectMasks.h src/preview/effects/EffectMasks.cpp
     src/preview/effects/ClipEffects.h src/preview/effects/EffectPlan.cpp src/preview/effects/ClipEffects.cpp)
 nt_sources(app src/preview/effects/EffectsRegistrations.cpp)
 
@@ -28,6 +29,10 @@ function(nt_effects_tests)
     qt_add_executable(tst_masks src/preview/effects/tst_masks.cpp)
     target_link_libraries(tst_masks PRIVATE timeline_decode Qt6::Test)
     add_test(NAME tst_masks COMMAND tst_masks)
+    qt_add_executable(tst_effectmasks src/preview/effects/tst_effectmasks.cpp)
+    target_link_libraries(tst_effectmasks PRIVATE timeline_decode Qt6::Test)
+    target_compile_definitions(tst_effectmasks PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/src/preview/effects/fixtures/coverage")
+    add_test(NAME tst_effectmasks COMMAND tst_effectmasks)
     qt_add_executable(tst_effectplan src/preview/effects/tst_effectplan.cpp)
     target_link_libraries(tst_effectplan PRIVATE timeline_decode Qt6::Test)
     add_test(NAME tst_effectplan COMMAND tst_effectplan)
@@ -93,7 +98,7 @@ function(nt_effects_tests)
     set_tests_properties(tst_effectsblend_documents PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     add_test(NAME tst_effectsblend_render COMMAND tst_effectsblend blendPixels)
     set_tests_properties(tst_effectsblend_render PROPERTIES LABELS render)
-    add_test(NAME tst_effectsclip_render COMMAND tst_effectsblend clipPixels cropPixelsOnClip spreadPixels glowTintPixels vignetteGeometry wideBlurPixels sharpenRadius curveFidelity debandPixels secondaryColorPixels exposurePixels stabilizationPixels denoisePixels groupEffectAlpha)
+    add_test(NAME tst_effectsclip_render COMMAND tst_effectsblend clipPixels cropPixelsOnClip spreadPixels glowTintPixels vignetteGeometry wideBlurPixels sharpenRadius curveFidelity debandPixels secondaryColorPixels hueSatCurvesPixels exposurePixels stabilizationPixels denoisePixels groupEffectAlpha)
     set_tests_properties(tst_effectsclip_render PROPERTIES LABELS render)
     add_test(NAME tst_effectsmatte_render COMMAND tst_effectsblend mattePixels matteStrengthAndFeather maskPixels)
     set_tests_properties(tst_effectsmatte_render PROPERTIES LABELS render)

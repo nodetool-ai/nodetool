@@ -197,6 +197,23 @@ private slots:
         QCOMPARE(linkedInput->value("baseUpdatedAt").toString(), QString("revision"));
         QCOMPARE(controller.result().toMap().value("id").toString(), QString("script"));
     }
+    void oneEditEmitsChangedOnce() {
+        const QJsonObject clip{{"id", "clip"}, {"trackId", "v"}, {"mediaType", "video"}, {"startMs", 0}, {"durationMs", 100}};
+        const QJsonObject document{{"id", "sequence"},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+            {"clips", QJsonArray{clip}}};
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());
+        QVERIFY2(parsed.timeline.has_value(), qPrintable(parsed.error));
+        TimelineModel model; model.setTimeline(*parsed.timeline);
+        AssistController controller; controller.setModel(&model);
+        QSignalSpy changed(&controller, &AssistController::changed);
+        QSignalSpy edits(&model, &TimelineModel::timelineChanged);
+        QJsonObject next = clip; next.insert("durationMs", 200);
+        QVERIFY(model.replaceClips(QJsonArray{next}));
+        // The model emits clipsChanged and timelineChanged for one edit. One listener serves both.
+        QCOMPARE(edits.count(), 1);
+        QCOMPARE(changed.count(), 1);
+    }
     void syncOfSameTimelineKeepsOpenScript() {
         const auto load = [](const QString& id) {
             const QJsonObject document{{"id", id}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}};

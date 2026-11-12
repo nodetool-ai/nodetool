@@ -3,6 +3,7 @@
 // the ruler. Its x is the only thing that follows the clock (D30): a move
 // touches no model, no lane and not the ruler.
 import QtQuick
+import QtQuick.Shapes
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 
@@ -52,36 +53,35 @@ Item {
     width: 16
     z: TimelineMetrics.playheadLayer
 
-    // The line and its glow (boxShadow 0 0 10px secondary/40%).
+    // The line: 1 px blue.
     Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
-        width: 7
+        width: 1                            // LINE_WIDTH_PX
         height: parent.height
-        color: Qt.rgba(TimelineVisuals.overlay.r, TimelineVisuals.overlay.g, TimelineVisuals.overlay.b, 0.12)
-    }
-    Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: 1.5                          // LINE_WIDTH_PX
-        height: parent.height
-        color: TimelineVisuals.overlay
-        antialiasing: true
+        color: TimelineVisuals.editBlue
     }
 
-    Rectangle {
+    // The head: a blue pentagon over the ruler ticks, its point on the line at
+    // the bottom of the ruler, as in Premiere. The timecode reads in the track
+    // header corner.
+    Shape {
         id: pill
         objectName: "playheadPill"
-        y: 4
-        height: 20                          // PILL_HEIGHT_PX
-        width: pillText.implicitWidth + 2 * Ui.Metrics.md
-        radius: height / 2
-        color: TimelineVisuals.overlay
-        x: (playhead.width - width) / 2 + Math.round(TimelineFormat.pillShift(playhead.lineLeftPx, width, playhead.viewportWidthPx))
-        Ui.Text {
-            id: pillText
-            anchors.centerIn: parent
-            text: TimelineFormat.playheadTimecode(playhead.clock.time, playhead.fps)
-            role: Ui.Typography.MonoCaption
-            domainColor: TimelineVisuals.overlayContrast
+        readonly property string timecode: TimelineFormat.playheadTimecode(playhead.clock.time, playhead.fps)
+        x: (playhead.width - width) / 2
+        y: playhead.grabTopPx - height
+        width: 15
+        height: 16
+        preferredRendererType: Shape.CurveRenderer
+        ShapePath {
+            fillColor: TimelineVisuals.editBlue
+            strokeColor: "transparent"
+            startX: 0; startY: 0
+            PathLine { x: pill.width; y: 0 }
+            PathLine { x: pill.width; y: pill.height * 0.55 }
+            PathLine { x: pill.width / 2; y: pill.height }
+            PathLine { x: 0; y: pill.height * 0.55 }
+            PathLine { x: 0; y: 0 }
         }
     }
 

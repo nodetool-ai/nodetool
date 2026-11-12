@@ -89,7 +89,7 @@ constexpr int kRegionWidth = 1600;
 constexpr int kRegionHeight = 600;
 constexpr double kHeaderWidth = 320;
 constexpr double kToolbar = 36;
-constexpr double kRuler = 28;
+constexpr double kRuler = 40;  // TimelineMetrics.rulerHeight
 
 struct Layout {
     int tracks = 0;
@@ -1530,8 +1530,8 @@ private slots:
         row("slip", "slipClip", "slip", "body");
         row("slide", "slideClip", "slide", "body");
         row("cut", "splitClipAtTime", "cut", "body");
-        row("split-key", "splitSelectedAtPlayhead", "select", "", Qt::Key_S);
-        row("nudge", "nudge", "select", "", Qt::Key_Right);
+        row("split-key", "splitSelectedAtPlayhead", "select", "", Qt::Key_K, Qt::ControlModifier);
+        row("nudge", "nudge", "select", "", Qt::Key_Right, Qt::AltModifier);
     }
 
     void controllerEditsUseRegistry() {
@@ -1599,7 +1599,7 @@ private slots:
             QVERIFY(nt::app::overrideEdit(editName, edit));
         }
         if (keyCode) {
-            QVERIFY(g->handleKey(keyCode, keyCode == Qt::Key_S ? "s" : "", modifiers, false));
+            QVERIFY(g->handleKey(keyCode, keyCode == Qt::Key_K ? "k" : "", modifiers, false));
         } else {
             const double x = part == "start" ? 3 : part == "end" ? 76 : 30;
             const QPoint from = clipPoint("c-0-2", x);
@@ -1700,7 +1700,7 @@ private slots:
             raw.insert("clips", toJsonArray(split.clips));
             return raw;
         }));
-        QVERIFY(gestures.handleKey(Qt::Key_S, "s", 0, false));
+        QVERIFY(gestures.handleKey(Qt::Key_K, "k", int(Qt::ControlModifier), false));
         QCOMPARE(rightHalves.size(), 2);
         QCOMPARE(gestures.selection(), rightHalves);
         QCOMPARE(timeline.clipCount(), 40002);
@@ -1842,7 +1842,7 @@ private slots:
         QCOMPARE(clipJson("c-1-5").value("startMs").toDouble(), 5330.0);
     }
 
-    // The editing keys resolve through the web keymap (NodeTool preset).
+    // The editing keys resolve through the web keymap (Premiere preset).
     void editingKeys_data() { registryModes(); }
     void editingKeys() {
         QFETCH(bool, registered);
@@ -1859,7 +1859,7 @@ private slots:
         const QByteArray original = model->documentJson();
         g->setSelection({"c-0-2"});
         clock->seek(2400);
-        key(Qt::Key_S, {}, "s");  // split at the playhead
+        key(Qt::Key_K, Qt::ControlModifier, "k");  // split at the playhead
         QVERIFY(clipJson("c-0-2").isEmpty());
         QCOMPARE(g->selection().size(), 1);
         const QString right = g->selection().first();
@@ -1891,12 +1891,12 @@ private slots:
         g->setSelection({"c-0-2"});
         // A push drops the redo entries: count from the current index.
         const int entries = undo->index();
-        key(Qt::Key_Right);
+        key(Qt::Key_Right, Qt::AltModifier);
         QCOMPARE(clipJson("c-0-2").value("startMs").toDouble(), 2033.0);
-        for (int i = 0; i < 5; ++i) key(Qt::Key_Right, {}, {}, true);
+        for (int i = 0; i < 5; ++i) key(Qt::Key_Right, Qt::AltModifier, {}, true);
         QCOMPARE(clipJson("c-0-2").value("startMs").toDouble(), 2200.0);
         QCOMPARE(undo->index(), entries + 1);
-        key(Qt::Key_Right, Qt::ShiftModifier);  // a second
+        key(Qt::Key_Right, Qt::AltModifier | Qt::ShiftModifier);  // a second
         QCOMPARE(clipJson("c-0-2").value("startMs").toDouble(), 3200.0);
         QCOMPARE(undo->index(), entries + 2);
     }
@@ -1958,9 +1958,9 @@ private slots:
         g->setRippleMode(false);
         g->setSelection({visible[2]});
         clock->seek(clipJson(visible[2]).value("startMs").toDouble() + 100);
-        key(Qt::Key_S, {}, "s");
+        key(Qt::Key_K, Qt::ControlModifier, "k");
         record();
-        key(Qt::Key_Right);
+        key(Qt::Key_Right, Qt::AltModifier);
         record();
         key(Qt::Key_Delete, Qt::ShiftModifier);
         record();
@@ -2425,7 +2425,7 @@ private slots:
             QCOMPARE(g->activeTool(), tool);
         }
         QCOMPARE(g->shortcutFor("cutTool"), QStringLiteral("C"));
-        QCOMPARE(g->shortcutFor("stepFrameBack"), QStringLiteral("Alt+←"));
+        QCOMPARE(g->shortcutFor("stepFrameBack"), QStringLiteral("←"));
         QCOMPARE(g->shortcutFor("trackSelectBackwardTool"), QStringLiteral("Shift+A"));
         g->setKeyboardPreset(QStringLiteral("fcp"));
         QCOMPARE(g->shortcutFor("cutTool"), QStringLiteral("B"));
@@ -2509,24 +2509,23 @@ private slots:
             view->grabWindow().copy(0, 0, 1000, 160).save(qEnvironmentVariable("NT_SHOT_DIR") + "/native-markers.png");
         auto* ruler = region->findChild<RulerCanvas*>(QStringLiteral("rulerCanvas"));
         QCOMPARE(ruler->markers().size(), 2);
-        // The flag sits at its time; its label seeks.
+        // The glyph is centred on its time and draws no label; a click seeks.
         QQuickItem* first = flags[0]->property("label").toString() == "Marker 1" ? flags[0] : flags[1];
-        QCOMPARE(first->mapToItem(ruler, QPointF(1, 0)).x(), 250.0);
+        QCOMPARE(first->mapToItem(ruler, QPointF(first->width() / 2, 0)).x(), 250.0);
+        QVERIFY(!first->findChild<QQuickItem*>(QStringLiteral("markerLabel")));
         clock->seek(0);
-        click(first->mapToScene(QPointF(10, 7)).toPoint());
+        click(first->mapToScene(QPointF(first->width() / 2, first->height() / 2)).toPoint());
         QCOMPARE(clock->time(), 2500.0);
         // Next and previous marker.
         key(Qt::Key_M, Qt::ShiftModifier, "M");
         QCOMPARE(clock->time(), 6000.0);
         key(Qt::Key_M, Qt::ShiftModifier | Qt::MetaModifier, "M");
         QCOMPARE(clock->time(), 2500.0);
-        // Delete through the marker button, then undo it and the adds.
-        auto* markerDelete = first->findChild<QQuickItem*>(QStringLiteral("markerDelete"));
-        QVERIFY(markerDelete);
-        const auto deletePoint = markerDelete->mapToScene(QPointF(markerDelete->width() / 2, markerDelete->height() / 2)).toPoint();
-        QTest::mouseMove(view.get(), deletePoint);
-        QTRY_VERIFY(markerDelete->isVisible());
-        click(deletePoint);
+        // Delete through the ruler, then undo it and the adds.
+        auto* rulerItem = region->findChild<QQuickItem*>(QStringLiteral("timeRuler"));
+        QVERIFY(rulerItem);
+        const QString firstId = model->markersJson().at(0).toObject().value("id").toString();
+        QVERIFY(QMetaObject::invokeMethod(rulerItem, "deleteMarkerRequested", Q_ARG(QString, firstId)));
         frame();
         QCOMPARE(model->markersJson().size(), 1);
         model->undoStack()->undo();
@@ -2536,6 +2535,35 @@ private slots:
         QCOMPARE(model->markersJson().size(), 0);
         frame();
         QCOMPARE(itemsNamed("timelineMarker").size(), 0);
+    }
+
+    // Alt+drag on a marker sets its duration as one undo entry, and the range shows its name.
+    void altDragExtendsAMarkerToARange() {
+        load({2, 10}, 10, 0);
+        seed(10, 0);
+        region->forceActiveFocus();
+        clock->seek(2500);
+        key(Qt::Key_M, {}, "m");
+        frame();
+        QQuickItem* flag = itemsNamed("timelineMarker").value(0);
+        QVERIFY(flag);
+        auto* label = flag->findChild<QQuickItem*>(QStringLiteral("markerRangeLabel"));
+        QVERIFY(label);
+        QVERIFY(!label->isVisible());
+        const QPoint from = flag->mapToScene(QPointF(flag->width() / 2, flag->height() / 2)).toPoint();
+        clock->seek(0);
+        drag(from, from + QPoint(100, 0), 5, Qt::AltModifier, Qt::AltModifier);
+        frame();
+        // 100 px at 10 ms per px, within one pixel of the rounded press point.
+        QVERIFY(qAbs(model->markersJson().at(0).toObject().value("durationMs").toDouble() - 1000.0) <= 10.0);
+        QCOMPARE(clock->time(), 0.0);  // the Alt drag does not seek
+        flag = itemsNamed("timelineMarker").value(0);
+        label = flag->findChild<QQuickItem*>(QStringLiteral("markerRangeLabel"));
+        QVERIFY(label->isVisible());
+        QCOMPARE(label->property("text").toString(), QStringLiteral("Marker 1"));
+        model->undoStack()->undo();
+        QCOMPARE(model->markersJson().at(0).toObject().value("durationMs").toDouble(0), 0.0);
+        QCOMPARE(model->markersJson().size(), 1);
     }
 
     void inOutRangeFollowsThePlaybackStore() {
@@ -2610,7 +2638,7 @@ private slots:
         QCOMPARE(combos(cut), (QList<QStringList>{{"C"}}));
         int rows = 0;
         for (const QVariant& gv : groups) rows += gv.toMap().value("rows").toList().size();
-        QCOMPARE(rows, 131);
+        QCOMPARE(rows, 177);
         if (qEnvironmentVariableIsSet("NT_SHOT_DIR")) {
             view->resize(1600, 1000);
             sheetItem->setSize(region->size());
@@ -3016,7 +3044,7 @@ private slots:
         for (const QVariant& gv : webShortcutGroups(sheet))
             for (const QVariant& rv : gv.toMap().value("rows").toList())
                 available.insert(rv.toMap().value("id").toString(), rv.toMap().value("available").toBool());
-        QCOMPARE(available.size(), 131);
+        QCOMPARE(available.size(), 177);
         for (const char* yes : {"markClip", "cutTool", "markIn", "addMarker", "splitAtPlayhead", "undo", "playPause",
                                 "rollCut", "insertOnDrop", "disableSnapping", "toggleLoop", "playInToOut", "copy", "groupClips",
                                 "matchFrame", "selectEditPoint", "toggleScrubAudio"})

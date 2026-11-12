@@ -40,9 +40,8 @@ void AssistController::setModel(TimelineModel* model) {
     m_model = model;
     m_scriptRevisions.clear(); m_result.clear(); m_pendingCommitId.clear();
     if (model) {
-        connect(model, &TimelineModel::clipsChanged, this, &AssistController::changed);
         const auto invalidate = [this]() { if (m_busy && m_cancelled) { m_cancelled->store(true); } };
-        connect(model, &TimelineModel::timelineChanged, this, invalidate);
+        connect(model, &TimelineModel::clipsChanged, this, [this, invalidate] { invalidate(); emit changed(); });
         connect(model, &TimelineModel::markersChanged, this, invalidate);
         connect(model->undoStack(), &QUndoStack::indexChanged, this, [invalidate](int) { invalidate(); });
         m_timelineId = model->timeline().raw.value("id").toString();

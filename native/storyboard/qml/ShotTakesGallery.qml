@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
+import NodeTool.Media
 import "shotDraft.js" as Draft
 
 // Every still and clip take of one shot. A click on a take makes it the current still or clip; the
@@ -11,7 +12,7 @@ ColumnLayout {
     required property var shot
     property var shots: []
     property var mediaBrowser: null
-    property var timeline: null
+    property Component clipPlayer: null
     property bool readOnly: false
     property bool expanded: false
     signal acceptRequested(string kind, int index)
@@ -77,13 +78,12 @@ ColumnLayout {
                     Accessible.selected: take.isCurrent
                     onClicked: gallery.readOnly || take.isCurrent ? viewer.openTake(row.kind, take.modelData) : gallery.acceptRequested(row.kind, take.index)
                 }
-                Image {
+                StableImage {
                     anchors.fill: parent
                     anchors.margins: take.isCurrent ? Ui.Metrics.focus : Ui.Metrics.border
                     source: gallery.thumbnail(take.modelData)
-                    visible: status === Image.Ready
+                    visible: loaded
                     fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
                     clip: true
                 }
                 Rectangle {
@@ -147,24 +147,27 @@ ColumnLayout {
                 spacing: Ui.Metrics.xs
                 Ui.Text { text: section.modelData.label; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
                 GridLayout {
+                    id: takesGrid
                     Layout.fillWidth: true
                     columns: Math.max(1, Math.floor(width / (gallery.thumbWidth * 2)))
                     columnSpacing: Ui.Metrics.xs
                     rowSpacing: Ui.Metrics.xs
+                    GridReflow { id: takesReflow; columns: takesGrid.columns }
                     Repeater {
                         model: section.modelData.takes
                         delegate: Item {
                             id: large
                             required property var modelData
                             required property int index
+                            transform: largeGlide.shift
+                            GridGlide { id: largeGlide; target: large; active: takesReflow.active }
                             Layout.fillWidth: true
                             Layout.preferredHeight: width * 9 / 16
                             Rectangle { anchors.fill: parent; radius: Ui.Metrics.radiusControl; color: Ui.Theme.actionHover }
-                            Image {
+                            StableImage {
                                 anchors.fill: parent
                                 source: gallery.thumbnail(large.modelData)
                                 fillMode: Image.PreserveAspectFit
-                                asynchronous: true
                             }
                             Ui.ToolbarIconButton {
                                 anchors.right: parent.right
@@ -185,6 +188,6 @@ ColumnLayout {
         id: viewer
         shots: gallery.shots
         mediaBrowser: gallery.mediaBrowser
-        timeline: gallery.timeline
+        clipPlayer: gallery.clipPlayer
     }
 }

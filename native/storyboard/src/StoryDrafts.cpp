@@ -1,14 +1,30 @@
-#include "storyworkspace/StoryDrafts.h"
-#include "aiassist/AssistDocument.h"
+#include "StoryDrafts.h"
 #include <QJsonArray>
+#include <QRegularExpression>
 #include <QSet>
+#include <QStringList>
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <vector>
 
 namespace nt::storyworkspace {
 namespace {
 DraftResult invalid(const QString& message) { return {{}, message}; }
+std::optional<QString> resolveId(const QString& input, const QStringList& authorized) {
+    if (authorized.contains(input)) { return input; }
+    static const QRegularExpression shortId(QStringLiteral("^[0-9a-f]{12}$"));
+    if (input.size() != 12 || !shortId.match(input).hasMatch()) { return std::nullopt; }
+    static const QRegularExpression fullId(QStringLiteral("^[0-9a-f]{32}$"));
+    std::optional<QString> result;
+    for (const auto& id : authorized) {
+        if (id.size() == 32 && fullId.match(id).hasMatch() && id.startsWith(input)) {
+            if (result) { return std::nullopt; }
+            result = id;
+        }
+    }
+    return result;
+}
 bool identifier(const QJsonValue& value) {
     if (!value.isString() || value.toString().trimmed().isEmpty()) { return false; }
     const auto text = value.toString();
@@ -79,7 +95,7 @@ DraftResult patchShot(const QJsonObject& board, const QString& shotId, const QSt
     auto shots = document.value("shots").toArray();
     QStringList ids;
     for (const auto& shot : shots) { ids.append(shot.toObject().value("id").toString()); }
-    const auto id = nt::aiassist::resolveId(shotId, ids);
+    const auto id = resolveId(shotId, ids);
     if (!id) { return invalid("Shot is unavailable or its prefix is ambiguous."); }
     const QStringList textFields{"action", "dialogue", "narration", "motion", "sound", "notes", "end_state", "slug"};
     const QStringList cameraFields{"camera.framing", "camera.angle", "camera.movement", "camera.lens", "camera.equipment"};
@@ -117,7 +133,7 @@ DraftResult patchSpeaker(const QJsonObject& script, const QString& speakerId, co
     if (!document.value("cast").isArray()) { return invalid("Open a script before editing its cast."); }
     auto cast = document.value("cast").toArray(); QStringList ids;
     for (const auto& speaker : cast) { ids.append(speaker.toObject().value("id").toString()); }
-    const auto id = nt::aiassist::resolveId(speakerId, ids);
+    const auto id = resolveId(speakerId, ids);
     if (!id) { return invalid("Speaker is unavailable or its prefix is ambiguous."); }
     const auto binding = value.toObject();
     const bool voice = field == "voice" && (value.isNull() || (value.isObject()

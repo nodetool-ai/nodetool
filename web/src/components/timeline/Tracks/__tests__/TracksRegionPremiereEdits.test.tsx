@@ -23,7 +23,7 @@ jest.mock("../../../../lib/rest-fetch", () => ({
 }));
 
 afterEach(() => {
-  useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: "nodetool" });
+  useSettingsStore.getState().updateSettings({ timelineKeyboardPreset: "premiere" });
 });
 
 const setup = (): void => {

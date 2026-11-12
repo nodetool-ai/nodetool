@@ -32,6 +32,10 @@ public:
     void reset(const nt::Timeline* timeline);
     // The same tracks in a new snapshot (a clip edit): no row changes.
     void rebind(const nt::Timeline* timeline);
+    // Tracks edited in place (mute, solo, lock, height, name): rebinds and
+    // emits dataChanged for the changed rows only. Returns false, with no
+    // change, when a track was added, removed, reordered or changed type.
+    bool refresh(const nt::Timeline* timeline);
     const nt::Track* trackAt(int row) const;
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override;

@@ -15,8 +15,8 @@ QtObject {
     readonly property string matteEffectId: timelineModel ? timelineModel.effectMatteId : ""
     function toggleMatte(id) { timelineModel.setEffectMattePreview(clip.id, matteEffectId === id ? "" : id) }
     function clearMatte() { if (timelineModel && matteEffectId) timelineModel.setEffectMattePreview("", "") }
-    onLockedChanged: if (locked) clearMatte()
-    onEffectsChanged: if (matteEffectId && !effects.some(effect => effect.id === matteEffectId && effect.enabled)) clearMatte()
+    onLockedChanged: if (locked && clip.id) clearMatte()
+    onEffectsChanged: if (clip.id && matteEffectId && !effects.some(effect => effect.id === matteEffectId && effect.enabled)) clearMatte()
     property string observedId: ""
     property bool gesturing: false
     property bool staleRelease: false
@@ -130,7 +130,8 @@ QtObject {
     function remove(id) {
         write(effects.filter(effect => effect.id !== id));
     }
-    function processingStage(effect) { return effect.type === "denoise" ? -2 : effect.type === "stabilize" ? -1 : effect.type === "color" ? 1 : effect.type === "blur" ? 2 : 0 }
+    // A masked color or blur runs in place, so only an unmasked one joins the combined stage.
+    function processingStage(effect) { return effect.type === "denoise" ? -2 : effect.type === "stabilize" ? -1 : (effect.masks || []).some(mask => mask.enabled !== false && (mask.vertices || []).length >= 2) ? 0 : effect.type === "color" ? 1 : effect.type === "blur" ? 2 : 0 }
     function orderedEffects() {
         return effects
             .map((effect, index) => ({effect: effect, index: index}))

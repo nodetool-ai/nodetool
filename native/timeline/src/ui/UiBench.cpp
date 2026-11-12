@@ -13,12 +13,14 @@
 
 #include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QImage>
 #include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNativeGestureEvent>
 #include <QQmlComponent>
+#include <QQmlDebuggingEnabler>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickRenderControl>
@@ -92,6 +94,21 @@ struct Script {
         }
     }
 };
+
+int countItems(QQuickItem* item, bool* anyHidden = nullptr) {
+    int n = 1;
+    for (QQuickItem* child : item->childItems()) n += countItems(child);
+    return n;
+}
+
+// NT_UIBENCH_ITEMS: prints the item count of each large subtree.
+void dumpItems(QQuickItem* item, int depth) {
+    const int n = countItems(item);
+    if (n < 400 || depth > 14) return;
+    std::fprintf(stderr, "%*s%d %s %s visible=%d\n", depth * 2, "", n, item->metaObject()->className(),
+                 qPrintable(item->objectName()), int(item->isVisible()));
+    for (QQuickItem* child : item->childItems()) dumpItems(child, depth + 1);
+}
 
 int countClipItems(QQuickItem* item) {
     int n = item->objectName().startsWith(QLatin1String("clip-")) ? 1 : 0;
@@ -229,6 +246,11 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, const UiBenchOption
     QQuickWindow window(&control);
     hw::prepareWindow(&window);
     window.resize(options.size);
+    // NT_UIBENCH_QMLPROF=PORT: wait for `qmlprofiler --attach` on PORT.
+    if (const int port = qEnvironmentVariableIntValue("NT_UIBENCH_QMLPROF"); port > 0) {
+        QQmlDebuggingEnabler::enableDebugging(true);
+        QQmlDebuggingEnabler::startTcpDebugServer(port, QQmlDebuggingEnabler::WaitForClient);
+    }
     QQmlEngine engine;
     QQmlComponent component(&engine);
     component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
@@ -266,6 +288,7 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, const UiBenchOption
         return 2;
     }
     Script script{&window, area, options.frames, 0};
+    const bool resize = qEnvironmentVariableIsSet("NT_UIBENCH_RESIZE");
     Samples s;
     compositor->setPlaybackResolution(options.previewResolution);
     compositor->setPausedResolution(options.previewResolution);
@@ -299,7 +322,19 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, const UiBenchOption
         const double t0 = nowMs();
         keepPlaying(clock);
         clock.tick();
-        if (f >= 0) script.step(f);
+        if (f >= 0) {
+            // NT_UIBENCH_RESIZE: a live window resize in place of the gestures.
+            // The root item narrows and widens by 8 px steps (the render target
+            // keeps its size), so polish and sync measure the relayout.
+            if (resize) {
+                const int span = 600;
+                const int k = f % (2 * span);
+                const int d = k < span ? k : 2 * span - k;
+                root->setSize(QSizeF(options.size.width() - d, options.size.height() - d / 3));
+            } else {
+                script.step(f);
+            }
+        }
         QCoreApplication::processEvents();
         const double t1 = nowMs();
         compositor->update();
@@ -320,6 +355,23 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, const UiBenchOption
         s.guiMs.push_back(t3 - t0);
         s.frameMs.push_back(t4 - t0);
         observe(s, root, view, model, clock.time());
+    }
+    if (qEnvironmentVariableIsSet("NT_UIBENCH_ITEMS")) dumpItems(window.contentItem(), 0);
+    // NT_UIBENCH_SHOT=PATH: save the last frame as an image.
+    if (const QString shot = qEnvironmentVariable("NT_UIBENCH_SHOT"); !shot.isEmpty()) {
+        QRhiReadbackResult readback;
+        control.polishItems();
+        control.beginFrame();
+        control.sync();
+        control.render();
+        QRhiResourceUpdateBatch* batch = rhi->nextResourceUpdateBatch();
+        batch->readBackTexture(QRhiReadbackDescription(target.get()), &readback);
+        control.commandBuffer()->resourceUpdate(batch);
+        control.endFrame();
+        QImage image(reinterpret_cast<const uchar*>(readback.data.constData()), readback.pixelSize.width(),
+                     readback.pixelSize.height(), QImage::Format_RGBA8888_Premultiplied);
+        if (rhi->isYUpInFramebuffer()) image = image.mirrored();
+        std::fprintf(stderr, "screenshot %s: %s\n", qPrintable(shot), image.copy().save(shot) ? "saved" : "FAILED");
     }
     clock.pause();
     return report(options, model, s, script.events, view->flushCount() - flushesAtStart,

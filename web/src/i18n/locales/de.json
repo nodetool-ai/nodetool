@@ -16693,7 +16693,6 @@
       "press": "Drücke",
       "toggleHint": "jederzeit, um dieses Panel umzuschalten · Strg reagiert auf macOS auch auf ⌘",
       "presets": {
-        "nodetool": "NodeTool",
         "premiere": "Premiere Pro",
         "fcp": "Final Cut Pro"
       },

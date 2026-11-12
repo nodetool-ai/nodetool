@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
+import NodeTool.Media
 
 Ui.Dialog {
     id: dialog
@@ -123,10 +124,13 @@ Ui.Dialog {
             model: dialog.rows
             ScrollBar.vertical: Ui.ScrollBar {}
             Ui.Text { id: captionProbe; visible: false; text: "Ag"; role: Ui.Typography.SansCaption }
+            GridReflow { id: reflow; columns: tiles.columns; enabled: tiles.count > 0 }
             delegate: Item {
                 id: tile
                 required property var modelData
                 required property int index
+                transform: glide.shift
+                GridGlide { id: glide; target: tile; active: reflow.active }
                 objectName: "entityImageTile_" + modelData.id
                 readonly property string accessibleName: "Pick " + (modelData.name || "image")
                 width: tiles.tileWidth
@@ -155,15 +159,13 @@ Ui.Dialog {
                     height: width
                     color: Ui.Theme.surfaceInput
                     radius: Ui.Metrics.radiusControl
-                    Image {
+                    StableImage {
                         id: preview
                         anchors.fill: parent
                         anchors.margins: Ui.Metrics.micro
                         source: tile.modelData.url || ""
-                        asynchronous: true
                         fillMode: Image.PreserveAspectCrop
-                        sourceSize: Qt.size(width * 2, height * 2)
-                        visible: status === Image.Ready
+                        visible: loaded
                     }
                     Ui.Text {
                         anchors.centerIn: parent

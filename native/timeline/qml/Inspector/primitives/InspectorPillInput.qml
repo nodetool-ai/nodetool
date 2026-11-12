@@ -14,6 +14,8 @@ Item {
     property real minWidth: InspectorTokens.rowControlMinWidth
     property var scrub: null
     property string size: "small"
+    property bool quiet: false
+    property color quietColor: Ui.Theme.accentPrimary
     property string draft: value
     property bool typed: false
     property bool helpSuppressed: false
@@ -86,7 +88,9 @@ Item {
         from: root.scrub && root.scrub.min !== undefined ? root.scrub.min : -Infinity
         to: root.scrub && root.scrub.max !== undefined ? root.scrub.max : Infinity
         stepSize: root.scrub ? root.scrub.step : 1
-        horizontalAlignment: TextInput.AlignRight
+        horizontalAlignment: root.quiet ? TextInput.AlignLeft : TextInput.AlignRight
+        quiet: root.quiet
+        quietColor: root.quietColor
         onEditStarted: root.gestureStarted()
         onValuePreviewed: next => {
             root.draft = root.stepped(next, 1)

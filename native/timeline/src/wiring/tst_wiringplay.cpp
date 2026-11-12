@@ -48,7 +48,7 @@ private slots:
         clock.seek(1000); key(Qt::Key_I);
         clock.seek(3000); key(Qt::Key_O);
         QCOMPARE(clock.rangeInMs(), 1000.0); QCOMPARE(clock.rangeOutMs(), 3000.0);
-        key(Qt::Key_L, Qt::ShiftModifier); QVERIFY(clock.loop());
+        key(Qt::Key_L, Qt::ControlModifier | Qt::ShiftModifier); QVERIFY(clock.loop());
         clock.seek(2800); key(Qt::Key_L);
         nowNs += 500000000; clock.tick(); QCOMPARE(clock.time(), 1000.0);
         key(Qt::Key_K);
@@ -71,15 +71,15 @@ private slots:
     }
     void frameStep() {
         const auto before = doc();
-        clock.seek(1510); key(Qt::Key_Right, Qt::AltModifier);
+        clock.seek(1510); key(Qt::Key_Right);
         QVERIFY(qAbs(clock.time() - 46 * 1000.0 / 30) < 1e-9);
-        key(Qt::Key_Left, Qt::AltModifier); QCOMPARE(clock.time(), 1500.0);
-        key(Qt::Key_Right, Qt::AltModifier | Qt::ShiftModifier);
+        key(Qt::Key_Left); QCOMPARE(clock.time(), 1500.0);
+        key(Qt::Key_Right, Qt::ShiftModifier);
         QVERIFY(qAbs(clock.time() - 50 * 1000.0 / 30) < 1e-9);
-        clock.seek(6000); key(Qt::Key_Right, Qt::AltModifier); QCOMPARE(clock.time(), 6000.0);
-        clock.seek(0); key(Qt::Key_Left, Qt::AltModifier); QCOMPARE(clock.time(), 0.0);
+        clock.seek(6000); key(Qt::Key_Right); QCOMPARE(clock.time(), 6000.0);
+        clock.seek(0); key(Qt::Key_Left); QCOMPARE(clock.time(), 0.0);
         clock.seek(1500); key(Qt::Key_L);
-        const auto playingTime = clock.time(); key(Qt::Key_Right, Qt::AltModifier); QCOMPARE(clock.time(), playingTime);
+        const auto playingTime = clock.time(); key(Qt::Key_Right); QCOMPARE(clock.time(), playingTime);
         QCOMPARE(doc(), before); QCOMPARE(model.undoStack()->count(), 0);
     }
     void diamonds_data() {

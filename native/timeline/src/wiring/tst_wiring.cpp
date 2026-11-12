@@ -113,7 +113,7 @@ private slots:
             }
         }
         QVERIFY(listed);
-        QTest::keyClick(view.get(), Qt::Key_E, Qt::ShiftModifier);
+        QTest::keyClick(view.get(), Qt::Key_E, Qt::ControlModifier | Qt::AltModifier);
         QCOMPARE(keyRuns, before + 2);
         QVERIFY(ClipGestureController::availableActions().contains("sourceAppend"));
     }
@@ -262,7 +262,7 @@ private slots:
         auto* gestures = qobject_cast<ClipGestureController*>(item("clipGestures"));
         QVERIFY(gestures);
         QCOMPARE(gestures->selection(), QStringList{"c"});
-        QTest::keyClick(view.get(), Qt::Key_Right);
+        QTest::keyClick(view.get(), Qt::Key_Right, Qt::AltModifier);
         QVERIFY(model.clipsJson()[0].toObject().value("startMs").toDouble() != 1000);
         QCOMPARE(probe->property("clip").toMap(), model.clipsJson()[0].toObject().toVariantMap());
         click(item("undoButton"));
@@ -288,7 +288,7 @@ private slots:
         auto* probe = named(item("clip-many0"), "probe-clipBody");
         QCOMPARE(probe->property("clip").toMap().value("id").toString(), QString("many0"));
         click(item("clip-many0"));
-        QTest::keyClick(view.get(), Qt::Key_Right);
+        QTest::keyClick(view.get(), Qt::Key_Right, Qt::AltModifier);
         QVERIFY(model.clipsJson()[0].toObject().value("startMs").toDouble() > 0);
         QCOMPARE(probe->property("clip").toMap(), model.clipsJson()[0].toObject().toVariantMap());
         QCOMPARE(model.undoStack()->count(), 1);

@@ -320,7 +320,8 @@ InspectorPillInput { width: 200; value: "10"; scrub: ({step:1,min:0,max:1000}) }
         QCOMPARE(model.canvasWidth(), 1280);
         QCOMPARE(model.fps(), 24.0);
         QCOMPARE(model.tracks()->data(model.tracks()->index(0), TrackListModel::NameRole).toString(), QString("Renamed"));
-        QCOMPARE(resets.count(), 1);
+        // The rename lands through the incremental track refresh, not a model reset.
+        QCOMPARE(resets.count(), 0);
         QCOMPARE(model.documentGeneration(), generation);
         model.undoStack()->undo();
         QCOMPARE(model.documentJson(), before);
