@@ -25,7 +25,7 @@ export { NT_ERR_ARGS, NT_OK } from "./backend.js";
 /** Sample formats of `pcmDecode`, the NT_PCM_* values. */
 export const PCM_FORMATS = { u8: 1, s16: 2, s24: 3, s32: 4, f32: 5 } as const;
 export type PcmFormat = (typeof PCM_FORMATS)[keyof typeof PCM_FORMATS];
-const PCM_SAMPLE_BYTES: Record<number, number> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 4 };
+const PCM_SAMPLE_BYTES = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 4 } as const satisfies Record<PcmFormat, number>;
 
 export const BIQUAD_TYPES = {
   lowpass: 0,
