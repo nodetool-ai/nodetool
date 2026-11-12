@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <vector>
 
 namespace nt::audio {
 
@@ -31,7 +32,8 @@ bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model
     m_clock = &clock;
     if (m_followDocumentRate) {
         if (const auto snapshot = model.snapshot()) m_systemRate = engineRateFor(*snapshot);
-        m_documentConnection = QObject::connect(&model, &TimelineModel::documentReplaced, &model, [this]() {
+        // The context is this object's own, so its destruction ends the connection.
+        m_documentConnection = QObject::connect(&model, &TimelineModel::documentReplaced, &m_documentContext, [this]() {
             const auto snapshot = m_model->snapshot();
             QString why;
             if (!setSystemRate(snapshot ? engineRateFor(*snapshot) : 0, &why)) {
@@ -46,11 +48,34 @@ bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model
 
 bool AppAudio::setSystemRate(int hz, QString* error) {
     hz = std::max(0, hz);
-    if (hz == m_systemRate) return true;
+    const bool started = m_model && m_mode == u"system";
+    // After a failed reopen there is no engine, and any later call tries again.
+    if (hz == m_systemRate && (m_engine || !started)) return true;
+    const int previous = m_systemRate;
     m_systemRate = hz;
-    if (!m_engine || m_mode != u"system") return true;
+    if (!started) return true;
     closeEngine();
-    return openEngine(error);
+    QString why;
+    if (openEngine(&why)) return true;
+    // Keep the audio on: the rate that ran before, then the device's own rate.
+    std::vector<int> tried{hz};
+    for (const int fallback : {previous, 0}) {
+        if (std::find(tried.begin(), tried.end(), fallback) != tried.end()) continue;
+        tried.push_back(fallback);
+        m_systemRate = fallback;
+        if (openEngine(nullptr)) {
+            if (error) {
+                *error = QStringLiteral("cannot open the device at %1 Hz (%2), playing at %3")
+                             .arg(hz)
+                             .arg(why)
+                             .arg(fallback > 0 ? QStringLiteral("%1 Hz").arg(fallback) : QStringLiteral("its own rate"));
+            }
+            return false;
+        }
+    }
+    m_systemRate = hz;
+    if (error) *error = why;
+    return false;
 }
 
 bool AppAudio::openEngine(QString* error) {
@@ -90,7 +115,7 @@ bool AppAudio::openEngine(QString* error) {
     m_connections[0] = QObject::connect(&model, &TimelineModel::clipsChanged, timer, schedule);
     m_connections[1] = QObject::connect(&model, &TimelineModel::previewChanged, timer, schedule);
     std::string why;
-    if (!m_engine->start(options, &why)) {
+    if (!(m_startEngine ? m_startEngine(*m_engine, options, &why) : m_engine->start(options, &why))) {
         if (error) *error = QString::fromStdString(why);
         for (const auto& c : m_connections) QObject::disconnect(c);
         m_timer.reset();
@@ -115,7 +140,6 @@ void AppAudio::closeEngine() {
 }
 
 AppAudio::~AppAudio() {
-    QObject::disconnect(m_documentConnection);
     if (!m_engine) return;
     for (const auto& c : m_connections) QObject::disconnect(c);
     if (m_attachedClock) m_attachedClock->setAudioFeed(nullptr);

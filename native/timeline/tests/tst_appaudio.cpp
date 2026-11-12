@@ -7,8 +7,43 @@
 #include <QJsonObject>
 #include <QtTest>
 
+#include <algorithm>
+#include <string>
+#include <vector>
+
 using namespace nt;
 using namespace nt::audio;
+
+namespace {
+
+// The system backend for AppAudio, played by the null device. Each rate in
+// `refuse` fails to open once. `opened` lists the rate of every open.
+struct RefusingDevice {
+    std::vector<int> refuse;
+    std::vector<int> opened;
+
+    void install(AppAudio& audio) {
+        audio.setEngineStarterForTest([this](AudioEngine& engine, const AudioEngine::Options& options, std::string* why) {
+            if (options.backend != AudioEngine::Backend::System) {
+                *why = "not the system backend";
+                return false;
+            }
+            opened.push_back(options.sampleRate);
+            const auto it = std::find(refuse.begin(), refuse.end(), options.sampleRate);
+            if (it != refuse.end()) {
+                refuse.erase(it);
+                *why = "the device refused the rate";
+                return false;
+            }
+            AudioEngine::Options null = options;
+            null.backend = AudioEngine::Backend::Null;
+            null.sampleRate = options.sampleRate > 0 ? options.sampleRate : 48000;
+            return engine.start(null, why);
+        });
+    }
+};
+
+}  // namespace
 
 class TstAppAudio : public QObject {
     Q_OBJECT
@@ -51,6 +86,80 @@ private slots:
         QCOMPARE(audio.engine(), engine);
         QCOMPARE(audio.engine()->stats().sampleRate, 48000.0);
     }
+    // A system device that refuses a rate: setSystemRate reopens the engine
+    // at the rate it ran at, then at the device's own rate. The null device
+    // stands in for the system one.
+    void refusedRateFallsBack() {
+        TimelineModel model;
+        PlaybackClock clock;
+        RefusingDevice device;
+        AppAudio audio;
+        device.install(audio);
+        QString error;
+        QVERIFY2(audio.start(QStringLiteral("system"), 0, model, clock, &error), qPrintable(error));
+        QVERIFY(audio.setSystemRate(44100, &error));
+        QCOMPARE(audio.engine()->stats().sampleRate, 44100.0);
+
+        device.refuse = {48000};
+        QVERIFY(!audio.setSystemRate(48000, &error));
+        QVERIFY(!error.isEmpty());
+        QCOMPARE(device.opened, (std::vector<int>{0, 44100, 48000, 44100}));
+        QVERIFY(audio.engine() && audio.engine()->running());
+        QCOMPARE(audio.systemRate(), 44100);
+        QCOMPARE(audio.engine()->stats().sampleRate, 44100.0);
+        // The rate is asked for again later, and the device takes it now.
+        QVERIFY(audio.setSystemRate(48000, &error));
+        QCOMPARE(audio.engine()->stats().sampleRate, 48000.0);
+
+        device.refuse = {96000, 48000};
+        device.opened.clear();
+        QVERIFY(!audio.setSystemRate(96000, &error));
+        QCOMPARE(device.opened, (std::vector<int>{96000, 48000, 0}));
+        QVERIFY(audio.engine() && audio.engine()->running());
+        QCOMPARE(audio.systemRate(), 0);
+    }
+
+    // When no rate opens, the engine is gone until the next call, which
+    // opens it again: here the next document the window loads.
+    void reopensAfterEveryRateFailed() {
+        nt::Timeline plain;
+        nt::Timeline music;
+        music.raw.insert(QStringLiteral("music"), QJsonObject{{QStringLiteral("key"), QStringLiteral("C major")}});
+        TimelineModel model;
+        model.setTimeline(plain);
+        PlaybackClock clock;
+        RefusingDevice device;
+        AppAudio audio;
+        audio.setFollowDocumentRate(true);
+        device.install(audio);
+        QString error;
+        QVERIFY2(audio.start(QStringLiteral("system"), 0, model, clock, &error), qPrintable(error));
+        device.refuse = {48000, 0};
+        model.setTimeline(music);
+        QCOMPARE(audio.engine(), nullptr);
+        QCOMPARE(audio.systemRate(), kMusicEngineRate);
+        model.setTimeline(music);
+        QVERIFY(audio.engine() && audio.engine()->running());
+        QCOMPARE(audio.engine()->stats().sampleRate, 48000.0);
+    }
+
+    // The document connection ends with the AppAudio: a document loaded
+    // after it is gone reaches nothing of it.
+    void documentConnectionEndsWithTheAudio() {
+        nt::Timeline music;
+        music.raw.insert(QStringLiteral("music"), QJsonObject{{QStringLiteral("key"), QStringLiteral("C major")}});
+        TimelineModel model;
+        PlaybackClock clock;
+        {
+            AppAudio audio;
+            audio.setFollowDocumentRate(true);
+            QString error;
+            QVERIFY2(audio.start(QStringLiteral("null"), 0, model, clock, &error), qPrintable(error));
+        }
+        model.setTimeline(music);
+        model.setTimeline(nt::Timeline{});
+    }
+
     void idleWorkerDoesNotPoll() {
         TimelineModel model;
         PlaybackClock clock;
