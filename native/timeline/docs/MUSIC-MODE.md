@@ -463,6 +463,8 @@ A music project starts the system backend with `Options::sampleRate = 48000` in 
 4. For the first 3 ms after the wrap, the callback also mixes the outgoing session past the loop end into a fixed scratch buffer and crossfades it out. Audio that crosses the loop end then wraps without a click.
 5. The worker makes the wrap session current and prepares the next one.
 
+A plan with effects or automation keeps its DSP state in the plan, and a third `mixBlock` call at another time would advance that state, so such a plan wraps with a cut and no fade. Track and master effects then run on across the wrap, and clip effects reset as they do on a seek.
+
 `PlaybackClock` stops issuing its own seek at the range end while the engine loops. If the wrap session is not primed in time, the callback counts a `loopMisses` stat and the clock falls back to today's seek. An edit during a loop rebuilds the wrap session as it rebuilds the current one. Shuttle rates and reverse play keep today's seek.
 
 `mixBlock`, `PcmRing` and the offline render do not change, so the oracle tests that hold the mixer to the web's rules stay valid. The loop length is a whole number of frames by MD8.

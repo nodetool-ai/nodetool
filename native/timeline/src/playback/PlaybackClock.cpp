@@ -8,6 +8,11 @@
 using nt::playback::DeviceInfo;
 
 namespace {
+// While the device crosses the loop itself, the audible time stays below the
+// loop end by construction. Reaching this far past it means the device
+// missed the wrap, and the transport seeks as it does without the device.
+constexpr double kEngineLoopSlackMs = 1.0;
+
 std::int64_t steadyNowNs() {
     return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch())
         .count();
@@ -48,6 +53,7 @@ void PlaybackClock::setDurationMs(double ms) {
         // Keep the current anchors; the next tick applies stop/loop behavior
         // at the new end. Explicit In/Out bounds remain authoritative.
         updateBoundsLocked();
+        refreshEngineLoopLocked();
     }
     emit durationMsChanged();
 }
@@ -74,6 +80,7 @@ void PlaybackClock::setRangeIn(double ms) {
             m_rangeOutMs = -1.0;
         }
         updateBoundsLocked();
+        refreshEngineLoopLocked();
     }
     emit rangeChanged();
 }
@@ -86,6 +93,7 @@ void PlaybackClock::setRangeOut(double ms) {
             m_rangeInMs = -1.0;
         }
         updateBoundsLocked();
+        refreshEngineLoopLocked();
     }
     emit rangeChanged();
 }
@@ -96,6 +104,7 @@ void PlaybackClock::clearRange() {
         m_rangeInMs = -1.0;
         m_rangeOutMs = -1.0;
         updateBoundsLocked();
+        refreshEngineLoopLocked();
     }
     emit rangeChanged();
 }
@@ -182,9 +191,27 @@ double PlaybackClock::rawTimeLocked(std::int64_t nowNs) const {
     return m_monoAnchorMs + static_cast<double>(nowNs - m_monoAnchorNs) / 1.0e6 * m_rate;
 }
 
+bool PlaybackClock::engineLoopsLocked() const {
+    return m_feed && m_playing && m_rate == 1.0 && m_source == Source::Audio && (m_loop || m_spanLoops) &&
+           m_endMs > m_floorMs;
+}
+
+void PlaybackClock::refreshEngineLoopLocked() {
+    const bool loops = engineLoopsLocked();
+    if (loops == (m_command.loopEndMs > m_command.loopStartMs) &&
+        (!loops || (m_command.loopStartMs == m_floorMs && m_command.loopEndMs == m_endMs))) {
+        return;
+    }
+    // A new range continues the timeline where the device has it.
+    sendCommandLocked(false, 0.0, m_nowNs());
+}
+
 void PlaybackClock::sendCommandLocked(bool seek, double seekMs, std::int64_t nowNs) {
     if (!m_feed) return;
     m_command.seq += 1;
+    const bool loops = engineLoopsLocked();
+    m_command.loopStartMs = loops ? m_floorMs : -1.0;
+    m_command.loopEndMs = loops ? m_endMs : -1.0;
     m_command.playing = m_playing && m_rate > 0.0;
     m_command.keepPitch = m_keepShuttlePitch && nt::audio::shuttleKeepsPitch(m_rate);
     if (!m_scrubAudio) m_command.scrub = false;
@@ -515,7 +542,10 @@ void PlaybackClock::tick() {
             anchorLocked(rawTimeLocked(now), now);
         }
         const double t = rawTimeLocked(now);
-        if (m_rate > 0.0 && m_endMs > 0.0 && t >= m_endMs) {
+        // MD19: the device wraps at the loop end by itself, and the time read
+        // from it is already wrapped. It goes past the end only after a miss.
+        const bool engineLoops = m_source == Source::Audio && m_command.loopEndMs > m_command.loopStartMs;
+        if (m_rate > 0.0 && m_endMs > 0.0 && t >= m_endMs + (engineLoops ? kEngineLoopSlackMs : 0.0)) {
             if ((m_loop || m_spanLoops) && m_endMs > m_floorMs) {
                 m_timeMs = m_floorMs;
                 ++m_seekSerial;
@@ -532,7 +562,10 @@ void PlaybackClock::tick() {
             sendCommandLocked(false, 0.0, now);
             stopped = true;
         } else {
-            m_timeMs = std::max(0.0, t);
+            // A wrap the device made counts as a seek for what follows the
+            // clock (motion blur restarts its history).
+            if (engineLoops && t + 1.0 < m_timeMs) ++m_seekSerial;
+            m_timeMs = std::max(0.0, engineLoops ? std::min(t, m_endMs) : t);
         }
         if (stopped && m_playingInToOut) {
             m_playingInToOut = false;
