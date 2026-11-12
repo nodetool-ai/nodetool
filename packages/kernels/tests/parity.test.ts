@@ -4,7 +4,7 @@
  * kernels must be equal up to AUDIO_TOLERANCE.
  */
 import { beforeAll, describe, expect, it } from "vitest";
-import { loadWasmKernels, type Kernels } from "../src/index.js";
+import { PCM_FORMATS, loadWasmKernels, type Kernels } from "../src/index.js";
 import * as ref from "./reference.js";
 
 /**
@@ -240,6 +240,49 @@ describe("filter and synthesis kernels", () => {
     expect(Array.from(k.vca(audio, new Float32Array([0.5, -2]), 2, 2))).toEqual([1, -1, 0, -0]);
     const held = k.sampleHold(new Float64Array(2), new Float32Array([1, 2, 3, 4]), new Float32Array([0, 1, 1, 0]));
     expect(Array.from(held)).toEqual([0, 2, 2, 2]);
+  });
+});
+
+describe("PCM codec kernels", () => {
+  const r = rng(11);
+  // Random bytes cover every integer code, and the float bytes include NaN
+  // and infinities.
+  const bytes = new Uint8Array(4 * 3 * 1001);
+  for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(r() * 256);
+
+  it("decode is bit-equal with the DataView loop for every WAV format", () => {
+    const cases = [
+      [PCM_FORMATS.u8, 8, false],
+      [PCM_FORMATS.s16, 16, false],
+      [PCM_FORMATS.s24, 24, false],
+      [PCM_FORMATS.s32, 32, false],
+      [PCM_FORMATS.f32, 32, true]
+    ] as const;
+    for (const [format, bits, isFloat] of cases) {
+      const want = ref.pcmDecode(bytes, bits, isFloat);
+      const got = k.pcmDecode(bytes, format);
+      expect(got.length).toBe(want.length);
+      expect(new Uint32Array(got.buffer)).toEqual(new Uint32Array(want.buffer));
+    }
+  });
+
+  it("decode ignores a trailing partial sample", () => {
+    expect(k.pcmDecode(new Uint8Array([0xff, 0x7f, 0x01]), PCM_FORMATS.s16)).toEqual(new Float32Array([1]));
+  });
+
+  it("16-bit encode is byte-equal with the DataView loop", () => {
+    const samples = new Float32Array(20000);
+    for (let i = 0; i < samples.length; i++) samples[i] = (r() - 0.5) * 2.4;
+    // Halves of the 32767 scale, clipping, -0, NaN and infinities.
+    samples.set([0.5, -0.5, 1, -1, 1.0000001, -1.0000001, -0, NaN, Infinity, -Infinity, 1 / 65534, -1 / 65534]);
+    expect(k.pcm16Encode(samples)).toEqual(ref.pcm16Encode(samples));
+  });
+
+  it("16-bit encode writes into a view and leaves the rest of its buffer", () => {
+    const wav = new Uint8Array(8).fill(9);
+    k.pcm16Encode(new Float32Array([1, -1]), wav.subarray(2, 6));
+    expect(Array.from(wav)).toEqual([9, 9, 0xff, 0x7f, 0x01, 0x80, 9, 9]);
+    expect(() => k.pcm16Encode(new Float32Array(3), new Uint8Array(8))).toThrow(RangeError);
   });
 });
 
