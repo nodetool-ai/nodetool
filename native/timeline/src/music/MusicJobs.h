@@ -29,6 +29,8 @@
 //   inserts the placeholder and sends with the track role.
 // The bounce renders a copy of the snapshot taken at submission (MD16).
 //
+// While a job is active, a lost socket is reopened after 1, 2, 4, 8 and 16
+// seconds, then every 30 seconds until it connects.
 // Results arrive as `rpc_response` or through `lookup_generations`, polled
 // every 3 seconds for every active request id in one call. `music_status`
 // in a running row tells queued from running. A row left `interrupted` by a
@@ -102,6 +104,7 @@ public:
         CanCancelRole,
         CanRetryRole,
         CanPlaceRole,
+        CanDismissRole,   // a final job, which Dismiss removes with its record
         TitleRole,        // "Generate · Keyboard · bars 9–12"
         PlacedCountRole,  // takes the result placed on the clip
         SeedRole,         // the first placed take's seed, or -1
@@ -138,6 +141,7 @@ public:
     static constexpr int kMaxActiveJobs = 8;
     static constexpr int kPollIntervalMs = 3000;
     static constexpr int kMaxResubmits = 1;
+    static constexpr int kMaxReconnectDelayMs = 30000;
 
     explicit MusicJobs(QObject* parent = nullptr);
     ~MusicJobs() override;
@@ -190,9 +194,11 @@ public:
     // The expected run time of a window of `requestFrames` for this task and
     // model, from the stored average. 0: no job of that kind has finished.
     Q_INVOKABLE double expectedMs(const QString& task, const QString& model, double requestFrames) const;
-    // The context bounce of every job in the list, final ones included: a
-    // retry sends the same context again (TK-5 keeps these).
-    QStringList contextAssetIds() const;
+    // The assets clean-up must keep for the job list (TK-5): the context
+    // bounce and, for Regenerate, the splice parent of every job that is
+    // active, failed or cancelled (a retry sends them again) or that holds
+    // takes not yet placed. A finished job holds nothing.
+    QStringList heldAssetIds() const;
 
 signals:
     void timelineChanged();
@@ -256,6 +262,8 @@ private:
     void setState(Job& job, const QString& state);
     void publish();
     QVariantMap row(const Job& job) const;
+    // A Regenerate job whose clip is no longer in the document.
+    bool clipGone(const Job& job) const;
     // "bars 9–12" for the job's target, empty without a tempo.
     QString barsText(const Job& job) const;
     // "Generate · Keyboard", with " · bars 9–12" when `withBars`.

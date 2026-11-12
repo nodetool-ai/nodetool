@@ -47,6 +47,8 @@ QJsonObject range(std::int64_t start, std::int64_t end) {
     return {{"start_frame", static_cast<qint64>(start)}, {"end_frame", static_cast<qint64>(end)}};
 }
 
+const QString kClipDeleted = QStringLiteral("The clip was deleted, so these takes cannot be placed.");
+
 QString settingsKey(const QString& task, const QString& model) {
     auto name = model;
     name.replace(QLatin1Char('/'), QLatin1Char('_'));
@@ -90,6 +92,7 @@ QVariant MusicJobListModel::data(const QModelIndex& index, int role) const {
     case CanCancelRole: return row.value("canCancel");
     case CanRetryRole: return row.value("canRetry");
     case CanPlaceRole: return row.value("canPlace");
+    case CanDismissRole: return row.value("canDismiss");
     case TitleRole: return row.value("title");
     case PlacedCountRole: return row.value("placedCount");
     case SeedRole: return row.value("seed");
@@ -105,7 +108,8 @@ QHash<int, QByteArray> MusicJobListModel::roleNames() const {
             {StartFrameRole, "startFrame"}, {EndFrameRole, "endFrame"},
             {ResubmitCountRole, "resubmitCount"}, {UnplacedTakesRole, "unplacedTakes"},
             {CanCancelRole, "canCancel"},   {CanRetryRole, "canRetry"},
-            {CanPlaceRole, "canPlace"},     {TitleRole, "title"},
+            {CanPlaceRole, "canPlace"},     {CanDismissRole, "canDismiss"},
+            {TitleRole, "title"},
             {PlacedCountRole, "placedCount"}, {SeedRole, "seed"}};
 }
 
@@ -223,8 +227,11 @@ MusicJobs::MusicJobs(QObject* parent)
     });
     connect(&m_transport, &nt::ai::GenerationTransport::disconnected, this, [this] {
         m_poll.stop();
-        if (activeCount() > 0 && m_target && m_reconnectAttempts < 5) {
-            m_reconnect.start(std::min(30000, 1000 << m_reconnectAttempts++));
+        // 1, 2, 4, 8 and 16 seconds, then every 30 seconds while a job is
+        // active: polling and the JB-2 resubmit need the socket back.
+        if (activeCount() > 0 && m_target) {
+            m_reconnect.start(std::min(kMaxReconnectDelayMs, 1000 << std::min(m_reconnectAttempts, 5)));
+            ++m_reconnectAttempts;
         }
     });
 }
@@ -267,6 +274,12 @@ void MusicJobs::setTimeline(TimelineModel* timeline) {
             restore();
             publish();
             if (activeCount() > 0) open();
+        });
+        // A deleted or restored clip changes whether a Regenerate result can be placed.
+        connect(m_timeline, &TimelineModel::clipsChanged, this, [this] {
+            if (std::any_of(m_jobs.begin(), m_jobs.end(), [](const Job& job) { return job.operation == u"repaint" && !job.takes.isEmpty(); })) {
+                publish();
+            }
         });
         restore();
         if (activeCount() > 0) QTimer::singleShot(0, this, [this] { if (activeCount() > 0) open(); });
@@ -390,8 +403,13 @@ QVariantMap MusicJobs::clipJobs() const {
     return out;
 }
 
+bool MusicJobs::clipGone(const Job& job) const {
+    return job.operation == u"repaint" && (!m_timeline || !m_timeline->findClip(job.clipId));
+}
+
 QVariantMap MusicJobs::row(const Job& job) const {
-    const bool placeable = !job.takes.isEmpty() && (job.state == u"done" || job.state == u"failed");
+    // A Regenerate result goes into its clip only; with the clip deleted it has nowhere to go.
+    const bool placeable = !job.takes.isEmpty() && (job.state == u"done" || job.state == u"failed") && !clipGone(job);
     return {{"jobId", job.id},
             {"title", jobTitle(job, true)},
             {"placedCount", job.placedCount},
@@ -412,14 +430,23 @@ QVariantMap MusicJobs::row(const Job& job) const {
             {"unplacedTakes", job.state == u"placing" ? 0 : static_cast<int>(job.takes.size())},
             {"canCancel", job.state == u"rendering" || job.state == u"queued" || job.state == u"running"},
             {"canRetry", job.state == u"failed" || job.state == u"cancelled"},
-            {"canPlace", placeable}};
+            {"canPlace", placeable},
+            {"canDismiss", isFinal(job.state)}};
 }
 
-QStringList MusicJobs::contextAssetIds() const {
+QStringList MusicJobs::heldAssetIds() const {
     QStringList ids;
     for (const auto& job : m_jobs) {
+        // A job that is done holds nothing unless takes wait to be placed;
+        // a failed or cancelled one can be retried.
+        if (job.state == u"done" && job.takes.isEmpty()) continue;
         if (!job.contextAssetId.isEmpty()) ids.append(job.contextAssetId);
+        if (job.operation == u"repaint") {
+            const auto parent = job.request.value("music").toObject().value("splice").toObject().value("parent_asset_id").toString();
+            if (!parent.isEmpty()) ids.append(parent);
+        }
     }
+    ids.removeDuplicates();
     return ids;
 }
 
@@ -598,7 +625,9 @@ QString MusicJobs::submit(const QString& trackId, double startFrame, double endF
                          {"tracks", raw.value("tracks")},
                          {"clips", m_timeline->clipsJson()}};
     if (override) planJson.insert("operation", text(taskName(*override)));
-    const auto input = planInputFromJson(planJson);
+    auto input = planInputFromJson(planJson);
+    // A sequence with no tempo object reads at DEFAULT_TEMPO, as in the panel.
+    if (const auto tempo = sequenceTempo(raw)) static_cast<MusicTempo&>(input.tempo) = *tempo;
     if (const auto refusal = musicTempoRefusal(input.tempo); !refusal.empty()) {
         setError(QString::fromStdString(refusal));
         return {};
@@ -774,32 +803,34 @@ QString MusicJobs::regenerate(const QString& clipId, const QString& takeId, bool
     job.createdAt = isoNow();
     job.submittedAtMs = nowMs();
     if (*task == MusicTask::Text2Music) {
-        // The window the take was cut from starts `segmentIndex` take lengths
-        // before it. Generate has no context, so the planner gives the same
-        // window again from the tempo alone.
+        // The same window again, not planned again: the record's target is the
+        // clip range and the window start, `requestFrames` its length, and the
+        // take is segment `segmentIndex` of it. Sending that segment with its
+        // index makes the same seed give the same audio, and the server records
+        // the clip range as the new take's target, so a replay of a replay asks
+        // for the same thing.
         const auto length = targetEnd - targetStart;
-        const auto segment = record.value("segmentIndex").toInt();
-        const auto windowStart = targetStart - segment * length;
-        PlanInput input;
-        input.tempo.bpm = tempo;
-        input.tempo.offsetMs = m_timeline->timeline().raw.value("tempo").toObject().value("offsetMs").toDouble();
-        input.tempo.beatsPerBar = music.value("beats_per_bar").toInt();
-        input.tempo.beatUnit = music.value("beat_unit").toInt();
-        input.selection = Selection{job.trackId.toStdString(), static_cast<double>(windowStart), static_cast<double>(windowStart + length)};
-        input.tracks.push_back(PlanTrack{job.trackId.toStdString(), "audio"});
-        input.operation = MusicTask::Text2Music;
-        const auto plan = planMusicOperation(input);
-        if (windowStart < 0 || !plan.refusal.empty() || !plan.segments || segment < 0 ||
-            segment >= static_cast<int>(plan.segments->size())) {
+        const auto segment = record.value("segmentIndex").toInteger(-1);
+        const auto requestFrames = record.value("requestFrames").toInteger(-1);
+        MusicTempo replayTempo;
+        replayTempo.bpm = tempo;
+        replayTempo.beatsPerBar = music.value("beats_per_bar").toInt();
+        replayTempo.beatUnit = music.value("beat_unit").toInt();
+        if (const auto sequence = sequenceTempo(m_timeline->timeline().raw)) replayTempo.offsetMs = sequence->offsetMs;
+        if (segment < 0 || requestFrames <= 0 || (segment + 1) * length > requestFrames ||
+            !musicTempoRefusal(replayTempo).empty()) {
             setError(QStringLiteral("The take's record does not fit the project's tempo."));
             return {};
         }
-        const auto& segmentRange = (*plan.segments)[static_cast<std::size_t>(segment)];
-        job.windowStartFrame = windowStart;
-        job.requestFrames = *plan.requestFrames;
-        job.plan = planToJson(plan);
-        music.insert("segments", QJsonArray{range(segmentRange.startFrame, segmentRange.endFrame)});
-        music.insert("beat_phase_frames", static_cast<qint64>(plan.beatPhaseFrames.value_or(0)));
+        // Where the first beat sits in the window, as the planner put it (GN-6).
+        const auto firstBeat =
+            beatStartFrame(gridLineAtOrAfter(targetStart, replayTempo, GridDivision::Beat), replayTempo);
+        job.windowStartFrame = targetStart;
+        job.requestFrames = requestFrames;
+        auto segmentRange = range(segment * length, (segment + 1) * length);
+        segmentRange.insert("index", static_cast<qint64>(segment));
+        music.insert("segments", QJsonArray{segmentRange});
+        music.insert("beat_phase_frames", static_cast<qint64>(firstBeat - targetStart));
         music.insert("align", true);
     } else {
         const std::int64_t windowStart = record.value("contextStartFrame").toInteger(-1);
@@ -1151,6 +1182,9 @@ void MusicJobs::placed(const QString& jobId, const QString& requestId, bool rein
         job->resultSeed = job->takes.first().toObject().value("record").toObject().value("seed").toInteger(-1);
         job->takes = {};
         job->error.clear();
+    } else if (clipGone(*job)) {
+        // The takes stay in the record, so an undo of the deletion can place them.
+        job->error = kClipDeleted;
     } else {
         // The takes stay in the record; placeOrphan places them.
         job->error = present ? QStringLiteral("The clip is locked or changed. Place the takes from the job list.")
@@ -1168,7 +1202,8 @@ bool MusicJobs::cancel(const QString& jobId) {
     if (!job || (job->state != u"rendering" && job->state != u"queued" && job->state != u"running")) return false;
     if (job->sent) {
         if (!m_transport.send(QStringLiteral("cancel_generation"), {{"request_ids", QJsonArray{job->requestId}}}, newId())) {
-            setError(QStringLiteral("Connect to the server to cancel this job."));
+            open();
+            setError(QStringLiteral("Reconnecting to the server. Cancel the job again once it connects."));
             return false;
         }
     }
@@ -1231,6 +1266,12 @@ bool MusicJobs::retry(const QString& jobId) {
 bool MusicJobs::placeOrphan(const QString& jobId) {
     auto* job = find(jobId);
     if (!job || job->takes.isEmpty() || (job->state != u"done" && job->state != u"failed")) return false;
+    if (clipGone(*job)) {
+        job->error = kClipDeleted;
+        save(*job);
+        publish();
+        return false;
+    }
     job->error.clear();
     setState(*job, QStringLiteral("placing"));
     save(*job);

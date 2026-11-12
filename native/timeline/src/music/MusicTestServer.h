@@ -129,7 +129,11 @@ public:
         }
         return out;
     }
-    // music_takes for `request`, one take per candidate and segment.
+    // music_takes for `request`, one take per candidate and segment. A Generate
+    // segment's record names its original segment (`index`, else its position)
+    // and the clip range as its target: window_start_frame + start_frame -
+    // index * length (the segment replay contract of generateTakes in
+    // packages/websocket/src/session/music-generation.ts).
     QJsonObject takes(const QJsonObject& request, int firstAsset) {
         const auto music = request.value("data").toObject().value("music").toObject();
         const auto task = music.value("task").toString();
@@ -142,11 +146,14 @@ public:
             for (int segment = 0; segment < ranges.size(); ++segment) {
                 const auto range = ranges[segment].toObject();
                 const auto id = assetId(n++);
-                addAsset(id, range.value("end_frame").toInteger() - range.value("start_frame").toInteger());
+                const auto length = range.value("end_frame").toInteger() - range.value("start_frame").toInteger();
+                const int index = range.value("index").toInt(segment);
+                const auto target = windowStart + range.value("start_frame").toInteger() - index * length;
+                addAsset(id, length);
                 ids.append(id);
-                takes.append(QJsonObject{{"asset_id", id}, {"candidate", candidate}, {"segment", segment},
-                                         {"record", takeRecord(task, windowStart + range.value("start_frame").toInteger(),
-                                                               windowStart + range.value("end_frame").toInteger(), candidate, segment)}});
+                auto record = takeRecord(task, target, target + length, candidate, index);
+                record.insert("requestFrames", music.value("request_frames").toInteger());
+                takes.append(QJsonObject{{"asset_id", id}, {"candidate", candidate}, {"segment", segment}, {"record", record}});
             }
         }
         return {{"asset_ids", ids}, {"music_takes", takes}, {"timing", QJsonObject{{"queue_ms", 10}, {"lm_ms", 4000}, {"synth_ms", 4250}}},

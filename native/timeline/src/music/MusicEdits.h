@@ -9,7 +9,8 @@
 // `music.insertPlaceholder` payload: {"clip": <placeholderClip(...)>}.
 // It refuses (returns the document unchanged) when the track is missing,
 // locked or not an audio track, when the clip id exists, or when an audio
-// clip on the track overlaps the range.
+// clip on the track overlaps the range. Overlap is compared in frames
+// (msToFrame), as the planner compares it.
 //
 // `music.applyResult` payload:
 //   {"clipId", "task": "text2music" | "repaint" | "lego", "requestId",
@@ -17,9 +18,11 @@
 //    "takes": [{"assetId", "candidate", "segment", "record"}],
 //    "insertClip"?: <clip>}
 // It writes the takes in order and activates the first new one. A generated
-// clip (text2music, lego) gets `status: "generated"`. A repaint records the
-// clip's current asset as a baseline take when no take holds it, and keeps
-// the clip's position, source window, gain and fades. A take whose asset the
+// clip (text2music, lego) gets `status: "generated"`. A repaint names as its
+// parent the take of the record's `splice.parentAssetId` (the clip's current
+// asset when the record has none), records that asset and the clip's current
+// asset as baseline takes when no take holds them, and keeps the clip's
+// position, source window, gain and fades. A take whose asset the
 // clip already holds is skipped, so applying a result twice adds nothing. No
 // take and no asset is removed (TK-5). With `insertClip`, a missing clip is
 // inserted first under the placeholder rules (placing an orphaned result).

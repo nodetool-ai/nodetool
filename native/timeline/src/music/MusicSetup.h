@@ -20,7 +20,8 @@
 // Thread affinity: GUI thread only. TimelineEditor.qml creates one per editor
 // window as `musicSetup`, and its QML parent owns it. The transport, the poll
 // timer and the socket are members, destroyed with it, which also closes the
-// socket and drops every pending reply.
+// socket and drops every pending reply. A failed or lost connection drops
+// the commands queued for it, so a later request opens a new connection.
 
 #include "ai/GenerationTransport.h"
 #include "server/AutosaveController.h"

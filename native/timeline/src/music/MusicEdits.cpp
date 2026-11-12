@@ -54,14 +54,18 @@ bool canPlace(const QJsonObject& raw, const QJsonObject& clip) {
     if (clipIndex(clips, clipId) >= 0) {
         return false;
     }
+    // In frames, as the planner compares them: adjacent bar ranges whose
+    // millisecond doubles round across each other still touch, not overlap.
+    const auto startFrame = msToFrame(start);
+    const auto endFrame = startFrame + msToFrame(duration);
     for (const auto& value : clips) {
         const auto other = value.toObject();
         if (other.value(u"trackId").toString() != trackId || other.value(u"mediaType").toString() != u"audio") {
             continue;
         }
-        const double otherStart = other.value(u"startMs").toDouble();
-        const double otherEnd = otherStart + other.value(u"durationMs").toDouble();
-        if (otherStart < start + duration && otherEnd > start) {
+        const auto otherStart = msToFrame(other.value(u"startMs").toDouble());
+        const auto otherEnd = otherStart + msToFrame(other.value(u"durationMs").toDouble());
+        if (otherStart < endFrame && otherEnd > startFrame) {
             return false;
         }
     }
@@ -153,22 +157,18 @@ QJsonObject applyResult(QJsonObject raw, const QJsonObject& payload) {
 
     QString parentTakeId;
     if (repaint) {
-        const auto current = clip.value(u"currentAssetId").toString();
-        if (current.isEmpty()) {
-            return raw;
-        }
-        for (const auto& value : versions) {
-            const auto version = value.toObject();
-            if (version.value(u"assetId").toString() == current) {
-                parentTakeId = version.value(u"id").toString();
-                break;
+        // The take of `asset` on the clip; an asset no take holds becomes the
+        // "Original" take, with no source mapping (MD14).
+        const auto takeOf = [&](const QString& asset) {
+            for (const auto& value : versions) {
+                const auto version = value.toObject();
+                if (version.value(u"assetId").toString() == asset) {
+                    return version.value(u"id").toString();
+                }
             }
-        }
-        if (parentTakeId.isEmpty()) {
-            // The original becomes a take, with no source mapping (MD14).
-            parentTakeId = hashId(clipId + QStringLiteral(":baseline:") + current);
-            versions.append(QJsonObject{{"id", parentTakeId},
-                                        {"assetId", current},
+            const auto id = hashId(clipId + QStringLiteral(":baseline:") + asset);
+            versions.append(QJsonObject{{"id", id},
+                                        {"assetId", asset},
                                         {"status", "success"},
                                         {"createdAt", createdAt},
                                         {"workflowUpdatedAt", createdAt},
@@ -178,8 +178,22 @@ QJsonObject applyResult(QJsonObject raw, const QJsonObject& payload) {
                                         {"label", "Original"},
                                         {"source", clip.value(u"sourceType").toString() == u"imported"
                                                        ? QStringLiteral("imported") : QStringLiteral("generated")}});
-            heldAssets.insert(current);
+            heldAssets.insert(asset);
+            return id;
+        };
+        // The audio the request spliced into (its record), which is not the
+        // clip's audio when another take became active while the job ran.
+        const auto current = clip.value(u"currentAssetId").toString();
+        const auto parent = takes.first().toObject().value(u"record").toObject().value(u"splice").toObject()
+                                .value(u"parentAssetId").toString(current);
+        if (parent.isEmpty()) {
+            return raw;
         }
+        // The clip's audio stays a take when the result replaces it (TK-5).
+        if (!current.isEmpty()) {
+            (void)takeOf(current);
+        }
+        parentTakeId = takeOf(parent);
     }
 
     // Take labels: a letter per candidate, and a number per segment when the

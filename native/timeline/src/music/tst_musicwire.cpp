@@ -99,7 +99,7 @@ QJsonObject generatedClip() {
                            {"jobId", "r0"}, {"dependencyHash", ""}, {"paramOverridesSnapshot", QJsonObject{}},
                            {"provider", "acestep"}, {"model", "acestep-v15-turbo-Q8_0.gguf"}, {"prompt", "warm keys"},
                            {"label", label}, {"source", "generated"},
-                           // Segment 1 of a window that starts one take length before the clip.
+                           // Segment 1 of a window whose takes all target the clip range.
                            {"musicGeneration", record(candidate, 1, barFrame(5))}};
     };
     return {{"id", "keys"}, {"trackId", "c"}, {"name", "warm keys"}, {"mediaType", "audio"}, {"sourceType", "generated"},
@@ -316,6 +316,38 @@ private slots:
         QCOMPARE(server.last("cancel_generation").value("data").toObject().value("request_ids").toArray(), QJsonArray{id});
         QCOMPARE(jobText(id, "musicJobMeta"), QStringLiteral("Cancelled"));
         QVERIFY(named(jobRow(id), "musicJobRetry")->isVisible());
+        // Dismiss removes the finished row and its record.
+        const auto record = jobs()->recordPath(id);
+        QVERIFY(QFile::exists(record));
+        QVERIFY(named(jobRow(id), "musicJobDismiss")->isVisible());
+        press(named(jobRow(id), "musicJobDismiss"));
+        QTRY_VERIFY(!jobRow(id));
+        QVERIFY(jobs()->job(id).isEmpty());
+        QVERIFY(!QFile::exists(record));
+        QTRY_VERIFY(inPanel("musicJobsEmpty")->isVisible());
+    }
+
+    // A connection that fails once does not leave "Check again" stuck on
+    // "Checking": the status request is sent again on a new connection.
+    void setupCheckAgainAfterAFailedConnection() {
+        Server setupServer;
+        openDocument(musicDocument({}));
+        selection()->set("c", barFrame(9), barFrame(13));
+        const auto port = setupServer.socket.serverPort();
+        const auto base = setupServer.base();
+        setupServer.socket.close();
+        setup()->m_target = nt::server::SaveTarget{base, {}, "timeline", m_cache.path()};
+        setup()->refresh();
+        QTRY_COMPARE(setup()->state(), QStringLiteral("error"));
+        QTRY_VERIFY(inPanel("musicSetupError") && inPanel("musicSetupError")->isVisible());
+        QVERIFY(setupServer.socket.listen(QHostAddress::LocalHost, port));
+        // What the banner's "Check again" calls.
+        setup()->refresh();
+        QCOMPARE(setup()->state(), QStringLiteral("checking"));
+        QTRY_VERIFY(!setupServer.last("acestep_setup_status").isEmpty());
+        answerSetup(setupServer, "acestep_setup_status", setupStatus(false, true, {}, true, true));
+        QTRY_COMPARE(setup()->state(), QStringLiteral("ready"));
+        QCOMPARE(setupServer.all("acestep_setup_status").size(), 1);
     }
 
     // TK-6: the edit keeps one copy of a prompt, newest first, and at most 50.
@@ -384,9 +416,12 @@ private slots:
         QCOMPARE(data.value("prompt").toString(), QStringLiteral("warm keys"));
         QCOMPARE(data.value("model").toString(), QStringLiteral("acestep-v15-turbo-Q8_0.gguf"));
         QCOMPARE(data.value("timeline_context").toObject().value("target_clip_id").toString(), QStringLiteral("keys"));
-        // Segment 1 of the original window only: the window starts one take before the clip.
-        QCOMPARE(music.value("window_start_frame").toInteger(), 0);
-        QCOMPARE(music.value("segments").toArray(), (QJsonArray{QJsonObject{{"start_frame", 4 * kBar}, {"end_frame", 8 * kBar}}}));
+        // Segment 1 of the original window only, by index: the window starts at
+        // the clip and is as long as the original request.
+        QCOMPARE(music.value("window_start_frame").toInteger(), barFrame(5));
+        QCOMPARE(music.value("request_frames").toInteger(), 792000);
+        QCOMPARE(music.value("segments").toArray(),
+                 (QJsonArray{QJsonObject{{"start_frame", 4 * kBar}, {"end_frame", 8 * kBar}, {"index", 1}}}));
         // The result lands on the same clip as a new take; no placeholder.
         const auto clipsBefore = model.clipsJson().size();
         const auto id = sent.value("request_id").toString();

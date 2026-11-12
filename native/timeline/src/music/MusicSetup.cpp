@@ -37,12 +37,15 @@ MusicSetupModel::MusicSetupModel(QObject* parent)
     });
     connect(&m_transport, &nt::ai::GenerationTransport::error, this, [this](const QString& error) {
         m_opening = false;
+        // Nothing queued survives a failed connection: "Check again" asks anew.
+        m_pending.clear();
         if (m_state == u"checking") setState(QStringLiteral("error"));
         setMessage(QStringLiteral("Could not reach the NodeTool server: ") + error);
     });
     connect(&m_transport, &nt::ai::GenerationTransport::disconnected, this, [this] {
         m_opening = false;
         m_requests.clear();
+        m_pending.clear();
         updatePolling();
     });
 }
@@ -126,17 +129,15 @@ void MusicSetupModel::cancel() { send(QStringLiteral("acestep_setup_cancel")); }
 
 void MusicSetupModel::send(const QString& command, const QJsonObject& data) {
     if (!m_target) return;
-    // A status request already on its way answers this one too.
-    const bool queued = std::any_of(m_pending.begin(), m_pending.end(), [&](const auto& p) { return p.first == command; });
-    if (command == u"acestep_setup_status" && queued) return;
-    m_pending.emplace_back(command, data);
-    if (m_transport.ready()) {
-        sendPending();
-    } else if (!m_opening) {
+    if (!m_transport.ready() && !m_opening) {
         m_opening = true;
         m_transport.configure(m_target->server, m_target->token);
         m_transport.open();
     }
+    // A status request already queued answers this one too.
+    const bool queued = std::any_of(m_pending.begin(), m_pending.end(), [&](const auto& p) { return p.first == command; });
+    if (command != u"acestep_setup_status" || !queued) m_pending.emplace_back(command, data);
+    if (m_transport.ready()) sendPending();
 }
 
 void MusicSetupModel::sendPending() {

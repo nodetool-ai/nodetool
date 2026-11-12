@@ -21,6 +21,7 @@
 #include "model/TimelineModel.h"
 #include "music/MusicEdits.h"
 #include "music/MusicJobs.h"
+#include "music/MusicPlan.h"
 #include "music/MusicTestServer.h"
 #include "music/MusicTime.h"
 #include "playback/AudioClockFeed.h"
@@ -103,6 +104,38 @@ QJsonObject clipById(const TimelineModel& timeline, const QString& id) {
     return {};
 }
 
+// Removes clip `id` in one undo step.
+void deleteClip(TimelineModel& timeline, const QString& id) {
+    QJsonArray after;
+    for (const auto& value : timeline.clipsJson()) {
+        if (value.toObject().value("id").toString() != id) after.append(value);
+    }
+    timeline.commitEdit("delete", timeline.clipsJson(), after);
+}
+
+// A generated clip on `trackId` over [start, start + length) whose takes are
+// segments `segments` of one Generate window, recorded as the server records
+// them: every segment's target is the clip range (MusicTestServer.h takes()).
+QJsonObject segmentedClip(const QString& trackId, qint64 start, qint64 length, qint64 requestFrames, const QList<int>& segments) {
+    QJsonArray versions;
+    for (const int segment : segments) {
+        auto record = takeRecord("text2music", start, start + length, 0, segment);
+        record.insert("requestFrames", requestFrames);
+        record.insert("seed", 500 + segment);
+        record.insert("audioCodes", QStringLiteral("codes-%1").arg(segment));
+        versions.append(QJsonObject{{"id", QStringLiteral("s%1").arg(segment)}, {"assetId", assetId(0x600 + segment)}, {"status", "success"},
+                                    {"createdAt", "2026-11-12T00:00:00.000Z"}, {"workflowUpdatedAt", "2026-11-12T00:00:00.000Z"},
+                                    {"jobId", "r0"}, {"dependencyHash", ""}, {"paramOverridesSnapshot", QJsonObject{}},
+                                    {"provider", "acestep"}, {"model", "turbo"}, {"prompt", "warm keys"},
+                                    {"label", QStringLiteral("Take A%1").arg(segment + 1)}, {"source", "generated"},
+                                    {"musicGeneration", record}});
+    }
+    return {{"id", "gen"}, {"trackId", trackId}, {"name", "warm keys"}, {"mediaType", "audio"}, {"sourceType", "generated"},
+            {"startMs", frameToMs(start)}, {"durationMs", frameToMs(length)}, {"inPointMs", 0}, {"outPointMs", frameToMs(length)},
+            {"audioRole", "music"}, {"status", "generated"}, {"locked", false}, {"currentAssetId", assetId(0x600 + segments.first())},
+            {"activeTakeId", QStringLiteral("s%1").arg(segments.first())}, {"versions", versions}};
+}
+
 }  // namespace
 
 class TestMusicJobs : public QObject {
@@ -168,6 +201,103 @@ private slots:
                                     {{"clip", placeholderClip("t", "a", 12 * kBar, 13 * kBar, "x", "acestep", "turbo")}}));
         QCOMPARE(timeline->undoStack()->count(), 2);
         QVERIFY2(schemaError(*timeline).isEmpty(), qPrintable(schemaError(*timeline)));
+    }
+
+    // P1: the placeholder rule compares frames, as the planner does. At 110 BPM
+    // a clip on bar 2 ends at frame 209455 and a clip on bar 3 starts there, but
+    // their millisecond doubles overlap by 1e-12.
+    void placeholderAdjacentAcrossTempi() {
+        const auto raw = sequence({track("a", 0)}, {});
+        int checked = 0;
+        QStringList refused;
+        for (int bpm = 85; bpm <= 170; ++bpm) {
+            const MusicTempo tempo{static_cast<double>(bpm), 0, 4, 4};
+            for (int bar = 2; bar <= 257; ++bar) {
+                auto document = raw;
+                document.insert("clips", QJsonArray{placeholderClip("x", "a", barStartFrame(bar, tempo), barStartFrame(bar + 1, tempo),
+                                                                    "x", "acestep", "turbo")});
+                const auto after = placeholderClip("y", "a", barStartFrame(bar + 1, tempo), barStartFrame(bar + 2, tempo), "y", "acestep", "turbo");
+                const auto before = placeholderClip("z", "a", barStartFrame(bar - 1, tempo), barStartFrame(bar, tempo), "z", "acestep", "turbo");
+                for (const auto& clip : {after, before}) {
+                    ++checked;
+                    if (insertPlaceholder(document, {{"clip", clip}}).value("clips").toArray().size() != 2) {
+                        refused.append(QStringLiteral("%1 BPM bar %2 %3").arg(bpm).arg(bar).arg(clip.value("id").toString()));
+                    }
+                }
+            }
+        }
+        QCOMPARE(checked, 86 * 256 * 2);
+        QVERIFY2(refused.isEmpty(), qPrintable(QString::number(refused.size()) + " refused, first " + refused.value(0)));
+        // The planner agrees: Generate on bar 3 next to a clip on bar 2 at 110 BPM.
+        const MusicTempo t110{110, 0, 4, 4};
+        auto timeline = model(sequence({track("a", 0)}, {}));
+        QVERIFY(timeline->applyEdit("music.insertPlaceholder",
+                                    {{"clip", placeholderClip("x", "a", barStartFrame(2, t110), barStartFrame(3, t110), "x", "acestep", "turbo")}}));
+        QVERIFY(timeline->applyEdit("music.insertPlaceholder",
+                                    {{"clip", placeholderClip("y", "a", barStartFrame(3, t110), barStartFrame(4, t110), "y", "acestep", "turbo")}}));
+        // One frame of overlap is still refused.
+        QVERIFY(!timeline->applyEdit("music.insertPlaceholder",
+                                     {{"clip", placeholderClip("z", "a", barStartFrame(4, t110) - 1, barStartFrame(5, t110), "z", "acestep", "turbo")}}));
+    }
+
+    // P2: a sequence with no tempo object plans with DEFAULT_TEMPO, as the panel does.
+    void submitWithoutTempo() {
+        QTemporaryDir cache;
+        Server server;
+        auto document = sequence(generateDocumentTracks(), {});
+        document.remove("tempo");
+        auto timeline = model(document);
+        MusicJobs jobs;
+        attach(jobs, *timeline, server, cache.path());
+        connectSocket(jobs, server);
+        QTRY_VERIFY(jobs.ready());
+        const auto id = jobs.submit("bass", 0, 8 * kBar, {}, "walking bass", 1, 5, "turbo");
+        QVERIFY2(!id.isEmpty(), qPrintable(jobs.error()));
+        QTRY_COMPARE(server.all("generate_media").size(), 1);
+        const auto music = request(server).value("data").toObject().value("music").toObject();
+        QCOMPARE(music.value("bpm").toInt(), 120);
+        QCOMPARE(music.value("beats_per_bar").toInt(), 4);
+        QCOMPARE(music.value("segments").toArray(), (QJsonArray{QJsonObject{{"start_frame", 0}, {"end_frame", 8 * kBar}}}));
+    }
+
+    // A repaint result takes its parent from the record's splice parent, not
+    // from the clip's take at placement time.
+    void repaintParentFromTheRecord() {
+        auto taken = [](const char* id, int asset) {
+            return QJsonObject{{"id", id}, {"assetId", assetId(asset)}, {"status", "success"}, {"createdAt", "2026-11-12T00:00:00.000Z"},
+                               {"workflowUpdatedAt", "2026-11-12T00:00:00.000Z"}, {"jobId", "r0"}, {"dependencyHash", ""},
+                               {"paramOverridesSnapshot", QJsonObject{}}, {"label", id}, {"source", "generated"}};
+        };
+        // The repaint was submitted on t0's asset; the person then chose t1.
+        QJsonObject source{{"id", "c"}, {"trackId", "a"}, {"name", "loop"}, {"mediaType", "audio"}, {"sourceType", "generated"},
+                           {"startMs", 0}, {"durationMs", 16000}, {"inPointMs", 0}, {"outPointMs", 16000},
+                           {"currentAssetId", assetId(2)}, {"activeTakeId", "t1"}, {"status", "generated"}, {"locked", false},
+                           {"versions", QJsonArray{taken("t0", 1), taken("t1", 2)}}};
+        auto timeline = model(sequence({track("a", 0)}, {source}));
+        auto record = takeRecord("repaint", 2 * kBar, 4 * kBar, 0, 0);
+        record.insert("splice", QJsonObject{{"parentAssetId", assetId(1)}, {"startFrame", 2 * kBar}, {"endFrame", 4 * kBar},
+                                            {"crossfadeFrames", 960}});
+        const QJsonObject payload{{"clipId", "c"}, {"task", "repaint"}, {"requestId", "r1"}, {"jobId", "r1"},
+            {"provider", "acestep"}, {"model", "turbo"}, {"prompt", "brighter"}, {"createdAt", "2026-11-12T00:00:00.000Z"},
+            {"takes", QJsonArray{QJsonObject{{"assetId", assetId(3)}, {"candidate", 0}, {"segment", 0}, {"record", record}}}}};
+        QVERIFY(timeline->applyEdit("music.applyResult", payload));
+        auto versions = clipById(*timeline, "c").value("versions").toArray();
+        QCOMPARE(versions.size(), 3);
+        QCOMPARE(versions[2].toObject().value("parentTakeId").toString(), QString("t0"));
+        QCOMPARE(clipById(*timeline, "c").value("currentAssetId").toString(), assetId(3));
+
+        // A parent no take holds any more becomes the "Original" take; the
+        // clip's current audio stays a take too.
+        auto bare = source;
+        bare.insert("versions", QJsonArray{taken("t1", 2)});
+        auto other = model(sequence({track("a", 0)}, {bare}));
+        QVERIFY(other->applyEdit("music.applyResult", payload));
+        versions = clipById(*other, "c").value("versions").toArray();
+        QCOMPARE(versions.size(), 3);
+        QCOMPARE(versions[1].toObject().value("assetId").toString(), assetId(1));
+        QCOMPARE(versions[1].toObject().value("label").toString(), QString("Original"));
+        QCOMPARE(versions[2].toObject().value("parentTakeId"), versions[1].toObject().value("id"));
+        QVERIFY2(schemaError(*other).isEmpty(), qPrintable(schemaError(*other)));
     }
 
     // MD15 and TK-5 on the edit alone: repaint keeps the cut and records the original.
@@ -701,6 +831,193 @@ private slots:
         QCOMPARE(clip.value("versions").toArray().first().toObject().value("assetId").toString(), assetId(9));
         QCOMPARE(clip.value("currentAssetId").toString(), assetId(1));
         QVERIFY2(schemaError(*timeline).isEmpty(), qPrintable(schemaError(*timeline)));
+    }
+
+    // P2: a Regenerate result whose clip was deleted cannot be placed, and says why.
+    void repaintResultOnADeletedClip() {
+        QTemporaryDir cache;
+        Server server;
+        const auto path = cache.filePath("source.wav");
+        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(20 * 48000, 3)));
+        QJsonObject source{{"id", "loop"}, {"trackId", "keys"}, {"name", "loop"}, {"mediaType", "audio"}, {"sourceType", "imported"},
+                           {"startMs", 0}, {"durationMs", 16000}, {"currentAssetId", assetId(9)}, {"mediaPath", path},
+                           {"status", "generated"}, {"locked", false}, {"versions", QJsonArray{}}};
+        auto timeline = model(sequence(generateDocumentTracks(), {source}));
+        MusicJobs jobs;
+        attach(jobs, *timeline, server, cache.path());
+        connectSocket(jobs, server);
+        QTRY_VERIFY(jobs.ready());
+        const auto id = jobs.submit("keys", 2 * kBar, 4 * kBar, {}, "brighter", 1, 3, "turbo");
+        QVERIFY2(!id.isEmpty(), qPrintable(jobs.error()));
+        QTRY_COMPARE(server.all("generate_media").size(), 1);
+        deleteClip(*timeline, "loop");
+        server.result(id, "generate_media", server.takes(request(server), 1));
+        QTRY_COMPARE(state(jobs, id), QString("done"));
+        QVERIFY(!jobs.jobList()->data(jobs.jobList()->index(0, 0), MusicJobListModel::CanPlaceRole).toBool());
+        QCOMPARE(jobs.job(id).value("unplacedTakes").toInt(), 1);
+        QVERIFY(!jobs.job(id).value("canPlace").toBool());
+        QVERIFY2(jobs.job(id).value("error").toString().contains("deleted"), qPrintable(jobs.job(id).value("error").toString()));
+        QVERIFY(!jobs.placeOrphan(id));
+        QCOMPARE(state(jobs, id), QString("done"));
+        // Undo brings the clip back, and with it the Place action.
+        timeline->undoStack()->undo();
+        QVERIFY(!clipById(*timeline, "loop").isEmpty());
+        QVERIFY(jobs.job(id).value("canPlace").toBool());
+        // The job list the panel shows follows without another job event.
+        auto* list = jobs.jobList();
+        QVERIFY(list->data(list->index(0, 0), MusicJobListModel::CanPlaceRole).toBool());
+        QVERIFY(jobs.placeOrphan(id));
+        QTRY_COMPARE(state(jobs, id), QString("done"));
+        QCOMPARE(jobs.job(id).value("unplacedTakes").toInt(), 0);
+        QCOMPARE(clipById(*timeline, "loop").value("versions").toArray().size(), 2);
+    }
+
+    // P2 (TK-5): the job list holds the context of active, failed and cancelled
+    // jobs, and the splice parent of a Regenerate that can still run; a finished
+    // job holds nothing, so clean-up can free its bounce.
+    void heldAssetsFollowTheJobState() {
+        QTemporaryDir cache;
+        Server server;
+        const auto path = cache.filePath("source.wav");
+        QVERIFY(nt::assets::writeStereoFloatWav(path, noise(20 * 48000, 3)));
+        QJsonObject source{{"id", "loop"}, {"trackId", "keys"}, {"name", "loop"}, {"mediaType", "audio"}, {"sourceType", "imported"},
+                           {"startMs", 0}, {"durationMs", 16000}, {"currentAssetId", assetId(9)}, {"mediaPath", path},
+                           {"status", "generated"}, {"locked", false}, {"versions", QJsonArray{}}};
+        auto timeline = model(sequence(generateDocumentTracks(), {source}));
+        MusicJobs jobs;
+        attach(jobs, *timeline, server, cache.path());
+        connectSocket(jobs, server);
+        QTRY_VERIFY(jobs.ready());
+        const auto id = jobs.submit("keys", 2 * kBar, 4 * kBar, {}, "brighter", 1, 3, "turbo");
+        QVERIFY2(!id.isEmpty(), qPrintable(jobs.error()));
+        // Rendering: no context yet, but the parent is held.
+        QCOMPARE(jobs.heldAssetIds(), QStringList{assetId(9)});
+        QTRY_COMPARE(server.all("generate_media").size(), 1);
+        const QSet<QString> both{assetId(0xc0001), assetId(9)};
+        const auto held = [&jobs] { const auto ids = jobs.heldAssetIds(); return QSet<QString>(ids.cbegin(), ids.cend()); };
+        QCOMPARE(held(), both);
+        server.error(id, "generate_media", "ace-server: out of memory");
+        QTRY_COMPARE(state(jobs, id), QString("failed"));
+        QCOMPARE(held(), both);
+        QVERIFY(jobs.retry(id));
+        QTRY_COMPARE(server.all("generate_media").size(), 2);
+        QVERIFY(jobs.cancel(id));
+        QCOMPARE(held(), both);
+        QVERIFY(jobs.retry(id));
+        QTRY_COMPARE(server.all("generate_media").size(), 3);
+        server.result(request(server).value("request_id").toString(), "generate_media", server.takes(request(server), 1));
+        QTRY_COMPARE(state(jobs, id), QString("done"));
+        QVERIFY(jobs.heldAssetIds().isEmpty());
+        QVERIFY(jobs.job(id).value("canDismiss").toBool());
+        QVERIFY(jobs.dismiss(id));
+        QVERIFY(jobs.jobs().isEmpty());
+    }
+
+    // P2 (JB-2): reconnection goes on at the 30 s cap while jobs are active,
+    // and Cancel opens the socket when it is closed.
+    void reconnectKeepsTrying() {
+        QTemporaryDir cache;
+        Server server;
+        auto timeline = model(sequence(generateDocumentTracks(), {}));
+        MusicJobs jobs;
+        attach(jobs, *timeline, server, cache.path());
+        // open() goes to the WebSocket server here; no take is downloaded.
+        jobs.m_target->server = server.base();
+        connectSocket(jobs, server);
+        QTRY_VERIFY(jobs.ready());
+        const auto id = jobs.submit("bass", 0, 8 * kBar, {}, "walking bass", 1, 5, "turbo");
+        QTRY_COMPARE(server.all("generate_media").size(), 1);
+        // Five attempts have failed already.
+        jobs.m_reconnectAttempts = 5;
+        server.peer->close();
+        QTRY_VERIFY(!jobs.ready());
+        QVERIFY(jobs.m_reconnect.isActive());
+        QCOMPARE(jobs.m_reconnect.interval(), 30000);
+        // Far past the cap the delay stays 30 s.
+        jobs.m_reconnect.stop();
+        jobs.m_reconnectAttempts = 40;
+        emit jobs.m_transport.disconnected();
+        QVERIFY(jobs.m_reconnect.isActive());
+        QCOMPARE(jobs.m_reconnect.interval(), 30000);
+
+        // Cancel while closed opens the socket; the next Cancel is sent.
+        QVERIFY(!jobs.cancel(id));
+        QVERIFY(!jobs.error().isEmpty());
+        QTRY_VERIFY(jobs.ready());
+        QVERIFY(jobs.cancel(id));
+        QTRY_COMPARE(server.all("cancel_generation").size(), 1);
+        QCOMPARE(state(jobs, id), QString("cancelled"));
+    }
+
+    // P2 (TK-4, segment replay): a Generate take replays its own window and
+    // segment, by index, so the same seed cuts the same audio.
+    void regenerateSegmentReplaysTheWindow() {
+        QTemporaryDir cache;
+        Server server;
+        const qint64 start = 8 * kBar;
+        const qint64 length = 2 * kBar;
+        // The original plan for this target: three segments and a beat of room.
+        PlanInput original;
+        original.tracks = {PlanTrack{"keys", "audio"}};
+        original.selection = Selection{"keys", static_cast<double>(start), static_cast<double>(start + length)};
+        const auto plan = planMusicOperation(original);
+        QVERIFY(plan.refusal.empty());
+        QCOMPARE(plan.segments->size(), std::size_t{3});
+        const auto requestFrames = *plan.requestFrames;
+        auto timeline = model(sequence(generateDocumentTracks(), {segmentedClip("keys", start, length, requestFrames, {0, 2})}));
+        MusicJobs jobs;
+        attach(jobs, *timeline, server, cache.path());
+        connectSocket(jobs, server);
+        QTRY_VERIFY(jobs.ready());
+        const auto expect = [&](const QJsonObject& music, int segment) {
+            QCOMPARE(music.value("task").toString(), QString("text2music"));
+            QCOMPARE(music.value("window_start_frame").toInteger(), start);
+            QCOMPARE(music.value("request_frames").toInteger(), requestFrames);
+            QCOMPARE(music.value("segments").toArray(),
+                     (QJsonArray{QJsonObject{{"start_frame", segment * length}, {"end_frame", (segment + 1) * length}, {"index", segment}}}));
+            QCOMPARE(music.value("beat_phase_frames").toInteger(), *plan.beatPhaseFrames);
+            QCOMPARE(music.value("seed").toInteger(), 500 + segment);
+            QCOMPARE(music.value("audio_codes").toString(), QStringLiteral("codes-%1").arg(segment));
+        };
+        for (const int segment : {0, 2}) {
+            const auto id = jobs.regenerate("gen", QStringLiteral("s%1").arg(segment), true);
+            QVERIFY2(!id.isEmpty(), qPrintable(jobs.error()));
+            QTRY_COMPARE(server.all("generate_media").size(), segment == 0 ? 1 : 2);
+            expect(request(server).value("data").toObject().value("music").toObject(), segment);
+        }
+        // The replay of segment 2 lands on the clip; replaying that take asks for the same.
+        const auto sent = request(server);
+        const auto replayId = sent.value("request_id").toString();
+        server.result(replayId, "generate_media", server.takes(sent, 0x700));
+        QTRY_COMPARE(state(jobs, replayId), QString("done"));
+        const auto versions = clipById(*timeline, "gen").value("versions").toArray();
+        const auto replayed = versions.last().toObject();
+        QCOMPARE(replayed.value("assetId").toString(), assetId(0x700));
+        const auto record = replayed.value("musicGeneration").toObject();
+        QCOMPARE(record.value("segmentIndex").toInt(), 2);
+        QCOMPARE(record.value("targetStartFrame").toInteger(), start);
+        QCOMPARE(record.value("requestFrames").toInteger(), requestFrames);
+        auto replayRecord = record;
+        replayRecord.insert("seed", 502);
+        replayRecord.insert("audioCodes", "codes-2");
+        auto clip = clipById(*timeline, "gen");
+        auto edited = clip.value("versions").toArray();
+        auto take = edited.last().toObject();
+        take.insert("musicGeneration", replayRecord);
+        edited.replace(edited.size() - 1, take);
+        clip.insert("versions", edited);
+        timeline->commitEdit("fixture", timeline->clipsJson(), QJsonArray{clip});
+        QVERIFY(!jobs.regenerate("gen", take.value("id").toString(), true).isEmpty());
+        QTRY_COMPARE(server.all("generate_media").size(), 3);
+        expect(request(server).value("data").toObject().value("music").toObject(), 2);
+        // A record whose segment lies past its window is refused.
+        auto broken = replayRecord;
+        broken.insert("requestFrames", 2 * length);
+        take.insert("musicGeneration", broken);
+        edited.replace(edited.size() - 1, take);
+        clip.insert("versions", edited);
+        timeline->commitEdit("fixture", timeline->clipsJson(), QJsonArray{clip});
+        QVERIFY(jobs.regenerate("gen", take.value("id").toString(), true).isEmpty());
     }
 
     // 9.3: the mix bounce first, then the placeholder and the request.
