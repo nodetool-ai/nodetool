@@ -31,7 +31,7 @@ not measurements. Q8 requires the WP10 native/browser comparison.
 | [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Linux Release, ASan/UBSan and TSan CI pass. Local instruction-alias verification remains blocked as described below |
 | [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Windows Release/ASan and Linux Release/ASan+UBSan/TSan pass. Aggregate verification remains incomplete as described below. See [operation contracts](control.md) |
 | [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, linear/one-pole smoothing, events, built-in kernels and sink sanitation implemented. Windows Release/ASan and audio-scoped affected tests pass. See [audio contracts](audio.md) and verification below |
-| [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Not implemented |
+| [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and texture-lifetime core prepared. GPU backend and exit evidence incomplete. Test execution deferred by request. See [render scheduling](render.md) |
 | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | Not implemented |
 | [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Not implemented |
 
@@ -101,3 +101,20 @@ local `jq` directory from `PATH`, breaking CI-planning and deploy fixtures, and
 the pack-contamination test exceeded its five-second budget. All five failed
 cases pass in a focused rerun with local `jq` and Git's Unix tools on `PATH`.
 That rerun does not turn the aggregate result into a pass.
+
+## Render work in progress
+
+WP08 now has prepare-time graph lowering, version/uniform invalidation,
+volatile liveness allocation, bounded retained-cache storage and LRU eviction
+that pins live inputs. Prepared metadata preserves color-space and alpha
+contracts for the future GPU backend. Frame failure invalidates cached outputs.
+
+The scheduling library and its fixture executable compile with MSVC Release.
+The new fixtures have not been executed, and no sanitizer or aggregate pass is
+claimed for these changes. Test execution is deferred at the user's request.
+The earlier audio/control results apply to their recorded revisions.
+
+Actual wgpu-native encoding, asynchronous pipeline preparation, uniform
+packing/bind-group caching, texture presentation, nonblocking staging readback
+and software-adapter pixel goldens remain unfinished. WP08 stays open, and this
+increment does not qualify M1 or resolve any M0 hardware gate.

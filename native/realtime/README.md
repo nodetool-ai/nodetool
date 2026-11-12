@@ -5,8 +5,9 @@ They do not implement the production engine or satisfy its measurement gate.
 
 Provisional M1 development adds the [plan IR and loader](schema/README.md),
 [control executor](control.md) and [audio executor](audio.md). See
-[milestone status and unverified assumptions](M1_STATUS.md). The render executor
-is not implemented yet.
+[milestone status and unverified assumptions](M1_STATUS.md). The
+[render scheduling core](render.md) is in progress. GPU encoding and rendering
+verification remain unfinished.
 
 ## Build and test
 
