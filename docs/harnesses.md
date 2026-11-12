@@ -2129,8 +2129,9 @@ node scripts/mutation-score.mjs --survivors kernel       # survivors from the sn
 
 ### npm run probe:providers (Provider Contract Probes)
 
-Asks OpenAI, Gemini, fal, and KIE for one real response each and decodes it with
-the same production decoder a run uses. A cassette proves NodeTool still handles
+Asks OpenAI, Gemini, fal, KIE and, where one is installed, a local acestep.cpp
+`ace-server` for one real response each and decodes it with the same production
+decoder a run uses. A cassette proves NodeTool still handles
 a response a provider gave us *once*; it cannot notice that the provider changed
 the response today.
 
