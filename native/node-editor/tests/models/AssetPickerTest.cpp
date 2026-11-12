@@ -19,23 +19,22 @@
 #include <QQuickItem>
 #include <QMediaPlayer>
 #include <memory>
+#include <QtQml/QQmlExtensionPlugin>
+#include "interfaces/PropertyHost.h"
+
+Q_IMPORT_QML_PLUGIN(NodeTool_NodeEditorPlugin)
 using namespace nodetool::node_editor;
-class PropertyHost final : public QObject {
- Q_OBJECT
- Q_PROPERTY(QString selection MEMBER selection NOTIFY changed)
- Q_PROPERTY(bool readOnly MEMBER readOnly NOTIFY changed)
- Q_PROPERTY(quint64 documentEpoch MEMBER documentEpoch NOTIFY epochChanged)
-public:
- PropertyHost() { connect(&document, &WorkflowDocument::replaced, this, [this] { ++documentEpoch; emit epochChanged(); }); }
+// The property interface with a document whose replacement bumps its epoch,
+// and a count of the commits it asked for.
+struct FieldHost {
+ FieldHost() {
+  host.setSelection("node");
+  QObject::connect(&document, &WorkflowDocument::replaced, &host, [this] { host.setDocumentEpoch(host.documentEpoch() + 1); });
+  QObject::connect(&host, &PropertyHost::commitRequested, &host, [this] { ++commits; });
+ }
  WorkflowDocument document;
- quint64 documentEpoch = 0;
- QString selection = "node";
- bool readOnly = false;
+ PropertyHost host;
  int commits = 0;
- Q_INVOKABLE void commitProperty(QString, QString, QVariant) { ++commits; }
-signals:
- void changed();
- void epochChanged();
 };
 class AssetPickerTest final : public QObject {
  Q_OBJECT
@@ -99,7 +98,7 @@ private slots:
   QQmlEngine engine;
   engine.rootContext()->setContextProperty("assetPickerController", &controller);
   engine.rootContext()->setContextProperty("mediaResolver", &resolver);
-  QQmlComponent component(&engine, QUrl("qrc:/editor/AssetPropertyEditor.qml"));
+  QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/AssetPropertyEditor.qml"));
   QTRY_VERIFY(component.status() != QQmlComponent::Loading);
   QVERIFY2(component.isReady(), qPrintable(component.errorString()));
   std::unique_ptr<QObject> item(component.createWithInitialProperties({{"descriptor", QVariantMap{{"name", "picture"}, {"dataType", QVariantMap{{"type", "image"}}}}}, {"value", QVariant{}}, {"writable", true}, {"nodeId", "node-a"}}));
@@ -148,7 +147,7 @@ private slots:
   registerMediaTypes();
   AssetPickerController controller;
   MediaResolver resolver;
-  PropertyHost host;
+  FieldHost host;
   QQmlEngine engine;
   engine.rootContext()->setContextProperty("assetPickerController", &controller);
   engine.rootContext()->setContextProperty("mediaResolver", &resolver);
@@ -157,10 +156,10 @@ private slots:
   const QJsonObject node{{"id", "node"}, {"data", QJsonObject{}}};
   auto fields = propertyFields(node, metadata, {});
   QCOMPARE(fields.size(), 1);
-  QQmlComponent component(&engine, QUrl("qrc:/editor/PropertyField.qml"));
+  QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/PropertyField.qml"));
   QTRY_VERIFY(component.status() != QQmlComponent::Loading);
   QVERIFY2(component.isReady(), qPrintable(component.errorString()));
-  std::unique_ptr<QObject> field(component.createWithInitialProperties({{"descriptor", fields.first()}, {"host", QVariant::fromValue(&host)}, {"nodeId", "node"}}));
+  std::unique_ptr<QObject> field(component.createWithInitialProperties({{"descriptor", fields.first()}, {"host", QVariant::fromValue(&host.host)}, {"nodeId", "node"}}));
   QVERIFY2(field, qPrintable(component.errorString()));
   auto* button = field->findChild<QObject*>("asset-upload-picture");
   QVERIFY(button); QVERIFY(button->property("enabled").toBool());
@@ -178,9 +177,9 @@ private slots:
   QVERIFY(host.document.load(snapshot));
   QCoreApplication::processEvents(); QCOMPARE(host.commits, 1);
   QVERIFY(QMetaObject::invokeMethod(editor, "valueCommitted", Q_ARG(QVariant, reference)));
-  host.readOnly = true; emit host.changed(); QCoreApplication::processEvents(); QCOMPARE(host.commits, 1);
+  host.host.setReadOnly(true); QCoreApplication::processEvents(); QCOMPARE(host.commits, 1);
   QTRY_VERIFY(!button->property("enabled").toBool());
-  host.readOnly = false; emit host.changed();
+  host.host.setReadOnly(false);
   const QJsonArray edges{QJsonObject{{"target", "node"}, {"targetHandle", "picture"}}};
   fields = propertyFields(node, metadata, edges);
   QVERIFY(!fields.first().toMap().value("editable").toBool());
@@ -193,7 +192,7 @@ private slots:
   registerMediaTypes();
   ResourcePickerController controller;
   MediaResolver resolver;
-  PropertyHost host;
+  FieldHost host;
   QQmlEngine engine;
   engine.rootContext()->setContextProperty("resourcePickerController", &controller);
   engine.rootContext()->setContextProperty("mediaResolver", &resolver);
@@ -202,19 +201,19 @@ private slots:
   const QJsonObject metadata{{"properties", QJsonArray{property}}};
   const QJsonObject node{{"id", "node"}, {"data", QJsonObject{{"workflows", QJsonArray{}}}}};
   auto fields = propertyFields(node, metadata, {});
-  QQmlComponent component(&engine, QUrl("qrc:/editor/PropertyField.qml"));
+  QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/PropertyField.qml"));
   QTRY_VERIFY(component.status() != QQmlComponent::Loading);
   QVERIFY2(component.isReady(), qPrintable(component.errorString()));
-  std::unique_ptr<QObject> field(component.createWithInitialProperties({{"descriptor", fields.first()}, {"host", QVariant::fromValue(&host)}, {"nodeId", "node"}}));
+  std::unique_ptr<QObject> field(component.createWithInitialProperties({{"descriptor", fields.first()}, {"host", QVariant::fromValue(&host.host)}, {"nodeId", "node"}}));
   QVERIFY2(field, qPrintable(component.errorString()));
   auto* editor = field->findChild<QObject*>("workflow-editor-workflows"); QVERIFY(editor);
   const QVariant references = QVariantList{QVariantMap{{"type", "workflow"}, {"id", "abcdef0123456789abcdef0123456789"}, {"future", "kept"}}};
   QVERIFY(QMetaObject::invokeMethod(editor, "valueCommitted", Q_ARG(QVariant, references)));
   controller.configure({}, {}, {}); QCoreApplication::processEvents(); QCOMPARE(host.commits, 0);
   QVERIFY(QMetaObject::invokeMethod(editor, "valueCommitted", Q_ARG(QVariant, references))); QTRY_COMPARE(host.commits, 1);
-  host.readOnly = true; emit host.changed();
+  host.host.setReadOnly(true);
   QVERIFY(QMetaObject::invokeMethod(editor, "valueCommitted", Q_ARG(QVariant, references))); QCoreApplication::processEvents(); QCOMPARE(host.commits, 1);
-  host.readOnly = false; emit host.changed();
+  host.host.setReadOnly(false);
   fields = propertyFields(node, metadata, QJsonArray{QJsonObject{{"target", "node"}, {"targetHandle", "workflows"}}});
   field->setProperty("descriptor", fields.first());
   QVERIFY(!editor->property("writable").toBool());
@@ -258,7 +257,7 @@ private slots:
   QImage inlineImage(1, 1, QImage::Format_ARGB32); inlineImage.fill(Qt::green); QByteArray inlineBytes; QBuffer inlineBuffer(&inlineBytes); inlineBuffer.open(QIODevice::WriteOnly); QVERIFY(inlineImage.save(&inlineBuffer, "PNG"));
   const QVariantMap old{{"type", "image"}, {"uri", "data:image/png;base64," + QString::fromLatin1(inlineBytes.toBase64())}, {"future", QVariantMap{{"clip", 7}}}};
   const QVariantMap descriptor{{"name", "images"}, {"kind", "media_list"}, {"mediaType", "image"}, {"dataType", QVariantMap{{"type", "list"}}}};
-  QQmlComponent component(&engine, QUrl("qrc:/editor/MediaListPropertyEditor.qml"));
+  QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaListPropertyEditor.qml"));
   QTRY_VERIFY(component.status() != QQmlComponent::Loading); QVERIFY2(component.isReady(), qPrintable(component.errorString()));
   std::unique_ptr<QObject> item(component.createWithInitialProperties({{"descriptor", descriptor}, {"value", QVariantList{old}}, {"writable", true}, {"nodeId", "same"}}));
   QVERIFY2(item, qPrintable(component.errorString()));
@@ -289,7 +288,7 @@ private slots:
   emit controller.uploaded(oldKey, {{"type", "image"}, {"uri", "asset://late"}, {"asset_id", "late"}}); QCoreApplication::processEvents(); QCOMPARE(commits.count(), 3);
   item->setProperty("writable", false);
   QVERIFY(QMetaObject::invokeMethod(item.get(), "removeAt", Q_ARG(QVariant, 0))); QCOMPARE(commits.count(), 3);
-  QQmlComponent generic(&engine, QUrl("qrc:/editor/AssetPropertyEditor.qml")); QTRY_VERIFY(generic.status() != QQmlComponent::Loading);
+  QQmlComponent generic(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/AssetPropertyEditor.qml")); QTRY_VERIFY(generic.status() != QQmlComponent::Loading);
   std::unique_ptr<QObject> asset(generic.createWithInitialProperties({{"descriptor", QVariantMap{{"name", "file"}, {"mediaType", "asset"}, {"dataType", QVariantMap{{"type", "asset"}}}}}, {"value", QVariantMap{{"type", "asset"}, {"id", "legacy"}, {"future", 9}}}, {"writable", true}, {"nodeId", "same"}}));
   QVERIFY2(asset, qPrintable(generic.errorString()));
   QSignalSpy assetCommits(asset.get(), SIGNAL(valueCommitted(QVariant)));
@@ -307,15 +306,15 @@ private slots:
   genericDocument.redo(); WorkflowDocument genericReopened; QVERIFY(genericReopened.load(genericDocument.snapshot()));
   QCOMPARE(genericReopened.node("n").value("data").toObject().value("file").toObject(), QJsonObject::fromVariantMap(genericRef));
   QVERIFY(QMetaObject::invokeMethod(asset.get(), "uploadFile", Q_ARG(QVariant, QUrl::fromLocalFile(other)))); QTRY_COMPARE(assetCommits.count(), 2);
-  PropertyHost host;
+  FieldHost host;
   const QJsonObject listType{{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", "image"}}}}};
   const QJsonObject declaration{{"name", "images"}, {"type", listType}};
   const QJsonObject metadata{{"properties", QJsonArray{declaration}}};
   const QJsonObject node{{"id", "node"}, {"type", "test"}, {"data", QJsonObject{{"images", QJsonArray{}}}}};
   const QJsonObject snapshot{{"graph", QJsonObject{{"nodes", QJsonArray{node}}, {"edges", QJsonArray{}}}}};
   QVERIFY(host.document.load(snapshot));
-  QQmlComponent fieldComponent(&engine, QUrl("qrc:/editor/PropertyField.qml")); QTRY_VERIFY(fieldComponent.status() != QQmlComponent::Loading);
-  std::unique_ptr<QObject> field(fieldComponent.createWithInitialProperties({{"descriptor", propertyFields(node, metadata, {}).first()}, {"host", QVariant::fromValue(&host)}, {"nodeId", "node"}}));
+  QQmlComponent fieldComponent(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/PropertyField.qml")); QTRY_VERIFY(fieldComponent.status() != QQmlComponent::Loading);
+  std::unique_ptr<QObject> field(fieldComponent.createWithInitialProperties({{"descriptor", propertyFields(node, metadata, {}).first()}, {"host", QVariant::fromValue(&host.host)}, {"nodeId", "node"}}));
   QVERIFY2(field, qPrintable(fieldComponent.errorString()));
   auto* pendingPicker = field->findChild<QObject*>("asset-editor-images"); QVERIFY(pendingPicker);
   hold = true;

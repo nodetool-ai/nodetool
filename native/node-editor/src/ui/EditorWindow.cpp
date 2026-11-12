@@ -233,6 +233,23 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&nodeCatalog_, &node_editor::NodeCatalog::closeMenuRequested, this, &EditorWindow::closeNodeMenu);
   connect(&nodeCatalog_, &node_editor::NodeCatalog::moveMenuRequested, this, &EditorWindow::moveNodeMenu);
   syncNodeCatalog();
+  // The inspector's state goes down the same way.
+  connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncNodeInspector);
+  connect(this, &EditorWindow::shownQueueChanged, this, [this] { nodeInspector_.setRunning(shownRunActive()); });
+  connect(this, &EditorWindow::costEstimateChanged, this, [this] { nodeInspector_.setCostEstimate(costEstimate()); });
+  connect(this, &EditorWindow::documentEpochChanged, this, [this] { nodeInspector_.fields()->setDocumentEpoch(documentEpoch()); });
+  connect(this, &EditorWindow::credentialsEpochChanged, this, [this] { nodeInspector_.fields()->setCredentialsEpoch(credentialsEpoch()); });
+  connect(&nodeInspector_, &node_editor::NodeInspector::clearSelectionRequested, this, [this] { action("Clear selection"); });
+  connect(&nodeInspector_, &node_editor::NodeInspector::focusNodeRequested, this, [this] { userAction("Focus node"); });
+  connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
+  connect(&nodeInspector_, &node_editor::NodeInspector::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitProperty);
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::removeRequested, this, &EditorWindow::removeProperty);
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(nodeInspector_.history(), &node_editor::GenerationReplay::pinRequested, this, &EditorWindow::pinGeneration);
+  connect(nodeInspector_.history(), &node_editor::GenerationReplay::toggleReplayRequested, this, &EditorWindow::toggleReplayGeneration);
+  connect(nodeInspector_.history(), &node_editor::GenerationReplay::clearReplayRequested, this, &EditorWindow::clearReplayGenerations);
+  nodeInspector_.setDynamicPorts(&dynamicPorts_);
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
@@ -568,11 +585,12 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     dockHost_->setCentralWidget(canvasColumn);
     canvasColumn->installEventFilter(this);
   dockHost_->setDockOptions(QMainWindow::AnimatedDocks);
-  const auto dock = [this](const QString &title, const QString &file, Qt::DockWidgetArea area) {
+  const auto dock = [this](const QString &title, const QString &file, Qt::DockWidgetArea area,
+                            const QVariantMap &properties = {}) {
     auto widget = new QDockWidget(title, dockHost_);
     widget->setFeatures(QDockWidget::NoDockWidgetFeatures);
     widget->setTitleBarWidget(new QWidget(widget));
-    widget->setWidget(panel(file));
+    widget->setWidget(panel(file, properties));
     dockHost_->addDockWidget(area, widget);
     return widget;
   };
@@ -606,7 +624,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea);
   libraryDock_->setObjectName("library-dock");
   libraryDock_->hide();
-  inspectorDock_ = dock(tr("Inspector"), "Inspector", Qt::RightDockWidgetArea);
+  // The panel's first bindings read the state the window has at this point.
+  nodeInspector_.setRunning(shownRunActive());
+  nodeInspector_.setCostEstimate(costEstimate());
+  nodeInspector_.fields()->setDocumentEpoch(documentEpoch());
+  nodeInspector_.fields()->setCredentialsEpoch(credentialsEpoch());
+  syncNodeInspector();
+  inspectorDock_ = dock(tr("Inspector"), "Inspector", Qt::RightDockWidgetArea,
+                        {{"inspector", QVariant::fromValue(&nodeInspector_)}});
   outputDock_ = dock(tr("Output"), "RunOutput", Qt::BottomDockWidgetArea);
   {
     // placeStatusBar() moves the status bar above the output while the panel is open.
@@ -2330,6 +2355,25 @@ void EditorWindow::syncNodeCatalog() {
     nodeCatalog_.setRecent(catalogRecent());
     nodeCatalog_.setFavorites(catalogFavorites());
     nodeCatalog_.setReadOnly(readOnly());
+}
+void EditorWindow::syncNodeInspector() {
+    const auto node = selection();
+    const auto reason = readOnlyReason();
+    nodeInspector_.setSelection(node);
+    nodeInspector_.setSelectionInfo(selectionInfo());
+    nodeInspector_.setProperties(properties());
+    nodeInspector_.setReadOnlyReason(reason);
+    nodeInspector_.setMessage(message());
+    nodeInspector_.setRunProgress(runProgress());
+    auto *fields = nodeInspector_.fields();
+    fields->setSelection(node);
+    fields->setReadOnly(!reason.isEmpty());
+    auto *history = nodeInspector_.history();
+    history->setGenerationHistory(generationHistory());
+    history->setSelection(node);
+    history->setReadOnly(!reason.isEmpty());
+    history->setPinnedGeneration(pinnedGeneration());
+    history->setReplayGenerations(replayGenerations());
 }
 void EditorWindow::addNode(const QString &type) {
   if (!tabOwner_) { activeEditor_->addNode(type); return; }

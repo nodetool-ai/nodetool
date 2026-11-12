@@ -26,11 +26,11 @@ no longer read, and when it finds no QML files or no `EditorWindow` members.
 `mediaResolver`, `modelPickerController`, `assetPickerController`,
 `resourcePickerController` and `documentPickerController`.
 
-The window also reaches QML under other names. `Inspector.qml` declares
-`property var propertyHost: editor` and passes it to `PropertyField` (as
-`host`) and `GenerationHistory` (as `propertyHost`). `EditorChat.cpp` and
+The window also reaches QML under other names. `EditorChat.cpp` and
 `InlineTitlePresenter.cpp` pass the window as `host` through
 `setInitialProperties`. The scan counts those reads as reads of the window.
+`Inspector.qml` used to pass the window on as `propertyHost`; it now takes a
+`NodeInspector`.
 
 The scan reads first-level members only. `editor.packSetup.configuredKeys`
 counts as `packSetup`. `packSetup`, `dynamicPorts`, `generationHistory` and
@@ -67,20 +67,29 @@ no active-tab forwarding. Today one `panelChanged` signal notifies 44
 properties. Each interface gets its own signals, which is also where the
 refactor can stop re-evaluating unrelated bindings.
 
-Moved so far: `NodeCatalog` (`src/interfaces/NodeCatalog.h`), which
-`Catalog.qml` and `NodeMenu.qml` take with the existing `PackSetup`.
-`tests/ui/NodeMenuComponentTest.cpp` loads `NodeMenu.qml` with a fixture
-catalog and links only `node_editor_interfaces`, `node_editor_qml` and the UI
-primitives.
+Moved so far:
+
+- `NodeCatalog` (`src/interfaces/NodeCatalog.h`), which `Catalog.qml` and
+  `NodeMenu.qml` take with the existing `PackSetup`.
+  `tests/ui/NodeMenuComponentTest.cpp` loads `NodeMenu.qml` with a fixture
+  catalog and links only `node_editor_interfaces`, `node_editor_qml` and the
+  UI primitives.
+- `NodeInspector` (`src/interfaces/NodeInspector.h`), which `Inspector.qml`
+  takes. It holds a `PropertyHost` for each `PropertyField` and a
+  `GenerationReplay` for `GenerationHistory.qml`, and carries its own
+  selection and read-only state. `tests/ui/InspectorComponentTest.cpp` loads
+  `Inspector.qml` with a fixture inspector. It also builds the editor's media
+  QML types and the model picker, which the property editors use.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
-| `NodeCatalog` | Node metadata as a list model, categories, ranking, recent and favorite types, quick actions, add or drag a node, close or move the floating menu | `Catalog.qml`, `NodeMenu.qml` |
+| `NodeCatalog` (moved) | Node metadata as a list model, categories, ranking, recent and favorite types, quick actions, add or drag a node, close or move the floating menu | `Catalog.qml`, `NodeMenu.qml` |
 | `PackSetup` (exists) | Configured keys, optional packs, setup actions, first-workflow guide | `Catalog.qml`, `NodeMenu.qml`, `OptionalPacksSection.qml`, `SetupGuide.qml` |
 | `DocumentState` | Read-only state and reason, status message, document and credential epochs | Inspector, property editors, toolbars |
 | `Selection` | Selected id, count, summary, disabled state, node context menu | `SelectionToolbar.qml`, `Inspector.qml`, `GenerationHistory.qml`, `PropertyField.qml` |
-| `NodeInspector` | Property rows of the selection, dynamic ports, run selected, run progress, cost estimate | `Inspector.qml` |
-| `GenerationReplay` | Generation history, pinned generation, replay set | `GenerationHistory.qml` |
+| `NodeInspector` (moved) | Selection header, property rows, dynamic ports, read-only reason and message, run selected, run progress, cost estimate | `Inspector.qml` |
+| `PropertyHost` (moved) | Selected id, read-only state, document and credential epochs, commit and remove a value | `PropertyField.qml` |
+| `GenerationReplay` (moved) | Generation history, pinned generation, replay set | `GenerationHistory.qml` |
 | `DocumentTabs` | Workspace tabs as a list model, active tab, project name, tab actions, canvas strips (subgraph surfaces) | `TabBar.qml`, `CanvasTabStrip.qml` |
 | `WorkflowHeader` | Workflow name and rename, save readout, undo and redo state | `HeaderRow.qml` |
 | `PanelLayout` | Which panels are open and the toggles | `HeaderRow.qml`, `Rail.qml`, `StatusBar.qml`, `RunOutput.qml` |
@@ -159,10 +168,8 @@ candidate list, not a plan to move them.
 ```json
 {
   "PackSetup": ["packSetup", "setupAction", "guideReadiness", "guideStarted", "guideVisible"],
-  "DocumentState": ["readOnly", "readOnlyReason", "message", "documentEpoch", "credentialsEpoch"],
-  "Selection": ["selection", "selectionInfo", "selectedCount", "selectionDisabled", "selectionMostlyDisabled", "showNodeMenu"],
-  "NodeInspector": ["properties", "commitProperty", "removeProperty", "dynamicPorts", "runSelectedNodes", "runProgress", "costEstimate"],
-  "GenerationReplay": ["generationHistory", "pinnedGeneration", "replayGenerations", "pinGeneration", "toggleReplayGeneration", "clearReplayGenerations"],
+  "DocumentState": ["readOnly", "message"],
+  "Selection": ["selectionInfo", "selectedCount", "selectionDisabled", "selectionMostlyDisabled", "showNodeMenu"],
   "DocumentTabs": ["workflowTabs", "activeTab", "projectName", "newTab", "activateTab", "closeTab", "dropTab", "renameTab", "showTabMenu", "showProjectMenu", "showTabToolTip", "setTabStripOffset", "tabStripOffset", "tabsChanged", "tabRenameRequested", "canvasStrips", "activateSurface", "closeSurface"],
   "WorkflowHeader": ["workflowName", "workflowRenamable", "renameWorkflow", "documentSaveStatus", "canUndo", "canRedo"],
   "PanelLayout": ["browserVisible", "catalogVisible", "chatVisible", "libraryVisible", "inspectorVisible", "miniMapVisible", "outputVisible", "traceVisible", "versionsVisible", "setMiniMapVisible", "toggleChat", "toggleStatusView"],
@@ -177,17 +184,14 @@ candidate list, not a plan to move them.
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 39 read a root context property, 25 of them read the editor window. `EditorWindow.h` exposes 65 properties and 51 invokable methods or slots (116 members) and 15 signals.
+Scanned 78 files in `qml/`. 36 read a root context property, 21 of them read the editor window. `EditorWindow.h` exposes 65 properties and 51 invokable methods or slots (116 members) and 15 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
 | TabBar.qml | 18 |  |
-| Inspector.qml | 14 via `propertyHost`, passed on |  |
 | HeaderRow.qml | 13 |  |
 | StatusBar.qml | 13 |  |
-| GenerationHistory.qml | 8 via `propertyHost` |  |
 | SelectionToolbar.qml | 8 |  |
-| PropertyField.qml | 7 via `host` |  |
 | Rail.qml | 7 |  |
 | Toolbar.qml | 6 | `workflowSession` (2) |
 | AuthoredControls.qml | 4 via `host` |  |
@@ -201,11 +205,11 @@ Scanned 78 files in `qml/`. 39 read a root context property, 25 of them read the
 | MiniMapControls.qml | 2 |  |
 | MiniMapPopups.qml | 2 |  |
 | NotificationsPanel.qml | 2 |  |
-| AssetPropertyEditor.qml | 1 | `mediaResolver` (0, passed on), `assetPickerController` (0, passed on), `resourcePickerController` (0, passed on) |
 | LibraryPanel.qml | 1 | `libraryBrowser` (13, passed on), `assetPickerController` (3) |
 | QueueOverlay.qml | 1 | `runOutput` (2), `workflowSession` (4) |
 | TextOutput.qml | 1 | `mediaResolver` (7) |
 | TypeIcon.qml | 1 |  |
+| AssetPropertyEditor.qml |  | `mediaResolver` (0, passed on), `assetPickerController` (0, passed on), `resourcePickerController` (0, passed on) |
 | CanvasMedia.qml |  | `mediaResolver` (6) |
 | CardMediaPlayer.qml |  | `mediaResolver` (6) |
 | CollectionPropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
@@ -229,18 +233,12 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 - **TabBar.qml**
   - `editor`: activateTab, activeTab, closeTab, dropTab, newTab, on tabRenameRequested, on tabsChanged, openSettings, projectName, renameTab, setTabStripOffset, showNotifications, showProjectMenu, showTabMenu, showTabToolTip, tabStripOffset, unreadNotifications, workflowTabs
-- **Inspector.qml**
-  - `editor` (as `propertyHost`): action, costEstimate, dynamicPorts, message, properties, readOnly, readOnlyReason, runProgress, runSelectedNodes, selection, selectionInfo, showToolTip, shownRunActive, userAction passed on as propertyHost:, host:, sourceComponent:
 - **HeaderRow.qml**
   - `editor`: action, canRedo, canUndo, chatVisible, documentSaveStatus, inspectorVisible, miniMapVisible, renameWorkflow, setMiniMapVisible, showToolTip, toggleChat, workflowName, workflowRenamable
 - **StatusBar.qml**
   - `editor`: action, connectionDetail, connectionStatus, edgeCount, nodeCount, outputVisible, queueAvailable, queuedCount, showToolTip, systemStats, toggleStatusView, traceVisible, versionsVisible
-- **GenerationHistory.qml**
-  - `editor` (as `propertyHost`): clearReplayGenerations, generationHistory, pinGeneration, pinnedGeneration, readOnly, replayGenerations, selection, toggleReplayGeneration
 - **SelectionToolbar.qml**
   - `editor`: action, readOnly, selectedCount, selectionDisabled, selectionInfo, selectionMostlyDisabled, showNodeMenu, shownRunActive
-- **PropertyField.qml**
-  - `editor` (as `host`): commitProperty, credentialsEpoch, documentEpoch, readOnly, removeProperty, selection, showToolTip
 - **Rail.qml**
   - `editor`: action, browserVisible, catalogVisible, chatVisible, libraryVisible, showToolTip, toggleChat
 - **Toolbar.qml**
@@ -270,11 +268,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `editor`: closeMiniMapPopup, setMiniMapColorMode
 - **NotificationsPanel.qml**
   - `editor`: copyText, notifications
-- **AssetPropertyEditor.qml**
-  - `editor`: showToolTip
-  - `mediaResolver`: none passed on as resolver:
-  - `assetPickerController`: none passed on as controller:
-  - `resourcePickerController`: none passed on as resourceController:
 - **LibraryPanel.qml**
   - `editor`: action
   - `libraryBrowser`: assetModel, breadcrumbs, busy, configured, createFolder, error, favoritesOnly, goUp, openFolder, refresh, searchText, tagFilter, typeFilter passed on as browser:
@@ -288,6 +281,10 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `mediaResolver`: cancel, on cleared, on failed, on resolved, release, resolve, resolvedText
 - **TypeIcon.qml**
   - `editor`: iconPath
+- **AssetPropertyEditor.qml**
+  - `mediaResolver`: none passed on as resolver:
+  - `assetPickerController`: none passed on as controller:
+  - `resourcePickerController`: none passed on as resourceController:
 - **CanvasMedia.qml**
   - `mediaResolver`: on assetSaveFailed, on assetSaved, on saveFailed, on saved, saveText, saveTextToAssets
 - **CardMediaPlayer.qml**
@@ -325,34 +322,15 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `guideVisible` property: SetupGuide.qml
   - `packSetup` property: OptionalPacksSection.qml
   - `setupAction` method: OptionalPacksSection.qml, SetupGuide.qml
-- **DocumentState** (5 members, read by 7 files: AuthoredControls.qml, GenerationHistory.qml, Inspector.qml, PropertyField.qml, RunOutput.qml, SelectionToolbar.qml, Toolbar.qml)
-  - `credentialsEpoch` property: PropertyField.qml
-  - `documentEpoch` property: PropertyField.qml
-  - `message` property: Inspector.qml, RunOutput.qml
-  - `readOnly` property: AuthoredControls.qml, GenerationHistory.qml, Inspector.qml, PropertyField.qml, SelectionToolbar.qml, Toolbar.qml
-  - `readOnlyReason` property: Inspector.qml
-- **Selection** (6 members, read by 4 files: GenerationHistory.qml, Inspector.qml, PropertyField.qml, SelectionToolbar.qml)
+- **DocumentState** (2 members, read by 4 files: AuthoredControls.qml, RunOutput.qml, SelectionToolbar.qml, Toolbar.qml)
+  - `message` property: RunOutput.qml
+  - `readOnly` property: AuthoredControls.qml, SelectionToolbar.qml, Toolbar.qml
+- **Selection** (5 members, read by 1 files: SelectionToolbar.qml)
   - `selectedCount` property: SelectionToolbar.qml
-  - `selection` property: GenerationHistory.qml, Inspector.qml, PropertyField.qml
   - `selectionDisabled` property: SelectionToolbar.qml
-  - `selectionInfo` property: Inspector.qml, SelectionToolbar.qml
+  - `selectionInfo` property: SelectionToolbar.qml
   - `selectionMostlyDisabled` property: SelectionToolbar.qml
   - `showNodeMenu` method: SelectionToolbar.qml
-- **NodeInspector** (7 members, read by 2 files: Inspector.qml, PropertyField.qml)
-  - `commitProperty` method: PropertyField.qml
-  - `costEstimate` property: Inspector.qml
-  - `dynamicPorts` property: Inspector.qml
-  - `properties` property: Inspector.qml
-  - `removeProperty` method: PropertyField.qml
-  - `runProgress` property: Inspector.qml
-  - `runSelectedNodes` method: Inspector.qml
-- **GenerationReplay** (6 members, read by 1 files: GenerationHistory.qml)
-  - `clearReplayGenerations` method: GenerationHistory.qml
-  - `generationHistory` property: GenerationHistory.qml
-  - `pinGeneration` method: GenerationHistory.qml
-  - `pinnedGeneration` property: GenerationHistory.qml
-  - `replayGenerations` property: GenerationHistory.qml
-  - `toggleReplayGeneration` method: GenerationHistory.qml
 - **DocumentTabs** (18 members, read by 2 files: CanvasTabStrip.qml, TabBar.qml)
   - `activateSurface` method: CanvasTabStrip.qml
   - `activateTab` method: TabBar.qml
@@ -401,11 +379,11 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `queueAvailable` property: StatusBar.qml
   - `queuedCount` property: StatusBar.qml
   - `systemStats` property: StatusBar.qml
-- **RunState** (4 members, read by 6 files: AuthoredControls.qml, Inspector.qml, QueueOverlay.qml, RunOutput.qml, SelectionToolbar.qml, Toolbar.qml)
+- **RunState** (4 members, read by 5 files: AuthoredControls.qml, QueueOverlay.qml, RunOutput.qml, SelectionToolbar.qml, Toolbar.qml)
   - `askRunAgent` method: RunOutput.qml
   - `authoredAction` method: AuthoredControls.qml
   - `shownQueue` property: QueueOverlay.qml, Toolbar.qml
-  - `shownRunActive` property: AuthoredControls.qml, Inspector.qml, SelectionToolbar.qml, Toolbar.qml
+  - `shownRunActive` property: AuthoredControls.qml, SelectionToolbar.qml, Toolbar.qml
 - **Viewport** (6 members, read by 3 files: MiniMapControls.qml, MiniMapPopups.qml, ViewportIndicator.qml)
   - `closeMiniMapPopup` method: MiniMapPopups.qml
   - `miniMapColorMode` property: MiniMapControls.qml
@@ -421,12 +399,12 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `beginChatGeometry` method: EditorChat.qml
   - `changeChatGeometry` method: EditorChat.qml
   - `resetChatPosition` method: EditorChat.qml
-- **EditorCommands** (5 members, read by 13 files: AssetPropertyEditor.qml, HeaderRow.qml, Inspector.qml, LibraryPanel.qml, NotificationsPanel.qml, PropertyField.qml, Rail.qml, SelectionToolbar.qml, StatusBar.qml, TabBar.qml, Toolbar.qml, ViewportIndicator.qml, WorkflowBrowser.qml)
-  - `action` method: HeaderRow.qml, Inspector.qml, LibraryPanel.qml, Rail.qml, SelectionToolbar.qml, StatusBar.qml, Toolbar.qml, WorkflowBrowser.qml
+- **EditorCommands** (5 members, read by 10 files: HeaderRow.qml, LibraryPanel.qml, NotificationsPanel.qml, Rail.qml, SelectionToolbar.qml, StatusBar.qml, TabBar.qml, Toolbar.qml, ViewportIndicator.qml, WorkflowBrowser.qml)
+  - `action` method: HeaderRow.qml, LibraryPanel.qml, Rail.qml, SelectionToolbar.qml, StatusBar.qml, Toolbar.qml, WorkflowBrowser.qml
   - `copyText` method: NotificationsPanel.qml
   - `openSettings` method: TabBar.qml
-  - `showToolTip` method: AssetPropertyEditor.qml, HeaderRow.qml, Inspector.qml, PropertyField.qml, Rail.qml, StatusBar.qml, Toolbar.qml
-  - `userAction` method: Inspector.qml, ViewportIndicator.qml
+  - `showToolTip` method: HeaderRow.qml, Rail.qml, StatusBar.qml, Toolbar.qml
+  - `userAction` method: ViewportIndicator.qml
 - **Leaves the window** (6 members, read by 5 files: OptionalPacksSection.qml, TextOutput.qml, Toolbar.qml, TypeIcon.qml, WorkflowBrowser.qml)
   - `deleteWorkflow` method: WorkflowBrowser.qml
   - `height` QWidget property: OptionalPacksSection.qml
@@ -435,5 +413,5 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `presentation` method: Toolbar.qml
   - `styleOutputMarkdown` method: TextOutput.qml
 
-Members no QML file reads (C++ callers only, or dead): `askAgent`, `cancelCatalogPlacement`, `catalogAtPointer`, `closeAllTabs`, `closeOtherTabs`, `emptyCanvas`, `focusCanvas`, `graphSummary`, `hasUnsavedChanges`, `layoutOverlays`, `openChild`, `outputMedia`, `runActive`, `saveState`, `serverSaveState`, `serverSyncAvailable`, `serverSyncNeedsAttention`, `setProperty`, `setup`.
+Members no QML file reads (C++ callers only, or dead): `askAgent`, `cancelCatalogPlacement`, `catalogAtPointer`, `clearReplayGenerations`, `closeAllTabs`, `closeOtherTabs`, `commitProperty`, `costEstimate`, `credentialsEpoch`, `documentEpoch`, `dynamicPorts`, `emptyCanvas`, `focusCanvas`, `generationHistory`, `graphSummary`, `hasUnsavedChanges`, `layoutOverlays`, `openChild`, `outputMedia`, `pinGeneration`, `pinnedGeneration`, `properties`, `readOnlyReason`, `removeProperty`, `replayGenerations`, `runActive`, `runProgress`, `runSelectedNodes`, `saveState`, `selection`, `serverSaveState`, `serverSyncAvailable`, `serverSyncNeedsAttention`, `setProperty`, `setup`, `toggleReplayGeneration`.
 <!-- END GENERATED -->

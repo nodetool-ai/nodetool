@@ -1,19 +1,20 @@
 import QtQuick
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
+import NodeTool.NodeEditor
 
 ColumnLayout {
     id: root
     required property var descriptor
-    required property var host
+    required property PropertyHost host
     required property string nodeId
     property bool multiline: false
     property int commitGeneration: 0
     property string editNodeId: ""
-    readonly property var credentialsEpoch: host && typeof host.credentialsEpoch !== "undefined" ? host.credentialsEpoch : 0
+    readonly property var credentialsEpoch: host.credentialsEpoch
     readonly property string descriptorIdentity: JSON.stringify([nodeId, descriptor.storage || "", descriptor.name || "", descriptor.kind || "", descriptor.dataType || {}])
-    readonly property var documentEpoch: host && typeof host.documentEpoch !== "undefined" ? host.documentEpoch : 0
-    readonly property bool writable: descriptor.editable && (!descriptor.connected || descriptor.appendStatic) && host && !host.readOnly
+    readonly property var documentEpoch: host.documentEpoch
+    readonly property bool writable: descriptor.editable && (!descriptor.connected || descriptor.appendStatic) && !host.readOnly
     readonly property var effectiveValue: descriptor.hasValue ? descriptor.value : descriptor.hasDefault ? descriptor.defaultValue : null
     readonly property string title: descriptor.label || descriptor.name || ""
     // A connected or preserved value explains itself in the hint below the label.
@@ -79,11 +80,7 @@ ColumnLayout {
             readonly property string helpText: root.descriptor.description || ""
             Accessible.description: helpText
             HoverHandler {
-                onHoveredChanged: {
-                    if (root.host && typeof root.host.showToolTip === "function") {
-                        root.host.showToolTip(hovered ? parent.helpText : "")
-                    }
-                }
+                onHoveredChanged: root.host.showToolTip(hovered ? parent.helpText : "")
             }
         }
         // The web marks a value that differs from its default (property-input-container.value-changed).
@@ -333,6 +330,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
+            onToolTipRequested: text => root.host.showToolTip(text)
             onScopeInvalidated: {
                 ++root.commitGeneration
                 root.editNodeId = ""
@@ -398,6 +396,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
+            onToolTipRequested: text => root.host.showToolTip(text)
             onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
             onValueCommitted: value => root.immediate(value)
         }

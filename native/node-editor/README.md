@@ -28,7 +28,9 @@ styles. Other native apps keep the [native design](../ui_primitives/DESIGN.md).
 The panels form the `NodeTool.NodeEditor` QML module. A panel that has moved off
 the `editor` context property takes small interface objects as required
 properties instead, such as [`NodeCatalog`](src/interfaces/NodeCatalog.h) for
-the node library and the node menu.
+the node library and the node menu, and
+[`NodeInspector`](src/interfaces/NodeInspector.h) for the inspector, its
+property fields and its History tab.
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
 read `EditorWindow`.
 
@@ -315,6 +317,11 @@ writes its captures in both themes.
 with a fixture catalog and no `EditorWindow`, so it links no graph runner,
 QtNodes or media. Run it with `ctest --test-dir <build> -R
 'node_editor_node_menu_component$' --output-on-failure`.
+[InspectorComponentTest](tests/ui/InspectorComponentTest.cpp) loads
+`Inspector.qml` with a fixture inspector and no `EditorWindow`, commits a field,
+blocks a read-only edit and sends the run and close requests. Run it with
+`ctest --test-dir <build> -R 'node_editor_inspector_component$'
+--output-on-failure`.
 Complete successful-reconnect acceptance, inferred Code ports, dedicated canvas
 add-variable targets, full Agent-control presentation, value/code convenience
 actions remain outside these subsets.
