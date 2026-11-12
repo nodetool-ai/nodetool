@@ -530,7 +530,7 @@ export class ImageToVideoNode extends BaseNode {
     output: "video"
   };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["image", "prompt"];
+  static readonly inputFields: string[] = ["image", "end_image", "prompt"];
   static readonly autoSaveAsset = true;
 
   @prop({
