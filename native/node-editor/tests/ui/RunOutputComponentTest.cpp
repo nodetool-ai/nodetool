@@ -39,15 +39,16 @@ private slots:
     void outputStyleColorsLinksAndCode() {
         QQmlEngine engine;
         QQmlComponent component(&engine);
-        component.setData(R"(
-            import QtQuick
-            import NodeTool.NodeEditor
-            TextEdit {
-                textFormat: TextEdit.MarkdownText
-                text: "[link](https://example.com) and `code`"
-                function style() { OutputStyle.styleMarkdown(textDocument, "#ff0000", "#00ff00", Qt.font({family: "monospace"})) }
-            }
-        )", QUrl("qrc:/test/OutputStyleFixture.qml"));
+        component.setData(
+            "import QtQuick\n"
+            "import NodeTool.NodeEditor\n"
+            "TextEdit {\n"
+            "textFormat: TextEdit.MarkdownText\n"
+            "text: \"[link](https://example.com) and `code`\"\n"
+            "function style() { OutputStyle.styleMarkdown(textDocument, \"#ff0000\", \"#00ff00\", Qt.font({family: \"monospace\"})) }\n"
+            "}\n"
+            "\n",
+            QUrl("qrc:/test/OutputStyleFixture.qml"));
         std::unique_ptr<QObject> edit(component.create());
         QVERIFY2(edit, qPrintable(component.errorString()));
         QVERIFY(QMetaObject::invokeMethod(edit.get(), "style"));

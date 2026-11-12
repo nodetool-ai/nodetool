@@ -2,6 +2,7 @@
 
 #include <QList>
 #include <QQuickTextDocument>
+#include <QTextBlock>
 #include <QTextCharFormat>
 #include <QTextCursor>
 #include <QTextDocument>
