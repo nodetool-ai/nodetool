@@ -31,7 +31,7 @@ not measurements. Q8 requires the WP10 native/browser comparison.
 | [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Linux Release, ASan/UBSan and TSan CI pass. Local instruction-alias verification remains blocked as described below |
 | [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Windows Release/ASan and Linux Release/ASan+UBSan/TSan pass. Aggregate verification remains incomplete as described below. See [operation contracts](control.md) |
 | [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, linear/one-pole smoothing, events, built-in kernels and sink sanitation implemented. Windows Release/ASan and audio-scoped affected tests pass. See [audio contracts](audio.md) and verification below |
-| [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and texture-lifetime core prepared. GPU backend and exit evidence incomplete. Test execution deferred by request. See [render scheduling](render.md) |
+| [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and provisional private-device offline GPU backend implemented. MSVC compilation/linking pass. GPU execution and exit evidence pending, with local tests deferred by request. See [render contracts](render.md) |
 | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | Not implemented |
 | [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Not implemented |
 
@@ -114,14 +114,29 @@ The new fixtures have not been executed, and no sanitizer or aggregate pass is
 claimed for these changes. Test execution is deferred at the user's request.
 The earlier audio/control results apply to their recorded revisions.
 
-Actual wgpu-native encoding, asynchronous pipeline preparation, uniform
-packing/bind-group caching, texture presentation, nonblocking staging readback
-and software-adapter pixel goldens remain unfinished. WP08 stays open, and this
-increment does not qualify M1 or resolve any M0 hardware gate.
+The approved [offline M1 exception](../../docs/plans/graph-runner-realtime.md#provisional-offline-m1-exception-rt-f44)
+uses synchronous pipeline preparation on a private device. The backend owns its
+device, textures, cached bindings, uniform buffer, session target and three
+readback buffers. No external device or live-session attachment is accepted.
+Prepared callback records outlive device teardown. Device release can wait for
+queued work and is not a realtime operation.
 
-GPU backend preparation is blocked on a dependency/design decision. The pinned
-wgpu-native release contains unimplemented stubs for all three compilation and
-async pipeline APIs required by design section 9.2, rule 4. The inspected upstream
-revision has the same limitation. [Source evidence and alternatives](render.md#native-pipeline-api-blocker)
-are recorded alongside the render contracts. No synchronous fallback or design
-exception has been approved or implemented.
+Fragment/compute encoding, expanded catalog uniform packing, optional-input
+defaults, explicit alpha checks, texture presentation and nonblocking readback
+are implemented. The library and GPU fixture executable compile and link with
+MSVC Release against the pinned wgpu-native static library. Source review found
+and corrected unused-slot readiness, compute metadata overflow and graph-node
+diagnostic handling. No runtime reproduction or test pass is claimed for those
+cases because local test execution remains deferred.
+
+The prepared GPU fixtures cover three catalog shader-chain pixel references,
+compute upload, ring backpressure, invalid preparation and pending-map teardown.
+They still need a real software-adapter run, allocation verification, sanitizer
+runs and aggregate checks. The default core CI configuration does not build or
+run the optional GPU backend. Earlier core passes cannot qualify it.
+
+Live/shared-device support remains blocked: the pinned wgpu-native release and
+inspected upstream revision leave the compilation-info and async pipeline APIs
+required by design section 9.2, rule 4 unimplemented. [Source evidence](render.md#native-pipeline-api-limitation)
+remains documented. WP08 stays open, and the offline exception neither qualifies
+M1 nor resolves any M0 hardware gate.

@@ -6,8 +6,8 @@ They do not implement the production engine or satisfy its measurement gate.
 Provisional M1 development adds the [plan IR and loader](schema/README.md),
 [control executor](control.md) and [audio executor](audio.md). See
 [milestone status and unverified assumptions](M1_STATUS.md). The
-[render scheduling core](render.md) is in progress. GPU encoding and rendering
-verification remain unfinished.
+[render scheduling core and offline GPU backend](render.md) are in progress.
+GPU execution verification and live/shared-device support remain unfinished.
 
 ## Build and test
 
@@ -24,6 +24,19 @@ configure Ninja builds. Run `cmake --preset sanitize`,
 `cmake --build --preset sanitize`, then `ctest --preset sanitize`.
 The native CI job runs all three configurations. Windows ASan uses the flags
 and developer environment described below. Windows cannot verify TSan here.
+
+For the provisional offline GPU backend, first build the repository packages
+for the existing catalog exporter, then configure the optional target:
+
+```sh
+cmake -S native/realtime -B native/realtime/build-gpu -DNT_REALTIME_BUILD_SPIKES=OFF -DNT_REALTIME_OFFLINE_GPU=ON
+cmake --build native/realtime/build-gpu --config Release
+```
+
+When verification resumes, run `ctest --test-dir native/realtime/build-gpu
+-C Release --output-on-failure`. The GPU fixture requires a software adapter.
+Linux can use lavapipe as described in the [headless GPU setup](../../docs/dev-environment.md#webgpu-on-a-headless-machine).
+The default core CI presets leave the GPU option off and do not qualify it.
 
 To include the standalone M0 spikes, keep `NT_REALTIME_BUILD_SPIKES=ON`:
 

@@ -1,9 +1,9 @@
 # Render scheduling
 
-`RenderSchedule` is the scheduling and texture-lifetime portion of WP08. It does
-not encode WebGPU commands or render pixels. The wgpu-native backend, shader
-catalog integration, texture presenter and asynchronous readback are still
-required before WP08 can meet its exit criteria.
+`RenderSchedule` manages scheduling and texture lifetimes. `OfflineGpu` adds a
+provisional private-device wgpu-native backend for WP08. Compilation and linking
+have been checked, but GPU execution, pixel references and sanitizers remain
+unverified. Neither class supplies live/shared-device support.
 
 ## Preparation and ownership
 
@@ -17,7 +17,7 @@ The schedule owns metadata, cached values and command arrays. It retains no
 borrowed JSON. After preparation it belongs exclusively to one render thread
 and is destroyed after that thread stops using it. It creates no workers.
 
-GPU ownership belongs to the future backend. `textures()` describes its fixed
+GPU ownership belongs to the backend. `textures()` describes its fixed
 allocations. Texture slots occupy the first entries in declaration order,
 followed by volatile and retained pool textures. `passes()` describes module
 keys, ordered input names, uniform counts and output contracts. Color-space
@@ -82,7 +82,7 @@ frame. Minimum live-set requirements are reserved before optional cache space.
 
 ## Verification still needed
 
-### Native pipeline API blocker
+### Native pipeline API limitation
 
 The graph runner pins wgpu-native `v29.0.1.1` in
 [host-image-gpu.cmake](../graph-runner/cmake/host-image-gpu.cmake).
@@ -97,12 +97,70 @@ The same stubs exist in the inspected
 Header availability therefore does not establish runtime support. These entry
 points must not be called by the backend.
 
-Backend implementation needs a decision: either maintain a native API patch,
-or authorize an explicit provisional offline-only exception that creates
-pipelines synchronously before activation on a private device. The latter
-would not qualify shared-device live preparation or resolve RT-F44. The design
-has not been changed, and no fallback has been implemented. This finding comes
-from source inspection, not a runtime test.
+The approved [offline M1 exception](../../docs/plans/graph-runner-realtime.md#provisional-offline-m1-exception-rt-f44)
+permits synchronous pipeline preparation and validation scopes on a private
+device before activation. `OfflineGpu` implements that path. It creates no
+shared device, accepts no external native handles and has no live-session
+attachment. Its validation checkpoints preserve the graph-node diagnostic.
+The live/shared-device compilation and callback path remains blocked. The
+dependency finding comes from source inspection, not a runtime test.
+
+### Offline backend
+
+Enable `NT_REALTIME_OFFLINE_GPU=ON` to build `nodetool_realtime_offline_gpu` and
+its fixture executable. The core-only default still needs no GPU dependency.
+The optional target downloads the same pinned wgpu-native release and hashes as
+the graph runner. Its catalog comes from the existing
+`graph-runner/guest/host/gpu-catalog.mjs` exporter, using built package outputs.
+The preparation API takes that format-1 JSON and the trusted IR module registry.
+
+One offline host thread owns the instance, adapter, device, queue, schedule,
+pipelines, textures, bind groups and staging buffers. Each C handle has an RAII
+owner. Callback records outlive the device and instance and publish status through
+atomics. Destruction cancels mappings and destroys the private device while those
+records are still alive. Native device release may wait while draining GPU work,
+so teardown is not a realtime operation. It introduces no worker threads or global GPU cache.
+
+Preparation creates fragment or compute pipelines, the full texture pool, a
+premultiplied RGBA8 session target and a white default texture for optional
+catalog inputs. The target and white texture count against the texture budget.
+Recipes must already be lowered into passes. Only single-sample 2D float texture
+bindings, write-only storage outputs, ordinary samplers and uniform buffers are
+supported. Alpha contracts must match explicitly. Unsupported contracts reject
+preparation rather than silently changing the shader.
+
+Each IR uniform addresses one expanded catalog field in catalog order, including
+individual array elements. Scalar/vector widths must match. Fields are packed
+into one aligned frame buffer, capped at 64 MiB and the device limit. Floating
+point values must fit float32. Integer fields use the catalog's modulo-2^32
+conversion. A frame writes this buffer at most once and submits one command
+buffer. No JSON parsing or application-owned container growth occurs in the
+frame path. Driver-internal allocations remain unmeasured.
+
+All possible input/output bind groups are prepared before activation. The fixed
+cache limit defaults to 32,768, including presenter groups. Large Cartesian
+products reject preparation with a diagnostic. This bounds storage and prevents
+bind-group creation during execution. Candidate lists come from the scheduler's
+retained pools and volatile assignments. Runtime selection uses sorted lookup.
+
+The presenter scales by nearest texel lookup and writes premultiplied RGBA8. It
+converts between linear and sRGB/encoded-SDR transfer functions on unassociated
+RGB before restoring alpha association. Data-tagged textures require data
+presentation. It owns no window or surface. Presentation dimensions are fixed
+until replacement preparation.
+
+`uploadSlot` accepts exact-size, tightly packed interleaved RGBA texel bytes: RGBA8 or
+IEEE half RGBA according to the slot format. Bytes must already match the declared
+alpha/color convention. The host increments the slot version after a write.
+Unuploaded reachable inputs reject execution, while unrelated slots do not block
+the pruned present chain. All calls stay on the same owning host thread.
+
+Readback uses three prepared buffers with 256-byte row alignment. A requested
+capture when all three are occupied rejects before advancing the schedule.
+`poll` performs one nonblocking native poll and dispatches events. `takeReadback`
+copies the oldest ready frame to caller storage, strips row padding and unmaps
+the buffer. It does not wait. Device errors latch failure and require destroying
+the backend rather than pretending cached output remains valid.
 
 ### Pending execution evidence
 
@@ -114,10 +172,15 @@ allocation counter with a positive control. Test execution is deferred at the
 user's request. These fixtures use a CPU command consumer and cannot establish
 GPU output correctness or adapter support.
 
-WP08 still needs asynchronous pipeline creation with status handling, cached
-bind groups, one packed uniform buffer per frame, actual texture presentation,
-three staging buffers with nonblocking mapping, and three software-adapter
-shader-chain goldens. The allocation checks, sanitizer runs and mandatory
-repository checks must run on the final implementation. Earlier audio/control
-results do not validate this increment. M0 hardware gaps remain in
+The optional `realtime-offline-gpu` fixture source contains three catalog
+shader-chain pixel references, compute upload/readback, optional-mask defaults,
+unused-slot readiness, ring backpressure, invalid shader/workgroup diagnostics
+and pending-map destruction. It requests a software adapter and fails when one
+is unavailable. It has been compiled, not executed in this session.
+
+Software-adapter goldens, allocation checks, sanitizer runs and mandatory
+repository checks remain pending. In particular, linking does not validate WGSL,
+device behavior or callback teardown. Earlier audio/control results do not
+validate this increment. Live preparation still needs supported asynchronous
+compilation/error reporting outside the offline exception. M0 hardware gaps remain in
 [M1_STATUS.md](M1_STATUS.md).

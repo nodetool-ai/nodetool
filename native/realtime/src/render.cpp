@@ -31,6 +31,7 @@ struct Group {
     unsigned tail = none;
     unsigned peak = 0;
     unsigned total = 0;
+    std::vector<unsigned> candidates;
 };
 bool equal(const ControlValue& a, const ControlValue& b) noexcept {
     return a.width == b.width && std::equal(a.lanes.begin(), a.lanes.begin() + a.width, b.lanes.begin());
@@ -94,6 +95,11 @@ RenderSchedule::~RenderSchedule() = default;
 std::span<const RenderSlotSpec> RenderSchedule::slots() const noexcept { return storage_->slots; }
 std::span<const RenderPassSpec> RenderSchedule::passes() const noexcept { return storage_->specs; }
 std::span<const RenderTextureSpec> RenderSchedule::textures() const noexcept { return storage_->textures; }
+std::span<const unsigned> RenderSchedule::outputCandidates(unsigned index) const noexcept {
+    if (index >= storage_->passes.size() || !storage_->passes[index].reachable) { return {}; }
+    const auto& pass = storage_->passes[index];
+    return storage_->specs[index].retained ? std::span<const unsigned>(storage_->groups[pass.group].candidates) : std::span<const unsigned>(&pass.texture, 1);
+}
 std::size_t RenderSchedule::textureBytes() const noexcept { return storage_->bytes; }
 RenderColorSpace RenderSchedule::presentationColorSpace() const noexcept { return storage_->presentation; }
 
@@ -296,6 +302,9 @@ RenderSchedule::Prepared RenderSchedule::prepare(const Plan& plan, const Registr
             }
         }
         data->commands.reserve(data->passes.size());
+        for (unsigned i = 0; i < data->cells.size(); ++i) {
+            if (data->cells[i].group != none) { data->groups[data->cells[i].group].candidates.push_back(i); }
+        }
         return {std::make_unique<RenderSchedule>(std::move(data)), std::nullopt};
     } catch (const Plan::exception& error) { return failure("structure", error.what()); }
     catch (const std::length_error& error) { return failure("budget", error.what()); }

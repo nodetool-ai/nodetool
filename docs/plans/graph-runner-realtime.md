@@ -726,6 +726,26 @@ setups: with the gate, without it, and with a second device for batch work. A
 second device separates the queues and costs a CPU copy for each texture slot
 value.
 
+#### Provisional offline M1 exception (RT-F44)
+
+The offline M1 backend may create pipelines synchronously before activation on
+a private device. Its single owning host thread checks validation error scopes
+after creating shaders and dependent resources. It never calls the unsupported
+compilation-info or async pipeline entry points in the pinned wgpu-native
+release. [The implementation notes](../../native/realtime/render.md#native-pipeline-api-limitation)
+record the source evidence.
+
+This exception is limited to offline preparation and execution. The backend
+creates its own instance and device, exposes no native handles, accepts no
+external device, and cannot attach to a live session. Its owner thread may pump
+nonblocking readback completion between offline frames. It does not establish
+realtime allocation, callback or scheduling guarantees for the GPU driver.
+
+Rules 4 and 5 above still apply to live/shared-device support. That path remains
+blocked until compilation/error reporting and callback ownership have a supported
+implementation and their live behavior is verified. The offline exception does
+not settle M0's device, surface, timing or physical-recording gates.
+
 ### 9.3 Frame order
 
 1. Check for work (section 9.4). Without work, wait one refresh period and
