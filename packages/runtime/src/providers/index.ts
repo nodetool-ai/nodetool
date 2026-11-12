@@ -505,6 +505,7 @@ export type {
   LanguageModel,
   ImageModel,
   VideoModel,
+  VideoEndFrame,
   TTSModel,
   ASRModel,
   ModelAdapterInfo,
