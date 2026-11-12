@@ -54,6 +54,27 @@ hook accesses TLS during Windows thread teardown, so sanitized builds omit that
 hook while keeping the audio driver instrumented. Windows uses MMCSS and a
 high-resolution waitable timer. Those mechanisms do not qualify macOS behavior.
 
+### Offline sample-rate conversion
+
+`realtime-audio-conversion` measures miniaudio's linear converter for stereo
+float PCM in 128-frame input quanta. It compares 44.1-to-48 kHz conversion
+with matching-rate baselines. The timed region contains only the converter
+call. Input generation, output validation and initialization are outside it.
+There is no warmup exclusion. Output checks cover frame count, tone frequency,
+signal energy and opposite-polarity stereo channels.
+
+```sh
+native/realtime/build/realtime-audio-conversion
+```
+
+For Visual Studio builds, use
+`native/realtime/build/Release/realtime-audio-conversion.exe`.
+The JSON reports mean, maximum and 99.9th-percentile call durations, output
+frames and converter latency. The converter and fixed PCM arrays belong to
+the main thread and are destroyed after measurement. No worker or device is
+started. This prepares Q3 but does not measure the device callback, backend
+conversion, realtime scheduling or loaded hardware. Q3 remains open.
+
 ## Recording analysis
 
 The [click/flash analyzer](spike/sync/README.md) decodes a supplied recording and
@@ -65,7 +86,7 @@ recording with an intentional stream offset. No physical recording is included.
 | Issue | Prepared here | Still required |
 |---|---|---|
 | [WP01](https://github.com/nodetool-ai/nodetool/issues/7392) | No surface spike yet | Qt/wgpu Metal surface, catalog shader chain, visual clock, same-device submit gate and second-device comparisons, pipeline timings |
-| [WP02](https://github.com/nodetool-ai/nodetool/issues/7393) | Buffered driver, plan/state/parameter tests, null-device smoke | macOS realtime policy and device workgroup implementation, busy/GPU profiles, ten-minute hardware runs, 44.1/48 kHz conversion, complete allocation audit |
+| [WP02](https://github.com/nodetool-ai/nodetool/issues/7393) | Buffered driver, plan/state/parameter tests, null-device smoke, offline conversion benchmark | macOS realtime policy and device workgroup implementation, busy/GPU profiles, ten-minute hardware runs, hardware conversion cost, complete allocation audit |
 | [WP03](https://github.com/nodetool-ai/nodetool/issues/7394) | Native/Wasm/Chrome byte comparison and traced per-quantum offline timings | Required repository checks and any live-device qualification beyond the offline fixture |
 | [WP04](https://github.com/nodetool-ai/nodetool/issues/7395) | Timestamp-preserving recording analyzer and synthetic fixture | Combined click/flash producer, calibrated physical recording, measured design budgets and R1/R2 decision |
 

@@ -17,16 +17,23 @@ add_test(NAME realtime-audio-core COMMAND realtime-audio-core-test)
 
 add_executable(realtime-audio-spike spike/buffered-audio/driver.cpp
   ../timeline/src/audio/miniaudio.cpp)
+add_executable(realtime-audio-conversion spike/buffered-audio/conversion.cpp
+  ../timeline/src/audio/miniaudio.cpp)
+target_include_directories(realtime-audio-conversion PRIVATE ../timeline/third_party)
+target_link_libraries(realtime-audio-conversion PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+add_test(NAME realtime-audio-conversion COMMAND realtime-audio-conversion)
 target_include_directories(realtime-audio-spike PRIVATE ../timeline/src ../timeline/third_party)
 target_link_libraries(realtime-audio-spike PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
 if(WIN32)
   target_compile_definitions(realtime-audio-spike PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
   target_link_libraries(realtime-audio-spike PRIVATE avrt)
 elseif(APPLE)
+  target_link_libraries(realtime-audio-conversion PRIVATE
+    "-framework CoreAudio" "-framework AudioToolbox" "-framework CoreFoundation")
   target_link_libraries(realtime-audio-spike PRIVATE
     "-framework CoreAudio" "-framework AudioToolbox" "-framework CoreFoundation")
 endif()
-foreach(target realtime-audio-core-test realtime-audio-spike)
+foreach(target realtime-audio-core-test realtime-audio-spike realtime-audio-conversion)
   if(MSVC)
     target_compile_options(${target} PRIVATE /W4 /fp:strict)
   else()
@@ -37,5 +44,5 @@ add_test(NAME realtime-audio-null COMMAND realtime-audio-spike --seconds 2 --pro
 add_test(NAME realtime-audio-stall COMMAND realtime-audio-spike --seconds 6 --profile stall)
 add_test(NAME realtime-audio-invalid-duration COMMAND realtime-audio-spike --seconds nan)
 set_tests_properties(realtime-audio-invalid-duration PROPERTIES WILL_FAIL TRUE)
-set_tests_properties(realtime-audio-core realtime-audio-null realtime-audio-stall
+set_tests_properties(realtime-audio-conversion realtime-audio-core realtime-audio-null realtime-audio-stall
   realtime-audio-invalid-duration realtime-worklet-timing realtime-sync-analysis PROPERTIES TIMEOUT 30)

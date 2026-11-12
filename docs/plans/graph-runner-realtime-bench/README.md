@@ -61,3 +61,12 @@ worker stall. The [Windows null-device result](wp02-windows-null.json) covers
 idle, swap and stall profiles at both session rates. Repository checks were
 running concurrently. These short runs do not measure hardware conversion,
 macOS scheduling, sound-to-picture latency or the ten-minute load profiles.
+
+## WP02 offline conversion
+
+The [conversion benchmark](../../../native/realtime/README.md#offline-sample-rate-conversion)
+compares miniaudio linear conversion from 44.1 to 48 kHz with matching-rate
+baselines. The [Windows result](wp02-windows-conversion.json) records CPU call
+timings and signal checks. It includes startup calls and host scheduling noise.
+No device runs during this measurement. Hardware conversion cost and Q3 remain
+unqualified.
