@@ -28,6 +28,7 @@ relative to `native/timeline/`.
 | M12 | R2 F10 | `src/music/MusicBounce.cpp:111` | The bounce destructor joins on the GUI thread and the upload does not check for interruption, so Cancel, a document switch or quitting freezes the UI until an upload of up to 230 MB ends. |
 | M13 | F (jobs) | `src/audio/AudioEngine.cpp` | A take placed under a playing playhead counts one underrun: the engine publishes new voices before they hold PCM. A placeholder has no audio, so nothing is audible, but `underruns` is no longer 0 (AU-3). |
 | M14 | I2 | `--ui-bench` | The 32-track, 500-clip music fixture measured 13.5 and 15.8 ms GUI p95 on the Linux machine against the 8 ms budget (PF-2). The existing 200-track fixture fails the same budget there at 37.5 ms. Measure on the reference Mac. |
+| M15 | FA | `src/audio/AppAudio.cpp` `start()` | In system mode a music project starts the device at 48 kHz with no fallback. A device that refuses that rate at launch makes `main` exit with code 2. Fall back to the device rate, as `setSystemRate` now does. |
 
 ## Closed
 
