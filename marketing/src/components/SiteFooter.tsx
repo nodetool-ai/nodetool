@@ -63,6 +63,7 @@ const COLUMNS: Col[] = [
       { name: "Showcase", href: "/showcase" },
       { name: "Workflow ideas", href: "/ideas" },
       { name: "FAQ", href: "/faq" },
+      { name: "日本語", href: "/ja" },
       { name: "@nodetool-ai/browser", href: "/libraries/browser" },
       { name: "Sandbox compiler", href: "/libraries/sandbox-compiler" },
       { name: "GitHub", href: GITHUB_URL, external: true, onClick: () => track("Star GitHub") },

@@ -127,6 +127,9 @@ jobs:
           node --test scripts/__tests__/generate-model-directory.test.mjs
           npm run seo:model-directory -- --check
 
+      - name: Test IndexNow submission
+        run: npm run test:indexnow
+
       - name: Check generated agent discovery files and preset showcase are up to date
         run: |
           npm run test:preset-showcase
@@ -301,8 +304,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('marketing/package-lock.json') }}-
 
+      # IndexNow: save the live sitemap before the deploy, then submit the URLs
+      # that are new or carry a new lastmod (scripts/indexnow.mjs). A failed
+      # submission does not fail the deploy.
+      - name: Snapshot live sitemap for IndexNow
+        continue-on-error: true
+        run: node scripts/indexnow.mjs snapshot "$RUNNER_TEMP/sitemap-before.json"
+
       - name: Build & deploy (OpenNext → Cloudflare Workers)
         run: npm run deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Submit changed URLs to IndexNow
+        continue-on-error: true
+        run: |
+          if [ -f "$RUNNER_TEMP/sitemap-before.json" ]; then
+            node scripts/indexnow.mjs submit "$RUNNER_TEMP/sitemap-before.json"
+          else
+            echo "No sitemap snapshot; skipping IndexNow."
+          fi
