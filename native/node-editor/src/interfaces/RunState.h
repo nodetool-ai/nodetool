@@ -5,10 +5,10 @@
 
 namespace nodetool::node_editor {
 
-// What the canvas toolbar (Toolbar.qml) and the group controls
-// (AuthoredControls.qml) read and do about runs: the shown queue, whether the
-// server is connected, the open workflow's id, and the authored group command
-// request.
+// What the canvas toolbar (Toolbar.qml), the group controls
+// (AuthoredControls.qml) and the run output (RunOutput.qml) read and do about
+// runs: the shown queue, whether the server is connected, the open workflow's
+// id, the authored group command request and the ask-the-agent request.
 //
 // The owner fills the state with the setters and handles the *Requested
 // signals. A test can use a plain instance and a QSignalSpy. QML gets a
@@ -40,12 +40,15 @@ public:
     Q_INVOKABLE void runAuthored(const QString &resourceId, const QString &command, quint64 epoch, quint64 credentials) {
         emit authoredRequested(resourceId, command, epoch, credentials);
     }
+    // Opens the chat about a run.
+    Q_INVOKABLE void askAgent(const QString &runId) { emit agentRequested(runId); }
 
 signals:
     void queueChanged();
     void connectionChanged();
     void workflowIdChanged();
     void authoredRequested(const QString &resourceId, const QString &command, quint64 epoch, quint64 credentials);
+    void agentRequested(const QString &runId);
 
 private:
     QVariantList queue_;

@@ -132,13 +132,22 @@ Moved so far:
   close buttons and `StatusModel` for the connection and the connect request.
   `StatusModel` gained `connected`. `tests/ui/WorkflowBrowserComponentTest.cpp`
   loads the browser with fixture objects.
+- `RunOutput.qml` takes `PanelLayout` for whether the output panel is open,
+  `StatusModel`, which gained `message`, and `RunState`, which gained the
+  `askAgent` request. `TextOutput.qml` and `TypeIcon.qml` read the
+  `OutputStyle` and `TypeIcons` singletons (`src/qml/`), which the QML engine
+  owns. The icon paths moved from `NodeLayout.cpp` to `src/graph/IconPaths.cpp`
+  in `node_editor_interfaces`. `TypeIcon.qml` now draws its icon in any engine,
+  where it drew nothing without the `editor` context property.
+  `tests/ui/RunOutputComponentTest.cpp` covers the singletons and the new
+  members.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
 | `NodeCatalog` (moved) | Node metadata as a list model, categories, ranking, recent and favorite types, quick actions, add or drag a node, close or move the floating menu | `Catalog.qml`, `NodeMenu.qml` |
 | `PackSetup` (exists, now a required property) | Configured keys, optional packs | `Catalog.qml`, `NodeMenu.qml`, `OptionalPacksSection.qml` |
 | `FirstWorkflowGuide` (moved) | Whether the guide shows, whether it started, step readiness, guide actions | `SetupGuide.qml` |
-| `DocumentState` | Read-only state and reason, status message, document and credential epochs | Inspector, property editors, toolbars |
+| `DocumentState` (not needed) | Read-only state and reason, status message, document and credential epochs | Covered by `NodeInspector`, `PropertyHost`, `EditorCommands` and `StatusModel` |
 | `Selection` (moved for the selection toolbar) | Selected count, single item, disabled state, node context menu | `SelectionToolbar.qml` |
 | `NodeInspector` (moved) | Selection header, property rows, dynamic ports, read-only reason and message, run selected, run progress, cost estimate | `Inspector.qml` |
 | `PropertyHost` (moved) | Selected id, read-only state, document and credential epochs, commit and remove a value | `PropertyField.qml` |
@@ -146,8 +155,8 @@ Moved so far:
 | `DocumentTabs` (moved) | Workspace tabs, active tab, project name, tab actions, canvas strips (subgraph surfaces), strip offset, settings | `TabBar.qml`, `CanvasTabStrip.qml` |
 | `WorkflowHeader` (moved) | Workflow name and rename, save readout and its action, undo and redo, More menu | `HeaderRow.qml` |
 | `PanelLayout` (moved for the rail, the document bar and the status bar) | Which panels are open and the toggles | `HeaderRow.qml`, `Rail.qml`, `StatusBar.qml`, `RunOutput.qml` |
-| `StatusModel` (moved for the status bar and the side panels) | Connection status, detail and state, node and edge counts, queue counts, system stats, connect request | `StatusBar.qml`, `WorkflowBrowser.qml`, `LibraryPanel.qml` |
-| `RunState` (moved for the toolbar and the group controls) | Shown queue, connection, workflow id, authored group commands | `Toolbar.qml`, `AuthoredControls.qml`, `QueueOverlay.qml`, `RunOutput.qml` |
+| `StatusModel` (moved for the status bar and the side panels) | Connection status, detail and state, node and edge counts, queue counts, system stats, status message, connect request | `StatusBar.qml`, `WorkflowBrowser.qml`, `LibraryPanel.qml`, `RunOutput.qml` |
+| `RunState` (moved for the toolbar, the group controls and the run output) | Shown queue, connection, workflow id, authored group commands, ask the agent about a run | `Toolbar.qml`, `AuthoredControls.qml`, `RunOutput.qml`, `QueueOverlay.qml` |
 | `Viewport` (moved) | Zoom percent and preset, mini-map color mode and popups, view commands | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
 | `Notifications` (moved) | Notification list, unread count, open the list, copy an entry | `TabBar.qml`, `NotificationsPanel.qml` |
 | `ChatWindow` | Chat window geometry drags | `EditorChat.qml` |
@@ -155,10 +164,10 @@ Moved so far:
 
 These members should leave the window instead of joining an interface:
 
-- `iconPath` is a lookup in static data. It becomes a `QML_SINGLETON` such as
-  `TypeIcons`, so `TypeIcon.qml` needs no host at all.
-- `styleOutputMarkdown` is stateless formatting. It becomes a function on a
-  singleton or on the run output object.
+- `iconPath` is a lookup in static data. It is now the `TypeIcons`
+  `QML_SINGLETON`, so `TypeIcon.qml` needs no host at all.
+- `styleOutputMarkdown` is stateless formatting. It is now
+  `OutputStyle.styleMarkdown`, a `QML_SINGLETON`.
 - `presentation` sends theme roles from `Toolbar.qml` to the canvas painters.
   The toolbar now sends them through `EditorCommands.present`. The root QML
   item or `EditorWindow` should send them, so the toolbar stops owning a canvas
@@ -221,24 +230,19 @@ candidate list, not a plan to move them.
 <!-- INTERFACES -->
 ```json
 {
-  "DocumentState": ["message"],
-  "PanelLayout": ["outputVisible"],
-  "RunState": ["shownQueue", "askRunAgent"],
+  "RunState": ["shownQueue"],
   "ChatWindow": ["beginChatGeometry", "changeChatGeometry", "resetChatPosition"],
-  "Leaves the window": ["iconPath", "styleOutputMarkdown"]
+  "Leaves the window": []
 }
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 21 read a root context property, 5 of them read the editor window. `EditorWindow.h` exposes 14 properties and 17 invokable methods or slots (31 members) and 14 signals.
+Scanned 78 files in `qml/`. 20 read a root context property, 2 of them read the editor window. `EditorWindow.h` exposes 12 properties and 15 invokable methods or slots (27 members) and 14 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
 | EditorChat.qml | 3 via `host` |  |
-| RunOutput.qml | 3 | `runOutput` (6) |
 | QueueOverlay.qml | 1 | `runOutput` (2), `workflowSession` (4) |
-| TextOutput.qml | 1 | `mediaResolver` (7) |
-| TypeIcon.qml | 1 |  |
 | AssetPropertyEditor.qml |  | `mediaResolver` (0, passed on), `assetPickerController` (0, passed on), `resourcePickerController` (0, passed on) |
 | CanvasMedia.qml |  | `mediaResolver` (6) |
 | CardMediaPlayer.qml |  | `mediaResolver` (6) |
@@ -253,7 +257,9 @@ Scanned 78 files in `qml/`. 21 read a root context property, 5 of them read the 
 | Model3DPropertyEditor.qml |  | `assetPickerController` (0, passed on) |
 | ModelPropertyEditor.qml |  | `modelPickerController` (0, passed on) |
 | RemainingResourcePropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
+| RunOutput.qml |  | `runOutput` (6) |
 | ServerSyncPanel.qml |  | `workflowSession` (11) |
+| TextOutput.qml |  | `mediaResolver` (7) |
 | WorkflowPropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
 
 Files where a local `id` hides a context property, so their reads are local: CodePropertyEditor.qml (`editor`), InlinePropertyEditor.qml (`editor`).
@@ -264,18 +270,10 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 - **EditorChat.qml**
   - `editor` (as `host`): beginChatGeometry, changeChatGeometry, resetChatPosition
-- **RunOutput.qml**
-  - `editor`: askRunAgent, message, outputVisible
-  - `runOutput`: clear, collections, richEntries, runs, selectRun, selectedRunId
 - **QueueOverlay.qml**
   - `editor`: shownQueue
   - `runOutput`: selectRun, selectedRunId
   - `workflowSession`: cancelJob, connected, queue, workflow
-- **TextOutput.qml**
-  - `editor`: styleOutputMarkdown
-  - `mediaResolver`: cancel, on cleared, on failed, on resolved, release, resolve, resolvedText
-- **TypeIcon.qml**
-  - `editor`: iconPath
 - **AssetPropertyEditor.qml**
   - `mediaResolver`: none passed on as resolver:
   - `assetPickerController`: none passed on as controller:
@@ -307,27 +305,24 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `modelPickerController`: none passed on as controller:
 - **RemainingResourcePropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
+- **RunOutput.qml**
+  - `runOutput`: clear, collections, richEntries, runs, selectRun, selectedRunId
 - **ServerSyncPanel.qml**
   - `workflowSession`: autosaveState, conflictPending, conflictWorkflow, mergeConflicts, on credentialsChanged, on errorOccurred, on stateChanged, on workflowOpened, remoteLoading, saving, serverBound
+- **TextOutput.qml**
+  - `mediaResolver`: cancel, on cleared, on failed, on resolved, release, resolve, resolvedText
 - **WorkflowPropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
 
 ### Editor members by proposed interface
 
-- **DocumentState** (1 members, read by 1 files: RunOutput.qml)
-  - `message` property: RunOutput.qml
-- **PanelLayout** (1 members, read by 1 files: RunOutput.qml)
-  - `outputVisible` property: RunOutput.qml
-- **RunState** (2 members, read by 2 files: QueueOverlay.qml, RunOutput.qml)
-  - `askRunAgent` method: RunOutput.qml
+- **RunState** (1 members, read by 1 files: QueueOverlay.qml)
   - `shownQueue` property: QueueOverlay.qml
 - **ChatWindow** (3 members, read by 1 files: EditorChat.qml)
   - `beginChatGeometry` method: EditorChat.qml
   - `changeChatGeometry` method: EditorChat.qml
   - `resetChatPosition` method: EditorChat.qml
-- **Leaves the window** (2 members, read by 2 files: TextOutput.qml, TypeIcon.qml)
-  - `iconPath` method: TypeIcon.qml
-  - `styleOutputMarkdown` method: TextOutput.qml
+- **Leaves the window** (0 members, read by 0 files: )
 
-Members no QML file reads (C++ callers only, or dead): `action`, `askAgent`, `cancelCatalogPlacement`, `catalogAtPointer`, `closeAllTabs`, `closeOtherTabs`, `emptyCanvas`, `focusCanvas`, `graphSummary`, `hasUnsavedChanges`, `layoutOverlays`, `openChild`, `outputMedia`, `runActive`, `saveState`, `serverSaveState`, `serverSyncAvailable`, `serverSyncNeedsAttention`, `setProperty`, `setup`, `showToolTip`, `toggleChat`.
+Members no QML file reads (C++ callers only, or dead): `action`, `askAgent`, `askRunAgent`, `cancelCatalogPlacement`, `catalogAtPointer`, `closeAllTabs`, `closeOtherTabs`, `emptyCanvas`, `focusCanvas`, `graphSummary`, `hasUnsavedChanges`, `layoutOverlays`, `openChild`, `outputMedia`, `runActive`, `saveState`, `serverSaveState`, `serverSyncAvailable`, `serverSyncNeedsAttention`, `setProperty`, `setup`, `showToolTip`, `toggleChat`.
 <!-- END GENERATED -->

@@ -53,7 +53,7 @@ ColumnLayout {
         function style() {
             if (styling) return
             styling = true
-            editor.styleOutputMarkdown(textDocument, Ui.Theme.accentPrimary, Ui.Theme.surfaceOverlay, Ui.Typography.font(Ui.Typography.MonoCode))
+            OutputStyle.styleMarkdown(textDocument, Ui.Theme.accentPrimary, Ui.Theme.surfaceOverlay, Ui.Typography.font(Ui.Typography.MonoCode))
             styling = false
         }
         onTextChanged: if (!styling) styleTimer.restart()

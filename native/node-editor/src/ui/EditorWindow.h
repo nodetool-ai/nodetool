@@ -66,14 +66,12 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool serverSyncAvailable READ serverSyncAvailable NOTIFY panelChanged)
   Q_PROPERTY(bool serverSyncNeedsAttention READ serverSyncNeedsAttention NOTIFY panelChanged)
   Q_PROPERTY(bool hasUnsavedChanges READ hasUnsavedChanges NOTIFY panelChanged)
-  Q_PROPERTY(QString message READ message NOTIFY panelChanged)
   Q_PROPERTY(QVariantList outputMedia READ outputMedia NOTIFY mediaChanged)
   Q_PROPERTY(bool runActive READ runActive NOTIFY panelChanged)
   // The run queue the queue overlay shows. A change shows once the queue holds
   // for shownQueueDelayMs, so a burst of short preview runs does not flicker it.
   // The toolbars and the inspector read the same debounced state.
   Q_PROPERTY(QVariantList shownQueue READ shownQueue NOTIFY shownQueueChanged)
-  Q_PROPERTY(bool outputVisible READ outputVisible NOTIFY panelChanged)
   // Space or a pane double-click arms the catalog to add at that canvas point, as the web node menu does.
   Q_PROPERTY(bool catalogAtPointer READ catalogAtPointer NOTIFY catalogPlacementChanged)
   Q_PROPERTY(QString graphSummary READ graphSummary NOTIFY panelChanged)
@@ -226,8 +224,6 @@ public:
         return scene_;
     }
   void authoredAction(const QString &id, const QString &command, quint64 epoch, quint64 credentials);
-  Q_INVOKABLE void styleOutputMarkdown(QObject *document, const QColor &link, const QColor &codeSurface, const QFont &codeFont);
-  Q_INVOKABLE QString iconPath(const QString &name) const;
   Q_INVOKABLE void showToolTip(const QString &text);
   bool readOnly() const { return !readOnlyReason().isEmpty(); }
   QString readOnlyReason() const;

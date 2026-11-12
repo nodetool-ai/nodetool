@@ -34,7 +34,8 @@ add_library(node_editor_interfaces STATIC
  src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
  src/server/PackSetup.cpp src/server/PackSetup.h
- src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h)
+ src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
+ src/graph/IconPaths.cpp src/graph/IconPaths.h)
 target_include_directories(node_editor_interfaces PUBLIC src)
 target_link_libraries(node_editor_interfaces PUBLIC Qt6::Core Qt6::Gui Qt6::Network)
 # QML_FOREIGN in the module and qmllint read these types from the metatypes.
@@ -114,7 +115,7 @@ qt_add_qml_module(node_editor_qml
     RESOURCE_PREFIX /qt/qml
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/NodeEditor
     QML_FILES ${node_editor_qml_files}
-    SOURCES src/qml/EditorQmlTypes.h)
+    SOURCES src/qml/EditorQmlTypes.h src/qml/OutputStyle.cpp src/qml/OutputStyle.h src/qml/TypeIcons.cpp src/qml/TypeIcons.h)
 # The generated type registrations include EditorQmlTypes.h by its bare name.
 target_include_directories(node_editor_qml PRIVATE src/qml)
 target_link_libraries(node_editor_qml PUBLIC node_editor_interfaces nodetool_ui_primitives Qt6::Qml Qt6::Quick Qt6::QuickControls2)
@@ -395,6 +396,13 @@ target_link_libraries(node_editor_workflow_browser_component_tests PRIVATE node_
 nodetool_use_ui_primitives(node_editor_workflow_browser_component_tests)
 add_test(NAME node_editor_workflow_browser_component COMMAND node_editor_workflow_browser_component_tests)
 set_tests_properties(node_editor_workflow_browser_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# The run output's TypeIcons and OutputStyle singletons and its interface
+# members: no EditorWindow, graph runner or QtNodes.
+qt_add_executable(node_editor_run_output_component_tests tests/ui/RunOutputComponentTest.cpp)
+target_link_libraries(node_editor_run_output_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+nodetool_use_ui_primitives(node_editor_run_output_component_tests)
+add_test(NAME node_editor_run_output_component COMMAND node_editor_run_output_component_tests)
+set_tests_properties(node_editor_run_output_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  # Inspector.qml with a fixture inspector: no EditorWindow, graph runner or
  # QtNodes. The property fields preview media, so it builds the editor's media
  # QML types and links the model picker, as node_editor_asset_picker_tests does.

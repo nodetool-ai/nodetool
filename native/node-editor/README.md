@@ -45,7 +45,9 @@ first-workflow guide takes
 [`FirstWorkflowGuide`](src/interfaces/FirstWorkflowGuide.h).
 The workflow browser takes
 [`WorkflowBrowser`](src/server/WorkflowBrowser.h), and it and the asset library
-take `PanelLayout` and `StatusModel`.
+take `PanelLayout` and `StatusModel`. The run output takes `PanelLayout`,
+`StatusModel` and `RunState`, and the type icons and Markdown output read the
+`TypeIcons` and `OutputStyle` singletons.
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
 read `EditorWindow`.
 
