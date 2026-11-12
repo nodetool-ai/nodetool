@@ -12,6 +12,8 @@ QtObject {
     readonly property real trackHeaderMaxWidth: 640 * Ui.Theme.uiScale
     readonly property real sourceViewerPreferredWidth: 360 * Ui.Theme.uiScale
     readonly property real trackHeight: 64
+    // A clip's name band (ClipBody.qml), unscaled like the clip.
+    readonly property real clipNameBandHeight: 16
     readonly property real transportHeight: 36 * Ui.Theme.uiScale
     // The Program monitor's controls under the picture, as in Premiere: the controls row,
     // the mini timeline, its zoom bar and the transport row. Below the compact width the

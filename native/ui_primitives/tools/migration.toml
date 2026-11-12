@@ -3642,6 +3642,46 @@ qml_callers = []
 replacement = "Clip job state drawn in Ui.Theme and TimelineVisuals colors with Ui.Text labels"
 
 [[file]]
+path = "native/timeline/qml/music/MusicToolbar.qml"
+category = "chrome"
+controls = ["Ui.Text", "ToolbarDivider", "Ui.EditorButton", "Ui.Select", "ToolButton", "Ui.ShortcutHint", "MusicSequenceState", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Timeline ToolButton and Ui.EditorButton, Ui.Select and Ui.Text over NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/timeline/qml/music/MusicHint.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text", "Ui.ShortcutHint", "Flow", "Repeater", "MusicSequenceState", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Hint line of Ui.Text and Ui.ShortcutHint chips on Ui.Theme surfaces"
+
+[[file]]
+path = "native/timeline/qml/music/MusicContextBracket.qml"
+category = "domain"
+controls = ["Shape", "Rectangle", "Ui.Text", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Ruler bracket in Ui.Theme colors with a Ui.Text label"
+
+[[file]]
+path = "native/timeline/qml/music/MusicToast.qml"
+category = "chrome"
+controls = ["Ui.Toast", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Toast"
+
+[[file]]
 path = "native/timeline/qml/music/MusicRangeOverlay.qml"
 category = "domain"
 controls = ["Rectangle", "Ui.Text", "Ui.EditorButton", "MusicSequenceState"]

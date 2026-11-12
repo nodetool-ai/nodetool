@@ -152,7 +152,9 @@ private slots:
             QVERIFY(chip->isVisible());
             QCOMPARE(chip->property("label").toString(), labels[i]);
         }
-        QVERIFY(item("tool_range") && item("tool_range")->isVisible());
+        // The Music layout's toolbar carries the Range tool in place of the editing tools.
+        QTRY_VERIFY(item("musicTool_range") && item("musicTool_range")->isVisible());
+        QVERIFY(!item("toolToggle")->isVisible());
     }
 
     // MM2 exit 5, and video behaviour: a sequence with a video track shows the monitor in the

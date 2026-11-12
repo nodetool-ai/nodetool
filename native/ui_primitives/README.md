@@ -146,6 +146,12 @@ allowed. Reduced motion keeps a static segment. `Ui.Surface.elevated` adds a
 transient overlay shadow on hardware renderers. Software rendering uses the
 border alone because the unblurred shadow is clipped by overlay hosts.
 
+`Toast` shows a short confirmation on the overlay surface. `show(message)`
+replaces the message on screen and hides it after `duration` milliseconds
+(2600 by default); `hide()` hides it at once. The host positions it. It takes
+no pointer input, announces itself as an alert, and fades only when motion is
+allowed.
+
 `ChipMenu` shows the selected option as a compact pill with an optional
 `iconName`. Supply `options` (`value`, `label`, optional `enabled`) and `value`,
 then handle `valueCommitted`. Its `popup` supports explicit cancellation.

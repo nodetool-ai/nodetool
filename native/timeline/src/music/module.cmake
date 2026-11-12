@@ -176,3 +176,21 @@ function(nt_music_assist_tests)
     set_tests_properties(tst_musiccleanup PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 300)
 endfunction()
 nt_tests(nt_music_assist_tests)
+
+# ---- Package J: the music chrome of the Music layout (the toolbar, the context
+# bracket, the hint line, the toast and the clip take header) in the mounted
+# editor, with a scripted server for the toast.
+function(nt_music_chrome_tests)
+    qt_add_executable(tst_musicchrome src/music/tst_musicchrome.cpp ${NT_app})
+    set_target_properties(tst_musicchrome PROPERTIES MACOSX_BUNDLE FALSE)
+    target_include_directories(tst_musicchrome PRIVATE src/wiring qml/dock tests)
+    target_link_libraries(tst_musicchrome PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::WebSockets Qt6::Test PkgConfig::FFMPEG
+        ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_musicchrome OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_musicchrome_qml/NodeTool/Timeline)
+    qt_add_resources(tst_musicchrome music_chrome_sync_banner PREFIX /nodetool/sync BASE src/server/sync
+        FILES src/server/sync/ExternalConflictsBanner.qml)
+    add_test(NAME tst_musicchrome COMMAND tst_musicchrome)
+    set_tests_properties(tst_musicchrome PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 300)
+endfunction()
+nt_tests(nt_music_chrome_tests)

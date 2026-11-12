@@ -69,7 +69,9 @@ class MusicPanelModel : public QObject {
     // The clip still waits for its first result.
     Q_PROPERTY(bool takeClipPending READ takeClipPending NOTIFY changed)
     // [{id, label, task, meta, drifting, driftText, active, canDelete,
-    //   canRegenerate, record: [{name, value}]}], in document order.
+    //   canRegenerate, record: [{name, value}], contextLabel ("Model hears
+    //   bars 1–5", empty without a context window), contextStartFrame,
+    //   contextEndFrame}], in document order.
     Q_PROPERTY(QVariantList takes READ takes NOTIFY changed)
 
 public:

@@ -76,6 +76,10 @@ class ClipGestureController : public QQuickItem {
     Q_PROPERTY(QString dropMode READ dropMode WRITE setDropMode NOTIFY optionsChanged)
     Q_PROPERTY(QString activeTool READ activeTool WRITE setActiveTool NOTIFY optionsChanged)
     Q_PROPERTY(QString keyboardPreset READ keyboardPreset WRITE setKeyboardPreset NOTIFY optionsChanged)
+    // The editor context whose keys apply over the preset ("music" in the Music
+    // layout, KeymapOverlay.h), or empty. Keys, shortcutFor and the sheet read
+    // the keymap nt::edit::keymapName(keyboardPreset, keymapContext).
+    Q_PROPERTY(QString keymapContext READ keymapContext WRITE setKeymapContext NOTIFY optionsChanged)
     // The clip under the gesture, for the lanes' pin (D28); empty when idle.
     Q_PROPERTY(QString activeClipId READ activeClipId NOTIFY gestureChanged)
     Q_PROPERTY(QString gestureKind READ gestureKind NOTIFY gestureChanged)
@@ -130,6 +134,8 @@ public:
     void setActiveTool(const QString& tool);
     QString keyboardPreset() const { return m_preset; }
     void setKeyboardPreset(const QString& preset);
+    QString keymapContext() const { return m_keymapContext; }
+    void setKeymapContext(const QString& context);
     QString activeClipId() const { return m_gesture.clipId; }
     QString gestureKind() const { return m_gesture.kind; }
     double snapGuideMs() const { return m_snapGuideMs; }
@@ -340,6 +346,9 @@ private:
     QString m_dropMode = QStringLiteral("overwrite");
     QString m_tool = QStringLiteral("select");
     QString m_preset = QStringLiteral("premiere");
+    QString m_keymapContext;
+    // The keymap keys resolve in: the preset under the editor context.
+    QString keymap() const;
     Gesture m_gesture;
     QTimer m_autoScrollTimer;
     double m_snapGuideMs = -1;

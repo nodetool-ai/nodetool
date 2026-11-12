@@ -89,4 +89,31 @@ QJsonObject setTrackRole(QJsonObject document, const QJsonObject& payload) {
     return document;
 }
 
+QJsonObject setTempoKey(QJsonObject document, const QJsonObject& payload) {
+    if (!document.value(u"tempo").isObject()) {
+        return document;
+    }
+    auto tempo = document.value(u"tempo").toObject();
+    const auto tonic = payload.value(u"tonic").toString();
+    if (tonic.isEmpty()) {
+        if (!tempo.contains(u"key")) {
+            return document;
+        }
+        tempo.remove(QStringLiteral("key"));
+    } else {
+        const auto mode = payload.value(u"mode").toString();
+        const bool known = std::ranges::find(kMusicKeyTonics, tonic.toStdString()) != kMusicKeyTonics.end();
+        if (!known || (mode != u"major" && mode != u"minor")) {
+            return document;
+        }
+        const QJsonObject key{{"tonic", tonic}, {"mode", mode}};
+        if (tempo.value(u"key").toObject() == key) {
+            return document;
+        }
+        tempo.insert(QStringLiteral("key"), key);
+    }
+    document.insert(QStringLiteral("tempo"), tempo);
+    return document;
+}
+
 } // namespace nt::music

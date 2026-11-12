@@ -1,5 +1,5 @@
 // The music mode's app registrations (docs/MUSIC-MODE.md section 15): the
-// track role edit (UI-3), File > New Music Project (UI-1) and the `--music`
+// track role edit (UI-3), the key edit of the music toolbar, File > New Music Project (UI-1) and the `--music`
 // launch flag that opens the app on the New music project dialog (UI-5).
 
 #include "app/CliModes.h"
@@ -26,6 +26,7 @@
 
 namespace {
 const bool roleEdit = nt::app::registerEdit("music.setTrackRole", nt::music::setTrackRole);
+const bool keyEdit = nt::app::registerEdit("music.setKey", nt::music::setTempoKey);
 
 // TimelineDocumentActions.qml holds the dialog, beside the controller that creates and opens.
 QQuickItem* documentActions(const QVariantMap& context) {

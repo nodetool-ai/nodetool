@@ -1177,7 +1177,18 @@ void MusicJobs::placed(const QString& jobId, const QString& requestId, bool rein
         }
         for (const auto& value : takes) alreadyPlaced = alreadyPlaced && held.contains(value.toObject().value("assetId").toString());
     }
-    if (alreadyPlaced || m_timeline->applyEdit("music.applyResult", payload) != 0) {
+    const bool applied = !alreadyPlaced && m_timeline->applyEdit("music.applyResult", payload) != 0;
+    QString activeLabel;
+    if (applied) {
+        const auto* clip = m_timeline->findClip(job->clipId);
+        const auto raw = clip ? clip->raw : QJsonObject{};
+        for (const auto& value : raw.value("versions").toArray()) {
+            if (value.toObject().value("id").toString() == raw.value("activeTakeId").toString()) {
+                activeLabel = value.toObject().value("label").toString();
+            }
+        }
+    }
+    if (alreadyPlaced || applied) {
         job->placedCount = static_cast<int>(job->takes.size());
         job->resultSeed = job->takes.first().toObject().value("record").toObject().value("seed").toInteger(-1);
         job->takes = {};
@@ -1190,9 +1201,12 @@ void MusicJobs::placed(const QString& jobId, const QString& requestId, bool rein
         job->error = present ? QStringLiteral("The clip is locked or changed. Place the takes from the job list.")
                              : QStringLiteral("The placeholder was removed. Place the takes from the job list.");
     }
+    const auto jobKey = job->id;
+    const int count = job->placedCount;
     setState(*job, QStringLiteral("done"));
     save(*job);
     publish();
+    if (applied) emit takesPlaced(jobKey, count, activeLabel);
 }
 
 // ---------------------------------------------------------------- actions

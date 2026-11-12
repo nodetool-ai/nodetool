@@ -20,6 +20,22 @@ Column {
     readonly property bool jobRunning: !!plan && !!jobs && plan.takeClipId !== "" && jobs.clipJobs[plan.takeClipId] !== undefined
         && jobs.clipJobs[plan.takeClipId].state !== "failed"
     spacing: Ui.Metrics.sm
+    // The takes whose generation record is open, kept while the document changes under the cards.
+    property var openIds: []
+    // The context window of the active take when its record is open, for the ruler bracket:
+    // {label, startFrame, endFrame}, or null.
+    readonly property var recordContext: {
+        for (const take of plan ? plan.takes : []) {
+            if (take.active && take.contextLabel !== "" && openIds.indexOf(take.id) >= 0)
+                return {label: take.contextLabel, startFrame: take.contextStartFrame, endFrame: take.contextEndFrame}
+        }
+        return null
+    }
+    readonly property string clipId: plan ? plan.takeClipId : ""
+    onClipIdChanged: openIds = []
+    function toggleRecord(id) {
+        openIds = openIds.indexOf(id) >= 0 ? openIds.filter(other => other !== id) : openIds.concat([id])
+    }
 
     Ui.Text {
         objectName: "musicTakesEmpty"
@@ -39,7 +55,7 @@ Column {
             id: card
             required property var modelData
             required property int index
-            property bool recordOpen: false
+            readonly property bool recordOpen: root.openIds.indexOf(modelData.id) >= 0
             objectName: "musicTake_" + index
             width: root.width
             height: content.height + 2 * Ui.Metrics.md
@@ -148,7 +164,7 @@ Column {
                     contentAlignment: Qt.AlignLeft
                     iconName: card.recordOpen ? "expandMore" : "arrowRight"
                     text: qsTr("Generation record")
-                    onClicked: card.recordOpen = !card.recordOpen
+                    onClicked: root.toggleRecord(card.modelData.id)
                 }
                 Column {
                     objectName: "musicTakeRecord"

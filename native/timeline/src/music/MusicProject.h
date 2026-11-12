@@ -46,4 +46,11 @@ inline constexpr std::array<std::array<int, 2>, 4> kMusicSignatures{{{2, 4}, {3,
 // that is not audio, or a role that is not one of kMusicRoles.
 [[nodiscard]] QJsonObject setTrackRole(QJsonObject document, const QJsonObject& payload);
 
+// The `music.setKey` edit (MD2): payload {tonic, mode}. Sets `tempo.key`, or
+// removes it for an empty tonic. It changes no timing field, so the tempo
+// lock of MD6 does not refuse it. Returns the document unchanged for a
+// sequence with no tempo object, a tonic outside kMusicKeyTonics, a mode other
+// than "major" or "minor", or the key the tempo already holds.
+[[nodiscard]] QJsonObject setTempoKey(QJsonObject document, const QJsonObject& payload);
+
 } // namespace nt::music

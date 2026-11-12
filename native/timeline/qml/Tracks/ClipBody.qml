@@ -303,7 +303,7 @@ Item {
     Item {
         id: headerRow
         width: parent.width
-        height: 16
+        height: TimelineMetrics.clipNameBandHeight
         clip: true
         Rectangle {
             id: dot

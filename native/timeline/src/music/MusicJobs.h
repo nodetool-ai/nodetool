@@ -74,6 +74,7 @@ class QThread;
 class TimelineModel;
 class TestMusicJobs;
 class TestMusicWire;
+class TestMusicChrome;
 class TestMusicAssistant;
 namespace nt::assets {
 class MediaProtection;
@@ -207,10 +208,15 @@ signals:
     void jobsChanged();
     void jobSubmitted(const QString& jobId, const QString& clipId);
     void jobChanged(const QString& jobId, const QString& state);
+    // A result was just written to its clip: `count` takes, of which the one
+    // labelled `activeLabel` ("Take A1") is active. Not sent for a placement
+    // that finds every take on the clip already.
+    void takesPlaced(const QString& jobId, int count, const QString& activeLabel);
 
 private:
     friend class ::TestMusicJobs;
     friend class ::TestMusicWire;
+    friend class ::TestMusicChrome;
     friend class ::TestMusicAssistant;
     struct Job {
         QString id;

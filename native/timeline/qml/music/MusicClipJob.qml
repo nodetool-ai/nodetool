@@ -2,9 +2,11 @@
 // Music job state on a clip (docs/MUSIC-MODE.md sections 9.1, 9.2 and 15, GN-7,
 // AL-4): a placeholder clip shows a hatched fill, the job's title and its state;
 // a clip under a running Regenerate job shows a hatched band over the bars being
-// replaced; a generated music clip names its active take and shows a drift badge
-// when that take drifts. The take count stays with the existing take badge. The
-// state comes from the timeline's MusicJobs and is never written to the document.
+// replaced; a music clip with takes shows its active take, the take count
+// ("1/4") and a drift badge when that take drifts in place of the name band's
+// contents, as in the music mode mockup. TakeBadge leaves music clips to this
+// header. The job state comes from the timeline's MusicJobs and is never
+// written to the document.
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
@@ -32,6 +34,14 @@ Item {
             if (!byAsset && take.assetId === clip.currentAssetId) byAsset = take
         }
         return byAsset
+    }
+    readonly property bool takeHeader: musicClip && !placeholder && !!activeTake
+    readonly property string takeCount: takeHeader ? TakeInfo.badge(clip) : ""
+    readonly property bool selected: !!gestures && gestures.selection.indexOf(clip.id) >= 0
+    // ClipBody's tint under the name band, so the header covers the clip's own name and duration.
+    readonly property color bandFill: {
+        const fill = clip.labelColor ? clip.labelColor : TimelineVisuals.clipFill(clip.mediaType || "audio")
+        return selected ? Qt.lighter(fill, 1.18) : fill
     }
     readonly property bool drifting: !!activeTake && !!activeTake.musicGeneration && !!activeTake.musicGeneration.alignment
         && activeTake.musicGeneration.alignment.drifting === true
@@ -100,33 +110,63 @@ Item {
         }
     }
 
-    // The active take and its drift badge, under the name band.
-    Row {
+    // The name band of a music clip: the active take, its count and drift.
+    Rectangle {
         objectName: "musicTakeHeader-" + root.clip.id
-        visible: !root.placeholder && !!root.activeTake && !!root.activeTake.musicGeneration
-        x: Ui.Metrics.xs
-        y: Ui.Metrics.xl
-        spacing: Ui.Metrics.xs
-        Ui.Text {
-            text: root.activeTake ? root.activeTake.label || "" : ""
-            role: Ui.Typography.SansCaption
-            domainColor: TimelineVisuals.clipText
-        }
-        Rectangle {
-            objectName: "musicDrift-" + root.clip.id
-            visible: root.drifting
-            width: driftLabel.implicitWidth + 2 * Ui.Metrics.xs
-            height: driftLabel.implicitHeight
-            radius: Ui.Metrics.radiusControl
-            color: Ui.Theme.statusWarningSurface
-            Accessible.role: Accessible.StaticText
-            Accessible.name: qsTr("The active take drifts off the grid")
+        visible: root.takeHeader
+        x: Ui.Metrics.border
+        y: Ui.Metrics.border
+        width: Math.max(0, root.width - 2 * Ui.Metrics.border)
+        height: TimelineMetrics.clipNameBandHeight - Ui.Metrics.border
+        color: root.bandFill
+        clip: true
+        Row {
+            x: Ui.Metrics.xs
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Ui.Metrics.xs
             Ui.Text {
-                id: driftLabel
-                anchors.centerIn: parent
-                text: qsTr("drift")
-                role: Ui.Typography.MonoCaption
-                domainColor: Ui.Theme.statusWarningOnSurface
+                objectName: "musicTakeLabel-" + root.clip.id
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.activeTake ? root.activeTake.label || root.clip.name || "" : ""
+                role: Ui.Typography.SansCaption
+                domainColor: TimelineVisuals.clipText
+            }
+            Rectangle {
+                objectName: "musicTakeCount-" + root.clip.id
+                visible: root.takeCount !== ""
+                anchors.verticalCenter: parent.verticalCenter
+                width: countLabel.implicitWidth + 2 * Ui.Metrics.xs
+                height: countLabel.implicitHeight
+                radius: Ui.Metrics.radiusControl
+                color: Ui.Theme.surfaceOverlay
+                Accessible.role: Accessible.StaticText
+                Accessible.name: qsTr("Take %1").arg(root.takeCount.replace("/", " of "))
+                Ui.Text {
+                    id: countLabel
+                    objectName: "musicTakeCountText"
+                    anchors.centerIn: parent
+                    text: root.takeCount
+                    role: Ui.Typography.MonoCaption
+                    tone: Ui.Text.Primary
+                }
+            }
+            Rectangle {
+                objectName: "musicDrift-" + root.clip.id
+                visible: root.drifting
+                anchors.verticalCenter: parent.verticalCenter
+                width: driftLabel.implicitWidth + 2 * Ui.Metrics.xs
+                height: driftLabel.implicitHeight
+                radius: Ui.Metrics.radiusControl
+                color: Ui.Theme.statusWarningSurface
+                Accessible.role: Accessible.StaticText
+                Accessible.name: qsTr("The active take drifts off the grid")
+                Ui.Text {
+                    id: driftLabel
+                    anchors.centerIn: parent
+                    text: qsTr("drift")
+                    role: Ui.Typography.MonoCaption
+                    domainColor: Ui.Theme.statusWarningOnSurface
+                }
             }
         }
     }

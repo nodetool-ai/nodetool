@@ -4,7 +4,8 @@
 // A sequence with no `music` object leaves the Music workspace for Editing
 // and the Range tool for Select, so a video sequence opens as it always has.
 // While the Music workspace shows a sequence with no video track, the
-// program monitor is left out.
+// program monitor is left out. While the Music workspace shows, the keys of
+// the "music" keymap context apply (KeymapOverlay.h): R, V, L, [ and ].
 // Nothing here draws or takes pointer input.
 import QtQuick
 import NodeTool.Timeline
@@ -71,6 +72,12 @@ Item {
         onTriggered: { ++attempts; root.attach() }
     }
     Component.onCompleted: Qt.callLater(attach)
+    Binding {
+        target: root.gestures
+        property: "keymapContext"
+        value: !!root.store && root.store.workspace === "Music" ? "music" : ""
+        when: !!root.gestures
+    }
     Binding {
         target: root.editor ? root.editor.dockCanvas : null
         property: "suppressedIds"
