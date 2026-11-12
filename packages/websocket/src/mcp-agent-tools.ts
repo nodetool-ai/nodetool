@@ -62,6 +62,7 @@ import {
   PROVIDER_TOOL_NAMES
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { attachRunCostLedger } from "@nodetool-ai/execution";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { missingPackDetailsOf } from "@nodetool-ai/protocol";
@@ -139,6 +140,18 @@ export const MCP_SKILL_TOOL_NAMES: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * Direct on this mount only. Every generation tool takes `background: true`
+ * and answers with a `generation_id` and a hint to call `await_generation` or
+ * `get_generation`. Elsewhere a chat turn reaches those through its actions;
+ * an MCP client follows the hint literally, so the tools it names are listed.
+ */
+export const MCP_GENERATION_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "list_generations",
+  "get_generation",
+  "await_generation"
+]);
+
+/**
  * Per-user workspace directory the bridged file tools (read_file, write_file,
  * glob, grep, …) are rooted at. Kept under the NodeTool data dir rather than a
  * temp dir because an MCP session is long-lived and spans many calls — a file
@@ -173,6 +186,17 @@ function buildAgentToolContext(userId: string): ProcessingContext {
     storage,
     workspaceDir,
     workspaceStorage: new FileStorageAdapter(workspaceDir)
+  });
+  // The generation tracker. Every generation tool writes its record through
+  // the prediction messages this context emits, and `get_generation`,
+  // `await_generation` and `list_generations` read that record. Without a
+  // listener no row was written, so a background generation could never be
+  // collected by its id, and no MCP generation was ledgered. The listener
+  // lives as long as the session's context.
+  attachRunCostLedger(context, {
+    userId,
+    workflowId: null,
+    resolveSecret: (key) => context.getSecret(key)
   });
   context.setModelInterfaces({
     createAsset: createAssetModelInterface,
@@ -1266,7 +1290,8 @@ export function registerAgentMcpTools(
       ((DIRECT_TOOL_NAMES.has(tool.name) &&
         !SDK_NATIVE_TOOL_REPLACEMENTS.has(tool.name)) ||
         PROVIDER_TOOL_NAMES.has(tool.name) ||
-        MCP_SKILL_TOOL_NAMES.has(tool.name))
+        MCP_SKILL_TOOL_NAMES.has(tool.name) ||
+        MCP_GENERATION_TOOL_NAMES.has(tool.name))
   );
   // They stay on the belt: an action still calls them from code. Listing them
   // as direct only moves where the prompt documents them.

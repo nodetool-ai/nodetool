@@ -148,6 +148,9 @@ Everything beyond the direct tools goes through `execute_code`, which runs sandb
 | `list_directory` | List files and subdirectories in a workspace directory. |
 | `download_file` | Download a file from a URL, or from an `asset://` URI, a `/api/storage/` key, or a `data:` URI, into the workspace. |
 | `run_subtask` | Hand a task to a child agent that has the NodeTool toolbelt. |
+| `list_generations` | List your media generations, newest first, with status, cost and asset ids. Generations an MCP tool call started are included. |
+| `get_generation` | Return one generation's record by its `generation_id`. |
+| `await_generation` | Wait for a generation started with `background: true` to settle, then return its record with the asset ids. |
 | `find_model` | Find a real provider and model id for a capability such as image, video, or speech. |
 | `list_providers` | List configured providers, their capabilities, the tool that runs each capability, and `unavailable_reason` when a provider cannot serve calls here. |
 | `list_models` | List the models available from the providers you configured. |
@@ -157,7 +160,7 @@ Everything beyond the direct tools goes through `execute_code`, which runs sandb
 | `list_nodes` | List node types, optionally filtered by namespace. |
 | `open_app` | Open one of your mini apps. Hosts that support MCP Apps show the app's screen in the conversation. See [Mini apps in the host](#mini-apps-in-the-host). |
 
-One tool per provider capability is also direct: `generate_text`, `generate_image`, `edit_image`, `segment_image`, `generate_video`, `animate_image`, `generate_video_from_references`, `generate_speech`, `generate_music`, `transcribe_audio`, and `embed_text`. Each takes a `provider` and `model` from `find_model`. Generated media is saved as an asset and the result carries its `asset://` URI.
+One tool per provider capability is also direct: `generate_text`, `generate_image`, `edit_image`, `segment_image`, `generate_video`, `animate_image`, `generate_video_from_references`, `generate_speech`, `generate_music`, `transcribe_audio`, and `embed_text`. Each takes a `provider` and `model` from `find_model`. Generated media is saved as an asset and the result carries its `asset://` URI. With `background: true` a generation tool answers at once with a `generation_id`. Collect the result with `await_generation`.
 
 `search_nodes`, `get_node_info`, and `list_nodes` are offered only when the session has the node registry loaded. `read_file`, `write_file`, `edit_file`, `glob`, `grep`, and `web_search` are not direct tools, because Claude Code and similar clients provide their own. `browser`, `http_request`, and `todo_write` are also not direct on this server. All of them stay available inside `execute_code`.
 
