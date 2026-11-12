@@ -14,6 +14,7 @@
 #include "interfaces/Selection.h"
 #include "interfaces/RunState.h"
 #include "interfaces/Viewport.h"
+#include "interfaces/FirstWorkflowGuide.h"
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
@@ -58,12 +59,8 @@ class CanvasDropController;
 class CompatibleNodePicker;
 class EditorWindow final : public QMainWindow {
   Q_OBJECT
-  Q_PROPERTY(bool guideStarted READ guideStarted NOTIFY panelChanged)
-  Q_PROPERTY(QVariantList guideReadiness READ guideReadiness NOTIFY panelChanged)
-  Q_PROPERTY(bool guideVisible READ guideVisible NOTIFY panelChanged)
   Q_PROPERTY(bool emptyCanvas READ emptyCanvas NOTIFY panelChanged)
   Q_PROPERTY(nodetool::node_editor::SetupController* setup READ setup CONSTANT)
-    Q_PROPERTY(nodetool::node_editor::PackSetup* packSetup READ packSetup CONSTANT)
   Q_PROPERTY(QString saveState READ saveState NOTIFY panelChanged)
   Q_PROPERTY(QString serverSaveState READ serverSaveState NOTIFY panelChanged)
   Q_PROPERTY(bool serverSyncAvailable READ serverSyncAvailable NOTIFY panelChanged)
@@ -106,10 +103,11 @@ public:
     node_editor::PanelLayout *panelLayout() { return activeEditor() == this ? &panelLayout_ : activeEditor()->panelLayout(); }
     node_editor::EditorCommands *editorCommands() { return activeEditor() == this ? &editorCommands_ : activeEditor()->editorCommands(); }
     node_editor::Viewport *viewport() { return activeEditor() == this ? &viewport_ : activeEditor()->viewport(); }
+    node_editor::FirstWorkflowGuide *firstWorkflowGuide() { return activeEditor() == this ? &firstWorkflowGuide_ : activeEditor()->firstWorkflowGuide(); }
     node_editor::RunState *runState() { return activeEditor() == this ? &runState_ : activeEditor()->runState(); }
     node_editor::NodeInspector *nodeInspector() { return activeEditor() == this ? &nodeInspector_ : activeEditor()->nodeInspector(); }
     void syncPackSetup();
-  Q_INVOKABLE void setupAction(const QString &name);
+  void setupAction(const QString &name);
   QVariantList workflowTabs() const;
   int activeTab() const;
     QVariantList canvasStrips() const;
@@ -539,6 +537,9 @@ private:
     // What this tab's zoom readout, mini-map buttons and their popups read
     // about the view. Owned by value, UI thread, destroyed with the tab.
     node_editor::Viewport viewport_;
+    // What this tab's first-workflow guide reads and does. Owned by value, UI
+    // thread, destroyed with the tab.
+    node_editor::FirstWorkflowGuide firstWorkflowGuide_;
     QUrl packOrigin_;
     QString packToken_, packUser_;
   node_editor::SetupController setup_;

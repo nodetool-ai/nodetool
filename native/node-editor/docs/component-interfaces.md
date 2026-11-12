@@ -116,11 +116,19 @@ Moved so far:
   commands go up by name and count as user input, as `userAction` did.
   `tests/ui/ViewportComponentTest.cpp` loads the three files with a fixture
   viewport.
+- `FirstWorkflowGuide` (`src/interfaces/FirstWorkflowGuide.h`), which
+  `SetupGuide.qml` takes for whether the guide shows, whether it started, its
+  step readiness and its actions. `OptionalPacksSection.qml` takes the
+  catalog's `NodeCatalog` and `PackSetup` from `Catalog.qml`. `NodeCatalog`
+  gained the window height, which caps the packs popup, and the Runtimes and
+  packs request. `tests/ui/SetupGuideComponentTest.cpp` loads both files with
+  fixture objects.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
 | `NodeCatalog` (moved) | Node metadata as a list model, categories, ranking, recent and favorite types, quick actions, add or drag a node, close or move the floating menu | `Catalog.qml`, `NodeMenu.qml` |
-| `PackSetup` (exists) | Configured keys, optional packs, setup actions, first-workflow guide | `Catalog.qml`, `NodeMenu.qml`, `OptionalPacksSection.qml`, `SetupGuide.qml` |
+| `PackSetup` (exists, now a required property) | Configured keys, optional packs | `Catalog.qml`, `NodeMenu.qml`, `OptionalPacksSection.qml` |
+| `FirstWorkflowGuide` (moved) | Whether the guide shows, whether it started, step readiness, guide actions | `SetupGuide.qml` |
 | `DocumentState` | Read-only state and reason, status message, document and credential epochs | Inspector, property editors, toolbars |
 | `Selection` (moved for the selection toolbar) | Selected count, single item, disabled state, node context menu | `SelectionToolbar.qml` |
 | `NodeInspector` (moved) | Selection header, property rows, dynamic ports, read-only reason and message, run selected, run progress, cost estimate | `Inspector.qml` |
@@ -146,8 +154,8 @@ These members should leave the window instead of joining an interface:
   The toolbar now sends them through `EditorCommands.present`. The root QML
   item or `EditorWindow` should send them, so the toolbar stops owning a canvas
   concern.
-- `height` is the QWidget height. `OptionalPacksSection.qml` should use its
-  window or parent height.
+- `height` was the QWidget height. `OptionalPacksSection.qml` now reads it as
+  `NodeCatalog.windowHeight`.
 - `openWorkflow` and `deleteWorkflow` belong on the existing `WorkflowBrowser`,
   which `WorkflowBrowser.qml` already reads.
 
@@ -204,26 +212,23 @@ candidate list, not a plan to move them.
 <!-- INTERFACES -->
 ```json
 {
-  "PackSetup": ["packSetup", "setupAction", "guideReadiness", "guideStarted", "guideVisible"],
   "DocumentState": ["message"],
   "PanelLayout": ["outputVisible"],
   "StatusModel": ["connectionState"],
   "RunState": ["shownQueue", "askRunAgent"],
   "ChatWindow": ["beginChatGeometry", "changeChatGeometry", "resetChatPosition"],
   "EditorCommands": ["action"],
-  "Leaves the window": ["iconPath", "styleOutputMarkdown", "height", "openWorkflow", "deleteWorkflow"]
+  "Leaves the window": ["iconPath", "styleOutputMarkdown", "openWorkflow", "deleteWorkflow"]
 }
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 24 read a root context property, 9 of them read the editor window. `EditorWindow.h` exposes 19 properties and 20 invokable methods or slots (39 members) and 14 signals.
+Scanned 78 files in `qml/`. 22 read a root context property, 7 of them read the editor window. `EditorWindow.h` exposes 15 properties and 19 invokable methods or slots (34 members) and 14 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
-| SetupGuide.qml | 4 |  |
 | WorkflowBrowser.qml | 4 | `workflowBrowser` (13) |
 | EditorChat.qml | 3 via `host` |  |
-| OptionalPacksSection.qml | 3 |  |
 | RunOutput.qml | 3 | `runOutput` (6) |
 | LibraryPanel.qml | 1 | `libraryBrowser` (13, passed on), `assetPickerController` (3) |
 | QueueOverlay.qml | 1 | `runOutput` (2), `workflowSession` (4) |
@@ -251,15 +256,11 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 `passed on` means the file hands the whole object to a child, such as `propertyHost: editor`.
 
-- **SetupGuide.qml**
-  - `editor`: guideReadiness, guideStarted, guideVisible, setupAction
 - **WorkflowBrowser.qml**
   - `editor`: action, connectionState, deleteWorkflow, openWorkflow
   - `workflowBrowser`: busy, createWorkflow, error, hasNext, loadNext, loading, projectId, projects, projectsLoading, refresh, renameWorkflow, rows, search
 - **EditorChat.qml**
   - `editor` (as `host`): beginChatGeometry, changeChatGeometry, resetChatPosition
-- **OptionalPacksSection.qml**
-  - `editor`: height, packSetup, setupAction
 - **RunOutput.qml**
   - `editor`: askRunAgent, message, outputVisible
   - `runOutput`: clear, collections, richEntries, runs, selectRun, selectedRunId
@@ -311,12 +312,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 ### Editor members by proposed interface
 
-- **PackSetup** (5 members, read by 2 files: OptionalPacksSection.qml, SetupGuide.qml)
-  - `guideReadiness` property: SetupGuide.qml
-  - `guideStarted` property: SetupGuide.qml
-  - `guideVisible` property: SetupGuide.qml
-  - `packSetup` property: OptionalPacksSection.qml
-  - `setupAction` method: OptionalPacksSection.qml, SetupGuide.qml
 - **DocumentState** (1 members, read by 1 files: RunOutput.qml)
   - `message` property: RunOutput.qml
 - **PanelLayout** (1 members, read by 1 files: RunOutput.qml)
@@ -332,9 +327,8 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `resetChatPosition` method: EditorChat.qml
 - **EditorCommands** (1 members, read by 2 files: LibraryPanel.qml, WorkflowBrowser.qml)
   - `action` method: LibraryPanel.qml, WorkflowBrowser.qml
-- **Leaves the window** (5 members, read by 4 files: OptionalPacksSection.qml, TextOutput.qml, TypeIcon.qml, WorkflowBrowser.qml)
+- **Leaves the window** (4 members, read by 3 files: TextOutput.qml, TypeIcon.qml, WorkflowBrowser.qml)
   - `deleteWorkflow` method: WorkflowBrowser.qml
-  - `height` QWidget property: OptionalPacksSection.qml
   - `iconPath` method: TypeIcon.qml
   - `openWorkflow` method: WorkflowBrowser.qml
   - `styleOutputMarkdown` method: TextOutput.qml
