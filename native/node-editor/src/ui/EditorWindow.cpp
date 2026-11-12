@@ -3239,6 +3239,10 @@ void EditorWindow::action(const QString &name) {
     scheduleViewportSettle();
     return;
   }
+  if (name == "Examples") {
+    showActionMenu("examples", QCursor::pos());
+    return;
+  }
   if (name == "Server Open" || name == "Open" || name == "Workflows") {
     showBrowser(name == "Workflows" ? !browserVisible() : true);
     return;

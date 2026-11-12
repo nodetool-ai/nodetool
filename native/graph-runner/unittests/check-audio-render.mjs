@@ -46,11 +46,11 @@ const effects = JSON.parse(
     "utf8"
   )
 );
-assert.equal(
-  Object.keys(effects).length,
-  12,
-  "qualify every signal effect in the fixture"
-);
+assert.deepEqual(Object.keys(effects).sort(), [
+  "Bitcrush", "Compress", "Distortion", "Limiter", "NoiseGate", "Reverb", "Phaser", "Delay",
+  "Gain", "HighShelfFilter", "LowShelfFilter", "PeakFilter", "LowPassFilter", "HighPassFilter"
+].sort(), "qualify every signal effect in the fixture");
+
 const rendered = spawnSync(runner, [bundle, effectGraph], {
   encoding: "utf8",
   timeout: 60000,
@@ -107,3 +107,14 @@ assert.equal(
 );
 
 console.log("Native LFO render matches the TypeScript PCM hash");
+
+const innerGraph = fileURLToPath(new URL("../tests/graphs/audio-subgraph-render.json", import.meta.url));
+const innerRun = spawnSync(runner, [bundle, innerGraph], { encoding: "utf8", timeout: 60000 });
+assert.equal(innerRun.status, 0, innerRun.stderr);
+const innerOutput = innerRun.stdout.split("\n").filter(line => line.startsWith("{")).map(JSON.parse)
+  .find(message => message.type === "output_update" && message.node_id === "out");
+assert.ok(innerOutput?.value?.data, "a sink fed by an inner graph emits audio");
+const innerWav = Buffer.from(innerOutput.value.data, "base64");
+assert.equal(innerWav.readUInt32LE(24), 44100, "inner graph preserves the root render rate");
+assert.equal((innerWav.length - 44) / 2, 2205, "inner graph preserves the root render bound");
+console.log("Inner graph preserves the top-level audio transport");

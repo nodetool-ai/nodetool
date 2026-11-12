@@ -9,6 +9,8 @@
 #include <QKeySequence>
 #include <QClipboard>
 #include <QJsonDocument>
+#include <QDir>
+#include <QFile>
 #include <QMenu>
 #include <QDialog>
 #include <QVBoxLayout>
@@ -907,6 +909,28 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
  const auto selection = selectedIds();
  connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
  connect(this, &EditorWindow::credentialsEpochChanged, menu, &QMenu::close);
+ if (kind == "examples") {
+  const QDir examples(":/editor/examples");
+  for (const auto &filename : examples.entryList({"*.json"}, QDir::Files, QDir::Name)) {
+   const auto path = examples.filePath(filename);
+   QFile file(path);
+   if (!file.open(QIODevice::ReadOnly)) { continue; }
+   const auto document = QJsonDocument::fromJson(file.readAll()).object();
+   const auto title = document.value("name").toString();
+   if (title.isEmpty()) { continue; }
+   auto *entry = menu->addAction(title);
+   entry->setData(path);
+   connect(entry, &QAction::triggered, this, [this, path] {
+    openFileInTab(path);
+    auto *editor = activeEditor();
+    if (editor->file_ != path) { return; }
+    editor->file_.clear();
+    editor->refresh();
+   });
+  }
+  menu->popup(position);
+  return;
+ }
  if (kind == "command" || kind == "shortcuts") {
   // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   delete menu;

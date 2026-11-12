@@ -13,6 +13,7 @@ export class AudioTransport {
   readonly sampleRate = AUDIO_SAMPLE_RATE;
   readonly blockFrames = AUDIO_BLOCK_FRAMES;
   private start: number | undefined;
+  private blocks = 0;
 
   constructor(readonly run: AudioRun | undefined) {}
 
@@ -24,7 +25,16 @@ export class AudioTransport {
   }
 
   async until(frame: number, signal?: AbortSignal): Promise<void> {
-    if (this.mode === "render" || signal?.aborted) {
+    if (signal?.aborted) {
+      return;
+    }
+    if (this.mode === "render") {
+      if (++this.blocks % 32 === 0) {
+        await new Promise<void>((resolve) => {
+          if (typeof setImmediate === "function") { setImmediate(resolve); }
+          else { setTimeout(resolve, 0); }
+        });
+      }
       return;
     }
     this.start ??= Date.now();

@@ -408,7 +408,7 @@ function extractClassMeta(cls, sf) {
   // Extract outputs: look for static outputs / metadataOutputTypes / getDeclaredOutputs
   // Pattern: static readonly outputs = { name: "type", ... }
   // or: static readonly metadataOutputTypes = { name: "type", ... }
-  for (const member of cls.members) {
+  for (const member of inheritedMembers(cls, sf)) {
     if (
       ts.isPropertyDeclaration(member) &&
       member.modifiers?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword)
@@ -425,7 +425,9 @@ function extractClassMeta(cls, sf) {
               const outputName =
                 prop.name.text ?? String(prop.name.escapedText ?? "");
               const outputType = getString(prop.initializer) ?? "any";
-              outputs.push({ name: outputName, type: outputType });
+              const existing = outputs.find((output) => output.name === outputName);
+              if (existing) { existing.type = outputType; }
+              else { outputs.push({ name: outputName, type: outputType }); }
             }
           }
         }

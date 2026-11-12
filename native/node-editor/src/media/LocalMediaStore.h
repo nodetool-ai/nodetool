@@ -9,6 +9,8 @@
 #include <QThread>
 #include <QString>
 #include <cstdint>
+#include <deque>
+#include <algorithm>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -24,10 +26,12 @@ struct LocalImage {
   bool isNull() const { return !rgba; }
 };
 
-// Thread-safe: mutex_ guards entries_, clipKeys_ and next_. Readers receive immutable values.
+// Thread-safe: mutex_ guards entries, byte accounting and eviction order. Readers receive immutable values.
 class LocalMediaStore {
 public:
   static constexpr char Scheme[] = "local-media://";
+  static constexpr qsizetype ClipByteLimit = 128 * 1024 * 1024;
+  explicit LocalMediaStore(qsizetype clipByteLimit = ClipByteLimit) : clipByteLimit_(clipByteLimit) {}
 
   // Accessors run on the UI thread. The application owns the registry, while
   // runner callbacks retain shared() until worker shutdown finishes.
@@ -56,6 +60,12 @@ public:
     std::lock_guard lock(mutex_);
     const auto key = run + ':' + QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex());
     if (clipKeys_.contains(key)) { return clipKeys_.value(key); }
+    if (bytes.size() > clipByteLimit_) { return {}; }
+    while (clipBytes_ + bytes.size() > clipByteLimit_ && !clipRuns_.empty()) {
+      releaseRunLocked(clipRuns_.front());
+    }
+    if (std::find(clipRuns_.begin(), clipRuns_.end(), run) == clipRuns_.end()) { clipRuns_.push_back(run); }
+    clipBytes_ += bytes.size();
     const auto uri = QLatin1StringView(Scheme) + QString::number(++next_);
     entries_.insert(uri, Entry{run, {}, Clip{std::move(bytes), std::move(contentType)}});
     clipKeys_.insert(key, uri);
@@ -71,6 +81,15 @@ public:
   }
   void releaseRun(const QString &run) {
     std::lock_guard lock(mutex_);
+    releaseRunLocked(run);
+  }
+
+private:
+  void releaseRunLocked(QString run) {
+    for (const auto &entry : entries_) {
+      if (entry.run == run) { clipBytes_ -= entry.clip.bytes.size(); }
+    }
+    std::erase(clipRuns_, run);
     clipKeys_.removeIf([this, &run](const auto &entry) { return entries_.value(entry.value()).run == run; });
     entries_.removeIf([&run](const auto &entry) { return entry.value().run == run; });
   }
@@ -81,11 +100,14 @@ private:
     LocalImage image;
     Clip clip;
   };
-  // Guards entries_, clipKeys_ and next_, on both the runner and UI threads.
+  // Guards all mutable store state, on both the runner and UI threads.
   mutable std::mutex mutex_;
   QHash<QString, Entry> entries_;
   QHash<QString, QString> clipKeys_;
   quint64 next_ = 0;
+  const qsizetype clipByteLimit_;
+  qsizetype clipBytes_ = 0;
+  std::deque<QString> clipRuns_;
 };
 
 // UI thread only. QObject parent ownership ties the registry to the application.

@@ -128,6 +128,27 @@ class MenusTest final : public QObject {
         return window.document()->nodes().last().toObject()["type"].toString();
     }
 private slots:
+    void opensEveryEmbeddedAudioExample() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        window.show();
+        window.action("Examples");
+        auto *menu = window.findChild<QMenu *>("examples-menu");
+        QVERIFY(menu);
+        const auto actions = menu->actions();
+        QCOMPARE(actions.size(), 3);
+        for (auto *entry : actions) {
+            const auto path = entry->data().toString();
+            QVERIFY(path.startsWith(":/editor/examples/"));
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::ReadOnly));
+            const auto expected = QJsonDocument::fromJson(file.readAll()).object();
+            entry->trigger();
+            QCOMPARE(window.activeEditor()->document()->snapshot()["name"], expected["name"]);
+            QCOMPARE(window.activeEditor()->document()->nodes().size(), expected["graph"].toObject()["nodes"].toArray().size());
+        }
+        menu->close();
+    }
     void initTestCase() {
         QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
     }

@@ -75,7 +75,9 @@ QtNodes supports Qt 5/6. This host requires Qt 6.12 to match the primitives.
 The audio signal examples cover [live synthesis](examples/live-synth.json),
 [offline rendering](examples/render-synth.json) and
 [a clip through a live phaser](examples/live-clip-phaser.json).
-Open these workflow files in the editor to run them locally.
+Open the Examples menu from the left rail, or open these workflow files directly.
+Local clips use at most 128 MiB in the shared store. Adding a clip above the
+remaining capacity evicts the oldest runs until it fits.
 
 ## Local runs
 

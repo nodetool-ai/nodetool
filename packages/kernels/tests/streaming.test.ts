@@ -124,3 +124,27 @@ it("resamples a 1 kHz sine with more than 60 dB SNR away from boundaries", () =>
     Math.round((127 * rate) / 48000)
   );
 });
+
+it("flushes the delay tail with the same bytes as a clip", () => {
+  const state = k.createDelayState(2, rate, delay.delaySeconds);
+  const dry = k.delayBlock(state, samples, 2, rate, delay);
+  const expected = k.delay(samples, 2, rate, delay);
+  const tail = k.delayBlock(state, new Float32Array(expected.length - dry.length), 2, rate, delay);
+  const actual = new Float32Array(expected.length);
+  actual.set(dry); actual.set(tail, dry.length);
+  expect(actual).toEqual(expected);
+});
+
+it("rejects state dimensions that overflow the 32-bit WASM address space", () => {
+  expect(() => k.createReverbState(0xffffffff, rate)).toThrow(/dimensions/);
+  expect(() => k.createDelayState(0xffffffff, rate, 2)).toThrow(/dimensions/);
+  expect(() => k.createBitcrushState(0xffffffff, rate)).toThrow(/dimensions/);
+  expect(() => k.createPhaserState(0xffffffff, rate)).toThrow(/dimensions/);
+});
+it("preserves dry samples before the first echo with non-finite delay feedback", () => {
+  for (const feedback of [NaN, Infinity, -Infinity]) {
+    const out = k.delay(new Float32Array([0.5, -0.25]), 1, rate, {delaySeconds: 1 / rate, feedback, mix: 0.5});
+    expect(out[0]).toBe(0.25);
+    expect(out[1]).toBeNaN();
+  }
+});

@@ -5477,7 +5477,7 @@
       "type": "nodetool.audio.realtime.StreamingBitcrush",
       "title": "Streaming Bitcrush",
       "namespace": "nodetool.audio.realtime",
-      "description": "Processes audio chunks with persistent bitcrush state. Properties apply at the next block.",
+      "description": "Processes audio chunks with persistent bitcrush state. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "bit_depth",
@@ -5513,7 +5513,7 @@
       "type": "nodetool.audio.realtime.StreamingCompress",
       "title": "Streaming Compress",
       "namespace": "nodetool.audio.realtime",
-      "description": "Processes audio chunks with persistent compress state. Properties apply at the next block.",
+      "description": "Processes audio chunks with persistent compress state. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "threshold",
@@ -5570,7 +5570,7 @@
       "type": "nodetool.audio.realtime.StreamingDelay",
       "title": "Streaming Delay",
       "namespace": "nodetool.audio.realtime",
-      "description": "Processes audio chunks with persistent delay state. Properties apply at the next block.",
+      "description": "Processes audio chunks with persistent delay state. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "delay_seconds",
@@ -5613,7 +5613,7 @@
       "type": "nodetool.audio.realtime.StreamingDistortion",
       "title": "Streaming Distortion",
       "namespace": "nodetool.audio.realtime",
-      "description": "Applies distortion to each audio chunk. Properties apply at the next block.",
+      "description": "Applies distortion to each audio chunk. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "drive_db",
@@ -5706,7 +5706,7 @@
       "type": "nodetool.audio.realtime.StreamingHighShelf",
       "title": "Streaming High Shelf",
       "namespace": "nodetool.audio.realtime",
-      "description": "Processes audio chunks with persistent highshelffilter state. Properties apply at the next block.",
+      "description": "Processes audio chunks with persistent highshelffilter state. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "cutoff_frequency_hz",
@@ -5742,7 +5742,7 @@
       "type": "nodetool.audio.realtime.StreamingLimiter",
       "title": "Streaming Limiter",
       "namespace": "nodetool.audio.realtime",
-      "description": "Processes audio chunks with persistent limiter state. Properties apply at the next block.",
+      "description": "Processes audio chunks with persistent limiter state. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "threshold_db",
@@ -5820,7 +5820,7 @@
       "type": "nodetool.audio.realtime.StreamingLowShelf",
       "title": "Streaming Low Shelf",
       "namespace": "nodetool.audio.realtime",
-      "description": "Processes audio chunks with persistent lowshelffilter state. Properties apply at the next block.",
+      "description": "Processes audio chunks with persistent lowshelffilter state. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "cutoff_frequency_hz",
@@ -5856,7 +5856,7 @@
       "type": "nodetool.audio.realtime.StreamingNoiseGate",
       "title": "Streaming Noise Gate",
       "namespace": "nodetool.audio.realtime",
-      "description": "Processes audio chunks with persistent noisegate state. Properties apply at the next block.",
+      "description": "Processes audio chunks with persistent noisegate state. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "threshold_db",
@@ -5899,7 +5899,7 @@
       "type": "nodetool.audio.realtime.StreamingPeak",
       "title": "Streaming Peak",
       "namespace": "nodetool.audio.realtime",
-      "description": "Processes audio chunks with persistent peakfilter state. Properties apply at the next block.",
+      "description": "Processes audio chunks with persistent peakfilter state. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "cutoff_frequency_hz",
@@ -5942,7 +5942,7 @@
       "type": "nodetool.audio.realtime.StreamingPhaser",
       "title": "Streaming Phaser",
       "namespace": "nodetool.audio.realtime",
-      "description": "Processes audio chunks with persistent phaser state. Properties apply at the next block.",
+      "description": "Processes audio chunks with persistent phaser state. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "rate_hz",
@@ -5999,7 +5999,7 @@
       "type": "nodetool.audio.realtime.StreamingReverb",
       "title": "Streaming Reverb",
       "namespace": "nodetool.audio.realtime",
-      "description": "Processes audio chunks with persistent reverb state. Properties apply at the next block.",
+      "description": "Processes audio chunks with persistent reverb state. Properties apply at the next block.\n    audio, stream, effect, realtime",
       "inputs": [
         {
           "name": "room_scale",

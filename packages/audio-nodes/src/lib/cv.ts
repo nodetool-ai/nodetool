@@ -1,4 +1,3 @@
-import { AUDIO_SAMPLE_RATE } from "@nodetool-ai/protocol";
 /**
  * Control-voltage (CV) signal helpers for the modular synthesis nodes.
  *
@@ -73,7 +72,7 @@ export function readSignalChunk(item: unknown): SignalChunk | null {
     channels?: unknown;
   };
   const sampleRate =
-    isPositiveNumber(meta.sample_rate) ? meta.sample_rate : AUDIO_SAMPLE_RATE;
+    isPositiveNumber(meta.sample_rate) ? meta.sample_rate : 24000;
   const channels = isPositiveNumber(meta.channels) ? meta.channels : 1;
   let samples: Float32Array;
   if (c.content instanceof Float32Array) {

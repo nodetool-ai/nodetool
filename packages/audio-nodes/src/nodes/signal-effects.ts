@@ -10,7 +10,7 @@ export class StreamingBitcrushNode extends BitcrushProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingBitcrush";
   static readonly title = "Streaming Bitcrush";
   static readonly description =
-    "Processes audio chunks with persistent bitcrush state. Properties apply at the next block.";
+    "Processes audio chunks with persistent bitcrush state. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
@@ -35,7 +35,7 @@ export class StreamingCompressNode extends CompressProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingCompress";
   static readonly title = "Streaming Compress";
   static readonly description =
-    "Processes audio chunks with persistent compress state. Properties apply at the next block.";
+    "Processes audio chunks with persistent compress state. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
@@ -60,7 +60,7 @@ export class StreamingDistortionNode extends DistortionProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingDistortion";
   static readonly title = "Streaming Distortion";
   static readonly description =
-    "Applies distortion to each audio chunk. Properties apply at the next block.";
+    "Applies distortion to each audio chunk. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
@@ -85,7 +85,7 @@ export class StreamingLimiterNode extends LimiterProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingLimiter";
   static readonly title = "Streaming Limiter";
   static readonly description =
-    "Processes audio chunks with persistent limiter state. Properties apply at the next block.";
+    "Processes audio chunks with persistent limiter state. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
@@ -110,7 +110,7 @@ export class StreamingReverbNode extends ReverbProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingReverb";
   static readonly title = "Streaming Reverb";
   static readonly description =
-    "Processes audio chunks with persistent reverb state. Properties apply at the next block.";
+    "Processes audio chunks with persistent reverb state. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
@@ -135,7 +135,7 @@ export class StreamingNoiseGateNode extends NoiseGateProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingNoiseGate";
   static readonly title = "Streaming Noise Gate";
   static readonly description =
-    "Processes audio chunks with persistent noisegate state. Properties apply at the next block.";
+    "Processes audio chunks with persistent noisegate state. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
@@ -160,7 +160,7 @@ export class StreamingPhaserNode extends PhaserProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingPhaser";
   static readonly title = "Streaming Phaser";
   static readonly description =
-    "Processes audio chunks with persistent phaser state. Properties apply at the next block.";
+    "Processes audio chunks with persistent phaser state. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
@@ -185,7 +185,7 @@ export class StreamingDelayNode extends DelayProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingDelay";
   static readonly title = "Streaming Delay";
   static readonly description =
-    "Processes audio chunks with persistent delay state. Properties apply at the next block.";
+    "Processes audio chunks with persistent delay state. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
@@ -224,7 +224,7 @@ export class StreamingHighShelfFilterNode extends HighShelfFilterProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingHighShelf";
   static readonly title = "Streaming High Shelf";
   static readonly description =
-    "Processes audio chunks with persistent highshelffilter state. Properties apply at the next block.";
+    "Processes audio chunks with persistent highshelffilter state. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
@@ -249,7 +249,7 @@ export class StreamingLowShelfFilterNode extends LowShelfFilterProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingLowShelf";
   static readonly title = "Streaming Low Shelf";
   static readonly description =
-    "Processes audio chunks with persistent lowshelffilter state. Properties apply at the next block.";
+    "Processes audio chunks with persistent lowshelffilter state. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
@@ -274,7 +274,7 @@ export class StreamingPeakFilterNode extends PeakFilterProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingPeak";
   static readonly title = "Streaming Peak";
   static readonly description =
-    "Processes audio chunks with persistent peakfilter state. Properties apply at the next block.";
+    "Processes audio chunks with persistent peakfilter state. Properties apply at the next block.\n    audio, stream, effect, realtime";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];

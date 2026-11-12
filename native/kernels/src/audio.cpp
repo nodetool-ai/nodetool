@@ -155,7 +155,7 @@ int nt_audio_delay(const float* in, float* out, size_t frames,
 
 size_t nt_audio_bitcrush_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
   if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
-  return channels * 2;
+  return 2 > SIZE_MAX / channels ? 0 : size_t{channels} * 2;
 }
 int nt_audio_bitcrush_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
   const size_t n = nt_audio_bitcrush_state_len(channels, sample_rate, delay_seconds);
@@ -266,7 +266,7 @@ int nt_audio_limiter_block(double* state, const float* in, float* out, size_t fr
 }
 size_t nt_audio_noise_gate_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
   if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
-  return channels * 2;
+  return 2 > SIZE_MAX / channels ? 0 : size_t{channels} * 2;
 }
 int nt_audio_noise_gate_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
   const size_t n = nt_audio_noise_gate_state_len(channels, sample_rate, delay_seconds);
@@ -303,7 +303,7 @@ int nt_audio_noise_gate_block(double* state, const float* in, float* out, size_t
 }
 size_t nt_audio_phaser_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
   if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
-  return channels * 10;
+  return 10 > SIZE_MAX / channels ? 0 : size_t{channels} * 10;
 }
 int nt_audio_phaser_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
   const size_t n = nt_audio_phaser_state_len(channels, sample_rate, delay_seconds);
@@ -351,9 +351,10 @@ int nt_audio_phaser_block(double* state, const float* in, float* out, size_t fra
 }
 size_t nt_audio_reverb_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
   if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
+  const double scale = sample_rate / 44100;
   size_t n = 12;
-  for (double delay : {1557., 1617., 1491., 1422., 225., 556.}) n += std::max<size_t>(1, static_cast<size_t>(jsRound(delay * sample_rate / 44100)));
-  return channels * n;
+  for (double delay : {1557., 1617., 1491., 1422., 225., 556.}) n += std::max<size_t>(1, static_cast<size_t>(jsRound(delay * scale)));
+  return n > SIZE_MAX / channels ? 0 : channels * n;
 }
 int nt_audio_reverb_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
   const size_t n = nt_audio_reverb_state_len(channels, sample_rate, delay_seconds);
@@ -365,6 +366,7 @@ int nt_audio_reverb_block(double* state, const float* in, float* out, size_t fra
   if (!state) return NT_ERR_ARGS;
 
   if (!validAudio(in, out, channels, sample_rate)) return NT_ERR_ARGS;
+  const double scale = sample_rate / 44100;
   constexpr std::array<double, 6> delays{1557, 1617, 1491, 1422, 225, 556};
   const size_t stride = nt_audio_reverb_state_len(1, sample_rate, 0);
   for (uint32_t ch = 0; ch < channels; ch++) {
@@ -373,7 +375,7 @@ int nt_audio_reverb_block(double* state, const float* in, float* out, size_t fra
       float wet = 0;
       double* ring = state + ch * stride;
       for (size_t r = 0; r < delays.size(); r++) {
-        const size_t length = std::max<size_t>(1, static_cast<size_t>(jsRound(delays[r] * sample_rate / 44100)));
+        const size_t length = std::max<size_t>(1, static_cast<size_t>(jsRound(delays[r] * scale)));
         const size_t index = nt::kernels::saturatingFrames(ring[0], length - 1);
         const float delayed = f32(ring[2 + index]);
         if (r < 4) {
@@ -395,7 +397,8 @@ int nt_audio_reverb_block(double* state, const float* in, float* out, size_t fra
 size_t nt_audio_delay_state_len(uint32_t channels, double sample_rate, double delay_seconds) {
   if (!channels || !nt::kernels::validSampleRate(sample_rate)) return 0;
   if (!std::isfinite(delay_seconds) || delay_seconds > NT_AUDIO_MAX_STREAM_DELAY_SECONDS) return 0;
-  return channels * (1 + 2 * static_cast<size_t>(std::floor(std::max(0.0, delay_seconds) * sample_rate)));
+  const size_t stride = 1 + 2 * static_cast<size_t>(std::floor(std::max(0.0, delay_seconds) * sample_rate));
+  return stride > SIZE_MAX / channels ? 0 : channels * stride;
 }
 int nt_audio_delay_init(double* state, uint32_t channels, double sample_rate, double delay_seconds) {
   const size_t n = nt_audio_delay_state_len(channels, sample_rate, delay_seconds);
@@ -419,11 +422,12 @@ static int audioDelayBlock(double* state, const float* in, float* out, size_t fr
         // Matches the legacy zero-delay recurrence: wet initially equals zero.
         wet = f32(dry + 0.0 * feedback);
       } else {
-        const size_t index = nt::kernels::saturatingFrames(ring[0], delay - 1);
-        wet = f32(ring[1 + index] + ring[1 + delay + index] * feedback);
+        const size_t cursor = nt::kernels::saturatingFrames(ring[0], delay * 2 - 1);
+        const size_t index = cursor % delay;
+        wet = cursor < delay ? 0.0f : f32(ring[1 + index] + ring[1 + delay + index] * feedback);
         ring[1 + index] = dry;
         ring[1 + delay + index] = wet;
-        ring[0] = (index + 1) % delay;
+        ring[0] = cursor + 1 < delay ? cursor + 1 : delay + (index + 1) % delay;
       }
       out[i * channels + ch] = f32(dry * (1 - mix) + wet * mix);
     }
@@ -452,19 +456,25 @@ int nt_resample(const float* in, float* out, size_t frames, uint32_t channels, d
   // 32 zero crossings per side, with a Hann window. Widen on downsampling
   // to retain the same stopband rejection below the new Nyquist frequency.
   const double radius = 32 / cutoff;
+  std::vector<double> weights;
   for (size_t i = 0; i < count; i++) {
     const double position = i * in_rate / out_rate;
     const size_t begin = static_cast<size_t>(std::max(0.0, std::ceil(position - radius)));
     const size_t end = static_cast<size_t>(std::min(static_cast<double>(frames), std::floor(position + radius) + 1));
+    weights.resize(end - begin);
+    double weight = 0;
+    for (size_t j = begin; j < end; j++) {
+      const double distance = position - j;
+      const double x = kPi * distance * cutoff;
+      const double sinc = x == 0 ? 1 : std::sin(x) / x;
+      const double w = sinc * (0.5 + 0.5 * std::cos(kPi * distance / radius));
+      weights[j - begin] = w;
+      weight += w;
+    }
     for (uint32_t ch = 0; ch < channels; ch++) {
-      double sum = 0, weight = 0;
+      double sum = 0;
       for (size_t j = begin; j < end; j++) {
-        const double distance = position - j;
-        const double x = kPi * distance * cutoff;
-        const double sinc = x == 0 ? 1 : std::sin(x) / x;
-        const double w = sinc * (0.5 + 0.5 * std::cos(kPi * distance / radius));
-        sum += in[j * channels + ch] * w;
-        weight += w;
+        sum += in[j * channels + ch] * weights[j - begin];
       }
       out[i * channels + ch] = f32(weight == 0 ? 0 : sum / weight);
     }

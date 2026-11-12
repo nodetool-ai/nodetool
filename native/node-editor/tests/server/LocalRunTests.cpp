@@ -71,6 +71,38 @@ private slots:
     qputenv("NODETOOL_LOCAL_RUNNER", "1");
     WorkflowSession::setGuestBundlePath(GUEST_BUNDLE);
   }
+  void evictsOldestRunWhenClipBytesReachTheCap() {
+    LocalMediaStore store(16);
+    const auto oldest = store.addClip("first", QByteArray(8, 'a'), "audio/wav");
+    const auto newer = store.addClip("second", QByteArray(8, 'b'), "audio/wav");
+    QCOMPARE(store.addClip("second", QByteArray(8, 'b'), "audio/wav"), newer);
+    const auto newest = store.addClip("third", QByteArray(8, 'c'), "audio/wav");
+    QVERIFY(!store.contains(oldest));
+    QVERIFY(store.contains(newer));
+    QVERIFY(store.contains(newest));
+    QVERIFY(store.addClip("oversize", QByteArray(17, 'd'), "audio/wav").isEmpty());
+    store.releaseRun("second");
+    QVERIFY(!store.contains(newer));
+    QVERIFY(store.contains(newest));
+    QVERIFY(!store.addClip("fourth", QByteArray(8, 'e'), "audio/wav").isEmpty());
+    QVERIFY(store.contains(newest));
+  }
+  void liveClipPhaserDeliversAndCancels() {
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    QFile file(QStringLiteral(EXAMPLES_DIR "/live-clip-phaser.json"));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    bool received = false;
+    connect(&session, &WorkflowSession::runEvent, this, [&received](const QString &, const QJsonObject &event) {
+      const auto value = event["value"].toObject();
+      if (event["node_id"] == "out" && value["content_type"] == "audio" && !value["done"].toBool()) { received = true; }
+    });
+    const auto id = session.run(QJsonDocument::fromJson(file.readAll()).object());
+    QVERIFY(session.runsInProcess(id));
+    QTRY_VERIFY_WITH_TIMEOUT(received, 10000);
+    session.stop(id);
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 30000);
+  }
   void rendersSynthToStoredClip_data() {
     QTest::addColumn<int>("seconds");
     QTest::newRow("example") << 4;
@@ -123,6 +155,28 @@ private slots:
     QFile saved(destination.toLocalFile());
     QVERIFY(saved.open(QIODevice::ReadOnly));
     QCOMPARE(saved.readAll(), clip.bytes);
+  }
+  void cancelsLongOfflineRender() {
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    QFile example(QStringLiteral(EXAMPLES_DIR "/render-synth.json"));
+    QVERIFY(example.open(QIODevice::ReadOnly));
+    auto doc = QJsonDocument::fromJson(example.readAll()).object();
+    auto graph = doc["graph"].toObject();
+    auto nodes = graph["nodes"].toArray();
+    for (qsizetype i = 0; i < nodes.size(); ++i) {
+      auto current = nodes[i].toObject();
+      if (current["id"] != "out") { continue; }
+      current["data"] = QJsonObject{{"duration", 600}};
+      nodes[i] = current;
+    }
+    graph["nodes"] = nodes;
+    doc["graph"] = graph;
+    const auto id = session.run(doc);
+    QVERIFY(session.runsInProcess(id));
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("running"), 1000);
+    session.stop(id);
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 3000);
   }
   void liveSynthDeliversPcmAndCancels() {
     int chunks = 0;

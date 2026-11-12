@@ -61,7 +61,11 @@ int main() {
   nt_audio_reverb_init(reverbState.data(), kChannels, kRate, 0);
   std::vector<double> delayState(nt_audio_delay_state_len(kChannels, kRate, 2));
   nt_audio_delay_init(delayState.data(), kChannels, kRate, 2);
+  std::vector<float> resampled(nt_resample_output_frames(kFrames, 48000, 44100) * kChannels);
   const std::vector<Row> rows = {
+      {"Resample 48 kHz to 44.1 kHz", "10 s stereo", timeMs([&] {
+        nt_resample(pcm.data(), resampled.data(), kFrames, kChannels, 48000, 44100);
+      }, 3)},
       {"Reverb block with state copies", "1024 stereo frames", timeMs([&] {
         auto state = reverbState;
         nt_audio_reverb_block(state.data(), block.data(), blockOut.data(), 1024, kChannels, kRate, 0.5, 0.5, 0.33, 0.4);

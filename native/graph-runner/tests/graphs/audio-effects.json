@@ -196,6 +196,30 @@
       "properties": {
         "duration": 0
       }
+    },
+    {
+      "id": "LowPassFilter",
+      "type": "nodetool.audio.realtime.StreamingLowPass",
+      "properties": {}
+    },
+    {
+      "id": "outLowPassFilter",
+      "type": "nodetool.audio.realtime.ChunksToAudio",
+      "properties": {
+        "duration": 0
+      }
+    },
+    {
+      "id": "HighPassFilter",
+      "type": "nodetool.audio.realtime.StreamingHighPass",
+      "properties": {}
+    },
+    {
+      "id": "outHighPassFilter",
+      "type": "nodetool.audio.realtime.ChunksToAudio",
+      "properties": {
+        "duration": 0
+      }
     }
   ],
   "edges": [
@@ -372,6 +396,34 @@
       "source": "PeakFilter",
       "sourceHandle": "chunk",
       "target": "outPeakFilter",
+      "targetHandle": "chunk"
+    },
+    {
+      "id": "player-LowPassFilter",
+      "source": "player",
+      "sourceHandle": "chunk",
+      "target": "LowPassFilter",
+      "targetHandle": "chunk"
+    },
+    {
+      "id": "LowPassFilter-out",
+      "source": "LowPassFilter",
+      "sourceHandle": "chunk",
+      "target": "outLowPassFilter",
+      "targetHandle": "chunk"
+    },
+    {
+      "id": "player-HighPassFilter",
+      "source": "player",
+      "sourceHandle": "chunk",
+      "target": "HighPassFilter",
+      "targetHandle": "chunk"
+    },
+    {
+      "id": "HighPassFilter-out",
+      "source": "HighPassFilter",
+      "sourceHandle": "chunk",
+      "target": "outHighPassFilter",
       "targetHandle": "chunk"
     }
   ]

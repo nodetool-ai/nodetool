@@ -74,7 +74,7 @@ function maxDiff(a: Float32Array, b: Float32Array): number {
 
 const FRAMES = 12000;
 const CHANNELS = 2;
-const RATES = [24000, 44100];
+const RATES = [24000, 44100, 56350];
 
 describe("image enhance kernels", () => {
   const sizes: [number, number][] = [[1, 1], [7, 5], [64, 48], [123, 77]];

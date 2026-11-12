@@ -93,7 +93,7 @@ Rectangle {
             objectName: "rail-examples"
             label: "Examples"
             glyph: "exploreOutlined"
-            unavailable: qsTr("Examples has no native panel yet.")
+            onActivated: editor.action("Examples")
         }
         RailEntry {
             objectName: "rail-nodes"

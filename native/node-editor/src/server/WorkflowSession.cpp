@@ -33,7 +33,7 @@ QJsonValue storeLocalClips(const QJsonValue &value, const QString &run) {
   if (!value.isObject()) { return value; }
   auto object = value.toObject();
   if (object.value("type") == "audio" && object.value("data").isString()) {
-    const auto bytes = QByteArray::fromBase64(object.value("data").toString().toLatin1());
+    const auto bytes = QByteArray::fromBase64(object.value("data").toString().toLatin1(), QByteArray::AbortOnBase64DecodingErrors);
     if (!bytes.isEmpty()) {
       object["uri"] = LocalMediaStore::instance().addClip(run, bytes, object.value("content_type").toString(object.value("mime_type").toString()));
       object.remove("data");

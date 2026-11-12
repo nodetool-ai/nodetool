@@ -8,17 +8,12 @@
 #include <cmath>
 namespace nodetool::node_editor {
 namespace {
-// UI thread only. Read the editor's PCM16 WAV output without starting an
-// AVFoundation decoder whose reader queue can outlive a closed preview.
-struct WavEnvelope {
-  std::vector<float> peaks;
-  qint64 bucketMilliseconds = 20;
-};
-std::optional<WavEnvelope> pcmWavEnvelope(const QUrl &source) {
+// Pool thread only. The file, read buffer and peaks belong to this call.
+std::optional<WaveformEnvelope> pcmWavEnvelope(const QUrl &source, std::stop_token stopped) {
   if (!source.isLocalFile()) { return std::nullopt; }
   QFile file(source.toLocalFile());
   if (!file.open(QIODevice::ReadOnly)) { return std::nullopt; }
-  // Match the resolver cache bound, keeping this synchronous PCM path bounded.
+  // Match the resolver cache bound.
   if (file.size() > 128 * 1024 * 1024) { return std::nullopt; }
   const auto header = file.read(12);
   if (header.size() != 12 || header.first(4) != "RIFF" || header.sliced(8, 4) != "WAVE") { return std::nullopt; }
@@ -26,6 +21,7 @@ std::optional<WavEnvelope> pcmWavEnvelope(const QUrl &source) {
   quint32 rate = 0;
   qint64 dataOffset = 0, dataBytes = 0;
   while (file.size() - file.pos() >= 8) {
+    if (stopped.stop_requested()) { return std::nullopt; }
     const auto chunk = file.read(8);
     const auto length = qFromLittleEndian<quint32>(chunk.constData() + 4);
     const auto start = file.pos();
@@ -44,13 +40,14 @@ std::optional<WavEnvelope> pcmWavEnvelope(const QUrl &source) {
     if (dataOffset && rate && channels) { break; }
   }
   if (!dataOffset || !rate || !channels || blockAlign != channels * 2 || !file.seek(dataOffset)) { return std::nullopt; }
-  WavEnvelope envelope;
+  WaveformEnvelope envelope;
   const auto frames = dataBytes / blockAlign;
   const auto durationMs = frames * 1000 / rate;
   while (durationMs / envelope.bucketMilliseconds >= 1024) { envelope.bucketMilliseconds *= 2; }
   envelope.peaks.resize(frames > 0 ? static_cast<size_t>((frames - 1) * 1000 / rate / envelope.bucketMilliseconds + 1) : 0, 0);
   qint64 frame = 0;
   while (frame < frames) {
+    if (stopped.stop_requested()) { return std::nullopt; }
     const auto count = std::min<qint64>(frames - frame, std::max<qint64>(1, 65536 / blockAlign));
     const auto bytes = file.read(count * blockAlign);
     if (bytes.size() != count * blockAlign) { return std::nullopt; }
@@ -69,10 +66,42 @@ std::optional<WavEnvelope> pcmWavEnvelope(const QUrl &source) {
 
 AudioWaveform::AudioWaveform(QQuickItem *parent) : QQuickPaintedItem(parent) {
   connect(this, &AudioWaveform::appearanceChanged, this, [this] { update(); });
+  envelopeTimer_.setInterval(10);
+  connect(&envelopeTimer_, &QTimer::timeout, this, [guard = QPointer(this)] {
+    if (!guard || !guard->task_) { return; }
+    std::optional<WaveformEnvelope> result;
+    {
+      std::lock_guard lock(guard->task_->mutex);
+      if (!guard->task_->done) { return; }
+      result = std::move(guard->task_->result);
+    }
+    guard->worker_ = std::jthread{};
+    guard->task_.reset();
+    guard->envelopeTimer_.stop();
+    if (result) {
+      guard->peaks_ = std::move(result->peaks);
+      guard->bucketMilliseconds_ = result->bucketMilliseconds;
+      guard->update();
+      emit guard->peaksChanged();
+    } else { guard->startDecoder(); }
+    emit guard->loadingChanged();
+  });
+}
+AudioWaveform::~AudioWaveform() {
+  worker_ = std::jthread{};
+}
+void AudioWaveform::startDecoder() {
+  decoder_ = std::make_unique<QAudioDecoder>();
+  connect(decoder_.get(), &QAudioDecoder::bufferReady, this, &AudioWaveform::consume);
+  connect(decoder_.get(), &QAudioDecoder::isDecodingChanged, this, &AudioWaveform::loadingChanged);
+  decoder_->setSource(source_);
+  decoder_->start();
 }
 void AudioWaveform::setSource(const QUrl &source) {
   if (source_ == source) { return; }
-  const bool wasLoading = loading();
+  worker_ = std::jthread{};
+  envelopeTimer_.stop();
+  task_.reset();
   decoder_.reset();
   source_ = source;
   peaks_.clear();
@@ -80,19 +109,17 @@ void AudioWaveform::setSource(const QUrl &source) {
   update();
   emit peaksChanged();
   emit sourceChanged();
-  if (const auto envelope = pcmWavEnvelope(source)) {
-    peaks_ = envelope->peaks;
-    bucketMilliseconds_ = envelope->bucketMilliseconds;
-    update();
-    emit peaksChanged();
-  } else if (!source.isEmpty()) {
-    decoder_ = std::make_unique<QAudioDecoder>();
-    connect(decoder_.get(), &QAudioDecoder::bufferReady, this, &AudioWaveform::consume);
-    connect(decoder_.get(), &QAudioDecoder::isDecodingChanged, this, &AudioWaveform::loadingChanged);
-    decoder_->setSource(source);
-    decoder_->start();
-  }
-  if (wasLoading && !loading()) { emit loadingChanged(); }
+  if (source.isLocalFile()) {
+    task_ = std::make_shared<EnvelopeTask>();
+    worker_ = std::jthread([source, task = task_](std::stop_token stopped) {
+      auto result = pcmWavEnvelope(source, stopped);
+      std::lock_guard lock(task->mutex);
+      task->result = std::move(result);
+      task->done = true;
+    });
+    envelopeTimer_.start();
+  } else if (!source.isEmpty()) { startDecoder(); }
+  emit loadingChanged();
 }
 const std::vector<float> &AudioWaveform::envelope() const {
   return dataSource_ ? dataSource_->peaks_ : peaks_;

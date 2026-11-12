@@ -28,8 +28,7 @@ const AUDIO_SIGNAL_TYPES = [
   "nodetool.audio.synth.Gate",
   "nodetool.audio.realtime.AudioToChunks",
   "nodetool.audio.realtime.ChunksToAudio",
-  "nodetool.audio.realtime.AudioOutput",
-  ...["LowShelf", "HighShelf", "Peak", "Bitcrush", "Compress", "Distortion", "Limiter", "NoiseGate", "Reverb", "Phaser", "Delay"].map(name => "nodetool.audio.realtime.Streaming" + name)
+  "nodetool.audio.realtime.AudioOutput"
 ];
 
 const STATEFUL_PREFIXES = ["vector.", "lib.sqlite."];

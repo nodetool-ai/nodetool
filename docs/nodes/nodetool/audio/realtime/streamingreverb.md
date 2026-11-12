@@ -12,6 +12,7 @@ namespace: "nodetool.audio.realtime"
 ## Description
 
 Processes audio chunks with persistent reverb state. Properties apply at the next block.
+    audio, stream, effect, realtime
 
 ## Properties
 

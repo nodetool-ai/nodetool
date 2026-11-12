@@ -8,7 +8,6 @@ import {
 } from "../lib/effect-properties.js";
 import { getTransport } from "../lib/transport.js";
 import {
-  AUDIO_SAMPLE_RATE,
   MAX_AUDIO_RENDER_SECONDS
 } from "@nodetool-ai/protocol";
 /**
@@ -56,7 +55,7 @@ import { DEFAULT_Q } from "../lib/biquad.js";
 // ../lib/cv.ts — shared with the synthesis nodes so CV streams can be patched
 // into any of these audio inputs.
 
-const DEFAULT_SAMPLE_RATE = AUDIO_SAMPLE_RATE;
+const DEFAULT_SAMPLE_RATE = 24000;
 
 // ── AudioToChunks ──────────────────────────────────────────────────
 

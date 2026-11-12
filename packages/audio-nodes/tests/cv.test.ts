@@ -153,7 +153,7 @@ describe("AudioTransport", () => {
     expect(Date.now() - start).toBeGreaterThanOrEqual(70);
   });
 
-  it("returns false once the signal aborts", async () => {
+  it("returns immediately once the signal aborts", async () => {
     const controller = new AbortController();
     const pacer = new AudioTransport(undefined);
     controller.abort();

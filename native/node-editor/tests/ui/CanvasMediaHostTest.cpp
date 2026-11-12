@@ -295,19 +295,44 @@ private slots:
     QVERIFY(!overlay(window, AudioNode));
   }
   void storedMinuteOfAudioLoadsOnCard() {
+    node_editor::WorkflowSession::setGuestBundlePath(QStringLiteral(GUEST_BUNDLE));
+    qputenv("NODETOOL_LOCAL_RUNNER", "1");
+    QTemporaryDir workspaces, assets;
+    QVERIFY(workspaces.isValid());
+    QVERIFY(assets.isValid());
+    qputenv("NODETOOL_WORKSPACES_DIR", QFile::encodeName(workspaces.path()));
+    qputenv("ASSET_FOLDER", QFile::encodeName(assets.path()));
     EditorWindow window;
     window.resize(1400, 900);
-    window.setCatalog(catalog());
-    QVERIFY(window.document()->load(workflow()));
+    auto metadata = catalog();
+    metadata.append(QJsonObject{{"node_type", "nodetool.audio.synth.Oscillator"}, {"title", "Oscillator"},
+      {"outputs", QJsonArray{QJsonObject{{"name", "chunk"}, {"type", QJsonObject{{"type", "chunk"}}}}}}});
+    metadata.append(QJsonObject{{"node_type", "nodetool.audio.realtime.ChunksToAudio"}, {"title", "Recorder"}, {"primary_output", "audio"},
+      {"outputs", QJsonArray{QJsonObject{{"name", "audio"}, {"type", QJsonObject{{"type", "audio"}}}}}}});
+    window.setCatalog(metadata);
+    const QJsonObject graph{{"nodes", QJsonArray{
+      QJsonObject{{"id", "osc"}, {"type", "nodetool.audio.synth.Oscillator"}, {"data", QJsonObject{}}},
+      QJsonObject{{"id", AudioNode}, {"type", "nodetool.audio.realtime.ChunksToAudio"}, {"data", QJsonObject{{"duration", 60}}}}
+    }}, {"edges", QJsonArray{QJsonObject{{"id", "capture"}, {"source", "osc"}, {"sourceHandle", "chunk"}, {"target", AudioNode}, {"targetHandle", "chunk"}}}}};
+    const QJsonObject document{{"id", ""}, {"name", "Minute render"}, {"graph", graph}};
+    QVERIFY(window.document()->load(document));
     window.show();
     window.fit();
-    auto &store = node_editor::LocalMediaStore::instance();
-    const auto uri = store.addClip("minute-test", audioBytes(60, 44100), "audio/wav");
-    const QJsonObject audio{{"type", "audio"}, {"uri", uri}};
-    window.runOutput()->beginRun("minute-test");
-    window.runOutput()->ingest("minute-test", {{"type", "node_update"}, {"job_id", "minute-test"}, {"node_id", AudioNode}, {"status", "completed"}, {"result", QJsonObject{{"value", audio}}}});
+    QTRY_VERIFY_WITH_TIMEOUT(window.session()->localRunnerReady(), 60000);
+    QString storedUri;
+    connect(window.session(), &node_editor::WorkflowSession::runEvent, &window,
+      [&storedUri](const QString &, const QJsonObject &event) {
+        if (event["type"] == "output_update" && event["node_id"] == AudioNode) {
+          const auto ref = event["value"].toObject();
+          if (node_editor::LocalMediaStore::isLocalMedia(ref["uri"].toString())) { storedUri = ref["uri"].toString(); }
+        }
+      });
+    const auto run = window.session()->run(document);
+    QVERIFY(window.session()->runsInProcess(run));
+    QTRY_VERIFY_WITH_TIMEOUT(!storedUri.isEmpty(), 30000);
+    QVERIFY(node_editor::LocalMediaStore::instance().contains(storedUri));
     QTRY_VERIFY_WITH_TIMEOUT(player(window, AudioNode) && player(window, AudioNode)->duration() >= 59900, 15000);
-    store.releaseRun("minute-test");
+    node_editor::LocalMediaStore::instance().releaseRun(run);
   }
   void outputToNativeCardsAndBoundaryCleanup() {
     QFile video(QStringLiteral(MEDIA_VIDEO_FIXTURE));

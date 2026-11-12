@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AUDIO_RUN_KEY, type NodeDescriptor } from "@nodetool-ai/protocol";
+import { Graph } from "../src/graph.js";
 import { WorkflowRunner } from "../src/runner.js";
 
 it("resolves the transport before any node starts and resets it for a reused context", async () => {
@@ -73,4 +74,29 @@ describe("hosts without a variable store", () => {
       ).status
     ).toBe("completed");
   });
+});
+
+
+it("ignores bypassed live sinks when resolving a bounded render", async () => {
+  const values = new Map<string, unknown>();
+  const seen: unknown[] = [];
+  const runner = new WorkflowRunner("bypassed-audio", {
+    executionContext: { emit() {}, set(key: string, value: unknown) { values.set(key, value); } },
+    resolveExecutor: () => ({ async process() { seen.push(values.get(AUDIO_RUN_KEY)); return {}; } })
+  });
+  const result = await runner.run({ job_id: "bypassed-audio" }, {
+    nodes: [
+      { id: "recorder", type: "test.Recorder", audio_sink: "render", properties: { duration: 2 } },
+      { id: "monitor", type: "test.Monitor", audio_sink: "live", ui_properties: { bypassed: true } }
+    ], edges: []
+  });
+  expect(result.status).toBe("completed");
+  expect(seen).toEqual([{ mode: "render", endFrame: 88200 }]);
+});
+
+it("Graph.loadFromDict drops a stale audio sink from an ordinary registered node", async () => {
+  const graph = await Graph.loadFromDict({ nodes: [{ id: "ordinary", type: "test.Ordinary", audio_sink: "live" }], edges: [] }, {
+    resolver: { async resolveNodeType(type) { return { nodeType: type, descriptorDefaults: { audio_sink: undefined }, propertyTypes: {}, outputs: {} }; } }
+  });
+  expect(graph.nodes[0].audio_sink).toBeUndefined();
 });

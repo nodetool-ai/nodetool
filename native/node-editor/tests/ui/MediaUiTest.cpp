@@ -353,6 +353,8 @@ private slots:
     // so wait on the signal in a running event loop instead.
     QSignalSpy loading(&waveform, &nodetool::node_editor::AudioWaveform::loadingChanged);
     waveform.setSource(QUrl::fromLocalFile(file.fileName()));
+    QVERIFY(waveform.peaks().isEmpty());
+    QVERIFY(waveform.loading());
     while (waveform.peaks().isEmpty() || waveform.loading()) { QVERIFY(loading.wait(10000)); }
     QVERIFY(waveform.peaks().size() > 500);
     QVERIFY(waveform.peaks().size() <= 1024);

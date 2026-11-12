@@ -715,6 +715,177 @@ void kernelsMatchTheCFunctions() {
   CHECK(run(*e, "__host.kernels.call('nt_audio_delay_output_frames', [10, 10, 0.3], 'nnn', [])") == "22");
 }
 
+// Exercise each streaming adapter through the guest trust boundary, including buffer modes.
+void streamingKernelsMatchTheCFunctions() {
+  auto e = engineWith(gr::HostOptions{});
+  const auto bytes = [](const auto& values) {
+    const auto* data = reinterpret_cast<const uint8_t*>(values.data());
+    std::string result;
+    for (size_t i = 0; i < values.size() * sizeof(values[0]); ++i) result += (i ? "," : "") + std::to_string(data[i]);
+    return result;
+  };
+  {
+    const size_t length = nt_audio_bitcrush_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, 3);
+    CHECK(nt_audio_bitcrush_init(state.data(), 2, 44100, 0.01) == NT_OK);
+    CHECK(run(*e, "__host.kernels.call('nt_audio_bitcrush_state_len', [2, 44100, 0.01], 'nnn', [])") == std::to_string(length));
+    CHECK(run(*e, "(() => { const outputs = []; const length = __host.kernels.call('nt_audio_bitcrush_state_len', [2,44100,0.01], 'nnn', []); "
+                  "__host.kernels.call('nt_audio_bitcrush_init', [new Float64Array(length).fill(3),2,44100,0.01], 'onnn', outputs); "
+                  "return Array.from(outputs[0]).join(','); })()") == bytes(state));
+    std::vector<float> input{0.2f, -0.4f, 0.8f, -0.1f}, output(4);
+    CHECK(nt_audio_bitcrush_block(state.data(), input.data(), output.data(), 2, 2, 8, 2) == NT_OK);
+    const std::string setup = "const length = __host.kernels.call('nt_audio_bitcrush_state_len', [2,44100,0.01], 'nnn', []); "
+                             "const initialized = []; __host.kernels.call('nt_audio_bitcrush_init', [new Float64Array(length),2,44100,0.01], 'onnn', initialized); const state = new Float64Array(initialized[0].buffer); ";
+    CHECK(run(*e, "(() => { " + setup + "const outputs = []; __host.kernels.call('nt_audio_bitcrush_block', "
+                  "[state,new Float32Array([0.2,-0.4,0.8,-0.1]),new Float32Array(4),2,2,8, 2], 'xionnnn', outputs); "
+                  "return outputs.map(value => Array.from(value).join(',')).join(':'); })()") == bytes(state) + ":" + bytes(output));
+    const auto bad = [&](const std::string& call) { return run(*e, "(() => { " + setup + "return " + call + "; })()"); };
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_bitcrush_init', [new Float64Array(length-1),2,44100,0.01], 'onnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_bitcrush_block', [new Float64Array(length-1),new Float32Array(4),new Float32Array(4),2,2,8, 2], 'xionnnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_bitcrush_block', [state,new Float32Array(3),new Float32Array(4),2,2,8, 2], 'xionnnn', [])"), "error: kernels.call: argument 1"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_bitcrush_block', [state,new Float32Array(4),new Float32Array(3),2,2,8, 2], 'xionnnn', [])"), "error: kernels.call: argument 2"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_bitcrush_block', [state,new Float32Array(4),new Float32Array(4),2,2,8, 2], 'iionnnn', [])"), "error: kernels.call: argument 0"));
+  }
+  {
+    const size_t length = nt_audio_compress_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, 3);
+    CHECK(nt_audio_compress_init(state.data(), 2, 44100, 0.01) == NT_OK);
+    CHECK(run(*e, "__host.kernels.call('nt_audio_compress_state_len', [2, 44100, 0.01], 'nnn', [])") == std::to_string(length));
+    CHECK(run(*e, "(() => { const outputs = []; const length = __host.kernels.call('nt_audio_compress_state_len', [2,44100,0.01], 'nnn', []); "
+                  "__host.kernels.call('nt_audio_compress_init', [new Float64Array(length).fill(3),2,44100,0.01], 'onnn', outputs); "
+                  "return Array.from(outputs[0]).join(','); })()") == bytes(state));
+    std::vector<float> input{0.2f, -0.4f, 0.8f, -0.1f}, output(4);
+    CHECK(nt_audio_compress_block(state.data(), input.data(), output.data(), 2, 2, 44100, -18, 4, 10, 100, 1) == NT_OK);
+    const std::string setup = "const length = __host.kernels.call('nt_audio_compress_state_len', [2,44100,0.01], 'nnn', []); "
+                             "const initialized = []; __host.kernels.call('nt_audio_compress_init', [new Float64Array(length),2,44100,0.01], 'onnn', initialized); const state = new Float64Array(initialized[0].buffer); ";
+    CHECK(run(*e, "(() => { " + setup + "const outputs = []; __host.kernels.call('nt_audio_compress_block', "
+                  "[state,new Float32Array([0.2,-0.4,0.8,-0.1]),new Float32Array(4),2,2,44100, -18, 4, 10, 100, 1], 'xionnnnnnnn', outputs); "
+                  "return outputs.map(value => Array.from(value).join(',')).join(':'); })()") == bytes(state) + ":" + bytes(output));
+    const auto bad = [&](const std::string& call) { return run(*e, "(() => { " + setup + "return " + call + "; })()"); };
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_compress_init', [new Float64Array(length-1),2,44100,0.01], 'onnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_compress_block', [new Float64Array(length-1),new Float32Array(4),new Float32Array(4),2,2,44100, -18, 4, 10, 100, 1], 'xionnnnnnnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_compress_block', [state,new Float32Array(3),new Float32Array(4),2,2,44100, -18, 4, 10, 100, 1], 'xionnnnnnnn', [])"), "error: kernels.call: argument 1"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_compress_block', [state,new Float32Array(4),new Float32Array(3),2,2,44100, -18, 4, 10, 100, 1], 'xionnnnnnnn', [])"), "error: kernels.call: argument 2"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_compress_block', [state,new Float32Array(4),new Float32Array(4),2,2,44100, -18, 4, 10, 100, 1], 'iionnnnnnnn', [])"), "error: kernels.call: argument 0"));
+  }
+  {
+    const size_t length = nt_audio_limiter_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, 3);
+    CHECK(nt_audio_limiter_init(state.data(), 2, 44100, 0.01) == NT_OK);
+    CHECK(run(*e, "__host.kernels.call('nt_audio_limiter_state_len', [2, 44100, 0.01], 'nnn', [])") == std::to_string(length));
+    CHECK(run(*e, "(() => { const outputs = []; const length = __host.kernels.call('nt_audio_limiter_state_len', [2,44100,0.01], 'nnn', []); "
+                  "__host.kernels.call('nt_audio_limiter_init', [new Float64Array(length).fill(3),2,44100,0.01], 'onnn', outputs); "
+                  "return Array.from(outputs[0]).join(','); })()") == bytes(state));
+    std::vector<float> input{0.2f, -0.4f, 0.8f, -0.1f}, output(4);
+    CHECK(nt_audio_limiter_block(state.data(), input.data(), output.data(), 2, 2, 44100, -3, 50, 0) == NT_OK);
+    const std::string setup = "const length = __host.kernels.call('nt_audio_limiter_state_len', [2,44100,0.01], 'nnn', []); "
+                             "const initialized = []; __host.kernels.call('nt_audio_limiter_init', [new Float64Array(length),2,44100,0.01], 'onnn', initialized); const state = new Float64Array(initialized[0].buffer); ";
+    CHECK(run(*e, "(() => { " + setup + "const outputs = []; __host.kernels.call('nt_audio_limiter_block', "
+                  "[state,new Float32Array([0.2,-0.4,0.8,-0.1]),new Float32Array(4),2,2,44100, -3, 50, 0], 'xionnnnnn', outputs); "
+                  "return outputs.map(value => Array.from(value).join(',')).join(':'); })()") == bytes(state) + ":" + bytes(output));
+    const auto bad = [&](const std::string& call) { return run(*e, "(() => { " + setup + "return " + call + "; })()"); };
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_limiter_init', [new Float64Array(length-1),2,44100,0.01], 'onnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_limiter_block', [new Float64Array(length-1),new Float32Array(4),new Float32Array(4),2,2,44100, -3, 50, 0], 'xionnnnnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_limiter_block', [state,new Float32Array(3),new Float32Array(4),2,2,44100, -3, 50, 0], 'xionnnnnn', [])"), "error: kernels.call: argument 1"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_limiter_block', [state,new Float32Array(4),new Float32Array(3),2,2,44100, -3, 50, 0], 'xionnnnnn', [])"), "error: kernels.call: argument 2"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_limiter_block', [state,new Float32Array(4),new Float32Array(4),2,2,44100, -3, 50, 0], 'iionnnnnn', [])"), "error: kernels.call: argument 0"));
+  }
+  {
+    const size_t length = nt_audio_noise_gate_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, 3);
+    CHECK(nt_audio_noise_gate_init(state.data(), 2, 44100, 0.01) == NT_OK);
+    CHECK(run(*e, "__host.kernels.call('nt_audio_noise_gate_state_len', [2, 44100, 0.01], 'nnn', [])") == std::to_string(length));
+    CHECK(run(*e, "(() => { const outputs = []; const length = __host.kernels.call('nt_audio_noise_gate_state_len', [2,44100,0.01], 'nnn', []); "
+                  "__host.kernels.call('nt_audio_noise_gate_init', [new Float64Array(length).fill(3),2,44100,0.01], 'onnn', outputs); "
+                  "return Array.from(outputs[0]).join(','); })()") == bytes(state));
+    std::vector<float> input{0.2f, -0.4f, 0.8f, -0.1f}, output(4);
+    CHECK(nt_audio_noise_gate_block(state.data(), input.data(), output.data(), 2, 2, 44100, -20, 1, 50) == NT_OK);
+    const std::string setup = "const length = __host.kernels.call('nt_audio_noise_gate_state_len', [2,44100,0.01], 'nnn', []); "
+                             "const initialized = []; __host.kernels.call('nt_audio_noise_gate_init', [new Float64Array(length),2,44100,0.01], 'onnn', initialized); const state = new Float64Array(initialized[0].buffer); ";
+    CHECK(run(*e, "(() => { " + setup + "const outputs = []; __host.kernels.call('nt_audio_noise_gate_block', "
+                  "[state,new Float32Array([0.2,-0.4,0.8,-0.1]),new Float32Array(4),2,2,44100, -20, 1, 50], 'xionnnnnn', outputs); "
+                  "return outputs.map(value => Array.from(value).join(',')).join(':'); })()") == bytes(state) + ":" + bytes(output));
+    const auto bad = [&](const std::string& call) { return run(*e, "(() => { " + setup + "return " + call + "; })()"); };
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_noise_gate_init', [new Float64Array(length-1),2,44100,0.01], 'onnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_noise_gate_block', [new Float64Array(length-1),new Float32Array(4),new Float32Array(4),2,2,44100, -20, 1, 50], 'xionnnnnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_noise_gate_block', [state,new Float32Array(3),new Float32Array(4),2,2,44100, -20, 1, 50], 'xionnnnnn', [])"), "error: kernels.call: argument 1"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_noise_gate_block', [state,new Float32Array(4),new Float32Array(3),2,2,44100, -20, 1, 50], 'xionnnnnn', [])"), "error: kernels.call: argument 2"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_noise_gate_block', [state,new Float32Array(4),new Float32Array(4),2,2,44100, -20, 1, 50], 'iionnnnnn', [])"), "error: kernels.call: argument 0"));
+  }
+  {
+    const size_t length = nt_audio_phaser_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, 3);
+    CHECK(nt_audio_phaser_init(state.data(), 2, 44100, 0.01) == NT_OK);
+    CHECK(run(*e, "__host.kernels.call('nt_audio_phaser_state_len', [2, 44100, 0.01], 'nnn', [])") == std::to_string(length));
+    CHECK(run(*e, "(() => { const outputs = []; const length = __host.kernels.call('nt_audio_phaser_state_len', [2,44100,0.01], 'nnn', []); "
+                  "__host.kernels.call('nt_audio_phaser_init', [new Float64Array(length).fill(3),2,44100,0.01], 'onnn', outputs); "
+                  "return Array.from(outputs[0]).join(','); })()") == bytes(state));
+    std::vector<float> input{0.2f, -0.4f, 0.8f, -0.1f}, output(4);
+    CHECK(nt_audio_phaser_block(state.data(), input.data(), output.data(), 2, 2, 44100, 0.5, 0.7, 1000, 0.3, 0.5) == NT_OK);
+    const std::string setup = "const length = __host.kernels.call('nt_audio_phaser_state_len', [2,44100,0.01], 'nnn', []); "
+                             "const initialized = []; __host.kernels.call('nt_audio_phaser_init', [new Float64Array(length),2,44100,0.01], 'onnn', initialized); const state = new Float64Array(initialized[0].buffer); ";
+    CHECK(run(*e, "(() => { " + setup + "const outputs = []; __host.kernels.call('nt_audio_phaser_block', "
+                  "[state,new Float32Array([0.2,-0.4,0.8,-0.1]),new Float32Array(4),2,2,44100, 0.5, 0.7, 1000, 0.3, 0.5], 'xionnnnnnnn', outputs); "
+                  "return outputs.map(value => Array.from(value).join(',')).join(':'); })()") == bytes(state) + ":" + bytes(output));
+    const auto bad = [&](const std::string& call) { return run(*e, "(() => { " + setup + "return " + call + "; })()"); };
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_phaser_init', [new Float64Array(length-1),2,44100,0.01], 'onnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_phaser_block', [new Float64Array(length-1),new Float32Array(4),new Float32Array(4),2,2,44100, 0.5, 0.7, 1000, 0.3, 0.5], 'xionnnnnnnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_phaser_block', [state,new Float32Array(3),new Float32Array(4),2,2,44100, 0.5, 0.7, 1000, 0.3, 0.5], 'xionnnnnnnn', [])"), "error: kernels.call: argument 1"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_phaser_block', [state,new Float32Array(4),new Float32Array(3),2,2,44100, 0.5, 0.7, 1000, 0.3, 0.5], 'xionnnnnnnn', [])"), "error: kernels.call: argument 2"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_phaser_block', [state,new Float32Array(4),new Float32Array(4),2,2,44100, 0.5, 0.7, 1000, 0.3, 0.5], 'iionnnnnnnn', [])"), "error: kernels.call: argument 0"));
+  }
+  {
+    const size_t length = nt_audio_reverb_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, 3);
+    CHECK(nt_audio_reverb_init(state.data(), 2, 44100, 0.01) == NT_OK);
+    CHECK(run(*e, "__host.kernels.call('nt_audio_reverb_state_len', [2, 44100, 0.01], 'nnn', [])") == std::to_string(length));
+    CHECK(run(*e, "(() => { const outputs = []; const length = __host.kernels.call('nt_audio_reverb_state_len', [2,44100,0.01], 'nnn', []); "
+                  "__host.kernels.call('nt_audio_reverb_init', [new Float64Array(length).fill(3),2,44100,0.01], 'onnn', outputs); "
+                  "return Array.from(outputs[0]).join(','); })()") == bytes(state));
+    std::vector<float> input{0.2f, -0.4f, 0.8f, -0.1f}, output(4);
+    CHECK(nt_audio_reverb_block(state.data(), input.data(), output.data(), 2, 2, 44100, 0.5, 0.5, 0.3, 0.7) == NT_OK);
+    const std::string setup = "const length = __host.kernels.call('nt_audio_reverb_state_len', [2,44100,0.01], 'nnn', []); "
+                             "const initialized = []; __host.kernels.call('nt_audio_reverb_init', [new Float64Array(length),2,44100,0.01], 'onnn', initialized); const state = new Float64Array(initialized[0].buffer); ";
+    CHECK(run(*e, "(() => { " + setup + "const outputs = []; __host.kernels.call('nt_audio_reverb_block', "
+                  "[state,new Float32Array([0.2,-0.4,0.8,-0.1]),new Float32Array(4),2,2,44100, 0.5, 0.5, 0.3, 0.7], 'xionnnnnnn', outputs); "
+                  "return outputs.map(value => Array.from(value).join(',')).join(':'); })()") == bytes(state) + ":" + bytes(output));
+    const auto bad = [&](const std::string& call) { return run(*e, "(() => { " + setup + "return " + call + "; })()"); };
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_reverb_init', [new Float64Array(length-1),2,44100,0.01], 'onnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_reverb_block', [new Float64Array(length-1),new Float32Array(4),new Float32Array(4),2,2,44100, 0.5, 0.5, 0.3, 0.7], 'xionnnnnnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_reverb_block', [state,new Float32Array(3),new Float32Array(4),2,2,44100, 0.5, 0.5, 0.3, 0.7], 'xionnnnnnn', [])"), "error: kernels.call: argument 1"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_reverb_block', [state,new Float32Array(4),new Float32Array(3),2,2,44100, 0.5, 0.5, 0.3, 0.7], 'xionnnnnnn', [])"), "error: kernels.call: argument 2"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_reverb_block', [state,new Float32Array(4),new Float32Array(4),2,2,44100, 0.5, 0.5, 0.3, 0.7], 'iionnnnnnn', [])"), "error: kernels.call: argument 0"));
+  }
+  {
+    const size_t length = nt_audio_delay_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, 3);
+    CHECK(nt_audio_delay_init(state.data(), 2, 44100, 0.01) == NT_OK);
+    CHECK(run(*e, "__host.kernels.call('nt_audio_delay_state_len', [2, 44100, 0.01], 'nnn', [])") == std::to_string(length));
+    CHECK(run(*e, "(() => { const outputs = []; const length = __host.kernels.call('nt_audio_delay_state_len', [2,44100,0.01], 'nnn', []); "
+                  "__host.kernels.call('nt_audio_delay_init', [new Float64Array(length).fill(3),2,44100,0.01], 'onnn', outputs); "
+                  "return Array.from(outputs[0]).join(','); })()") == bytes(state));
+    std::vector<float> input{0.2f, -0.4f, 0.8f, -0.1f}, output(4);
+    CHECK(nt_audio_delay_block(state.data(), input.data(), output.data(), 2, 2, 44100, 0.01, 0.5, 0.5) == NT_OK);
+    const std::string setup = "const length = __host.kernels.call('nt_audio_delay_state_len', [2,44100,0.01], 'nnn', []); "
+                             "const initialized = []; __host.kernels.call('nt_audio_delay_init', [new Float64Array(length),2,44100,0.01], 'onnn', initialized); const state = new Float64Array(initialized[0].buffer); ";
+    CHECK(run(*e, "(() => { " + setup + "const outputs = []; __host.kernels.call('nt_audio_delay_block', "
+                  "[state,new Float32Array([0.2,-0.4,0.8,-0.1]),new Float32Array(4),2,2,44100, 0.01, 0.5, 0.5], 'xionnnnnn', outputs); "
+                  "return outputs.map(value => Array.from(value).join(',')).join(':'); })()") == bytes(state) + ":" + bytes(output));
+    const auto bad = [&](const std::string& call) { return run(*e, "(() => { " + setup + "return " + call + "; })()"); };
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_delay_init', [new Float64Array(length-1),2,44100,0.01], 'onnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_delay_block', [new Float64Array(length-1),new Float32Array(4),new Float32Array(4),2,2,44100, 0.01, 0.5, 0.5], 'xionnnnnn', [])"), "error: kernels.call: argument 0"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_delay_block', [state,new Float32Array(3),new Float32Array(4),2,2,44100, 0.01, 0.5, 0.5], 'xionnnnnn', [])"), "error: kernels.call: argument 1"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_delay_block', [state,new Float32Array(4),new Float32Array(3),2,2,44100, 0.01, 0.5, 0.5], 'xionnnnnn', [])"), "error: kernels.call: argument 2"));
+    CHECK(startsWith(bad("__host.kernels.call('nt_audio_delay_block', [state,new Float32Array(4),new Float32Array(4),2,2,44100, 0.01, 0.5, 0.5], 'iionnnnnn', [])"), "error: kernels.call: argument 0"));
+  }
+  std::vector<float> input{0, 1, 0, -1, 0, 1, 0, -1}, output(nt_resample_output_frames(4, 48000, 44100) * 2);
+  CHECK(nt_resample(input.data(), output.data(), 4, 2, 48000, 44100) == NT_OK);
+  CHECK(run(*e, "__host.kernels.call('nt_resample_output_frames', [4,48000,44100], 'nnn', [])") == std::to_string(output.size() / 2));
+  CHECK(run(*e, "(() => { const outputs = []; __host.kernels.call('nt_resample', [new Float32Array([0,1,0,-1,0,1,0,-1]),new Float32Array(8),4,2,48000,44100], 'ionnnn', outputs); return Array.from(outputs[0]).join(','); })()") == bytes(output));
+  CHECK(startsWith(run(*e, "__host.kernels.call('nt_resample', [new Float32Array(7),new Float32Array(8),4,2,48000,44100], 'ionnnn', [])"), "error: kernels.call: argument 0"));
+  CHECK(startsWith(run(*e, "__host.kernels.call('nt_resample', [new Float32Array(8),new Float32Array(7),4,2,48000,44100], 'ionnnn', [])"), "error: kernels.call: argument 1"));
+}
+
 // The guest cannot make a kernel read or write past a buffer it passed.
 void kernelsRefuseBadArguments() {
   auto e = engineWith(gr::HostOptions{});
@@ -775,6 +946,7 @@ int main() {
       {"httpPolicyMatchesSafeFetch", httpPolicyMatchesSafeFetch},
       {"kernelsMatchTheCFunctions", kernelsMatchTheCFunctions},
       {"kernelsRefuseBadArguments", kernelsRefuseBadArguments},
+      {"streamingKernelsMatchTheCFunctions", streamingKernelsMatchTheCFunctions},
   };
   for (const auto& [name, fn] : tests) {
     int before = failures;

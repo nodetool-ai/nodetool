@@ -32,6 +32,7 @@ it("documents inherited controls from a relative imported base and applies child
   writeFileSync(
     join(source, "controls.ts"),
     `export abstract class Controls {
+    static readonly metadataOutputTypes = { output: "any" };
     @prop({ type: "float", default: 0.5, title: "Delay Seconds" }) declare delay_seconds: number;
   }`
   );
@@ -41,6 +42,8 @@ it("documents inherited controls from a relative imported base and applies child
   export class Clip extends Parameters {
     static readonly nodeType = "test.audio.Clip";
     static readonly title = "Clip";
+    static readonly outputs = { output: "audio" };
+    static readonly metadataOutputTypes = { output: "audio" };
     @prop({ type: "audio", default: null }) declare audio: unknown;
   }
   export class Signal extends Parameters {
@@ -77,6 +80,7 @@ it("documents inherited controls from a relative imported base and applies child
   expect(signal.match(/\| delay_seconds \|/g)).toHaveLength(1);
   const catalog = JSON.parse(readFileSync(join(out, "catalog.json"), "utf8"));
   expect(catalog.nodes).toHaveLength(1002);
+  expect(catalog.nodes.find(node => node.type === "test.audio.Clip").outputs).toEqual([{ name: "output", type: "audio" }]);
   expect(
     readFileSync(join(out, "test/audio/generated999.md"), "utf8")
   ).toContain("| delay_seconds | `float` |  | `0.5` |");

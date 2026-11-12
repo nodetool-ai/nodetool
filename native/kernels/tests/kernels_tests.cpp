@@ -4,6 +4,7 @@
 #include "nodetool/kernels.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -467,6 +468,17 @@ void testStatefulEffects() {
       }
       check(expected == actual, "delay chunk invariance");
     }
+    const size_t outputFrames = nt_audio_delay_output_frames(frames, rate, 0.013);
+    std::vector<float> clip(outputFrames * channels), streamed(outputFrames * channels);
+    nt_audio_delay(input.data(), clip.data(), frames, channels, rate, 0.013, 0.5, 0.5);
+    nt_audio_delay_init(state.data(), channels, rate, 0.013);
+    nt_audio_delay_block(state.data(), input.data(), streamed.data(), frames, channels, rate, 0.013, 0.5, 0.5);
+    std::vector<float> silence((outputFrames - frames) * channels);
+    nt_audio_delay_block(state.data(), silence.data(), streamed.data() + frames * channels, outputFrames - frames, channels, rate, 0.013, 0.5, 0.5);
+    check(streamed == clip, "delay block plus tail matches clip");
+    check(nt_audio_delay_state_len(channels, rate, 2.01) == 0, "delay state rejects 2.01 seconds");
+    check(nt_audio_delay_init(state.data(), channels, rate, 2.01) == NT_ERR_ARGS, "delay init rejects 2.01 seconds");
+    check(nt_audio_delay_block(state.data(), input.data(), actual.data(), frames, channels, rate, 2.01, 0.5, 0.5) == NT_ERR_ARGS, "delay block rejects 2.01 seconds");
   }
 }
 

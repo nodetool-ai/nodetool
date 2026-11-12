@@ -16,6 +16,9 @@ on:
       - "native/graph-runner/**"
       - "native/jobs/**"
       - "native/kernels/**"
+      - "native/node-editor/**"
+      - "packages/audio-nodes/**"
+      - "packages/kernels/**"
       - ".github/workflows/native-graph-runner.yml"
   push:
     branches: [main]
@@ -23,6 +26,9 @@ on:
       - "native/graph-runner/**"
       - "native/jobs/**"
       - "native/kernels/**"
+      - "native/node-editor/**"
+      - "packages/audio-nodes/**"
+      - "packages/kernels/**"
       - ".github/workflows/native-graph-runner.yml"
 
 permissions:
@@ -214,3 +220,31 @@ jobs:
           sel=()
           if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
           ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"
+
+      - name: Check Linux signal-effect parity
+        if: matrix.name == 'Release'
+        working-directory: native/graph-runner
+        run: node parity/run.mjs --runner build/nodetool-graph-runner --only nodetool.audio.realtime.Streaming --check
+
+      - name: Install Qt for the node editor
+        if: matrix.name == 'Release'
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4
+        with:
+          version: '6.12.0'
+          modules: 'qtmultimedia qtsvg qtwebsockets qtshadertools'
+          cache: false
+
+      - name: Build and test the audio examples in the editor
+        if: matrix.name == 'Release'
+        run: |
+          sudo apt-get install -y libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libpulse0 libasound2t64
+          cmake -S native/node-editor -B native/node-editor/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build native/node-editor/build --parallel 2 --target nodetool-node-editor \
+            node_editor_menus_tests node_editor_canvas_media_host_tests node_editor_media_ui_tests node_editor_local_run_tests
+          QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+            native/node-editor/build/node_editor_menus_tests opensEveryEmbeddedAudioExample
+          QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+            native/node-editor/build/node_editor_canvas_media_host_tests storedMinuteOfAudioLoadsOnCard
+          QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+            native/node-editor/build/node_editor_media_ui_tests longWaveformStaysBounded
+          ctest --test-dir native/node-editor/build -R '^node_editor_local_run$' --output-on-failure

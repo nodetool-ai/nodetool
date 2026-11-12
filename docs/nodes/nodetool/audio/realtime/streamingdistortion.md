@@ -12,6 +12,7 @@ namespace: "nodetool.audio.realtime"
 ## Description
 
 Applies distortion to each audio chunk. Properties apply at the next block.
+    audio, stream, effect, realtime
 
 ## Properties
 

@@ -77,3 +77,5 @@ const reverbState = k.createReverbState(2, RATE);
 const delayState = k.createDelayState(2, RATE, 2);
 console.log("Reverb 1024 stereo frames, including backend copies (ms):", time(() => k.reverbBlock(reverbState, block, 2, RATE, { roomScale: 0.5, damping: 0.5, wetLevel: 0.33, dryLevel: 0.4 }), 101));
 console.log("Delay 2 s, 1024 stereo frames, including backend copies (ms):", time(() => k.delayBlock(delayState, block, 2, RATE, { delaySeconds: 2, feedback: 0.5, mix: 0.5 }), 101));
+
+console.log("Resample 10 s stereo 48 kHz to 44.1 kHz (ms):", time(() => k.resample(pcm, CHANNELS, 48000, RATE), 3));

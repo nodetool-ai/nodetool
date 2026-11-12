@@ -46,5 +46,13 @@
   "PeakFilter": {
     "frames": 8192,
     "pcm_sha256": "d827e3ad515c3f8ba6a8c1569b25fc0bbf58723dd2541d1c662681018b08367f"
+  },
+  "LowPassFilter": {
+    "frames": 8192,
+    "pcm_sha256": "4a765f952623f32644d4da0bfa65e728c259b57b4cadedca9654631852ce84fe"
+  },
+  "HighPassFilter": {
+    "frames": 8192,
+    "pcm_sha256": "566eade9ba7e78ef2eb8c6e1a66d7daaa5bbc31aefdc5218bc63beed5530673d"
   }
 }

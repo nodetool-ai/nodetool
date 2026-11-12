@@ -240,7 +240,7 @@ globalThis.__nodetool = {
   prepareGraph(graphJson) {
     const graph = rewriteBypassedNodes(fromJson(graphJson));
     // begin() creates this run's context before Runner::run prepares the graph.
-    context.set(AUDIO_RUN_KEY, resolveAudioRun(graph.nodes.map(node => ({
+    if (!context.get(AUDIO_RUN_KEY)) context.set(AUDIO_RUN_KEY, resolveAudioRun(graph.nodes.map(node => ({
       ...node,
       audio_sink: lazyNodes?.snapshot.flags[node.type]?.audio_sink ?? classes.get(node.type)?.audioSink
     }))));
