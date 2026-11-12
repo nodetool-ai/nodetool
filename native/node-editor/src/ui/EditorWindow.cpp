@@ -14,10 +14,7 @@
 #include "layout/AutoLayout.h"
 #include "layout/SelectionLayout.h"
 #include <QMap>
-#include <QQuickTextDocument>
-#include <QTextDocument>
 #include <QTextBlock>
-#include <QTextCursor>
 #include <QDrag>
 #include <memory>
 #include <QDragEnterEvent>
@@ -83,32 +80,6 @@
 #include <QtNodes/internal/ConnectionGraphicsObject.hpp>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 namespace nodetool {
-void EditorWindow::styleOutputMarkdown(QObject *source, const QColor &link,
-                                     const QColor &codeSurface, const QFont &codeFont) {
-  const auto quickDocument = qobject_cast<QQuickTextDocument *>(source);
-  if (!quickDocument || !quickDocument->textDocument()) { return; }
-  auto document = quickDocument->textDocument();
-  struct Span { int start; int length; QTextCharFormat format; };
-  QList<Span> spans;
-  for (auto block = document->begin(); block.isValid(); block = block.next()) {
-    for (auto it = block.begin(); !it.atEnd(); ++it) {
-      const auto fragment = it.fragment();
-      auto format = fragment.charFormat();
-      const bool code = format.fontFixedPitch() || format.fontFamilies().toStringList().contains("monospace")
-          || format.fontFamilies().toStringList().contains(codeFont.family());
-      if (format.isAnchor()) { format.setForeground(link); }
-      if (code) { format.setFont(codeFont); format.setBackground(codeSurface); }
-      if (code || format.isAnchor()) { spans.append({fragment.position(), fragment.length(), format}); }
-    }
-  }
-  for (const auto &span : spans) {
-    QTextCursor cursor(document);
-    cursor.setPosition(span.start);
-    cursor.setPosition(span.start + span.length, QTextCursor::KeepAnchor);
-    cursor.mergeCharFormat(span.format);
-  }
-}
-
 namespace {
 // The web node menu lists code snippets as virtual node types. Choosing one
 // creates a Code node with the snippet's code (web/src/config/snippetMetadata.ts).
@@ -296,6 +267,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&editorCommands_, &node_editor::EditorCommands::presentationRequested, this, &EditorWindow::presentation);
   connect(&selection_, &node_editor::Selection::nodeMenuRequested, this, &EditorWindow::showNodeMenu);
   connect(&runState_, &node_editor::RunState::authoredRequested, this, &EditorWindow::authoredAction);
+  connect(&runState_, &node_editor::RunState::agentRequested, this, [this](const QString &runId) { askRunAgent(runId); });
   connect(&viewport_, &node_editor::Viewport::commandRequested, this, &EditorWindow::userAction);
   connect(&viewport_, &node_editor::Viewport::popupRequested, this, &EditorWindow::showMiniMapPopup);
   connect(&viewport_, &node_editor::Viewport::colorModeRequested, this, &EditorWindow::setMiniMapColorMode);
@@ -693,7 +665,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   syncNodeInspector();
   inspectorDock_ = dock(tr("Inspector"), "Inspector", Qt::RightDockWidgetArea,
                         {{"inspector", QVariant::fromValue(&nodeInspector_)}});
-  outputDock_ = dock(tr("Output"), "RunOutput", Qt::BottomDockWidgetArea);
+  outputDock_ = dock(tr("Output"), "RunOutput", Qt::BottomDockWidgetArea,
+                     {{"panels", QVariant::fromValue(&panelLayout_)},
+                      {"status", QVariant::fromValue(&statusModel_)},
+                      {"runs", QVariant::fromValue(&runState_)}});
   {
     // placeStatusBar() moves the status bar above the output while the panel is open.
     auto *body = new QWidget(outputDock_);
@@ -1629,8 +1604,6 @@ QVariantMap EditorWindow::selectionInfo() const {
 }
 int EditorWindow::zoomPercent() const {
   if (!tabOwner_) { return activeEditor_->zoomPercent(); } return int(std::round(view_->transform().m11() * 100)); }
-QString EditorWindow::iconPath(const QString &name) const {
-  if (!tabOwner_) { return activeEditor_->iconPath(name); } return nodetool::iconPath(name); }
 void EditorWindow::showToolTip(const QString &text) {
   if (!tabOwner_) { activeEditor_->showToolTip(text); return; }
   if (text.isEmpty()) { QToolTip::hideText(); } else { QToolTip::showText(QCursor::pos(), text, this); }
@@ -2450,6 +2423,7 @@ void EditorWindow::syncChrome() {
   statusModel_.setStatus({.connectionStatus = connectionStatus(),
                           .connectionDetail = connectionDetail(),
                           .connected = connectionState() == tr("Connected"),
+                          .message = message(),
                           .nodeCount = nodeCount(),
                           .edgeCount = edgeCount(),
                           .queuedCount = queuedCount(),
