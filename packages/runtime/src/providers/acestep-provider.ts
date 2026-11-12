@@ -76,6 +76,17 @@ export interface AceStepInstall {
  */
 export type AceStepInstallLocator = () => Promise<AceStepInstall>;
 
+/**
+ * What the provider resolved for its user: a remote server, or the local
+ * binary and models folder it would launch. The setup status reads this, so
+ * it reports the same install the provider uses.
+ */
+export interface AceStepResolution {
+  remote: boolean;
+  binary: string | null;
+  modelsDir: string | null;
+}
+
 export interface AceStepProviderSecrets {
   ACESTEP_SERVER_PATH?: string;
   ACESTEP_MODELS_DIR?: string;
@@ -187,6 +198,22 @@ export class AceStepProvider extends BaseProvider {
     });
   }
 
+  /**
+   * The install this provider uses for its user's settings: the same lookup
+   * as a local launch, without starting anything.
+   */
+  async resolution(): Promise<AceStepResolution> {
+    if (this.remoteUrl) {
+      return { remote: true, binary: null, modelsDir: null };
+    }
+    const install = await this.locateInstall();
+    return {
+      remote: false,
+      binary: (await executable(this.serverPath)) ?? (await executable(install.binary ?? undefined)),
+      modelsDir: this.modelsDir ?? install.modelsDir
+    };
+  }
+
   /** The backend this provider talks to: the remote server, or the local child. */
   private backend(): Backend {
     if (this.remoteUrl) {
@@ -222,12 +249,10 @@ export class AceStepProvider extends BaseProvider {
   }
 
   private async localLaunch(): Promise<AceServerLaunch> {
-    const install = await this.locateInstall();
-    const binary = (await executable(this.serverPath)) ?? (await executable(install.binary ?? undefined));
+    const { binary, modelsDir } = await this.resolution();
     if (!binary) {
       throw new Error(`ace-server is not installed. ${INSTALL_HINT}`);
     }
-    const modelsDir = this.modelsDir ?? install.modelsDir;
     if (!modelsDir) {
       throw new Error(
         "No ACE-Step models folder. Download the ACE-Step models, or set ACESTEP_MODELS_DIR " +
@@ -311,8 +336,12 @@ async function runTask(
   }
   // The language model skips its metadata pass only when the duration is
   // given too (ARCHITECTURE.md:292-295). Repaint takes the source length.
+  // The prompt holds whole seconds (src/prompt.h:252-254) and /synth sizes
+  // the output from the codes the model writes for them
+  // (pipeline-synth-ops.cpp:318-319), so the window is rounded up: rounded
+  // down, the output would end before the window does.
   if (task !== "repaint") {
-    common.duration = params.durationSec;
+    common.duration = Math.ceil(params.durationSec);
   }
 
   const source = task === "text2music" ? undefined : params.sourceAudio;
@@ -327,7 +356,7 @@ async function runTask(
   } else {
     const lmStart = Date.now();
     const lmBody = { ...common, ...synthFields, lm_batch_size: candidates };
-    const lmResult = await runBackendJob(run, "lm", (baseUrl) => postJson(`${baseUrl}/lm`, lmBody, run.signal));
+    const lmResult = await runBackendJob(run, "lm", (baseUrl) => postJson(`${baseUrl}/lm`, lmBody));
     lmMs = Date.now() - lmStart;
     const produced = parseLmResult(lmResult.bytes);
     if (produced.length < candidates) {
@@ -342,8 +371,8 @@ async function runTask(
   const synthStart = Date.now();
   const synthResult = await runBackendJob(run, "synth", (baseUrl) =>
     source
-      ? postMultipart(`${baseUrl}/synth`, synthRequests, source, run.signal)
-      : postJson(`${baseUrl}/synth`, synthRequests.length === 1 ? synthRequests[0]! : synthRequests, run.signal)
+      ? postMultipart(`${baseUrl}/synth`, synthRequests, source)
+      : postJson(`${baseUrl}/synth`, synthRequests.length === 1 ? synthRequests[0]! : synthRequests)
   );
   const synthMs = Date.now() - synthStart;
   const audio = synthAudioParts(synthResult.bytes, synthResult.contentType);
@@ -406,6 +435,10 @@ interface JobResult {
 /**
  * Submit one backend job, poll it, and fetch its result. A lost job is
  * resubmitted once, after the local process is started again.
+ *
+ * `submit` runs without the abort signal: the server queues the job before it
+ * answers with the id, so a submission aborted in flight would leave a job
+ * nobody can cancel. The id is read first, then the job is cancelled.
  */
 async function runBackendJob(
   run: TaskRun,
@@ -440,10 +473,11 @@ async function runOnce(
   submit: (baseUrl: string) => Promise<Response>
 ): Promise<JobResult> {
   const signal = run.signal;
+  const remote = run.backend.remote;
   const id = await whileAlive(run, server, async () => {
     const response = await submit(server.baseUrl);
     // ace-server.cpp:696-697 and 1062-1064: {"id":"<16 hex>"}.
-    const body = await jsonBody(response);
+    const body = await jsonBody(response, remote);
     const jobId = isRecord(body) ? body.id : undefined;
     if (typeof jobId !== "string" || !jobId) {
       throw new Error("ace-server answered a submission without a job id");
@@ -452,11 +486,12 @@ async function runOnce(
   });
   const jobUrl = `${server.baseUrl}/job?id=${encodeURIComponent(id)}`;
   try {
+    signal?.throwIfAborted();
     for (;;) {
       const status = await whileAlive(run, server, async () => {
         const response = await aceFetch(jobUrl, { method: "GET" }, signal);
         if (!response.ok && response.status !== 404) {
-          throw await httpError(response);
+          throw await httpError(response, remote);
         }
         const state = decodeAceJobStatus(await response.json().catch(() => undefined));
         if (state === "lost") {
@@ -484,7 +519,7 @@ async function runOnce(
         throw new LostJobError(`the result of job ${id} is gone`);
       }
       if (!response.ok) {
-        throw await httpError(response);
+        throw await httpError(response, remote);
       }
       return {
         bytes: new Uint8Array(await response.arrayBuffer()),
@@ -599,11 +634,11 @@ function aceFetch(url: string, init: RequestInit, signal: AbortSignal | undefine
   return fetch(url, { ...init, redirect: "error", signal });
 }
 
-function postJson(url: string, body: unknown, signal: AbortSignal | undefined): Promise<Response> {
+function postJson(url: string, body: unknown): Promise<Response> {
   return aceFetch(
     url,
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
-    signal
+    undefined
   );
 }
 
@@ -611,30 +646,29 @@ function postJson(url: string, body: unknown, signal: AbortSignal | undefined): 
  * `POST /synth` as multipart/form-data: the request JSON in a `request`
  * field and the source in a file part named `audio` (ace-server.cpp:931-984).
  */
-function postMultipart(
-  url: string,
-  requests: AceRequest[],
-  source: Uint8Array,
-  signal: AbortSignal | undefined
-): Promise<Response> {
+function postMultipart(url: string, requests: AceRequest[], source: Uint8Array): Promise<Response> {
   const form = new FormData();
   form.append("request", JSON.stringify(requests.length === 1 ? requests[0] : requests));
   const copy = new Uint8Array(source.byteLength);
   copy.set(source);
   form.append("audio", new Blob([copy.buffer], { type: "audio/wav" }), "source.wav");
-  return aceFetch(url, { method: "POST", body: form }, signal);
+  return aceFetch(url, { method: "POST", body: form }, undefined);
 }
 
 /** A JSON body, or the `{"error": ...}` body of a refused request as an Error. */
-async function jsonBody(response: Response): Promise<unknown> {
+async function jsonBody(response: Response, remote: boolean): Promise<unknown> {
   if (!response.ok) {
-    throw await httpError(response);
+    throw await httpError(response, remote);
   }
   return response.json();
 }
 
-/** ace-server.cpp:519-529 answers errors as {"error":"message"}. */
-async function httpError(response: Response): Promise<Error> {
+/**
+ * ace-server.cpp:519-529 answers errors as {"error":"message"}. The local
+ * child's message is shown. A remote server's body is only logged: whatever
+ * answers at that address chooses it, and it would reach the user verbatim.
+ */
+async function httpError(response: Response, remote: boolean): Promise<Error> {
   const text = await response.text();
   let message = text.slice(0, 1000);
   try {
@@ -644,6 +678,10 @@ async function httpError(response: Response): Promise<Error> {
     }
   } catch {
     // Not JSON: keep the text.
+  }
+  if (remote) {
+    log.warn("The remote ace-server refused a request", { status: response.status, body: message });
+    return new Error(`ace-server HTTP ${response.status}. The server log has the response.`);
   }
   return new Error(`ace-server HTTP ${response.status}: ${message}`);
 }

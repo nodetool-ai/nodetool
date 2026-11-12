@@ -1096,7 +1096,7 @@ export class DirectInferenceHandler {
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
     req.signal?.throwIfAborted();
-    const { generate, seamAssetId, storeAsset } = createGenerationRun({
+    const { generate, seamAssetId, storeAsset, discardAsset } = createGenerationRun({
       presets,
       userId,
       providerId: req.provider,
@@ -1397,7 +1397,7 @@ export class DirectInferenceHandler {
         model: req.model,
         prompt,
         music: req.music,
-        run: { generate, storeAsset }
+        run: { generate, storeAsset, discardAsset }
       });
     }
 

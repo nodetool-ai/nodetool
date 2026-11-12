@@ -205,6 +205,16 @@ const musicFrameRange = z.object({
   end_frame: z.number().int().min(0)
 });
 
+/**
+ * A Generate segment. `index` is the segment's position in the Generate that
+ * first produced it, for a replay that renders one segment again; without it
+ * the segment's position in this request applies. The take's target is the
+ * clip range: the segment moved back by `index` segment lengths.
+ */
+const musicSegment = musicFrameRange.extend({
+  index: z.number().int().min(0).optional()
+});
+
 const inWindow = (r: { start_frame: number; end_frame: number }, frames: number): boolean =>
   r.start_frame < r.end_frame && r.end_frame <= frames;
 
@@ -236,7 +246,7 @@ export const musicGenerationRequestSchema = z
     /** Position of the first beat inside the window. Generate only. */
     beat_phase_frames: z.number().int().min(0).optional(),
     /** Target segments inside the window. Generate only. */
-    segments: z.array(musicFrameRange).min(1).optional(),
+    segments: z.array(musicSegment).min(1).optional(),
     /** Measure and correct the grid offset. Generate only. */
     align: z.boolean().optional(),
     /** Asset id of the context bounce. Regenerate and Add instrument. */
@@ -267,6 +277,12 @@ export const musicGenerationRequestSchema = z
         m.segments.forEach((seg, i) => {
           if (!inWindow(seg, m.request_frames)) {
             issue("segment lies outside the window", ["segments", String(i)]);
+          } else if (
+            (m.window_start_frame ?? 0) + seg.start_frame <
+            (seg.index ?? i) * (seg.end_frame - seg.start_frame)
+          ) {
+            // The take's target would start before the timeline does.
+            issue("segment index places the clip before frame 0", ["segments", String(i), "index"]);
           }
         });
       }

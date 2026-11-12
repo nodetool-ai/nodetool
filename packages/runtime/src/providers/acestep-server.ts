@@ -5,10 +5,16 @@
  * It follows `sdcpp-server.ts`: one child process on a free port on
  * `127.0.0.1`, a readiness wait on `GET /health`, the last 30 log lines kept
  * for error messages, and an exit after 10 idle minutes. Two things differ.
- * The process is not restarted to change models, because `ace-server` takes
- * the model per request. And the supervisor holds no lock around calls:
- * `ace-server` runs its jobs from its own FIFO queue, and the provider orders
- * its own requests (`acestep-provider.ts`).
+ * `ace-server` takes the model per request, so a request for another model
+ * does not restart it. But it reads the models folder once, at startup
+ * (`ace-server.cpp:1706-1711`), so a file added to or changed in the folder
+ * later is unknown to it: the launch key holds every `.gguf` name and size,
+ * and a changed folder restarts the process at the next request. And the
+ * supervisor holds no lock around calls: `ace-server` runs its jobs from its
+ * own FIFO queue, and the provider orders its own requests
+ * (`acestep-provider.ts`). Every request of one supervisor runs in that
+ * order, so when {@link AceServerSupervisor.ensure} restarts the process, no
+ * job of this supervisor is running on it.
  *
  * The child runs at a lowered priority, so the editor's decode worker keeps
  * its share of the CPU during a generation (PF-3).
@@ -19,6 +25,12 @@ const log = createLogger("nodetool.runtime.providers.acestep");
 
 /** The model scan reads GGUF metadata only, so startup is short. */
 const READY_TIMEOUT_MS = 2 * 60 * 1000;
+/**
+ * How long a stopped process may take to exit before it is killed. On
+ * SIGTERM ace-server finishes the job it is running (`ace-server.cpp:137-141,
+ * 1891-1897`), which can take minutes.
+ */
+const STOP_TIMEOUT_MS = 5000;
 export const ACESTEP_IDLE_SHUTDOWN_MS = 10 * 60 * 1000;
 /** A positive niceness: lower priority than the NodeTool server. */
 const CHILD_PRIORITY = 10;
@@ -54,6 +66,8 @@ export interface AceServerTimer {
 export interface AceServerSupervisorOptions {
   idleMs?: number;
   readyTimeoutMs?: number;
+  /** Time between SIGTERM and SIGKILL when the process is stopped. */
+  stopTimeoutMs?: number;
   /** Schedules the idle exit. Tests inject a clock here. */
   schedule?: (callback: () => void, ms: number) => AceServerTimer;
 }
@@ -92,8 +106,12 @@ export class AceServerSupervisor {
   readonly id: number;
   private readonly idleMs: number;
   private readonly readyTimeoutMs: number;
+  private readonly stopTimeoutMs: number;
   private readonly schedule: (callback: () => void, ms: number) => AceServerTimer;
+  /** The ready child. Set only after it answered `/health`. */
   private running: RunningServer | null = null;
+  /** A child that is starting, so the exit hook can kill it too. */
+  private launching: RunningServer | null = null;
   private starting: Promise<RunningServer> | null = null;
   private idleTimer: AceServerTimer | null = null;
   private holds = 0;
@@ -105,6 +123,7 @@ export class AceServerSupervisor {
     this.id = AceServerSupervisor.created;
     this.idleMs = options.idleMs ?? ACESTEP_IDLE_SHUTDOWN_MS;
     this.readyTimeoutMs = options.readyTimeoutMs ?? READY_TIMEOUT_MS;
+    this.stopTimeoutMs = options.stopTimeoutMs ?? STOP_TIMEOUT_MS;
     this.schedule = options.schedule ?? defaultSchedule;
     supervisors.add(this);
   }
@@ -133,9 +152,13 @@ export class AceServerSupervisor {
     }
   }
 
-  /** A ready server for `launch`, started when none runs. */
+  /**
+   * A ready server for `launch`, started when none runs. A running server
+   * started for another binary, flags or models folder content is stopped
+   * first. A caller that arrives during a start waits for it.
+   */
   async ensure(launch: AceServerLaunch, signal?: AbortSignal): Promise<AceServerInstance> {
-    const key = launchKey(launch);
+    const key = await launchKey(launch);
     for (;;) {
       signal?.throwIfAborted();
       const current = this.running;
@@ -174,24 +197,39 @@ export class AceServerSupervisor {
     return this.running?.alive() ? this.running : null;
   }
 
-  /** Stop the running server, if any. */
+  /**
+   * Stop the running server, if any: SIGTERM, then SIGKILL when it has not
+   * exited after the stop timeout, because it finishes its current job first.
+   */
   async stop(): Promise<void> {
     const server = this.running;
     this.running = null;
-    if (!server) {
-      return;
+    if (server) {
+      await this.terminate(server);
     }
-    if (server.alive()) {
-      server.child.kill();
-    }
-    await server.exited;
   }
 
-  /** Synchronous kill for the process exit hook. */
+  /**
+   * Synchronous kill for the process exit hook. SIGKILL, because the hook
+   * cannot wait for a job to finish and the child must not outlive NodeTool.
+   */
   killNow(): void {
-    if (this.running?.alive()) {
-      this.running.child.kill();
+    for (const server of [this.running, this.launching]) {
+      if (server?.alive()) {
+        server.child.kill("SIGKILL");
+      }
     }
+  }
+
+  private async terminate(server: RunningServer): Promise<void> {
+    if (server.alive()) {
+      server.child.kill("SIGTERM");
+    }
+    if (!(await server.waitForExit(this.stopTimeoutMs))) {
+      log.warn("ace-server did not exit after SIGTERM, killing it", { pid: server.pid });
+      server.child.kill("SIGKILL");
+    }
+    await server.exited;
   }
 
   private async start(launch: AceServerLaunch, key: string, signal?: AbortSignal): Promise<RunningServer> {
@@ -273,7 +311,7 @@ export class AceServerSupervisor {
           })
         ])
     };
-    this.running = server;
+    this.launching = server;
     const deadline = Date.now() + this.readyTimeoutMs;
     try {
       while (Date.now() < deadline) {
@@ -292,6 +330,7 @@ export class AceServerSupervisor {
           });
           if (response.ok) {
             log.info("ace-server is ready", { baseUrl });
+            this.running = server;
             return server;
           }
         } catch {
@@ -303,16 +342,44 @@ export class AceServerSupervisor {
         `ace-server did not become ready in ${this.readyTimeoutMs / 1000} seconds:\n${tail.join("\n")}`
       );
     } catch (error) {
-      if (this.running === server) {
-        await this.stop();
-      }
+      await this.terminate(server);
       throw error;
+    } finally {
+      if (this.launching === server) {
+        this.launching = null;
+      }
     }
   }
 }
 
-function launchKey(launch: AceServerLaunch): string {
-  return JSON.stringify([launch.binary, launch.modelsDir, Boolean(launch.keepLoaded)]);
+/**
+ * What a started process depends on: the binary, the flags, and the `.gguf`
+ * files the startup scan sees, by name and size. A download links each file
+ * in once it is complete; a copied file changes size until it is.
+ */
+async function launchKey(launch: AceServerLaunch): Promise<string> {
+  return JSON.stringify([
+    launch.binary,
+    launch.modelsDir,
+    Boolean(launch.keepLoaded),
+    await modelFiles(launch.modelsDir)
+  ]);
+}
+
+async function modelFiles(modelsDir: string): Promise<string[]> {
+  const fs = await importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises");
+  const path = await importNodeBuiltin<typeof import("node:path")>("node:path");
+  if (!fs || !path) {
+    return [];
+  }
+  const names = await fs.readdir(modelsDir).catch(() => [] as string[]);
+  const files: string[] = [];
+  for (const name of names.filter((entry) => entry.endsWith(".gguf")).sort()) {
+    // stat follows a link, as the scan's gguf_init_from_file does.
+    const info = await fs.stat(path.join(modelsDir, name)).catch(() => null);
+    files.push(`${name}:${info?.size ?? -1}`);
+  }
+  return files;
 }
 
 async function freePort(): Promise<number> {

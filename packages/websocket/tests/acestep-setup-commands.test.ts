@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AceStepSetupOperation } from "@nodetool-ai/protocol";
+import { AceStepProvider } from "@nodetool-ai/runtime";
 
 const mocks = vi.hoisted(() => ({
   isAdmin: vi.fn(async () => true),
@@ -24,11 +25,14 @@ const operation: AceStepSetupOperation = {
   downloaded_bytes: 1, total_bytes: 1, file: null, file_index: 0, file_count: 0, error: null, error_code: null
 };
 
+const resolveProvider = vi.fn(async (_providerId: string, _userId: string): Promise<unknown> => undefined);
+
 function harness() {
   const sent: Array<Record<string, unknown>> = [];
   const router = new CommandRouter({
     session: {
       appSession: null,
+      resolveProvider,
       requireUserId: () => "u1",
       send: async (message: Record<string, unknown>) => { sent.push(message); },
       logError: vi.fn()
@@ -41,6 +45,7 @@ function harness() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  resolveProvider.mockImplementation(async () => undefined);
   mocks.listeners.clear();
   mocks.isAdmin.mockResolvedValue(true);
   mocks.service.status.mockResolvedValue(status);
@@ -59,6 +64,19 @@ describe("acestep setup commands", () => {
     ]);
   });
 
+  it("reads the setup status with the requesting user's acestep settings (item 3)", async () => {
+    resolveProvider.mockImplementation(
+      async () => new AceStepProvider({ ACESTEP_SERVER_URL: "http://10.0.0.2:8085" })
+    );
+    const { router } = harness();
+    await router.handle("acestep_setup_status", {}, "r8");
+    await router.handle("acestep_download_models", { set: "add_instrument" }, "r9");
+    expect(resolveProvider).toHaveBeenCalledWith("acestep", "u1");
+    const resolution = { remote: true, binary: null, modelsDir: null };
+    expect(mocks.service.status).toHaveBeenCalledWith(resolution);
+    expect(mocks.service.startModelDownload).toHaveBeenCalledWith("add_instrument", resolution);
+  });
+
   it("requires a request id", async () => {
     const { router } = harness();
     expect(await router.handle("acestep_setup_status", {})).toEqual({ error: "request_id is required for RPC commands" });
@@ -74,7 +92,7 @@ describe("acestep setup commands", () => {
     });
     const { router, sent } = harness();
     await router.handle("acestep_download_models", { set: "first_run" }, "r2");
-    expect(mocks.service.startModelDownload).toHaveBeenCalledWith("first_run");
+    expect(mocks.service.startModelDownload).toHaveBeenCalledWith("first_run", undefined);
     expect(sent.map((m) => m.type)).toEqual(["acestep_setup_progress", "acestep_setup_progress", "rpc_response"]);
     expect((sent[1]?.operation as AceStepSetupOperation).state).toBe("done");
     expect(mocks.listeners.size).toBe(0);

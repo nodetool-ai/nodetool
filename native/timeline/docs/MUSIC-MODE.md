@@ -297,7 +297,7 @@ While the job runs, the clip shows a hatched band over the window. The band is j
 | `seed`, `steps` | Optional numbers | All |
 | `request_frames` | Window length | All |
 | `beat_phase_frames` | Position of the first beat inside the window | Generate |
-| `segments` | `{ start_frame, end_frame }[]` inside the window | Generate |
+| `segments` | `{ start_frame, end_frame, index? }[]` inside the window. `index` is the segment's position in the Generate that first produced it, for a replay of one segment. Without it the position in this request applies | Generate |
 | `align` | Boolean | Generate |
 | `context_asset_id` | Asset id of the bounce | Regenerate, Add instrument |
 | `region` | `{ start_frame, end_frame }` inside the window | Regenerate, Add instrument |
@@ -321,7 +321,9 @@ interface MusicGenerationResponse {
 
 `music_takes` and `timing` are also stored in the generation row's parameters, the way `media_edit_references` is today, so `lookup_generations` returns them after a reconnect.
 
-The handler validates the object with a Zod schema in `packages/protocol/src/ws-commands.ts`: the region and the segments lie inside the window, the window is between 10 and 600 seconds, and the splice span equals the region length. It does not recompute the plan.
+The handler validates the object with a Zod schema in `packages/protocol/src/ws-commands.ts`: the region and the segments lie inside the window, the window is between 10 and 600 seconds, the splice span equals the region length, and no segment index places its clip before frame 0. It does not recompute the plan.
+
+Every take of a Generate is an alternative for one clip. A take's `segmentIndex` is the segment's `index`, or its position in the request, and its target is the clip range: `targetStartFrame = window_start_frame + start_frame - segmentIndex * (end_frame - start_frame)`, with the segment's length.
 
 ## 11. Result processing on the server
 
@@ -332,6 +334,8 @@ The handler validates the object with a Zod schema in `packages/protocol/src/ws-
 **Tempo deviation (AL-4).** The same correlation runs at beat periods from 97% to 103% of the project tempo. The best period gives `tempoRatio`. `lastBeatErrorMs` is the deviation times the take length. All three operations are measured. A take with more than 20 ms of error is badged as drifting and is not corrected.
 
 **Gain.** A Generate candidate gets one gain that puts its sample peak at -3 dBFS, applied to the whole window before cutting, so the segments of one candidate keep their relative level. Repaint and lego results keep the backend's level, because they must match their context (MF4).
+
+**Short output.** `ace-server` sizes its output in whole latent steps of 1920 frames, from the duration in whole seconds or from the source. When a segment's end, plus a positive alignment offset, or a region's end lies past a candidate's decoded audio, the request fails with an error that names the segment or region. It is not padded with silence. A request that fails or is cancelled deletes the take assets it had already stored.
 
 **Cut (AL-3).** Segments and regions are cut at whole frames. The 5 ms edge fades are the clip's own `fadeInMs` and `fadeOutMs`, so they stay editable and the asset stays untouched.
 
@@ -389,7 +393,7 @@ The interface carries both the track role and an instruction string. `ace-server
 | `bpm` | `bpm` | Integer |
 | `key` | `keyscale` | |
 | `timeSignature` | `timesignature` | Numerator as a string |
-| `durationSec` | `duration` | Text-to-music. Source tasks take the source length |
+| `durationSec` | `duration` | Text-to-music and lego, rounded up to whole seconds: the language model prompt holds whole seconds (`src/prompt.h:253`) and `/synth` sizes the output from the codes it writes. Source tasks take the source length |
 | `seed` | `seed` | |
 | `audioCodes` | `audio_codes` | When set, `/lm` is skipped |
 | `candidates` | `lm_batch_size` for text-to-music and lego, `synth_batch_size` for repaint | MQ3 |
@@ -403,11 +407,13 @@ Model routing follows BE-3: the turbo DiT for Generate and Regenerate, the base 
 
 ### 12.3 Supervision (BE-5, JB-3)
 
-`acestep-server.ts` follows `packages/runtime/src/providers/sdcpp-server.ts`: one child process, a free port on `127.0.0.1`, a readiness wait on `GET /health`, the last 30 log lines kept for error messages, and an exit after 10 idle minutes. Two things differ. The process is not restarted to change models, because models are a request field. And the provider does not restart or lock the process around a call, because `ace-server` runs one job at a time from its own FIFO queue (`ARCHITECTURE.md:991-996`). The provider still sends its own requests one at a time: Generate and Add instrument are two backend jobs each, `/lm` then `/synth`, and a second request sent at once would have its `/lm` run between the first request's two jobs. The provider reports a job as `queued` while an earlier job of its own is not finished, since the documented `GET /job` statuses have no queued state (`ARCHITECTURE.md:931`).
+`acestep-server.ts` follows `packages/runtime/src/providers/sdcpp-server.ts`: one child process, a free port on `127.0.0.1`, a readiness wait on `GET /health`, the last 30 log lines kept for error messages, and an exit after 10 idle minutes. Two things differ. The process is not restarted to change models, because models are a request field. It is restarted, at the next request, when the `.gguf` files in the models folder change, because `ace-server` scans the folder once at startup (`ace-server.cpp:1706-1711`). A model downloaded while it runs would otherwise be unknown to it. And the provider does not restart or lock the process around a call, because `ace-server` runs one job at a time from its own FIFO queue (`ARCHITECTURE.md:991-996`). The provider still sends its own requests one at a time: Generate and Add instrument are two backend jobs each, `/lm` then `/synth`, and a second request sent at once would have its `/lm` run between the first request's two jobs. The provider reports a job as `queued` while an earlier job of its own is not finished, since the documented `GET /job` statuses have no queued state (`ARCHITECTURE.md:931`).
 
 The child runs at lowered priority through `os.setPriority`, so the editor's decode worker keeps its share of the CPU during a generation (PF-3).
 
-Cancel maps to `POST /job?id=N&cancel=1`. The worker checks the flag between steps.
+Cancel maps to `POST /job?id=N&cancel=1`. The worker checks the flag between steps. A submission is not aborted in flight: the server queues the job before it answers, so the provider reads the id and then cancels the job. A stopped process gets SIGTERM, which lets it finish its current job, and SIGKILL after five seconds. The process exit hook sends SIGKILL at once. A process is handed to callers only after it answers `GET /health`.
+
+The setup status (`acestep_setup_status`) follows the provider's resolution for the requesting user: that user's `ACESTEP_SERVER_URL`, `ACESTEP_SERVER_PATH` and `ACESTEP_MODELS_DIR` settings, then the managed install, PATH and the Hugging Face cache. A remote server's error body is logged, not shown to the user.
 
 If the process exits during a job, or `GET /job` no longer knows the id, the provider starts the process again and resubmits that job once. A second failure ends the request with the log tail as the error.
 

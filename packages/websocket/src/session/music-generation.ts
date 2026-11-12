@@ -18,7 +18,12 @@
  * - repaint: the region of each candidate spliced into a copy of the parent.
  * - lego: the region of each candidate, at the backend's level.
  *
- * Every take is stored as a 48 kHz stereo 32-bit float WAV.
+ * Every take is stored as a 48 kHz stereo 32-bit float WAV. A segment or
+ * region that ends past a candidate's audio fails the request instead of
+ * being padded with silence: ace-server sizes its output from whole seconds
+ * or whole latent steps, so a short candidate is a backend result, not a
+ * silent tail. A request that fails or is cancelled deletes the takes it had
+ * already stored.
  */
 
 import { randomUUID } from "node:crypto";
@@ -84,7 +89,7 @@ export interface MusicGenerationRequestContext {
   /** The caption, after entity expansion. */
   prompt: string;
   music: MusicGenerationRequest;
-  run: Pick<GenerationRun, "generate" | "storeAsset">;
+  run: Pick<GenerationRun, "generate" | "storeAsset" | "discardAsset">;
 }
 
 /** 48 kHz stereo float PCM decoded from an asset or a candidate. */
@@ -259,10 +264,36 @@ interface SpliceParent {
   pcm: DecodedPcm;
 }
 
-/** text2music: gain, measure and cut every segment of one candidate. */
+/**
+ * Refuse a cut that would end past the candidate's audio. The backend
+ * returned less than the request needs, and a padded take would end in
+ * silence the user did not ask for.
+ */
+function requireFrames(
+  samples: Float32Array,
+  endFrame: number,
+  candidate: number,
+  what: string
+): void {
+  const frames = pcmFrames(samples);
+  if (endFrame > frames) {
+    throw new Error(
+      `Music candidate ${candidate}: ${what} ends at frame ${endFrame}, past the end of the generated audio ` +
+        `(${frames} frames). The backend returned less audio than the request needs.`
+    );
+  }
+}
+
+/**
+ * text2music: gain, measure and cut every segment of one candidate. Each
+ * take's target is the clip range: segment `index` of a Generate is an
+ * alternative for the clip at the first segment's place (MUSIC-MODE.md
+ * section 10), so it moves back by `index` segment lengths.
+ */
 function generateTakes(
   music: MusicGenerationRequest,
-  samples: Float32Array
+  samples: Float32Array,
+  candidate: number
 ): CandidateTakes {
   const segments = music.segments ?? [];
   const { gain, gainDb } = peakNormalizeGain(samples);
@@ -278,14 +309,19 @@ function generateTakes(
   const offset = corrected ? measured.offsetFrames : 0;
   const windowStart = music.window_start_frame ?? 0;
   return {
-    takes: segments.map((range, segment) => {
+    takes: segments.map((range, position) => {
+      const segment = range.index ?? position;
       const takeFrames = range.end_frame - range.start_frame;
+      // A negative offset pads the head with silence by design; a positive
+      // one moves the cut later, toward the end of the audio.
+      requireFrames(samples, range.end_frame + Math.max(0, offset), candidate, `segment ${segment}`);
+      const targetStartFrame = windowStart + range.start_frame - segment * takeFrames;
       return {
         samples: cutRange(scaled, range, offset),
         segment,
         record: {
-          targetStartFrame: windowStart + range.start_frame,
-          targetEndFrame: windowStart + range.end_frame,
+          targetStartFrame,
+          targetEndFrame: targetStartFrame + takeFrames,
           alignment: alignmentRecord(alignmentForTake(measured, takeFrames), corrected),
           gainDb
         }
@@ -297,10 +333,12 @@ function generateTakes(
 /** The region of a repaint or lego candidate, and its tempo measurement. */
 function regionOf(
   music: MusicGenerationRequest,
-  samples: Float32Array
+  samples: Float32Array,
+  candidate: number
 ): { region: Float32Array; alignment: MusicAlignment } {
   const range = music.region;
   if (!range) throw new Error(`${music.task} needs a region`);
+  requireFrames(samples, range.end_frame, candidate, "the region");
   const region = cutRange(samples, range);
   const alignment = measureAlignment(region, {
     bpm: music.bpm,
@@ -316,12 +354,13 @@ function regionOf(
 function repaintTakes(
   music: MusicGenerationRequest,
   samples: Float32Array,
-  parent: SpliceParent
+  parent: SpliceParent,
+  candidate: number
 ): CandidateTakes {
   const splice = music.splice;
   const range = music.region;
   if (!splice || !range) throw new Error("repaint needs a region and a splice parent");
-  const { region, alignment } = regionOf(music, samples);
+  const { region, alignment } = regionOf(music, samples, candidate);
   const spliced = spliceRegion(
     parent.pcm.samples,
     region,
@@ -355,11 +394,12 @@ function repaintTakes(
 /** lego: the region at the backend's level. */
 function legoTakes(
   music: MusicGenerationRequest,
-  samples: Float32Array
+  samples: Float32Array,
+  candidate: number
 ): CandidateTakes {
   const range = music.region;
   if (!range) throw new Error("lego needs a region");
-  const { region, alignment } = regionOf(music, samples);
+  const { region, alignment } = regionOf(music, samples, candidate);
   const windowStart = music.window_start_frame ?? 0;
   return {
     takes: [
@@ -408,6 +448,21 @@ function rowParameterWriter(
   };
 }
 
+/** Delete stored takes, logging the ones that could not be deleted. */
+async function discardAssets(
+  run: Pick<GenerationRun, "discardAsset">,
+  assetIds: string[]
+): Promise<void> {
+  for (const assetId of assetIds) {
+    await run.discardAsset(assetId).catch((error: unknown) => {
+      log.warn("Music take not deleted after a failed request", {
+        asset_id: assetId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    });
+  }
+}
+
 /** Run one music mode request end to end. */
 export async function runMusicGeneration(
   context: MusicGenerationRequestContext
@@ -452,61 +507,67 @@ export async function runMusicGeneration(
     async (abort) => {
       let result: MusicTaskResult;
       try {
-        result = await provider.musicTask(
-          musicTaskParams(context, contextAsset?.bytes, abort, () => {
-            if (status.value === "running" || abort.aborted) return;
-            status.value = "running";
-            void row.patch({ music_status: "running" });
-          })
-        );
-      } finally {
-        await row.settled();
-      }
-      if (result.candidates.length === 0) {
-        throw new Error("Music backend returned no candidates");
-      }
-      const assetIds: string[] = [];
-      const takes: MusicTakeResult[] = [];
-      const shared = baseRecord(context, result, contextAsset?.id);
-      for (const [candidate, output] of result.candidates.entries()) {
-        abort.throwIfAborted();
-        const { samples } = await decodeMusicPcm(output.audio, abort);
-        let built: CandidateTakes;
-        if (music.task === "text2music") {
-          built = generateTakes(music, samples);
-        } else if (music.task === "repaint") {
-          if (!parent) throw new Error("repaint needs a splice parent");
-          built = repaintTakes(music, samples, parent);
-        } else {
-          built = legoTakes(music, samples);
-        }
-        for (const take of built.takes) {
-          abort.throwIfAborted();
-          const assetId = await run.storeAsset(
-            encodeFloatWav(take.samples, MUSIC_SAMPLE_RATE, MUSIC_CHANNELS),
-            "audio/wav",
-            "wav"
+          result = await provider.musicTask(
+            musicTaskParams(context, contextAsset?.bytes, abort, () => {
+              if (status.value === "running" || abort.aborted) return;
+              status.value = "running";
+              void row.patch({ music_status: "running" });
+            })
           );
-          const record: MusicGenerationRecord = {
-            ...shared,
-            seed: output.seed,
-            candidateIndex: candidate,
-            segmentIndex: take.segment,
-            targetStartFrame: take.record.targetStartFrame ?? 0,
-            targetEndFrame: take.record.targetEndFrame ?? 0
-          };
-          if (output.audioCodes) record.audioCodes = output.audioCodes;
-          if (take.record.alignment) record.alignment = take.record.alignment;
-          if (take.record.splice) record.splice = take.record.splice;
-          if (take.record.gainDb !== undefined) record.gainDb = take.record.gainDb;
-          assetIds.push(assetId);
-          takes.push({
-            asset_id: assetId,
-            candidate,
-            segment: take.segment,
-            record
-          });
+        } finally {
+          await row.settled();
         }
+        if (result.candidates.length === 0) {
+          throw new Error("Music backend returned no candidates");
+        }
+        const assetIds: string[] = [];
+        const takes: MusicTakeResult[] = [];
+        const shared = baseRecord(context, result, contextAsset?.id);
+        try {
+        for (const [candidate, output] of result.candidates.entries()) {
+          abort.throwIfAborted();
+          const { samples } = await decodeMusicPcm(output.audio, abort);
+          let built: CandidateTakes;
+          if (music.task === "text2music") {
+            built = generateTakes(music, samples, candidate);
+          } else if (music.task === "repaint") {
+            if (!parent) throw new Error("repaint needs a splice parent");
+            built = repaintTakes(music, samples, parent, candidate);
+          } else {
+            built = legoTakes(music, samples, candidate);
+          }
+          for (const take of built.takes) {
+            abort.throwIfAborted();
+            const assetId = await run.storeAsset(
+              encodeFloatWav(take.samples, MUSIC_SAMPLE_RATE, MUSIC_CHANNELS),
+              "audio/wav",
+              "wav"
+            );
+            const record: MusicGenerationRecord = {
+              ...shared,
+              seed: output.seed,
+              candidateIndex: candidate,
+              segmentIndex: take.segment,
+              targetStartFrame: take.record.targetStartFrame ?? 0,
+              targetEndFrame: take.record.targetEndFrame ?? 0
+            };
+            if (output.audioCodes) record.audioCodes = output.audioCodes;
+            if (take.record.alignment) record.alignment = take.record.alignment;
+            if (take.record.splice) record.splice = take.record.splice;
+            if (take.record.gainDb !== undefined) record.gainDb = take.record.gainDb;
+            assetIds.push(assetId);
+            takes.push({
+              asset_id: assetId,
+              candidate,
+              segment: take.segment,
+              record
+            });
+          }
+        }
+      } catch (error) {
+        // The request fails or is cancelled: no take of it is kept.
+        await discardAssets(run, assetIds);
+        throw error;
       }
       const timing: MusicGenerationTiming = {
         queue_ms: result.timing.queueMs,

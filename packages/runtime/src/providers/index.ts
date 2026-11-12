@@ -279,7 +279,8 @@ export {
   startAceStepProbeServer,
   type AceStepInstall,
   type AceStepInstallLocator,
-  type AceStepProviderOptions
+  type AceStepProviderOptions,
+  type AceStepResolution
 } from "./acestep-provider.js";
 export { AceServerSupervisor, type AceServerLaunch } from "./acestep-server.js";
 export { Wan2GPProvider, resetWan2GPListings, wan2gpBaseSettings, wan2gpResolution } from "./wan2gp-provider.js";

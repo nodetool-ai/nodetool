@@ -9,7 +9,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AceStepProvider } from "../../src/providers/acestep-provider.js";
-import { ACESTEP_TURBO_DIT } from "../../src/providers/acestep-models.js";
+import { ACESTEP_BASE_DIT, ACESTEP_TURBO_DIT } from "../../src/providers/acestep-models.js";
 import {
   ACESTEP_IDLE_SHUTDOWN_MS,
   AceServerSupervisor,
@@ -30,6 +30,8 @@ const task: MusicTaskParams = {
   candidates: 2
 };
 
+const FIRST_RUN_MODELS = ["Qwen3-Embedding-0.6B-Q8_0.gguf", "acestep-5Hz-lm-4B-Q8_0.gguf", ACESTEP_TURBO_DIT, "vae-BF16.gguf"];
+
 let dir: string;
 let argsLog: string;
 let crashFile: string;
@@ -41,7 +43,10 @@ beforeEach(() => {
   crashFile = join(dir, "crashes");
   writeFileSync(crashFile, "0");
   mkdirSync(join(dir, "models"));
-  writeFileSync(join(dir, "models", ACESTEP_TURBO_DIT), "");
+  // The first-run set: the fake registry knows models by file name.
+  for (const name of FIRST_RUN_MODELS) {
+    writeFileSync(join(dir, "models", name), "gguf");
+  }
   supervisors = [];
 });
 
@@ -54,7 +59,7 @@ afterEach(async () => {
  * A launcher that runs the fake with the Node binary running this test, with
  * the controls in its environment.
  */
-function launcher(): string {
+function launcher(options: { jobMs?: number; startDelayMs?: number } = {}): string {
   const path = join(dir, "ace-server");
   writeFileSync(
     path,
@@ -62,7 +67,8 @@ function launcher(): string {
       "#!/bin/sh",
       `export FAKE_ACE_ARGS_LOG='${argsLog}'`,
       `export FAKE_ACE_CRASH_FILE='${crashFile}'`,
-      "export FAKE_ACE_JOB_MS=60",
+      `export FAKE_ACE_JOB_MS=${options.jobMs ?? 60}`,
+      `export FAKE_ACE_START_DELAY_MS=${options.startDelayMs ?? 0}`,
       `exec '${process.execPath}' '${BIN}' "$@"`
     ].join("\n")
   );
@@ -91,6 +97,26 @@ function setup(options: ConstructorParameters<typeof AceServerSupervisor>[0] = {
     }
   );
   return { supervisor, provider };
+}
+
+/** A 48 kHz stereo float WAV of `frames` silent frames. */
+function floatWav(frames: number): Uint8Array {
+  const data = frames * 8;
+  const out = Buffer.alloc(44 + data);
+  out.write("RIFF", 0, "ascii");
+  out.writeUInt32LE(36 + data, 4);
+  out.write("WAVE", 8, "ascii");
+  out.write("fmt ", 12, "ascii");
+  out.writeUInt32LE(16, 16);
+  out.writeUInt16LE(3, 20);
+  out.writeUInt16LE(2, 22);
+  out.writeUInt32LE(48000, 24);
+  out.writeUInt32LE(48000 * 8, 28);
+  out.writeUInt16LE(8, 32);
+  out.writeUInt16LE(32, 34);
+  out.write("data", 36, "ascii");
+  out.writeUInt32LE(data, 40);
+  return new Uint8Array(out);
 }
 
 async function exitOf(pid: number, ms = 5000): Promise<void> {
@@ -223,6 +249,78 @@ describe.skipIf(process.platform === "win32")("ace-server supervision", () => {
     await second;
     expect(launches()).toHaveLength(1);
     expect(supervisor.current()).not.toBeNull();
+  });
+
+  it("restarts the idle process when a model file arrives, so the new model is found (F1)", async () => {
+    // ace-server scans --models once at startup (ace-server.cpp:1706-1711).
+    const { provider } = setup();
+    const lego: MusicTaskParams = {
+      ...task,
+      task: "lego",
+      trackRole: "bass",
+      candidates: 1,
+      sourceAudio: floatWav(9600),
+      regionStartSec: 0,
+      regionEndSec: 0.2
+    };
+    const missing = await provider.musicTask(lego).then(
+      () => null,
+      (reason: unknown) => reason as Error
+    );
+    expect(missing?.message).toContain(`DiT not found: ${ACESTEP_BASE_DIT}`);
+
+    // The base DiT is downloaded while the process runs (first Add instrument).
+    writeFileSync(join(dir, "models", ACESTEP_BASE_DIT), "gguf");
+    const result = await provider.musicTask(lego);
+    expect(result.candidates).toHaveLength(1);
+    expect(launches()).toHaveLength(2);
+  });
+
+  it("kills a process that is still finishing a job after the stop timeout (item 5)", async () => {
+    // On SIGTERM ace-server finishes its current job before it exits
+    // (ace-server.cpp:137-141, 1891-1897).
+    const supervisor = new AceServerSupervisor({ stopTimeoutMs: 200 });
+    supervisors.push(supervisor);
+    const server = await supervisor.ensure({ binary: launcher({ jobMs: 600_000 }), modelsDir: join(dir, "models") });
+    const submitted = await fetch(`${server.baseUrl}/synth`, {
+      method: "POST",
+      body: JSON.stringify({ caption: "x", synth_model: ACESTEP_TURBO_DIT, duration: 1 })
+    });
+    expect(submitted.ok).toBe(true);
+    const stoppedAt = Date.now();
+    await supervisor.stop();
+    expect(Date.now() - stoppedAt).toBeLessThan(3000);
+    await exitOf(server.pid!, 100);
+  });
+
+  it("kills the process at once from the exit hook, even with a job running (item 5)", async () => {
+    const supervisor = new AceServerSupervisor();
+    supervisors.push(supervisor);
+    const server = await supervisor.ensure({ binary: launcher({ jobMs: 600_000 }), modelsDir: join(dir, "models") });
+    await fetch(`${server.baseUrl}/synth`, {
+      method: "POST",
+      body: JSON.stringify({ caption: "x", synth_model: ACESTEP_TURBO_DIT, duration: 1 })
+    });
+    supervisor.killNow();
+    await exitOf(server.pid!, 2000);
+  });
+
+  it("hands a second caller the process only once it answers /health (item 6)", async () => {
+    const supervisor = new AceServerSupervisor();
+    supervisors.push(supervisor);
+    const launch = { binary: launcher({ startDelayMs: 600 }), modelsDir: join(dir, "models") };
+    const first = supervisor.ensure(launch);
+    // Let the first call spawn the child, then ask again while it scans.
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    expect(supervisor.current()).toBeNull();
+    const second = await supervisor.ensure(launch);
+    const health = await fetch(`${second.baseUrl}/health`).then(
+      (response) => response.status,
+      () => "refused"
+    );
+    expect(health).toBe(200);
+    expect((await first).pid).toBe(second.pid);
+    expect(launches()).toHaveLength(1);
   });
 
   it("names the missing install", async () => {

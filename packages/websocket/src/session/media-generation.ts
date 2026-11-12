@@ -39,7 +39,10 @@ import type {
 import type { GenerationReceipt } from "@nodetool-ai/protocol";
 
 import { createAssetModelInterface } from "../lib/asset-model-interface.js";
-import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
+import { storeAssetWithThumbnail, thumbnailKey } from "../lib/thumbnail.js";
+import { assetObjectKey } from "@nodetool-ai/storage";
+import { assetFileNameCandidates } from "../lib/asset-paths.js";
+import { getAssetAdapter } from "../lib/storage.js";
 
 const log = createLogger("nodetool.websocket.media-generation");
 
@@ -121,6 +124,11 @@ export interface GenerationRun {
     contentType: string,
     ext: string
   ): Promise<string>;
+  /**
+   * Delete an asset {@link storeAsset} stored, with its bytes and thumbnail,
+   * when the request that stored it fails.
+   */
+  discardAsset(assetId: string): Promise<void>;
 }
 
 export function createGenerationRun(
@@ -257,6 +265,24 @@ export function createGenerationRun(
       asset.size = bytes.length;
       await asset.save();
       return asset.id;
+    },
+
+    async discardAsset(assetId) {
+      const asset = await Asset.find(userId, assetId);
+      if (!asset) return;
+      const adapter = getAssetAdapter();
+      // The objects storeAsset and its thumbnail wrote.
+      const fileNames = [
+        ...assetFileNameCandidates(asset.id, asset.content_type),
+        thumbnailKey(asset.id)
+      ];
+      for (const fileName of fileNames) {
+        const uri = adapter.uriForKey(assetObjectKey(userId, fileName));
+        if (await adapter.exists(uri)) {
+          await adapter.delete(uri);
+        }
+      }
+      await asset.delete();
     }
   };
 }

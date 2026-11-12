@@ -9,9 +9,10 @@
  *   FAKE_ACE_CRASH_FILE a file holding a count; while it is above zero, the
  *                       process exits when a synth job starts, counting down
  *   FAKE_ACE_JOB_MS     worker time per job
+ *   FAKE_ACE_START_DELAY_MS  time the model scan takes before the port opens
  */
 import { appendFileSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { startFakeAceServer } from "./acestep-fake-server.ts";
+import { classifyModel, startFakeAceServer } from "./acestep-fake-server.ts";
 
 const usage = () => {
   process.stderr.write("Usage: ace-server --models <dir> [options]\n");
@@ -50,11 +51,27 @@ if (models.length === 0) {
   process.stderr.write(`[Server] ERROR: no GGUF models found in ${modelsDir}\n`);
   process.exit(1);
 }
+// ace-server.cpp:1719-1746: an incomplete synth set is fatal without an LM.
+const buckets = new Set(models.map(classifyModel));
+const haveSynth = buckets.has("dit") && buckets.has("textEnc") && buckets.has("vae");
+if (!haveSynth && !buckets.has("lm")) {
+  process.stderr.write("[Server] ERROR: no usable pipeline\n");
+  process.exit(1);
+}
+
+// The scan reads GGUF headers (src/model-registry.h:204-237) before the
+// server listens (ace-server.cpp:1883).
+const startDelay = Number(process.env.FAKE_ACE_START_DELAY_MS ?? 0);
+if (startDelay > 0) {
+  await new Promise((resolve) => setTimeout(resolve, startDelay));
+}
 
 const crashFile = process.env.FAKE_ACE_CRASH_FILE;
-await startFakeAceServer({
+const server = await startFakeAceServer({
   host,
   port,
+  // The registry is fixed at startup: a file added later is unknown.
+  models,
   // ace-server.cpp:1748-1753 clamps --max-batch to [1, 9].
   maxBatch: Math.min(9, Math.max(1, maxBatch)),
   jobMs: Number(process.env.FAKE_ACE_JOB_MS ?? 50),
@@ -69,3 +86,14 @@ await startFakeAceServer({
     }
   }
 });
+
+// ace-server.cpp:137-141 stops the HTTP server on SIGTERM and SIGINT; main
+// then lets the worker finish its current job before it exits (1891-1903).
+const onSignal = () => {
+  void server.shutdown().then(() => {
+    process.stderr.write("[Server] Shutting down...\n");
+    process.exit(0);
+  });
+};
+process.once("SIGTERM", onSignal);
+process.once("SIGINT", onSignal);
