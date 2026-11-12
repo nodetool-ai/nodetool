@@ -212,6 +212,8 @@ export interface MusicAlignment {
   confidence: number;
   /** Measured tempo divided by project tempo. */
   tempoRatio: number;
+  /** Whether the tempo scan clears {@link ALIGN_MIN_CONFIDENCE}. */
+  tempoConfident: boolean;
   /** How far the last beat of the take lands off the grid. */
   lastBeatErrorMs: number;
   /**
@@ -296,18 +298,34 @@ export function measureAlignment(
     confidence > 0
       ? searchTempoScale(envelope, period, phase)
       : { scale: 1, confidence: 0 };
-  // The last beat of a take `takeFrames` long lands off the grid by the
-  // period error times the beats in it.
-  const lastBeatErrorMs =
-    (Math.abs(tempo.scale - 1) * options.takeFrames * 1000) / RATE;
-  return {
+  const measured = {
     offsetFrames: confidence > 0 ? Math.round(lag.lagFrames) : 0,
     confident: confidence >= ALIGN_MIN_CONFIDENCE,
     confidence,
     tempoRatio: 1 / tempo.scale,
+    tempoConfident: tempo.confidence >= ALIGN_MIN_CONFIDENCE
+  };
+  return alignmentForTake(measured, options.takeFrames);
+}
+
+/**
+ * The tempo error of a measured window over one take `takeFrames` long: the
+ * last beat lands off the grid by the period error times the beats in it.
+ * A window cut into several segments is measured once and reported per take.
+ */
+export function alignmentForTake(
+  alignment: Omit<MusicAlignment, "lastBeatErrorMs" | "drifting">,
+  takeFrames: number
+): MusicAlignment {
+  const lastBeatErrorMs =
+    (Math.abs(1 / alignment.tempoRatio - 1) * takeFrames * 1000) / RATE;
+  return {
+    offsetFrames: alignment.offsetFrames,
+    confident: alignment.confident,
+    confidence: alignment.confidence,
+    tempoRatio: alignment.tempoRatio,
+    tempoConfident: alignment.tempoConfident,
     lastBeatErrorMs,
-    drifting:
-      tempo.confidence >= ALIGN_MIN_CONFIDENCE &&
-      lastBeatErrorMs > DRIFT_THRESHOLD_MS
+    drifting: alignment.tempoConfident && lastBeatErrorMs > DRIFT_THRESHOLD_MS
   };
 }

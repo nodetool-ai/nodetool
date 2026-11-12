@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import {
   ALIGN_MIN_CONFIDENCE,
   DRIFT_THRESHOLD_MS,
+  alignmentForTake,
   applyGain,
   beatPeriodFrames,
   cutFrames,
@@ -200,6 +201,20 @@ describe("measureAlignment tempo deviation (MM5 exit 7)", () => {
     expect(alignment.drifting).toBe(false);
   });
 
+  it("reports the error per take for a window cut into shorter segments", () => {
+    const window = measureAlignment(fixture(0.01), {
+      bpm: 120,
+      beatPhaseFrames: 2400,
+      takeFrames
+    });
+    const fourSeconds = alignmentForTake(window, 4 * RATE);
+    expect(fourSeconds.lastBeatErrorMs).toBeCloseTo(window.lastBeatErrorMs / 4, 9);
+    expect(fourSeconds.drifting).toBe(true);
+    const oneSecond = alignmentForTake(window, RATE);
+    expect(oneSecond.lastBeatErrorMs).toBeLessThan(DRIFT_THRESHOLD_MS);
+    expect(oneSecond.drifting).toBe(false);
+  });
+
   it("measures a slow take as a ratio below 1", () => {
     const alignment = measureAlignment(fixture(-0.02), {
       bpm: 120,
@@ -220,6 +235,7 @@ describe("measureAlignment tempo deviation (MM5 exit 7)", () => {
       confident: false,
       confidence: 0,
       tempoRatio: 1,
+      tempoConfident: false,
       lastBeatErrorMs: 0,
       drifting: false
     });
