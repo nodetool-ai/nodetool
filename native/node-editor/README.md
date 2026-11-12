@@ -77,7 +77,11 @@ npm run node-editor
 
 The launcher reuses the configured CMake executable and generator, builds
 the Release configuration, and starts `Release/nodetool-node-editor.exe`.
-The build deploys Qt DLLs and QML plugins. The launcher adds the configured
+The build deploys Qt DLLs, QML plugins, transitive native DLL dependencies,
+the compiler runtime, and `guest.js` beside the executable. You can open
+`Release/nodetool-node-editor.exe` directly without rebuilding or changing PATH.
+Direct launch does not start the backend; use an existing server or offline mode.
+The launcher adds the configured
 native dependency `bin` directories to its process PATH. Closing the editor
 also stops a development server that this launcher started.
 The launcher and test script also use the configured Qt plugins, including
