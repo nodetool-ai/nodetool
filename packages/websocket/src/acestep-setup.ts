@@ -6,6 +6,13 @@
  * installs the pinned binary and downloads a named set of model files. It
  * holds one operation at a time for the whole server, so a client that
  * reconnects mid-download reads the same progress from `status()`.
+ *
+ * What it reports as remote, installed and present follows the acestep
+ * provider's own resolution for the requesting user (`AceStepResolution`):
+ * that user's `ACESTEP_SERVER_URL`, `ACESTEP_SERVER_PATH` and
+ * `ACESTEP_MODELS_DIR` settings, then the managed install, PATH and the
+ * Hugging Face cache. The command handler resolves the provider for the user
+ * and passes its resolution in.
  */
 import { randomUUID } from "node:crypto";
 import {
@@ -26,6 +33,7 @@ import type {
   AceStepSetupResult,
   AceStepSetupStatus
 } from "@nodetool-ai/protocol";
+import { AceStepProvider, type AceStepResolution } from "@nodetool-ai/runtime";
 import { downloadAceStepModels, type AceStepModelProgress } from "@nodetool-ai/runtime-install";
 
 type Refusal = NonNullable<AceStepSetupResult["reason"]>;
@@ -40,8 +48,11 @@ export interface AceStepSetupDeps {
   locations: () => { aceStep: string | null; aceStepModels: string | null };
   platform: string;
   arch: string;
-  /** The `ACESTEP_SERVER_URL` setting, read when status is built. */
-  remoteUrl: () => string | undefined;
+  /**
+   * The provider resolution used when the caller passes none: the server's
+   * environment, without a user's settings.
+   */
+  resolve: () => Promise<AceStepResolution>;
   /** The release archive for a platform. Tests supply one with a digest. */
   asset: typeof aceStepAsset;
   install: typeof installAceStep;
@@ -52,7 +63,7 @@ const defaultDeps = (): AceStepSetupDeps => ({
   locations: () => runtimeLocations(),
   platform: process.platform,
   arch: process.arch,
-  remoteUrl: () => process.env.ACESTEP_SERVER_URL,
+  resolve: () => new AceStepProvider().resolution(),
   asset: aceStepAsset,
   install: installAceStep,
   downloadModels: downloadAceStepModels
@@ -79,16 +90,25 @@ export class AceStepSetupService {
     await this.running;
   }
 
-  async status(): Promise<AceStepSetupStatus> {
+  /**
+   * The status for a user. `resolution` is the acestep provider's resolution
+   * for that user; without one the server's environment applies.
+   */
+  async status(resolution?: AceStepResolution): Promise<AceStepSetupStatus> {
     const { aceStep, aceStepModels } = this.deps.locations();
-    const installed = aceStep ? await aceStepInstallStatus(aceStep) : { installed: false };
-    const blocked = installed.installed ? null : this.installBlock(aceStep);
+    const resolved = resolution ?? (await this.deps.resolve());
+    const managed = aceStep ? await aceStepInstallStatus(aceStep) : { installed: false };
+    // The provider runs the binary it resolved, which may be the managed one
+    // or one the user's settings or PATH name.
+    const installed = managed.installed || resolved.binary !== null;
+    const blocked = installed ? null : this.installBlock(aceStep);
+    const modelsDir = resolved.modelsDir ?? aceStepModels;
     const sets = {} as Record<AceStepModelSet, AceStepSetupStatus["models"]["first_run"]>;
     for (const set of Object.keys(MODEL_SET_ROLES) as AceStepModelSet[]) {
       const roles = MODEL_SET_ROLES[set];
       const files = aceStepModelFiles(roles);
-      const status = aceStepModels
-        ? await aceStepModelStatus(aceStepModels, roles)
+      const status = modelsDir
+        ? await aceStepModelStatus(modelsDir, roles)
         : { present: [], missing: [...roles] };
       const missing = new Set(status.missing);
       sets[set] = {
@@ -101,10 +121,10 @@ export class AceStepSetupService {
       };
     }
     return {
-      remote: Boolean(this.deps.remoteUrl()?.trim()),
+      remote: resolved.remote,
       binary: {
-        installed: installed.installed,
-        version: ("version" in installed ? installed.version : undefined) ?? null,
+        installed,
+        version: ("version" in managed ? managed.version : undefined) ?? null,
         blocked: blocked?.code ?? null,
         message: blocked?.message ?? null
       },
@@ -113,14 +133,14 @@ export class AceStepSetupService {
     };
   }
 
-  async startInstall(): Promise<AceStepSetupResult> {
+  async startInstall(resolution?: AceStepResolution): Promise<AceStepSetupResult> {
     const { aceStep } = this.deps.locations();
     const blocked = this.installBlock(aceStep);
     if (blocked || !aceStep) {
-      return this.refuse("blocked");
+      return this.refuse("blocked", resolution);
     }
     if (this.running) {
-      return this.refuse("busy");
+      return this.refuse("busy", resolution);
     }
     this.begin("install", null, "Preparing the ACE-Step install");
     this.run(async (signal) => {
@@ -138,16 +158,16 @@ export class AceStepSetupService {
         }
       });
     });
-    return this.accept();
+    return this.accept(resolution);
   }
 
-  async startModelDownload(set: AceStepModelSet): Promise<AceStepSetupResult> {
+  async startModelDownload(set: AceStepModelSet, resolution?: AceStepResolution): Promise<AceStepSetupResult> {
     const { aceStepModels } = this.deps.locations();
     if (!aceStepModels) {
-      return this.refuse("no_models_dir");
+      return this.refuse("no_models_dir", resolution);
     }
     if (this.running) {
-      return this.refuse("busy");
+      return this.refuse("busy", resolution);
     }
     this.begin("models", set, "Preparing the model download");
     this.run(async (signal) => {
@@ -158,15 +178,15 @@ export class AceStepSetupService {
         onProgress: (progress) => this.updateModels(progress)
       });
     });
-    return this.accept();
+    return this.accept(resolution);
   }
 
-  async cancel(): Promise<AceStepSetupResult> {
+  async cancel(resolution?: AceStepResolution): Promise<AceStepSetupResult> {
     if (!this.running || !this.controller) {
-      return this.refuse("nothing_running");
+      return this.refuse("nothing_running", resolution);
     }
     this.controller.abort(new Error("ACE-Step setup cancelled"));
-    return this.accept();
+    return this.accept(resolution);
   }
 
   /** The reason an install cannot start, or null when it can. */
@@ -273,12 +293,12 @@ export class AceStepSetupService {
     }
   }
 
-  private async accept(): Promise<AceStepSetupResult> {
-    return { accepted: true, reason: null, status: await this.status() };
+  private async accept(resolution: AceStepResolution | undefined): Promise<AceStepSetupResult> {
+    return { accepted: true, reason: null, status: await this.status(resolution) };
   }
 
-  private async refuse(reason: Refusal): Promise<AceStepSetupResult> {
-    return { accepted: false, reason, status: await this.status() };
+  private async refuse(reason: Refusal, resolution: AceStepResolution | undefined): Promise<AceStepSetupResult> {
+    return { accepted: false, reason, status: await this.status(resolution) };
   }
 }
 

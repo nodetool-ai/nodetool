@@ -37,7 +37,12 @@ import type { HttpApiOptions } from "../http-api.js";
 import type { JobRunExecutionHooks } from "../job-run-registry.js";
 import type { ChatTurnHandler } from "./chat-turn.js";
 import type { ClientSession } from "./client-session.js";
-import { withSpan, type MessageContent } from "@nodetool-ai/runtime";
+import {
+  AceStepProvider,
+  withSpan,
+  type AceStepResolution,
+  type MessageContent
+} from "@nodetool-ai/runtime";
 import type {
   DirectInferenceHandler,
   DirectMediaSourceContext,
@@ -400,21 +405,37 @@ export class CommandRouter {
   }
 
   /**
+   * The acestep provider's resolution for this connection's user, so the
+   * setup status reads that user's settings the way a generation does.
+   * Undefined when the session cannot resolve providers.
+   */
+  private async aceStepResolution(): Promise<AceStepResolution | undefined> {
+    const resolve = this.deps.session.resolveProvider;
+    if (!resolve) return undefined;
+    const provider = await resolve("acestep", this.deps.session.requireUserId());
+    return provider instanceof AceStepProvider ? provider.resolution() : undefined;
+  }
+
+  /**
    * Run an ACE-Step setup command for an admin. While the operation it starts
    * runs, its progress is pushed to this connection as `acestep_setup_progress`.
    */
   private runAceStepSetup(
     command: string,
     requestId: string | undefined,
-    start: (service: ReturnType<typeof aceStepSetupService>) => Promise<AceStepSetupResult>
+    start: (
+      service: ReturnType<typeof aceStepSetupService>,
+      resolution: AceStepResolution | undefined
+    ) => Promise<AceStepSetupResult>
   ): Promise<Record<string, unknown> | null> {
     return this.runRpc(command, requestId, async () => {
       const service = aceStepSetupService();
+      const resolution = await this.aceStepResolution();
       if (!(await isAdmin(this.deps.session.requireUserId()))) {
         return {
           accepted: false,
           reason: "not_admin",
-          status: await service.status()
+          status: await service.status(resolution)
         } satisfies AceStepSetupResult;
       }
       const stop = service.subscribe((operation) => {
@@ -425,7 +446,7 @@ export class CommandRouter {
           stop();
         }
       });
-      const result = await start(service);
+      const result = await start(service, resolution);
       if (!result.accepted) {
         stop();
       }
@@ -1155,19 +1176,19 @@ export class CommandRouter {
       this.runRpc(command, requestId, async () => ({
         accepted: true,
         reason: null,
-        status: await aceStepSetupService().status()
+        status: await aceStepSetupService().status(await this.aceStepResolution())
       })),
 
     acestep_install: ({ command, requestId }) =>
-      this.runAceStepSetup(command, requestId, (service) => service.startInstall()),
+      this.runAceStepSetup(command, requestId, (service, resolution) => service.startInstall(resolution)),
 
     acestep_download_models: ({ command, data, requestId }) =>
-      this.runAceStepSetup(command, requestId, (service) =>
-        service.startModelDownload(aceStepDownloadModelsDataSchema.parse(data).set)
+      this.runAceStepSetup(command, requestId, (service, resolution) =>
+        service.startModelDownload(aceStepDownloadModelsDataSchema.parse(data).set, resolution)
       ),
 
     acestep_setup_cancel: ({ command, requestId }) =>
-      this.runAceStepSetup(command, requestId, (service) => service.cancel()),
+      this.runAceStepSetup(command, requestId, (service, resolution) => service.cancel(resolution)),
 
     transcribe_audio: async ({ command, data, requestId }) => {
       const { defaults, inference } = this.deps;

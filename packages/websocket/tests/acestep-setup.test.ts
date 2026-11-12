@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AceStepInstallError, aceStepModelFile } from "@nodetool-ai/config";
 import { aceStepSetupResultSchema, type AceStepSetupOperation } from "@nodetool-ai/protocol";
+import { AceStepProvider } from "@nodetool-ai/runtime";
 import { AceStepSetupService, type AceStepSetupDeps } from "../src/acestep-setup.js";
 
 const roots: string[] = [];
@@ -18,7 +19,7 @@ function setup(overrides: Partial<AceStepSetupDeps> = {}) {
     locations: () => ({ aceStep, aceStepModels }),
     platform: "darwin",
     arch: "arm64",
-    remoteUrl: () => undefined,
+    resolve: async () => ({ remote: false, binary: null, modelsDir: null }),
     asset: () => ({ name: "ace-server.zip", sha256: SHA, sizeBytes: 1 }),
     install: vi.fn(async () => ({ installed: true })),
     downloadModels: vi.fn(async () => []),
@@ -69,8 +70,42 @@ describe("AceStepSetupService status", () => {
   });
 
   it("reports a remote server", async () => {
-    const { service } = setup({ remoteUrl: () => "http://10.0.0.2:8085" });
+    const { service } = setup({ resolve: async () => ({ remote: true, binary: null, modelsDir: null }) });
     expect((await service.status()).remote).toBe(true);
+  });
+
+  /** The acestep provider's resolution for a user with these settings. */
+  function userResolution(settings: Record<string, string>) {
+    return new AceStepProvider(settings, {
+      locateInstall: async () => ({ binary: null, modelsDir: null })
+    }).resolution();
+  }
+
+  it("reports remote for a user-level ACESTEP_SERVER_URL setting (item 3)", async () => {
+    const { service } = setup();
+    const status = await service.status(await userResolution({ ACESTEP_SERVER_URL: "http://10.0.0.2:8085" }));
+    expect(status.remote).toBe(true);
+  });
+
+  it("reports the binary a user-level ACESTEP_SERVER_PATH names as installed (item 3)", async () => {
+    const { service } = setup({ platform: "linux", arch: "x64", asset: () => null });
+    const root = mkdtempSync(join(tmpdir(), "acestep-user-"));
+    roots.push(root);
+    const binary = join(root, "ace-server");
+    writeFileSync(binary, "#!/bin/sh\n");
+    chmodSync(binary, 0o755);
+    const status = await service.status(await userResolution({ ACESTEP_SERVER_PATH: binary }));
+    expect(status.remote).toBe(false);
+    expect(status.binary).toMatchObject({ installed: true, blocked: null, version: null });
+  });
+
+  it("reads the models folder a user-level ACESTEP_MODELS_DIR names (item 3)", async () => {
+    const { service } = setup();
+    const models = mkdtempSync(join(tmpdir(), "acestep-user-models-"));
+    roots.push(models);
+    writeFileSync(join(models, aceStepModelFile("ditBase").file), "x");
+    const status = await service.status(await userResolution({ ACESTEP_MODELS_DIR: models }));
+    expect(status.models.add_instrument.missing).toEqual([]);
   });
 });
 
