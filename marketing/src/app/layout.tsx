@@ -70,7 +70,7 @@ const jetBrainsMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "NodeTool | Open-source agent-first creative workspace",
+  title: "NodeTool | Open-source AI film studio, agents, node workflows",
   description:
     "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
   metadataBase: new URL("https://nodetool.ai"),
@@ -105,7 +105,7 @@ export const metadata: Metadata = {
     other: [{ rel: "manifest", url: "/site.webmanifest" }],
   },
   openGraph: {
-    title: "NodeTool | Open-source agent-first creative workspace",
+    title: "NodeTool | Open-source AI film studio, agents, node workflows",
     description:
       "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
     url: "https://nodetool.ai",

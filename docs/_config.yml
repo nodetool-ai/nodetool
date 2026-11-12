@@ -123,6 +123,12 @@ defaults:
     values: *noindex
   - scope: { path: "triggers-prd.md" }
     values: *noindex
+  - scope: { path: "timeline-code-capture.md" }
+    values: *noindex
+  - scope: { path: "UGC_STRATEGY.md" }
+    values: *noindex
+  - scope: { path: "research" }
+    values: *noindex
   - scope: { path: "workflow-supervisor-design.md" }
     values: *noindex
   - scope: { path: "workflow-supervisor-implementation-plan.md" }

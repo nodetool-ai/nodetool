@@ -68,7 +68,9 @@ like.
 
 Use "agent-first" in supporting copy to explain how agents build and revise
 workflows and documents that creators can inspect and edit. Keep the homepage
-metadata category-led. The homepage pill above the `<h1>` speaks to creators:
+metadata category-led: the `<title>` is "NodeTool | Open-source AI film studio,
+agents, node workflows", which names the three homepage pillars in searched
+words. The homepage pill above the `<h1>` speaks to creators:
 "Open-source AI film studio · agent + node workflows". Edition and audience pages use
 distinct headlines that answer the reason to choose that route: Studio makes
 and revises production work, Cloud evaluates the workspace without an install,
