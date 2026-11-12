@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <optional>
 #include "interfaces/NodeCatalog.h"
+#include "interfaces/NodeInspector.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
 #include "document/WorkflowDocument.h"
@@ -58,15 +59,10 @@ class EditorWindow final : public QMainWindow {
     Q_PROPERTY(QVariantList canvasStrips READ canvasStrips NOTIFY tabsChanged)
   Q_PROPERTY(int activeTab READ activeTab NOTIFY tabsChanged)
     Q_PROPERTY(QString projectName READ projectName NOTIFY tabsChanged)
-  Q_PROPERTY(QString selection READ selection NOTIFY panelChanged)
-  Q_PROPERTY(quint64 documentEpoch READ documentEpoch NOTIFY documentEpochChanged)
-  Q_PROPERTY(quint64 credentialsEpoch READ credentialsEpoch NOTIFY credentialsEpochChanged)
   Q_PROPERTY(int selectedCount READ selectedCount NOTIFY panelChanged)
   Q_PROPERTY(bool selectionDisabled READ selectionDisabled NOTIFY panelChanged)
   Q_PROPERTY(bool selectionMostlyDisabled READ selectionMostlyDisabled NOTIFY panelChanged)
-  Q_PROPERTY(QVariantList properties READ properties NOTIFY panelChanged)
   Q_PROPERTY(bool readOnly READ readOnly NOTIFY panelChanged)
-  Q_PROPERTY(QString readOnlyReason READ readOnlyReason NOTIFY panelChanged)
   Q_PROPERTY(QString saveState READ saveState NOTIFY panelChanged)
   Q_PROPERTY(QString serverSaveState READ serverSaveState NOTIFY panelChanged)
   Q_PROPERTY(bool serverSyncAvailable READ serverSyncAvailable NOTIFY panelChanged)
@@ -74,10 +70,6 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool hasUnsavedChanges READ hasUnsavedChanges NOTIFY panelChanged)
   Q_PROPERTY(QString connectionState READ connectionState NOTIFY panelChanged)
   Q_PROPERTY(QString message READ message NOTIFY panelChanged)
-  Q_PROPERTY(nodetool::node_editor::DynamicPortsController* dynamicPorts READ dynamicPorts CONSTANT)
-  Q_PROPERTY(nodetool::node_editor::GenerationHistory* generationHistory READ generationHistory CONSTANT)
-  Q_PROPERTY(QString pinnedGeneration READ pinnedGeneration NOTIFY panelChanged)
-  Q_PROPERTY(QStringList replayGenerations READ replayGenerations NOTIFY panelChanged)
   Q_PROPERTY(bool browserVisible READ browserVisible NOTIFY panelChanged)
   Q_PROPERTY(bool libraryVisible READ libraryVisible NOTIFY panelChanged)
   Q_PROPERTY(QVariantList outputMedia READ outputMedia NOTIFY mediaChanged)
@@ -116,10 +108,6 @@ class EditorWindow final : public QMainWindow {
     // The tab bar bell lists these. See web/src/stores/NotificationStore.ts.
     Q_PROPERTY(QVariantList notifications READ notifications NOTIFY notificationsChanged)
     Q_PROPERTY(int unreadNotifications READ unreadNotifications NOTIFY notificationsChanged)
-    // The per-run cost the server's preflight reports: available, caption.
-    Q_PROPERTY(QVariantMap costEstimate READ costEstimate NOTIFY costEstimateChanged)
-    // The inspector's repeated Run selected: current and total, or empty.
-    Q_PROPERTY(QVariantMap runProgress READ runProgress NOTIFY panelChanged)
     Q_PROPERTY(bool traceVisible READ traceVisible NOTIFY panelChanged)
     Q_PROPERTY(bool versionsVisible READ versionsVisible NOTIFY panelChanged)
 public:
@@ -140,6 +128,7 @@ public:
     node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
     // The root window has no panels of its own, so it returns the active tab's.
     node_editor::NodeCatalog *nodeCatalog() { return activeEditor() == this ? &nodeCatalog_ : activeEditor()->nodeCatalog(); }
+    node_editor::NodeInspector *nodeInspector() { return activeEditor() == this ? &nodeInspector_ : activeEditor()->nodeInspector(); }
     void syncPackSetup();
   Q_INVOKABLE void setupAction(const QString &name);
   QVariantList workflowTabs() const;
@@ -182,9 +171,9 @@ public:
   node_editor::GenerationHistory *generationHistory() { return session()->generationHistory(); }
   QString pinnedGeneration() const;
   QStringList replayGenerations() const;
-  Q_INVOKABLE bool pinGeneration(const QString &id);
-  Q_INVOKABLE bool toggleReplayGeneration(const QString &id);
-  Q_INVOKABLE bool clearReplayGenerations();
+  bool pinGeneration(const QString &id);
+  bool toggleReplayGeneration(const QString &id);
+  bool clearReplayGenerations();
   node_editor::DynamicPortsController *dynamicPorts() { return activeEditor() == this ? &dynamicPorts_ : activeEditor()->dynamicPorts(); }
   node_editor::WorkflowBrowser *workflowBrowser() { return activeEditor() == this ? &browser_ : activeEditor()->workflowBrowser(); }
   bool browserVisible() const;
@@ -240,10 +229,12 @@ public:
     // The web settings page of the connected server (SettingsHeaderButton.tsx).
     Q_INVOKABLE void openSettings();
     Q_INVOKABLE void copyText(const QString &text);
+    // The per-run cost the server's preflight reports: available, caption.
     QVariantMap costEstimate() const;
     // Runs the selection `runs` times, each after the previous one completes
     // (web hooks/nodes/useRunSelectedNodes.ts).
-    Q_INVOKABLE void runSelectedNodes(int runs);
+    void runSelectedNodes(int runs);
+    // The inspector's repeated Run selected: current and total, or empty.
     QVariantMap runProgress() const;
     bool traceVisible() const;
     bool versionsVisible() const;
@@ -311,8 +302,8 @@ public:
   void clearCatalogFavorites();
   void clearCatalogRecent();
   Q_INVOKABLE void setProperty(const QString &name, const QVariant &value);
-  Q_INVOKABLE bool commitProperty(const QString &nodeId, const QString &name, const QVariant &value);
-  Q_INVOKABLE bool removeProperty(const QString &nodeId, const QString &name);
+  bool commitProperty(const QString &nodeId, const QString &name, const QVariant &value);
+  bool removeProperty(const QString &nodeId, const QString &name);
   Q_INVOKABLE void action(const QString &name);
   // An action that the user started from a button, menu or key. Zoom, fit and Focus
   // moves then animate as the web does. action() alone moves the view at once, so
@@ -449,6 +440,7 @@ private:
   bool singleRunnableCardSelected() const;
   QQuickWidget *panel(const QString &file, const QVariantMap &properties = {});
   void syncNodeCatalog();
+  void syncNodeInspector();
   Q_SLOT void layoutOverlays();
   void syncInspector();
   // Applies a node click or a programmatic selection to the inspector. It does
@@ -535,6 +527,10 @@ private:
     // UI thread, destroyed with the tab after its panels (~EditorWindow deletes
     // them first).
     node_editor::NodeCatalog nodeCatalog_;
+    // What this tab's Inspector panel, its property fields and its History tab
+    // read and do. Owned by value, UI thread, destroyed with the tab after its
+    // panels.
+    node_editor::NodeInspector nodeInspector_;
     QUrl packOrigin_;
     QString packToken_, packUser_;
   node_editor::SetupController setup_;

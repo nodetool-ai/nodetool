@@ -17,6 +17,10 @@ add_subdirectory(../media media)
 # these, node_editor_qml and the UI primitives only.
 add_library(node_editor_interfaces STATIC
  src/interfaces/NodeCatalog.cpp src/interfaces/NodeCatalog.h
+ src/interfaces/NodeInspector.cpp src/interfaces/NodeInspector.h
+ src/interfaces/PropertyHost.cpp src/interfaces/PropertyHost.h
+ src/interfaces/GenerationReplay.cpp src/interfaces/GenerationReplay.h
+ src/interfaces/Assign.h
  src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
  src/server/PackSetup.cpp src/server/PackSetup.h)
@@ -338,6 +342,20 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_node_menu_component_tests)
  add_test(NAME node_editor_node_menu_component COMMAND node_editor_node_menu_component_tests)
  set_tests_properties(node_editor_node_menu_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+ # Inspector.qml with a fixture inspector: no EditorWindow, graph runner or
+ # QtNodes. The property fields preview media, so it builds the editor's media
+ # QML types and links the model picker, as node_editor_asset_picker_tests does.
+ qt_add_executable(node_editor_inspector_component_tests tests/ui/InspectorComponentTest.cpp
+  src/media/MediaResolver.cpp src/media/MediaResolver.h
+  src/media/AudioWaveform.cpp src/media/AudioWaveform.h
+  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+  src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
+  src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
+  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
+ target_link_libraries(node_editor_inspector_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin nodetool_model_picker nodetool_model_pickerplugin Qt6::Quick Qt6::Multimedia Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_inspector_component_tests)
+ add_test(NAME node_editor_inspector_component COMMAND node_editor_inspector_component_tests)
+ set_tests_properties(node_editor_inspector_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
 if(BUILD_TESTING)
