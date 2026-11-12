@@ -30,7 +30,10 @@ type NativeBase64 = {
   fromBase64?: (text: string) => Uint8Array;
   prototype: { toBase64?: (this: Uint8Array) => string };
 };
-const nativeBase64 = Uint8Array as unknown as NativeBase64;
+// SAFETY: the intersection only adds optional members, and each is read only
+// after a presence check.
+const nativeBase64 = (): NativeBase64 =>
+  Uint8Array as typeof Uint8Array & NativeBase64;
 
 /**
  * Decode base64 → bytes without requiring the `Buffer` global. This module is
@@ -41,9 +44,10 @@ const nativeBase64 = Uint8Array as unknown as NativeBase64;
  * accepts (base64url, stray characters), so that text takes the old path.
  */
 function decodeBase64(b64: string): Uint8Array {
-  if (nativeBase64.fromBase64) {
+  const { fromBase64 } = nativeBase64();
+  if (fromBase64) {
     try {
-      return nativeBase64.fromBase64(b64);
+      return fromBase64.call(Uint8Array, b64);
     } catch {
       // Not strict base64: decode it as Buffer or atob does below.
     }
@@ -59,7 +63,7 @@ function decodeBase64(b64: string): Uint8Array {
 
 /** Encode bytes → base64 without requiring the `Buffer` global. */
 export function encodeBase64(bytes: Uint8Array): string {
-  const toBase64 = nativeBase64.prototype.toBase64;
+  const { toBase64 } = nativeBase64().prototype;
   if (toBase64) return toBase64.call(bytes);
   if (typeof Buffer !== "undefined") {
     return Buffer.from(bytes).toString("base64");

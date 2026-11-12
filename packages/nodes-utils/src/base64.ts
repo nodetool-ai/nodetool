@@ -11,7 +11,10 @@ type NativeBase64 = {
   fromBase64?: (text: string) => Uint8Array;
   prototype: { toBase64?: (this: Uint8Array) => string };
 };
-const nativeBase64 = Uint8Array as unknown as NativeBase64;
+// SAFETY: the intersection only adds optional members, and each is read only
+// after a presence check.
+const nativeBase64 = (): NativeBase64 =>
+  Uint8Array as typeof Uint8Array & NativeBase64;
 
 /**
  * Decode a base64 string to bytes without `Buffer` (works on Node and browser).
@@ -20,9 +23,10 @@ const nativeBase64 = Uint8Array as unknown as NativeBase64;
  * path, which keeps the old errors.
  */
 export function base64ToBytes(b64: string): Uint8Array {
-  if (nativeBase64.fromBase64) {
+  const { fromBase64 } = nativeBase64();
+  if (fromBase64) {
     try {
-      return nativeBase64.fromBase64(b64);
+      return fromBase64.call(Uint8Array, b64);
     } catch {
       // Not strict base64: atob below decides.
     }
@@ -35,7 +39,7 @@ export function base64ToBytes(b64: string): Uint8Array {
 
 /** Encode bytes to a base64 string without `Buffer`. */
 export function bytesToBase64(bytes: Uint8Array): string {
-  const toBase64 = nativeBase64.prototype.toBase64;
+  const { toBase64 } = nativeBase64().prototype;
   if (toBase64) return toBase64.call(bytes);
   let binary = "";
   const chunk = 0x8000;
