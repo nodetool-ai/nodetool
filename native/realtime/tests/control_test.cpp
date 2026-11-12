@@ -204,6 +204,21 @@ void validation() {
     for (unsigned i = 1; i < 10000; ++i) { large["control"]["ops"].push_back(operation("add", i, {i - 1, 0})); }
     executor = prepare(large); executor->tick(tickAt(0)); near(scalar(*executor, 9999), 10000);
     large["control"]["ops"][0] = operation("add", 0, {9999, 9999}); rejected(large, "cycle");
+
+    // Exercise the public loader -> built-in registry -> executor boundary.
+    auto document = valid;
+    document["schemaVersion"] = 1; document["revision"] = 1;
+    document["session"]["channels"] = "stereo";
+    document["session"]["width"] = 640; document["session"]["height"] = 480;
+    document["params"] = Plan::array(); document["slots"] = Plan::array();
+    document["render"] = {{"passes", Plan::array()}};
+    document["audio"] = {{"buffers", Plan::array()}, {"nodes", Plan::array()}, {"sinks", Plan::array()}};
+    Registry registry; registerControlOperations(registry);
+    const auto loaded = loadPlan(document.dump(), registry);
+    require(loaded.plan != nullptr, "Built-in control plan rejected by loader");
+    executor = prepare(*loaded.plan);
+    require(executor->tick(tickAt(128.0 / 48000)).steps == 1, "Loaded control plan failed to execute");
+    near(scalar(*executor, 10), 1 - std::exp(-(128.0 / 48000) / 0.2));
 }
 
 void projectMath() {
