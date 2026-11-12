@@ -21,13 +21,20 @@ function hasCode(error: unknown, code: string): boolean {
 async function mutateLock<T>(path: string, action: () => Promise<T>, options: InstallLockOptions): Promise<T> {
   const guard = `${path}.guard`;
   const start = Date.now();
+  let permissionRetries = 0;
   while (true) {
     options.signal?.throwIfAborted();
     try {
       await mkdir(guard);
       break;
     } catch (error) {
-      if (!hasCode(error, "EEXIST")) {
+      if (hasCode(error, "EEXIST")) {
+        permissionRetries = 0;
+      } else if (process.platform === "win32" && hasCode(error, "EPERM") && permissionRetries < 10) {
+        // Windows guard removal can overlap creation by the next waiter.
+        // Bound permission retries without deleting or stealing the guard.
+        permissionRetries += 1;
+      } else {
         throw error;
       }
     }
