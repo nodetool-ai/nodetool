@@ -25,13 +25,29 @@ const fileURLToPath = (u: string | URL): string => {
   return _nodeUrl.fileURLToPath(u);
 };
 
+/** The native `Uint8Array` base64 methods (ES2026), where the engine has them. */
+type NativeBase64 = {
+  fromBase64?: (text: string) => Uint8Array;
+  prototype: { toBase64?: (this: Uint8Array) => string };
+};
+const nativeBase64 = Uint8Array as unknown as NativeBase64;
+
 /**
  * Decode base64 → bytes without requiring the `Buffer` global. This module is
  * shared with the browser bundle (the in-browser runner loads it inside a Web
- * Worker, which has no `Buffer`), so prefer `Buffer` on Node for speed and fall
- * back to `atob` everywhere else.
+ * Worker, which has no `Buffer`). The native `Uint8Array.fromBase64` comes
+ * first: in the graph runner's QuickJS guest, `Buffer` is a JavaScript
+ * polyfill that is hundreds of times slower. It rejects text that `Buffer`
+ * accepts (base64url, stray characters), so that text takes the old path.
  */
 function decodeBase64(b64: string): Uint8Array {
+  if (nativeBase64.fromBase64) {
+    try {
+      return nativeBase64.fromBase64(b64);
+    } catch {
+      // Not strict base64: decode it as Buffer or atob does below.
+    }
+  }
   if (typeof Buffer !== "undefined") {
     return new Uint8Array(Buffer.from(b64, "base64"));
   }
@@ -43,6 +59,8 @@ function decodeBase64(b64: string): Uint8Array {
 
 /** Encode bytes → base64 without requiring the `Buffer` global. */
 export function encodeBase64(bytes: Uint8Array): string {
+  const toBase64 = nativeBase64.prototype.toBase64;
+  if (toBase64) return toBase64.call(bytes);
   if (typeof Buffer !== "undefined") {
     return Buffer.from(bytes).toString("base64");
   }
