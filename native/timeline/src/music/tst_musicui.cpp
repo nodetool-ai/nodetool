@@ -34,7 +34,7 @@ QJsonObject audioTrack(const char* id, const char* name, int index, const char* 
 }
 QJsonObject audioClip(const char* id, const char* track, double startMs, double durationMs) {
     return {{"id", id}, {"trackId", track}, {"name", id}, {"mediaType", "audio"}, {"startMs", startMs},
-            {"durationMs", durationMs}, {"currentAssetId", QStringLiteral("asset-%1").arg(id)}};
+            {"durationMs", durationMs}, {"currentAssetId", QStringLiteral("asset-%1").arg(id)}, {"status", "generated"}};
 }
 QJsonObject musicDocument(bool withVideo) {
     QJsonArray tracks{audioTrack("a", "Drums", 0, "drums"), audioTrack("b", "Bass", 1, "bass"),

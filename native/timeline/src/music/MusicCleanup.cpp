@@ -104,7 +104,7 @@ void MusicCleanup::setState(const QString& state, const QString& message) {
 QSet<QString> MusicCleanup::jobAssets() const {
     auto* jobs = MusicJobs::forTimeline(m_timeline);
     if (!jobs) return {};
-    const auto ids = jobs->contextAssetIds();
+    const auto ids = jobs->heldAssetIds();
     return {ids.cbegin(), ids.cend()};
 }
 

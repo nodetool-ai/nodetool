@@ -1,8 +1,8 @@
 // The job list of the music panel (docs/MUSIC-MODE.md section 15, part 6; section
 // 13, JB-4, JB-5): one row per job of this timeline, newest first, with its state,
 // its time against the expected time (time alone until a job of that kind has
-// finished), the backend's error, and Cancel, Retry or Place. Copy follows the
-// music mode mockup.
+// finished), the backend's error, and Cancel, Retry or Place. Dismiss removes a
+// finished row and its record. Copy follows the music mode mockup.
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
@@ -31,6 +31,8 @@ Column {
         case "placing": return qsTr("Writing takes to the clip")
         case "done":
             if (row.canPlace) return qsTr("Placeholder was removed. Takes are kept here.")
+            // The error says why the takes cannot be placed.
+            if (row.unplacedTakes > 0) return ""
             return (row.placedCount === 1 ? qsTr("1 take placed") : qsTr("%1 takes placed").arg(row.placedCount))
                 + (row.seed >= 0 ? qsTr(" · seed %1").arg(row.seed) : "")
         case "cancelled": return qsTr("Cancelled")
@@ -127,6 +129,13 @@ Column {
                             density: Ui.EditorButton.Compact
                             text: qsTr("Place takes")
                             onClicked: root.jobs.placeOrphan(row.job.jobId)
+                        }
+                        Ui.EditorButton {
+                            objectName: "musicJobDismiss"
+                            visible: row.job.canDismiss
+                            density: Ui.EditorButton.Compact
+                            text: qsTr("Dismiss")
+                            onClicked: root.jobs.dismiss(row.job.jobId)
                         }
                     }
                 }

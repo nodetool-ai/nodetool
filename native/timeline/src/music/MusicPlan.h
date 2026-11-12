@@ -61,6 +61,7 @@ struct PlanClip {
     bool speedBaked = false;
     bool timeRemap = false;
     std::string currentAssetId;  // empty: no asset
+    std::string status;          // the clip's `status`; empty when absent
 };
 
 // The generation target. Doubles, so a selection off whole frames can be refused.

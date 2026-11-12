@@ -21,6 +21,7 @@ PlanClip clip(const char* id, const char* track, std::int64_t start, std::int64_
     c.durationMs = frameToMs(end - start);
     c.mediaType = "audio";
     c.currentAssetId = std::string("asset-") + id;
+    c.status = "generated";
     return c;
 }
 
@@ -67,6 +68,39 @@ private slots:
         QVERIFY(!partial.inferred);
         QCOMPARE(partial.refusal, std::string("partial_overlap"));
         QVERIFY(partial.valid.empty());
+    }
+
+    // The mixer's playable rule (Mixer.cpp hasEffectiveAsset): another job's
+    // queued placeholder does not make Add instrument valid.
+    void audibleFollowsTheMixer() {
+        for (const char* status : {"generated", "stale", "locked", "generating"}) {
+            auto in = input(bar(3), bar(5), {clip("d", "drums", bar(1), bar(9))});
+            in.clips[0].status = status;
+            QCOMPARE(planMusicOperation(in).inferred, std::optional(MusicTask::Lego));
+        }
+        for (const char* status : {"queued", "failed", "draft", "missing", ""}) {
+            auto in = input(bar(3), bar(5), {clip("d", "drums", bar(1), bar(9))});
+            in.clips[0].status = status;
+            const auto plan = planMusicOperation(in);
+            QCOMPARE(plan.inferred, std::optional(MusicTask::Text2Music));
+            QCOMPARE(plan.valid, std::vector{MusicTask::Text2Music});
+        }
+        auto noAsset = input(bar(3), bar(5), {clip("d", "drums", bar(1), bar(9))});
+        noAsset.clips[0].currentAssetId.clear();
+        QCOMPARE(planMusicOperation(noAsset).inferred, std::optional(MusicTask::Text2Music));
+        auto onVideo = input(bar(3), bar(5), {clip("d", "drums", bar(1), bar(9))});
+        onVideo.tracks[1].type = "video";
+        QCOMPARE(planMusicOperation(onVideo).inferred, std::optional(MusicTask::Text2Music));
+        // From JSON, as the panel and MusicJobs read the document.
+        const auto queued = planInputFromJson(QJsonObject{
+            {"tempo", QJsonObject{{"bpm", 120}, {"offsetMs", 0}, {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}},
+            {"selection", QJsonObject{{"trackId", "bass"}, {"startFrame", 0}, {"endFrame", 96000}}},
+            {"tracks", QJsonArray{QJsonObject{{"id", "bass"}, {"type", "audio"}, {"musicRole", "bass"}},
+                                  QJsonObject{{"id", "drums"}, {"type", "audio"}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "p"}, {"trackId", "drums"}, {"startMs", 0}, {"durationMs", 4000},
+                                             {"mediaType", "audio"}, {"status", "queued"}}}},
+            {"operation", "lego"}});
+        QCOMPARE(planMusicOperation(queued).refusal, std::string("no_context"));
     }
 
     void generateWindowsFollowGn6() {

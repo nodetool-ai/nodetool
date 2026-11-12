@@ -120,7 +120,8 @@ it('tempo rules agree (MD6, MD9)', () => {
 const frameMs = (frame: number): number => frameToMs(frame);
 const audioTrack = (id: string, patch: Partial<MusicPlanTrack> = {}): MusicPlanTrack => ({ id, type: 'audio', ...patch });
 const audioClip = (id: string, trackId: string, start: number, end: number, patch: Partial<MusicPlanClip> = {}): MusicPlanClip =>
-  ({ id, trackId, startMs: frameMs(start), durationMs: frameMs(end - start), mediaType: 'audio', currentAssetId: `asset-${id}`, ...patch });
+  ({ id, trackId, startMs: frameMs(start), durationMs: frameMs(end - start), mediaType: 'audio', currentAssetId: `asset-${id}`,
+    status: 'generated', ...patch });
 
 it('the planner agrees on the four rows of the inference table (MM1 exit 3)', () => {
   const t = tempo(120);
@@ -136,6 +137,26 @@ it('the planner agrees on the four rows of the inference table (MM1 exit 3)', ()
   ];
   const answers = compare(rows.map((row) => ({ fn: 'planMusicOperation', args: [row] }))) as Array<{ inferred: string | null }>;
   expect(answers.map((a) => a.inferred)).toEqual(['repaint', 'lego', 'text2music', null]);
+});
+
+it('the planner hears only the clips the mixer plays', () => {
+  const t = tempo(120);
+  const bar = (n: number): number => barStartFrame(n, t);
+  const tracks = [audioTrack('bass', { musicRole: 'bass' }), audioTrack('drums', { musicRole: 'drums' })];
+  const selection = { trackId: 'bass', startFrame: bar(3), endFrame: bar(5) };
+  const rows: MusicPlanInput[] = [];
+  for (const status of ['generated', 'stale', 'locked', 'generating', 'queued', 'failed', 'draft', 'missing', undefined] as const) {
+    rows.push({ tempo: t, tracks, clips: [audioClip('d', 'drums', bar(1), bar(9), { status })], selection });
+  }
+  rows.push({ tempo: t, tracks, clips: [audioClip('d', 'drums', bar(1), bar(9), { currentAssetId: undefined })], selection });
+  rows.push({ tempo: t, tracks, clips: [audioClip('d', 'drums', bar(1), bar(9), { status: 'queued' })], selection, operation: 'lego' });
+  for (const type of ['midi', 'video'] as const) {
+    rows.push({ tempo: t, tracks: [tracks[0]!, audioTrack('drums', { type })], clips: [audioClip('d', 'drums', bar(1), bar(9))], selection });
+  }
+  const answers = compare(rows.map((row) => ({ fn: 'planMusicOperation', args: [row] }))) as Array<{ inferred: string | null; refusal?: string }>;
+  expect(answers.map((a) => a.inferred)).toEqual(['lego', 'lego', 'lego', 'lego', 'text2music', 'text2music', 'text2music', 'text2music',
+    'text2music', 'text2music', 'text2music', 'lego', 'text2music']);
+  expect(answers[10]!.refusal).toBe('no_context');
 });
 
 it('the planner agrees on 200 seeded cases (MM1 exit 3)', () => {
@@ -169,6 +190,7 @@ it('the planner agrees on 200 seeded cases (MM1 exit 3)', () => {
           ...(random() < 0.05 ? { speedBaked: true } : {}),
           ...(random() < 0.05 ? { timeRemap: { keyframes: [{ t: 0, sourceMs: 0 }, { t: 1, sourceMs: 1000 }] } } : {}),
           ...(random() < 0.05 ? { currentAssetId: undefined } : {}),
+          ...(random() < 0.15 ? { status: pick(['queued', 'failed', 'stale', 'generating', undefined] as const) } : {}),
           ...(random() < 0.08 ? { mediaType: 'video' as const } : {})
         }));
       }

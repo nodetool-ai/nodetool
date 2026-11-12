@@ -172,6 +172,14 @@ Built planAddInstrument(const MusicTempo& tempo, const FrameRange& target, const
     return result;
 }
 
+// The mixer's rule for a clip that sounds (hasEffectiveAsset in Mixer.cpp,
+// effectiveAssetId in packages/timeline/src/clipAudio.ts): an asset in a
+// playable status.
+bool hasEffectiveAsset(const PlanClip& clip) {
+    return !clip.currentAssetId.empty() && (clip.status == "generated" || clip.status == "stale" ||
+                                            clip.status == "locked" || clip.status == "generating");
+}
+
 bool isFrame(double value) { return std::isfinite(value) && std::floor(value) == value && value >= 0; }
 
 // JavaScript truthiness of a JSON value.
@@ -263,9 +271,13 @@ MusicPlan planMusicOperation(const PlanInput& input) {
     }
     const bool anySolo =
         std::ranges::any_of(input.tracks, [](const PlanTrack& t) { return (t.type == "audio" || t.type == "midi") && t.solo; });
+    // The mixer's rule for a clip that sounds: an audio clip with an asset in a
+    // playable status, on an audible audio or midi track.
     const auto audibleTrack = [&](const std::string& id) {
         const auto it = tracksById.find(id);
-        return it != tracksById.end() && !it->second->muted && (!anySolo || it->second->solo);
+        if (it == tracksById.end()) return false;
+        const auto& t = *it->second;
+        return (t.type == "audio" || t.type == "midi") && !t.muted && (!anySolo || t.solo);
     };
     std::vector<FrameClip> onTrackAll;
     std::vector<FrameClip> overlapping;
@@ -281,7 +293,7 @@ MusicPlan planMusicOperation(const PlanInput& input) {
             if (overlaps(framed, target.startFrame, target.endFrame)) {
                 overlapping.push_back(framed);
             }
-        } else if (!clip.muted && audibleTrack(clip.trackId)) {
+        } else if (!clip.muted && hasEffectiveAsset(clip) && audibleTrack(clip.trackId)) {
             others.push_back(framed);
         }
     }
@@ -419,6 +431,7 @@ PlanInput planInputFromJson(const QJsonObject& value) {
         clip.speedBaked = truthy(c.value(u"speedBaked"));
         clip.timeRemap = truthy(c.value(u"timeRemap"));
         clip.currentAssetId = text(c.value(u"currentAssetId"));
+        clip.status = text(c.value(u"status"));
         input.clips.push_back(std::move(clip));
     }
     if (const auto operation = value.value(u"operation"); operation.isString()) {

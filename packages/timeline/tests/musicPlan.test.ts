@@ -23,6 +23,7 @@ const clip = (id: string, trackId: string, startFrame: number, endFrame: number,
   durationMs: frameToMs(endFrame - startFrame),
   mediaType: "audio",
   currentAssetId: `asset-${id}`,
+  status: "generated",
   ...patch
 });
 
@@ -95,6 +96,30 @@ describe("operation inference (GN-4)", () => {
     expect(planMusicOperation(soloDrums).inferred).toBe("lego");
     // A video clip on another track is not audio.
     expect(planMusicOperation(input({ selection: sel, clips: [{ ...drums, mediaType: "video" }] })).inferred).toBe("text2music");
+  });
+
+  it("hears only the clips the mixer plays: an asset in a playable status on a sound track", () => {
+    const sel = select(bar(1), bar(3));
+    const plays = (patch: Partial<MusicPlanClip>, tracks?: MusicPlanTrack[]) =>
+      planMusicOperation(input({ selection: sel, clips: [{ ...drums, ...patch }], ...(tracks ? { tracks } : {}) }));
+    for (const status of ["generated", "stale", "locked", "generating"] as const) {
+      expect(plays({ status }).inferred, status).toBe("lego");
+    }
+    // A queued placeholder of another job, a failed or draft clip, and a clip with no asset are silent.
+    for (const status of ["queued", "failed", "draft", "missing"] as const) {
+      const plan = plays({ status });
+      expect(plan.inferred, status).toBe("text2music");
+      expect(plan.valid, status).toEqual(["text2music"]);
+    }
+    expect(plays({ status: undefined }).inferred).toBe("text2music");
+    expect(plays({ currentAssetId: undefined }).inferred).toBe("text2music");
+    const forced = planMusicOperation(input({ selection: sel, clips: [{ ...drums, status: "queued" }], operation: "lego" }));
+    expect(forced.refusal).toBe("no_context");
+    // A clip on a picture track is not mixed.
+    const onVideo = [track("bass", { musicRole: "bass" }), track("drums", { type: "video" })];
+    expect(plays({}, onVideo).inferred).toBe("text2music");
+    const onMidi = [track("bass", { musicRole: "bass" }), track("drums", { type: "midi" })];
+    expect(plays({}, onMidi).inferred).toBe("lego");
   });
 
   it("lets the person override with another valid operation", () => {
