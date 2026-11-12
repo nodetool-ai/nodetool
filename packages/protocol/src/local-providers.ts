@@ -33,6 +33,15 @@ export const LOCAL_PROVIDERS: readonly LocalProviderSpec[] = [
     capabilities: ["text_to_image", "image_to_image"]
   },
   {
+    provider: "acestep",
+    displayName: "ACE-Step",
+    install: { kind: "runtime", id: "acestep" },
+    installLabel: "ACE-Step",
+    capabilities: ["music_task"],
+    // NodeTool builds ace-server for Apple silicon only.
+    platforms: ["darwin"]
+  },
+  {
     provider: "wangp",
     displayName: "Wan2GP",
     install: { kind: "runtime", id: "wan2gp" },

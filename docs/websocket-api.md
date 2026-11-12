@@ -210,7 +210,7 @@ implement is answered with `{"error": "Unknown command"}`.
 | [`clear_models`](#clear_models) | Unload cached models |
 | [`chat_message`](#chat_message), [`resume_chat`](#resume_chat), [`list_chat_turns`](#list_chat_turns), [`set_permission_mode`](#set_permission_mode) | Chat turns, see [Chat API](chat-api.md) |
 | [`inference`](#inference), [`stop`](#stop) | Direct streaming inference and stopping work |
-| [RPC commands](#rpc-commands) | `list_workflows`, `get_workflow`, `list_assets`, `get_asset`, `list_nodes`, `get_node`, `generate_media`, `generate_text`, `transcribe_audio`, `lookup_generations` |
+| [RPC commands](#rpc-commands) | `list_workflows`, `get_workflow`, `list_assets`, `get_asset`, `list_nodes`, `get_node`, `generate_media`, `generate_text`, `transcribe_audio`, `lookup_generations`, `acestep_setup_status`, `acestep_install`, `acestep_download_models`, `acestep_setup_cancel` |
 
 A deployed app's visitor reaches this socket through a scoped session and can
 use only `run_job`, `reconnect_job`, `cancel_job`, `stream_input`,
@@ -548,6 +548,12 @@ These commands return a single `rpc_response` frame that carries the
 | `generate_media` | `mode` (`image`, `image_edit`, `inpaint`, `upscale`, `outpaint`, `video`, `video_edit`, `video_extend`, `audio`, `music`), `provider`, `model`, `prompt` (optional for `upscale` and `outpaint`), plus size, seed, `scale`, `padding`, reference, and voice fields | `{ "asset_ids": string[] }`. Creates no thread or message row |
 | `transcribe_audio` | `provider`, `model`, `asset_id`, `language` | Transcript of a stored audio asset |
 | `lookup_generations` | `request_ids` | `{ "generations": [...] }` with `request_id`, `generation_id`, `status`, `asset_ids`, and `error` for each id that has a row. A client that reloaded mid-render uses it to recover results the closed socket never received |
+| `acestep_setup_status` | none | `{ "accepted": true, "reason": null, "status": AceStepSetupStatus }`: whether `ace-server` is installed (`binary.installed`, `binary.blocked` of `unsupported-platform`, `digest-unset` or `no-install-dir`), which model files of the `first_run` and `add_instrument` sets are present, whether `ACESTEP_SERVER_URL` is set (`remote`), and the running or last `operation` |
+| `acestep_install` | none | Starts the `ace-server` install. Same result shape. Admin only. Progress arrives as `acestep_setup_progress` frames on this connection and in `status.operation` |
+| `acestep_download_models` | `set` (`first_run` or `add_instrument`) | Starts the download of that set from Hugging Face. Same result shape, same progress. Admin only |
+| `acestep_setup_cancel` | none | Aborts the running install or download. Admin only |
+
+The four `acestep_*` commands answer `accepted: false` with a `reason` of `busy`, `not_admin`, `blocked`, `no_models_dir` or `nothing_running` instead of an error. One setup operation runs at a time for the whole server, and a reconnecting client reads it from `acestep_setup_status`. The `acestep_setup_progress` frame carries `operation` with `kind`, `set`, `state` (`running`, `done`, `failed`, `cancelled`), `stage`, `percent` (or null), `downloaded_bytes`, `total_bytes`, `file`, `file_index`, `file_count`, `error` and `error_code`. The schemas are in `packages/protocol/src/ws-commands.ts`.
 
 ```json
 {

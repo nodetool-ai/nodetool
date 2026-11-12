@@ -9,6 +9,8 @@
  *
  * `sd-cpp` is the stable-diffusion.cpp `sd-server` release, unpacked into
  * `runtimeLocations().sdCpp` by the installer the desktop app shares.
+ * `acestep` is the acestep.cpp `ace-server` archive NodeTool builds, unpacked
+ * into `runtimeLocations().aceStep`. It installs for macOS on Apple silicon.
  * `wan2gp` is the Wan2GP source and the Python environment its own installer
  * builds in `runtimeLocations().wan2gp`, with a Python 3.10+ and uv from the
  * NodeTool conda environment or PATH.
@@ -24,10 +26,13 @@ import type { Command } from "commander";
 import { z } from "zod";
 import {
   WAN2GP_VERSION,
+  aceStepInstallStatus,
+  installAceStep,
   installSdCpp,
   installWan2GP,
   runtimeLocations,
   sdCppInstallStatus,
+  uninstallAceStep,
   uninstallSdCpp,
   uninstallWan2GP,
   wan2gpInstallStatus
@@ -58,6 +63,7 @@ const installedManifestSchema = z.object({ version: z.string() });
 
 const SD_CPP_ID = "sd-cpp";
 const WAN2GP_ID = "wan2gp";
+const ACESTEP_ID = "acestep";
 
 interface RuntimeRow {
   id: RuntimePackageId;
@@ -100,6 +106,25 @@ async function sdCppRow(): Promise<RuntimeRow> {
     installed: status.installed,
     version: status.version ?? "",
     description: "Local image generation server (sd-server) for the stable-diffusion.cpp provider."
+  };
+}
+
+function aceStepDir(): string {
+  const dir = runtimeLocations().aceStep;
+  if (!dir) {
+    throw new Error("This host has no ace-server install directory. Set ACESTEP_SERVER_PATH instead.");
+  }
+  return dir;
+}
+
+async function aceStepRow(): Promise<RuntimeRow> {
+  const status = await aceStepInstallStatus(aceStepDir());
+  return {
+    id: ACESTEP_ID,
+    name: RUNTIME_PACKAGE_NAMES[ACESTEP_ID],
+    installed: status.installed,
+    version: status.version ?? "",
+    description: "Local music generation server (ace-server) for the ACE-Step provider and music mode."
   };
 }
 
@@ -197,6 +222,7 @@ async function runtimeRows(): Promise<RuntimeRow[]> {
   );
   const rows: RuntimeRow[] = [...managedRows, ...npmRows];
   if (runtimeLocations().sdCpp) rows.push(await sdCppRow());
+  if (runtimeLocations().aceStep) rows.push(await aceStepRow());
   if (runtimeLocations().wan2gp) rows.push(await wan2gpRow());
   return rows;
 }
@@ -206,13 +232,14 @@ function parseIds(ids: readonly string[]): {
   managed: RuntimePackageId[];
   npm: RuntimeNpmPackageId[];
   sdCpp: boolean;
+  aceStep: boolean;
   wan2gp: boolean;
 } {
   const unknown = ids.filter(
-    (id) => id !== SD_CPP_ID && id !== WAN2GP_ID && !isRuntimeNpmPackageId(id) && !isManagedRuntimeId(id)
+    (id) => id !== SD_CPP_ID && id !== WAN2GP_ID && id !== ACESTEP_ID && !isRuntimeNpmPackageId(id) && !isManagedRuntimeId(id)
   );
   if (unknown.length > 0) {
-    const known = [...managedRuntimeIds(), ...Object.keys(RUNTIME_NPM_PACKAGES), SD_CPP_ID, WAN2GP_ID].join(", ");
+    const known = [...managedRuntimeIds(), ...Object.keys(RUNTIME_NPM_PACKAGES), SD_CPP_ID, WAN2GP_ID, ACESTEP_ID].join(", ");
     throw new Error(
       `Unknown runtime package: ${unknown.join(", ")}. Known: ${known}.`
     );
@@ -221,6 +248,7 @@ function parseIds(ids: readonly string[]): {
     managed: ids.filter(isManagedRuntimeId),
     npm: ids.filter(isRuntimeNpmPackageId),
     sdCpp: ids.includes(SD_CPP_ID),
+    aceStep: ids.includes(ACESTEP_ID),
     wan2gp: ids.includes(WAN2GP_ID)
   };
 }
@@ -274,7 +302,7 @@ export function registerRuntimeCommands(
     .option("--profile <name>", "wan2gp: a Wan2GP hardware profile, such as RTX_40, instead of the detected one")
     .option("--reinstall", "python, yt-dlp, rust, manimgx: install again when already installed")
     .action(async (ids: string[], options: { python?: string; uv?: string; profile?: string; reinstall?: boolean }) => {
-      const { managed, npm: parsed, sdCpp, wan2gp } = parseIds(ids);
+      const { managed, npm: parsed, sdCpp, aceStep, wan2gp } = parseIds(ids);
       if (managed.length > 0) {
         await addManagedRuntimes(managed, options.reinstall === true);
       }
@@ -285,6 +313,20 @@ export function registerRuntimeCommands(
         const installDir = sdCppDir();
         console.error(`Installing sd-cpp into ${installDir}`);
         await installSdCpp({
+          installDir,
+          platform: process.platform,
+          arch: process.arch,
+          onEvent: (event) => {
+            if (event.type === "stage") {
+              console.error(event.label);
+            }
+          }
+        });
+      }
+      if (aceStep) {
+        const installDir = aceStepDir();
+        console.error(`Installing acestep into ${installDir}`);
+        await installAceStep({
           installDir,
           platform: process.platform,
           arch: process.arch,
@@ -316,12 +358,15 @@ export function registerRuntimeCommands(
     .description("Uninstall one or more runtime packages by id")
     .argument("<ids...>", "Runtime package ids")
     .action(async (ids: string[]) => {
-      const { managed, npm: parsed, sdCpp, wan2gp } = parseIds(ids);
+      const { managed, npm: parsed, sdCpp, aceStep, wan2gp } = parseIds(ids);
       if (managed.length > 0) {
         await removeManagedRuntimes(managed);
       }
       if (sdCpp) {
         await uninstallSdCpp(sdCppDir());
+      }
+      if (aceStep) {
+        await uninstallAceStep(aceStepDir());
       }
       if (wan2gp) {
         await uninstallWan2GP(wan2gpDir());

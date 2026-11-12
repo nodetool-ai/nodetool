@@ -21,7 +21,13 @@
  * unfinished, which the backend cannot (its `GET /job` has no queued state,
  * `ace-server.cpp:206-211`).
  */
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
+import {
+  aceServerPath,
+  aceStepModelStatus,
+  createLogger,
+  importNodeBuiltin,
+  runtimeLocations
+} from "@nodetool-ai/config";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import type {
   Message,
@@ -65,10 +71,8 @@ export interface AceStepInstall {
 }
 
 /**
- * Finds the installed `ace-server` and models folder. The default looks on
- * PATH and in the Hugging Face cache. The ACE-Step runtime package
- * (`@nodetool-ai/config` `acestep-runtime.ts`) adds its install location here
- * once it exists.
+ * Finds the installed `ace-server` and models folder. The default checks the
+ * ACE-Step package's install locations, then PATH and the Hugging Face cache.
  */
 export type AceStepInstallLocator = () => Promise<AceStepInstall>;
 
@@ -752,8 +756,10 @@ async function executable(candidate: string | undefined): Promise<string | null>
 }
 
 /**
- * The default install lookup: `ace-server` on PATH, and the Hugging Face
- * cache folder that holds the turbo DiT. Whether `ace-server --models`
+ * The default install lookup. The binary comes from the install the ACE-Step
+ * package makes (this host, then the CLI host), then PATH. The models folder
+ * is the managed one when it holds the turbo DiT, then the CLI host's, then
+ * the Hugging Face cache folder that holds it. Whether `ace-server --models`
  * accepts a hub snapshot folder is MM0 item 7, so an explicit
  * ACESTEP_MODELS_DIR wins.
  */
@@ -762,11 +768,36 @@ export async function defaultAceStepInstall(): Promise<AceStepInstall> {
   if (!path) {
     return { binary: null, modelsDir: null };
   }
+  const hosts = [runtimeLocations()];
+  try {
+    hosts.push(runtimeLocations({ ...process.env, NODETOOL_HOST: "cli" }));
+  } catch {
+    // Only the configured location applies.
+  }
+  const candidates: string[] = [];
+  for (const host of hosts) {
+    if (host.aceStep) {
+      candidates.push(aceServerPath(host.aceStep));
+    }
+  }
   const exe = process.platform === "win32" ? "ace-server.exe" : "ace-server";
-  let binary: string | null = null;
   for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
-    if (dir && (binary = await executable(path.join(dir, exe)))) {
+    if (dir) {
+      candidates.push(path.join(dir, exe));
+    }
+  }
+  let binary: string | null = null;
+  for (const candidate of candidates) {
+    if ((binary = await executable(candidate))) {
       break;
+    }
+  }
+  for (const host of hosts) {
+    if (host.aceStepModels) {
+      const status = await aceStepModelStatus(host.aceStepModels, ["ditTurbo"]).catch(() => null);
+      if (status && status.missing.length === 0) {
+        return { binary, modelsDir: host.aceStepModels };
+      }
     }
   }
   const turbo = await resolveHubFile(ACESTEP_REPO_ID, ACESTEP_TURBO_DIT).catch(() => null);

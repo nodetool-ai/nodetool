@@ -5,8 +5,12 @@ import {
   deriveGenerationStatus,
   Prediction
 } from "@nodetool-ai/models";
-import type { RpcErrorPayload, WebSocketMode } from "@nodetool-ai/protocol";
-import { generateMediaDataSchema, musicGenerationRequestSchema } from "@nodetool-ai/protocol";
+import type { AceStepSetupResult, RpcErrorPayload, WebSocketMode } from "@nodetool-ai/protocol";
+import {
+  aceStepDownloadModelsDataSchema,
+  generateMediaDataSchema,
+  musicGenerationRequestSchema
+} from "@nodetool-ai/protocol";
 import { isSdkV1RetryableError } from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
 
 import {
@@ -17,6 +21,8 @@ import {
 import { cancelGenerationForUser } from "@nodetool-ai/agents";
 import { isDraining } from "../drain.js";
 import { isAppSessionCommandAllowed } from "../lib/app-session-scope.js";
+import { isAdmin } from "../lib/admin.js";
+import { aceStepSetupService } from "../acestep-setup.js";
 import {
   isFiniteNumber,
   isNonEmptyString,
@@ -390,6 +396,40 @@ export class CommandRouter {
       apiOptions,
       pythonBridge: session.pythonBridge,
       getPythonBridgeReady: this.deps.getPythonBridgeReady ?? (() => true)
+    });
+  }
+
+  /**
+   * Run an ACE-Step setup command for an admin. While the operation it starts
+   * runs, its progress is pushed to this connection as `acestep_setup_progress`.
+   */
+  private runAceStepSetup(
+    command: string,
+    requestId: string | undefined,
+    start: (service: ReturnType<typeof aceStepSetupService>) => Promise<AceStepSetupResult>
+  ): Promise<Record<string, unknown> | null> {
+    return this.runRpc(command, requestId, async () => {
+      const service = aceStepSetupService();
+      if (!(await isAdmin(this.deps.session.requireUserId()))) {
+        return {
+          accepted: false,
+          reason: "not_admin",
+          status: await service.status()
+        } satisfies AceStepSetupResult;
+      }
+      const stop = service.subscribe((operation) => {
+        this.deps.session
+          .send({ type: "acestep_setup_progress", operation })
+          .catch((err: unknown) => this.deps.session.logError("acestep_setup_progress send failed", err));
+        if (operation.state !== "running") {
+          stop();
+        }
+      });
+      const result = await start(service);
+      if (!result.accepted) {
+        stop();
+      }
+      return result;
     });
   }
 
@@ -1104,6 +1144,30 @@ export class CommandRouter {
         return { aborted, generations };
       });
     },
+
+    /**
+     * ACE-Step first-run setup for the music panel (MUSIC-MODE.md section
+     * 12.4). Every command answers `{ accepted, reason, status }`. Starting
+     * an install or a download installs software on the server, so it is
+     * limited to admins, which is every user of a local server.
+     */
+    acestep_setup_status: ({ command, requestId }) =>
+      this.runRpc(command, requestId, async () => ({
+        accepted: true,
+        reason: null,
+        status: await aceStepSetupService().status()
+      })),
+
+    acestep_install: ({ command, requestId }) =>
+      this.runAceStepSetup(command, requestId, (service) => service.startInstall()),
+
+    acestep_download_models: ({ command, data, requestId }) =>
+      this.runAceStepSetup(command, requestId, (service) =>
+        service.startModelDownload(aceStepDownloadModelsDataSchema.parse(data).set)
+      ),
+
+    acestep_setup_cancel: ({ command, requestId }) =>
+      this.runAceStepSetup(command, requestId, (service) => service.cancel()),
 
     transcribe_audio: async ({ command, data, requestId }) => {
       const { defaults, inference } = this.deps;
