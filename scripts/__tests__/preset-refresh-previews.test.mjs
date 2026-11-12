@@ -7,6 +7,8 @@ import { refreshPreviews, previewKey } from '../presets/refresh-previews.mjs';
 
 const BASE = 'https://p.supabase.co/storage/v1/object/public/preset-previews/';
 const CACHE = 'max-age=604800';
+// Includes loading the runtime and encoding a real full-resolution image.
+const IMAGE_TIMEOUT = process.platform === 'win32' ? 30_000 : 5_000;
 
 /** An in-memory bucket that records each write. */
 function bucket(objects) {
@@ -68,7 +70,7 @@ describe('refreshPreviews', () => {
       expect(await sharp(jpeg).metadata()).toMatchObject({ format: 'jpeg', width: 960 });
       const written = JSON.parse(await readFile(file.path, 'utf8'));
       expect(written.preview).toEqual({ ...file.preset.preview, poster: `${BASE}presets/look.test/h-late.jpg` });
-    }));
+    }), IMAGE_TIMEOUT);
 
   it('leaves current objects alone and writes nothing on a dry run', () => withPreset(
     { url: `${BASE}presets/look.test/h.mp4`, poster: `${BASE}presets/look.test/h.jpg` },
