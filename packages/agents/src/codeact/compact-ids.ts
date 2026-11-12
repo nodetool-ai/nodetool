@@ -9,8 +9,9 @@
  *
  * Rewriting is keyed by field name, never by shape alone: an md5 etag or a
  * content hash is also 32 hex, and truncating one would corrupt it. `id`,
- * `*_id`, `*_ids`, and `asset://` uris under `uri` / `*_uri` / `uris` are the
- * places an id lives. `user_id` is dropped outright: it is always the caller.
+ * `*_id`, `*_ids`, and `asset://` uris under `uri` / `*_uri` / `uris` and
+ * `url` / `*_url` / `urls` are the places an id lives. `user_id` is dropped
+ * outright: it is always the caller.
  *
  * Applied where host values enter the guest (the capability dispatcher and
  * the belt bridge), so guest variables and the observation agree, and where
@@ -37,7 +38,17 @@ function isIdListKey(key: string): boolean {
 }
 
 function isUriKey(key: string): boolean {
-  return key === "uri" || key.endsWith("_uri") || key === "uris";
+  return (
+    key === "uri" ||
+    key.endsWith("_uri") ||
+    key === "uris" ||
+    // A generation result names its asset as `url: "asset://<id>.mp4"` beside
+    // `asset_id`. Only `asset://` uris are rewritten, so an https URL in one of
+    // these fields is left as it is.
+    key === "url" ||
+    key.endsWith("_url") ||
+    key === "urls"
+  );
 }
 
 function compactIdValue(value: unknown): unknown {

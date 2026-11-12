@@ -133,6 +133,8 @@ For a NodeTool server on another machine, create an access token in
 
 ## What the agent gets
 
+Direct tools answer with full 32-character resource ids. Inside `execute_code`, results carry the 12-character prefix of each id instead, to save tokens. Every tool, direct or in the sandbox, accepts either form.
+
 Everything beyond the direct tools goes through `execute_code`, which runs sandboxed JavaScript that calls `nodetool.<namespace>.<method>()`. The agent finds a tool with `nodetool.searchTools("query")`. The full list of sandbox tools is in the [CLI reference](cli.md#what-the-mcp-server-exposes).
 
 ### Direct tools
