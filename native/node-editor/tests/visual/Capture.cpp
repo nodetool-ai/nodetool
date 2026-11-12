@@ -133,7 +133,8 @@ int main(int argc, char **argv) {
                                   {"packSetup", QVariant::fromValue(editor.packSetup())},
                                   {"inspectorFixture", QVariant::fromValue(&inspectorFixture)},
                                   {"commands", QVariant::fromValue(editor.editorCommands())},
-                                  {"runs", QVariant::fromValue(editor.runState())}});
+                                  {"runs", QVariant::fromValue(editor.runState())},
+                                  {"viewport", QVariant::fromValue(editor.viewport())}});
     fixture.setSource(QUrl("qrc:/editor/Fixture.qml"));
     require(fixture.status() == QQuickWidget::Ready, "Cannot load production QML fixture");
     fixture.resize(1000, 1200); fixture.show();

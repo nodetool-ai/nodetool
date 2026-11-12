@@ -296,6 +296,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&editorCommands_, &node_editor::EditorCommands::presentationRequested, this, &EditorWindow::presentation);
   connect(&selection_, &node_editor::Selection::nodeMenuRequested, this, &EditorWindow::showNodeMenu);
   connect(&runState_, &node_editor::RunState::authoredRequested, this, &EditorWindow::authoredAction);
+  connect(&viewport_, &node_editor::Viewport::commandRequested, this, &EditorWindow::userAction);
+  connect(&viewport_, &node_editor::Viewport::popupRequested, this, &EditorWindow::showMiniMapPopup);
+  connect(&viewport_, &node_editor::Viewport::colorModeRequested, this, &EditorWindow::setMiniMapColorMode);
+  connect(&viewport_, &node_editor::Viewport::closePopupRequested, this, &EditorWindow::closeMiniMapPopup);
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
@@ -764,8 +768,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&session_, &node_editor::WorkflowSession::systemStatsChanged, this, &EditorWindow::schedulePanelChanged);
   selectionOverlay_ = overlay("SelectionToolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
                                                   {"selection", QVariant::fromValue(&selection_)}});
-  viewportOverlay_ = overlay("ViewportIndicator");
-  miniMapControls_ = overlay("MiniMapControls");
+  syncViewport();
+  connect(this, &EditorWindow::zoomChanged, this, &EditorWindow::syncViewport);
+  connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncViewport);
+  viewportOverlay_ = overlay("ViewportIndicator", {{"viewport", QVariant::fromValue(&viewport_)}});
+  miniMapControls_ = overlay("MiniMapControls", {{"viewport", QVariant::fromValue(&viewport_)}});
   // The legend button joins the row in type mode, so the row keeps its right edge on the mini-map's.
   if (auto *controls = miniMapControls_->rootObject()) {
     connect(controls, SIGNAL(implicitWidthChanged()), this, SLOT(layoutOverlays()));
@@ -2440,6 +2447,10 @@ void EditorWindow::syncChrome() {
                           .systemStats = systemStats()});
   editorCommands_.setReadOnly(readOnly());
   selection_.setSelection(selectedCount(), selectionInfo(), selectionDisabled(), selectionMostlyDisabled());
+}
+void EditorWindow::syncViewport() {
+  viewport_.setZoom(zoomPercent(), zoomIsPreset());
+  viewport_.setMiniMapColorMode(miniMapColorMode());
 }
 void EditorWindow::syncRuns() {
   editorCommands_.setRunning(shownRunActive());
