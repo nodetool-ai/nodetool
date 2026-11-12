@@ -77,6 +77,24 @@ describe("compactResourceIds", () => {
     });
   });
 
+  it("gives one id length in a result whose url names the same asset", () => {
+    // A generation result carries `asset_id` and `url: "asset://<id>.mp4"`.
+    // Shortening one and not the other handed the model two lengths for one
+    // asset in a single result.
+    const out = compactResourceIds({
+      asset_id: FULL,
+      url: `asset://${FULL}.mp4`,
+      urls: [`asset://${FULL}.mp4`, "https://cdn.example.com/a.mp4"],
+      signed_url: "https://objects.example.com/a.mp4?token=1"
+    });
+    expect(out).toEqual({
+      asset_id: SHORT,
+      url: `asset://${SHORT}.mp4`,
+      urls: [`asset://${SHORT}.mp4`, "https://cdn.example.com/a.mp4"],
+      signed_url: "https://objects.example.com/a.mp4?token=1"
+    });
+  });
+
   it("rewrites only asset:// uris in free text", () => {
     const text = `clip: asset://${FULL}.mp4 hash ${FULL} also asset://${FULL}`;
     expect(compactAssetUris(text)).toBe(

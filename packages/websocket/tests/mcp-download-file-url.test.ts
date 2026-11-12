@@ -116,4 +116,33 @@ describe("download_file on a remote MCP session", () => {
     );
     expect(result.display_markdown).toBe(`![still.jpg](${result.asset_url})`);
   });
+
+  it("takes the 12-character id a sandbox result hands back", async () => {
+    // Sandbox results shorten ids to their first 12 characters. A direct MCP
+    // tool given one must find the same asset.
+    const server = new McpServer({ name: "test", version: "0.0.0" });
+    registerAgentMcpTools(server, {
+      agentToolsScope: { userId: "1", source: "http-session" }
+    });
+    const tools = (
+      server as unknown as {
+        _registeredTools: Record<
+          string,
+          { handler: (args: Record<string, unknown>) => Promise<unknown> }
+        >;
+      }
+    )._registeredTools;
+
+    const response = (await tools["download_file"].handler({
+      url: `asset://${ASSET_ID.slice(0, 12)}.jpg`,
+      output_file: "short.jpg"
+    })) as ToolResponse;
+    const result = JSON.parse(response.content[0]?.text ?? "{}") as {
+      success?: boolean;
+      file_size_bytes?: number;
+    };
+
+    expect(result.success).toBe(true);
+    expect(result.file_size_bytes).toBeGreaterThan(0);
+  });
 });
