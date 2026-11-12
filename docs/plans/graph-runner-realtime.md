@@ -1276,16 +1276,16 @@ session render (D11).
 
 | Host | How the kernel runs | How the node reaches it |
 |---|---|---|
-| Graph runner, desktop | Linked native code | The TypeScript `process()` calls a host function of a `kernels` capability, which runs the call on the CPU lane ([native jobs and lanes](../../native/graph-runner/README.md#native-jobs-and-lanes)) |
+| Graph runner, desktop | Linked native code | The TypeScript `process()` calls a host function of a `kernels` capability ([`src/host/kernels.cpp`](../../native/graph-runner/src/host/kernels.cpp)). The call runs on the worker thread. Moving it to the CPU lane ([native jobs and lanes](../../native/graph-runner/README.md#native-jobs-and-lanes)) is open |
 | Server, Node | WebAssembly, loaded by the node package | The same `process()` calls the module through `WebAssembly.instantiate` |
 | Browser | The same WebAssembly module | As on the server |
 
 The TypeScript class keeps the node type, the properties, the metadata and the
 validation. Only the loop moves. The server and the web editor therefore see
-no change of node type or metadata. The module ships as a package runtime
-asset (`PACKAGE_RUNTIME_ASSETS`), so the packaged Electron backend finds it.
-N6 applies to the library: no fast-math option and no fused multiply-add
-contraction.
+no change of node type or metadata. The module is embedded as base64 in the
+source of [`@nodetool-ai/kernels`](../../packages/kernels/README.md), so no
+host loads an asset at run time (R16). N6 applies to the library: no
+fast-math option and no fused multiply-add contraction.
 
 Each move compares the TypeScript loop with the new kernel once, on the
 parity cases of the node, within a stated tolerance. The TypeScript loop is
@@ -1296,7 +1296,7 @@ The first candidates come from F54:
 
 | Family | Nodes | Reason |
 |---|---|---|
-| Image enhance | `lib.image.enhance.*`: Equalize, AutoContrast, AdaptiveContrast, RankFilter, Detail, EdgeEnhance | Histogram and rank operations do not fit one shader pass. Parity cases exist. A small first move |
+| Image enhance | `lib.image.enhance.*`: Equalize, AutoContrast, AdaptiveContrast, RankFilter | Histogram and rank operations do not fit one shader pass. Parity cases exist. A small first move. Detail and EdgeEnhance are one 3×3 convolution and stay in WGSL (N4) |
 | Audio effects and synthesis | `lib-audio-effects.ts`, `synthesis.ts`, `lib-audio-dsp.ts` | The largest gain (F28). The kernels are shared with the audio plan |
 | Mesh operations | `model3d/mesh-ops.ts`, `boolean-ops.ts` | CPU geometry. C++ libraries for it compile to WebAssembly |
 | Game asset preparation | `game-nodes/atlas-preparation.ts`, `image-preparation.ts` | Pixel loops |
@@ -1538,8 +1538,8 @@ P0 decides R1 and R2 before P1 starts. It also replaces the targets of D7h and
 section 13 with measured values. The built-in kernels and the WGSL path
 deliver phases P1 to P6 without the kernel contracts of section 10.6.
 
-D17 does not depend on P0 to P7 and can start first. Its pilot moves the six
-`lib.image.enhance` nodes to `native/kernels`. Exit evidence: the parity suite
+D17 does not depend on P0 to P7 and can start first. Its pilot moves the four
+CPU `lib.image.enhance` nodes to `native/kernels`. Exit evidence: the parity suite
 passes for them in the runner, the node package tests pass with the
 WebAssembly build on the server, and a bench records the time per megapixel
 for the TypeScript loop, the module in Node and the native build. D16 waits

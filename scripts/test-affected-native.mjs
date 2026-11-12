@@ -110,7 +110,7 @@ export const PROJECTS = {
   "graph-runner": {
     envVar: "NODETOOL_GRAPH_RUNNER_BUILD_DIR",
     configureArgs: ["-DCMAKE_BUILD_TYPE=Release"],
-    dependsOn: ["jobs"],
+    dependsOn: ["jobs", "kernels"],
     prepare: [
       { cacheVar: "NODETOOL_GUEST_BUNDLE", label: "guest bundle", script: "native/graph-runner/guest/build.mjs" },
       { cacheVar: "NODETOOL_GPU_CATALOG", label: "GPU catalog", script: "native/graph-runner/guest/host/gpu-catalog.mjs" }
@@ -120,7 +120,7 @@ export const PROJECTS = {
   // The editor's local-run tests load the graph runner's guest bundle from the
   // path in NODETOOL_GUEST_BUNDLE (native/node-editor/cmake/GraphRunner.cmake).
   "node-editor": {
-    dependsOn: ["jobs"],
+    dependsOn: ["jobs", "kernels"],
     prepare: [
       {
         cacheVar: "NODETOOL_GUEST_BUNDLE",

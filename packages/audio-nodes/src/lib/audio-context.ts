@@ -7,7 +7,7 @@
  * addon. In the browser it is the global — when present: the browser workflow
  * runner executes inside a Web Worker, where `OfflineAudioContext` is not
  * guaranteed (absent in Firefox/Safari workers), so callers must handle the
- * `null` case with a pure-JS fallback (see `lib/biquad.ts`).
+ * `null` case.
  */
 import { IS_NODE, importHidden } from "@nodetool-ai/config";
 
