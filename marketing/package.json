@@ -21,6 +21,7 @@
     "seo:provider-logos": "node scripts/fetch-provider-logos.mjs",
     "seo:model-watch": "node scripts/model-watch.mjs",
     "test:model-watch": "node --test scripts/__tests__/model-watch.test.mjs",
+    "test:indexnow": "node --test scripts/__tests__/indexnow.test.mjs",
     "test:seed-guard": "node --test scripts/__tests__/seed-guard.test.mjs",
     "test:preset-showcase": "node --test scripts/__tests__/generate-preset-showcase.test.mjs",
     "seo:catalog": "node scripts/generate-template-catalog.mjs",

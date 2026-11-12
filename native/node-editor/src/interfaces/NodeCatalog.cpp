@@ -1,6 +1,7 @@
 #include "NodeCatalog.h"
 
 #include "graph/CatalogCategories.h"
+#include "interfaces/Assign.h"
 
 namespace nodetool::node_editor {
 
@@ -46,6 +47,10 @@ void NodeCatalog::setReadOnly(bool readOnly) {
     }
     readOnly_ = readOnly;
     emit readOnlyChanged();
+}
+
+void NodeCatalog::setWindowHeight(int height) {
+    if (assign(windowHeight_, height)) { emit windowHeightChanged(); }
 }
 
 QVariantList NodeCatalog::rank(const QVariantList &nodes, const QString &query) const {

@@ -1,3 +1,4 @@
+#include "host/platform_fs.h"
 // `__host.files`: file access for node code, confined to the directories the
 // embedder grants (HostOptions::workspaceDir read-write, readRoots
 // read-only). guest/host/fs.mjs builds node:fs on it, and the guest
@@ -63,17 +64,14 @@
 #include <climits>
 #include <cstdlib>
 #include <cstring>
-#include <dirent.h>
 #include <fcntl.h>
 #include <filesystem>
 #include <memory>
 #include <limits>
 #include <optional>
-#include <sys/stat.h>
 #ifdef __linux__
 #include <sys/syscall.h>
 #endif
-#include <unistd.h>
 
 using nodetool::jobs::JobCost;
 using nodetool::jobs::JobExecutor;
@@ -120,7 +118,7 @@ public:
 #ifdef __linux__
   static constexpr uint64_t kStreamBytes = 0;
 #else
-  // An assumed bound for the platform's DIR buffer. It is unverified on
+  // An assumed bound for the platform's fsapi::Dir buffer. It is unverified on
   // macOS: no test here runs on it, and its libc does not document the size.
   static constexpr uint64_t kStreamBytes = 64 * 1024;
 #endif
@@ -130,7 +128,7 @@ public:
   // allocated is still live. Throws FsError naming `path`.
   template <class F>
   size_t read(int fd, const std::string& path, F atPeak) {
-    if (::lseek(fd, 0, SEEK_SET) < 0) throwErrno(errno, "rm", path);
+    if (fsapi::lseek(fd, 0, SEEK_SET) < 0) throwErrno(errno, "rm", path);
     count_ = 0;
 #ifdef __linux__
     const long n = ::syscall(SYS_getdents64, fd, buffer_.data(), buffer_.size());
@@ -144,16 +142,16 @@ public:
     }
     atPeak();
 #else
-    const int copy = ::dup(fd);
-    if (copy < 0) throwErrno(errno, "rm", path);
-    std::unique_ptr<DIR, int (*)(DIR*)> stream(::fdopendir(copy), ::closedir);
+    UniqueFd copy(fsapi::dup(fd));
+    if (!copy) throwErrno(errno, "rm", path);
+    auto stream = fsapi::fdopendir(copy.get());
     if (!stream) {
       const int err = errno;
-      ::close(copy);
       throwErrno(err, "rm", path);
     }
+    copy.release();
     while (count_ < kNames) {
-      struct dirent* e = ::readdir(stream.get());
+      fsapi::Entry* e = fsapi::readdir(stream.get());
       if (!e) break;
       if (std::strcmp(e->d_name, ".") == 0 || std::strcmp(e->d_name, "..") == 0) continue;
       std::strncpy(names_[count_].data(), e->d_name, NAME_MAX);
@@ -224,7 +222,7 @@ size_t safeInteger(js::Engine &e, const js::Value &value, const char *name) {
   return static_cast<size_t>(number);
 }
 
-std::string kindOf(mode_t mode) {
+std::string kindOf(fsapi::Mode mode) {
   if (S_ISREG(mode)) return "file";
   if (S_ISDIR(mode)) return "directory";
   if (S_ISLNK(mode)) return "symlink";
@@ -234,18 +232,18 @@ std::string kindOf(mode_t mode) {
 double ms(const struct timespec& t) { return double(t.tv_sec) * 1000.0 + double(t.tv_nsec) / 1e6; }
 
 #ifdef __APPLE__
-const struct timespec& mtimeOf(const struct stat& st) { return st.st_mtimespec; }
-const struct timespec& ctimeOf(const struct stat& st) { return st.st_ctimespec; }
+const struct timespec& mtimeOf(const fsapi::FileStat& st) { return st.st_mtimespec; }
+const struct timespec& ctimeOf(const fsapi::FileStat& st) { return st.st_ctimespec; }
 #else
-const struct timespec& mtimeOf(const struct stat& st) { return st.st_mtim; }
-const struct timespec& ctimeOf(const struct stat& st) { return st.st_ctim; }
+const struct timespec& mtimeOf(const fsapi::FileStat& st) { return st.st_mtim; }
+const struct timespec& ctimeOf(const fsapi::FileStat& st) { return st.st_ctim; }
 #endif
 
 // write() retried on EINTR until every byte is written. Throws FsError.
 void writeAll(int fd, const uint8_t* data, size_t size, const std::string& path) {
   size_t off = 0;
   while (off < size) {
-    ssize_t n = ::write(fd, data + off, size - off);
+    fsapi::Count n = fsapi::write(fd, data + off, size - off);
     if (n < 0) {
       if (errno == EINTR) continue;
       throwErrno(errno, "write", path);
@@ -284,7 +282,7 @@ struct FileGrants {
     out.reserve(size_t(file.size));
     uint8_t buf[65536];
     for (;;) {
-      ssize_t n = ::read(file.fd.get(), buf, sizeof buf);
+      fsapi::Count n = fsapi::read(file.fd.get(), buf, sizeof buf);
       if (n < 0) {
         if (errno == EINTR) continue;
         throwErrno(errno, "read", path);
@@ -302,10 +300,10 @@ struct FileGrants {
                  const std::stop_token& stop = {}) const {
     Resolved r = resolve(path, Access::Write, "open");
     int flags = O_WRONLY | O_CREAT | O_NOFOLLOW | O_CLOEXEC | (append ? O_APPEND : O_TRUNC);
-    UniqueFd f(::open(r.real.c_str(), flags, 0644));
+    UniqueFd f(fsapi::open(r.real.c_str(), flags, 0644));
     if (!f) throwErrno(errno, "open", path);
-    struct stat st {};
-    if (::fstat(f.get(), &st) == 0 && st.st_nlink > 1) {
+    fsapi::FileStat st {};
+    if (fsapi::fstat(f.get(), &st) == 0 && st.st_nlink > 1) {
       throw FsError("EACCES", "open", path, "hard-linked file");
     }
     size_t written = 0;
@@ -328,11 +326,11 @@ struct FileGrants {
       // lstat looks at the link itself: confine its parent, keep the leaf.
       Resolved parent = resolve(path, Access::Read, syscall);
       (void)parent;
-      std::string absolute = path[0] == '/' ? path : cwd + "/" + path;
+      std::string absolute = std::filesystem::u8path(path).is_absolute() ? path : cwd + "/" + path;
       target = lexicalNormalize(absolute);
     }
-    struct stat st {};
-    int rc = follow ? ::stat(target.c_str(), &st) : ::lstat(target.c_str(), &st);
+    fsapi::FileStat st {};
+    int rc = follow ? fsapi::stat(target.c_str(), &st) : fsapi::lstat(target.c_str(), &st);
     if (rc != 0) throwErrno(errno, syscall, path);
     return {{"kind", kindOf(st.st_mode)},
             {"size", double(st.st_size)},
@@ -346,16 +344,16 @@ struct FileGrants {
   // as they are read, so a larger directory fails before it is held.
   nlohmann::json readdir(const std::string& path, uint64_t cap = UINT64_MAX) const {
     Resolved r = resolve(path, Access::Read, "scandir");
-    std::unique_ptr<DIR, int (*)(DIR*)> dir(::opendir(r.real.c_str()), ::closedir);
+    auto dir = fsapi::opendir(r.real.c_str());
     if (!dir) throwErrno(errno, "scandir", path);
     std::vector<std::pair<std::string, std::string>> entries;
     uint64_t bytes = 2;
-    while (struct dirent* e = ::readdir(dir.get())) {
+    while (fsapi::Entry* e = fsapi::readdir(dir.get())) {
       std::string name = e->d_name;
       if (name == "." || name == "..") continue;
-      struct stat st {};
+      fsapi::FileStat st {};
       std::string kind = "other";
-      if (::fstatat(::dirfd(dir.get()), e->d_name, &st, AT_SYMLINK_NOFOLLOW) == 0) {
+      if (fsapi::fstatat(fsapi::dirfd(dir.get()), e->d_name, &st, AT_SYMLINK_NOFOLLOW) == 0) {
         kind = kindOf(st.st_mode);
       }
       // A name escapes to at most six bytes per byte, with quotes and kind.
@@ -372,26 +370,26 @@ struct FileGrants {
   std::optional<std::string> mkdir(const std::string& path, bool recursive) const {
     Resolved r = resolve(path, recursive ? Access::WriteAny : Access::Write, "mkdir");
     if (r.exists) {
-      struct stat st {};
-      if (recursive && ::stat(r.real.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) return std::nullopt;
+      fsapi::FileStat st {};
+      if (recursive && fsapi::stat(r.real.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) return std::nullopt;
       throw FsError("EEXIST", "mkdir", path);
     }
     // Create each missing component below the existing ancestor.
     std::optional<std::string> first;
     std::string current;
-    size_t i = 0;
+    size_t i = std::filesystem::u8path(r.real).root_path().generic_string().size() - 1;
     const std::string& target = r.real;
     while (i < target.size()) {
       size_t j = target.find('/', i + 1);
       if (j == std::string::npos) j = target.size();
       current = target.substr(0, j);
       i = j;
-      struct stat st {};
-      if (::lstat(current.c_str(), &st) == 0) {
+      fsapi::FileStat st {};
+      if (fsapi::lstat(current.c_str(), &st) == 0) {
         if (!S_ISDIR(st.st_mode)) throw FsError(S_ISLNK(st.st_mode) ? "EACCES" : "ENOTDIR", "mkdir", path);
         continue;
       }
-      if (::mkdir(current.c_str(), 0755) != 0 && errno != EEXIST) throwErrno(errno, "mkdir", path);
+      if (fsapi::mkdir(current.c_str(), 0755) != 0 && errno != EEXIST) throwErrno(errno, "mkdir", path);
       if (!first) first = current;
     }
     return first;
@@ -399,13 +397,15 @@ struct FileGrants {
 
   std::string mkdtemp(const std::string& prefix) const {
     if (prefix.find('\0') != std::string::npos) throw FsError("EINVAL", "mkdtemp", prefix);
-    const std::filesystem::path candidate(prefix + "XXXXXX");
+    const auto candidate = std::filesystem::u8path(prefix + "XXXXXX");
     const auto parent = candidate.parent_path();
-    const auto resolved = resolve(parent.empty() ? "." : parent.string(), Access::Write, "mkdtemp");
+    const auto parentUtf8 = parent.generic_u8string();
+    const auto resolved = resolve(parent.empty() ? "." : std::string(parentUtf8.begin(), parentUtf8.end()), Access::Write, "mkdtemp");
     // Only the parent is resolved. A literal prefixXXXXXX entry is not the
     // directory libc will create and must not redirect or deny this operation.
-    std::string pattern = (std::filesystem::path(resolved.real) / candidate.filename()).string();
-    if (!::mkdtemp(pattern.data())) throwErrno(errno, "mkdtemp", prefix);
+    const auto patternUtf8 = (std::filesystem::u8path(resolved.real) / candidate.filename()).generic_u8string();
+    std::string pattern(patternUtf8.begin(), patternUtf8.end());
+    if (!fsapi::mkdtemp(pattern.data())) throwErrno(errno, "mkdtemp", prefix);
     return pattern;
   }
 
@@ -424,14 +424,13 @@ struct FileGrants {
   // (host/paths.h). Checks `stop` before each batch and each entry and
   // returns false when it stopped, with part of the tree removed.
   bool removeTree(const std::string& real, const std::string& path, const std::stop_token& stop = {}) const {
-    const size_t slash = real.rfind('/');
-    const std::string leaf = real.substr(slash + 1);
-    UniqueFd parent(::open(slash == 0 ? "/" : real.substr(0, slash).c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC));
+    const std::string leaf = real.substr(real.rfind('/') + 1);
+    UniqueFd parent(fsapi::open(parentOf(real).c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC));
     if (!parent) throwErrno(errno, "rm", path);
-    struct stat st {};
-    if (::fstatat(parent.get(), leaf.c_str(), &st, AT_SYMLINK_NOFOLLOW) != 0) throwErrno(errno, "rm", path);
+    fsapi::FileStat st {};
+    if (fsapi::fstatat(parent.get(), leaf.c_str(), &st, AT_SYMLINK_NOFOLLOW) != 0) throwErrno(errno, "rm", path);
     if (!S_ISDIR(st.st_mode)) {
-      if (::unlinkat(parent.get(), leaf.c_str(), 0) != 0) throwErrno(errno, "rm", path);
+      if (fsapi::unlinkat(parent.get(), leaf.c_str(), 0) != 0) throwErrno(errno, "rm", path);
       return true;
     }
     std::vector<RemoveLevel> levels;
@@ -442,7 +441,7 @@ struct FileGrants {
         throw FsError("ENAMETOOLONG", "rm", path,
                       "the tree is more than " + std::to_string(kMaxRemoveDepth) + " directories deep");
       }
-      const int fd = ::openat(at, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+      const int fd = fsapi::openat(at, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
       if (fd < 0) throwErrno(errno, "rm", path);
       RemoveLevel& level = levels.emplace_back();
       level.fd = UniqueFd(fd);
@@ -459,7 +458,7 @@ struct FileGrants {
         const RemoveLevel done = std::move(levels.back());
         levels.pop_back();
         const int at = levels.empty() ? parent.get() : levels.back().fd.get();
-        if (::unlinkat(at, done.name.data(), AT_REMOVEDIR) != 0) throwErrno(errno, "rm", path);
+        if (fsapi::unlinkat(at, done.name.data(), AT_REMOVEDIR) != 0) throwErrno(errno, "rm", path);
         continue;
       }
       for (size_t i = 0; i < count; ++i) {
@@ -467,7 +466,7 @@ struct FileGrants {
         const char* name = batch->name(i);
         bool directory = batch->type(i) == DT_DIR;
         if (batch->type(i) == DT_UNKNOWN) {
-          if (::fstatat(dir, name, &st, AT_SYMLINK_NOFOLLOW) != 0) {
+          if (fsapi::fstatat(dir, name, &st, AT_SYMLINK_NOFOLLOW) != 0) {
             if (errno == ENOENT) continue;
             throwErrno(errno, "rm", path);
           }
@@ -478,7 +477,7 @@ struct FileGrants {
           descend(dir, name);
           break;
         }
-        if (::unlinkat(dir, name, 0) != 0 && errno != ENOENT) throwErrno(errno, "rm", path);
+        if (fsapi::unlinkat(dir, name, 0) != 0 && errno != ENOENT) throwErrno(errno, "rm", path);
       }
     }
     return true;
@@ -500,8 +499,8 @@ struct FileGrants {
     for (const auto& root : roots) {
       if (root.dir == r.real) throw FsError("EACCES", "rm", path, "a granted directory itself");
     }
-    struct stat st {};
-    if (::lstat(r.real.c_str(), &st) != 0) throwErrno(errno, "rm", path);
+    fsapi::FileStat st {};
+    if (fsapi::lstat(r.real.c_str(), &st) != 0) throwErrno(errno, "rm", path);
     if (S_ISDIR(st.st_mode) && !recursive) {
       throw FsError("EISDIR", "rm", path);  // Node: ERR_FS_EISDIR
     }
@@ -514,20 +513,20 @@ struct FileGrants {
     for (const auto& root : roots) {
       if (root.dir == r.real) throw FsError("EACCES", "rmdir", path, "a granted directory itself");
     }
-    if (::rmdir(r.real.c_str()) != 0) throwErrno(errno, "rmdir", path);
+    if (fsapi::rmdir(r.real.c_str()) != 0) throwErrno(errno, "rmdir", path);
   }
 
   void unlink(const std::string& path) const {
     Resolved r = resolve(path, Access::Write, "unlink");
     if (!r.exists) throw FsError("ENOENT", "unlink", path);
-    if (::unlink(r.real.c_str()) != 0) throwErrno(errno, "unlink", path);
+    if (fsapi::unlink(r.real.c_str()) != 0) throwErrno(errno, "unlink", path);
   }
 
   void rename(const std::string& from, const std::string& to) const {
     Resolved a = resolve(from, Access::Write, "rename");
     if (!a.exists) throw FsError("ENOENT", "rename", from);
     Resolved b = resolve(to, Access::Write, "rename");
-    if (::rename(a.real.c_str(), b.real.c_str()) != 0) throwErrno(errno, "rename", from);
+    if (fsapi::rename(a.real.c_str(), b.real.c_str()) != 0) throwErrno(errno, "rename", from);
   }
 
   void copyFile(const std::string& from, const std::string& to) const {
@@ -543,19 +542,19 @@ struct FileGrants {
   bool copyFileStreaming(const std::string& from, const std::string& to, const std::stop_token& stop) const {
     OpenedFile source = openRead(from);
     Resolved r = resolve(to, Access::Write, "open");
-    UniqueFd target(::open(r.real.c_str(), O_WRONLY | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0644));
+    UniqueFd target(fsapi::open(r.real.c_str(), O_WRONLY | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0644));
     if (!target) throwErrno(errno, "open", to);
-    struct stat in {}, out {};
-    if (::fstat(source.fd.get(), &in) != 0) throwErrno(errno, "fstat", from);
-    if (::fstat(target.get(), &out) != 0) throwErrno(errno, "fstat", to);
+    fsapi::FileStat in {}, out {};
+    if (fsapi::fstat(source.fd.get(), &in) != 0) throwErrno(errno, "fstat", from);
+    if (fsapi::fstat(target.get(), &out) != 0) throwErrno(errno, "fstat", to);
     if (in.st_dev == out.st_dev && in.st_ino == out.st_ino) return true;
     if (out.st_nlink > 1) throw FsError("EACCES", "open", to, "hard-linked file");
-    if (::ftruncate(target.get(), 0) != 0) throwErrno(errno, "open", to);
+    if (fsapi::ftruncate(target.get(), 0) != 0) throwErrno(errno, "open", to);
     std::vector<uint8_t> chunk(kCopyChunk);
     uint64_t copied = 0;
     for (;;) {
       if (stop.stop_requested()) return false;
-      ssize_t n = ::read(source.fd.get(), chunk.data(), chunk.size());
+      fsapi::Count n = fsapi::read(source.fd.get(), chunk.data(), chunk.size());
       if (n < 0) {
         if (errno == EINTR) continue;
         throwErrno(errno, "read", from);
@@ -608,7 +607,7 @@ struct FileHandleToken final : js::NativePayload {
 // active operation.
 class HandleRead final : public ResourceOperation {
 public:
-  HandleRead(std::shared_ptr<ResourceControl> control, size_t length, std::optional<off_t> position,
+  HandleRead(std::shared_ptr<ResourceControl> control, size_t length, std::optional<fsapi::Offset> position,
              std::string path)
       : ResourceOperation(std::move(control)), length_(length), position_(position), path_(std::move(path)) {}
 
@@ -620,10 +619,10 @@ protected:
     auto& handle = static_cast<HandleBody&>(body);
     if (!handle.fd) throw FsError("EBADF", "read", path_, "closed or foreign file handle");
     std::vector<uint8_t> bytes(length_);
-    ssize_t count;
+    fsapi::Count count;
     do {
-      count = position_ ? ::pread(handle.fd.get(), bytes.data(), length_, *position_)
-                        : ::read(handle.fd.get(), bytes.data(), length_);
+      count = position_ ? fsapi::pread(handle.fd.get(), bytes.data(), length_, *position_)
+                        : fsapi::read(handle.fd.get(), bytes.data(), length_);
     } while (count < 0 && errno == EINTR);
     if (count < 0) throwErrno(errno, "read", path_);
     bytes.resize(static_cast<size_t>(count));
@@ -632,7 +631,7 @@ protected:
 
 private:
   size_t length_;
-  std::optional<off_t> position_;
+  std::optional<fsapi::Offset> position_;
   std::string path_;
 };
 
@@ -1018,14 +1017,14 @@ void installFiles(js::Engine& e, const js::Value& object, const HostOptions& opt
     if (length > kMaxHandleReadBytes) throw std::runtime_error("file read length exceeds 16 MiB limit");
     const bool current = en.isNull(a[2]);
     const size_t position = current ? 0 : safeInteger(en, a[2], "position");
-    if (static_cast<long double>(position) > std::numeric_limits<off_t>::max()) {
+    if (static_cast<long double>(position) > std::numeric_limits<fsapi::Offset>::max()) {
       throw std::runtime_error("file read position exceeds native offset range");
     }
     std::vector<uint8_t> bytes(length);
-    ssize_t count;
+    fsapi::Count count;
     do {
-      count = current ? ::read(handle->fd.get(), bytes.data(), length)
-                      : ::pread(handle->fd.get(), bytes.data(), length, static_cast<off_t>(position));
+      count = current ? fsapi::read(handle->fd.get(), bytes.data(), length)
+                      : fsapi::pread(handle->fd.get(), bytes.data(), length, static_cast<fsapi::Offset>(position));
     } while (count < 0 && errno == EINTR);
     if (count < 0) throwErrno(errno, "read", handle->path);
     return en.bytes(bytes.data(), static_cast<size_t>(count));
@@ -1076,13 +1075,13 @@ void installFiles(js::Engine& e, const js::Value& object, const HostOptions& opt
     auto token = files->handle(en, a[0], "read");
     const size_t length = safeInteger(en, a[1], "length");
     if (length > kMaxHandleReadBytes) throw std::runtime_error("file read length exceeds 16 MiB limit");
-    std::optional<off_t> position;
+    std::optional<fsapi::Offset> position;
     if (!en.isNull(a[2])) {
       const size_t at = safeInteger(en, a[2], "position");
-      if (static_cast<long double>(at) > std::numeric_limits<off_t>::max()) {
+      if (static_cast<long double>(at) > std::numeric_limits<fsapi::Offset>::max()) {
         throw std::runtime_error("file read position exceeds native offset range");
       }
-      position = static_cast<off_t>(at);
+      position = static_cast<fsapi::Offset>(at);
     }
     Submission s = begin(*binding);
     s.reservation.reserveSnapshot(token->path.size());

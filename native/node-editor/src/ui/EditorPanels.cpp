@@ -127,6 +127,11 @@ void EditorWindow::notify(const QString &type, const QString &content) {
   for (auto *tab : owner->tabs_) { emit tab->notificationsChanged(); }
 }
 
+void EditorWindow::syncNotifications() {
+  notificationList_.setEntries(notifications());
+  notificationList_.setUnread(unreadNotifications());
+}
+
 void EditorWindow::showNotifications(const QPointF &global) {
   auto *owner = tabOwner_ ? tabOwner_ : this;
   owner->notificationsSeen_ = QDateTime::currentDateTime();
@@ -141,6 +146,7 @@ void EditorWindow::showNotifications(const QPointF &global) {
     popup->setClearColor(Qt::transparent);
     popup->setAttribute(Qt::WA_DeleteOnClose);
     popup->setResizeMode(QQuickWidget::SizeRootObjectToView);
+    popup->setInitialProperties({{"notifications", QVariant::fromValue(&notificationList_)}});
     popup->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/NotificationsPanel.qml")));
     notificationPopup_ = popup;
   }

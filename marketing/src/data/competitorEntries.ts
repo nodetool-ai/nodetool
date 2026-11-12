@@ -105,6 +105,19 @@ export type CostComparisonTable = {
   footnote?: string;
 };
 
+/**
+ * A tool on an alternatives list that has no comparison page of its own. Every
+ * entry names the project page its facts were read from.
+ */
+export type ListedTool = {
+  name: string;
+  note: string;
+  /** Where it runs and its licence, e.g. "Windows, macOS, Linux · Apache-2.0". */
+  facts: string;
+  /** The project's own page. */
+  source: string;
+};
+
 export type Competitor = {
   slug: string;
   /** Display name, e.g. "ComfyUI". */
@@ -146,6 +159,26 @@ export type Competitor = {
    * after same-category rivals on the /alternatives page.
    */
   related?: string[];
+
+  /**
+   * Where this tool runs and its licence, in one line. Shown on the tool's card
+   * wherever another page lists it as an alternative. State only what this
+   * record's own rows or sources say.
+   */
+  listFacts?: string;
+
+  /**
+   * The direct answer above the alternatives list, for pages whose searchers
+   * want the list itself ("comfyui alternatives"). Names the tools. The cards
+   * carry the facts.
+   */
+  listAnswer?: string;
+
+  /**
+   * Tools searchers treat as alternatives that have no comparison page here.
+   * Listed after the linked tools, with the day their facts were checked.
+   */
+  otherTools?: { checked: string; tools: ListedTool[] };
 
   /** Hero headline and subline, when the category default in `alternativesVisuals.ts` does not fit. */
   hero?: { headline: string; subline: string };
@@ -1338,12 +1371,44 @@ export const competitors: Competitor[] = [
   {
     slug: "comfyui",
     related: ["figma-weave", "flora", "krea"],
+    listFacts: "Runs locally or on Comfy Cloud · Open source (GPL-3.0)",
+    listAnswer:
+      "For open-source software on your own computer, the closest ComfyUI alternatives are NodeTool, InvokeAI, SwarmUI, and Stable Diffusion WebUI Forge. For a hosted canvas in the browser, they are Figma Weave, Flora, and Krea. Each entry below says where the tool runs and under which licence.",
+    otherTools: {
+      checked: "November 12, 2026",
+      tools: [
+        {
+          name: "InvokeAI",
+          note: "Image generation app with a unified canvas and a node-based workflow editor.",
+          facts: "Windows, macOS, Linux · Open source (Apache-2.0)",
+          source: "https://github.com/invoke-ai/InvokeAI",
+        },
+        {
+          name: "SwarmUI",
+          note: "A form-first interface for image and video models, with a Comfy Workflow tab that opens the raw graph.",
+          facts: "Windows, Linux, macOS on Apple silicon · Open source (MIT)",
+          source: "https://github.com/mcmonkeyprojects/SwarmUI",
+        },
+        {
+          name: "Stable Diffusion WebUI Forge",
+          note: "A web interface built on AUTOMATIC1111's Stable Diffusion WebUI, with settings in forms instead of a graph.",
+          facts: "Runs locally · Open source (AGPL-3.0)",
+          source: "https://github.com/lllyasviel/stable-diffusion-webui-forge",
+        },
+        {
+          name: "Draw Things",
+          note: "An app that runs image models offline on Apple devices.",
+          facts: "Mac, iPhone, iPad · Free app with in-app purchases",
+          source: "https://apps.apple.com/us/app/id6444050820",
+        },
+      ],
+    },
     starter: { id: "generate-then-upscale-a-poster", source: "comfyui", heading: "Try a generation graph in NodeTool" },
     name: "ComfyUI",
     seo: {
       title: "ComfyUI Alternatives: NodeTool, Figma Weave, Flora, Krea",
       description:
-        "The best ComfyUI alternatives for image, video, and audio workflows, compared: NodeTool (open source, your own keys), Figma Weave, Flora, and Krea.",
+        "ComfyUI alternatives compared by platform and licence: NodeTool (open source, macOS, Windows, Linux), InvokeAI, SwarmUI, Forge, Figma Weave, Flora, and Krea.",
     },
     theme: "blue",
     category: "Node editor",
@@ -1388,6 +1453,26 @@ export const competitors: Competitor[] = [
         answer:
           "Yes, when the workflow is exported in API (prompt) format. The Run ComfyUI Workflow node sends it to a ComfyUI server you run, to a NodeTool GPU worker that fronts ComfyUI, or to Comfy Cloud with a COMFY_API_KEY. The server needs the workflow's custom nodes and models.",
       },
+      {
+        question: "Is there a ComfyUI alternative for Mac or Linux?",
+        answer:
+          "Yes. NodeTool Studio ships a .dmg for Apple Silicon and Intel Macs, a Windows installer, and a Linux AppImage. On Apple Silicon with macOS 14 or newer, local models can run on Apple's MLX framework. InvokeAI runs on macOS and Linux too, SwarmUI runs on Linux and on Apple silicon Macs, and Draw Things is a free app for Mac, iPhone, and iPad that runs image models offline.",
+      },
+      {
+        question: "What is the best online alternative to ComfyUI?",
+        answer:
+          "For a hosted canvas with nothing to install, Figma Weave, Flora, and Krea run in the browser, each on its own model list and credits. Comfy Cloud is ComfyUI's own hosted version. NodeTool Cloud also runs in the browser and is in alpha, so use NodeTool Studio on the desktop for paid work.",
+      },
+      {
+        question: "Is there an easier alternative to ComfyUI?",
+        answer:
+          "It depends on which part is hard. If the graph is the obstacle, Stable Diffusion WebUI Forge puts the settings in forms, and SwarmUI shows a form first and keeps the graph in a separate tab. If setup is the obstacle, a hosted canvas such as Krea or Flora needs no install. In NodeTool you describe the result and the agent builds and validates the workflow, or you start from a template, and hosted models need no graphics card or model downloads.",
+      },
+      {
+        question: "Is there a free, open-source ComfyUI alternative?",
+        answer:
+          "Yes. NodeTool is free and open source under AGPL-3.0, InvokeAI under Apache-2.0, SwarmUI under MIT, and Stable Diffusion WebUI Forge under AGPL-3.0. All four run local models on your own computer. NodeTool also calls hosted models with your own provider keys, billed by the provider at its list price.",
+      },
     ],
     limitation:
       "ComfyUI supports image and video workflows, but shared graphs that use custom nodes may require matching extensions and models on another machine. NodeTool adds a storyboard, timeline, and other editors around the workflow canvas.",
@@ -1404,6 +1489,7 @@ export const competitors: Competitor[] = [
     theme: "blue",
     category: "Creative canvas",
     related: ["flora", "krea", "comfyui"],
+    listFacts: "Browser, hosted · Closed source",
     og: {
       image: "screen_canvas.png",
       accent: "violet",
@@ -1465,6 +1551,7 @@ export const competitors: Competitor[] = [
     theme: "violet",
     category: "Creative canvas",
     related: ["flora", "krea", "comfyui"],
+    listFacts: "Browser, hosted · Closed source",
     og: {
       image: "screen_canvas.png",
       accent: "violet",
@@ -1535,7 +1622,7 @@ export const competitors: Competitor[] = [
       { label: "Self-host + local models", competitor: false, nodetool: true },
     ],
     explainerParagraph:
-      "Runway is a good answer to \"generate this shot\". It is a worse answer to \"generate this shot with whichever model is best this month, then do it again next week for forty SKUs\". NodeTool treats the model as a swappable part: the same graph calls Veo, Kling, Sora, Hailuo, Wan, or Seedance depending on which node you pick, billed to your own key at the provider's list price. Around that sit the parts a finished piece needs anyway — a storyboard that settles framing before you pay for clips, a script that knows which voice speaks each line, and a multi-track timeline to cut on. All of it is open source under AGPL-3.0, so the workflow is a file you own and can rerun anywhere.",
+      "Choose Runway when you want its own video models, which only Runway serves, in a hosted studio with a built-in timeline and one subscription. NodeTool fits when the model should be a swappable part: the same workflow calls Veo, Kling, Sora, Hailuo, Wan, or Seedance on your own provider key, and you rerun it for the next piece.",
     ctaHeading: "Keep the edit, swap the model.",
     ctaParagraph:
       "Download Studio and build the whole video pipeline on your own keys.",
@@ -1799,6 +1886,7 @@ export const competitors: Competitor[] = [
     theme: "rose",
     category: "Creative canvas",
     related: ["figma-weave", "krea", "comfyui"],
+    listFacts: "Browser, hosted · Closed source",
     isNew: true,
     seo: {
       title: "Flora Alternative: Open-Source AI Canvas on Your Own Keys | NodeTool",
@@ -1849,6 +1937,7 @@ export const competitors: Competitor[] = [
     theme: "cyan",
     category: "Creative canvas",
     related: ["leonardo-ai", "flora", "figma-weave"],
+    listFacts: "Browser, hosted · Closed source",
     isNew: true,
     seo: {
       title: "Krea Alternative: Open-Source AI Image and Video Canvas | NodeTool",
@@ -2130,25 +2219,38 @@ export function siblings(slug: string): Competitor[] {
   });
 }
 
-/**
- * The tool list for an `/alternatives/<slug>` page: NodeTool first (the
- * recommended alternative), then same-category rivals and `related` entries,
- * capped at six entries. Unrelated competitors never fill the list.
- */
-export function alternativesFor(slug: string): {
+/** Where NodeTool runs and its licence, for the first card of every list. */
+export const NODETOOL_LIST_FACTS =
+  "macOS, Windows, Linux, or self-hosted · Open source (AGPL-3.0)";
+
+export type AlternativeTool = {
   name: string;
+  /** A comparison page on this site, or the project's own page when `external`. */
   href: string | null;
   note: string;
   isNodetool: boolean;
-}[] {
+  /** Where the tool runs and its licence. */
+  facts?: string;
+  /** `href` leaves the site. */
+  external?: boolean;
+};
+
+/**
+ * The tool list for an `/alternatives/<slug>` page: NodeTool first (the
+ * recommended alternative), then `related` entries and same-category rivals,
+ * capped at five, then the record's `otherTools`, which have no comparison
+ * page. Unrelated competitors never fill the list.
+ */
+export function alternativesFor(slug: string): AlternativeTool[] {
   const current = getCompetitor(slug);
-  const nodetool = {
+  const nodetool: AlternativeTool = {
     name: "NodeTool",
     href: null,
     note: current
       ? `An open-source canvas for image, video, audio, and text that runs on your own keys — the ${current.category.toLowerCase()} alternative you can host yourself.`
       : "An open-source canvas for image, video, audio, and text that runs on your own keys.",
     isNodetool: true,
+    facts: NODETOOL_LIST_FACTS,
   };
   // Hand-picked `related` tools lead, in the order given, so a large category
   // (the creative canvases include image generators) cannot push the closest
@@ -2162,13 +2264,26 @@ export function alternativesFor(slug: string): {
   );
   const rivals = [...relatedRivals, ...sameCategory]
     .slice(0, 5)
-    .map((c) => ({
-      name: c.name,
-      href: `/alternatives/${c.slug}`,
-      note: c.competitorTagline,
+    .map(
+      (c): AlternativeTool => ({
+        name: c.name,
+        href: `/alternatives/${c.slug}`,
+        note: c.competitorTagline,
+        isNodetool: false,
+        ...(c.listFacts ? { facts: c.listFacts } : {}),
+      })
+    );
+  const others = (current?.otherTools?.tools ?? []).map(
+    (tool): AlternativeTool => ({
+      name: tool.name,
+      href: tool.source,
+      note: tool.note,
       isNodetool: false,
-    }));
-  return [nodetool, ...rivals];
+      facts: tool.facts,
+      external: true,
+    })
+  );
+  return [nodetool, ...rivals, ...others];
 }
 
 

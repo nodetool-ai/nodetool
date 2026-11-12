@@ -3,3 +3,12 @@ pkg_check_modules(GR_MEDIA REQUIRED IMPORTED_TARGET libavformat libavcodec libav
 target_sources(gr_kernel PRIVATE ${CMAKE_CURRENT_LIST_DIR}/../src/host/media.cpp)
 target_link_libraries(gr_kernel PRIVATE PkgConfig::GR_MEDIA)
 set_property(TARGET gr_kernel PROPERTY GR_MEDIA_RUNTIME_LIBRARIES "${GR_MEDIA_LINK_LIBRARIES}")
+if(WIN32)
+  # pkg-config names the import libraries; their DLLs sit in the sibling bin.
+  set(media_runtime_directories "")
+  foreach(directory IN LISTS GR_MEDIA_LIBRARY_DIRS)
+    list(APPEND media_runtime_directories "${directory}/../bin")
+  endforeach()
+  set_property(TARGET gr_kernel PROPERTY GR_MEDIA_RUNTIME_NAMES "${GR_MEDIA_LIBRARIES}")
+  set_property(TARGET gr_kernel PROPERTY GR_MEDIA_RUNTIME_DIRECTORIES "${media_runtime_directories}")
+endif()

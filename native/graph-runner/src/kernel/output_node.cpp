@@ -41,6 +41,7 @@ bool needsGuest(const Json& v) {
   return !nonEmpty(v, "asset_id") && (nonEmpty(v, "data") || nonEmpty(v, "uri"));
 }
 
+// Thread affinity: the runner's executor thread.
 class OutputFrames final : public FrameIterator {
 public:
   explicit OutputFrames(Task<Json> frame) : frame_(std::move(frame)) {}
@@ -56,6 +57,7 @@ private:
   bool done_ = false;
 };
 
+// Thread affinity: the runner's executor thread.
 class OutputExecutor final : public Executor {
 public:
   OutputExecutor(const Json& properties, OutputValueStep valueStep)
@@ -89,7 +91,10 @@ public:
 private:
   Task<Json> step(Json inputs) {
     if (inputs.is_object() && inputs.contains("value")) value_ = inputs["value"];
-    if (valueStep_ && needsGuest(value_)) co_return Json{{"output", co_await valueStep_(value_)}};
+    if (valueStep_ && needsGuest(value_)) {
+      auto output = co_await valueStep_(value_);
+      co_return Json{{"output", std::move(output)}};
+    }
     co_return Json{{"output", value_}};
   }
 

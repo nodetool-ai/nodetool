@@ -53,11 +53,19 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#if defined(_WIN32)
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <psapi.h>
+#else
 #include <sys/resource.h>
 #if defined(__APPLE__)
 #include <mach/mach.h>
 #else
 #include <unistd.h>
+#endif
 #endif
 
 namespace {
@@ -99,7 +107,16 @@ double msSince(std::chrono::steady_clock::time_point start) {
       .count();
 }
 
-#if defined(__APPLE__)
+#if defined(_WIN32)
+size_t residentBytes() {
+  PROCESS_MEMORY_COUNTERS counters{};
+  return GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof(counters)) ? counters.WorkingSetSize : 0;
+}
+size_t peakResidentBytes() {
+  PROCESS_MEMORY_COUNTERS counters{};
+  return GetProcessMemoryInfo(GetCurrentProcess(), &counters, sizeof(counters)) ? counters.PeakWorkingSetSize : 0;
+}
+#elif defined(__APPLE__)
 size_t residentBytes() {
   mach_task_basic_info info{};
   mach_msg_type_number_t count = MACH_TASK_BASIC_INFO_COUNT;

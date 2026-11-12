@@ -8,7 +8,9 @@ import NodeTool.UiPrimitives as Ui
 Ui.Surface {
     id: root
     variant: Ui.Surface.Overlay
-    readonly property bool cardMode: editor && editor.selectedCount === 1 && editor.selectionInfo.kind === "node"
+    required property EditorCommands commands
+    required property Selection selection
+    readonly property bool cardMode: root.selection.count === 1 && root.selection.info.kind === "node"
     implicitWidth: layout.implicitWidth + Ui.Metrics.sm * 2
     implicitHeight: layout.implicitHeight + Ui.Metrics.sm * 2
     component Action: Ui.ToolbarIconButton {
@@ -16,8 +18,8 @@ Ui.Surface {
         property bool custom: false
         objectName: "selection-" + command.toLowerCase().split(" ").join("-")
         accessibleName: command
-        enabled: editor && !editor.readOnly
-        onClicked: if (!custom) editor.action(command)
+        enabled: !root.commands.readOnly
+        onClicked: if (!custom) root.commands.run(command)
     }
     Loader {
         id: layout
@@ -33,14 +35,14 @@ Ui.Surface {
                 iconName: "playArrow"
                 variant: Ui.EditorButton.Primary
                 // useRunFromHere.ts: Run node is its own job, so a running workflow does not disable it.
-                enabled: editor && !editor.readOnly && !editor.selectionDisabled
+                enabled: !root.commands.readOnly && !root.selection.disabled
             }
             Ui.Separator { orientation: Qt.Vertical; Layout.preferredHeight: Ui.Metrics.lg }
-            Action { command: "Open child"; iconName: "layers"; visible: editor && editor.selectionInfo.childGraph === true }
+            Action { command: "Open child"; iconName: "layers"; visible: root.selection.info.childGraph === true }
             Action {
-                command: editor && editor.selectionMostlyDisabled ? "Enable selected" : "Disable selected"
+                command: root.selection.mostlyDisabled ? "Enable selected" : "Disable selected"
                 iconName: "powerSettingsNew"
-                active: editor && editor.selectionMostlyDisabled
+                active: root.selection.mostlyDisabled
             }
             Action { command: "Duplicate"; iconName: "copy" }
             Action { command: "Chat about node"; iconName: "forumOutlined"; enabled: true }
@@ -49,7 +51,7 @@ Ui.Surface {
                 iconName: "moreVert"
                 enabled: true
                 custom: true
-                onClicked: editor.showNodeMenu(mapToGlobal(0, height))
+                onClicked: root.selection.showNodeMenu(mapToGlobal(0, height))
             }
         }
     }
@@ -57,14 +59,14 @@ Ui.Surface {
         id: selectionRow
         RowLayout {
             spacing: Ui.Metrics.xs
-            Action { command: "Arrange selection"; iconName: "alignHorizontalLeft"; enabled: editor && !editor.readOnly && editor.selectedCount >= 2 }
+            Action { command: "Arrange selection"; iconName: "alignHorizontalLeft"; enabled: !root.commands.readOnly && root.selection.count >= 2 }
             Ui.Separator { orientation: Qt.Vertical; Layout.preferredHeight: Ui.Metrics.lg }
-            Action { command: "Run selected"; iconName: "playArrow"; enabled: editor && !editor.readOnly && !editor.shownRunActive && !editor.selectionDisabled }
-            Action { command: "Open child"; iconName: "layers"; visible: editor && editor.selectedCount === 1 && editor.selectionInfo.childGraph === true }
+            Action { command: "Run selected"; iconName: "playArrow"; enabled: !root.commands.readOnly && !root.commands.running && !root.selection.disabled }
+            Action { command: "Open child"; iconName: "layers"; visible: root.selection.count === 1 && root.selection.info.childGraph === true }
             Action { command: "Duplicate"; iconName: "copy" }
-            Action { command: "Group selection"; iconName: "layers"; enabled: editor && !editor.readOnly && editor.selectedCount >= 2 }
-            Action { command: "Link selected"; iconName: "link"; enabled: editor && !editor.readOnly && editor.selectedCount === 2 }
-            Action { command: editor && editor.selectionMostlyDisabled ? "Enable selected" : "Disable selected"; iconName: "powerSettingsNew" }
+            Action { command: "Group selection"; iconName: "layers"; enabled: !root.commands.readOnly && root.selection.count >= 2 }
+            Action { command: "Link selected"; iconName: "link"; enabled: !root.commands.readOnly && root.selection.count === 2 }
+            Action { command: root.selection.mostlyDisabled ? "Enable selected" : "Disable selected"; iconName: "powerSettingsNew" }
             Ui.Separator { orientation: Qt.Vertical; Layout.preferredHeight: Ui.Metrics.lg }
             Action { command: "Delete"; iconName: "deleteOutline" }
         }

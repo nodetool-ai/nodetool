@@ -159,6 +159,14 @@ add_library(gr_kernel STATIC
   src/host/timers.cpp
   src/host/kernels.cpp)
 target_include_directories(gr_kernel PUBLIC src include)
+if(WIN32)
+  target_sources(gr_kernel PRIVATE src/host/platform_fs_windows.cpp)
+  target_compile_definitions(gr_kernel PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
+  target_link_libraries(gr_kernel PRIVATE ntdll bcrypt ws2_32)
+  if(BUILD_TESTING)
+    add_subdirectory(unittests/windows)
+  endif()
+endif()
 include(cmake/host-media.cmake)
 include(cmake/host-code-media.cmake)
 target_link_libraries(gr_kernel PUBLIC nodetool_jobs nlohmann_json::nlohmann_json Threads::Threads)
@@ -359,6 +367,9 @@ if(PROJECT_IS_TOP_LEVEL)
   target_compile_definitions(gr_context_tests PRIVATE GR_TEST_TESSDATA="${GR_TEST_TESSDATA}")
   add_dependencies(gr_context_tests gr_context_test_bundle)
   add_test(NAME gr_context_tests COMMAND gr_context_tests "${GR_CONTEXT_TEST}")
+  # It times a 5 MB bridge crossing against a wall-clock budget, so it must not
+  # share the machine with another test under `ctest -j`.
+  set_tests_properties(gr_context_tests PROPERTIES RUN_SERIAL TRUE)
   # A parity bundle of the image module: the default bundle does not admit
   # nodetool.image.TextToImage, whose prediction grant the runner cases use.
   set(GR_ASYNC_CONTEXT_GUEST "${CMAKE_CURRENT_BINARY_DIR}/async-context-guest.js")

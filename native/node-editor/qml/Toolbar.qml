@@ -5,30 +5,31 @@ import NodeTool.UiPrimitives as Ui
 // Canvas actions and the embedded conversation entry point.
 Item {
     id: root
+    required property EditorCommands commands
+    required property RunState runs
     // A narrow canvas keeps the run icon and drops its label, as the web does.
     property bool compact: false
     EditorRoles { id: roles }
     function syncTheme() {
-        if (!editor) return
-        editor.presentation({subgraphAccent: roles.subgraphAccent, canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, groupHeader: roles.groupHeader, groupFill: roles.groupFill, zoomedTitle: roles.zoomedTitle, previewSelected: roles.previewSelected, outputSelected: roles.outputSelected, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, mediaScrim: roles.mediaScrim, mediaScrimInk: roles.mediaScrimInk, alphaBase: roles.alphaBase, alphaChecker: roles.alphaChecker, primary: Ui.Theme.accentPrimary, progress: Ui.Theme.accentSecondary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, success: Ui.Theme.statusSuccess, sans: Ui.Typography.sansFamily, mono: Ui.Typography.monoFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), reducedMotion: Ui.Theme.reducedMotion, motionNormal: Ui.Metrics.motionNormal})
+        root.commands.present({subgraphAccent: roles.subgraphAccent, canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, groupHeader: roles.groupHeader, groupFill: roles.groupFill, zoomedTitle: roles.zoomedTitle, previewSelected: roles.previewSelected, outputSelected: roles.outputSelected, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, mediaScrim: roles.mediaScrim, mediaScrimInk: roles.mediaScrimInk, alphaBase: roles.alphaBase, alphaChecker: roles.alphaChecker, primary: Ui.Theme.accentPrimary, progress: Ui.Theme.accentSecondary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, success: Ui.Theme.statusSuccess, sans: Ui.Typography.sansFamily, mono: Ui.Typography.monoFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), reducedMotion: Ui.Theme.reducedMotion, motionNormal: Ui.Metrics.motionNormal})
     }
     Component.onCompleted: syncTheme()
     Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { root.syncTheme() } function onReducedMotionChanged() { root.syncTheme() } }
     Connections { target: Ui.Typography; function onSansFamilyChanged() { root.syncTheme() } }
-    readonly property bool runActive: editor && editor.shownRunActive
+    readonly property bool runActive: root.commands.running
     readonly property var currentJob: {
-        const jobs = (editor ? editor.shownQueue : [])
+        const jobs = root.runs.queue
         let latest = null
         for (const job of jobs) {
-            if (job.workflow_id !== workflowSession.workflow.id || job.order === undefined) continue
+            if (job.workflow_id !== root.runs.workflowId || job.order === undefined) continue
             if (!latest || (latest.terminal && !job.terminal)
                 || (!latest.terminal && !job.terminal && job.order < latest.order)
                 || (latest.terminal && job.terminal && job.order > latest.order)) latest = job
         }
         return latest
     }
-    readonly property int pendingRunCount: (editor ? editor.shownQueue : []).filter(job =>
-        job.workflow_id === workflowSession.workflow.id
+    readonly property int pendingRunCount: root.runs.queue.filter(job =>
+        job.workflow_id === root.runs.workflowId
         && ["queued", "scheduled", "starting"].includes(job.status)).length
     readonly property string runLabel: {
         const job = currentJob
@@ -83,15 +84,13 @@ Item {
         property string tooltip: text
         implicitWidth: Ui.Metrics.compact
         implicitHeight: Ui.Metrics.compact
-        enabled: editor && (!editor.readOnly || !["Run", "Add node", "Auto layout"].includes(text))
+        enabled: !root.commands.readOnly || !["Run", "Add node", "Auto layout"].includes(text)
         objectName: "toolbar-" + text.toLowerCase().split(" ").join("-")
         accessibleName: text
-        onClicked: editor.action(text)
+        onClicked: root.commands.run(text)
         HoverHandler {
             onHoveredChanged: {
-                if (editor) {
-                    editor.showToolTip(hovered ? action.tooltip : "")
-                }
+                root.commands.showToolTip(hovered ? action.tooltip : "")
             }
         }
         Ui.Icon {
@@ -148,15 +147,13 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: actionName
                     accessibleName: root.runActive ? root.runLabel + " (click to queue another entire workflow run)" : root.runLabel
-                    enabled: editor && !editor.readOnly && workflowSession.connected && root.runLabel !== "Stopping"
+                    enabled: !root.commands.readOnly && root.runs.connected && root.runLabel !== "Stopping"
                     implicitHeight: Ui.Metrics.comfortable
                     implicitWidth: Math.ceil(Math.max(Ui.Metrics.comfortable, runRow.implicitWidth + Ui.Metrics.lg * 2))
-                    onClicked: editor.action(actionName)
+                    onClicked: root.commands.run(actionName)
                     HoverHandler {
                         onHoveredChanged: {
-                            if (editor) {
-                                editor.showToolTip(hovered ? root.runTooltip : "")
-                            }
+                            root.commands.showToolTip(hovered ? root.runTooltip : "")
                         }
                     }
                     // A running workflow turns the pill to the panel surface.

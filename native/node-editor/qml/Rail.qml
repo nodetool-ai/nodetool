@@ -7,6 +7,7 @@ import NodeTool.UiPrimitives as Ui
 // (LEFT_PANEL_TOP_LEVEL) and web/src/components/node_menu/QuickAccessSidebar.tsx.
 Rectangle {
     id: root
+    required property PanelLayout panels
     EditorRoles { id: roles }
     color: roles.chrome
     implicitWidth: roles.railWidth
@@ -42,9 +43,7 @@ Rectangle {
         // The hover handler sits on the wrapper, which stays enabled, so a disabled button still explains itself.
         HoverHandler {
             onHoveredChanged: {
-                if (editor) {
-                    editor.showToolTip(hovered ? (entry.unavailable !== "" ? entry.unavailable : entry.tip) : "")
-                }
+                root.panels.showToolTip(hovered ? (entry.unavailable !== "" ? entry.unavailable : entry.tip) : "")
             }
         }
     }
@@ -66,22 +65,22 @@ Rectangle {
             objectName: "rail-documents"
             label: "Documents"
             glyph: "folderCopyOutlined"
-            active: editor && editor.browserVisible
-            onActivated: editor.action("Workflows")
+            active: root.panels.browserVisible
+            onActivated: root.panels.toggleBrowser()
         }
         RailEntry {
             objectName: "rail-chats"
             label: "Chats"
             glyph: "forumOutlined"
-            active: editor && editor.chatVisible
-            onActivated: editor.toggleChat()
+            active: root.panels.chatVisible
+            onActivated: root.panels.toggleChat()
         }
         RailEntry {
             objectName: "rail-library"
             label: "Library"
             glyph: "collectionsOutlined"
-            active: editor && editor.libraryVisible
-            onActivated: editor.action("Library")
+            active: root.panels.libraryVisible
+            onActivated: root.panels.toggleLibrary()
         }
         RailEntry {
             objectName: "rail-entities"
@@ -99,8 +98,8 @@ Rectangle {
             objectName: "rail-nodes"
             label: "Nodes"
             glyph: "hub"
-            active: editor && editor.catalogVisible
-            onActivated: editor.action("Toggle nodes")
+            active: root.panels.catalogVisible
+            onActivated: root.panels.toggleCatalog()
         }
         RailEntry {
             objectName: "rail-more"
@@ -121,7 +120,7 @@ Rectangle {
             objectName: "rail-panel"
             label: "Toggle panel"
             glyph: "code"
-            onActivated: editor.action("Toggle panel")
+            onActivated: root.panels.togglePanel()
         }
     }
 }

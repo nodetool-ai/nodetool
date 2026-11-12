@@ -169,7 +169,7 @@ void InlineTitlePresenter::refresh() {
     widget->setObjectName("authored-controls-" + model_.resourceId(id));
     widget->setClearColor(Qt::transparent);
     widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    widget->setInitialProperties({{"hasChildren", parents.contains(model_.resourceId(id))}, {"bypassed", bypassedParents.contains(model_.resourceId(id))}, {"host", QVariant::fromValue(editor)}, {"resourceId", model_.resourceId(id)},
+    widget->setInitialProperties({{"hasChildren", parents.contains(model_.resourceId(id))}, {"bypassed", bypassedParents.contains(model_.resourceId(id))}, {"commands", QVariant::fromValue(editor->editorCommands())}, {"runs", QVariant::fromValue(editor->runState())}, {"resourceId", model_.resourceId(id)},
       {"group", model_.isGroup(id)}, {"epoch", QVariant::fromValue(editor->documentEpoch())},
       {"credentials", QVariant::fromValue(editor->credentialsEpoch())}});
     widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/AuthoredControls.qml"));

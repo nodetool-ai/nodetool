@@ -6,7 +6,9 @@ import NodeTool.UiPrimitives as Ui
 
 ColumnLayout {
     id: root
-    readonly property var controller: editor.packSetup
+    required property NodeCatalog catalog
+    required property PackSetup packSetup
+    readonly property PackSetup controller: packSetup
     readonly property var categories: controller.categories
     spacing: Ui.Metrics.md
     Ui.Separator {
@@ -32,7 +34,7 @@ ColumnLayout {
         popupType: Basic.Popup.Window
         width: Ui.Metrics.dialogCompactWidth - Ui.Metrics.xxxl * 3 - Ui.Metrics.md
         height: Ui.Metrics.dialogWidth
-        onAboutToShow: height = Math.min(content.implicitHeight + padding * 2, editor.height * 0.7)
+        onAboutToShow: height = Math.min(content.implicitHeight + padding * 2, root.catalog.windowHeight * 0.7)
         Basic.ScrollView {
             id: scroller
             anchors.fill: parent
@@ -182,7 +184,7 @@ ColumnLayout {
                     text: "Runtimes and packs"
                     onClicked: {
                         popup.close()
-                        editor.setupAction("dependencies")
+                        root.catalog.openRuntimes()
                     }
                 }
             }

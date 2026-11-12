@@ -11,8 +11,8 @@ export const contentDates: {
       "hash": "385578d9cf343038"
     },
     "/marketing": {
-      "date": "2026-11-08",
-      "hash": "7eb40d35b1ef051f"
+      "date": "2026-11-12",
+      "hash": "8156191b6731ae30"
     },
     "/gamedev": {
       "date": "2026-10-30",
@@ -43,8 +43,8 @@ export const contentDates: {
       "hash": "b19bf2ea276f5de6"
     },
     "/storyboards": {
-      "date": "2026-10-17",
-      "hash": "ef8648e0de40ca4b"
+      "date": "2026-11-12",
+      "hash": "d856073c685a1fae"
     },
     "/storyboards/bowl-time": {
       "date": "2026-10-06",

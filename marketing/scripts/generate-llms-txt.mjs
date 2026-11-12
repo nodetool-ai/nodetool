@@ -370,7 +370,11 @@ ${marketing.CAMPAIGN_CASE.limitation} Follow the recipe at ${BASE_URL}/recipes/d
 ## More for ad teams
 
 ${marketing.MORE_FOR_AD_TEAMS.map((m) => `- [${m.title}](${BASE_URL}${m.href}): ${m.body}`).join("\n")}
-- [AI video editor](${BASE_URL}/ai-video-editor.md): the storyboard and timeline the agent builds.`;
+- [AI video editor](${BASE_URL}/ai-video-editor.md): the storyboard and timeline the agent builds.
+
+## AI ad creative: common questions
+
+${marketing.MARKETING_FAQ.map((f) => `**${f.question}** ${f.answer}`).join("\n\n")}`;
 }
 
 /** The /studio page as Markdown, from its data module. */

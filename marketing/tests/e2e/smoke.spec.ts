@@ -384,7 +384,16 @@ test.describe("marketing smoke", () => {
     );
     await expect(
       page.locator('section[aria-labelledby="alt-list-title"] h3')
-    ).toHaveText([/^NodeTool/, "Figma Weave", "Flora", "Krea"]);
+    ).toHaveText([
+      /^NodeTool/,
+      "Figma Weave",
+      "Flora",
+      "Krea",
+      "InvokeAI",
+      "SwarmUI",
+      "Stable Diffusion WebUI Forge",
+      "Draw Things"
+    ]);
 
     await page.goto("/alternatives/lm-studio");
     await expect(page).toHaveTitle(

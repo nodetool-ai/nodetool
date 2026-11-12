@@ -30,7 +30,26 @@ the `editor` context property takes small interface objects as required
 properties instead, such as [`NodeCatalog`](src/interfaces/NodeCatalog.h) for
 the node library and the node menu, and
 [`NodeInspector`](src/interfaces/NodeInspector.h) for the inspector, its
-property fields and its History tab.
+property fields and its History tab. The tab bar and the subgraph strips take
+[`DocumentTabs`](src/interfaces/DocumentTabs.h), and the tab bar's bell and the
+notification list take [`Notifications`](src/interfaces/Notifications.h). The document bar takes
+[`WorkflowHeader`](src/interfaces/WorkflowHeader.h), and it and the icon rail
+take [`PanelLayout`](src/interfaces/PanelLayout.h). The status bar takes
+[`StatusModel`](src/interfaces/StatusModel.h) and `PanelLayout`. The canvas
+toolbars and the group controls take
+[`EditorCommands`](src/interfaces/EditorCommands.h),
+[`Selection`](src/interfaces/Selection.h) and
+[`RunState`](src/interfaces/RunState.h). The zoom readout and the mini-map
+buttons and popups take [`Viewport`](src/interfaces/Viewport.h). The
+first-workflow guide takes
+[`FirstWorkflowGuide`](src/interfaces/FirstWorkflowGuide.h).
+The workflow browser takes
+[`WorkflowBrowser`](src/server/WorkflowBrowser.h), and it and the asset library
+take `PanelLayout` and `StatusModel`. The run output takes `PanelLayout`,
+`StatusModel` and `RunState`, and the type icons and Markdown output read the
+`TypeIcons` and `OutputStyle` singletons.
+The canvas chat window takes [`ChatWindow`](src/interfaces/ChatWindow.h) for
+its drag and resize.
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
 read `EditorWindow`.
 
@@ -41,8 +60,9 @@ Quick, Qml, QuickControls2, Svg, Network, WebSockets, Multimedia, and Test. If Q
 the system prefix, supply `-DCMAKE_PREFIX_PATH=/path/to/Qt/6.12/gcc_64`.
 
 `npm run node-editor` builds the guest bundle when it is missing, builds the
-editor in `native/node-editor/build`, and starts it with that bundle. Put
-editor arguments after `--`, for example `npm run node-editor -- -- --offline`.
+editor in `native/node-editor/build` (`build-windows` on Windows), and starts
+it with that bundle. Put editor arguments after `--`, for example
+`npm run node-editor -- -- --offline`.
 Add `--rebuild-guest` before them to rebuild a stale guest bundle. When no
 server answers on `http://localhost:7777`, the script starts the development
 server (`npm run dev:server`) there and stops it when the editor quits. The
@@ -59,6 +79,44 @@ cmake --build /tmp/node-editor-build --parallel 6
 /tmp/node-editor-build/nodetool-node-editor --open workflow.json
 ctest --test-dir /tmp/node-editor-build --output-on-failure
 ```
+
+### Windows
+
+Use the Qt MSVC 2022 kit, Visual Studio's C++ workload, and CMake 3.28 or
+newer. The Qt installation must include Multimedia. The
+[graph runner dependencies](../graph-runner/README.md#build) are also required.
+With vcpkg, enable libvips's `cplusplus`, `jpeg`, `png`, and `webp` features.
+Use a shared FFmpeg development distribution and the Windows Wasmtime C API
+distribution, including `wasmtime.dll.lib`.
+
+Set `CMAKE_PREFIX_PATH` to the Qt kit, vcpkg's `installed/x64-windows`, and
+the FFmpeg prefix, separated by semicolons. Set `PKG_CONFIG_EXECUTABLE` to
+the installed pkg-config executable and `WASMTIME_ROOT` to the C API directory.
+Configure once from PowerShell:
+
+```powershell
+cmake -S native/node-editor -B native/node-editor/build-windows `
+  -G "Visual Studio 17 2022" -A x64 `
+  "-DCMAKE_PREFIX_PATH=$env:CMAKE_PREFIX_PATH" `
+  "-DPKG_CONFIG_EXECUTABLE=$env:PKG_CONFIG_EXECUTABLE" `
+  "-DWASMTIME_ROOT=$env:WASMTIME_ROOT"
+npm run node-editor
+```
+
+The launcher reuses the configured CMake executable and generator, builds
+the Release configuration, and starts `Release/nodetool-node-editor.exe`.
+The build deploys Qt DLLs, QML plugins, transitive native DLL dependencies,
+the compiler runtime, and `guest.js` beside the executable. You can open
+`Release/nodetool-node-editor.exe` directly without rebuilding or changing PATH.
+Direct launch does not start the backend; use an existing server or offline mode.
+The launcher adds the configured
+native dependency `bin` directories to its process PATH. Closing the editor
+also stops a development server that this launcher started.
+The launcher and test script also use the configured Qt plugins, including
+the offscreen platform plugin for headless checks.
+
+Local runs accept drive-letter workspace paths. UNC and device-namespace
+paths are refused by the filesystem boundary.
 
 CMake fetches [QtNodes](https://github.com/paceholder/nodeeditor/tree/829b18457d4e95ac17f4fdb01c6201125681729d)
 at immutable revision `829b18457d4e95ac17f4fdb01c6201125681729d`, under
@@ -330,6 +388,16 @@ QtNodes or media. Run it with `ctest --test-dir <build> -R
 `Inspector.qml` with a fixture inspector and no `EditorWindow`, commits a field,
 blocks a read-only edit and sends the run and close requests. Run it with
 `ctest --test-dir <build> -R 'node_editor_inspector_component$'
+--output-on-failure`.
+[TabBarComponentTest](tests/ui/TabBarComponentTest.cpp) loads `TabBar.qml`,
+`CanvasTabStrip.qml` and `NotificationsPanel.qml` with fixture tabs and
+notifications and no `EditorWindow`. It activates, closes, renames and drops
+tabs, opens the notifications and copies one. Run it with `ctest --test-dir
+<build> -R 'node_editor_tab_bar_component$' --output-on-failure`.
+[HeaderRowComponentTest](tests/ui/HeaderRowComponentTest.cpp) loads
+`HeaderRow.qml`, `Rail.qml` and `StatusBar.qml` with fixture interfaces and no
+`EditorWindow`.
+Run it with `ctest --test-dir <build> -R 'node_editor_header_row_component$'
 --output-on-failure`.
 Complete successful-reconnect acceptance, inferred Code ports, dedicated canvas
 add-variable targets, full Agent-control presentation, value/code convenience
