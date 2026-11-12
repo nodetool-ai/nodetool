@@ -203,6 +203,19 @@ public:
         f->pts = offset;
         check(av_frame_get_buffer(f.get(), 0), "Allocate export audio frame");
         const auto bytes = std::as_bytes(pcm.subspan(static_cast<std::size_t>(offset * 2), static_cast<std::size_t>(f->nb_samples * 2)));
+        if (m_codec.codec_id == AV_CODEC_ID_PCM_S24LE) {
+            // swr would hand the encoder a 32-bit value that it truncates to 24 bits,
+            // which biases every sample down by half a step. Round to the 24-bit
+            // grid here, with no dither as in the 16-bit path, and let the
+            // encoder drop the zero low byte.
+            const auto* in = reinterpret_cast<const float*>(bytes.data());
+            auto* out = reinterpret_cast<int32_t*>(f->data[0]);
+            for (int i = 0; i < f->nb_samples * 2; ++i) {
+                const double scaled = std::nearbyint(static_cast<double>(in[i]) * 8388608.0);
+                out[i] = static_cast<int32_t>(std::clamp(scaled, -8388608.0, 8388607.0)) * 256;
+            }
+            return f;
+        }
         const auto* input = reinterpret_cast<const uint8_t*>(bytes.data());
         check(swr_convert(m_resample.get(), f->data, f->nb_samples, &input, f->nb_samples), "Convert export audio");
         return f;
@@ -301,7 +314,7 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
             }
             const auto* encoder = chosen(options.audioEncoder, options.format == u"mp4" ? avcodec_find_encoder(AV_CODEC_ID_AAC)
                 : options.format == u"webm" ? avcodec_find_encoder_by_name("libopus")
-                : options.format == u"wav" ? avcodec_find_encoder(AV_CODEC_ID_PCM_S16LE)
+                : options.format == u"wav" ? avcodec_find_encoder(options.audioBitDepth == 24 ? AV_CODEC_ID_PCM_S24LE : AV_CODEC_ID_PCM_S16LE)
                 : avcodec_find_encoder_by_name("libmp3lame"));
             audio = audioCodec(encoder);
             result.audioEncoder = QString::fromUtf8(encoder->name);

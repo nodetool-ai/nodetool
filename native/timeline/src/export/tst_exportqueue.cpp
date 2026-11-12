@@ -67,9 +67,9 @@ private slots:
     }
     void builtinPresets() {
         const auto presets = nt::exporting::builtinExportPresets();
-        QCOMPARE(presets.size(), size_t(6));
-        const QStringList ids{"match", "landscape-1080p", "vertical-9x16", "square-1x1", "review-720p", "audio-wav"};
-        const QStringList names{"Match timeline", "1080p landscape", "Vertical 9:16", "Square", "Small review copy", "Audio only (WAV)"};
+        QCOMPARE(presets.size(), size_t(7));
+        const QStringList ids{"match", "landscape-1080p", "vertical-9x16", "square-1x1", "review-720p", "audio-wav", "audio-wav-24"};
+        const QStringList names{"Match timeline", "1080p landscape", "Vertical 9:16", "Square", "Small review copy", "Audio only (WAV)", "Full mix (24-bit WAV)"};
         QSet<QString> unique;
         for (size_t i = 0; i < presets.size(); ++i) {
             const auto& p = presets[i];
@@ -82,7 +82,7 @@ private slots:
             QCOMPARE(p.settings.height % 2, 0);
             unique.insert(p.id);
         }
-        QCOMPARE(unique.size(), 6);
+        QCOMPARE(unique.size(), 7);
         QCOMPARE(presets[1].settings.width, 1920);
         QCOMPARE(presets[1].settings.height, 1080);
         QCOMPARE(presets[2].settings.width, 1080);
@@ -90,6 +90,9 @@ private slots:
         QCOMPARE(presets[3].settings.height, 1080);
         QCOMPARE(presets[4].settings.videoBitrateKbps, 2500);
         QCOMPARE(presets[5].settings.format, QString("wav"));
+        QCOMPARE(presets[5].settings.audioBitDepth, 16);
+        QCOMPARE(presets[6].settings.format, QString("wav"));
+        QCOMPARE(presets[6].settings.audioBitDepth, 24);
     }
     void userPresets() {
         QTemporaryDir dir;
@@ -112,7 +115,7 @@ private slots:
         const auto id = first.saveUserPreset("  My Review  ", custom);
         QVERIFY(QRegularExpression("^user-[0-9a-f]{12}$").match(id).hasMatch());
         QCOMPARE(first.saveUserPreset("my review", wav), id);
-        QCOMPARE(first.presets().size(), 7);
+        QCOMPARE(first.presets().size(), 8);
         QVERIFY(first.saveUserPreset(" MATCH TIMELINE ", wav).isEmpty());
         QVERIFY(first.saveUserPreset("  ", wav).isEmpty());
         first.setLastPresetId(id);
@@ -136,7 +139,7 @@ private slots:
         QCOMPARE(second.lastPresetId(), QString("match"));
         ExportPresets third;
         QCOMPARE(third.lastPresetId(), QString("match"));
-        QCOMPARE(third.presets().size(), 6);
+        QCOMPARE(third.presets().size(), 7);
         // Also handle a stale stored selection left by an older install.
         QSettings stored(dir.filePath("preferences.ini"), QSettings::IniFormat);
         stored.setValue("export/lastPreset", id);

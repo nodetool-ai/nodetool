@@ -1,5 +1,7 @@
 #include "export/ExportController.h"
 #include "export/ExportEngine.h"
+#include "export/ExportSettings.h"
+#include "assets/AssetWav.h"
 #include "preview/effects/Masks.h"
 #include "audio/AudioEngine.h"
 #include "audio/AudioSource.h"
@@ -430,6 +432,101 @@ private slots:
         QVERIFY(elapsed.elapsed() < 3500);
         QCOMPARE(QDir(dir.path()).entryList(QDir::AllEntries | QDir::Hidden | QDir::NoDotAndDotDot), QStringList{});
     }
+    // AU-8: the 24-bit WAV preset. A known float signal is exported through the
+    // engine and the data chunk is read back against the offline mix.
+    void wav24WritesA24BitPcmHeaderAndRoundTrips() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        constexpr int frames = 24000;  // half a second
+        std::vector<float> signal(frames * 2);
+        for (int i = 0; i < frames; ++i) {
+            const double t = i / 48000.0;
+            signal[2 * i] = float(0.7 * std::sin(2 * M_PI * 440 * t));
+            signal[2 * i + 1] = float(0.3 * std::sin(2 * M_PI * 1234.5 * t) + 1e-5 * std::sin(2 * M_PI * 3 * t));
+        }
+        signal[0] = 1.0f;       // full scale
+        signal[2] = -1.0f;
+        const QString source = dir.filePath("signal.wav");
+        QVERIFY(nt::assets::writeStereoFloatWav(source, signal));
+        const QJsonObject raw{{"width", 64}, {"height", 48}, {"fps", 30}, {"durationMs", 500},
+            {"tracks", QJsonArray{QJsonObject{{"id", "a"}, {"type", "audio"}, {"index", 0}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "a"}, {"mediaType", "audio"},
+                {"startMs", 0}, {"durationMs", 500}, {"status", "generated"}, {"mediaPath", source}}}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        const auto reference = nt::audio::renderOffline(*parsed.timeline, 48000, 0, 500);
+        QCOMPARE(reference.size(), size_t(frames * 2));
+        QVERIFY(std::any_of(reference.begin(), reference.end(), [](float v) { return std::fabs(v) > 0.1f; }));
+
+        nt::exporting::Options options;
+        options.format = "wav";
+        options.audioBitDepth = 24;
+        options.output = dir.filePath("mix24.wav");
+        const auto result = nt::exporting::exportTimeline(*parsed.timeline, options);
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        QCOMPARE(result.audioEncoder, QString("pcm_s24le"));
+
+        QFile file(options.output);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const QByteArray bytes = file.readAll();
+        QVERIFY(bytes.startsWith("RIFF"));
+        QCOMPARE(bytes.mid(8, 4), QByteArray("WAVE"));
+        const auto u16 = [&](qsizetype o) { return quint16(quint8(bytes[o]) | (quint8(bytes[o + 1]) << 8)); };
+        const auto u32 = [&](qsizetype o) { return quint32(u16(o)) | (quint32(u16(o + 2)) << 16); };
+        qsizetype fmt = -1, data = -1;
+        for (qsizetype o = 12; o + 8 <= bytes.size();) {
+            const auto id = bytes.mid(o, 4);
+            const auto size = qsizetype(u32(o + 4));
+            if (id == "fmt ") { fmt = o + 8; }
+            if (id == "data") { data = o + 8; break; }
+            o += 8 + size + (size & 1);
+        }
+        QVERIFY(fmt > 0 && data > 0);
+        // ffmpeg writes 24-bit PCM as WAVE_FORMAT_EXTENSIBLE with the PCM sub-format.
+        QCOMPARE(u16(fmt), quint16(0xFFFE));
+        QCOMPARE(u16(fmt + 16), quint16(22));    // cbSize
+        QCOMPARE(u16(fmt + 18), quint16(24));    // valid bits
+        QCOMPARE(u16(fmt + 24), quint16(1));     // sub-format: PCM
+        QCOMPARE(u16(fmt + 2), quint16(2));      // stereo
+        QCOMPARE(u32(fmt + 4), quint32(48000));
+        QCOMPARE(u32(fmt + 8), quint32(48000 * 2 * 3));  // byte rate
+        QCOMPARE(u16(fmt + 12), quint16(6));     // block align
+        QCOMPARE(u16(fmt + 14), quint16(24));    // bits per sample
+        QCOMPARE(qsizetype(u32(data - 4)), qsizetype(frames * 6));
+        QCOMPARE(bytes.size() - data, qsizetype(frames * 6));
+
+        // Every sample is within half a 24-bit step of the mix, and the mean
+        // error is near zero (a truncating conversion would sit at half a step).
+        double worst = 0, sum = 0;
+        for (qsizetype i = 0; i < qsizetype(reference.size()); ++i) {
+            const auto* p = reinterpret_cast<const quint8*>(bytes.constData() + data + i * 3);
+            qint32 v = qint32(p[0] | (p[1] << 8) | (p[2] << 16));
+            if (v & 0x800000) v -= 0x1000000;
+            const double error = double(v) / 8388608.0 - double(std::clamp(reference[size_t(i)], -1.0f, 8388607.0f / 8388608.0f));
+            worst = std::max(worst, std::fabs(error));
+            sum += error;
+        }
+        QVERIFY2(worst <= 0.5 / 8388608.0 + 1e-12, qPrintable(QString::number(worst, 'g', 12)));
+        QVERIFY(std::fabs(sum / double(reference.size())) < 0.1 / 8388608.0);
+
+        // The same mix at 16 bit keeps its header and its coarser step.
+        options.audioBitDepth = 16;
+        options.output = dir.filePath("mix16.wav");
+        QVERIFY(nt::exporting::exportTimeline(*parsed.timeline, options).ok());
+        QFile file16(options.output);
+        QVERIFY(file16.open(QIODevice::ReadOnly));
+        const QByteArray bytes16 = file16.readAll();
+        QCOMPARE(quint16(quint8(bytes16[34]) | (quint8(bytes16[35]) << 8)), quint16(16));
+    }
+    void wav24SettingsReachTheCommandLine() {
+        auto settings = nt::exporting::settingsFromVariant({{"format", "wav"}, {"audioBitDepth", 24}});
+        QCOMPARE(settings.audioBitDepth, 24);
+        QVERIFY(nt::exporting::cliArguments(settings).join(' ').contains("--audio-bit-depth 24"));
+        QCOMPARE(nt::exporting::settingsFromVariant({{"format", "wav"}, {"audioBitDepth", 20}}).audioBitDepth, 16);
+        QVERIFY(!nt::exporting::cliArguments(nt::exporting::settingsFromVariant({{"format", "wav"}})).join(' ').contains("bit-depth"));
+        QVERIFY(!nt::exporting::cliArguments(nt::exporting::settingsFromVariant({{"format", "mp3"}, {"audioBitDepth", 24}})).join(' ').contains("bit-depth"));
+    }
+
     void cancelOfflineMix() {
         nt::Timeline timeline;
         timeline.durationMs = 60000;
