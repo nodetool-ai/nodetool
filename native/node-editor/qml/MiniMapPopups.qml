@@ -8,6 +8,7 @@ import NodeTool.UiPrimitives as Ui
 // anchor their right edge to the button and open below it.
 Item {
     id: root
+    required property Viewport viewport
     property string kind: "colors"
     property string colorMode: "default"
     // Entries of { id, label, color }.
@@ -24,8 +25,8 @@ Item {
         }
     }
     function choose(mode) {
-        editor.setMiniMapColorMode(mode)
-        editor.closeMiniMapPopup()
+        root.viewport.chooseColorMode(mode)
+        root.viewport.closePopup()
     }
 
     Ui.ContextMenu {
@@ -34,7 +35,7 @@ Item {
         closePolicy: Basic.Popup.CloseOnEscape | Basic.Popup.CloseOnPressOutside
         // The web menu is 120 px wide at least.
         width: Math.max(Ui.Metrics.xxxl * 3.75, implicitWidth)
-        onClosed: editor.closeMiniMapPopup()
+        onClosed: root.viewport.closePopup()
         Ui.MenuItem {
             objectName: "mini-map-color-default"
             text: qsTr("Default colors")
@@ -57,7 +58,7 @@ Item {
         property real anchorRight: 0
         x: Math.max(0, Math.min(anchorRight - width, root.width - width))
         padding: Ui.Metrics.md
-        onClosed: editor.closeMiniMapPopup()
+        onClosed: root.viewport.closePopup()
         contentItem: Column {
             spacing: Ui.Metrics.xs
             Ui.Text {

@@ -13,6 +13,7 @@
 #include "interfaces/EditorCommands.h"
 #include "interfaces/Selection.h"
 #include "interfaces/RunState.h"
+#include "interfaces/Viewport.h"
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
@@ -80,11 +81,6 @@ class EditorWindow final : public QMainWindow {
   // Space or a pane double-click arms the catalog to add at that canvas point, as the web node menu does.
   Q_PROPERTY(bool catalogAtPointer READ catalogAtPointer NOTIFY catalogPlacementChanged)
   Q_PROPERTY(QString graphSummary READ graphSummary NOTIFY panelChanged)
-  Q_PROPERTY(int zoomPercent READ zoomPercent NOTIFY zoomChanged)
-  // "default" or "type", as MiniMapStore.ts colorMode.
-  Q_PROPERTY(QString miniMapColorMode READ miniMapColorMode NOTIFY panelChanged)
-  // True when the zoom matches a status indicator preset (ViewportStatusIndicator.tsx findZoomPreset).
-  Q_PROPERTY(bool zoomIsPreset READ zoomIsPreset NOTIFY zoomChanged)
 public:
     nt::chat::ChatSession *chatSession();
     Q_INVOKABLE void askAgent(const QString &message);
@@ -109,6 +105,7 @@ public:
     node_editor::StatusModel *statusModel() { return activeEditor() == this ? &statusModel_ : activeEditor()->statusModel(); }
     node_editor::PanelLayout *panelLayout() { return activeEditor() == this ? &panelLayout_ : activeEditor()->panelLayout(); }
     node_editor::EditorCommands *editorCommands() { return activeEditor() == this ? &editorCommands_ : activeEditor()->editorCommands(); }
+    node_editor::Viewport *viewport() { return activeEditor() == this ? &viewport_ : activeEditor()->viewport(); }
     node_editor::RunState *runState() { return activeEditor() == this ? &runState_ : activeEditor()->runState(); }
     node_editor::NodeInspector *nodeInspector() { return activeEditor() == this ? &nodeInspector_ : activeEditor()->nodeInspector(); }
     void syncPackSetup();
@@ -178,11 +175,11 @@ public:
   void setMiniMapVisible(bool visible);
   QString miniMapColorMode() const;
   // Accepts "default" and "type", keeps the choice for every workflow and remembers it.
-  Q_INVOKABLE void setMiniMapColorMode(const QString &mode);
+  void setMiniMapColorMode(const QString &mode);
   // The color settings menu ("colors") or the node type legend ("legend"), below
   // the given global point, which is the bottom right of the button that opened it.
-  Q_INVOKABLE void showMiniMapPopup(const QString &kind, const QPointF &anchorGlobal);
-  Q_INVOKABLE void closeMiniMapPopup();
+  void showMiniMapPopup(const QString &kind, const QPointF &anchorGlobal);
+  void closeMiniMapPopup();
   bool zoomIsPreset() const;
   QVariantMap systemStats() const;
   // The connection as the web status bar names it: connected, connecting, offline or idle.
@@ -290,7 +287,7 @@ public:
   // An action that the user started from a button, menu or key. Zoom, fit and Focus
   // moves then animate as the web does. action() alone moves the view at once, so
   // harnesses and tests that read the result straight away see the final view.
-  Q_INVOKABLE void userAction(const QString &name);
+  void userAction(const QString &name);
   // The More button of the card toolbar opens the node context menu below it.
   void showNodeMenu(const QPointF &global);
   // Fits every node into the canvas area the floating toolbar leaves free, and
@@ -427,6 +424,8 @@ private:
   void syncChrome();
   // Copies the shown queue and the session state into the run interfaces.
   void syncRuns();
+  // Copies the zoom and the mini-map color mode into the viewport interface.
+  void syncViewport();
   Q_SLOT void layoutOverlays();
   void syncInspector();
   // Applies a node click or a programmatic selection to the inspector. It does
@@ -537,6 +536,9 @@ private:
     node_editor::EditorCommands editorCommands_;
     node_editor::Selection selection_;
     node_editor::RunState runState_;
+    // What this tab's zoom readout, mini-map buttons and their popups read
+    // about the view. Owned by value, UI thread, destroyed with the tab.
+    node_editor::Viewport viewport_;
     QUrl packOrigin_;
     QString packToken_, packUser_;
   node_editor::SetupController setup_;

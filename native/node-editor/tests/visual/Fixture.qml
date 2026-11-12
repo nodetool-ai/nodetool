@@ -13,6 +13,7 @@ Rectangle {
     // The editor's own, so the hidden toolbar sends the theme roles to its canvas.
     required property EditorCommands commands
     required property RunState runs
+    required property Viewport viewport
     onSchemeChanged: Ui.Theme.preference = scheme === "light" ? Ui.Theme.Light : Ui.Theme.Dark
     Component.onCompleted: {
         Ui.Theme.uiScale = 1
@@ -27,7 +28,7 @@ Rectangle {
     NodeButton { objectName: "button-disabled"; x: 280; y: 20; text: "Run"; enabled: false }
     Ui.Text { objectName: "text-label"; x: 20; y: 160; text: "Prompt"; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
     Ui.Text { objectName: "text-caption"; x: 280; y: 160; text: "Sample text"; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
-    ViewportIndicator { objectName: "surface-panel"; x: 540; y: 160 }
+    ViewportIndicator { objectName: "surface-panel"; x: 540; y: 160; viewport: fixture.viewport }
     Catalog { objectName: "catalog"; x: 20; y: 300; width: 280; height: 350; catalog: fixture.nodeCatalog; packSetup: fixture.packSetup }
     Inspector { inspector: fixture.inspectorFixture; objectName: "inspector"; x: 350; y: 300; width: 280; height: 880 }
 }

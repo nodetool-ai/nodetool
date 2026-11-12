@@ -110,6 +110,12 @@ Moved so far:
   overlays and group controls belong to that tab's canvas.
   `tests/ui/ToolbarComponentTest.cpp` loads all three files with fixture
   objects.
+- `Viewport` (`src/interfaces/Viewport.h`), which `ViewportIndicator.qml`,
+  `MiniMapControls.qml` and `MiniMapPopups.qml` take for the zoom, the
+  mini-map color mode, the view commands and the popup requests. View
+  commands go up by name and count as user input, as `userAction` did.
+  `tests/ui/ViewportComponentTest.cpp` loads the three files with a fixture
+  viewport.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
@@ -125,7 +131,7 @@ Moved so far:
 | `PanelLayout` (moved for the rail, the document bar and the status bar) | Which panels are open and the toggles | `HeaderRow.qml`, `Rail.qml`, `StatusBar.qml`, `RunOutput.qml` |
 | `StatusModel` (moved for the status bar) | Connection status and detail, node and edge counts, queue counts, system stats | `StatusBar.qml`, `WorkflowBrowser.qml` |
 | `RunState` (moved for the toolbar and the group controls) | Shown queue, connection, workflow id, authored group commands | `Toolbar.qml`, `AuthoredControls.qml`, `QueueOverlay.qml`, `RunOutput.qml` |
-| `Viewport` | Zoom percent and preset, mini-map color mode and popups | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
+| `Viewport` (moved) | Zoom percent and preset, mini-map color mode and popups, view commands | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
 | `Notifications` (moved) | Notification list, unread count, open the list, copy an entry | `TabBar.qml`, `NotificationsPanel.qml` |
 | `ChatWindow` | Chat window geometry drags | `EditorChat.qml` |
 | `EditorCommands` (moved for the toolbars and the group controls) | Read-only state, shown run activity, named command dispatch, tooltip, theme roles | `Toolbar.qml`, `SelectionToolbar.qml`, `AuthoredControls.qml`, most other chrome |
@@ -203,15 +209,14 @@ candidate list, not a plan to move them.
   "PanelLayout": ["outputVisible"],
   "StatusModel": ["connectionState"],
   "RunState": ["shownQueue", "askRunAgent"],
-  "Viewport": ["zoomPercent", "zoomIsPreset", "miniMapColorMode", "setMiniMapColorMode", "showMiniMapPopup", "closeMiniMapPopup"],
   "ChatWindow": ["beginChatGeometry", "changeChatGeometry", "resetChatPosition"],
-  "EditorCommands": ["action", "userAction"],
+  "EditorCommands": ["action"],
   "Leaves the window": ["iconPath", "styleOutputMarkdown", "height", "openWorkflow", "deleteWorkflow"]
 }
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 27 read a root context property, 12 of them read the editor window. `EditorWindow.h` exposes 22 properties and 24 invokable methods or slots (46 members) and 14 signals.
+Scanned 78 files in `qml/`. 24 read a root context property, 9 of them read the editor window. `EditorWindow.h` exposes 19 properties and 20 invokable methods or slots (39 members) and 14 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
@@ -220,9 +225,6 @@ Scanned 78 files in `qml/`. 27 read a root context property, 12 of them read the
 | EditorChat.qml | 3 via `host` |  |
 | OptionalPacksSection.qml | 3 |  |
 | RunOutput.qml | 3 | `runOutput` (6) |
-| ViewportIndicator.qml | 3 |  |
-| MiniMapControls.qml | 2 |  |
-| MiniMapPopups.qml | 2 |  |
 | LibraryPanel.qml | 1 | `libraryBrowser` (13, passed on), `assetPickerController` (3) |
 | QueueOverlay.qml | 1 | `runOutput` (2), `workflowSession` (4) |
 | TextOutput.qml | 1 | `mediaResolver` (7) |
@@ -261,12 +263,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 - **RunOutput.qml**
   - `editor`: askRunAgent, message, outputVisible
   - `runOutput`: clear, collections, richEntries, runs, selectRun, selectedRunId
-- **ViewportIndicator.qml**
-  - `editor`: userAction, zoomIsPreset, zoomPercent
-- **MiniMapControls.qml**
-  - `editor`: miniMapColorMode, showMiniMapPopup
-- **MiniMapPopups.qml**
-  - `editor`: closeMiniMapPopup, setMiniMapColorMode
 - **LibraryPanel.qml**
   - `editor`: action
   - `libraryBrowser`: assetModel, breadcrumbs, busy, configured, createFolder, error, favoritesOnly, goUp, openFolder, refresh, searchText, tagFilter, typeFilter passed on as browser:
@@ -330,20 +326,12 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 - **RunState** (2 members, read by 2 files: QueueOverlay.qml, RunOutput.qml)
   - `askRunAgent` method: RunOutput.qml
   - `shownQueue` property: QueueOverlay.qml
-- **Viewport** (6 members, read by 3 files: MiniMapControls.qml, MiniMapPopups.qml, ViewportIndicator.qml)
-  - `closeMiniMapPopup` method: MiniMapPopups.qml
-  - `miniMapColorMode` property: MiniMapControls.qml
-  - `setMiniMapColorMode` method: MiniMapPopups.qml
-  - `showMiniMapPopup` method: MiniMapControls.qml
-  - `zoomIsPreset` property: ViewportIndicator.qml
-  - `zoomPercent` property: ViewportIndicator.qml
 - **ChatWindow** (3 members, read by 1 files: EditorChat.qml)
   - `beginChatGeometry` method: EditorChat.qml
   - `changeChatGeometry` method: EditorChat.qml
   - `resetChatPosition` method: EditorChat.qml
-- **EditorCommands** (2 members, read by 3 files: LibraryPanel.qml, ViewportIndicator.qml, WorkflowBrowser.qml)
+- **EditorCommands** (1 members, read by 2 files: LibraryPanel.qml, WorkflowBrowser.qml)
   - `action` method: LibraryPanel.qml, WorkflowBrowser.qml
-  - `userAction` method: ViewportIndicator.qml
 - **Leaves the window** (5 members, read by 4 files: OptionalPacksSection.qml, TextOutput.qml, TypeIcon.qml, WorkflowBrowser.qml)
   - `deleteWorkflow` method: WorkflowBrowser.qml
   - `height` QWidget property: OptionalPacksSection.qml

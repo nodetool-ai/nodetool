@@ -11,6 +11,7 @@
 #include "interfaces/EditorCommands.h"
 #include "interfaces/Selection.h"
 #include "interfaces/RunState.h"
+#include "interfaces/Viewport.h"
 #include "interfaces/WorkflowHeader.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PropertyHost.h"
@@ -111,6 +112,13 @@ struct RunStateForeign {
     QML_FOREIGN(nodetool::node_editor::RunState)
     QML_NAMED_ELEMENT(RunState)
     QML_UNCREATABLE("A RunState comes from its owner.")
+};
+
+struct ViewportForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::Viewport)
+    QML_NAMED_ELEMENT(Viewport)
+    QML_UNCREATABLE("A Viewport comes from its owner.")
 };
 
 }  // namespace nodetool::node_editor::qml
