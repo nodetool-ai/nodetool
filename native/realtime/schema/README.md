@@ -33,6 +33,14 @@ validated description rejects a changed slot number for an unchanged identity.
 Audio sinks carry the compiler's upstream `subgraphHash`. The loader checks its
 representation, not the compiler's hash calculation.
 
+Scalar audio parameters support `none`, `ramp` and `onePole` smoothing. Only
+`onePole` requires a `timeConstant` in seconds, greater than zero and at most 60.
+The [audio contracts](../audio.md) define sample timing and snapshot retention.
+
+Audio nodes can carry `delayFrames` and `bufferSlot` structural fields. The
+[audio executor](../audio.md) permits them only for `delay` and `sample-player`
+respectively, validates the binding, and allocates state during preparation.
+
 The host registry, not the untrusted plan, declares which operations exist and
 which nodes provide delayed inputs. Removing those incoming dependencies must
 leave each domain acyclic. Audio nodes and render passes must already be

@@ -30,7 +30,7 @@ not measurements. Q8 requires the WP10 native/browser comparison.
 |---|---|
 | [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Linux Release, ASan/UBSan and TSan CI pass. Local instruction-alias verification remains blocked as described below |
 | [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Windows Release/ASan and Linux Release/ASan+UBSan/TSan pass. Aggregate verification remains incomplete as described below. See [operation contracts](control.md) |
-| [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | Not implemented |
+| [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, ramps/events, built-in kernels and sink sanitation implemented. Verification in progress. See [audio contracts](audio.md) |
 | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Not implemented |
 | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | Not implemented |
 | [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Not implemented |

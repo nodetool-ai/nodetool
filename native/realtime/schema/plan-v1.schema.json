@@ -78,8 +78,14 @@
           "smooth": {
             "enum": [
               "none",
-              "ramp"
+              "ramp",
+              "onePole"
             ]
+          },
+          "timeConstant": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 60
           },
           "sync": {
             "enum": [
@@ -641,6 +647,15 @@
               "kernel": {
                 "type": "string",
                 "minLength": 1
+              },
+              "bufferSlot": {
+                "type": "string",
+                "minLength": 1
+              },
+              "delayFrames": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 480000
               },
               "stateVersion": {
                 "type": "integer",
