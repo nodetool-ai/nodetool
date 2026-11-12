@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { bumpCatalogVersion } from "../bump-version.mjs";
 import { packageManagerInvocation } from "../package-manager.mjs";
@@ -73,8 +73,8 @@ describe("catalog cohort version bump", { timeout: 30_000 }, () => {
     const invocation = packageManagerInvocation("npm", ["pack", "--json", "--offline", "--ignore-scripts"]);
     const result = JSON.parse(execFileSync(invocation.command, invocation.args, { cwd: packageDir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }));
     const tarball = join(packageDir, result[0].filename);
-    const packedCatalog = JSON.parse(execFileSync("tar", ["-xOf", tarball, "package/dist/index.json"], { encoding: "utf8" }));
-    const packedManifest = JSON.parse(execFileSync("tar", ["-xOf", tarball, "package/package.json"], { encoding: "utf8" }));
+    const packedCatalog = JSON.parse(execFileSync("tar", ["-xOf", basename(tarball), "package/dist/index.json"], { cwd: dirname(tarball), encoding: "utf8" }));
+    const packedManifest = JSON.parse(execFileSync("tar", ["-xOf", basename(tarball), "package/package.json"], { cwd: dirname(tarball), encoding: "utf8" }));
     expect(packedManifest.version).toBe(NEW_VERSION);
     expect(packedCatalog).toEqual(built);
     expect(packedCatalog.coreVersion).toBe(packedManifest.version);

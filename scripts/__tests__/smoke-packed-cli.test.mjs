@@ -5,7 +5,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
@@ -191,12 +191,12 @@ function releaseTarball(root, filename, name, version) {
   mkdirSync(join(staging, "package"), { recursive: true });
   writeFileSync(join(staging, "package/package.json"), JSON.stringify({ name, version }));
   const file = join(root, filename);
-  const result = spawnSync("tar", ["-czf", file, "-C", staging, "package"], { encoding: "utf8" });
+  const result = spawnSync("tar", ["-czf", basename(file), "-C", staging, "package"], { cwd: dirname(file), encoding: "utf8" });
   expect(result.status, result.stderr).toBe(0);
   return file;
 }
 
-describe("existingTarballs", () => {
+describe("existingTarballs", { timeout: 30_000 }, () => {
   it("uses package manifests instead of relying on tarball filenames", () => {
     const root = mkdtempSync(join(tmpdir(), "nodetool-release-tarballs-"));
     fixtures.push(root);

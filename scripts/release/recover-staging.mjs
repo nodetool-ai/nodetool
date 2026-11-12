@@ -2,7 +2,7 @@
 /** Restore a failed publication's immutable artifacts before ordinary promotion. */
 import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual, parseArgs } from "node:util";
 import { runReleaseCommand } from "./commands.mjs";
@@ -65,7 +65,7 @@ async function downloadTarball(url, options) {
 }
 
 function readMember(file, member) {
-  return JSON.parse(runReleaseCommand("tar", ["-xOf", file, member], {}));
+  return JSON.parse(runReleaseCommand("tar", ["-xOf", basename(file), member], { cwd: dirname(file) }));
 }
 
 export async function restoreOriginalArtifacts(original, names, version, directory, {

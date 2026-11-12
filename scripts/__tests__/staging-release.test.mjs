@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { hasReleaseProvenance, RELEASE_REPOSITORY, RELEASE_WORKFLOW, stagingPins, verifyRegistryInstall, verifyStaging } from "../release/verify-staging.mjs";
@@ -344,7 +344,7 @@ it("the standalone verifier exits nonzero on a deliberately wrong pin before npm
   mkdirSync(staging, { recursive: true });
   mkdirSync(tarballs);
   writeFileSync(join(staging, "package.json"), JSON.stringify({ name: "@nodetool-ai/fal-nodes", version }));
-  const packed = spawnSync("tar", ["-czf", join(tarballs, "fal.tgz"), "-C", join(root, "staging"), "package"], { encoding: "utf8" });
+  const packed = spawnSync("tar", ["-czf", basename(join(tarballs, "fal.tgz")), "-C", join(root, "staging"), "package"], { cwd: dirname(join(tarballs, "fal.tgz")), encoding: "utf8" });
   expect(packed.status, packed.stderr).toBe(0);
   const catalog = catalogFixture();
   catalog.packs[0].npm.integrity = "sha512-wrong";

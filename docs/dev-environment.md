@@ -18,7 +18,7 @@ Keep the line endings specified in `.gitattributes`. Shell scripts need LF,
 and generated catalogs must retain the same bytes across platforms.
 The compiler launcher tests build a small executable with the Windows
 .NET Framework C# compiler. Native realtime builds and AddressSanitizer runs
-use the [realtime build instructions](../native/realtime/README.md).
+use the [realtime build instructions](https://github.com/nodetool-ai/nodetool/blob/main/native/realtime/README.md).
 
 ### TypeScript compiler roles
 
