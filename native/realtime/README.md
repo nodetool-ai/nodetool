@@ -3,7 +3,7 @@
 These standalone spikes prepare [RT M0](../../docs/plans/graph-runner-realtime-issues.md).
 They do not implement the production engine or satisfy its measurement gate.
 
-Provisional M1 development adds the [plan IR and loader](schema/README.md) and
+Provisional M1 development adds the [plan IR and loader](schema/README.md),
 [control executor](control.md) and [audio executor](audio.md). See
 [milestone status and unverified assumptions](M1_STATUS.md). The render executor
 is not implemented yet.
