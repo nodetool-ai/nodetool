@@ -319,6 +319,8 @@ void MusicPanelModel::refreshTakes(const QJsonObject& raw) {
         const bool isActive = id == active;
         QString meta;
         QVariantList rows;
+        QString contextLabel;
+        FrameRange heard{0, 0};
         if (!record.isEmpty()) {
             const double offsetMs = alignment.value(u"offsetFrames").toDouble() * 1000.0 / static_cast<double>(kSampleRate);
             meta = QStringLiteral("seed %1").arg(record.value(u"seed").toInteger());
@@ -341,7 +343,11 @@ void MusicPanelModel::refreshTakes(const QJsonObject& raw) {
             const FrameRange targetRange{record.value(u"targetStartFrame").toInteger(), record.value(u"targetEndFrame").toInteger()};
             if (targetRange.endFrame > targetRange.startFrame) row(QStringLiteral("target"), bars(targetRange, *tempo));
             const FrameRange context{record.value(u"contextStartFrame").toInteger(), record.value(u"contextEndFrame").toInteger()};
-            if (context.endFrame > context.startFrame) row(QStringLiteral("context"), bars(context, *tempo));
+            if (context.endFrame > context.startFrame) {
+                row(QStringLiteral("context"), bars(context, *tempo));
+                heard = context;
+                contextLabel = QStringLiteral("Model hears ") + bars(context, *tempo);
+            }
             const auto splice = record.value(u"splice").toObject();
             if (!splice.isEmpty()) {
                 row(QStringLiteral("splice"), labels.value(splice.value(u"parentAssetId").toString(), tr("the original")) +
@@ -376,6 +382,9 @@ void MusicPanelModel::refreshTakes(const QJsonObject& raw) {
             {"canDelete", !isActive && versions.size() > 1},
             {"deleteReason", isActive ? tr("Choose another take before deleting this one.") : QString()},
             {"canRegenerate", !record.isEmpty()},
+            {"contextLabel", contextLabel},
+            {"contextStartFrame", static_cast<double>(heard.startFrame)},
+            {"contextEndFrame", static_cast<double>(heard.endFrame)},
             {"record", rows}});
     }
 }

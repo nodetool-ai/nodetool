@@ -11,6 +11,15 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   The item fills each clip body. Put pointer targets on the grips you draw.
 - `toolbar`: receives `timeline`, `gestures`, `viewState`, and `compact`, after Snap.
   Set the item's implicit width and height for the horizontal layout.
+- `toolbarVariant`: receives `timeline`, `gestures`, `viewState`, `clock`, and `compact`.
+  While an item reports a nonzero implicit width, it replaces the Timeline panel's tool row,
+  so a layout can have its own toolbar (the Music toolbar). Report 0 to give the row back.
+- `rulerOverlay`: receives `timeline`, `gestures`, and `viewState`. The item fills the
+  ruler, is clipped to it, and draws in viewport coordinates (`x` is
+  `ms / viewState.msPerPx - viewState.scrollLeftPx`). It takes no pointer input.
+- `tracksFooter`: receives `timeline`, `gestures`, and `viewState`. The item spans the
+  bottom of the Timeline panel under the scrollbar, and its implicit height comes off the
+  lanes. Report 0 to take no space.
 - `documentBar`: receives `timeline`, after Undo and Redo. Set implicit dimensions.
 - `documentBarActions`: receives `timeline`, at the right end with 8 px padding. Set implicit dimensions.
 - `preview`: receives `timeline` and `clock`, fills the preview frame, and is

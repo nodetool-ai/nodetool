@@ -94,6 +94,20 @@ QString barPositionLabel(std::int64_t frame, const MusicTempo& tempo) {
     return QStringLiteral("%1.%2").arg(bar).arg(std::clamp<std::int64_t>(beat, 1, beatsInBar(tempo)));
 }
 
+QString barBeatTickLabel(std::int64_t frame, const MusicTempo& tempo) {
+    const auto first = barStartFrame(1, tempo);
+    if (frame <= first) {
+        return QStringLiteral("1.1.1");
+    }
+    const auto bar = barAtFrame(frame, tempo);
+    const auto beat = beatAtFrame(frame, tempo);
+    const auto beatStart = beatStartFrame(beat, tempo);
+    const auto beatLength = std::max<std::int64_t>(1, beatStartFrame(beat + 1, tempo) - beatStart);
+    const auto tick = std::clamp<std::int64_t>((frame - beatStart) * 4 / beatLength, 0, 3) + 1;
+    const auto beatInBar = std::clamp<std::int64_t>(beat - (bar - 1) * beatsInBar(tempo), 1, beatsInBar(tempo));
+    return QStringLiteral("%1.%2.%3").arg(bar).arg(beatInBar).arg(tick);
+}
+
 QString barRangeLabel(const FrameRange& range, const MusicTempo& tempo) {
     const auto first = barAtFrame(range.startFrame, tempo);
     const auto last = barAtFrame(std::max(range.startFrame, range.endFrame - 1), tempo);

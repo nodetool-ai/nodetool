@@ -66,6 +66,10 @@ Rectangle {
         id: sequence
         timeline: root.editor ? root.editor.timeline : null
     }
+    // What the ruler's context bracket shows (MusicContextBracket.qml): the planner's window
+    // for Regenerate and Add instrument, or the open record of the active take.
+    readonly property alias planModel: plan
+    readonly property var recordContext: takeList.recordContext
 
     // What a submission sends.
     readonly property string targetTrackId: plan.trackId
@@ -481,6 +485,7 @@ Rectangle {
                 spacing: Ui.Metrics.sm
                 SectionHeader { title: qsTr("TAKES"); note: plan.takeClipTitle }
                 MusicTakeList {
+                    id: takeList
                     width: parent.width
                     plan: plan
                     jobs: root.jobs

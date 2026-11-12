@@ -259,9 +259,11 @@ private slots:
         QCOMPARE(versions.size(), 6);
         QCOMPARE(versions[0].toObject().value("label").toString(), QStringLiteral("Take A1"));
         QCOMPARE(versions[5].toObject().value("label").toString(), QStringLiteral("Take C2"));
-        // The active take names itself on the clip, and the take badge counts.
+        // The active take names itself in the clip's name band with the take count; the
+        // take badge of other clips stays off a music clip.
         QTRY_VERIFY(item("musicTakeHeader-" + clipId) && item("musicTakeHeader-" + clipId)->isVisible());
-        QTRY_VERIFY(item("takeBadge-" + clipId) && item("takeBadge-" + clipId)->isVisible());
+        QTRY_VERIFY(item("musicTakeCount-" + clipId) && item("musicTakeCount-" + clipId)->isVisible());
+        QVERIFY(!item("takeBadge-" + clipId) || !item("takeBadge-" + clipId)->isVisible());
 
         // The take list of the clip under the range: click activates, Delete keeps the asset (part 7).
         selection()->set("c", barFrame(10), barFrame(11));

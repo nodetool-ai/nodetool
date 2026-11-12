@@ -42,6 +42,10 @@ namespace nt::music {
 [[nodiscard]] std::int64_t barAtFrame(std::int64_t frame, const MusicTempo& tempo);
 // "5" on the line of bar 5, else "5.3" for the beat of bar 5 that holds the frame.
 [[nodiscard]] QString barPositionLabel(std::int64_t frame, const MusicTempo& tempo);
+// The position readout "bar.beat.tick", each counted from 1: the bar, the beat
+// in the bar, and the quarter of that beat ("5.3.2"). Before the first bar
+// line it reads "1.1.1".
+[[nodiscard]] QString barBeatTickLabel(std::int64_t frame, const MusicTempo& tempo);
 // "Bar 5" or "Bars 5–12": the bars the range covers.
 [[nodiscard]] QString barRangeLabel(const FrameRange& range, const MusicTempo& tempo);
 // "8 bars" when both edges are bar lines, "3 beats" when both are beat lines,
