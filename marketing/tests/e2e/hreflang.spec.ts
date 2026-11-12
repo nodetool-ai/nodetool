@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { LANGUAGE_PAGES } from "../../src/data/languagePages";
 
 /** hreflang alternates as { lang: href } from a page's <head>. */
 function alternates(html: string): Record<string, string> {
@@ -7,38 +8,52 @@ function alternates(html: string): Record<string, string> {
     if (!/rel=["']alternate["']/i.test(tag)) continue;
     const lang = tag.match(/hrefLang=["']([^"']+)["']/i)?.[1];
     const href = tag.match(/href=["']([^"']+)["']/i)?.[1];
-    if (lang && href) out[lang.toLowerCase()] = href;
+    if (lang && href) out[lang.toLowerCase()] = href.replace(/\/$/, "");
   }
   return out;
 }
 
-const EXPECTED = {
+const PAGES = Object.values(LANGUAGE_PAGES);
+const EXPECTED: Record<string, string> = {
   en: "https://nodetool.ai",
-  ja: "https://nodetool.ai/ja",
   "x-default": "https://nodetool.ai",
+  ...Object.fromEntries(PAGES.map((page) => [page.hreflang.toLowerCase(), `https://nodetool.ai${page.path}`])),
 };
 
-test("home and /ja list each other as hreflang alternates", async ({ request }) => {
-  for (const route of ["/", "/ja"]) {
+test("there are five language pages", () => {
+  expect(PAGES.map((page) => page.path).sort()).toEqual(["/es", "/hi", "/ja", "/pt", "/zh"]);
+});
+
+test("home and every language page list all versions as hreflang alternates", async ({ request }) => {
+  for (const route of ["/", ...PAGES.map((page) => page.path)]) {
     const html = await (await request.get(route)).text();
-    const found = alternates(html);
-    for (const [lang, href] of Object.entries(EXPECTED)) {
-      expect(found[lang]?.replace(/\/$/, ""), `${route} hreflang ${lang}`).toBe(href);
-    }
+    expect(alternates(html), `${route} hreflang`).toEqual(EXPECTED);
   }
 });
 
-test("/ja marks its content as Japanese and other routes carry no hreflang", async ({ request }) => {
-  const ja = await (await request.get("/ja")).text();
-  expect(ja).toMatch(/<main[^>]*\blang="ja"/);
-  expect(ja).toContain("AI映画を、ショットごとに演出する。");
+test("each language page marks its content with its language and shows its own h1", async ({ request }) => {
+  for (const page of PAGES) {
+    const html = await (await request.get(page.path)).text();
+    expect(html, page.path).toMatch(new RegExp(`<main[^>]*\\blang="${page.hreflang}"`));
+    expect(html, page.path).toContain(page.h1);
+  }
   const studio = await (await request.get("/studio")).text();
   expect(Object.keys(alternates(studio))).toHaveLength(0);
 });
 
-test("the sitemap lists both language versions for / and /ja", async ({ request }) => {
+test("the sitemap lists every language version for each language page", async ({ request }) => {
   const xml = await (await request.get("/sitemap.xml")).text();
-  const block = xml.match(/<url>\s*<loc>https:\/\/nodetool\.ai\/ja<\/loc>[\s\S]*?<\/url>/)?.[0] ?? "";
-  expect(block).toContain('hreflang="en"');
-  expect(block).toContain('hreflang="ja"');
+  for (const page of PAGES) {
+    const block = xml.match(new RegExp(`<url>\\s*<loc>https://nodetool\\.ai${page.path}</loc>[\\s\\S]*?</url>`))?.[0] ?? "";
+    for (const lang of Object.keys(EXPECTED)) {
+      expect(block, `${page.path} sitemap ${lang}`).toMatch(new RegExp(`hreflang="${lang}"`, "i"));
+    }
+  }
+});
+
+test("the footer links every language page", async ({ request }) => {
+  const html = await (await request.get("/")).text();
+  for (const page of PAGES) {
+    expect(html, page.path).toContain(`href="${page.path}"`);
+  }
 });
