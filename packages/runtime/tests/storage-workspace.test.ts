@@ -247,7 +247,7 @@ describe("Workspace over a local directory", () => {
   it("refuses to write under a symlinked-out directory", async () => {
     const outside = await mkdtemp(join(tmpdir(), "ws-outside-"));
     try {
-      await symlink(outside, join(dir, "escape"));
+      await symlink(outside, join(dir, "escape"), process.platform === "win32" ? "junction" : "dir");
       const workspace = new StorageWorkspace(new FileStorageAdapter(dir));
       await expect(
         workspace.write("escape/planted.txt", "nope")
@@ -304,7 +304,7 @@ describe("Workspace over a local directory", () => {
     const outside = await mkdtemp(join(tmpdir(), "ws-outside-"));
     try {
       await writeFile(join(outside, "important.txt"), "KEEP");
-      await symlink(outside, join(dir, "escape"));
+      await symlink(outside, join(dir, "escape"), process.platform === "win32" ? "junction" : "dir");
       const workspace = new StorageWorkspace(new FileStorageAdapter(dir));
 
       await expect(workspace.deleteAll("escape")).rejects.toThrow(
@@ -319,7 +319,7 @@ describe("Workspace over a local directory", () => {
   it("refuses to mkdir under a symlinked-out directory", async () => {
     const outside = await mkdtemp(join(tmpdir(), "ws-outside-"));
     try {
-      await symlink(outside, join(dir, "escape"));
+      await symlink(outside, join(dir, "escape"), process.platform === "win32" ? "junction" : "dir");
       const workspace = new StorageWorkspace(new FileStorageAdapter(dir));
 
       await expect(workspace.mkdir("escape/planted")).rejects.toThrow(
@@ -335,7 +335,7 @@ describe("Workspace over a local directory", () => {
     const actual = join(dir, "actual");
     const alias = join(dir, "alias");
     await mkdir(actual);
-    await symlink(actual, alias);
+    await symlink(actual, alias, process.platform === "win32" ? "junction" : "dir");
 
     const workspace = new StorageWorkspace(new FileStorageAdapter(alias));
     await workspace.write("notes.md", "through alias");
