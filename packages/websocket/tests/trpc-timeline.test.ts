@@ -709,6 +709,42 @@ describe("timeline router", () => {
       expect(JSON.parse(savedDocumentJson).master).toEqual(master);
     });
 
+    it("persists the music marker through update and keeps it when a save omits it", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      let savedDocumentJson = "";
+      TS.update.mockImplementation((_id, fields) => {
+        savedDocumentJson = (fields as { document: string }).document;
+        return Promise.resolve(makeSeq({ document: savedDocumentJson }));
+      });
+      const caller = createCaller(makeCtx());
+      const music = { promptHistory: ["warm rhodes groove"] };
+      const tempo = {
+        bpm: 120,
+        offsetMs: 0,
+        timeSignature: { beatsPerBar: 4, beatUnit: 4 },
+        key: { tonic: "A" as const, mode: "minor" as const }
+      };
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [], music, tempo }
+      });
+      expect(JSON.parse(savedDocumentJson).music).toEqual(music);
+      expect(JSON.parse(savedDocumentJson).tempo).toEqual(tempo);
+
+      TS.findById.mockResolvedValue(
+        makeSeq({ id: "seq-1", document: savedDocumentJson })
+      );
+      const got = await caller.timeline.get({ id: "seq-1" });
+      expect(got.music).toEqual(music);
+
+      // The web editor's save carries no music marker; the project stays one.
+      await caller.timeline.update({
+        id: "seq-1",
+        document: { tracks: [], clips: [], markers: [] }
+      });
+      expect(JSON.parse(savedDocumentJson).music).toEqual(music);
+    });
+
     it("persists a clip's speaker and paragraphId through the round-trip", async () => {
       TS.findById.mockResolvedValue(makeSeq());
       TS.update.mockResolvedValue(makeSeq());
