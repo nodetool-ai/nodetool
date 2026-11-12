@@ -54,12 +54,18 @@ jobs:
           - name: Release
             flags: ""
             build_type: Release
+            test_jobs: 2
           - name: ASan and UBSan
             flags: "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
             build_type: RelWithDebInfo
+            test_jobs: 2
           - name: TSan
             flags: "-fsanitize=thread"
             build_type: RelWithDebInfo
+            # Two TSan tests at a time miss the sandbox deadlines in
+            # gr_context_tests, gr_public_state_tests and
+            # gr_public_subgraph_durable_tests.
+            test_jobs: 1
     # Job level, so the runner's compile step in "Build guest bundle and shader
     # catalog" gets the same options as the tests.
     env:
@@ -199,8 +205,7 @@ jobs:
             --force .github/workflows/native-graph-runner.yml --force scripts/test-affected-native.mjs \
             --force scripts/test-affected.mjs --force scripts/native-ci-test-selection.mjs
 
-      # Two tests at a time: the suite ran one at a time, and a TSan run took
-      # about 55 minutes, most of it in a few long tests.
+      # Release and ASan run two tests at a time. TSan runs one, see the matrix.
       - name: Test
         if: steps.select.outputs.run != 'false'
         working-directory: native/graph-runner
@@ -209,4 +214,4 @@ jobs:
         run: |
           sel=()
           if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
-          ctest --test-dir build --output-on-failure --timeout 900 -j 2 "${sel[@]}"
+          ctest --test-dir build --output-on-failure --timeout 900 -j "${{ matrix.test_jobs }}" "${sel[@]}"
