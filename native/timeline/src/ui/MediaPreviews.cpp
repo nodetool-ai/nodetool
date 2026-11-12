@@ -502,10 +502,12 @@ std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int cou
     FormatPtr format;
     CodecPtr codec;
     int stream = -1;
-    if (count <= 0 || !openStream(path, AVMEDIA_TYPE_AUDIO, format, codec, stream, guard, openTimeoutMs, io)) return nullptr;
+    const bool autoCount = count == AUTO_PEAK_COUNT;
+    if ((!autoCount && count <= 0) || !openStream(path, AVMEDIA_TYPE_AUDIO, format, codec, stream, guard, openTimeoutMs, io)) return nullptr;
     const int sampleRate = codec->sample_rate;
     if (sampleRate <= 0) return nullptr;
     const double durationSec = format->duration > 0 ? double(format->duration) / AV_TIME_BASE : -1;
+    if (autoCount) count = durationSec > 0 ? finePeakCount(durationSec * 1000.0) : FULL_ASSET_PEAK_COUNT;
     const long long blockSamples =
         durationSec > 0 ? std::max<long long>(1, static_cast<long long>(std::floor(durationSec * sampleRate /
                                                                                    (double(count) * BLOCKS_PER_PEAK))))
@@ -616,6 +618,7 @@ std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int cou
         }
         result->peaks[static_cast<size_t>(i)] = static_cast<float>(std::round(double(max) * 10000.0) / 10000.0);
     }
+    if (autoCount) result->coarse = reducePeakLevels(result->peaks, result->durationMs);
     return result;
 }
 
@@ -916,7 +919,7 @@ void MediaPreviewCache::start(const QString& key, const QString& path, const QSt
         if (!job->cancel) {
             if (QThread::currentThread() == qApp->thread() && self) ++self->m_guiThreadDecodes;
             if (job->kind == u"peaks") {
-                peaks = computeAudioPeaks(job->path, FULL_ASSET_PEAK_COUNT, &job->cancel, job->openTimeoutMs);
+                peaks = computeAudioPeaks(job->path, AUTO_PEAK_COUNT, &job->cancel, job->openTimeoutMs);
             } else {
                 const ThumbnailDiskCache disk(job->diskDirectory);
                 thumbs = disk.load(job->diskKey);
@@ -1298,8 +1301,10 @@ std::vector<QRectF> WaveformItem::computeBars(Span span) const {
     const int first = std::max(0, static_cast<int>(std::floor(span.from / visibleWidth * count)) - 1);
     const int last = std::min(count, static_cast<int>(std::ceil(span.to / visibleWidth * count)) + 1);
     bars.reserve(static_cast<size_t>(std::max(0, last - first)));
+    // A long take at a wide zoom draws from a coarse level (AU-7).
+    const auto& levelPeaks = m_peaks->level(nt::ui::choosePeakLevel(*m_peaks, visibleIn, visibleOut, count));
     for (int i = first; i < last; ++i) {
-        const float peak = nt::ui::samplePeakAt(m_peaks->peaks, dur, visibleIn, visibleOut, count, i);
+        const float peak = nt::ui::samplePeakAt(levelPeaks, dur, visibleIn, visibleOut, count, i);
         const double h = std::max(1.0, peak * (cssHeight - 2));
         bars.emplace_back(double(i) / count * visibleWidth, mid - h / 2, w, h);
     }
