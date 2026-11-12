@@ -359,6 +359,7 @@ export { FalProvider };
 export { NodetoolProvider };
 export { KieProvider };
 export { ComfyCloudProvider };
+export { comfyCloudFetch } from "./comfy-fetch.js";
 export {
   registerWebhookWait,
   resolveWebhook,

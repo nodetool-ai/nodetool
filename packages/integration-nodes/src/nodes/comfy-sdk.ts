@@ -30,6 +30,7 @@ import {
 } from "@comfyorg/sdk";
 import { ApiError, ComfyLow } from "@comfyorg/sdk/low";
 import {
+  comfyCloudFetch,
   loadMediaRefBytes,
   type MediaRefValue,
   type ProcessingContext
@@ -158,9 +159,13 @@ type AssertAssignable<T extends U, U> = T;
 type _SdkEventsMatch = AssertAssignable<SdkComfyEvent, ComfyRunEvent>;
 type _SdkJobMatches = AssertAssignable<SdkJob, ComfyJob>;
 
-/** Comfy Cloud, authenticated with a `COMFY_API_KEY`. */
+/**
+ * Comfy Cloud, authenticated with a `COMFY_API_KEY`. Comfy Cloud answers a job
+ * with `http://` links, which the SDK polls with no key; `comfyCloudFetch`
+ * restores https and the key, as the comfy_cloud provider does.
+ */
 export function cloudTransport(apiKey: string): ComfyTransport {
-  const client = new Comfy({ apiKey });
+  const client = new Comfy({ apiKey, fetch: comfyCloudFetch(apiKey) });
   return {
     async submit(graph, options) {
       const workflow = client.workflows.fromJson(graph);
