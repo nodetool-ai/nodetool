@@ -2398,6 +2398,8 @@
     "nodetool.audio.synth.Mixer": "audio",
     "nodetool.audio.synth.Oscillator": "audio",
     "nodetool.audio.synth.SampleHold": "audio",
+    "nodetool.audio.synth.Sampler": "audio",
+    "nodetool.audio.synth.Trigger": "audio",
     "nodetool.audio.synth.VCA": "audio",
     "nodetool.audio.synth.VCF": "audio",
     "nodetool.blender.BakeTimelineClip": "blender",
@@ -3497,7 +3499,7 @@
       "id": "audio",
       "installBytes": 0,
       "kind": "node-pack",
-      "nodeCount": 71,
+      "nodeCount": 73,
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/audio-nodes",

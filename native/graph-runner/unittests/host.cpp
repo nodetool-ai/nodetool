@@ -713,6 +713,16 @@ void kernelsMatchTheCFunctions() {
   CHECK(run(*e, "__host.kernels.call('nt_audio_delay', [new Float32Array(4), new Float32Array(4), 4, 1, 1000, NaN, 0, 1], "
                 "'ionnnnnn', [])") == std::to_string(NT_ERR_ARGS));
   CHECK(run(*e, "__host.kernels.call('nt_audio_delay_output_frames', [10, 10, 0.3], 'nnn', [])") == "22");
+
+  // The sampler returns its voices in the state and the count of voices that
+  // still sound. A null gate is high, so one voice plays the clip.
+  CHECK(run(*e, "__host.kernels.call('nt_sampler_state_len', [2, 1], 'nn', [])") ==
+        std::to_string(nt_sampler_state_len(2, 1)));
+  CHECK(run(*e, "(() => { const o = []; const state = new Float64Array(15); "
+                "const r = __host.kernels.call('nt_sampler_process', [state, 2, new Float32Array([0.5, 0.25, 0.125, 0]), "
+                "4, 1, null, null, new Float32Array(3), 3, 0, 1, 0, 0, 1], 'xninnzzonnnnnn', o); "
+                "return r + ':' + o.length + ':' + Array.from(new Float32Array(o[1].buffer)).join(','); })()") ==
+        "1:2:0.5,0.25,0.125");
 }
 
 // Exercise each streaming adapter through the guest trust boundary, including buffer modes.
@@ -917,6 +927,15 @@ void kernelsRefuseBadArguments() {
   CHECK(startsWith(call("'nt_biquad_process', [new Float64Array(5), new Float64Array(4), new Float32Array(8), "
                         "new Float32Array(8), 4, 2], 'ixionn', []"),
                    "error: kernels.call: argument 1 of nt_biquad_process holds 32 bytes, 64 required"));
+  CHECK(startsWith(call("'nt_sampler_process', [new Float64Array(14), 2, new Float32Array(4), 4, 1, null, null, "
+                        "new Float32Array(3), 3, 0, 1, 0, 0, 1], 'xninnzzonnnnnn', []"),
+                   "error: kernels.call: argument 0 of nt_sampler_process holds 112 bytes, 120 required"));
+  CHECK(startsWith(call("'nt_sampler_process', [new Float64Array(15), 2, new Float32Array(4), 5, 1, null, null, "
+                        "new Float32Array(3), 3, 0, 1, 0, 0, 1], 'xninnzzonnnnnn', []"),
+                   "error: kernels.call: argument 2 of nt_sampler_process holds 16 bytes, 20 required"));
+  CHECK(startsWith(call("'nt_sampler_process', [new Float64Array(15), 2, new Float32Array(4), 4, 1, new Float32Array(2), "
+                        "null, new Float32Array(3), 3, 0, 1, 0, 0, 1], 'xninnizonnnnnn', []"),
+                   "error: kernels.call: argument 5 of nt_sampler_process holds 8 bytes, 12 required"));
   CHECK(startsWith(call("'nt_alloc', [], '', []"), "error: kernels.call: no kernel nt_alloc"));
   CHECK(startsWith(call("'nt_image_equalize'"), "error: kernels.call: expected (name, args, modes, outputs)"));
 }

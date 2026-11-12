@@ -118,3 +118,38 @@ const innerWav = Buffer.from(innerOutput.value.data, "base64");
 assert.equal(innerWav.readUInt32LE(24), 44100, "inner graph preserves the root render rate");
 assert.equal((innerWav.length - 44) / 2, 2205, "inner graph preserves the root render bound");
 console.log("Inner graph preserves the top-level audio transport");
+
+const samplerGraph = fileURLToPath(
+  new URL("../tests/graphs/audio-sampler-render.json", import.meta.url)
+);
+const samplerExpected = JSON.parse(
+  readFileSync(
+    new URL(
+      "../tests/graphs/audio-sampler-render.expected.json",
+      import.meta.url
+    ),
+    "utf8"
+  )
+);
+const samplerRun = spawnSync(runner, [bundle, samplerGraph], {
+  encoding: "utf8",
+  timeout: 60000,
+  maxBuffer: 8 * 1024 * 1024
+});
+assert.equal(samplerRun.status, 0, samplerRun.stderr);
+const samplerOutput = samplerRun.stdout
+  .split("\n")
+  .filter((line) => line.startsWith("{"))
+  .map(JSON.parse)
+  .find(
+    (message) => message.type === "output_update" && message.node_id === "out"
+  );
+assert.ok(samplerOutput?.value?.data, "Sampler voices emit a clip");
+const samplerWav = Buffer.from(samplerOutput.value.data, "base64");
+assert.equal((samplerWav.length - 44) / 2, samplerExpected.frames);
+assert.equal(
+  createHash("sha256").update(samplerWav.subarray(44)).digest("hex"),
+  samplerExpected.pcm_sha256
+);
+
+console.log("Native Sampler render matches the TypeScript PCM hash");

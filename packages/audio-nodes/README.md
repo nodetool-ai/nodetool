@@ -55,6 +55,8 @@ A patchable, Eurorack-style synth built from control-voltage nodes.
 - `nodetool.audio.synth.Oscillator`, `nodetool.audio.synth.LFO`, `nodetool.audio.synth.ADSR`
 - `nodetool.audio.synth.VCA`, `nodetool.audio.synth.VCF`, `nodetool.audio.synth.Mixer`
 - `nodetool.audio.synth.Gate`, `nodetool.audio.synth.SampleHold`, `nodetool.audio.synth.Attenuverter`
+- `nodetool.audio.synth.Sampler` — plays a clip as a polyphonic instrument. A gate starts the voices and a pitch CV tunes them.
+- `nodetool.audio.synth.Trigger` — fires one gate pulse, with a pitch value, for each change of its switch. It plays notes by hand while the patch runs.
 
 ## Links
 

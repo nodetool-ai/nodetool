@@ -1256,6 +1256,19 @@ void WorkflowSession::stop(const QString &id) {
     }
     send("cancel_job", {{"job_id", id}, {"workflow_id", m_runs[id]["workflow_id"]}});
 }
+bool WorkflowSession::updateNodeProperties(const QString &id, const QString &nodeId, const QJsonObject &properties) {
+    if (nodeId.isEmpty() || properties.isEmpty() || !m_runs.contains(id) || m_runs[id]["terminal"].toBool()) {
+        return false;
+    }
+    if (m_inProcessRuns.contains(id)) {
+        return m_localRunner->updateNodeProperties(id.toStdString(), nodeId.toStdString(),
+                                                   QJsonDocument(properties).toJson(QJsonDocument::Compact).toStdString());
+    }
+    // A change that cannot reach the server stays in the document for the next run.
+    if (!m_connected) { return false; }
+    return send("update_node_properties", {{"job_id", id}, {"workflow_id", m_runs[id]["workflow_id"]},
+                                           {"node_id", nodeId}, {"properties", properties}});
+}
 void WorkflowSession::cancelJob(const QString &id) {
     if (!m_accountJobs || id.isEmpty()) {
         emit errorOccurred("Connect before cancelling a job");

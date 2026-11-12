@@ -209,6 +209,41 @@ private slots:
     session.stop(id);
     QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 30000);
   }
+  // A live property change reaches the node of a run in progress: the gate
+  // of a Trigger rises after its switch changes.
+  void livePropertyChangeReachesTheRun() {
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    const QJsonObject doc{{"id", "wf-live-trigger"}, {"name", "Live trigger"}, {"graph", QJsonObject{
+        {"nodes", QJsonArray{node("trig", "nodetool.audio.synth.Trigger", {{"length", 0.02}}),
+                             node("out", "nodetool.audio.realtime.AudioOutput", {})}},
+        {"edges", QJsonArray{edge("e1", "trig", "gate", "out", "chunk")}}}}};
+    int blocks = 0;
+    int high = 0;
+    connect(&session, &WorkflowSession::runEvent, this, [&blocks, &high](const QString &, const QJsonObject &event) {
+      if (event["type"] != "output_update" || event["node_id"] != "out") { return; }
+      const auto value = event["value"].toObject();
+      if (value["done"].toBool()) { return; }
+      ++blocks;
+      // The samples arrive as base64 text, or as tagged bytes.
+      const auto content = value["content"];
+      const auto text = content.isObject() ? content.toObject()["__bytes__"].toString() : content.toString();
+      const auto bytes = QByteArray::fromBase64(text.toLatin1());
+      if (bytes.count('\0') != bytes.size()) { ++high; }
+    });
+    QVERIFY(!session.updateNodeProperties("unknown", "trig", {{"trigger", true}}));
+    const auto id = session.run(doc);
+    QVERIFY(session.runsInProcess(id));
+    QTRY_VERIFY_WITH_TIMEOUT(blocks >= 3, 30000);
+    QCOMPARE(high, 0);
+    QVERIFY(!session.updateNodeProperties(id, "", {{"trigger", true}}));
+    QVERIFY(!session.updateNodeProperties(id, "trig", {}));
+    QVERIFY(session.updateNodeProperties(id, "trig", {{"trigger", true}}));
+    QTRY_VERIFY_WITH_TIMEOUT(high > 0, 30000);
+    session.stop(id);
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 30000);
+    QVERIFY(!session.updateNodeProperties(id, "trig", {{"trigger", false}}));
+  }
   void runsWithoutServer() {
     WorkflowSession session;
     NodeRuntimeModel runtime;
@@ -407,6 +442,48 @@ private slots:
     const auto job = jobEntry(output);
     QCOMPARE(job["status"].toString(), QString("completed"));
     QCOMPARE(job["text"].toString(), QString(R"({"outputs":{"items":[[0,1,2]]}})"));
+  }
+  // The Examples menu promises that each bundled example runs in this process,
+  // with no server, file or key, and every preview or audio sink gets a value.
+  void runsEveryBundledExampleInProcess() {
+    const auto files = QDir(EXAMPLES_DIR).entryInfoList({"*.json"}, QDir::Files, QDir::Name);
+    QVERIFY(!files.isEmpty());
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    for (const auto &info : files) {
+      QFile file(info.filePath());
+      QVERIFY(file.open(QIODevice::ReadOnly));
+      auto workflow = QJsonDocument::fromJson(file.readAll()).object();
+      workflow["id"] = "wf-" + info.baseName();
+      NodeRuntimeModel runtime;
+      observe(session, runtime);
+      QSignalSpy errors(&session, &WorkflowSession::errorOccurred);
+      const auto id = session.run(workflow);
+      QVERIFY2(!id.isEmpty() && session.runsInProcess(id), qPrintable(info.fileName()));
+      // These examples play until the run stops.
+      const QStringList endless{"live-synth", "sampler-arpeggio", "sampler-drum-kit", "sampler-trigger"};
+      if (endless.contains(info.baseName())) {
+        QTRY_VERIFY_WITH_TIMEOUT(!runtime.nodeState("out")["outputs"].toObject().isEmpty(), 1000);
+        session.stop(id);
+        QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 30000);
+        QObject::disconnect(&session, nullptr, &runtime, nullptr);
+        continue;
+      }
+      QTRY_VERIFY2_WITH_TIMEOUT(statusOf(session, id) == "completed" || statusOf(session, id) == "failed",
+                                qPrintable(info.fileName()), 60000);
+      QVERIFY2(statusOf(session, id) == "completed", qPrintable(info.fileName()));
+      QVERIFY2(errors.isEmpty(), qPrintable(info.fileName()));
+      int previews = 0;
+      for (const auto &value : workflow["graph"].toObject()["nodes"].toArray()) {
+        const auto node = value.toObject();
+        if (node["type"] != "nodetool.workflows.base_node.Preview" && node["type"] != "nodetool.audio.realtime.AudioOutput" && node["type"] != "nodetool.audio.realtime.ChunksToAudio") { continue; }
+        ++previews;
+        QVERIFY2(!runtime.nodeState(node["id"].toString())["outputs"].toObject().isEmpty(),
+                 qPrintable(info.fileName() + ": " + node["id"].toString()));
+      }
+      QVERIFY2(previews > 0, qPrintable(info.fileName()));
+      QObject::disconnect(&session, nullptr, &runtime, nullptr);
+    }
   }
   void unsupportedGraphUsesServer() {
     WorkflowSession session;

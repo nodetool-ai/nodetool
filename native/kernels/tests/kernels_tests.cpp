@@ -326,6 +326,171 @@ void testResample() {
   check(10 * std::log10(power / error) > 60, "resample SNR exceeds 60 dB");
 }
 
+// One block of a mono or stereo sampler with a level of 1.
+int sample(std::vector<double>& state, uint32_t voices, const std::vector<float>& clip, uint32_t channels,
+           const float* gate, const float* pitch, float* out, size_t frames, int mode, double rate = 1,
+           double attack = 0, double release = 0) {
+  return nt_sampler_process(state.data(), voices, clip.data(), clip.size() / channels, channels, gate, pitch,
+                            out, frames, mode, rate, attack, release, 1);
+}
+
+void testSampler() {
+  constexpr size_t length = 300;
+  constexpr size_t count = 1024;
+  std::vector<float> clip = randomSignal(length, 7);
+  // The clip ends at zero, so a voice that reaches the end leaves no decay.
+  clip.back() = 0;
+  std::vector<float> out(count);
+
+  // A NULL gate is high from the first frame: one voice, at the clip's rate.
+  std::vector<double> state(nt_sampler_state_len(4, 1));
+  int sounding = sample(state, 4, clip, 1, nullptr, nullptr, out.data(), count, NT_SAMPLER_ONE_SHOT);
+  check(std::equal(clip.begin(), clip.end(), out.begin()), "a sampler voice at rate 1 copies the clip");
+  check(std::all_of(out.begin() + length, out.end(), [](float s) { return s == 0; }),
+        "a sampler is silent after a one-shot clip");
+  check(sounding == 0, "no voice sounds after a one-shot clip");
+
+  // Two triggers 100 frames apart sound together.
+  std::vector<float> gate(count, 0.0f);
+  std::fill_n(gate.begin(), 10, 1.0f);
+  std::fill_n(gate.begin() + 100, 10, 1.0f);
+  std::fill(state.begin(), state.end(), 0.0);
+  sample(state, 4, clip, 1, gate.data(), nullptr, out.data(), count, NT_SAMPLER_ONE_SHOT);
+  bool overlap = true;
+  for (size_t i = 0; i < length + 100; i++) {
+    const float first = i < length ? clip[i] : 0;
+    const float second = i >= 100 ? clip[i - 100] : 0;
+    overlap = overlap && std::abs(out[i] - (first + second)) < 1e-6f;
+  }
+  check(overlap, "two sampler voices sound together");
+
+  // With one voice, the second trigger replaces the first. The replaced
+  // level decays instead of a jump to zero.
+  std::vector<double> mono(nt_sampler_state_len(1, 1));
+  sample(mono, 1, clip, 1, gate.data(), nullptr, out.data(), count, NT_SAMPLER_ONE_SHOT);
+  check(std::abs(out[100] - (clip[0] + clip[100])) < 1e-6f, "a replaced voice keeps its level for one frame");
+  check(std::abs(out[101] - (clip[1] + clip[100] * (1 - 1.0f / 128))) < 1e-6f, "a replaced voice decays");
+  // After frame 400 only the decay is left. It falls by 1/128 for each frame
+  // and ends below -100 dB.
+  check(out[450] != 0 && std::abs(out[900]) < std::abs(out[450]) * 0.05f, "the decay of a replaced voice falls");
+  std::vector<float> low(2048, 0.0f), rest(2048);
+  check(sample(mono, 1, clip, 1, low.data(), nullptr, rest.data(), rest.size(), NT_SAMPLER_ONE_SHOT) == 0 &&
+            rest.back() == 0,
+        "the decay of a replaced voice ends");
+
+  // The pitch at the trigger sets the rate of that voice: one octave up
+  // reads every second frame.
+  std::vector<float> pitch(count, 1.0f);
+  std::fill(state.begin(), state.end(), 0.0);
+  sample(state, 4, clip, 1, gate.data(), pitch.data(), out.data(), 50, NT_SAMPLER_ONE_SHOT);
+  bool octave = true;
+  for (size_t i = 0; i < 50; i++) octave = octave && out[i] == clip[i * 2];
+  check(octave, "a pitch of 1 plays a sampler voice one octave up");
+
+  // A rate between frames interpolates: a ramp stays a ramp.
+  std::vector<float> ramp(64);
+  for (size_t i = 0; i < ramp.size(); i++) ramp[i] = static_cast<float>(i) / 64;
+  std::vector<double> rampState(nt_sampler_state_len(1, 1));
+  sample(rampState, 1, ramp, 1, nullptr, nullptr, out.data(), 100, NT_SAMPLER_ONE_SHOT, 0.5);
+  bool linear = true;
+  for (size_t i = 2; i < 100; i++) linear = linear && std::abs(out[i] - static_cast<float>(i) / 128) < 1e-6f;
+  check(linear, "a sampler voice interpolates between frames");
+
+  // A gated voice fades out after the gate falls and then stops.
+  std::vector<float> ones(length, 1.0f);
+  std::vector<float> held(count, 0.0f);
+  std::fill_n(held.begin(), 50, 1.0f);
+  std::fill(state.begin(), state.end(), 0.0);
+  sounding = sample(state, 4, ones, 1, held.data(), nullptr, out.data(), 200, NT_SAMPLER_GATED, 1, 0, 20);
+  check(out[49] == 1.0f && out[50] == 1.0f, "a gated voice holds its level to the falling edge");
+  check(std::abs(out[60] - 0.5f) < 1e-6f, "a gated voice fades out over the release");
+  check(out[75] == 0.0f && sounding == 0, "a gated voice stops after the release");
+  std::fill(state.begin(), state.end(), 0.0);
+  sample(state, 4, ones, 1, held.data(), nullptr, out.data(), 200, NT_SAMPLER_ONE_SHOT, 1, 0, 20);
+  check(out[100] == 1.0f, "a one-shot voice ignores the falling edge");
+  std::fill(state.begin(), state.end(), 0.0);
+  sample(state, 4, ones, 1, held.data(), nullptr, out.data(), 200, NT_SAMPLER_GATED, 1, 10, 20);
+  check(out[0] == 0.0f && std::abs(out[5] - 0.5f) < 1e-6f && out[10] == 1.0f, "a voice fades in over the attack");
+
+  // A loop repeats the clip while the gate is high.
+  const std::vector<float> four{0.1f, 0.2f, 0.3f, 0.4f};
+  std::vector<double> loopState(nt_sampler_state_len(2, 1));
+  sounding = sample(loopState, 2, four, 1, nullptr, nullptr, out.data(), 12, NT_SAMPLER_LOOP);
+  bool repeats = true;
+  for (size_t i = 0; i < 12; i++) repeats = repeats && out[i] == four[i % 4];
+  check(repeats && sounding == 1, "a looped voice repeats the clip");
+
+  // A stereo clip keeps its channels apart.
+  const std::vector<float> stereo{0.1f, -0.1f, 0.2f, -0.2f, 0.0f, 0.0f};
+  std::vector<double> stereoState(nt_sampler_state_len(2, 2));
+  sample(stereoState, 2, stereo, 2, nullptr, nullptr, out.data(), 4, NT_SAMPLER_ONE_SHOT);
+  check(std::equal(stereo.begin(), stereo.end(), out.begin()) && out[6] == 0 && out[7] == 0,
+        "a stereo sampler voice keeps its channels");
+
+  // Triggers, pitches, releases and a replaced voice: the chunked stream
+  // equals one pass.
+  std::vector<float> busyGate(count), busyPitch(count);
+  for (size_t i = 0; i < count; i++) {
+    busyGate[i] = i % 97 < 31 ? 1.0f : 0.0f;
+    busyPitch[i] = static_cast<float>(static_cast<int>(i / 97) % 5 - 2) * 0.37f;
+  }
+  for (int mode : {NT_SAMPLER_ONE_SHOT, NT_SAMPLER_GATED, NT_SAMPLER_LOOP}) {
+    std::vector<float> whole(count * 2), chunked(count * 2);
+    std::vector<float> stereoClip = randomSignal(2 * 211, 11);
+    std::vector<double> wholeState(nt_sampler_state_len(3, 2)), chunkState(wholeState.size());
+    const int wholeSounding = sample(wholeState, 3, stereoClip, 2, busyGate.data(), busyPitch.data(),
+                                     whole.data(), count, mode, 0.75, 12, 40);
+    int chunkSounding = 0;
+    for (size_t start = 0; start < count;) {
+      const size_t frames = std::min<size_t>(1 + start % 61, count - start);
+      chunkSounding = sample(chunkState, 3, stereoClip, 2, busyGate.data() + start, busyPitch.data() + start,
+                             chunked.data() + start * 2, frames, mode, 0.75, 12, 40);
+      start += frames;
+    }
+    check(whole == chunked && wholeState == chunkState && wholeSounding == chunkSounding,
+          "a chunked sampler stream equals one pass");
+    check(std::any_of(whole.begin(), whole.end(), [](float s) { return s != 0; }), "the sampler stream has sound");
+  }
+
+  check(nt_sampler_state_len(0, 1) == 0 && nt_sampler_state_len(NT_SAMPLER_MAX_VOICES + 1, 1) == 0 &&
+            nt_sampler_state_len(1, 0) == 0 && nt_sampler_state_len(1, NT_SAMPLER_MAX_CHANNELS + 1) == 0,
+        "sampler state rejects invalid dimensions");
+  check(nt_sampler_process(state.data(), 0, clip.data(), length, 1, nullptr, nullptr, out.data(), 4,
+                           NT_SAMPLER_ONE_SHOT, 1, 0, 0, 1) == NT_ERR_ARGS &&
+            nt_sampler_process(state.data(), 4, clip.data(), length, 1, nullptr, nullptr, out.data(), 4, 3, 1, 0,
+                               0, 1) == NT_ERR_ARGS &&
+            nt_sampler_process(state.data(), 4, nullptr, length, 1, nullptr, nullptr, out.data(), 4,
+                               NT_SAMPLER_ONE_SHOT, 1, 0, 0, 1) == NT_ERR_ARGS,
+        "the sampler rejects invalid arguments");
+  std::fill(state.begin(), state.end(), 0.0);
+  check(nt_sampler_process(state.data(), 4, nullptr, 0, 1, nullptr, nullptr, out.data(), 4, NT_SAMPLER_LOOP, 1,
+                           0, 0, 1) == 0 &&
+            std::all_of(out.begin(), out.begin() + 4, [](float s) { return s == 0; }),
+        "a sampler without a clip is silent");
+}
+
+void testSamplerHostileDoubles() {
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+  const double inf = std::numeric_limits<double>::infinity();
+  const float fnan = std::numeric_limits<float>::quiet_NaN();
+  const float finf = std::numeric_limits<float>::infinity();
+  const std::vector<float> clip = randomSignal(2 * 16, 3);
+  const std::vector<float> gate{0, 1, 0, 1, fnan, 1, finf, 0};
+  const std::vector<float> pitch{fnan, finf, -finf, 1e30f, -1e30f, 0, 1, -1};
+  std::vector<float> out(2 * gate.size());
+  for (double bad : {nan, inf, -inf, -1e300, 1e300, 0.0, -1.0, 1.0, 2.0, 7.5}) {
+    for (int mode : {NT_SAMPLER_ONE_SHOT, NT_SAMPLER_GATED, NT_SAMPLER_LOOP}) {
+      std::vector<double> state(nt_sampler_state_len(3, 2), bad);
+      const int status = nt_sampler_process(state.data(), 3, clip.data(), 16, 2, gate.data(), pitch.data(),
+                                            out.data(), gate.size(), mode, bad, bad, bad, 1);
+      check(status >= 0 && status <= 4, "a sampler with hostile state and controls counts its voices");
+      // A huge declick level in the state gives infinite samples, never NaN.
+      check(std::none_of(out.begin(), out.end(), [](float s) { return std::isnan(s); }),
+            "a sampler with hostile state and controls gives numbers");
+    }
+  }
+}
+
 void testStatefulEffects() {
   constexpr size_t frames = 4097;
   constexpr uint32_t channels = 2;
@@ -493,6 +658,8 @@ int main() {
   testStatefulEffects();
   testStreamingHostileDoubles();
   testResample();
+  testSampler();
+  testSamplerHostileDoubles();
   testHostileDoubles();
   if (failures) {
     std::fprintf(stderr, "%d failure(s)\n", failures);

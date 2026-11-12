@@ -3,6 +3,7 @@
 // "@nodetool-ai/sandbox-nodetool/flow" — see ../guest-core.ts.
 
 import { callNode, streamNode } from "../guest-core.js";
+import type { AudioRef } from "../../types.js";
 
 // Oscillator — nodetool.audio.synth.Oscillator
 export type OscillatorInputs = {
@@ -86,6 +87,26 @@ export function gate(inputs: GateInputs): Promise<GateOutputs> {
 
 gate.stream = function (inputs: GateInputs): AsyncIterable<{ slot: keyof GateOutputs & string; value: unknown }> {
   return streamNode<{ slot: keyof GateOutputs & string; value: unknown }>("nodetool.audio.synth.Gate", inputs);
+};
+
+// Trigger — nodetool.audio.synth.Trigger
+export type TriggerInputs = {
+  trigger?: boolean | boolean[];
+  note?: number | number[];
+  length?: number | number[];
+};
+
+export interface TriggerOutputs {
+  gate: unknown;
+  pitch: unknown;
+}
+
+export function trigger(inputs: TriggerInputs): Promise<TriggerOutputs> {
+  return callNode<TriggerOutputs>("nodetool.audio.synth.Trigger", inputs);
+}
+
+trigger.stream = function (inputs: TriggerInputs): AsyncIterable<{ slot: keyof TriggerOutputs & string; value: unknown }> {
+  return streamNode<{ slot: keyof TriggerOutputs & string; value: unknown }>("nodetool.audio.synth.Trigger", inputs);
 };
 
 // VCA — nodetool.audio.synth.VCA
@@ -188,4 +209,31 @@ export function mixer(inputs: MixerInputs): Promise<MixerOutputs> {
 
 mixer.stream = function (inputs: MixerInputs): AsyncIterable<{ slot: keyof MixerOutputs & string; value: unknown }> {
   return streamNode<{ slot: keyof MixerOutputs & string; value: unknown }>("nodetool.audio.synth.Mixer", inputs);
+};
+
+// Sampler — nodetool.audio.synth.Sampler
+export type SamplerInputs = {
+  audio?: AudioRef | AudioRef[];
+  gate?: unknown | unknown[];
+  pitch_cv?: unknown | unknown[];
+  mode?: "one_shot" | "gated" | "loop" | ("one_shot" | "gated" | "loop")[];
+  voices?: number | number[];
+  tune?: number | number[];
+  start?: number | number[];
+  length?: number | number[];
+  attack?: number | number[];
+  release?: number | number[];
+  gain?: number | number[];
+};
+
+export interface SamplerOutputs {
+  chunk: unknown;
+}
+
+export function sampler(inputs: SamplerInputs): Promise<SamplerOutputs> {
+  return callNode<SamplerOutputs>("nodetool.audio.synth.Sampler", inputs);
+}
+
+sampler.stream = function (inputs: SamplerInputs): AsyncIterable<{ slot: keyof SamplerOutputs & string; value: unknown }> {
+  return streamNode<{ slot: keyof SamplerOutputs & string; value: unknown }>("nodetool.audio.synth.Sampler", inputs);
 };

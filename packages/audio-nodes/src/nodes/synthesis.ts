@@ -4,7 +4,8 @@ import { getTransport, type AudioTransport } from "../lib/transport.js";
 /**
  * Modular synthesis nodes (`nodetool.audio.synth.*`) — a subtractive synth
  * voice operating on streamed signal chunks: oscillator, LFO, ADSR, gate
- * source, VCA, VCF, CV utilities, and a mixer.
+ * source, manual trigger, VCA, VCF, CV utilities, and a mixer. The Sampler,
+ * a polyphonic sample player on the same streams, is in ./sampler.ts.
  *
  * Timing is sample-domain: time = sample count; the wall clock only paces
  * emission. Free-running generators (Oscillator, LFO, Gate) are realtime
@@ -48,6 +49,7 @@ import {
   type SignalEncoding
 } from "../lib/cv.js";
 import { DEFAULT_Q } from "../lib/biquad.js";
+import { SamplerNode } from "./sampler.js";
 
 // ── Shared generator scaffolding ───────────────────────────────────
 
@@ -511,6 +513,89 @@ export class GateNode extends BaseNode {
           count
         )
     });
+  }
+}
+
+// ── Trigger ────────────────────────────────────────────────────────
+
+export class TriggerNode extends BaseNode {
+  static readonly nodeType = "nodetool.audio.synth.Trigger";
+  static readonly title = "Trigger";
+  static readonly description =
+    "Fires one gate pulse for each change of its switch, with a pitch value: plays notes by hand while the patch runs.\n    cv, synthesis, trigger, gate, note, manual, keyboard, modular\n\n    Each change of trigger starts a gate pulse of length seconds at the next block. A change during a pulse starts the pulse again after one low sample, so the gate rises for every change. The pitch output carries note in octaves (note / 12, volts/octave). The gate stays low until the first change, so a render without a live change is silent.\n\n    Use cases:\n    - Play a Sampler voice with one click\n    - Start an ADSR envelope by hand\n    - Try a note at a chosen pitch";
+  static readonly metadataOutputTypes = { gate: "cv", pitch: "cv" };
+  static readonly inlineFields: string[] = ["trigger", "note"];
+  static readonly inputFields: string[] = [];
+  static readonly isStreamingInput = true;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Trigger",
+    description: "Each change fires one gate pulse while the patch runs."
+  })
+  declare trigger: boolean;
+
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Note",
+    description:
+      "Pitch of the note in semitones. The pitch output carries note / 12.",
+    min: -48,
+    max: 48
+  })
+  declare note: number;
+
+  @prop({
+    type: "float",
+    default: 0.1,
+    title: "Length",
+    description: "Gate-high time of one pulse in seconds.",
+    min: 0.001,
+    max: 60
+  })
+  declare length: number;
+
+  // Required by BaseNode but unused for streaming
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(inputs: StreamingInputs, outputs: StreamingOutputs, context?: ProcessingContext): Promise<void> {
+    const transport = getTransport(context);
+    const sampleRate = transport.sampleRate;
+    const signal = inputs.signal;
+    let emitted = 0;
+    // The switch position of the last block, the frames of the pulse still
+    // to play, and whether the last frame of the last block was high.
+    let seen = this.trigger;
+    let remaining = 0;
+    let high = false;
+    while (!signal.aborted && (transport.endFrame === null || emitted < transport.endFrame)) {
+      await transport.until(emitted, signal);
+      if (signal.aborted) break;
+      const count = Math.min(transport.blockFrames, transport.endFrame === null ? transport.blockFrames : transport.endFrame - emitted);
+      // The properties are read here, so a live change applies at this block.
+      let from = 0;
+      if (this.trigger !== seen) {
+        seen = this.trigger;
+        remaining = Math.max(1, Math.round(this.length * sampleRate));
+        // One low frame, so a pulse that still plays rises again.
+        if (high) from = 1;
+      }
+      const to = Math.min(count, from + remaining);
+      const gate = new Float32Array(count);
+      if (to > from) gate.fill(1, from, to);
+      remaining -= Math.max(0, to - from);
+      high = to > from && to === count;
+      const pitch = new Float32Array(count).fill(this.note / 12);
+      await outputs.emit("pitch", makeSignalChunk(pitch, sampleRate, 1, false, "f32le"));
+      await outputs.emit("gate", makeSignalChunk(gate, sampleRate, 1, false, "f32le"));
+      emitted += count;
+    }
+    await outputs.emit("pitch", makeDoneSignalChunk(sampleRate, 1, "f32le"));
+    await outputs.emit("gate", makeDoneSignalChunk(sampleRate, 1, "f32le"));
   }
 }
 
@@ -981,9 +1066,11 @@ export const SYNTHESIS_NODES: readonly NodeClass[] = tagAsHybrid([
   LfoNode,
   AdsrNode,
   GateNode,
+  TriggerNode,
   VcaNode,
   VcfNode,
   AttenuverterNode,
   SampleHoldNode,
-  MixerNode
+  MixerNode,
+  SamplerNode
 ]);

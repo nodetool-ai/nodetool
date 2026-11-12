@@ -6692,6 +6692,144 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/synth/samplehold.md"
     },
     {
+      "type": "nodetool.audio.synth.Sampler",
+      "title": "Sampler",
+      "namespace": "nodetool.audio.synth",
+      "description": "Plays an audio clip as a polyphonic instrument: each gate trigger starts a voice.\n    audio, synthesis, sampler, sample, drum, voice, polyphonic, modular\n\n    Each rising edge of the gate (≥ 0.5) starts a voice at the start of the region. The voice reads pitch_cv at that sample (volts/octave: rate = 2^(cv + tune / 12)) and keeps that rate, so voices at different pitches sound together. When all voices sound, a new trigger replaces the oldest voice. The gate drives chunk cadence (sample-aligned). With no gate patched, the gate is high from the first frame, so the clip plays one time. The output has the channels of the clip.\n\n    Use cases:\n    - Play drum hits from gate patterns\n    - Play a melody from one recorded note\n    - Loop or stutter a slice of a clip",
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The clip that the voices play.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
+        },
+        {
+          "name": "gate",
+          "type": "cv",
+          "description": "Gate CV stream. Each rising edge (≥ 0.5) starts a voice. When patched, drives the output chunk cadence.",
+          "required": true
+        },
+        {
+          "name": "pitch_cv",
+          "type": "cv",
+          "description": "Pitch control stream in octaves (volts/octave). A voice keeps the value of its trigger sample.",
+          "required": true
+        },
+        {
+          "name": "mode",
+          "type": "enum",
+          "description": "one_shot plays each voice to the end of the region. gated fades a voice out when the gate falls. loop also repeats the region.",
+          "required": false,
+          "default": "one_shot"
+        },
+        {
+          "name": "voices",
+          "type": "int",
+          "description": "Voices that can sound together. A trigger beyond this number replaces the oldest voice.",
+          "required": false,
+          "default": 8
+        },
+        {
+          "name": "tune",
+          "type": "float",
+          "description": "Pitch offset in semitones.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "start",
+          "type": "float",
+          "description": "Start of the played region in seconds.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "length",
+          "type": "float",
+          "description": "Length of the played region in seconds. Zero plays to the end of the clip. The region is at most 30 s.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "attack",
+          "type": "float",
+          "description": "Fade-in time of each voice in seconds.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "release",
+          "type": "float",
+          "description": "Fade-out time in seconds after the gate falls, in the gated and loop modes.",
+          "required": false,
+          "default": 0.05
+        },
+        {
+          "name": "gain",
+          "type": "float",
+          "description": "Output level (linear).",
+          "required": false,
+          "default": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/synth/sampler",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/synth/sampler.md"
+    },
+    {
+      "type": "nodetool.audio.synth.Trigger",
+      "title": "Trigger",
+      "namespace": "nodetool.audio.synth",
+      "description": "Fires one gate pulse for each change of its switch, with a pitch value: plays notes by hand while the patch runs.\n    cv, synthesis, trigger, gate, note, manual, keyboard, modular\n\n    Each change of trigger starts a gate pulse of length seconds at the next block. A change during a pulse starts the pulse again after one low sample, so the gate rises for every change. The pitch output carries note in octaves (note / 12, volts/octave). The gate stays low until the first change, so a render without a live change is silent.\n\n    Use cases:\n    - Play a Sampler voice with one click\n    - Start an ADSR envelope by hand\n    - Try a note at a chosen pitch",
+      "inputs": [
+        {
+          "name": "trigger",
+          "type": "bool",
+          "description": "Each change fires one gate pulse while the patch runs.",
+          "required": false,
+          "default": false
+        },
+        {
+          "name": "note",
+          "type": "float",
+          "description": "Pitch of the note in semitones. The pitch output carries note / 12.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "length",
+          "type": "float",
+          "description": "Gate-high time of one pulse in seconds.",
+          "required": false,
+          "default": 0.1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "gate",
+          "type": "cv"
+        },
+        {
+          "name": "pitch",
+          "type": "cv"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/synth/trigger",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/synth/trigger.md"
+    },
+    {
       "type": "nodetool.audio.synth.VCA",
       "title": "VCA",
       "namespace": "nodetool.audio.synth",

@@ -273,6 +273,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
       "nodetool.audio.synth.Mixer",
       "nodetool.audio.synth.Oscillator",
       "nodetool.audio.synth.SampleHold",
+      "nodetool.audio.synth.Sampler",
+      "nodetool.audio.synth.Trigger",
       "nodetool.audio.synth.VCA",
       "nodetool.audio.synth.VCF",
       "nodetool.game.MusicLoop",

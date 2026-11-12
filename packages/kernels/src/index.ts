@@ -43,6 +43,16 @@ export const WAVEFORMS = {
 } as const;
 export type Waveform = keyof typeof WAVEFORMS;
 
+export const SAMPLER_MODES = {
+  one_shot: 0,
+  gated: 1,
+  loop: 2
+} as const;
+export type SamplerMode = keyof typeof SAMPLER_MODES;
+
+/** The most voices of one sampler (NT_SAMPLER_MAX_VOICES). */
+export const MAX_SAMPLER_VOICES = 32;
+
 /** Lengths of the state arrays the streaming kernels carry across calls. */
 export const STATE_LEN = {
   biquad: 4,
@@ -118,6 +128,29 @@ export interface AdsrParams {
   decay: number;
   sustain: number;
   release: number;
+}
+
+export interface SamplerParams {
+  /**
+   * `one_shot` plays each voice to the end of the sample. `gated` fades a
+   * voice out when the gate falls. `loop` also repeats the sample.
+   */
+  mode: SamplerMode;
+  /** Playback rate at a pitch of 0. A rate of 1 plays the sample as recorded. */
+  rate: number;
+  /** Length of the fade-in of a voice, in output frames. */
+  attackFrames: number;
+  /** Length of the fade-out after the gate falls, in output frames. */
+  releaseFrames: number;
+  gain: number;
+}
+
+/** One block of the sampler. */
+export interface SamplerBlock {
+  /** `frames * channels` interleaved samples. */
+  samples: Float32Array;
+  /** The voices and decays that still sound after the block. */
+  active: number;
 }
 
 /* ── Argument checks ────────────────────────────────────────────────── */
@@ -569,6 +602,61 @@ export class Kernels {
       { inout: state }, { in: signal }, trigger ? { in: trigger } : null, { out }, signal.length
     ]);
     return out;
+  }
+
+  // Sampler
+
+  /** Zero-filled state for `voices` voices of a `channels`-channel sample. */
+  createSamplerState(voices: number, channels: number): Float64Array {
+    const length = this.backend.call("nt_sampler_state_len", [
+      positiveInt(voices, "voices"), positiveInt(channels, "channels")
+    ]);
+    if (!Number.isSafeInteger(length) || length <= 0) {
+      throw new RangeError(`A sampler has 1 to ${MAX_SAMPLER_VOICES} voices, got ${voices} voices of ${channels} channels`);
+    }
+    return new Float64Array(length);
+  }
+
+  /**
+   * One block of the polyphonic sample player. Each rising edge of `gate`
+   * starts a voice at the first frame of `sample`, at the rate
+   * `p.rate * 2^pitch` of that frame. Without `gate` the gate is high for
+   * the whole block, and without `pitch` the pitch is 0. Both hosts copy
+   * `sample` for each call, so pass only the region that plays.
+   */
+  sampler(
+    state: Float64Array,
+    voices: number,
+    sample: Float32Array,
+    channels: number,
+    frames: number,
+    p: SamplerParams,
+    gate?: Float32Array,
+    pitch?: Float32Array
+  ): SamplerBlock {
+    const length = this.backend.call("nt_sampler_state_len", [
+      positiveInt(voices, "voices"), positiveInt(channels, "channels")
+    ]);
+    if (length <= 0) throw new RangeError("Invalid sampler state dimensions");
+    atLeast(state, length, "state");
+    if (!Number.isInteger(frames) || frames < 0) {
+      throw new RangeError(`frames must be a non-negative integer, got ${frames}`);
+    }
+    if (gate) atLeast(gate, frames, "gate");
+    if (pitch) atLeast(pitch, frames, "pitch");
+    if (!Object.hasOwn(SAMPLER_MODES, p.mode)) {
+      throw new RangeError(`Unknown sampler mode ${String(p.mode)}`);
+    }
+    const samples = new Float32Array(frames * channels);
+    const active = this.backend.call("nt_sampler_process", [
+      { inout: state }, voices, { in: sample }, Math.floor(sample.length / channels), channels,
+      gate ? { in: gate } : null, pitch ? { in: pitch } : null, { out: samples }, frames,
+      SAMPLER_MODES[p.mode], p.rate, p.attackFrames, p.releaseFrames, p.gain
+    ]);
+    if (active < 0) {
+      throw new Error("Kernel nt_sampler_process rejected its arguments");
+    }
+    return { samples, active };
   }
 }
 

@@ -1,0 +1,345 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "A Sampler Drum Kit",
+  "tool_name": null,
+  "description": "Three samplers play a kick, a snare and a hi-hat from three clocks until you stop the run. Runs locally with no file, model or key.",
+  "tags": [
+    "audio",
+    "dsp",
+    "music",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# A Sampler Drum Kit\n\nThree samplers play drum hits live, until you stop the run. Every step runs in the editor process, with no file, model or key.\n\n**How it works:** \"1 Hits\" is a Code node that writes a kick, a snare and a hi-hat as three clips. Each clock is a Gate, and each rising edge starts one voice of its Sampler. The kick plays on every beat at 120 BPM. The snare plays every beat and a half, so the pattern repeats after three beats. The hi-hat plays four times for each beat. One hit lasts longer than the time to the next one, so three voices of \"4 Hat\" sound together. \"5 Mix\" sums the three streams, and \"6 Limit\" keeps the peaks under -1 dB when hits fall together.\n\n**Try this:** Set Voices on \"4 Hat\" to 1: each hit then cuts the hit before it, as a closed hi-hat does. Set Tune on \"2 Kick\" to -5 for a deeper drum, or change On Duration and Off Duration of a clock while the run plays."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 340
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hits",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "// Three drum hits, each one a short clip of its own.\nconst rate = 44100;\nlet seed = 7;\nconst noise = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 2147483648 - 1; };\n\n// `seconds` of sound from `voice(t)`, with a 5 ms fade at the end.\nfunction hit(seconds, voice) {\n  const samples = new Float32Array(Math.round(rate * seconds));\n  for (let i = 0; i < samples.length; i++) {\n    samples[i] = voice(i / rate) * Math.min(1, (samples.length - 1 - i) / 220);\n  }\n  return samples;\n}\n\nconst kick = hit(0.35, (t) => 0.9 * Math.sin(2 * Math.PI * (50 * t + 2 * (1 - Math.exp(-30 * t)))) * Math.exp(-8 * t));\nconst snare = hit(0.25, (t) => 0.6 * noise() * Math.exp(-18 * t) + 0.4 * Math.sin(2 * Math.PI * 190 * t) * Math.exp(-20 * t));\n// The difference of two noise values keeps the high part of the noise.\nlet last = 0;\nconst hat = hit(0.3, (t) => { const n = noise(); const s = 0.5 * (n - last) * Math.exp(-14 * t); last = n; return s; });\n\n// 16-bit PCM WAV bytes from interleaved samples in [-1, 1].\nfunction wav(samples, rate, channels) {\n  const bytes = new Uint8Array(44 + samples.length * 2);\n  const view = new DataView(bytes.buffer);\n  const tag = (at, text) => { for (let i = 0; i < 4; i++) bytes[at + i] = text.charCodeAt(i); };\n  tag(0, \"RIFF\"); view.setUint32(4, 36 + samples.length * 2, true); tag(8, \"WAVE\");\n  tag(12, \"fmt \"); view.setUint32(16, 16, true); view.setUint16(20, 1, true);\n  view.setUint16(22, channels, true); view.setUint32(24, rate, true);\n  view.setUint32(28, rate * channels * 2, true); view.setUint16(32, channels * 2, true);\n  view.setUint16(34, 16, true); tag(36, \"data\"); view.setUint32(40, samples.length * 2, true);\n  samples.forEach((s, i) => view.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, s)) * 32767), true));\n  return bytes;\n}\n\nconst clip = (samples, filename) => media.toAudio(wav(samples, rate, 1), { mimeType: \"audio/wav\", filename });\nawait output(\"kick\", await clip(kick, \"kick.wav\"));\nawait output(\"snare\", await clip(snare, \"snare.wav\"));\nawait output(\"hat\", await clip(hat, \"hat.wav\"));\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Hits"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "kick": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          },
+          "snare": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          },
+          "hat": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "kick-clock",
+        "type": "nodetool.audio.synth.Gate",
+        "data": {
+          "on_duration": 0.05,
+          "off_duration": 0.45
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 620
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Kick clock"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "snare-clock",
+        "type": "nodetool.audio.synth.Gate",
+        "data": {
+          "on_duration": 0.05,
+          "off_duration": 0.7
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 860
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Snare clock"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hat-clock",
+        "type": "nodetool.audio.synth.Gate",
+        "data": {
+          "on_duration": 0.03,
+          "off_duration": 0.095
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1100
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Hat clock"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "kick",
+        "type": "nodetool.audio.synth.Sampler",
+        "data": {
+          "voices": 2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 620
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Kick"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "snare",
+        "type": "nodetool.audio.synth.Sampler",
+        "data": {
+          "voices": 2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 860
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Snare"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hat",
+        "type": "nodetool.audio.synth.Sampler",
+        "data": {
+          "voices": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 1100
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Hat"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mix",
+        "type": "nodetool.audio.synth.Mixer",
+        "data": {
+          "level1": 0.8,
+          "level2": 0.5,
+          "level3": 0.3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 620
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Mix"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "limit",
+        "type": "nodetool.audio.realtime.StreamingLimiter",
+        "data": {
+          "threshold_db": -1,
+          "release_ms": 100,
+          "auto_gain": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 620
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "6  Limit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.audio.realtime.AudioOutput",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 620
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "hits-kick",
+        "source": "hits",
+        "sourceHandle": "kick",
+        "target": "kick",
+        "targetHandle": "audio",
+        "ui_properties": {}
+      },
+      {
+        "id": "hits-snare",
+        "source": "hits",
+        "sourceHandle": "snare",
+        "target": "snare",
+        "targetHandle": "audio",
+        "ui_properties": {}
+      },
+      {
+        "id": "hits-hat",
+        "source": "hits",
+        "sourceHandle": "hat",
+        "target": "hat",
+        "targetHandle": "audio",
+        "ui_properties": {}
+      },
+      {
+        "id": "clock-kick",
+        "source": "kick-clock",
+        "sourceHandle": "cv",
+        "target": "kick",
+        "targetHandle": "gate",
+        "ui_properties": {}
+      },
+      {
+        "id": "clock-snare",
+        "source": "snare-clock",
+        "sourceHandle": "cv",
+        "target": "snare",
+        "targetHandle": "gate",
+        "ui_properties": {}
+      },
+      {
+        "id": "clock-hat",
+        "source": "hat-clock",
+        "sourceHandle": "cv",
+        "target": "hat",
+        "targetHandle": "gate",
+        "ui_properties": {}
+      },
+      {
+        "id": "kick-mix",
+        "source": "kick",
+        "sourceHandle": "chunk",
+        "target": "mix",
+        "targetHandle": "in1",
+        "ui_properties": {}
+      },
+      {
+        "id": "snare-mix",
+        "source": "snare",
+        "sourceHandle": "chunk",
+        "target": "mix",
+        "targetHandle": "in2",
+        "ui_properties": {}
+      },
+      {
+        "id": "hat-mix",
+        "source": "hat",
+        "sourceHandle": "chunk",
+        "target": "mix",
+        "targetHandle": "in3",
+        "ui_properties": {}
+      },
+      {
+        "id": "mix-limit",
+        "source": "mix",
+        "sourceHandle": "chunk",
+        "target": "limit",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      },
+      {
+        "id": "limit-out",
+        "source": "limit",
+        "sourceHandle": "chunk",
+        "target": "out",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

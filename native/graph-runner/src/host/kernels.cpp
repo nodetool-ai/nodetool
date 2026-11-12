@@ -573,6 +573,24 @@ double resample(KernelCall& c) {
     c.out<float>(1, product(nt_resample_output_frames(frames, inRate, outRate), channels)), frames, channels, inRate, outRate);
 }
 
+double samplerStateLen(KernelCall& c) {
+  c.arity(2);
+  return static_cast<double>(nt_sampler_state_len(c.u32(0), c.u32(1)));
+}
+
+double samplerProcess(KernelCall& c) {
+  c.arity(14);
+  const uint32_t voices = c.u32(1);
+  const size_t sampleFrames = c.count(3);
+  const uint32_t channels = c.u32(4);
+  const size_t frames = c.count(8);
+  return nt_sampler_process(c.inout<double>(0, nt_sampler_state_len(voices, channels)), voices,
+                            c.in<float>(2, product(sampleFrames, channels)), sampleFrames, channels,
+                            c.optionalIn<float>(5, frames), c.optionalIn<float>(6, frames),
+                            c.out<float>(7, product(frames, channels)), frames, c.i32(9), c.number(10),
+                            c.number(11), c.number(12), c.number(13));
+}
+
 // Every function of kernels.h. Immutable after its first use.
 const std::unordered_map<std::string_view, Adapter>& adapters() {
   static const std::unordered_map<std::string_view, Adapter> table = {
@@ -625,6 +643,8 @@ const std::unordered_map<std::string_view, Adapter>& adapters() {
       {"nt_gate_process", gateProcess},
       {"nt_vca_process", vcaProcess},
       {"nt_sample_hold_process", sampleHoldProcess},
+      {"nt_sampler_state_len", samplerStateLen},
+      {"nt_sampler_process", samplerProcess},
   };
   return table;
 }

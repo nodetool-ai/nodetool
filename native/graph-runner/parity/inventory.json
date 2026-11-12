@@ -9306,6 +9306,65 @@
   ]
  },
  {
+  "type": "nodetool.audio.synth.Trigger",
+  "class": "TriggerNode",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/synthesis",
+  "title": "Trigger",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "trigger",
+    "type": "bool",
+    "default": false,
+    "required": false
+   },
+   {
+    "name": "note",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": -48,
+    "max": 48
+   },
+   {
+    "name": "length",
+    "type": "float",
+    "default": 0.1,
+    "required": false,
+    "min": 0.001,
+    "max": 60
+   }
+  ],
+  "outputs": [
+   {
+    "name": "gate",
+    "type": "cv",
+    "stream": false
+   },
+   {
+    "name": "pitch",
+    "type": "cv",
+    "stream": false
+   }
+  ]
+ },
+ {
   "type": "nodetool.audio.synth.VCA",
   "class": "VcaNode",
   "package": "@nodetool-ai/audio-nodes",
@@ -9721,6 +9780,149 @@
     "required": false,
     "min": 0,
     "max": 2
+   }
+  ],
+  "outputs": [
+   {
+    "name": "chunk",
+    "type": "chunk",
+    "stream": false
+   }
+  ]
+ },
+ {
+  "type": "nodetool.audio.synth.Sampler",
+  "class": "SYNTHESIS_NODES[10]",
+  "package": "@nodetool-ai/audio-nodes",
+  "module": "@nodetool-ai/audio-nodes/nodes/synthesis",
+  "title": "Sampler",
+  "platforms": [
+   "node",
+   "browser"
+  ],
+  "input_mode": null,
+  "is_streaming_input": true,
+  "is_streaming_output": false,
+  "has_run": true,
+  "is_trigger": false,
+  "is_controlled": false,
+  "supports_dynamic_inputs": false,
+  "supports_dynamic_outputs": false,
+  "required_settings": [],
+  "required_runtimes": [],
+  "requires_gpu": false,
+  "effect": "external",
+  "properties": [
+   {
+    "name": "audio",
+    "type": "audio",
+    "default": {
+     "type": "audio",
+     "uri": "",
+     "asset_id": null,
+     "data": null,
+     "metadata": null
+    },
+    "required": false
+   },
+   {
+    "name": "gate",
+    "type": "cv",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   },
+   {
+    "name": "pitch_cv",
+    "type": "cv",
+    "default": {
+     "type": "chunk",
+     "node_id": null,
+     "thread_id": null,
+     "workflow_id": null,
+     "content_type": "audio",
+     "content": "",
+     "content_metadata": {},
+     "done": false,
+     "thinking": false
+    },
+    "required": false
+   },
+   {
+    "name": "mode",
+    "type": "enum",
+    "default": "one_shot",
+    "required": false,
+    "values": [
+     "one_shot",
+     "gated",
+     "loop"
+    ]
+   },
+   {
+    "name": "voices",
+    "type": "int",
+    "default": 8,
+    "required": false,
+    "min": 1,
+    "max": 32
+   },
+   {
+    "name": "tune",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": -48,
+    "max": 48
+   },
+   {
+    "name": "start",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": 0,
+    "max": 600
+   },
+   {
+    "name": "length",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": 0,
+    "max": 30
+   },
+   {
+    "name": "attack",
+    "type": "float",
+    "default": 0,
+    "required": false,
+    "min": 0,
+    "max": 10
+   },
+   {
+    "name": "release",
+    "type": "float",
+    "default": 0.05,
+    "required": false,
+    "min": 0,
+    "max": 10
+   },
+   {
+    "name": "gain",
+    "type": "float",
+    "default": 1,
+    "required": false,
+    "min": 0,
+    "max": 4
    }
   ],
   "outputs": [

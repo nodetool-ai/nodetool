@@ -205,6 +205,78 @@
    }
   },
   {
+   "id": "nodetool.audio.synth.Sampler#default",
+   "node": "nodetool.audio.synth.Sampler",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.Sampler",
+      "properties": {}
+     },
+     {
+      "id": "out_chunk",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "chunk"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_chunk",
+      "source": "n",
+      "sourceHandle": "chunk",
+      "target": "out_chunk",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.audio.synth.Trigger#default",
+   "node": "nodetool.audio.synth.Trigger",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.audio.synth.Trigger",
+      "properties": {}
+     },
+     {
+      "id": "out_gate",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "gate"
+      }
+     },
+     {
+      "id": "out_pitch",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "pitch"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_gate",
+      "source": "n",
+      "sourceHandle": "gate",
+      "target": "out_gate",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_pitch",
+      "source": "n",
+      "sourceHandle": "pitch",
+      "target": "out_pitch",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
    "id": "nodetool.audio.synth.VCA#default",
    "node": "nodetool.audio.synth.VCA",
    "graph": {

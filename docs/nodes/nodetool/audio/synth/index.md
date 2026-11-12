@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.audio.synth Nodes"
 ---
 
-This namespace contains 9 node(s).
+This namespace contains 11 node(s).
 
 ## Nodes
 
@@ -14,6 +14,8 @@ This namespace contains 9 node(s).
 - **[Mixer](mixer.md)**
 - **[Oscillator](oscillator.md)**
 - **[Sample & Hold](samplehold.md)**
+- **[Sampler](sampler.md)**
+- **[Trigger](trigger.md)**
 - **[VCA](vca.md)**
 - **[VCF](vcf.md)**
 

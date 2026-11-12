@@ -381,6 +381,17 @@ globalThis.__nodetool = {
     );
   },
 
+  /**
+   * A live property change of a node instance: `executor.applyProperties`.
+   * False when the executor takes none.
+   */
+  apply(id, propertiesJson, blobs) {
+    const executor = executorOf(id);
+    if (!executor.applyProperties) return false;
+    executor.applyProperties(fromWire(propertiesJson, blobs));
+    return true;
+  },
+
   genStart(id, inputsJson, blobs) {
     const iterator = executorOf(id).genProcess(applyDynamicSlotTypes(instances.get(id).node, fromWire(inputsJson, blobs)), instances.get(id).context);
     const gid = nextId++;

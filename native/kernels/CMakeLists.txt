@@ -15,6 +15,7 @@ add_library(nodetool_kernels STATIC
   src/audio.cpp
   src/biquad.cpp
   src/image.cpp
+  src/sampler.cpp
   src/synth.cpp)
 target_include_directories(nodetool_kernels PUBLIC include)
 # Rule N6: no fast-math and no fused multiply-add contraction, so the native

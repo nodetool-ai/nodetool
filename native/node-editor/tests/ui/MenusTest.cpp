@@ -3,6 +3,7 @@
 #include "graph/EditorScene.h"
 #include <QGraphicsView>
 #include <QMenu>
+#include <QMenuBar>
 #include <QtTest>
 #include <QContextMenuEvent>
 #include <QClipboard>
@@ -128,27 +129,6 @@ class MenusTest final : public QObject {
         return window.document()->nodes().last().toObject()["type"].toString();
     }
 private slots:
-    void opensEveryEmbeddedAudioExample() {
-        EditorWindow window;
-        window.setCatalog(catalog());
-        window.show();
-        window.action("Examples");
-        auto *menu = window.findChild<QMenu *>("examples-menu");
-        QVERIFY(menu);
-        const auto actions = menu->actions();
-        QCOMPARE(actions.size(), 3);
-        for (auto *entry : actions) {
-            const auto path = entry->data().toString();
-            QVERIFY(path.startsWith(":/editor/examples/"));
-            QFile file(path);
-            QVERIFY(file.open(QIODevice::ReadOnly));
-            const auto expected = QJsonDocument::fromJson(file.readAll()).object();
-            entry->trigger();
-            QCOMPARE(window.activeEditor()->document()->snapshot()["name"], expected["name"]);
-            QCOMPARE(window.activeEditor()->document()->nodes().size(), expected["graph"].toObject()["nodes"].toArray().size());
-        }
-        menu->close();
-    }
     void initTestCase() {
         QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
     }
@@ -535,10 +515,142 @@ private slots:
         QVERIFY(!window.findChild<QDialog *>("command-panel"));
         QStringList labels;
         for (auto *item : window.findChild<QMenu *>("more-menu")->actions()) { labels << item->text(); }
-        for (const auto *expected : {"Auto layout", "Arrange selection", "Link selected", "Find node", "Group selection", "Ungroup", "Remove from group", "Run selected", "Disable selected", "Rename node", "Add comment", "Edit comment", "Server sync", "Canvas uploads"}) {
-            QVERIFY2(labels.contains(expected), expected);
-        }
+        // The More menu holds the document's own settings and views. The Node and
+        // Workflow menus of the application menu hold the other commands.
+        // Platforms other than macOS add the canvas navigation choice.
+        labels.removeIf([](const QString &label) { return label.startsWith("Canvas navigation: "); });
+        QCOMPARE(labels, (QStringList{"Instant Update: Off", "Save", "Version history", "Share workflow", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
         window.findChild<QMenu *>("more-menu")->close();
+    }
+
+    // Examples lists the bundled workflows by their first tag. Each entry opens its
+    // example in a tab of its own, with no file, so Save asks for a path.
+    void examplesMenuOpensEachBundledExample() {
+        EditorWindow window; window.show(); QTest::qWait(50);
+        const auto resources = QDir(":/editor/examples").entryList({"*.json"}, QDir::Files);
+        QVERIFY(resources.size() >= 2);
+        const auto openMenu = [&window] {
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+            window.action("Examples");
+            return window.findChild<QMenu *>("examples-menu");
+        };
+        auto *menu = openMenu();
+        QVERIFY(menu);
+        QStringList sections, names;
+        for (auto *item : menu->actions()) { (item->isSeparator() ? sections : names) << item->text(); }
+        QCOMPARE(sections, (QStringList{"Audio", "Image"}));
+        QCOMPARE(names.size(), resources.size());
+        QVERIFY(names.contains("A Lo-Fi Drum Loop"));
+        QVERIFY(names.contains("Live Synth in a Room"));
+        QVERIFY(names.contains("Render a Synth Clip"));
+        QVERIFY(names.contains("Play a Clip through a Phaser"));
+        QVERIFY(names.contains("Remove Grain with a Median Filter"));
+        menu->close();
+        const auto tabs = window.workflowTabs().size();
+        for (const auto &name : names) {
+            menu = openMenu();
+            QVERIFY(menu);
+            QAction *entry = nullptr;
+            for (auto *item : menu->actions()) { if (item->text() == name) { entry = item; } }
+            QVERIFY2(entry, qPrintable(name));
+            QVERIFY(!entry->toolTip().isEmpty());
+            entry->trigger();
+            QTRY_COMPARE(window.document()->snapshot()["name"].toString(), name);
+            QVERIFY(window.localFilePath().isEmpty());
+            QVERIFY(window.document()->nodes().size() > 1);
+        }
+        // The empty first tab takes the first example, and each other example gets a new tab.
+        QCOMPARE(window.workflowTabs().size(), tabs + names.size() - 1);
+    }
+
+    // electron/src/menu.ts: the desktop app's menu, with the native entry for each item.
+    void applicationMenuFollowsTheDesktopMenu() {
+        EditorWindow window; window.show();
+        window.activateWindow();
+        QVERIFY(QTest::qWaitForWindowActive(&window));
+        const auto bar = window.findChild<QMenuBar *>("application-menu");
+        QVERIFY(bar);
+        QStringList titles;
+        for (auto *item : bar->actions()) { titles << item->text(); }
+        QCOMPARE(titles, (QStringList{"File", "Edit", "View", "Node", "Workflow", "Tools", "Window", "Help"}));
+        const auto labels = [](QMenu *menu) {
+            QStringList result;
+            for (auto *item : menu->actions()) { if (!item->isSeparator()) { result << item->text(); } }
+            return result;
+        };
+        const auto entry = [](QMenu *menu, const QString &label) -> QAction * {
+            for (auto *item : menu->actions()) { if (item->text() == label) { return item; } }
+            return nullptr;
+        };
+        auto *file = window.findChild<QMenu *>("application-menu-file");
+        auto *edit = window.findChild<QMenu *>("application-menu-edit");
+        QVERIFY(file && edit);
+        QCOMPARE(labels(file), (QStringList{"New Workflow", "Open…", "Open Example", "Save", "Save As…", "Settings…", "Close Tab", "Quit"}));
+        QCOMPARE(labels(edit), (QStringList{"Undo", "Redo", "Cut", "Copy", "Paste", "Select All", "Duplicate", "Duplicate Vertical", "Group", "Align", "Align with Spacing"}));
+        QCOMPARE(entry(file, "Save")->shortcut(), QKeySequence("Ctrl+S"));
+
+        // Open Example lists every bundled example and opens it in the active tab.
+        auto *examples = window.findChild<QMenu *>("application-menu-examples");
+        QVERIFY(examples);
+        QCOMPARE(labels(examples).size(), QDir(":/editor/examples").entryList({"*.json"}).size());
+        entry(examples, "A Lo-Fi Drum Loop")->trigger();
+        QTRY_COMPARE(window.document()->snapshot()["name"].toString(), QString("A Lo-Fi Drum Loop"));
+        QVERIFY(window.localFilePath().isEmpty());
+
+        // A command entry runs on the active tab.
+        QCOMPARE(window.selectedCount(), 0);
+        entry(edit, "Select All")->trigger();
+        QTRY_VERIFY(window.selectedCount() > 1);
+
+        // The Node and Workflow menus hold the commands that left the More menu.
+        auto *node = window.findChild<QMenu *>("application-menu-node");
+        auto *workflow = window.findChild<QMenu *>("application-menu-workflow");
+        QVERIFY(node && workflow);
+        QCOMPARE(labels(workflow), (QStringList{"Run", "Run Selected", "Stop", "Open from Server…", "Save to Server", "Sync with Server…", "Reconnect",
+            "Linked Workflows…", "Share…", "Metadata…", "Canvas Uploads…"}));
+        emit node->aboutToShow();
+        QVERIFY(entry(node, "Layout Selection")->isEnabled());
+        QVERIFY(!entry(node, "Rename Node…")->isEnabled());
+        emit node->aboutToHide();
+        const auto before = window.document()->undoStack()->count();
+        entry(node, "Layout Selection")->trigger();
+        QTRY_COMPARE(window.document()->undoStack()->count(), before + 1);
+        window.document()->undoStack()->undo();
+
+        // With focus in a Qt Quick panel, a canvas key goes to the panel and the canvas
+        // keeps its selection. On the canvas, the key reaches the menu entry.
+        window.action("Clear selection");
+        QTRY_COMPARE(window.selectedCount(), 0);
+        QQuickWidget *panel = nullptr;
+        for (auto *candidate : window.findChildren<QQuickWidget *>()) {
+            if (candidate->isVisible() && candidate->quickWindow()) { panel = candidate; break; }
+        }
+        QVERIFY(panel);
+        panel->setFocus();
+        QTest::keyClick(panel->quickWindow(), Qt::Key_A, Qt::ControlModifier);
+        QCoreApplication::processEvents();
+        QCOMPARE(window.selectedCount(), 0);
+        auto *canvas = window.activeEditor()->findChild<QGraphicsView *>();
+        QVERIFY(canvas);
+        canvas->setFocus();
+        QTest::keyClick(canvas->viewport(), Qt::Key_A, Qt::ControlModifier);
+        QTRY_VERIFY(window.selectedCount() > 1);
+
+        // An open menu shows the tab's state. A closed menu leaves the shortcut on.
+        auto *undo = entry(edit, "Undo");
+        QVERIFY(!window.document()->undoStack()->canUndo());
+        emit edit->aboutToShow();
+        QVERIFY(!undo->isEnabled());
+        QVERIFY(entry(edit, "Copy")->isEnabled());
+        emit edit->aboutToHide();
+        QVERIFY(undo->isEnabled());
+
+        // The menu owns the tab keys, so each press acts once.
+        const auto tabs = window.workflowTabs().size();
+        QTest::keyClick(&window, Qt::Key_T, Qt::ControlModifier);
+        QTRY_COMPARE(window.workflowTabs().size(), tabs + 1);
+        QTest::keyClick(&window, Qt::Key_W, Qt::ControlModifier);
+        QTRY_COMPARE(window.workflowTabs().size(), tabs);
     }
 
     // KeyboardShortcutsView.tsx and ShortcutsSearchableList.tsx

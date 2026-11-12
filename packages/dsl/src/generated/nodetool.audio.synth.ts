@@ -1,6 +1,7 @@
 // Auto-generated — do not edit manually
 
 import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.js";
+import type { AudioRef } from "../types.js";
 
 // Oscillator — nodetool.audio.synth.Oscillator
 export type OscillatorInputs = {
@@ -68,6 +69,22 @@ export interface GateOutputs {
 
 export function gate(inputs: GateInputs, options?: NodeOptions): NodeWithOutputs<GateOutputs, "cv"> {
   return createNode("nodetool.audio.synth.Gate", inputs, { id: options?.id, outputNames: ["cv"], outputTypes: {"cv":"cv"}, defaultOutput: "cv", streamingInput: true });
+}
+
+// Trigger — nodetool.audio.synth.Trigger
+export type TriggerInputs = {
+  trigger?: Connectable<boolean>;
+  note?: Connectable<number>;
+  length?: Connectable<number>;
+};
+
+export interface TriggerOutputs {
+  gate: unknown;
+  pitch: unknown;
+}
+
+export function trigger(inputs: TriggerInputs, options?: NodeOptions): NodeWithOutputs<TriggerOutputs> {
+  return createNode("nodetool.audio.synth.Trigger", inputs, { id: options?.id, outputNames: ["gate", "pitch"], outputTypes: {"gate":"cv","pitch":"cv"}, streamingInput: true });
 }
 
 // VCA — nodetool.audio.synth.VCA
@@ -150,4 +167,27 @@ export interface MixerOutputs {
 
 export function mixer(inputs: MixerInputs, options?: NodeOptions): NodeWithOutputs<MixerOutputs, "chunk"> {
   return createNode("nodetool.audio.synth.Mixer", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: {"chunk":"chunk"}, defaultOutput: "chunk", streamingInput: true });
+}
+
+// Sampler — nodetool.audio.synth.Sampler
+export type SamplerInputs = {
+  audio?: Connectable<AudioRef>;
+  gate?: Connectable<unknown>;
+  pitch_cv?: Connectable<unknown>;
+  mode?: Connectable<"one_shot" | "gated" | "loop">;
+  voices?: Connectable<number>;
+  tune?: Connectable<number>;
+  start?: Connectable<number>;
+  length?: Connectable<number>;
+  attack?: Connectable<number>;
+  release?: Connectable<number>;
+  gain?: Connectable<number>;
+};
+
+export interface SamplerOutputs {
+  chunk: unknown;
+}
+
+export function sampler(inputs: SamplerInputs, options?: NodeOptions): NodeWithOutputs<SamplerOutputs, "chunk"> {
+  return createNode("nodetool.audio.synth.Sampler", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: {"chunk":"chunk"}, defaultOutput: "chunk", streamingInput: true });
 }

@@ -26,6 +26,8 @@ const AUDIO_SIGNAL_TYPES = [
   "nodetool.audio.synth.Oscillator",
   "nodetool.audio.synth.LFO",
   "nodetool.audio.synth.Gate",
+  "nodetool.audio.synth.Sampler",
+  "nodetool.audio.synth.Trigger",
   "nodetool.audio.realtime.AudioToChunks",
   "nodetool.audio.realtime.ChunksToAudio",
   "nodetool.audio.realtime.AudioOutput"

@@ -1,11 +1,13 @@
 import { AUDIO_BLOCK_FRAMES, AUDIO_SAMPLE_RATE } from "@nodetool-ai/protocol";
 import { describe, it, expect } from "vitest";
 import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
+import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 import {
   OscillatorNode,
   LfoNode,
   AdsrNode,
   GateNode,
+  TriggerNode,
   VcaNode,
   VcfNode,
   AttenuverterNode,
@@ -384,6 +386,112 @@ describe("Gate", () => {
     expect(emitted.length).toBeGreaterThan(0);
     const last = readSignalChunk(emitted[emitted.length - 1][1])!;
     expect(last.done).toBe(true);
+  });
+});
+
+describe("Trigger", () => {
+  /**
+   * Runs the node for `blocks` blocks. `afterBlock` runs after each gate
+   * block, as a live property change between two blocks does.
+   */
+  async function runTrigger(
+    node: TriggerNode,
+    blocks: number,
+    afterBlock: (index: number) => void
+  ): Promise<{ gate: Float32Array[]; pitch: Float32Array[]; done: string[] }> {
+    const controller = new AbortController();
+    const gate: Float32Array[] = [];
+    const pitch: Float32Array[] = [];
+    const done: string[] = [];
+    const outputs = {
+      async emit(slot: string, value: unknown) {
+        const chunk = readSignalChunk(value);
+        if (!chunk) return;
+        if (chunk.done) {
+          done.push(slot);
+          return;
+        }
+        (slot === "gate" ? gate : pitch).push(chunk.samples);
+        if (slot === "gate") {
+          afterBlock(gate.length - 1);
+          if (gate.length >= blocks) controller.abort();
+        }
+      }
+    } as unknown as StreamingOutputs;
+    await node.run(makeInputs({ handles: {}, signal: controller.signal }), outputs);
+    return { gate, pitch, done };
+  }
+
+  it("declares a gate and a pitch CV output and shows its switch on the card", () => {
+    const metadata = getNodeMetadata(TriggerNode);
+    expect(metadata.outputs.map((o) => [o.name, o.type.type])).toEqual([
+      ["gate", "cv"],
+      ["pitch", "cv"]
+    ]);
+    expect(metadata.inline_fields).toEqual(["trigger", "note"]);
+  });
+
+  it("stays low until the switch changes, then fires one pulse at the next block", async () => {
+    // 0.01 s = 441 frames.
+    const node = new TriggerNode({ length: 0.01, note: 7 });
+    const apply = node.toExecutor().applyProperties!;
+    const { gate, pitch, done } = await runTrigger(node, 4, (index) => {
+      // The path of a live property change from the runner.
+      if (index === 0) apply({ trigger: true });
+    });
+    expect(gate.length).toBe(4);
+    expect(gate[0].every((v) => v === 0)).toBe(true);
+    expect(gate[1][0]).toBe(1);
+    expect(gate[1][440]).toBe(1);
+    expect(gate[1][441]).toBe(0);
+    expect(gate[1].subarray(441).every((v) => v === 0)).toBe(true);
+    expect(gate[2].every((v) => v === 0)).toBe(true);
+    expect(gate[3].every((v) => v === 0)).toBe(true);
+    for (const block of pitch) {
+      expect(block.length).toBe(AUDIO_BLOCK_FRAMES);
+      expect(block.every((v) => v === Math.fround(7 / 12))).toBe(true);
+    }
+    expect(done.sort()).toEqual(["gate", "pitch"]);
+  });
+
+  it("fires for a change in each direction", async () => {
+    const node = new TriggerNode({ length: 0.001, trigger: true });
+    const { gate } = await runTrigger(node, 3, (index) => {
+      if (index === 0) node.trigger = false;
+    });
+    // A switch that is on at the start fires no pulse.
+    expect(gate[0].every((v) => v === 0)).toBe(true);
+    expect(gate[1][0]).toBe(1);
+    expect(gate[1][43]).toBe(1);
+    expect(gate[1][44]).toBe(0);
+    expect(gate[2].every((v) => v === 0)).toBe(true);
+  });
+
+  it("starts a pulse that still plays again after one low frame", async () => {
+    // 0.05 s = 2205 frames, more than two blocks.
+    const node = new TriggerNode({ length: 0.05 });
+    const { gate } = await runTrigger(node, 5, (index) => {
+      if (index === 0) node.trigger = true;
+      if (index === 1) node.trigger = false;
+    });
+    expect(gate[1].every((v) => v === 1)).toBe(true);
+    expect(gate[2][0]).toBe(0);
+    expect(gate[2].subarray(1).every((v) => v === 1)).toBe(true);
+    // 2205 frames from frame 1 of block 2: 1023 there, 1024 in block 3 and
+    // 158 in block 4.
+    expect(gate[3].every((v) => v === 1)).toBe(true);
+    expect(gate[4][157]).toBe(1);
+    expect(gate[4][158]).toBe(0);
+    expect(gate[4].subarray(158).every((v) => v === 0)).toBe(true);
+  });
+
+  it("reads the note at each block", async () => {
+    const node = new TriggerNode({ note: 0 });
+    const { pitch } = await runTrigger(node, 2, (index) => {
+      if (index === 0) node.note = -12;
+    });
+    expect(pitch[0].every((v) => v === 0)).toBe(true);
+    expect(pitch[1].every((v) => v === -1)).toBe(true);
   });
 });
 

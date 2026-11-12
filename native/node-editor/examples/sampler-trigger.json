@@ -1,0 +1,191 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "Play Notes by Hand",
+  "tool_name": null,
+  "description": "A switch plays one plucked note through a sampler and a reverb while the run plays live. Each click starts a voice at the pitch that you set. Runs locally with no file, model or key.",
+  "tags": [
+    "audio",
+    "dsp",
+    "music",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Play Notes by Hand\n\nA switch plays one recorded note while the run plays live. Every step runs in the editor process, with no file, model or key.\n\n**How it works:** \"1 Note\" is a Code node that writes one plucked note. \"2 Trigger\" sends a gate pulse each time its Trigger switch changes, and it sends its Note value as a pitch. Each pulse starts a voice of \"3 Sampler\" at that pitch. A note lasts longer than a click, so notes that you play quickly sound together. \"4 Room\" adds a reverb.\n\n**Try this:** Start the run, then click the Trigger switch on \"2 Trigger\" for each note. Set Note to 7 for a fifth or to 12 for an octave, then click again. Set Mode on \"3 Sampler\" to gated and Length on \"2 Trigger\" to 0.5: each note then stops when the pulse ends."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 340
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "note",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "// One plucked note: 220 Hz (A3) with three harmonics, 1.2 seconds.\nconst rate = 44100, seconds = 1.2, freq = 220;\nconst samples = new Float32Array(Math.round(rate * seconds));\nfor (let i = 0; i < samples.length; i++) {\n  const t = i / rate;\n  const tone = Math.sin(2 * Math.PI * freq * t) + 0.4 * Math.sin(4 * Math.PI * freq * t) + 0.2 * Math.sin(6 * Math.PI * freq * t);\n  // A fast attack, a decay, and a 5 ms fade at the end.\n  samples[i] = 0.4 * tone * Math.min(1, t / 0.002) * Math.exp(-4 * t) * Math.min(1, (samples.length - 1 - i) / 220);\n}\n\n// 16-bit PCM WAV bytes from interleaved samples in [-1, 1].\nfunction wav(samples, rate, channels) {\n  const bytes = new Uint8Array(44 + samples.length * 2);\n  const view = new DataView(bytes.buffer);\n  const tag = (at, text) => { for (let i = 0; i < 4; i++) bytes[at + i] = text.charCodeAt(i); };\n  tag(0, \"RIFF\"); view.setUint32(4, 36 + samples.length * 2, true); tag(8, \"WAVE\");\n  tag(12, \"fmt \"); view.setUint32(16, 16, true); view.setUint16(20, 1, true);\n  view.setUint16(22, channels, true); view.setUint32(24, rate, true);\n  view.setUint32(28, rate * channels * 2, true); view.setUint16(32, channels * 2, true);\n  view.setUint16(34, 16, true); tag(36, \"data\"); view.setUint32(40, samples.length * 2, true);\n  samples.forEach((s, i) => view.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, s)) * 32767), true));\n  return bytes;\n}\n\nawait output(\"audio\", await media.toAudio(wav(samples, rate, 1), { mimeType: \"audio/wav\", filename: \"note.wav\" }));\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Note"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "audio": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "trigger",
+        "type": "nodetool.audio.synth.Trigger",
+        "data": {
+          "trigger": false,
+          "note": 0,
+          "length": 0.1
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 620
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Trigger"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sampler",
+        "type": "nodetool.audio.synth.Sampler",
+        "data": {
+          "voices": 8,
+          "gain": 0.6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Sampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "room",
+        "type": "nodetool.audio.realtime.StreamingReverb",
+        "data": {
+          "room_scale": 0.7,
+          "damping": 0.4,
+          "wet_level": 0.35,
+          "dry_level": 0.8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Room"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.audio.realtime.AudioOutput",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "note-sampler",
+        "source": "note",
+        "sourceHandle": "audio",
+        "target": "sampler",
+        "targetHandle": "audio",
+        "ui_properties": {}
+      },
+      {
+        "id": "trigger-gate",
+        "source": "trigger",
+        "sourceHandle": "gate",
+        "target": "sampler",
+        "targetHandle": "gate",
+        "ui_properties": {}
+      },
+      {
+        "id": "trigger-pitch",
+        "source": "trigger",
+        "sourceHandle": "pitch",
+        "target": "sampler",
+        "targetHandle": "pitch_cv",
+        "ui_properties": {}
+      },
+      {
+        "id": "sampler-room",
+        "source": "sampler",
+        "sourceHandle": "chunk",
+        "target": "room",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      },
+      {
+        "id": "room-out",
+        "source": "room",
+        "sourceHandle": "chunk",
+        "target": "out",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}
