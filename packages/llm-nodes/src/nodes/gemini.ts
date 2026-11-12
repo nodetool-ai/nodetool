@@ -645,7 +645,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
   static readonly body = "content_card";
   static readonly title = "Image To Video";
   static readonly inlineFields = [];
-  static readonly inputFields = ["prompt", "image"];
+  static readonly inputFields = ["prompt", "image", "end_image"];
   static readonly description: string =
     "Generate videos from images using Google's Veo models.\n    google, video, generation, image-to-video, veo, ai, animation\n\n    This node uses Google's Veo models to animate static images into dynamic videos.\n    Supports 720p resolution at 24fps with 8-second duration and native audio generation.";
   static readonly metadataOutputTypes = {

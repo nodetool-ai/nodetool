@@ -34,7 +34,7 @@ export class MinimaxImageToVideoNode extends BaseNode {
     "- Create animated intros from a key frame";
   static readonly metadataOutputTypes = { output: "video" };
   static readonly inlineFields: string[] = [];
-  static readonly inputFields: string[] = ["image", "prompt"];
+  static readonly inputFields: string[] = ["image", "end_image", "prompt"];
   static readonly requiredSettings = ["MINIMAX_API_KEY"];
   static readonly autoSaveAsset = true;
 
