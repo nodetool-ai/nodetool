@@ -1243,6 +1243,8 @@ export const PROVIDER_IDS = {
   LLAMA_CPP: "llama_cpp",
   NODE_LLAMA_CPP: "node_llama_cpp",
   STABLE_DIFFUSION_CPP: "stable_diffusion_cpp",
+  // acestep.cpp `ace-server`, local or remote, for music mode.
+  ACESTEP: "acestep",
   // A Wan2GP server the user runs, reached over MCP.
   WANGP: "wangp",
   WHISPER_CPP: "whisper_cpp",
