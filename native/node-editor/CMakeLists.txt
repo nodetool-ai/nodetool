@@ -33,7 +33,8 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/Assign.h
  src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
- src/server/PackSetup.cpp src/server/PackSetup.h)
+ src/server/PackSetup.cpp src/server/PackSetup.h
+ src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h)
 target_include_directories(node_editor_interfaces PUBLIC src)
 target_link_libraries(node_editor_interfaces PUBLIC Qt6::Core Qt6::Gui Qt6::Network)
 # QML_FOREIGN in the module and qmllint read these types from the metatypes.
@@ -47,7 +48,6 @@ add_library(node_editor_core STATIC
  src/document/WorkflowDocument.cpp src/document/WorkflowDocument.h
  src/document/WorkflowMerge.cpp src/document/WorkflowMerge.h
  src/server/WorkflowVersions.cpp src/server/WorkflowVersions.h
- src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
  src/library/LibraryBrowser.cpp src/library/LibraryBrowser.h
  src/properties/DocumentPickerController.cpp src/properties/DocumentPickerController.h
  src/properties/ResourcePickerController.cpp src/properties/ResourcePickerController.h
@@ -387,6 +387,13 @@ target_link_libraries(node_editor_setup_guide_component_tests PRIVATE node_edito
 nodetool_use_ui_primitives(node_editor_setup_guide_component_tests)
 add_test(NAME node_editor_setup_guide_component COMMAND node_editor_setup_guide_component_tests)
 set_tests_properties(node_editor_setup_guide_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# WorkflowBrowser.qml with a fixture browser, panel layout and status: no
+# EditorWindow, graph runner, QtNodes or server.
+qt_add_executable(node_editor_workflow_browser_component_tests tests/ui/WorkflowBrowserComponentTest.cpp)
+target_link_libraries(node_editor_workflow_browser_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+nodetool_use_ui_primitives(node_editor_workflow_browser_component_tests)
+add_test(NAME node_editor_workflow_browser_component COMMAND node_editor_workflow_browser_component_tests)
+set_tests_properties(node_editor_workflow_browser_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  # Inspector.qml with a fixture inspector: no EditorWindow, graph runner or
  # QtNodes. The property fields preview media, so it builds the editor's media
  # QML types and links the model picker, as node_editor_asset_picker_tests does.

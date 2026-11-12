@@ -123,6 +123,15 @@ Moved so far:
   gained the window height, which caps the packs popup, and the Runtimes and
   packs request. `tests/ui/SetupGuideComponentTest.cpp` loads both files with
   fixture objects.
+- `WorkflowBrowser.qml` takes the existing `WorkflowBrowser` as a required
+  property, named `WorkflowBrowserModel` in QML because the panel file already
+  names `WorkflowBrowser`. The model moved into `node_editor_interfaces` and
+  gained `open`, `confirmDelete` and `reload` requests, which the window maps
+  to `openWorkflow`, `deleteWorkflow` and the Refresh workflows command.
+  `WorkflowBrowser.qml` and `LibraryPanel.qml` take `PanelLayout` for their
+  close buttons and `StatusModel` for the connection and the connect request.
+  `StatusModel` gained `connected`. `tests/ui/WorkflowBrowserComponentTest.cpp`
+  loads the browser with fixture objects.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
@@ -137,7 +146,7 @@ Moved so far:
 | `DocumentTabs` (moved) | Workspace tabs, active tab, project name, tab actions, canvas strips (subgraph surfaces), strip offset, settings | `TabBar.qml`, `CanvasTabStrip.qml` |
 | `WorkflowHeader` (moved) | Workflow name and rename, save readout and its action, undo and redo, More menu | `HeaderRow.qml` |
 | `PanelLayout` (moved for the rail, the document bar and the status bar) | Which panels are open and the toggles | `HeaderRow.qml`, `Rail.qml`, `StatusBar.qml`, `RunOutput.qml` |
-| `StatusModel` (moved for the status bar) | Connection status and detail, node and edge counts, queue counts, system stats | `StatusBar.qml`, `WorkflowBrowser.qml` |
+| `StatusModel` (moved for the status bar and the side panels) | Connection status, detail and state, node and edge counts, queue counts, system stats, connect request | `StatusBar.qml`, `WorkflowBrowser.qml`, `LibraryPanel.qml` |
 | `RunState` (moved for the toolbar and the group controls) | Shown queue, connection, workflow id, authored group commands | `Toolbar.qml`, `AuthoredControls.qml`, `QueueOverlay.qml`, `RunOutput.qml` |
 | `Viewport` (moved) | Zoom percent and preset, mini-map color mode and popups, view commands | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
 | `Notifications` (moved) | Notification list, unread count, open the list, copy an entry | `TabBar.qml`, `NotificationsPanel.qml` |
@@ -156,8 +165,8 @@ These members should leave the window instead of joining an interface:
   concern.
 - `height` was the QWidget height. `OptionalPacksSection.qml` now reads it as
   `NodeCatalog.windowHeight`.
-- `openWorkflow` and `deleteWorkflow` belong on the existing `WorkflowBrowser`,
-  which `WorkflowBrowser.qml` already reads.
+- `openWorkflow` and `deleteWorkflow` moved to the existing `WorkflowBrowser`
+  as `open` and `confirmDelete` requests.
 
 `EditorCommands` dispatches by command name, as `action(name)` does now. Typed
 methods per command would be cleaner, but the command names are also the
@@ -167,7 +176,7 @@ name and only moves it off the window.
 The other context properties are already narrow objects. Each reader takes it
 as a `required property` instead of reading the global:
 
-- `workflowBrowser`: `WorkflowBrowser.qml`.
+- `workflowBrowser`: removed. `WorkflowBrowser.qml` takes it as `browser`.
 - `libraryBrowser`: `LibraryPanel.qml`.
 - `runOutput`: `RunOutput.qml`, `QueueOverlay.qml`.
 - `workflowSession`: `QueueOverlay.qml`, `Toolbar.qml` (`ServerSyncPanel.qml`
@@ -214,23 +223,19 @@ candidate list, not a plan to move them.
 {
   "DocumentState": ["message"],
   "PanelLayout": ["outputVisible"],
-  "StatusModel": ["connectionState"],
   "RunState": ["shownQueue", "askRunAgent"],
   "ChatWindow": ["beginChatGeometry", "changeChatGeometry", "resetChatPosition"],
-  "EditorCommands": ["action"],
-  "Leaves the window": ["iconPath", "styleOutputMarkdown", "openWorkflow", "deleteWorkflow"]
+  "Leaves the window": ["iconPath", "styleOutputMarkdown"]
 }
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 22 read a root context property, 7 of them read the editor window. `EditorWindow.h` exposes 15 properties and 19 invokable methods or slots (34 members) and 14 signals.
+Scanned 78 files in `qml/`. 21 read a root context property, 5 of them read the editor window. `EditorWindow.h` exposes 14 properties and 17 invokable methods or slots (31 members) and 14 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
-| WorkflowBrowser.qml | 4 | `workflowBrowser` (13) |
 | EditorChat.qml | 3 via `host` |  |
 | RunOutput.qml | 3 | `runOutput` (6) |
-| LibraryPanel.qml | 1 | `libraryBrowser` (13, passed on), `assetPickerController` (3) |
 | QueueOverlay.qml | 1 | `runOutput` (2), `workflowSession` (4) |
 | TextOutput.qml | 1 | `mediaResolver` (7) |
 | TypeIcon.qml | 1 |  |
@@ -242,6 +247,7 @@ Scanned 78 files in `qml/`. 22 read a root context property, 7 of them read the 
 | ImageComparisonOutput.qml |  | `mediaResolver` (6) |
 | ImageViewer.qml |  | `mediaResolver` (1) |
 | InlinePropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
+| LibraryPanel.qml |  | `libraryBrowser` (13, passed on), `assetPickerController` (3) |
 | MediaParameterPropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
 | MediaPreview.qml |  | `mediaResolver` (14) |
 | Model3DPropertyEditor.qml |  | `assetPickerController` (0, passed on) |
@@ -256,18 +262,11 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 `passed on` means the file hands the whole object to a child, such as `propertyHost: editor`.
 
-- **WorkflowBrowser.qml**
-  - `editor`: action, connectionState, deleteWorkflow, openWorkflow
-  - `workflowBrowser`: busy, createWorkflow, error, hasNext, loadNext, loading, projectId, projects, projectsLoading, refresh, renameWorkflow, rows, search
 - **EditorChat.qml**
   - `editor` (as `host`): beginChatGeometry, changeChatGeometry, resetChatPosition
 - **RunOutput.qml**
   - `editor`: askRunAgent, message, outputVisible
   - `runOutput`: clear, collections, richEntries, runs, selectRun, selectedRunId
-- **LibraryPanel.qml**
-  - `editor`: action
-  - `libraryBrowser`: assetModel, breadcrumbs, busy, configured, createFolder, error, favoritesOnly, goUp, openFolder, refresh, searchText, tagFilter, typeFilter passed on as browser:
-  - `assetPickerController`: on failed, on uploaded, upload
 - **QueueOverlay.qml**
   - `editor`: shownQueue
   - `runOutput`: selectRun, selectedRunId
@@ -295,6 +294,9 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `mediaResolver`: on cleared
 - **InlinePropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
+- **LibraryPanel.qml**
+  - `libraryBrowser`: assetModel, breadcrumbs, busy, configured, createFolder, error, favoritesOnly, goUp, openFolder, refresh, searchText, tagFilter, typeFilter passed on as browser:
+  - `assetPickerController`: on failed, on uploaded, upload
 - **MediaParameterPropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
 - **MediaPreview.qml**
@@ -316,8 +318,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `message` property: RunOutput.qml
 - **PanelLayout** (1 members, read by 1 files: RunOutput.qml)
   - `outputVisible` property: RunOutput.qml
-- **StatusModel** (1 members, read by 1 files: WorkflowBrowser.qml)
-  - `connectionState` property: WorkflowBrowser.qml
 - **RunState** (2 members, read by 2 files: QueueOverlay.qml, RunOutput.qml)
   - `askRunAgent` method: RunOutput.qml
   - `shownQueue` property: QueueOverlay.qml
@@ -325,13 +325,9 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `beginChatGeometry` method: EditorChat.qml
   - `changeChatGeometry` method: EditorChat.qml
   - `resetChatPosition` method: EditorChat.qml
-- **EditorCommands** (1 members, read by 2 files: LibraryPanel.qml, WorkflowBrowser.qml)
-  - `action` method: LibraryPanel.qml, WorkflowBrowser.qml
-- **Leaves the window** (4 members, read by 3 files: TextOutput.qml, TypeIcon.qml, WorkflowBrowser.qml)
-  - `deleteWorkflow` method: WorkflowBrowser.qml
+- **Leaves the window** (2 members, read by 2 files: TextOutput.qml, TypeIcon.qml)
   - `iconPath` method: TypeIcon.qml
-  - `openWorkflow` method: WorkflowBrowser.qml
   - `styleOutputMarkdown` method: TextOutput.qml
 
-Members no QML file reads (C++ callers only, or dead): `askAgent`, `cancelCatalogPlacement`, `catalogAtPointer`, `closeAllTabs`, `closeOtherTabs`, `emptyCanvas`, `focusCanvas`, `graphSummary`, `hasUnsavedChanges`, `layoutOverlays`, `openChild`, `outputMedia`, `runActive`, `saveState`, `serverSaveState`, `serverSyncAvailable`, `serverSyncNeedsAttention`, `setProperty`, `setup`, `showToolTip`, `toggleChat`.
+Members no QML file reads (C++ callers only, or dead): `action`, `askAgent`, `cancelCatalogPlacement`, `catalogAtPointer`, `closeAllTabs`, `closeOtherTabs`, `emptyCanvas`, `focusCanvas`, `graphSummary`, `hasUnsavedChanges`, `layoutOverlays`, `openChild`, `outputMedia`, `runActive`, `saveState`, `serverSaveState`, `serverSyncAvailable`, `serverSyncNeedsAttention`, `setProperty`, `setup`, `showToolTip`, `toggleChat`.
 <!-- END GENERATED -->

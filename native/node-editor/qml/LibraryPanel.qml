@@ -10,6 +10,8 @@ import NodeTool.Media as Media
 // toolbar. A tile dragged onto the canvas adds the matching constant node.
 Rectangle {
     id: root
+    required property PanelLayout panels
+    required property StatusModel status
     EditorRoles { id: roles }
     color: roles.panel
     implicitWidth: Ui.Metrics.dialogCompactWidth
@@ -30,7 +32,7 @@ Rectangle {
             LibraryButton { objectName: "library-refresh"; iconName: "refresh"; accessibleName: "Refresh"; enabled: libraryBrowser.configured && !libraryBrowser.busy; onClicked: libraryBrowser.refresh() }
             LibraryButton { objectName: "library-create-folder"; iconName: "createNewFolder"; accessibleName: "New folder"; enabled: libraryBrowser.configured && !libraryBrowser.busy; onClicked: { folderName.text = ""; folderDialog.open() } }
             LibraryButton { objectName: "library-import"; iconName: "fileUpload"; accessibleName: "Import"; enabled: libraryBrowser.configured; onClicked: { importError.text = ""; importDialog.open() } }
-            LibraryButton { objectName: "library-close"; iconName: "close"; accessibleName: "Close the asset library"; onClicked: editor.action("Library") }
+            LibraryButton { objectName: "library-close"; iconName: "close"; accessibleName: "Close the asset library"; onClicked: root.panels.toggleLibrary() }
         }
         RowLayout {
             Layout.fillWidth: true
@@ -116,7 +118,7 @@ Rectangle {
                 }
             }
         }
-        LibraryButton { visible: !libraryBrowser.configured; text: "Connect to server"; onClicked: editor.action("Connect") }
+        LibraryButton { visible: !libraryBrowser.configured; text: "Connect to server"; onClicked: root.status.connectServer() }
         LibraryLabel { objectName: "library-error"; Layout.fillWidth: true; visible: libraryBrowser.error !== ""; text: libraryBrowser.error; tone: Ui.Text.Error }
         LibraryLabel { id: importError; objectName: "library-import-error"; Layout.fillWidth: true; visible: text !== ""; tone: Ui.Text.Error }
         LibraryLabel { visible: libraryBrowser.busy; text: "Loading Library…" }

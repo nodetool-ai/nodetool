@@ -66,7 +66,6 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool serverSyncAvailable READ serverSyncAvailable NOTIFY panelChanged)
   Q_PROPERTY(bool serverSyncNeedsAttention READ serverSyncNeedsAttention NOTIFY panelChanged)
   Q_PROPERTY(bool hasUnsavedChanges READ hasUnsavedChanges NOTIFY panelChanged)
-  Q_PROPERTY(QString connectionState READ connectionState NOTIFY panelChanged)
   Q_PROPERTY(QString message READ message NOTIFY panelChanged)
   Q_PROPERTY(QVariantList outputMedia READ outputMedia NOTIFY mediaChanged)
   Q_PROPERTY(bool runActive READ runActive NOTIFY panelChanged)
@@ -155,8 +154,8 @@ public:
   node_editor::WorkflowBrowser *workflowBrowser() { return activeEditor() == this ? &browser_ : activeEditor()->workflowBrowser(); }
   bool browserVisible() const;
   bool libraryVisible() const;
-  Q_INVOKABLE void openWorkflow(const QString &id);
-  Q_INVOKABLE void deleteWorkflow(const QString &id, const QString &name);
+  void openWorkflow(const QString &id);
+  void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
   bool runActive() const;
   QVariantList shownQueue() const { return shownQueue_; }
