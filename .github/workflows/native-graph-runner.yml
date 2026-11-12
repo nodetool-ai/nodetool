@@ -256,9 +256,19 @@ jobs:
 
       - name: Build and test the audio examples in the editor
         if: ${{ !cancelled() && matrix.name == 'Release' && steps.editor_qt.outcome == 'success' }}
+        env:
+          CCACHE_DIR: ${{ runner.temp }}/ccache
         run: |
           sudo apt-get install -y libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libpulse0 libasound2t64
-          cmake -S native/node-editor -B native/node-editor/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          # install-qt-action replaces PKG_CONFIG_PATH, so the pinned vips and
+          # WebP of the runner are no longer found. Put them back in front.
+          export PKG_CONFIG_PATH="$DEPS_PREFIX/lib/pkgconfig:$DEPS_PREFIX/lib/x86_64-linux-gnu/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+          export LD_LIBRARY_PATH="$DEPS_PREFIX/lib:$DEPS_PREFIX/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          # The editor compiles the runner as a subproject, so it needs the
+          # runner's compiler (see Configure above).
+          cmake -S native/node-editor -B native/node-editor/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build native/node-editor/build --parallel 2 --target nodetool-node-editor \
             node_editor_menus_tests node_editor_canvas_media_host_tests node_editor_media_ui_tests node_editor_local_run_tests
           QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
