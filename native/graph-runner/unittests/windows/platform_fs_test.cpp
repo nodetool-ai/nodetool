@@ -7,6 +7,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace fs = std::filesystem;
 using namespace gr::host;
@@ -32,6 +33,11 @@ int main(int argc, char** argv) {
       require(roots.size() == 1, "junction test root");
       const auto& root = roots.front().dir;
       refused([&] { confine(roots, root, "junction/sentinel", Access::Read, "test"); });
+      refused([&] { confine(roots, root, "junction/sentinel", Access::Read, "test", true); });
+      require(confine(roots, root, "inner/file", Access::Read, "test").exists, "junction inside the root is followed");
+      refused([&] { confine(roots, root, "inner/file", Access::Read, "test", true); });
+      refused([&] { confine(roots, root, "INNER/file", Access::Read, "test", true); });
+      refused([&] { confine(roots, root, "inner/missing", Access::Write, "test", true); });
       UniqueFd directory(fsapi::open(root.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW));
       require(bool(directory), "junction parent");
       UniqueFd junction(fsapi::openat(directory.get(), "junction", O_DIRECTORY | O_NOFOLLOW));
@@ -96,6 +102,37 @@ int main(int argc, char** argv) {
     require(found, "directory entry");
     require(fsapi::unlinkat(child.get(), "renamed", 0) == 0, "unlink through held directory");
     require(!fs::exists(temporary.path / "moved/renamed"), "file removed");
+    // POSIX unlink ignores the file's own mode, as rm of a cloned repository needs.
+    UniqueFd readOnlyFile(fsapi::openat(directory.get(), "read-only", O_WRONLY | O_CREAT | O_EXCL, 0600));
+    require(bool(readOnlyFile), "create read-only file");
+    readOnlyFile.reset();
+    fs::permissions(temporary.path / "read-only", fs::perms::owner_write | fs::perms::group_write | fs::perms::others_write, fs::perm_options::remove);
+    require((fs::status(temporary.path / "read-only").permissions() & fs::perms::owner_write) == fs::perms::none, "file is read-only");
+    require(fsapi::unlinkat(directory.get(), "read-only", 0) == 0, "unlink read-only file");
+    require(!fs::exists(temporary.path / "read-only"), "read-only file removed");
+    // A commit renames over an asset that a reader still holds open.
+    for (const auto& [name, bytes] : {std::pair{"target", "old"}, std::pair{"replacement", "new"}}) {
+      UniqueFd file(fsapi::openat(directory.get(), name, O_WRONLY | O_CREAT | O_EXCL, 0600));
+      require(bool(file) && fsapi::write(file.get(), bytes, 3) == 3, "create rename file");
+    }
+    const auto target = root + "/target";
+    UniqueFd held(fsapi::open(target.c_str(), O_RDONLY));
+    require(bool(held), "hold rename target open");
+    require(fsapi::renameat(directory.get(), "replacement", directory.get(), "target") == 0, "rename over held destination");
+    char contents[3]{};
+    require(fsapi::read(held.get(), contents, 3) == 3 && std::string(contents, 3) == "old", "held handle keeps the replaced file");
+    UniqueFd reopened(fsapi::open(target.c_str(), O_RDONLY));
+    require(bool(reopened) && fsapi::read(reopened.get(), contents, 3) == 3 && std::string(contents, 3) == "new", "destination name opens the renamed file");
+    held.reset();
+    reopened.reset();
+    // Windows names match without case. A key spelled in another case is no symbolic link.
+    fs::create_directory(temporary.path / "cased");
+    UniqueFd cased(fsapi::open((root + "/cased/img.png").c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600));
+    require(bool(cased), "create cased file");
+    cased.reset();
+    require(confine(roots, root, "cased/IMG.PNG", Access::Read, "test", true).exists, "child casing is not a symlink");
+    require(confine(roots, root, root + "/CASED/img.png", Access::Read, "test", true).exists, "directory casing is not a symlink");
+    require(!confine(roots, root, "CASED/new.png", Access::Write, "test", true).exists, "missing target below a differently cased directory");
     const auto unicode = root + "/\xe6\xb5\x8b\xe8\xaf\x95-file";
     UniqueFd unicodeFile(fsapi::open(unicode.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600));
     require(bool(unicodeFile), "UTF-8 file name");

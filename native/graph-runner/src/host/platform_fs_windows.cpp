@@ -11,6 +11,7 @@
 #include <process.h>
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstring>
 #include <limits>
 #include <string>
@@ -20,8 +21,21 @@
 // RootDirectory bound to the held handle, which SetFileInformationByHandle rejects.
 // Its FILE_INFORMATION_CLASS enum contains only value 1, so casting 10 into it
 // is undefined in C++. Use the native API's 32-bit enum ABI with an explicit range.
-enum class NativeFileInformationClass : int { Rename = 10 };
+// Values from FILE_INFORMATION_CLASS in wdm.h. The Ex classes need Windows 10 1709.
+enum class NativeFileInformationClass : int { Rename = 10, DispositionEx = 64, RenameEx = 65 };
 extern "C" NTSYSAPI NTSTATUS NTAPI NtSetInformationFile(HANDLE, PIO_STATUS_BLOCK, PVOID, ULONG, NativeFileInformationClass);
+// FILE_RENAME_INFORMATION from ntifs.h. Its first field is a union of BOOLEAN
+// ReplaceIfExists (class 10) and ULONG Flags (class 65). Declared here because
+// the SDK's FILE_RENAME_INFO has the union only for some _WIN32_WINNT values.
+struct NativeRenameInformation { ULONG Flags; HANDLE RootDirectory; ULONG FileNameLength; WCHAR FileName[1]; };
+static_assert(offsetof(NativeRenameInformation, RootDirectory) == offsetof(FILE_RENAME_INFO, RootDirectory));
+static_assert(offsetof(NativeRenameInformation, FileName) == offsetof(FILE_RENAME_INFO, FileName));
+// FILE_RENAME_* flags from ntifs.h and FILE_DISPOSITION_* flags from ntddk.h.
+constexpr ULONG kRenameReplaceIfExists = 0x1, kRenamePosixSemantics = 0x2;
+constexpr ULONG kDispositionDelete = 0x1, kDispositionPosixSemantics = 0x2, kDispositionIgnoreReadonly = 0x10;
+// Attributes that FileBasicInfo may set, as SetFileAttributesW lists them.
+constexpr DWORD kSettableAttributes = FILE_ATTRIBUTE_ARCHIVE | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED |
+    FILE_ATTRIBUTE_OFFLINE | FILE_ATTRIBUTE_READONLY | FILE_ATTRIBUTE_SYSTEM | FILE_ATTRIBUTE_TEMPORARY;
 
 namespace gr::host::fsapi {
 namespace {
@@ -57,6 +71,16 @@ std::string utf8(const wchar_t* text, int size) {
   std::string result(count, '\0');
   WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text, size, result.data(), count, nullptr, nullptr);
   return result;
+}
+// An older Windows rejects an Ex information class, and file systems such as FAT reject it or one of its flags.
+bool unsupported(NTSTATUS code) {
+  const ULONG error = RtlNtStatusToDosError(code);
+  return error == ERROR_INVALID_PARAMETER || error == ERROR_INVALID_FUNCTION || error == ERROR_NOT_SUPPORTED;
+}
+bool setAttributes(HANDLE value, DWORD attributes) {
+  FILE_BASIC_INFO info{};
+  info.FileAttributes = (attributes & kSettableAttributes) ? (attributes & kSettableAttributes) : FILE_ATTRIBUTE_NORMAL;
+  return SetFileInformationByHandle(value, FileBasicInfo, &info, sizeof(info)) != 0;
 }
 HANDLE handle(int fd) { return reinterpret_cast<HANDLE>(_get_osfhandle(fd)); }
 bool isDirectory(HANDLE value) {
@@ -141,8 +165,21 @@ int removeHandle(Handle value, bool directory) {
   if (!GetFileInformationByHandleEx(value.get(), FileAttributeTagInfo, &attributes, sizeof(attributes))) return fail();
   const bool isLink = (attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
   if ((!isLink && isDirectory(value.get())) != directory) { errno = directory ? ENOTDIR : EISDIR; return -1; }
+  // POSIX unlink removes the name at once and ignores the file's own mode.
+  ULONG flags = kDispositionDelete | kDispositionPosixSemantics | kDispositionIgnoreReadonly;
+  IO_STATUS_BLOCK status{};
+  const NTSTATUS code = NtSetInformationFile(value.get(), &status, &flags, sizeof(flags), NativeFileInformationClass::DispositionEx);
+  if (code >= 0) return 0;
+  if (!unsupported(code)) return fail(RtlNtStatusToDosError(code));
+  // The legacy class refuses a read-only file, so clear the attribute through
+  // the handle (FILE_WRITE_ATTRIBUTES) and restore it when the delete fails.
+  const bool readOnly = (attributes.FileAttributes & FILE_ATTRIBUTE_READONLY) != 0;
+  if (readOnly && !setAttributes(value.get(), attributes.FileAttributes & ~FILE_ATTRIBUTE_READONLY)) return fail();
   FILE_DISPOSITION_INFO info{TRUE};
-  return SetFileInformationByHandle(value.get(), FileDispositionInfo, &info, sizeof(info)) ? 0 : fail();
+  if (SetFileInformationByHandle(value.get(), FileDispositionInfo, &info, sizeof(info))) return 0;
+  const DWORD error = GetLastError();
+  if (readOnly) setAttributes(value.get(), attributes.FileAttributes);
+  return fail(error);
 }
 }
 int close(int fd) { return _close(fd); }
@@ -225,12 +262,16 @@ Entry* readdir(Dir* directory) {
   }
   const auto* info = reinterpret_cast<const FILE_ID_BOTH_DIR_INFO*>(directory->buffer + directory->offset);
   const auto name = utf8(info->FileName, static_cast<int>(info->FileNameLength / sizeof(wchar_t)));
-  if (name.size() > NAME_MAX) { errno = ENAMETOOLONG; return nullptr; }
-  std::memcpy(directory->entry.d_name, name.c_str(), name.size() + 1);
-  directory->entry.d_type = (info->FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) ? DT_LNK :
-      ((info->FileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? DT_DIR : DT_REG);
+  const auto attributes = info->FileAttributes;
   if (info->NextEntryOffset) directory->offset += info->NextEntryOffset;
   else directory->buffered = false;
+  // A name with an unpaired surrogate has no UTF-8 form. Callers read nullptr as
+  // the end of the directory, so the error is reported only through errno.
+  if (name.empty()) { errno = EINVAL; return nullptr; }
+  if (name.size() > NAME_MAX) { errno = ENAMETOOLONG; return nullptr; }
+  std::memcpy(directory->entry.d_name, name.c_str(), name.size() + 1);
+  directory->entry.d_type = (attributes & FILE_ATTRIBUTE_REPARSE_POINT) ? DT_LNK :
+      ((attributes & FILE_ATTRIBUTE_DIRECTORY) ? DT_DIR : DT_REG);
   return &directory->entry;
 }
 int mkdir(const char* path, int) { const auto name = wide(path); return CreateDirectoryW(name.c_str(), nullptr) ? 0 : fail(); }
@@ -249,23 +290,31 @@ char* mkdtemp(char* pattern) {
   errno = EEXIST;
   return nullptr;
 }
-int unlinkat(int parent, const char* name, int flags) { return removeHandle(relativeHandle(parent, name, DELETE | FILE_READ_ATTRIBUTES, FILE_OPEN, FILE_OPEN_REPARSE_POINT), (flags & AT_REMOVEDIR) != 0); }
-int unlink(const char* path) { return removeHandle(pathHandle(path, DELETE | FILE_READ_ATTRIBUTES, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT), false); }
-int rmdir(const char* path) { return removeHandle(pathHandle(path, DELETE | FILE_READ_ATTRIBUTES, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT), true); }
+int unlinkat(int parent, const char* name, int flags) { return removeHandle(relativeHandle(parent, name, DELETE | FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES, FILE_OPEN, FILE_OPEN_REPARSE_POINT), (flags & AT_REMOVEDIR) != 0); }
+int unlink(const char* path) { return removeHandle(pathHandle(path, DELETE | FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT), false); }
+int rmdir(const char* path) { return removeHandle(pathHandle(path, DELETE | FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT), true); }
 int renameat(int fromParent, const char* from, int toParent, const char* to) {
   if (!component(to)) return -1;
   auto source = relativeHandle(fromParent, from, DELETE, FILE_OPEN, FILE_OPEN_REPARSE_POINT);
   if (!source) return -1;
   const auto name = wide(to);
-  const size_t size = sizeof(FILE_RENAME_INFO) + name.size() * sizeof(wchar_t);
+  if (name.empty()) return -1;
+  const size_t size = sizeof(NativeRenameInformation) + name.size() * sizeof(wchar_t);
   auto storage = std::make_unique<std::byte[]>(size);
-  auto* info = reinterpret_cast<FILE_RENAME_INFO*>(storage.get());
-  info->ReplaceIfExists = TRUE;
+  auto* info = reinterpret_cast<NativeRenameInformation*>(storage.get());
+  // POSIX semantics replace a destination that other handles hold open, as
+  // POSIX rename does. Those handles keep reading the replaced file.
+  info->Flags = kRenameReplaceIfExists | kRenamePosixSemantics;
   info->RootDirectory = handle(toParent);
-  info->FileNameLength = static_cast<DWORD>(name.size() * sizeof(wchar_t));
+  info->FileNameLength = static_cast<ULONG>(name.size() * sizeof(wchar_t));
   std::memcpy(info->FileName, name.data(), info->FileNameLength);
   IO_STATUS_BLOCK status{};
-  const NTSTATUS result = NtSetInformationFile(source.get(), &status, info, static_cast<ULONG>(size), NativeFileInformationClass::Rename);
+  NTSTATUS result = NtSetInformationFile(source.get(), &status, info, static_cast<ULONG>(size), NativeFileInformationClass::RenameEx);
+  if (result < 0 && unsupported(result)) {
+    // The legacy class reads the first byte as ReplaceIfExists. It fails while the destination is open.
+    info->Flags = TRUE;
+    result = NtSetInformationFile(source.get(), &status, info, static_cast<ULONG>(size), NativeFileInformationClass::Rename);
+  }
   return result >= 0 ? 0 : fail(RtlNtStatusToDosError(result));
 }
 int rename(const char* from, const char* to) { const auto source = wide(from), target = wide(to); return MoveFileExW(source.c_str(), target.c_str(), MOVEFILE_REPLACE_EXISTING) ? 0 : fail(); }

@@ -12,6 +12,10 @@ try {
   mkdirSync(outside);
   writeFileSync(join(outside, "sentinel"), "unchanged");
   symlinkSync(outside, join(granted, "junction"), "junction");
+  // A junction that stays inside the root: only noSymlinks refuses it.
+  mkdirSync(join(granted, "target"));
+  writeFileSync(join(granted, "target", "file"), "inside");
+  symlinkSync(join(granted, "target"), join(granted, "inner"), "junction");
   const result = spawnSync(process.argv[2], [granted], { encoding: "utf8" });
   process.stdout.write(result.stdout ?? "");
   process.stderr.write(result.stderr ?? "");
