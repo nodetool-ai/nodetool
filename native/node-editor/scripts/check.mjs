@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readBuildCache, windowsPluginDirectories, windowsRuntimeDirectories } from "./build-config.mjs";
+import { isMainModule, readBuildCache, windowsPluginDirectories, windowsRuntimeDirectories } from "./build-config.mjs";
 
 const editorSource = fileURLToPath(new URL("..", import.meta.url));
 
@@ -59,7 +59,7 @@ export function check({ source = editorSource, build = process.env.NODETOOL_NODE
   });
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   try {
     if (process.argv.length !== 2) {
       throw new Error("Usage: node native/node-editor/scripts/check.mjs (configure paths through CMAKE_PREFIX_PATH and NODETOOL_NODE_EDITOR_BUILD_DIR)");

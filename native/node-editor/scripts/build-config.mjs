@@ -1,5 +1,20 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// True when the module at moduleUrl is the script node was started with.
+// import.meta.url holds the real path, so a checkout reached through a symlink
+// needs process.argv[1] resolved the same way.
+export function isMainModule(moduleUrl) {
+  if (!process.argv[1]) {
+    return false;
+  }
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
 
 export function readBuildCache(build) {
   const file = join(build, "CMakeCache.txt");
