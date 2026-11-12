@@ -977,6 +977,10 @@ EditorWindow::~EditorWindow() {
   // Dock animations can resize the viewport while bound overlays are destroyed.
   view_->removeEventFilter(this);
   view_->viewport()->removeEventFilter(this);
+  // ~QWidget sends the panels a Hide event, which must not reach eventFilter
+  // once their QQuickWidget part is gone.
+  if (catalogPanel_) { catalogPanel_->removeEventFilter(this); }
+  if (nodeMenu_) { nodeMenu_->removeEventFilter(this); }
   // Panels bind to members of this class and must die before those members.
   for (auto panel : findChildren<QQuickWidget *>()) {
     // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
