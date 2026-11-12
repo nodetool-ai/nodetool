@@ -27,6 +27,9 @@ namespace nt::music {
 inline constexpr std::array<std::string_view, 12> kMusicRoles{
     "vocals", "backing_vocals", "drums", "bass", "guitar", "keyboard",
     "percussion", "strings", "synth", "fx", "brass", "woodwinds"};
+// The key tonics the music model accepts (MUSIC_KEY_TONICS in the protocol schema).
+inline constexpr std::array<std::string_view, 17> kMusicKeyTonics{"C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#",
+                                                                  "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"};
 // The tracks of a new music project, top to bottom (DEFAULT_MUSIC_TRACK_ROLES).
 inline constexpr std::array<std::string_view, 4> kDefaultMusicTrackRoles{"drums", "bass", "keyboard", "guitar"};
 

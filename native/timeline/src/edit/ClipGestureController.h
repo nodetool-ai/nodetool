@@ -20,6 +20,12 @@
 //   an edge drag into a speed change (rateStretchClip). Hand and Zoom act on
 //   the lanes, in TracksRegion.qml. Under these body tools a press on an
 //   edge acts on the body (BODY_TOOLS).
+// - The Range tool (docs/MUSIC-MODE.md MD11): a drag on an audio lane, over
+//   clips or empty space, selects a range on that track in `musicSelection`.
+//   Edges snap to the ruler's grid division (bar, or beat when finer) on
+//   barStartFrame frames; Alt places an edge freely. A double-click on a clip
+//   selects its span. A click clears the range, and on empty space it parks
+//   the playhead.
 // - Keys resolve through the web keymap (Keymap.h): delete, ripple delete,
 //   split at the playhead, select all/none, nudge, undo/redo, the tools,
 //   snap and zoom.
@@ -39,6 +45,7 @@
 
 #include <functional>
 
+#include <QElapsedTimer>
 #include <QHash>
 #include <QJsonArray>
 #include <QPointer>
@@ -49,11 +56,13 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 
 class TrimMode;
+class MusicSelection;
 
 class ClipGestureController : public QQuickItem {
     Q_OBJECT
     QML_ELEMENT
     Q_MOC_INCLUDE("edit/trim/TrimMode.h")
+    Q_MOC_INCLUDE("music/MusicSelection.h")
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
     Q_PROPERTY(TimelineViewState* viewState READ viewState WRITE setViewState NOTIFY changed)
     Q_PROPERTY(TrackWindowModel* rows READ rows WRITE setRows NOTIFY changed)
@@ -90,6 +99,8 @@ class ClipGestureController : public QQuickItem {
     Q_PROPERTY(bool keyframeRowOnly READ keyframeRowOnly WRITE setKeyframeRowOnly NOTIFY optionsChanged)
     // Selected edit points, keyboard and dynamic trimming, and the Trim Monitor's state.
     Q_PROPERTY(TrimMode* trimMode READ trimMode CONSTANT)
+    // The music generation target the Range tool selects (MD10): view state, never saved or undone.
+    Q_PROPERTY(MusicSelection* musicSelection READ musicSelection CONSTANT)
 
 public:
     explicit ClipGestureController(QQuickItem* parent = nullptr);
@@ -150,6 +161,10 @@ public:
     void setKeyframeRowOnly(bool only);
     void setKeyframeRow(const QString& row);
     TrimMode* trimMode() const { return m_trimMode; }
+    MusicSelection* musicSelection() const { return m_musicSelection; }
+    // Makes the music range the sequence In and Out range and turns the loop on, so
+    // playback loops on it (MUSIC-MODE.md section 7). False when there is no range.
+    Q_INVOKABLE bool loopMusicSelection();
     Q_INVOKABLE bool pressTrack(const QString& trackId, const QString& kind, double sceneX, double sceneY);
     Q_INVOKABLE void pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers);
     Q_INVOKABLE QVariantMap groupSpan(const QString& clipId) const;
@@ -217,6 +232,8 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
+    // The second press of a double-click during a Range tool drag belongs to that drag.
+    void mouseDoubleClickEvent(QMouseEvent* event) override;
     void mouseUngrabEvent() override;
     void updatePolish() override;
 
@@ -260,6 +277,14 @@ private:
         QJsonArray before;
         // The document the gesture edits; a replacement ends it.
         quint64 generation = 0;
+        // range: the edge at the press (48 kHz frames), the clip pressed, and the selection before.
+        std::int64_t rangeAnchor = 0;
+        QString rangeClipId;
+        QString rangeTrackAtStart;
+        std::int64_t rangeStartAtStart = 0;
+        std::int64_t rangeEndAtStart = 0;
+        // The rest of a double-click that selected a clip's span: the release keeps the range.
+        bool rangeHeld = false;
     };
 
     nt::edit::ClipList resolveEdit(const QString& name, QJsonObject payload,
@@ -276,6 +301,9 @@ private:
     void applySlide();
     void updateTrackDrag();
     void updateMarquee();
+    bool beginRange(const QString& trackId, const QString& clipId, double sceneX, double sceneY, int modifiers);
+    void updateRange();
+    bool selectClipRange(const QString& clipId);
     QJsonObject targetingPayload() const;
     double laneMsAt(double sceneX) const;
     void finishGesture(bool completed, Qt::KeyboardModifiers modifiers);
@@ -294,6 +322,11 @@ private:
     void clearClipSelection();
 
     TrimMode* m_trimMode = nullptr;
+    // Qt child of this controller, which deletes it.
+    MusicSelection* m_musicSelection = nullptr;
+    // The last Range tool click on a clip, for its double-click.
+    QString m_rangeClickClip;
+    QElapsedTimer m_rangeClick;
     QPointer<TimelineModel> m_timeline;
     QPointer<TimelineViewState> m_view;
     QPointer<TrackWindowModel> m_rows;

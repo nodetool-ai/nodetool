@@ -15,6 +15,8 @@ QtObject {
     // source patch boxes share one blue.
     readonly property color editBlue: "#2d8ceb"
     readonly property color targetFill: "#1f5c9e"
+    // The music range band (docs/MUSIC-MODE.md section 7): editBlue at 18%.
+    readonly property color rangeFill: "#2e2d8ceb"
     readonly property color clipText: "#141414"
     readonly property color audioWave: "#7cf2c4"
     readonly property color fxBadge: "#e8d44d"

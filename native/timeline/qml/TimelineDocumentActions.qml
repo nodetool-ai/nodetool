@@ -18,7 +18,21 @@ Item {
         id: actions
         anchor: root
         onOpenRequested: root.showList()
-        onErrorChanged: { if (error) root.showList(false) }
+        onErrorChanged: {
+            if (error && musicDialog.opened) musicDialog.error = error
+            else if (error) root.showList(false)
+        }
+    }
+    // File > New Music Project (docs/MUSIC-MODE.md section 15) opens this.
+    function openNewMusicProject() {
+        musicDialog.returnFocusTo = root.Window.window ? root.Window.window.activeFocusItem : null
+        musicDialog.open()
+        return true
+    }
+    NewMusicProjectDialog {
+        id: musicDialog
+        busy: actions.controller.busy
+        onCreateRequested: settings => actions.createMusicAndOpen(settings)
     }
     function showList(refresh = true) {
         if (!listPopup.opened) returnFocus = root.Window.window ? root.Window.window.activeFocusItem : null

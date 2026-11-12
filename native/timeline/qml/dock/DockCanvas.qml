@@ -20,6 +20,9 @@ Item {
     // Session-only: a layout change, such as revealing a panel, shows the sides again.
     property bool leftCollapsed: false
     property bool rightCollapsed: false
+    // Session-only: panels the editor leaves out of the current layout without changing it,
+    // such as the program monitor of a music sequence with no video track.
+    property var suppressedIds: []
     readonly property bool hasLeft: groups("left").length > 0
     readonly property bool hasRight: groups("right").length > 0
     // Animated fractions: 1 shows a side, maxT 1 fills the canvas with the maximized region.
@@ -62,7 +65,7 @@ Item {
         activity: "recent", assistant: "autoAwesome", mixer: "graphicEq", source: "videocam", program: "movieOutlined", tracks: "layers"})
     function icon(id) { return panelIcons[id] || "" }
     function title(id) { const panel = registry.find(entry => entry.id === id); return panel ? panel.title : id }
-    function shown(id) { return availableIds.indexOf(id) >= 0 && layout.hidden.indexOf(id) < 0 }
+    function shown(id) { return availableIds.indexOf(id) >= 0 && layout.hidden.indexOf(id) < 0 && suppressedIds.indexOf(id) < 0 }
     function activePanel(group) {
         const eligible = group.panels.filter(id => shown(id))
         return eligible.indexOf(group.activePanelId) >= 0 ? group.activePanelId : (eligible[0] || "")
@@ -111,7 +114,7 @@ Item {
     // Shows a panel, and shows its side again or leaves a maximized group when
     // either would hide it. False for a panel with nothing to show.
     function revealPanel(id) {
-        if (availableIds.indexOf(id) < 0) return false
+        if (availableIds.indexOf(id) < 0 || suppressedIds.indexOf(id) >= 0) return false
         store.dispatch({type: "reveal", panelId: id})
         const groupId = groupIdOfPanel(id)
         const region = Model.regionOfGroup(layout, groupId)

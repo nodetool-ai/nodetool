@@ -53,7 +53,7 @@ bool sideShown(const QVariantMap& context, const char* collapsed) {
 }
 const QString openTimeline = QStringLiteral("Open a timeline first.");
 const bool registered = [] {
-    const QStringList ordinals{"first", "second", "third", "fourth", "fifth", "sixth"};
+    const QStringList ordinals{"first", "second", "third", "fourth", "fifth", "sixth", "seventh"};
     for (int index = 0; index < ordinals.size(); ++index) {
         nt::wiring::registerKeyAction({"workspace" + QString::number(index + 1), "Switch to the " + ordinals[index] + " workspace",
             {QKeySequence::fromString("Alt+Shift+" + QString::number(index + 1), QKeySequence::PortableText)},
@@ -121,7 +121,7 @@ const bool registered = [] {
         {"panelColor", "Go to Color", "color", "Color"}, {"panelScopes", "Go to Scopes", "scopes", "Scopes"},
         {"panelEntities", "Go to Entities", "entities", "Entities"}, {"panelMarkers", "Go to Markers", "markers", "Markers"},
         {"panelAssistant", "Go to the Assistant", "assistant", "Assistant"}, {"panelAi", "Go to AI", "ai", "AI"},
-        {"panelActivity", "Go to Activity", "activity", "Activity"}};
+        {"panelActivity", "Go to Activity", "activity", "Activity"}, {"panelMusic", "Go to Music", "music", "Music"}};
     int panelOrder = 100;
     for (const auto& entry : panels) {
         const QString panel = entry.panel;
@@ -133,8 +133,8 @@ const bool registered = [] {
             [panel](V context) { return panelShown(context, panel); }, {},
             panel == "source" ? QStringLiteral("Open a clip in Source first.") : QStringLiteral("Open a timeline first.")});
     }
-    // Workspaces, in the order of DockLayout.js workspaceNames() that workspace1 to 6 switch through.
-    const QStringList workspaceNames{"Editing", "Script", "Assistant", "Review", "Color", "Audio"};
+    // Workspaces, in the order of DockLayout.js workspaceNames() that workspace1 to 7 switch through.
+    const QStringList workspaceNames{"Editing", "Script", "Assistant", "Review", "Color", "Audio", "Music"};
     for (int index = 0; index < workspaceNames.size(); ++index) {
         const QString name = workspaceNames[index];
         nt::app::registerShellMenuItem({"Window", "workspace" + QString::number(index + 1), name, {}, "Workspaces", "workspaces", index,

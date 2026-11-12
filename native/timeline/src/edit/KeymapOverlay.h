@@ -6,6 +6,9 @@
 // written as Ctrl, as FilmCraft's table does
 // (crates/engine/src/shortcut_presets.rs). Key assignments are facts about how
 // an editor is operated. No file of another application is used.
+//
+// rangeTool is the music Range tool (docs/MUSIC-MODE.md MD11), which the web
+// editor does not have. P is free in both presets.
 #pragma once
 
 namespace nt::edit {
@@ -64,7 +67,10 @@ inline constexpr const char* KEYMAP_OVERLAY_JSON = R"overlay({"premiere":[
 ["panelScript",[{"key":"0","shift":true}]],
 ["panelStoryboard",[{"key":"8","shift":true}]],
 ["nextPanel",[{"key":".","ctrl":true,"shift":true}]],
-["prevPanel",[{"key":",","ctrl":true,"shift":true}]]
+["prevPanel",[{"key":",","ctrl":true,"shift":true}]],
+["rangeTool",[{"key":"p"}]]
+],"fcp":[
+["rangeTool",[{"key":"p"}]]
 ]})overlay";
 
 }  // namespace nt::edit

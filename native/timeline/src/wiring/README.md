@@ -22,6 +22,9 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   Show controls hides this slot. The Hand tool disables its input.
 - `trackLane`: receives the raw `track` map and `timeline`. Set `implicitHeight`
   in screen pixels. Contributions stack below the base lane and extend the row.
+- `laneOverlay`: receives the raw `track` map, `timeline`, `gestures`, and `viewState`.
+  The item fills the base lane above its clips, in lane coordinates (`x` is
+  `ms / viewState.msPerPx`). Leave pointer input to the lane except on controls you draw.
 - Playhead pass-through: add `property bool playheadPassthrough: true` to a pointer target, or define `playheadPassthrough(localPoint)` on a wrapper to hit-test its targets.
 - Monitor views: `nt::ui::registerMonitorView({id, source, order, title})` from
   `ui/MonitorViewRegistry.h`. The view appears in the Program monitor's wrench menu under

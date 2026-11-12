@@ -328,7 +328,6 @@ Rectangle {
                     id: header
                     required property double rowTop
                     required property double baseRowHeight
-                    required property var track
                     rowHeight: baseRowHeight
                     timeline: region.timeline
                     gestures: clipGestures
@@ -501,6 +500,15 @@ Rectangle {
                         clock: region.clock
                         viewState: view
                         gestures: clipGestures
+                    }
+                    // Contributions drawn over the base lane, such as the music range band.
+                    SlotItems {
+                        width: parent.width
+                        height: trackRow.baseRowHeight
+                        overlay: true
+                        slot: "laneOverlay"
+                        slotProperties: ({ track: trackRow.track, timeline: region.timeline,
+                                           gestures: clipGestures, viewState: view })
                     }
                     SlotItems {
                         id: laneRows

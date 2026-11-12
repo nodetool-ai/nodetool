@@ -34,3 +34,43 @@ if(NOT MSVC)
     set_source_files_properties(src/music/MusicTime.cpp src/music/MusicPlan.cpp
         PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
+
+# ── MM2: music project, range selection, panel (package E) ──────────────────
+# The range math and the new project's document are pure functions in core.
+# The selection, the panel and sequence state and the dialog rules are QML
+# types. The registrations (the role edit, File > New Music Project and
+# --music) compile into each executable that takes the app sources.
+nt_sources(core src/music/MusicRange.h src/music/MusicRange.cpp
+    src/music/MusicProject.h src/music/MusicProject.cpp)
+nt_qml_sources(src/music/MusicSelection.h src/music/MusicSelection.cpp
+    src/music/MusicSequenceState.h src/music/MusicSequenceState.cpp
+    src/music/MusicPanelModel.h src/music/MusicPanelModel.cpp
+    src/music/MusicProjectRules.h src/music/MusicProjectRules.cpp
+    src/music/MusicKeyActions.cpp)
+nt_sources(app src/music/MusicRegistrations.cpp)
+if(NOT MSVC)
+    set_source_files_properties(src/music/MusicRange.cpp PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+endif()
+
+function(nt_music_ui_tests)
+    nt_qt_test(tst_musicrange SOURCES src/music/tst_musicrange.cpp LIBS timeline_core Qt6::Test)
+
+    # New music project through the list controller and a fake server (MM2 exit 1).
+    nt_qt_test(tst_musicproject SOURCES src/music/tst_musicproject.cpp
+        LIBS timeline_server Qt6::Test
+        INCLUDES tests)
+    set_tests_properties(tst_musicproject PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    # The mounted editor with synthetic pointer events (MM2 exits 1, 2, 3 and 5, and the loop control).
+    qt_add_executable(tst_musicui src/music/tst_musicui.cpp ${NT_app})
+    set_target_properties(tst_musicui PROPERTIES MACOSX_BUNDLE FALSE)
+    target_include_directories(tst_musicui PRIVATE src/wiring qml/dock tests)
+    target_link_libraries(tst_musicui PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_musicui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_musicui_qml/NodeTool/Timeline)
+    qt_add_resources(tst_musicui music_sync_banner PREFIX /nodetool/sync BASE src/server/sync
+        FILES src/server/sync/ExternalConflictsBanner.qml)
+    add_test(NAME tst_musicui COMMAND tst_musicui)
+    set_tests_properties(tst_musicui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endfunction()
+nt_tests(nt_music_ui_tests)
