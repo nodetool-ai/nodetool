@@ -4,6 +4,8 @@
 #include <limits>
 
 namespace nt::realtime::math {
+static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53 &&
+    std::numeric_limits<double>::max_exponent == 1024);
 namespace {
 constexpr double pi = 3.1415926535897932384626433832795;
 constexpr double ln2 = 0.693147180559945309417232121458;
