@@ -7,11 +7,11 @@
  * `content_type` is `"audio"`, `content_metadata` describes the format, and
  * end-of-stream is an empty-content chunk with `done: true`.
  *
- * All nodes here are pure sample math — no WebAudio, no node-only APIs — so
- * they run on Node and in the browser workflow runner alike. The streaming
- * filters keep biquad state across chunks (see `lib/biquad.ts`), which is the
- * point: a per-chunk batch filter would lose its delay line at every chunk
- * boundary.
+ * The sample math runs in the kernel library (@nodetool-ai/kernels) — no
+ * WebAudio, no node-only APIs — so these nodes run on Node and in the browser
+ * workflow runner alike. The streaming filters keep biquad state across
+ * chunks, which is the point: a per-chunk batch filter would lose its delay
+ * line at every chunk boundary.
  */
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
@@ -22,12 +22,11 @@ import type {
 import type { Chunk, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { loadKernels, type BiquadType } from "@nodetool-ai/kernels";
 import {
   audioBytesAsync,
   audioRefFromWav,
-  deinterleave,
   encodeWav,
-  interleave,
   parseWavBytes
 } from "../lib/audio-wav.js";
 import {
@@ -37,14 +36,7 @@ import {
   readSignalChunk,
   SYNTH_SAMPLE_RATE
 } from "../lib/cv.js";
-import {
-  biquadCoeffs,
-  createBiquadState,
-  processBiquad,
-  DEFAULT_Q,
-  type BiquadState,
-  type BiquadType
-} from "../lib/biquad.js";
+import { DEFAULT_Q } from "../lib/biquad.js";
 
 // ── Chunk helpers ──────────────────────────────────────────────────
 // Signal chunks (parse + build, both pcm16le and f32le CV encodings) live in
@@ -270,6 +262,7 @@ export class StreamingGainNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+    const kernels = await loadKernels();
     for await (const item of inputs.stream("chunk")) {
       const chunk = readSignalChunk(item);
       if (!chunk) continue;
@@ -283,14 +276,10 @@ export class StreamingGainNode extends BaseNode {
       }
       if (chunk.samples.length === 0) continue;
 
-      // Per chunk — live updates apply. Write into a fresh buffer: the input
-      // Float32Array is shared by reference with fan-out edges and any UI
-      // buffer holding the upstream chunk; mutating it in place would
-      // corrupt those.
-      const factor = Math.pow(10, this.gain_db / 20);
-      const samples = chunk.samples;
-      const scaled = new Float32Array(samples.length);
-      for (let i = 0; i < samples.length; i++) scaled[i] = samples[i] * factor;
+      // Per chunk — live updates apply. The kernel writes a fresh buffer:
+      // the input Float32Array is shared by reference with fan-out edges and
+      // any UI buffer holding the upstream chunk.
+      const scaled = kernels.scaleOffset(chunk.samples, Math.pow(10, this.gain_db / 20));
       await outputs.emit(
         "chunk",
         makeSignalChunk(
@@ -319,7 +308,9 @@ async function runStreamingFilter(
   inputs: StreamingInputs,
   outputs: StreamingOutputs
 ): Promise<void> {
-  let states: BiquadState[] = [];
+  const kernels = await loadKernels();
+  let state: Float64Array | undefined;
+  let stateChannels = 0;
 
   for await (const item of inputs.stream("chunk")) {
     const chunk = readSignalChunk(item);
@@ -334,25 +325,15 @@ async function runStreamingFilter(
     }
     if (chunk.samples.length === 0) continue;
 
-    if (states.length !== chunk.channels) {
-      states = Array.from({ length: chunk.channels }, createBiquadState);
+    if (!state || stateChannels !== chunk.channels) {
+      state = kernels.createBiquadState(chunk.channels);
+      stateChannels = chunk.channels;
     }
     const { frequency, q } = params();
-    const coeffs = biquadCoeffs(type, chunk.sampleRate, frequency, q, 0);
-
-    // Mono fast path: filter the interleaved buffer directly — the
-    // deinterleave/interleave round trip would add two full copies per
-    // chunk, pure GC churn at realtime rates.
-    let filteredSamples: Float32Array;
-    if (chunk.channels === 1) {
-      filteredSamples = processBiquad(coeffs, states[0]!, chunk.samples);
-    } else {
-      const planes = deinterleave(chunk.samples, chunk.channels);
-      const filtered = planes.map((plane, ch) =>
-        processBiquad(coeffs, states[ch] ?? createBiquadState(), plane)
-      );
-      filteredSamples = interleave(filtered);
-    }
+    const coeffs = kernels.biquadDesign("rbj", type, chunk.sampleRate, frequency, q);
+    // The kernel filters the interleaved buffer directly, one state per
+    // channel, so no deinterleave copy is needed.
+    const filteredSamples = kernels.biquadProcess(coeffs, state, chunk.samples, chunk.channels);
     await outputs.emit(
       "chunk",
       makeSignalChunk(

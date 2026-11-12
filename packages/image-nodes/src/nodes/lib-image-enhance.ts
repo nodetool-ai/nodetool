@@ -7,6 +7,7 @@ import { pickImage } from "./lib-image-utils.js";
 import { runShaderNode, type Desc } from "./lib-shader-utils.js";
 import { decodeRgba, rawRgbaImageRef } from "./image-io.js";
 import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
+import { loadKernels } from "@nodetool-ai/kernels";
 
 function createEnhanceNode(desc: Desc): NodeClass {
   const C = class extends BaseNode {
@@ -27,9 +28,9 @@ function createEnhanceNode(desc: Desc): NodeClass {
 
       // GPU-backed path: PIL DETAIL / EDGE_ENHANCE 3×3 convolution kernels.
       // Samples `baseObj` directly (borrows an upstream GPU texture) and emits
-      // a texture/RGBA ImageRef. The remaining ops run in JS for histogram /
-      // per-tile / sorted-neighbourhood work the shader catalog doesn't cover
-      // (AutoContrast, Equalize, AdaptiveContrast, RankFilter).
+      // a texture/RGBA ImageRef. The remaining ops are histogram, per-tile
+      // and rank work that does not fit one shader pass (AutoContrast,
+      // Equalize, AdaptiveContrast, RankFilter).
       if (t.endsWith(".Detail") || t.endsWith(".EdgeEnhance")) {
         // PIL `ImageFilter.DETAIL`: 3×3 [0 -1 0 / -1 10 -1 / 0 -1 0] / 6,
         // and `EDGE_ENHANCE`: same kernel family, slightly weaker.
@@ -55,178 +56,50 @@ function createEnhanceNode(desc: Desc): NodeClass {
         };
       }
 
-      // Histogram / neighbourhood ops run in pure JS on the decoded
-      // straight-alpha RGBA (4-channel) — no sharp, so they work in the browser
-      // too. RGB channels (0–2) are processed; alpha (3) is preserved.
+      // Histogram and neighbourhood ops run in the C++ kernel library
+      // (@nodetool-ai/kernels) on the decoded straight-alpha RGBA: native in
+      // the graph runner, WebAssembly on the server and in the browser. The
+      // kernels process RGB, copy alpha, and write a new buffer, so `rgba`
+      // (which may alias the upstream node's buffer) is never mutated.
       const { rgba, width: w, height: h } = await decodeRgba(baseObj, context);
       if (!w || !h) return { output: baseObj ?? {} };
-      const channels = 4;
-      const totalPixels = w * h;
+      const kernels = await loadKernels();
 
       if (t.endsWith(".AutoContrast")) {
-        // `rgba` may alias the upstream node's buffer (decodeRgba borrows raw
-        // refs by reference), so mutate a copy — never the shared input.
-        const out = new Uint8Array(rgba);
         const cutoff = Number((this as any).cutoff ?? 0);
-        const cutCount = Math.floor((totalPixels * cutoff) / 100);
-        for (let c = 0; c < 3; c++) {
-          const hist = new Uint32Array(256);
-          for (let i = c; i < out.length; i += channels) hist[out[i]]++;
-          let lo = 0;
-          let cumLo = 0;
-          while (lo < 255 && cumLo + hist[lo] <= cutCount) {
-            cumLo += hist[lo];
-            lo++;
-          }
-          let hi = 255;
-          let cumHi = 0;
-          while (hi > 0 && cumHi + hist[hi] <= cutCount) {
-            cumHi += hist[hi];
-            hi--;
-          }
-          if (lo >= hi) continue;
-          const scale = 255.0 / (hi - lo);
-          for (let i = c; i < out.length; i += channels) {
-            out[i] = Math.max(0, Math.min(255, Math.round((out[i] - lo) * scale)));
-          }
-        }
-        return { output: rawRgbaImageRef(out, w, h) };
+        return {
+          output: rawRgbaImageRef(kernels.imageAutoContrast(rgba, w, h, cutoff), w, h)
+        };
       }
 
       if (t.endsWith(".Equalize")) {
-        // `rgba` may alias the upstream node's buffer (decodeRgba borrows raw
-        // refs by reference), so mutate a copy — never the shared input.
-        const out = new Uint8Array(rgba);
-        for (let c = 0; c < 3; c++) {
-          const hist = new Uint32Array(256);
-          for (let i = c; i < out.length; i += channels) hist[out[i]]++;
-          const cdf = new Uint32Array(256);
-          cdf[0] = hist[0];
-          for (let j = 1; j < 256; j++) cdf[j] = cdf[j - 1] + hist[j];
-          let cdfMin = 0;
-          for (let j = 0; j < 256; j++) {
-            if (cdf[j] > 0) {
-              cdfMin = cdf[j];
-              break;
-            }
-          }
-          const lut = new Uint8Array(256);
-          const denom = totalPixels - cdfMin;
-          if (denom > 0) {
-            for (let j = 0; j < 256; j++) {
-              lut[j] = Math.round(((cdf[j] - cdfMin) / denom) * 255);
-            }
-          }
-          for (let i = c; i < out.length; i += channels) out[i] = lut[out[i]];
-        }
-        return { output: rawRgbaImageRef(out, w, h) };
+        return { output: rawRgbaImageRef(kernels.imageEqualize(rgba, w, h), w, h) };
       }
 
       if (t.endsWith(".AdaptiveContrast")) {
         const clipLimit = Number((this as any).clip_limit ?? 2);
-        const gridSize = Math.max(
-          1,
-          Math.round(Number((this as any).grid_size ?? 8))
+        // Clamped to the declared 1..64 range.
+        const gridSize = Math.min(
+          64,
+          Math.max(1, Math.round(Number((this as any).grid_size ?? 8)))
         );
-        const tileW = Math.ceil(w / gridSize);
-        const tileH = Math.ceil(h / gridSize);
-        const tileCDFs: Float32Array[][][] = [];
-        for (let ty = 0; ty < gridSize; ty++) {
-          tileCDFs[ty] = [];
-          for (let tx = 0; tx < gridSize; tx++) {
-            tileCDFs[ty][tx] = [];
-            const x0 = tx * tileW;
-            const y0 = ty * tileH;
-            const x1 = Math.min(x0 + tileW, w);
-            const y1 = Math.min(y0 + tileH, h);
-            const tilePixels = (x1 - x0) * (y1 - y0);
-            for (let c = 0; c < 3; c++) {
-              const hist = new Uint32Array(256);
-              for (let y = y0; y < y1; y++) {
-                for (let x = x0; x < x1; x++) {
-                  hist[rgba[(y * w + x) * channels + c]]++;
-                }
-              }
-              const limit = Math.max(
-                1,
-                Math.round((clipLimit * tilePixels) / 256)
-              );
-              let excess = 0;
-              for (let j = 0; j < 256; j++) {
-                if (hist[j] > limit) {
-                  excess += hist[j] - limit;
-                  hist[j] = limit;
-                }
-              }
-              const increment = Math.floor(excess / 256);
-              for (let j = 0; j < 256; j++) hist[j] += increment;
-              const cdf = new Float32Array(256);
-              cdf[0] = hist[0];
-              for (let j = 1; j < 256; j++) cdf[j] = cdf[j - 1] + hist[j];
-              const cdfMax = cdf[255];
-              if (cdfMax > 0) {
-                for (let j = 0; j < 256; j++) cdf[j] = (cdf[j] / cdfMax) * 255;
-              }
-              tileCDFs[ty][tx][c] = cdf;
-            }
-          }
-        }
-        const result = new Uint8Array(rgba); // copy preserves alpha
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const ftx = (x + 0.5) / tileW - 0.5;
-            const fty = (y + 0.5) / tileH - 0.5;
-            const tx0 = Math.max(0, Math.floor(ftx));
-            const ty0 = Math.max(0, Math.floor(fty));
-            const tx1 = Math.min(gridSize - 1, tx0 + 1);
-            const ty1 = Math.min(gridSize - 1, ty0 + 1);
-            const fx = Math.max(0, Math.min(1, ftx - tx0));
-            const fy = Math.max(0, Math.min(1, fty - ty0));
-            for (let c = 0; c < 3; c++) {
-              const val = rgba[(y * w + x) * channels + c];
-              const tl = tileCDFs[ty0][tx0][c][val];
-              const tr = tileCDFs[ty0][tx1][c][val];
-              const bl = tileCDFs[ty1][tx0][c][val];
-              const br = tileCDFs[ty1][tx1][c][val];
-              const top = tl * (1 - fx) + tr * fx;
-              const bot = bl * (1 - fx) + br * fx;
-              result[(y * w + x) * channels + c] = Math.round(
-                top * (1 - fy) + bot * fy
-              );
-            }
-          }
-        }
-        return { output: rawRgbaImageRef(result, w, h) };
+        return {
+          output: rawRgbaImageRef(
+            kernels.imageAdaptiveContrast(rgba, w, h, clipLimit, gridSize),
+            w,
+            h
+          )
+        };
       }
 
       if (t.endsWith(".RankFilter")) {
-        // Clamp the window size: each pixel allocates and sorts a
-        // (2*floor(size/2)+1)^2-element array per channel, so an unbounded size
-        // (e.g. 512 → ~262k elements/pixel) would hang the process. 25 matches
-        // typical PIL RankFilter usage. `result` is a copy, so `rgba` (which may
-        // alias the upstream buffer) is only ever read here, never mutated.
-        const size = Math.max(1, Math.min(25, Number((this as any).size ?? 3)));
-        const rank = Number((this as any).rank ?? 3);
-        const half = Math.floor(size / 2);
-        const result = new Uint8Array(rgba); // copy preserves alpha
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            for (let c = 0; c < 3; c++) {
-              const neighbors: number[] = [];
-              for (let ky = -half; ky <= half; ky++) {
-                for (let kx = -half; kx <= half; kx++) {
-                  const ny = Math.min(h - 1, Math.max(0, y + ky));
-                  const nx = Math.min(w - 1, Math.max(0, x + kx));
-                  neighbors.push(rgba[(ny * w + nx) * channels + c]);
-                }
-              }
-              neighbors.sort((a, b) => a - b);
-              const idx = Math.min(rank, neighbors.length - 1);
-              result[(y * w + x) * channels + c] = neighbors[idx];
-            }
-          }
-        }
-        return { output: rawRgbaImageRef(result, w, h) };
+        // A window of at most 25 matches typical PIL RankFilter usage and
+        // bounds the per-pixel cost.
+        const size = Math.max(1, Math.min(25, Math.floor(Number((this as any).size ?? 3))));
+        const rank = Math.max(0, Math.floor(Number((this as any).rank ?? 3)));
+        return {
+          output: rawRgbaImageRef(kernels.imageRankFilter(rgba, w, h, size, rank), w, h)
+        };
       }
 
       // Unknown enhance type — pass the source through unchanged.

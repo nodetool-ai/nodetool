@@ -10,13 +10,13 @@ import {
   AttenuverterNode,
   MixerNode,
   SampleHoldNode,
-  applyBiquadToWav,
   makeSignalChunk,
   makeDoneSignalChunk,
   readSignalChunk,
   DEFAULT_Q,
   SYNTH_CHUNK_FRAMES
 } from "@nodetool-ai/audio-nodes";
+import { loadKernels } from "@nodetool-ai/kernels";
 
 const SR = 24000;
 
@@ -542,13 +542,13 @@ describe("VCF", () => {
       cutoff_hz: 1000,
       q: DEFAULT_Q
     });
-    const reference = applyBiquadToWav(
-      { samples: audio, sampleRate: SR, numChannels: 1 },
-      "lowpass",
-      1000,
-      DEFAULT_Q,
-      0
-    ).samples;
+    const kernels = await loadKernels();
+    const reference = kernels.biquadProcess(
+      kernels.biquadDesign("rbj", "lowpass", SR, 1000, DEFAULT_Q),
+      kernels.createBiquadState(1),
+      audio,
+      1
+    );
     expect(out.length).toBe(reference.length);
     for (let i = 0; i < out.length; i++) {
       expect(Math.abs(out[i] - reference[i])).toBeLessThan(1e-3); // pcm16 LSB

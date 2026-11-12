@@ -3,42 +3,13 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { importHidden } from "@nodetool-ai/config";
+import { loadKernels } from "@nodetool-ai/kernels";
 import {
   requireAudioBytes,
   audioRefFromWav,
   decodeAudioToWav,
-  encodeWav,
-  type WavData
+  encodeWav
 } from "../lib/audio-wav.js";
-
-// ── DSP helpers ────────────────────────────────────────────────────
-
-function processPerChannel(
-  wav: WavData,
-  fn: (channel: Float32Array, sampleRate: number) => Float32Array
-) {
-  const { samples, sampleRate, numChannels } = wav;
-  const frameSamples = Math.floor(samples.length / numChannels);
-
-  const channels: Float32Array[] = [];
-  for (let ch = 0; ch < numChannels; ch++) {
-    const channelData = new Float32Array(frameSamples);
-    for (let i = 0; i < frameSamples; i++) {
-      channelData[i] = samples[i * numChannels + ch];
-    }
-    channels.push(fn(channelData, sampleRate));
-  }
-
-  const outFrames = channels[0].length;
-  const outSamples = new Float32Array(outFrames * numChannels);
-  for (let ch = 0; ch < numChannels; ch++) {
-    for (let i = 0; i < outFrames; i++) {
-      outSamples[i * numChannels + ch] = channels[ch][i];
-    }
-  }
-
-  return { samples: outSamples, sampleRate, numChannels };
-}
 
 // ── Bitcrush ──────────────────────────────────────────────────────
 
@@ -102,19 +73,11 @@ export class BitcrushNode extends BaseNode {
     const bytes = await requireAudioBytes(audio, context);
 
     const wav = await decodeAudioToWav(bytes);
-    const result = processPerChannel(wav, (ch) => {
-      // Number of quantization steps for the target bit depth. Guard against
-      // bitDepth === 1 (the prop minimum), which would otherwise yield 0 and
-      // produce NaN samples via division by zero.
-      const levels = Math.max(1, Math.pow(2, bitDepth) - 1);
-      const out = new Float32Array(ch.length);
-      for (let i = 0; i < ch.length; i++) {
-        const idx = Math.floor(i / srrFactor) * srrFactor;
-        const srcIdx = Math.min(idx, ch.length - 1);
-        out[i] = Math.round(ch[srcIdx] * levels) / levels;
-      }
-      return out;
-    });
+    const kernels = await loadKernels();
+    const result = {
+      ...wav,
+      samples: kernels.bitcrush(wav.samples, wav.numChannels, bitDepth, srrFactor)
+    };
 
     return {
       output: audioRefFromWav(
@@ -215,40 +178,18 @@ export class CompressNode extends BaseNode {
 
     const bytes = await requireAudioBytes(audio, context);
 
-    // Makeup gain: half of the reduction a 0 dBFS peak would receive — the
-    // usual "auto" heuristic. It restores most of the loudness lost to
-    // compression while staying clear of clipping the way full compensation
-    // (referenced to 0 dBFS) would on under-compressed transients.
-    const makeupDb = autoGain ? (-thresholdDb * (1 - 1 / ratio)) / 2 : 0;
-    const makeup = Math.pow(10, makeupDb / 20);
-
     const wav = await decodeAudioToWav(bytes);
-    const result = processPerChannel(wav, (ch, sr) => {
-      const out = new Float32Array(ch.length);
-      const attackCoeff = Math.exp(-1 / ((sr * attackMs) / 1000));
-      const releaseCoeff = Math.exp(-1 / ((sr * releaseMs) / 1000));
-      const thresholdLin = Math.pow(10, thresholdDb / 20);
-
-      let envelope = 0;
-      for (let i = 0; i < ch.length; i++) {
-        const absVal = Math.abs(ch[i]);
-        if (absVal > envelope) {
-          envelope = attackCoeff * envelope + (1 - attackCoeff) * absVal;
-        } else {
-          envelope = releaseCoeff * envelope + (1 - releaseCoeff) * absVal;
-        }
-
-        if (envelope > thresholdLin) {
-          const dbOver = 20 * Math.log10(envelope / thresholdLin);
-          const dbReduction = dbOver * (1 - 1 / ratio);
-          const gainReduction = Math.pow(10, -dbReduction / 20);
-          out[i] = ch[i] * gainReduction * makeup;
-        } else {
-          out[i] = ch[i] * makeup;
-        }
-      }
-      return out;
-    });
+    const kernels = await loadKernels();
+    const result = {
+      ...wav,
+      samples: kernels.compress(wav.samples, wav.numChannels, wav.sampleRate, {
+        thresholdDb,
+        ratio,
+        attackMs,
+        releaseMs,
+        autoGain
+      })
+    };
 
     return {
       output: audioRefFromWav(
@@ -307,15 +248,8 @@ export class DistortionNode extends BaseNode {
     const bytes = await requireAudioBytes(audio, context);
 
     const wav = await decodeAudioToWav(bytes);
-    const drive = Math.pow(10, driveDb / 20);
-    const result = processPerChannel(wav, (ch) => {
-      const out = new Float32Array(ch.length);
-      for (let i = 0; i < ch.length; i++) {
-        const driven = ch[i] * drive;
-        out[i] = (2 / Math.PI) * Math.atan(driven);
-      }
-      return out;
-    });
+    const kernels = await loadKernels();
+    const result = { ...wav, samples: kernels.distortion(wav.samples, driveDb) };
 
     return {
       output: audioRefFromWav(
@@ -395,31 +329,15 @@ export class LimiterNode extends BaseNode {
     const bytes = await requireAudioBytes(audio, context);
 
     const wav = await decodeAudioToWav(bytes);
-    const threshold = Math.pow(10, thresholdDb / 20);
-    // Makeup gain brings the ceiling up to 0 dBFS. Limited peaks sit at
-    // `threshold`, so scaling by 1/threshold normalizes them to full scale
-    // without pushing past it.
-    const makeup = autoGain ? 1 / threshold : 1;
-    const result = processPerChannel(wav, (ch, sr) => {
-      const out = new Float32Array(ch.length);
-      const releaseCoeff = Math.exp(-1 / ((sr * releaseMs) / 1000));
-      let gainReduction = 1;
-
-      for (let i = 0; i < ch.length; i++) {
-        const absVal = Math.abs(ch[i]);
-        if (absVal > threshold) {
-          const targetGain = threshold / absVal;
-          if (targetGain < gainReduction) {
-            gainReduction = targetGain;
-          }
-        } else {
-          gainReduction =
-            releaseCoeff * gainReduction + (1 - releaseCoeff) * 1.0;
-        }
-        out[i] = ch[i] * gainReduction * makeup;
-      }
-      return out;
-    });
+    const kernels = await loadKernels();
+    const result = {
+      ...wav,
+      samples: kernels.limiter(wav.samples, wav.numChannels, wav.sampleRate, {
+        thresholdDb,
+        releaseMs,
+        autoGain
+      })
+    };
 
     return {
       output: audioRefFromWav(
@@ -513,79 +431,16 @@ export class ReverbNode extends BaseNode {
     const bytes = await requireAudioBytes(audio, context);
 
     const wav = await decodeAudioToWav(bytes);
-    const result = processPerChannel(wav, (ch, sr) => {
-      // Schroeder reverb: 4 parallel comb filters -> 2 series allpass filters
-      const baseCombDelays = [1557, 1617, 1491, 1422];
-      const baseAllpassDelays = [225, 556];
-      const scale = sr / 44100;
-
-      // Comb filter
-      function combFilter(
-        input: Float32Array,
-        delaySamples: number,
-        feedback: number,
-        damp: number
-      ): Float32Array {
-        const out = new Float32Array(input.length);
-        const buf = new Float32Array(delaySamples);
-        let bufIdx = 0;
-        let filterStore = 0;
-
-        for (let i = 0; i < input.length; i++) {
-          const delayed = buf[bufIdx];
-          filterStore = delayed * (1 - damp) + filterStore * damp;
-          buf[bufIdx] = input[i] + filterStore * feedback;
-          out[i] = delayed;
-          bufIdx = (bufIdx + 1) % delaySamples;
-        }
-        return out;
-      }
-
-      // Allpass filter
-      function allpassFilter(
-        input: Float32Array,
-        delaySamples: number,
-        feedback: number
-      ): Float32Array {
-        const out = new Float32Array(input.length);
-        const buf = new Float32Array(delaySamples);
-        let bufIdx = 0;
-
-        for (let i = 0; i < input.length; i++) {
-          const delayed = buf[bufIdx];
-          buf[bufIdx] = input[i] + delayed * feedback;
-          out[i] = delayed - input[i] * feedback;
-          bufIdx = (bufIdx + 1) % delaySamples;
-        }
-        return out;
-      }
-
-      const feedback = roomScale * 0.28 + 0.7;
-
-      // Sum comb filters
-      const combOut = new Float32Array(ch.length);
-      for (const baseDelay of baseCombDelays) {
-        const delay = Math.round(baseDelay * scale);
-        const filtered = combFilter(ch, delay, feedback, damping);
-        for (let i = 0; i < ch.length; i++) {
-          combOut[i] += filtered[i];
-        }
-      }
-
-      // Series allpass filters
-      let apOut: Float32Array = combOut;
-      for (const baseDelay of baseAllpassDelays) {
-        const delay = Math.round(baseDelay * scale);
-        apOut = allpassFilter(apOut, delay, 0.5);
-      }
-
-      // Mix dry/wet
-      const out = new Float32Array(ch.length);
-      for (let i = 0; i < ch.length; i++) {
-        out[i] = ch[i] * dryLevel + apOut[i] * wetLevel;
-      }
-      return out;
-    });
+    const kernels = await loadKernels();
+    const result = {
+      ...wav,
+      samples: kernels.reverb(wav.samples, wav.numChannels, wav.sampleRate, {
+        roomScale,
+        damping,
+        wetLevel,
+        dryLevel
+      })
+    };
 
     return {
       output: audioRefFromWav(
@@ -951,33 +806,15 @@ export class NoiseGateNode extends BaseNode {
     const bytes = await requireAudioBytes(audio, context);
 
     const wav = await decodeAudioToWav(bytes);
-    const thresholdLin = Math.pow(10, thresholdDb / 20);
-
-    const result = processPerChannel(wav, (ch, sr) => {
-      const out = new Float32Array(ch.length);
-      const attackCoeff = Math.exp(-1 / ((sr * attackMs) / 1000));
-      const releaseCoeff = Math.exp(-1 / ((sr * releaseMs) / 1000));
-      let envelope = 0;
-      let gain = 0;
-
-      for (let i = 0; i < ch.length; i++) {
-        const absVal = Math.abs(ch[i]);
-        // Envelope follower: fast attack, slow release
-        if (absVal > envelope) {
-          envelope = attackCoeff * envelope + (1 - attackCoeff) * absVal;
-        } else {
-          envelope = releaseCoeff * envelope + (1 - releaseCoeff) * absVal;
-        }
-        // Gate: open when above threshold, close when below. Smooth the gain
-        // toward the target using the attack coefficient while opening and the
-        // release coefficient while closing, so both controls take effect.
-        const targetGain = envelope >= thresholdLin ? 1 : 0;
-        const coeff = targetGain > gain ? attackCoeff : releaseCoeff;
-        gain = coeff * gain + (1 - coeff) * targetGain;
-        out[i] = ch[i] * gain;
-      }
-      return out;
-    });
+    const kernels = await loadKernels();
+    const result = {
+      ...wav,
+      samples: kernels.noiseGate(wav.samples, wav.numChannels, wav.sampleRate, {
+        thresholdDb,
+        attackMs,
+        releaseMs
+      })
+    };
 
     return {
       output: audioRefFromWav(
@@ -1081,50 +918,17 @@ export class PhaserNode extends BaseNode {
     const bytes = await requireAudioBytes(audio, context);
 
     const wav = await decodeAudioToWav(bytes);
-    const result = processPerChannel(wav, (ch, sr) => {
-      const out = new Float32Array(ch.length);
-      // 4-stage first-order all-pass phaser
-      const numStages = 4;
-      // Delay buffers: x[n-1] and y[n-1] for each stage
-      const xPrev = new Float32Array(numStages);
-      const yPrev = new Float32Array(numStages);
-      // Feedback delay
-      let feedbackSample = 0;
-      let lfoPhase = 0;
-      const lfoIncrement = (2 * Math.PI * rateHz) / sr;
-
-      for (let i = 0; i < ch.length; i++) {
-        // LFO modulates centre frequency
-        const lfo = Math.sin(lfoPhase) * depth;
-        lfoPhase += lfoIncrement;
-        if (lfoPhase > 2 * Math.PI) lfoPhase -= 2 * Math.PI;
-
-        // Modulated frequency (centre ± depth range)
-        const modFreq = Math.max(
-          20,
-          Math.min(sr / 2 - 1, centreFreqHz * (1 + lfo))
-        );
-        const tanVal = Math.tan((Math.PI * modFreq) / sr);
-        const a = (tanVal - 1) / (tanVal + 1);
-
-        // Input with feedback
-        const signal = ch[i] + feedbackSample * feedback;
-
-        // Apply all-pass filter stages
-        let apOut = signal;
-        for (let s = 0; s < numStages; s++) {
-          const newOut = a * apOut + xPrev[s] - a * yPrev[s];
-          xPrev[s] = apOut;
-          yPrev[s] = newOut;
-          apOut = newOut;
-        }
-        feedbackSample = apOut;
-
-        // Mix dry and wet
-        out[i] = ch[i] * (1 - mix) + apOut * mix;
-      }
-      return out;
-    });
+    const kernels = await loadKernels();
+    const result = {
+      ...wav,
+      samples: kernels.phaser(wav.samples, wav.numChannels, wav.sampleRate, {
+        rateHz,
+        depth,
+        centreFrequencyHz: centreFreqHz,
+        feedback,
+        mix
+      })
+    };
 
     return {
       output: audioRefFromWav(

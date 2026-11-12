@@ -15,12 +15,14 @@ on:
     paths:
       - "native/graph-runner/**"
       - "native/jobs/**"
+      - "native/kernels/**"
       - ".github/workflows/native-graph-runner.yml"
   push:
     branches: [main]
     paths:
       - "native/graph-runner/**"
       - "native/jobs/**"
+      - "native/kernels/**"
       - ".github/workflows/native-graph-runner.yml"
 
 permissions:
