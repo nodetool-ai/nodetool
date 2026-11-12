@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "hardware_qualified": false,
+  "mode": "offline_conversion",
+  "algorithm": "miniaudio_linear",
+  "quantum_frames": 128,
+  "runs": [
+    {
+      "input_rate": 44100,
+      "output_rate": 44100,
+      "quanta": 4096,
+      "input_frames": 524288,
+      "output_frames": 524288,
+      "output_latency_frames": 0,
+      "positive_crossings": 5231,
+      "mean_us": 0.0854004,
+      "p999_us": 1.4,
+      "max_us": 28.1
+    },
+    {
+      "input_rate": 44100,
+      "output_rate": 48000,
+      "quanta": 4096,
+      "input_frames": 524288,
+      "output_frames": 570654,
+      "output_latency_frames": 2,
+      "positive_crossings": 5231,
+      "mean_us": 3.06567,
+      "p999_us": 10.4,
+      "max_us": 18
+    },
+    {
+      "input_rate": 48000,
+      "output_rate": 48000,
+      "quanta": 4096,
+      "input_frames": 524288,
+      "output_frames": 524288,
+      "output_latency_frames": 0,
+      "positive_crossings": 4806,
+      "mean_us": 0.122827,
+      "p999_us": 1.4,
+      "max_us": 101.5
+    }
+  ],
+  "environment": {
+    "platform": "win32",
+    "architecture": "x64",
+    "cpu": "Intel(R) Core(TM) i7-2600K CPU @ 3.40GHz",
+    "compiler": "MSVC 19.40, Release /fp:strict",
+    "concurrent_work": "repository tooling and other desktop processes were not isolated"
+  }
+}
