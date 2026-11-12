@@ -309,6 +309,7 @@ private slots:
   const QJsonObject node{{"id", "node"}, {"type", "test"}, {"data", QJsonObject{{"images", QJsonArray{}}}}};
   const QJsonObject snapshot{{"graph", QJsonObject{{"nodes", QJsonArray{node}}, {"edges", QJsonArray{}}}}};
   QVERIFY(host.document.load(snapshot));
+  host.host.setServices({.media = &resolver, .assetPicker = &controller});
   QQmlComponent fieldComponent(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/PropertyField.qml")); QTRY_VERIFY(fieldComponent.status() != QQmlComponent::Loading);
   std::unique_ptr<QObject> field(fieldComponent.createWithInitialProperties({{"descriptor", propertyFields(node, metadata, {}).first()}, {"host", QVariant::fromValue(&host.host)}, {"nodeId", "node"}}));
   QVERIFY2(field, qPrintable(fieldComponent.errorString()));

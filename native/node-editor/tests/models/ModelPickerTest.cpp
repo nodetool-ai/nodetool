@@ -645,8 +645,8 @@ private slots:
         };
         host.connectAs("account-a");
         {
-            Field generate(*host.engine, descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
-            Field upscale(*host.engine, descriptor("image_model", "nodetool.image.Upscale"), QVariant());
+            Field generate(*host.engine, host.controller.get(), descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
+            Field upscale(*host.engine, host.controller.get(), descriptor("image_model", "nodetool.image.Upscale"), QVariant());
             QVERIFY(generate.open());
             QTRY_VERIFY(generate.find("choose_img_gen-1"));
             QVERIFY(generate.clickNamed("favorite_img_gen-1"));
@@ -666,7 +666,7 @@ private slots:
         host.restart();
         host.connectAs("account-a");
         {
-            Field later(*host.engine, descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
+            Field later(*host.engine, host.controller.get(), descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
             QVERIFY(later.open());
             QTRY_VERIFY(later.find("choose_img_gen-1"));
             QVERIFY(later.clickNamed("provider_Recent_rail"));
@@ -688,7 +688,7 @@ private slots:
         }
         host.connectAs("account-b");
         {
-            Field other(*host.engine, descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
+            Field other(*host.engine, host.controller.get(), descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
             QVERIFY(other.open());
             QTRY_VERIFY(other.find("choose_img_gen-1"));
             QVERIFY(other.clickNamed("provider_Recent_rail"));
@@ -721,7 +721,7 @@ private slots:
         };
         host.connectAs("setup-user");
         const QVariantMap stored{{"type", "language_model"}, {"id", "gpt-5-mini"}, {"provider", "openai"}, {"name", "gpt-5-mini"}};
-        Field language(*host.engine, descriptor("language_model", "nodetool.agents.Agent"), stored);
+        Field language(*host.engine, host.controller.get(), descriptor("language_model", "nodetool.agents.Agent"), stored);
         QTRY_COMPARE(language.editor->property("keyWarning").toString(),
                      QStringLiteral("OpenAI needs OPENAI_API_KEY. Add it in Settings, or pick another model."));
         auto* icon = language.find("model-key-warning-model");
@@ -729,8 +729,8 @@ private slots:
         QCOMPARE(language.find("model-label-model")->property("text").toString(), QStringLiteral("gpt-5-mini"));
         QCOMPARE(language.find("model-secondary-model")->property("text").toString(), QStringLiteral("OpenAI"));
         language.capture(QStringLiteral("key-warning-dark"));
-        Field embedding(*host.engine, descriptor("embedding_model"), QVariantMap{{"type", "embedding_model"}, {"id", "text-embedding-3"}, {"provider", "openai"}, {"name", "Embedding"}});
-        Field local(*host.engine, descriptor("language_model"), QVariantMap{{"type", "language_model"}, {"id", "llama3"}, {"provider", "ollama"}, {"name", "Llama 3"}});
+        Field embedding(*host.engine, host.controller.get(), descriptor("embedding_model"), QVariantMap{{"type", "embedding_model"}, {"id", "text-embedding-3"}, {"provider", "openai"}, {"name", "Embedding"}});
+        Field local(*host.engine, host.controller.get(), descriptor("language_model"), QVariantMap{{"type", "language_model"}, {"id", "llama3"}, {"provider", "ollama"}, {"name", "Llama 3"}});
         QTRY_VERIFY(host.catalog(local)->loaded());
         QTRY_VERIFY(host.catalog(embedding)->loaded());
         QCOMPARE(embedding.editor->property("keyWarning").toString(), QString());

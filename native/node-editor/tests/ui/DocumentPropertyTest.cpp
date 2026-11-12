@@ -217,11 +217,13 @@ private slots:
         QVERIFY(load("sketch"));
         QVERIFY(window.selectNode("n"));
         QTRY_VERIFY(control("document-select"));
-        auto* documents = qobject_cast<DocumentPickerController*>(window.nodeInspector()->fields()->documentPicker());
+        // The catalog change also shows the field in the first tab, so read the
+        // picker from the field that control() found.
+        auto* docField = control("document-select")->parentItem()->parentItem();
+        auto* documents = qobject_cast<DocumentPickerController*>(docField->property("controller").value<QObject*>());
         QVERIFY(documents);
         documents->configure(origin, {}, "owner");
         delay = true;
-        auto* docField = control("document-select")->parentItem()->parentItem();
         QVERIFY(QMetaObject::invokeMethod(docField, "refresh"));
         QTRY_VERIFY(!pending.isEmpty());
         const auto loadingOptions = unwrap(control("document-select")->property("options")).toList();
