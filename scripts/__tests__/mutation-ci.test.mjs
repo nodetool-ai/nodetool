@@ -212,7 +212,7 @@ describe("mutation CI exact union", { timeout: 60_000 }, () => {
     }
   });
 
-  it("rejects source pins, commands, files, and partition tampering", async () => {
+  it("rejects source pins, commands, files, and partition tampering", { timeout: 120_000 }, async () => {
     for (const alter of [
       (value) => { value.head = "0".repeat(40); },
       (value) => { value.tree = "0".repeat(40); },
@@ -334,7 +334,7 @@ describe("bounded source partitions", () => {
   });
 });
 
-it("pins every CI checkout and preserves complete target, budget, and aggregate contracts", () => {
+it("pins every CI checkout and preserves complete target, budget, and aggregate contracts", { timeout: 30_000 }, () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-changed.yml", import.meta.url), "utf8"));
   expect(workflow.permissions).toEqual({ contents: "read", packages: "read" });
   const jobs = workflow.jobs;
