@@ -27,6 +27,120 @@ export const clipFadeShapeEnum = z.enum(CLIP_FADE_SHAPE_TUPLE);
 
 // ── Shared sub-schemas ───────────────────────────────────────────────────────
 
+/** Key tonics the music model accepts (MUSIC-MODE.md MF6). */
+export const MUSIC_KEY_TONICS = [
+  "C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab",
+  "A", "A#", "Bb", "B"
+] as const;
+
+/** A project key. Stored on the tempo object (MUSIC-MODE.md MD2). */
+export const musicKey = z.object({
+  tonic: z.enum(MUSIC_KEY_TONICS),
+  mode: z.enum(["major", "minor"])
+});
+export type MusicKey = z.infer<typeof musicKey>;
+
+/**
+ * Document-level constant tempo. Milliseconds stay the stored master clock —
+ * ticks are read against `bpm` — so changing the tempo rescales every midi
+ * clip's timing around `offsetMs` and leaves every other clip where it is.
+ */
+export const timelineTempo = z.object({
+  bpm: z.number().positive(),
+  /** Where beat one sits on the timeline, in ms. */
+  offsetMs: z.number().min(0),
+  timeSignature: z.object({
+    beatsPerBar: z.number().int().positive(),
+    beatUnit: z.number().int().positive()
+  }),
+  /** Project key for music generation. Absent lets the model pick one. */
+  key: musicKey.optional()
+});
+export type TimelineTempo = z.infer<typeof timelineTempo>;
+
+/** The twelve ACE-Step track names a music track can carry (MUSIC-MODE.md MD4). */
+export const MUSIC_ROLES = [
+  "vocals", "backing_vocals", "drums", "bass", "guitar", "keyboard",
+  "percussion", "strings", "synth", "fx", "brass", "woodwinds"
+] as const;
+export const musicRole = z.enum(MUSIC_ROLES);
+export type MusicRole = z.infer<typeof musicRole>;
+
+/** The three music generation tasks of the first release. */
+export const MUSIC_TASKS = ["text2music", "repaint", "lego"] as const;
+export const musicTask = z.enum(MUSIC_TASKS);
+export type MusicTask = z.infer<typeof musicTask>;
+
+/** Most prompts one sequence keeps in its music prompt history (MD3). */
+export const MAX_MUSIC_PROMPT_HISTORY = 50;
+
+/** Marks a music project and holds its prompt history (MUSIC-MODE.md MD3). */
+export const timelineMusic = z.object({
+  promptHistory: z.array(z.string()).max(MAX_MUSIC_PROMPT_HISTORY).optional()
+});
+export type TimelineMusic = z.infer<typeof timelineMusic>;
+
+const frameIndex = z.number().int().min(0);
+
+/**
+ * The generation record of one music take (MUSIC-MODE.md MD5, TK-3). Every
+ * frame value counts 48 kHz frames. `ClipVersion` already holds the provider,
+ * DiT model, caption, request id and duration.
+ */
+export const musicGenerationRecord = z.object({
+  task: musicTask,
+  /** Backend and pinned commit, e.g. "acestep.cpp@07abf07". */
+  backend: z.string(),
+  lmModel: z.string().optional(),
+  steps: z.number().int().min(0),
+  /** Only for a backend that takes an instruction string. */
+  instruction: z.string().optional(),
+  trackRole: musicRole.optional(),
+  bpm: z.number().positive(),
+  key: musicKey.optional(),
+  beatsPerBar: z.number().int().positive(),
+  beatUnit: z.number().int().positive(),
+  seed: z.number().int(),
+  /** Language model output. A replay with these codes skips the language model. */
+  audioCodes: z.string().optional(),
+  candidateIndex: z.number().int().min(0),
+  segmentIndex: z.number().int().min(0),
+  /** Timeline position at 48 kHz. */
+  targetStartFrame: frameIndex,
+  targetEndFrame: frameIndex,
+  contextAssetId: z.string().optional(),
+  /** Timeline position at 48 kHz. */
+  contextStartFrame: frameIndex.optional(),
+  contextEndFrame: frameIndex.optional(),
+  /** Length asked of the model. */
+  requestFrames: z.number().int().positive(),
+  splice: z
+    .object({
+      parentAssetId: z.string(),
+      /** In the parent asset. */
+      startFrame: frameIndex,
+      endFrame: frameIndex,
+      crossfadeFrames: z.number().int().min(0),
+      /** Set when the parent was not 48 kHz stereo and was resampled once. */
+      parentResampled: z.boolean().optional()
+    })
+    .optional(),
+  alignment: z
+    .object({
+      offsetFrames: z.number().int(),
+      corrected: z.boolean(),
+      confidence: z.number().min(0),
+      /** Measured tempo divided by project tempo. */
+      tempoRatio: z.number().positive(),
+      lastBeatErrorMs: z.number().min(0),
+      drifting: z.boolean().optional()
+    })
+    .optional(),
+  gainDb: z.number().optional()
+});
+export type MusicGenerationRecord = z.infer<typeof musicGenerationRecord>;
+
+
 export const clipVersion = z.object({
   id: z.string(),
   createdAt: z.string(),
@@ -136,7 +250,9 @@ export const clipVersion = z.object({
       strength: z.number().optional(),
       resolution: z.string().optional()
     })
-    .optional()
+    .optional(),
+  /** Generation record of a music take. */
+  musicGeneration: musicGenerationRecord.optional()
 });
 export type ClipVersion = z.infer<typeof clipVersion>;
 
@@ -617,21 +733,6 @@ export const midiInstrument = z.discriminatedUnion("type", [
 ]);
 export type MidiInstrument = z.infer<typeof midiInstrument>;
 
-/**
- * Document-level constant tempo. Milliseconds stay the stored master clock —
- * ticks are read against `bpm` — so changing the tempo rescales every midi
- * clip's timing around `offsetMs` and leaves every other clip where it is.
- */
-export const timelineTempo = z.object({
-  bpm: z.number().positive(),
-  /** Where beat one sits on the timeline, in ms. */
-  offsetMs: z.number().min(0),
-  timeSignature: z.object({
-    beatsPerBar: z.number().int().positive(),
-    beatUnit: z.number().int().positive()
-  })
-});
-export type TimelineTempo = z.infer<typeof timelineTempo>;
 
 /** `ChordQuality` in `@nodetool-ai/timeline`: the FableSynth chord qualities. */
 export const chordQuality = z.enum([
@@ -738,7 +839,9 @@ export const timelineTrack = z.object({
    * every PATCH, so the progression disappears after one save. */
   chords: z.array(timelineChord).max(MAX_CHORDS_PER_TRACK).optional(),
   /** Automation lanes. Without this field Zod strips them on every PATCH. */
-  automation: z.array(automationLane).max(MAX_AUTOMATION_LANES_PER_TRACK).optional()
+  automation: z.array(automationLane).max(MAX_AUTOMATION_LANES_PER_TRACK).optional(),
+  /** The stem this track holds in a music project. */
+  musicRole: musicRole.optional()
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
 
@@ -2311,6 +2414,9 @@ export const timelineDocument = z.object({
   /** The mix bus. Without this field Zod strips it on every PATCH, so the
    * master fader and its effects reset on the first save. */
   master: timelineMasterChannel.optional(),
+  /** Marks a music project. Without this field Zod strips it on every PATCH,
+   * so the sequence reopens without its music layout and prompt history. */
+  music: timelineMusic.optional(),
   /** Guided-setup state. Absent on every sequence not built through the flow. */
   setup: timelineSetup.optional(),
   /** Sequence this one was retargeted from. Without this field Zod strips it
@@ -2386,6 +2492,8 @@ export const timelineSequenceResponse = z.object({
   tempo: timelineTempo.optional(),
   /** The master channel, mirroring the document's. */
   master: timelineMasterChannel.optional(),
+  /** Music project marker, mirroring the document's. */
+  music: timelineMusic.optional(),
   setup: timelineSetup.optional(),
   /** Sequence this one was retargeted from, mirroring the document's. */
   templateId: z.string().nullable().optional(),

@@ -22,6 +22,7 @@
 
 import { z } from "zod";
 import { storedRunTraceUpdateSchema } from "./run-trace.js";
+import { musicKey, musicRole, musicTask } from "./api-schemas/timeline.js";
 
 // ---------------------------------------------------------------------------
 // Command envelope
@@ -189,6 +190,124 @@ export const stopDataSchema = z
   })
   .passthrough();
 
+/** Frames per second of every music position and window (MUSIC-MODE.md MD8). */
+export const MUSIC_SAMPLE_RATE = 48000;
+/** Shortest and longest window a music request may ask for, in seconds. */
+export const MUSIC_MIN_WINDOW_SECONDS = 10;
+export const MUSIC_MAX_WINDOW_SECONDS = 600;
+
+const musicFrameRange = z.object({
+  start_frame: z.number().int().min(0),
+  end_frame: z.number().int().min(0)
+});
+
+const inWindow = (r: { start_frame: number; end_frame: number }, frames: number): boolean =>
+  r.start_frame < r.end_frame && r.end_frame <= frames;
+
+/**
+ * The `music` object of a `generate_media` request with `mode: "music"`
+ * (MUSIC-MODE.md section 10). Every frame value counts 48 kHz frames inside
+ * the request window, except `splice`, which counts frames in the parent
+ * asset. The handler validates shape and bounds and does not recompute the plan.
+ */
+export const musicGenerationRequestSchema = z
+  .object({
+    task: musicTask,
+    bpm: z.number().int().min(30).max(300),
+    key: musicKey.optional(),
+    beats_per_bar: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(6)]),
+    beat_unit: z.union([z.literal(4), z.literal(8)]),
+    candidates: z.number().int().min(1).max(4),
+    seed: z.number().int().optional(),
+    steps: z.number().int().min(0).optional(),
+    /** Optional language model name. The DiT is the request's `model`. */
+    lm_model: z.string().min(1).optional(),
+    /** Stored language model output. When set, the language model is skipped. */
+    audio_codes: z.string().min(1).optional(),
+    request_frames: z
+      .number()
+      .int()
+      .min(MUSIC_MIN_WINDOW_SECONDS * MUSIC_SAMPLE_RATE)
+      .max(MUSIC_MAX_WINDOW_SECONDS * MUSIC_SAMPLE_RATE),
+    /** Position of the first beat inside the window. Generate only. */
+    beat_phase_frames: z.number().int().min(0).optional(),
+    /** Target segments inside the window. Generate only. */
+    segments: z.array(musicFrameRange).min(1).optional(),
+    /** Measure and correct the grid offset. Generate only. */
+    align: z.boolean().optional(),
+    /** Asset id of the context bounce. Regenerate and Add instrument. */
+    context_asset_id: z.string().min(1).optional(),
+    /** The region inside the window. Regenerate and Add instrument. */
+    region: musicFrameRange.optional(),
+    /** Where the region sits in the parent asset. Regenerate only. */
+    splice: z
+      .object({
+        parent_asset_id: z.string().min(1),
+        start_frame: z.number().int().min(0),
+        end_frame: z.number().int().min(0)
+      })
+      .optional(),
+    /** The stem to add. Add instrument only. */
+    track_role: musicRole.optional(),
+    /** Timeline position of the window start, recorded on each take. */
+    window_start_frame: z.number().int().min(0).optional()
+  })
+  .superRefine((m, ctx) => {
+    const issue = (message: string, path: string[]): void => {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message, path });
+    };
+    if (m.task === "text2music") {
+      if (!m.segments) {
+        issue("text2music needs segments", ["segments"]);
+      } else {
+        m.segments.forEach((seg, i) => {
+          if (!inWindow(seg, m.request_frames)) {
+            issue("segment lies outside the window", ["segments", String(i)]);
+          }
+        });
+      }
+      if (m.context_asset_id || m.region || m.splice) {
+        issue("text2music takes no context, region or splice", ["task"]);
+      }
+      return;
+    }
+    if (!m.context_asset_id) {
+      issue(`${m.task} needs context_asset_id`, ["context_asset_id"]);
+    }
+    if (!m.region) {
+      issue(`${m.task} needs a region`, ["region"]);
+    } else if (!inWindow(m.region, m.request_frames)) {
+      issue("region lies outside the window", ["region"]);
+    }
+    if (m.segments) {
+      issue(`${m.task} takes no segments`, ["segments"]);
+    }
+    if (m.task === "repaint") {
+      if (!m.splice) {
+        issue("repaint needs a splice parent", ["splice"]);
+      } else if (
+        m.region &&
+        m.splice.end_frame - m.splice.start_frame !== m.region.end_frame - m.region.start_frame
+      ) {
+        // The splice names the selected bars inside the parent asset. Only
+        // they are replaced, so audio outside the selection stays identical.
+        issue("splice span must equal the region length", ["splice"]);
+      }
+      if (m.track_role) {
+        issue("repaint takes no track_role", ["track_role"]);
+      }
+    }
+    if (m.task === "lego") {
+      if (!m.track_role) {
+        issue("lego needs track_role", ["track_role"]);
+      }
+      if (m.splice) {
+        issue("lego takes no splice", ["splice"]);
+      }
+    }
+  });
+export type MusicGenerationRequest = z.infer<typeof musicGenerationRequestSchema>;
+
 export const generateMediaDataSchema = z
   .object({
     /**
@@ -306,7 +425,12 @@ export const generateMediaDataSchema = z
     /** Playback rate for TTS, when mode === "audio". */
     speed: z.number().optional(),
     /** Requested audio container ("mp3", "wav", "flac", "ogg", "aac", "pcm"). */
-    audio_format: z.string().optional()
+    audio_format: z.string().optional(),
+    /**
+     * Music mode operation, with `mode: "music"`. Without it a music request
+     * runs the plain text-to-music path.
+     */
+    music: musicGenerationRequestSchema.optional()
   })
   .passthrough();
 
