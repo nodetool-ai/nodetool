@@ -8,6 +8,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { readFile, writeFile, mkdir, rename, rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { setTimeout as delay } from "node:timers/promises";
 
 export interface UserRecord {
   id: string;
@@ -91,7 +92,21 @@ export class FileUserManager {
       await writeFile(temporary, JSON.stringify(data, null, 2), {
         encoding: "utf8", mode: 0o600, flag: "wx"
       });
-      await rename(temporary, this.usersFile);
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await rename(temporary, this.usersFile);
+          break;
+        } catch (error) {
+          // Windows can reject replacement while a reader holds the destination.
+          // Keep the old file intact and bound retries for permanent failures.
+          if (process.platform !== "win32" || attempt === 10 ||
+              !(error instanceof Error) || !("code" in error) ||
+              (error.code !== "EPERM" && error.code !== "EACCES")) {
+            throw error;
+          }
+          await delay(10 * (attempt + 1));
+        }
+      }
     } finally {
       await rm(temporary, { force: true });
     }
