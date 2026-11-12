@@ -10,6 +10,9 @@ Rectangle {
     required property PackSetup packSetup
     // Fixture fields with no run footer, filled by Capture.cpp.
     required property NodeInspector inspectorFixture
+    // The editor's own, so the hidden toolbar sends the theme roles to its canvas.
+    required property EditorCommands commands
+    required property RunState runs
     onSchemeChanged: Ui.Theme.preference = scheme === "light" ? Ui.Theme.Light : Ui.Theme.Dark
     Component.onCompleted: {
         Ui.Theme.uiScale = 1
@@ -17,7 +20,7 @@ Rectangle {
         Ui.Theme.reducedMotion = true
         Ui.Theme.preference = scheme === "light" ? Ui.Theme.Light : Ui.Theme.Dark
     }
-    Toolbar { visible: false }
+    Toolbar { visible: false; commands: fixture.commands; runs: fixture.runs }
     EditorRoles { id: roles }
     NodeButton { objectName: "button-default"; x: 20; y: 20; text: "Run" }
     NodeButton { objectName: "button-primary"; x: 150; y: 20; text: "Run"; variant: NodeButton.Primary }

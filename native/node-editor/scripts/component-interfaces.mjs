@@ -32,7 +32,6 @@ export const CONTEXT_PROPERTIES = {
 const INHERITED = { editor: new Set(["width", "height"]) };
 
 export const EDITOR_ALIASES = {
-  "AuthoredControls.qml": { name: "host", source: "InlineTitlePresenter.cpp setInitialProperties host = editor" },
   "EditorChat.qml": { name: "host", source: "EditorChat.cpp setInitialProperties host = this" },
 };
 
