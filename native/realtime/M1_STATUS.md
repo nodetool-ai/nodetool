@@ -29,7 +29,7 @@ not measurements. Q8 requires the WP10 native/browser comparison.
 | Work package | State |
 |---|---|
 | [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Linux Release, ASan/UBSan and TSan CI pass. Local instruction-alias verification remains blocked as described below |
-| [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Verification in progress. See [operation contracts](control.md) |
+| [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Windows Release/ASan and Linux Release/ASan+UBSan/TSan pass. Aggregate verification remains pending. See [operation contracts](control.md) |
 | [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | Not implemented |
 | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Not implemented |
 | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | Not implemented |
@@ -51,6 +51,12 @@ The first full M1 harness run passes 20 of 21 selfchecks. `repo-scripts` fails
 because the preset-preview test exceeds its five-second timeout. Its isolated
 rerun passes all three tests. The aggregate result remains failed until a full
 rerun passes.
+
+The [control CI run](https://github.com/nodetool-ai/nodetool/actions/runs/43297532632)
+passes Release, ASan/UBSan and TSan. Ordinary Windows control tests count zero
+C++ allocations during ticks, with a positive control. A deliberately changed
+one-step-per-frame implementation fails the cadence regression. Native/Wasm
+byte parity has not been measured.
 
 This Windows checkout materializes the tracked `.claude` symlink as a text
 placeholder. Local `check:agents-docs` consequently fails that existing alias
