@@ -351,6 +351,9 @@ if(PROJECT_IS_TOP_LEVEL)
   target_compile_definitions(gr_context_tests PRIVATE GR_TEST_TESSDATA="${GR_TEST_TESSDATA}")
   add_dependencies(gr_context_tests gr_context_test_bundle)
   add_test(NAME gr_context_tests COMMAND gr_context_tests "${GR_CONTEXT_TEST}")
+  # It times a 5 MB bridge crossing against a wall-clock budget, so it must not
+  # share the machine with another test under `ctest -j`.
+  set_tests_properties(gr_context_tests PROPERTIES RUN_SERIAL TRUE)
   # A parity bundle of the image module: the default bundle does not admit
   # nodetool.image.TextToImage, whose prediction grant the runner cases use.
   set(GR_ASYNC_CONTEXT_GUEST "${CMAKE_CURRENT_BINARY_DIR}/async-context-guest.js")
