@@ -32,6 +32,8 @@ class NodeCatalog : public QObject {
     Q_PROPERTY(QVariantList quickActions READ quickActions CONSTANT)
     // A read-only document takes no new nodes.
     Q_PROPERTY(bool readOnly READ readOnly NOTIFY readOnlyChanged)
+    // The editor window's height, which caps the optional packs popup.
+    Q_PROPERTY(int windowHeight READ windowHeight NOTIFY windowHeightChanged)
 public:
     explicit NodeCatalog(QObject *parent = nullptr);
     ~NodeCatalog() override;
@@ -42,11 +44,13 @@ public:
     QStringList favorites() const { return favorites_; }
     QVariantList quickActions() const;
     bool readOnly() const { return readOnly_; }
+    int windowHeight() const { return windowHeight_; }
 
     void setNodes(const QVariantList &nodes);
     void setRecent(const QStringList &recent);
     void setFavorites(const QStringList &favorites);
     void setReadOnly(bool readOnly);
+    void setWindowHeight(int height);
 
     // Indexes into `nodes` in the web search order for a query, with recent
     // types boosted (src/graph/CatalogSearch.h).
@@ -57,6 +61,8 @@ public:
     Q_INVOKABLE void clearFavorites() { emit clearFavoritesRequested(); }
     Q_INVOKABLE void clearRecent() { emit clearRecentRequested(); }
     Q_INVOKABLE void closeMenu() { emit closeMenuRequested(); }
+    // The optional packs popup's "Runtimes and packs" button.
+    Q_INVOKABLE void openRuntimes() { emit runtimesRequested(); }
     // The node menu header drag, in scene pixels.
     Q_INVOKABLE void moveMenu(qreal dx, qreal dy) { emit moveMenuRequested(dx, dy); }
 
@@ -65,6 +71,8 @@ signals:
     void recentChanged();
     void favoritesChanged();
     void readOnlyChanged();
+    void windowHeightChanged();
+    void runtimesRequested();
     void addRequested(const QString &type);
     void dragRequested(const QString &type);
     void toggleFavoriteRequested(const QString &type);
@@ -78,6 +86,7 @@ private:
     QStringList recent_;
     QStringList favorites_;
     bool readOnly_ = false;
+    int windowHeight_ = 0;
     // rank is const for QML, so its caches are mutable.
     mutable CatalogRanker ranker_;
 };

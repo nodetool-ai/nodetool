@@ -12,6 +12,7 @@
 #include "interfaces/Selection.h"
 #include "interfaces/RunState.h"
 #include "interfaces/Viewport.h"
+#include "interfaces/FirstWorkflowGuide.h"
 #include "interfaces/WorkflowHeader.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PropertyHost.h"
@@ -119,6 +120,13 @@ struct ViewportForeign {
     QML_FOREIGN(nodetool::node_editor::Viewport)
     QML_NAMED_ELEMENT(Viewport)
     QML_UNCREATABLE("A Viewport comes from its owner.")
+};
+
+struct FirstWorkflowGuideForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::FirstWorkflowGuide)
+    QML_NAMED_ELEMENT(FirstWorkflowGuide)
+    QML_UNCREATABLE("A FirstWorkflowGuide comes from its owner.")
 };
 
 }  // namespace nodetool::node_editor::qml

@@ -29,6 +29,7 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/Selection.cpp src/interfaces/Selection.h
  src/interfaces/RunState.cpp src/interfaces/RunState.h
  src/interfaces/Viewport.cpp src/interfaces/Viewport.h
+ src/interfaces/FirstWorkflowGuide.cpp src/interfaces/FirstWorkflowGuide.h
  src/interfaces/Assign.h
  src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
@@ -379,6 +380,13 @@ target_link_libraries(node_editor_viewport_component_tests PRIVATE node_editor_i
 nodetool_use_ui_primitives(node_editor_viewport_component_tests)
 add_test(NAME node_editor_viewport_component COMMAND node_editor_viewport_component_tests)
 set_tests_properties(node_editor_viewport_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# SetupGuide.qml and OptionalPacksSection.qml with a fixture guide, catalog
+# and pack setup: no EditorWindow, graph runner or QtNodes.
+qt_add_executable(node_editor_setup_guide_component_tests tests/ui/SetupGuideComponentTest.cpp)
+target_link_libraries(node_editor_setup_guide_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+nodetool_use_ui_primitives(node_editor_setup_guide_component_tests)
+add_test(NAME node_editor_setup_guide_component COMMAND node_editor_setup_guide_component_tests)
+set_tests_properties(node_editor_setup_guide_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  # Inspector.qml with a fixture inspector: no EditorWindow, graph runner or
  # QtNodes. The property fields preview media, so it builds the editor's media
  # QML types and links the model picker, as node_editor_asset_picker_tests does.

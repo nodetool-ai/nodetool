@@ -300,6 +300,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&viewport_, &node_editor::Viewport::popupRequested, this, &EditorWindow::showMiniMapPopup);
   connect(&viewport_, &node_editor::Viewport::colorModeRequested, this, &EditorWindow::setMiniMapColorMode);
   connect(&viewport_, &node_editor::Viewport::closePopupRequested, this, &EditorWindow::closeMiniMapPopup);
+  connect(&firstWorkflowGuide_, &node_editor::FirstWorkflowGuide::actionRequested, this, &EditorWindow::setupAction);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::runtimesRequested, this, [this] { setupAction("dependencies"); });
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
@@ -777,7 +779,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   if (auto *controls = miniMapControls_->rootObject()) {
     connect(controls, SIGNAL(implicitWidthChanged()), this, SLOT(layoutOverlays()));
   }
-  setupGuide_ = overlay("SetupGuide");
+  syncChrome();
+  setupGuide_ = overlay("SetupGuide", {{"guide", QVariant::fromValue(&firstWorkflowGuide_)}});
   setupGuide_->show();
   // native-rules #2: naked new, parent (the view) is set inside the MiniMap constructor, not documented here
   auto miniMap = new MiniMap(model_, *scene_, *view_);
@@ -2445,6 +2448,7 @@ void EditorWindow::syncChrome() {
                           .queuedCount = queuedCount(),
                           .queueAvailable = queueAvailable(),
                           .systemStats = systemStats()});
+  firstWorkflowGuide_.setState(guideVisible(), guideStarted(), guideReadiness());
   editorCommands_.setReadOnly(readOnly());
   selection_.setSelection(selectedCount(), selectionInfo(), selectionDisabled(), selectionMostlyDisabled());
 }
@@ -3820,6 +3824,7 @@ void EditorWindow::placeStatusBar() {
 void EditorWindow::resizeEvent(QResizeEvent *event) {
   if (!tabOwner_) { QMainWindow::resizeEvent(event); return; }
   QMainWindow::resizeEvent(event);
+  nodeCatalog_.setWindowHeight(height());
   syncInspector();
 }
 void EditorWindow::closeEvent(QCloseEvent *event) {

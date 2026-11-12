@@ -40,7 +40,9 @@ toolbars and the group controls take
 [`EditorCommands`](src/interfaces/EditorCommands.h),
 [`Selection`](src/interfaces/Selection.h) and
 [`RunState`](src/interfaces/RunState.h). The zoom readout and the mini-map
-buttons and popups take [`Viewport`](src/interfaces/Viewport.h).
+buttons and popups take [`Viewport`](src/interfaces/Viewport.h). The
+first-workflow guide takes
+[`FirstWorkflowGuide`](src/interfaces/FirstWorkflowGuide.h).
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
 read `EditorWindow`.
 
