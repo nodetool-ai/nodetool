@@ -13,6 +13,7 @@
 #include "interfaces/RunState.h"
 #include "interfaces/Viewport.h"
 #include "interfaces/FirstWorkflowGuide.h"
+#include "interfaces/ChatWindow.h"
 #include "server/WorkflowBrowser.h"
 #include "interfaces/WorkflowHeader.h"
 #include "interfaces/Notifications.h"
@@ -128,6 +129,13 @@ struct FirstWorkflowGuideForeign {
     QML_FOREIGN(nodetool::node_editor::FirstWorkflowGuide)
     QML_NAMED_ELEMENT(FirstWorkflowGuide)
     QML_UNCREATABLE("A FirstWorkflowGuide comes from its owner.")
+};
+
+struct ChatWindowForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::ChatWindow)
+    QML_NAMED_ELEMENT(ChatWindow)
+    QML_UNCREATABLE("A ChatWindow comes from its owner.")
 };
 
 // WorkflowBrowser.qml already names the panel, so the model takes another name.

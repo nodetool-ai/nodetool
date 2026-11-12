@@ -15,6 +15,7 @@
 #include "interfaces/RunState.h"
 #include "interfaces/Viewport.h"
 #include "interfaces/FirstWorkflowGuide.h"
+#include "interfaces/ChatWindow.h"
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
@@ -80,9 +81,9 @@ public:
     Q_INVOKABLE void askAgent(const QString &message);
     Q_SLOT void askRunAgent(const QString &runId, const QString &spanId = {});
     Q_SLOT void toggleChat();
-    Q_INVOKABLE void beginChatGeometry();
-    Q_INVOKABLE void resetChatPosition();
-    Q_INVOKABLE void changeChatGeometry(int dx, int dy, int edges, bool finished);
+    void beginChatGeometry();
+    void resetChatPosition();
+    void changeChatGeometry(int dx, int dy, int edges, bool finished);
   explicit EditorWindow(QWidget *parent = nullptr);
   ~EditorWindow() override;
   bool guideStarted() const { return guideStarted_; }
@@ -565,6 +566,9 @@ private:
   QString runsJob_;
   QDockWidget *inspectorDock_ = nullptr;
     nt::chat::ChatSession chat_;
+    // What this tab's chat window (EditorChat.qml) asks of its frame. Owned by
+    // value, UI thread, destroyed with the tab.
+    node_editor::ChatWindow chatWindow_;
     QQuickWidget *chatOverlay_ = nullptr;
     bool chatVisible_ = false;
     void initializeChat();

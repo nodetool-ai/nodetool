@@ -6,7 +6,7 @@ import NodeTool.Chat
 Ui.Surface {
     id: root
     required property var session
-    required property var host
+    required property ChatWindow frame
     signal closeRequested()
     variant: Ui.Surface.Panel
     color: Ui.Theme.dark ? Ui.Theme.surfaceCanvas : Ui.Theme.surfacePanel
@@ -40,21 +40,21 @@ Ui.Surface {
                 objectName: "chatDragHandle"
                 anchors.fill: parent
                 property point start
-                onDoubleClicked: root.host.resetChatPosition()
-                onCanceled: root.host.changeChatGeometry(0, 0, 0, true)
+                onDoubleClicked: root.frame.resetPosition()
+                onCanceled: root.frame.changeGeometry(0, 0, 0, true)
                 onPressed: mouse => {
                     start = mapToGlobal(mouse.x, mouse.y);
-                    root.host.beginChatGeometry();
+                    root.frame.beginGeometry();
                 }
                 onPositionChanged: mouse => {
                     if (pressed) {
                         const point = mapToGlobal(mouse.x, mouse.y);
-                        root.host.changeChatGeometry(point.x - start.x, point.y - start.y, 0, false);
+                        root.frame.changeGeometry(point.x - start.x, point.y - start.y, 0, false);
                     }
                 }
                 onReleased: mouse => {
                     const point = mapToGlobal(mouse.x, mouse.y);
-                    root.host.changeChatGeometry(point.x - start.x, point.y - start.y, 0, true);
+                    root.frame.changeGeometry(point.x - start.x, point.y - start.y, 0, true);
                 }
             }
             RowLayout {
@@ -275,20 +275,20 @@ Ui.Surface {
             height: modelData === 1 ? root.height - Ui.Metrics.lg * 2 : Ui.Metrics.md
             cursorShape: modelData === 1 ? Qt.SizeHorCursor : modelData === 2 ? Qt.SizeVerCursor : Qt.SizeBDiagCursor
             property point start
-            onCanceled: root.host.changeChatGeometry(0, 0, modelData, true)
+            onCanceled: root.frame.changeGeometry(0, 0, modelData, true)
             onPressed: mouse => {
                 start = mapToGlobal(mouse.x, mouse.y);
-                root.host.beginChatGeometry();
+                root.frame.beginGeometry();
             }
             onPositionChanged: mouse => {
                 if (pressed) {
                     const point = mapToGlobal(mouse.x, mouse.y);
-                    root.host.changeChatGeometry(point.x - start.x, point.y - start.y, modelData, false);
+                    root.frame.changeGeometry(point.x - start.x, point.y - start.y, modelData, false);
                 }
             }
             onReleased: mouse => {
                 const point = mapToGlobal(mouse.x, mouse.y);
-                root.host.changeChatGeometry(point.x - start.x, point.y - start.y, modelData, true);
+                root.frame.changeGeometry(point.x - start.x, point.y - start.y, modelData, true);
             }
         }
     }

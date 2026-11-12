@@ -32,7 +32,6 @@ export const CONTEXT_PROPERTIES = {
 const INHERITED = { editor: new Set(["width", "height"]) };
 
 export const EDITOR_ALIASES = {
-  "EditorChat.qml": { name: "host", source: "EditorChat.cpp setInitialProperties host = this" },
 };
 
 // Replaces comments with spaces and string contents with "_", keeping offsets,
