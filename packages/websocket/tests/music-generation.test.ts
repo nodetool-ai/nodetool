@@ -34,7 +34,8 @@ import { encodeFloatWav, readFloatWav } from "../src/lib/float-wav.js";
 /** Bytes per asset id: what the handler stored, and what a test seeded. */
 const STORED = vi.hoisted(() => new Map<string, Uint8Array>());
 
-vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
+vi.mock("@nodetool-ai/asset-services/thumbnail", async (orig) => ({
+  ...(await orig<typeof import("@nodetool-ai/asset-services/thumbnail")>()),
   storeAssetWithThumbnail: vi.fn(
     async (_userId: string, assetId: string, _key: string, bytes: Uint8Array) => {
       STORED.set(assetId, bytes);
@@ -334,8 +335,10 @@ describe("music generation: text2music (MM3 exit 2 shape)", () => {
         audioCodes: `codes-${take.candidate}`,
         candidateIndex: take.candidate,
         segmentIndex: take.segment,
-        targetStartFrame: windowStart + segment.start_frame,
-        targetEndFrame: windowStart + segment.end_frame,
+        // Every segment is a take for the same clip: the first segment's
+        // place, `segment` segment lengths before this one (item 4).
+        targetStartFrame: windowStart,
+        targetEndFrame: windowStart + 2 * BAR,
         requestFrames
       });
       expect(record.contextAssetId).toBeUndefined();
@@ -395,6 +398,114 @@ describe("music generation: text2music (MM3 exit 2 shape)", () => {
       const source = candidates[take.candidate]!;
       const expected = cutRange(applyGain(source, peakNormalizeGain(source).gain), segments[take.segment]!);
       expect(sameBits(storedPcm(take.asset_id), expected)).toBe(true);
+    }
+  });
+
+  it("names the clip range and the segment index of a replayed segment (item 4)", async () => {
+    // A replay of segment 2 renders the window again and cuts that segment only.
+    const replay = { ...music, candidates: 1, segments: [{ ...segments[2]!, index: 2 }] };
+    const scripted = new ScriptedMusicProvider(async () => ({
+      candidates: [{ audio: wav(candidates[0]!), seed: 42, audioCodes: "codes-0" }],
+      backend: "acestep.cpp@07abf07",
+      timing: { queueMs: 0, lmMs: 0, synthMs: 0 }
+    }));
+    const reply = await rpc(scripted, "generate_media", "music-replay", {
+      mode: "music",
+      provider: "acestep",
+      model: "acestep-v15-turbo",
+      prompt: "warm analog synth bass groove",
+      music: replay
+    });
+    expect(reply.error).toBeUndefined();
+    const result = reply.result as {
+      music_takes: Array<{ asset_id: string; candidate: number; segment: number; record: MusicGenerationRecord }>;
+    };
+    expect(result.music_takes).toHaveLength(1);
+    const take = result.music_takes[0]!;
+    expect(take.segment).toBe(2);
+    expect(take.record).toMatchObject({
+      segmentIndex: 2,
+      targetStartFrame: windowStart,
+      targetEndFrame: windowStart + 2 * BAR
+    });
+    const source = candidates[0]!;
+    const expected = cutRange(applyGain(source, peakNormalizeGain(source).gain), segments[2]!, take.record.alignment!.offsetFrames);
+    expect(sameBits(storedPcm(take.asset_id), expected)).toBe(true);
+  });
+
+  it("fails when a segment reaches past the decoded audio, and keeps no take (item 2)", async () => {
+    // The backend rounded the window down: the last segment's tail is missing.
+    const short = clickTrack(6 * BAR - 1920, 1440, 0.5);
+    const scripted = new ScriptedMusicProvider(async () => ({
+      candidates: [{ audio: wav(candidates[0]!), seed: 1 }, { audio: wav(short), seed: 2 }],
+      backend: "acestep.cpp@07abf07",
+      timing: { queueMs: 0, lmMs: 0, synthMs: 0 }
+    }));
+    const reply = await rpc(scripted, "generate_media", "music-short", {
+      mode: "music",
+      provider: "acestep",
+      model: "acestep-v15-turbo",
+      prompt: "drums",
+      music: { ...music, align: false }
+    });
+    expect(JSON.stringify(reply.error)).toMatch(/segment 2 .*past the end of the generated audio/);
+    // Candidate 0's takes were stored first; none is kept.
+    expect(STORED.size).toBe(3);
+    for (const id of STORED.keys()) {
+      expect(await Asset.find(USER, id)).toBeNull();
+    }
+  });
+
+  it("fails when the alignment shift moves the last segment past the audio (item 2)", async () => {
+    // Exactly the segments, with the beat 1440 frames late: the shifted cut
+    // of the last segment would end past the audio. Without align it fits.
+    const exact = clickTrack(6 * BAR, 1440, 0.5);
+    const scripted = (): ScriptedMusicProvider =>
+      new ScriptedMusicProvider(async () => ({
+        candidates: [{ audio: wav(exact), seed: 1 }],
+        backend: "acestep.cpp@07abf07",
+        timing: { queueMs: 0, lmMs: 0, synthMs: 0 }
+      }));
+    const aligned = await rpc(scripted(), "generate_media", "music-shifted", {
+      mode: "music",
+      provider: "acestep",
+      model: "acestep-v15-turbo",
+      prompt: "drums",
+      music: { ...music, candidates: 1, align: true }
+    });
+    expect(JSON.stringify(aligned.error)).toMatch(/past the end of the generated audio/);
+    const unaligned = await rpc(scripted(), "generate_media", "music-unshifted", {
+      mode: "music",
+      provider: "acestep",
+      model: "acestep-v15-turbo",
+      prompt: "drums",
+      music: { ...music, candidates: 1, align: false }
+    });
+    expect(unaligned.error).toBeUndefined();
+  });
+
+  it("deletes the takes it stored when a later candidate fails (item 8)", async () => {
+    const scripted = new ScriptedMusicProvider(async () => ({
+      candidates: [
+        { audio: wav(candidates[0]!), seed: 1 },
+        { audio: new Uint8Array([1, 2, 3, 4]), seed: 2 }
+      ],
+      backend: "acestep.cpp@07abf07",
+      timing: { queueMs: 0, lmMs: 0, synthMs: 0 }
+    }));
+    const reply = await rpc(scripted, "generate_media", "music-broken", {
+      mode: "music",
+      provider: "acestep",
+      model: "acestep-v15-turbo",
+      prompt: "drums",
+      music
+    });
+    expect(reply.error).toBeDefined();
+    // Candidate 0's three takes were stored before candidate 1 failed.
+    const stored = [...STORED.keys()];
+    expect(stored).toHaveLength(3);
+    for (const id of stored) {
+      expect(await Asset.find(USER, id)).toBeNull();
     }
   });
 
@@ -580,6 +691,38 @@ describe("music generation: lego", () => {
       audioCodes: "lego-codes"
     });
     expect(take.record.gainDb).toBeUndefined();
+  });
+});
+
+describe("music generation: short backend audio (item 2)", () => {
+  it("fails a lego request whose region reaches past the decoded audio", async () => {
+    const requestFrames = 5 * BAR;
+    const region = { start_frame: 3 * BAR, end_frame: 5 * BAR };
+    const contextId = await seedAsset(wav(noise(requestFrames, 41)), "mix.wav");
+    const scripted = new ScriptedMusicProvider(async () => ({
+      candidates: [{ audio: wav(noise(requestFrames - 3840, 43, 0.2)), seed: 9 }],
+      backend: "acestep.cpp@07abf07",
+      timing: { queueMs: 0, lmMs: 0, synthMs: 0 }
+    }));
+    const reply = await rpc(scripted, "generate_media", "music-lego-short", {
+      mode: "music",
+      provider: "acestep",
+      model: "acestep-v15-base",
+      prompt: "round electric bass",
+      music: {
+        task: "lego",
+        bpm: 120,
+        beats_per_bar: 4,
+        beat_unit: 4,
+        candidates: 1,
+        request_frames: requestFrames,
+        context_asset_id: contextId,
+        region,
+        track_role: "bass"
+      }
+    });
+    expect(JSON.stringify(reply.error)).toMatch(/region .*past the end of the generated audio/);
+    expect(STORED.size).toBe(1);
   });
 });
 
