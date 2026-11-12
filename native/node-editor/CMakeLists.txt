@@ -36,9 +36,11 @@ add_library(node_editor_interfaces STATIC
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
  src/server/PackSetup.cpp src/server/PackSetup.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
- src/graph/IconPaths.cpp src/graph/IconPaths.h)
+ src/graph/IconPaths.cpp src/graph/IconPaths.h
+ src/library/LibraryBrowser.cpp src/library/LibraryBrowser.h)
 target_include_directories(node_editor_interfaces PUBLIC src)
-target_link_libraries(node_editor_interfaces PUBLIC Qt6::Core Qt6::Gui Qt6::Network)
+# nodetool_media for the asset list model that LibraryBrowser fills.
+target_link_libraries(node_editor_interfaces PUBLIC nodetool_media Qt6::Core Qt6::Gui Qt6::Network)
 # QML_FOREIGN in the module and qmllint read these types from the metatypes.
 qt_extract_metatypes(node_editor_interfaces)
 add_library(node_editor_core STATIC
@@ -50,7 +52,6 @@ add_library(node_editor_core STATIC
  src/document/WorkflowDocument.cpp src/document/WorkflowDocument.h
  src/document/WorkflowMerge.cpp src/document/WorkflowMerge.h
  src/server/WorkflowVersions.cpp src/server/WorkflowVersions.h
- src/library/LibraryBrowser.cpp src/library/LibraryBrowser.h
  src/properties/DocumentPickerController.cpp src/properties/DocumentPickerController.h
  src/properties/ResourcePickerController.cpp src/properties/ResourcePickerController.h
  src/properties/AssetPickerController.cpp src/properties/AssetPickerController.h
