@@ -8,6 +8,8 @@
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInspector.h"
 #include "interfaces/Notifications.h"
+#include "interfaces/PanelLayout.h"
+#include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
 #include "document/WorkflowDocument.h"
@@ -68,8 +70,6 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool hasUnsavedChanges READ hasUnsavedChanges NOTIFY panelChanged)
   Q_PROPERTY(QString connectionState READ connectionState NOTIFY panelChanged)
   Q_PROPERTY(QString message READ message NOTIFY panelChanged)
-  Q_PROPERTY(bool browserVisible READ browserVisible NOTIFY panelChanged)
-  Q_PROPERTY(bool libraryVisible READ libraryVisible NOTIFY panelChanged)
   Q_PROPERTY(QVariantList outputMedia READ outputMedia NOTIFY mediaChanged)
   Q_PROPERTY(bool runActive READ runActive NOTIFY panelChanged)
   // The run queue and run state the queue overlay, the toolbar and the
@@ -78,15 +78,11 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(QVariantList shownQueue READ shownQueue NOTIFY shownQueueChanged)
   Q_PROPERTY(bool shownRunActive READ shownRunActive NOTIFY shownQueueChanged)
   Q_PROPERTY(bool outputVisible READ outputVisible NOTIFY panelChanged)
-  Q_PROPERTY(bool catalogVisible READ catalogVisible NOTIFY panelChanged)
   // Space or a pane double-click arms the catalog to add at that canvas point, as the web node menu does.
   Q_PROPERTY(bool catalogAtPointer READ catalogAtPointer NOTIFY catalogPlacementChanged)
-  Q_PROPERTY(bool inspectorVisible READ inspectorVisible NOTIFY panelChanged)
-  Q_PROPERTY(QString workflowName READ workflowName NOTIFY panelChanged)
   Q_PROPERTY(QString graphSummary READ graphSummary NOTIFY panelChanged)
   Q_PROPERTY(QVariantMap selectionInfo READ selectionInfo NOTIFY panelChanged)
   Q_PROPERTY(int zoomPercent READ zoomPercent NOTIFY zoomChanged)
-  Q_PROPERTY(bool miniMapVisible READ miniMapVisible NOTIFY panelChanged)
   // "default" or "type", as MiniMapStore.ts colorMode.
   Q_PROPERTY(QString miniMapColorMode READ miniMapColorMode NOTIFY panelChanged)
   // True when the zoom matches a status indicator preset (ViewportStatusIndicator.tsx findZoomPreset).
@@ -98,12 +94,6 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(int edgeCount READ edgeCount NOTIFY panelChanged)
   Q_PROPERTY(int queuedCount READ queuedCount NOTIFY panelChanged)
   Q_PROPERTY(bool queueAvailable READ queueAvailable NOTIFY panelChanged)
-    Q_PROPERTY(bool canUndo READ canUndo NOTIFY panelChanged)
-    Q_PROPERTY(bool canRedo READ canRedo NOTIFY panelChanged)
-    Q_PROPERTY(QString documentSaveStatus READ documentSaveStatus NOTIFY panelChanged)
-    Q_PROPERTY(bool workflowRenamable READ workflowRenamable NOTIFY panelChanged)
-    Q_PROPERTY(bool chatVisible READ chatVisible NOTIFY panelChanged)
-    // The tab bar bell lists these. See web/src/stores/NotificationStore.ts.
     Q_PROPERTY(bool traceVisible READ traceVisible NOTIFY panelChanged)
     Q_PROPERTY(bool versionsVisible READ versionsVisible NOTIFY panelChanged)
 public:
@@ -126,6 +116,8 @@ public:
     node_editor::NodeCatalog *nodeCatalog() { return activeEditor() == this ? &nodeCatalog_ : activeEditor()->nodeCatalog(); }
     node_editor::DocumentTabs *documentTabs() { return activeEditor() == this ? &documentTabs_ : activeEditor()->documentTabs(); }
     node_editor::Notifications *notificationList() { return activeEditor() == this ? &notificationList_ : activeEditor()->notificationList(); }
+    node_editor::WorkflowHeader *workflowHeader() { return activeEditor() == this ? &workflowHeader_ : activeEditor()->workflowHeader(); }
+    node_editor::PanelLayout *panelLayout() { return activeEditor() == this ? &panelLayout_ : activeEditor()->panelLayout(); }
     node_editor::NodeInspector *nodeInspector() { return activeEditor() == this ? &nodeInspector_ : activeEditor()->nodeInspector(); }
     void syncPackSetup();
   Q_INVOKABLE void setupAction(const QString &name);
@@ -191,7 +183,7 @@ public:
   bool miniMapVisible() const;
   // The web hides the mini-map until the user turns it on, and keeps the choice
   // for every workflow. See web/src/stores/MiniMapStore.ts.
-  Q_INVOKABLE void setMiniMapVisible(bool visible);
+  void setMiniMapVisible(bool visible);
   QString miniMapColorMode() const;
   // Accepts "default" and "type", keeps the choice for every workflow and remembers it.
   Q_INVOKABLE void setMiniMapColorMode(const QString &mode);
@@ -216,7 +208,7 @@ public:
     // conflict and deleted states.
     QString documentSaveStatus() const;
     bool workflowRenamable() const;
-    Q_INVOKABLE void renameWorkflow(const QString &name);
+    void renameWorkflow(const QString &name);
     bool chatVisible() const;
     QVariantList notifications() const;
     int unreadNotifications() const;
@@ -440,6 +432,7 @@ private:
   void syncNodeInspector();
   void syncDocumentTabs();
   void syncNotifications();
+  void syncChrome();
   Q_SLOT void layoutOverlays();
   void syncInspector();
   // Applies a node click or a programmatic selection to the inspector. It does
@@ -536,6 +529,11 @@ private:
     // Owned by value, UI thread, destroyed with the tab after its panels.
     node_editor::DocumentTabs documentTabs_;
     node_editor::Notifications notificationList_;
+    // What this tab's HeaderRow reads about the document, and what its Rail
+    // and HeaderRow read about open panels. Owned by value, UI thread,
+    // destroyed with the tab after its panels.
+    node_editor::WorkflowHeader workflowHeader_;
+    node_editor::PanelLayout panelLayout_;
     QUrl packOrigin_;
     QString packToken_, packUser_;
   node_editor::SetupController setup_;

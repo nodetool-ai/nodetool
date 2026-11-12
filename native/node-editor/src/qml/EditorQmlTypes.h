@@ -6,6 +6,8 @@
 #include "interfaces/GenerationReplay.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInspector.h"
+#include "interfaces/PanelLayout.h"
+#include "interfaces/WorkflowHeader.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PropertyHost.h"
 #include "server/PackSetup.h"
@@ -63,6 +65,20 @@ struct NotificationsForeign {
     QML_FOREIGN(nodetool::node_editor::Notifications)
     QML_NAMED_ELEMENT(Notifications)
     QML_UNCREATABLE("A Notifications comes from its owner.")
+};
+
+struct WorkflowHeaderForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::WorkflowHeader)
+    QML_NAMED_ELEMENT(WorkflowHeader)
+    QML_UNCREATABLE("A WorkflowHeader comes from its owner.")
+};
+
+struct PanelLayoutForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::PanelLayout)
+    QML_NAMED_ELEMENT(PanelLayout)
+    QML_UNCREATABLE("A PanelLayout comes from its owner.")
 };
 
 }  // namespace nodetool::node_editor::qml

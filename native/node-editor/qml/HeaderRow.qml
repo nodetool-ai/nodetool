@@ -8,8 +8,10 @@ import NodeTool.UiPrimitives as Ui
 // and web/src/components/ui_primitives/DocumentBar.tsx.
 Rectangle {
     id: root
+    required property WorkflowHeader header
+    required property PanelLayout panels
     property bool renaming: false
-    readonly property string saveStatus: editor ? editor.documentSaveStatus : "saved"
+    readonly property string saveStatus: root.header.saveStatus
     // web/src/i18n/locales/en.json: saveState and saveStatus.
     readonly property string saveLabel: {
         if (saveStatus === "saving") {
@@ -50,9 +52,7 @@ Rectangle {
     }
 
     function showHint(text) {
-        if (editor) {
-            editor.showToolTip(text)
-        }
+        root.header.showToolTip(text)
     }
 
     component HeaderButton: PanelRow {
@@ -155,22 +155,22 @@ Rectangle {
             Layout.fillWidth: true
             Layout.preferredWidth: Math.ceil(implicitWidth)
             Layout.maximumWidth: Math.ceil(implicitWidth)
-            text: editor ? editor.workflowName : ""
+            text: root.header.workflowName
             role: Ui.Typography.SansBody
             font.weight: Font.Medium
             lineHeight: 1
             elide: Text.ElideRight
             Accessible.role: Accessible.StaticText
             Accessible.name: text
-            Accessible.description: editor && editor.workflowRenamable ? "Double-click to rename" : ""
+            Accessible.description: root.header.renamable ? "Double-click to rename" : ""
             HoverHandler {
-                onHoveredChanged: root.showHint(hovered && editor && editor.workflowRenamable ? "Double-click to rename" : "")
+                onHoveredChanged: root.showHint(hovered && root.header.renamable ? "Double-click to rename" : "")
             }
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.LeftButton
                 onDoubleClicked: {
-                    if (editor && editor.workflowRenamable) {
+                    if (root.header.renamable) {
                         root.showHint("")
                         root.renaming = true
                     }
@@ -184,7 +184,7 @@ Rectangle {
             Layout.preferredWidth: Math.max(title.implicitWidth, Ui.Metrics.dialogCompactWidth / 2)
             density: Ui.EditorButton.Compact
             accessibleName: "Document name"
-            value: editor ? editor.workflowName : ""
+            value: root.header.workflowName
             onVisibleChanged: {
                 if (visible) {
                     forceActiveFocus()
@@ -193,7 +193,7 @@ Rectangle {
             }
             onValueCommitted: value => {
                 root.renaming = false
-                editor.renameWorkflow(value)
+                root.header.rename(value)
             }
             onEditCanceled: root.renaming = false
             onAccepted: root.renaming = false
@@ -244,7 +244,13 @@ Rectangle {
             density: Ui.EditorButton.Compact
             variant: Ui.EditorButton.Flat
             text: root.saveActionLabel
-            onClicked: editor.action(root.saveStatus === "error" ? "Server Save" : "Server sync")
+            onClicked: {
+                if (root.saveStatus === "error") {
+                    root.header.saveToServer()
+                } else {
+                    root.header.openServerSync()
+                }
+            }
         }
 
         SlotDivider {
@@ -255,15 +261,15 @@ Rectangle {
                 objectName: "header-undo"
                 text: "Undo"
                 iconName: "undo"
-                enabled: editor && editor.canUndo
-                onClicked: editor.action("Undo")
+                enabled: root.header.canUndo
+                onClicked: root.header.undo()
             }
             HeaderButton {
                 objectName: "header-redo"
                 text: "Redo"
                 iconName: "redo"
-                enabled: editor && editor.canRedo
-                onClicked: editor.action("Redo")
+                enabled: root.header.canRedo
+                onClicked: root.header.redo()
             }
         }
 
@@ -308,24 +314,24 @@ Rectangle {
                 objectName: "header-chat"
                 text: "Toggle conversation"
                 iconName: "forumOutlined"
-                active: editor && editor.chatVisible
+                active: root.panels.chatVisible
                 tooltip: active ? "Close chat" : "Open chat"
-                onClicked: editor.toggleChat()
+                onClicked: root.panels.toggleChat()
             }
             HeaderButton {
                 objectName: "header-mini-map"
                 text: "Mini map"
                 iconName: "map"
-                active: editor && editor.miniMapVisible
-                onClicked: editor.setMiniMapVisible(!editor.miniMapVisible)
+                active: root.panels.miniMapVisible
+                onClicked: root.panels.setMiniMapVisible(!root.panels.miniMapVisible)
             }
             HeaderButton {
                 objectName: "header-inspector"
                 text: "Toggle inspector"
                 iconName: "tune"
-                active: editor && editor.inspectorVisible
+                active: root.panels.inspectorVisible
                 tooltip: active ? "Hide inspector" : "Show inspector"
-                onClicked: editor.action("Toggle inspector")
+                onClicked: root.panels.toggleInspector()
             }
         }
 
@@ -336,7 +342,7 @@ Rectangle {
             objectName: "header-more"
             text: "More actions"
             iconName: "moreVert"
-            onClicked: editor.action("More")
+            onClicked: root.header.openMore()
         }
     }
 }

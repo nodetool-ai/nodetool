@@ -269,6 +269,23 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&notificationList_, &node_editor::Notifications::copyRequested, this, &EditorWindow::copyText);
   syncDocumentTabs();
   syncNotifications();
+  // The document bar and the rail read the state every panel change carries.
+  connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncChrome);
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::renameRequested, this, &EditorWindow::renameWorkflow);
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::undoRequested, this, [this] { action("Undo"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::redoRequested, this, [this] { action("Redo"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::saveToServerRequested, this, [this] { action("Server Save"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::serverSyncRequested, this, [this] { action("Server sync"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::moreRequested, this, [this] { action("More"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleBrowserRequested, this, [this] { action("Workflows"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleChatRequested, this, &EditorWindow::toggleChat);
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleLibraryRequested, this, [this] { action("Library"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleCatalogRequested, this, [this] { action("Toggle nodes"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleInspectorRequested, this, [this] { action("Toggle inspector"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::togglePanelRequested, this, [this] { action("Toggle panel"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::miniMapRequested, this, &EditorWindow::setMiniMapVisible);
+  connect(&panelLayout_, &node_editor::PanelLayout::toolTipRequested, this, &EditorWindow::showToolTip);
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
@@ -590,7 +607,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     canvasLayout->setSpacing(0);
     // The web document bar sits above the subgraph strip and the canvas.
     // See web/src/components/workspace/WorkflowDocumentBar.tsx.
-    auto headerRow = panel("HeaderRow");
+    // The panel's first bindings read the state the window has at this point.
+    syncChrome();
+    auto headerRow = panel("HeaderRow", {{"header", QVariant::fromValue(&workflowHeader_)},
+                                         {"panels", QVariant::fromValue(&panelLayout_)}});
     headerRow->setFixedHeight(qCeil(headerRow->rootObject()->implicitHeight()));
     canvasLayout->addWidget(headerRow);
     auto canvasTabs = panel("CanvasTabStrip", {{"tabs", QVariant::fromValue(&documentTabs_)}});
@@ -667,7 +687,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   inspectorDock_->hide();
   // The web opens with its side panels closed. See web/src/stores/PanelStore.ts.
   catalogPanel_->hide();
-  auto rail = panel("Rail");
+  syncChrome();
+  auto rail = panel("Rail", {{"panels", QVariant::fromValue(&panelLayout_)}});
   rail->setFixedWidth(rail->initialSize().width());
   auto tabs = panel("TabBar", {{"tabs", QVariant::fromValue(&documentTabs_)},
                                {"notifications", QVariant::fromValue(&notificationList_)}});
@@ -2375,6 +2396,18 @@ void EditorWindow::syncNodeCatalog() {
     nodeCatalog_.setRecent(catalogRecent());
     nodeCatalog_.setFavorites(catalogFavorites());
     nodeCatalog_.setReadOnly(readOnly());
+}
+void EditorWindow::syncChrome() {
+  workflowHeader_.setWorkflowName(workflowName());
+  workflowHeader_.setRenamable(workflowRenamable());
+  workflowHeader_.setSaveStatus(documentSaveStatus());
+  workflowHeader_.setHistory(canUndo(), canRedo());
+  panelLayout_.setPanels({.browser = browserVisible(),
+                          .chat = chatVisible(),
+                          .library = libraryVisible(),
+                          .catalog = catalogVisible(),
+                          .inspector = inspectorVisible(),
+                          .miniMap = miniMapVisible()});
 }
 void EditorWindow::syncNodeInspector() {
     const auto node = selection();
