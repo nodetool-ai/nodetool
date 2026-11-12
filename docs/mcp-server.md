@@ -166,6 +166,12 @@ One tool per provider capability is also direct: `generate_text`, `generate_imag
 
 `search_nodes`, `get_node_info`, and `list_nodes` are offered only when the session has the node registry loaded. `read_file`, `write_file`, `edit_file`, `glob`, `grep`, and `web_search` are not direct tools, because Claude Code and similar clients provide their own. `browser`, `http_request`, and `todo_write` are also not direct on this server. All of them stay available inside `execute_code`.
 
+### Tool list updates
+
+The `tools/list` schema of a direct tool and the signature `nodetool.searchTools()` shows inside `execute_code` come from the same capability spec. `packages/websocket/tests/mcp-schema-parity.test.ts` fails when they differ.
+
+A client reads the tool list when it connects and may keep it after that. This server cannot tell a connected client that the list changed. It answers every request as JSON and offers no SSE stream, so `notifications/tools/list_changed` has no channel to travel on, and a session revived after a deploy keeps its id, so the client sees no new handshake. After a server update, remove and re-add the connector, or start a new conversation, to load new parameters. Inside `execute_code` the new parameters work at once.
+
 ### Resources and prompts
 
 | Name | Kind | Purpose |
