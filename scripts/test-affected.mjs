@@ -114,8 +114,8 @@ export const PATH_CHECKS = [
     steps: [{ label: "script regressions", command: "npm", args: ["run", "test:scripts"] }]
   },
   {
-    path: /^scripts\/(?:test-affected-native\.mjs$|__tests__\/(?:test-affected-native\.test\.mjs$|fixtures\/test-affected-native\/))/,
-    steps: [{ label: "native test selection", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/test-affected-native.test.mjs"] }]
+    path: /^scripts\/(?:(?:test-affected-native|native-ci-test-selection)\.mjs$|__tests__\/(?:(?:test-affected-native|native-ci-test-selection)\.test\.mjs$|fixtures\/test-affected-native\/))/,
+    steps: [{ label: "native test selection", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/test-affected-native.test.mjs", "scripts/__tests__/native-ci-test-selection.test.mjs"] }]
   },
   {
     path: /^scripts\/(?:bump-version\.mjs|__tests__\/bump-version\.test\.mjs)$/,

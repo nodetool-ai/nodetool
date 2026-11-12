@@ -788,7 +788,7 @@ const animateImage: CapabilityExport = {
     const inputFile = params["input_file"];
     if (!isNonEmptyString(inputFile))
       return { error: "input_file is required" };
-    const endFrameFile = params["end_frame_file"];
+    const endFrameFile = aliased(params, "end_frame_file", "endFrameFile");
     if (endFrameFile !== undefined && !isNonEmptyString(endFrameFile))
       return { error: "end_frame_file must be a non-empty string" };
     let image: Uint8Array;

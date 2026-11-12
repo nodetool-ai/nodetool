@@ -596,6 +596,28 @@ describe("ImageToVideoGeminiNode", () => {
     });
     expect((result.output as Record<string, unknown>).data).toBe("vid");
   });
+
+  it("sends an end image as lastFrame in an 8-second clip", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        done: true,
+        response: { generatedVideos: [{ video: { videoBytes: "vid" } }] }
+      })
+    });
+    const node = new ImageToVideoGeminiNode();
+    const start = Buffer.from("start-png").toString("base64");
+    const end = Buffer.from("end-png").toString("base64");
+    node.assign({
+      image: { data: start, uri: "x", asset_id: "1" },
+      end_image: { data: end, uri: "y", asset_id: "2" }
+    });
+    node.setDynamic("_secrets", { GEMINI_API_KEY: "test-key" });
+    await node.process();
+    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(body.instances[0].lastFrame).toEqual({ bytesBase64Encoded: end, mimeType: "image/png" });
+    expect(body.parameters.durationSeconds).toBe(8);
+  });
 });
 
 // ---------------------------------------------------------------------------
