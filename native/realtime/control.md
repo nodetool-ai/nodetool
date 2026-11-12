@@ -55,9 +55,14 @@ times are rejected without mutation. `reset` clears state and clock position
 before a new stream begins. Time-to-step conversion accepts at most `2^53 - 1`
 steps and allows one floating-point ULP at a quantum boundary.
 
+Only state and its transitive inputs run during intermediate quantum steps.
+Independent analytic operations run once at the consumer tick. Programs without
+state perform no quantum catch-up. The tick result reports executed instruction
+count alongside state-step and skipped-step counts.
+
 Render catch-up executes at most 0.25 seconds of quanta. It discards the oldest
 missed quanta, executes the remaining recent ones and returns both counts
-(RT-R12). Audio ticks may advance at most one quantum. A larger gap is rejected,
+(RT-R12). Audio ticks with state may advance at most one quantum. A larger gap is rejected,
 so the audio thread cannot enter an unbounded catch-up loop. Offline audio
 drivers must tick every quantum. Seeking requires reset and replay.
 

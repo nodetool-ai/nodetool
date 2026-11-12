@@ -40,6 +40,7 @@ struct Instruction {
     unsigned width = 1;
     std::uint32_t seed = 0;
     bool stateful = false;
+    bool stepRequired = false;
 };
 // Cleared by the host in prepare/reset, exclusively mutated by the owner thread.
 struct State { std::array<double, 4> value{}; double phase = 0; std::uint64_t index = 0; bool high = false; };
@@ -70,13 +71,17 @@ struct ControlExecutor::Storage {
     double quantum = 128;
     std::uint64_t completed = 0;
     double lastSeconds = 0;
+    bool hasState = false;
 
-    void evaluate(const TickContext& tick, bool advance) noexcept {
+    std::uint64_t evaluate(const TickContext& tick, bool advance) noexcept {
+        std::uint64_t evaluated = 0;
         for (std::size_t index = 0; index < instructions.size(); ++index) {
             const auto& instruction = instructions[index];
             auto& output = registers[instruction.output];
             auto& state = states[index];
+            if (advance && !instruction.stepRequired) { continue; }
             if (instruction.stateful && !advance) { continue; }
+            ++evaluated;
             const auto input = [&](unsigned port, unsigned lane) {
                 const auto& value = registers[instruction.inputs[port]];
                 return value.lanes[value.width == 1 ? 0 : lane];
@@ -152,6 +157,7 @@ struct ControlExecutor::Storage {
                 output.lanes[lane] = value;
             }
         }
+        return evaluated;
     }
 };
 
@@ -178,6 +184,11 @@ ControlTickResult ControlExecutor::tick(const TickContext& context) noexcept {
     // A single ULP tolerates round-off at an exact quantum boundary.
     const double rounded = std::bit_cast<double>(std::bit_cast<std::uint64_t>(steps == 0 ? 0.0 : steps) + 1);
     const auto target = static_cast<std::uint64_t>(rounded);
+    if (!data.hasState) {
+        const auto operations = data.evaluate(context, false);
+        data.completed = target; data.lastSeconds = context.seconds;
+        return {true, 0, 0, operations};
+    }
     const auto missing = target - data.completed;
     const auto limit = static_cast<std::uint64_t>(0.25 * data.sampleRate / data.quantum);
     const auto count = data.domain == ControlDomain::render ? std::min(missing, limit) : missing;
@@ -187,16 +198,17 @@ ControlTickResult ControlExecutor::tick(const TickContext& context) noexcept {
     data.completed += missing - count;
     TickContext step = context;
     step.dt = data.quantum / data.sampleRate;
+    std::uint64_t operations = 0;
     for (std::uint64_t i = 0; i < count; ++i) {
         ++data.completed;
         step.seconds = static_cast<double>(data.completed) * data.quantum / data.sampleRate;
         step.beats = context.beats - (context.seconds - step.seconds) * context.beatsPerSecond;
         step.frame = data.completed;
-        data.evaluate(step, true);
+        operations += data.evaluate(step, true);
     }
-    data.evaluate(context, false);
+    operations += data.evaluate(context, false);
     data.lastSeconds = context.seconds;
-    return {true, count, missing - count};
+    return {true, count, missing - count, operations};
 }
 
 ControlExecutor::Prepared ControlExecutor::prepare(const Plan& plan, ControlDomain domain) {
@@ -229,6 +241,7 @@ ControlExecutor::Prepared ControlExecutor::prepare(const Plan& plan, ControlDoma
                 if (operation.at("in").size() != found->inputs) { return failure("control_arity", name); }
                 Instruction instruction;
                 instruction.op = found->op; instruction.stateful = found->stateful;
+                data->hasState = data->hasState || instruction.stateful;
                 instruction.output = operation.at("out").get<unsigned>();
                 if (instruction.output >= count || producers[instruction.output]) { return failure("register", "Invalid or multiply-written register"); }
                 for (unsigned i = 0; i < found->inputs; ++i) {
@@ -261,6 +274,21 @@ ControlExecutor::Prepared ControlExecutor::prepare(const Plan& plan, ControlDoma
                 const auto producer = producers[input.get<unsigned>()];
                 if (!producer) { return failure("register", "Input has no producer in this domain"); }
                 edges[*producer].push_back(i); ++incoming[i];
+            }
+        }
+        // RT-D15: only state and its transitive inputs need quantum evaluation.
+        // Independent analytic outputs run once at the consumer's tick.
+        std::queue<std::size_t> stateInputs;
+        for (std::size_t i = 0; i < unsorted.size(); ++i) {
+            if (unsorted[i].stateful) { unsorted[i].stepRequired = true; stateInputs.push(i); }
+        }
+        while (!stateInputs.empty()) {
+            const auto index = stateInputs.front(); stateInputs.pop();
+            for (const auto& input : operations[index]->at("in")) {
+                const auto producer = *producers[input.get<unsigned>()];
+                if (!unsorted[producer].stepRequired) {
+                    unsorted[producer].stepRequired = true; stateInputs.push(producer);
+                }
             }
         }
         std::queue<std::size_t> ready;
