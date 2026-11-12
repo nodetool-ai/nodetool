@@ -1,6 +1,8 @@
 #include "music/MusicEdits.h"
 
+#include "ai/Take.h"
 #include "app/EditRegistry.h"
+#include "music/MusicRange.h"
 #include "music/MusicTime.h"
 
 #include <QCryptographicHash>
@@ -180,6 +182,30 @@ QJsonObject applyResult(QJsonObject raw, const QJsonObject& payload) {
         }
     }
 
+    // Take labels: a letter per candidate, and a number per segment when the
+    // window gave several ("Take A", "Take B2"); a repaint names its bars
+    // ("Repaint A · bars 3–4").
+    bool segmented = false;
+    for (const auto& value : takes) {
+        segmented = segmented || value.toObject().value(u"segment").toInt() > 0;
+    }
+    const auto tempo = sequenceTempo(raw);
+    const auto takeLabel = [&](const QJsonObject& take) {
+        const auto candidate = take.value(u"candidate").toInt();
+        const QString letter = candidate >= 0 && candidate < 26 ? QString(QChar(u'A' + candidate)) : QString::number(candidate + 1);
+        if (repaint) {
+            const auto record = take.value(u"record").toObject();
+            const FrameRange range{record.value(u"targetStartFrame").toInteger(), record.value(u"targetEndFrame").toInteger()};
+            if (!tempo || range.endFrame <= range.startFrame) {
+                return QStringLiteral("Repaint ") + letter;
+            }
+            auto bars = barRangeLabel(range, *tempo);
+            bars[0] = bars[0].toLower();
+            return QStringLiteral("Repaint %1 · %2").arg(letter, bars);
+        }
+        return QStringLiteral("Take ") + letter + (segmented ? QString::number(take.value(u"segment").toInt() + 1) : QString());
+    };
+
     const auto provider = payload.value(u"provider").toString();
     const auto model = payload.value(u"model").toString();
     const auto prompt = payload.value(u"prompt").toString();
@@ -211,7 +237,7 @@ QJsonObject applyResult(QJsonObject raw, const QJsonObject& payload) {
                             {"requestId", requestId},
                             {"batchId", jobId},
                             {"source", "generated"},
-                            {"label", QStringLiteral("Take %1").arg(versions.size() + 1)},
+                            {"label", takeLabel(take)},
                             {"musicGeneration", record}};
         if (!repaint) {
             const auto start = record.value(u"targetStartFrame");
@@ -244,9 +270,80 @@ QJsonObject applyResult(QJsonObject raw, const QJsonObject& payload) {
     return raw;
 }
 
+QJsonObject recordPrompt(QJsonObject raw, const QJsonObject& payload) {
+    const auto prompt = payload.value(u"prompt").toString().trimmed();
+    if (prompt.isEmpty() || !raw.value(u"music").isObject()) {
+        return raw;
+    }
+    auto music = raw.value(u"music").toObject();
+    const auto history = music.value(u"promptHistory").toArray();
+    if (!history.isEmpty() && history.first().toString() == prompt) {
+        return raw;
+    }
+    QJsonArray next{prompt};
+    for (const auto& value : history) {
+        if (next.size() >= kPromptHistoryCap) {
+            break;
+        }
+        if (value.isString() && value.toString() != prompt) {
+            next.append(value);
+        }
+    }
+    music.insert("promptHistory", next);
+    raw.insert("music", music);
+    return raw;
+}
+
+namespace {
+
+// Applies `change` to the unlocked clip `payload.clipId`; the document is unchanged on a refusal.
+template <typename Change>
+QJsonObject changeTake(QJsonObject raw, const QJsonObject& payload, Change change) {
+    auto clips = raw.value(u"clips").toArray();
+    const int index = clipIndex(clips, payload.value(u"clipId").toString());
+    const auto takeId = payload.value(u"takeId").toString();
+    if (index < 0 || takeId.isEmpty()) {
+        return raw;
+    }
+    const auto clip = clips[index].toObject();
+    if (clipLocked(raw, clip)) {
+        return raw;
+    }
+    const auto result = change(clip, takeId);
+    if (!result.error.isEmpty()) {
+        return raw;
+    }
+    clips.replace(index, result.clip);
+    raw.insert("clips", clips);
+    return raw;
+}
+
+}  // namespace
+
+QJsonObject selectTake(QJsonObject raw, const QJsonObject& payload) {
+    return changeTake(std::move(raw), payload, [](const QJsonObject& clip, const QString& takeId) {
+        auto result = nt::ai::applyTake(clip, takeId);
+        if (result.error.isEmpty()) {
+            if (clip.contains(u"status")) {
+                result.clip.insert("status", clip.value(u"status"));
+            } else {
+                result.clip.remove(QStringLiteral("status"));
+            }
+        }
+        return result;
+    });
+}
+
+QJsonObject deleteTake(QJsonObject raw, const QJsonObject& payload) {
+    return changeTake(std::move(raw), payload, nt::ai::deleteTake);
+}
+
 namespace {
 const bool placeholderRegistered = nt::app::registerEdit("music.insertPlaceholder", insertPlaceholder);
 const bool resultRegistered = nt::app::registerEdit("music.applyResult", applyResult);
+const bool promptRegistered = nt::app::registerEdit("music.recordPrompt", recordPrompt);
+const bool selectRegistered = nt::app::registerEdit("music.selectTake", selectTake);
+const bool deleteRegistered = nt::app::registerEdit("music.deleteTake", deleteTake);
 }  // namespace
 
 }  // namespace nt::music

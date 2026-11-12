@@ -84,6 +84,8 @@ nt_sources(server src/music/MusicBounce.h src/music/MusicBounce.cpp)
 nt_sources(app src/music/MusicBounceCli.cpp)
 nt_qml_sources(src/music/MusicEdits.h src/music/MusicEdits.cpp
     src/music/MusicJobs.h src/music/MusicJobs.cpp)
+# Package H: the backend setup state of the music panel (section 15, BE-5).
+nt_qml_sources(src/music/MusicSetup.h src/music/MusicSetup.cpp)
 
 function(nt_music_jobs_tests)
     # MM3 exits 5 to 7, MM6 durability: a scripted server over a real socket.
@@ -112,3 +114,20 @@ function(nt_music_jobs_tests)
     set_tests_properties(tst_musicbounce PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 300)
 endfunction()
 nt_tests(nt_music_jobs_tests)
+
+# ---- Package H: the wired panel, job list, take list and setup (section 15,
+# parts 5 to 7, BE-5, TK-2, TK-4, TK-6) in the mounted editor against scripted servers.
+function(nt_music_wire_tests)
+    qt_add_executable(tst_musicwire src/music/tst_musicwire.cpp ${NT_app})
+    set_target_properties(tst_musicwire PROPERTIES MACOSX_BUNDLE FALSE)
+    target_include_directories(tst_musicwire PRIVATE src/wiring qml/dock tests)
+    target_link_libraries(tst_musicwire PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::WebSockets Qt6::Test PkgConfig::FFMPEG
+        ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_musicwire OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_musicwire_qml/NodeTool/Timeline)
+    qt_add_resources(tst_musicwire music_wire_sync_banner PREFIX /nodetool/sync BASE src/server/sync
+        FILES src/server/sync/ExternalConflictsBanner.qml)
+    add_test(NAME tst_musicwire COMMAND tst_musicwire)
+    set_tests_properties(tst_musicwire PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 300)
+endfunction()
+nt_tests(nt_music_wire_tests)

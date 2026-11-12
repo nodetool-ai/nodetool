@@ -1,8 +1,9 @@
 #pragma once
 
-// The two document edits of music mode (docs/MUSIC-MODE.md sections 9.1 to
-// 9.3, MD14, MD15). Both are registered through registerEdit, so each is one
-// undo step through TimelineModel::applyEdit, and both are denied to the
+// The document edits of music mode (docs/MUSIC-MODE.md sections 9.1 to 9.3,
+// MD3, MD14, MD15, TK-2, TK-5, TK-6). Each is registered through
+// registerEdit, so each is one undo step through TimelineModel::applyEdit.
+// `music.insertPlaceholder` and `music.applyResult` are denied to the
 // assistant (src/aiassist/AssistantCommandTable.cpp).
 //
 // `music.insertPlaceholder` payload: {"clip": <placeholderClip(...)>}.
@@ -23,6 +24,26 @@
 // take and no asset is removed (TK-5). With `insertClip`, a missing clip is
 // inserted first under the placeholder rules (placing an orphaned result).
 //
+// `music.recordPrompt` payload: {"prompt"}. It puts the trimmed prompt first
+// in `music.promptHistory`, drops its older copies and keeps the newest
+// kPromptHistoryCap (MD3, TK-6). It refuses an empty prompt, a sequence with
+// no `music` object, and a prompt that already leads the history.
+//
+// `music.selectTake` payload: {"clipId", "takeId"}. It makes the take active
+// through nt::ai::applyTake, the take selection the number keys use (TK-2),
+// and keeps the clip's `status`: music takes carry no dependency hash, so
+// applyTake's "stale" would misreport a generated clip.
+//
+// `music.deleteTake` payload: {"clipId", "takeId"}. It removes the take from
+// the clip's `versions` through nt::ai::deleteTake, which refuses the active
+// take. The asset stays in the asset store (TK-5).
+//
+// The two take edits refuse a locked clip or track.
+//
+// Take labels follow the music mode mockup: a letter per candidate and a
+// number per segment when the result has several ("Take A", "Take B2"), and
+// "Repaint A · bars 3–4" for a repaint.
+//
 // Music takes carry no `sourceMapping` and no `variationIndex`: every take of
 // a clip shares one asset layout (MD14, MF3), and the candidate and segment
 // live in `musicGeneration.candidateIndex` and `segmentIndex`.
@@ -37,6 +58,8 @@
 namespace nt::music {
 
 inline constexpr double kPlaceholderFadeMs = 5.0;
+// MAX_MUSIC_PROMPT_HISTORY in packages/protocol/src/api-schemas/timeline.ts.
+inline constexpr int kPromptHistoryCap = 50;
 
 // A clip with `status: "queued"` over [startFrame, endFrame) at 48 kHz on
 // `trackId`: `audioRole: "music"`, 5 ms fades at both edges, `inPointMs: 0`
@@ -47,6 +70,9 @@ inline constexpr double kPlaceholderFadeMs = 5.0;
 
 [[nodiscard]] QJsonObject insertPlaceholder(QJsonObject raw, const QJsonObject& payload);
 [[nodiscard]] QJsonObject applyResult(QJsonObject raw, const QJsonObject& payload);
+[[nodiscard]] QJsonObject recordPrompt(QJsonObject raw, const QJsonObject& payload);
+[[nodiscard]] QJsonObject selectTake(QJsonObject raw, const QJsonObject& payload);
+[[nodiscard]] QJsonObject deleteTake(QJsonObject raw, const QJsonObject& payload);
 
 // The id a take of `requestId` with `assetId` gets: stable, so a repeated
 // placement finds it.

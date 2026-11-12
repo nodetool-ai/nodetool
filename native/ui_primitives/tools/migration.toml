@@ -3593,12 +3593,53 @@ reason = "A double click on a mask vertex converts it between a corner and a smo
 [[file]]
 path = "native/timeline/qml/music/MusicPanel.qml"
 category = "chrome"
-controls = ["Ui.EmptyState", "Ui.ScrollBar", "Ui.Text", "Ui.Select", "Ui.EditorButton", "Ui.TextArea", "Ui.ListRow", "Ui.NumberField", "MusicPanelModel", "MusicSequenceState"]
+controls = ["Ui.EmptyState", "Ui.ScrollBar", "Ui.Text", "Ui.Select", "Ui.EditorButton", "Ui.TextArea", "Ui.NumberField", "Ui.Status", "Ui.Banner", "Ui.StatusDot", "Shortcut", "Flow", "Rectangle", "MusicPanelModel", "MusicSequenceState", "MusicSetup", "MusicJobList", "MusicTakeList"]
 signals = []
 test_host = "tst_musicui"
 test_scope = "interaction"
 qml_callers = []
 replacement = "Feature composition through migrated native Ui wrappers"
+
+# Music mode, package H: the job list, take list, setup and clip job state.
+[[file]]
+path = "native/timeline/qml/music/MusicJobList.qml"
+category = "chrome"
+controls = ["Ui.Text", "ListView", "Rectangle", "Ui.EditorButton", "Ui.Progress"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicPanel.qml"]
+replacement = "Job rows composed from Ui.Text, Ui.EditorButton and Ui.Progress on a Ui.Theme card"
+
+[[file]]
+path = "native/timeline/qml/music/MusicTakeList.qml"
+category = "chrome"
+controls = ["Ui.Text", "Repeater", "Rectangle", "Ui.EditorButton", "HoverHandler", "Ui.Tooltip", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicPanel.qml"]
+replacement = "Take cards composed from Ui.Text, Ui.EditorButton, Ui.Tooltip and Ui.ContextMenu on a Ui.Theme card"
+
+[[file]]
+path = "native/timeline/qml/music/MusicSetup.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton", "Ui.Progress", "Ui.Status"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicPanel.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/music/MusicClipJob.qml"
+category = "domain"
+controls = ["Rectangle", "Repeater", "Ui.Text"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Clip job state drawn in Ui.Theme and TimelineVisuals colors with Ui.Text labels"
 
 [[file]]
 path = "native/timeline/qml/music/MusicRangeOverlay.qml"

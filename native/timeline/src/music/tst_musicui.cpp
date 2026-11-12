@@ -276,7 +276,8 @@ private slots:
         QCOMPARE(panel->property("model").toString(), QStringLiteral("acestep-v15-base-Q8_0.gguf"));
         QVERIFY(!panelItem("musicGenerate")->isEnabled());
         QVERIFY(panelItem("musicGenerateReason")->isVisible());
-        QCOMPARE(panelItem("musicTargetRange")->property("text").toString(), QStringLiteral("Bars 1–2 · 2 bars"));
+        QCOMPARE(panelItem("musicTargetTrack")->property("text").toString(), QStringLiteral("Keyboard · bars 1–2"));
+        QCOMPARE(panelItem("musicTargetRange")->property("text").toString(), QStringLiteral("2 bars · 4.0 s · role Keyboard"));
         // An override to a valid operation, which the next range resets.
         auto* generate = panelItem("musicOperation_text2music");
         QVERIFY(generate->isEnabled());
