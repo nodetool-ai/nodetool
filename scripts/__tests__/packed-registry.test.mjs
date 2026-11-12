@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { expect, it } from "vitest";
 import { artifactIntegrity, publicRegistryUrl, startPackedRegistry } from "../packed-registry.mjs";
 it.each(["@127.0.0.1/internal", "https://169.254.169.254/internal", "//localhost/internal", "/\\localhost/internal"])("rejects a request target that could change the upstream authority: %s", target => {
@@ -20,7 +20,7 @@ it("serves unchanged original artifact metadata and bytes and refuses absent fir
     writeFileSync(join(root,"package/package.json"),JSON.stringify({name,version:"1.2.3",dependencies:{"is-odd":"3.0.1"}}));
     writeFileSync(join(root,"package/index.js"),"export const original = true;\n");
     const file=join(root,"original.tgz");
-    expect(spawnSync("tar",["-czf",file,"-C",root,"package"]).status).toBe(0);
+    expect(spawnSync("tar",["-czf",basename(file),"-C",root,"package"], { cwd: dirname(file) }).status).toBe(0);
     const integrity=artifactIntegrity(file);
     registry=await startPackedRegistry({[name]:file});
     const metadata=await (await fetch(`${registry.url}/${encodeURIComponent(name)}`)).json();

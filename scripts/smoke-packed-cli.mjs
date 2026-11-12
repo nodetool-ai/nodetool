@@ -16,7 +16,7 @@ import {
 } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { NODE_PACKS, RUNTIME_LIBRARIES } from "./node-catalog/tiers.mjs";
@@ -291,7 +291,7 @@ export function existingTarballs(packages, directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith(".tgz")) { continue; }
     const file = resolve(directory, entry.name);
-    const manifest = JSON.parse(run("tar", ["-xOf", file, "package/package.json"], {}));
+    const manifest = JSON.parse(run("tar", ["-xOf", basename(file), "package/package.json"], { cwd: dirname(file) }));
     if (!expected.has(manifest.name)) { continue; }
     if (manifest.version !== expected.get(manifest.name)) {
       throw new Error(`${manifest.name} tarball version ${manifest.version} differs from workspace ${expected.get(manifest.name)}`);

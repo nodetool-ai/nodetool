@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Check original release bytes and npm provenance before any final tag moves. */
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
@@ -24,7 +24,7 @@ export function releaseArtifacts(directory, run = runReleaseCommand) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith(".tgz")) { continue; }
     const file = join(directory, entry.name);
-    const manifest = JSON.parse(run("tar", ["-xOf", file, "package/package.json"], {}));
+    const manifest = JSON.parse(run("tar", ["-xOf", basename(file), "package/package.json"], { cwd: dirname(file) }));
     if (names.has(manifest.name)) { throw new Error(`Duplicate release artifact for ${manifest.name}`); }
     names.add(manifest.name);
     packages.push({ name: manifest.name, version: manifest.version, integrity: tarballIntegrity(file) });

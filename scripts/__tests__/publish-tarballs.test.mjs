@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const RELEASE_FILES = [
@@ -88,7 +88,7 @@ if (args[0] === "pack") {
   const filename = manifest.name.replaceAll("/", "-").replace("@", "") + ".tgz";
   const dest = args[args.indexOf("--pack-destination") + 1];
   const file = join(dest, filename);
-  const packed = spawnSync("tar", ["-czf", file, "-C", staging, "package"]);
+  const packed = spawnSync("tar", ["-czf", filename, "-C", staging, "package"], { cwd: dest });
   rmSync(staging, { recursive: true, force: true });
   if (packed.status !== 0) { process.exit(1); }
   record({ name: manifest.name, file, integrity: integrity(file) });
@@ -149,7 +149,7 @@ if (args[0] === "pack") {
         "@nodetool-ai/core-nodes", "@nodetool-ai/game-nodes", "@nodetool-ai/game-renderer"
       ]);
       const coreArtifact = packs.find(call => call.name === "@nodetool-ai/pack-core");
-      const coreExtracted = spawnSync("tar", ["-xOf", coreArtifact.file, "package/dist/index.json"], { encoding: "utf8" });
+      const coreExtracted = spawnSync("tar", ["-xOf", basename(coreArtifact.file), "package/dist/index.json"], { cwd: dirname(coreArtifact.file), encoding: "utf8" });
       expect(coreExtracted.status, coreExtracted.stderr).toBe(0);
       const runtimeCatalog = JSON.parse(coreExtracted.stdout);
       for (const pin of runtimeCatalog.packs) {
@@ -157,7 +157,7 @@ if (args[0] === "pack") {
         expect(pin.installBytes).toBeGreaterThan(0);
       }
       const catalogArtifact = packs.find(call => call.name === "@nodetool-ai/node-catalog");
-      const extracted = spawnSync("tar", ["-xOf", catalogArtifact.file, "package/dist/index.json"], { encoding: "utf8" });
+      const extracted = spawnSync("tar", ["-xOf", basename(catalogArtifact.file), "package/dist/index.json"], { cwd: dirname(catalogArtifact.file), encoding: "utf8" });
       expect(extracted.status, extracted.stderr).toBe(0);
       const pinned = JSON.parse(extracted.stdout);
       expect(runtimeCatalog).toEqual(pinned);
