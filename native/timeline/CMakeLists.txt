@@ -181,6 +181,11 @@ endif()
 if(NOT TARGET nodetool_storyboard)
     add_subdirectory(../storyboard ${CMAKE_CURRENT_BINARY_DIR}/storyboard)
 endif()
+# The buffer kernels of native/kernels: the mixer's filters share the
+# Web Audio biquad design with the lib.audio nodes.
+if(NOT TARGET nodetool_kernels)
+    add_subdirectory(../kernels ${CMAKE_CURRENT_BINARY_DIR}/kernels)
+endif()
 
 # Model and scene evaluation: no GUI, shared by the app and the tests.
 add_library(timeline_core STATIC ${NT_core})
@@ -209,6 +214,7 @@ target_compile_options(timeline_decode PRIVATE ${NT_WARNINGS})
 add_library(timeline_audio STATIC ${NT_audio})
 target_include_directories(timeline_audio PRIVATE third_party)
 target_link_libraries(timeline_audio PUBLIC timeline_core PkgConfig::FFMPEG ${NT_AUDIO_PLATFORM_LIBS})
+target_link_libraries(timeline_audio PRIVATE nodetool_kernels)
 target_compile_options(timeline_audio PRIVATE ${NT_WARNINGS})
 # Clang on arm64 contracts by default, which changes a remix's features and plan from every other platform's.
 if(NOT MSVC)
