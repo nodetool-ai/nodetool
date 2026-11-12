@@ -10,6 +10,7 @@ on:
       - "native/timeline/qml/**"
       - "native/timeline/src/**"
       - ".github/workflows/native-ui-primitives.yml"
+      - "docker/ci-native/**"
 
 permissions:
   contents: read
@@ -25,10 +26,31 @@ env:
   QT_FORCE_STDERR_LOGGING: "1"
 
 jobs:
+  # The Linux leg runs in the native CI image (docker/ci-native/) instead of
+  # installing its system packages with apt.
+  ci-image:
+    uses: ./.github/workflows/ci-image.yml
+    with:
+      image: ci-native
+    permissions:
+      contents: read
+      packages: write
+
   standalone:
     name: Standalone / ${{ matrix.os }}
+    needs: ci-image
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+    # An empty image runs the job on the runner itself: macOS and Windows.
+    container:
+      image: ${{ matrix.os == 'ubuntu-24.04' && needs.ci-image.outputs.image || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001
     strategy:
       fail-fast: false
       matrix:
@@ -41,12 +63,6 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-
-      - name: Install build tools (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build libgl1-mesa-dev libegl1 libxkbcommon0 libfontconfig1 libxcb-cursor0
 
       - name: Install build tools (macOS)
         if: runner.os == 'macOS'

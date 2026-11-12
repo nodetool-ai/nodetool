@@ -28,7 +28,8 @@ private slots:
   const auto originalSize = graph.layout(id).size;
   runtime.beginRun("a");
   runtime.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",1},{"node_id","n"},{"status","running"}});
-  QVERIFY(scene.animationActive());
+  // The ring shows once the running state holds for runningDelayMs.
+  QTRY_VERIFY(scene.animationActive());
   QCOMPARE(scene.nodeGraphicsObject(id),item);
   QVERIFY(item->isSelected());
   // A status alone changes no card size, as on the web.
@@ -40,7 +41,7 @@ private slots:
   runtime.setConnected(false); QVERIFY(!scene.animationActive());
   runtime.setConnected(true); QVERIFY(scene.animationActive());
   runtime.ingest("a",{{"type","job_update"},{"job_id","a"},{"job_seq",2},{"status","completed"}});
-  QVERIFY(!scene.animationActive());
+  QTRY_VERIFY(!scene.animationActive());
   QCOMPARE(document.snapshot(),before); QCOMPARE(document.undoStack()->count(),undoCount);
   runtime.beginRun("b");
   QCOMPARE(graph.layout(id).size,originalSize);
@@ -63,6 +64,7 @@ private slots:
   QCOMPARE(graph.layout(id).runningColors, expected);
   runtime.beginRun("a");
   runtime.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",1},{"node_id","n"},{"status","running"}});
+  QTRY_VERIFY(graph.runningShown(id));
   scene.setReducedMotion(true);
   QCOMPARE(scene.runningAngle(), 90.0);
   // EditorWindow sets the QtNodes node opacity to 1. The library default is 0.8.

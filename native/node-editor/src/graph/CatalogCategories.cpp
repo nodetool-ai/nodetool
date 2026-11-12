@@ -149,7 +149,7 @@ QString catalogProviderName(const QString &providerId) {
 QStringList catalogTypeNames(const QJsonArray &fields) {
     QStringList names;
     for (const auto &value : fields) {
-        const auto type = value.toObject()["type"];
+        const QJsonValue type = value.toObject()["type"];
         const auto name = type.isString() ? type.toString() : type.toObject()["type"].toString();
         if (!name.isEmpty() && !names.contains(name)) {
             names << name;

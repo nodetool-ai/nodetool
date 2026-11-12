@@ -7,7 +7,9 @@
 #include "../document/WorkflowMerge.h"
 #include <QJsonArray>
 #include <QDateTime>
+#include <QBuffer>
 #include <QDir>
+#include <QImage>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QNetworkCookieJar>
@@ -21,6 +23,49 @@
 #include <QUuid>
 namespace nodetool::node_editor {
 namespace {
+// A local-media:// image the store no longer holds, because its run was dropped.
+bool holdsReleasedLocalMedia(const QJsonValue &value) {
+  if (value.isArray()) {
+    for (const auto &item : value.toArray()) { if (holdsReleasedLocalMedia(item)) { return true; } }
+    return false;
+  }
+  if (!value.isObject()) { return false; }
+  const auto object = value.toObject();
+  const auto uri = object["uri"].toString();
+  if (LocalMediaStore::isLocalMedia(uri)) { return LocalMediaStore::instance().image(uri).isNull(); }
+  for (const auto &item : object) { if (holdsReleasedLocalMedia(item)) { return true; } }
+  return false;
+}
+// The runner cannot read local-media:// images, so a cached one goes into the
+// run graph as PNG data, the form the runner emits without an image store.
+QJsonValue inlineLocalMedia(const QJsonValue &value) {
+  if (value.isArray()) {
+    QJsonArray items;
+    for (const auto &item : value.toArray()) { items.append(inlineLocalMedia(item)); }
+    return items;
+  }
+  if (!value.isObject()) { return value; }
+  auto object = value.toObject();
+  const auto uri = object.value("uri").toString();
+  if (LocalMediaStore::isLocalMedia(uri)) {
+    const auto image = LocalMediaStore::instance().image(uri);
+    if (image.isNull()) { return value; }
+    const QImage pixels(image.rgba->data(), int(image.width), int(image.height), int(image.width) * 4, QImage::Format_RGBA8888);
+    QByteArray png;
+    QBuffer buffer(&png);
+    buffer.open(QIODevice::WriteOnly);
+    // Quality 100 stores the pixels without compression, the fastest encode.
+    pixels.save(&buffer, "PNG", 100);
+    object.remove("uri");
+    object["mimeType"] = "image/png";
+    object["data"] = QString::fromLatin1(png.toBase64());
+    object["width"] = double(image.width);
+    object["height"] = double(image.height);
+    return object;
+  }
+  for (auto it = object.begin(); it != object.end(); ++it) { it.value() = inlineLocalMedia(it.value()); }
+  return object;
+}
 QString &guestBundleOption() {
   // native-rules #14: function-static mutable guest bundle path
   static QString path;
@@ -117,6 +162,11 @@ size_t WorkflowSession::finishLocalRunJobs(std::chrono::steady_clock::time_point
   return lanes.status == gr::HostShutdownStatus::TimedOut ? lanes.supervisor->liveThreads() : 0;
 }
 bool WorkflowSession::localRunnerReady() const { return m_localRunner && m_localRunner->ready(); }
+bool WorkflowSession::runsLocally(const QJsonObject &node) const {
+  if (!localRunnerReady()) { return false; }
+  const QJsonObject graph{{"nodes", QJsonArray{node}}, {"edges", QJsonArray{}}};
+  return m_localRunner->canRun(QJsonDocument(graph).toJson(QJsonDocument::Compact).toStdString());
+}
 WorkflowSession::WorkflowSession(QObject *parent)
     : QObject(parent), m_autosave(this, [this] { flushAutosave(); }), m_history(&m_generations, this), m_network(this),
       m_socket(QString(), QWebSocketProtocol::VersionLatest, this) {
@@ -1034,12 +1084,35 @@ QString WorkflowSession::runSelected(const QJsonObject &snapshot,
                                      const QStringList &nodeIds,
                                      const QJsonArray &metadata,
                                      const QJsonObject &params) {
+  return planAndSubmit(snapshot, nodeIds, metadata, params, false, false);
+}
+QString WorkflowSession::runPreview(const QJsonObject &snapshot, const QStringList &nodeIds,
+                                    const QJsonArray &metadata, bool localOnly) {
+  return planAndSubmit(snapshot, nodeIds, metadata, {}, true, localOnly);
+}
+QString WorkflowSession::planAndSubmit(const QJsonObject &snapshot, const QStringList &nodeIds,
+                                       const QJsonArray &metadata, const QJsonObject &params, bool preview, bool localOnly) {
+  if (localOnly && !localRunnerReady()) { return {}; }
   m_history.setWorkflow(snapshot);
-  if (m_history.loading()) { emit errorOccurred("Generation history is loading. Run the selection when loading finishes."); return {}; }
-  PartialRunPlanner planner(snapshot, metadata, m_generations.generations(snapshot["id"].toString()), QDateTime::currentMSecsSinceEpoch());
-  m_lastPlan = planner.plan(nodeIds);
-  if (!m_lastPlan.ok) { emit errorOccurred(m_lastPlan.error); return {}; }
-  return submitRun(m_lastPlan.snapshot, params, snapshot, metadata, m_lastPlan.executed);
+  if (m_history.loading()) {
+    if (!localOnly) { emit errorOccurred("Generation history is loading. Run the selection when loading finishes."); }
+    return {};
+  }
+  auto generations = m_generations.generations(snapshot["id"].toString());
+  for (auto &history : generations) {
+    history.removeIf([](const ExecutionGeneration &entry) { return holdsReleasedLocalMedia(entry.outputs); });
+  }
+  PartialRunPlanner planner(snapshot, metadata, std::move(generations), QDateTime::currentMSecsSinceEpoch());
+  planner.setPreview(preview);
+  auto plan = planner.plan(nodeIds);
+  if (!plan.ok) {
+    if (!localOnly) { m_lastPlan = plan; emit errorOccurred(plan.error); }
+    return {};
+  }
+  plan.snapshot = inlineLocalMedia(plan.snapshot).toObject();
+  const auto id = submitRun(plan.snapshot, params, snapshot, metadata, plan.executed, localOnly);
+  if (!id.isEmpty() || !localOnly) { m_lastPlan = std::move(plan); }
+  return id;
 }
 QString WorkflowSession::run(const QJsonObject &snapshot, const QJsonObject &params) {
   m_lastPlan = {};
@@ -1052,11 +1125,10 @@ QString WorkflowSession::run(const QJsonObject &snapshot, const QJsonObject &par
 }
 QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObject &params,
                                    const QJsonObject &fullSnapshot, const QJsonArray &metadata,
-                                   const QStringList &executed) {
+                                   const QStringList &executed, bool localOnly) {
   for (const auto &run : m_runs) {
     if (run["uncertain"].toBool()) {
-      emit errorOccurred(
-          "Reconcile disconnected runs before submitting another run");
+      if (!localOnly) { emit errorOccurred("Reconcile disconnected runs before submitting another run"); }
       return {};
     }
   }
@@ -1085,6 +1157,7 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
   const QJsonObject runGraph{{"nodes", nodes}, {"edges", edges}};
   const auto graphJson = QJsonDocument(runGraph).toJson(QJsonDocument::Compact).toStdString();
   const bool inProcess = localRunnerReady() && m_localRunner->canRun(graphJson);
+  if (localOnly && !inProcess) { return {}; }
   if (!inProcess && !m_connected) {
     emit errorOccurred("Connect before running");
     return {};
@@ -1092,7 +1165,9 @@ QString WorkflowSession::submitRun(const QJsonObject &snapshot, const QJsonObjec
   const auto retained = queue();
   qsizetype finished = 0;
   for (const auto &entry : retained) if (entry.toMap()["terminal"].toBool()) ++finished;
-  for (const auto &entry : retained) {
+  // queue() lists the newest run first. Drop the oldest finished runs.
+  for (auto it = retained.crbegin(); it != retained.crend(); ++it) {
+    const auto &entry = *it;
     if (finished <= 20) break;
     if (entry.toMap()["terminal"].toBool()) {
       const auto jobId = entry.toMap()["jobId"].toString();

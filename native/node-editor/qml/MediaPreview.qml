@@ -81,6 +81,7 @@ Item {
     readonly property int duration: player.duration
     readonly property bool seekable: player.seekable
     function reset() {
+        heldImage.source = ""
         const previousKey = resolverKey
         resolverKey = ""
         fitImage(); downloadDialog.close(); downloadStatus = ""; savingToAssets = false; zoom = 1; waveScroll = 0; exitFullscreen()
@@ -90,7 +91,9 @@ Item {
         failure = ""; resolving = false
     }
     function resolve() {
+        const held = mediaKind === "image" && image.status === Image.Ready ? image.source : ""
         reset()
+        heldImage.source = held
         if (!locator || !mediaResolver) return
         resolverKey = requestKey
         resolving = true
@@ -105,11 +108,15 @@ Item {
     function togglePlayback() { if (playing) player.pause(); else player.play() }
     function seek(ms) { if (player.seekable) player.position = Math.max(0, Math.min(player.duration, ms)) }
     // Initial properties also emit change signals during creation. Resolving only
-    // after completion sends one request instead of cancelled duplicates.
+    // after completion sends one request instead of cancelled duplicates. A
+    // gallery changes the kind and the locator one after the other, so a change
+    // resolves once both hold. Otherwise the player gets the previous item's file.
+    // The timer belongs to this item, so a resolve never runs after it is destroyed.
     property bool completed: false
-    onRequestKeyChanged: if (completed) resolve()
-    onLocatorChanged: if (completed) resolve()
-    onMediaKindChanged: if (completed) resolve()
+    Timer { id: resolveTimer; interval: 0; onTriggered: root.resolve() }
+    onRequestKeyChanged: if (completed) resolveTimer.restart()
+    onLocatorChanged: if (completed) resolveTimer.restart()
+    onMediaKindChanged: if (completed) resolveTimer.restart()
     onVisibleChanged: if (!visible) { exitFullscreen(); player.stop() }
     Component.onCompleted: { completed = true; resolve() }
     Component.onDestruction: reset()
@@ -190,6 +197,17 @@ Item {
         Layout.fillHeight: root.fullscreen || root.fillPreview
         Layout.preferredHeight: root.compact && !root.fullscreen ? root.compactPreviewHeight : root.mediaKind === "audio" ? Ui.Metrics.comfortable : Math.min(width * 9 / 16, Ui.Metrics.comfortable * 5)
         clip: true
+        // The last image stays until the next one is ready, so a new result
+        // replaces the old one without a blank frame.
+        Image {
+            id: heldImage
+            objectName: "preview-held-image"
+            anchors.fill: parent
+            visible: root.mediaKind === "image" && status === Image.Ready && image.status !== Image.Ready
+            fillMode: Image.PreserveAspectFit
+            scale: root.imageZoom
+            transform: Translate { x: root.imagePanX; y: root.imagePanY }
+        }
         Image {
             id: image
             objectName: "preview-image"
@@ -200,7 +218,10 @@ Item {
             asynchronous: true
             scale: root.imageZoom
             transform: Translate { x: root.imagePanX; y: root.imagePanY }
-            onStatusChanged: if (status === Image.Error) root.failure = "Unable to display image"
+            onStatusChanged: {
+                if (status === Image.Error) root.failure = "Unable to display image"
+                if (status === Image.Ready || status === Image.Error) heldImage.source = ""
+            }
         }
         MouseArea {
             objectName: "preview-image-interaction"
@@ -299,7 +320,7 @@ Item {
         onValueCommitted: value => root.waveScroll = value
     }
     Ui.Text { Layout.fillWidth: true; visible: root.downloadStatus.length > 0; text: root.downloadStatus; role: Ui.Typography.SansCaption }
-    Ui.Text { Layout.fillWidth: true; visible: root.loading; text: "Loading media…"; role: Ui.Typography.SansCaption }
+    Ui.Text { Layout.fillWidth: true; visible: root.loading && !heldImage.visible; text: "Loading media…"; role: Ui.Typography.SansCaption }
     RowLayout {
         visible: root.failure.length > 0
         Layout.fillWidth: true

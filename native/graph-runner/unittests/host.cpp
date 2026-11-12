@@ -46,7 +46,9 @@ struct TempDir {
   fs::path root;
   TempDir() {
     std::string tmpl = (fs::temp_directory_path() / "gr-host-XXXXXX").string();
-    root = fs::path(::mkdtemp(tmpl.data()));
+    // Canonical, so expected paths match the real paths the host returns when
+    // the temporary directory sits below a symlink (/var on macOS).
+    root = fs::canonical(fs::path(::mkdtemp(tmpl.data())));
   }
   ~TempDir() {
     std::error_code ec;

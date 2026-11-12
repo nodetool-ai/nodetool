@@ -1,6 +1,7 @@
 #include "document/ChildPorts.h"
 #include "properties/CodeHighlighter.h"
 #include "EditorWindow.h"
+#include "media/LocalMediaStore.h"
 #include "graph/CardBodies.h"
 #include "document/GroupIntoSubgraph.h"
 #include "MiniMap.h"
@@ -501,8 +502,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
       gestureCommands_.append(c);
       return true;
     }
-    return apply(c);
+    if (!apply(c)) { return false; }
+    previewCardEdit(c["op"] == "batch" ? c["commands"].toArray() : QJsonArray{c});
+    return true;
   };
+  connect(scene_, &EditorScene::sliderDraftChanged, this, [this](QtNodes::NodeId id, const QString &name, double value) {
+    if (readOnly() || !model_.nodeExists(id)) { return; }
+    scheduleInstantRerun(model_.resourceId(id), {{"name", name}, {"value", value}}, true, true);
+  });
   connect(scene_, &EditorScene::reconnectRequested, this, [this](const QString &id, const QJsonObject &connection) {
     apply({{"op", "reconnectEdge"}, {"id", id}, {"connection", connection}});
   });
@@ -641,6 +648,12 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(queueOverlay_->rootObject(), SIGNAL(presentedChanged()), this, SLOT(layoutOverlays()));
   connect(queueOverlay_->rootObject(), SIGNAL(contentHeightChanged()), this, SLOT(layoutOverlays()));
   connect(&session_, &node_editor::WorkflowSession::stateChanged, this, [this] { layoutOverlays(); });
+  shownQueueTimer_ = new QTimer(this);
+  shownQueueTimer_->setSingleShot(true);
+  shownQueueTimer_->setInterval(shownQueueDelayMs);
+  connect(shownQueueTimer_, &QTimer::timeout, this, [this] { updateShownQueue(true); });
+  connect(&session_, &node_editor::WorkflowSession::stateChanged, this, [this] { updateShownQueue(false); });
+  connect(this, &EditorWindow::shownQueueChanged, this, &EditorWindow::layoutOverlays, Qt::QueuedConnection);
   connect(&session_, &node_editor::WorkflowSession::systemStatsChanged, this, &EditorWindow::schedulePanelChanged);
   selectionOverlay_ = overlay("SelectionToolbar");
   viewportOverlay_ = overlay("ViewportIndicator");
@@ -804,7 +817,12 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&session_, &node_editor::WorkflowSession::runSubmitted, this,
           [this](const QString &id) {
             run_ = id;
-            message_ = session_.runsInProcess(id) ? tr("Run starting (local)") : tr("Run starting");
+            // A preview run is silent, as on the web. Only its error shows.
+            if (submittingPreview_) {
+              previewRuns_.insert(id);
+            } else {
+              message_ = session_.runsInProcess(id) ? tr("Run starting (local)") : tr("Run starting");
+            }
             schedulePanelChanged();
             runtime_.beginRun(id);
             runOutput_.beginRun(id);
@@ -819,26 +837,33 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
             runtime_.ingest(id, event);
             runOutput_.ingest(id, event);
             const auto status = event["status"].toString();
-            if (id == run_ && status == "running") {
+            const bool terminal = event["type"] == "job_update" &&
+                (status == "completed" || status == "finished" || status == "failed" || status == "cancelled");
+            const bool silent = previewRuns_.contains(id) && event["error"].toString().isEmpty() && status != "failed";
+            if (terminal) { previewRuns_.remove(id); }
+            if (id == run_ && status == "running" && !silent) {
                 message_ = session_.runsInProcess(id) ? tr("Run running (local)") : tr("Run running");
                 schedulePanelChanged();
             }
-            if (id == run_ && event["type"] == "job_update" &&
-                (status == "completed" || status == "finished" || status == "failed" || status == "cancelled")) {
-              message_ = event["error"].toString().isEmpty() ? tr("Run %1").arg(status) : event["error"].toString();
-              if (session_.runsInProcess(id)) { message_ += tr(" (local)"); }
-              const auto plan = session_.lastPartialPlan();
-              if (!plan.stale.isEmpty()) { message_ += tr(" · Reusing generations from edited nodes: %1").arg(plan.stale.join(", ")); }
+            if (id == run_ && terminal) {
+              if (!silent) {
+                message_ = event["error"].toString().isEmpty() ? tr("Run %1").arg(status) : event["error"].toString();
+                if (session_.runsInProcess(id)) { message_ += tr(" (local)"); }
+                const auto plan = session_.lastPartialPlan();
+                if (!plan.stale.isEmpty()) { message_ += tr(" · Reusing generations from edited nodes: %1").arg(plan.stale.join(", ")); }
+              }
               schedulePanelChanged();
-              if (!instantPending_.isEmpty()) {
-                  const auto node = std::exchange(instantPending_, QString());
+              if (instantPending_) {
+                  const auto edit = *std::exchange(instantPending_, std::nullopt);
                   const auto generation = instantUpdateGeneration_;
-                  QTimer::singleShot(0, this, [this, node, generation] {
-                      if (instantUpdate_ && generation == instantUpdateGeneration_ && !runActive()
-                          && (session_.connected() || session_.localRunnerReady())) {
-                          instantRerun(node);
+                  QTimer::singleShot(0, this, [this, edit, generation] {
+                      if (generation == instantUpdateGeneration_ && !runActive()
+                          && (session_.localRunnerReady() || (!edit.localOnly && session_.connected()))) {
+                          instantRerun(edit);
                       }
                   });
+              } else if (scrubbing_ && scene_->sliderDraftNode() == QtNodes::InvalidNodeId) {
+                  setScrubbing(false);
               }
             }
             if (event["type"] == "error" || status == "failed" || status == "error") {
@@ -1150,6 +1175,20 @@ void EditorWindow::syncSourcePreviews() {
                                  {"output_name", "output"}, {"value", item["value"]}, {"done", true}});
   }
 }
+namespace {
+// A card preview of a local-media image: at most 512 px, and owning its pixels,
+// so it stays valid after the store releases the run.
+QImage localPreview(const QString &uri) {
+  const auto stored = node_editor::LocalMediaStore::instance().image(uri);
+  if (stored.isNull()) { return {}; }
+  // Borrows the store's pixels. `stored` keeps them alive until the copy below.
+  const QImage pixels(stored.rgba->data(), int(stored.width), int(stored.height), int(stored.width) * 4,
+                      QImage::Format_RGBA8888);
+  constexpr int side = 512;
+  if (pixels.width() <= side && pixels.height() <= side) { return pixels.copy(); }
+  return pixels.scaled(side, side, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+}
+}  // namespace
 void EditorWindow::syncRuntimePreviews() {
   QVariantList mediaEntries;
   for (const auto &value : runOutput_.entries()) {
@@ -1204,35 +1243,46 @@ void EditorWindow::syncRuntimePreviews() {
   }
   if (canvasMedia_) { canvasMedia_->setCollections(canvasCollections); }
 
-  if (previewRun_ != runOutput_.selectedRunId()) {
-    for (auto it = runtimePreviewSources_.cbegin(); it != runtimePreviewSources_.cend(); ++it) {
-      mediaResolver_.cancel("node-image:" + it.key());
-      model_.setRuntimePreview(it.key(), {});
-      mediaResolver_.release("node-image:" + it.key());
-    }
-    runtimePreviewSources_.clear();
-    previewRun_ = runOutput_.selectedRunId();
-  }
+  // A card keeps its image until the next one has loaded, also across runs. A
+  // new run holds the results of the nodes it has not run yet
+  // (NodeRuntimeModel::beginRun), as a preview run does for reused upstream
+  // nodes. Without the image, the card would draw the held result as JSON.
+  previewRun_ = runOutput_.selectedRunId();
   QSet<QString> imageNodes;
+  QSet<QString> reported;
   for (const auto &value : runOutput_.entries()) {
     const auto entry = value.toMap();
     const auto id = entry["nodeId"].toString();
     if (id.isEmpty() || ownContent.contains(id)) { continue; }
+    // A running or queued status is not a new result. The card keeps the
+    // held image until the node outputs, completes or fails in this run.
+    const auto status = entry["status"].toString();
+    if (entry["kind"] == "output" || status == "completed" || status == "error" || status == "failed") { reported.insert(id); }
     for (const auto &mediaValue : entry["media"].toList()) {
       const auto media = mediaValue.toMap();
       if (media["kind"] != "image") { continue; }
       imageNodes.insert(id);
       const auto source = media["locator"];
       if (runtimePreviewSources_.value(id) != source) {
-        model_.setRuntimePreview(id, {});
         runtimePreviewSources_[id] = source;
-        mediaResolver_.resolve("node-image:" + id, source);
+        const auto uri = source.toMap().value("uri").toString();
+        if (node_editor::LocalMediaStore::isLocalMedia(uri)) {
+          // The in-process runner's pixels are in this process. The card takes
+          // them directly instead of the resolver's encoded cache file.
+          mediaResolver_.cancel("node-image:" + id);
+          const auto preview = localPreview(uri);
+          if (!preview.isNull()) { model_.setRuntimePreview(id, preview); }
+        } else {
+          mediaResolver_.resolve("node-image:" + id, source);
+        }
       }
       break;
     }
   }
   for (const auto &id : runtimePreviewSources_.keys()) {
-    if (!imageNodes.contains(id)) {
+    const auto state = runtime_.nodeState(id);
+    const bool held = !reported.contains(id) && (state.contains("result") || state.contains("outputs") || state.contains("text"));
+    if (!imageNodes.contains(id) && !held) {
       mediaResolver_.cancel("node-image:" + id);
       model_.setRuntimePreview(id, {});
       mediaResolver_.release("node-image:" + id);
@@ -1288,6 +1338,53 @@ void EditorWindow::deleteWorkflow(const QString &id, const QString &name) {
   const auto epoch = browserEpoch_;
   const auto answer = QMessageBox::question(this, tr("Delete workflow"), tr("Delete “%1” from the server? This cannot be undone.").arg(name), QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
   if (answer == QMessageBox::Yes && epoch == browserEpoch_) { browser_.deleteWorkflow(id); }
+}
+QPair<bool, bool> EditorWindow::queueActivity(const QVariantList &queue) const {
+  QPair<bool, bool> activity{false, false};
+  const auto workflow = document_.snapshot()["id"].toString();
+  for (const auto &item : queue) {
+    const auto job = item.toMap();
+    if (job["terminal"].toBool()) { continue; }
+    // QueueOverlay's hasJobs and runActive's scope.
+    if (QStringList{"running", "queued", "scheduled", "starting"}.contains(job["status"].toString())) { activity.first = true; }
+    if (job.contains("order") && job["workflow_id"].toString() == workflow) { activity.second = true; }
+  }
+  return activity;
+}
+void EditorWindow::updateShownQueue(bool settled) {
+  // last_seq changes with each run event and nothing shows it. Without it, a
+  // long run holds still and shows, while a burst of preview runs does not.
+  auto live = session_.queue();
+  for (auto &item : live) {
+    auto row = item.toMap();
+    row.remove(QStringLiteral("last_seq"));
+    item = row;
+  }
+  if (live == shownQueue_) {
+    shownQueueTimer_->stop();
+    pendingQueue_.clear();
+    return;
+  }
+  // A Stop is the user's own action, so "Stopping" and a refused Stop show at once.
+  const auto stoppingJobs = [](const QVariantList &queue) {
+    QSet<QString> jobs;
+    for (const auto &item : queue) {
+      if (item.toMap()["stopping"].toBool()) { jobs.insert(item.toMap()["jobId"].toString()); }
+    }
+    return jobs;
+  };
+  if (stoppingJobs(live) != stoppingJobs(shownQueue_)) { settled = true; }
+  if (!settled) {
+    // Each change restarts the wait, so only a held queue shows.
+    if (live != pendingQueue_ || !shownQueueTimer_->isActive()) { shownQueueTimer_->start(); }
+    pendingQueue_ = live;
+    return;
+  }
+  shownQueueTimer_->stop();
+  pendingQueue_.clear();
+  shownActivity_ = queueActivity(live);
+  shownQueue_ = live;
+  emit shownQueueChanged();
 }
 bool EditorWindow::runActive() const {
   if (!tabOwner_) { return activeEditor_->runActive(); }
@@ -2364,48 +2461,72 @@ bool EditorWindow::commitProperty(const QString &nodeId, const QString &name, co
   if (nodeId.isEmpty() || nodeId != selected_) { return false; }
   if ((value.metaType().id() == QMetaType::Double || value.metaType().id() == QMetaType::Float) && !std::isfinite(value.toDouble())) { return false; }
   const bool changed = apply({{"op", "setProperty"}, {"id", nodeId}, {"name", name}, {"value", QJsonValue::fromVariant(value)}});
+  if (changed) {
+    const bool numeric = value.metaType().id() == QMetaType::Double
+        || value.metaType().id() == QMetaType::Float || value.metaType().id() == QMetaType::Int;
+    scheduleInstantRerun(nodeId, {}, false, numeric);
+  }
+  return changed;
+}
+void EditorWindow::scheduleInstantRerun(const QString &node, const QJsonObject &draft, bool cardBody, bool immediate) {
+    const InstantEdit edit{node, draft, !instantUpdate_};
+    if (edit.localOnly && !cardBody) { return; }
     // Like Run selected, a rerun needs the server or the in-process runner.
-    const auto canRun = [this] { return session_.connected() || session_.localRunnerReady(); };
-    if (changed && instantUpdate_ && canRun() && runActive()) {
+    const auto canRun = [this, local = edit.localOnly] {
+        return session_.localRunnerReady() || (!local && session_.connected());
+    };
+    if (!canRun()) { return; }
+    if (runActive()) {
         // An in-process run settles in milliseconds, so the latest edit reruns
         // after it, as the web's live sliders coalesce. A server run keeps the
         // edit for the next run.
         if (session_.runsInProcess(run_)) {
-            instantPending_ = nodeId;
+            instantPending_ = edit;
             ++instantUpdateGeneration_;
         }
-    } else if (changed && instantUpdate_ && canRun()) {
-        const auto generation = ++instantUpdateGeneration_;
-        const auto credentials = credentialsEpoch_;
-        const auto workflowId = document_.snapshot()["id"].toString();
-        auto execute = [this, nodeId, generation, credentials, workflowId, canRun] {
-            if (!instantUpdate_ || generation != instantUpdateGeneration_
-                || credentials != credentialsEpoch_ || workflowId != document_.snapshot()["id"].toString()
-                || !canRun() || runActive()) {
-                return;
-            }
-            instantRerun(nodeId);
-        };
-        const bool numeric = value.metaType().id() == QMetaType::Double
-            || value.metaType().id() == QMetaType::Float || value.metaType().id() == QMetaType::Int;
-        if (numeric) {
-            execute();
-        } else {
-            QTimer::singleShot(300, this, std::move(execute));
-        }
+        return;
     }
-  return changed;
+    const auto generation = ++instantUpdateGeneration_;
+    const auto credentials = credentialsEpoch_;
+    const auto workflowId = document_.snapshot()["id"].toString();
+    auto execute = [this, edit, generation, credentials, workflowId, canRun] {
+        if (generation != instantUpdateGeneration_ || credentials != credentialsEpoch_
+            || workflowId != document_.snapshot()["id"].toString() || !canRun() || runActive()) {
+            return;
+        }
+        instantRerun(edit);
+    };
+    if (immediate) {
+        execute();
+    } else {
+        QTimer::singleShot(300, this, std::move(execute));
+    }
 }
-void EditorWindow::instantRerun(const QString &nodeId) {
-    const auto snapshot = document_.snapshot();
-    if (document_.node(nodeId).isEmpty()) { return; }
+void EditorWindow::instantRerun(const InstantEdit &edit) {
+    auto snapshot = document_.snapshot();
+    if (document_.node(edit.node).isEmpty()) { return; }
+    auto graph = snapshot["graph"].toObject();
+    if (!edit.draft.isEmpty()) {
+        auto nodes = graph["nodes"].toArray();
+        for (auto value : nodes) {
+            auto node = value.toObject();
+            if (node["id"].toString() != edit.node) { continue; }
+            auto data = node["data"].toObject();
+            data[edit.draft["name"].toString()] = edit.draft["value"];
+            node["data"] = data;
+            value = node;
+            break;
+        }
+        graph["nodes"] = nodes;
+        snapshot["graph"] = graph;
+    }
     QHash<QString, QStringList> downstream;
-    for (const auto &value : snapshot["graph"].toObject()["edges"].toArray()) {
+    for (const auto &value : graph["edges"].toArray()) {
         const auto edge = value.toObject();
         downstream[edge["source"].toString()].append(edge["target"].toString());
     }
-    QStringList targets{nodeId};
-    QSet<QString> visited{nodeId};
+    QStringList targets{edit.node};
+    QSet<QString> visited{edit.node};
     for (qsizetype i = 0; i < targets.size(); ++i) {
         for (const auto &target : downstream.value(targets[i])) {
             if (!visited.contains(target)) {
@@ -2414,7 +2535,58 @@ void EditorWindow::instantRerun(const QString &nodeId) {
             }
         }
     }
-    session_.runSelected(snapshot, targets, metadata_);
+    if (edit.localOnly) {
+        // Only the prefix the runner supports previews, so a server node further
+        // down leaves the nodes before it live (web browserRunnablePrefix).
+        QHash<QString, QJsonObject> nodes;
+        for (const auto &value : graph["nodes"].toArray()) { nodes.insert(value.toObject()["id"].toString(), value.toObject()); }
+        QHash<QString, QStringList> upstream;
+        for (const auto &value : graph["edges"].toArray()) {
+            const auto edge = value.toObject();
+            if (visited.contains(edge["source"].toString())) { upstream[edge["target"].toString()].append(edge["source"].toString()); }
+        }
+        QSet<QString> supported, runnable;
+        for (const auto &target : std::as_const(targets)) {
+            if (session_.runsLocally(nodes.value(target))) { supported.insert(target); }
+        }
+        for (bool grown = true; grown;) {
+            grown = false;
+            for (const auto &target : std::as_const(targets)) {
+                if (runnable.contains(target) || !supported.contains(target)) { continue; }
+                const auto sources = upstream.value(target);
+                if (std::all_of(sources.cbegin(), sources.cend(), [&](const QString &source) { return runnable.contains(source); })) {
+                    runnable.insert(target);
+                    grown = true;
+                }
+            }
+        }
+        targets.removeIf([&](const QString &target) { return !runnable.contains(target); });
+        if (targets.isEmpty()) { return; }
+    }
+    QString id;
+    {
+      const QScopedValueRollback marking(submittingPreview_, true);
+      id = session_.runPreview(snapshot, targets, metadata_, edit.localOnly);
+    }
+    if (!id.isEmpty() && edit.localOnly) { setScrubbing(true); }
+}
+void EditorWindow::previewCardEdit(const QJsonArray &commands) {
+    // Card body controls edit one node's properties. Such an edit previews
+    // like a live slider body's (web hooks/nodes/useLiveSliderWriter.ts).
+    QString node;
+    for (const auto &value : commands) {
+        const auto command = value.toObject();
+        const auto id = command["id"].toString();
+        if (command["op"] != "setProperty" || (!node.isEmpty() && node != id)) { return; }
+        node = id;
+    }
+    if (!node.isEmpty()) { scheduleInstantRerun(node, {}, true, true); }
+}
+void EditorWindow::setScrubbing(bool scrubbing) {
+    if (scrubbing_ == scrubbing) { return; }
+    scrubbing_ = scrubbing;
+    scene_->setReducedMotion(canvasReducedMotion_ || instantUpdate_ || scrubbing_);
+    schedulePanelChanged();
 }
 bool EditorWindow::removeProperty(const QString &nodeId, const QString &name) {
   if (!tabOwner_) { return activeEditor_->removeProperty(nodeId, name); }
@@ -2532,8 +2704,19 @@ void EditorWindow::clearInspectorOverlap(int inset, bool instant) {
   pan->setEasingCurve(QEasingCurve::InOutCubic);
   pan->setStartValue(from);
   pan->setEndValue(to);
-  connect(pan, &QVariantAnimation::valueChanged, this, [this](const QVariant &value) {
-    view_->horizontalScrollBar()->setValue(value.toInt());
+  // A scroll by the user or by other code ends the pan, as a d3-zoom pan
+  // gesture interrupts a React Flow viewport transition. Without this, the
+  // next step moves the view back.
+  pan->setProperty("expected", from);
+  connect(pan, &QVariantAnimation::valueChanged, pan, [this, pan](const QVariant &value) {
+    auto *bar = view_->horizontalScrollBar();
+    if (bar->value() != pan->property("expected").toInt()) {
+      pan->stop();
+      pan->deleteLater();
+      return;
+    }
+    bar->setValue(value.toInt());
+    pan->setProperty("expected", bar->value());
     emit zoomChanged();
   });
   connect(pan, &QVariantAnimation::finished, pan, &QObject::deleteLater);
@@ -2924,8 +3107,8 @@ void EditorWindow::action(const QString &name) {
   if (name.startsWith("Instant Update:")) {
       instantUpdate_ = !instantUpdate_;
       ++instantUpdateGeneration_;
-      instantPending_.clear();
-      scene_->setReducedMotion(canvasReducedMotion_ || instantUpdate_);
+      instantPending_.reset();
+      scene_->setReducedMotion(canvasReducedMotion_ || instantUpdate_ || scrubbing_);
       schedulePanelChanged();
       return;
   }
@@ -3283,8 +3466,9 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
         refresh();
       }
       if (!gestureCommands_.isEmpty()) {
-        apply({{"op", "batch"}, {"commands", gestureCommands_}});
-        gestureCommands_ = {};
+        // apply() resets the gesture state, so the commands are taken first.
+        const auto commands = std::exchange(gestureCommands_, {});
+        if (apply({{"op", "batch"}, {"commands", commands}})) { previewCardEdit(commands); }
       }
       scene_->undoStack().clear();
     });
@@ -3354,7 +3538,7 @@ void EditorWindow::presentation(const QVariantMap &roles) {
   if (!tabOwner_) { activeEditor_->presentation(roles); return; }
     canvasReducedMotion_ = roles.value("reducedMotion").toBool();
     motionNormalMs_ = roles.value("motionNormal", motionNormalMs_).toInt();
-    scene_->setReducedMotion(canvasReducedMotion_ || instantUpdate_);
+    scene_->setReducedMotion(canvasReducedMotion_ || instantUpdate_ || scrubbing_);
   auto color = [&](const char *name) {
     return roles.value(name).value<QColor>();
   };

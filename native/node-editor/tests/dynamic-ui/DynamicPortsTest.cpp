@@ -4,6 +4,7 @@
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QtQuickTest/quicktest.h>
 #include <QtTest>
 using namespace nodetool::node_editor;
 namespace {
@@ -61,6 +62,8 @@ private slots:
         QCOMPARE(d.undoStack()->count(),1);
         d.undo(); QVERIFY(bridge.inputs().isEmpty()); d.redo(); QCOMPARE(bridge.inputs().size(),1);
         QTRY_VERIFY(findItem(item,"input-name-prompt"));
+        // The redo creates the row again. Clicks need the positions of the next layout pass.
+        QVERIFY(QQuickTest::qWaitForPolish(&window));
         auto* rename = findItem(item,"input-name-prompt"); rename->forceActiveFocus();
         QTest::keyClick(&window,Qt::Key_A,Qt::ControlModifier);
         for (const auto c : QByteArray("renamed")) { QTest::keyClick(&window,c); }

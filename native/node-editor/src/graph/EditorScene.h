@@ -199,6 +199,8 @@ signals:
   void documentOpenRequested(const QString &kind, const QString &id);
   // Opens the property's inline editor expanded, as Constant String's Open editor.
   void inlineExpandRequested(QtNodes::NodeId id, const QString &name);
+  // A card slider drag moved to a value it has not committed yet.
+  void sliderDraftChanged(QtNodes::NodeId id, const QString &name, double value);
   void looseWireDropped(QtNodes::NodeId node, QtNodes::PortType port,
                         QtNodes::PortIndex index, const QPointF &position);
   // A right-click on a handle opens its connection menu (web NodeOutput.tsx:66-84, PropertyField.tsx:165-180).

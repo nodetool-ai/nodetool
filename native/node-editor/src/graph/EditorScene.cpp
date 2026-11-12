@@ -365,9 +365,8 @@ public:
     if (disabled && !desaturating_) { paintDesaturated(painter, item, zoom); return; }
     const bool zoomedOut = zoom <= zoomedOutThreshold;
     const bool grouped = model.depth(item.nodeId()) > 0;
-    const auto cardStatus = model.runtimeState(item.nodeId())["status"].toString();
     // BaseNode.tsx isLoading: the card takes the group tint only while it is not loading.
-    const bool loading = !disabled && (cardStatus == "running" || cardStatus == "loading" || cardStatus == "queued");
+    const bool loading = !disabled && model.runningShown(item.nodeId());
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
     painter->setRenderHint(QPainter::TextAntialiasing);
@@ -516,7 +515,7 @@ public:
         painter->restore();
       }
       const auto status = runtime["status"].toString();
-      const bool running = !disabled && (status == "running" || status == "loading" || status == "queued");
+      const bool running = !disabled && model.runningShown(item.nodeId());
       auto color = status == "error" || status == "failed" ? QColor("#ff5555") : theme.primary;
       if (running) {
         color.setAlphaF(0.6 + 0.4 * std::sin(scene_.animationPhase() * 6.283185));
@@ -923,10 +922,9 @@ EditorScene::EditorScene(WorkflowGraphModel &model, QObject *parent)
   connect(&animation_, &QTimer::timeout, this, [this] {
     phase_ = std::fmod(clock_.elapsed() / 1000.0, 1.0);
     for (auto id : model_.allNodeIds()) {
-      const auto status = model_.runtimeState(id)["status"].toString();
       bool activeEdge = false;
       for (const auto &edge : model_.allConnectionIds(id)) { activeEdge = activeEdge || model_.runtimeWireFlowing(edge); }
-      if (status != "running" && status != "loading" && status != "queued" && !activeEdge) { continue; }
+      if (!model_.runningShown(id) && !activeEdge) { continue; }
       if (auto node = nodeGraphicsObject(id)) { node->update(); }
       for (const auto &edge : model_.allConnectionIds(id)) {
         if (auto wire = connectionGraphicsObject(edge)) { wire->update(); }
@@ -1098,7 +1096,7 @@ int EditorScene::handleConnectable(NodeId node, PortType side, PortIndex index) 
     const auto end = draftEnd();
     if (end.node == InvalidNodeId) { return 0; }
     const auto typeOf = [](const QJsonValue &port) {
-        const auto value = port.toObject()["type"];
+        const QJsonValue value = port.toObject()["type"];
         return value.isObject() ? value.toObject() : QJsonObject{{"type", value.toString()}};
     };
     const auto fixedPorts = model_.ports(end.node, end.type);
@@ -1649,6 +1647,7 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             sliderOrigin_ = row.number;
             sliderValue_ = sliderValueAt(row, local.x());
             if (auto *item = nodeGraphicsObject(id)) { item->update(); }
+            if (sliderValue_ != sliderOrigin_) { emit sliderDraftChanged(id, sliderProperty_, sliderValue_); }
             return true;
         }
     }
@@ -1659,8 +1658,11 @@ void EditorScene::moveSlider(const QPointF &scenePosition) {
     if (!item) { finishSlider(false); return; }
     for (const auto &row : model_.layout(sliderNode_).rows) {
         if (row.kind == NodeRowKind::Slider && row.propertyName == sliderProperty_) {
-            sliderValue_ = sliderValueAt(row, item->mapFromScene(scenePosition).x());
+            const auto value = sliderValueAt(row, item->mapFromScene(scenePosition).x());
+            if (value == sliderValue_) { return; }
+            sliderValue_ = value;
             item->update();
+            emit sliderDraftChanged(sliderNode_, sliderProperty_, value);
             return;
         }
     }
@@ -2003,8 +2005,7 @@ void EditorScene::setReducedMotion(bool reduced) {
 void EditorScene::refreshRuntime() {
   bool active = false;
   for (auto id : model_.allNodeIds()) {
-    const auto status = model_.runtimeState(id)["status"].toString();
-    active = active || status == "running" || status == "loading" || status == "queued";
+    active = active || model_.runningShown(id);
     for (const auto &edge : model_.allConnectionIds(id)) { active = active || model_.runtimeWireFlowing(edge); }
     if (auto node = nodeGraphicsObject(id)) { node->update(); }
     for (const auto &edge : model_.allConnectionIds(id)) {

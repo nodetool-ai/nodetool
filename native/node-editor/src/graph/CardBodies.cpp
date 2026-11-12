@@ -14,7 +14,7 @@ namespace {
 namespace nm = node_metrics;
 
 QString typeName(const QJsonValue &port) {
-    const auto type = port.toObject()["type"];
+    const QJsonValue type = port.toObject()["type"];
     return type.isString() ? type.toString() : type.toObject()["type"].toString();
 }
 

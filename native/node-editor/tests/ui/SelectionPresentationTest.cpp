@@ -381,6 +381,25 @@ private slots:
         }
     }
 
+    // A scroll during the pan ends it. The pan never moves the view back.
+    void scrollInterruptsInspectorPan() {
+        EditorWindow window;
+        load(window, 300);
+        window.action("Reset zoom");
+        auto *view = viewOf(window);
+        auto *bar = view->horizontalScrollBar();
+        const auto now = view->mapFromScene(cardRect(window, "up").topLeft());
+        bar->setValue(bar->value() + now.x() - 420);
+        QTest::qWait(30);
+        setReducedMotion(window, false);
+        click(window, "a");
+        QTRY_VERIFY(window.findChild<QVariantAnimation *>("inspector-pan-animation"));
+        const int scrolled = bar->value() - 300;
+        bar->setValue(scrolled);
+        QTRY_VERIFY(!window.findChild<QVariantAnimation *>("inspector-pan-animation"));
+        QCOMPARE(bar->value(), scrolled);
+    }
+
     // Hovering a wire draws it as the web does: 4 wide, full opacity, brighter.
     void hoveredWireDrawsAtFullOpacity() {
         EditorWindow window;

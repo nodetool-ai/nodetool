@@ -372,6 +372,15 @@ void javascriptFunctions() {
       const enc = JSON.parse(g.uploadEncoded(png, "js"));
       if (enc.width !== 2 || enc.height !== 2) return "uploadEncoded";
       if (g.liveTextures() < 3) return "live " + g.liveTextures();
+      // The decode cache returns each image's own pixels across hits and evictions.
+      const solid = (r, gr, b) => __host.image.encodePng(new Uint8Array([r, gr, b, 255]), 1, 1);
+      const colors = { red: [255, 0, 0], green: [0, 255, 0], blue: [0, 0, 255] };
+      const pngs = { red: solid(...colors.red), green: solid(...colors.green), blue: solid(...colors.blue) };
+      for (const name of ["red", "blue", "red", "green", "blue", "red", "red"]) {
+        const texture = JSON.parse(g.uploadEncoded(pngs[name], "js")).texture;
+        const pixel = Array.from(g.readback(texture).rgba).slice(0, 3).join(",");
+        if (pixel !== colors[name].join(",")) return "decode cache " + name + " " + pixel;
+      }
       g.releaseRun("js");
       try { g.readback(out.texture); return "released texture still readable"; } catch (err) {}
       return "ok";
@@ -380,6 +389,28 @@ void javascriptFunctions() {
   const std::string result = e->toString(r);
   if (result != "ok") std::fprintf(stderr, "javascript: %s\n", result.c_str());
   CHECK(result == "ok");
+}
+
+// The opaque fast path gives the reference formula's result for every value.
+void alphaConversionsMatchTheFormula() {
+  std::vector<uint8_t> px;
+  for (int a = 0; a < 256; ++a) {
+    for (int v = 0; v < 256; ++v) { px.insert(px.end(), {uint8_t(v), uint8_t(255 - v), uint8_t(v / 2), uint8_t(a)}); }
+  }
+  auto pre = px, un = px;
+  gpu::premultiply(pre.data(), px.size() / 4);
+  gpu::unpremultiply(un.data(), px.size() / 4);
+  bool same = true;
+  for (size_t i = 0; i < px.size(); i += 4) {
+    const uint8_t a = px[i + 3];
+    for (size_t c = 0; c < 3; ++c) {
+      const auto premultiplied = uint8_t(std::round(px[i + c] * (a / 255.0)));
+      const auto straight = a == 0 ? px[i + c] : uint8_t(std::min(255.0, std::round(px[i + c] * (255.0 / a))));
+      same = same && pre[i + c] == premultiplied && un[i + c] == straight;
+    }
+    same = same && pre[i + 3] == a && un[i + 3] == a;
+  }
+  CHECK(same);
 }
 
 // Catalog texture ids are untrusted guest data, even when devices are shared.
@@ -764,6 +795,7 @@ int main(int argc, char** argv) {
   everyModuleRuns();
   texturesLiveForTheirRun();
   javascriptFunctions();
+  alphaConversionsMatchTheFormula();
   catalogOwnerIsolation();
 #endif
   std::printf("%d checks, %d failures\n", checks, failures);

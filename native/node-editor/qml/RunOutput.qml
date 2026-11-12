@@ -89,8 +89,10 @@ Rectangle {
                 id: entries
                 width: scroll.width
                 spacing: 0
+                // A hidden panel builds no rows. Each preview run replaces them all,
+                // and building them stalled the canvas during a slider drag.
                 Repeater {
-                    model: runOutput ? runOutput.collections : null
+                    model: runOutput && editor && editor.outputVisible ? runOutput.collections : null
                     ColumnLayout {
                         id: collection
                         required property string collectionKey
@@ -114,7 +116,7 @@ Rectangle {
                 // A row is one 32 px line, as web log rows are (TracePanel.tsx
                 // SPAN_ROW_HEIGHT). Entries with content show it below the line.
                 Repeater {
-                    model: runOutput ? runOutput.richEntries : null
+                    model: runOutput && editor && editor.outputVisible ? runOutput.richEntries : null
                     ColumnLayout {
                         id: row
                         objectName: "run-output-row"

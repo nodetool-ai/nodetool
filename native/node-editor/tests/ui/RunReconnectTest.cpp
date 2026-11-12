@@ -494,7 +494,7 @@ private slots:
         send(server, {{"type", "node_update"}, {"job_id", id}, {"job_seq", 2}, {"node_id", "n"}, {"status", "error"}, {"error", "boom"}});
         send(server, {{"type", "job_update"}, {"job_id", id}, {"job_seq", 3}, {"status", "failed"}, {"error", "boom"}});
         QTRY_COMPARE(canvasStatus(window), QString("error"));
-        QVERIFY(!window.scene()->animationActive());
+        QTRY_VERIFY(!window.scene()->animationActive());
         QTRY_COMPARE(queued(*window.session(), id)["status"].toString(), QString("failed"));
         QCOMPARE(commandNames(server), QStringList{"reconnect_job"});
     }
@@ -553,8 +553,7 @@ private slots:
         window.session()->connectToServer(second.url(), {});
         QTRY_VERIFY(window.session()->connected());
         QTRY_VERIFY(second.peer);
-        QTest::qWait(50);
-        QVERIFY(!window.scene()->animationActive());
+        QTRY_VERIFY(!window.scene()->animationActive());
         QCOMPARE(canvasStatus(window), QString());
         QVERIFY(queued(*window.session(), id).isEmpty());
         QVERIFY(second.commands.isEmpty());

@@ -20,6 +20,26 @@ private slots:
   event["job_seq"]=3; event["status"]="running"; model.ingest("a",event);
   QCOMPARE(model.nodeState("n")["status"].toString(),"completed");
  }
+ // A new run shows the previous run's results until its own replace them, so
+ // a card keeps its image while a preview reruns. Statuses start empty, and
+ // the first streamed output starts fresh.
+ void newRunHoldsPreviousResults() {
+  NodeRuntimeModel model; model.beginRun("a");
+  const QJsonObject image{{"type","image"},{"uri","local-media://1"}};
+  model.ingest("a",{{"type","node_update"},{"job_id","a"},{"job_seq",1},{"node_id","n"},{"status","completed"},{"result",QJsonObject{{"output",image}}}});
+  model.ingest("a",{{"type","output_update"},{"job_id","a"},{"job_seq",2},{"node_id","t"},{"output_name","text"},{"value","old"}});
+  model.ingest("a",{{"type","job_update"},{"job_id","a"},{"job_seq",3},{"status","completed"}});
+  model.beginRun("b");
+  QCOMPARE(model.nodeState("n")["result"].toObject()["output"].toObject(), image);
+  QVERIFY(model.nodeState("n")["status"].toString().isEmpty());
+  QCOMPARE(model.nodeState("t")["text"].toString(), QString("old"));
+  model.ingest("b",{{"type","node_update"},{"job_id","b"},{"job_seq",1},{"node_id","n"},{"status","running"}});
+  QCOMPARE(model.nodeState("n")["result"].toObject()["output"].toObject(), image);
+  model.ingest("b",{{"type","output_update"},{"job_id","b"},{"job_seq",2},{"node_id","t"},{"output_name","text"},{"value","new"}});
+  QCOMPARE(model.nodeState("t")["text"].toString(), QString("new"));
+  model.ingest("b",{{"type","output_update"},{"job_id","b"},{"job_seq",3},{"node_id","t"},{"output_name","text"},{"value","er"}});
+  QCOMPARE(model.nodeState("t")["text"].toString(), QString("newer"));
+ }
  void streamAndDisconnect() {
   NodeRuntimeModel model; model.beginRun("a");
   QJsonObject event{{"type","output_update"},{"job_id","a"},{"job_seq",1},{"node_id","n"},{"node_name","Output"},{"output_name","text"},{"output_type","str"},{"metadata",QJsonObject{}},{"value","hello"}};

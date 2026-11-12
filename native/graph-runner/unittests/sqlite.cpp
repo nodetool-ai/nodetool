@@ -310,6 +310,31 @@ void pathsOutsideTheGrantAreRefused() {
   CHECK(fs::file_size(outside.path / "victim.db") == 0);
 }
 
+// The grant named through a symlink, as $TMPDIR is below /var -> /private/var
+// on macOS: an absolute path in the named spelling opens, and a link below the
+// grant that leaves it is still refused.
+void grantNamedThroughASymlink() {
+  TempDir base;
+  TempDir outside;
+  fs::create_directories(base.path / "real");
+  fs::create_directory_symlink(base.path / "real", base.path / "named");
+  fs::create_symlink(outside.path, base.path / "real" / "escape");
+  gr::HostOptions options;
+  options.sqliteDirectory = (base.path / "named").string() + "/";
+  Guest g(options);
+  g.e->set(g.e->global(), "NAMED", g.e->string((base.path / "named").string()));
+  CHECK(pass(g.run(R"JS(
+    const db = S.open(NAMED + "/a.db", false, false, 0);
+    S.exec(db, "CREATE TABLE t (x)");
+    const refused = (name) => thrown(() => S.open(name, false, false, 0));
+    expect(refused(NAMED + "/../a.db").startsWith("SQLITE_CANTOPEN: database path is outside"), "dot-dot");
+    expect(refused(NAMED + "/escape/x.db").startsWith("SQLITE_CANTOPEN: database path is outside"), "symlinked directory");
+    expect(refused(NAMED).startsWith("SQLITE_CANTOPEN: database path is outside"), "the directory itself");
+  )JS")));
+  CHECK(fs::exists(base.path / "real" / "a.db"));
+  CHECK(!fs::exists(outside.path / "x.db"));
+}
+
 // The better-sqlite3 wrapper (guest/host/sqlite.mjs) and the sqlite-vec
 // module, bundled with their test script.
 void wrapper(const std::string& bundle) {
@@ -342,6 +367,7 @@ int main(int argc, char** argv) {
       {"errorsSurfaceAsJavaScriptErrors", errorsSurfaceAsJavaScriptErrors},
       {"sqliteVecKnn", sqliteVecKnn},
       {"pathsOutsideTheGrantAreRefused", pathsOutsideTheGrantAreRefused},
+      {"grantNamedThroughASymlink", grantNamedThroughASymlink},
   };
   if (argc > 1) tests.emplace_back("wrapper", [bundle = std::string(argv[1])] { wrapper(bundle); });
   for (const auto& [name, fn] : tests) {

@@ -1,13 +1,19 @@
 name: CI image
 
-# Publishes the Linux image the Node and TypeScript CI jobs run in
-# (docker/ci/). Every workflow that runs a job in the image calls this first
-# and passes the reference on through `needs`, so a pull request that changes
-# docker/ci/ builds its own image before its jobs start, and every other run
-# finds the image already published and moves on in seconds.
+# Publishes the Linux images the CI jobs run in: docker/ci/ for the Node and
+# TypeScript jobs, docker/ci-native/ for the native jobs. Every workflow that
+# runs a job in an image calls this first and passes the reference on through
+# `needs`, so a pull request that changes an image builds it before its jobs
+# start, and every other run finds the image already published and moves on in
+# seconds. A push to main publishes both.
 
 on:
   workflow_call:
+    inputs:
+      image:
+        description: "`ci` (docker/ci/, the Node jobs) or `ci-native` (docker/ci-native/, the native jobs)."
+        type: string
+        default: ci
     outputs:
       image:
         description: The CI image reference, pinned by digest, for `container.image`.
@@ -16,9 +22,16 @@ on:
     branches: [main]
     paths:
       - "docker/ci/**"
+      - "docker/ci-native/**"
       - ".github/actions/ci-image/**"
       - ".github/workflows/ci-image.yml"
   workflow_dispatch:
+    inputs:
+      image:
+        description: "`ci` or `ci-native`"
+        type: choice
+        options: [ci, ci-native]
+        default: ci
 
 permissions:
   contents: read
@@ -26,9 +39,14 @@ permissions:
 
 jobs:
   image:
-    name: CI image
+    name: CI image (${{ matrix.image }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # A call or a manual run names one image. A push has no inputs and builds
+    # both, so its matrix never feeds the single `image` output.
+    strategy:
+      matrix:
+        image: ${{ fromJSON(inputs.image && format('["{0}"]', inputs.image) || '["ci", "ci-native"]') }}
     outputs:
       image: ${{ steps.image.outputs.image }}
     steps:
@@ -38,6 +56,7 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             docker/ci
+            docker/ci-native
             .github/actions/ci-image
 
       - name: Resolve or build the CI image
@@ -45,3 +64,4 @@ jobs:
         uses: ./.github/actions/ci-image
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          image: ${{ matrix.image }}

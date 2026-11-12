@@ -165,7 +165,11 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
   auto check = [&](const std::string& real, const std::string& lexicalForm) -> const Root* {
     const Root* root = rootOf(roots, real);
     if (!root) throw FsError("EACCES", syscall, path, kOutside);
-    if (noSymlinks && real != lexicalForm) {
+    // A symlink above the root, such as /var -> /private/var on macOS, was
+    // resolved when the root was granted. Only a symlink below it is refused.
+    const bool viaGiven = root->given != "/" && isWithin(root->given, lexicalForm);
+    const std::string expected = viaGiven ? root->dir + lexicalForm.substr(root->given.size()) : lexicalForm;
+    if (noSymlinks && real != expected) {
       throw FsError("EACCES", syscall, path, "symbolic links are refused here");
     }
     if (access != Access::Read && !root->writable) {

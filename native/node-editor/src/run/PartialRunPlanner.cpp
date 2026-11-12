@@ -200,6 +200,7 @@ PartialRunPlanner::Decision PartialRunPlanner::decide(const QString &id) {
       }
       return generation(id) ? Decision::Reuse : Decision::Block;
     }
+    if (preview_ && generation(id)) { return Decision::Reuse; }
     bool upstreamRuns = false;
     for (const auto &edge : signatureInbound_.value(id)) {
       const auto decision = decide(edge["source"].toString());
@@ -283,6 +284,10 @@ PartialRunPlan PartialRunPlanner::plan(const QStringList &targets) {
         QJsonValue value(QJsonValue::Undefined);
         if (kind(source) == Kind::Constant) { value = liveValue(nodes_.value(source), edge["sourceHandle"].toString()); }
         else if (const auto cached = generation(source, kind(source) == Kind::Computed)) { value = output(*cached, edge["sourceHandle"].toString()); }
+        else if (const auto current = preview_ ? generation(source) : nullptr) {
+          value = output(*current, edge["sourceHandle"].toString());
+          if (!result.stale.contains(source)) { result.stale.append(source); }
+        }
         if (!value.isUndefined()) {
           inlined.append({edge, value});
           if (!result.reused.contains(source)) { result.reused.append(source); }

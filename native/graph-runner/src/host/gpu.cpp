@@ -6,6 +6,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstring>
+#include <deque>
 #include <map>
 #include <cstdio>
 #include <memory>
@@ -26,6 +28,7 @@ constexpr uint64_t kMaxTextureBytes = 64 * 1024 * 1024;
 
 // The backend and immutable catalog may be shared. Texture authority lives
 // only in this engine's native state, never in a guest-provided run string.
+// The GPU state of one JavaScript context. Its engine thread only.
 struct ContextGpu final : js::NativePayload {
   struct Texture { std::string run; uint64_t bytes; };
   GpuOptions options;
@@ -39,6 +42,32 @@ struct ContextGpu final : js::NativePayload {
   // URI, or encoded as PNG data.
   struct Portable { std::string uri; std::string data; uint32_t width; uint32_t height; };
   std::map<uint64_t, Portable> portables;
+  // The images uploadEncoded decoded last, newest first, with their encoded
+  // bytes. Each preview run of a slider drag uploads the same source image
+  // again, so an exact byte match skips the decode. They stay across runs and
+  // go with the context. At most two entries.
+  struct Decoded { std::vector<uint8_t> encoded; RgbaImage image; };
+  std::deque<Decoded> decoded;
+  static constexpr size_t kDecodedEntries = 2;
+  static constexpr size_t kDecodedBytes = 64u << 20;
+
+  const RgbaImage& decode(const uint8_t* data, size_t size) {
+    for (auto it = decoded.begin(); it != decoded.end(); ++it) {
+      if (it->encoded.size() == size && std::memcmp(it->encoded.data(), data, size) == 0) {
+        if (it != decoded.begin()) { std::rotate(decoded.begin(), it, std::next(it)); }
+        return decoded.front().image;
+      }
+    }
+    Decoded entry{std::vector<uint8_t>(data, data + size), decodeImage(data, size)};
+    // An image over kDecodedBytes stays alone, because the caller reads it.
+    if (entry.image.pixels.size() > kDecodedBytes) {
+      decoded.clear();
+    } else if (decoded.size() >= kDecodedEntries) {
+      decoded.pop_back();
+    }
+    decoded.push_front(std::move(entry));
+    return decoded.front().image;
+  }
 
   ~ContextGpu() override { clear(); }
 
@@ -203,8 +232,10 @@ void portable(Json& v, const std::shared_ptr<ContextGpu>& state) {
 
 namespace gpu {
 
+// An opaque pixel stays as it is in both directions, so it skips the math.
 void premultiply(uint8_t* p, size_t pixels) {
   for (size_t i = 0; i < pixels * 4; i += 4) {
+    if (p[i + 3] == 255) continue;
     const double a = p[i + 3] / 255.0;
     p[i] = uint8_t(std::round(p[i] * a));
     p[i + 1] = uint8_t(std::round(p[i + 1] * a));
@@ -215,7 +246,7 @@ void premultiply(uint8_t* p, size_t pixels) {
 void unpremultiply(uint8_t* p, size_t pixels) {
   for (size_t i = 0; i < pixels * 4; i += 4) {
     const uint8_t a = p[i + 3];
-    if (a == 0) continue;
+    if (a == 0 || a == 255) continue;
     const double inv = 255.0 / a;
     p[i] = uint8_t(std::min(255.0, std::round(p[i] * inv)));
     p[i + 1] = uint8_t(std::min(255.0, std::round(p[i + 1] * inv)));
@@ -258,7 +289,7 @@ void installGpu(js::Engine& e, const js::Value& object, const HostOptions& optio
   e.set(object, "uploadEncoded", e.function("uploadEncoded", 2, [state](js::Engine& e, Args a) {
     Device& device = state->ready();
     auto bytes = viewArg(e, a, 0, "uploadEncoded");
-    RgbaImage image = decodeImage(bytes.data(), bytes.size());
+    const RgbaImage& image = state->decode(bytes.data(), bytes.size());
     const std::string run = stringArg(e, a, 1);
     const uint64_t bytesNeeded = state->allocation(image.width, image.height);
     const uint64_t id = state->own(device.upload(image.pixels.data(), image.width, image.height, ""), run, bytesNeeded);

@@ -1,12 +1,21 @@
 # Wasmtime C API, isolated scalar modules with no WASI/imported host functions.
 # Set WASMTIME_ROOT for another platform's matching C API distribution.
 if(NOT WASMTIME_ROOT)
-  if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux" OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+    set(gr_wasmtime_platform x86_64-linux)
+    set(gr_wasmtime_sha256 27871520e02193badd5a83e16a5009c45371ec5ec9e1df8342b4a17efc3e35b6)
+  elseif(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64")
+    set(gr_wasmtime_platform aarch64-macos)
+    set(gr_wasmtime_sha256 3aa840ba24f14107bc7dd9b82b1b7b31ece8ea472e06820251ac76cafa8722c0)
+  elseif(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64")
+    set(gr_wasmtime_platform x86_64-macos)
+    set(gr_wasmtime_sha256 24fbf0845402437c5857b99d78583177a85a025c91d99a937c1e2c11ec09fcad)
+  else()
     message(FATAL_ERROR "Set WASMTIME_ROOT to a Wasmtime v29.0.1 C API distribution for this platform")
   endif()
   FetchContent_Declare(gr_wasmtime
-    URL https://github.com/bytecodealliance/wasmtime/releases/download/v29.0.1/wasmtime-v29.0.1-x86_64-linux-c-api.tar.xz
-    URL_HASH SHA256=27871520e02193badd5a83e16a5009c45371ec5ec9e1df8342b4a17efc3e35b6
+    URL https://github.com/bytecodealliance/wasmtime/releases/download/v29.0.1/wasmtime-v29.0.1-${gr_wasmtime_platform}-c-api.tar.xz
+    URL_HASH SHA256=${gr_wasmtime_sha256}
     EXCLUDE_FROM_ALL)
   FetchContent_MakeAvailable(gr_wasmtime)
   set(WASMTIME_ROOT "${gr_wasmtime_SOURCE_DIR}")

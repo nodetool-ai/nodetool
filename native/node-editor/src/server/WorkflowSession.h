@@ -56,6 +56,8 @@ public:
   static size_t finishLocalRunJobs(std::chrono::steady_clock::time_point deadline);
   // Supported graphs run in this process, with or without a server.
   bool localRunnerReady() const;
+  // Whether the in-process runner supports this node's type.
+  bool runsLocally(const QJsonObject &node) const;
   bool runsInProcess(const QString &jobId) const { return m_inProcessRuns.contains(jobId); }
   QJsonObject workflow() const;
   // The host invalidates synchronously. Only a snapshot reader serializes.
@@ -107,6 +109,12 @@ public:
   // Plans targets through the web-compatible generation resolver.
   QString runSelected(const QJsonObject &snapshot, const QStringList &nodeIds,
                       const QJsonArray &metadata, const QJsonObject &params = {});
+  // Plans an edit preview: computed upstream nodes outside nodeIds reuse their
+  // current generation (PartialRunPlanner::setPreview). A localOnly preview
+  // runs only in process and fails without an error message, as the web's
+  // browser preview does.
+  QString runPreview(const QJsonObject &snapshot, const QStringList &nodeIds,
+                     const QJsonArray &metadata, bool localOnly = false);
   void setNodeMetadata(const QJsonArray &metadata) { m_runMetadata = metadata; }
   void clearGenerations() { m_history.setWorkflow({}); m_generations.clear(); }
   GenerationHistory *generationHistory() { return &m_history; }
@@ -150,9 +158,11 @@ signals:
 
 private:
   QSharedPointer<AccountJobs> m_accountJobs;
+  QString planAndSubmit(const QJsonObject &snapshot, const QStringList &nodeIds,
+                        const QJsonArray &metadata, const QJsonObject &params, bool preview, bool localOnly);
   QString submitRun(const QJsonObject &snapshot, const QJsonObject &params,
                     const QJsonObject &fullSnapshot, const QJsonArray &metadata,
-                    const QStringList &executed);
+                    const QStringList &executed, bool localOnly = false);
   void openSocket();
   void socketClosed();
   void scheduleReconnect();

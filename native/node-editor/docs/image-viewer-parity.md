@@ -47,5 +47,5 @@ captures. Tests use deterministic local media and no paid calls.
 Asset library editing, metadata and transformation actions are outside this
 output-image contract. The viewer adds Copy (decoded pixels) and, with two or
 more images, Compare with another image, matching `AssetViewer`. The native viewer uses compact text
-navigation instead of the web library filmstrip. SC1 local kernel slider preview,
-SC2 embedded 3D, and SC3 PDF/sandboxed HTML remain excluded.
+navigation instead of the web library filmstrip. SC2 embedded 3D and SC3
+PDF/sandboxed HTML remain excluded.

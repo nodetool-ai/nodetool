@@ -445,7 +445,17 @@ void MediaResolver::store(const QString &key, quint64 serial, const QByteArray &
   if (bytes.size() > ItemLimit || !cache_.isValid() || !makeRoom(bytes.size())) {
     emit failed(key, "Preview cache limit reached. Close the workflow to release previews"); return;
   }
-  const auto extension = suffix.contains(QRegularExpression("^[a-zA-Z0-9]{1,8}$")) ? "." + suffix : QString{};
+  const QRegularExpression plainSuffix("^[a-zA-Z0-9]{1,8}$");
+  auto fileSuffix = suffix;
+  if (!fileSuffix.contains(plainSuffix)) {
+    // AVFoundation, the macOS media backend, identifies a file by its
+    // extension. A data URI or an extensionless URL gets one from its type.
+    QMimeDatabase types;
+    auto type = types.mimeTypeForName(contentType.section(';', 0, 0).trimmed());
+    if (!type.isValid() || type.isDefault()) { type = types.mimeTypeForData(bytes); }
+    fileSuffix = type.preferredSuffix();
+  }
+  const auto extension = fileSuffix.contains(plainSuffix) ? "." + fileSuffix : QString{};
   const auto path = cache_.filePath(QUuid::createUuid().toString(QUuid::Id128) + extension);
   QFile file(path);
   if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) { file.remove(); emit failed(key, "Could not cache media preview"); return; }

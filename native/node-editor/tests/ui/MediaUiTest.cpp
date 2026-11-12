@@ -342,7 +342,8 @@ private slots:
     header << quint32(bytes.size() - 8);
     QVERIFY(header.device()->seek(40));
     header << quint32(bytes.size() - 44);
-    QTemporaryFile file;
+    // AVFoundation, the macOS media backend, identifies a file by its extension.
+    QTemporaryFile file(QDir::tempPath() + "/waveform-XXXXXX.wav");
     QVERIFY(file.open());
     QCOMPARE(file.write(bytes), bytes.size());
     QVERIFY(file.flush());
@@ -542,6 +543,44 @@ private slots:
     resolver.clear();
     QVERIFY(!download->isEnabled());
     QVERIFY(rendered->property("source").toUrl().isEmpty());
+  }
+  // A new image locator keeps the last image on screen until the next image is
+  // ready, so a rerun replaces a card preview without a blank frame.
+  void imagePreviewHoldsTheLastImage() {
+    const auto png = [](QColor color) {
+      QImage image(64, 64, QImage::Format_RGB32);
+      image.fill(color);
+      QByteArray bytes;
+      QBuffer buffer(&bytes);
+      buffer.open(QIODevice::WriteOnly);
+      image.save(&buffer, "PNG");
+      return QVariant("data:image/png;base64," + QString::fromLatin1(bytes.toBase64()));
+    };
+    MediaResolver resolver;
+    QQmlEngine engine;
+    engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlComponent component(&engine, QUrl("qrc:/editor/MediaPreview.qml"));
+    QTRY_VERIFY(component.isReady());
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "image"}, {"locator", png(Qt::blue)}}));
+    QVERIFY(preview);
+    QQuickWindow surface;
+    surface.resize(400, 300);
+    auto item = qobject_cast<QQuickItem *>(preview.get());
+    item->setParentItem(surface.contentItem());
+    item->setSize(surface.size());
+    surface.show();
+    auto rendered = preview->findChild<QQuickItem *>("preview-image");
+    auto held = preview->findChild<QQuickItem *>("preview-held-image");
+    QVERIFY(rendered && held);
+    QTRY_COMPARE(rendered->property("status").toInt(), 1);
+    QVERIFY(!held->isVisible());
+    // The held image shows while the next one loads, then hides.
+    QSignalSpy heldShown(held, SIGNAL(visibleChanged()));
+    QVERIFY(preview->setProperty("locator", png(Qt::red)));
+    QTRY_VERIFY(heldShown.size() >= 2);
+    QTRY_COMPARE(rendered->property("status").toInt(), 1);
+    QVERIFY(!held->isVisible());
+    QVERIFY(held->property("source").toUrl().isEmpty());
   }
   void modalImageViewerInteractionsAndScope() {
     QImage image(80, 40, QImage::Format_RGB32); image.fill(Qt::blue);

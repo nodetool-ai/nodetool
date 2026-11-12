@@ -15,9 +15,9 @@ Item {
     Component.onCompleted: syncTheme()
     Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { root.syncTheme() } function onReducedMotionChanged() { root.syncTheme() } }
     Connections { target: Ui.Typography; function onSansFamilyChanged() { root.syncTheme() } }
-    readonly property bool runActive: editor && editor.runActive
+    readonly property bool runActive: editor && editor.shownRunActive
     readonly property var currentJob: {
-        const jobs = workflowSession.queue
+        const jobs = (editor ? editor.shownQueue : [])
         let latest = null
         for (const job of jobs) {
             if (job.workflow_id !== workflowSession.workflow.id || job.order === undefined) continue
@@ -27,7 +27,7 @@ Item {
         }
         return latest
     }
-    readonly property int pendingRunCount: workflowSession.queue.filter(job =>
+    readonly property int pendingRunCount: (editor ? editor.shownQueue : []).filter(job =>
         job.workflow_id === workflowSession.workflow.id
         && ["queued", "scheduled", "starting"].includes(job.status)).length
     readonly property string runLabel: {
