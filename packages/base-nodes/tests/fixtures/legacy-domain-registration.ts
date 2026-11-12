@@ -17598,6 +17598,119 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
+    title: 'Trigger',
+    description: 'Fires one gate pulse for each change of its switch, with a pitch value: plays notes by hand while the patch runs.\n' +
+      '    cv, synthesis, trigger, gate, note, manual, keyboard, modular\n' +
+      '\n' +
+      '    Each change of trigger starts a gate pulse of length seconds at the next block. A change during a pulse starts the pulse again after one low sample, so the gate rises for every change. The pitch output carries note in octaves (note / 12, volts/octave). The gate stays low until the first change, so a render without a live change is silent.\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Play a Sampler voice with one click\n' +
+      '    - Start an ADSR envelope by hand\n' +
+      '    - Try a note at a chosen pitch',
+    namespace: 'nodetool.audio.synth',
+    node_type: 'nodetool.audio.synth.Trigger',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'trigger',
+        type: {
+          type: 'bool',
+          type_args: []
+        },
+        required: false,
+        title: 'Trigger',
+        description: 'Each change fires one gate pulse while the patch runs.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: false
+      },
+      {
+        name: 'note',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Note',
+        description: 'Pitch of the note in semitones. The pitch output carries note / 12.',
+        min: -48,
+        max: 48,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'length',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Length',
+        description: 'Gate-high time of one pulse in seconds.',
+        min: 0.001,
+        max: 60,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.1
+      }
+    ],
+    outputs: [
+      {
+        name: 'gate',
+        type: {
+          type: 'cv',
+          type_args: []
+        }
+      },
+      {
+        name: 'pitch',
+        type: {
+          type: 'cv',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'trigger',
+      'note'
+    ],
+    input_fields: [],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
     title: 'VCA',
     description: 'Voltage-controlled amplifier: multiplies an audio stream by a CV stream.\n' +
       '    audio, cv, synthesis, vca, amplifier, modular\n' +
@@ -18320,6 +18433,268 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'in2',
       'in3',
       'in4'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Sampler',
+    description: 'Plays an audio clip as a polyphonic instrument: each gate trigger starts a voice.\n' +
+      '    audio, synthesis, sampler, sample, drum, voice, polyphonic, modular\n' +
+      '\n' +
+      '    Each rising edge of the gate (≥ 0.5) starts a voice at the start of the region. The voice reads pitch_cv at that sample (volts/octave: rate = 2^(cv + tune / 12)) and keeps that rate, so voices at different pitches sound together. When all voices sound, a new trigger replaces the oldest voice. The gate drives chunk cadence (sample-aligned). With no gate patched, the gate is high from the first frame, so the clip plays one time. The output has the channels of the clip.\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Play drum hits from gate patterns\n' +
+      '    - Play a melody from one recorded note\n' +
+      '    - Loop or stutter a slice of a clip',
+    namespace: 'nodetool.audio.synth',
+    node_type: 'nodetool.audio.synth.Sampler',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The clip that the voices play.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
+        name: 'gate',
+        type: {
+          type: 'cv',
+          type_args: []
+        },
+        required: false,
+        title: 'Gate',
+        description: 'Gate CV stream. Each rising edge (≥ 0.5) starts a voice. When patched, drives the output chunk cadence.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      },
+      {
+        name: 'pitch_cv',
+        type: {
+          type: 'cv',
+          type_args: []
+        },
+        required: false,
+        title: 'Pitch CV',
+        description: 'Pitch control stream in octaves (volts/octave). A voice keeps the value of its trigger sample.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      },
+      {
+        name: 'mode',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            'one_shot',
+            'gated',
+            'loop'
+          ]
+        },
+        required: false,
+        title: 'Mode',
+        description: 'one_shot plays each voice to the end of the region. gated fades a voice out when the gate falls. loop also repeats the region.',
+        min: undefined,
+        max: undefined,
+        values: [
+          'one_shot',
+          'gated',
+          'loop'
+        ],
+        json_schema_extra: undefined,
+        default: 'one_shot'
+      },
+      {
+        name: 'voices',
+        type: {
+          type: 'int',
+          type_args: []
+        },
+        required: false,
+        title: 'Voices',
+        description: 'Voices that can sound together. A trigger beyond this number replaces the oldest voice.',
+        min: 1,
+        max: 32,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 8
+      },
+      {
+        name: 'tune',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Tune',
+        description: 'Pitch offset in semitones.',
+        min: -48,
+        max: 48,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'start',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Start',
+        description: 'Start of the played region in seconds.',
+        min: 0,
+        max: 600,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'length',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Length',
+        description: 'Length of the played region in seconds. Zero plays to the end of the clip. The region is at most 30 s.',
+        min: 0,
+        max: 30,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'attack',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Attack',
+        description: 'Fade-in time of each voice in seconds.',
+        min: 0,
+        max: 10,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'release',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Release',
+        description: 'Fade-out time in seconds after the gate falls, in the gated and loop modes.',
+        min: 0,
+        max: 10,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.05
+      },
+      {
+        name: 'gain',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Gain',
+        description: 'Output level (linear).',
+        min: 0,
+        max: 4,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'audio',
+      'gate',
+      'pitch_cv'
     ],
     required_settings: [],
     required_runtimes: [],
