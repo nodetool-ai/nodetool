@@ -233,7 +233,13 @@ shared `NodeTool.ModelPicker`, `NodeTool.Chat`, `NodeTool.Media` and
 | `aiassist/TimelineAgentPanel.qml` | `EditorChat.qml` | Both use `NodeTool.Chat`. Nothing to move. |
 
 Step 7 moves a component only after the timeline needs it. This table is the
-candidate list, not a plan to move them.
+candidate list, not a plan to move them. After step 6 the timeline needs none
+of them: it reads no `TypeIcon`, `OutputStyle`, media view or chrome component,
+and the model picker is already the shared `NodeTool.ModelPicker` module.
+`WorkflowClip.qml` keeps its own input form. Sharing it with `PropertyField.qml`
+would need a neutral property descriptor, a small services interface in place
+of `PropertyHost`, and the picker controllers moved out of `node_editor_core`.
+That is a separate decision, not part of this refactor.
 
 ## Open questions
 
