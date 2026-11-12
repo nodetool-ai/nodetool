@@ -69,10 +69,6 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool hasUnsavedChanges READ hasUnsavedChanges NOTIFY panelChanged)
   Q_PROPERTY(QVariantList outputMedia READ outputMedia NOTIFY mediaChanged)
   Q_PROPERTY(bool runActive READ runActive NOTIFY panelChanged)
-  // The run queue the queue overlay shows. A change shows once the queue holds
-  // for shownQueueDelayMs, so a burst of short preview runs does not flicker it.
-  // The toolbars and the inspector read the same debounced state.
-  Q_PROPERTY(QVariantList shownQueue READ shownQueue NOTIFY shownQueueChanged)
   // Space or a pane double-click arms the catalog to add at that canvas point, as the web node menu does.
   Q_PROPERTY(bool catalogAtPointer READ catalogAtPointer NOTIFY catalogPlacementChanged)
   Q_PROPERTY(QString graphSummary READ graphSummary NOTIFY panelChanged)
@@ -157,6 +153,9 @@ public:
   void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
   bool runActive() const;
+  // The run queue the queue overlay shows through RunState. A change shows once the queue holds
+  // for shownQueueDelayMs, so a burst of short preview runs does not flicker it.
+  // The toolbars and the inspector read the same debounced state.
   QVariantList shownQueue() const { return shownQueue_; }
   bool shownRunActive() const { return shownActivity_.second; }
   static constexpr int shownQueueDelayMs = 300;

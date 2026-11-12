@@ -21,10 +21,12 @@ no longer read, and when it finds no QML files or no `EditorWindow` members.
 
 ## What the scan covers
 
-`EditorWindow::EditorWindow` sets ten root context properties, not five:
-`editor`, `workflowBrowser`, `libraryBrowser`, `runOutput`, `workflowSession`,
-`mediaResolver`, `modelPickerController`, `assetPickerController`,
-`resourcePickerController` and `documentPickerController`.
+`EditorWindow::EditorWindow` set ten root context properties. It now sets
+five: `mediaResolver`, `modelPickerController`, `assetPickerController`,
+`resourcePickerController` and `documentPickerController`. `editor`,
+`workflowBrowser`, `libraryBrowser`, `runOutput` and `workflowSession` are
+gone. The scan still lists `editor`, so it fails if a file reads the window
+again.
 
 The window used to reach QML under other names. `EditorChat.cpp` and
 `InlineTitlePresenter.cpp` passed the window as `host` through
@@ -148,6 +150,21 @@ Moved so far:
   which keep the geometry. `EditorChat.qml` also needs the chat session, so
   `tests/ui/ChatWindowComponentTest.cpp` checks the interface's requests and
   `EditorChatTest::geometryAndPersistence` covers the window wiring.
+- The `editor`, `libraryBrowser`, `runOutput` and `workflowSession` context
+  properties are gone. `QueueOverlay.qml` takes `RunState` for the debounced
+  queue, the connection, the open workflow, the selected run and the cancel
+  and select requests. `RunOutput.qml` reads the run output's runs, selected
+  run, collections and rich entries from `RunState`, which sends its select
+  and clear requests to `RunOutputModel` and its cancel request to
+  `WorkflowSession`. `RunState` holds the two item models through `QPointer`
+  and does not own them. `LibraryPanel.qml` takes the existing
+  `LibraryBrowser` as `library`. It moved into `node_editor_interfaces`, which
+  now links `nodetool_media` for its asset list model. The window's
+  `shownQueue` property is gone. `ServerSyncPanel.qml` already took the session
+  as a `required property var workflowSession`, because `WorkflowSession` lives
+  in `node_editor_core` and cannot be a QML type of the module.
+  `tests/ui/RunOutputComponentTest.cpp` loads `QueueOverlay.qml` with a fixture
+  `RunState`, and `tests/ui/QueueUiTest.cpp` fills one as the window does.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
@@ -163,7 +180,7 @@ Moved so far:
 | `WorkflowHeader` (moved) | Workflow name and rename, save readout and its action, undo and redo, More menu | `HeaderRow.qml` |
 | `PanelLayout` (moved for the rail, the document bar and the status bar) | Which panels are open and the toggles | `HeaderRow.qml`, `Rail.qml`, `StatusBar.qml`, `RunOutput.qml` |
 | `StatusModel` (moved for the status bar and the side panels) | Connection status, detail and state, node and edge counts, queue counts, system stats, status message, connect request | `StatusBar.qml`, `WorkflowBrowser.qml`, `LibraryPanel.qml`, `RunOutput.qml` |
-| `RunState` (moved for the toolbar, the group controls and the run output) | Shown queue, connection, workflow id, authored group commands, ask the agent about a run | `Toolbar.qml`, `AuthoredControls.qml`, `RunOutput.qml`, `QueueOverlay.qml` |
+| `RunState` (moved) | Shown queue, connection, workflow id, authored group commands, ask the agent about a run, run output runs and models, cancel, select and clear | `Toolbar.qml`, `AuthoredControls.qml`, `RunOutput.qml`, `QueueOverlay.qml` |
 | `Viewport` (moved) | Zoom percent and preset, mini-map color mode and popups, view commands | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
 | `Notifications` (moved) | Notification list, unread count, open the list, copy an entry | `TabBar.qml`, `NotificationsPanel.qml` |
 | `ChatWindow` (moved) | Chat window drag, resize and position reset | `EditorChat.qml` |
@@ -193,10 +210,11 @@ The other context properties are already narrow objects. Each reader takes it
 as a `required property` instead of reading the global:
 
 - `workflowBrowser`: removed. `WorkflowBrowser.qml` takes it as `browser`.
-- `libraryBrowser`: `LibraryPanel.qml`.
-- `runOutput`: `RunOutput.qml`, `QueueOverlay.qml`.
-- `workflowSession`: `QueueOverlay.qml`, `Toolbar.qml` (`ServerSyncPanel.qml`
-  already takes it as a required property).
+- `libraryBrowser`: removed. `LibraryPanel.qml` takes it as `library`.
+- `runOutput`: removed. `RunOutput.qml` and `QueueOverlay.qml` read it through
+  `RunState`.
+- `workflowSession`: removed. `QueueOverlay.qml` reads it through `RunState`,
+  and `ServerSyncPanel.qml` takes it as a required property.
 - `mediaResolver`: the media and output views.
 - The four picker controllers: the property editors. They read the global
   through `typeof x === "undefined" ? null : x` guards today, which a required
@@ -237,17 +255,15 @@ candidate list, not a plan to move them.
 <!-- INTERFACES -->
 ```json
 {
-  "RunState": ["shownQueue"],
   "Leaves the window": []
 }
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 19 read a root context property, 1 of them read the editor window. `EditorWindow.h` exposes 12 properties and 12 invokable methods or slots (24 members) and 14 signals.
+Scanned 78 files in `qml/`. 16 read a root context property, 0 of them read the editor window. `EditorWindow.h` exposes 11 properties and 12 invokable methods or slots (23 members) and 14 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
-| QueueOverlay.qml | 1 | `runOutput` (2), `workflowSession` (4) |
 | AssetPropertyEditor.qml |  | `mediaResolver` (0, passed on), `assetPickerController` (0, passed on), `resourcePickerController` (0, passed on) |
 | CanvasMedia.qml |  | `mediaResolver` (6) |
 | CardMediaPlayer.qml |  | `mediaResolver` (6) |
@@ -256,14 +272,12 @@ Scanned 78 files in `qml/`. 19 read a root context property, 1 of them read the 
 | ImageComparisonOutput.qml |  | `mediaResolver` (6) |
 | ImageViewer.qml |  | `mediaResolver` (1) |
 | InlinePropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
-| LibraryPanel.qml |  | `libraryBrowser` (13, passed on), `assetPickerController` (3) |
+| LibraryPanel.qml |  | `assetPickerController` (3) |
 | MediaParameterPropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
 | MediaPreview.qml |  | `mediaResolver` (14) |
 | Model3DPropertyEditor.qml |  | `assetPickerController` (0, passed on) |
 | ModelPropertyEditor.qml |  | `modelPickerController` (0, passed on) |
 | RemainingResourcePropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
-| RunOutput.qml |  | `runOutput` (6) |
-| ServerSyncPanel.qml |  | `workflowSession` (11) |
 | TextOutput.qml |  | `mediaResolver` (7) |
 | WorkflowPropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
 
@@ -273,10 +287,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 `passed on` means the file hands the whole object to a child, such as `propertyHost: editor`.
 
-- **QueueOverlay.qml**
-  - `editor`: shownQueue
-  - `runOutput`: selectRun, selectedRunId
-  - `workflowSession`: cancelJob, connected, queue, workflow
 - **AssetPropertyEditor.qml**
   - `mediaResolver`: none passed on as resolver:
   - `assetPickerController`: none passed on as controller:
@@ -296,7 +306,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 - **InlinePropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
 - **LibraryPanel.qml**
-  - `libraryBrowser`: assetModel, breadcrumbs, busy, configured, createFolder, error, favoritesOnly, goUp, openFolder, refresh, searchText, tagFilter, typeFilter passed on as browser:
   - `assetPickerController`: on failed, on uploaded, upload
 - **MediaParameterPropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
@@ -308,10 +317,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `modelPickerController`: none passed on as controller:
 - **RemainingResourcePropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
-- **RunOutput.qml**
-  - `runOutput`: clear, collections, richEntries, runs, selectRun, selectedRunId
-- **ServerSyncPanel.qml**
-  - `workflowSession`: autosaveState, conflictPending, conflictWorkflow, mergeConflicts, on credentialsChanged, on errorOccurred, on stateChanged, on workflowOpened, remoteLoading, saving, serverBound
 - **TextOutput.qml**
   - `mediaResolver`: cancel, on cleared, on failed, on resolved, release, resolve, resolvedText
 - **WorkflowPropertyEditor.qml**
@@ -319,8 +324,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 ### Editor members by proposed interface
 
-- **RunState** (1 members, read by 1 files: QueueOverlay.qml)
-  - `shownQueue` property: QueueOverlay.qml
 - **Leaves the window** (0 members, read by 0 files: )
 
 Members no QML file reads (C++ callers only, or dead): `action`, `askAgent`, `askRunAgent`, `cancelCatalogPlacement`, `catalogAtPointer`, `closeAllTabs`, `closeOtherTabs`, `emptyCanvas`, `focusCanvas`, `graphSummary`, `hasUnsavedChanges`, `layoutOverlays`, `openChild`, `outputMedia`, `runActive`, `saveState`, `serverSaveState`, `serverSyncAvailable`, `serverSyncNeedsAttention`, `setProperty`, `setup`, `showToolTip`, `toggleChat`.

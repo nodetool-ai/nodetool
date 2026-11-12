@@ -112,7 +112,7 @@ private slots:
     QVERIFY(panel && panel->rootObject());
     auto *grid = panel->rootObject()->findChild<QQuickItem *>("library-grid");
     QVERIFY2(grid, "NodeTool.Media AssetGrid did not load");
-    auto *library = qobject_cast<node_editor::LibraryBrowser *>(panel->rootContext()->contextProperty("libraryBrowser").value<QObject *>());
+    auto *library = qobject_cast<node_editor::LibraryBrowser *>(panel->rootObject()->property("library").value<QObject *>());
     QVERIFY(library);
     QTRY_VERIFY2(library->assetModel()->count() == 2, qPrintable(QString("configured=%1 error=%2 requests=%3").arg(library->configured()).arg(library->error()).arg(http.parents.join(','))));
     QTRY_VERIFY2(findItem(panel->rootObject(), "libraryAsset_image-1"), qPrintable(QString("grid %1x%2 panel %3x%4").arg(grid->width()).arg(grid->height()).arg(panel->width()).arg(panel->height())));
