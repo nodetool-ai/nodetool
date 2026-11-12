@@ -118,6 +118,9 @@ void semantics(const Json& plan, const Registry& registry, const Plan* previous,
     std::unordered_map<std::string, unsigned> identities;
     for (const auto& param : plan["params"]) {
         const auto node = param["node"].get<std::string>();
+        if ((param["smooth"] == "onePole") != param.contains("timeConstant")) {
+            reject(node, "smoothing", "Only onePole smoothing requires a timeConstant");
+        }
         const auto key = Json::array({param["node"], param["field"]}).dump();
         const auto slot = param["slot"].get<unsigned>();
         if (!params.insert(slot).second || !identities.emplace(key, slot).second) { reject(node, "duplicate_param", key); }
