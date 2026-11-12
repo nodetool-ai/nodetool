@@ -185,6 +185,10 @@ endif()
 # Web Audio biquad design with the lib.audio nodes.
 if(NOT TARGET nodetool_kernels)
     add_subdirectory(../kernels ${CMAKE_CURRENT_BINARY_DIR}/kernels)
+    # native/kernels requires CMake 3.28, whose policy CMP0155 scans C++20
+    # sources for modules. The kernels use none, and the scan needs
+    # clang-scan-deps, which the CI image does not install.
+    set_target_properties(nodetool_kernels PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 endif()
 
 # Model and scene evaluation: no GUI, shared by the app and the tests.
