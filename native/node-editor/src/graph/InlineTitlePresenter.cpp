@@ -172,7 +172,7 @@ void InlineTitlePresenter::refresh() {
     widget->setInitialProperties({{"hasChildren", parents.contains(model_.resourceId(id))}, {"bypassed", bypassedParents.contains(model_.resourceId(id))}, {"host", QVariant::fromValue(editor)}, {"resourceId", model_.resourceId(id)},
       {"group", model_.isGroup(id)}, {"epoch", QVariant::fromValue(editor->documentEpoch())},
       {"credentials", QVariant::fromValue(editor->credentialsEpoch())}});
-    widget->setSource(QUrl("qrc:/editor/AuthoredControls.qml"));
+    widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/AuthoredControls.qml"));
   }
   clearNotes();
   for (const auto id : model_.allNodeIds()) {
@@ -213,7 +213,7 @@ void InlineTitlePresenter::activate(QtNodes::NodeId id) {
   widget->setObjectName("inline-title-overlay"); widget->setClearColor(Qt::transparent);
   widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
   widget->setInitialProperties({{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_}});
-  reposition(); widget->setSource(QUrl("qrc:/editor/InlineTitleEditor.qml"));
+  reposition(); widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/InlineTitleEditor.qml"));
   if (widget->status() == QQuickWidget::Error) { cancel(); return; }
   widget->show(); widget->raise(); widget->setFocus(Qt::MouseFocusReason); emit changed();
   const auto token = generation_;

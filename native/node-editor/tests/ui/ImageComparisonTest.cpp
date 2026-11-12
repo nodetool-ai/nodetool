@@ -53,7 +53,7 @@ struct Host {
         if (scroll) {
             component.setData(R"(
                 import QtQuick
-                import "qrc:/editor" as Editor
+                import NodeTool.NodeEditor as Editor
                 Flickable {
                     objectName: "comparison-scroll"
                     contentWidth: width; contentHeight: 1000
@@ -66,7 +66,7 @@ struct Host {
             )", QUrl("qrc:/comparison-fixture.qml"));
             object.reset(component.create());
         } else {
-            component.loadUrl(QUrl("qrc:/editor/ImageComparisonOutput.qml"));
+            component.loadUrl(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ImageComparisonOutput.qml"));
             object.reset(component.createWithInitialProperties({{"comparison", comparison}}));
         }
         error = component.errorString();
@@ -289,7 +289,6 @@ private slots:
     }
 };
 int main(int argc, char **argv) {
-    Q_INIT_RESOURCE(editor_qml);
     QApplication app(argc, argv);
     nodetool::node_editor::registerMediaTypes();
     ImageComparisonTest test;

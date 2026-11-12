@@ -1,5 +1,6 @@
 import QtQuick
 import NodeTool.UiPrimitives as Ui
+import NodeTool.NodeEditor
 Rectangle {
     width: 1000; height: 1200
     color: roles.chrome

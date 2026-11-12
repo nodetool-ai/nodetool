@@ -243,7 +243,7 @@ void CanvasMediaPresenter::showPlayers(QtNodes::NodeGraphicsObject &node, const 
       widget->setFocusPolicy(Qt::StrongFocus);
       widget->setInitialProperties({{"items", items}, {"geometry", geometry}, {"playerKey", key},
                                     {"requestKey", "card-media-player:" + key + ':' + QString::number(++serial_)}});
-      widget->setSource(QUrl("qrc:/editor/CardMediaPlayer.qml"));
+      widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CardMediaPlayer.qml"));
       if (widget->status() == QQuickWidget::Error || !widget->rootObject()) { widget->deleteLater(); continue; }
       connect(widget->rootObject(), SIGNAL(naturalSizeReported(QString,int,int,int)), this, SLOT(reportNaturalSize(QString,int,int,int)));
       players_.insert(key, {widget, node.nodeId(), row.propertyName, row.mediaList, items, geometry});
@@ -322,7 +322,7 @@ void CanvasMediaPresenter::refresh() {
           widget->setFocusPolicy(Qt::StrongFocus);
           widget->setInitialProperties({{"richEntry", source->value("richEntry", QVariantMap{})}, {"mediaKind", source->value("kind")}, {"locator", source->value("locator")},
             {"filename", source->value("filename").toString()}, {"notice", source->value("notice").toString()}, {"items", source->value("items")}, {"previewActions", source->value("previewActions").toBool()}, {"requestKey", "canvas-media:" + id + ':' + QString::number(++serial_)}});
-          widget->setSource(QUrl("qrc:/editor/CanvasMedia.qml"));
+          widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CanvasMedia.qml"));
           if (widget->status() == QQuickWidget::Error) { widget->deleteLater(); continue; }
           active_.insert(id, {widget, *source});
         }
@@ -397,7 +397,7 @@ bool CanvasMediaPresenter::openImageViewer(QtNodes::NodeId id) {
   const auto items = source.value("items").toList();
   if (!canOpenImageViewer(id)) { return false; }
   closeImageViewer();
-  QQmlComponent component(engine_, QUrl("qrc:/editor/ImageViewer.qml"));
+  QQmlComponent component(engine_, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ImageViewer.qml"));
   auto object = component.createWithInitialProperties({{"items", items}, {"selected", items.first()},
       {"currentIndex", 0}, {"scopeKey", "canvas-image:" + resource + ':' + QString::number(++serial_)}});
   auto viewer = qobject_cast<QQuickWindow *>(object);
