@@ -28,6 +28,7 @@ struct Options {
     std::function<void(const QByteArray&)> videoFrameForTest = {}; // packed YUV420P, before encoding
     std::function<void(const QImage&)> floatCanvasForTest = {}; // straight FP32, before resize
     nt::WorkingFormat workingFormat = nt::WorkingFormat::Rgba8; // internal test selection only
+    int audioBitDepth = 16;  // WAV only: 16 or 24, both rounded without dither
 };
 struct Progress {
     QString phase;

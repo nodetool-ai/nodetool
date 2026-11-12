@@ -16,6 +16,7 @@
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
+#include <QQmlEngine>
 #include <QSaveFile>
 #include <QSet>
 #include <QSettings>
@@ -240,6 +241,16 @@ MusicJobs::~MusicJobs() {
     m_jobs.clear();
 }
 
+MusicJobs* MusicJobs::forTimeline(TimelineModel* timeline) {
+    if (!timeline) return nullptr;
+    if (auto* existing = timeline->findChild<MusicJobs*>(QString(), Qt::FindDirectChildrenOnly)) return existing;
+    // Owned by the model through the Qt parent; QML never takes it.
+    auto* jobs = new MusicJobs(timeline);
+    QQmlEngine::setObjectOwnership(jobs, QQmlEngine::CppOwnership);
+    jobs->setTimeline(timeline);
+    return jobs;
+}
+
 void MusicJobs::setTimeline(TimelineModel* timeline) {
     if (m_timeline == timeline) return;
     if (m_timeline) disconnect(m_timeline, nullptr, this, nullptr);
@@ -402,6 +413,14 @@ QVariantMap MusicJobs::row(const Job& job) const {
             {"canCancel", job.state == u"rendering" || job.state == u"queued" || job.state == u"running"},
             {"canRetry", job.state == u"failed" || job.state == u"cancelled"},
             {"canPlace", placeable}};
+}
+
+QStringList MusicJobs::contextAssetIds() const {
+    QStringList ids;
+    for (const auto& job : m_jobs) {
+        if (!job.contextAssetId.isEmpty()) ids.append(job.contextAssetId);
+    }
+    return ids;
 }
 
 QVariantMap MusicJobs::job(const QString& jobId) const {

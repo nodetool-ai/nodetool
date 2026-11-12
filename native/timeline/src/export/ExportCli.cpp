@@ -46,6 +46,7 @@ int exportCli(int argc, char** argv) {
         {QStringLiteral("height"), "Output picture height (0: timeline height)", "PX"},
         {QStringLiteral("fps"), "Output frame rate (0: timeline rate)", "FPS"},
         {QStringLiteral("video-bitrate"), "Target video bit rate (0: fixed quality)", "KBPS"},
+        {QStringLiteral("audio-bit-depth"), "WAV sample depth", "16|24", "16"},
         {QStringLiteral("scale-mode"), "fit (letterbox) or fill (centre crop)", "fit|fill", "fit"},
         {QStringLiteral("alpha"), "Keep transparency (unavailable in this build)"},
         {QStringLiteral("cancel-after-frames"), "Cancel after N completed frames", "N"},
@@ -113,6 +114,11 @@ int exportCli(int argc, char** argv) {
         !number("width", options.width) || !number("height", options.height) ||
         !number("fps", options.fps) || !number("video-bitrate", options.videoBitrateKbps)) return 2;
     options.scaleMode = parser.value("scale-mode");
+    options.audioBitDepth = parser.value("audio-bit-depth").toInt();
+    if (options.audioBitDepth != 16 && options.audioBitDepth != 24) {
+        std::fprintf(stderr, "error: audio-bit-depth must be 16 or 24\n");
+        return 2;
+    }
     const auto loaded = server::loadTimelineSource(parser.positionalArguments().first());
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));

@@ -3690,3 +3690,14 @@ test_host = "tst_musicui"
 test_scope = "build/import"
 qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.EmptyState"
+
+# Music mode MM7 (TK-5): the clean-up dialog.
+[[file]]
+path = "native/timeline/qml/music/MusicCleanupHost.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.BusyIndicator", "Ui.Text", "ListView", "Ui.ScrollBar", "Ui.EditorButton", "MusicCleanup"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.ScrollBar, Ui.EditorButton over the MusicCleanup controller"
