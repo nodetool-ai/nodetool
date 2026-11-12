@@ -2,7 +2,7 @@
 /** Pin original release artifacts and their measured Linux production trees. */
 import { createHash } from "node:crypto";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -123,7 +123,7 @@ export async function pinCatalog(catalog, tarballs, {
   additionalPins = [],
   measurementOptions = {},
   measure = (pack) => measurePackInstallBytes(pack, tarballs, workspaces, measurementOptions),
-  readManifest = (file) => JSON.parse(runReleaseCommand("tar", ["-xOf", file, "package/package.json"], {}))
+  readManifest = (file) => JSON.parse(runReleaseCommand("tar", ["-xOf", basename(file), "package/package.json"], { cwd: dirname(file) }))
 } = {}) {
   const names = catalogPackageNames(catalog);
   for (const pack of catalog.packs) {

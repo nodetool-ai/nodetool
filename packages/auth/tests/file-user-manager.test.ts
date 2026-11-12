@@ -1,9 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { FileUserManager } from "../src/file-user-manager.js";
-import { mkdtemp, rm, readFile } from "node:fs/promises";
+import { mkdtemp, rm, readFile, rename, readdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+
+vi.mock("node:fs/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return { ...actual, rename: vi.fn(actual.rename) };
+});
+
+const originalPlatform = process.platform;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -13,12 +20,14 @@ let usersFilePath: string;
 let manager: FileUserManager;
 
 beforeEach(async () => {
+  vi.mocked(rename).mockReset();
   tmpDir = await mkdtemp(join(tmpdir(), "nodetool-auth-test-"));
   usersFilePath = join(tmpDir, "users.json");
   manager = new FileUserManager(usersFilePath);
 });
 
 afterEach(async () => {
+  Object.defineProperty(process, "platform", { value: originalPlatform, configurable: true });
   await rm(tmpDir, { recursive: true, force: true });
 });
 
@@ -269,11 +278,51 @@ it("keeps Alice credentials and role readable while another manager rotates Bob"
   await manager.addUser("bob");
   const reader = new FileUserManager(usersFilePath);
   let done = false;
-  const writer = (async () => { for (let i = 0; i < 100; i++) await manager.resetToken("bob"); done = true; })();
+  const writer = (async () => {
+    try {
+      for (let i = 0; i < 100; i++) {
+        await manager.resetToken("bob");
+      }
+    } finally {
+      done = true;
+    }
+  })();
+  // Observe a write failure immediately while the reader loop finishes.
+  const outcome = writer.then(() => null, (error: unknown) => error);
   try {
     do {
       expect((await reader.verifyToken(alice.token))?.id).toBe(alice.userId);
       expect((await reader.getUserById(alice.userId))?.role).toBe("admin");
     } while (!done);
-  } finally { await writer; }
+  } finally {
+    const error = await outcome;
+    if (error) {
+      throw error;
+    }
+  }
+});
+
+it.each(["EPERM", "EACCES"])("retries a transient Windows %s without losing users", async (code) => {
+  const alice = await manager.addUser("alice", "admin");
+  Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+  vi.mocked(rename).mockRejectedValueOnce(Object.assign(new Error("busy"), { code }));
+  await manager.addUser("bob");
+  expect((await manager.verifyToken(alice.token))?.role).toBe("admin");
+  expect(await readdir(tmpDir)).toEqual(["users.json"]);
+});
+
+it.each([
+  ["win32", "EPERM", 11],
+  ["win32", "EIO", 1],
+  ["linux", "EPERM", 1]
+] as const)("preserves users after %s %s and bounds replacement attempts", async (platform, code, attempts) => {
+  await manager.addUser("alice", "admin");
+  const previous = await readFile(usersFilePath, "utf8");
+  Object.defineProperty(process, "platform", { value: platform, configurable: true });
+  const failure = Object.assign(new Error("replacement failed"), { code });
+  vi.mocked(rename).mockClear().mockRejectedValue(failure);
+  await expect(manager.addUser("bob")).rejects.toBe(failure);
+  expect(rename).toHaveBeenCalledTimes(attempts);
+  expect(await readFile(usersFilePath, "utf8")).toBe(previous);
+  expect(await readdir(tmpDir)).toEqual(["users.json"]);
 });

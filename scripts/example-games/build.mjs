@@ -23,6 +23,7 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdir
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import { packageManagerInvocation } from "../package-manager.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const BASE = path.join(ROOT, "packages/base-nodes/nodetool");
@@ -114,14 +115,16 @@ const GAMES = [
 function capturePoster(game, sourceDir, out) {
   const png = path.join(path.dirname(path.dirname(out)), `${game.slug}-capture.png`);
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const result = spawnSync("npm", [
+    const invocation = packageManagerInvocation("npm", [
       "run", "--silent", "dev:nodetool", "--", "game", "capture", path.join(sourceDir, "game.json"),
       "--ticks", String(game.posterTick),
       "--inputs", path.join(sourceDir, game.inputs),
       "--assets-dir", path.join(sourceDir, "assets"),
       "--backend", game.backend ?? "webgpu",
       "--out", png
-    ], { cwd: ROOT, encoding: "utf8" });
+    ]);
+    const result = spawnSync(invocation.command, invocation.args, { cwd: ROOT, encoding: "utf8" });
+    if (result.error) throw new Error(`Could not capture the ${game.slug} poster: ${result.error.message}`);
     if (result.status === 0 && /Captured tick/.test(result.stdout + result.stderr)) {
       return sharp(png).jpeg({ quality: 86, mozjpeg: true }).toFile(out).finally(() => rmSync(png, { force: true }));
     }

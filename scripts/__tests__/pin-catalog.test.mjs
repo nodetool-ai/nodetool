@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { catalogPackageNames, measurementManifest, measurePackInstallBytes, measureRuntimeInstallBytes, pinCatalog, tarballIntegrity, withMeasurementTarballs, writePinnedCatalog } from "../release/pin-catalog.mjs";
@@ -88,7 +88,7 @@ describe("catalog release pins", () => {
       const staging = join(root, "staging", name.split("/").pop());
       mkdirSync(join(staging, "package"), { recursive: true });
       writeFileSync(join(staging, "package/package.json"), JSON.stringify({ name, version: "1.2.3" }));
-      const packed = spawnSync("tar", ["-czf", tarballs[name], "-C", staging, "package"], { encoding: "utf8" });
+      const packed = spawnSync("tar", ["-czf", basename(tarballs[name]), "-C", staging, "package"], { cwd: dirname(tarballs[name]), encoding: "utf8" });
       expect(packed.status, packed.stderr).toBe(0);
     }
     const result = await writePinnedCatalog(file, tarballs, { measure: async () => 1024 });
@@ -96,7 +96,7 @@ describe("catalog release pins", () => {
     expect(result.packs.every(pack => pack.npm.integrity.startsWith("sha512-") && pack.installBytes === 1024)).toBe(true);
     writeFileSync(tarballs["@nodetool-ai/game-renderer"], "corrupt archive");
     await expect(pinCatalog(catalog, tarballs, { measure: async () => 1024 })).rejects.toThrow(/tar .* exited/);
-  });
+  }, 30_000);
 
   it("enumerates every checked-in catalog registrar and companion as a public workspace", () => {
     const root = resolve(import.meta.dirname, "../..");
@@ -173,7 +173,7 @@ describe("Linux production install measurement", () => {
     writeFileSync(join(staging, "package/package.json"), JSON.stringify({ name: packName, version, dependencies: { [coreName]: dependency } }));
     writeFileSync(join(core, "package.json"), JSON.stringify({ name: coreName, version }));
     const file = join(root, `measurement-pack-${version}.tgz`);
-    const packed = spawnSync("tar", ["-czf", file, "-C", staging, "package"], { encoding: "utf8" });
+    const packed = spawnSync("tar", ["-czf", basename(file), "-C", staging, "package"], { cwd: dirname(file), encoding: "utf8" });
     expect(packed.status, packed.stderr).toBe(0);
     const before = tarballIntegrity(file);
     const pack = { id: "measurement", npm: { name: packName }, provides: [] };

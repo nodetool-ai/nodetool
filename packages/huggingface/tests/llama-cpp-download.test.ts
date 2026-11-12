@@ -4,7 +4,7 @@
  * concurrent downloads of one file do not share a temp file.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getLlamaCppCacheDir } from "@nodetool-ai/config";
@@ -14,9 +14,16 @@ import {
 } from "../src/llama-cpp-download.js";
 
 let home: string;
+const platform = process.platform;
 const saved: Record<string, string | undefined> = {};
 
+vi.mock("node:fs/promises", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:fs/promises")>();
+  return { ...actual, rename: vi.fn(actual.rename) };
+});
+
 beforeEach(async () => {
+  vi.mocked(rename).mockReset();
   home = await mkdtemp(join(tmpdir(), "llama-dl-"));
   for (const key of ["HOME", "USERPROFILE", "LOCALAPPDATA", "XDG_CACHE_HOME"]) {
     saved[key] = process.env[key];
@@ -28,6 +35,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  Object.defineProperty(process, "platform", { value: platform, configurable: true });
   vi.unstubAllGlobals();
   for (const [key, value] of Object.entries(saved)) {
     if (value === undefined) delete process.env[key];
@@ -55,6 +63,58 @@ describe("getLlamaCppModelFilename", () => {
 });
 
 describe("downloadLlamaCppModel", () => {
+  it.each([
+    ["win32", "EPERM", false, 2],
+    ["win32", "EACCES", false, 2],
+    ["win32", "EPERM", true, 11],
+    ["win32", "EINVAL", true, 1],
+    ["linux", "EPERM", true, 1]
+  ] as const)("handles %s %s replacement failures (permanent=%s)", async (os, code, permanent, attempts) => {
+    Object.defineProperty(process, "platform", { value: os, configurable: true });
+    const directory = getLlamaCppCacheDir();
+    await mkdir(directory, { recursive: true });
+    const output = join(directory, getLlamaCppModelFilename("org/repo", "m.gguf"));
+    await writeFile(output, "previous");
+    const failure = Object.assign(new Error("replacement failed"), { code });
+    if (permanent) {
+      vi.mocked(rename).mockRejectedValue(failure);
+    } else {
+      vi.mocked(rename).mockRejectedValueOnce(failure);
+    }
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "HEAD" ? headResponse(4) : new Response("gguf")));
+    const pending = downloadLlamaCppModel("org/repo", "m.gguf");
+    if (permanent) {
+      await expect(pending).rejects.toBe(failure);
+    } else {
+      await expect(pending).resolves.toBe(output);
+    }
+    expect(rename).toHaveBeenCalledTimes(attempts);
+    expect(await readFile(output, "utf8")).toBe(permanent ? "previous" : "gguf");
+    expect((await readdir(directory)).filter(file => file.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("cleans up and preserves the cached model when replacement retries are cancelled", async () => {
+    Object.defineProperty(process, "platform", { value: "win32", configurable: true });
+    const directory = getLlamaCppCacheDir();
+    await mkdir(directory, { recursive: true });
+    const output = join(directory, getLlamaCppModelFilename("org/repo", "m.gguf"));
+    await writeFile(output, "previous");
+    const controller = new AbortController();
+    vi.mocked(rename).mockImplementation(async () => {
+      controller.abort();
+      throw Object.assign(new Error("sharing violation"), { code: "EPERM" });
+    });
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "HEAD" ? headResponse(4) : new Response("gguf")));
+    await expect(downloadLlamaCppModel("org/repo", "m.gguf", {
+      cancelSignal: controller.signal
+    })).rejects.toThrow(/abort/i);
+    expect(rename).toHaveBeenCalledTimes(1);
+    expect(await readFile(output, "utf8")).toBe("previous");
+    expect(await readdir(directory)).toEqual([getLlamaCppModelFilename("org/repo", "m.gguf")]);
+  });
+
   it("writes a sharded file from a subdirectory into the flat cache", async () => {
     vi.stubGlobal(
       "fetch",

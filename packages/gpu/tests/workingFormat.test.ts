@@ -6,7 +6,7 @@ import type { ShaderModule } from "../src/module.js";
 const root = new URL("../src/shaders/", import.meta.url);
 export async function modules(): Promise<ShaderModule[]> {
   const result: ShaderModule[] = [];
-  for (const file of readdirSync(root, { recursive: true, encoding: "utf8" }).filter(f => f.endsWith("/module.ts")).sort()) {
+  for (const file of readdirSync(root, { recursive: true, encoding: "utf8" }).map(file => file.replaceAll("\\", "/")).filter(f => f.endsWith("/module.ts")).sort()) {
     const exports = await import(fileURLToPath(new URL(file, root)));
     for (const value of Object.values(exports)) {
       if (typeof value === "object" && value !== null && "wgsl" in value) {
@@ -35,7 +35,7 @@ import { checkRenderTexture } from "../src/resourceValidation.js";
 
 async function recipes(): Promise<RecipeModule[]> {
   const result: RecipeModule[] = [];
-  for (const file of readdirSync(root, { recursive: true, encoding: "utf8" }).filter(f => f.endsWith("/module.ts"))) {
+  for (const file of readdirSync(root, { recursive: true, encoding: "utf8" }).map(file => file.replaceAll("\\", "/")).filter(f => f.endsWith("/module.ts"))) {
     const exports = await import(fileURLToPath(new URL(file, root)));
     for (const value of Object.values(exports)) {
       if (typeof value === "object" && value !== null && "recipe" in value) {

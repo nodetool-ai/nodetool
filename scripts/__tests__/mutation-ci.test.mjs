@@ -2,12 +2,13 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 import { belongsToShard } from "../../packages/mutator/dist/shards.js";
 import { aggregate, createPlan, executePartition, createPartitions, mutantWorkers, resolveBase, TARGETS } from "../mutation-ci.mjs";
 
-const helper = new URL("../mutation-ci.mjs", import.meta.url).pathname;
+const helper = fileURLToPath(new URL("../mutation-ci.mjs", import.meta.url));
 let resultDirectory;
 let root;
 let plan;
@@ -56,7 +57,7 @@ beforeAll(() => {
   for (const [offset, output] of outputs.entries()) {
     execFileSync(process.execPath, [helper, "run", path, String(plan.partitions[offset].id), output], { cwd: root, encoding: "utf8" });
   }
-});
+}, 180_000);
 
 function changeReceipt(index, mutate, check) {
   const path = join(outputs[index], "receipt.json");
@@ -71,7 +72,7 @@ function changeReceipt(index, mutate, check) {
   }
 }
 
-describe("mutation CI exact union", () => {
+describe("mutation CI exact union", { timeout: 60_000 }, () => {
   it("combines actual independent shard outcomes and honest partial scores", () => {
     const result = aggregate(root, plan, outputs);
     expect(result.score).toContain("86.36%** | **19 / 22**");
@@ -211,7 +212,7 @@ describe("mutation CI exact union", () => {
     }
   });
 
-  it("rejects source pins, commands, files, and partition tampering", async () => {
+  it("rejects source pins, commands, files, and partition tampering", { timeout: 120_000 }, async () => {
     for (const alter of [
       (value) => { value.head = "0".repeat(40); },
       (value) => { value.tree = "0".repeat(40); },
@@ -333,7 +334,7 @@ describe("bounded source partitions", () => {
   });
 });
 
-it("pins every CI checkout and preserves complete target, budget, and aggregate contracts", () => {
+it("pins every CI checkout and preserves complete target, budget, and aggregate contracts", { timeout: 30_000 }, () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/mutation-changed.yml", import.meta.url), "utf8"));
   expect(workflow.permissions).toEqual({ contents: "read", packages: "read" });
   const jobs = workflow.jobs;

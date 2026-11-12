@@ -27,7 +27,7 @@ function testTaskIds(filters) {
   return JSON.parse(json).tasks.filter(({ task }) => task === "test").map(({ taskId }) => taskId);
 }
 
-describe("Packed verification partition", () => {
+describe("Packed verification partition", { timeout: 60_000 }, () => {
   it("preserves every real Turbo test task exactly once for full and affected plans", () => {
     const cases = [
       { steps: fullPlan(), filters: ["--filter=./packages/*", "--filter=./reliability/*"] },
@@ -113,7 +113,7 @@ describe("Packed verification partition", () => {
       cwd: checkout, encoding: "utf8", env: { ...process.env, GITHUB_OUTPUT: join(dir, "outputs") }
     });
     try {
-      for (const file of ["scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "packages/cli-harness/src/affected/affected.ts"]) {
+      for (const file of ["scripts/package-manager.mjs", "scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "packages/cli-harness/src/affected/affected.ts"]) {
         mkdirSync(dirname(join(checkout, file)), { recursive: true });
         cpSync(join(ROOT, file), join(checkout, file));
       }
@@ -190,7 +190,7 @@ describe("Packed verification partition", () => {
     for (const result of ["PLAN_RESULT", "VERIFICATION_RESULT", "PACKED_INSTALL_RESULT"]) {
       expect(workflow).toContain(`"$${result}" != "success"`);
     }
-    for (const path of ["scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "scripts/__tests__/packed-verification.test.mjs"]) {
+    for (const path of ["scripts/package-manager.mjs", "scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "scripts/__tests__/packed-verification.test.mjs"]) {
       expect(workflow).toContain(`- '${path}'`);
     }
   });

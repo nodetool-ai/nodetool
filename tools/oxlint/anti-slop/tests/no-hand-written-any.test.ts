@@ -26,7 +26,7 @@ interface Diagnostic {
 const testsDir = fileURLToPath(new URL(".", import.meta.url));
 const repoRoot = join(testsDir, "..", "..", "..", "..");
 const configPath = join(testsDir, "any.fixture.json");
-const oxlint = join(repoRoot, "node_modules", ".bin", "oxlint");
+const oxlint = join(repoRoot, "node_modules", "oxlint", "bin", "oxlint");
 
 /**
  * Cases, keyed by fixture file name. `expected` is the lines `no-hand-written-any`
@@ -141,7 +141,7 @@ beforeAll(() => {
 		reported.set(name, []);
 		reportedDictionary.set(name, []);
 	}
-	const run = spawnSync(oxlint, ["--config", configPath, "--format", "json", workDir], {
+	const run = spawnSync(process.execPath, [oxlint, "--config", configPath, "--format", "json", workDir], {
 		cwd: repoRoot,
 		encoding: "utf8",
 	});

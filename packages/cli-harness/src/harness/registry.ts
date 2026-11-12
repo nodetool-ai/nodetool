@@ -269,6 +269,11 @@ const LEAN_SERVER_PACKAGES = [
   "runtime-core", "security-core", "server-core", "server-feature-sandbox",
   "server-features", "server-minimal"
 ];
+const NATIVE_UI_PYTHON = process.platform === "win32" ? "py -3" : "python3";
+const NATIVE_UI_DESIGN_CHECK =
+  `${NATIVE_UI_PYTHON} native/ui_primitives/tools/check_design.py --strict && ` +
+  `${NATIVE_UI_PYTHON} native/ui_primitives/tools/check_dependencies.py`;
+
 const LEAN_SERVER_CHECK =
   `npm run test ${LEAN_SERVER_PACKAGES.map(name => `--workspace=packages/${name}`).join(" ")} && ` +
   "node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/minimal-dependency-guard.test.mjs && " +
@@ -1359,6 +1364,25 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "realtime-portable-spikes",
+    title: "Realtime buffered audio and recording analysis preparation",
+    command: "npm run test:affected:native -- --project realtime --all",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "native/realtime/README.md"
+  },
+  {
+    id: "realtime-audio-worklet-spike",
+    title: "Realtime native and AudioWorklet offline parity spike",
+    command:
+      "node --test native/realtime/spike/audio-worklet/timing.test.mjs && " +
+      "node native/realtime/spike/audio-worklet/build.mjs && " +
+      "node native/realtime/spike/audio-worklet/verify.mjs",
+    kind: "execution",
+    capabilities: ["json", "browser", "no-db"],
+    docs: "native/realtime/spike/audio-worklet/README.md"
+  },
+  {
     id: "native-graph-runner",
     title: "Native QuickJS graph runner",
     command: "node scripts/check-native-graph-runner.mjs",
@@ -1385,16 +1409,12 @@ export const HARNESSES: HarnessEntry[] = [
   {
     id: "native-ui-design",
     title: "Native UI presentation and dependency contracts",
-    command:
-      "python3 native/ui_primitives/tools/check_design.py --strict && " +
-      "python3 native/ui_primitives/tools/check_dependencies.py",
+    command: NATIVE_UI_DESIGN_CHECK,
     kind: "static",
     capabilities: ["no-db"],
     docs: "native/ui_primitives/README.md",
     selfcheck: {
-      command:
-        "python3 native/ui_primitives/tools/check_design.py --strict && " +
-        "python3 native/ui_primitives/tools/check_dependencies.py",
+      command: NATIVE_UI_DESIGN_CHECK,
       cost: "cheap"
     }
   },
@@ -2563,6 +2583,25 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli-harness/tests/capability-coverage.test.ts",
       "scripts/sync-capability-coverage.mjs"
     ]
+  },
+  {
+    id: "realtime-audio-worklet-spike",
+    title: "Realtime native and AudioWorklet offline parity spike",
+    harnesses: ["realtime-audio-worklet-spike"],
+    paths: ["native/realtime/spike/audio-worklet/"],
+    gap:
+      "The offline parity check needs clang with wasm-ld (or Zig) and an installed Chrome channel. " +
+      "Run its documented build and verification commands separately from the root gate. " +
+      "Live-device deadlines and the macOS M0 measurements remain separate qualification work."
+  },
+  {
+    id: "realtime-portable-spikes",
+    title: "Realtime buffered audio and recording analysis preparation",
+    harnesses: ["realtime-portable-spikes"],
+    paths: ["native/realtime/CMakeLists.txt", "native/realtime/.gitignore",
+      "native/realtime/spike/buffered-audio/", "native/realtime/spike/sync/"],
+    gap: "Configure native/realtime/build and build the runtime media package before running CTest. " +
+      "The null audio backend and synthetic recording cannot qualify macOS scheduling, GPU contention or physical A/V sync."
   },
   {
     id: "native-graph-runner",

@@ -116,11 +116,16 @@ and the run says so.
 Mutants of one file run at the same time, one worker per core unless
 `--max-workers` sets a lower cap. Files are taken one at a time. Each worker
 is a directory under `target/mutation-workers`. Every directory on the way to
-the owning package is real and its siblings are symlinks into the project.
+the owning package is real and its siblings link into the project. Windows
+uses directory junctions and private file copies without symlink privileges.
 The package itself is a private copy, with `node_modules`, `dist`, and other
 build output linked. The project tree is never written. Overlays are removed
 at the end of the run, and an interrupted run's overlays are removed at the
 start of the next.
+
+Windows commands run in Git Bash, with `NODETOOL_BASH` available to override
+its installation path. Timed-out commands terminate their process tree before
+worker cleanup.
 
 The default Vitest command allocates one inner test worker per mutation
 worker. The baseline runs the complete related test selection. Mutants add

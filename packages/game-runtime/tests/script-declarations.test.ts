@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, normalize } from "node:path";
 import ts from "typescript";
 import { gameScriptSchemaDeclaration } from "../src/script-declarations.js";
 
@@ -21,7 +21,7 @@ describe("script schema recursive declarations", () => {
       const file = join(directory,"fixture.ts");
       await writeFile(file,`${declaration}\nconst valid: Command = {kind:"setProp",value:{nested:[null,{value:1}]}};\nconst invalid: Command = {kind:"setProp",value:()=>1};`);
       const program = ts.createProgram([file],{noEmit:true,strict:true,skipLibCheck:true,target:ts.ScriptTarget.ES2020});
-      const diagnostics = ts.getPreEmitDiagnostics(program).filter(diagnostic=>diagnostic.file?.fileName===file);
+      const diagnostics = ts.getPreEmitDiagnostics(program).filter(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===file);
       expect(diagnostics).toHaveLength(1);
       expect(ts.flattenDiagnosticMessageText(diagnostics[0].messageText,"\n")).toContain("not assignable");
     } finally { await rm(directory,{recursive:true,force:true}); }

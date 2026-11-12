@@ -41,7 +41,7 @@ describe("benchmark fixture workloads", () => {
         } finally { restored.opened.session.dispose(); }
       } finally { session.dispose(); }
     }
-  }, 30_000);
+  }, process.platform === "win32" ? 120_000 : 30_000);
 
   it.each(["bench-2d-500", "bench-3d-1000", "bench-3d-64-scripted"])("validates %s and retains its intended workload", async (name) => {
     const validation = validateAnyGame(JSON.parse(await readFile(new URL(`../bench/${name}.json`, import.meta.url), "utf8")));

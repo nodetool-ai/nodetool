@@ -40,7 +40,7 @@ function writePackage(modules: string, name: string, version: string = "1.2.3"):
 }
 
 function localMode(root: string) {
-  return classifyInstallLayout({ cliRoot: join(root, "node_modules", "@nodetool-ai", "cli"), coreVersion: "1.2.3", projectHasCli: true, packsHome: join(root, "packs") });
+  return classifyInstallLayout({ pathStyle: process.platform === "win32" ? "win32" : "posix", cliRoot: join(root, "node_modules", "@nodetool-ai", "cli"), coreVersion: "1.2.3", projectHasCli: true, packsHome: join(root, "packs") });
 }
 
 /** node_modules of an active pack project generation under `<root>/packs/1.2.3`. */
@@ -74,7 +74,7 @@ describe("installed pack snapshot", () => {
     const root = fixture();
     const globalModules = join(root, "lib", "node_modules");
     const cliRoot = join(globalModules, "@nodetool-ai", "cli");
-    const mode = classifyInstallLayout({ cliRoot, coreVersion: "1.2.3", globalNodeModulesRoots: [globalModules], packsHome: join(root, "packs") });
+    const mode = classifyInstallLayout({ pathStyle: process.platform === "win32" ? "win32" : "posix", cliRoot, coreVersion: "1.2.3", globalNodeModulesRoots: [globalModules], packsHome: join(root, "packs") });
     writePackage(globalModules, "@nodetool-ai/fal-nodes");
     writePackage(join(cliRoot, "node_modules"), "@nodetool-ai/text-nodes");
     expect(readInstalledPacks(mode, catalog)).toMatchObject({ packs: [], projectRoot: null, resolution: null });

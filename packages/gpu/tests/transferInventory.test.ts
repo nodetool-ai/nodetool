@@ -14,7 +14,7 @@ function hasIO(value: unknown): value is { id: string; version: number; io: IOCo
 
 describe("A97 transfer inventory", () => {
   it("classifies every module slot and matches its transfer and alpha declarations", async () => {
-    const files = readdirSync(shaderRoot, { recursive: true, encoding: "utf8" })
+    const files = readdirSync(shaderRoot, { recursive: true, encoding: "utf8" }).map(file => file.replaceAll("\\", "/"))
       .filter((file) => file.endsWith("/module.ts")).sort();
     expect(files.length).toBeGreaterThan(0);
     expect([...new Set(recorded.map((row) => row[0]))].sort()).toEqual(files);

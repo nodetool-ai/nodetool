@@ -346,7 +346,7 @@ describe("runAcpTurn over HTTP MCP", () => {
     });
     await collect(runAcpTurn({ spawn: cli.spawn, cwd: null, model: "", prompt: "p", tools: [], executeTool: async () => ({ text: "", isError: false }) }));
     expect(cli.requests.find((r) => r.method === "session/set_model")).toBeUndefined();
-    expect(cli.requests.find((r) => r.method === "session/new")?.params["cwd"]).toMatch(/^\//);
+    expect(cli.requests.find((r) => r.method === "session/new")?.params["cwd"]).toBe(process.cwd());
   });
 
   it("matches a permission request to its call by the title of the earlier tool_call update", async () => {

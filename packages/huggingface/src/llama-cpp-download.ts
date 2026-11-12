@@ -21,6 +21,7 @@
 
 import * as fsp from "node:fs/promises";
 import * as path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 
 import { getLlamaCppCacheDir } from "@nodetool-ai/config";
 
@@ -214,8 +215,27 @@ export async function downloadLlamaCppModel(
     }
   }
 
-  // Rename temp file to final location
-  await fsp.rename(tempPath, outputPath);
+  // Windows can temporarily refuse replacement while another download or
+  // reader holds the destination. Keep the previous model intact on failure.
+  try {
+    for (let attempt = 0; ; attempt++) {
+      cancelSignal?.throwIfAborted();
+      try {
+        await fsp.rename(tempPath, outputPath);
+        break;
+      } catch (error) {
+        if (process.platform !== "win32" || attempt === 10 ||
+            !(error instanceof Error) || !("code" in error) ||
+            (error.code !== "EPERM" && error.code !== "EACCES")) {
+          throw error;
+        }
+        await delay(10 * (attempt + 1), undefined, { signal: cancelSignal });
+      }
+    }
+  } catch (error) {
+    await fsp.unlink(tempPath).catch(() => undefined);
+    throw error;
+  }
 
   // Write etag file (keep quotes for llama-server compatibility)
   if (etagRaw) {

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import sharp from "sharp";
 import { afterEach, expect, it } from "vitest";
 
@@ -23,7 +23,8 @@ function fixture() {
   cpSync(path.join(ROOT, "packages/base-nodes/nodetool/examples/games/lumen.game.json"), manifest);
   mkdirSync(path.join(root, "scripts/example-games"), { recursive: true });
   cpSync(path.join(ROOT, "scripts/example-games/build.mjs"), path.join(root, "scripts/example-games/build.mjs"));
-  symlinkSync(path.join(ROOT, "node_modules"), path.join(root, "node_modules"), "dir");
+  cpSync(path.join(ROOT, "scripts/package-manager.mjs"), path.join(root, "scripts/package-manager.mjs"));
+  symlinkSync(path.join(ROOT, "node_modules"), path.join(root, "node_modules"), process.platform === "win32" ? "junction" : "dir");
   const source = path.join(root, "sources/lumen");
   mkdirSync(path.join(source, "assets"), { recursive: true });
   const document = JSON.parse(readFileSync(manifest, "utf8")).document;
@@ -47,7 +48,7 @@ async function changeFirstImage(f) {
 }
 function run(f, args = []) {
   return spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=lumen", ...args], {
-    cwd: f.root, encoding: "utf8", env: { ...process.env, NODETOOL_GAMES_DIR: path.join(f.root, "sources") }
+    cwd: f.root, encoding: "utf8", env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => key.toLowerCase() !== "npm_execpath")), NODETOOL_GAMES_DIR: path.join(f.root, "sources") }
   });
 }
 it("preserves the complete published generation when a later asset fails its digest", async () => {
@@ -60,7 +61,7 @@ it("preserves the complete published generation when a later asset fails its dig
   expect(result.status).not.toBe(0);
   expect(result.stderr).toMatch(/does not match the digest/);
   expect(snapshot(f)).toEqual(before);
-});
+}, 30_000);
 it("preserves the complete published generation when poster capture fails", async () => {
   const f = fixture();
   const before = snapshot(f);
@@ -71,12 +72,12 @@ it("preserves the complete published generation when poster capture fails", asyn
   mkdirSync(bin);
   writeFileSync(path.join(bin, "npm"), `#!${process.execPath}\nprocess.stderr.write("intentional capture failure\\n"); process.exit(1);\n`, { mode: 0o755 });
   const result = spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=lumen", "--posters"], {
-    cwd: f.root, encoding: "utf8", env: { ...process.env, NODETOOL_GAMES_DIR: path.join(f.root, "sources"), PATH: `${bin}${path.delimiter}${process.env.PATH}` }
+    cwd: f.root, encoding: "utf8", env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => key.toLowerCase() !== "npm_execpath")), NODETOOL_GAMES_DIR: path.join(f.root, "sources"), PATH: `${bin}${path.delimiter}${process.env.PATH}`, npm_execpath: path.join(bin, "npm") }
   });
   expect(result.status).not.toBe(0);
   expect(result.stderr).toMatch(/Could not capture/);
   expect(snapshot(f)).toEqual(before);
-});
+}, 30_000);
 it("publishes a complete successful generation and removes obsolete media", async () => {
   const f = fixture();
   await changeFirstImage(f);
@@ -91,7 +92,7 @@ it("publishes a complete successful generation and removes obsolete media", asyn
   expect(readFileSync(path.join(f.media, "poster.jpg"))).toEqual(oldPoster);
   expect(readdirSync(f.media)).not.toContain("obsolete.bin");
   expect(readdirSync(f.base).filter((name) => name.startsWith(".game-bundles-"))).toEqual([]);
-});
+}, 30_000);
 it("rolls back media and manifest when the manifest rename fails", async () => {
   const f = fixture();
   const before = snapshot(f);
@@ -101,14 +102,14 @@ it("rolls back media and manifest when the manifest rename fails", async () => {
   writeFileSync(preload, `import fs from "node:fs"; import {syncBuiltinESMExports} from "node:module";
 const rename=fs.renameSync; let failed=false;
 fs.renameSync=(from,to)=>{ if(!failed && from.includes(".game-bundles-") && from.endsWith("lumen.game.json")){failed=true;throw new Error("intentional publication failure");} return rename(from,to);}; syncBuiltinESMExports();`);
-  const result = spawnSync(process.execPath, ["--import", preload, "scripts/example-games/build.mjs", "--slug=lumen"], {
-    cwd: f.root, encoding: "utf8", env: { ...process.env, NODETOOL_GAMES_DIR: path.join(f.root, "sources") }
+  const result = spawnSync(process.execPath, ["--import", pathToFileURL(preload).href, "scripts/example-games/build.mjs", "--slug=lumen"], {
+    cwd: f.root, encoding: "utf8", env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => key.toLowerCase() !== "npm_execpath")), NODETOOL_GAMES_DIR: path.join(f.root, "sources") }
   });
   expect(result.status).not.toBe(0);
   expect(result.stderr).toMatch(/intentional publication failure/);
   expect(snapshot(f)).toEqual(before);
   expect(readdirSync(f.base).filter((name) => name.startsWith(".game-bundles-"))).toEqual([]);
-});
+}, 30_000);
 function catalogFixture() {
   const f = fixture();
   cpSync(path.join(ROOT, "packages/base-nodes/nodetool/assets/nodetool-base/games"), path.join(f.base, "assets/nodetool-base/games"), { recursive: true });
@@ -134,7 +135,7 @@ it("reconstructs all unchanged bundles without private home projects", () => {
   expect(result.status, result.stderr).toBe(0);
   expect(result.stdout.match(/ assets/g)).toHaveLength(8);
   expect(catalogSnapshot(f)).toEqual(before);
-});
+}, 30_000);
 it("preflights every selected game before publishing any generation", () => {
   const f = catalogFixture();
   const before = catalogSnapshot(f);
@@ -157,7 +158,7 @@ it("preflights every selected game before publishing any generation", () => {
   expect(result.stderr).toMatch(/ENOENT/);
   writeFileSync(path.join(f.base, "examples/games/neon-drift.game.json"), readFileSync(path.join(ROOT, "packages/base-nodes/nodetool/examples/games/neon-drift.game.json")));
   expect(catalogSnapshot(f)).toEqual(before);
-});
+}, 30_000);
 it("rejects fresh canonical 2D poster capture before changing any shipped path", () => {
   const f = fixture();
   const before = snapshot(f);
@@ -167,7 +168,7 @@ it("rejects fresh canonical 2D poster capture before changing any shipped path",
   expect(result.status).not.toBe(0);
   expect(result.stderr).toMatch(/fresh poster capture requires NODETOOL_GAMES_DIR/);
   expect(snapshot(f)).toEqual(before);
-});
+}, 30_000);
 it("rejects asset slots that could escape staging without changing published files", () => {
   const f = fixture();
   const before = snapshot(f);
@@ -181,7 +182,7 @@ it("rejects asset slots that could escape staging without changing published fil
   expect(result.stderr).toMatch(/asset slot/);
   expect(snapshot(f)).toEqual(before);
   expect(readFileSync(sentinel, "utf8")).toBe("prior file outside the game directory");
-});
+}, 30_000);
 it("keeps a capture-named image asset when capturing a fresh poster", () => {
   const f = fixture();
   f.document.assets.capture = { ...f.document.assets.far };
@@ -192,11 +193,11 @@ it("keeps a capture-named image asset when capturing a fresh poster", () => {
   const image = path.join(f.source, "assets", `${f.document.assets.far.assetId}.png`);
   writeFileSync(path.join(bin, "npm"), `#!${process.execPath}\nconst fs=require("node:fs");fs.copyFileSync(${JSON.stringify(image)},process.argv[process.argv.indexOf("--out")+1]);process.stdout.write("Captured tick 900\\n");\n`, { mode: 0o755 });
   const result = spawnSync(process.execPath, ["scripts/example-games/build.mjs", "--slug=lumen", "--posters"], {
-    cwd: f.root, encoding: "utf8", env: { ...process.env, NODETOOL_GAMES_DIR: path.join(f.root, "sources"), PATH: `${bin}${path.delimiter}${process.env.PATH}` }
+    cwd: f.root, encoding: "utf8", env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => key.toLowerCase() !== "npm_execpath")), NODETOOL_GAMES_DIR: path.join(f.root, "sources"), PATH: `${bin}${path.delimiter}${process.env.PATH}`, npm_execpath: path.join(bin, "npm") }
   });
   expect(result.status, result.stderr).toBe(0);
   expect(digest(readFileSync(path.join(f.media, "capture.png")))).toBe(f.document.assets.capture.digest);
-});
+}, 30_000);
 it.each(["poster", "Poster"])("rejects the %s asset collision without changing any published bytes", (slot) => {
   const f = fixture();
   const before = snapshot(f);
@@ -206,4 +207,4 @@ it.each(["poster", "Poster"])("rejects the %s asset collision without changing a
   expect(result.status).not.toBe(0);
   expect(result.stderr).toMatch(/reserved poster/);
   expect(snapshot(f)).toEqual(before);
-});
+}, 30_000);

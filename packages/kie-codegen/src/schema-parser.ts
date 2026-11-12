@@ -529,7 +529,7 @@ function mapField(
  * YAML — the model then drops out of the manifest with no error.
  */
 function extractOpenApi(markdown: string): JsonRecord | null {
-  const match = markdown.match(/```ya?ml\s*\n([\s\S]*?)\n```[ \t]*(?:\n|$)/i);
+  const match = markdown.replace(/\r\n/g, "\n").match(/```ya?ml\s*\n([\s\S]*?)\n```[ \t]*(?:\n|$)/i);
   if (!match) {
     return null;
   }

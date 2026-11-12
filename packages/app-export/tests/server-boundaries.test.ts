@@ -50,13 +50,14 @@ test("native readers stay in storage even for plain paths and symlinks", async (
   const { root, storage } = await fixture();
   await writeFile(join(root, ".env"), "fixture secret");
   await storage.store("document.txt", Buffer.from("uploaded"), "text/plain");
-  await symlink(join(root, ".env"), join(storage.rootDir, "escape"));
+  const escapePath = process.platform === "win32" ? "escape/.env" : "escape";
+  await symlink(process.platform === "win32" ? root : join(root, ".env"), join(storage.rootDir, "escape"), process.platform === "win32" ? "junction" : "file");
   const boundary = createNodeInputBoundary([storage.rootDir]);
   const metadata = { properties: [{ name: "path" }] };
   const guarded = guardExecutor({ process: async (inputs: { path: string }) => inputs }, metadata, boundary);
   expect(await guarded.process({ path: ".env" })).toEqual({ path: join(storage.rootDir, ".env") });
   expect(await guarded.process({ path: "document.txt" })).toEqual({ path: join(storage.rootDir, "document.txt") });
-  for (const path of [join(root, ".env"), "../.env", "escape", pathToFileURL(join(root, ".env")).href]) {
+  for (const path of [join(root, ".env"), "../.env", escapePath, pathToFileURL(join(root, ".env")).href]) {
     await expect(guarded.process({ path })).rejects.toThrow("storage");
   }
   const reader = guardExecutor({ process: async (inputs: { path: string }) => readFile(inputs.path, "utf8") }, metadata, boundary);
@@ -205,8 +206,10 @@ test("real filesystem writers preserve nested destinations and blank filename fa
   const defaultImage = await execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "", save_to_workspace: false });
   expect(dirname(defaultImage.path)).toBe(folder);
   expect(basename(defaultImage.path)).toMatch(/^image_/);
-  await symlink(join(root, "outside.png"), join(folder, "escape.png"));
-  await expect(execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder, filename: "escape", save_to_workspace: false })).rejects.toThrow("storage");
+  const escapeFolder = process.platform === "win32" ? join(folder, "escape") : folder;
+  const escapeName = process.platform === "win32" ? "outside" : "escape";
+  await symlink(process.platform === "win32" ? root : join(root, "outside.png"), process.platform === "win32" ? escapeFolder : join(folder, "escape.png"), process.platform === "win32" ? "junction" : "file");
+  await expect(execute(SaveImageFileImageNode.nodeType, { image: { type: "image", data: png }, folder: escapeFolder, filename: escapeName, save_to_workspace: false })).rejects.toThrow("storage");
   for (const name of ["../../.env", ["../../.env"], join(root, "credential.txt")]) {
     await expect(execute(SaveTextFileNode.nodeType, { text: "overwrite", folder, name, save_to_workspace: false })).rejects.toThrow("storage");
   }

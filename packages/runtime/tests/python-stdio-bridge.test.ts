@@ -5,12 +5,14 @@
  * the gap noted in docs/RELIABILITY_ARCHITECTURE.md §1: only a differently
  * framed (length-prefix-free) WebSocket fake existed before this file.
  *
- * The fake is launched through `fake-python-interpreter.mjs`, which stands in
+ * On POSIX the fake is launched through `fake-python-interpreter.mjs`, which stands in
  * for the `python` executable `PythonStdioBridge` always spawns with
- * `-m nodetool.worker --stdio` — see that file for why the indirection exists.
+ * `-m nodetool.worker --stdio`. Windows launches the worker directly, with a
+ * separate native-handle fixture for the broken-pipe case.
  */
 
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, afterAll, vi } from "vitest";
+import childProcess from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MissingRuntimePackageError, missingRuntimeDetailsOf } from "@nodetool-ai/protocol";
@@ -22,6 +24,27 @@ const FAKE_INTERPRETER = resolve(
   __dirname,
   "fixtures/fake-python-interpreter.mjs"
 );
+
+// Windows cannot execute the shebang launcher. Run the protocol worker in one
+// process so bridge.close() also closes the fixture, without an orphan child.
+// The pipe-fault case needs a native handle close in a still-running process.
+const originalSpawn = childProcess.spawn;
+const spawnSpy = process.platform === "win32"
+  ? vi.spyOn(childProcess, "spawn").mockImplementation((command, args, options) => {
+    if (command !== FAKE_INTERPRETER) { return originalSpawn(command, args, options); }
+    if (process.env.FAKE_WORKER_CLOSE_STDIN_AFTER_MS !== undefined) {
+      const systemRoot = process.env.SystemRoot;
+      if (!systemRoot) { throw new Error("SystemRoot is required for the Windows pipe fixture"); }
+      return originalSpawn(resolve(systemRoot, "System32/WindowsPowerShell/v1.0/powershell.exe"), [
+        "-NoProfile", "-NonInteractive", "-File", resolve(__dirname, "fixtures/close-stdin.ps1")
+      ], options);
+    }
+    return originalSpawn(process.execPath, [
+      "--import", "tsx", resolve(__dirname, "fixtures/fake-python-stdio-worker.ts")
+    ], options);
+  })
+  : undefined;
+afterAll(() => spawnSpy?.mockRestore());
 
 // Matches the bridge's own production default. At 5s a loaded CI runner lost
 // the race often enough to fail unrelated PRs: the spawn deadline elapsed

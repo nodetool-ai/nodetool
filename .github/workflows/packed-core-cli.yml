@@ -9,6 +9,7 @@ on:
       - 'scripts/fixtures/packed-fal-preload.mjs'
       - 'scripts/__tests__/packed-*.test.mjs'
       - 'scripts/packed-verification.mjs'
+      - 'scripts/package-manager.mjs'
       - 'scripts/test-affected.mjs'
       - 'scripts/ci-plan.mjs'
       - 'scripts/run-turbo.mjs'

@@ -42,3 +42,31 @@ cmake --build /tmp/qjs-build --target qjs_exe
 - The numbers are for one machine at normal thread priority.
 - Equal checksums show agreement for these two kernels on this input only.
 - The timed region of each biquad row includes one copy of the input block.
+
+## WP03 offline spike
+
+The [AudioWorklet spike](../../../native/realtime/spike/audio-worklet/README.md)
+builds one C source for native and WebAssembly execution and compares the
+output bytes through Chrome's AudioWorklet. The
+[Windows offline result](wp03-windows-offline.json) records that fixture's
+agreement. It does not establish live-device deadlines or complete WP03.
+The result also records Chrome trace durations for each offline worklet quantum,
+including startup and trace overhead.
+
+## WP02 Windows null-device smoke
+
+The [buffered audio spike](../../../native/realtime/README.md#buffered-audio)
+exercises the PCM ring, persistent DSP state, plan swaps and an independent
+worker stall. The [Windows null-device result](wp02-windows-null.json) covers
+idle, swap and stall profiles at both session rates. Repository checks were
+running concurrently. These short runs do not measure hardware conversion,
+macOS scheduling, sound-to-picture latency or the ten-minute load profiles.
+
+## WP02 offline conversion
+
+The [conversion benchmark](../../../native/realtime/README.md#offline-sample-rate-conversion)
+compares miniaudio linear conversion from 44.1 to 48 kHz with matching-rate
+baselines. The [Windows result](wp02-windows-conversion.json) records CPU call
+timings and signal checks. It includes startup calls and host scheduling noise.
+No device runs during this measurement. Hardware conversion cost and Q3 remain
+unqualified.
