@@ -20,7 +20,9 @@ describe("published runtime resource loaders", () => {
           "pack", "--dry-run", "--ignore-scripts", "--json"
         ]);
         const packed = spawnSync(invocation.command, invocation.args,
-          { cwd: source, encoding: "utf8", maxBuffer: 10 * 1024 * 1024, timeout: 30_000 });
+          { cwd: source, encoding: "utf8", maxBuffer: 10 * 1024 * 1024,
+            timeout: process.platform === "win32" ? 60_000 : 30_000 });
+        expect(packed.error, `npm pack failed for ${name}: ${packed.stderr}`).toBeUndefined();
         expect(packed.status, packed.stderr).toBe(0);
         const files = JSON.parse(packed.stdout)[0].files;
         expect(files.length).toBeGreaterThan(0);
@@ -63,5 +65,6 @@ describe("published runtime resource loaders", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
-  }, 180_000);
+  // Four sequential packs, file copies and the consumer process each need time.
+  }, process.platform === "win32" ? 360_000 : 180_000);
 });
