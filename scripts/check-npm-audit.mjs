@@ -138,7 +138,7 @@ function auditRef(ref) {
       .split("\n")
       .filter(isManifest);
     const archive = execFileSync("git", ["archive", ref, ...files], { cwd: ROOT, maxBuffer: 256 * 1024 * 1024 });
-    execFileSync("tar", ["-xf", "-", "-C", dir], { input: archive });
+    execFileSync("tar", ["-xf", "-"], { input: archive, cwd: dir });
     return Object.entries(PROJECTS).flatMap(([project, sub]) => audit(join(dir, sub), project));
   } finally {
     rmSync(dir, { recursive: true, force: true });
