@@ -12,7 +12,7 @@ namespace nodetool::node_editor {
 // their `browser`. The editor window owns one per tab, and LibraryPanel.qml
 // gets a non-owning pointer through its required `library` property.
 // Thread affinity: UI thread only.
-class LibraryBrowser final : public QObject {
+class LibraryBrowser : public QObject {
   Q_OBJECT
   Q_PROPERTY(AssetListModel *assetModel READ assetModel CONSTANT)
   Q_PROPERTY(bool configured READ configured NOTIFY changed)
