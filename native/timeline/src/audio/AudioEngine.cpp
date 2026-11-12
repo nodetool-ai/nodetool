@@ -228,9 +228,11 @@ struct AudioEngine::Impl {
             if (facts.ok) return facts.seconds;
         }
 #endif
-        // Elsewhere: the device buffer.
+        // Elsewhere: the device buffer, in frames at the device's own rate.
+        // It differs from `sampleRate` when miniaudio converts a forced
+        // engine rate (MUSIC-MODE.md 14.1).
         return static_cast<double>(device.playback.internalPeriodSizeInFrames * device.playback.internalPeriods) /
-               sampleRate;
+               static_cast<double>(device.playback.internalSampleRate);
     }
 
     // ---- callback ----
