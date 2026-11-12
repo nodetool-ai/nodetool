@@ -97,6 +97,8 @@ Moved so far:
   `toggleLibrary()`. `EditorWindow` maps each one to its command name, so the
   `action` vocabulary is unchanged. `tests/ui/HeaderRowComponentTest.cpp`
   loads both files with fixture objects.
+- `StatusModel` (`src/interfaces/StatusModel.h`), which `StatusBar.qml` takes
+  with `PanelLayout` for its view tabs. The same component test covers it.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
@@ -109,8 +111,8 @@ Moved so far:
 | `GenerationReplay` (moved) | Generation history, pinned generation, replay set | `GenerationHistory.qml` |
 | `DocumentTabs` (moved) | Workspace tabs, active tab, project name, tab actions, canvas strips (subgraph surfaces), strip offset, settings | `TabBar.qml`, `CanvasTabStrip.qml` |
 | `WorkflowHeader` (moved) | Workflow name and rename, save readout and its action, undo and redo, More menu | `HeaderRow.qml` |
-| `PanelLayout` (moved for the rail and the document bar) | Which panels are open and the toggles | `HeaderRow.qml`, `Rail.qml`, `StatusBar.qml`, `RunOutput.qml` |
-| `StatusModel` | Connection status and detail, node and edge counts, queue counts, system stats | `StatusBar.qml`, `AuthoredControls.qml`, `WorkflowBrowser.qml` |
+| `PanelLayout` (moved for the rail, the document bar and the status bar) | Which panels are open and the toggles | `HeaderRow.qml`, `Rail.qml`, `StatusBar.qml`, `RunOutput.qml` |
+| `StatusModel` (moved for the status bar) | Connection status and detail, node and edge counts, queue counts, system stats | `StatusBar.qml`, `AuthoredControls.qml`, `WorkflowBrowser.qml` |
 | `RunState` | Shown queue and shown run activity, authored group run buttons, ask the agent about a run | `Toolbar.qml`, `QueueOverlay.qml`, `AuthoredControls.qml`, `RunOutput.qml` |
 | `Viewport` | Zoom percent and preset, mini-map color mode and popups | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
 | `Notifications` (moved) | Notification list, unread count, open the list, copy an entry | `TabBar.qml`, `NotificationsPanel.qml` |
@@ -187,8 +189,8 @@ candidate list, not a plan to move them.
   "PackSetup": ["packSetup", "setupAction", "guideReadiness", "guideStarted", "guideVisible"],
   "DocumentState": ["readOnly", "message"],
   "Selection": ["selectionInfo", "selectedCount", "selectionDisabled", "selectionMostlyDisabled", "showNodeMenu"],
-  "PanelLayout": ["outputVisible", "traceVisible", "versionsVisible", "toggleStatusView"],
-  "StatusModel": ["connectionStatus", "connectionDetail", "connectionState", "nodeCount", "edgeCount", "queuedCount", "queueAvailable", "systemStats"],
+  "PanelLayout": ["outputVisible"],
+  "StatusModel": ["connectionState"],
   "RunState": ["shownQueue", "shownRunActive", "authoredAction", "askRunAgent"],
   "Viewport": ["zoomPercent", "zoomIsPreset", "miniMapColorMode", "setMiniMapColorMode", "showMiniMapPopup", "closeMiniMapPopup"],
   "ChatWindow": ["beginChatGeometry", "changeChatGeometry", "resetChatPosition"],
@@ -198,11 +200,10 @@ candidate list, not a plan to move them.
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 31 read a root context property, 16 of them read the editor window. `EditorWindow.h` exposes 37 properties and 28 invokable methods or slots (65 members) and 14 signals.
+Scanned 78 files in `qml/`. 30 read a root context property, 15 of them read the editor window. `EditorWindow.h` exposes 28 properties and 27 invokable methods or slots (55 members) and 14 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
-| StatusBar.qml | 13 |  |
 | SelectionToolbar.qml | 8 |  |
 | Toolbar.qml | 6 | `workflowSession` (2) |
 | AuthoredControls.qml | 4 via `host` |  |
@@ -240,8 +241,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 `passed on` means the file hands the whole object to a child, such as `propertyHost: editor`.
 
-- **StatusBar.qml**
-  - `editor`: action, connectionDetail, connectionStatus, edgeCount, nodeCount, outputVisible, queueAvailable, queuedCount, showToolTip, systemStats, toggleStatusView, traceVisible, versionsVisible
 - **SelectionToolbar.qml**
   - `editor`: action, readOnly, selectedCount, selectionDisabled, selectionInfo, selectionMostlyDisabled, showNodeMenu, shownRunActive
 - **Toolbar.qml**
@@ -330,20 +329,10 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `selectionInfo` property: SelectionToolbar.qml
   - `selectionMostlyDisabled` property: SelectionToolbar.qml
   - `showNodeMenu` method: SelectionToolbar.qml
-- **PanelLayout** (4 members, read by 2 files: RunOutput.qml, StatusBar.qml)
-  - `outputVisible` property: RunOutput.qml, StatusBar.qml
-  - `toggleStatusView` method: StatusBar.qml
-  - `traceVisible` property: StatusBar.qml
-  - `versionsVisible` property: StatusBar.qml
-- **StatusModel** (8 members, read by 3 files: AuthoredControls.qml, StatusBar.qml, WorkflowBrowser.qml)
-  - `connectionDetail` property: StatusBar.qml
+- **PanelLayout** (1 members, read by 1 files: RunOutput.qml)
+  - `outputVisible` property: RunOutput.qml
+- **StatusModel** (1 members, read by 2 files: AuthoredControls.qml, WorkflowBrowser.qml)
   - `connectionState` property: AuthoredControls.qml, WorkflowBrowser.qml
-  - `connectionStatus` property: StatusBar.qml
-  - `edgeCount` property: StatusBar.qml
-  - `nodeCount` property: StatusBar.qml
-  - `queueAvailable` property: StatusBar.qml
-  - `queuedCount` property: StatusBar.qml
-  - `systemStats` property: StatusBar.qml
 - **RunState** (4 members, read by 5 files: AuthoredControls.qml, QueueOverlay.qml, RunOutput.qml, SelectionToolbar.qml, Toolbar.qml)
   - `askRunAgent` method: RunOutput.qml
   - `authoredAction` method: AuthoredControls.qml
@@ -360,9 +349,9 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `beginChatGeometry` method: EditorChat.qml
   - `changeChatGeometry` method: EditorChat.qml
   - `resetChatPosition` method: EditorChat.qml
-- **EditorCommands** (3 members, read by 6 files: LibraryPanel.qml, SelectionToolbar.qml, StatusBar.qml, Toolbar.qml, ViewportIndicator.qml, WorkflowBrowser.qml)
-  - `action` method: LibraryPanel.qml, SelectionToolbar.qml, StatusBar.qml, Toolbar.qml, WorkflowBrowser.qml
-  - `showToolTip` method: StatusBar.qml, Toolbar.qml
+- **EditorCommands** (3 members, read by 5 files: LibraryPanel.qml, SelectionToolbar.qml, Toolbar.qml, ViewportIndicator.qml, WorkflowBrowser.qml)
+  - `action` method: LibraryPanel.qml, SelectionToolbar.qml, Toolbar.qml, WorkflowBrowser.qml
+  - `showToolTip` method: Toolbar.qml
   - `userAction` method: ViewportIndicator.qml
 - **Leaves the window** (6 members, read by 5 files: OptionalPacksSection.qml, TextOutput.qml, Toolbar.qml, TypeIcon.qml, WorkflowBrowser.qml)
   - `deleteWorkflow` method: WorkflowBrowser.qml

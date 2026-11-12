@@ -1,7 +1,9 @@
-// HeaderRow.qml and Rail.qml on their own: a fixture WorkflowHeader and
-// PanelLayout, no EditorWindow, graph runner, QtNodes or media. The executable
+// HeaderRow.qml, Rail.qml and StatusBar.qml on their own: fixture
+// WorkflowHeader, PanelLayout and StatusModel, no EditorWindow, graph runner,
+// QtNodes or media. The executable
 // links only the interface library and the QML module.
 #include "interfaces/PanelLayout.h"
+#include "interfaces/StatusModel.h"
 #include "interfaces/WorkflowHeader.h"
 
 #include <QGuiApplication>
@@ -15,6 +17,7 @@
 Q_IMPORT_QML_PLUGIN(NodeTool_NodeEditorPlugin)
 
 using nodetool::node_editor::PanelLayout;
+using nodetool::node_editor::StatusModel;
 using nodetool::node_editor::WorkflowHeader;
 
 namespace {
@@ -180,6 +183,62 @@ private slots:
         panels.setPanels({.catalog = true});
         QTRY_VERIFY(button("rail-nodes")->property("active").toBool());
         QVERIFY(!button("rail-library")->property("active").toBool());
+    }
+
+    void statusBarRequestsGoUp() {
+        StatusModel status;
+        status.setStatus({.connectionStatus = "offline",
+                          .connectionDetail = "localhost:7777",
+                          .nodeCount = 1,
+                          .edgeCount = 3,
+                          .queuedCount = 2,
+                          .queueAvailable = true,
+                          .systemStats = {{"cpu_percent", 41.6}, {"memory_used_gb", 7.25}}});
+        PanelLayout panels;
+        panels.setPanels({.trace = true});
+        QSignalSpy connected(&status, &StatusModel::connectRequested);
+        QSignalSpy reconnected(&status, &StatusModel::reconnectRequested);
+        QSignalSpy queue(&status, &StatusModel::queueRequested);
+        QSignalSpy views(&panels, &PanelLayout::statusViewRequested);
+
+        QQuickView view;
+        show(view, {{"status", QVariant::fromValue(&status)}, {"panels", QVariant::fromValue(&panels)}},
+             "StatusBar.qml", {1200, 28});
+        auto *root = view.rootObject();
+
+        QCOMPARE(named(root, "status-connection")->property("text").toString(), QString("Offline"));
+        QCOMPARE(named(root, "status-connection-detail")->property("text").toString(), QString("localhost:7777"));
+        QCOMPARE(named(root, "status-reconnect")->property("text").toString(), QString("Reconnect"));
+        QCOMPARE(named(root, "status-nodes-value")->property("text").toString(), QString("1"));
+        QCOMPARE(named(root, "status-nodes-key")->property("text").toString(), QString("node"));
+        QCOMPARE(named(root, "status-edges-key")->property("text").toString(), QString("edges"));
+        QCOMPARE(named(root, "status-cpu-value")->property("text").toString(), QString("42%"));
+        QCOMPARE(named(root, "status-queue-count")->property("text").toString(), QString("2"));
+        QVERIFY(named(root, "status-trace")->property("active").toBool());
+        QVERIFY(!named(root, "status-logs")->property("active").toBool());
+
+        click(view, named(root, "status-reconnect"));
+        QTRY_COMPARE(reconnected.size(), 1);
+        QCOMPARE(connected.size(), 0);
+        click(view, named(root, "status-queue"));
+        QTRY_COMPARE(queue.size(), 1);
+        for (const auto *tab : {"status-logs", "status-versions", "status-trace"}) {
+            click(view, named(root, tab));
+        }
+        QTRY_COMPARE(views.size(), 3);
+        QCOMPARE(views.at(0).first().toString(), QString("logs"));
+        QCOMPARE(views.at(1).first().toString(), QString("versions"));
+        QCOMPARE(views.at(2).first().toString(), QString("trace"));
+
+        // An idle connection offers Connect, and an empty queue cannot open.
+        auto next = StatusModel::Status{.connectionStatus = "idle"};
+        status.setStatus(next);
+        QTRY_COMPARE(named(root, "status-reconnect")->property("text").toString(), QString("Connect"));
+        click(view, named(root, "status-reconnect"));
+        QTRY_COMPARE(connected.size(), 1);
+        click(view, named(root, "status-queue"));
+        QTest::qWait(20);
+        QCOMPARE(queue.size(), 1);
     }
 };
 

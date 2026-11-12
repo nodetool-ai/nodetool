@@ -34,7 +34,8 @@ property fields and its History tab. The tab bar and the subgraph strips take
 [`DocumentTabs`](src/interfaces/DocumentTabs.h), and the tab bar's bell and the
 notification list take [`Notifications`](src/interfaces/Notifications.h). The document bar takes
 [`WorkflowHeader`](src/interfaces/WorkflowHeader.h), and it and the icon rail
-take [`PanelLayout`](src/interfaces/PanelLayout.h).
+take [`PanelLayout`](src/interfaces/PanelLayout.h). The status bar takes
+[`StatusModel`](src/interfaces/StatusModel.h) and `PanelLayout`.
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
 read `EditorWindow`.
 
@@ -332,7 +333,8 @@ notifications and no `EditorWindow`. It activates, closes, renames and drops
 tabs, opens the notifications and copies one. Run it with `ctest --test-dir
 <build> -R 'node_editor_tab_bar_component$' --output-on-failure`.
 [HeaderRowComponentTest](tests/ui/HeaderRowComponentTest.cpp) loads
-`HeaderRow.qml` and `Rail.qml` with fixture interfaces and no `EditorWindow`.
+`HeaderRow.qml`, `Rail.qml` and `StatusBar.qml` with fixture interfaces and no
+`EditorWindow`.
 Run it with `ctest --test-dir <build> -R 'node_editor_header_row_component$'
 --output-on-failure`.
 Complete successful-reconnect acceptance, inferred Code ports, dedicated canvas

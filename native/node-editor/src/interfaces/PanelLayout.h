@@ -4,9 +4,9 @@
 
 namespace nodetool::node_editor {
 
-// What the icon rail (Rail.qml) and the document bar's toggles (HeaderRow.qml)
-// read and do: which panels are open, the toggle requests, and the tool tip
-// request.
+// What the icon rail (Rail.qml), the document bar's toggles (HeaderRow.qml)
+// and the status bar's tabs (StatusBar.qml) read and do: which panels are
+// open, the toggle requests, and the tool tip request.
 //
 // The owner fills the state with the setters and handles the *Requested
 // signals. A test can use a plain instance and a QSignalSpy. QML gets a
@@ -23,6 +23,10 @@ class PanelLayout : public QObject {
     Q_PROPERTY(bool catalogVisible READ catalogVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool inspectorVisible READ inspectorVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool miniMapVisible READ miniMapVisible NOTIFY panelsChanged)
+    // The status bar's views: the run output (logs), run trace and versions.
+    Q_PROPERTY(bool outputVisible READ outputVisible NOTIFY panelsChanged)
+    Q_PROPERTY(bool traceVisible READ traceVisible NOTIFY panelsChanged)
+    Q_PROPERTY(bool versionsVisible READ versionsVisible NOTIFY panelsChanged)
 public:
     // One field per panel, so the owner sets them in one call.
     struct Panels {
@@ -32,6 +36,9 @@ public:
         bool catalog = false;
         bool inspector = false;
         bool miniMap = false;
+        bool output = false;
+        bool trace = false;
+        bool versions = false;
         bool operator==(const Panels &) const = default;
     };
 
@@ -44,6 +51,9 @@ public:
     bool catalogVisible() const { return panels_.catalog; }
     bool inspectorVisible() const { return panels_.inspector; }
     bool miniMapVisible() const { return panels_.miniMap; }
+    bool outputVisible() const { return panels_.output; }
+    bool traceVisible() const { return panels_.trace; }
+    bool versionsVisible() const { return panels_.versions; }
 
     void setPanels(const Panels &panels);
 
@@ -55,6 +65,8 @@ public:
     // The rail's last button: the left panel, as the web PanelLeft toggle.
     Q_INVOKABLE void togglePanel() { emit togglePanelRequested(); }
     Q_INVOKABLE void setMiniMapVisible(bool visible) { emit miniMapRequested(visible); }
+    // Opens or closes a status bar view: logs, trace or versions.
+    Q_INVOKABLE void toggleStatusView(const QString &view) { emit statusViewRequested(view); }
     // Empty text hides the tool tip.
     Q_INVOKABLE void showToolTip(const QString &text) { emit toolTipRequested(text); }
 
@@ -67,6 +79,7 @@ signals:
     void toggleInspectorRequested();
     void togglePanelRequested();
     void miniMapRequested(bool visible);
+    void statusViewRequested(const QString &view);
     void toolTipRequested(const QString &text);
 
 private:

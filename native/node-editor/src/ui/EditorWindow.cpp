@@ -286,6 +286,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&panelLayout_, &node_editor::PanelLayout::togglePanelRequested, this, [this] { action("Toggle panel"); });
   connect(&panelLayout_, &node_editor::PanelLayout::miniMapRequested, this, &EditorWindow::setMiniMapVisible);
   connect(&panelLayout_, &node_editor::PanelLayout::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(&panelLayout_, &node_editor::PanelLayout::statusViewRequested, this, &EditorWindow::toggleStatusView);
+  connect(&statusModel_, &node_editor::StatusModel::connectRequested, this, [this] { action("Connect"); });
+  connect(&statusModel_, &node_editor::StatusModel::reconnectRequested, this, [this] { action("Reconnect"); });
+  connect(&statusModel_, &node_editor::StatusModel::queueRequested, this, [this] { action("Queue"); });
+  connect(&statusModel_, &node_editor::StatusModel::toolTipRequested, this, &EditorWindow::showToolTip);
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
@@ -699,7 +704,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     };
     connect(tabs->rootObject(), &QQuickItem::implicitHeightChanged, tabs, resizeTabs);
     resizeTabs();
-  auto status = panel("StatusBar");
+  syncChrome();
+  auto status = panel("StatusBar", {{"status", QVariant::fromValue(&statusModel_)},
+                                    {"panels", QVariant::fromValue(&panelLayout_)}});
   status->setFixedHeight(status->initialSize().height());
   statusBar_ = status;
   // native-rules #2: naked new with no QObject parent, a later addLayout call takes ownership
@@ -2407,7 +2414,17 @@ void EditorWindow::syncChrome() {
                           .library = libraryVisible(),
                           .catalog = catalogVisible(),
                           .inspector = inspectorVisible(),
-                          .miniMap = miniMapVisible()});
+                          .miniMap = miniMapVisible(),
+                          .output = outputVisible(),
+                          .trace = traceVisible(),
+                          .versions = versionsVisible()});
+  statusModel_.setStatus({.connectionStatus = connectionStatus(),
+                          .connectionDetail = connectionDetail(),
+                          .nodeCount = nodeCount(),
+                          .edgeCount = edgeCount(),
+                          .queuedCount = queuedCount(),
+                          .queueAvailable = queueAvailable(),
+                          .systemStats = systemStats()});
 }
 void EditorWindow::syncNodeInspector() {
     const auto node = selection();

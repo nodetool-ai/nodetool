@@ -9,6 +9,7 @@
 #include "interfaces/NodeInspector.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PanelLayout.h"
+#include "interfaces/StatusModel.h"
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
@@ -87,15 +88,6 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(QString miniMapColorMode READ miniMapColorMode NOTIFY panelChanged)
   // True when the zoom matches a status indicator preset (ViewportStatusIndicator.tsx findZoomPreset).
   Q_PROPERTY(bool zoomIsPreset READ zoomIsPreset NOTIFY zoomChanged)
-  Q_PROPERTY(QVariantMap systemStats READ systemStats NOTIFY panelChanged)
-  Q_PROPERTY(QString connectionStatus READ connectionStatus NOTIFY panelChanged)
-  Q_PROPERTY(QString connectionDetail READ connectionDetail NOTIFY panelChanged)
-  Q_PROPERTY(int nodeCount READ nodeCount NOTIFY panelChanged)
-  Q_PROPERTY(int edgeCount READ edgeCount NOTIFY panelChanged)
-  Q_PROPERTY(int queuedCount READ queuedCount NOTIFY panelChanged)
-  Q_PROPERTY(bool queueAvailable READ queueAvailable NOTIFY panelChanged)
-    Q_PROPERTY(bool traceVisible READ traceVisible NOTIFY panelChanged)
-    Q_PROPERTY(bool versionsVisible READ versionsVisible NOTIFY panelChanged)
 public:
     nt::chat::ChatSession *chatSession();
     Q_INVOKABLE void askAgent(const QString &message);
@@ -117,6 +109,7 @@ public:
     node_editor::DocumentTabs *documentTabs() { return activeEditor() == this ? &documentTabs_ : activeEditor()->documentTabs(); }
     node_editor::Notifications *notificationList() { return activeEditor() == this ? &notificationList_ : activeEditor()->notificationList(); }
     node_editor::WorkflowHeader *workflowHeader() { return activeEditor() == this ? &workflowHeader_ : activeEditor()->workflowHeader(); }
+    node_editor::StatusModel *statusModel() { return activeEditor() == this ? &statusModel_ : activeEditor()->statusModel(); }
     node_editor::PanelLayout *panelLayout() { return activeEditor() == this ? &panelLayout_ : activeEditor()->panelLayout(); }
     node_editor::NodeInspector *nodeInspector() { return activeEditor() == this ? &nodeInspector_ : activeEditor()->nodeInspector(); }
     void syncPackSetup();
@@ -229,7 +222,7 @@ public:
     bool traceVisible() const;
     bool versionsVisible() const;
     // A status bar tab: opens its panel, or closes it when it is the open one (PanelBottom.tsx).
-    Q_INVOKABLE void toggleStatusView(const QString &view);
+    void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;
   int zoomPercent() const;
     EditorScene *scene() const {
@@ -534,6 +527,9 @@ private:
     // destroyed with the tab after its panels.
     node_editor::WorkflowHeader workflowHeader_;
     node_editor::PanelLayout panelLayout_;
+    // What this tab's StatusBar reads about the server and the graph. Owned by
+    // value, UI thread, destroyed with the tab after its panels.
+    node_editor::StatusModel statusModel_;
     QUrl packOrigin_;
     QString packToken_, packUser_;
   node_editor::SetupController setup_;
