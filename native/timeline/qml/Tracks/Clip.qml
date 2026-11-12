@@ -186,6 +186,7 @@ Item {
         if (interactionLocked || (toolPreview.clipId === clipId && toolPreview.available === false)) return Qt.ForbiddenCursor
         const tool = gestures ? gestures.activeTool : "select"
         if (tool === "cut" || tool === "zoom") return Qt.CrossCursor
+        if (tool === "range") return Qt.IBeamCursor
         if (tool === "slip") return Qt.SplitHCursor
         if (tool === "slide") return Qt.SizeHorCursor
         if (tool === "trackSelect" || tool === "trackSelectBackward") return Qt.SizeAllCursor

@@ -8,8 +8,6 @@
 
 namespace nt::music {
 namespace {
-constexpr std::array<std::string_view, 17> kTonics{"C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#",
-                                                   "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"};
 constexpr std::array<std::string_view, 12> kRoleLabels{"Vocals", "Backing vocals", "Drums", "Bass",
                                                        "Guitar", "Keyboard", "Percussion", "Strings",
                                                        "Synth", "FX", "Brass", "Woodwinds"};
@@ -26,7 +24,7 @@ std::optional<MusicKey> tempoKey(const QJsonObject& rawSequence) {
     const auto key = rawSequence.value(u"tempo").toObject().value(u"key").toObject();
     const auto tonic = key.value(u"tonic").toString().toStdString();
     const auto mode = key.value(u"mode").toString().toStdString();
-    if (std::ranges::find(kTonics, tonic) == kTonics.end() || (mode != "major" && mode != "minor")) {
+    if (std::ranges::find(kMusicKeyTonics, tonic) == kMusicKeyTonics.end() || (mode != "major" && mode != "minor")) {
         return std::nullopt;
     }
     return MusicKey{tonic, mode};
