@@ -14,6 +14,7 @@ const LOCAL_PROVIDER_IDS: ReadonlySet<string> = new Set([
   "mlx",
   "node_llama_cpp",
   "stable_diffusion_cpp",
+  "acestep",
   "transformers_js",
   "whisper_cpp",
   "whisper_cpp_server",
@@ -107,7 +108,8 @@ const PROVIDER_ALIAS_NAMES: Record<string, string> = {
   rodin: "Rodin AI",
   "rodin-ai": "Rodin AI",
   mlx: "MLX",
-  wangp: "Wan2GP"
+  wangp: "Wan2GP",
+  acestep: "ACE-Step"
 };
 
 // Fallback formatter for arbitrary provider strings

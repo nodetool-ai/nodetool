@@ -320,14 +320,7 @@ export type {
   Wan2GPRecord
 } from "./wan2gp-client.js";
 export { SD_CPP_MODELS, type SdCppModelSpec } from "./sdcpp-models.js";
-export {
-  ACESTEP_MODELS,
-  ACESTEP_REPO_ID,
-  aceStepDitFor,
-  aceStepModel,
-  type AceStepModelKind,
-  type AceStepModelSpec
-} from "./acestep-models.js";
+export { ACESTEP_REPO_ID, aceStepDitFor } from "./acestep-models.js";
 export { OpenAIProvider };
 export { snapToGptImage2Size } from "./gpt-image-size.js";
 export { CodexProvider };

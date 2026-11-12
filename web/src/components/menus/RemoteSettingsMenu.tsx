@@ -78,7 +78,8 @@ const META_SECTION_GROUPS: ReadonlyArray<{
       "WhisperCppServer",
       "TransformersJs",
       "PythonNodes",
-      "Wan2GP"
+      "Wan2GP",
+      "AceStep"
     ]
   },
   {

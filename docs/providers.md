@@ -6,7 +6,7 @@ description: "Provider reference: capability matrix, the secret each provider ne
 
 A provider is the adapter between a node and an AI service: OpenAI, Anthropic, Gemini, a local Ollama daemon, or one of the others below. Each node that calls an LLM or media model has a `model` property backed by a provider id, so changing provider is a dropdown change.
 
-> **Runs:** cloud for API providers, local for Ollama, vLLM, LM Studio, llama.cpp, Wan2GP, and Transformers.js. **Needs:** one secret per cloud provider (named in each section), none for local servers. **Billing:** the provider bills you directly with no NodeTool markup. Only the `nodetool` provider, which exists in NodeTool's hosted cloud, is the exception (see [NodeTool managed models](#nodetool-managed-models)).
+> **Runs:** cloud for API providers, local for Ollama, vLLM, LM Studio, llama.cpp, ACE-Step, Wan2GP, and Transformers.js. **Needs:** one secret per cloud provider (named in each section), none for local servers. **Billing:** the provider bills you directly with no NodeTool markup. Only the `nodetool` provider, which exists in NodeTool's hosted cloud, is the exception (see [NodeTool managed models](#nodetool-managed-models)).
 {: .callout-note}
 
 Add keys in **Settings → Models & Providers**. For the local-versus-cloud overview see [Models & Providers](models-and-providers.md), and for the model catalog see [Supported Models](models.md).
@@ -310,6 +310,10 @@ voice cloning on the models that take a reference voice) and text-to-music. Inst
 starts its server on demand, and the model picker downloads each model's
 weights through Wan2GP's own downloader. `WAN2GP_MCP_URL` names a server you
 run instead. The model list is the server's own. Local only.
+
+## ACE-Step
+
+ACE-Step (provider id `acestep`) generates music for the timeline's music mode: text-to-music, repaint and lego (add an instrument to a mix). It starts the `ace-server` binary from the `acestep` runtime package on the first request, or uses the server `ACESTEP_SERVER_URL` names. Install the package in **Settings › Packages**, or run `nodetool runtime add acestep`. `ACESTEP_SERVER_PATH` selects another `ace-server`, and `ACESTEP_MODELS_DIR` another folder of ACE-Step GGUF files. The model files come from `Serveurperso/ACE-Step-1.5-GGUF`. The first-run set is the text encoder, the language model, the turbo DiT and the VAE. The base DiT downloads on the first Add instrument. The catalog is in `packages/config/src/acestep-models.ts`, and the provider routes turbo for text-to-music and repaint, base for lego. NodeTool builds `ace-server` for macOS on Apple silicon only. The native timeline runs the install and the model download through the `acestep_*` commands of the [WebSocket API](websocket-api.md#rpc-commands). No key. Local only.
 
 ## stable-diffusion.cpp
 

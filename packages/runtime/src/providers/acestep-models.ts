@@ -7,51 +7,18 @@
  * The files come from the Hugging Face repository below, as acestep.cpp
  * `models.sh` and `docs/ARCHITECTURE.md:61-86` list them.
  */
+import { ACESTEP_MODELS_REPO, aceStepModelFile } from "@nodetool-ai/config";
 import type { MusicTaskName } from "./types.js";
 
-export const ACESTEP_REPO_ID = "Serveurperso/ACE-Step-1.5-GGUF";
+/**
+ * The model catalog (repository, file names, first-run set) lives in
+ * `@nodetool-ai/config` (`acestep-models.ts`), where the installer reads it.
+ * This file keeps the provider's routing only.
+ */
+export const ACESTEP_REPO_ID = ACESTEP_MODELS_REPO;
 
-export type AceStepModelKind = "text_encoder" | "lm" | "dit_turbo" | "dit_base" | "vae";
-
-export interface AceStepModelSpec {
-  /** The GGUF file name, which is also the id `ace-server` selects it by. */
-  id: string;
-  name: string;
-  kind: AceStepModelKind;
-  repoId: string;
-  /** Size in GB where `ARCHITECTURE.md:76-81` states it. */
-  sizeGb?: number;
-  /** Part of the first-run download set (MUSIC-MODE.md section 12.4). */
-  firstRun: boolean;
-}
-
-const spec = (
-  id: string,
-  name: string,
-  kind: AceStepModelKind,
-  firstRun: boolean,
-  sizeGb?: number
-): AceStepModelSpec => ({ id, name, kind, repoId: ACESTEP_REPO_ID, firstRun, sizeGb });
-
-export const ACESTEP_TEXT_ENCODER = "Qwen3-Embedding-0.6B-Q8_0.gguf";
-export const ACESTEP_LM_4B = "acestep-5Hz-lm-4B-Q8_0.gguf";
-export const ACESTEP_TURBO_DIT = "acestep-v15-turbo-Q8_0.gguf";
-export const ACESTEP_BASE_DIT = "acestep-v15-base-Q8_0.gguf";
-export const ACESTEP_VAE = "vae-BF16.gguf";
-
-export const ACESTEP_MODELS: readonly AceStepModelSpec[] = [
-  spec(ACESTEP_TEXT_ENCODER, "Qwen3 Embedding 0.6B (text encoder)", "text_encoder", true, 0.748),
-  spec("acestep-5Hz-lm-0.6B-Q8_0.gguf", "ACE-Step LM 0.6B", "lm", false),
-  spec("acestep-5Hz-lm-1.7B-Q8_0.gguf", "ACE-Step LM 1.7B", "lm", false),
-  spec(ACESTEP_LM_4B, "ACE-Step LM 4B", "lm", true, 4.2),
-  spec(ACESTEP_TURBO_DIT, "ACE-Step 1.5 turbo DiT", "dit_turbo", true, 2.4),
-  spec(ACESTEP_BASE_DIT, "ACE-Step 1.5 base DiT", "dit_base", false),
-  spec(ACESTEP_VAE, "ACE-Step VAE", "vae", true, 0.322)
-];
-
-export function aceStepModel(id: string): AceStepModelSpec | null {
-  return ACESTEP_MODELS.find((model) => model.id === id) ?? null;
-}
+export const ACESTEP_TURBO_DIT = aceStepModelFile("ditTurbo").file;
+export const ACESTEP_BASE_DIT = aceStepModelFile("ditBase").file;
 
 /**
  * Tasks the turbo DiT cannot run (`ARCHITECTURE.md:395-405`): lego, extract

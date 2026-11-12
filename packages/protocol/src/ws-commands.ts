@@ -57,7 +57,11 @@ export const UNIFIED_COMMAND_TYPES = [
   "get_node",
   "generate_media",
   "generate_text",
-  "transcribe_audio"
+  "transcribe_audio",
+  "acestep_setup_status",
+  "acestep_install",
+  "acestep_download_models",
+  "acestep_setup_cancel"
 ] as const;
 
 export type UnifiedCommandType = (typeof UNIFIED_COMMAND_TYPES)[number];
@@ -530,6 +534,136 @@ export const generateTextDataSchema = z
  */
 export type GenerateTextRequest = z.infer<typeof generateTextDataSchema>;
 
+// ---------------------------------------------------------------------------
+// ACE-Step setup (music mode first run)
+// ---------------------------------------------------------------------------
+
+/** The model sets the setup commands download (MUSIC-MODE.md section 12.4). */
+export const ACESTEP_MODEL_SETS = ["first_run", "add_instrument"] as const;
+export const aceStepModelSetSchema = z.enum(ACESTEP_MODEL_SETS);
+export type AceStepModelSet = z.infer<typeof aceStepModelSetSchema>;
+
+/** Roles of the ACE-Step model files, as `@nodetool-ai/config` names them. */
+export const aceStepModelRoleSchema = z.enum([
+  "textEncoder",
+  "languageModel",
+  "ditTurbo",
+  "vae",
+  "ditBase"
+]);
+
+/**
+ * `acestep_download_models` data. `set` names the roles: `first_run` is the
+ * text encoder, language model, turbo DiT and VAE, `add_instrument` is the
+ * base DiT.
+ */
+export const aceStepDownloadModelsDataSchema = z
+  .object({ set: aceStepModelSetSchema })
+  .passthrough();
+
+/**
+ * Why the binary cannot be installed on this host. `unsupported-platform`:
+ * NodeTool builds ace-server for Apple silicon only. `digest-unset`: no build
+ * has published the archive digest yet, so the installer refuses.
+ * `no-install-dir`: the host has no install directory (a hosted server).
+ */
+export const aceStepInstallBlockSchema = z.enum([
+  "unsupported-platform",
+  "digest-unset",
+  "no-install-dir"
+]);
+
+export const aceStepModelSetStatusSchema = z
+  .object({
+    present: z.array(aceStepModelRoleSchema),
+    missing: z.array(aceStepModelRoleSchema),
+    /** Size of everything in the set, and of the files still missing. */
+    approx_bytes: z.number(),
+    missing_bytes: z.number()
+  })
+  .passthrough();
+
+/** The running or last finished setup operation. Progress is cumulative. */
+export const aceStepSetupOperationSchema = z
+  .object({
+    id: z.string(),
+    kind: z.enum(["install", "models"]),
+    /** Set for `models`. */
+    set: aceStepModelSetSchema.nullable(),
+    state: z.enum(["running", "done", "failed", "cancelled"]),
+    /** Human label of the current step, for example "Downloading acestep-v15-turbo-Q8_0.gguf". */
+    stage: z.string(),
+    /** 0 to 100, or null when the total is unknown. */
+    percent: z.number().nullable(),
+    downloaded_bytes: z.number(),
+    total_bytes: z.number(),
+    file: z.string().nullable(),
+    file_index: z.number(),
+    file_count: z.number(),
+    error: z.string().nullable(),
+    /** Set when an install failed: `AceStepInstallErrorCode`. */
+    error_code: z.string().nullable()
+  })
+  .passthrough();
+export type AceStepSetupOperation = z.infer<typeof aceStepSetupOperationSchema>;
+
+export const aceStepSetupStatusSchema = z
+  .object({
+    /** `ACESTEP_SERVER_URL` is set: a remote ace-server serves requests and nothing needs installing. */
+    remote: z.boolean(),
+    binary: z
+      .object({
+        installed: z.boolean(),
+        /** The acestep.cpp commit on disk. */
+        version: z.string().nullable(),
+        blocked: aceStepInstallBlockSchema.nullable(),
+        /** Words for the user when `blocked` is set. */
+        message: z.string().nullable()
+      })
+      .passthrough(),
+    models: z
+      .object({
+        first_run: aceStepModelSetStatusSchema,
+        add_instrument: aceStepModelSetStatusSchema,
+        /** False when the host has no models directory, so no download can start. */
+        available: z.boolean()
+      })
+      .passthrough(),
+    operation: aceStepSetupOperationSchema.nullable()
+  })
+  .passthrough();
+export type AceStepSetupStatus = z.infer<typeof aceStepSetupStatusSchema>;
+
+/** Why a setup command was not accepted. */
+export const aceStepSetupRefusalSchema = z.enum([
+  "busy",
+  "not_admin",
+  "blocked",
+  "no_models_dir",
+  "nothing_running"
+]);
+
+/** The `result` of every `acestep_*` command's `rpc_response`. */
+export const aceStepSetupResultSchema = z
+  .object({
+    accepted: z.boolean(),
+    reason: aceStepSetupRefusalSchema.nullable(),
+    status: aceStepSetupStatusSchema
+  })
+  .passthrough();
+export type AceStepSetupResult = z.infer<typeof aceStepSetupResultSchema>;
+
+/**
+ * Pushed to the connection that started an operation each time its progress
+ * changes, and once when it ends. Other connections poll `acestep_setup_status`.
+ */
+export const aceStepSetupProgressMessageOutSchema = z
+  .object({
+    type: z.literal("acestep_setup_progress"),
+    operation: aceStepSetupOperationSchema
+  })
+  .passthrough();
+
 export const commandDataSchemas = {
   run_job: runJobDataSchema,
   reconnect_job: reconnectJobDataSchema,
@@ -554,7 +688,11 @@ export const commandDataSchemas = {
   get_node: looseDataSchema,
   generate_media: looseDataSchema,
   generate_text: generateTextDataSchema,
-  transcribe_audio: looseDataSchema
+  transcribe_audio: looseDataSchema,
+  acestep_setup_status: looseDataSchema,
+  acestep_install: looseDataSchema,
+  acestep_download_models: aceStepDownloadModelsDataSchema,
+  acestep_setup_cancel: looseDataSchema
 } satisfies Record<UnifiedCommandType, z.ZodTypeAny>;
 
 /**
@@ -877,5 +1015,6 @@ export const outboundControlMessageSchemas = {
   renderer_tool_call: rendererToolCallMessageOutSchema,
   chat_resumed: chatResumedMessageOutSchema,
   chat_turn_active: chatTurnActiveMessageOutSchema,
-  job_resumed: jobResumedMessageOutSchema
+  job_resumed: jobResumedMessageOutSchema,
+  acestep_setup_progress: aceStepSetupProgressMessageOutSchema
 } as const;

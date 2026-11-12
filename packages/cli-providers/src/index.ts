@@ -128,6 +128,7 @@ const LOCAL_PROVIDERS: readonly string[] = [
   "copilot",
   "node_llama_cpp",
   "stable_diffusion_cpp",
+  "acestep",
   "wangp"
 ];
 
