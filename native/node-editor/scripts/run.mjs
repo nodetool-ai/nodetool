@@ -17,7 +17,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { qtPrefix } from "./check.mjs";
-import { editorBinary, readBuildCache, windowsPluginDirectories, windowsRuntimeDirectories } from "./build-config.mjs";
+import { editorBinary, isMainModule, readBuildCache, windowsPluginDirectories, windowsRuntimeDirectories } from "./build-config.mjs";
 
 const editorSource = fileURLToPath(new URL("..", import.meta.url));
 const root = resolve(editorSource, "../..");
@@ -217,7 +217,7 @@ async function main() {
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (isMainModule(import.meta.url)) {
   try {
     await main();
   } catch (error) {
