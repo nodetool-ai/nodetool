@@ -29,6 +29,12 @@ struct Entry {
 
 using Keymaps = QHash<QString, std::vector<Entry>>;
 
+// One chord: "A" and "a" are one key.
+bool sameChord(const Binding& a, const Binding& b) {
+    const auto key = [](const QString& k) { return k.size() == 1 ? k.toLower() : k; };
+    return key(a.key) == key(b.key) && a.ctrl == b.ctrl && a.shift == b.shift && a.alt == b.alt;
+}
+
 Entry entryOf(const QJsonValue& pair) {
     Entry entry;
     entry.action = pair.toArray().at(0).toString();
@@ -71,6 +77,30 @@ const Keymaps& keymaps() {
                 } else {
                     entries.push_back(std::move(entry));
                 }
+            }
+        }
+        // Each context over each preset (KEYMAP_CONTEXT_JSON).
+        const QJsonObject contexts = QJsonDocument::fromJson(QByteArray(KEYMAP_CONTEXT_JSON)).object();
+        const auto presets = out.keys();
+        for (auto it = contexts.begin(); it != contexts.end(); ++it) {
+            for (const auto& preset : presets) {
+                auto entries = out.value(preset);
+                for (const QJsonValue& pair : it.value().toArray()) {
+                    const Entry entry = entryOf(pair);
+                    for (Entry& other : entries) {
+                        std::erase_if(other.bindings, [&](const Binding& b) {
+                            return std::ranges::any_of(entry.bindings, [&](const Binding& own) { return sameChord(b, own); });
+                        });
+                    }
+                    const auto at = std::ranges::find_if(entries, [&](const Entry& e) { return e.action == entry.action; });
+                    if (at != entries.end()) {
+                        at->bindings.insert(at->bindings.begin(), entry.bindings.begin(), entry.bindings.end());
+                    } else {
+                        entries.push_back(entry);
+                    }
+                }
+                std::erase_if(entries, [](const Entry& e) { return e.bindings.empty(); });
+                out.insert(preset + u'@' + it.key(), std::move(entries));
             }
         }
         return out;
@@ -140,6 +170,14 @@ QString resolveIn(const Keymaps& maps, const KeyEventLike& e, const QString& pre
 }
 
 }  // namespace
+
+QString keymapName(const QString& preset, const QString& context) {
+    return context.isEmpty() ? preset : preset + u'@' + context;
+}
+
+QStringList keymapContexts() {
+    return QJsonDocument::fromJson(QByteArray(KEYMAP_CONTEXT_JSON)).object().keys();
+}
 
 QString resolveTimelineAction(const KeyEventLike& e, const QString& preset) { return resolveIn(keymaps(), e, preset); }
 

@@ -92,7 +92,10 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   action alone, even when it refuses. A default key applies only where the preset uses
   neither that key nor another key for the action, and `shortcutFor` and the sheet follow the same
   rule. Keys for one preset go in `edit/KeymapOverlay.h`, which changes the generated table
-  without editing `web/`, and need no default. Menus call the same
+  without editing `web/`, and need no default. Keys for one editor context go in
+  `KEYMAP_CONTEXT_JSON` there and apply over either preset while
+  `ClipGestureController.keymapContext` names that context (`music` in the Music layout); they
+  take their chords from the preset's other actions, so a key means one action in each context. Menus call the same
   `gestures.runAction(name, context)` dispatcher. Actions with a key appear in the shortcut
   sheet, in the sheet group named `group`, or in Extensions when it is empty. A handler that
   returns false must have changed nothing, because a key the Timeline refuses is offered again as

@@ -2,7 +2,8 @@
 // synthetic pointer and key events (docs/MUSIC-MODE.md section 15, the music
 // mode mockup): the music toolbar (key, tempo chip and lock, Snap, Loop range,
 // position), the context bracket under the ruler, the hint line, the toast
-// after a scripted job places its takes, and the take header of a music clip.
+// after a scripted job places its takes, the take header of a music clip, and
+// the keys of the Music layout's keymap context against the Editing layout's.
 #include "wiring/WiringFixture.h"
 #include "music/MusicJobs.h"
 #include "music/MusicRange.h"
@@ -297,6 +298,76 @@ private slots:
         QVERIFY(std::abs(item("musicContextBracketShape")->x() - barMs(2) / kMsPerPx) < 1);
         QVERIFY(QMetaObject::invokeMethod(toggle, "click"));
         QTRY_VERIFY(item("musicContextLabel")->property("text").toString() != QStringLiteral("Model hears bars 2–8"));
+    }
+
+    // The Music layout's keys (KeymapOverlay.h): R and V pick the tools, L loops the
+    // range, ] and [ step through takes, one undo step each.
+    void musicKeysApplyInTheMusicLayout() {
+        openDocument(musicDocument({generatedClip("keys", "music")}));
+        auto* region = item("tracksRegion");
+        const auto press = [&](char key) {
+            region->forceActiveFocus();
+            QTest::keyClick(view.get(), key);
+            QCoreApplication::processEvents();
+        };
+        QTRY_COMPARE(gestures()->keymapContext(), QStringLiteral("music"));
+        QTRY_COMPARE(item("musicTool_range")->property("chip").toString(), QStringLiteral("R"));
+        QCOMPARE(item("musicTool_select")->property("chip").toString(), QStringLiteral("V"));
+        QCOMPARE(item("musicLoopRange")->property("chip").toString(), QStringLiteral("L"));
+        QVERIFY(item("musicHintKey_["));
+        QVERIFY(item("musicHintKey_]"));
+        press('v');
+        QCOMPARE(gestures()->activeTool(), QStringLiteral("select"));
+        press('r');
+        QCOMPARE(gestures()->activeTool(), QStringLiteral("range"));
+        press('v');
+        press('p');
+        QCOMPARE(gestures()->activeTool(), QStringLiteral("range"));
+        // L: the range becomes the loop.
+        selection()->set("c", barStartFrame(6, kTempo), barStartFrame(8, kTempo));
+        QVERIFY(!clock.loop());
+        press('l');
+        QVERIFY(clock.loop());
+        QVERIFY(!clock.playing());
+        QCOMPARE(clock.rangeInMs(), barMs(6));
+        QCOMPARE(clock.rangeOutMs(), barMs(8));
+        // ] and [ step the takes of the clip under the range.
+        const auto undo = model.undoStack()->count();
+        press(']');
+        QCOMPARE(clip("keys").value("activeTakeId").toString(), QStringLiteral("t1"));
+        QCOMPARE(clip("keys").value("currentAssetId").toString(), assetId(0x501));
+        QCOMPARE(model.undoStack()->count(), undo + 1);
+        QTRY_COMPARE(item("musicTakeLabel-keys")->property("text").toString(), QStringLiteral("Take B1"));
+        press('[');
+        QCOMPARE(clip("keys").value("activeTakeId").toString(), QStringLiteral("t0"));
+        QCOMPARE(model.undoStack()->count(), undo + 2);
+        // Without a clip under the range the keys change nothing.
+        selection()->set("a", barStartFrame(1, kTempo), barStartFrame(2, kTempo));
+        press(']');
+        QCOMPARE(model.undoStack()->count(), undo + 2);
+    }
+
+    // In the Editing layout the preset's keys stay: L shuttles forward, R is rate stretch.
+    void editingLayoutKeepsThePresetKeys() {
+        openDocument(musicDocument({generatedClip("keys", "music")}));
+        dockStore()->switchWorkspace(int(dockStore()->workspaces().indexOf("Editing")));
+        QTRY_COMPARE(gestures()->keymapContext(), QString());
+        auto* region = item("tracksRegion");
+        region->forceActiveFocus();
+        selection()->set("c", barStartFrame(6, kTempo), barStartFrame(8, kTempo));
+        QTest::keyClick(view.get(), 'l');
+        QCoreApplication::processEvents();
+        QVERIFY(clock.playing());
+        QVERIFY(!clock.loop());
+        clock.pause();
+        QTest::keyClick(view.get(), 'r');
+        QCOMPARE(gestures()->activeTool(), QStringLiteral("rateStretch"));
+        QTest::keyClick(view.get(), 'p');
+        QCOMPARE(gestures()->activeTool(), QStringLiteral("range"));
+        // ] is clip volume here, not a take step.
+        QTest::keyClick(view.get(), ']');
+        QCOMPARE(clip("keys").value("activeTakeId").toString(), QStringLiteral("t0"));
+        QCOMPARE(gestures()->shortcutFor("rangeTool"), QStringLiteral("P"));
     }
 
     // The toast after a scripted job places its takes.

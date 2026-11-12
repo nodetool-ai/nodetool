@@ -332,6 +332,14 @@ void ClipGestureController::setKeyboardPreset(const QString& preset) {
     emit optionsChanged();
 }
 
+void ClipGestureController::setKeymapContext(const QString& context) {
+    if (context == m_keymapContext) return;
+    m_keymapContext = context;
+    emit optionsChanged();
+}
+
+QString ClipGestureController::keymap() const { return nt::edit::keymapName(m_preset, m_keymapContext); }
+
 QString ClipGestureController::trimModeFor(const QString& tool, bool rollModifier, bool rippleMode) {
     if (tool == u"rateStretch") return QStringLiteral("stretch");
     if (tool == u"roll" || rollModifier) return QStringLiteral("roll");
@@ -1526,14 +1534,14 @@ bool ClipGestureController::trimEditPoint(double edgeTargetMs, bool merge) {
 }
 
 QString ClipGestureController::resolveKeyAction(int key, const QString& text, int modifiers) const {
-    return resolveTimelineAction(domKey(key, text, modifiers), m_preset);
+    return resolveTimelineAction(domKey(key, text, modifiers), keymap());
 }
 
 bool ClipGestureController::handleKey(int key, const QString& text, int modifiers, bool autoRepeat) {
     if (!m_timeline) { return false; }
     if (m_gesture.kind.isEmpty() && m_trimMode->handleKey(key, modifiers, autoRepeat)) { return true; }
     const QVariantMap context{{"autoRepeat", autoRepeat}};
-    const QString action = resolveTimelineAction(domKey(key, text, modifiers), m_preset);
+    const QString action = resolveTimelineAction(domKey(key, text, modifiers), keymap());
     // A preset's key means that action alone, even when the action refuses.
     if (!action.isEmpty()) { return runAction(action, context); }
     auto mods = Qt::KeyboardModifiers(modifiers) & (Qt::ControlModifier | Qt::MetaModifier | Qt::ShiftModifier | Qt::AltModifier);
@@ -1543,7 +1551,7 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
     }
     const QKeySequence sequence(QKeyCombination(mods, static_cast<Qt::Key>(unshiftedKey(key))));
     for (const auto& extension : nt::wiring::keyActions()) {
-        if (extension.defaultKeys.contains(sequence) && !presetBindsAction(m_preset, extension.name)) {
+        if (extension.defaultKeys.contains(sequence) && !presetBindsAction(keymap(), extension.name)) {
             return runAction(extension.name, context);
         }
     }
@@ -2016,12 +2024,12 @@ std::optional<double> ClipGestureController::sourceCap(const QJsonObject& clip) 
 }
 
 QString ClipGestureController::shortcutFor(const QString& action) const {
-    const auto shortcut = formatActionShortcut(m_preset, action);
+    const auto shortcut = formatActionShortcut(keymap(), action);
     if (!shortcut.isEmpty()) { return shortcut; }
     for (const auto& extension : nt::wiring::keyActions()) {
         if (extension.name == action) {
             for (const auto& key : extension.defaultKeys) {
-                if (!presetBindsSequence(m_preset, key)) { return key.toString(QKeySequence::NativeText); }
+                if (!presetBindsSequence(keymap(), key)) { return key.toString(QKeySequence::NativeText); }
             }
         }
     }
@@ -2054,7 +2062,7 @@ QSet<QString> ClipGestureController::availableActions() {
 }
 
 QVariantMap ClipGestureController::shortcutSheet() const {
-    QJsonObject sheet = nt::edit::shortcutSheet(m_preset);
+    QJsonObject sheet = nt::edit::shortcutSheet(keymap());
     QJsonArray groups;
     QSet<QString> listed;
     const auto available = availableActions();
@@ -2074,12 +2082,12 @@ QVariantMap ClipGestureController::shortcutSheet() const {
     for (const auto& action : nt::wiring::keyActions()) {
         if (listed.contains(action.name)) { continue; }
         QJsonArray combos;
-        for (const QStringList& keys : actionBindingKeys(m_preset, action.name)) {
+        for (const QStringList& keys : actionBindingKeys(keymap(), action.name)) {
             combos.append(QJsonArray::fromStringList(keys));
         }
         if (combos.isEmpty()) {
             for (const auto& key : action.defaultKeys) {
-                if (!presetBindsSequence(m_preset, key)) {
+                if (!presetBindsSequence(keymap(), key)) {
                     combos.append(QJsonArray::fromStringList(key.toString(QKeySequence::NativeText).split('+')));
                 }
             }

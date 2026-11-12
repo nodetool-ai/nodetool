@@ -1,8 +1,8 @@
 // nt-panel: slot=tracksFooter id=musicHint order=10 title="Music hints"
 // The hint line under the tracks in the Music layout (docs/MUSIC-MODE.md
 // section 15, the music mode mockup): how the Range tool selects bars, and the
-// keys that act on a selection, with chips from the keymap. It takes no height
-// in other layouts.
+// keys that act on a selection, with chips from the keymap: in the Music layout
+// [ and ] step through takes. It takes no height in other layouts.
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
@@ -23,6 +23,10 @@ Rectangle {
             {keys: ["Alt"], before: qsTr("Drag on a lane to select bars. Hold"), after: qsTr("to place an edge freely.")},
             {keys: [], before: qsTr("Double-click a clip to select its span."), after: ""}
         ]
+        const previous = shortcut("previousMusicTake")
+        const next = shortcut("nextMusicTake")
+        if (previous !== "" && next !== "")
+            parts.push({keys: [previous, next], before: "", after: qsTr("step through takes while it loops.")})
         const remove = shortcut("deleteSelected")
         if (remove !== "") parts.push({keys: [remove], before: "", after: qsTr("deletes the selected clip.")})
         return parts
