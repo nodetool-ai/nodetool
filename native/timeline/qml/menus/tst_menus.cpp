@@ -1073,7 +1073,7 @@ private slots:
         QTest::addColumn<QString>("path");
         QTest::addColumn<QStringList>("labels");
         QTest::newRow("file") << "File" << QStringList{"Open Recent", "Open Timeline…", "New Timeline", "---",
-            "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
+            "New Music Project…", "---", "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
             "Project Settings…", "---", "Settings…", "Quit"};
         QTest::newRow("edit") << "Edit" << QStringList{"Undo", "Redo", "---", "Cut", "Copy", "Paste", "Paste Insert", "Paste Attributes…", "---",
             "Delete", "Ripple Delete", "Duplicate", "Duplicate with Gap", "---",
@@ -1103,7 +1103,7 @@ private slots:
             "Play Audio While Scrubbing", "Keep Pitch While Shuttling"};
         QTest::newRow("window") << "Window" << QStringList{"Workspaces", "---", "Maximize Frame", "Next Panel", "Previous Panel", "Left Panels", "Right Panels", "---",
             "Library", "Effects", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Scripts", "Storyboards", "Text", "Effect Controls", "Motion", "Color", "Scopes",
-            "Entities", "Markers", "Assistant", "AI", "Activity"};
+            "Entities", "Markers", "Assistant", "AI", "Activity", "Music"};
     }
     void menuBarGroups() {
         QFETCH(QString, path);

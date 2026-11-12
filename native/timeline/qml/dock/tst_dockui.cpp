@@ -431,7 +431,8 @@ private slots:
         QCOMPARE(tabs.at(tabs.indexOf("assistant") + 1), QString("ai"));
         const auto left = group("left").value("panels").toStringList();
         QCOMPARE(left.at(left.indexOf("assets") + 1), QString("effects"));
-        QVERIFY(store->layout().value("hidden").toStringList().isEmpty());
+        // Only the music panel arrives hidden: it belongs to the Music workspace (MUSIC-MODE.md section 15).
+        QCOMPARE(store->layout().value("hidden").toStringList(), QStringList{"music"});
     }
     void colorAndAudioWorkspaces() {
         TimelineModel model;
