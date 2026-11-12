@@ -3,7 +3,9 @@ import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
 Item {
-    implicitHeight: (editor ? editor.canvasStrips.length : 0) * Ui.Metrics.compact
+    id: root
+    required property DocumentTabs tabs
+    implicitHeight: root.tabs.canvasStrips.length * Ui.Metrics.compact
     EditorRoles {
         id: roles
     }
@@ -11,7 +13,7 @@ Item {
         id: childRows
         width: parent.width
         Repeater {
-            model: editor ? editor.canvasStrips : []
+            model: root.tabs.canvasStrips
             delegate: Rectangle {
                 required property var modelData
                 readonly property int depth: modelData.depth
@@ -46,9 +48,9 @@ Item {
                                 Accessible.name: modelData.title
                                 Accessible.checkable: true
                                 Accessible.checked: modelData.selected
-                                Accessible.onPressAction: editor.activateSurface(modelData.surface)
-                                Keys.onReturnPressed: editor.activateSurface(modelData.surface)
-                                Keys.onSpacePressed: editor.activateSurface(modelData.surface)
+                                Accessible.onPressAction: root.tabs.activateSurface(modelData.surface)
+                                Keys.onReturnPressed: root.tabs.activateSurface(modelData.surface)
+                                Keys.onSpacePressed: root.tabs.activateSurface(modelData.surface)
                                 HoverHandler {
                                     id: entryHover
                                 }
@@ -57,7 +59,7 @@ Item {
                                     anchors.fill: parent
                                     onClicked: {
                                         entry.forceActiveFocus();
-                                        editor.activateSurface(entry.modelData.surface);
+                                        root.tabs.activateSurface(entry.modelData.surface);
                                     }
                                 }
                                 RowLayout {
@@ -82,7 +84,7 @@ Item {
                                         leftPadding: Ui.Metrics.none
                                         rightPadding: Ui.Metrics.none
                                         accessibleName: "Close " + entry.modelData.title
-                                        onClicked: editor.closeSurface(entry.modelData.surface)
+                                        onClicked: root.tabs.closeSurface(entry.modelData.surface)
                                     }
                                 }
                                 Rectangle {

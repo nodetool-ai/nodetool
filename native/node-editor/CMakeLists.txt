@@ -20,6 +20,8 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/NodeInspector.cpp src/interfaces/NodeInspector.h
  src/interfaces/PropertyHost.cpp src/interfaces/PropertyHost.h
  src/interfaces/GenerationReplay.cpp src/interfaces/GenerationReplay.h
+ src/interfaces/DocumentTabs.cpp src/interfaces/DocumentTabs.h
+ src/interfaces/Notifications.cpp src/interfaces/Notifications.h
  src/interfaces/Assign.h
  src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
@@ -342,6 +344,13 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_node_menu_component_tests)
  add_test(NAME node_editor_node_menu_component COMMAND node_editor_node_menu_component_tests)
  set_tests_properties(node_editor_node_menu_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+ # TabBar.qml, CanvasTabStrip.qml and NotificationsPanel.qml with fixture
+ # interfaces: no EditorWindow, graph runner, QtNodes or media.
+ qt_add_executable(node_editor_tab_bar_component_tests tests/ui/TabBarComponentTest.cpp)
+ target_link_libraries(node_editor_tab_bar_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_tab_bar_component_tests)
+ add_test(NAME node_editor_tab_bar_component COMMAND node_editor_tab_bar_component_tests)
+ set_tests_properties(node_editor_tab_bar_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  # Inspector.qml with a fixture inspector: no EditorWindow, graph runner or
  # QtNodes. The property fields preview media, so it builds the editor's media
  # QML types and links the model picker, as node_editor_asset_picker_tests does.

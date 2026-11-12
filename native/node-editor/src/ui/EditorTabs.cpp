@@ -523,7 +523,7 @@ void EditorWindow::showTabMenu(int index, const QPointF &global) {
             if (auto bar = surface->tabBarWidget()) {
                 bar->setFocus(Qt::OtherFocusReason);
             }
-            emit surface->tabRenameRequested(owner->visibleTabs().indexOf(target));
+            surface->documentTabs_.beginRename(owner->visibleTabs().indexOf(target));
         }));
     }
     menu->addAction(tr("Close tab"), owner, later([owner, target] {
@@ -632,7 +632,15 @@ void EditorWindow::setTabStripOffset(qreal offset) {
     if (tabOwner_ && tabOwner_->activeEditor_ != this) {
         return;
     }
-    (tabOwner_ ? tabOwner_ : this)->tabStripOffset_ = offset;
+    auto owner = tabOwner_ ? tabOwner_ : this;
+    owner->tabStripOffset_ = offset;
+    for (auto tab : owner->tabs_) {
+        tab->documentTabs_.setStripOffset(offset);
+    }
+}
+void EditorWindow::syncDocumentTabs() {
+    documentTabs_.setTabs(workflowTabs(), activeTab(), projectName(), canvasStrips());
+    documentTabs_.setStripOffset(tabStripOffset());
 }
 qreal EditorWindow::tabStripOffset() const {
     return (tabOwner_ ? tabOwner_ : this)->tabStripOffset_;

@@ -4,8 +4,10 @@
 #include <QSet>
 #include <QTimer>
 #include <optional>
+#include "interfaces/DocumentTabs.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInspector.h"
+#include "interfaces/Notifications.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
 #include "document/WorkflowDocument.h"
@@ -55,10 +57,6 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool emptyCanvas READ emptyCanvas NOTIFY panelChanged)
   Q_PROPERTY(nodetool::node_editor::SetupController* setup READ setup CONSTANT)
     Q_PROPERTY(nodetool::node_editor::PackSetup* packSetup READ packSetup CONSTANT)
-  Q_PROPERTY(QVariantList workflowTabs READ workflowTabs NOTIFY tabsChanged)
-    Q_PROPERTY(QVariantList canvasStrips READ canvasStrips NOTIFY tabsChanged)
-  Q_PROPERTY(int activeTab READ activeTab NOTIFY tabsChanged)
-    Q_PROPERTY(QString projectName READ projectName NOTIFY tabsChanged)
   Q_PROPERTY(int selectedCount READ selectedCount NOTIFY panelChanged)
   Q_PROPERTY(bool selectionDisabled READ selectionDisabled NOTIFY panelChanged)
   Q_PROPERTY(bool selectionMostlyDisabled READ selectionMostlyDisabled NOTIFY panelChanged)
@@ -106,8 +104,6 @@ class EditorWindow final : public QMainWindow {
     Q_PROPERTY(bool workflowRenamable READ workflowRenamable NOTIFY panelChanged)
     Q_PROPERTY(bool chatVisible READ chatVisible NOTIFY panelChanged)
     // The tab bar bell lists these. See web/src/stores/NotificationStore.ts.
-    Q_PROPERTY(QVariantList notifications READ notifications NOTIFY notificationsChanged)
-    Q_PROPERTY(int unreadNotifications READ unreadNotifications NOTIFY notificationsChanged)
     Q_PROPERTY(bool traceVisible READ traceVisible NOTIFY panelChanged)
     Q_PROPERTY(bool versionsVisible READ versionsVisible NOTIFY panelChanged)
 public:
@@ -128,31 +124,33 @@ public:
     node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
     // The root window has no panels of its own, so it returns the active tab's.
     node_editor::NodeCatalog *nodeCatalog() { return activeEditor() == this ? &nodeCatalog_ : activeEditor()->nodeCatalog(); }
+    node_editor::DocumentTabs *documentTabs() { return activeEditor() == this ? &documentTabs_ : activeEditor()->documentTabs(); }
+    node_editor::Notifications *notificationList() { return activeEditor() == this ? &notificationList_ : activeEditor()->notificationList(); }
     node_editor::NodeInspector *nodeInspector() { return activeEditor() == this ? &nodeInspector_ : activeEditor()->nodeInspector(); }
     void syncPackSetup();
   Q_INVOKABLE void setupAction(const QString &name);
   QVariantList workflowTabs() const;
   int activeTab() const;
     QVariantList canvasStrips() const;
-    Q_INVOKABLE void activateSurface(int index);
-    Q_INVOKABLE bool closeSurface(int index);
+    void activateSurface(int index);
+    bool closeSurface(int index);
     void flushChild();
     void closeChildSurfaces();
-  Q_INVOKABLE void newTab();
-  Q_INVOKABLE void activateTab(int index);
-  Q_INVOKABLE bool closeTab(int index);
+  void newTab();
+  void activateTab(int index);
+  bool closeTab(int index);
     // Workspace tab indices count the tabs of the active project, as the web
     // tab bar shows them. See web/src/stores/WorkspaceTabsStore.ts.
     QString projectName() const;
-    Q_INVOKABLE void dropTab(int source, int target, bool after);
-    Q_INVOKABLE void showTabMenu(int index, const QPointF &global);
-    Q_INVOKABLE void showProjectMenu(const QPointF &global);
+    void dropTab(int source, int target, bool after);
+    void showTabMenu(int index, const QPointF &global);
+    void showProjectMenu(const QPointF &global);
     Q_INVOKABLE void closeOtherTabs(int index);
     Q_INVOKABLE void closeAllTabs();
-    Q_INVOKABLE void renameTab(int index, const QString &name);
-    Q_INVOKABLE void showTabToolTip(const QString &text, const QPointF &global);
-    Q_INVOKABLE void setTabStripOffset(qreal offset);
-    Q_INVOKABLE qreal tabStripOffset() const;
+    void renameTab(int index, const QString &name);
+    void showTabToolTip(const QString &text, const QPointF &global);
+    void setTabStripOffset(qreal offset);
+    qreal tabStripOffset() const;
     void selectAdjacentTab(int step);
     void selectProject(const QString &project);
   Q_INVOKABLE void openChild();
@@ -225,10 +223,10 @@ public:
     // Adds a notification for every tab. type is error, warning, info or success.
     void notify(const QString &type, const QString &content);
     // Opens the notification list below the bell and marks every notification read.
-    Q_INVOKABLE void showNotifications(const QPointF &global);
+    void showNotifications(const QPointF &global);
     // The web settings page of the connected server (SettingsHeaderButton.tsx).
-    Q_INVOKABLE void openSettings();
-    Q_INVOKABLE void copyText(const QString &text);
+    void openSettings();
+    void copyText(const QString &text);
     // The per-run cost the server's preflight reports: available, caption.
     QVariantMap costEstimate() const;
     // Runs the selection `runs` times, each after the previous one completes
@@ -327,7 +325,6 @@ signals:
   void notificationsChanged();
   void costEstimateChanged();
   void tabsChanged();
-    void tabRenameRequested(int index);
   void documentEpochChanged();
   void credentialsEpochChanged();
   void panelChanged();
@@ -441,6 +438,8 @@ private:
   QQuickWidget *panel(const QString &file, const QVariantMap &properties = {});
   void syncNodeCatalog();
   void syncNodeInspector();
+  void syncDocumentTabs();
+  void syncNotifications();
   Q_SLOT void layoutOverlays();
   void syncInspector();
   // Applies a node click or a programmatic selection to the inspector. It does
@@ -531,6 +530,12 @@ private:
     // read and do. Owned by value, UI thread, destroyed with the tab after its
     // panels.
     node_editor::NodeInspector nodeInspector_;
+    // What this tab's TabBar and CanvasTabStrip panels read and do, and what
+    // its TabBar and notification list read about notifications. The tab
+    // state lives in the root window; each tab copies it into its own objects.
+    // Owned by value, UI thread, destroyed with the tab after its panels.
+    node_editor::DocumentTabs documentTabs_;
+    node_editor::Notifications notificationList_;
     QUrl packOrigin_;
     QString packToken_, packUser_;
   node_editor::SetupController setup_;

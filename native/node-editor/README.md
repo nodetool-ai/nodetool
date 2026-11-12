@@ -30,7 +30,9 @@ the `editor` context property takes small interface objects as required
 properties instead, such as [`NodeCatalog`](src/interfaces/NodeCatalog.h) for
 the node library and the node menu, and
 [`NodeInspector`](src/interfaces/NodeInspector.h) for the inspector, its
-property fields and its History tab.
+property fields and its History tab. The tab bar and the subgraph strips take
+[`DocumentTabs`](src/interfaces/DocumentTabs.h), and the tab bar's bell and the
+notification list take [`Notifications`](src/interfaces/Notifications.h).
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
 read `EditorWindow`.
 
@@ -322,6 +324,11 @@ QtNodes or media. Run it with `ctest --test-dir <build> -R
 blocks a read-only edit and sends the run and close requests. Run it with
 `ctest --test-dir <build> -R 'node_editor_inspector_component$'
 --output-on-failure`.
+[TabBarComponentTest](tests/ui/TabBarComponentTest.cpp) loads `TabBar.qml`,
+`CanvasTabStrip.qml` and `NotificationsPanel.qml` with fixture tabs and
+notifications and no `EditorWindow`. It activates, closes, renames and drops
+tabs, opens the notifications and copies one. Run it with `ctest --test-dir
+<build> -R 'node_editor_tab_bar_component$' --output-on-failure`.
 Complete successful-reconnect acceptance, inferred Code ports, dedicated canvas
 add-variable targets, full Agent-control presentation, value/code convenience
 actions remain outside these subsets.
