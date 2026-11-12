@@ -43,6 +43,16 @@ A call is refused during a drag, in trim mode and while recording take switches.
 A command with a required selection may be given `clip_ids` instead. Effect value
 changes are denied until C++ holds a table of parameter ranges.
 
+In a music project the host also advertises `ui_timeline_music_generate`,
+`ui_timeline_music_regenerate` and `ui_timeline_music_add_instrument`
+(`src/music/MusicAssistant.cpp`). Each takes a track, a 1-based bar range with
+the last bar included, and a prompt. It refuses with the planner's message when
+the operation does not fit the range, and otherwise submits through the
+timeline's shared `MusicJobs` and returns the job id. Edit > Clean Up Unused
+Music Takes removes inactive music takes and unused context bounces after
+confirmation, and deletes their audio only once the autosave holds the edit
+(`src/music/MusicCleanup.h`).
+
 The Entities left dock panel lists the project's characters, locations, styles
 and props. A card edits or removes its entity, and a removal offers Undo. New
 entity picks an image first, then asks for a kind, name and descriptor. The

@@ -112,3 +112,48 @@ function(nt_music_jobs_tests)
     set_tests_properties(tst_musicbounce PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 300)
 endfunction()
 nt_tests(nt_music_jobs_tests)
+
+# ---- Package I1: assistant commands and clean-up (MUSIC-MODE.md GN-8, TK-5,
+# MR8, MR10; MM7 scope items 2 and 4). Other packages' lines stay outside
+# this block.
+# The clean-up selection and the take-removal edit are pure functions in core.
+nt_sources(core src/music/MusicCleanupPlan.h src/music/MusicCleanupPlan.cpp)
+# The assistant tools and the clean-up controller use MusicJobs, a QML type;
+# the registrations compile into each executable.
+nt_qml_sources(src/music/MusicAssistant.h src/music/MusicAssistant.cpp
+    src/music/MusicCleanup.h src/music/MusicCleanup.cpp
+    src/music/MusicCleanupActions.cpp)
+
+function(nt_music_assist_tests)
+    # GN-8: the three assistant tools against a scripted server, through MusicJobs::submit.
+    qt_add_executable(tst_musicassistant src/music/tst_musicassistant.cpp
+        src/music/MusicAssistant.h src/music/MusicAssistant.cpp
+        src/music/MusicJobs.h src/music/MusicJobs.cpp
+        src/music/MusicEdits.h src/music/MusicEdits.cpp
+        src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
+    set_target_properties(tst_musicassistant PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_musicassistant PRIVATE ${NT_WARNINGS})
+    target_include_directories(tst_musicassistant PRIVATE tests)
+    target_link_libraries(tst_musicassistant PRIVATE timeline_core timeline_decode timeline_server timeline_audio
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::WebSockets Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    add_test(NAME tst_musicassistant COMMAND tst_musicassistant)
+    set_tests_properties(tst_musicassistant PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 300)
+
+    # TK-5 and MR10: which takes and bounces the clean-up lists and keeps, the
+    # edit, and deletion only after the autosave holds the edit.
+    qt_add_executable(tst_musiccleanup src/music/tst_musiccleanup.cpp
+        src/music/MusicCleanup.h src/music/MusicCleanup.cpp
+        src/music/MusicJobs.h src/music/MusicJobs.cpp
+        src/music/MusicEdits.h src/music/MusicEdits.cpp
+        src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
+    set_target_properties(tst_musiccleanup PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_musiccleanup PRIVATE ${NT_WARNINGS})
+    target_include_directories(tst_musiccleanup PRIVATE tests)
+    target_link_libraries(tst_musiccleanup PRIVATE timeline_core timeline_decode timeline_server timeline_audio
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::WebSockets Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    add_test(NAME tst_musiccleanup COMMAND tst_musiccleanup)
+    set_tests_properties(tst_musiccleanup PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 300)
+endfunction()
+nt_tests(nt_music_assist_tests)

@@ -10,6 +10,8 @@
 #include "edit/clipboard/RawDocument.h"
 #include "edit/trim/TrimMode.h"
 #include "export/FrameCapture.h"
+#include "music/MusicAssistant.h"
+#include "music/MusicJobs.h"
 #include "takes/TakeSwitcher.h"
 #include "ui/TimelineViewState.h"
 #include "wiring/KeyActions.h"
@@ -568,7 +570,7 @@ QVariantList AssistantCommands::tools() {
                            {"parameters", QVariantMap{{"type", "object"}, {"properties", properties}, {"required", required}, {"additionalProperties", false}}}};
     };
     const QVariantMap atMs{{"type", "number"}, {"description", "Timeline time in ms. Defaults to the playhead."}};
-    return {
+    QVariantList out{
         tool("ui_timeline_list_commands",
              "List the editor commands ui_timeline_run_command can run: ripple, trims, lift and extract, transitions, groups, speed, tracks, effects, "
              "captions, markers and view changes. Each has an id, label, parameters and whether it is enabled now. A command disabled for want of a "
@@ -598,9 +600,12 @@ QVariantList AssistantCommands::tools() {
               {"width", QVariantMap{{"type", "number"}, {"description", "Image width in pixels, up to 1920. Defaults to 640."}}}},
              {}),
     };
+    out.append(nt::music::assistant::tools());
+    return out;
 }
 bool AssistantCommands::handles(const QString& name) {
-    return name == u"ui_timeline_list_commands" || name == u"ui_timeline_run_command" || name == u"ui_timeline_read_scopes" || name == u"ui_timeline_capture_frame";
+    return name == u"ui_timeline_list_commands" || name == u"ui_timeline_run_command" || name == u"ui_timeline_read_scopes" || name == u"ui_timeline_capture_frame" ||
+           nt::music::assistant::handles(name);
 }
 QVariantMap AssistantCommands::execute(const QString& name, const QVariantMap& args, const QString& callId) {
     const auto json = QJsonObject::fromVariantMap(args);
@@ -612,6 +617,8 @@ QVariantMap AssistantCommands::execute(const QString& name, const QVariantMap& a
     else if (name == u"ui_timeline_run_command") { result = runCommand(json); }
     else if (name == u"ui_timeline_read_scopes") { result = readScopes(json, callId); }
     else if (name == u"ui_timeline_capture_frame") { result = captureFrame(json, callId); }
+    // The music panel's own submission, on the timeline's one job module (GN-8).
+    else if (nt::music::assistant::handles(name)) { result = nt::music::assistant::run(name, json, m_model, *nt::music::MusicJobs::forTimeline(&m_model)); }
     else { result = failure("This native editor does not implement that capability."); }
     return result.toVariantMap();
 }
