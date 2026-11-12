@@ -68,6 +68,7 @@
 class QThread;
 class TimelineModel;
 class TestMusicJobs;
+class TestMusicAssistant;
 namespace nt::assets {
 class MediaProtection;
 }
@@ -131,6 +132,12 @@ public:
     MusicJobs(const MusicJobs&) = delete;
     MusicJobs& operator=(const MusicJobs&) = delete;
 
+    // The timeline's job module, created on first use as a child of the
+    // model with `timeline` set. The panel, the assistant commands (GN-8) and
+    // the clean-up command share it, so a timeline has one socket and one
+    // job list. QML reaches it through MusicJobsRegistry.
+    static MusicJobs* forTimeline(TimelineModel* timeline);
+
     TimelineModel* timeline() const { return m_timeline; }
     void setTimeline(TimelineModel* timeline);
     bool ready() const { return m_transport.ready(); }
@@ -161,6 +168,9 @@ public:
     // The expected run time of a window of `requestFrames` for this task and
     // model, from the stored average. 0: no job of that kind has finished.
     Q_INVOKABLE double expectedMs(const QString& task, const QString& model, double requestFrames) const;
+    // The context bounce of every job in the list, final ones included: a
+    // retry sends the same context again (TK-5 keeps these).
+    QStringList contextAssetIds() const;
 
 signals:
     void timelineChanged();
@@ -172,6 +182,7 @@ signals:
 
 private:
     friend class ::TestMusicJobs;
+    friend class ::TestMusicAssistant;
     struct Job {
         QString id;
         QString requestId;
@@ -252,6 +263,17 @@ private:
     // unique ownership would leave that thread a raw pointer (rule 12).
     std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection;
     std::vector<std::unique_ptr<QThread>> m_workers;
+};
+
+// QML reaches the per-timeline instance through this singleton.
+// Thread affinity: GUI thread only.
+class MusicJobsRegistry : public QObject {
+    Q_OBJECT
+    QML_ELEMENT
+    QML_SINGLETON
+public:
+    explicit MusicJobsRegistry(QObject* parent = nullptr) : QObject(parent) {}
+    Q_INVOKABLE nt::music::MusicJobs* forTimeline(TimelineModel* timeline) const { return MusicJobs::forTimeline(timeline); }
 };
 
 } // namespace nt::music
