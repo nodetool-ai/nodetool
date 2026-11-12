@@ -112,6 +112,36 @@ export const memorySaveSpec: CapabilitySpec = {
   }
 };
 
+export const memoryGetSpec: CapabilitySpec = {
+  name: "memory_get",
+  description:
+    "Read one saved memory back: by `title` (the newest memory whose title " +
+    "matches, ignoring case) or by `memory_id`. Returns its content and " +
+    "resolved resources. Use it in a later action to fetch a value an earlier " +
+    "one saved with memory_save under a known title.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      title: {
+        type: "string",
+        description:
+          "The title the memory was saved under. The newest exact match wins."
+      },
+      memory_id: {
+        type: "string",
+        description:
+          "Id of the memory (from memory_save, memory_list or memory_search)."
+      }
+    },
+    required: []
+  },
+  category: "read",
+  userMessage: (params) => {
+    const title = isString(params.title) ? params.title : "";
+    return title ? `Recalling: ${title.slice(0, 60)}` : "Recalling memory";
+  }
+};
+
 export const memoryListSpec: CapabilitySpec = {
   name: "memory_list",
   description:
@@ -226,6 +256,7 @@ export const memoryDeleteSpec: CapabilitySpec = {
 /** Every spec this module declares, in declaration order. */
 export const memorySpecs: readonly CapabilitySpec[] = [
   memorySaveSpec,
+  memoryGetSpec,
   memoryListSpec,
   memorySearchSpec,
   memoryUpdateSpec,

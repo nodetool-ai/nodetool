@@ -30,6 +30,7 @@ import type {
 import type { CapabilityExport, CapabilityModule } from "./types.js";
 import {
   memorySaveSpec,
+  memoryGetSpec,
   memoryListSpec,
   memorySearchSpec,
   memoryUpdateSpec,
@@ -326,6 +327,58 @@ const memoryList: CapabilityExport = {
 };
 
 // ---------------------------------------------------------------------------
+// memory_get
+// ---------------------------------------------------------------------------
+
+const memoryGet: CapabilityExport = {
+  spec: memoryGetSpec,
+  impl: async (run, params) => {
+    const scope = requireUser(run.context);
+    if ("error" in scope) return { success: false, error: scope.error };
+
+    const memoryId = isString(params.memory_id) ? params.memory_id.trim() : "";
+    const title = isString(params.title) ? params.title.trim() : "";
+    if (!memoryId && !title) {
+      return { success: false, error: "Pass a title or a memory_id." };
+    }
+
+    try {
+      const { Memory } = await import("@nodetool-ai/models");
+      let memory: MemoryRow | null = null;
+      if (memoryId) {
+        memory = await Memory.find(scope.userId, memoryId);
+        if (!memory) {
+          return { success: false, error: `Memory not found: ${memoryId}` };
+        }
+      } else {
+        // The search narrows to rows containing every word of the title, newest
+        // first; the exact title match among them is the one asked for.
+        const wanted = title.toLowerCase();
+        const rows = await Memory.search(scope.userId, title, { limit: 200 });
+        memory =
+          rows.find((row) => (row.title ?? "").trim().toLowerCase() === wanted) ??
+          null;
+        if (!memory) {
+          return {
+            success: false,
+            error: `No memory titled "${title}". List titles with memory_list.`
+          };
+        }
+      }
+      return {
+        success: true,
+        memory: await toItem(scope.userId, scope.threadId, memory)
+      };
+    } catch (e) {
+      return {
+        success: false,
+        error: e instanceof Error ? e.message : String(e)
+      };
+    }
+  }
+};
+
+// ---------------------------------------------------------------------------
 // memory_search
 // ---------------------------------------------------------------------------
 
@@ -448,6 +501,7 @@ const memoryDelete: CapabilityExport = {
 /** Every memory capability, in the order memory-tools.ts declared them. */
 export const MEMORY_CAPABILITIES: readonly CapabilityExport[] = [
   memorySave,
+  memoryGet,
   memoryList,
   memorySearch,
   memoryUpdate,

@@ -37,11 +37,12 @@ Asset references are checked against your asset library. NodeTool fills in the `
 
 ## How agents save and recall
 
-Agents use five tools. They are always part of the built-in tool set, so you do not turn them on.
+Agents use six tools. They are always part of the built-in tool set, so you do not turn them on.
 
 | Tool | What it does |
 |------|--------------|
 | `memory_save` | Saves a new memory. Takes `content` (required), `title`, `kind`, and `resources`. Returns the new `memory_id`. |
+| `memory_get` | Reads one memory back by `title` (the newest memory with that title, ignoring case) or by `memory_id`. Inside `execute_code` it is `nodetool.memory.get(titleOrId)`. |
 | `memory_list` | Lists memories, newest first. Takes `limit` (default 100, maximum 200), `thread`, and `kinds`. |
 | `memory_search` | Finds memories by keyword. A memory matches only when every word in `query` appears in its title or content, ignoring case. Takes `limit` (default 25, maximum 200), `thread`, and `kinds`. |
 | `memory_update` | Changes a memory by `memory_id`. Only the fields passed change. Passing `resources` replaces the whole list. |

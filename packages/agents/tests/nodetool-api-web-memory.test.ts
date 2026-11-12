@@ -28,6 +28,7 @@ const WEB_TOOLS = [
 
 const MEMORY_TOOLS = [
   "memory_save",
+  "memory_get",
   "memory_list",
   "memory_update",
   "memory_delete"
@@ -188,6 +189,8 @@ describe("nodetool.memory", () => {
        await nodetool.memory.list({ limit: 20 });
        await nodetool.memory.update("m1", { content: "Updated." });
        await nodetool.memory.remove("m1");
+       await nodetool.memory.get("Palette");
+       await nodetool.memory.get("0192a7f3c4e5");
        return true;`
     );
     expect(obs.ok).toBe(true);
@@ -210,6 +213,14 @@ describe("nodetool.memory", () => {
     expect(calls[3]).toMatchObject({
       name: "memory_delete",
       args: { memory_id: "m1" }
+    });
+    expect(calls[4]).toMatchObject({
+      name: "memory_get",
+      args: { title: "Palette" }
+    });
+    expect(calls[5]).toMatchObject({
+      name: "memory_get",
+      args: { memory_id: "0192a7f3c4e5" }
     });
   });
 });
