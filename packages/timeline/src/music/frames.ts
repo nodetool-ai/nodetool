@@ -129,7 +129,8 @@ export function gridLineAtOrAfter(
 
 /**
  * The frame of the bar or beat line nearest `frame` (MT-3). A tie goes to the
- * earlier line. Lines before frame 0 are skipped, so the result is never negative.
+ * earlier line. Lines before frame 0 are skipped, so a frame at or after 0
+ * never snaps below 0.
  */
 export function snapFrameToGrid(
   frame: number,

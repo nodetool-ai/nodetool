@@ -22,8 +22,8 @@ const fixture = JSON.parse(
   readFileSync(new URL("./fixtures/music-document.json", import.meta.url), "utf8")
 ) as TimelineSequence;
 
-/** The sequence columns the update route stores beside the document. */
-const SEQUENCE_COLUMNS = ["id", "projectId", "name", "fps", "width", "height", "durationMs", "createdAt", "updatedAt"];
+/** The sequence columns a save sends beside the document (`documentForSave` in native/timeline/src/server/AutosaveController.cpp). */
+const SEQUENCE_COLUMNS = ["id", "projectId", "workflowId", "name", "fps", "width", "height", "durationMs", "createdAt", "updatedAt"];
 
 function documentPart(sequence: TimelineSequence): Record<string, unknown> {
   return Object.fromEntries(Object.entries(sequence).filter(([key]) => !SEQUENCE_COLUMNS.includes(key)));

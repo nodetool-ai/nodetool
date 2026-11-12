@@ -324,7 +324,6 @@ export function planMusicOperation(input: MusicPlanInput): MusicPlan {
       const startFrame = msToFrame(clip.startMs);
       return { clip, startFrame, endFrame: startFrame + msToFrame(clip.durationMs) };
     });
-  // The target track as the dry bounce renders it: every clip except muted ones.
   const onTrackAll = audio.filter((c) => c.clip.trackId === track.id);
   const overlapping = onTrackAll.filter((c) => overlaps(c, target.startFrame, target.endFrame));
   const others = audio.filter(
@@ -342,7 +341,12 @@ export function planMusicOperation(input: MusicPlanInput): MusicPlan {
     plan.inferred = "repaint";
   }
 
+  plan.operation = input.operation ?? plan.inferred;
+  // MD9 before any window: the request cannot carry another tempo.
   const tempoProblem = musicTempoRefusal(tempo);
+  if (tempoProblem !== null) return refuse("tempo", tempoProblem);
+
+  // The target track as the dry bounce renders it: every clip except muted ones.
   const dryContext = onTrackAll.filter((c) => c.clip.muted !== true);
   const build = (task: MusicTask): Windows | Refused => {
     if (task === "text2music") return planGenerate(tempo, target, overlapping);
@@ -351,26 +355,21 @@ export function planMusicOperation(input: MusicPlanInput): MusicPlan {
   };
   const built = new Map<MusicTask, Windows | Refused>();
   for (const task of MUSIC_TASKS) built.set(task, build(task));
-  if (tempoProblem === null) {
-    plan.valid = MUSIC_TASKS.filter((task) => !("refusal" in built.get(task)!));
-  }
+  plan.valid = MUSIC_TASKS.filter((task) => !("refusal" in built.get(task)!));
 
-  plan.operation = input.operation ?? plan.inferred;
   if (plan.operation === null) {
     return overlapping.length > 1
       ? refuse("several_clips", "Select a range inside one clip or an empty range. The range spans several clips.")
       : refuse("partial_overlap", "Select a range inside one clip or an empty range. The range reaches past a clip's edge.");
   }
-  if (tempoProblem !== null) return refuse("tempo", tempoProblem);
   const result = built.get(plan.operation)!;
   if ("refusal" in result) return refuse(result.refusal, result.message);
 
   const label = MUSIC_OPERATION_LABELS[plan.operation];
-  if (plan.operation !== plan.inferred) {
-    plan.reason =
-      plan.inferred === null
-        ? `${label} is chosen.`
-        : `${label} is chosen in place of ${MUSIC_OPERATION_LABELS[plan.inferred]}.`;
+  // An operation that built has an inferred row: every operation refuses a
+  // partial overlap or several clips.
+  if (plan.inferred !== null && plan.operation !== plan.inferred) {
+    plan.reason = `${label} is chosen in place of ${MUSIC_OPERATION_LABELS[plan.inferred]}.`;
   } else if (plan.operation === "repaint") {
     plan.reason = "The range lies inside one clip, so Regenerate replaces these bars.";
   } else if (plan.operation === "lego") {
