@@ -36,8 +36,8 @@ let failures = 0;
 for (const journey of RING0_JOURNEYS) {
   console.log(`\n=== reliability run ${journey} (kernel, strict) ===`);
   const result = spawnSync(
-    "npm",
-    ["run", "nodetool", "--", "reliability", "run", journey, "--surface", "kernel"],
+    process.execPath,
+    [resolve(repoRoot, "packages/cli/dist/nodetool.js"), "reliability", "run", journey, "--surface", "kernel"],
     { cwd: repoRoot, stdio: "inherit" }
   );
   if (result.status !== 0) {

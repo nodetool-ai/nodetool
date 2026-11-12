@@ -81,7 +81,7 @@ describe("lean execution services", () => {
       await workspace.write("asset.bin", bytes);
       expect(await workspace.read("asset.bin")).toEqual(bytes);
       expect(() => workspace.key("../outside")).toThrow();
-      await symlink(outside, join(root, "escape"));
+      await symlink(outside, join(root, "escape"), process.platform === "win32" ? "junction" : "dir");
       await expect(workspace.write("escape/asset.bin", bytes)).rejects.toThrow();
     } finally {
       await rm(root, { recursive: true, force: true });

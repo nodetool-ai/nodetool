@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -25,7 +26,7 @@ registerHooks({ resolve(specifier, context, next) {
   for (const name of ["TRACELOOP_API_KEY", "OTEL_EXPORTER_OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "OTEL_TRACES_EXPORTER", "NODETOOL_TRACE_FILE", "NODETOOL_TRACE_STDOUT", "NODETOOL_OPTIONAL_NODE_MODULES"]) {
     delete env[name];
   }
-  return spawnSync(process.execPath, ["--import", hook, "--import", "tsx", "--input-type=module", "--eval", code], {
+  return spawnSync(process.execPath, ["--import", pathToFileURL(hook).href, "--import", "tsx", "--input-type=module", "--eval", code], {
     cwd: resolve(import.meta.dirname, "../../.."), env, encoding: "utf8", timeout: 30_000
   });
 }

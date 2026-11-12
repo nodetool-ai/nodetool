@@ -35,6 +35,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { packageManagerInvocation } from "./package-manager.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesDir = join(repoRoot, "packages/cli-workflow/fixtures/graph-resources");
@@ -264,9 +265,10 @@ const FIXTURES = [
 function runDebug(fixture, env, outRoot) {
   const file = join(fixturesDir, fixture.file);
   const out = join(outRoot, fixture.id);
+  const invocation = packageManagerInvocation("npm", ["run", "--silent", "dev:nodetool", "--", "debug", file, "--out", out], env);
   const result = spawnSync(
-    "npm",
-    ["run", "--silent", "dev:nodetool", "--", "debug", file, "--out", out],
+    invocation.command,
+    invocation.args,
     { cwd: repoRoot, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
   );
   if (result.stderr) process.stderr.write(result.stderr);
@@ -428,31 +430,35 @@ async function main() {
   const env = { ...process.env };
 
   console.log(`Scratch install: ${scratch}`);
-  await seed();
-  console.log("Seeded the template board, its cut, the entity library and the launch cut.\n");
-
   const failures = [];
-  for (const fixture of FIXTURES) {
-    if (only.length > 0 && !only.includes(fixture.id)) continue;
-    console.log(`=== ${fixture.title} ===`);
-    const { problem, report } = runDebug(fixture, env, join(scratch, "debug"));
-    if (problem) {
-      const detail = nodeErrors(report);
-      failures.push(`${fixture.title}: ${problem}${detail ? `\n${detail}` : ""}`);
-      console.log(`  FAIL ${problem}\n${detail}\n`);
-      continue;
-    }
-    const assertion = ASSERTIONS[fixture.id];
-    const problems = assertion ? await assertion(report) : [];
-    if (problems.length > 0) {
-      failures.push(...problems);
-      for (const problem of problems) console.log(`  FAIL ${problem}`);
-    } else {
-      console.log("  ok\n");
-    }
-  }
+  try {
+    await seed();
+    console.log("Seeded the template board, its cut, the entity library and the launch cut.\n");
 
-  if (!keep) rmSync(scratch, { recursive: true, force: true });
+    for (const fixture of FIXTURES) {
+      if (only.length > 0 && !only.includes(fixture.id)) continue;
+      console.log(`=== ${fixture.title} ===`);
+      const { problem, report } = runDebug(fixture, env, join(scratch, "debug"));
+      if (problem) {
+        const detail = nodeErrors(report);
+        failures.push(`${fixture.title}: ${problem}${detail ? `\n${detail}` : ""}`);
+        console.log(`  FAIL ${problem}\n${detail}\n`);
+        continue;
+      }
+      const assertion = ASSERTIONS[fixture.id];
+      const problems = assertion ? await assertion(report) : [];
+      if (problems.length > 0) {
+        failures.push(...problems);
+        for (const problem of problems) console.log(`  FAIL ${problem}`);
+      } else {
+        console.log("  ok\n");
+      }
+    }
+  } finally {
+    const { closeDb } = await import("@nodetool-ai/models");
+    await closeDb();
+    if (!keep) rmSync(scratch, { recursive: true, force: true });
+  }
 
   if (failures.length > 0) {
     console.error(`\n${failures.length} fixture check(s) failed:\n${failures.join("\n")}`);

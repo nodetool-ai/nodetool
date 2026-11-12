@@ -1,6 +1,6 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, normalize } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { GAME_SCRIPT_TYPES, GAME_SCRIPT_WORLD_TYPES } from "../src/script-types.js";
@@ -36,8 +36,8 @@ describe("additive game world declarations", () => {
         strict: true, noEmit: true, skipLibCheck: true, target: ts.ScriptTarget.ES2020
       });
       const diagnostics = ts.getPreEmitDiagnostics(program);
-      expect(diagnostics.filter((diagnostic) => diagnostic.file?.fileName === valid)).toEqual([]);
-      expect(diagnostics.filter((diagnostic) => diagnostic.file?.fileName === invalid)).toHaveLength(4);
+      expect(diagnostics.filter((diagnostic) => normalize(diagnostic.file?.fileName ?? "") === valid)).toEqual([]);
+      expect(diagnostics.filter((diagnostic) => normalize(diagnostic.file?.fileName ?? "") === invalid)).toHaveLength(4);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }

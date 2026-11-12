@@ -14,3 +14,6 @@ packages/app-export/src/*.generated.ts text eol=lf
 
 # TypeScript generators compare their output with checked-in source files.
 *.ts text eol=lf
+
+# The generated Comfy template source embeds this license verbatim.
+packages/runtime/tests/fixtures/comfy-templates/LICENSE text eol=lf
