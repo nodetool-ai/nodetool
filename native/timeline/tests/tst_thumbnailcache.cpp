@@ -159,6 +159,17 @@ private slots:
         QVERIFY(bytes <= 2 * entryBytes);
     }
 
+    void storesUnderBudgetDoNotRescanTheDirectory() {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const auto atlas = sampleAtlas();
+        ThumbnailDiskCache cache(directory.path());
+        const int before = ThumbnailDiskCache::directoryScanCountForTesting();
+        for (int i = 0; i < 20; ++i) { ThumbnailDiskCache(directory.path()).store(QString("k%1").arg(i), *atlas); }
+        QCOMPARE(QDir(directory.path()).entryList({"*.ntthumb"}, QDir::Files).size(), 20);
+        QCOMPARE(ThumbnailDiskCache::directoryScanCountForTesting() - before, 1);
+    }
+
     void malformedMetadataIsAMiss() {
         QTemporaryDir directory;
         ThumbnailDiskCache cache(directory.path());

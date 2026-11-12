@@ -16693,7 +16693,6 @@
       "press": "언론",
       "toggleHint": "언제든지 이 패널을 전환할 수 있습니다. · Ctrl은 macOS에서 ⌘에도 응답합니다.",
       "presets": {
-        "nodetool": "NodeTool",
         "premiere": "프리미어 프로",
         "fcp": "파이널 컷 프로"
       },

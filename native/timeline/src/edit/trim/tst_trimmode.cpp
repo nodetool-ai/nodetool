@@ -137,7 +137,8 @@ private slots:
         if (!qEnvironmentVariableIsSet("NODETOOL_TIMELINE_PREFERENCES")) {
             qputenv("NODETOOL_TIMELINE_PREFERENCES", m_dir.filePath("preferences.ini").toUtf8());
         }
-        open();
+        // Leave the Program monitor room for the Trim Monitor's pictures above its controls.
+        open(560);
         if (QTest::currentTestFailed()) return;
         useCapture(view->rootObject());
         trim()->setClockSource([this] { return m_fakeClock; });
@@ -148,7 +149,7 @@ private slots:
         history()->clear();
         m_fakeClock = 0;
         gestures()->setLinkedSelection(true);
-        gestures()->setKeyboardPreset("nodetool");
+        gestures()->setKeyboardPreset("premiere");
     }
     void cleanup() { trim()->leave(); }
 
@@ -175,7 +176,7 @@ private slots:
     }
 
     void rollPointIsYellowOnBothSides() {
-        press(Qt::Key_B, Qt::ShiftModifier);  // Rolling tool
+        press(Qt::Key_N);  // Rolling tool
         QCOMPARE(gestures()->activeTool(), QString("roll"));
         clickEdge("l", "end");
         QCOMPARE(trim()->kind(), QString("roll"));
@@ -223,7 +224,7 @@ private slots:
     }
 
     void ctrlTCyclesTheKindInEveryPreset() {
-        for (const QString preset : {"nodetool", "premiere", "fcp"}) {
+        for (const QString preset : {"premiere", "fcp"}) {
             gestures()->setKeyboardPreset(preset);
             trim()->leave();
             gestures()->setActiveTool("ripple");
@@ -242,11 +243,11 @@ private slots:
     }
 
     void keyboardNudgesAreOneEntryAndClampLinkedOnce() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         const auto before = clips();
         const int entries = history()->index();
-        press(Qt::Key_Right, Qt::ControlModifier | Qt::ShiftModifier);
+        press(Qt::Key_Right, Qt::ControlModifier | Qt::AltModifier);
         QVERIFY(std::abs(endOf("l") - (2000 + FRAME_MS)) <= 1);
         QVERIFY(std::abs(endOf("al") - (2000 + FRAME_MS)) <= 1);
         QVERIFY(std::abs(startOf("r") - (2000 + FRAME_MS)) <= 1);
@@ -264,10 +265,10 @@ private slots:
     }
 
     void heldNudgeIsOneEntry() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         const int entries = history()->index();
-        const int mods = int(Qt::ControlModifier | Qt::ShiftModifier);
+        const int mods = int(Qt::ControlModifier | Qt::AltModifier);
         QVERIFY(gestures()->handleKey(Qt::Key_Right, {}, mods, false));
         QVERIFY(gestures()->handleKey(Qt::Key_Right, {}, mods, true));
         QVERIFY(gestures()->handleKey(Qt::Key_Right, {}, mods, true));
@@ -276,7 +277,7 @@ private slots:
     }
 
     void eExtendsEveryPointToThePlayhead() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         clock.seek(2500);
         const int entries = history()->index();
@@ -300,7 +301,7 @@ private slots:
     }
 
     void monitorButtonsAndCounters() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         QTRY_VERIFY(item("trimMonitorForward"));
         QTRY_VERIFY(item("trimMonitorForward")->width() > 0);
@@ -328,7 +329,7 @@ private slots:
     }
 
     void applyDefaultTransitionIsOneEntryAtTheCut() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         QTRY_VERIFY(item("trimMonitorApplyTransition"));
         QTRY_VERIFY(item("trimMonitorApplyTransition")->width() > 0);
@@ -346,7 +347,7 @@ private slots:
     }
 
     void aRollKeepsWorkingAfterTheTransition() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         QTRY_VERIFY(item("trimMonitorApplyTransition"));
         QTRY_VERIFY(item("trimMonitorApplyTransition")->width() > 0);
@@ -371,7 +372,7 @@ private slots:
     }
 
     void dragInAPictureTrimsThatSide() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         QTRY_VERIFY(item("trimMonitorDrag-outgoing"));
         QTRY_VERIFY(item("trimMonitorDrag-outgoing")->width() > 0);
@@ -397,7 +398,7 @@ private slots:
     }
 
     void aKeyDuringADragCommitsTheDragFirst() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         QTRY_VERIFY(item("trimMonitorDrag-between"));
         QTRY_VERIFY(item("trimMonitorDrag-between")->width() > 0);
@@ -408,7 +409,7 @@ private slots:
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
         QTest::mouseMove(view.get(), to, 20);
         QCoreApplication::processEvents();
-        press(Qt::Key_Right, Qt::ControlModifier | Qt::ShiftModifier);
+        press(Qt::Key_Right, Qt::ControlModifier | Qt::AltModifier);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, to);
         QCoreApplication::processEvents();
         QCOMPARE(history()->index(), entries + 2);
@@ -420,7 +421,7 @@ private slots:
     }
 
     void aDragBackToItsStartCommitsNothing() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         QTRY_VERIFY(item("trimMonitorDrag-between"));
         QTRY_VERIFY(item("trimMonitorDrag-between")->width() > 0);
@@ -437,7 +438,7 @@ private slots:
     }
 
     void aCommandSettlingLateCannotOverwriteATrim() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         auto next = clips();
         auto later = next[4].toObject();
@@ -472,7 +473,7 @@ private slots:
         gestures()->viewState()->flush();
         QTest::qWait(100);
         region()->forceActiveFocus();
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("ar", "start");
         const auto before = clips();
         QVERIFY(trim()->applyDefaultTransition());
@@ -500,7 +501,7 @@ private slots:
     }
 
     void escapeCancelsADrag() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         QTRY_VERIFY(item("trimMonitorDrag-incoming"));
         QTRY_VERIFY(item("trimMonitorDrag-incoming")->width() > 0);
@@ -522,7 +523,7 @@ private slots:
     }
 
     void dynamicTrimCommitsExactlyOneEntry() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         const auto before = clips();
         const int entries = history()->index();
@@ -585,7 +586,7 @@ private slots:
     }
 
     void escapeCancelsADynamicTrimAndThenLeaves() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         const auto before = clips();
         const int entries = history()->index();
@@ -603,7 +604,7 @@ private slots:
     }
 
     void anotherCommandCommitsFirst() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         const auto before = clips();
         const int entries = history()->index();
@@ -618,7 +619,7 @@ private slots:
     }
 
     void aPressElsewhereCommitsFirst() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         const int entries = history()->index();
         press(Qt::Key_L);
@@ -631,7 +632,7 @@ private slots:
     }
 
     void foreignEditEndsADynamicTrimWithNoEntryOfItsOwn() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         press(Qt::Key_L);
         m_fakeClock = 500;
@@ -661,7 +662,7 @@ private slots:
     }
 
     void aWriteWithNoCommandKeepsTheTrimUndoable() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         const auto base = clips();
         const int entries = history()->index();
@@ -686,7 +687,7 @@ private slots:
     }
 
     void aButtonLeavesSpaceAndTheKeysToTheEditor() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         QTRY_VERIFY(item("trimMonitorForward"));
         QTRY_VERIFY(item("trimMonitorForward")->width() > 0);
@@ -702,7 +703,7 @@ private slots:
     }
 
     void replacingTheDocumentEndsTrimMode() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         press(Qt::Key_L);
         m_fakeClock = 500;
@@ -719,7 +720,7 @@ private slots:
         prefs.setValue("playback/prerollMs", 500);
         prefs.setValue("playback/postrollMs", 1000);
         prefs.sync();
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         QTRY_VERIFY(item("trimMonitor"));
         const auto before = clips();
@@ -782,7 +783,7 @@ private slots:
     }
 
     void aClickElsewhereOrEscapeLeaves() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         press(Qt::Key_Escape);
         QVERIFY(!trim()->active());
@@ -810,7 +811,7 @@ private slots:
     }
 
     void movingThePlayheadKeepsTrimMode() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         auto* ruler = item("timeRuler");
         QVERIFY(ruler);
@@ -820,7 +821,7 @@ private slots:
     }
 
     void selectingClipsLeaves() {
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         press(Qt::Key_A, Qt::ControlModifier);
         QVERIFY(!trim()->active());
@@ -839,11 +840,11 @@ private slots:
         gestures()->viewState()->flush();
         QTest::qWait(100);
         region()->forceActiveFocus();
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         clickEdge("l", "end");
         QCOMPARE(trim()->pointCount(), 1);
         const double audioEnd = endOf("al");
-        press(Qt::Key_Right, Qt::ControlModifier | Qt::ShiftModifier);
+        press(Qt::Key_Right, Qt::ControlModifier | Qt::AltModifier);
         QVERIFY(std::abs(endOf("l") - (2000 + FRAME_MS)) <= 1);
         QCOMPARE(endOf("al"), audioEnd);
     }
@@ -865,12 +866,14 @@ private slots:
         auto* dock = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
         QVERIFY(dock);
         for (const auto* side : {"left", "right"}) { dock->resizeRegion(side, 100, view->width(), view->height()); }
+        // The Trim Monitor's controls sit under its pictures, so the timeline leaves them room.
+        dock->resizeRegion("bottom", 320, view->width(), view->height());
         QTest::qWait(100);
         auto* lanes = item("lanesViewport");
         auto* cut = edge("l", "end");
         QVERIFY(lanes && cut);
         QVERIFY2(lanes->contains(cut->mapToItem(lanes, cut->boundingRect().center())), "The cut must be inside the lane viewport");
-        press(Qt::Key_B, Qt::ShiftModifier);
+        press(Qt::Key_N);
         QCOMPARE(gestures()->activeTool(), QStringLiteral("roll"));
         clickEdge("l", "end");
         QVERIFY2(trim()->active(), "Clicking the visible cut must enter trim mode");

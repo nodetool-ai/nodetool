@@ -9,7 +9,11 @@
 namespace nodetool::node_editor {
 // REST workflow contracts: websocket/src/http-api.ts. Project choices use
 // trpc/routers/projects.ts. Credentials never leave this session's memory.
-class WorkflowBrowser final : public QObject {
+// WorkflowBrowser.qml takes it as a required property, named
+// WorkflowBrowserModel in QML.
+//
+// UI thread only.
+class WorkflowBrowser : public QObject {
   Q_OBJECT
   Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
   Q_PROPERTY(QVariantList projects READ projects NOTIFY changed)
@@ -40,11 +44,19 @@ public:
   Q_INVOKABLE void createWorkflow(const QString &name);
   Q_INVOKABLE void renameWorkflow(const QString &id, const QString &name);
   Q_INVOKABLE void deleteWorkflow(const QString &id);
+  // The panel's requests that need the editor window: open a workflow in a
+  // tab, ask before deleting one, and reload the list and its projects.
+  Q_INVOKABLE void open(const QString &id) { emit openRequested(id); }
+  Q_INVOKABLE void confirmDelete(const QString &id, const QString &name) { emit deleteRequested(id, name); }
+  Q_INVOKABLE void reload() { emit reloadRequested(); }
 signals:
   void changed();
   void created(QString id);
   void renamed(QString id);
   void deleted(QString id);
+  void openRequested(const QString &id);
+  void deleteRequested(const QString &id, const QString &name);
+  void reloadRequested();
 private:
   using Result = std::function<void(QJsonValue)>;
   void cancel();

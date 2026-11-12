@@ -231,3 +231,52 @@ describe("encodeBase64", () => {
     expect(encodeBase64(bytes)).toBe(expected);
   });
 });
+
+describe("base64 with the native Uint8Array methods", () => {
+  type NativeBase64 = {
+    fromBase64?: (text: string) => Uint8Array;
+    prototype: { toBase64?: (this: Uint8Array) => string };
+  };
+  const native = Uint8Array as unknown as NativeBase64;
+  const bytes = new Uint8Array([7, 0, 255, 42]);
+  const text = Buffer.from(bytes).toString("base64");
+
+  afterEach(() => {
+    delete native.fromBase64;
+    delete native.prototype.toBase64;
+  });
+
+  // Node has no Uint8Array.fromBase64 yet. The test installs strict
+  // stand-ins, as QuickJS and current browsers provide.
+  function installNative() {
+    const from = vi.fn((value: string) => {
+      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(value)) throw new SyntaxError("bad base64");
+      return new Uint8Array(Buffer.from(value, "base64"));
+    });
+    const to = vi.fn(function (this: Uint8Array) {
+      return Buffer.from(this).toString("base64");
+    });
+    native.fromBase64 = from;
+    native.prototype.toBase64 = to;
+    return { from, to };
+  }
+
+  it("decodes inline data and data URIs with fromBase64", async () => {
+    const { from } = installNative();
+    expect(await loadMediaRefBytes({ data: text })).toEqual(bytes);
+    expect(await loadMediaRefBytes({ uri: `data:audio/wav;base64,${text}` })).toEqual(bytes);
+    expect(from).toHaveBeenCalledTimes(2);
+  });
+
+  it("decodes base64url that fromBase64 rejects as Buffer does", async () => {
+    installNative();
+    const url = Buffer.from([251, 255]).toString("base64url");
+    expect(await loadMediaRefBytes({ data: url })).toEqual(new Uint8Array([251, 255]));
+  });
+
+  it("encodes with toBase64", () => {
+    const { to } = installNative();
+    expect(encodeBase64(bytes)).toBe(text);
+    expect(to).toHaveBeenCalledOnce();
+  });
+});

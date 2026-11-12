@@ -10,9 +10,8 @@ InspectorSection {
     property var controller: null
     readonly property var clip: controller ? controller.clip : ({})
     readonly property bool locked: !controller || controller.locked
-    readonly property var document: edits.document
     readonly property var parentOptions: {
-        const groups = (document.clips || []).filter(c => c.mediaType === "group")
+        const groups = edits.groupClips
         const childrenByParent = new Map()
         for (const group of groups) {
             const siblings = childrenByParent.get(group.parentId) || []

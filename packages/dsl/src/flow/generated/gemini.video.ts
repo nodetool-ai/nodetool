@@ -25,6 +25,7 @@ export function textToVideo(inputs: TextToVideoInputs): Promise<TextToVideoOutpu
 // Image To Video — gemini.video.ImageToVideo
 export type ImageToVideoInputs = {
   image?: ImageRef;
+  end_image?: ImageRef;
   prompt?: string;
   model?: unknown;
   aspect_ratio?: "16:9" | "9:16";

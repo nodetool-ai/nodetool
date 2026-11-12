@@ -342,5 +342,13 @@ class TestRender2d : public QObject {
         QCOMPARE(cache.rasterCount(), 2);
     }
 };
-QTEST_MAIN(TestRender2d)
+// QTEST_MAIN sets Qt::AA_Use96Dpi, which hides the 72 DPI font conversion
+// of macOS. Use the platform's own DPI, as the app does. The offscreen
+// platform still reports 96 DPI.
+int main(int argc, char** argv) {
+    QGuiApplication app(argc, argv);
+    TestRender2d test;
+    QTEST_SET_MAIN_SOURCE_PATH
+    return QTest::qExec(&test, argc, argv);
+}
 #include "tst_render2d.moc"

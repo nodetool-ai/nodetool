@@ -5,11 +5,13 @@ import JsonLd from "@/components/JsonLd";
 import { StoryboardCard } from "@/components/storyboards/StoryboardCard";
 import {
   STORYBOARD_CATEGORIES,
+  STORYBOARD_FAQ,
   storyboardEntryPages,
   storyboards
 } from "@/data/storyboards";
 import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 import PageUpdated from "@/components/PageUpdated";
+import FaqSection from "@/components/FaqSection";
 
 // Checked against docs/storyboard-editor.md (Direct a screenplay, Render
 // stills and clips, Takes, Change a still, Assemble a timeline, Assistant).
@@ -67,13 +69,14 @@ export default function StoryboardsPage() {
       />
       <section aria-labelledby="storyboards-title" className="relative">
         <div className="relative mx-auto max-w-7xl px-6 pb-16 pt-10 lg:px-8 lg:pb-24 lg:pt-16">
-          <p className="text-sm font-medium text-amber-300">
-            AI storyboard generator
-          </p>
           <h1
             id="storyboards-title"
-            className="mt-5 max-w-4xl text-5xl font-semibold leading-[1.02] tracking-tight text-white md:text-6xl xl:text-7xl"
+            className="max-w-4xl text-5xl font-semibold leading-[1.02] tracking-tight text-white md:text-6xl xl:text-7xl"
           >
+            <span className="mb-5 block text-sm font-medium leading-normal tracking-normal text-amber-300">
+              AI storyboard generator
+            </span>
+            <span className="sr-only">: </span>
             Watch the film.
             <br />
             <span className="text-slate-400">Then see every shot.</span>
@@ -195,6 +198,11 @@ export default function StoryboardsPage() {
           );
         })}
       </div>
+      <FaqSection
+        items={STORYBOARD_FAQ}
+        heading="AI storyboard generator: common questions"
+        className="mx-auto max-w-3xl border-t border-white/10 px-6 py-20"
+      />
     <div className="mx-auto max-w-7xl px-6 pb-12 lg:px-8">
       <PageUpdated route="/storyboards" className="text-sm text-slate-400" />
     </div>

@@ -4,7 +4,19 @@
 #include <QSet>
 #include <QTimer>
 #include <optional>
-#include "graph/CatalogSearch.h"
+#include "interfaces/DocumentTabs.h"
+#include "interfaces/NodeCatalog.h"
+#include "interfaces/NodeInspector.h"
+#include "interfaces/Notifications.h"
+#include "interfaces/PanelLayout.h"
+#include "interfaces/StatusModel.h"
+#include "interfaces/EditorCommands.h"
+#include "interfaces/Selection.h"
+#include "interfaces/RunState.h"
+#include "interfaces/Viewport.h"
+#include "interfaces/FirstWorkflowGuide.h"
+#include "interfaces/ChatWindow.h"
+#include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
 #include "document/WorkflowDocument.h"
@@ -48,94 +60,30 @@ class CanvasDropController;
 class CompatibleNodePicker;
 class EditorWindow final : public QMainWindow {
   Q_OBJECT
-  Q_PROPERTY(bool guideStarted READ guideStarted NOTIFY panelChanged)
-  Q_PROPERTY(QVariantList guideReadiness READ guideReadiness NOTIFY panelChanged)
-  Q_PROPERTY(bool guideVisible READ guideVisible NOTIFY panelChanged)
   Q_PROPERTY(bool emptyCanvas READ emptyCanvas NOTIFY panelChanged)
   Q_PROPERTY(nodetool::node_editor::SetupController* setup READ setup CONSTANT)
-    Q_PROPERTY(nodetool::node_editor::PackSetup* packSetup READ packSetup CONSTANT)
-  Q_PROPERTY(QVariantList workflowTabs READ workflowTabs NOTIFY tabsChanged)
-    Q_PROPERTY(QVariantList canvasStrips READ canvasStrips NOTIFY tabsChanged)
-  Q_PROPERTY(int activeTab READ activeTab NOTIFY tabsChanged)
-    Q_PROPERTY(QString projectName READ projectName NOTIFY tabsChanged)
-  Q_PROPERTY(QString selection READ selection NOTIFY panelChanged)
-  Q_PROPERTY(quint64 documentEpoch READ documentEpoch NOTIFY documentEpochChanged)
-  Q_PROPERTY(quint64 credentialsEpoch READ credentialsEpoch NOTIFY credentialsEpochChanged)
-  Q_PROPERTY(int selectedCount READ selectedCount NOTIFY panelChanged)
-  Q_PROPERTY(bool selectionDisabled READ selectionDisabled NOTIFY panelChanged)
-  Q_PROPERTY(bool selectionMostlyDisabled READ selectionMostlyDisabled NOTIFY panelChanged)
-  Q_PROPERTY(QVariantList catalog READ catalog NOTIFY catalogChanged)
-  Q_PROPERTY(QVariantList properties READ properties NOTIFY panelChanged)
-  Q_PROPERTY(bool readOnly READ readOnly NOTIFY panelChanged)
-  Q_PROPERTY(QString readOnlyReason READ readOnlyReason NOTIFY panelChanged)
   Q_PROPERTY(QString saveState READ saveState NOTIFY panelChanged)
   Q_PROPERTY(QString serverSaveState READ serverSaveState NOTIFY panelChanged)
   Q_PROPERTY(bool serverSyncAvailable READ serverSyncAvailable NOTIFY panelChanged)
   Q_PROPERTY(bool serverSyncNeedsAttention READ serverSyncNeedsAttention NOTIFY panelChanged)
   Q_PROPERTY(bool hasUnsavedChanges READ hasUnsavedChanges NOTIFY panelChanged)
-  Q_PROPERTY(QString connectionState READ connectionState NOTIFY panelChanged)
-  Q_PROPERTY(QString message READ message NOTIFY panelChanged)
-  Q_PROPERTY(nodetool::node_editor::DynamicPortsController* dynamicPorts READ dynamicPorts CONSTANT)
-  Q_PROPERTY(nodetool::node_editor::GenerationHistory* generationHistory READ generationHistory CONSTANT)
-  Q_PROPERTY(QString pinnedGeneration READ pinnedGeneration NOTIFY panelChanged)
-  Q_PROPERTY(QStringList replayGenerations READ replayGenerations NOTIFY panelChanged)
-  Q_PROPERTY(bool browserVisible READ browserVisible NOTIFY panelChanged)
-  Q_PROPERTY(bool libraryVisible READ libraryVisible NOTIFY panelChanged)
   Q_PROPERTY(QVariantList outputMedia READ outputMedia NOTIFY mediaChanged)
   Q_PROPERTY(bool runActive READ runActive NOTIFY panelChanged)
-  // The run queue and run state the queue overlay, the toolbar and the
-  // inspector show. A change shows once the queue holds for shownQueueDelayMs,
-  // so a burst of short preview runs does not flicker them.
+  // The run queue the queue overlay shows. A change shows once the queue holds
+  // for shownQueueDelayMs, so a burst of short preview runs does not flicker it.
+  // The toolbars and the inspector read the same debounced state.
   Q_PROPERTY(QVariantList shownQueue READ shownQueue NOTIFY shownQueueChanged)
-  Q_PROPERTY(bool shownRunActive READ shownRunActive NOTIFY shownQueueChanged)
-  Q_PROPERTY(bool outputVisible READ outputVisible NOTIFY panelChanged)
-  Q_PROPERTY(bool catalogVisible READ catalogVisible NOTIFY panelChanged)
   // Space or a pane double-click arms the catalog to add at that canvas point, as the web node menu does.
   Q_PROPERTY(bool catalogAtPointer READ catalogAtPointer NOTIFY catalogPlacementChanged)
-  // Recently added node types, which the catalog ranks first (web stores/RecentNodesStore.ts).
-  Q_PROPERTY(QStringList catalogRecent READ catalogRecent NOTIFY catalogRecentChanged)
-  // Favorite node types, newest first, shown as tiles on the node menu home (web stores/FavoriteNodesStore.ts).
-  Q_PROPERTY(QStringList catalogFavorites READ catalogFavorites NOTIFY catalogFavoritesChanged)
-  Q_PROPERTY(bool inspectorVisible READ inspectorVisible NOTIFY panelChanged)
-  Q_PROPERTY(QString workflowName READ workflowName NOTIFY panelChanged)
   Q_PROPERTY(QString graphSummary READ graphSummary NOTIFY panelChanged)
-  Q_PROPERTY(QVariantMap selectionInfo READ selectionInfo NOTIFY panelChanged)
-  Q_PROPERTY(int zoomPercent READ zoomPercent NOTIFY zoomChanged)
-  Q_PROPERTY(QVariantList catalogCategories READ catalogCategories CONSTANT)
-  Q_PROPERTY(bool miniMapVisible READ miniMapVisible NOTIFY panelChanged)
-  // "default" or "type", as MiniMapStore.ts colorMode.
-  Q_PROPERTY(QString miniMapColorMode READ miniMapColorMode NOTIFY panelChanged)
-  // True when the zoom matches a status indicator preset (ViewportStatusIndicator.tsx findZoomPreset).
-  Q_PROPERTY(bool zoomIsPreset READ zoomIsPreset NOTIFY zoomChanged)
-  Q_PROPERTY(QVariantMap systemStats READ systemStats NOTIFY panelChanged)
-  Q_PROPERTY(QString connectionStatus READ connectionStatus NOTIFY panelChanged)
-  Q_PROPERTY(QString connectionDetail READ connectionDetail NOTIFY panelChanged)
-  Q_PROPERTY(int nodeCount READ nodeCount NOTIFY panelChanged)
-  Q_PROPERTY(int edgeCount READ edgeCount NOTIFY panelChanged)
-  Q_PROPERTY(int queuedCount READ queuedCount NOTIFY panelChanged)
-  Q_PROPERTY(bool queueAvailable READ queueAvailable NOTIFY panelChanged)
-    Q_PROPERTY(bool canUndo READ canUndo NOTIFY panelChanged)
-    Q_PROPERTY(bool canRedo READ canRedo NOTIFY panelChanged)
-    Q_PROPERTY(QString documentSaveStatus READ documentSaveStatus NOTIFY panelChanged)
-    Q_PROPERTY(bool workflowRenamable READ workflowRenamable NOTIFY panelChanged)
-    Q_PROPERTY(bool chatVisible READ chatVisible NOTIFY panelChanged)
-    // The tab bar bell lists these. See web/src/stores/NotificationStore.ts.
-    Q_PROPERTY(QVariantList notifications READ notifications NOTIFY notificationsChanged)
-    Q_PROPERTY(int unreadNotifications READ unreadNotifications NOTIFY notificationsChanged)
-    // The per-run cost the server's preflight reports: available, caption.
-    Q_PROPERTY(QVariantMap costEstimate READ costEstimate NOTIFY costEstimateChanged)
-    // The inspector's repeated Run selected: current and total, or empty.
-    Q_PROPERTY(QVariantMap runProgress READ runProgress NOTIFY panelChanged)
-    Q_PROPERTY(bool traceVisible READ traceVisible NOTIFY panelChanged)
-    Q_PROPERTY(bool versionsVisible READ versionsVisible NOTIFY panelChanged)
 public:
     nt::chat::ChatSession *chatSession();
     Q_INVOKABLE void askAgent(const QString &message);
     Q_SLOT void askRunAgent(const QString &runId, const QString &spanId = {});
     Q_SLOT void toggleChat();
-    Q_INVOKABLE void beginChatGeometry();
-    Q_INVOKABLE void resetChatPosition();
-    Q_INVOKABLE void changeChatGeometry(int dx, int dy, int edges, bool finished);
+    void beginChatGeometry();
+    void resetChatPosition();
+    void changeChatGeometry(int dx, int dy, int edges, bool finished);
   explicit EditorWindow(QWidget *parent = nullptr);
   ~EditorWindow() override;
   bool guideStarted() const { return guideStarted_; }
@@ -144,30 +92,42 @@ public:
   bool emptyCanvas() const { return document_.nodes().isEmpty(); }
   node_editor::SetupController *setup() { return &setup_; }
     node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
+    // The root window has no panels of its own, so it returns the active tab's.
+    node_editor::NodeCatalog *nodeCatalog() { return activeEditor() == this ? &nodeCatalog_ : activeEditor()->nodeCatalog(); }
+    node_editor::DocumentTabs *documentTabs() { return activeEditor() == this ? &documentTabs_ : activeEditor()->documentTabs(); }
+    node_editor::Notifications *notificationList() { return activeEditor() == this ? &notificationList_ : activeEditor()->notificationList(); }
+    node_editor::WorkflowHeader *workflowHeader() { return activeEditor() == this ? &workflowHeader_ : activeEditor()->workflowHeader(); }
+    node_editor::StatusModel *statusModel() { return activeEditor() == this ? &statusModel_ : activeEditor()->statusModel(); }
+    node_editor::PanelLayout *panelLayout() { return activeEditor() == this ? &panelLayout_ : activeEditor()->panelLayout(); }
+    node_editor::EditorCommands *editorCommands() { return activeEditor() == this ? &editorCommands_ : activeEditor()->editorCommands(); }
+    node_editor::Viewport *viewport() { return activeEditor() == this ? &viewport_ : activeEditor()->viewport(); }
+    node_editor::FirstWorkflowGuide *firstWorkflowGuide() { return activeEditor() == this ? &firstWorkflowGuide_ : activeEditor()->firstWorkflowGuide(); }
+    node_editor::RunState *runState() { return activeEditor() == this ? &runState_ : activeEditor()->runState(); }
+    node_editor::NodeInspector *nodeInspector() { return activeEditor() == this ? &nodeInspector_ : activeEditor()->nodeInspector(); }
     void syncPackSetup();
-  Q_INVOKABLE void setupAction(const QString &name);
+  void setupAction(const QString &name);
   QVariantList workflowTabs() const;
   int activeTab() const;
     QVariantList canvasStrips() const;
-    Q_INVOKABLE void activateSurface(int index);
-    Q_INVOKABLE bool closeSurface(int index);
+    void activateSurface(int index);
+    bool closeSurface(int index);
     void flushChild();
     void closeChildSurfaces();
-  Q_INVOKABLE void newTab();
-  Q_INVOKABLE void activateTab(int index);
-  Q_INVOKABLE bool closeTab(int index);
+  void newTab();
+  void activateTab(int index);
+  bool closeTab(int index);
     // Workspace tab indices count the tabs of the active project, as the web
     // tab bar shows them. See web/src/stores/WorkspaceTabsStore.ts.
     QString projectName() const;
-    Q_INVOKABLE void dropTab(int source, int target, bool after);
-    Q_INVOKABLE void showTabMenu(int index, const QPointF &global);
-    Q_INVOKABLE void showProjectMenu(const QPointF &global);
+    void dropTab(int source, int target, bool after);
+    void showTabMenu(int index, const QPointF &global);
+    void showProjectMenu(const QPointF &global);
     Q_INVOKABLE void closeOtherTabs(int index);
     Q_INVOKABLE void closeAllTabs();
-    Q_INVOKABLE void renameTab(int index, const QString &name);
-    Q_INVOKABLE void showTabToolTip(const QString &text, const QPointF &global);
-    Q_INVOKABLE void setTabStripOffset(qreal offset);
-    Q_INVOKABLE qreal tabStripOffset() const;
+    void renameTab(int index, const QString &name);
+    void showTabToolTip(const QString &text, const QPointF &global);
+    void setTabStripOffset(qreal offset);
+    qreal tabStripOffset() const;
     void selectAdjacentTab(int step);
     void selectProject(const QString &project);
   Q_INVOKABLE void openChild();
@@ -186,15 +146,15 @@ public:
   node_editor::GenerationHistory *generationHistory() { return session()->generationHistory(); }
   QString pinnedGeneration() const;
   QStringList replayGenerations() const;
-  Q_INVOKABLE bool pinGeneration(const QString &id);
-  Q_INVOKABLE bool toggleReplayGeneration(const QString &id);
-  Q_INVOKABLE bool clearReplayGenerations();
+  bool pinGeneration(const QString &id);
+  bool toggleReplayGeneration(const QString &id);
+  bool clearReplayGenerations();
   node_editor::DynamicPortsController *dynamicPorts() { return activeEditor() == this ? &dynamicPorts_ : activeEditor()->dynamicPorts(); }
   node_editor::WorkflowBrowser *workflowBrowser() { return activeEditor() == this ? &browser_ : activeEditor()->workflowBrowser(); }
   bool browserVisible() const;
   bool libraryVisible() const;
-  Q_INVOKABLE void openWorkflow(const QString &id);
-  Q_INVOKABLE void deleteWorkflow(const QString &id, const QString &name);
+  void openWorkflow(const QString &id);
+  void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
   bool runActive() const;
   QVariantList shownQueue() const { return shownQueue_; }
@@ -205,20 +165,17 @@ public:
   bool inspectorVisible() const;
   QString workflowName() const;
   QString graphSummary() const;
-  QVariantList catalogCategories() const;
-  // Indexes into `nodes` in the web search order for a query (src/graph/CatalogSearch.h).
-  Q_INVOKABLE QVariantList rankCatalog(const QVariantList &nodes, const QString &query) const;
   bool miniMapVisible() const;
   // The web hides the mini-map until the user turns it on, and keeps the choice
   // for every workflow. See web/src/stores/MiniMapStore.ts.
-  Q_INVOKABLE void setMiniMapVisible(bool visible);
+  void setMiniMapVisible(bool visible);
   QString miniMapColorMode() const;
   // Accepts "default" and "type", keeps the choice for every workflow and remembers it.
-  Q_INVOKABLE void setMiniMapColorMode(const QString &mode);
+  void setMiniMapColorMode(const QString &mode);
   // The color settings menu ("colors") or the node type legend ("legend"), below
   // the given global point, which is the bottom right of the button that opened it.
-  Q_INVOKABLE void showMiniMapPopup(const QString &kind, const QPointF &anchorGlobal);
-  Q_INVOKABLE void closeMiniMapPopup();
+  void showMiniMapPopup(const QString &kind, const QPointF &anchorGlobal);
+  void closeMiniMapPopup();
   bool zoomIsPreset() const;
   QVariantMap systemStats() const;
   // The connection as the web status bar names it: connected, connecting, offline or idle.
@@ -236,26 +193,28 @@ public:
     // conflict and deleted states.
     QString documentSaveStatus() const;
     bool workflowRenamable() const;
-    Q_INVOKABLE void renameWorkflow(const QString &name);
+    void renameWorkflow(const QString &name);
     bool chatVisible() const;
     QVariantList notifications() const;
     int unreadNotifications() const;
     // Adds a notification for every tab. type is error, warning, info or success.
     void notify(const QString &type, const QString &content);
     // Opens the notification list below the bell and marks every notification read.
-    Q_INVOKABLE void showNotifications(const QPointF &global);
+    void showNotifications(const QPointF &global);
     // The web settings page of the connected server (SettingsHeaderButton.tsx).
-    Q_INVOKABLE void openSettings();
-    Q_INVOKABLE void copyText(const QString &text);
+    void openSettings();
+    void copyText(const QString &text);
+    // The per-run cost the server's preflight reports: available, caption.
     QVariantMap costEstimate() const;
     // Runs the selection `runs` times, each after the previous one completes
     // (web hooks/nodes/useRunSelectedNodes.ts).
-    Q_INVOKABLE void runSelectedNodes(int runs);
+    void runSelectedNodes(int runs);
+    // The inspector's repeated Run selected: current and total, or empty.
     QVariantMap runProgress() const;
     bool traceVisible() const;
     bool versionsVisible() const;
     // A status bar tab: opens its panel, or closes it when it is the open one (PanelBottom.tsx).
-    Q_INVOKABLE void toggleStatusView(const QString &view);
+    void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;
   int zoomPercent() const;
     EditorScene *scene() const {
@@ -265,13 +224,11 @@ public:
         ensureProjected();
         return scene_;
     }
-  Q_INVOKABLE void authoredAction(const QString &id, const QString &command, quint64 epoch, quint64 credentials);
-  Q_INVOKABLE void styleOutputMarkdown(QObject *document, const QColor &link, const QColor &codeSurface, const QFont &codeFont);
-  Q_INVOKABLE QString iconPath(const QString &name) const;
+  void authoredAction(const QString &id, const QString &command, quint64 epoch, quint64 credentials);
   Q_INVOKABLE void showToolTip(const QString &text);
   bool readOnly() const { return !readOnlyReason().isEmpty(); }
   QString readOnlyReason() const;
-  Q_INVOKABLE void presentation(const QVariantMap &roles);
+  void presentation(const QVariantMap &roles);
   bool confirmOpen();
   QString selection() const { return activeEditor() == this ? selected_ : activeEditor()->selection(); }
   int selectedCount() const { return activeEditor() == this ? selectedIds().size() : activeEditor()->selectedCount(); }
@@ -300,34 +257,33 @@ public:
   // Opens a workflow file in its own tab, or switches to the tab that has it.
   void openFileInTab(const QString &path);
   bool saveFile(const QString &path);
-  Q_INVOKABLE void addNode(const QString &type);
-  Q_INVOKABLE void dragNode(const QString &type);
+  void addNode(const QString &type);
+  void dragNode(const QString &type);
   bool catalogAtPointer() const { return activeEditor() == this ? catalogPoint_.has_value() : activeEditor()->catalogAtPointer(); }
   Q_INVOKABLE void cancelCatalogPlacement();
   Q_INVOKABLE void focusCanvas();
   // The floating node menu (web components/node_menu/NodeMenu.tsx). It opens at
   // the armed pointer point, or in the canvas center without one.
   void openNodeMenu();
-  Q_INVOKABLE void closeNodeMenu();
+  void closeNodeMenu();
   // The menu header drag moves the menu inside the canvas area.
-  Q_INVOKABLE void moveNodeMenu(qreal dx, qreal dy);
+  void moveNodeMenu(qreal dx, qreal dy);
   bool nodeMenuVisible() const;
   QStringList catalogRecent() const;
   QStringList catalogFavorites() const;
-  Q_INVOKABLE void toggleCatalogFavorite(const QString &type);
-  Q_INVOKABLE void clearCatalogFavorites();
-  Q_INVOKABLE void clearCatalogRecent();
-  Q_INVOKABLE QVariantList catalogQuickActions() const;
+  void toggleCatalogFavorite(const QString &type);
+  void clearCatalogFavorites();
+  void clearCatalogRecent();
   Q_INVOKABLE void setProperty(const QString &name, const QVariant &value);
-  Q_INVOKABLE bool commitProperty(const QString &nodeId, const QString &name, const QVariant &value);
-  Q_INVOKABLE bool removeProperty(const QString &nodeId, const QString &name);
+  bool commitProperty(const QString &nodeId, const QString &name, const QVariant &value);
+  bool removeProperty(const QString &nodeId, const QString &name);
   Q_INVOKABLE void action(const QString &name);
   // An action that the user started from a button, menu or key. Zoom, fit and Focus
   // moves then animate as the web does. action() alone moves the view at once, so
   // harnesses and tests that read the result straight away see the final view.
-  Q_INVOKABLE void userAction(const QString &name);
+  void userAction(const QString &name);
   // The More button of the card toolbar opens the node context menu below it.
-  Q_INVOKABLE void showNodeMenu(const QPointF &global);
+  void showNodeMenu(const QPointF &global);
   // Fits every node into the canvas area the floating toolbar leaves free, and
   // keeps it fitted across panel changes until the user moves the view.
   void fit();
@@ -344,7 +300,6 @@ signals:
   void notificationsChanged();
   void costEstimateChanged();
   void tabsChanged();
-    void tabRenameRequested(int index);
   void documentEpochChanged();
   void credentialsEpochChanged();
   void panelChanged();
@@ -363,8 +318,6 @@ protected:
 private slots:
   void saveLocalCopyAs();
 private:
-  // The node menu ranking caches. rankCatalog is const for QML, so the cache is mutable.
-  mutable CatalogRanker catalogRanker_;
   // An edit to rerun: the node, an uncommitted value of one of its properties
   // ({"name", "value"}, empty for a committed edit), and whether only an
   // in-process run may serve it.
@@ -457,7 +410,16 @@ private:
   QStringList selectedIds() const;
   QList<bool> selectedRunnableStates() const;
   bool singleRunnableCardSelected() const;
-  QQuickWidget *panel(const QString &file);
+  QQuickWidget *panel(const QString &file, const QVariantMap &properties = {});
+  void syncNodeCatalog();
+  void syncNodeInspector();
+  void syncDocumentTabs();
+  void syncNotifications();
+  void syncChrome();
+  // Copies the shown queue and the session state into the run interfaces.
+  void syncRuns();
+  // Copies the zoom and the mini-map color mode into the viewport interface.
+  void syncViewport();
   Q_SLOT void layoutOverlays();
   void syncInspector();
   // Applies a node click or a programmatic selection to the inspector. It does
@@ -540,6 +502,40 @@ private:
   QPointer<QObject> viewAnimation_;
 
     node_editor::PackSetup packSetup_;
+    // What this tab's Catalog and NodeMenu panels read and do. Owned by value,
+    // UI thread, destroyed with the tab after its panels (~EditorWindow deletes
+    // them first).
+    node_editor::NodeCatalog nodeCatalog_;
+    // What this tab's Inspector panel, its property fields and its History tab
+    // read and do. Owned by value, UI thread, destroyed with the tab after its
+    // panels.
+    node_editor::NodeInspector nodeInspector_;
+    // What this tab's TabBar and CanvasTabStrip panels read and do, and what
+    // its TabBar and notification list read about notifications. The tab
+    // state lives in the root window; each tab copies it into its own objects.
+    // Owned by value, UI thread, destroyed with the tab after its panels.
+    node_editor::DocumentTabs documentTabs_;
+    node_editor::Notifications notificationList_;
+    // What this tab's HeaderRow reads about the document, and what its Rail
+    // and HeaderRow read about open panels. Owned by value, UI thread,
+    // destroyed with the tab after its panels.
+    node_editor::WorkflowHeader workflowHeader_;
+    node_editor::PanelLayout panelLayout_;
+    // What this tab's StatusBar reads about the server and the graph. Owned by
+    // value, UI thread, destroyed with the tab after its panels.
+    node_editor::StatusModel statusModel_;
+    // What this tab's canvas Toolbar, SelectionToolbar and group controls
+    // read about commands, the selection and runs. Owned by value, UI thread,
+    // destroyed with the tab.
+    node_editor::EditorCommands editorCommands_;
+    node_editor::Selection selection_;
+    node_editor::RunState runState_;
+    // What this tab's zoom readout, mini-map buttons and their popups read
+    // about the view. Owned by value, UI thread, destroyed with the tab.
+    node_editor::Viewport viewport_;
+    // What this tab's first-workflow guide reads and does. Owned by value, UI
+    // thread, destroyed with the tab.
+    node_editor::FirstWorkflowGuide firstWorkflowGuide_;
     QUrl packOrigin_;
     QString packToken_, packUser_;
   node_editor::SetupController setup_;
@@ -570,6 +566,9 @@ private:
   QString runsJob_;
   QDockWidget *inspectorDock_ = nullptr;
     nt::chat::ChatSession chat_;
+    // What this tab's chat window (EditorChat.qml) asks of its frame. Owned by
+    // value, UI thread, destroyed with the tab.
+    node_editor::ChatWindow chatWindow_;
     QQuickWidget *chatOverlay_ = nullptr;
     bool chatVisible_ = false;
     void initializeChat();

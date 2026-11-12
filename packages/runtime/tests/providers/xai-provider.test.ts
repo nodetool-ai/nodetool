@@ -613,6 +613,20 @@ describe("XAIProvider", () => {
     });
   });
 
+  it("refuses an end frame instead of animating without it", async () => {
+    const mockFetch = vi.fn();
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+    await expect(provider.imageToVideo(pngBytes, {
+      prompt: "animate",
+      model: videoModel,
+      endImage: pngBytes
+    })).rejects.toThrow(`xAI model ${videoModel.id} takes no end frame`);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
   it("surfaces a failed video job's error message", async () => {
     const mockFetch = vi
       .fn()

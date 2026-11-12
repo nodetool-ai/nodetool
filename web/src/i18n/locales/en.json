@@ -16693,7 +16693,6 @@
       "press": "Press",
       "toggleHint": "any time to toggle this panel · Ctrl also responds to ⌘ on macOS",
       "presets": {
-        "nodetool": "NodeTool",
         "premiere": "Premiere Pro",
         "fcp": "Final Cut Pro"
       },

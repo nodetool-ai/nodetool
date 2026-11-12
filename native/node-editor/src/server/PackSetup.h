@@ -8,7 +8,7 @@
 #include <functional>
 
 namespace nodetool::node_editor {
-class PackSetup final : public QObject {
+class PackSetup : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList packs READ packs NOTIFY changed)
     Q_PROPERTY(QVariantList categories READ categories NOTIFY changed)

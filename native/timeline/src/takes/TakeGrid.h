@@ -59,6 +59,7 @@ signals:
     void framesChanged();
 private:
     void refresh();
+    void clipsMoved();
     void timeMoved();
     void showPage(int page);
     void scheduleFrames();
@@ -68,6 +69,7 @@ private:
     QPointer<ClipGestureController> m_gestures;
     QPointer<FrameCapture> m_capture;
     QPointer<TakeSwitcher> m_switcher;
+    quint64 m_takesRevision = 0;
     QString m_clipId;
     QJsonObject m_clip;
     QStringList m_takeIds;

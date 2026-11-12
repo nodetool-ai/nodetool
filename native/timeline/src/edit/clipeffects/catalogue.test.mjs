@@ -37,6 +37,10 @@ test("every clip effect slider resets to an explicit in-range default", () => {
   assert.equal(context.catalogue.fields("vignette").find(field => field.key === "amount").resetValue, 0);
   assert.equal(context.catalogue.fields("blur")[0].resetValue, 0);
   assert.equal(context.catalogue.fields("levels").find(field => field.key === "inWhite").resetValue, 1);
+  const roundness = context.catalogue.fields("vignette").find(field => field.key === "roundness");
+  assert.deepEqual([roundness.min, roundness.max, roundness.resetValue], [-1, 1, 0]);
+  const blacks = context.catalogue.fields("exposure").find(field => field.key === "blacks");
+  assert.deepEqual([blacks.min, blacks.max, blacks.resetValue], [-1, 1, 0]);
 });
 
 test("imported Color instances expose editable fields with neutral defaults", () => {
@@ -75,9 +79,9 @@ test("effects shared with the web retain the same creation defaults", () => {
   vm.runInContext(ts.transpileModule(defaults+"\n"+functionSource,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,oracle);
   const types = ["blur","glow","dropShadow","vignette","sharpen","chromaKey","curves","levels","liftGammaGain","grain"];
   assert.deepEqual(JSON.parse(JSON.stringify(context.catalogue.effectLabels)).map(item => item.value),
-    ["denoise", "stabilize", "deflicker", "deband", "secondaryColor", "exposure", ...types, "pixelate", "posterize", "directionalBlur", "lensDistortion"]);
+    ["denoise", "stabilize", "deflicker", "deband", "secondaryColor", "exposure", "hueSatCurves", ...types, "pixelate", "posterize", "directionalBlur", "lensDistortion"]);
   // The Color panel creates these grades, so the add list leaves them out and keeps the rest.
-  const grades = ["curves", "liftGammaGain", "vignette"];
+  const grades = ["curves", "liftGammaGain", "vignette", "hueSatCurves"];
   assert.deepEqual(JSON.parse(JSON.stringify(context.catalogue.addableEffects)).map(item => item.value),
     JSON.parse(JSON.stringify(context.catalogue.effectLabels)).map(item => item.value).filter(type => !grades.includes(type)));
   for (const type of types) {

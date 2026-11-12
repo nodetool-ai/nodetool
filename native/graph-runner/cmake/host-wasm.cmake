@@ -32,7 +32,7 @@ set_target_properties(gr_wasmtime PROPERTIES
   IMPORTED_NO_SONAME TRUE
   INTERFACE_INCLUDE_DIRECTORIES "${WASMTIME_ROOT}/include")
 if(WIN32)
-  find_library(GR_WASMTIME_IMPORT_LIBRARY NAMES wasmtime
+  find_library(GR_WASMTIME_IMPORT_LIBRARY NAMES wasmtime.dll wasmtime
     PATHS "${WASMTIME_ROOT}/lib" NO_DEFAULT_PATH REQUIRED)
   set_property(TARGET gr_wasmtime PROPERTY IMPORTED_IMPLIB "${GR_WASMTIME_IMPORT_LIBRARY}")
 endif()

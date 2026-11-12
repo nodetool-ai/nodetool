@@ -1,7 +1,9 @@
 // nt-panel: slot=right id=color order=5 title="Color"
 // Grades the selected clip through ordinary effects, so the web editor renders the same result:
-// Basic Correction is a color effect, Wheels a liftGammaGain, Curves a curves and Vignette a
-// vignette. A section's switch is its effect's enabled field. This panel owns these grades, and
+// Basic Correction is a color effect plus an exposure effect for Exposure, Whites and Blacks,
+// Wheels a liftGammaGain, Curves a curves, Hue Saturation Curves a hueSatCurves and Vignette a
+// vignette. A section's switch is its effect's enabled field. The header's fx button turns every
+// grade effect of the clip off or on in one edit. This panel owns these grades, and
 // Effect Controls lists them to see, enable and key them.
 pragma ComponentBehavior: Bound
 import QtQuick
@@ -74,6 +76,21 @@ Rectangle {
     readonly property var wheels: edits.effects.find(effect => effect.type === "liftGammaGain") ?? null
     readonly property var curves: edits.effects.find(effect => effect.type === "curves") ?? null
     readonly property var vignette: edits.effects.find(effect => effect.type === "vignette") ?? null
+    readonly property var exposure: edits.effects.find(effect => effect.type === "exposure") ?? null
+    readonly property var hueSat: edits.effects.find(effect => effect.type === "hueSatCurves") ?? null
+    readonly property bool hueSatOn: hueSat ? hueSat.enabled : true
+    // The effects this panel grades with, which the fx button turns off and on together.
+    readonly property var gradeEffects: [color_, exposure, wheels, curves, hueSat, vignette].filter(effect => !!effect)
+    readonly property bool fxOn: gradeEffects.length === 0 || gradeEffects.some(effect => effect.enabled)
+    // Basic Correction in the Premiere order: the balance, then the tone, then the color. Exposure,
+    // Whites and Blacks are fields of the exposure effect, the rest of the color effect.
+    readonly property var basicRows: {
+        const color = key => Object.assign({source: "color"}, Catalog.colorFields.find(field => field.key === key));
+        const light = (key, label, min, max) => ({source: "exposure", key, label, min, max, step: 0.01, origin: 0});
+        return [color("temperature"), color("tint"), light("exposure", "Exposure", -5, 5), color("contrast"),
+            color("highlights"), color("shadows"), light("whites", "Whites", -2, 2), light("blacks", "Blacks", -1, 1),
+            color("brightness"), color("saturation"), color("hue")];
+    }
     readonly property bool basicOn: color_ ? color_.enabled : true
     readonly property bool wheelsOn: wheels ? wheels.enabled : true
     readonly property bool curvesOn: curves ? curves.enabled : true
@@ -93,10 +110,48 @@ Rectangle {
         if (effect)
             edits.remove(effect.id);
     }
-    function writeBasic(key, value, phase) {
-        const change = {enabled: root.basicOn};
-        change[key] = value;
+    function writeBasic(row, value, phase) {
+        const change = {};
+        change[row.key] = value;
+        if (row.source === "exposure") {
+            if (!root.exposure)
+                change.enabled = root.basicOn;
+            root.writeSection("exposure", change, phase);
+            return;
+        }
+        change.enabled = root.basicOn;
         edits.updateColor(change, phase);
+    }
+    function basicValue(row) {
+        const effect = row.source === "exposure" ? root.exposure : root.color_;
+        return effect?.[row.key] ?? row.origin;
+    }
+    // Basic Correction is two effects, so its switch and reset write both in one edit.
+    function setBasicEnabled(next) {
+        const out = edits.effects.map(effect => root.exposure && effect.id === root.exposure.id ? Object.assign({}, effect, {
+                    enabled: next
+                }) : effect);
+        const index = out.findIndex(effect => effect.id === "inspector:color");
+        if (index >= 0)
+            out[index] = Object.assign({}, out[index], {
+                enabled: next
+            });
+        else
+            out.push({
+                id: "inspector:color",
+                type: "color",
+                enabled: next
+            });
+        edits.write(out);
+    }
+    function resetBasic() {
+        edits.write(edits.effects.filter(effect => effect.id !== "inspector:color" && !(root.exposure && effect.id === root.exposure.id)));
+    }
+    function setGradeEnabled(next) {
+        const ids = root.gradeEffects.map(effect => effect.id);
+        edits.write(edits.effects.map(effect => ids.includes(effect.id) ? Object.assign({}, effect, {
+                    enabled: next
+                }) : effect));
     }
     function fold(key, fallback) {
         return ClipEffectsUi.folds["colorPanel." + key] ?? fallback;
@@ -141,6 +196,64 @@ Rectangle {
         Column {
             id: content
             width: viewport.width - scrollBar.width
+            Row {
+                objectName: "colorPanelHeader"
+                width: parent.width
+                spacing: Ui.Metrics.md
+                bottomPadding: Ui.Metrics.sm
+                Ui.Text {
+                    id: scopeLabel
+                    objectName: "colorPanelScope"
+                    width: parent.width - fxButton.width - parent.spacing
+                    anchors.verticalCenter: parent.verticalCenter
+                    // Clip scope: the grade belongs to this clip instance only.
+                    text: inspector.clip.name || inspector.clip.id || ""
+                    elide: Text.ElideRight
+                    role: Ui.Typography.SansLabel
+                    tone: root.fxOn ? Ui.Text.Primary : Ui.Text.Secondary
+                }
+                Ui.EditorButton {
+                    id: fxButton
+                    objectName: "colorPanelFx"
+                    text: "fx"
+                    variant: Ui.EditorButton.Flat
+                    density: Ui.EditorButton.Compact
+                    active: root.fxOn
+                    textTone: root.fxOn ? Ui.Text.Primary : Ui.Text.Secondary
+                    enabled: !edits.locked && root.gradeEffects.length > 0
+                    accessibleName: root.fxOn ? "Bypass the grade" : "Turn the grade on"
+                    description: root.fxOn ? "Turn off every Color panel effect of this clip." : "Turn the Color panel effects of this clip back on."
+                    disabledReason: edits.locked ? "The clip is locked." : "This clip has no grade yet."
+                    onClicked: root.setGradeEnabled(!root.fxOn)
+                }
+            }
+            // Masks limit one grade effect at a time: pick the effect, then create or edit its masks.
+            Column {
+                objectName: "colorMasks"
+                visible: root.hasPicture && root.gradeEffects.length > 0
+                width: parent.width
+                spacing: Ui.Metrics.micro
+                bottomPadding: Ui.Metrics.sm
+                readonly property var targets: root.gradeEffects.map(effect => ({label: Catalog.name(effect.type), value: effect.id}))
+                property string chosen: ""
+                readonly property string effectId: targets.some(target => target.value === chosen) ? chosen : (targets.length > 0 ? targets[0].value : "")
+                Ui.Select {
+                    objectName: "colorMasksTarget"
+                    width: parent.width
+                    density: Ui.EditorButton.Compact
+                    options: parent.targets
+                    value: parent.effectId
+                    currentIndex: Math.max(0, parent.targets.findIndex(target => target.value === parent.effectId))
+                    accessibleName: "Effect to mask"
+                    onValueCommitted: value => parent.chosen = value
+                }
+                ClipEffects.EffectMasksSection {
+                    visible: parent.effectId !== ""
+                    width: parent.width
+                    editor: edits
+                    effectId: parent.effectId
+                }
+            }
             InspectorSection {
                 id: basicSection
                 objectName: "colorBasicSection"
@@ -154,16 +267,13 @@ Rectangle {
                 action: ({
                         icon: "refresh",
                         label: "Reset Basic Correction",
-                        disabled: !root.color_ || edits.locked,
-                        onClick: () => edits.resetColor()
+                        disabled: (!root.color_ && !root.exposure) || edits.locked,
+                        onClick: () => root.resetBasic()
                     })
                 onToggled: next => ClipEffectsUi.setFold("colorPanel.basic", next)
-                onCheckedChangedByUser: next => edits.updateColor({
-                        enabled: next
-                    })
+                onCheckedChangedByUser: next => root.setBasicEnabled(next)
                 Repeater {
-                    // The Premiere order, which reads from the balance down to the tone.
-                    model: ["temperature", "tint", "brightness", "contrast", "highlights", "shadows", "saturation", "hue"].map(key => Catalog.colorFields.find(field => field.key === key))
+                    model: root.basicRows
                     delegate: InspectorSliderRow {
                         required property var modelData
                         objectName: "colorBasic_" + modelData.key
@@ -173,12 +283,12 @@ Rectangle {
                         max: modelData.max
                         step: modelData.step
                         origin: modelData.origin
-                        value: root.color_?.[modelData.key] ?? modelData.origin
+                        value: root.basicValue(modelData)
                         display: modelData.key === "hue" ? value.toFixed(0) + "°" : value.toFixed(2)
                         disabled: edits.locked || !root.basicOn
                         onGestureStarted: edits.begin()
-                        onPreview: next => root.writeBasic(modelData.key, next, "preview")
-                        onChange: next => root.writeBasic(modelData.key, next, "commit")
+                        onPreview: next => root.writeBasic(modelData, next, "preview")
+                        onChange: next => root.writeBasic(modelData, next, "commit")
                         onCanceled: edits.cancel()
                     }
                 }
@@ -380,6 +490,41 @@ Rectangle {
                 }
             }
             InspectorSection {
+                objectName: "colorHueSatSection"
+                width: parent.width
+                title: "Hue Saturation Curves"
+                checkable: true
+                checked: root.hueSatOn
+                checkboxDisabled: edits.locked
+                open: root.fold("hueSat", true)
+                action: ({
+                        icon: "refresh",
+                        label: "Reset Hue Saturation Curves",
+                        disabled: !root.hueSat || edits.locked,
+                        onClick: () => root.removeSection(root.hueSat)
+                    })
+                onToggled: next => ClipEffectsUi.setFold("colorPanel.hueSat", next)
+                onCheckedChangedByUser: next => root.writeSection("hueSatCurves", {
+                        enabled: next
+                    }, "apply")
+                Repeater {
+                    model: Catalog.hueSatChannels
+                    delegate: ClipEffects.ToneCurveEditor {
+                        required property var modelData
+                        objectName: "colorHueSat_" + modelData.value
+                        width: parent.width
+                        bottomPadding: Ui.Metrics.md
+                        graphHeight: width * 0.4
+                        customChannels: [modelData]
+                        curves: root.hueSat ?? ({})
+                        disabled: edits.locked || !root.hueSatOn
+                        onGestureStarted: edits.begin()
+                        onGestureCancelled: edits.cancel()
+                        onPatch: (change, phase) => root.writeSection("hueSatCurves", change, phase)
+                    }
+                }
+            }
+            InspectorSection {
                 objectName: "colorVignetteSection"
                 width: parent.width
                 title: "Vignette"
@@ -412,6 +557,13 @@ Rectangle {
                             max: 2
                         },
                         {
+                            key: "roundness",
+                            label: "Roundness",
+                            fallback: 0,
+                            min: -1,
+                            max: 1
+                        },
+                        {
                             key: "softness",
                             label: "Feather",
                             fallback: 0.5,
@@ -423,12 +575,13 @@ Rectangle {
                         objectName: "colorVignette_" + modelData.key
                         width: parent.width
                         label: modelData.label
-                        min: 0
+                        min: modelData.min ?? 0
                         max: modelData.max
                         step: 0.01
                         origin: modelData.fallback
                         value: root.vignette?.[modelData.key] ?? modelData.fallback
-                        display: value.toFixed(2)
+                        // Premiere shows roundness as -100..100.
+                        display: modelData.key === "roundness" ? (value * 100).toFixed(0) : value.toFixed(2)
                         disabled: edits.locked || !root.vignetteOn
                         onGestureStarted: edits.begin()
                         onPreview: next => {

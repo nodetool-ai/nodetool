@@ -719,7 +719,7 @@ void EditorWindow::showContextMenu(const QString &kind, const QPoint &globalPosi
     connect(this, &EditorWindow::documentEpochChanged, host, [dispatch] { dispatch->choose(""); });
     connect(this, &EditorWindow::credentialsEpochChanged, host, [dispatch] { dispatch->choose(""); });
     host->setInitialProperties({{"dispatch", QVariant::fromValue(dispatch)}, {"entries", menu.entries()}});
-    host->setSource(QUrl("qrc:/editor/ContextMenuPanel.qml"));
+    host->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ContextMenuPanel.qml"));
     if (!host->rootObject()) {
         host->deleteLater();
         return;
@@ -853,7 +853,7 @@ void EditorWindow::showFindPanel() {
     connect(this, &EditorWindow::credentialsEpochChanged, panel, [controller] { controller->close(); });
     new FindPanelFilter(panel, this, [controller] { controller->close(); });
     panel->setInitialProperties({{"controller", QVariant::fromValue(controller)}});
-    panel->setSource(QUrl("qrc:/editor/FindPanel.qml"));
+    panel->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/FindPanel.qml"));
     if (!panel->rootObject()) {
         panel->deleteLater();
         return;
@@ -961,7 +961,7 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
   const QString platform = "win";
 #endif
   quick->setInitialProperties({{"dispatch", QVariant::fromValue(dispatch)}, {"rows", rows}, {"help", kind == "shortcuts"}, {"os", platform}, {"layoutName", german ? "german" : "english"}});
-  quick->setSource(QUrl("qrc:/editor/ActionPanel.qml"));
+  quick->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ActionPanel.qml"));
   auto *layout = new QVBoxLayout(panel); layout->setContentsMargins(0,0,0,0); layout->addWidget(quick);
   const bool help = kind == "shortcuts";
   const QSize wanted = help ? QSize(880, 760) : QSize(560, 620);

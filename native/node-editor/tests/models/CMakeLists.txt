@@ -16,25 +16,26 @@ qt_add_resources(node_editor_model_tests model_qml PREFIX /editor BASE ../../qml
 nodetool_use_ui_primitives(node_editor_model_tests)
 add_test(NAME node_editor_models COMMAND node_editor_model_tests)
 set_tests_properties(node_editor_models PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-find_package(Qt6 REQUIRED COMPONENTS Multimedia)
-qt_add_executable(node_editor_asset_picker_tests AssetPickerTest.cpp
- ../../src/properties/ResourcePickerController.cpp ../../src/properties/ResourcePickerController.h
- ../../src/properties/AssetPickerController.cpp ../../src/properties/AssetPickerController.h
- ../../src/document/WorkflowDocument.cpp ../../src/document/WorkflowDocument.h
- ../../src/media/MediaResolver.cpp ../../src/media/MediaResolver.h
- ../../src/media/AudioWaveform.cpp ../../src/media/AudioWaveform.h
- ../../src/media/VideoFrameView.cpp ../../src/media/VideoFrameView.h
- ../../src/media/PcmStream.cpp ../../src/media/PcmStream.h ../../src/media/AudioVisualAnalysis.h
- ../../src/media/LiveAudioVisualizer.cpp ../../src/media/LiveAudioVisualizer.h
- ../../src/media/MediaGalleryModel.cpp ../../src/media/MediaGalleryModel.h)
-node_editor_use_code_inference(node_editor_asset_picker_tests)
-target_include_directories(node_editor_asset_picker_tests PRIVATE ../../src)
-target_link_libraries(node_editor_asset_picker_tests PRIVATE nodetool_model_picker nodetool_model_pickerplugin Qt6::Network Qt6::Test Qt6::Quick Qt6::Widgets Qt6::Multimedia)
-qt_add_resources(node_editor_asset_picker_tests asset_picker_qml PREFIX /editor BASE ../../qml FILES
- ../../qml/PropertyField.qml ../../qml/DocumentPropertyEditor.qml ../../qml/Model3DPropertyEditor.qml ../../qml/RemainingResourcePropertyEditor.qml ../../qml/PathPropertyEditor.qml ../../qml/FilePropertyEditor.qml ../../qml/ToolsPropertyEditor.qml ../../qml/MediaParameterPropertyEditor.qml ../../qml/CodePropertyEditor.qml ../../qml/CodeSyntax.qml ../../qml/ColorPropertyEditor.qml ../../qml/ImageSizePropertyEditor.qml ../../qml/PropertyPresets.js ../../qml/WorkflowPropertyEditor.qml ../../qml/CollectionPropertyEditor.qml ../../qml/StructuredPropertyEditor.qml ../../qml/ModelPropertyEditor.qml ../../qml/AssetPropertyEditor.qml ../../qml/MediaListPropertyEditor.qml ../../qml/MediaPreview.qml ../../qml/NodeButton.qml ../../qml/EditorRoles.qml)
-nodetool_use_ui_primitives(node_editor_asset_picker_tests)
-add_test(NAME node_editor_asset_picker COMMAND node_editor_asset_picker_tests)
-set_tests_properties(node_editor_asset_picker PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# PropertyField takes a PropertyHost, so this test loads the editor's QML module.
+if(TARGET node_editor_qml)
+ find_package(Qt6 REQUIRED COMPONENTS Multimedia)
+ qt_add_executable(node_editor_asset_picker_tests AssetPickerTest.cpp
+  ../../src/properties/ResourcePickerController.cpp ../../src/properties/ResourcePickerController.h
+  ../../src/properties/AssetPickerController.cpp ../../src/properties/AssetPickerController.h
+  ../../src/document/WorkflowDocument.cpp ../../src/document/WorkflowDocument.h
+  ../../src/media/MediaResolver.cpp ../../src/media/MediaResolver.h
+  ../../src/media/AudioWaveform.cpp ../../src/media/AudioWaveform.h
+  ../../src/media/VideoFrameView.cpp ../../src/media/VideoFrameView.h
+  ../../src/media/PcmStream.cpp ../../src/media/PcmStream.h ../../src/media/AudioVisualAnalysis.h
+  ../../src/media/LiveAudioVisualizer.cpp ../../src/media/LiveAudioVisualizer.h
+  ../../src/media/MediaGalleryModel.cpp ../../src/media/MediaGalleryModel.h)
+ node_editor_use_code_inference(node_editor_asset_picker_tests)
+ target_include_directories(node_editor_asset_picker_tests PRIVATE ../../src)
+ target_link_libraries(node_editor_asset_picker_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin nodetool_model_picker nodetool_model_pickerplugin Qt6::Network Qt6::Test Qt6::Quick Qt6::Widgets Qt6::Multimedia)
+ nodetool_use_ui_primitives(node_editor_asset_picker_tests)
+ add_test(NAME node_editor_asset_picker COMMAND node_editor_asset_picker_tests)
+ set_tests_properties(node_editor_asset_picker PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
 
 qt_add_executable(node_editor_resource_picker_tests ResourcePickerTest.cpp
  ../../src/properties/ResourcePickerController.cpp ../../src/properties/ResourcePickerController.h

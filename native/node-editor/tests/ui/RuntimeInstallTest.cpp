@@ -16,6 +16,10 @@
 #include <QtTest>
 #include <cerrno>
 #include <csignal>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <memory>
+#endif
 
 using namespace nodetool;
 using node_editor::SetupController;
@@ -53,7 +57,7 @@ bool click(QQuickWidget &view, const QString &name) {
 void panel(QQuickWidget &view, SetupController &controller) {
     view.setResizeMode(QQuickWidget::SizeRootObjectToView);
     view.setInitialProperties({{"controller", QVariant::fromValue(&controller)}});
-    view.setSource(QUrl("qrc:/editor/SetupPanel.qml"));
+    view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/SetupPanel.qml"));
     view.resize(660, 860);
     view.show();
 }
@@ -65,7 +69,19 @@ qint64 processId(const QString &path) {
     return file.readAll().toLongLong();
 }
 bool alive(qint64 pid) {
+#ifdef Q_OS_WIN
+    if (pid <= 0) {
+        return false;
+    }
+    const std::unique_ptr<void, decltype(&CloseHandle)> process(
+        OpenProcess(SYNCHRONIZE, FALSE, static_cast<DWORD>(pid)), &CloseHandle);
+    if (!process) {
+        return GetLastError() == ERROR_ACCESS_DENIED;
+    }
+    return WaitForSingleObject(process.get(), 0) == WAIT_TIMEOUT;
+#else
     return pid > 0 && (::kill(pid, 0) == 0 || errno != ESRCH);
+#endif
 }
 }
 class RuntimeInstallTest : public QObject {

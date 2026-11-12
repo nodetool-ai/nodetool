@@ -16693,7 +16693,6 @@
       "press": "按",
       "toggleHint": "随时切换此面板 · Ctrl 在 macOS 上也对应 ⌘",
       "presets": {
-        "nodetool": "NodeTool",
         "premiere": "Premiere Pro",
         "fcp": "Final Cut Pro"
       },

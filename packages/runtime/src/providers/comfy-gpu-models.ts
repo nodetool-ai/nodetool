@@ -52,16 +52,27 @@ export function listedComfyGpuTemplates(): readonly ComfyGpuTemplate[] {
 }
 /**
  * True when the provider's callers can supply the template's media.
- * Image-to-video callers send one start image (the end frame is optional), so
- * two-image first/last-frame templates would fail for most of them.
+ * Image-to-video callers send a start image and, when they have one, an end
+ * frame, so a template takes one image or a first/last-frame pair.
  * Reference-to-video callers send one or more images and usually no audio.
  */
 export function comfyGpuTemplateFits(template: Pick<ComfyGpuTemplate, "task" | "inputs">): boolean {
   const inputs = template.inputs;
   if (!inputs) {return true;}
-  if (template.task === "image_to_video") {return inputs.image === 1 && inputs.video === 0 && inputs.audio === 0;}
+  if (template.task === "image_to_video") {return (inputs.image === 1 || inputs.image === 2) && inputs.video === 0 && inputs.audio === 0;}
   if (template.task === "reference_to_video") {return inputs.image >= 1 && inputs.video === 0 && inputs.audio === 0;}
   return true;
+}
+
+/**
+ * Whether an image-to-video template takes an end frame: a two-image graph is
+ * first/last-frame and needs both, a one-image graph has no slot for a second.
+ */
+export function comfyGpuEndFrame(template: Pick<ComfyGpuTemplate, "inputs">): "required" | "none" | undefined {
+  const images = template.inputs?.image;
+  if (images === 2) {return "required";}
+  if (images === 1) {return "none";}
+  return undefined;
 }
 
 const API_KEY_HINT = "A step inside this Comfy graph calls a hosted model and needs your Comfy API key.";

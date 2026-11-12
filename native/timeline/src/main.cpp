@@ -75,6 +75,7 @@ extern "C" {
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QQmlComponent>
+#include <QQmlDebuggingEnabler>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -736,6 +737,11 @@ int main(int argc, char** argv) {
 
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QGuiApplication app(argc, argv);
+    // NT_QMLPROF=PORT: accept `qmlprofiler --attach localhost -p PORT`.
+    if (const int port = qEnvironmentVariableIntValue("NT_QMLPROF"); port > 0) {
+        QQmlDebuggingEnabler::enableDebugging(true);
+        QQmlDebuggingEnabler::startTcpDebugServer(port, QQmlDebuggingEnabler::DoNotWaitForClient);
+    }
     nt::render2d::loadTimelineFonts();
     app.setApplicationName(QStringLiteral("nodetool-timeline"));
     app.setApplicationVersion(QStringLiteral(NT_APP_VERSION));

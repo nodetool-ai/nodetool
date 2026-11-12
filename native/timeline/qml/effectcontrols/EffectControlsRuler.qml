@@ -56,7 +56,7 @@ Rectangle {
         y: root.height - height
         width: Ui.Metrics.md
         height: Ui.Metrics.lg
-        radius: Ui.Metrics.micro
-        color: TimelineVisuals.overlay
+        radius: Ui.Metrics.radiusControl
+        color: TimelineVisuals.editBlue
     }
 }

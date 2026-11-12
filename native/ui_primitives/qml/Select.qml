@@ -72,6 +72,9 @@ Basic.ComboBox {
         // ComboBox can reset its index after replacing the options model.
         Qt.callLater(synchronize)
     }
+    // ComboBox resets currentIndex when the model changes, after onOptionsChanged runs.
+    onModelChanged: synchronize()
+    onCountChanged: synchronize()
     onReadOnlyChanged: if (readOnly) { popup.close(); synchronize() }
     Component.onCompleted: synchronize()
     onActivated: index => commitIndex(index)

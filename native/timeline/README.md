@@ -354,10 +354,10 @@ not own (D4).
   together, and settles the drop with the drop mode (Overwrite; Ctrl/Cmd on
   release inserts). A click selects; Shift adds, Ctrl/Cmd toggles.
 - Trim (the 8 px grips): plain, ripple (the Ripple toggle in the toolbar, or
-  the B tool) or roll (Ctrl/Cmd, or the Shift+B tool).
-- Keys (NodeTool preset): S split at the playhead, Delete, Shift+Delete
-  ripple delete, Ctrl+A / Ctrl+Shift+A, arrows nudge a frame (Shift: a
-  second), Ctrl+Z / Ctrl+Shift+Z, N snap, V/B/Shift+B tools, the zoom keys.
+  the B tool) or roll (Ctrl/Cmd, or the N tool).
+- Keys (Premiere preset, the default): Ctrl+K split at the playhead, Delete,
+  Shift+Delete ripple delete, Ctrl+A / Ctrl+Shift+A, Alt+arrows nudge a frame
+  (Shift: a second), Ctrl+Z / Ctrl+Shift+Z, S snap, V/B/N tools, the zoom keys.
 - Undo: a `QUndoStack` on `TimelineModel`. A gesture is one entry, a held
   nudge key one entry.
 - Escape cancels a gesture and puts back the state at the press; any other
@@ -626,10 +626,13 @@ thread, with one capture in flight. `ScopesController::readNumbers` needs only `
 set.
 
 The Color panel maps onto existing effects: Basic Correction is the `color`
-effect, Wheels the first `liftGammaGain`, Curves the first `curves` and Vignette the first
-`vignette`. A section switch is its effect's `enabled` field, and Reset removes the effect.
+effect plus the first `exposure` effect (Exposure, Whites and Blacks), Wheels the first
+`liftGammaGain`, Curves the first `curves`, Hue Saturation Curves the first `hueSatCurves`
+and Vignette the first `vignette`. A section switch is its effect's `enabled` field, and Reset
+removes the effect. The header names the clip, because a grade applies to one clip instance.
+Its fx button turns every one of these effects off, or on again, in one undo entry.
 The Color panel owns these grades, so the Inspector has no Color section and the add-effect list
-leaves out `color`, `curves`, `liftGammaGain` and `vignette`. Effect Controls still lists them to
+leaves out `color`, `curves`, `liftGammaGain`, `hueSatCurves` and `vignette`. Effect Controls still lists them to
 see, enable and key them, and each has an action that opens this panel.
 Basic Correction is listed first but renders last, because the renderer runs color effects
 after the rest of the chain. Drag a wheel's puck or use the arrow keys. A held key is one
@@ -638,7 +641,7 @@ undo entry, Escape cancels, and double click or Delete resets it.
 For Match, choose Use playhead frame or Use selected clip, select the shot to change and
 press Match. It writes `liftGammaGain` and saturation as one undo entry, and enables the
 color effect if it was off. It refuses a `lut`, `posterize`, `stylize`, generator, `chromaKey`
-or `glow` effect after the wheels, and refuses if the clip or track changed or locked while
+, `glow`, `exposure`, `secondaryColor` or `hueSatCurves` effect after the wheels, and refuses if the clip or track changed or locked while
 it ran. Protect skin tones is on by default and limits the skin hue shift to 8 degrees.
 
 Tests: `tst_scopemath`, `tst_colormatch`, `tst_colorpanel`, `colorpanel_wheelmath`. The fixture
@@ -790,7 +793,7 @@ Export has no key.
 `ExportCli.cpp`. The editor waits at most `kShutdownGraceMs` plus 1 s on close.
 
 Tests: `tst_exportdialog`, `tst_exportqueue`, `tst_exportsnapshot`, `export_range`, `export_range_bitrate`, `export_cancel`,
-`export_controller_cancel`, `export_golden`.
+`export_controller_cancel`, `export_golden_1` to `export_golden_4`.
 
 ### Export Frame and Frame Hold
 

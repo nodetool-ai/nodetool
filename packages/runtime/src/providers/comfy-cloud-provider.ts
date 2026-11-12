@@ -19,7 +19,7 @@
  */
 
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
-import { ComfyGpuClient, comfyGpuTemplate, comfyGpuTemplateFits, listedComfyGpuTemplates, type ComfyGpuInput } from "./comfy-gpu-models.js";
+import { ComfyGpuClient, comfyGpuEndFrame, comfyGpuTemplate, comfyGpuTemplateFits, listedComfyGpuTemplates, type ComfyGpuInput } from "./comfy-gpu-models.js";
 import type { MusicModel, TextToMusicParams, AudioToAudioModel, AudioToAudioParams, Model3D, TextTo3DParams, ImageTo3DParams } from "./types.js";
 import { comfyTemplate, listedComfyTemplates, runComfyTemplate } from "./comfy-template-models.js";
 import {
@@ -33,6 +33,7 @@ import {
   ComfyRouterClient,
   RouterArgsBuilder,
   dataUri,
+  sniffAudioMime,
   sniffMime,
   type MediaInput
 } from "./comfy-router.js";
@@ -65,6 +66,7 @@ import type {
   ToolCall,
   TTSModel,
   VideoModel,
+  VideoEndFrame,
   VideoToVideoParams
 } from "./types.js";
 
@@ -76,12 +78,16 @@ const IMAGE_FIELDS = [
   "image_url", "img_url", "image", "input_image", "image_urls", "images", "input_images", "init_image",
   "imageUrl", "image_base64", "input_image_url", "first_frame_image", "first_frame",
   "start_image", "start_image_url", "first_frame_url", "image_input", "reference_image",
-  "reference_images", "promptImage", "prompt_image", "source_image", "image_prompt"
+  "reference_images", "promptImage", "prompt_image", "source_image", "image_prompt", "image_uri"
 ] as const;
-const END_IMAGE_FIELDS = ["end_image_url", "end_image", "last_frame_image", "last_frame", "tail_image_url", "image_tail", "last_frame_url"] as const;
+const END_IMAGE_FIELDS = [
+  "end_image_url", "end_image", "last_frame_image", "last_frame", "tail_image_url", "image_tail", "last_frame_url", "last_frame_uri"
+] as const;
 const REFERENCE_FIELDS = ["reference_images", "reference_image_urls", "image_urls", "images", "references", "subject_images", "reference_image"] as const;
 const VIDEO_FIELDS = ["video_url", "video", "input_video", "video_urls", "source_video", "videoUri", "video_base64"] as const;
 const AUDIO_FIELDS = ["audio_url", "audio", "input_audio", "audio_urls"] as const;
+/** H3 Max takes reference audio in `reference_audio_urls`, as ComfyUI's H3 Max reference node sends it. */
+const REFERENCE_AUDIO_FIELDS = ["reference_audio_urls", ...AUDIO_FIELDS] as const;
 const DURATION_FIELDS = ["duration", "duration_seconds", "durationSeconds", "seconds", "video_length", "length"] as const;
 const ASPECT_FIELDS = ["aspect_ratio", "aspectRatio", "ratio"] as const;
 const RESOLUTION_FIELDS = ["resolution", "quality_resolution", "output_resolution"] as const;
@@ -129,6 +135,157 @@ interface PresetInput {
   task: RouterTask;
   images: MediaInput[];
   video?: MediaInput;
+  prompt?: string | null;
+  resolution?: string | null;
+  aspectRatio?: string | null;
+  durationSeconds?: number | null;
+  strength?: number | null;
+}
+
+type Preset = (b: RouterArgsBuilder, input: PresetInput) => boolean;
+
+function tooMany(modelId: string, max: number, what: string, count: number): Error {
+  return new Error(`Comfy model ${modelId} takes at most ${max} ${what}, not ${count}`);
+}
+
+/** Kling's `mode` names the output tier. ComfyUI's Kling 3.0 nodes derive it from the resolution. */
+const KLING_MODE: Record<string, string> = { "4k": "4k", "1080p": "pro", "720p": "std" };
+
+/** Kling models whose image-to-video takes `image_tail` (KlingFirstLastFrameNode, KlingStartEndFrameNode). */
+const KLING_TAIL = new Set(["kling/kling-v3", "kling/kling-v2-5-turbo"]);
+
+/**
+ * Kling v3, v2.6 and v2.5 Turbo image-to-video, as ComfyUI's Kling nodes send
+ * it: the start frame as raw base64 in `image`, no aspect ratio, and `mode`
+ * from the resolution on v3. v2.6 and v2.5 Turbo offer only `pro`.
+ */
+function klingPreset(modelId: string): Preset {
+  const v3 = modelId === "kling/kling-v3";
+  return (b, { task, images, resolution }) => {
+    if (b.declares("mode")) b.set("mode", v3 ? KLING_MODE[(resolution ?? "").toLowerCase()] : "pro");
+    if (task !== "image_to_video" || images.length === 0 || !b.declares("image")) return false;
+    if (images.length > 1) throw oneImageOnly(images.length);
+    b.put("image", base64(images[0])).unset("aspect_ratio");
+    return true;
+  };
+}
+
+const KLING_OMNI = new Set(["kling/kling-v3-omni", "kling/kling-video-o1"]);
+
+/**
+ * Kling omni models take every image in `image_list`. ComfyUI's
+ * KlingOmniProFirstLastFrameNode types the frames `first_frame` and
+ * `end_frame`, and OmniProReferences2VideoNode sends up to 7 untyped
+ * references.
+ */
+function klingOmniPreset(modelId: string): Preset {
+  return (b, { task, images, resolution }) => {
+    b.set("mode", KLING_MODE[(resolution ?? "").toLowerCase()]);
+    if (images.length === 0) return false;
+    if (task === "image_to_video") {
+      if (images.length > 1) throw oneImageOnly(images.length);
+      b.put("image_list", [{ image_url: base64(images[0]), type: "first_frame" }]).unset("aspect_ratio");
+      return true;
+    }
+    if (task === "reference_to_video") {
+      if (images.length > 7) throw tooMany(modelId, 7, "reference images", images.length);
+      b.put("image_list", images.map((img) => ({ image_url: base64(img) })));
+      return true;
+    }
+    return false;
+  };
+}
+
+const RAY_RESOLUTIONS = ["360p", "540p", "720p", "1080p"];
+const RAY_RATIOS = ["16:9", "9:16", "1:1", "4:3", "3:4", "21:9"];
+
+/** A Luma `Luma2ImageRef` carrying the media inline. */
+function lumaRef(media: MediaInput): Record<string, string> {
+  return { data: base64(media), media_type: media.mimeType };
+}
+
+/**
+ * Luma Ray 3.2, as ComfyUI's LumaRay32 nodes send it: output settings under
+ * `video`, frames as `video.start_frame` and `video.end_frame`, and an edit's
+ * source video in `source`. An image-anchored clip is always 5 s. An edit
+ * keeps the source's length, 5 s or 10 s.
+ */
+function ray32Preset(b: RouterArgsBuilder, { task, images, video, resolution, aspectRatio, durationSeconds }: PresetInput): boolean {
+  for (const key of ["resolution", "duration", "aspect_ratio"]) delete b.body[key];
+  const options: Record<string, unknown> = {};
+  const res = resolution?.toLowerCase();
+  if (res && RAY_RESOLUTIONS.includes(res)) options.resolution = res;
+  b.set("model", "ray-3.2");
+  if (task === "video_to_video") {
+    if (!video) return false;
+    if (images.length > 0) throw new Error("Comfy model luma_2/ray-3.2 takes no reference images");
+    const seconds = mp4DurationSeconds(video.bytes);
+    options.duration = seconds !== undefined && seconds <= 5 ? "5s" : "10s";
+    options.edit = { auto_controls: true };
+    b.put("type", "video_edit").put("source", lumaRef(video)).put("video", options);
+    return true;
+  }
+  b.put("type", "video");
+  if (task === "image_to_video" && images.length > 0) {
+    if (images.length > 1) throw oneImageOnly(images.length);
+    options.duration = "5s";
+    options.start_frame = lumaRef(images[0]);
+    b.put("video", options);
+    return true;
+  }
+  options.duration = durationSeconds && durationSeconds > 7.5 ? "10s" : "5s";
+  if (aspectRatio && RAY_RATIOS.includes(aspectRatio)) b.put("aspect_ratio", aspectRatio);
+  b.put("video", options);
+  return false;
+}
+
+function photonPreset(modelId: string): Preset {
+  return (b, { task, images, strength }) => {
+    if (task !== "image_to_image" || images.length === 0) return false;
+    if (images.length > 1) throw tooMany(modelId, 1, "input image", images.length);
+    // LumaImageModifyNode sends weight = 1 - image_weight, 0.9 by default, at most 0.98.
+    const weight = Math.round(Math.max(0, Math.min(strength ?? 0.9, 0.98)) * 100) / 100;
+    b.put("modify_image_ref", { url: dataUri(images[0]), weight }).unset("aspect_ratio");
+    return true;
+  };
+}
+
+/**
+ * Grok image edit, as GrokImageEditNodeV2 sends it: `images` as `{url}`
+ * data URIs, at most 3 (1 for -pro, which takes no aspect ratio).
+ * grok-imagine-image takes a custom aspect ratio only with several images.
+ */
+function grokImagePreset(modelId: string): Preset {
+  const max = modelId === "xai/grok-imagine-image-pro" ? 1 : 3;
+  return (b, { task, images, aspectRatio }) => {
+    if (task !== "image_to_image" || images.length === 0) return false;
+    if (images.length > max) throw tooMany(modelId, max, max === 1 ? "input image" : "input images", images.length);
+    if (modelId === "xai/grok-imagine-image" && images.length === 1 && aspectRatio && aspectRatio !== "auto") {
+      throw new Error(`Comfy model ${modelId} takes a custom aspect ratio only with several input images`);
+    }
+    if (max === 1) b.unset("aspect_ratio");
+    b.put("images", images.map((img) => ({ url: dataUri(img) })));
+    return true;
+  };
+}
+
+function grokReferencePreset(modelId: string): Preset {
+  return (b, { task, images }) => {
+    if (task !== "reference_to_video" || images.length === 0) return false;
+    if (images.length > 7) throw tooMany(modelId, 7, "reference images", images.length);
+    b.put("reference_images", images.map((img) => ({ url: dataUri(img) })));
+    return true;
+  };
+}
+
+/** Krea 2 takes images as style references (Krea 2 Style Reference node): at most 10, strength 1 by default. */
+function kreaStylePreset(modelId: string): Preset {
+  return (b, { task, images }) => {
+    if (task !== "image_to_image" || images.length === 0) return false;
+    if (images.length > 10) throw tooMany(modelId, 10, "style references", images.length);
+    b.put("image_style_references", images.map((img) => ({ url: dataUri(img), strength: 1 })));
+    return true;
+  };
 }
 
 /**
@@ -137,7 +294,7 @@ interface PresetInput {
  * names no generic rule maps. A preset returns true when it placed the
  * request's media itself.
  */
-const MODEL_PRESETS: Record<string, (b: RouterArgsBuilder, input: PresetInput) => boolean> = {
+const MODEL_PRESETS: Record<string, Preset> = {
   "krea/krea-3": (b) => {
     if (!b.isSet("resolution")) b.put("resolution", "1k");
     return false;
@@ -174,6 +331,23 @@ const MODEL_PRESETS: Record<string, (b: RouterArgsBuilder, input: PresetInput) =
     if (!b.isSet("duration_seconds")) b.put("duration_seconds", null);
     return false;
   },
+  // Kling 3.0 Turbo image-to-video, as ComfyUI's execute_kling_turbo sends it:
+  // typed `contents` with a raw base64 first frame, and no aspect ratio.
+  "kling/kling-3.0-turbo": (b, { task, images, prompt }) => {
+    if (task !== "image_to_video" || images.length === 0) return false;
+    if (images.length > 1) throw oneImageOnly(images.length);
+    const contents: unknown[] = prompt ? [{ type: "prompt", text: prompt }] : [];
+    contents.push({ type: "first_frame", url: base64(images[0]) });
+    b.unset("prompt").unset("aspect_ratio").put("contents", contents);
+    return true;
+  },
+  "luma_2/ray-3.2": ray32Preset,
+  // Luma Photon edits through `modify_image_ref`, as LumaImageModifyNode sends it.
+  "luma/photon-1": photonPreset("luma/photon-1"),
+  "luma/photon-flash-1": photonPreset("luma/photon-flash-1"),
+  // GrokVideoReferenceNode: up to 7 `reference_images` as `{url}` objects.
+  "xai/grok-imagine-video": grokReferencePreset("xai/grok-imagine-video"),
+  "xai/grok-imagine-video-1.5": grokReferencePreset("xai/grok-imagine-video-1.5"),
   "beeble/switchx": (b, { images, video }) => {
     b.put("generation_type", "video");
     if (!b.isSet("alpha_mode")) b.put("alpha_mode", "auto");
@@ -189,7 +363,7 @@ const MODEL_PRESETS: Record<string, (b: RouterArgsBuilder, input: PresetInput) =
  * HappyHorse take images as typed `input.media` items (`first_frame`,
  * `reference_image`); Wan 2.5 and 2.6 take the first frame in `img_url`.
  */
-function wanPreset(modelId: string): (b: RouterArgsBuilder, input: PresetInput) => boolean {
+function wanPreset(modelId: string): Preset {
   const typedMedia = /^wan\/(happyhorse-|wan2\.7-|wan3\.0-)/.test(modelId);
   const takesRatio = /^wan\/(wan2\.7-|wan3\.0-)/.test(modelId);
   return (b, { task, images }) => {
@@ -203,10 +377,141 @@ function wanPreset(modelId: string): (b: RouterArgsBuilder, input: PresetInput) 
   };
 }
 
-function presetFor(modelId: string): ((b: RouterArgsBuilder, input: PresetInput) => boolean) | undefined {
+/**
+ * BytePlus Seedance and MiniMax H3 take the prompt and every media input as
+ * one `content[]` list of typed parts, each image tagged with its `role`.
+ */
+function takesContentParts(b: RouterArgsBuilder): boolean {
+  const content = b.field("content");
+  return content?.type === "array" && content.items !== undefined && !b.firstDeclared(PROMPT_FIELDS);
+}
+
+/**
+ * Seedance models without a last-frame mode. ComfyUI's ByteDance
+ * first-last-frame nodes offer Seedance 1.0 pro and 1.5 pro, and every
+ * Seedance 2.x model, but not 1.0 pro fast.
+ */
+const NO_LAST_FRAME = new Set([
+  "byteplus/seedance-1-0-pro-fast-251015",
+  // ComfyUI sends Kling 2.6 and 3.0 Turbo a first frame only.
+  "kling/kling-v2-6",
+  "kling/kling-3.0-turbo"
+]);
+
+/**
+ * What the Router path knows about a model's end frame before it reads the
+ * live schema: the models it refuses one for, and the omni models whose body
+ * always carries an optional last frame. The rest depend on fields only the
+ * schema names, so they stay unreported.
+ */
+function routerEndFrame(modelId: string): VideoEndFrame | undefined {
+  if (NO_LAST_FRAME.has(modelId)) return "none";
+  if (OMNI_VIDEO.test(modelId)) return "optional";
+  return undefined;
+}
+
+/**
+ * Seedance 2.5 refuses a concrete `ratio` with a first frame: the output
+ * keeps the frame's own aspect ratio, so only `adaptive` is accepted. Both
+ * the Router schema and ComfyUI's ByteDance2FirstLastFrameNode say so.
+ */
+const ADAPTIVE_RATIO_WITH_FRAMES = new Set(["byteplus/dreamina-seedance-2-5-260628"]);
+
+function oneImageOnly(count: number): Error {
+  return new Error(`This Comfy model takes one input image, not ${count}`);
+}
+
+/** Wan models whose typed `media` list takes a `last_frame` item (Router schema and ComfyUI agree). */
+const WAN_LAST_FRAME = /^wan\/(wan2\.7-i2v|wan3\.0-video(-prime)?)$/;
+
+function presetFor(modelId: string): Preset | undefined {
   if (MODEL_PRESETS[modelId]) return MODEL_PRESETS[modelId];
   if (/^wan\/(happyhorse-|wan\d)/.test(modelId)) return wanPreset(modelId);
+  if (/^kling\/kling-(v3|v2-6|v2-5-turbo)$/.test(modelId)) return klingPreset(modelId);
+  if (KLING_OMNI.has(modelId)) return klingOmniPreset(modelId);
+  if (/^xai\/grok-imagine-image/.test(modelId)) return grokImagePreset(modelId);
+  if (/^krea\/krea-2(-|$)/.test(modelId)) return kreaStylePreset(modelId);
   return undefined;
+}
+
+/**
+ * Seedance 1.x, as ComfyUI's ByteDance nodes send it: resolution, ratio,
+ * duration and seed as `--flags` after the prompt text, followed by
+ * `--camerafixed false --watermark false`, and a lone first frame without a
+ * role. ComfyUI refuses a prompt that already carries one of these flags.
+ */
+const SEEDANCE_1 = /^byteplus\/seedance-1-/;
+const SEEDANCE_FLAGS = ["resolution", "ratio", "duration", "seed", "camerafixed", "watermark"] as const;
+
+function moveSeedanceParamsToPrompt(b: RouterArgsBuilder, modelId: string): void {
+  const content = b.valueOf("content");
+  if (!Array.isArray(content)) return;
+  let text = content.find((part): part is Record<string, unknown> => isRecord(part) && part.type === "text");
+  const prompt = typeof text?.text === "string" ? text.text : "";
+  const clash = SEEDANCE_FLAGS.find((flag) => prompt.includes(`--${flag} `));
+  if (clash) {
+    throw new Error(`Comfy model ${modelId}: --${clash} is not allowed in the prompt. Set it as a parameter instead.`);
+  }
+  const flags: string[] = [];
+  for (const field of ["resolution", "ratio", "duration", "seed"]) {
+    const value = b.valueOf(field);
+    if (value !== undefined) flags.push(`--${field} ${String(value)}`);
+    b.unset(field);
+  }
+  b.unset("watermark");
+  flags.push("--camerafixed false", "--watermark false");
+  if (!text) {
+    text = { type: "text", text: "" };
+    content.unshift(text);
+  }
+  text.text = [prompt, ...flags].filter(Boolean).join(" ");
+  const frames = content.filter((part): part is Record<string, unknown> => isRecord(part) && part.type === "image_url");
+  if (frames.length === 1) delete frames[0].role;
+}
+
+/**
+ * Gemini Omni video, as ComfyUI's GeminiVideoOmniV2 sends it through the
+ * Interactions request: media parts (videos, then images) before the prompt,
+ * the task in `generation_config.video_config`, and the output in
+ * `response_format`. The clip's length comes from the prompt.
+ */
+const OMNI_VIDEO = /^gemini-interactions\/gemini-omni-/;
+const OMNI_MAX_IMAGES = 14;
+const OMNI_MAX_VIDEOS = 3;
+const OMNI_MAX_INLINE_BYTES = 90 * 1024 * 1024;
+const OMNI_RESOLUTIONS = ["360p", "720p", "1080p", "4k"];
+const OMNI_RATIOS = ["16:9", "9:16"];
+
+function omniVideoBody(
+  modelId: string,
+  task: "text_to_video" | "image_to_video" | "reference_to_video" | "video_to_video",
+  params: { prompt?: string | null; aspectRatio?: string | null; resolution?: string | null },
+  images: MediaInput[],
+  videos: MediaInput[]
+): Record<string, unknown> {
+  const prompt = params.prompt?.trim();
+  if (!prompt) throw new Error(`Comfy model ${modelId} needs a prompt`);
+  if (images.length > OMNI_MAX_IMAGES) throw tooMany(modelId, OMNI_MAX_IMAGES, "images", images.length);
+  if (videos.length > OMNI_MAX_VIDEOS) throw tooMany(modelId, OMNI_MAX_VIDEOS, "videos", videos.length);
+  const bytes = [...images, ...videos].reduce((sum, m) => sum + m.bytes.length, 0);
+  if (bytes > OMNI_MAX_INLINE_BYTES) {
+    throw new Error(`Comfy model ${modelId} takes at most 90 MiB of inline media, not ${Math.ceil(bytes / 2 ** 20)} MiB`);
+  }
+  const part = (m: MediaInput) => ({ type: m.mimeType.split("/")[0], data: base64(m), mime_type: m.mimeType });
+  const edit = task === "video_to_video";
+  const format: Record<string, unknown> = { type: "video" };
+  const resolution = params.resolution?.toLowerCase();
+  // Omni Flash (the preview) has no resolution setting in ComfyUI.
+  if (resolution && OMNI_RESOLUTIONS.includes(resolution) && !modelId.endsWith("-preview")) {
+    format.resolution = resolution;
+    if (resolution === "1080p" || resolution === "4k") format.delivery = "uri";
+  }
+  if (!edit && params.aspectRatio && OMNI_RATIOS.includes(params.aspectRatio)) format.aspect_ratio = params.aspectRatio;
+  return {
+    input: [...videos.map(part), ...images.map(part), { type: "text", text: prompt }],
+    generation_config: { video_config: { task: edit ? "edit" : task } },
+    response_format: format
+  };
 }
 
 function textOf(content: Message["content"]): string {
@@ -259,10 +564,12 @@ export class ComfyCloudProvider extends BaseProvider {
 
   private gpuModels(task: string) {
     return listedComfyGpuTemplates().filter((entry) => entry.task === task && comfyGpuTemplateFits(entry)).map((entry) => {
-      const model: { id: string; name: string; provider: string; supportedTasks: string[]; inputs?: typeof entry.inputs } = {
+      const model: { id: string; name: string; provider: string; supportedTasks: string[]; inputs?: typeof entry.inputs; endFrame?: VideoEndFrame } = {
         id: entry.id, name: `${entry.name} (Comfy GPU)`, provider: PROVIDER_IDS.COMFY_CLOUD, supportedTasks: [entry.task]
       };
       if (entry.inputs) { model.inputs = entry.inputs; }
+      const endFrame = entry.task === "image_to_video" ? comfyGpuEndFrame(entry) : undefined;
+      if (endFrame) { model.endFrame = endFrame; }
       return model;
     });
   }
@@ -364,19 +671,26 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    // A pinned workflow graph has no end-frame slot: imageToVideo refuses one.
     const workflowModels: VideoModel[] = listedComfyWorkflowModels(process.env).map((model) => ({
       id: model.id,
       name: model.name,
       provider: PROVIDER_IDS.COMFY_CLOUD,
-      supportedTasks: ["image_to_video"]
+      supportedTasks: ["image_to_video"],
+      endFrame: "none"
     }));
-    const router = (await this.entries("video")).map((entry) => ({
-      id: entry.id,
-      name: routerModelName(entry.id),
-      provider: PROVIDER_IDS.COMFY_CLOUD,
-      supportedTasks: [...entry.tasks],
-      ...announcedOptions(entry.id)
-    }));
+    const router = (await this.entries("video")).map((entry) => {
+      const model: VideoModel = {
+        id: entry.id,
+        name: routerModelName(entry.id),
+        provider: PROVIDER_IDS.COMFY_CLOUD,
+        supportedTasks: [...entry.tasks],
+        ...announcedOptions(entry.id)
+      };
+      const endFrame = entry.tasks.includes("image_to_video") ? routerEndFrame(entry.id) : undefined;
+      if (endFrame) { model.endFrame = endFrame; }
+      return model;
+    });
     const templates: VideoModel[] = listedComfyTemplates(process.env)
       .filter((template) => template.task === "text_to_video")
       .map((template) => ({
@@ -426,6 +740,7 @@ export class ComfyCloudProvider extends BaseProvider {
   }
 
   private finish(b: RouterArgsBuilder, modelId: string): Record<string, unknown> {
+    if (SEEDANCE_1.test(modelId)) moveSeedanceParamsToPrompt(b, modelId);
     b.fillRequiredDefaults();
     const missing = b.missingRequired();
     if (missing.length > 0) {
@@ -434,6 +749,18 @@ export class ComfyCloudProvider extends BaseProvider {
       );
     }
     return b.body;
+  }
+
+  private async runVideo(
+    modelId: string,
+    body: Record<string, unknown>,
+    params: { signal?: AbortSignal; timeoutSeconds?: number | null }
+  ): Promise<Uint8Array> {
+    const result = await this.getRouter().run(modelId, body, "video", {
+      signal: params.signal,
+      timeoutSeconds: params.timeoutSeconds ?? undefined
+    });
+    return result.bytes;
   }
 
   /**
@@ -445,22 +772,17 @@ export class ComfyCloudProvider extends BaseProvider {
     b: RouterArgsBuilder,
     prompt: string | null | undefined,
     images: MediaInput[],
-    names: readonly string[] = IMAGE_FIELDS
+    names: readonly string[] = IMAGE_FIELDS,
+    imageRole: "frame" | "reference" = "frame"
   ): boolean {
     if (images.length > 0 && b.schema.inputModalities && !b.schema.inputModalities.includes("image")) {
       return false;
     }
-    const content = b.field("content");
-    if (content?.type === "array" && content.items && !b.firstDeclared(PROMPT_FIELDS)) {
+    if (takesContentParts(b)) {
       const parts: unknown[] = [];
       if (prompt) parts.push({ type: "text", text: prompt });
-      images.forEach((img, i) =>
-        parts.push({
-          type: "image_url",
-          image_url: { url: dataUri(img) },
-          ...(i === 0 && images.length === 1 ? { role: "first_frame" } : { role: "reference_image" })
-        })
-      );
+      const role = imageRole === "frame" && images.length === 1 ? "first_frame" : "reference_image";
+      for (const img of images) parts.push({ type: "image_url", image_url: { url: dataUri(img) }, role });
       b.put("content", parts);
       return true;
     }
@@ -478,6 +800,7 @@ export class ComfyCloudProvider extends BaseProvider {
     const instances = b.field("instances");
     if (instances?.type === "array" && isRecord(instances.items?.properties) && "prompt" in instances.items.properties) {
       const item: Record<string, unknown> = {};
+      if (images.length > 1) throw oneImageOnly(images.length);
       if (prompt) item.prompt = prompt;
       if (images[0]) item.image = { bytesBase64Encoded: base64(images[0]), mimeType: images[0].mimeType };
       b.put("instances", [item]);
@@ -505,7 +828,12 @@ export class ComfyCloudProvider extends BaseProvider {
     }
     if (prompt) b.setFirst(PROMPT_FIELDS, prompt);
     if (images.length === 0) return true;
-    if (b.attachMedia(names, images)) return true;
+    const placed = b.attachMedia(names, images);
+    if (placed) {
+      // A single-image field keeps only the first; the rest would vanish.
+      if (images.length > 1 && b.field(placed)?.type !== "array") throw oneImageOnly(images.length);
+      return true;
+    }
     // Last resort: a declared field whose name says it takes an input image.
     const guess = [...b.schema.fields.values()].find(
       (f) =>
@@ -513,7 +841,57 @@ export class ComfyCloudProvider extends BaseProvider {
         !/mask|end|last|tail|size|count|num|format|strength|weight|prompt|aspect|resolution|type/i.test(f.name) &&
         (f.type === "string" || f.type === "array" || f.type === undefined)
     );
-    return guess ? b.attachMedia([guess.name], images) !== undefined : false;
+    if (!guess) return false;
+    if (images.length > 1 && guess.type !== "array") throw oneImageOnly(images.length);
+    return b.attachMedia([guess.name], images) !== undefined;
+  }
+
+  /** The last frame as a `last_frame` content part, or in a named end-frame field. */
+  private attachEndFrame(b: RouterArgsBuilder, modelId: string, end: MediaInput): boolean {
+    if (NO_LAST_FRAME.has(modelId)) return false;
+    // Kling v3 and v2.5 Turbo: raw base64 in `image_tail`, beside `image`.
+    if (KLING_TAIL.has(modelId) && b.declares("image_tail") && b.isSet("image")) {
+      b.put("image_tail", base64(end));
+      return true;
+    }
+    // Kling omni: an `end_frame` item after the `first_frame` one.
+    const imageList = b.valueOf("image_list");
+    if (KLING_OMNI.has(modelId) && Array.isArray(imageList)) {
+      imageList.push({ image_url: base64(end), type: "end_frame" });
+      return true;
+    }
+    // Luma Ray 3.2: `video.end_frame` beside `video.start_frame`.
+    const rayOptions = b.valueOf("video");
+    if (modelId === "luma_2/ray-3.2" && isRecord(rayOptions) && isRecord(rayOptions.start_frame)) {
+      rayOptions.end_frame = lumaRef(end);
+      return true;
+    }
+    // Seedance and MiniMax H3: a `last_frame` content part.
+    const content = b.valueOf("content");
+    if (takesContentParts(b) && Array.isArray(content)) {
+      content.push({ type: "image_url", image_url: { url: dataUri(end) }, role: "last_frame" });
+      return true;
+    }
+    // Veo: `lastFrame` beside `image` in the one Vertex instance.
+    const instances = b.valueOf("instances");
+    const instanceProps = b.field("instances")?.items?.properties;
+    if (Array.isArray(instances) && isRecord(instances[0]) && isRecord(instanceProps) && "lastFrame" in instanceProps) {
+      instances[0].lastFrame = { bytesBase64Encoded: base64(end), mimeType: end.mimeType };
+      return true;
+    }
+    // Wan 2.7 and 3.0: a `last_frame` item in the typed media list.
+    const media = b.valueOf("media");
+    if (WAN_LAST_FRAME.test(modelId) && Array.isArray(media)) {
+      media.push({ type: "last_frame", url: dataUri(end) });
+      return true;
+    }
+    // FLUX 3 video spreads its keyframes over the clip, so a second one is the last frame.
+    const keyframes = b.valueOf("keyframes");
+    if (modelId === "bfl/flux-3-video" && typeof keyframes === "string") {
+      b.put("keyframes", [keyframes, base64(end)]);
+      return true;
+    }
+    return b.attachMedia(END_IMAGE_FIELDS, [end]) !== undefined;
   }
 
   private image(bytes: Uint8Array): MediaInput {
@@ -533,6 +911,10 @@ export class ComfyCloudProvider extends BaseProvider {
       guidanceScale?: number | null;
     }
   ): void {
+    if (/^veo\/veo-3\.1-lite/.test(modelId) && params.resolution?.toLowerCase() === "4k") {
+      // Veo3VideoGenerationNode refuses 4k on lite rather than sending it.
+      throw new Error("4K resolution is not supported by the veo-3.1-lite model.");
+    }
     this.attachPromptAndImages(b, params.prompt, []);
     b.setFirst(NEGATIVE_FIELDS, params.negativePrompt);
     b.setFirst(ASPECT_FIELDS, acceptedValue(modelId, "aspectRatio", params.aspectRatio));
@@ -551,10 +933,26 @@ export class ComfyCloudProvider extends BaseProvider {
       b.setFirst(SIZE_FIELDS, acceptedSize(modelId, width, height));
       return;
     }
-    if (aspect && !b.firstDeclared(ASPECT_FIELDS) && IMAGE_SIZES[aspect]) {
-      const [w, h] = IMAGE_SIZES[aspect].split("x").map(Number);
-      b.setFirst(SIZE_FIELDS, acceptedSize(modelId, w, h));
+    if (!aspect || b.firstDeclared(ASPECT_FIELDS)) return;
+    // A schema with no aspect field takes the ratio as a size: one size
+    // string, or width and height (BFL's FLUX.2). With neither filled the
+    // model answers at its default size and the ratio is lost.
+    const pair = b.declares("width") && b.declares("height");
+    if (!pair && !b.firstDeclared(SIZE_FIELDS)) return;
+    const preset = IMAGE_SIZES[aspect];
+    if (!preset) {
+      throw new Error(
+        `Comfy model ${modelId} takes a pixel size, and aspect ratio "${aspect}" has no preset size. ` +
+          `Pass one of ${Object.keys(IMAGE_SIZES).join(", ")}, or width and height ` +
+          "(target_width and target_height for an edit)."
+      );
     }
+    const [w, h] = preset.split("x").map(Number);
+    if (pair) {
+      b.set("width", w).set("height", h);
+      return;
+    }
+    b.setFirst(SIZE_FIELDS, acceptedSize(modelId, w, h));
   }
 
   private setVideoTiming(b: RouterArgsBuilder, modelId: string, durationSeconds?: number | null, numFrames?: number | null): void {
@@ -587,7 +985,7 @@ export class ComfyCloudProvider extends BaseProvider {
     this.setCommon(b, modelId, params);
     this.setImageSize(b, modelId, params.width, params.height, params.aspectRatio);
     b.setFirst(QUALITY_FIELDS, params.quality);
-    this.applyPreset(b, modelId, { task: "text_to_image", images: [] });
+    this.applyPreset(b, modelId, { task: "text_to_image", images: [], prompt: params.prompt });
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "image", {
       signal: params.signal
     });
@@ -606,7 +1004,9 @@ export class ComfyCloudProvider extends BaseProvider {
     b.setFirst(STRENGTH_FIELDS, params.strength);
     const media = images.map((img) => this.image(img));
     if (
-      !this.applyPreset(b, modelId, { task: "image_to_image", images: media }) &&
+      !this.applyPreset(b, modelId, {
+        task: "image_to_image", images: media, prompt: params.prompt, aspectRatio: params.aspectRatio, strength: params.strength
+      }) &&
       !this.attachPromptAndImages(b, params.prompt, media)
     ) {
       throw new Error(`Comfy model ${modelId} takes no input image`);
@@ -630,10 +1030,16 @@ export class ComfyCloudProvider extends BaseProvider {
       }
       return runComfyTemplate(template, this.requireApiKey(), params);
     }
+    if (OMNI_VIDEO.test(modelId)) {
+      return this.runVideo(modelId, omniVideoBody(modelId, "text_to_video", params, [], []), params);
+    }
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, modelId, params);
     this.setVideoTiming(b, modelId, params.durationSeconds, params.numFrames);
-    this.applyPreset(b, modelId, { task: "text_to_video", images: [] });
+    this.applyPreset(b, modelId, {
+      task: "text_to_video", images: [], prompt: params.prompt, resolution: params.resolution,
+      aspectRatio: params.aspectRatio, durationSeconds: params.durationSeconds
+    });
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal,
       timeoutSeconds: params.timeoutSeconds
@@ -668,21 +1074,30 @@ export class ComfyCloudProvider extends BaseProvider {
         signal: params.signal
       });
     }
+    const start = [this.image(image)];
+    if (OMNI_VIDEO.test(modelId)) {
+      // GeminiVideoOmniV2 image_to_video: a start frame and an optional end frame.
+      const frames = params.endImage?.length ? [...start, this.image(params.endImage)] : start;
+      return this.runVideo(modelId, omniVideoBody(modelId, "image_to_video", params, frames, []), params);
+    }
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, modelId, params);
     this.setVideoTiming(b, modelId, params.durationSeconds, params.numFrames);
-    const start = [this.image(image)];
     if (
-      !this.applyPreset(b, modelId, { task: "image_to_video", images: start }) &&
+      !this.applyPreset(b, modelId, {
+        task: "image_to_video", images: start, prompt: params.prompt, resolution: params.resolution,
+        aspectRatio: params.aspectRatio, durationSeconds: params.durationSeconds
+      }) &&
       !this.attachPromptAndImages(b, params.prompt, start)
     ) {
       throw new Error(`Comfy model ${modelId} takes no start image`);
     }
     // A last frame the model cannot take would be dropped without a word, and
     // the caller would get a clip that never reaches the frame it asked for.
-    if (params.endImage?.length && !b.attachMedia(END_IMAGE_FIELDS, [this.image(params.endImage)])) {
+    if (params.endImage?.length && !this.attachEndFrame(b, modelId, this.image(params.endImage))) {
       throw new Error(`Comfy model ${modelId} takes no end frame`);
     }
+    if (ADAPTIVE_RATIO_WITH_FRAMES.has(modelId) && b.isSet("ratio")) b.put("ratio", "adaptive");
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal,
       timeoutSeconds: params.timeoutSeconds
@@ -697,21 +1112,36 @@ export class ComfyCloudProvider extends BaseProvider {
     const modelId = params.model.id;
     const gpu = this.gpuRun(modelId, "reference_to_video", { ...params, images: inputs.images, videos: inputs.videos, audios: inputs.audios ?? [] });
     if (gpu) { return (await gpu).data; }
+    const references = inputs.images.map((img) => this.image(img));
+    const videos = inputs.videos.map((bytes) => ({ bytes, mimeType: sniffMime(bytes, "video/mp4") }));
+    const audios = (inputs.audios ?? []).map((bytes) => ({ bytes, mimeType: sniffAudioMime(bytes) }));
+    if (OMNI_VIDEO.test(modelId)) {
+      if (audios.length > 0) throw new Error(`Comfy model ${modelId} takes no reference audio`);
+      return this.runVideo(modelId, omniVideoBody(modelId, "reference_to_video", params, references, videos), params);
+    }
     const b = await this.builder(modelId, params.signal);
     this.setCommon(b, modelId, params);
     this.setVideoTiming(b, modelId, params.durationSeconds, params.numFrames);
-    const references = inputs.images.map((img) => this.image(img));
-    if (
-      !this.applyPreset(b, modelId, { task: "reference_to_video", images: references }) &&
-      references.length > 0
-    ) {
-      b.attachMedia(REFERENCE_FIELDS, references);
-    }
-    if (inputs.videos.length > 0) {
-      b.attachMedia(VIDEO_FIELDS, inputs.videos.map((bytes) => ({ bytes, mimeType: sniffMime(bytes, "video/mp4") })));
-    }
-    if (inputs.audios?.length) {
-      b.attachMedia(AUDIO_FIELDS, inputs.audios.map((bytes) => ({ bytes, mimeType: "audio/mpeg" })));
+    // A reference the model cannot take would vanish from the request, and the
+    // clip would ignore it without a word.
+    const refuse = (what: string): never => {
+      throw new Error(`Comfy model ${modelId} takes no ${what}`);
+    };
+    if (takesContentParts(b)) {
+      this.attachContentReferences(b, modelId, params.prompt, references, videos, audios);
+    } else {
+      if (
+        !this.applyPreset(b, modelId, {
+          task: "reference_to_video", images: references, prompt: params.prompt, resolution: params.resolution,
+          aspectRatio: params.aspectRatio, durationSeconds: params.durationSeconds
+        }) &&
+        references.length > 0 &&
+        !b.attachMedia(REFERENCE_FIELDS, references)
+      ) {
+        refuse("reference images");
+      }
+      if (videos.length > 0 && !b.attachMedia(VIDEO_FIELDS, videos, "video")) refuse("reference videos");
+      if (audios.length > 0 && !b.attachMedia(REFERENCE_AUDIO_FIELDS, audios, "audio")) refuse("reference audio");
     }
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal,
@@ -720,19 +1150,58 @@ export class ComfyCloudProvider extends BaseProvider {
     return result.bytes;
   }
 
+  /**
+   * Seedance 2.x and MiniMax H3 references, in the order ComfyUI's
+   * ByteDance2ReferenceNode and MinimaxHailuo03ReferenceNode send them: the
+   * prompt, then `reference_image`, `reference_video` and `reference_audio`
+   * parts. The Router takes a reference video only as a public URL or a
+   * provider asset id, and NodeTool has no upload route, so a reference video
+   * is refused rather than sent inline.
+   */
+  private attachContentReferences(
+    b: RouterArgsBuilder,
+    modelId: string,
+    prompt: string | null | undefined,
+    images: MediaInput[],
+    videos: MediaInput[],
+    audios: MediaInput[]
+  ): void {
+    if (videos.length > 0) {
+      throw new Error(
+        `Comfy model ${modelId} takes reference videos only as public URLs, which NodeTool cannot upload yet`
+      );
+    }
+    if (images.length === 0 && audios.length === 0) {
+      throw new Error(`Comfy model ${modelId} needs at least one reference image`);
+    }
+    this.attachPromptAndImages(b, prompt, images, IMAGE_FIELDS, "reference");
+    const parts = b.body.content as unknown[];
+    for (const audio of audios) {
+      parts.push({ type: "audio_url", audio_url: { url: dataUri(audio) }, role: "reference_audio" });
+    }
+  }
+
   override async videoToVideo(video: Uint8Array, params: VideoToVideoParams): Promise<Uint8Array> {
     const modelId = params.model.id;
     const gpu = this.gpuRun(modelId, "video_to_video", { ...params, videos: [video], images: params.referenceImages ?? [] });
     if (gpu) { return (await gpu).data; }
-    const b = await this.builder(modelId, params.signal);
-    this.setCommon(b, modelId, { ...params, prompt: params.prompt ?? undefined });
     const source = { bytes: video, mimeType: sniffMime(video, "video/mp4") };
     const references = (params.referenceImages ?? []).map((img) => this.image(img));
-    if (!this.applyPreset(b, modelId, { task: "video_to_video", images: references, video: source })) {
+    if (OMNI_VIDEO.test(modelId)) {
+      if (references.length > 0) throw new Error(`Comfy model ${modelId} takes no reference images when it edits a video`);
+      return this.runVideo(modelId, omniVideoBody(modelId, "video_to_video", params, [], [source]), params);
+    }
+    const b = await this.builder(modelId, params.signal);
+    this.setCommon(b, modelId, { ...params, prompt: params.prompt ?? undefined });
+    if (!this.applyPreset(b, modelId, {
+      task: "video_to_video", images: references, video: source, prompt: params.prompt, resolution: params.resolution
+    })) {
       if (!b.attachMedia(VIDEO_FIELDS, [source], "video")) {
         throw new Error(`Comfy model ${modelId} takes no input video`);
       }
-      if (references.length) b.attachMedia(REFERENCE_FIELDS, references);
+      if (references.length && !b.attachMedia(REFERENCE_FIELDS, references)) {
+        throw new Error(`Comfy model ${modelId} takes no reference images`);
+      }
     }
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "video", {
       signal: params.signal
@@ -761,10 +1230,13 @@ export class ComfyCloudProvider extends BaseProvider {
     b.setFirst(["speed"], args.speed);
     b.setFirst(["language_code", "language"], args.language);
     b.setFirst(["instructions", "style"], args.instructions);
-    if (args.referenceAudio) {
-      b.attachMedia(["reference_audio", "audio_prompt", ...AUDIO_FIELDS], [
-        { bytes: args.referenceAudio, mimeType: "audio/wav" }
-      ]);
+    if (
+      args.referenceAudio &&
+      !b.attachMedia(["reference_audio", "audio_prompt", ...AUDIO_FIELDS], [
+        { bytes: args.referenceAudio, mimeType: sniffAudioMime(args.referenceAudio) }
+      ], "audio")
+    ) {
+      throw new Error(`Comfy model ${modelId} takes no reference audio`);
     }
     this.applyPreset(b, modelId, { task: "text_to_speech", images: [] });
     const result = await this.getRouter().run(modelId, this.finish(b, modelId), "audio", {

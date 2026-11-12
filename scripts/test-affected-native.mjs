@@ -18,7 +18,9 @@
  * editor builds graph-runner). Such a project is never reconfigured. A
  * project that lists another in `dependsOn` treats that project's changed
  * files as its own, since it always builds them: graph-runner and the node
- * editor build native/jobs.
+ * editor build native/jobs. A project's `sharedDirs` count as part of it for
+ * selection too: the timeline build compiles native/ui_primitives,
+ * native/chat and native/model-picker and runs their tests.
  *
  * The dependency model of each test is read from the build directory:
  *
@@ -117,7 +119,10 @@ export const PROJECTS = {
   },
   // The editor's local-run tests load the graph runner's guest bundle from the
   // path in NODETOOL_GUEST_BUNDLE (native/node-editor/cmake/GraphRunner.cmake).
+  // On Windows the editor's launcher and check script build in `build-windows`
+  // (native/node-editor/scripts/run.mjs), so the default follows them there.
   "node-editor": {
+    windowsBuildDir: "build-windows",
     dependsOn: ["jobs", "kernels"],
     prepare: [
       {
@@ -128,6 +133,13 @@ export const PROJECTS = {
       }
     ],
     bundleInputs: GUEST_INPUTS
+  },
+  // The timeline build compiles these through add_subdirectory and registers
+  // their tests, and its tests load their QML. A file under them that maps to
+  // no test input selects every timeline test, as a file under
+  // native/timeline/ does.
+  timeline: {
+    sharedDirs: ["native/ui_primitives", "native/chat", "native/model-picker"]
   }
 };
 
@@ -136,9 +148,11 @@ export function projectConfig(name) {
   return {
     envVar: config.envVar ?? `NODETOOL_${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_BUILD_DIR`,
     configureArgs: config.configureArgs ?? [],
+    windowsBuildDir: config.windowsBuildDir ?? "build",
     prepare: config.prepare ?? [],
     bundleInputs: config.bundleInputs ?? [],
-    dependsOn: config.dependsOn ?? []
+    dependsOn: config.dependsOn ?? [],
+    sharedDirs: config.sharedDirs ?? []
   };
 }
 
@@ -187,24 +201,28 @@ function cmakeFilesUnder(dir) {
 }
 
 /** The build directory of a project, and where the choice came from. */
-export function resolveBuildDir(name, overrides, env, root = repoRoot) {
+export function resolveBuildDir(name, overrides, env, root = repoRoot, platform = process.platform) {
   if (overrides[name]) return { dir: resolve(overrides[name]), source: "--build" };
   const { envVar } = projectConfig(name);
   if (env[envVar]) return { dir: resolve(env[envVar]), source: envVar };
-  return { dir: join(root, "native", name, "build"), source: "default" };
+  return { dir: join(root, "native", name, defaultBuildDirName(name, platform)), source: "default" };
+}
+
+function defaultBuildDirName(name, platform) {
+  return platform === "win32" ? projectConfig(name).windowsBuildDir : "build";
 }
 
 /** The exact command that configures a project's default build directory. */
-export function configureCommand(name) {
+export function configureCommand(name, platform = process.platform) {
   const dir = `native/${name}`;
-  return ["cmake", "-S", dir, "-B", `${dir}/build`, ...projectConfig(name).configureArgs].join(" ");
+  return ["cmake", "-S", dir, "-B", `${dir}/${defaultBuildDirName(name, platform)}`, ...projectConfig(name).configureArgs].join(" ");
 }
 
 export function readCache(buildDir) {
   const cache = {};
   const path = join(buildDir, "CMakeCache.txt");
   if (!existsSync(path)) return null;
-  for (const line of readFileSync(path, "utf8").split("\n")) {
+  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
     const match = /^([^#/][^:=]*):[A-Z]+=(.*)$/.exec(line);
     if (match) cache[match[1]] = match[2];
   }
@@ -399,7 +417,7 @@ export function producersOf(paths, targets, buildDir, cache) {
       const rules = join(target.buildDir, "CMakeFiles", `${target.name}.dir`, "build.make");
       if (!existsSync(rules)) continue;
       const text = readFileSync(rules, "utf8");
-      for (const path of paths) if (text.includes(path)) found.get(path).add(target.name);
+      for (const path of paths) if (text.includes(path) || text.includes(path.replaceAll("\\", "/"))) found.get(path).add(target.name);
     }
     return found;
   }
@@ -408,7 +426,7 @@ export function producersOf(paths, targets, buildDir, cache) {
     for (const block of blocks) {
       for (const target of utilities) {
         if (!block.includes(`CMakeFiles/${target.name}`)) continue;
-        for (const path of paths) if (block.includes(path)) found.get(path).add(target.name);
+        for (const path of paths) if (block.includes(path) || block.includes(path.replaceAll("\\", "/"))) found.get(path).add(target.name);
       }
     }
     return found;
@@ -607,6 +625,7 @@ export function buildModel({
   return {
     name,
     projectDir,
+    ownDirs: [projectDir, ...(config.sharedDirs ?? [])],
     buildDir,
     config: api.config,
     tests,
@@ -628,7 +647,8 @@ const isCpp = (f) => CPP_SOURCE.test(f) || CPP_HEADER.test(f);
  */
 export function selectTests(model, changed, { all = false } = {}) {
   const files = changed.filter((f) => !DOC_ONLY.test(f));
-  const inProject = (f) => under(f, model.projectDir);
+  const ownDirs = model.ownDirs ?? [model.projectDir];
+  const inProject = (f) => ownDirs.some((dir) => under(f, dir));
   const everything = (trigger, why) => ({
     all: true,
     reason: `${trigger}: ${why}`,
@@ -722,10 +742,10 @@ export function ctestRegex(names) {
   return `^(${names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})$`;
 }
 
-/** Whether a non-documentation file under native/<name>/ changed. */
-/** A changed file under the project, or under a project it depends on. */
+/** A changed file under the project, a project it depends on, or a shared directory. */
 export function projectHasOwnChanges(name, files) {
-  const dirs = [name, ...projectConfig(name).dependsOn].map((dir) => `native/${dir}`);
+  const { dependsOn, sharedDirs } = projectConfig(name);
+  const dirs = [...[name, ...dependsOn].map((dir) => `native/${dir}`), ...sharedDirs];
   return files.some((f) => dirs.some((dir) => under(f, dir)) && !DOC_ONLY.test(f));
 }
 
@@ -789,7 +809,7 @@ export function diskReaders() {
 export function loadModel(name, buildDir, cache, log, { refresh = true } = {}) {
   const api = refresh ? ensureFileApi(buildDir, log) : readFileApi(buildDir);
   if (!api) return null;
-  const result = spawnSync("ctest", ["--test-dir", buildDir, "--show-only=json-v1"], { encoding: "utf8", maxBuffer: 1 << 28 });
+  const result = spawnSync("ctest", ["--test-dir", buildDir, ...(api.config ? ["-C", api.config] : []), "--show-only=json-v1"], { encoding: "utf8", maxBuffer: 1 << 28 });
   if (result.status !== 0) throw new Error(`ctest --show-only failed in ${buildDir}: ${result.stderr}`);
   const ctest = JSON.parse(result.stdout);
   const generated = [];

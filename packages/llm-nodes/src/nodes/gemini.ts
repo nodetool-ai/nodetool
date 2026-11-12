@@ -645,7 +645,7 @@ export class ImageToVideoGeminiNode extends BaseNode {
   static readonly body = "content_card";
   static readonly title = "Image To Video";
   static readonly inlineFields = [];
-  static readonly inputFields = ["prompt", "image"];
+  static readonly inputFields = ["prompt", "image", "end_image"];
   static readonly description: string =
     "Generate videos from images using Google's Veo models.\n    google, video, generation, image-to-video, veo, ai, animation\n\n    This node uses Google's Veo models to animate static images into dynamic videos.\n    Supports 720p resolution at 24fps with 8-second duration and native audio generation.";
   static readonly metadataOutputTypes = {
@@ -667,6 +667,21 @@ export class ImageToVideoGeminiNode extends BaseNode {
     description: "The image to animate into a video"
   })
   declare image: ImageRef;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "End Image",
+    description:
+      "Optional frame the video ends on. Veo interpolates between the two frames in an 8-second clip."
+  })
+  declare end_image: ImageRef;
 
   @prop({
     type: "str",
@@ -743,6 +758,16 @@ export class ImageToVideoGeminiNode extends BaseNode {
         }
       ]
     };
+    if (isRefSet(this.end_image)) {
+      const endBytes = await getMediaBytes(this.end_image, "image", context);
+      if (!endBytes) throw new Error("End image data is required");
+      (body.instances as Record<string, unknown>[])[0].lastFrame = {
+        bytesBase64Encoded: Buffer.from(endBytes).toString("base64"),
+        mimeType: "image/png"
+      };
+      // Veo interpolates between two frames only in an 8-second clip.
+      parameters.durationSeconds = 8;
+    }
     if (Object.keys(parameters).length > 0) body.parameters = parameters;
 
     const res = await endpoint.postModel(model, method, body, context?.signal);

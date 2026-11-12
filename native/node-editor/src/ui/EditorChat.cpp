@@ -11,6 +11,7 @@
 
 Q_IMPORT_QML_PLUGIN(NodeTool_ChatPlugin)
 Q_IMPORT_QML_PLUGIN(NodeTool_ModelPickerPlugin)
+Q_IMPORT_QML_PLUGIN(NodeTool_NodeEditorPlugin)
 
 namespace nodetool {
 nt::chat::ChatSession *EditorWindow::chatSession() {
@@ -27,8 +28,11 @@ void EditorWindow::initializeChat() {
     chatOverlay_->setAttribute(Qt::WA_TranslucentBackground);
     chatOverlay_->setObjectName("editor-chat-overlay");
     chatOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    chatOverlay_->setInitialProperties({{"session", QVariant::fromValue(&chat_)}, {"host", QVariant::fromValue(this)}});
-    chatOverlay_->setSource(QUrl("qrc:/editor/EditorChat.qml"));
+    connect(&chatWindow_, &node_editor::ChatWindow::beginGeometryRequested, this, &EditorWindow::beginChatGeometry);
+    connect(&chatWindow_, &node_editor::ChatWindow::changeGeometryRequested, this, &EditorWindow::changeChatGeometry);
+    connect(&chatWindow_, &node_editor::ChatWindow::resetPositionRequested, this, &EditorWindow::resetChatPosition);
+    chatOverlay_->setInitialProperties({{"session", QVariant::fromValue(&chat_)}, {"frame", QVariant::fromValue(&chatWindow_)}});
+    chatOverlay_->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/EditorChat.qml"));
     chatOverlay_->hide();
     connect(chatOverlay_->rootObject(), SIGNAL(closeRequested()), this, SLOT(toggleChat()));
     initializeChatTools();

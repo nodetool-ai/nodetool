@@ -126,7 +126,7 @@ class TestMenus : public WiringFixture {
         for (const auto& item : items) { labels << (item.separator ? QString("---") : item.label); }
         return labels;
     }
-    std::vector<nt::app::Menu> openMenus(const QString& preset = "nodetool") {
+    std::vector<nt::app::Menu> openMenus(const QString& preset = "premiere") {
         return nt::app::shellMenuDescription(preset, {}, {{"kind", "shell"}, {"gestures", QVariant::fromValue<QObject*>(gestures())},
                                                           {"timeline", QVariant::fromValue<QObject*>(&model)}});
     }
@@ -155,7 +155,7 @@ private slots:
     void init() {
         QFile::remove(settings.filePath("settings.ini"));
         open();
-        gestures()->setKeyboardPreset("nodetool");
+        gestures()->setKeyboardPreset("premiere");
         patch("c", {{"mediaType", "video"}});
     }
     void cleanup() { view.reset(); nt::edit::setIdGenerator({}); }
@@ -243,11 +243,11 @@ private slots:
     }
     void shortcutParity_data() {
         QTest::addColumn<QString>("action"); QTest::addColumn<int>("key"); QTest::addColumn<int>("mods");
-        QTest::newRow("split") << QString("splitAtPlayhead") << int(Qt::Key_S) << int(Qt::NoModifier);
-        QTest::newRow("duplicate") << QString("duplicate") << int(Qt::Key_D) << int(Qt::ControlModifier);
-        QTest::newRow("transition") << QString("applyDefaultTransition") << int(Qt::Key_T) << int(Qt::ControlModifier);
+        QTest::newRow("split") << QString("splitAtPlayhead") << int(Qt::Key_K) << int(Qt::ControlModifier);
+        QTest::newRow("duplicate") << QString("duplicate") << int(Qt::Key_D) << int(Qt::AltModifier);
+        QTest::newRow("transition") << QString("applyDefaultTransition") << int(Qt::Key_D) << int(Qt::ControlModifier);
         QTest::newRow("fades") << QString("applyFades") << int(Qt::Key_T) << int(Qt::AltModifier);
-        QTest::newRow("enable") << QString("toggleClipEnabled") << int(Qt::Key_E) << int(Qt::ControlModifier | Qt::ShiftModifier);
+        QTest::newRow("enable") << QString("toggleClipEnabled") << int(Qt::Key_E) << int(Qt::ShiftModifier);
         QTest::newRow("unlink") << QString("linkClips") << int(Qt::Key_L) << int(Qt::ControlModifier);
         QTest::newRow("delete") << QString("deleteSelected") << int(Qt::Key_Delete) << int(Qt::NoModifier);
     }
@@ -569,20 +569,20 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(activeMenu, "close"));
         QTRY_VERIFY(!activeMenu->property("visible").toBool());
         const auto before = gestures()->shortcutFor("splitAtPlayhead");
-        gestures()->setKeyboardPreset("premiere");
-        const auto premiere = gestures()->shortcutFor("splitAtPlayhead");
-        QVERIFY(premiere != before);
+        gestures()->setKeyboardPreset("fcp");
+        const auto other = gestures()->shortcutFor("splitAtPlayhead");
+        QVERIFY(other != before);
         popup("clip", "clip-c");
         QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
-        QCOMPARE(item("clipMenu-splitAtPlayhead")->property("shortcutText").toString(), premiere);
-        const auto bar = nt::app::shellMenuDescription("premiere");
+        QCOMPARE(item("clipMenu-splitAtPlayhead")->property("shortcutText").toString(), other);
+        const auto bar = nt::app::shellMenuDescription("fcp");
         QStringList shortcuts;
         for (const auto& menu : bar) {
             for (const auto& entry : menu.items) {
                 if (entry.action == "splitAtPlayhead") { shortcuts << entry.shortcut; }
             }
         }
-        QCOMPARE(shortcuts, QStringList{premiere});
+        QCOMPARE(shortcuts, QStringList{other});
     }
     void fitAndFillFrame() {
         patch("c", {{"width", 320}, {"height", 360}, {"transform", QJsonObject{{"position", QJsonObject{{"x", 40}, {"y", 9}}},
@@ -899,7 +899,7 @@ private slots:
             }
         };
         // The list is read once: running an item changes only what reset() restores.
-        for (const auto& menu : nt::app::shellMenuDescription("nodetool", {}, context())) {
+        for (const auto& menu : nt::app::shellMenuDescription("premiere", {}, context())) {
             visit(visit, menu.items, menu.label);
         }
         QVERIFY2(problems.isEmpty(), qPrintable(problems.join("\n")));
@@ -920,7 +920,7 @@ private slots:
                     self(self, entry.children);
                 }
             };
-            for (const auto& menu : nt::app::shellMenuDescription("nodetool", {}, context)) { visit(visit, menu.items); }
+            for (const auto& menu : nt::app::shellMenuDescription("premiere", {}, context)) { visit(visit, menu.items); }
             return found;
         };
         const auto snap = gestures()->snapEnabled();
@@ -1016,7 +1016,7 @@ private slots:
                 }
             }
         };
-        for (const auto& menu : nt::app::shellMenuDescription("nodetool", {}, {{"kind", "shell"}})) { visit(visit, menu.items, menu.label); }
+        for (const auto& menu : nt::app::shellMenuDescription("premiere", {}, {{"kind", "shell"}})) { visit(visit, menu.items, menu.label); }
         QVERIFY2(problems.isEmpty(), qPrintable(problems.join("\n")));
         QVERIFY(off > 100);
     }
@@ -1060,7 +1060,7 @@ private slots:
                 self(self, item.children, seen, clashes);
             }
         };
-        for (const QString preset : {"nodetool", "premiere", "fcp"}) {
+        for (const QString preset : {"premiere", "fcp"}) {
             QHash<QKeySequence, QString> seen;
             QStringList clashes;
             for (const auto& menu : openMenus(preset)) { visit(visit, menu.items, seen, clashes); }

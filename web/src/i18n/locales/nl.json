@@ -16693,7 +16693,6 @@
       "press": "Druk op",
       "toggleHint": "U kunt op elk gewenst moment dit paneel in- of uitschakelen · Ctrl reageert ook op ⌘ op macOS",
       "presets": {
-        "nodetool": "KnooppuntTool",
         "premiere": "Première Pro",
         "fcp": "Finalcut Pro"
       },

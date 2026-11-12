@@ -83,8 +83,8 @@ interface FlowHandle {
  * than imported as a type: a `typeof import(...)` is still an import, and the
  * point of the hidden load is that no reference to the package survives.
  */
-interface FlowBackend {
-  assertNodeAvailable?(nodeType: string, opts: { flow: FlowHandle }): Promise<void>;
+export interface FlowBackend {
+  assertNodeAvailable?(nodeType: string, opts?: { flow?: FlowHandle }): Promise<void>;
   createFlowForContext(context: ProcessingContext): Promise<FlowHandle>;
   invoke(
     nodeType: string,
@@ -110,6 +110,20 @@ function loadFlowBackend(): Promise<FlowBackend | null> {
 /** Test seam: pin the backend (or `null` to restore the real load). */
 export function setFlowBackend(backend: FlowBackend | null): void {
   backendPromise = backend === null ? null : Promise.resolve(backend);
+}
+
+/**
+ * Hand the backend in from a host that sits above `@nodetool-ai/dsl` in the
+ * package graph and imports it statically.
+ *
+ * The hidden import resolves a package by name at run time, which works from a
+ * workspace checkout and fails in the bundled server: `server.mjs` inlines the
+ * workspace packages and stages no `@nodetool-ai/dsl` beside itself, so every
+ * `callNode` from a chat or MCP code action answered "does not resolve here".
+ * A host whose bundle already contains the module registers it instead.
+ */
+export function registerFlowBackend(backend: FlowBackend): void {
+  backendPromise = Promise.resolve(backend);
 }
 
 async function requireBackend(): Promise<FlowBackend> {

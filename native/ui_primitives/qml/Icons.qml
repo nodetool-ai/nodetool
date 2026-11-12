@@ -206,6 +206,18 @@ QtObject {
     readonly property string paletteOutlined: "M12 22C6.49 22 2 17.51 2 12S6.49 2 12 2s10 4.04 10 9c0 3.31-2.69 6-6 6h-1.77c-.28 0-.5.22-.5.5 0 .12.05.23.13.33.41.47.64 1.06.64 1.67 0 1.38-1.12 2.5-2.5 2.5m0-18c-4.41 0-8 3.59-8 8s3.59 8 8 8c.28 0 .5-.22.5-.5 0-.16-.08-.28-.14-.35-.41-.46-.63-1.05-.63-1.65 0-1.38 1.12-2.5 2.5-2.5H16c2.21 0 4-1.79 4-4 0-3.86-3.59-7-8-7M5 11.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0 -3 0M8 7.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0 -3 0M13 7.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0 -3 0M16 11.5a1.5 1.5 0 1 0 3 0 1.5 1.5 0 1 0 -3 0"
     // CategoryOutlined
     readonly property string categoryOutlined: "m12 2-5.5 9h11zm0 3.84L13.93 9h-3.87zM17.5 13c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5m0 7c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5M3 21.5h8v-8H3zm2-6h4v4H5z"
+    // Premiere-style monitor transport glyphs, drawn for this catalog in the same 24 by 24 box.
+    readonly property string addMarker: "M6 3h12v11.5L12 20l-6-5.5zm2 2v8.6l4 3.6 4-3.6V5z"
+    readonly property string markIn: "M15 4h-5v6.5L7.5 12l2.5 1.5V20h5v-2h-3v-5.2l-1.4-.8 1.4-.8V6h3z"
+    readonly property string markOut: "M9 4h5v6.5l2.5 1.5-2.5 1.5V20H9v-2h3v-5.2l1.4-.8-1.4-.8V6H9z"
+    readonly property string goToIn: "M9 5H6v6.2L4.5 12l1.5.8V19h3v-2H8v-4.6l-.7-.4.7-.4V7h1zm11 6h-6.2l2.6-2.6L15 7l-5 5 5 5 1.4-1.4-2.6-2.6H20z"
+    readonly property string goToOut: "M15 5h3v6.2l1.5.8-1.5.8V19h-3v-2h1v-4.6l.7-.4-.7-.4V7h-1zM4 11h6.2L7.6 8.4 9 7l5 5-5 5-1.4-1.4 2.6-2.6H4z"
+    readonly property string previousEdit: "M4 5h2v14H4zm4 7 6-5v4h6v2h-6v4z"
+    readonly property string nextEdit: "M18 5h2v14h-2zm-2 7-6-5v4H4v2h6v4z"
+    readonly property string stepBackFrame: "M15 6h2v12h-2zm-1 0v12l-8-6z"
+    readonly property string stepForwardFrame: "M7 6h2v12H7zm3 0v12l8-6z"
+    readonly property string liftRange: "M11 14V7.8L8.4 10.4 7 9l5-5 5 5-1.4 1.4L13 7.8V14zM3 16h6v4H3zm12 0h6v4h-6z"
+    readonly property string extractRange: "M11 14V7.8L8.4 10.4 7 9l5-5 5 5-1.4 1.4L13 7.8V14zM3 16h8v4H3zm10 0h8v4h-8z"
     readonly property string history: "M13 3a9 9 0 0 0-9 9H1l4 4 4-4H6a7 7 0 1 1 2.1 5L6.7 18.4A9 9 0 1 0 13 3m-1 5v5l4.3 2.6 1-1.6-3.3-2V8z"
     readonly property string editNote: "M3 10h10v2H3zm0-4h14v2H3zm0 8h8v2H3zm13.3-1.7 2.4 2.4L12 21h-2.4v-2.4zm3.1-3.1 2.4 2.4-1.7 1.7-2.4-2.4z"
     readonly property string folderOutlined: "M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2m0 12H4V6h5.17l2 2H20z"

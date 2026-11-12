@@ -9,6 +9,7 @@ Basic.Button {
     property int contentAlignment: Qt.AlignHCenter
     property string providerEntry: ""
     property string iconName: ""
+    property real iconSize: Metrics.iconSm
     property string trailingIconName: ""
     property bool menuButton: false
     property bool menuExpanded: false
@@ -18,7 +19,6 @@ Basic.Button {
     property int density: 1
     property int variant: 0
     property bool circular: false
-    property real iconSize: Metrics.iconSm
     property bool active: false
     property bool loading: false
     property string disabledReason: ""
@@ -104,6 +104,7 @@ Basic.Button {
         id: tooltip
         objectName: "nativeButtonTooltip"
         trigger: root
+        followsTrigger: disabledTarget.visible
         visible: root.visible && !root.tooltipSuppressed && !root.down && !root.menuExpanded && !root.loading && (root.hovered || root.visualFocus || disabledHover.hovered) && (root.description !== "" || root.disabledReason !== "" || root.shortcutText !== "" || root.display === Basic.AbstractButton.IconOnly)
         text: !root.enabled && root.disabledReason !== "" ? root.disabledReason : root.accessibleName + (root.shortcutText !== "" ? " (" + root.shortcutText + ")" : "") + (root.description !== "" && root.description.trim() !== root.accessibleName.trim() ? "\n" + root.description : "")
     }

@@ -128,13 +128,14 @@ export default function MoviePosterUseCase() {
                 Design
               </div>
               <h1 className="mt-6 text-4xl md:text-6xl font-semibold tracking-tight leading-[1.05]">
-                Movie Poster Generator
+                AI Movie Poster Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
-                Pitch a title, a genre, and an audience. The agent writes a real
-                creative strategy and renders a batch of cinematic poster
-                concepts — no designer, no brief deck, one canvas you re-run for
-                any film.
+                Enter a film title, a genre, and an audience. NodeTool writes a
+                creative strategy and renders a set of movie poster concepts,
+                each with a title, a tagline, and a billing block. It runs as an
+                open-source workflow on your own Gemini and GPT Image-2 keys,
+                and you can re-run it for any film.
               </p>
             </motion.div>
 

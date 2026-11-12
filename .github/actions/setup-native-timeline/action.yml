@@ -25,13 +25,21 @@ runs:
       shell: bash
       run: |
         bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
-        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+        if [ -n "${NODETOOL_CI_IMAGE:-}" ]; then
+          # In the native CI image the runner's SDKs are mounted under /reclaim.
+          if [ -d /reclaim ]; then sudo find /reclaim -mindepth 2 -maxdepth 2 -exec rm -rf {} +; fi
+          sudo rm -rf "$RUNNER_TOOL_CACHE/CodeQL"
+        else
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+        fi
         bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
 
-    - name: Install dependencies (Linux)
-      if: runner.os == 'Linux'
+    # The native CI image (docker/ci-native/) already has these packages. The
+    # release workflows still run on the bare runner and install them here.
+    - name: Install system packages (Linux, outside the CI image)
+      if: runner.os == 'Linux' && env.NODETOOL_CI_IMAGE == ''
       shell: bash
-      run: | # zizmor: ignore[github-env]
+      run: |
         sudo apt-get update
         sudo apt-get install -y gdb ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev libvulkan-dev \
           mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
@@ -39,6 +47,36 @@ runs:
           xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
           libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 \
           libxcb-xinerama0 libxcb-xkb1
+
+    # The LGPL FFmpeg build takes about 7 minutes and links the codec
+    # libraries of the system it was built on, so its key names the native
+    # CI image (or the bare runner image) and the build script. Pushes save it
+    # and pull requests restore it, so pull requests do not each store a copy.
+    - name: Cache key for the LGPL FFmpeg build (Linux)
+      id: ffmpeg-key
+      if: runner.os == 'Linux'
+      shell: bash
+      env:
+        SCRIPT_HASH: ${{ hashFiles('native/timeline/scripts/build-ffmpeg-lgpl.sh') }}
+        IMAGE_HASH: ${{ hashFiles('docker/ci-native/**') }}
+      run: |
+        if [[ -n "${NODETOOL_CI_IMAGE:-}" ]]; then system="ci-native-$IMAGE_HASH"; else system="${ImageOS:-bare}-${ImageVersion:-unknown}"; fi
+        echo "key=native-ffmpeg-lgpl-$system-$SCRIPT_HASH" >> "$GITHUB_OUTPUT"
+
+    - name: Restore the LGPL FFmpeg build (Linux)
+      id: ffmpeg-cache
+      if: runner.os == 'Linux'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          native/timeline/build-ffmpeg-lgpl/install
+          native/timeline/build-ffmpeg-lgpl/configure.log
+        key: ${{ steps.ffmpeg-key.outputs.key }}
+
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: | # zizmor: ignore[github-env]
         # Vulkan on lavapipe only: the loader sees no other driver.
         icd=$(compgen -G '/usr/share/vulkan/icd.d/lvp_icd*.json' | head -1 || true)
         if [[ -z "$icd" ]]; then
@@ -51,10 +89,41 @@ runs:
         grep -qi "llvmpipe" "$RUNNER_TEMP/vulkaninfo.txt"
         pipx run aqtinstall install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
         echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
-        # FFmpeg as LGPL shared libraries, as the packages ship it.
+        # FFmpeg as LGPL shared libraries, as the packages ship it. The script
+        # keeps a restored install whose configure log names the export codecs.
         bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" native/timeline/scripts/build-ffmpeg-lgpl.sh
         echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib/pkgconfig" >> "$GITHUB_ENV"
         echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib" >> "$GITHUB_ENV"
+
+    - name: Save the LGPL FFmpeg build (Linux)
+      if: runner.os == 'Linux' && github.event_name == 'push' && steps.ffmpeg-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          native/timeline/build-ffmpeg-lgpl/install
+          native/timeline/build-ffmpeg-lgpl/configure.log
+        key: ${{ steps.ffmpeg-key.outputs.key }}
+
+    # vcpkg builds HarfBuzz and FreeType from source, about 7 minutes. Its
+    # binary cache holds the built packages under their ABI hash, which
+    # changes with the runner's vcpkg and compiler, so the key names the
+    # runner image. Pushes save it and pull requests restore it.
+    - name: Cache key for vcpkg packages (Windows)
+      id: vcpkg-key
+      if: runner.os == 'Windows'
+      shell: bash
+      run: | # zizmor: ignore[github-env]
+        echo "key=native-vcpkg-harfbuzz-freetype-${ImageOS:-windows}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+        echo "VCPKG_BINARY_SOURCES=clear;files,$(cygpath -w "$RUNNER_TEMP/vcpkg-binary"),readwrite" >> "$GITHUB_ENV"
+        mkdir -p "$RUNNER_TEMP/vcpkg-binary"
+
+    - name: Restore vcpkg packages (Windows)
+      id: vcpkg-cache
+      if: runner.os == 'Windows'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/vcpkg-binary
+        key: ${{ steps.vcpkg-key.outputs.key }}
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
@@ -113,6 +182,13 @@ runs:
         echo "FFMPEG_LGPL_BIN=$RUNNER_TEMP/$lgpl/bin" >> "$GITHUB_ENV"
         echo "$RUNNER_TEMP/$lgpl/bin" >> "$GITHUB_PATH"
         echo "$RUNNER_TEMP/$gpl/bin" >> "$GITHUB_PATH"
+
+    - name: Save vcpkg packages (Windows)
+      if: runner.os == 'Windows' && github.event_name == 'push' && steps.vcpkg-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/vcpkg-binary
+        key: ${{ steps.vcpkg-key.outputs.key }}
 
     - name: Set up MSVC (Windows)
       if: runner.os == 'Windows'

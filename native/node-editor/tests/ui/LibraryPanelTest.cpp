@@ -107,7 +107,7 @@ private slots:
     auto *dock = window.findChild<QDockWidget *>("library-dock");
     QVERIFY(dock);
     QTRY_VERIFY(dock->isVisible());
-    QVERIFY(window.property("libraryVisible").toBool());
+    QVERIFY(window.libraryVisible());
     auto *panel = qobject_cast<QQuickWidget *>(dock->widget());
     QVERIFY(panel && panel->rootObject());
     auto *grid = panel->rootObject()->findChild<QQuickItem *>("library-grid");

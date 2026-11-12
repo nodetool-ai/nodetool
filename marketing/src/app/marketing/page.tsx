@@ -8,7 +8,8 @@ import SiteFooter from "../../components/SiteFooter";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 import { adRecipes } from "../../data/adLibrary";
 import PageUpdated from "@/components/PageUpdated";
-import { CAMPAIGN_CASE, MARKETING_LEAD, MORE_FOR_AD_TEAMS } from "@/data/marketingPage";
+import { CAMPAIGN_CASE, MARKETING_FAQ, MARKETING_LEAD, MORE_FOR_AD_TEAMS } from "@/data/marketingPage";
+import FaqSection from "@/components/FaqSection";
 
 /*
  * One campaign, end to end (site-editorial.spec.md § Page ownership). The
@@ -265,6 +266,12 @@ export default function MarketingSegmentPage() {
             </ul>
           </div>
         </section>
+
+        <FaqSection
+          items={MARKETING_FAQ}
+          heading="AI ad creative: common questions"
+          className="mx-auto max-w-3xl px-6 py-16"
+        />
 
         <section className="py-24 relative">
           <div className="mx-auto max-w-3xl px-6 lg:px-8 text-center">

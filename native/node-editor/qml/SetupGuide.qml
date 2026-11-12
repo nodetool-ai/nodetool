@@ -5,11 +5,12 @@ import NodeTool.UiPrimitives as Ui
 
 Item {
     id: root
+    required property FirstWorkflowGuide guide
     property real topInset: Ui.Metrics.xxl
     // The widest the guide may grow. The host sets this to the canvas width minus margins.
     property real maximumWidth: Ui.Metrics.dialogWidth + Ui.Metrics.xxxl
     readonly property real cardWidth: Math.min(content.implicitWidth + Ui.Metrics.xl * 2, root.maximumWidth)
-    visible: editor.guideVisible
+    visible: root.guide.visible
     // The inset keeps the elevated surface's shadow inside the view.
     implicitWidth: root.cardWidth + Ui.Metrics.xs * 2
     implicitHeight: content.implicitHeight + Ui.Metrics.xl * 2 + Ui.Metrics.xs + Ui.Metrics.md
@@ -46,22 +47,22 @@ Item {
                 Ui.EditorButton {
                     objectName: "setup-guide-close"
                     Layout.alignment: Qt.AlignTop
-                    visible: editor.guideStarted
+                    visible: root.guide.started
                     iconName: "close"
                     accessibleName: "Close guide"
                     variant: Ui.EditorButton.Flat
-                    onClicked: editor.setupAction("close-guide")
+                    onClicked: root.guide.run("close-guide")
                 }
             }
             ColumnLayout {
-                visible: editor.guideStarted
+                visible: root.guide.started
                 spacing: Ui.Metrics.sm
                 Repeater {
                     model: ["Input added", "Output added", "Input connected to output", "Workflow saved", "Workflow run completed"]
                     delegate: RowLayout {
                         required property string modelData
                         required property int index
-                        property bool complete: editor.guideReadiness[index]
+                        property bool complete: root.guide.readiness[index]
                         objectName: "setup-readiness-" + index
                         spacing: Ui.Metrics.sm
                         Rectangle {
@@ -86,24 +87,24 @@ Item {
                 }
             }
             Flow {
-                visible: !editor.guideStarted
+                visible: !root.guide.started
                 Layout.fillWidth: true
                 spacing: Ui.Metrics.md
                 Ui.EditorButton {
                     objectName: "setup-starter"
                     text: "Add the two-node starter"
                     variant: Ui.EditorButton.Primary
-                    onClicked: editor.setupAction("starter")
+                    onClicked: root.guide.run("starter")
                 }
                 Ui.EditorButton {
                     objectName: "setup-choose"
                     text: "Choose my own nodes"
-                    onClicked: editor.setupAction("choose")
+                    onClicked: root.guide.run("choose")
                 }
                 Ui.EditorButton {
                     objectName: "setup-templates"
                     text: "Start from a template"
-                    onClicked: editor.setupAction("templates")
+                    onClicked: root.guide.run("templates")
                 }
             }
         }

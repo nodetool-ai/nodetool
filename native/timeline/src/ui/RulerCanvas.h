@@ -7,6 +7,7 @@
 // `paintCount` lets a test check that.
 
 #include "model/TimelineModel.h"
+#include <QJsonValue>
 #include <QPointer>
 #include <QColor>
 #include <QFont>
@@ -80,8 +81,13 @@ signals:
 
 private:
     void changedValue();
+    void timelineEdited();
+    QJsonValue tempoKey() const;
 
     QPointer<TimelineModel> m_timeline;
+    // The document fields the ticks read. An edit that leaves them alone does not repaint.
+    QJsonValue m_tempoKey;
+    bool m_dropFrameKey = false;
     QString m_rulerMode = QStringLiteral("time");
     QString m_gridDivision = QStringLiteral("beat");
     double m_msPerPx = 10.0;

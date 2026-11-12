@@ -42,6 +42,11 @@ const LANDING_PAGES = {
   "/developers": "developers",
   "/templates": "templates",
   "/recipes": "recipes",
+  "/ja": "ja",
+  "/zh": "zh",
+  "/hi": "hi",
+  "/es": "es",
+  "/pt": "pt",
 } as const;
 
 export type LandingPage = typeof LANDING_PAGES[keyof typeof LANDING_PAGES];

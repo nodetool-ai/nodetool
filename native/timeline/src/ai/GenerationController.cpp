@@ -208,9 +208,11 @@ void GenerationController::setTimeline(TimelineModel* timeline) {
     m_target = nt::server::serverSaveTarget();
     if (m_timeline) {
         m_generation = m_timeline->documentGeneration();
-        connect(m_timeline, &TimelineModel::clipsChanged, this, &GenerationController::changed);
-        connect(m_timeline, &TimelineModel::clipsChanged, this, &GenerationController::workflowInputsChanged);
-        connect(m_timeline, &TimelineModel::clipsChanged, this, &GenerationController::syncWorkflowCost);
+        connect(m_timeline, &TimelineModel::clipsChanged, this, [this] {
+            emit changed();
+            emit workflowInputsChanged();
+            syncWorkflowCost();
+        });
         connect(m_timeline, &TimelineModel::documentReplaced, this, [this] {
             m_transport.close(); m_poll.stop(); m_reconnect.stop(); m_reconnectAttempts = 0; m_workflow->reset();
             m_generation = m_timeline->documentGeneration();
@@ -295,11 +297,10 @@ void GenerationController::loadWorkflowInputs(const QString& clipId) {
 }
 void GenerationController::syncWorkflowCost() {
     if (!m_timeline || !m_target || m_workflowInputClipId.isEmpty() || m_workflowInputDocument.isEmpty()) return;
-    QJsonObject clip;
-    for (const auto& value : m_timeline->clipsJson()) {
-        const auto current = value.toObject();
-        if (current.value("id").toString() == m_workflowInputClipId) { clip = current; break; }
-    }
+    // Only the open clip matters, and an edit elsewhere leaves it alone.
+    if (!m_timeline->clipTouched(m_workflowInputClipId)) return;
+    const auto* found = m_timeline->findClip(m_workflowInputClipId);
+    const QJsonObject clip = found ? found->raw : QJsonObject{};
     if (clip.isEmpty() || clip.value("workflowId").toString() != m_workflowInputWorkflowId) {
         const auto clipId = m_workflowInputClipId;
         loadWorkflowInputs(clipId);

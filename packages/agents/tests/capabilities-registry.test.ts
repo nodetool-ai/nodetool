@@ -334,6 +334,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   media_edit: "write",
   media_probe: "write",
   memory_delete: "write",
+  memory_get: "read",
   memory_list: "read",
   memory_save: "write",
   memory_search: "read",

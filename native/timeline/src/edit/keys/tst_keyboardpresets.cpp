@@ -16,7 +16,7 @@
 namespace {
 using Binding = nt::edit::PresetBinding;
 std::vector<Binding> bindingsOf(const QString& preset) { return nt::edit::presetBindings(preset); }
-const QStringList PRESETS{"nodetool", "premiere", "fcp"};
+const QStringList PRESETS{"premiere", "fcp"};
 // Every key one chord means, so "A" and "a" count as one key. Empty when
 // nothing repeats.
 QStringList repeatedChords(const std::vector<Binding>& bindings) {
@@ -233,10 +233,10 @@ private slots:
         QCOMPARE(clock.rate(), 0.1);
         press(Qt::Key_K);
         // The other presets keep the web's keys.
-        gestures()->setKeyboardPreset("nodetool");
-        press(Qt::Key_L, Qt::ShiftModifier);
+        gestures()->setKeyboardPreset("fcp");
+        press(Qt::Key_L, Qt::ControlModifier);
         QVERIFY(clock.loop());
-        press(Qt::Key_L, Qt::ShiftModifier);
+        press(Qt::Key_L, Qt::ControlModifier);
         // Alt+M is the DAW layout there, and the Audio workspace here.
         auto* store = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
         const auto workspace = store->workspace();
@@ -752,7 +752,7 @@ private slots:
         QVERIFY(prompt);
         QVERIFY(!prompt->isVisible());
         QTRY_COMPARE(gestures()->keyboardPreset(), QString("premiere"));
-        // Closing it keeps the NodeTool layout and also counts as an answer.
+        // Closing it keeps the Premiere layout and also counts as an answer.
         view.reset();
         QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
         load(true);
@@ -760,7 +760,7 @@ private slots:
         QTRY_VERIFY(prompt->isVisible());
         click("keyboardLayoutKeep");
         QTRY_VERIFY(!prompt->isVisible());
-        QCOMPARE(gestures()->keyboardPreset(), QString("nodetool"));
+        QCOMPARE(gestures()->keyboardPreset(), QString("premiere"));
         QVERIFY(QSettings(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"), QSettings::IniFormat).contains("keyboardLayout"));
     }
 };

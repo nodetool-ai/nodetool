@@ -26,6 +26,7 @@ export function textToVideo(inputs: TextToVideoInputs, options?: NodeOptions): N
 // Image To Video — nodetool.video.ImageToVideo
 export type ImageToVideoInputs = {
   image?: Connectable<ImageRef[]>;
+  end_image?: Connectable<ImageRef>;
   model?: Connectable<unknown>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;

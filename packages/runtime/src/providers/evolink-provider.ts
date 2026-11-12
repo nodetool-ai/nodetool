@@ -16,6 +16,7 @@ import type {
 } from "./types.js";
 import { isString } from "@nodetool-ai/protocol";
 import type { ProviderCapability } from "./base-provider.js";
+import { endFrameUnsupportedError } from "./manifest-models.js";
 
 const log = createLogger("nodetool.runtime.providers.evolink");
 
@@ -241,6 +242,10 @@ export class EvolinkProvider extends OpenAICompatProvider {
   ): Promise<Uint8Array> {
     if (!image || image.length === 0) {
       throw new Error("The input image cannot be empty.");
+    }
+    // This API has no end-frame input.
+    if (params.endImage?.length) {
+      throw endFrameUnsupportedError("Evolink", params.model.id);
     }
 
     const imageUrl = await this.uploadImage(image);

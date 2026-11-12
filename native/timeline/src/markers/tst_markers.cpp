@@ -1,6 +1,7 @@
 // The markers feature through the production editor: atomic edits, the key
 // actions, the Edit Marker dialog opened from the ruler, the marker context menu,
 // the Markers panel, the CSV export and the document audit.
+#include "app/MenuRegistry.h"
 #include "markers/MarkerSession.h"
 #include "server/FieldAudit.h"
 #include "wiring/WiringFixture.h"
@@ -60,8 +61,20 @@ class TestMarkers : public WiringFixture {
     }
 
 private slots:
-    void init() { open(); gestures()->setKeyboardPreset("nodetool"); }
+    void init() { open(); gestures()->setKeyboardPreset("premiere"); }
     void cleanup() { view.reset(); }
+
+    // The ruler menu offers Clear all markers only while the timeline has markers.
+    void theRulerMenuClearsAllMarkersWhenThereAreMarkers() {
+        const auto actions = [](bool hasMarkers) {
+            QStringList ids;
+            for (const QVariant& item : MenuRegistry().query("ruler", {{"hasMarkers", hasMarkers}}))
+                ids << item.toMap().value("action").toString();
+            return ids;
+        };
+        QVERIFY(actions(true).contains("clearAllMarkers"));
+        QVERIFY(!actions(false).contains("clearAllMarkers"));
+    }
 
     void aBulkEditIsOneUndoEntry() {
         model.replaceMarkers({marker("a", 1000, "A"), marker("b", 2000, "B"), marker("c", 3000, "C")});
@@ -254,10 +267,10 @@ private slots:
         const auto origin = ruler->mapToScene(QPointF(0, 0)).toPoint();
         const auto inside = QColor(image.pixel(origin.x() + 545, origin.y() + 6));
         const auto outside = QColor(image.pixel(origin.x() + 650, origin.y() + 6));
-        // The band is the marker's colour at 22% alpha over the ruler. The ruler is dark
+        // The band is the marker's colour at 45% alpha in the marker row over the ruler. The ruler is dark
         // or light with the platform's colour scheme, so the check follows its colour.
         const QColor marker("#E5484D");
-        const auto blended = [](int under, int over) { return under + (over - under) * 0.22; };
+        const auto blended = [](int under, int over) { return under + (over - under) * 0.45; };
         const auto close = [&](int actual, int under, int over) { return qAbs(actual - blended(under, over)) < 3; };
         QVERIFY2(close(inside.red(), outside.red(), marker.red()) && close(inside.green(), outside.green(), marker.green())
                      && close(inside.blue(), outside.blue(), marker.blue()),
@@ -376,7 +389,7 @@ private slots:
         QVERIFY(gestures()->shortcutFor("addRangeMarker").contains("M"));
         // Ctrl+Shift+M stays Previous Marker, as in Premiere.
         QCOMPARE(gestures()->shortcutFor("prevMarker"), QString("Ctrl+Shift+M"));
-        gestures()->setKeyboardPreset("nodetool");
+        gestures()->setKeyboardPreset("fcp");
         QVERIFY(gestures()->shortcutFor("addMarkerInOut").isEmpty());
         QVERIFY(gestures()->shortcutFor("addRangeMarker").isEmpty());
     }

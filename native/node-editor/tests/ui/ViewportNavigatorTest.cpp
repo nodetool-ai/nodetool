@@ -189,17 +189,17 @@ private slots:
    window.setMiniMapVisible(true);
    auto map = window.findChild<QWidget *>("mini-map");
    QVERIFY(map);
-   QCOMPARE(window.property("miniMapColorMode").toString(), QString("default"));
+   QCOMPARE(window.miniMapColorMode(), QString("default"));
    auto image = miniMapImage(map);
    for (const auto &color : palette.defaults) { QVERIFY2(countPixels(image, color) > 12, qPrintable("default " + color)); }
    for (const auto &color : palette.absentInDefault) { QCOMPARE(countPixels(image, color), 0); }
-   QVERIFY(QMetaObject::invokeMethod(&window, "setMiniMapColorMode", Q_ARG(QString, "type")));
-   QCOMPARE(window.property("miniMapColorMode").toString(), QString("type"));
+   QVERIFY((window.setMiniMapColorMode("type"), true));
+   QCOMPARE(window.miniMapColorMode(), QString("type"));
    image = miniMapImage(map);
    for (const auto &color : palette.typed) { QVERIFY2(countPixels(image, color) > 12, qPrintable("type " + color)); }
    // An unknown mode changes nothing.
-   QVERIFY(QMetaObject::invokeMethod(&window, "setMiniMapColorMode", Q_ARG(QString, "rainbow")));
-   QCOMPARE(window.property("miniMapColorMode").toString(), QString("type"));
+   QVERIFY((window.setMiniMapColorMode("rainbow"), true));
+   QCOMPARE(window.miniMapColorMode(), QString("type"));
   }
  }
 
@@ -208,13 +208,13 @@ private slots:
   QSettings().clear();
   {
    EditorWindow window;
-   QCOMPARE(window.property("miniMapColorMode").toString(), QString("default"));
-   QVERIFY(QMetaObject::invokeMethod(&window, "setMiniMapColorMode", Q_ARG(QString, "type")));
+   QCOMPARE(window.miniMapColorMode(), QString("default"));
+   QVERIFY((window.setMiniMapColorMode("type"), true));
   }
   QCOMPARE(QSettings().value("minimap/colorMode").toString(), QString("type"));
   EditorWindow second;
-  QCOMPARE(second.property("miniMapColorMode").toString(), QString("type"));
-  QVERIFY(QMetaObject::invokeMethod(&second, "setMiniMapColorMode", Q_ARG(QString, "default")));
+  QCOMPARE(second.miniMapColorMode(), QString("type"));
+  QVERIFY((second.setMiniMapColorMode("default"), true));
   QCOMPARE(QSettings().value("minimap/colorMode").toString(), QString("default"));
  }
 
@@ -268,7 +268,7 @@ private slots:
   };
   capture("colors-menu-dark");
   click(host, typed);
-  QTRY_COMPARE(window.property("miniMapColorMode").toString(), QString("type"));
+  QTRY_COMPARE(window.miniMapColorMode(), QString("type"));
   QTRY_VERIFY(!window.findChild<QQuickWidget *>("mini-map-popup-host"));
   QTRY_VERIFY(legendButton->isVisible());
   // The row grows by the legend button and keeps its right edge on the mini-map's.
@@ -317,7 +317,7 @@ private slots:
    view->setTransform(QTransform::fromScale(zoom / 1.2, zoom / 1.2));
    window.action("Zoom in");
    QVERIFY(std::abs(view->transform().m11() - zoom) < 1e-9);
-   QCOMPARE(window.property("zoomIsPreset").toBool(), preset);
+   QCOMPARE(window.zoomIsPreset(), preset);
    QTRY_COMPARE(colorOf(label), preset ? primary : secondary);
   }
  }

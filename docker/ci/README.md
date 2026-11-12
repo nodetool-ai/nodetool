@@ -59,7 +59,31 @@ browser libraries `install-deps` installs.
   ran apt.
 - `docker` in `quality-checks.yml` and `docker.yml` build and run Docker
   images, which needs the runner's own Docker daemon. They install nothing.
-- The native C++ workflows (`native-timeline.yml`, `native-timeline-release.yml`,
-  `native-ui-primitives.yml`, `vst-host.yml`) and the release jobs in
-  `release.yaml` and `publish.yaml` still install their packages with apt on
-  the runner.
+- `native-timeline-release.yml` and the release jobs in `release.yaml` and
+  `publish.yaml` still install their packages with apt on the runner. A tag
+  push is the only way to exercise them, so they move after the native image
+  has a record of green nightly runs.
+
+## The native image
+
+[`docker/ci-native/`](../ci-native/Dockerfile) is a second image,
+`ghcr.io/nodetool-ai/nodetool-ci-native`, for the Linux legs of
+`native-timeline.yml`, `native-ui-primitives.yml` and `vst-host.yml`. It has
+GCC, Clang with its sanitizer runtimes, the FFmpeg codec libraries, Mesa
+lavapipe, and the X11 and xcb libraries Qt and JUCE load. Its tag is the hash
+of its own directory, so changing one image does not rebuild the other. Those
+workflows call `ci-image.yml` with `image: ci-native`.
+
+- Qt (aqtinstall) and the LGPL FFmpeg build still install per job, because
+  `QT_VERSION` and the FFmpeg build script live in the repository, outside the
+  image directory.
+- [`setup-native-timeline`](../../.github/actions/setup-native-timeline/action.yml)
+  skips its apt step when `NODETOOL_CI_IMAGE` is set. The release workflows
+  call the same action on the bare runner and still get the packages.
+- The matrix jobs set `container.image` to an empty string on macOS and
+  Windows, which runs those legs on the runner itself.
+- The sanitizer jobs add `--security-opt seccomp=unconfined`. TSan
+  re-executes itself with `personality(ADDR_NO_RANDOMIZE)` when the kernel's
+  mmap randomization is too wide, and Docker's default seccomp profile refuses
+  that call.
+- `APPIMAGE_EXTRACT_AND_RUN=1` lets linuxdeploy run without a FUSE device.

@@ -11,7 +11,7 @@ void TransitionController::setModel(TimelineModel* model) {
     m_model = model;
     if (model) {
         connect(model, &TimelineModel::beforeCommand, this, &TransitionController::cancelGesture);
-        connect(model, &TimelineModel::clipsChanged, this, &TransitionController::documentChanged);
+        // The model emits timelineChanged after every clipsChanged, so one connection hears both.
         connect(model, &TimelineModel::timelineChanged, this, &TransitionController::documentChanged);
         connect(model, &TimelineModel::documentReplaced, this, [this] { m_before = {}; });
     }

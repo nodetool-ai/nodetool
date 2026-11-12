@@ -6,13 +6,15 @@ import NodeTool.UiPrimitives as Ui
 // Source: web/src/components/panels/PanelBottom.tsx (VIEW_SPECS, statusBarViews and the tab bar).
 Rectangle {
     id: root
+    required property StatusModel status
+    required property PanelLayout panels
     EditorRoles { id: roles }
     color: roles.chrome
     implicitHeight: roles.statusHeight
     Rectangle { width: parent.width; height: Ui.Metrics.border; color: roles.divider }
-    readonly property string connection: editor ? editor.connectionStatus : "idle"
+    readonly property string connection: root.status.connectionStatus
     readonly property bool connected: connection === "connected"
-    readonly property var stats: editor ? editor.systemStats : ({})
+    readonly property var stats: root.status.systemStats
     // The web hides the readout when the bar is narrower than this, so it never covers the last tab.
     // Source: STATUS_BAR_READOUT_MIN_WIDTH in PanelBottom.tsx.
     readonly property real readoutMinWidth: 900
@@ -71,9 +73,7 @@ Rectangle {
         }
         HoverHandler {
             onHoveredChanged: {
-                if (editor) {
-                    editor.showToolTip(hovered ? tab.unavailable : "")
-                }
+                root.status.showToolTip(hovered ? tab.unavailable : "")
             }
         }
     }
@@ -108,7 +108,7 @@ Rectangle {
             Ui.Text {
                 objectName: "status-connection-detail"
                 visible: text !== ""
-                text: editor ? editor.connectionDetail : ""
+                text: root.status.connectionDetail
                 role: Ui.Typography.SansCaption
                 tone: Ui.Text.Disabled
                 lineHeight: 1
@@ -120,23 +120,29 @@ Rectangle {
                 text: root.connection === "offline" ? "Reconnect" : "Connect"
                 variant: NodeButton.Flat
                 implicitHeight: Ui.Metrics.small
-                onClicked: editor.action(root.connection === "offline" ? "Reconnect" : "Connect")
+                onClicked: {
+                    if (root.connection === "offline") {
+                        root.status.reconnect()
+                    } else {
+                        root.status.connectServer()
+                    }
+                }
             }
         }
         StatusTab {
             objectName: "status-logs"
             label: "Logs"
             glyph: "article"
-            active: editor && editor.outputVisible
-            onActivated: editor.toggleStatusView("logs")
+            active: root.panels.outputVisible
+            onActivated: root.panels.toggleStatusView("logs")
         }
         StatusTab {
             objectName: "status-queue"
             label: "Queue"
             glyph: "playlistPlay"
-            count: editor ? editor.queuedCount : 0
-            unavailable: editor && editor.queueAvailable ? "" : qsTr("The queue opens while jobs are queued or running.")
-            onActivated: editor.action("Queue")
+            count: root.status.queuedCount
+            unavailable: root.status.queueAvailable ? "" : qsTr("The queue opens while jobs are queued or running.")
+            onActivated: root.status.openQueue()
         }
         StatusTab {
             objectName: "status-generations"
@@ -154,15 +160,15 @@ Rectangle {
             objectName: "status-versions"
             label: "Versions"
             glyph: "history"
-            active: editor && editor.versionsVisible
-            onActivated: editor.toggleStatusView("versions")
+            active: root.panels.versionsVisible
+            onActivated: root.panels.toggleStatusView("versions")
         }
         StatusTab {
             objectName: "status-trace"
             label: "Trace"
             glyph: "timeline"
-            active: editor && editor.traceVisible
-            onActivated: editor.toggleStatusView("trace")
+            active: root.panels.traceVisible
+            onActivated: root.panels.toggleStatusView("trace")
         }
         // The web bar carries no run message. Messages reach the inspector and the
         // tab bar notifications.
@@ -173,13 +179,13 @@ Rectangle {
             spacing: Ui.Metrics.lg
             Readout {
                 objectName: "status-nodes"
-                value: editor ? editor.nodeCount : 0
+                value: root.status.nodeCount
                 key: value === "1" ? "node" : "nodes"
             }
             Ui.Text { text: "·"; role: Ui.Typography.SansLabel; tone: Ui.Text.Disabled; font.weight: Font.Normal; lineHeight: 1 }
             Readout {
                 objectName: "status-edges"
-                value: editor ? editor.edgeCount : 0
+                value: root.status.edgeCount
                 key: value === "1" ? "edge" : "edges"
             }
             Readout {

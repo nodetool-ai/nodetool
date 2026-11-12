@@ -1,5 +1,6 @@
 #include "preview/effects/ClipEffects.h"
 #include "preview/effects/ClipAnalysis.h"
+#include "preview/effects/EffectMasks.h"
 #include "preview/effects/Stabilization.h"
 #include "preview/effects/BlurBounds.h"
 #include "preview/layers/SceneHooks.h"
@@ -183,6 +184,69 @@ std::array<float, 1024> secondaryCurveTransfer(const QJsonObject &effect) {
     }
     return table;
 }
+namespace {
+// One 256-entry column of a periodic hue curve, as secondaryCurveTransfer builds it.
+std::array<double, 256> cyclicColumn(const QJsonArray &values) {
+    std::map<double, double> knots;
+    for (const auto point : readPoints(values)) {
+        if (point.x == 1 && knots.contains(0)) { continue; }
+        const auto x=std::clamp(point.x,0.,1.);
+        knots[x-std::floor(x)]=std::clamp(point.y,0.,1.);
+    }
+    std::array<double, 256> column{};
+    for (size_t i=0; i<256; ++i) {
+        const double x=i==255 ? 0. : double(i)/255.;
+        double y=0.5;
+        if (!knots.empty()) {
+            auto right=knots.upper_bound(x);
+            const bool before=right==knots.begin(), after=right==knots.end();
+            const auto a=before ? *knots.rbegin() : *std::prev(right);
+            const auto b=after ? *knots.begin() : *right;
+            const double ax=a.first-(before ? 1. : 0.), bx=b.first+(after ? 1. : 0.);
+            y=a.second+(b.second-a.second)*(x-ax)/(bx-ax);
+        }
+        column[i]=y;
+    }
+    return column;
+}
+// A curve held flat past its end points. No points is the neutral 0.5.
+std::array<double, 256> linearColumn(const QJsonArray &values) {
+    auto points=readPoints(values);
+    for (auto& point : points) { point.x=std::clamp(point.x,0.,1.); point.y=std::clamp(point.y,0.,1.); }
+    std::stable_sort(points.begin(),points.end(),[](auto a,auto b) { return a.x<b.x; });
+    std::array<double, 256> column{};
+    for (size_t i=0; i<256; ++i) {
+        const double x=double(i)/255.;
+        if (points.empty()) { column[i]=0.5; continue; }
+        if (x<=points.front().x) { column[i]=points.front().y; continue; }
+        if (x>=points.back().x) { column[i]=points.back().y; continue; }
+        for (size_t k=1; k<points.size(); ++k) {
+            const auto a=points[k-1], b=points[k];
+            if (x<=b.x) { column[i]=b.x>a.x ? a.y+(b.y-a.y)*(x-a.x)/(b.x-a.x) : b.y; break; }
+        }
+    }
+    return column;
+}
+constexpr std::array hueSatKeys{"hueVsHue", "hueVsSat", "hueVsLuma", "lumaVsSat", "satVsSat"};
+}
+std::array<float, 2048> hueSatCurvesTransfer(const QJsonObject &effect) {
+    std::array<float, 2048> table{};
+    std::array<std::array<double, 256>, 5> columns;
+    for (size_t c=0; c<hueSatKeys.size(); ++c) {
+        const auto values=effect.value(hueSatKeys[c]).toArray();
+        columns[c]=c<3 ? cyclicColumn(values) : linearColumn(values);
+    }
+    for (size_t i=0; i<256; ++i) {
+        table[i*4]=float(columns[0][i]); table[i*4+1]=float(columns[1][i]); table[i*4+2]=float(columns[2][i]); table[i*4+3]=1;
+        table[(256+i)*4]=float(columns[3][i]); table[(256+i)*4+1]=float(columns[4][i]); table[(256+i)*4+3]=1;
+    }
+    return table;
+}
+bool hueSatCurvesNeutral(const QJsonObject &effect) {
+    return std::ranges::all_of(hueSatKeys,[&](const char* key) {
+        return std::ranges::all_of(effect.value(key).toArray(),[](const QJsonValue& point) { return point.toObject().value("y").toDouble(0.5)==0.5; });
+    });
+}
 CurveKnobs fitCurve(const QJsonArray &values) {
     auto points = readPoints(values);
     std::stable_sort(points.begin(), points.end(), [](auto a, auto b) { return a.x < b.x; });
@@ -217,6 +281,11 @@ CurveKnobs fitCurve(const QJsonArray &values) {
 double channelMidtones(const QJsonArray &values) {
     const auto points = readPoints(values);
     return points.size() < 2 ? 0 : midtone(std::clamp(sample(points, 0.5), 0.0, 1.0));
+}
+bool maskableEffect(const QString &type) {
+    static const QStringList types{"color", "exposure", "liftGammaGain", "curves", "hueSatCurves",
+                                   "secondaryColor", "vignette", "sharpen", "blur"};
+    return types.contains(type);
 }
 std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects) {
     std::vector<Pass> result;
@@ -261,6 +330,17 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             continue;
         }
         const auto type = e.value("type").toString();
+        if (const auto masks = activeEffectMasks(e.value("masks").toArray()); !masks.isEmpty() && maskableEffect(type)) {
+            auto unmasked = e;
+            unmasked.remove("masks");
+            auto passes = planChain({unmasked});
+            if (!passes.empty()) {
+                passes.front().maskStart = true;
+                passes.back().masks = masks;
+                result.insert(result.end(), passes.begin(), passes.end());
+            }
+            continue;
+        }
         Pass p;
         auto &v = p.params;
         if (type == "color") {
@@ -302,9 +382,13 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             std::ranges::copy(b, v.begin() + 12);
             v[11] = v[15] = 1;
         } else if (type == "exposure") {
-            if (number(e,"exposure") == 0 && number(e,"rolloff") == 0 && number(e,"whites") == 0) { continue; }
+            if (number(e,"exposure") == 0 && number(e,"rolloff") == 0 && number(e,"whites") == 0 && number(e,"blacks") == 0) { continue; }
             p.op = Op::Exposure;
-            v = {f(e, "exposure"), f(e, "rolloff"), f(e, "whites")};
+            v = {f(e, "exposure"), f(e, "rolloff"), f(e, "whites"), f(e, "blacks")};
+        } else if (type == "hueSatCurves") {
+            if (hueSatCurvesNeutral(e)) { continue; }
+            p.op = Op::HueSatCurves;
+            p.curve = e;
         } else if (type == "pixelate") {
             p.op = Op::Pixelate;
             v[0] = f(e, "cellSize", 8);

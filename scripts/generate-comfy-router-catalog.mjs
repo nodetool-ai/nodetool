@@ -111,12 +111,73 @@ const OVERRIDES = {
   "bria/image-edit-reseason": { skip: "requires a season" },
   "bria/image-edit-product-holding": { skip: "requires product images" },
   "bria/image-edit-product-virtual-tryon": { skip: "requires a person image" },
+  // The schema's modalities read as text and image only, but Seedance 2.x and
+  // MiniMax H3 also take reference images and audio as content[] parts, as
+  // ComfyUI's ByteDance2ReferenceNodeV2 and MinimaxHailuo03ReferenceNode send them.
+  "byteplus/dreamina-seedance-2-0-260128": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "byteplus/dreamina-seedance-2-0-fast-260128": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "byteplus/dreamina-seedance-2-0-mini": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "byteplus/dreamina-seedance-2-5-260628": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "minimax/minimax-h3": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  // Input modalities include image, and ComfyUI's Qwen Image 3 Edit node sends
+  // up to three images to these same Router ids in input.messages[0].content.
+  "qwen/qwen-image-3.0": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "qwen/qwen-image-3.0-pro": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
   "wan/wan3.0-video": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
   "wan/wan3.0-video-prime": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
   "wan/wan2.7-videoedit": { skip: "takes its source video only as a public URL" },
   "wan/happyhorse-1.0-video-edit": { skip: "takes its source video only as a public URL" },
   "wan/wan2.6-r2v": { skip: "takes reference clips only as public URLs" },
-  "synclabs/sync-3": { skip: "requires a dubbing script and voice" }
+  "synclabs/sync-3": { skip: "requires a dubbing script and voice" },
+  // ComfyUI's FluxProFillNode requires a mask and KlingAvatarNode a driving
+  // audio, which NodeTool's image-to-image and image-to-video calls do not carry.
+  "bfl/flux-pro-1.0-fill": { skip: "requires a mask" },
+  "kling/videos-avatar-image2video": { skip: "requires a driving audio" },
+  // The modalities below read as text-only, but ComfyUI's partner nodes send
+  // images to these models: Kling image-to-video (`image`, `image_tail`),
+  // Kling omni `image_list`, FLUX 3 Max and H3 Max `image_url` and
+  // `end_image_url`, H3 Max `reference_image_urls`, LTX 2.5 `image_uri` and
+  // `last_frame_uri`, Ray 3.2 `video.start_frame` and `source`, Grok
+  // `reference_images` and image `images`, Photon `modify_image_ref`, and
+  // Krea 2 `image_style_references`.
+  "kling/kling-v3": { kind: "video", tasks: ["text_to_video", "image_to_video"] },
+  "kling/kling-v2-6": { kind: "video", tasks: ["text_to_video", "image_to_video"] },
+  "kling/kling-v2-5-turbo": { kind: "video", tasks: ["text_to_video", "image_to_video"] },
+  "kling/kling-3.0-turbo": { kind: "video", tasks: ["text_to_video", "image_to_video"] },
+  "kling/kling-v3-omni": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "kling/kling-video-o1": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "fal/flux-3-max": { kind: "video", tasks: ["text_to_video", "image_to_video"] },
+  "fal/h3-max": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "fal/h3-max-turbo": { kind: "video", tasks: ["text_to_video", "image_to_video"] },
+  "ltx/ltx-2-5-fast": { kind: "video", tasks: ["text_to_video", "image_to_video"] },
+  "ltx/ltx-2-5-pro": { kind: "video", tasks: ["text_to_video", "image_to_video"] },
+  "luma_2/ray-3.2": { kind: "video", tasks: ["text_to_video", "image_to_video", "video_to_video"] },
+  "xai/grok-imagine-video": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "xai/grok-imagine-video-1.5": { kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video"] },
+  "xai/grok-imagine-image": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "xai/grok-imagine-image-2.0": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "xai/grok-imagine-image-pro": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "xai/grok-imagine-image-quality": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "luma/photon-1": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "luma/photon-flash-1": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "krea/krea-2": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "krea/krea-2-large": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "krea/krea-2-medium": { kind: "image", tasks: ["text_to_image", "image_to_image"] },
+  "krea/krea-2-medium-turbo": { kind: "image", tasks: ["text_to_image", "image_to_image"] }
+};
+
+/**
+ * Second entries for models that serve two kinds. The Router lists Gemini
+ * Omni as an image model, and ComfyUI's GeminiVideoOmniV2 also makes video
+ * with it through the same Interactions request.
+ */
+const EXTRA_ENTRIES = {
+  "gemini-interactions/gemini-omni-1.1-flash": {
+    kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video", "video_to_video"]
+  },
+  "gemini-interactions/gemini-omni-flash-preview": {
+    kind: "video", tasks: ["text_to_video", "image_to_video", "reference_to_video", "video_to_video"]
+  }
 };
 
 const IMAGE_FIELD = /image|img|mask|frame|^images?$|source_uri/i;
@@ -187,6 +248,7 @@ for (const { id } of [...models].sort((a, b) => a.id.localeCompare(b.id))) {
   } else {
     entries.push({ id, kind: result.kind, tasks: result.tasks });
   }
+  if (EXTRA_ENTRIES[id]) entries.push({ id, ...EXTRA_ENTRIES[id] });
 }
 
 const rows = entries

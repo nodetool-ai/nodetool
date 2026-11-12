@@ -13,6 +13,9 @@ Item {
     property real maxMs: Number.MAX_VALUE
     property string accessibleName: "Timecode"
     property int tone: Ui.Text.Secondary
+    property int textRole: Ui.Typography.MonoLabel
+    // A feature colour for the digits, such as the playhead blue of the Program monitor.
+    property var domainColor: undefined
     signal seekRequested(real ms)
 
     readonly property string text: TimelineFormat.timecode(timeMs, fps, dropFrame)
@@ -82,8 +85,9 @@ Item {
         anchors.centerIn: parent
         visible: !editor.visible
         text: field.text
-        role: Ui.Typography.MonoLabel
+        role: field.textRole
         tone: field.tone
+        domainColor: field.domainColor
     }
     MouseArea {
         id: pointer

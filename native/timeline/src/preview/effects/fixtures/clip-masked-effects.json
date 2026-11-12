@@ -1,0 +1,293 @@
+{
+  "id": "seq-clip-masked-effects",
+  "projectId": "native-prototype",
+  "name": "clip-masked-effects",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 1000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "masked",
+      "trackId": "t0",
+      "name": "masked",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": [
+        {
+          "id": "masked-color",
+          "type": "color",
+          "enabled": true,
+          "brightness": 0.14,
+          "contrast": 1.4,
+          "saturation": 0.6,
+          "hue": 45,
+          "temperature": 0.25,
+          "tint": -0.2,
+          "shadows": 0.3,
+          "highlights": -0.2,
+          "masks": [
+            {
+              "id": "m1",
+              "shape": "ellipse",
+              "vertices": [
+                {
+                  "x": 0.5,
+                  "y": 0.15000000000000002,
+                  "inX": -0.16568542494923807,
+                  "inY": 0,
+                  "outX": 0.16568542494923807,
+                  "outY": 0
+                },
+                {
+                  "x": 0.8,
+                  "y": 0.5,
+                  "inX": 0,
+                  "inY": -0.19329966244077773,
+                  "outX": 0,
+                  "outY": 0.19329966244077773
+                },
+                {
+                  "x": 0.5,
+                  "y": 0.85,
+                  "inX": 0.16568542494923807,
+                  "inY": 0,
+                  "outX": -0.16568542494923807,
+                  "outY": 0
+                },
+                {
+                  "x": 0.2,
+                  "y": 0.5,
+                  "inX": 0,
+                  "inY": 0.19329966244077773,
+                  "outX": 0,
+                  "outY": -0.19329966244077773
+                }
+              ],
+              "feather": 0.08
+            }
+          ]
+        },
+        {
+          "id": "masked-curves",
+          "type": "curves",
+          "enabled": true,
+          "master": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.35
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "r": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.35
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "g": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.7
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "b": [
+            {
+              "x": 0,
+              "y": 0
+            },
+            {
+              "x": 0.5,
+              "y": 0.8
+            },
+            {
+              "x": 1,
+              "y": 1
+            }
+          ],
+          "masks": [
+            {
+              "id": "m2",
+              "shape": "polygon",
+              "vertices": [
+                {
+                  "x": 0.05,
+                  "y": 0.1
+                },
+                {
+                  "x": 0.6,
+                  "y": 0.15
+                },
+                {
+                  "x": 0.45,
+                  "y": 0.9
+                },
+                {
+                  "x": 0.1,
+                  "y": 0.7
+                }
+              ],
+              "feather": 0.02,
+              "opacity": 0.8
+            },
+            {
+              "id": "m3",
+              "shape": "ellipse",
+              "vertices": [
+                {
+                  "x": 0.3,
+                  "y": 0.30000000000000004,
+                  "inX": -0.05522847498307936,
+                  "inY": 0,
+                  "outX": 0.05522847498307936,
+                  "outY": 0
+                },
+                {
+                  "x": 0.4,
+                  "y": 0.4,
+                  "inX": 0,
+                  "inY": -0.05522847498307936,
+                  "outX": 0,
+                  "outY": 0.05522847498307936
+                },
+                {
+                  "x": 0.3,
+                  "y": 0.5,
+                  "inX": 0.05522847498307936,
+                  "inY": 0,
+                  "outX": -0.05522847498307936,
+                  "outY": 0
+                },
+                {
+                  "x": 0.19999999999999998,
+                  "y": 0.4,
+                  "inX": 0,
+                  "inY": 0.05522847498307936,
+                  "outX": 0,
+                  "outY": -0.05522847498307936
+                }
+              ],
+              "mode": "subtract",
+              "expansion": 0.02
+            }
+          ]
+        },
+        {
+          "id": "masked-blur",
+          "type": "blur",
+          "enabled": true,
+          "radius": 24,
+          "masks": [
+            {
+              "id": "m4",
+              "shape": "polygon",
+              "vertices": [
+                {
+                  "x": 0.2,
+                  "y": 0.2
+                },
+                {
+                  "x": 0.8,
+                  "y": 0.2
+                },
+                {
+                  "x": 0.8,
+                  "y": 0.8
+                },
+                {
+                  "x": 0.2,
+                  "y": 0.8
+                }
+              ],
+              "inverted": true,
+              "feather": 0.05
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J1 per-effect masks: feathered ellipse, subtracted polygon pair, inverted feathered rectangle, PSNR >= 40 dB"
+    }
+  ]
+}

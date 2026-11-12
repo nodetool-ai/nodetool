@@ -1,4 +1,5 @@
 #include "preview/effects/ClipEffects.h"
+#include "preview/effects/EffectMasks.h"
 #include "preview/effects/Masks.h"
 #include "preview/RetireQueue.h"
 #include "preview/effects/DrawCache.h"
@@ -172,7 +173,8 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
         return false;
     }
     auto current = encoder.result(extracted);
-    std::optional<LayerFrame> recipeSource;
+    std::optional<LayerFrame> recipeSource, maskBase;
+    std::unique_ptr<Encoder> maskEncoder;
     const auto step = [&](const Pass &pass, QRhiTexture *other = nullptr, QRhiTexture* third=nullptr) {
         auto& active=(pass.op==Op::DenoiseTemporal || pass.op==Op::DenoiseSpatial) ? *denoiseEncoder : encoder;
         auto *target = active.surface(workingSize, current.planes[0], other,
@@ -204,20 +206,39 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
                 return false;
             }
         }
+        if (pass.maskStart) {
+            if (!maskEncoder) {
+                if (!m_maskCache) { m_maskCache = std::make_shared<DrawCache>(); }
+                if (!m_maskCache->initialize(ctx, ":/effects/clip.vert.qsb", ":/effects/clip.frag.qsb", QRhiSampler::Linear)) { return false; }
+                maskEncoder = std::make_unique<Encoder>(ctx, m_maskCache);
+            }
+            // A separate pool: the chain's own surfaces are reused within the frame.
+            auto *saved = maskEncoder->surface(workingSize, current.planes[0]);
+            Pass copy;
+            copy.op = Op::ScaleOpacity;
+            copy.params[0] = 1;
+            if (!saved || !maskEncoder->draw(current, *saved, copy, workingSize, {})) { return false; }
+            maskBase = maskEncoder->result(saved);
+        }
         if (pass.rememberSource || pass.op == Op::Threshold || pass.op == Op::AlphaMask) {
             recipeSource = current;
         }
         QRhiTexture *other = nullptr;
-        if (pass.op == Op::Lut || pass.op == Op::Curves || pass.op == Op::SecondaryColor) {
+        if (pass.op == Op::Lut || pass.op == Op::Curves || pass.op == Op::SecondaryColor || pass.op == Op::HueSatCurves) {
             const bool isCurve=pass.op!=Op::Lut;
-            const auto key = QCryptographicHash::hash(isCurve ? QByteArray("curve:")+QJsonDocument(pass.curve).toJson(QJsonDocument::Compact)
+            const auto key = QCryptographicHash::hash(isCurve ? QByteArray("curve:")+QByteArray::number(int(pass.op))+':'+QJsonDocument(pass.curve).toJson(QJsonDocument::Compact)
                                                               : pass.cube.toUtf8(), QCryptographicHash::Sha256);
             auto found = std::ranges::find(m_luts, key, &decltype(m_luts)::value_type::first);
             if (found == m_luts.end()) {
                 auto lut = std::make_shared<Lut>();
                 QSize textureSize;
                 std::vector<std::uint16_t> pixels;
-                if (isCurve) {
+                if (pass.op == Op::HueSatCurves) {
+                    textureSize={512,1};
+                    const auto table=hueSatCurvesTransfer(pass.curve);
+                    pixels.resize(table.size());
+                    std::ranges::transform(table,pixels.begin(),cubeHalfBits);
+                } else if (isCurve) {
                     textureSize={256,1};
                     const auto table=pass.op==Op::SecondaryColor ? secondaryCurveTransfer(pass.curve) : curveTransfer(pass.curve);
                     pixels.resize(table.size());
@@ -277,6 +298,48 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
         }
         if (!step(pass, other)) {
             return false;
+        }
+        if (!pass.masks.isEmpty() && maskBase) {
+            const auto origin = ext.value("effectSourceOrigin").toArray(), original = ext.value("effectOriginalSize").toArray();
+            const int sourceW = original.isEmpty() ? input.size.width() : original[0].toInt();
+            const int sourceH = original.isEmpty() ? input.size.height() : original[1].toInt();
+            const int ox = (origin.isEmpty() ? 0 : origin[0].toInt()) + crop.x() - pad.x();
+            const int oy = (origin.isEmpty() ? 0 : origin[1].toInt()) + crop.y() - pad.y();
+            const auto key = QCryptographicHash::hash(QJsonDocument(pass.masks).toJson(QJsonDocument::Compact) +
+                QByteArray::number(sourceW) + 'x' + QByteArray::number(sourceH) + ':' + QByteArray::number(ox) + ',' +
+                QByteArray::number(oy) + ':' + QByteArray::number(workingSize.width()) + 'x' + QByteArray::number(workingSize.height()),
+                QCryptographicHash::Sha256);
+            auto found = std::ranges::find(m_maskTextures, key, &decltype(m_maskTextures)::value_type::first);
+            if (found == m_maskTextures.end()) {
+                const auto coverage = effectMaskCoverage(pass.masks, sourceW, sourceH, workingSize.width(), workingSize.height(), ox, oy);
+                if (coverage.empty()) { maskBase.reset(); continue; }
+                std::shared_ptr<QRhiTexture> texture(ctx.rhi->newTexture(QRhiTexture::RGBA8, workingSize));
+                if (!texture->create()) { return false; }
+                auto *updates = ctx.rhi->nextResourceUpdateBatch();
+                updates->uploadTexture(texture.get(), effectMaskImage(coverage, workingSize.width(), workingSize.height()));
+                ctx.commands->resourceUpdate(updates);
+                constexpr size_t capacity = 8;
+                if (m_maskTextures.size() == capacity) {
+                    ctx.retire->retire(std::move(m_maskTextures.back().second), ctx.frameNumber);
+                    m_maskTextures.pop_back();
+                }
+                m_maskTextures.emplace_front(key, std::move(texture));
+                found = m_maskTextures.begin();
+            }
+            m_maskTextures.splice(m_maskTextures.begin(), m_maskTextures, found);
+            const auto coverage = m_maskTextures.front().second;
+            encoder.retain(coverage);
+            Pass mix;
+            mix.op = Op::MixTreatment;
+            mix.params[0] = 1;
+            mix.params[1] = 1;
+            mix.params[5] = current.flipV ? 1.f : 0.f;
+            auto *target = encoder.surface(workingSize, maskBase->planes[0], current.planes[0], coverage.get());
+            if (!target || !encoder.draw(*maskBase, *target, mix, workingSize, {}, current.planes[0], nullptr, {}, coverage.get())) {
+                return false;
+            }
+            current = encoder.result(target);
+            maskBase.reset();
         }
     }
     if (ctx.workingFormat == WorkingFormat::Rgba8 && !ext.value("effectGroupSurface").toBool()) {

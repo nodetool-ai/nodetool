@@ -62,6 +62,29 @@ class TestEditPreview : public QObject {
     Q_OBJECT
 
 private slots:
+    // An edit that only touches the mix must not reset blur or request a frame.
+    void audioOnlyEditsDoNotRecompose() {
+        TimelineModel doc;
+        doc.setTimeline(oneTrack());
+        PreviewCompositor compositor;
+        compositor.setTimeline(&doc);
+        QCOMPARE(compositor.visualEditCount(), 0);
+        QJsonArray clips = doc.clipsJson();
+        QJsonObject first = clips.at(0).toObject();
+        first.insert("volumeDb", -6.0);
+        first.insert("muted", true);
+        clips.replace(0, first);
+        QVERIFY(doc.commitEdit("Volume", doc.clipsJson(), clips));
+        QCOMPARE(compositor.visualEditCount(), 0);
+        // A visible clip edit still repaints.
+        QJsonArray moved = doc.clipsJson();
+        QJsonObject second = moved.at(1).toObject();
+        second.insert("startMs", 1500);
+        moved.replace(1, second);
+        QVERIFY(doc.commitEdit("Move", doc.clipsJson(), moved));
+        QVERIFY(compositor.visualEditCount() > 0);
+    }
+
     // M4 exit 3: the preview composites an edit on the very next frame. The
     // compositor renders through QQuickRenderControl on a Metal QRhi: no
     // window is created.

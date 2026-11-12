@@ -111,9 +111,30 @@ int main(int argc, char **argv) {
     QtNodes::NodeId first = 0, second = 0;
     for (auto id : model->allNodeIds()) { if (model->resourceId(id) == "0") { first = id; } else { second = id; } }
     scene->nodeClicked(first);
+    // Declared before the widget, so the widget's QML dies first.
+    nodetool::node_editor::NodeInspector inspectorFixture;
+    inspectorFixture.setSelection("metadata-fixture");
+    inspectorFixture.fields()->setSelection("metadata-fixture");
+    inspectorFixture.setCanRun(false);
+    inspectorFixture.setProperties(QJsonDocument::fromJson(R"([
+      {"name": "field-default", "label": "Field", "kind": "text", "value": "Sample text", "editable": true, "hasValue": true},
+      {"name": "field-focus", "label": "Focused field", "kind": "text", "value": "Sample text", "editable": true, "hasValue": true},
+      {"name": "field-disabled", "label": "Disabled field", "kind": "text", "value": "Sample text", "editable": false, "hasValue": true},
+      {"name": "Prompt", "label": "Prompt", "description": "Describe the image to generate.", "kind": "text", "value": "A quiet mountain lake", "editable": true, "hasValue": true},
+      {"name": "seed", "label": "Seed", "kind": "integer", "value": 42, "min": 0, "max": 1000, "step": 1, "editable": true, "hasValue": true},
+      {"name": "enabled", "label": "Enabled", "kind": "boolean", "value": true, "editable": true, "hasValue": true},
+      {"name": "quality", "label": "Quality", "kind": "choice", "value": 2, "options": [{"label": "Standard", "value": 1}, {"label": "High", "value": 2}], "editable": true, "hasValue": true},
+      {"name": "input", "label": "Input image", "kind": "unsupported", "value": {"uri": "asset://fixture"}, "editable": false, "connected": true, "hasValue": true}
+    ])").array().toVariantList());
     QQuickWidget fixture;
     fixture.setResizeMode(QQuickWidget::SizeRootObjectToView);
     fixture.rootContext()->setContextProperty("editor", &editor);
+    fixture.setInitialProperties({{"nodeCatalog", QVariant::fromValue(editor.nodeCatalog())},
+                                  {"packSetup", QVariant::fromValue(editor.packSetup())},
+                                  {"inspectorFixture", QVariant::fromValue(&inspectorFixture)},
+                                  {"commands", QVariant::fromValue(editor.editorCommands())},
+                                  {"runs", QVariant::fromValue(editor.runState())},
+                                  {"viewport", QVariant::fromValue(editor.viewport())}});
     fixture.setSource(QUrl("qrc:/editor/Fixture.qml"));
     require(fixture.status() == QQuickWidget::Ready, "Cannot load production QML fixture");
     fixture.resize(1000, 1200); fixture.show();
