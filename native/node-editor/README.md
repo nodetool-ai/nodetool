@@ -48,6 +48,8 @@ The workflow browser takes
 take `PanelLayout` and `StatusModel`. The run output takes `PanelLayout`,
 `StatusModel` and `RunState`, and the type icons and Markdown output read the
 `TypeIcons` and `OutputStyle` singletons.
+The canvas chat window takes [`ChatWindow`](src/interfaces/ChatWindow.h) for
+its drag and resize.
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
 read `EditorWindow`.
 

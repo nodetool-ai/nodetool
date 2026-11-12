@@ -26,11 +26,12 @@ no longer read, and when it finds no QML files or no `EditorWindow` members.
 `mediaResolver`, `modelPickerController`, `assetPickerController`,
 `resourcePickerController` and `documentPickerController`.
 
-The window also reaches QML under other names. `EditorChat.cpp` and
-`InlineTitlePresenter.cpp` pass the window as `host` through
-`setInitialProperties`. The scan counts those reads as reads of the window.
-`Inspector.qml` used to pass the window on as `propertyHost`; it now takes a
-`NodeInspector`.
+The window used to reach QML under other names. `EditorChat.cpp` and
+`InlineTitlePresenter.cpp` passed the window as `host` through
+`setInitialProperties`, and `Inspector.qml` passed it on as `propertyHost`.
+They now pass `ChatWindow`, `EditorCommands` and `RunState`, and
+`NodeInspector`. The scan counts reads of a name listed in `EDITOR_ALIASES` as
+reads of the window, and that list is now empty.
 
 The scan reads first-level members only. `editor.packSetup.configuredKeys`
 counts as `packSetup`. `packSetup`, `dynamicPorts`, `generationHistory` and
@@ -141,6 +142,12 @@ Moved so far:
   where it drew nothing without the `editor` context property.
   `tests/ui/RunOutputComponentTest.cpp` covers the singletons and the new
   members.
+- `ChatWindow` (`src/interfaces/ChatWindow.h`), which `EditorChat.qml` takes as
+  `frame` in place of the window as `host`. Its drag, resize and reset requests
+  map to `beginChatGeometry`, `changeChatGeometry` and `resetChatPosition`,
+  which keep the geometry. `EditorChat.qml` also needs the chat session, so
+  `tests/ui/ChatWindowComponentTest.cpp` checks the interface's requests and
+  `EditorChatTest::geometryAndPersistence` covers the window wiring.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
@@ -159,7 +166,7 @@ Moved so far:
 | `RunState` (moved for the toolbar, the group controls and the run output) | Shown queue, connection, workflow id, authored group commands, ask the agent about a run | `Toolbar.qml`, `AuthoredControls.qml`, `RunOutput.qml`, `QueueOverlay.qml` |
 | `Viewport` (moved) | Zoom percent and preset, mini-map color mode and popups, view commands | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
 | `Notifications` (moved) | Notification list, unread count, open the list, copy an entry | `TabBar.qml`, `NotificationsPanel.qml` |
-| `ChatWindow` | Chat window geometry drags | `EditorChat.qml` |
+| `ChatWindow` (moved) | Chat window drag, resize and position reset | `EditorChat.qml` |
 | `EditorCommands` (moved for the toolbars and the group controls) | Read-only state, shown run activity, named command dispatch, tooltip, theme roles | `Toolbar.qml`, `SelectionToolbar.qml`, `AuthoredControls.qml`, most other chrome |
 
 These members should leave the window instead of joining an interface:
@@ -231,17 +238,15 @@ candidate list, not a plan to move them.
 ```json
 {
   "RunState": ["shownQueue"],
-  "ChatWindow": ["beginChatGeometry", "changeChatGeometry", "resetChatPosition"],
   "Leaves the window": []
 }
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 20 read a root context property, 2 of them read the editor window. `EditorWindow.h` exposes 12 properties and 15 invokable methods or slots (27 members) and 14 signals.
+Scanned 78 files in `qml/`. 19 read a root context property, 1 of them read the editor window. `EditorWindow.h` exposes 12 properties and 12 invokable methods or slots (24 members) and 14 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
-| EditorChat.qml | 3 via `host` |  |
 | QueueOverlay.qml | 1 | `runOutput` (2), `workflowSession` (4) |
 | AssetPropertyEditor.qml |  | `mediaResolver` (0, passed on), `assetPickerController` (0, passed on), `resourcePickerController` (0, passed on) |
 | CanvasMedia.qml |  | `mediaResolver` (6) |
@@ -268,8 +273,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 `passed on` means the file hands the whole object to a child, such as `propertyHost: editor`.
 
-- **EditorChat.qml**
-  - `editor` (as `host`): beginChatGeometry, changeChatGeometry, resetChatPosition
 - **QueueOverlay.qml**
   - `editor`: shownQueue
   - `runOutput`: selectRun, selectedRunId
@@ -318,10 +321,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 - **RunState** (1 members, read by 1 files: QueueOverlay.qml)
   - `shownQueue` property: QueueOverlay.qml
-- **ChatWindow** (3 members, read by 1 files: EditorChat.qml)
-  - `beginChatGeometry` method: EditorChat.qml
-  - `changeChatGeometry` method: EditorChat.qml
-  - `resetChatPosition` method: EditorChat.qml
 - **Leaves the window** (0 members, read by 0 files: )
 
 Members no QML file reads (C++ callers only, or dead): `action`, `askAgent`, `askRunAgent`, `cancelCatalogPlacement`, `catalogAtPointer`, `closeAllTabs`, `closeOtherTabs`, `emptyCanvas`, `focusCanvas`, `graphSummary`, `hasUnsavedChanges`, `layoutOverlays`, `openChild`, `outputMedia`, `runActive`, `saveState`, `serverSaveState`, `serverSyncAvailable`, `serverSyncNeedsAttention`, `setProperty`, `setup`, `showToolTip`, `toggleChat`.
