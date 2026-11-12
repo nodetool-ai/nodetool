@@ -132,9 +132,16 @@ describe("FileStorageAdapter external path lookup", () => {
 
     it("does not hand out a symlink under the root that points outside it", async () => {
       const adapter = new FileStorageAdapter(rootDir);
-      await fs.mkdir(path.join(rootDir, "user-1"), { recursive: true });
-      await fs.symlink(externalFile, path.join(rootDir, key));
-      expect(await adapter.localPath(adapter.uriForKey(key))).toBeNull();
+      if (process.platform === "win32") {
+        await fs.mkdir(rootDir, { recursive: true });
+        await fs.symlink(path.dirname(externalFile), path.join(rootDir, "user-1"), "junction");
+        const linkedKey = `user-1/${path.basename(externalFile)}`;
+        expect(await adapter.localPath(adapter.uriForKey(linkedKey))).toBeNull();
+      } else {
+        await fs.mkdir(path.join(rootDir, "user-1"), { recursive: true });
+        await fs.symlink(externalFile, path.join(rootDir, key));
+        expect(await adapter.localPath(adapter.uriForKey(key))).toBeNull();
+      }
     });
   });
 });

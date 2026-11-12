@@ -52,7 +52,7 @@ describe("runtime locations", () => {
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "settings.yaml"), settings);
     expect(runtimeLocations({ HOME: home, NODETOOL_HOST: "cli" }, { platform: "linux" }).condaEnv)
-      .toBe(join(home, ".local", "share", "nodetool", "conda_env"));
+      .toBe(posix.join(home, ".local", "share", "nodetool", "conda_env"));
   });
 
   it("keeps desktop Windows and sudo Linux defaults separate from per-user CLI defaults", () => {
@@ -93,7 +93,7 @@ describe("runtime locations", () => {
 
   it("uses Docker host locations for the production image's declared host", () => {
     const dockerfile = readFileSync(new URL("../../../Dockerfile", import.meta.url), "utf8");
-    const runtimeStage = dockerfile.split(/FROM[^\n]+ AS runtime\n/)[1];
+    const runtimeStage = dockerfile.split(/FROM[^\n]+ AS runtime\r?\n/)[1];
     expect(runtimeStage).toBeDefined();
     const declarations = [...(runtimeStage ?? "").replace(/\\\r?\n/g, " ").matchAll(/^ENV[^\n]*/gm)];
     expect(declarations.length).toBeGreaterThan(0);

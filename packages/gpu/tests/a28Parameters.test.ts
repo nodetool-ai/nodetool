@@ -15,7 +15,7 @@ type Module = ShaderModule | RecipeModule;
 const root = new URL("../src/shaders/", import.meta.url);
 async function catalog(): Promise<Module[]> {
   const result: Module[] = [];
-  for (const file of readdirSync(root, { recursive: true, encoding: "utf8" }).filter(f => f.endsWith("/module.ts")).sort()) {
+  for (const file of readdirSync(root, { recursive: true, encoding: "utf8" }).map(file => file.replaceAll("\\", "/")).filter(f => f.endsWith("/module.ts")).sort()) {
     for (const value of Object.values(await import(fileURLToPath(new URL(file, root))))) {
       if (typeof value === "object" && value !== null && ("wgsl" in value || "recipe" in value)) {
         result.push(value as unknown as Module);

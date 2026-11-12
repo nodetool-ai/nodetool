@@ -7,7 +7,7 @@ import { GAME_PARTICLE_PRESET_IDS, getGameParticlePreset } from "../src/game-par
 const reference = readFileSync(new URL("../../system-skills/native-game-reference/SKILL.md", import.meta.url), "utf8");
 
 function checkRecipes(markdown: string): void {
-  const section = markdown.split("### Particle preset recipes\n")[1]?.split("### Particle component fields\n")[0] ?? "";
+  const section = markdown.replace(/\r\n/g, "\n").split("### Particle preset recipes\n")[1]?.split("### Particle component fields\n")[0] ?? "";
   const recipes = [...section.matchAll(/#### (\w+)\n\n```json\n([^`]+)\n```/g)];
   expect(recipes.map((recipe) => recipe[1])).toEqual([...GAME_PARTICLE_PRESET_IDS]);
   for (const [, name, json] of recipes) {
@@ -24,8 +24,8 @@ function checkRecipes(markdown: string): void {
   }
 }
 
-it("documents every canonical particle preset for both public edit dimensions", () => {
-  checkRecipes(reference);
+it.each(["\n", "\r\n"])("documents every canonical particle preset with %j line endings", (newline) => {
+  checkRecipes(reference.replace(/\r?\n/g, newline));
 });
 
 it("rejects a documented recipe with an altered emission rate", () => {
