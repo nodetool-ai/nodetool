@@ -1,0 +1,979 @@
+<title>Music Mode Clips</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: native editor shell. Header with transport and tools, track lanes on a bar ruler on the left, music panel on the right. Phone stacks the panel under the lanes. */
+:root {
+  --canvas: #f5f5f6; --panel: #ffffff; --overlay: #f2f2f4; --input: #f9f9f9;
+  --fg: #18181b; --fg2: #5b5b66; --fg3: #a1a1aa; --on-accent: #ffffff;
+  --line: #e4e4e7; --ctl-line: #dcdce1; --strong: #5b5b66;
+  --accent: #2f62c4; --accent-h: #244e9e; --accent-soft: rgba(47,98,196,.12);
+  --warn: #dc6803; --warn-bg: #fff1d6; --warn-fg: #825100;
+  --err: #d92d20; --err-bg: #ffebeb; --err-fg: #b42323; --ok: #16a34a;
+  --hover: rgba(24,24,27,.04); --pressed: rgba(24,24,27,.10); --sel: rgba(24,24,27,.07);
+  --lane: #fafafb; --lane-alt: #f3f3f5; --grid: rgba(24,24,27,.06); --grid-bar: rgba(24,24,27,.14);
+  --range: rgba(47,98,196,.16); --range-edge: #2f62c4;
+  --c-drums: #c2410c; --c-bass: #7c3aed; --c-keyboard: #0f766e; --c-guitar: #b45309; --c-other: #475569;
+  --clip-bg: .14;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --canvas: #08090a; --panel: #101113; --overlay: #17181b; --input: #17181a;
+  --fg: #f7f8f8; --fg2: #8a8f98; --fg3: #686969;
+  --line: #232426; --ctl-line: #27292e; --strong: #8a8f98;
+  --accent: #3d68a8; --accent-h: #2a4d80; --accent-soft: rgba(61,104,168,.22);
+  --warn: #ffb86c; --warn-bg: #3d2b10; --warn-fg: #ffd08a;
+  --err: #ff5555; --err-bg: #441d21; --err-fg: #ffb3b3; --ok: #50fa7b;
+  --hover: rgba(255,255,255,.02); --pressed: rgba(255,255,255,.08); --sel: rgba(255,255,255,.05);
+  --lane: #0c0d0f; --lane-alt: #111215; --grid: rgba(255,255,255,.04); --grid-bar: rgba(255,255,255,.10);
+  --range: rgba(91,140,214,.20); --range-edge: #6f9be0;
+  --c-drums: #fb923c; --c-bass: #a78bfa; --c-keyboard: #2dd4bf; --c-guitar: #fbbf24; --c-other: #94a3b8;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --canvas: #08090a; --panel: #101113; --overlay: #17181b; --input: #17181a;
+  --fg: #f7f8f8; --fg2: #8a8f98; --fg3: #686969;
+  --line: #232426; --ctl-line: #27292e; --strong: #8a8f98;
+  --accent: #3d68a8; --accent-h: #2a4d80; --accent-soft: rgba(61,104,168,.22);
+  --warn: #ffb86c; --warn-bg: #3d2b10; --warn-fg: #ffd08a;
+  --err: #ff5555; --err-bg: #441d21; --err-fg: #ffb3b3; --ok: #50fa7b;
+  --hover: rgba(255,255,255,.02); --pressed: rgba(255,255,255,.08); --sel: rgba(255,255,255,.05);
+  --lane: #0c0d0f; --lane-alt: #111215; --grid: rgba(255,255,255,.04); --grid-bar: rgba(255,255,255,.10);
+  --range: rgba(91,140,214,.20); --range-edge: #6f9be0;
+  --c-drums: #fb923c; --c-bass: #a78bfa; --c-keyboard: #2dd4bf; --c-guitar: #fbbf24; --c-other: #94a3b8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--canvas); color: var(--fg); font: 400 13px/1.35 var(--sans); }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.app { display: grid; grid-template-rows: auto auto 1fr; height: 100%; min-height: 560px; }
+header.bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.proj { display: flex; flex-direction: column; min-width: 0; }
+.proj b { font-weight: 600; font-size: 15px; }
+.proj span { color: var(--fg2); font-size: 11px; }
+.group { display: flex; align-items: center; gap: 4px; }
+.sep { width: 1px; height: 24px; background: var(--line); }
+.btn {
+  height: 28px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--ctl-line);
+  background: var(--overlay); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.btn:hover { background: var(--pressed); }
+.btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--fg); }
+.btn:disabled { color: var(--fg3); cursor: not-allowed; background: var(--overlay); }
+.btn.icon { width: 28px; padding: 0; justify-content: center; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 500; }
+.btn.primary:hover { background: var(--accent-h); }
+.btn.primary:disabled { background: var(--overlay); border-color: var(--ctl-line); color: var(--fg3); }
+.btn.ghost { background: transparent; border-color: transparent; }
+.btn.ghost:hover { background: var(--pressed); }
+.btn svg { width: 14px; height: 14px; flex: none; }
+kbd { font: 500 10px var(--mono); color: var(--fg2); border: 1px solid var(--ctl-line); border-radius: 3px; padding: 0 3px; }
+.tempo { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border-radius: 6px; background: var(--input); border: 1px solid var(--ctl-line); color: var(--fg2); }
+.tempo b { color: var(--fg); font-weight: 500; }
+.tempo svg { width: 12px; height: 12px; }
+select.sel { height: 28px; border-radius: 6px; border: 1px solid var(--ctl-line); background: var(--input); padding: 0 6px; }
+.pos { font: 500 13px var(--mono); min-width: 64px; text-align: right; color: var(--fg); }
+.spacer { flex: 1; }
+
+.try {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+  padding-block: 6px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: var(--canvas); border-bottom: 1px solid var(--line); color: var(--fg2); font-size: 12px;
+}
+.try .btn { height: 24px; font-size: 12px; padding: 0 8px; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 0; }
+.tlwrap { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.tl { overflow: auto; flex: 1; position: relative; background: var(--lane); }
+.tl-inner { position: relative; }
+.row { display: flex; }
+.th {
+  position: sticky; left: 0; z-index: 3; width: 168px; flex: none;
+  background: var(--panel); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  padding: 8px 8px 8px 12px; display: flex; flex-direction: column; gap: 6px; justify-content: center;
+}
+.th .name { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+.th .swatch { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+.th .ctl { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.chip { height: 20px; border-radius: 10px; padding: 0 8px; font-size: 11px; border: 1px solid var(--ctl-line); background: var(--input); display: inline-flex; align-items: center; }
+select.chip { padding: 0 4px 0 8px; }
+.ms { width: 22px; height: 20px; border-radius: 4px; border: 1px solid var(--ctl-line); background: var(--overlay); font: 600 10px var(--mono); padding: 0; }
+.ms[aria-pressed="true"].m { background: var(--warn-bg); color: var(--warn-fg); border-color: var(--warn); }
+.ms[aria-pressed="true"].s { background: var(--accent-soft); color: var(--fg); border-color: var(--accent); }
+.ruler-row .th { height: 48px; border-bottom: 1px solid var(--line); font-size: 11px; color: var(--fg2); }
+.ruler { position: relative; height: 48px; background: var(--panel); border-bottom: 1px solid var(--line); flex: none; }
+.ruler .bar { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--grid-bar); }
+.ruler .bar span { position: absolute; left: 4px; top: 3px; font: 500 11px var(--mono); color: var(--fg2); }
+.ruler .beat { position: absolute; top: 0; height: 6px; border-left: 1px solid var(--grid-bar); }
+.ruler .loop { position: absolute; top: 18px; height: 6px; background: var(--accent); border-radius: 2px; opacity: .8; }
+.ruler .ctx { position: absolute; bottom: 3px; height: 8px; border: 1px dashed var(--strong); border-top: none; }
+.ruler .ctx span { position: absolute; left: 4px; top: -13px; font-size: 10px; color: var(--fg2); white-space: nowrap; }
+.lane { position: relative; height: 88px; flex: none; border-bottom: 1px solid var(--line); touch-action: none; }
+.lane.alt { background: var(--lane-alt); }
+.lane .g { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--grid); }
+.lane .g.b { border-left-color: var(--grid-bar); }
+.lane.range-tool { cursor: text; }
+
+.clip {
+  position: absolute; top: 6px; bottom: 6px; border-radius: 5px; overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--cc) 70%, transparent);
+  background: color-mix(in srgb, var(--cc) 16%, var(--lane));
+}
+.clip.selected { box-shadow: 0 0 0 2px var(--fg); }
+.clip canvas { position: absolute; left: 0; right: 0; bottom: 0; top: 16px; width: 100%; height: calc(100% - 16px); }
+.clip .lbl { position: absolute; left: 6px; right: 6px; top: 1px; height: 15px; display: flex; gap: 6px; align-items: center; font-size: 11px; white-space: nowrap; overflow: hidden; color: var(--fg); }
+.clip .lbl .t { overflow: hidden; text-overflow: ellipsis; }
+.badge { font: 600 10px var(--mono); padding: 0 4px; border-radius: 3px; background: color-mix(in srgb, var(--cc) 30%, var(--panel)); flex: none; }
+.badge.warn { background: var(--warn-bg); color: var(--warn-fg); }
+.clip.pending { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--cc) 14%, var(--lane)) 0 8px, color-mix(in srgb, var(--cc) 26%, var(--lane)) 8px 16px); border-style: dashed; }
+.clip.pending .state { position: absolute; left: 6px; bottom: 6px; font: 500 11px var(--mono); color: var(--fg2); }
+.clip.failed { border-color: var(--err); }
+.hatch { position: absolute; top: 16px; bottom: 0; background: repeating-linear-gradient(135deg, rgba(127,127,127,.0) 0 5px, color-mix(in srgb, var(--fg) 22%, transparent) 5px 7px); border-left: 1px dashed var(--fg2); border-right: 1px dashed var(--fg2); pointer-events: none; }
+.hatch span { position: absolute; left: 4px; top: 2px; font: 500 10px var(--mono); color: var(--fg); background: var(--panel); padding: 0 3px; border-radius: 2px; }
+.splice { position: absolute; top: 16px; bottom: 0; border-left: 1px solid var(--fg2); border-right: 1px solid var(--fg2); background: color-mix(in srgb, var(--fg) 6%, transparent); pointer-events: none; }
+.selband { position: absolute; top: 0; bottom: 0; background: var(--range); border-left: 2px solid var(--range-edge); border-right: 2px solid var(--range-edge); pointer-events: none; z-index: 2; }
+.selband span { position: absolute; top: 2px; font: 600 10px var(--mono); color: var(--on-accent); background: var(--range-edge); padding: 0 4px; border-radius: 2px; }
+.selband .a { left: -2px; border-top-left-radius: 0; }
+.selband .z { right: -2px; border-top-right-radius: 0; }
+.playhead { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--err); z-index: 4; pointer-events: none; }
+.hint { padding: 8px 16px; color: var(--fg2); font-size: 11px; border-top: 1px solid var(--line); background: var(--panel); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+
+aside.panel { background: var(--panel); border-left: 1px solid var(--line); overflow: auto; min-height: 0; }
+.sec { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.sec h3 { margin: 0; font: 600 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--fg2); display: flex; align-items: center; gap: 8px; }
+.sec h3 .n { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.target { display: flex; flex-direction: column; gap: 2px; }
+.target b { font-size: 15px; font-weight: 600; }
+.target .mono { color: var(--fg2); font-size: 12px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--ctl-line); border-radius: 6px; overflow: hidden; }
+.seg button { height: 32px; border: none; background: var(--input); border-right: 1px solid var(--ctl-line); font-size: 12px; position: relative; }
+.seg button:last-child { border-right: none; }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+.seg button:disabled { color: var(--fg3); cursor: not-allowed; }
+.seg button .auto { position: absolute; top: 3px; right: 4px; font: 600 8px var(--mono); color: var(--fg2); letter-spacing: .04em; }
+.why { color: var(--fg2); font-size: 12px; }
+.why.err { color: var(--err-fg); background: var(--err-bg); padding: 6px 8px; border-radius: 6px; }
+.plan { font: 400 11px/1.5 var(--mono); color: var(--fg2); background: var(--input); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.plan b { color: var(--fg); font-weight: 500; }
+textarea { width: 100%; min-height: 64px; resize: vertical; border-radius: 6px; border: 1px solid var(--ctl-line); background: var(--input); padding: 8px; line-height: 1.45; }
+.recent { display: flex; flex-wrap: wrap; gap: 4px; }
+.recent button { font-size: 11px; height: 22px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: 11px; border: 1px solid var(--ctl-line); background: transparent; padding: 0 8px; color: var(--fg2); }
+.recent button:hover { color: var(--fg); background: var(--pressed); }
+.opts { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; }
+.opts label { color: var(--fg2); font-size: 12px; }
+.stepper { display: inline-flex; align-items: center; gap: 0; border: 1px solid var(--ctl-line); border-radius: 6px; overflow: hidden; width: max-content; }
+.stepper button { width: 26px; height: 26px; border: none; background: var(--overlay); }
+.stepper span { width: 28px; text-align: center; font: 500 12px var(--mono); }
+.seedrow { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.seedrow input[type=text] { width: 90px; height: 26px; border-radius: 6px; border: 1px solid var(--ctl-line); background: var(--input); padding: 0 6px; font: 400 12px var(--mono); }
+.seedrow input:disabled { color: var(--fg3); }
+.opts select { height: 26px; border-radius: 6px; border: 1px solid var(--ctl-line); background: var(--input); padding: 0 4px; font: 400 12px var(--mono); max-width: 100%; }
+.go { height: 36px; width: 100%; justify-content: center; font-size: 13px; }
+
+.jobs, .takes { display: flex; flex-direction: column; gap: 6px; }
+.empty { color: var(--fg3); font-size: 12px; }
+.job { border: 1px solid var(--line); border-radius: 6px; padding: 8px; display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; background: var(--input); }
+.job .l1 { display: flex; gap: 6px; align-items: center; min-width: 0; }
+.job .l1 b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.job .st { font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; padding: 1px 5px; border-radius: 3px; background: var(--overlay); color: var(--fg2); flex: none; }
+.job .st.running, .job .st.rendering, .job .st.placing { background: var(--accent-soft); color: var(--fg); }
+.job .st.done { color: var(--ok); }
+.job .st.failed { background: var(--err-bg); color: var(--err-fg); }
+.job .meta { grid-column: 1 / -1; font: 400 11px var(--mono); color: var(--fg2); }
+.job .err { grid-column: 1 / -1; font: 400 11px var(--mono); color: var(--err-fg); background: var(--err-bg); padding: 4px 6px; border-radius: 4px; }
+.job .acts { display: flex; gap: 4px; align-items: start; }
+.job .acts .btn { height: 24px; font-size: 11px; padding: 0 8px; }
+.prog { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--accent); }
+
+.take { border: 1px solid var(--line); border-radius: 6px; background: var(--input); }
+.take.active { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.take .hd { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 6px 6px 6px 8px; }
+.take .pick { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--strong); background: transparent; padding: 0; display: grid; place-items: center; }
+.take.active .pick { border-color: var(--accent); }
+.take.active .pick::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.take .info { min-width: 0; cursor: pointer; }
+.take .info b { font-weight: 500; }
+.take .info .mono { display: block; color: var(--fg2); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.take .tag { font: 500 10px var(--mono); color: var(--fg2); margin-left: 4px; }
+.take .acts { display: flex; gap: 2px; align-items: center; }
+.take .acts .btn { width: 24px; height: 24px; }
+.drift { font: 600 10px var(--mono); padding: 1px 4px; border-radius: 3px; background: var(--warn-bg); color: var(--warn-fg); margin-left: 4px; }
+.take details { border-top: 1px solid var(--line); }
+.take summary { cursor: pointer; padding: 4px 8px; color: var(--fg2); font-size: 11px; }
+.rec { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; padding: 4px 8px 8px; font: 400 11px var(--mono); }
+.rec dt { color: var(--fg2); }
+.rec dd { margin: 0; overflow-wrap: anywhere; }
+.foot { padding: 12px 16px; color: var(--fg2); font-size: 11px; display: flex; flex-direction: column; gap: 6px; }
+.foot .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); margin-right: 6px; }
+.foot label { display: flex; gap: 6px; align-items: center; }
+.toast { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--overlay); border: 1px solid var(--ctl-line); border-radius: 6px; padding: 8px 12px; font-size: 12px; z-index: 20; max-width: calc(100% - 32px); }
+
+@media (max-width: 860px) {
+  .app { height: auto; }
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .tl { max-height: 420px; }
+  aside.panel { border-left: none; border-top: 1px solid var(--line); }
+  .th { width: 124px; padding-left: 8px; }
+  .th select.chip { width: 0; flex: 1; min-width: 0; }
+  header.bar .sep { display: none; }
+  .try .lead { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="app">
+  <header class="bar">
+    <div class="proj"><b>Night Drive</b><span>Music project · mockup, generation is simulated</span></div>
+    <div class="sep"></div>
+    <div class="group">
+      <div class="tempo" title="Tempo is locked because the project contains audio. Remove all audio clips to change it.">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>
+        <b class="mono">120</b> BPM <b class="mono">4/4</b>
+      </div>
+      <select class="sel" id="keySel" aria-label="Key">
+        <option>C minor</option><option>A minor</option><option>F major</option><option>D minor</option><option>G major</option>
+      </select>
+    </div>
+    <div class="sep"></div>
+    <div class="group" role="group" aria-label="Tools">
+      <button class="btn" id="toolRange" aria-pressed="true" title="Range tool (R)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 3v10M14 3v10M2 8h12"/></svg>Range <kbd>R</kbd></button>
+      <button class="btn" id="toolSel" aria-pressed="false" title="Selection tool (V)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 2l8 6-4 1-2 4z"/></svg>Select <kbd>V</kbd></button>
+      <select class="sel" id="snapSel" aria-label="Grid">
+        <option value="bar">Snap: bar</option><option value="beat">Snap: beat</option>
+      </select>
+    </div>
+    <div class="sep"></div>
+    <div class="group">
+      <button class="btn icon" id="undoBtn" title="Undo (Ctrl+Z)" aria-label="Undo"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 3L2 6l3 3"/><path d="M2 6h7a4 4 0 0 1 0 8H6"/></svg></button>
+      <button class="btn icon" id="redoBtn" title="Redo (Shift+Ctrl+Z)" aria-label="Redo"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M11 3l3 3-3 3"/><path d="M14 6H7a4 4 0 0 0 0 8h3"/></svg></button>
+    </div>
+    <div class="spacer"></div>
+    <div class="group">
+      <button class="btn icon" id="playBtn" title="Play (Space)" aria-label="Play"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg></button>
+      <button class="btn" id="loopBtn" aria-pressed="true" title="Loop the selected range (L)">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9V7a3 3 0 0 1 3-3h7M11 2l2 2-2 2M13 7v2a3 3 0 0 1-3 3H3M5 14l-2-2 2-2"/></svg>Loop range <kbd>L</kbd></button>
+      <span class="pos" id="posReadout">1.1.1</span>
+    </div>
+  </header>
+
+  <div class="try">
+    <span class="lead">Try a scenario:</span>
+    <button class="btn" data-scn="gen">Generate keyboard into bars 9–12</button>
+    <button class="btn" data-scn="regen">Regenerate bars 3–4 of the drums</button>
+    <button class="btn" data-scn="add">Add bass under bars 5–8</button>
+  </div>
+
+  <div class="main">
+    <div class="tlwrap">
+      <div class="tl" id="tl"><div class="tl-inner" id="tlInner"></div></div>
+      <div class="hint">
+        <span>Drag on a lane to select bars. Hold <kbd>Alt</kbd> to place an edge freely.</span>
+        <span>Double-click a clip to select its span.</span>
+        <span><kbd>[</kbd> <kbd>]</kbd> step through takes while it loops.</span>
+        <span><kbd>Del</kbd> deletes the selected clip.</span>
+      </div>
+    </div>
+    <aside class="panel" id="panel" aria-label="Music panel"></aside>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+'use strict';
+// ---------- constants ----------
+const BPM = 120, BPB = 4, BARS = 16, BEATS = BARS * BPB, SPB = 4; // steps per beat
+const BEAT_S = 60 / BPM, BAR_S = BEAT_S * BPB, STEP_S = BEAT_S / SPB;
+const ROLES = ["drums","bass","keyboard","guitar","percussion","strings","synth","fx","brass","woodwinds","vocals","backing_vocals"];
+const ROLE_NAME = { drums:"Drums", bass:"Bass", keyboard:"Keyboard", guitar:"Guitar", percussion:"Percussion", strings:"Strings", synth:"Synth", fx:"FX", brass:"Brass", woodwinds:"Woodwinds", vocals:"Vocals", backing_vocals:"Backing vocals" };
+const TURBO = "acestep-v15-turbo", BASE = "acestep-v15-base";
+const SCALES = { major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10] };
+const PC = { C:0, "C#":1, D:2, "D#":3, E:4, F:5, "F#":6, G:7, "G#":8, A:9, "A#":10, B:11 };
+
+// ---------- utils ----------
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+const hash = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+const randSeed = () => Math.floor(Math.random() * 90000) + 10000;
+const uid = (() => { let n = 0; return p => p + (++n); })();
+const barOf = beat => Math.floor(beat / BPB) + 1;
+const bbs = beat => { const b = Math.floor(beat / BPB) + 1, r = beat - (b - 1) * BPB, bt = Math.floor(r) + 1, st = Math.round((r - Math.floor(r)) * SPB) + 1; return `${b}.${bt}.${st}`; };
+const fmtS = s => s.toFixed(1) + " s";
+const fmtClock = s => { s = Math.max(0, Math.floor(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+const barRangeLabel = (a, b) => {
+  const whole = Number.isInteger(a / BPB) && Number.isInteger(b / BPB);
+  if (whole) { const s = a / BPB + 1, e = b / BPB; return s === e ? `bar ${s}` : `bars ${s}–${e}`; }
+  return `${bbs(a)} – ${bbs(b)}`;
+};
+const lenLabel = beats => { const bars = beats / BPB; return Number.isInteger(bars) ? `${bars} bar${bars === 1 ? "" : "s"}` : `${beats.toFixed(2).replace(/\.?0+$/, "")} beats`; };
+
+// ---------- fake audio content ----------
+function keyInfo(k) { const [t, m] = k.split(" "); return { pc: PC[t], scale: SCALES[m] }; }
+function midi(ki, deg, oct) { const n = ki.scale.length; return 12 * (oct + 1) + ki.pc + ki.scale[((deg % n) + n) % n] + 12 * Math.floor(deg / n); }
+function genSteps(role, seed, nSteps, offsetSteps, prompt, ki) {
+  const r = rng(seed ^ hash(prompt || "")), steps = [];
+  const busy = /busy|fast|driving|dense|energetic/i.test(prompt) ? 1.35 : /sparse|minimal|slow|ambient|soft/i.test(prompt) ? 0.6 : 1;
+  const prog = [[0,5,3,4],[0,3,4,0],[0,5,6,4],[0,2,5,4]][Math.floor(r() * 4)];
+  const SB = SPB * BPB;
+  for (let i = 0; i < nSteps; i++) {
+    const g = i + offsetSteps, p = g % SB, bar = Math.floor(g / SB);
+    let a = 0, n = 0;
+    const deg = prog[bar % prog.length];
+    if (role === "drums" || role === "percussion") {
+      if (p === 0 || p === 8 || (r() < 0.1 * busy && p % 2 === 0)) { a = 0.95; n = 0; }
+      else if (p === 4 || p === 12) { a = 0.8; n = 1; }
+      else if (r() < (p % 2 === 0 ? 0.75 : 0.25) * busy) { a = 0.25 + r() * 0.2; n = 2; }
+      if (bar % 4 === 3 && p >= 12 && r() < 0.6) { a = 0.6 + r() * 0.3; n = 1; }
+    } else if (role === "bass") {
+      if (r() < (p % 4 === 0 ? 0.7 : 0.22) * busy) { a = 0.6 + r() * 0.35; n = midi(ki, deg + [0,0,0,4,2,7][Math.floor(r() * 6)], 1); }
+    } else if (role === "keyboard") {
+      if (p % 8 === 0 && r() < 0.9) { a = 0.55 + r() * 0.25; n = deg; }
+      else if (p % 2 === 0 && r() < 0.08 * busy) { a = 0.3; n = deg; }
+    } else if (role === "guitar") {
+      if (p % 2 === 0 && r() < 0.55 * busy) { a = 0.4 + r() * 0.4; n = midi(ki, deg + [0,2,4,7][Math.floor(r() * 4)], 3); }
+    } else {
+      if (p === 0 && r() < 0.95) { a = 0.5; n = deg; }
+    }
+    steps.push({ a, n });
+  }
+  return steps;
+}
+const DECAY = { drums: 1.4, percussion: 1.2, bass: 2.2, keyboard: 7, guitar: 2.6 };
+const decayOf = role => DECAY[role] || 12;
+
+// ---------- document state (undoable) ----------
+let doc = {
+  key: "C minor",
+  tracks: [
+    { id: "t1", name: "Drums", role: "drums", mute: false, solo: false },
+    { id: "t2", name: "Bass", role: "bass", mute: false, solo: false },
+    { id: "t3", name: "Keyboard", role: "keyboard", mute: false, solo: false },
+    { id: "t4", name: "Guitar", role: "guitar", mute: false, solo: false },
+  ],
+  clips: [],
+  promptHistory: ["tight boom-bap drums, dusty, 90s", "round finger bass, minor, laid back", "warm Rhodes chords, lo-fi, slow swing"],
+};
+const undoStack = [], redoStack = [];
+function edit(label, fn) { undoStack.push(JSON.stringify(doc)); if (undoStack.length > 100) undoStack.shift(); redoStack.length = 0; fn(); render(); }
+function undo() { if (!undoStack.length) return; redoStack.push(JSON.stringify(doc)); doc = JSON.parse(undoStack.pop()); toast("Undone"); render(); }
+function redo() { if (!redoStack.length) return; undoStack.push(JSON.stringify(doc)); doc = JSON.parse(redoStack.pop()); toast("Redone"); render(); }
+
+function makeGenTakes(role, prompt, seed0, cands, lenBeats, k, key, model, startBeat, task = "text2music") {
+  const ki = keyInfo(key), nSteps = lenBeats * SPB, takes = [];
+  for (let c = 0; c < cands; c++) {
+    const seed = seed0 + c, r = rng(seed * 31);
+    for (let s = 0; s < k; s++) {
+      const off = Math.round((r() - 0.5) * 22), ratio = 1 + (r() - 0.5) * 0.005, lastErr = Math.round(Math.abs(ratio - 1) * lenBeats * BEAT_S * 1000);
+      takes.push({
+        id: uid("tk"), label: (k > 1 ? `Take ${"ABCD"[c]}${s + 1}` : `Take ${"ABCD"[c]}`),
+        steps: genSteps(role, seed, nSteps, s * nSteps, prompt, ki),
+        rec: { task, model, steps: model === TURBO ? 8 : 50, prompt, bpm: BPM, key, sig: "4/4", seed, candidateIndex: c, segmentIndex: s,
+               target: [startBeat, startBeat + lenBeats], offsetMs: off, confidence: +(0.7 + r() * 0.28).toFixed(2), tempoRatio: +ratio.toFixed(4), lastBeatErrorMs: lastErr, backend: "acestep.cpp@07abf07" },
+      });
+    }
+  }
+  return takes;
+}
+// seed the starting project
+(function seedProject() {
+  const d = { id: "c1", trackId: "t1", start: 0, len: 8 * BPB, status: "generated", active: 0, takes: makeGenTakes("drums", doc.promptHistory[0], 40112, 2, 8 * BPB, 2, "C minor", TURBO, 0) };
+  const b = { id: "c2", trackId: "t2", start: 0, len: 4 * BPB, status: "generated", active: 1, takes: makeGenTakes("bass", doc.promptHistory[1], 51873, 2, 4 * BPB, 2, "C minor", TURBO, 0) };
+  doc.clips.push(d, b);
+})();
+
+// ---------- view state ----------
+const view = {
+  tool: "range", snap: "bar", sel: { trackId: "t3", a: 32, b: 48 }, selectedClip: null,
+  op: null, prompt: "warm Rhodes chords, lo-fi, slow swing", cands: 2, seedMode: "random", seed: 48213, model: null,
+  playing: false, loop: true, playBeat: 0, failNext: false,
+};
+let ppb = 20; // pixels per beat
+let jobs = [];
+const estimates = {}; // run seconds per generated second, per task+model
+
+// ---------- queries ----------
+const trackById = id => doc.tracks.find(t => t.id === id);
+const clipById = id => doc.clips.find(c => c.id === id);
+const anySolo = () => doc.tracks.some(t => t.solo);
+const audible = t => !t.mute && (!anySolo() || t.solo);
+const hasAudio = c => c.status === "generated" && c.takes.length > 0;
+const clipsOn = (tid, a, b) => doc.clips.filter(c => c.trackId === tid && c.start < b && c.start + c.len > a);
+const clipAt = (tid, beat) => doc.clips.find(c => c.trackId === tid && beat >= c.start && beat < c.start + c.len);
+
+// ---------- planner (MD12) ----------
+function plan() {
+  const s = view.sel; if (!s) return null;
+  const tr = trackById(s.trackId), L = s.b - s.a, Ls = L * BEAT_S;
+  const over = clipsOn(s.trackId, s.a, s.b);
+  const others = doc.tracks.filter(t => t.id !== s.trackId && audible(t)).filter(t => clipsOn(t.id, s.a, s.b).some(hasAudio));
+  let inferred = null, why = "", invalid = "";
+  const valid = { generate: false, regenerate: false, add: false };
+  const reasons = {};
+  if (over.length === 1 && over[0].start <= s.a && over[0].start + over[0].len >= s.b) {
+    const c = over[0];
+    if (!hasAudio(c)) { invalid = "This clip is still waiting for its generation. Regenerate works once it has audio."; }
+    else { inferred = "regenerate"; valid.regenerate = true; why = `The range sits inside the ${tr.name.toLowerCase()} clip, so only these bars are replaced.`; }
+    reasons.generate = "Generate needs an empty range."; reasons.add = "Add instrument needs an empty range.";
+  } else if (over.length === 0) {
+    valid.generate = true;
+    if (others.length) {
+      valid.add = !!tr.role;
+      reasons.add = tr.role ? "" : "Give the track a role first, so the model knows which instrument to add.";
+      inferred = tr.role ? "add" : "generate";
+      why = tr.role ? `${others.map(t => t.name).join(" and ")} play${others.length === 1 ? "s" : ""} here, so the new ${ROLE_NAME[tr.role].toLowerCase()} part follows them.` : "Other tracks play here, but this track has no role, so it falls back to Generate.";
+    } else {
+      inferred = "generate"; why = "Nothing plays in this range, so the clip is generated from the prompt alone.";
+      reasons.add = "No other track plays in this range.";
+    }
+    reasons.regenerate = "Regenerate needs a range inside one clip.";
+  } else {
+    invalid = "The range overlaps a clip partly or spans several clips. Select a range inside one clip, or an empty range.";
+    reasons.generate = reasons.regenerate = reasons.add = "";
+  }
+  let op = view.op && valid[view.op] ? view.op : inferred;
+  const out = { sel: s, track: tr, L, Ls, inferred, op, why, invalid, valid, reasons, others, clip: over.length === 1 ? over[0] : null };
+  if (!op) return out;
+  if (op === "generate") {
+    const k = Math.max(1, Math.ceil(10 / Ls - 1e-9)); out.k = k; out.reqS = k * Ls + BEAT_S; out.takes = k * view.cands;
+  } else {
+    // windows (GN-5): bar line at or before start, up to 2 bars back while context has audio, end on bar line, grow to >= 10 s
+    const ctxHas = (a, b) => op === "regenerate" ? clipsOn(s.trackId, a, b).some(hasAudio) : out.others.some(t => clipsOn(t.id, a, b).some(hasAudio));
+    let w0 = Math.floor(s.a / BPB) * BPB;
+    for (let i = 0; i < 2 && w0 - BPB >= 0 && ctxHas(w0 - BPB, w0); i++) w0 -= BPB;
+    let w1 = Math.ceil(s.b / BPB) * BPB;
+    while ((w1 - w0) * BEAT_S < 10 - 1e-9) w1 += BPB;
+    out.w0 = w0; out.w1 = w1; out.takes = view.cands;
+  }
+  out.model = view.model || (op === "add" ? BASE : TURBO);
+  return out;
+}
+
+// ---------- jobs (MD18) ----------
+const OP_NAME = { generate: "Generate", regenerate: "Regenerate", add: "Add instrument" };
+function submit() {
+  const p = plan(); if (!p || !p.op) return;
+  if (jobs.filter(j => !["done","failed","cancelled"].includes(j.state)).length >= 8) { toast("Eight jobs are already active on this timeline."); return; }
+  const prompt = view.prompt.trim() || "instrumental";
+  const seed = view.seedMode === "fixed" ? (parseInt(view.seed, 10) || 1) : randSeed();
+  const role = p.track.role || "synth";
+  const job = { id: uid("job"), op: p.op, state: p.op === "generate" ? "queued" : "rendering", trackId: p.track.id, clipId: null,
+    a: p.sel.a, b: p.sel.b, w0: p.w0, w1: p.w1, k: p.k, reqS: p.reqS, prompt, seed, cands: view.cands, model: p.model, role,
+    created: performance.now(), runStart: 0, runFor: 0, err: "", resultTakes: null, fail: view.failNext };
+  view.failNext = false;
+  const genSec = (p.op === "generate" ? p.reqS : (p.w1 - p.w0) * BEAT_S) * view.cands;
+  job.runFor = (p.model === TURBO ? 0.9 : 2.2) + genSec * (p.model === TURBO ? 0.05 : 0.11);
+  job.estKey = p.op + "|" + p.model; job.genSec = genSec;
+  edit("submit", () => {
+    if (!doc.promptHistory.includes(prompt)) { doc.promptHistory.unshift(prompt); doc.promptHistory = doc.promptHistory.slice(0, 50); }
+    if (p.op === "regenerate") { job.clipId = p.clip.id; }
+    else {
+      const c = { id: uid("c"), trackId: p.track.id, start: p.sel.a, len: p.L, status: "queued", jobId: job.id, active: 0, takes: [] };
+      doc.clips.push(c); job.clipId = c.id;
+    }
+  });
+  jobs.unshift(job);
+  if (job.state === "rendering") setTimeout(() => { if (job.state === "rendering") { job.state = "queued"; pump(); render(); } }, 700);
+  pump(); render();
+}
+function pump() {
+  if (jobs.some(j => j.state === "running")) return;
+  const next = jobs.slice().reverse().find(j => j.state === "queued");
+  if (!next) return;
+  next.state = "running"; next.runStart = performance.now();
+  const c = clipById(next.clipId); if (c && c.status === "queued") c.status = "running"; // view-only change, not an undo step
+  setTimeout(() => finish(next), next.runFor * 1000);
+}
+function finish(job) {
+  if (job.state !== "running") return;
+  if (job.fail) {
+    job.state = "failed"; job.err = '{"error":"synth: out of memory while loading acestep-v15-base (need 9.8 GB)"}';
+    const c = clipById(job.clipId); if (c && c.status !== "generated") c.status = "failed";
+    pump(); render(); return;
+  }
+  const realS = (performance.now() - job.runStart) / 1000;
+  const prev = estimates[job.estKey]; estimates[job.estKey] = prev ? prev * 0.7 + (realS / job.genSec) * 0.3 : realS / job.genSec;
+  job.state = "placing"; render();
+  setTimeout(() => { place(job); pump(); render(); }, 300);
+}
+function buildTakes(job, clip) {
+  const role = job.role, L = job.b - job.a;
+  if (job.op === "generate") return makeGenTakes(role, job.prompt, job.seed, job.cands, L, job.k, doc.key, job.model, job.a);
+  if (job.op === "add") return makeGenTakes(role, job.prompt, job.seed, job.cands, L, 1, doc.key, job.model, job.a, "lego").map(t => (t.rec.context = [job.w0, job.w1], t));
+  // regenerate: copy parent, replace region steps (GN-2)
+  const parent = clip.takes[clip.active], ki = keyInfo(doc.key), out = [];
+  const r0 = Math.round((job.a - clip.start) * SPB), r1 = Math.round((job.b - clip.start) * SPB);
+  for (let c = 0; c < job.cands; c++) {
+    const seed = job.seed + c, fresh = genSteps(role, seed, r1 - r0, Math.round(job.a * SPB), job.prompt, ki);
+    const steps = parent.steps.map((s, i) => (i >= r0 && i < r1 ? fresh[i - r0] : s));
+    const r = rng(seed * 17);
+    out.push({ id: uid("tk"), label: `Repaint ${"ABCD"[c]} · ${barRangeLabel(job.a, job.b)}`, steps, region: [job.a - clip.start, job.b - clip.start], parentLabel: parent.label,
+      rec: { task: "repaint", model: job.model, steps: 8, prompt: job.prompt, bpm: BPM, key: doc.key, sig: "4/4", seed, candidateIndex: c, segmentIndex: 0,
+             target: [job.a, job.b], context: [job.w0, job.w1], splice: `${parent.label}, 20 ms equal-power crossfades`,
+             offsetMs: Math.round((r() - 0.5) * 14), confidence: +(0.75 + r() * 0.2).toFixed(2), tempoRatio: 1, lastBeatErrorMs: 0, backend: "acestep.cpp@07abf07" } });
+  }
+  return out;
+}
+function place(job) {
+  const clip = clipById(job.clipId);
+  if (!clip || (job.op !== "regenerate" && clip.jobId !== job.id)) {
+    job.state = "done";
+    if (job.op === "regenerate") { job.lost = true; toast("The clip was removed, so the repaint has nowhere to go."); }
+    else { job.orphan = true; toast("The placeholder was removed. The takes are kept in the job list."); }
+    return;
+  }
+  const takes = buildTakes(job, clip);
+  edit("applyResult", () => {
+    const c = clipById(job.clipId);
+    if (job.op === "regenerate") {
+      if (c.takes.length === 1 && !c.takes[0].baseline) c.takes[0].baseline = true;
+      c.takes.push(...takes); c.active = c.takes.length - takes.length;
+    } else { c.takes = takes; c.active = 0; c.status = "generated"; delete c.jobId; }
+  });
+  job.state = "done"; job.placedCount = takes.length;
+  toast(`${takes.length} take${takes.length === 1 ? "" : "s"} added. Take ${clipById(job.clipId).takes[clipById(job.clipId).active].label.replace(/^Take /, "")} is active.`);
+}
+function placeOrphan(job) {
+  const free = clipsOn(job.trackId, job.a, job.b).length === 0;
+  if (!free) { toast("The range is no longer empty. Clear it to place these takes."); return; }
+  const takes = buildTakes(job, null);
+  edit("place", () => { doc.clips.push({ id: job.clipId = uid("c"), trackId: job.trackId, start: job.a, len: job.b - job.a, status: "generated", active: 0, takes }); });
+  job.orphan = false; render();
+}
+function cancel(job) {
+  if (job.state === "done" || job.state === "failed") return;
+  job.state = "cancelled";
+  if (job.op !== "regenerate") { const c = clipById(job.clipId); if (c && c.jobId === job.id) edit("cancel", () => { doc.clips = doc.clips.filter(x => x.id !== job.clipId); }); }
+  pump(); render();
+}
+function retry(job) {
+  const n = { ...job, id: uid("job"), state: job.op === "generate" ? "queued" : "rendering", err: "", fail: false, created: performance.now() };
+  if (job.op !== "regenerate") {
+    const c = clipById(job.clipId);
+    if (c) { c.status = "queued"; c.jobId = n.id; }
+  }
+  jobs = jobs.filter(j => j !== job); jobs.unshift(n);
+  if (n.state === "rendering") setTimeout(() => { if (n.state === "rendering") { n.state = "queued"; pump(); render(); } }, 700);
+  pump(); render();
+}
+function reroll(clip, take) {
+  const r = take.rec;
+  view.sel = { trackId: clip.trackId, a: r.target[0], b: r.target[1] };
+  view.prompt = r.prompt; view.seedMode = "random";
+  view.op = "regenerate"; // the take's own clip fills the range now, so the rerun repaints it
+  render(); toast("Request loaded from the take's record with a new seed. Press the button to run it.");
+}
+
+// ---------- timeline render ----------
+const tlInner = $("#tlInner"), tlEl = $("#tl");
+function computePpb() {
+  const avail = tlEl.clientWidth - (window.innerWidth <= 860 ? 124 : 168) - 2;
+  ppb = Math.max(12, Math.floor(avail / BEATS));
+}
+function render() { renderTimeline(); renderPanel(); syncHeader(); }
+function renderTimeline() {
+  computePpb();
+  const W = BEATS * ppb, p = plan();
+  let h = `<div class="row ruler-row"><div class="th">Bars</div><div class="ruler" style="width:${W}px">`;
+  for (let b = 0; b < BARS; b++) { h += `<div class="bar" style="left:${b * BPB * ppb}px"><span>${b + 1}</span></div>`; for (let k = 1; k < BPB; k++) h += `<div class="beat" style="left:${(b * BPB + k) * ppb}px"></div>`; }
+  if (view.sel && view.loop) h += `<div class="loop" style="left:${view.sel.a * ppb}px;width:${(view.sel.b - view.sel.a) * ppb}px" title="Loop region"></div>`;
+  if (p && p.op && p.op !== "generate") {
+    const x0 = p.w0 * ppb, x1 = Math.min(p.w1, BEATS) * ppb;
+    h += `<div class="ctx" style="left:${x0}px;width:${x1 - x0}px"><span>Model hears ${barRangeLabel(p.w0, p.w1)}${p.w1 > BEATS ? " →" : ""}</span></div>`;
+  }
+  h += `</div></div>`;
+  doc.tracks.forEach((t, i) => {
+    const col = `var(--c-${["drums","bass","keyboard","guitar"].includes(t.role) ? t.role : "other"})`;
+    h += `<div class="row"><div class="th" style="height:88px">
+      <div class="name"><span class="swatch" style="background:${col}"></span>${esc(t.name)}</div>
+      <div class="ctl">
+        <select class="chip" data-role="${t.id}" aria-label="Role of ${esc(t.name)}"><option value="">No role</option>${ROLES.map(r => `<option value="${r}" ${t.role === r ? "selected" : ""}>${ROLE_NAME[r]}</option>`).join("")}</select>
+        <button class="ms m" data-mute="${t.id}" aria-pressed="${t.mute}" title="Mute">M</button>
+        <button class="ms s" data-solo="${t.id}" aria-pressed="${t.solo}" title="Solo">S</button>
+      </div></div>
+      <div class="lane ${i % 2 ? "alt" : ""} ${view.tool === "range" ? "range-tool" : ""}" data-lane="${t.id}" style="width:${W}px">`;
+    for (let b = 0; b <= BEATS; b++) h += `<div class="g ${b % BPB === 0 ? "b" : ""}" style="left:${b * ppb}px"></div>`;
+    for (const c of doc.clips.filter(c => c.trackId === t.id)) h += clipHtml(c, col);
+    if (view.sel && view.sel.trackId === t.id) {
+      const s = view.sel;
+      h += `<div class="selband" style="left:${s.a * ppb}px;width:${(s.b - s.a) * ppb}px"><span class="a">${bbs(s.a).replace(/\.1\.1$/, "")}</span><span class="z">${bbs(s.b).replace(/\.1\.1$/, "")}</span></div>`;
+    }
+    h += `</div></div>`;
+  });
+  h += `<div class="playhead" id="playhead" style="left:${(window.innerWidth <= 860 ? 124 : 168) + view.playBeat * ppb}px" ${view.playing ? "" : "hidden"}></div>`;
+  tlInner.innerHTML = h;
+  tlInner.style.width = ((window.innerWidth <= 860 ? 124 : 168) + W) + "px";
+  for (const cv of tlInner.querySelectorAll("canvas[data-clip]")) drawWave(cv, clipById(cv.dataset.clip));
+}
+function clipHtml(c, col) {
+  const x = c.start * ppb, w = c.len * ppb, tr = trackById(c.trackId);
+  const job = c.jobId ? jobs.find(j => j.id === c.jobId) : null;
+  let cls = "clip", inner = "";
+  if (c.status !== "generated") {
+    cls += c.status === "failed" ? " pending failed" : " pending";
+    let st;
+    if (c.status === "failed") st = "Failed · see job list";
+    else if (!job || job.state === "done" || job.state === "cancelled") st = "Result undone · redo to restore";
+    else if (job.state === "running") st = `Generating ${fmtClock((performance.now() - job.runStart) / 1000)}`;
+    else st = job.state === "rendering" ? "Rendering context" : "Queued";
+    inner = `<div class="lbl"><span class="t">${esc(OP_NAME[job ? job.op : "generate"])} · ${esc(tr.name)}</span></div><div class="state" data-cstate="${c.id}">${st}</div>`;
+  } else {
+    const t = c.takes[c.active];
+    const drift = t.rec && t.rec.lastBeatErrorMs > 20;
+    inner = `<div class="lbl"><span class="t">${esc(t.label)}</span>${c.takes.length > 1 ? `<span class="badge" title="${c.takes.length} takes">${c.active + 1}/${c.takes.length}</span>` : ""}${drift ? `<span class="badge warn" title="Last beat lands ${t.rec.lastBeatErrorMs} ms off the grid">drift</span>` : ""}</div><canvas data-clip="${c.id}"></canvas>`;
+    if (t.region) inner += `<div class="splice" style="left:${t.region[0] * ppb}px;width:${(t.region[1] - t.region[0]) * ppb}px" title="Repainted bars"></div>`;
+    const rj = jobs.find(j => j.op === "regenerate" && j.clipId === c.id && ["rendering","queued","running","placing"].includes(j.state));
+    if (rj) {
+      const a = Math.max(rj.w0, c.start) - c.start, b = Math.min(rj.w1, c.start + c.len) - c.start;
+      inner += `<div class="hatch" style="left:${a * ppb}px;width:${(b - a) * ppb}px"><span data-hstate="${rj.id}">${rj.state === "running" ? "Repainting " + barRangeLabel(rj.a, rj.b) : rj.state === "rendering" ? "Rendering context" : rj.state === "placing" ? "Placing" : "Queued"}</span></div>`;
+    }
+  }
+  return `<div class="${cls}${view.selectedClip === c.id ? " selected" : ""}" data-clipid="${c.id}" style="left:${x}px;width:${w}px;--cc:${col}">${inner}</div>`;
+}
+function drawWave(cv, c) {
+  const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, hgt = cv.clientHeight;
+  if (!w || !hgt) return;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(hgt * dpr);
+  const g = cv.getContext("2d"); g.scale(dpr, dpr);
+  const tr = trackById(c.trackId), role = tr.role || "synth", take = c.takes[c.active], steps = take.steps;
+  const stepPx = ppb / SPB, dec = decayOf(role) * stepPx, mid = hgt / 2;
+  const color = getComputedStyle(cv.parentElement).getPropertyValue("--cc").trim() || "#888";
+  const resolved = color.startsWith("var(") ? getComputedStyle(document.documentElement).getPropertyValue(color.slice(4, -1)).trim() : color;
+  g.fillStyle = resolved; g.globalAlpha = audible(tr) ? 0.85 : 0.35;
+  const r = rng(hash(take.id));
+  for (let x = 0; x < w; x++) {
+    const si = Math.floor(x / stepPx); let v = 0;
+    for (let k = si; k >= 0 && k > si - 40; k--) { const s = steps[k]; if (!s || !s.a) continue; const dx = x - k * stepPx; v += s.a * Math.exp(-dx / dec); }
+    v = Math.min(1, v) * (0.6 + 0.4 * r());
+    const hh = Math.max(0.5, v * (mid - 2));
+    g.fillRect(x, mid - hh, 1, hh * 2);
+  }
+}
+
+// ---------- panel render ----------
+const panel = $("#panel");
+function renderPanel() {
+  const p = plan();
+  const focusId = document.activeElement && document.activeElement.id;
+  const caret = focusId === "prompt" ? [document.activeElement.selectionStart, document.activeElement.selectionEnd] : null;
+  let h = "";
+  if (!p) {
+    h += `<div class="sec"><h3>Target</h3><div class="why">Select a bar range on a track. Drag on a lane with the Range tool, or double-click a clip to take its span.</div></div>`;
+  } else {
+    const tr = p.track;
+    h += `<div class="sec"><h3>Target</h3><div class="target"><b>${esc(tr.name)} · ${barRangeLabel(p.sel.a, p.sel.b)}</b>
+      <span class="mono">${lenLabel(p.L)} · ${fmtS(p.Ls)} · role ${tr.role ? ROLE_NAME[tr.role] : "none"}</span></div></div>`;
+    h += `<div class="sec"><h3>Operation</h3><div class="seg" role="group" aria-label="Operation">`;
+    for (const op of ["generate","regenerate","add"]) {
+      const dis = !p.valid[op];
+      h += `<button data-op="${op}" aria-pressed="${p.op === op}" ${dis ? "disabled" : ""} title="${esc(dis ? (p.reasons[op] || "") : "")}">${OP_NAME[op]}${p.inferred === op ? `<span class="auto">AUTO</span>` : ""}</button>`;
+    }
+    h += `</div>`;
+    if (p.invalid) h += `<div class="why err">${esc(p.invalid)}</div>`;
+    else {
+      h += `<div class="why">${esc(p.op === p.inferred ? p.why : `You picked ${OP_NAME[p.op]} over the inferred ${OP_NAME[p.inferred]}.`)}</div>`;
+      h += `<div class="plan">${planText(p)}</div>`;
+    }
+    h += `</div>`;
+    if (p.op) {
+      h += `<div class="sec"><h3>Prompt</h3><textarea id="prompt" aria-label="Prompt" placeholder="Describe the part: style, instrument, feel">${esc(view.prompt)}</textarea>
+        <div class="recent">${doc.promptHistory.slice(0, 4).map((s, i) => `<button data-hist="${i}" title="${esc(s)}">${esc(s)}</button>`).join("")}</div>
+        <div class="opts">
+          <label>Candidates</label><div class="stepper"><button data-cand="-1" aria-label="Fewer">−</button><span>${view.cands}</span><button data-cand="1" aria-label="More">+</button></div>
+          <label for="seedMode">Seed</label><div class="seedrow"><select id="seedMode"><option value="random" ${view.seedMode === "random" ? "selected" : ""}>Random</option><option value="fixed" ${view.seedMode === "fixed" ? "selected" : ""}>Fixed</option></select><input type="text" id="seedVal" value="${esc(view.seed)}" ${view.seedMode === "fixed" ? "" : "disabled"} aria-label="Seed value"></div>
+          <label for="modelSel">Model</label><select id="modelSel"><option value="${TURBO}" ${p.model === TURBO ? "selected" : ""}>${TURBO}</option><option value="${BASE}" ${p.model === BASE ? "selected" : ""}>${BASE}</option></select>
+        </div>
+        <button class="btn primary go" id="goBtn">${goLabel(p)} <kbd style="color:inherit;border-color:currentColor;opacity:.7">⌘↵</kbd></button></div>`;
+    }
+  }
+  // jobs
+  const visibleJobs = jobs.slice(0, 6);
+  h += `<div class="sec"><h3>Jobs <span class="n">one at a time on this machine</span></h3><div class="jobs">`;
+  if (!visibleJobs.length) h += `<div class="empty">No jobs yet.</div>`;
+  for (const j of visibleJobs) h += jobHtml(j);
+  h += `</div></div>`;
+  // takes
+  const clip = takesClip();
+  h += `<div class="sec"><h3>Takes ${clip ? `<span class="n">${esc(trackById(clip.trackId).name)} · ${barRangeLabel(clip.start, clip.start + clip.len)}</span>` : ""}</h3><div class="takes">`;
+  if (!clip) h += `<div class="empty">Select a range inside a clip to see its takes.</div>`;
+  else if (clip.status !== "generated") h += `<div class="empty">Takes appear here when the job finishes.</div>`;
+  else clip.takes.forEach((t, i) => { h += takeHtml(clip, t, i); });
+  h += `</div></div>`;
+  h += `<div class="foot"><div><span class="dot"></span>ace-server running on loopback · turbo and base models installed</div>
+    <label><input type="checkbox" id="failNext" ${view.failNext ? "checked" : ""}> Fail the next job (to see the error state)</label></div>`;
+  const scroll = panel.scrollTop, open = new Set([...panel.querySelectorAll("details[open]")].map(d => d.dataset.k));
+  panel.innerHTML = h; panel.scrollTop = scroll;
+  for (const d of panel.querySelectorAll("details")) if (open.has(d.dataset.k)) d.open = true;
+  if (focusId) { const el = document.getElementById(focusId); if (el) { el.focus(); if (caret) el.setSelectionRange(caret[0], caret[1]); } }
+}
+function planText(p) {
+  if (!p.op) return "";
+  if (p.op === "generate") {
+    return `Request <b>${fmtS(p.reqS)}</b> (${p.k} × ${fmtS(p.Ls)} + 1 beat, at least 10 s)<br>` +
+      `${p.k} segment${p.k > 1 ? "s" : ""} × ${view.cands} candidate${view.cands > 1 ? "s" : ""} = <b>${p.takes} takes</b><br>` +
+      `Sends ${BPM} BPM, ${doc.key}, 4/4, [Instrumental]`;
+  }
+  const ws = (p.w1 - p.w0) * BEAT_S;
+  if (p.op === "regenerate") {
+    return `Repaint <b>${barRangeLabel(p.sel.a, p.sel.b)}</b> of ${esc(p.clip.takes[p.clip.active].label)}<br>` +
+      `Model hears ${barRangeLabel(p.w0, p.w1)} (${fmtS(ws)}) of this track, dry<br>` +
+      `Outside the range stays bit-identical · 20 ms crossfades<br><b>${p.takes} new take${p.takes > 1 ? "s" : ""}</b>, original kept as a take`;
+  }
+  return `Lego <b>${ROLE_NAME[p.track.role]}</b> over a mix of ${esc(p.others.map(t => t.name).join(" + "))}<br>` +
+    `Model hears ${barRangeLabel(p.w0, p.w1)} (${fmtS(ws)}), places ${barRangeLabel(p.sel.a, p.sel.b)}<br><b>${p.takes} take${p.takes > 1 ? "s" : ""}</b>`;
+}
+function goLabel(p) {
+  if (p.op === "generate") return `Generate ${p.takes} takes`;
+  if (p.op === "regenerate") return `Regenerate ${barRangeLabel(p.sel.a, p.sel.b)}`;
+  return `Add ${ROLE_NAME[p.track.role].toLowerCase()}`;
+}
+function jobHtml(j) {
+  const tr = trackById(j.trackId), est = estimates[j.op + "|" + j.model];
+  let meta = "", prog = "";
+  if (j.state === "running") {
+    const el = (performance.now() - j.runStart) / 1000;
+    meta = est ? `${fmtClock(el)} of about ${fmtClock(est * j.genSec + 0.5)}` : `${fmtClock(el)} elapsed · no estimate yet`;
+    if (est) prog = `<div class="prog"><i data-jprog="${j.id}" style="width:${Math.min(100, el / (est * j.genSec) * 100)}%"></i></div>`;
+  } else if (j.state === "queued") meta = "Waiting for the job ahead";
+  else if (j.state === "rendering") meta = j.op === "regenerate" ? "Rendering a dry bounce of the track" : "Rendering a mix of the other tracks";
+  else if (j.state === "placing") meta = "Writing takes to the clip";
+  else if (j.state === "done") meta = j.lost ? "Clip was removed before the result arrived" : j.orphan ? "Placeholder was removed. Takes are kept here." : `${j.placedCount} take${j.placedCount === 1 ? "" : "s"} placed · seed ${j.seed}`;
+  else if (j.state === "cancelled") meta = "Cancelled";
+  const active = ["rendering","queued","running","placing"].includes(j.state);
+  return `<div class="job"><div class="l1"><span class="st ${j.state}">${j.state}</span><b>${OP_NAME[j.op]} · ${esc(tr.name)} · ${barRangeLabel(j.a, j.b)}</b></div>
+    <div class="acts">${active ? `<button class="btn" data-cancel="${j.id}">Cancel</button>` : ""}${j.state === "failed" ? `<button class="btn" data-retry="${j.id}">Retry</button>` : ""}${j.orphan ? `<button class="btn" data-place="${j.id}">Place takes</button>` : ""}</div>
+    <div class="meta" data-jmeta="${j.id}">${esc(meta)}</div>${prog}${j.err ? `<div class="err">${esc(j.err)}</div>` : ""}</div>`;
+}
+function takeHtml(clip, t, i) {
+  const r = t.rec, drift = r && r.lastBeatErrorMs > 20;
+  const meta = t.baseline && !r ? "baseline before repaint" : `seed ${r.seed} · ${r.offsetMs >= 0 ? "+" : ""}${r.offsetMs} ms`;
+  let rec = "";
+  if (r) {
+    const rows = [["task", r.task], ["model", `${r.model}, ${r.steps} steps`], ["prompt", r.prompt], ["tempo", `${r.bpm} BPM, ${r.sig}, ${r.key}`], ["seed", r.seed],
+      ["target", barRangeLabel(r.target[0], r.target[1])]];
+    if (r.context) rows.push(["context", barRangeLabel(r.context[0], r.context[1])]);
+    if (r.splice) rows.push(["splice", r.splice]);
+    rows.push(["candidate", `${"ABCD"[r.candidateIndex]}, segment ${r.segmentIndex + 1}`], ["grid offset", `${r.offsetMs} ms corrected, confidence ${r.confidence}`],
+      ["tempo ratio", `${r.tempoRatio}, last beat ${r.lastBeatErrorMs} ms off`], ["backend", r.backend]);
+    rec = `<details data-k="${t.id}"><summary>Generation record</summary><dl class="rec">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl></details>`;
+  }
+  return `<div class="take ${clip.active === i ? "active" : ""}">
+    <div class="hd"><button class="pick" data-take="${i}" aria-label="Make ${esc(t.label)} active"></button>
+      <div class="info" data-take="${i}"><b>${esc(t.baseline ? "Original" : t.label)}</b><span class="tag">${r ? r.task : ""}</span>${drift ? `<span class="drift" title="Last beat lands ${r.lastBeatErrorMs} ms off the grid">drifting</span>` : ""}<span class="mono">${esc(meta)}</span></div>
+      <div class="acts">${r ? `<button class="btn ghost icon" data-reroll="${i}" title="Run this take's request again with a new seed" aria-label="Run again"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 8a5 5 0 1 1-1.5-3.5M13 2v3h-3"/></svg></button>` : ""}
+      <button class="btn ghost icon" data-deltake="${i}" ${clip.takes.length < 2 ? "disabled" : ""} title="Delete take" aria-label="Delete take"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>${rec}</div>`;
+}
+function takesClip() {
+  if (view.sel) { const c = clipsOn(view.sel.trackId, view.sel.a, view.sel.b); if (c.length === 1 && c[0].start <= view.sel.a && c[0].start + c[0].len >= view.sel.b) return c[0]; }
+  if (view.selectedClip) return clipById(view.selectedClip) || null;
+  return null;
+}
+function setTake(clip, i) {
+  if (clip.active === i) return;
+  edit("selectTake", () => { clipById(clip.id).active = i; });
+}
+
+// ---------- interactions ----------
+function snapBeat(beat, free) {
+  if (free) return Math.max(0, Math.min(BEATS, Math.round(beat * SPB) / SPB));
+  const q = view.snap === "bar" ? BPB : 1;
+  return Math.max(0, Math.min(BEATS, Math.round(beat / q) * q));
+}
+let drag = null;
+tlInner.addEventListener("pointerdown", e => {
+  const lane = e.target.closest("[data-lane]"); if (!lane || e.button !== 0) return;
+  const rect = lane.getBoundingClientRect(), beat = (e.clientX - rect.left) / ppb;
+  const clipEl = e.target.closest("[data-clipid]");
+  if (view.tool === "select") { view.selectedClip = clipEl ? clipEl.dataset.clipid : null; render(); return; }
+  drag = { trackId: lane.dataset.lane, origin: beat, rect, moved: false, clipId: clipEl && clipEl.dataset.clipid, x0: e.clientX };
+  lane.setPointerCapture(e.pointerId);
+});
+window.addEventListener("pointermove", e => {
+  if (!drag) return;
+  if (Math.abs(e.clientX - drag.x0) < 4 && !drag.moved) return;
+  drag.moved = true;
+  const beat = (e.clientX - drag.rect.left) / ppb;
+  const free = e.altKey, q = view.snap === "bar" ? BPB : 1;
+  let a = Math.min(drag.origin, beat), b = Math.max(drag.origin, beat);
+  a = free ? snapBeat(a, true) : Math.max(0, Math.floor(a / q) * q);
+  b = free ? snapBeat(b, true) : Math.min(BEATS, Math.ceil(b / q) * q);
+  if (b - a < 1 / SPB) b = a + (free ? 1 / SPB : q);
+  view.sel = { trackId: drag.trackId, a, b }; view.op = null; view.selectedClip = null;
+  render();
+});
+window.addEventListener("pointerup", () => {
+  if (!drag) return;
+  if (!drag.moved) {
+    view.selectedClip = drag.clipId || null;
+    if (!drag.clipId) {
+      const q = view.snap === "bar" ? BPB : 1, a = Math.floor(drag.origin / q) * q;
+      view.sel = { trackId: drag.trackId, a, b: Math.min(BEATS, a + q) }; view.op = null;
+    }
+    render();
+  }
+  drag = null;
+});
+tlInner.addEventListener("dblclick", e => {
+  const el = e.target.closest("[data-clipid]"); if (!el) return;
+  const c = clipById(el.dataset.clipid); view.sel = { trackId: c.trackId, a: c.start, b: c.start + c.len }; view.op = null; view.selectedClip = c.id; render();
+});
+tlInner.addEventListener("change", e => {
+  const id = e.target.dataset.role; if (!id) return;
+  edit("role", () => { const t = trackById(id); t.role = e.target.value || null; if (t.role) t.name = ROLE_NAME[t.role]; });
+});
+tlInner.addEventListener("click", e => {
+  const m = e.target.closest("[data-mute]"), s = e.target.closest("[data-solo]");
+  if (m) edit("mute", () => { const t = trackById(m.dataset.mute); t.mute = !t.mute; });
+  if (s) edit("solo", () => { const t = trackById(s.dataset.solo); t.solo = !t.solo; });
+});
+panel.addEventListener("click", e => {
+  const t = e.target.closest("button, .info"); if (!t) return;
+  const d = t.dataset;
+  if (d.op) { view.op = d.op; view.model = null; render(); }
+  else if (d.hist) { view.prompt = doc.promptHistory[+d.hist]; render(); }
+  else if (d.cand) { view.cands = Math.max(1, Math.min(4, view.cands + +d.cand)); render(); }
+  else if (t.id === "goBtn") submit();
+  else if (d.cancel) cancel(jobs.find(j => j.id === d.cancel));
+  else if (d.retry) retry(jobs.find(j => j.id === d.retry));
+  else if (d.place) placeOrphan(jobs.find(j => j.id === d.place));
+  else if (d.take !== undefined) { const c = takesClip(); if (c) setTake(c, +d.take); }
+  else if (d.deltake !== undefined) { const c = takesClip(); if (c && c.takes.length > 1) edit("deleteTake", () => { const cc = clipById(c.id), i = +d.deltake; cc.takes.splice(i, 1); if (cc.active >= i && cc.active > 0) cc.active--; }); }
+  else if (d.reroll !== undefined) { const c = takesClip(); if (c) reroll(c, c.takes[+d.reroll]); }
+});
+panel.addEventListener("input", e => {
+  if (e.target.id === "prompt") view.prompt = e.target.value;
+  if (e.target.id === "seedVal") view.seed = e.target.value;
+});
+panel.addEventListener("change", e => {
+  if (e.target.id === "seedMode") { view.seedMode = e.target.value; render(); }
+  if (e.target.id === "modelSel") { view.model = e.target.value; render(); }
+  if (e.target.id === "failNext") view.failNext = e.target.checked;
+});
+panel.addEventListener("keydown", e => { if (e.target.id === "prompt" && e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } });
+
+$("#toolRange").onclick = () => { view.tool = "range"; render(); };
+$("#toolSel").onclick = () => { view.tool = "select"; render(); };
+$("#snapSel").onchange = e => { view.snap = e.target.value; };
+$("#keySel").onchange = e => { doc.key = e.target.value; toast(`Key set to ${doc.key}. New generations use it.`); };
+$("#undoBtn").onclick = undo; $("#redoBtn").onclick = redo;
+$("#playBtn").onclick = () => togglePlay();
+$("#loopBtn").onclick = () => { view.loop = !view.loop; render(); };
+document.querySelectorAll("[data-scn]").forEach(b => b.onclick = () => {
+  const s = b.dataset.scn;
+  doc.tracks.forEach(t => { t.mute = false; t.solo = false; });
+  if (s === "gen") { view.sel = { trackId: "t3", a: 32, b: 48 }; view.prompt = "warm Rhodes chords, lo-fi, slow swing"; }
+  if (s === "regen") { view.sel = { trackId: "t1", a: 8, b: 16 }; view.prompt = "drum fill, snare rolls, open hats"; }
+  if (s === "add") { view.sel = { trackId: "t2", a: 16, b: 32 }; view.prompt = "round finger bass, minor, laid back"; }
+  view.op = null; view.model = null; view.selectedClip = null; render();
+});
+function syncHeader() {
+  $("#toolRange").setAttribute("aria-pressed", view.tool === "range");
+  $("#toolSel").setAttribute("aria-pressed", view.tool === "select");
+  $("#loopBtn").setAttribute("aria-pressed", view.loop);
+  $("#undoBtn").disabled = !undoStack.length; $("#redoBtn").disabled = !redoStack.length;
+  $("#playBtn").innerHTML = view.playing ? `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3.5" y="3" width="3" height="10"/><rect x="9.5" y="3" width="3" height="10"/></svg>` : `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg>`;
+  $("#keySel").value = doc.key;
+}
+document.addEventListener("keydown", e => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !typing) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (typing) return;
+  if (e.key === " ") { e.preventDefault(); togglePlay(); }
+  else if (e.key === "r" || e.key === "R") { view.tool = "range"; render(); }
+  else if (e.key === "v" || e.key === "V") { view.tool = "select"; render(); }
+  else if (e.key === "l" || e.key === "L") { view.loop = !view.loop; render(); }
+  else if (e.key === "[" || e.key === "]") { const c = takesClip(); if (c && c.status === "generated" && c.takes.length > 1) { const n = c.takes.length; setTake(c, (c.active + (e.key === "]" ? 1 : n - 1)) % n); toast(clipById(c.id).takes[clipById(c.id).active].label); } }
+  else if ((e.key === "Delete" || e.key === "Backspace") && view.selectedClip) { const id = view.selectedClip; edit("deleteClip", () => { doc.clips = doc.clips.filter(c => c.id !== id); }); view.selectedClip = null; render(); }
+  else if (e.key === "Escape") { view.sel = null; view.selectedClip = null; render(); }
+});
+let toastT;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+
+// ---------- audio (simulated takes) ----------
+let ac = null, master = null, noise = null, nextStepTime = 0, curStep = 0, schedTimer = null;
+function ensureAudio() {
+  if (ac) return;
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  master = ac.createGain(); master.gain.value = 0.45; master.connect(ac.destination);
+  noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+}
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+function env(t, a, dec, attack = 0.003) { const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(a, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dec); g.connect(master); return g; }
+function voice(role, s, t) {
+  const ki = keyInfo(doc.key);
+  if (role === "drums" || role === "percussion") {
+    if (s.n === 0) { const o = ac.createOscillator(); o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12); o.connect(env(t, s.a * 0.9, 0.32)); o.start(t); o.stop(t + 0.35); }
+    else { const src = ac.createBufferSource(); src.buffer = noise; const f = ac.createBiquadFilter(); f.type = s.n === 1 ? "bandpass" : "highpass"; f.frequency.value = s.n === 1 ? 1800 : 7500; src.connect(f); f.connect(env(t, s.a * (s.n === 1 ? 0.6 : 0.25), s.n === 1 ? 0.16 : 0.045)); src.start(t); src.stop(t + 0.2); }
+  } else if (role === "bass") {
+    const o = ac.createOscillator(); o.type = "sawtooth"; o.frequency.value = hz(s.n); const f = ac.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 420; o.connect(f); f.connect(env(t, s.a * 0.35, 0.28)); o.start(t); o.stop(t + 0.3);
+  } else if (role === "keyboard") {
+    for (const k of [0, 2, 4]) { const o = ac.createOscillator(); o.type = "triangle"; o.frequency.value = hz(midi(ki, s.n + k, 4)); o.connect(env(t, s.a * 0.09, 0.95, 0.01)); o.start(t); o.stop(t + 1); }
+  } else if (role === "guitar") {
+    const o = ac.createOscillator(); o.type = "square"; o.frequency.value = hz(s.n); const f = ac.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 1600; o.connect(f); f.connect(env(t, s.a * 0.08, 0.32)); o.start(t); o.stop(t + 0.35);
+  } else {
+    for (const det of [-6, 6]) { const o = ac.createOscillator(); o.type = "sawtooth"; o.detune.value = det; o.frequency.value = hz(midi(ki, s.n, 4)); const f = ac.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 1100; o.connect(f); f.connect(env(t, s.a * 0.05, 1.8, 0.08)); o.start(t); o.stop(t + 1.9); }
+  }
+}
+function loopBounds() { return view.loop && view.sel ? [Math.round(view.sel.a * SPB), Math.round(view.sel.b * SPB)] : [0, BEATS * SPB]; }
+function schedule() {
+  while (nextStepTime < ac.currentTime + 0.12) {
+    const [l0, l1] = loopBounds();
+    if (curStep < l0 || curStep >= l1) curStep = l0;
+    const beat = curStep / SPB;
+    for (const tr of doc.tracks) {
+      if (!audible(tr)) continue;
+      const c = clipAt(tr.id, beat); if (!c || !hasAudio(c)) continue;
+      const s = c.takes[c.active].steps[curStep - Math.round(c.start * SPB)];
+      if (s && s.a) voice(tr.role || "synth", s, nextStepTime);
+    }
+    stepTimes.push([nextStepTime, curStep]);
+    nextStepTime += STEP_S; curStep++;
+  }
+}
+let stepTimes = [];
+function togglePlay() {
+  ensureAudio(); if (ac.state === "suspended") ac.resume();
+  view.playing = !view.playing;
+  if (view.playing) {
+    const [l0] = loopBounds(); curStep = l0; nextStepTime = ac.currentTime + 0.05; stepTimes = [];
+    schedTimer = setInterval(schedule, 25); schedule();
+  } else { clearInterval(schedTimer); }
+  render();
+}
+// ---------- frame loop: playhead, job clocks ----------
+function frame() {
+  if (view.playing && ac) {
+    const now = ac.currentTime; while (stepTimes.length > 1 && stepTimes[1][0] <= now) stepTimes.shift();
+    if (stepTimes.length) { const [t0, st] = stepTimes[0]; view.playBeat = (st + Math.max(0, Math.min(1, (now - t0) / STEP_S))) / SPB; }
+    const ph = document.getElementById("playhead"); if (ph) { ph.hidden = false; ph.style.left = ((window.innerWidth <= 860 ? 124 : 168) + view.playBeat * ppb) + "px"; }
+    $("#posReadout").textContent = bbs(Math.floor(view.playBeat * SPB) / SPB);
+  }
+  for (const j of jobs) {
+    if (j.state !== "running") continue;
+    const el = (performance.now() - j.runStart) / 1000, est = estimates[j.op + "|" + j.model];
+    const m = panel.querySelector(`[data-jmeta="${j.id}"]`); if (m) m.textContent = est ? `${fmtClock(el)} of about ${fmtClock(est * j.genSec + 0.5)}` : `${fmtClock(el)} elapsed · no estimate yet`;
+    const pr = panel.querySelector(`[data-jprog="${j.id}"]`); if (pr) pr.style.width = Math.min(100, el / (est * j.genSec) * 100) + "%";
+    const cs = tlInner.querySelector(`[data-cstate="${j.clipId}"]`); if (cs) cs.textContent = `Generating ${fmtClock(el)}`;
+  }
+  requestAnimationFrame(frame);
+}
+try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderTimeline); } catch (e) {}
+new MutationObserver(renderTimeline).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(renderTimeline, 80); });
+render(); requestAnimationFrame(frame);
+})();
+</script>
