@@ -14,6 +14,8 @@ add_executable(realtime-audio-core-test spike/buffered-audio/core_test.cpp)
 target_include_directories(realtime-audio-core-test PRIVATE ../timeline/src)
 target_link_libraries(realtime-audio-core-test PRIVATE Threads::Threads)
 add_test(NAME realtime-audio-core COMMAND realtime-audio-core-test)
+add_executable(realtime-visual-clock-test spike/visual-clock/clock_test.cpp)
+add_test(NAME realtime-visual-clock COMMAND realtime-visual-clock-test)
 
 add_executable(realtime-audio-spike spike/buffered-audio/driver.cpp
   ../timeline/src/audio/miniaudio.cpp)
@@ -33,7 +35,7 @@ elseif(APPLE)
   target_link_libraries(realtime-audio-spike PRIVATE
     "-framework CoreAudio" "-framework AudioToolbox" "-framework CoreFoundation")
 endif()
-foreach(target realtime-audio-core-test realtime-audio-spike realtime-audio-conversion)
+foreach(target realtime-visual-clock-test realtime-audio-core-test realtime-audio-spike realtime-audio-conversion)
   if(MSVC)
     target_compile_options(${target} PRIVATE /W4 /fp:strict)
   else()
@@ -44,5 +46,5 @@ add_test(NAME realtime-audio-null COMMAND realtime-audio-spike --seconds 2 --pro
 add_test(NAME realtime-audio-stall COMMAND realtime-audio-spike --seconds 6 --profile stall)
 add_test(NAME realtime-audio-invalid-duration COMMAND realtime-audio-spike --seconds nan)
 set_tests_properties(realtime-audio-invalid-duration PROPERTIES WILL_FAIL TRUE)
-set_tests_properties(realtime-audio-conversion realtime-audio-core realtime-audio-null realtime-audio-stall
+set_tests_properties(realtime-visual-clock realtime-audio-conversion realtime-audio-core realtime-audio-null realtime-audio-stall
   realtime-audio-invalid-duration realtime-worklet-timing realtime-sync-analysis PROPERTIES TIMEOUT 30)
