@@ -56,8 +56,9 @@ Quick, Qml, QuickControls2, Svg, Network, WebSockets, Multimedia, and Test. If Q
 the system prefix, supply `-DCMAKE_PREFIX_PATH=/path/to/Qt/6.12/gcc_64`.
 
 `npm run node-editor` builds the guest bundle when it is missing, builds the
-editor in `native/node-editor/build`, and starts it with that bundle. Put
-editor arguments after `--`, for example `npm run node-editor -- -- --offline`.
+editor in `native/node-editor/build` (`build-windows` on Windows), and starts
+it with that bundle. Put editor arguments after `--`, for example
+`npm run node-editor -- -- --offline`.
 Add `--rebuild-guest` before them to rebuild a stale guest bundle. When no
 server answers on `http://localhost:7777`, the script starts the development
 server (`npm run dev:server`) there and stops it when the editor quits. The
@@ -74,6 +75,44 @@ cmake --build /tmp/node-editor-build --parallel 6
 /tmp/node-editor-build/nodetool-node-editor --open workflow.json
 ctest --test-dir /tmp/node-editor-build --output-on-failure
 ```
+
+### Windows
+
+Use the Qt MSVC 2022 kit, Visual Studio's C++ workload, and CMake 3.28 or
+newer. The Qt installation must include Multimedia. The
+[graph runner dependencies](../graph-runner/README.md#build) are also required.
+With vcpkg, enable libvips's `cplusplus`, `jpeg`, `png`, and `webp` features.
+Use a shared FFmpeg development distribution and the Windows Wasmtime C API
+distribution, including `wasmtime.dll.lib`.
+
+Set `CMAKE_PREFIX_PATH` to the Qt kit, vcpkg's `installed/x64-windows`, and
+the FFmpeg prefix, separated by semicolons. Set `PKG_CONFIG_EXECUTABLE` to
+the installed pkg-config executable and `WASMTIME_ROOT` to the C API directory.
+Configure once from PowerShell:
+
+```powershell
+cmake -S native/node-editor -B native/node-editor/build-windows `
+  -G "Visual Studio 17 2022" -A x64 `
+  "-DCMAKE_PREFIX_PATH=$env:CMAKE_PREFIX_PATH" `
+  "-DPKG_CONFIG_EXECUTABLE=$env:PKG_CONFIG_EXECUTABLE" `
+  "-DWASMTIME_ROOT=$env:WASMTIME_ROOT"
+npm run node-editor
+```
+
+The launcher reuses the configured CMake executable and generator, builds
+the Release configuration, and starts `Release/nodetool-node-editor.exe`.
+The build deploys Qt DLLs, QML plugins, transitive native DLL dependencies,
+the compiler runtime, and `guest.js` beside the executable. You can open
+`Release/nodetool-node-editor.exe` directly without rebuilding or changing PATH.
+Direct launch does not start the backend; use an existing server or offline mode.
+The launcher adds the configured
+native dependency `bin` directories to its process PATH. Closing the editor
+also stops a development server that this launcher started.
+The launcher and test script also use the configured Qt plugins, including
+the offscreen platform plugin for headless checks.
+
+Local runs accept drive-letter workspace paths. UNC and device-namespace
+paths are refused by the filesystem boundary.
 
 CMake fetches [QtNodes](https://github.com/paceholder/nodeeditor/tree/829b18457d4e95ac17f4fdb01c6201125681729d)
 at immutable revision `829b18457d4e95ac17f4fdb01c6201125681729d`, under

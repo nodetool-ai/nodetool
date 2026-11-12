@@ -144,7 +144,7 @@ void unbindingWaitsForTheCallback(Suite& t) {
   Sync sync;
   // The wake reads the bridge it belongs to, which outlives every thread
   // below.
-  SessionStopBridge bridge([&] {
+  SessionStopBridge bridge([&sync, &bridge] {
     std::unique_lock lock(sync.mutex);
     sync.callbackEntered = true;
     sync.changed.notify_all();

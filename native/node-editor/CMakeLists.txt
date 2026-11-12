@@ -99,6 +99,7 @@ set_target_properties(nodetool-node-editor PROPERTIES MACOSX_BUNDLE ${NT_MACOS_B
 nodetool_stage_graph_runner_runtime(nodetool-node-editor)
 target_link_libraries(nodetool-node-editor PRIVATE node_editor_core)
 nodetool_use_ui_primitives(nodetool-node-editor)
+include(cmake/WindowsRuntime.cmake)
 # The editor's QML as the NodeTool.NodeEditor module, compiled by qmlcachegen.
 # Files load as qrc:/qt/qml/NodeTool/NodeEditor/<File>.qml: the alias drops the
 # qml/ source directory from the resource path.

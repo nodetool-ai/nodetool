@@ -1,6 +1,16 @@
 // node:path for the guest: Node's POSIX path functions. `resolve` starts
 // from the run's working directory, the workspace (`__host.files.cwd()`),
 // or `/` when there is none.
+// On Windows, host paths retain their drive prefix and use forward slashes.
+
+function hostPath(value) {
+  return globalThis.__host?.process?.platform === "win32" ? value.replaceAll("\\", "/") : value;
+}
+
+function rootOf(value) {
+  if (globalThis.__host?.process?.platform === "win32" && /^[a-z]:\//i.test(value)) return value.slice(0, 3);
+  return value.startsWith("/") ? "/" : "";
+}
 
 function cwd() {
   return globalThis.__host?.files?.cwd?.() || "/";
@@ -71,36 +81,38 @@ function check(value, name) {
 
 export function resolve(...args) {
   let resolved = "";
-  let absolute = false;
-  for (let i = args.length - 1; i >= -1 && !absolute; i--) {
-    const path = i >= 0 ? args[i] : cwd();
+  let root = "";
+  for (let i = args.length - 1; i >= -1 && !root; i--) {
+    let path = i >= 0 ? args[i] : cwd();
     check(path, `paths[${i}]`);
+    path = hostPath(path);
     if (path.length === 0) continue;
-    resolved = `${path}/${resolved}`;
-    absolute = path[0] === "/";
+    root = rootOf(path);
+    resolved = `${path.slice(root.length)}/${resolved}`;
   }
-  resolved = normalizeString(resolved, !absolute);
-  if (absolute) return `/${resolved}`;
+  resolved = normalizeString(resolved, !root);
+  if (root) return `${root}${resolved}`;
   return resolved.length > 0 ? resolved : ".";
 }
 
 export function normalize(path) {
   check(path, "path");
+  path = hostPath(path);
   if (path.length === 0) return ".";
-  const absolute = path[0] === "/";
+  const root = rootOf(path);
   const trailing = path[path.length - 1] === "/";
-  let out = normalizeString(path, !absolute);
+  let out = normalizeString(path.slice(root.length), !root);
   if (out.length === 0) {
-    if (absolute) return "/";
+    if (root) return root;
     return trailing ? "./" : ".";
   }
   if (trailing) out += "/";
-  return absolute ? `/${out}` : out;
+  return root ? `${root}${out}` : out;
 }
 
 export function isAbsolute(path) {
   check(path, "path");
-  return path.length > 0 && path[0] === "/";
+  return Boolean(rootOf(hostPath(path)));
 }
 
 export function join(...args) {
@@ -120,8 +132,9 @@ export function relative(from, to) {
   from = resolve(from);
   to = resolve(to);
   if (from === to) return "";
-  const fromParts = from === "/" ? [] : from.slice(1).split("/");
-  const toParts = to === "/" ? [] : to.slice(1).split("/");
+  if (rootOf(from).toLowerCase() !== rootOf(to).toLowerCase()) return to;
+  const fromParts = from.slice(rootOf(from).length).split("/").filter(Boolean);
+  const toParts = to.slice(rootOf(to).length).split("/").filter(Boolean);
   let i = 0;
   while (i < fromParts.length && i < toParts.length && fromParts[i] === toParts[i]) i++;
   return [...fromParts.slice(i).map(() => ".."), ...toParts.slice(i)].join("/");
@@ -129,11 +142,12 @@ export function relative(from, to) {
 
 export function dirname(path) {
   check(path, "path");
+  path = hostPath(path);
   if (path.length === 0) return ".";
-  const hasRoot = path[0] === "/";
+  const root = rootOf(path);
   let end = -1;
   let matchedSlash = true;
-  for (let i = path.length - 1; i >= 1; --i) {
+  for (let i = path.length - 1; i >= Math.max(1, root.length); --i) {
     if (path[i] === "/") {
       if (!matchedSlash) {
         end = i;
@@ -143,13 +157,15 @@ export function dirname(path) {
       matchedSlash = false;
     }
   }
-  if (end === -1) return hasRoot ? "/" : ".";
-  if (hasRoot && end === 1) return "//";
+  if (end === -1) return root || ".";
+  if (root === "/" && end === 1) return "//";
   return path.slice(0, end);
 }
 
 export function basename(path, suffix) {
   check(path, "path");
+  path = hostPath(path);
+  if (path === rootOf(path)) return "";
   let end = path.length;
   while (end > 0 && path[end - 1] === "/") end--;
   let start = path.lastIndexOf("/", end - 1) + 1;
@@ -170,7 +186,8 @@ export function extname(path) {
 
 export function parse(path) {
   check(path, "path");
-  const root = path[0] === "/" ? "/" : "";
+  path = hostPath(path);
+  const root = rootOf(path);
   const base = basename(path);
   const ext = extname(path);
   let dir = dirname(path);

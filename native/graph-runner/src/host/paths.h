@@ -42,11 +42,16 @@ public:
 // FsError for the current errno.
 [[noreturn]] void throwErrno(int err, const std::string& syscall, const std::string& path);
 
-// Collapses `//`, `.` and `..` in an absolute POSIX path. `..` never climbs
-// above `/`.
+// Normalizes an absolute host path without climbing above its filesystem root.
+// Windows paths use forward slashes and retain their drive prefix.
 std::string lexicalNormalize(const std::string& absolute);
 
-// Whether `path` is `dir` or below it. Both are normalized absolute paths.
+// The directory containing the absolute host path `path`. A parent that is a
+// filesystem root keeps its separator ("/", "C:/"), because Windows reads a
+// bare drive ("C:") as that drive's current directory.
+std::string parentOf(const std::string& path);
+
+// Whether `path` is `dir` or below it. Both are canonical absolute paths.
 bool isWithin(const std::string& dir, const std::string& path);
 
 enum class Access {

@@ -20,6 +20,20 @@ function(nodetool_stage_graph_runner_runtime target)
         -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/stage-media-runtime.cmake"
       VERBATIM)
   endif()
+  if(WIN32)
+    get_target_property(media_names gr_kernel GR_MEDIA_RUNTIME_NAMES)
+    get_target_property(media_directories gr_kernel GR_MEDIA_RUNTIME_DIRECTORIES)
+    get_filename_component(compiler_directory "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    find_program(GR_DUMPBIN dumpbin HINTS "${compiler_directory}" REQUIRED)
+    add_custom_command(TARGET "${target}" POST_BUILD
+      COMMAND "${CMAKE_COMMAND}"
+        "-DGR_MEDIA_RUNTIME_NAMES=${media_names}"
+        "-DGR_MEDIA_RUNTIME_DIRECTORIES=${media_directories}"
+        "-DGR_RUNTIME_DIRECTORY=$<TARGET_FILE_DIR:${target}>"
+        "-DGR_DUMPBIN=${GR_DUMPBIN}"
+        -P "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/stage-media-runtime-windows.cmake"
+      VERBATIM)
+  endif()
   if(APPLE)
     set_property(TARGET "${target}" APPEND PROPERTY BUILD_RPATH "@loader_path")
     set_property(TARGET "${target}" APPEND PROPERTY INSTALL_RPATH "@loader_path")
