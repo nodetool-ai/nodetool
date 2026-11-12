@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { goldenOutputBase, psnr, psnrYuv, requireFrames, requireFixtureCoverage, root, run, scratchBase } from './check-export.mjs';
+import { goldenOutputBase, psnr, psnrYuv, requireFrames, requireFixtureCoverage, root, run, scratchBase, shardOf } from './check-export.mjs';
 const dir = fs.mkdtempSync(path.join(scratchBase, 'nt-export-checks-'));
 try {
   const build = path.join(root, 'build');
@@ -35,6 +35,15 @@ try {
   requireFixtureCoverage(['compared.json'], covered);
   requireFixtureCoverage(['compared.json', 'video-rejections.json'], covered, ['video-rejections.json']);
   console.log('Planted missing fixture rejected; empty fixture set and unlisted exclusions rejected');
+  const names = ['a.json', 'b.json', 'c.json', 'd.json', 'e.json'];
+  assert.deepEqual(shardOf(names, null), names);
+  assert.deepEqual(shardOf(names, '2/2'), ['b.json', 'd.json']);
+  const shards = [1, 2, 3, 4].map(k => shardOf(names, `${k}/4`));
+  assert.deepEqual(shards.flat().sort(), names, 'The golden shards together hold every fixture once');
+  assert.throws(() => shardOf(names, '0/4'), /out of range/);
+  assert.throws(() => shardOf(names, '5/4'), /out of range/);
+  assert.throws(() => shardOf(names, 'two'), /needs k\/n/);
+  console.log('Golden shards cover every fixture exactly once; bad shard specs rejected');
   const keys = ['QT_QPA_PLATFORM', 'QSG_RHI_BACKEND', 'QT_QUICK_BACKEND'];
   const inherited = JSON.parse(run(process.execPath, ['-e',
     `process.stdout.write(JSON.stringify(${JSON.stringify(keys)}.map(key => process.env[key] ?? null)))`]).stdout);

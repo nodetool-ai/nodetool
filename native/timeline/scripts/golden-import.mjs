@@ -7,8 +7,9 @@
 // the script:
 //   1. validates the fixture with the protocol's Zod schema,
 //   2. imports each clip's `mediaPath` file as an asset into a scratch store
-//      (build/golden/store: its own SQLite file and asset folder, so the
-//      user's NodeTool data is never touched),
+//      (a folder of its own under build/golden/store: its own SQLite file and
+//      asset folder, so the user's NodeTool data and other runs are never
+//      touched),
 //   It deletes only folders it created (they hold a marker file), and it
 //   refuses an --out that overlaps the NodeTool data, asset or database
 //   folder, the fixture folder, the sources (outside build/), or the repo.
@@ -95,16 +96,28 @@ for (const [label, protectedPath] of protectedPaths) {
 }
 if (overlaps(args.out, store)) fail(`--out ${args.out} overlaps the scratch store ${store}`);
 
-claimRunDir(store);
+// Each run imports into its own folder under the store, so runs side by side
+// (ctest -j) never clear each other's database and assets. It goes at exit.
+fs.mkdirSync(store, { recursive: true });
+const runStore = fs.mkdtempSync(path.join(store, "run-"));
+fs.writeFileSync(path.join(runStore, OWNED_MARKER), "golden-import run folder\n");
+process.on("exit", () => {
+  try {
+    fs.rmSync(runStore, { recursive: true, force: true });
+  } catch (error) {
+    // Windows refuses to delete a database file another handle still holds.
+    console.error(`golden-import: could not remove ${runStore}: ${error.message}`);
+  }
+});
 claimRunDir(args.out);
 // Set before any NodeTool package reads its paths.
-const storeEnv = { DB_PATH: path.join(store, "nodetool.sqlite3"), ASSET_FOLDER: path.join(store, "assets") };
+const storeEnv = { DB_PATH: path.join(runStore, "nodetool.sqlite3"), ASSET_FOLDER: path.join(runStore, "assets") };
 Object.assign(process.env, storeEnv);
 
 const { timelineSequenceResponse } = await import("@nodetool-ai/protocol/api-schemas/timeline.js");
 const { getAssetFileName } = await import("@nodetool-ai/protocol");
 const { assetObjectKey } = await import("@nodetool-ai/storage");
-const { initDb, migrateSqliteDb, Asset } = await import("@nodetool-ai/models");
+const { initDb, closeDb, migrateSqliteDb, Asset } = await import("@nodetool-ai/models");
 
 const doc = JSON.parse(fs.readFileSync(args.fixture, "utf8"));
 const parsed = timelineSequenceResponse.safeParse(doc);
@@ -143,6 +156,8 @@ for (const clip of doc.clips) {
   imported.push({ clipId: clip.id, assetId: asset.id, file: path.relative(repoRoot, file) });
 }
 if (imported.length === 0) fail(`${args.fixture} has no clip with a mediaPath to import`);
+// The render opens the store itself. Closed here, the run store can go at exit on Windows too.
+await closeDb();
 
 const copy = path.join(args.out, `${path.basename(args.fixture, ".json")}.imported.json`);
 fs.writeFileSync(copy, `${JSON.stringify(doc, null, 2)}\n`);
