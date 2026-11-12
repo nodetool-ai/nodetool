@@ -89,7 +89,7 @@ public:
         double sampleRate = 0.0;
         double outputLatencySec = 0.0;
         std::uint64_t generation = 0;
-        // Mix snapshots allocated for seeks and timeline edits.
+        // Mix snapshots allocated for seeks, timeline edits and loop wraps.
         std::int64_t sessions = 0;
         // Mix plans built by setTimeline, and worker loop iterations.
         std::int64_t planBuilds = 0;

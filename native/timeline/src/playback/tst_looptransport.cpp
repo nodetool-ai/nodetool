@@ -493,6 +493,67 @@ private slots:
         QVERIFY(lowest >= 1000.0 && highest <= 3000.0);
     }
 
+    // MR6: the callback reads two sessions, so a mistake in the hazard slots
+    // is a use-after-free on the real-time thread. Short loops at 25 times
+    // real time, with edits, seeks and range changes, exercise every path
+    // that replaces or withdraws a wrap session while the callback may claim
+    // it. The sanitizer builds of this test are the check: misses may occur
+    // here and fall back to the seek, but nothing may crash or race.
+    void editsSeeksAndRangesDuringLoops() {
+        const auto base = mixTimeline();
+        auto other = std::make_shared<Timeline>(*base);
+        other->clips[0].mediaPath = NT_FIXTURES_DIR "/media/tone-440-48k-mono.wav";
+        other->clips[1].volumeDb = -12;
+        AudioEngine engine;
+        engine.setTimeline(base);
+        AudioEngine::Options options;
+        options.backend = AudioEngine::Backend::Manual;
+        options.sampleRate = static_cast<int>(kRate);
+        options.periodFrames = kPeriod;
+        std::string error;
+        QVERIFY2(engine.start(options, &error), error.c_str());
+        const std::int64_t t0 = 1'000'000'000;
+        std::int64_t now = t0;
+        PlaybackClock clock;
+        clock.setNowSource([&now] { return now; });
+        clock.setDurationMs(8000);
+        clock.setRangeIn(1000);
+        clock.setRangeOut(1250);
+        clock.setLoop(true);
+        clock.setAudioFeed(&engine.feed());
+        clock.seek(1000);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        clock.play();
+        std::vector<float> block(kPeriod * 2);
+        std::int64_t nextTickNs = t0;
+        const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(4);
+        std::int64_t frame = 0;
+        int n = 0;
+        while (std::chrono::steady_clock::now() < until) {
+            const std::int64_t blockNs = t0 + static_cast<std::int64_t>(static_cast<double>(frame) / kRate * 1e9);
+            while (nextTickNs < blockNs) {
+                now = nextTickNs;
+                clock.tick();
+                nextTickNs += static_cast<std::int64_t>(1e9 / 60.0);
+            }
+            now = blockNs;
+            engine.renderManual(block, blockNs);
+            frame += kPeriod;
+            ++n;
+            if (n % 7 == 0) engine.setTimelineAsync(n % 14 == 0 ? base : other);
+            if (n % 131 == 0) clock.seek(1000 + (n % 200));
+            if (n % 293 == 0) clock.setRangeOut(n % 586 == 0 ? 1250 : 1180);
+            std::this_thread::sleep_for(std::chrono::microseconds(400));
+        }
+        const AudioEngine::Stats s = engine.stats();
+        clock.setAudioFeed(nullptr);
+        engine.stop();
+        qInfo("%d blocks: wraps %lld, misses %lld, sessions %lld", n, static_cast<long long>(s.loopWraps),
+              static_cast<long long>(s.loopMisses), static_cast<long long>(s.sessions));
+        QVERIFY(s.loopWraps > 20);
+        QVERIFY(clock.time() >= 1000.0 && clock.time() <= 1250.0);
+    }
+
     // The loop range goes to the device only at rate 1 with the device as the
     // clock. Shuttle rates and reverse play keep today's seek.
     void loopRangeOnlyAtRateOne() {
