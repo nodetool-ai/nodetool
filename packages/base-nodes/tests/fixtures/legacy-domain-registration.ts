@@ -21898,6 +21898,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: []
       },
       {
+        name: 'end_image',
+        type: { type: 'image', type_args: [] },
+        required: false,
+        title: 'End Image',
+        description: 'Optional frame the clip ends on. The run fails on a model that takes no last frame.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'image',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
         name: 'model',
         type: {
           type: 'video_model',
@@ -48238,6 +48256,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         }
       },
       {
+        name: 'end_image',
+        type: { type: 'image', type_args: [] },
+        required: false,
+        title: 'End Image',
+        description: 'Optional frame the video ends on. Veo interpolates between the two frames in an 8-second clip.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'image',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
         name: 'prompt',
         type: { type: 'str', type_args: [] },
         required: false,
@@ -48970,6 +49006,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         required: false,
         title: 'Image',
         description: 'The image to animate into a video',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'image',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
+        name: 'end_image',
+        type: { type: 'image', type_args: [] },
+        required: false,
+        title: 'End Image',
+        description: 'Optional frame the video ends on. Veo interpolates between the two frames in an 8-second clip.',
         min: undefined,
         max: undefined,
         values: undefined,
