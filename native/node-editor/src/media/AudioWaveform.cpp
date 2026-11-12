@@ -8,7 +8,7 @@
 #include <cmath>
 namespace nodetool::node_editor {
 namespace {
-// Pool thread only. The file, read buffer and peaks belong to this call.
+// Worker thread only. The file, read buffer and peaks belong to this call.
 std::optional<WaveformEnvelope> pcmWavEnvelope(const QUrl &source, std::stop_token stopped) {
   if (!source.isLocalFile()) { return std::nullopt; }
   QFile file(source.toLocalFile());

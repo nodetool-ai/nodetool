@@ -16,7 +16,7 @@ struct WaveformEnvelope {
   std::vector<float> peaks;
   qint64 bucketMilliseconds = 20;
 };
-// UI thread only. PCM envelope computation owns its file and buffers on a pool thread.
+// UI thread only. PCM envelope computation owns its file and buffers on a worker thread.
 class AudioWaveform : public QQuickPaintedItem {
   Q_OBJECT
   Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)

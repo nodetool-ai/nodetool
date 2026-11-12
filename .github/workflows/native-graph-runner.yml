@@ -202,14 +202,18 @@ jobs:
           if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
             sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           fi
-          node parity/run.mjs --runner build/nodetool-graph-runner --only nodetool.audio.realtime.Streaming --check
+          node parity/run.mjs --runner build/nodetool-graph-runner \
+            --modules @nodetool-ai/core-nodes/nodes/constant,@nodetool-ai/audio-nodes/nodes/realtime-audio \
+            --only nodetool.audio.realtime.Streaming --check 2>&1 | tee build/audio-parity.log
 
       - name: Save Linux signal-effect parity results
         if: ${{ !cancelled() && matrix.name == 'Release' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: audio-signal-parity
-          path: native/graph-runner/build/parity/result.json
+          path: |
+            native/graph-runner/build/parity/result.json
+            native/graph-runner/build/audio-parity.log
           if-no-files-found: error
 
       # A pull request runs only the tests that depend on its changed files:
@@ -247,7 +251,7 @@ jobs:
         uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4
         with:
           version: '6.12.0'
-          modules: 'qtmultimedia qtsvg qtwebsockets qtshadertools'
+          modules: 'qtmultimedia qtwebsockets qtshadertools'
           cache: false
 
       - name: Build and test the audio examples in the editor
