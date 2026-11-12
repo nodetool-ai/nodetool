@@ -471,9 +471,9 @@ A music project starts the system backend with `Options::sampleRate = 48000` in 
 
 A plan with effects or automation keeps its DSP state in the plan, and a third `mixBlock` call at another time would advance that state, so such a plan wraps with a cut and no fade. Track and master effects then run on across the wrap, and clip effects reset as they do on a seek.
 
-`PlaybackClock` stops issuing its own seek at the range end while the engine loops. If the wrap session is not primed in time, the callback counts a `loopMisses` stat and the clock falls back to today's seek. An edit during a loop rebuilds the wrap session as it rebuilds the current one. Shuttle rates and reverse play keep today's seek.
+`PlaybackClock` stops issuing its own seek at the range end while the engine loops. If the wrap session is not primed in time, or the playhead is already past the loop end when the range arrives, the callback counts a `loopMisses` stat once for that pass and the clock falls back to today's seek. An edit during a loop rebuilds the wrap session as it rebuilds the current one. Shuttle rates and reverse play keep today's seek.
 
-`mixBlock`, `PcmRing` and the offline render do not change, so the oracle tests that hold the mixer to the web's rules stay valid. The loop length is a whole number of frames by MD8.
+`mixBlock`, `PcmRing` and the offline render do not change, so the oracle tests that hold the mixer to the web's rules stay valid. On the grid the loop length is a whole number of frames by MD8. A range placed with Alt, or a device at another rate, gives a loop with a fractional number of frames. The callback wraps at the first frame at or past the loop end, also when the end falls inside the last frame of a block, so each pass lasts the loop length rounded up to a whole frame.
 
 Ownership and threads, as [`/native/AGENTS.md`](../../AGENTS.md) rule 16 asks: the wrap session is a `std::unique_ptr<Session>` in the worker's session list, like every session. The callback reads it through a second hazard slot beside `inUse`, and the worker frees a session only when neither slot names it. The scratch buffer is a fixed array inside `AudioEngine::Impl`, sized at `start()`, and only the callback touches it. No new lock, allocation or decode enters the callback.
 

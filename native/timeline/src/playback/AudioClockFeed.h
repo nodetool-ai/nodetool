@@ -13,6 +13,7 @@
 // The callback side of the protocol is `CallbackClockDriver`, which the real
 // device callback and the fake device of the tests both run.
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -241,13 +242,18 @@ public:
         m_wrapMissed = false;
         if (!m_seekPending && m_cur.playing && m_cur.rate == 1.0 && !m_cur.keepPitch && cmd.loopEndMs > cmd.loopStartMs &&
             cmd.loopStartMs >= 0.0) {
-            // Frame i of this block carries t0 + i frames. The frames before
-            // the loop end play from the current PCM. The 1e-6 frame
-            // tolerance absorbs the rounding of a whole-frame loop length.
+            // Frame i of this block carries t0 + i frames. The wrap comes at
+            // the first frame at or past the loop end, and the frames before
+            // it play from the current PCM. The 1e-6 frame tolerance absorbs
+            // the rounding of a whole-frame loop length. An end less than one
+            // frame behind the block start lay inside the last frame of the
+            // block before, which had no frame at or past it: this block
+            // wraps at its frame 0. An end further behind that this pass has
+            // not wrapped at is a miss.
             const double t0 = timelineAt(m_cur, m_framesRendered, sampleRate);
             const double toEnd = (cmd.loopEndMs - t0) * sampleRate / 1000.0;
-            const double wrapAt = std::ceil(toEnd - 1e-6);
-            if (toEnd > -1e-6 && wrapAt < static_cast<double>(frames)) {
+            const double wrapAt = std::max(0.0, std::ceil(toEnd - 1e-6));
+            if (toEnd - 1e-6 > -1.0 && wrapAt < static_cast<double>(frames)) {
                 if (wrapReady(m_cur.seekSeq, cmd.loopStartMs)) {
                     AudioAnchor next = m_cur;
                     next.frame = m_framesRendered + static_cast<std::int64_t>(wrapAt);
@@ -257,7 +263,11 @@ public:
                     m_wrapOffset = static_cast<std::int64_t>(wrapAt);
                 } else {
                     m_wrapMissed = true;
+                    m_passEnded = true;
                 }
+            } else if (toEnd - 1e-6 <= -1.0 && !m_passEnded) {
+                m_wrapMissed = true;
+                m_passEnded = true;
             }
         }
         CallbackState st;
@@ -274,7 +284,8 @@ public:
     // The frame of the last block at which it wrapped to the loop start, or
     // -1 when it did not.
     std::int64_t wrapOffset() const { return m_wrapOffset; }
-    // The last block reached the loop end with no wrap PCM ready.
+    // The last block reached the loop end with no wrap PCM ready, or found
+    // the end already behind it with no wrap. Once per pass.
     bool wrapMissed() const { return m_wrapMissed; }
     // The command the last block ran with.
     const TransportCommand& command() const { return m_lastCommand; }
@@ -301,6 +312,7 @@ private:
         }
         m_anchors[m_anchorCount++] = next;
         m_cur = next;
+        m_passEnded = false;
     }
 
     AudioClockFeed& m_feed;
@@ -316,6 +328,9 @@ private:
     bool m_seekPending = false;
     std::int64_t m_wrapOffset = -1;
     bool m_wrapMissed = false;
+    // The current anchor reached the loop end with no wrap, and that miss
+    // was reported. A new anchor (a wrap, a seek, any command) clears it.
+    bool m_passEnded = false;
 };
 
 }  // namespace nt::playback

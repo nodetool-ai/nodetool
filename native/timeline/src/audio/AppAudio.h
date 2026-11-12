@@ -21,10 +21,13 @@
 #include "audio/AudioEngine.h"
 
 #include <QMetaObject>
+#include <QObject>
 #include <QString>
 #include <QTimer>
 
+#include <functional>
 #include <memory>
+#include <string>
 
 class PlaybackClock;
 class TimelineModel;
@@ -62,12 +65,19 @@ public:
     // rate (the default). Set it before start(), or while the system backend
     // runs: a different rate then restarts the engine, and the clock moves to
     // the new device as it does after a reroute. Other modes ignore it.
+    // When the device does not open at `hz`, the engine reopens at the rate
+    // it ran at, then at the device's own rate, and this returns false with
+    // `error` set. With no engine left, the next call opens one again.
     bool setSystemRate(int hz, QString* error = nullptr);
     int systemRate() const { return m_systemRate; }
     // Set before start(): the system rate follows engineRateFor() of each
     // document the model loads.
     void setFollowDocumentRate(bool follow) { m_followDocumentRate = follow; }
     AudioEngine* engine() { return m_engine.get(); }
+    // Tests only: runs in place of AudioEngine::start, so a check can open
+    // the null device for the system backend or fail an open.
+    using EngineStarter = std::function<bool(AudioEngine&, const AudioEngine::Options&, std::string*)>;
+    void setEngineStarterForTest(EngineStarter starter) { m_startEngine = std::move(starter); }
 
 private:
     bool openEngine(QString* error);
@@ -88,6 +98,10 @@ private:
     QMetaObject::Connection m_connections[2];
     std::unique_ptr<QTimer> m_timer;
     std::uint64_t m_appliedRevision = 0;
+    EngineStarter m_startEngine;
+    // The context of m_documentConnection. Declared last, so it is destroyed
+    // first and the connection ends before the members its slot uses.
+    QObject m_documentContext;
 };
 
 }  // namespace nt::audio
