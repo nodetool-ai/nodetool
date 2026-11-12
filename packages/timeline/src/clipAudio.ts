@@ -11,7 +11,9 @@ import type { TimelineClip, TimelineTrack } from "./types.js";
  * regeneration keeps the previous `currentAssetId` on the clip, and that asset
  * is neither drawn nor heard.
  */
-export function effectiveAssetId(clip: TimelineClip): string | undefined {
+export function effectiveAssetId(
+  clip: Pick<TimelineClip, "currentAssetId"> & { status?: TimelineClip["status"] }
+): string | undefined {
   switch (clip.status) {
     case "generated":
     case "stale":

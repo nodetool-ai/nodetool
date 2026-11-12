@@ -24,6 +24,7 @@ import {
   type MusicGenerationRequest
 } from "@nodetool-ai/protocol";
 import { MUSIC_TASKS } from "@nodetool-ai/protocol/api-schemas/timeline.js";
+import { effectiveAssetId } from "../clipAudio.js";
 import { sourceRate } from "../sourceRate.js";
 import type {
   MusicKey,
@@ -72,7 +73,10 @@ export type MusicPlanTrack = Pick<TimelineTrack, "id" | "type"> &
 
 export type MusicPlanClip = Pick<TimelineClip, "id" | "trackId" | "startMs" | "durationMs" | "mediaType"> &
   Partial<
-    Pick<TimelineClip, "inPointMs" | "muted" | "speedMultiplier" | "speedBaked" | "timeRemap" | "currentAssetId">
+    Pick<
+      TimelineClip,
+      "inPointMs" | "muted" | "speedMultiplier" | "speedBaked" | "timeRemap" | "currentAssetId" | "status"
+    >
   >;
 
 export interface MusicPlanInput {
@@ -318,8 +322,10 @@ export function planMusicOperation(input: MusicPlanInput): MusicPlan {
   const target: MusicFrameRange = { startFrame: selection.startFrame, endFrame: selection.endFrame };
   const tracksById = new Map(input.tracks.map((t) => [t.id, t]));
   const anySolo = input.tracks.some((t) => (t.type === "audio" || t.type === "midi") && t.solo === true);
+  // The mixer's rule for a clip that sounds (renderAudio.ts, native Mixer.cpp): an
+  // audio clip with an asset in a playable status, on an audible audio or midi track.
   const audibleTrack = (t: MusicPlanTrack | undefined): boolean =>
-    t !== undefined && t.muted !== true && (!anySolo || t.solo === true);
+    t !== undefined && (t.type === "audio" || t.type === "midi") && t.muted !== true && (!anySolo || t.solo === true);
   const audio: FrameClip[] = input.clips
     .filter((c) => c.mediaType === "audio")
     .map((clip) => {
@@ -329,7 +335,11 @@ export function planMusicOperation(input: MusicPlanInput): MusicPlan {
   const onTrackAll = audio.filter((c) => c.clip.trackId === track.id);
   const overlapping = onTrackAll.filter((c) => overlaps(c, target.startFrame, target.endFrame));
   const others = audio.filter(
-    (c) => c.clip.trackId !== track.id && c.clip.muted !== true && audibleTrack(tracksById.get(c.clip.trackId))
+    (c) =>
+      c.clip.trackId !== track.id &&
+      c.clip.muted !== true &&
+      effectiveAssetId(c.clip) !== undefined &&
+      audibleTrack(tracksById.get(c.clip.trackId))
   );
   const othersInRange = others.some((c) => overlaps(c, target.startFrame, target.endFrame));
 
