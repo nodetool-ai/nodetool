@@ -47,7 +47,9 @@ Item {
     readonly property color accent: TimelineVisuals.clipAccent(mediaType)
     // The clip's colour label: a CSS colour, or empty.
     readonly property string clipLabel: clipData.labelColor ?? ""
-    readonly property int radius: Ui.Metrics.radiusControl
+    readonly property int radius: 1
+    readonly property color fill: clipLabel !== "" ? clipLabel : TimelineVisuals.clipFill(mediaType)
+    readonly property bool hasEffects: (clipData.effects || []).length > 0
     // COMPACT_THRESHOLD_PX, MIN_TRIM_HANDLE_CLIP_WIDTH_PX (8 * 2 + 12)
     readonly property bool showDuration: width >= 96
     readonly property bool showTrimHandles: width >= 28
@@ -72,28 +74,23 @@ Item {
 
     opacity: disabled ? 0.4 : 1     // DISABLED_CLIP_OPACITY
 
-    // background.paper with the type tint over it.
-    Rectangle {
-        anchors.fill: parent
-        radius: body.radius
-        color: Ui.Theme.surfacePanel
-    }
+    // The solid label fill, lighter when selected.
     Rectangle {
         objectName: "clipTint"
         anchors.fill: parent
         radius: body.radius
-        color: body.clipLabel !== "" ? Qt.alpha(body.clipLabel, 0.35) : TimelineVisuals.clipSurfaceTint(body.mediaType)
+        color: body.selected ? Qt.lighter(body.fill, 1.18) : body.fill
     }
 
-    // The filmstrip (video) or the picture (image): inset 6 px, under the
-    // 20 px header, rounded 2 px.
+    // The filmstrip (video) or the picture (image): edge to edge under the
+    // 16 px name band.
     Loader {
         active: body.mediaSource !== "" && (body.mediaType === "video" || body.mediaType === "overlay"
                                             || body.mediaType === "image")
-        x: 6
-        y: 20
-        width: Math.max(0, body.width - 12)
-        height: Math.max(0, body.height - 26)
+        x: 1
+        y: headerRow.height
+        width: Math.max(0, body.width - 2)
+        height: Math.max(0, body.height - headerRow.height - 1)
         sourceComponent: FilmstripItem {
             objectName: "filmstrip"
             source: body.mediaSource
@@ -102,20 +99,22 @@ Item {
             outPointMs: body.sourceOutMs
             clipWidthPx: body.width
             stripeColor: Ui.Theme.actionPressed
-            contentX: body.contentX + 6
+            contentX: body.contentX + 1
             viewState: body.viewState
         }
     }
-    // The waveform: the whole body, the clip's in-point plus its duration.
+    // The waveform under the name band, the clip's in-point plus its duration.
     Loader {
         active: body.mediaSource !== "" && body.mediaType === "audio"
-        anchors.fill: parent
+        y: headerRow.height
+        width: body.width
+        height: Math.max(0, body.height - headerRow.height)
         sourceComponent: WaveformItem {
             objectName: "waveform"
             source: body.mediaSource
             inPointMs: body.inPointMs
             outPointMs: body.inPointMs + body.durationMs
-            color: Ui.Theme.statusSuccess
+            color: TimelineVisuals.audioWave
             contentX: body.contentX
             viewState: body.viewState
         }
@@ -300,40 +299,49 @@ Item {
         }
     }
 
-    // Header strip: type dot, name, duration. 18 px, padding 0 8, gap 6.
+    // Name band: the fx badge, the name, the duration. 16 px, dark text on the fill.
     Item {
         id: headerRow
         width: parent.width
-        height: 18
+        height: 16
         clip: true
         Rectangle {
             id: dot
-            x: Ui.Metrics.md
+            objectName: "clipFxBadge"
+            x: Ui.Metrics.xs
             anchors.verticalCenter: parent.verticalCenter
-            width: 6
-            height: 6
-            radius: 3
-            color: body.accent
+            width: fxText.implicitWidth + 2 * Ui.Metrics.micro
+            height: 11
+            radius: 1
+            color: body.hasEffects ? TimelineVisuals.fxBadge : "transparent"
             border.width: 1
-            border.color: Ui.Theme.scrimModal
+            border.color: TimelineVisuals.clipText
+            Ui.Text {
+                id: fxText
+                anchors.centerIn: parent
+                text: "fx"
+                role: Ui.Typography.MonoCaption
+                domainColor: TimelineVisuals.clipText
+            }
         }
         Ui.Text {
             id: nameText
-            x: dot.x + dot.width + Ui.Metrics.sm
+            x: dot.x + dot.width + Ui.Metrics.xs
             anchors.verticalCenter: parent.verticalCenter
             width: Math.max(0, (body.showDuration ? durationText.x - Ui.Metrics.sm : headerRow.width - Ui.Metrics.md) - x)
             text: body.name
             role: Ui.Typography.SansCaption
+            domainColor: TimelineVisuals.clipText
             elide: Text.ElideRight
         }
         Ui.Text {
             id: durationText
             visible: body.showDuration
-            x: headerRow.width - Ui.Metrics.md - implicitWidth
+            x: headerRow.width - Ui.Metrics.sm - implicitWidth
             anchors.verticalCenter: parent.verticalCenter
             text: TimelineFormat.clipDuration(body.durationMs)
             role: Ui.Typography.MonoCaption
-            tone: Ui.Text.Secondary
+            domainColor: Qt.alpha(TimelineVisuals.clipText, 0.7)
         }
     }
 
@@ -345,7 +353,7 @@ Item {
             x: index === 0 ? 0 : body.width - width
             width: 8                                     // TRIM_HANDLE_WIDTH_PX
             height: body.height
-            color: Ui.Theme.actionPressed
+            color: Qt.alpha(TimelineVisuals.clipText, 0.3)
             opacity: body.selected || body.hovered ? 1 : 0
         }
     }
@@ -357,7 +365,7 @@ Item {
         sourceComponent: Ui.Icon {
             name: "lock"
             size: Ui.Metrics.iconXs
-            tone: Ui.Text.Primary
+            domainColor: TimelineVisuals.clipText
             opacity: 0.85
         }
     }
@@ -370,12 +378,12 @@ Item {
                            gestures: body.gestures, viewState: body.viewState })
     }
 
-    // The border on top: 1 px tint, or 1.5 px secondary when selected.
+    // The border on top: 1 px darker fill, or 1.5 px white when selected.
     Rectangle {
         anchors.fill: parent
         radius: body.radius
         color: "transparent"
         border.width: body.selected ? 1.5 : 1
-        border.color: body.selected ? TimelineVisuals.overlay : TimelineVisuals.clipBorderTint(body.mediaType)
+        border.color: body.selected ? Ui.Theme.textPrimary : Qt.darker(body.fill, 1.6)
     }
 }

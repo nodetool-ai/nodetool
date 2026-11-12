@@ -2,7 +2,8 @@ nt_qml_sources(src/edit/clipeffects/ClipEffectApply.cpp src/edit/clipeffects/Cli
     src/edit/clipeffects/ClipAnalysisController.h src/edit/clipeffects/ClipAnalysisController.cpp)
 nt_sources(qml_resources src/edit/clipeffects/EffectFields.qml
     src/edit/clipeffects/EffectNumber.qml src/edit/clipeffects/ToneCurveEditor.qml
-    src/edit/clipeffects/ClipEffectsEdits.qml src/edit/clipeffects/ClipEffectsCatalog.js)
+    src/edit/clipeffects/ClipEffectsEdits.qml src/edit/clipeffects/ClipEffectsCatalog.js
+    src/edit/clipeffects/EffectMasksSection.qml src/edit/clipeffects/EffectMaskEdits.js)
 
 function(nt_clipeffects_tests)
     find_package(Qt6 6.12 REQUIRED COMPONENTS QuickTest)
@@ -22,6 +23,7 @@ function(nt_clipeffects_tests)
     add_test(NAME clipeffects_golden_script COMMAND node --test --test-isolation=none
         ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/check-inspector.test.mjs
         ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/catalogue.test.mjs
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/processing-order.test.mjs)
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/processing-order.test.mjs
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/clipeffects/effectmasks.test.mjs)
 endfunction()
 nt_tests(nt_clipeffects_tests)

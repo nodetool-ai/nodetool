@@ -2,7 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
-import "EntityKind.js" as Kind
+import NodeTool.Media
+import NodeTool.Entities
 
 Ui.Dialog {
     id: dialog
@@ -186,15 +187,13 @@ Ui.Dialog {
                             Layout.preferredHeight: dialog.previewSize
                             color: Ui.Theme.surfaceInput
                             radius: Ui.Metrics.radiusControl
-                            Image {
+                            StableImage {
                                 id: preview
                                 anchors.fill: parent
                                 anchors.margins: Ui.Metrics.micro
                                 source: dialog.imageUrl
-                                asynchronous: true
                                 fillMode: Image.PreserveAspectCrop
-                                sourceSize: Qt.size(width * 2, height * 2)
-                                visible: status === Image.Ready
+                                visible: loaded
                             }
                             Ui.Text {
                                 anchors.centerIn: parent
@@ -243,7 +242,7 @@ Ui.Dialog {
                                 Layout.fillWidth: true
                                 spacing: Ui.Metrics.xs
                                 Repeater {
-                                    model: Kind.kinds
+                                    model: EntityKind.kinds
                                     Ui.EditorButton {
                                         id: kindButton
                                         required property string modelData
@@ -253,7 +252,7 @@ Ui.Dialog {
                                         density: Ui.EditorButton.Compact
                                         // Accent marks the chosen kind, so a hover is never mistaken for it.
                                         variant: checked ? Ui.EditorButton.Primary : Ui.EditorButton.Default
-                                        text: Kind.label(modelData)
+                                        text: EntityKind.label(modelData)
                                         checkable: true
                                         autoExclusive: true
                                         checked: dialog.kind === modelData

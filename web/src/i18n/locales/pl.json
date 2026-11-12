@@ -17277,7 +17277,6 @@
       "press": "Naciśnij",
       "toggleHint": "w dowolnym momencie przełączyć ten panel · Ctrl reaguje także na ⌘ w systemie macOS",
       "presets": {
-        "nodetool": "Narzędzie węzła",
         "premiere": "Premier Pro",
         "fcp": "Final Cut Pro"
       },

@@ -220,6 +220,55 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
         refresh();
         setup_.offerWorkflow(document_.snapshot(), metadata_);
     });
+  // Catalog state goes down to the interface, and its requests come back here.
+  connect(this, &EditorWindow::catalogChanged, this, [this] { nodeCatalog_.setNodes(catalog()); });
+  connect(this, &EditorWindow::catalogRecentChanged, this, [this] { nodeCatalog_.setRecent(catalogRecent()); });
+  connect(this, &EditorWindow::catalogFavoritesChanged, this, [this] { nodeCatalog_.setFavorites(catalogFavorites()); });
+  connect(this, &EditorWindow::panelChanged, this, [this] { nodeCatalog_.setReadOnly(readOnly()); });
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::addRequested, this, &EditorWindow::addNode);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::dragRequested, this, &EditorWindow::dragNode);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::toggleFavoriteRequested, this, &EditorWindow::toggleCatalogFavorite);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::clearFavoritesRequested, this, &EditorWindow::clearCatalogFavorites);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::clearRecentRequested, this, &EditorWindow::clearCatalogRecent);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::closeMenuRequested, this, &EditorWindow::closeNodeMenu);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::moveMenuRequested, this, &EditorWindow::moveNodeMenu);
+  syncNodeCatalog();
+  // The inspector's state goes down the same way.
+  connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncNodeInspector);
+  connect(this, &EditorWindow::shownQueueChanged, this, [this] { nodeInspector_.setRunning(shownRunActive()); });
+  connect(this, &EditorWindow::costEstimateChanged, this, [this] { nodeInspector_.setCostEstimate(costEstimate()); });
+  connect(this, &EditorWindow::documentEpochChanged, this, [this] { nodeInspector_.fields()->setDocumentEpoch(documentEpoch()); });
+  connect(this, &EditorWindow::credentialsEpochChanged, this, [this] { nodeInspector_.fields()->setCredentialsEpoch(credentialsEpoch()); });
+  connect(&nodeInspector_, &node_editor::NodeInspector::clearSelectionRequested, this, [this] { action("Clear selection"); });
+  connect(&nodeInspector_, &node_editor::NodeInspector::focusNodeRequested, this, [this] { userAction("Focus node"); });
+  connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
+  connect(&nodeInspector_, &node_editor::NodeInspector::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitProperty);
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::removeRequested, this, &EditorWindow::removeProperty);
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(nodeInspector_.history(), &node_editor::GenerationReplay::pinRequested, this, &EditorWindow::pinGeneration);
+  connect(nodeInspector_.history(), &node_editor::GenerationReplay::toggleReplayRequested, this, &EditorWindow::toggleReplayGeneration);
+  connect(nodeInspector_.history(), &node_editor::GenerationReplay::clearReplayRequested, this, &EditorWindow::clearReplayGenerations);
+  nodeInspector_.setDynamicPorts(&dynamicPorts_);
+  // The tab bar's state lives in the root window, which tells every tab.
+  connect(this, &EditorWindow::tabsChanged, this, &EditorWindow::syncDocumentTabs);
+  connect(this, &EditorWindow::notificationsChanged, this, &EditorWindow::syncNotifications);
+  connect(&documentTabs_, &node_editor::DocumentTabs::newTabRequested, this, &EditorWindow::newTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::activateTabRequested, this, &EditorWindow::activateTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::closeTabRequested, this, &EditorWindow::closeTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::dropTabRequested, this, &EditorWindow::dropTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::renameTabRequested, this, &EditorWindow::renameTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::tabMenuRequested, this, &EditorWindow::showTabMenu);
+  connect(&documentTabs_, &node_editor::DocumentTabs::projectMenuRequested, this, &EditorWindow::showProjectMenu);
+  connect(&documentTabs_, &node_editor::DocumentTabs::toolTipRequested, this, &EditorWindow::showTabToolTip);
+  connect(&documentTabs_, &node_editor::DocumentTabs::stripScrolled, this, &EditorWindow::setTabStripOffset);
+  connect(&documentTabs_, &node_editor::DocumentTabs::activateSurfaceRequested, this, &EditorWindow::activateSurface);
+  connect(&documentTabs_, &node_editor::DocumentTabs::closeSurfaceRequested, this, &EditorWindow::closeSurface);
+  connect(&documentTabs_, &node_editor::DocumentTabs::settingsRequested, this, &EditorWindow::openSettings);
+  connect(&notificationList_, &node_editor::Notifications::openRequested, this, &EditorWindow::showNotifications);
+  connect(&notificationList_, &node_editor::Notifications::copyRequested, this, &EditorWindow::copyText);
+  syncDocumentTabs();
+  syncNotifications();
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
@@ -340,7 +389,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
         quick->setResizeMode(QQuickWidget::SizeRootObjectToView);
         // DynamicPorts.qml is also embedded in the Inspector, so the overlay
         // surface wraps it here instead of in its root.
-        const QUrl surfaceUrl("qrc:/editor/DynamicPortsOverlay.qml");
+        const QUrl surfaceUrl("qrc:/qt/qml/NodeTool/NodeEditor/DynamicPortsOverlay.qml");
         QQmlComponent surface(engine_);
         surface.setData(QByteArrayLiteral(
             "import QtQuick\n"
@@ -544,7 +593,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     auto headerRow = panel("HeaderRow");
     headerRow->setFixedHeight(qCeil(headerRow->rootObject()->implicitHeight()));
     canvasLayout->addWidget(headerRow);
-    auto canvasTabs = panel("CanvasTabStrip");
+    auto canvasTabs = panel("CanvasTabStrip", {{"tabs", QVariant::fromValue(&documentTabs_)}});
     const auto resizeCanvasTabs = [canvasTabs] {
         canvasTabs->setFixedHeight(qCeil(canvasTabs->rootObject()->implicitHeight()));
     };
@@ -555,22 +604,32 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     dockHost_->setCentralWidget(canvasColumn);
     canvasColumn->installEventFilter(this);
   dockHost_->setDockOptions(QMainWindow::AnimatedDocks);
-  const auto dock = [this](const QString &title, const QString &file, Qt::DockWidgetArea area) {
+  const auto dock = [this](const QString &title, const QString &file, Qt::DockWidgetArea area,
+                            const QVariantMap &properties = {}) {
     auto widget = new QDockWidget(title, dockHost_);
     widget->setFeatures(QDockWidget::NoDockWidgetFeatures);
     widget->setTitleBarWidget(new QWidget(widget));
-    widget->setWidget(panel(file));
+    widget->setWidget(panel(file, properties));
     dockHost_->addDockWidget(area, widget);
     return widget;
   };
   // The web node library is a fixed panel over the canvas, so opening it keeps
   // the canvas size and zoom (web/src/components/panels/PanelLeft.tsx).
-  catalogPanel_ = panel("Catalog");
+  // The library and the node menu take the catalog interface, not the window.
+  const QVariantMap catalogProperties{{"catalog", QVariant::fromValue(&nodeCatalog_)},
+                                      {"packSetup", QVariant::fromValue(packSetup())}};
+  catalogPanel_ = panel("Catalog", catalogProperties);
+  {
+    // Hover text goes up as a signal, and the window shows it.
+    const auto *root = catalogPanel_->rootObject()->metaObject();
+    connect(catalogPanel_->rootObject(), root->method(root->indexOfSignal("toolTipRequested(QString)")), this,
+            metaObject()->method(metaObject()->indexOfMethod("showToolTip(QString)")));
+  }
   catalogPanel_->setParent(dockHost_);
   catalogPanel_->setObjectName("catalog-panel");
   catalogPanel_->setFocusPolicy(Qt::StrongFocus);
   catalogPanel_->installEventFilter(this);
-  nodeMenu_ = panel("NodeMenu");
+  nodeMenu_ = panel("NodeMenu", catalogProperties);
   nodeMenu_->setParent(dockHost_);
   nodeMenu_->setObjectName("node-menu");
   nodeMenu_->setFocusPolicy(Qt::StrongFocus);
@@ -584,7 +643,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea);
   libraryDock_->setObjectName("library-dock");
   libraryDock_->hide();
-  inspectorDock_ = dock(tr("Inspector"), "Inspector", Qt::RightDockWidgetArea);
+  // The panel's first bindings read the state the window has at this point.
+  nodeInspector_.setRunning(shownRunActive());
+  nodeInspector_.setCostEstimate(costEstimate());
+  nodeInspector_.fields()->setDocumentEpoch(documentEpoch());
+  nodeInspector_.fields()->setCredentialsEpoch(credentialsEpoch());
+  syncNodeInspector();
+  inspectorDock_ = dock(tr("Inspector"), "Inspector", Qt::RightDockWidgetArea,
+                        {{"inspector", QVariant::fromValue(&nodeInspector_)}});
   outputDock_ = dock(tr("Output"), "RunOutput", Qt::BottomDockWidgetArea);
   {
     // placeStatusBar() moves the status bar above the output while the panel is open.
@@ -603,7 +669,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   catalogPanel_->hide();
   auto rail = panel("Rail");
   rail->setFixedWidth(rail->initialSize().width());
-  auto tabs = panel("TabBar");
+  auto tabs = panel("TabBar", {{"tabs", QVariant::fromValue(&documentTabs_)},
+                               {"notifications", QVariant::fromValue(&notificationList_)}});
     const auto resizeTabs = [tabs] {
         if (tabs->rootObject()) {
             tabs->setFixedHeight(tabs->rootObject()->implicitHeight());
@@ -955,6 +1022,10 @@ EditorWindow::~EditorWindow() {
   // Dock animations can resize the viewport while bound overlays are destroyed.
   view_->removeEventFilter(this);
   view_->viewport()->removeEventFilter(this);
+  // ~QWidget sends the panels a Hide event, which must not reach eventFilter
+  // once their QQuickWidget part is gone.
+  if (catalogPanel_) { catalogPanel_->removeEventFilter(this); }
+  if (nodeMenu_) { nodeMenu_->removeEventFilter(this); }
   // Panels bind to members of this class and must die before those members.
   for (auto panel : findChildren<QQuickWidget *>()) {
     // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
@@ -964,14 +1035,17 @@ EditorWindow::~EditorWindow() {
   // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
   delete scene_;
 }
-QQuickWidget *EditorWindow::panel(const QString &file) {
+QQuickWidget *EditorWindow::panel(const QString &file, const QVariantMap &properties) {
   // One engine keeps a single Theme singleton across every panel.
   auto w = new QQuickWidget(engine_, this);
   w->setResizeMode(QQuickWidget::SizeRootObjectToView);
     if (file == "Inspector") {
         w->setAcceptDrops(true);
     }
-  w->setSource(QUrl("qrc:/editor/" + file + ".qml"));
+    if (!properties.isEmpty()) {
+        w->setInitialProperties(properties);
+    }
+  w->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/" + file + ".qml"));
   return w;
 }
 QString EditorWindow::serverSaveState() const {
@@ -1033,7 +1107,7 @@ void EditorWindow::showWorkflowDetails(const QString &kind) {
     auto *content = new QQuickWidget(engine_, dock);
     content->setResizeMode(QQuickWidget::SizeRootObjectToView);
     content->setInitialProperties({{"controller", QVariant::fromValue(&versions_)}});
-    content->setSource(QUrl("qrc:/editor/VersionHistoryPanel.qml"));
+    content->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/VersionHistoryPanel.qml"));
     // The dock never narrows below the width where every control keeps its label on one line.
     // The panel's minimum follows the UI scale and the panel reports each change, so the dock follows it.
     content->setMinimumWidth(qCeil(content->rootObject()->property("minimumWidth").toReal()));
@@ -1055,7 +1129,7 @@ void EditorWindow::showWorkflowDetails(const QString &kind) {
   auto *dialog = new QDialog(this);
   dialog->setObjectName("workflow-details-dialog");
   auto *content = createOverlayDialog(dialog, engine_, {{"controller", QVariant::fromValue(&versions_)}, {"kind", kind}},
-                                      QUrl("qrc:/editor/WorkflowDetails.qml"));
+                                      QUrl("qrc:/qt/qml/NodeTool/NodeEditor/WorkflowDetails.qml"));
   connect(this, &EditorWindow::documentEpochChanged, dialog, &QDialog::close);
   connect(this, &EditorWindow::credentialsEpochChanged, dialog, &QDialog::close);
   showOverlayDialog(dialog, content, this, {640, 680});
@@ -1075,7 +1149,7 @@ void EditorWindow::showRunTrace() {
   auto *content = new QQuickWidget(engine_, dock);
   content->setResizeMode(QQuickWidget::SizeRootObjectToView);
   content->setInitialProperties({{"controller", QVariant::fromValue(&runTrace_)}});
-  content->setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+  content->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
   dock->setWidget(content);
   if (content->rootObject()) {
     connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close()));
@@ -1109,7 +1183,7 @@ void EditorWindow::showServerSync() {
   auto *content = createOverlayDialog(dialog, engine_,
                                       {{"workflowSession", QVariant::fromValue(&session_)},
                                        {"lastError", session_.autosaveState() == "error" ? message_ : QString{}}},
-                                      QUrl("qrc:/editor/ServerSyncPanel.qml"));
+                                      QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ServerSyncPanel.qml"));
   if (const auto root = content->rootObject()) {
     connect(root, SIGNAL(closeRequested()), dialog, SLOT(close()));
     connect(root, SIGNAL(saveLocalAsRequested()), this, SLOT(saveLocalCopyAs()));
@@ -1123,7 +1197,7 @@ void EditorWindow::showCanvasDrops() {
   dialog->setWindowTitle(tr("Canvas uploads"));
   canvasDropDialog_ = dialog;
   auto *content = createOverlayDialog(dialog, engine_, {{"controller", QVariant::fromValue(canvasDrops_)}},
-                                      QUrl("qrc:/editor/CanvasDropPanel.qml"));
+                                      QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CanvasDropPanel.qml"));
   if (const auto root = content->rootObject()) connect(root, SIGNAL(closeRequested()), dialog, SLOT(close()));
   showOverlayDialog(dialog, content, this, {444, 540});
 }
@@ -1764,7 +1838,7 @@ void EditorWindow::showDynamicPortDialog(const QString &id, bool output, const Q
     quick->setClearColor(Qt::transparent);
     quick->setResizeMode(QQuickWidget::SizeRootObjectToView);
     quick->setInitialProperties({{"controller", QVariant::fromValue(controller)}, {"nodeId", id}, {"output", output}, {"originalName", name}});
-    quick->setSource(QUrl("qrc:/editor/DynamicPortDialog.qml"));
+    quick->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/DynamicPortDialog.qml"));
     if (!quick->rootObject()) { dialog->deleteLater(); return; }
     dialog->form = quick->rootObject();
     dialog->renaming = !name.isEmpty();
@@ -2103,9 +2177,6 @@ QVariantList EditorWindow::catalog() const {
   }
   return r;
 }
-QVariantList EditorWindow::catalogCategories() const {
-    return nodetool::catalogCategories();
-}
 bool EditorWindow::miniMapVisible() const {
     if (!tabOwner_) { return activeEditor_->miniMapVisible(); }
     return miniMapVisible_;
@@ -2258,20 +2329,6 @@ bool EditorWindow::addConnectedNode(const QString &sourceId, const QString &outp
   }
   return false;
 }
-QVariantList EditorWindow::rankCatalog(const QVariantList &nodes, const QString &query) const {
-    QList<CatalogSearchNode> searchNodes;
-    searchNodes.reserve(nodes.size());
-    for (const auto &value : nodes) {
-        const auto node = value.toMap();
-        searchNodes.append({node["type"].toString(), node["label"].toString(), node["namespace"].toString(),
-                            node["description"].toString(), node["deprecated"].toBool()});
-    }
-    QVariantList order;
-    for (const int index : catalogRanker_.rank(searchNodes, query, catalogRecent())) {
-        order.append(index);
-    }
-    return order;
-}
 QStringList EditorWindow::catalogRecent() const {
     return QSettings().value("catalog/recentNodes").toStringList();
 }
@@ -2313,8 +2370,30 @@ void EditorWindow::clearCatalogRecent() {
     for (auto tab : owner->tabs_) { emit tab->catalogRecentChanged(); }
     emit owner->catalogRecentChanged();
 }
-QVariantList EditorWindow::catalogQuickActions() const {
-    return catalogQuickActionSections();
+void EditorWindow::syncNodeCatalog() {
+    nodeCatalog_.setNodes(catalog());
+    nodeCatalog_.setRecent(catalogRecent());
+    nodeCatalog_.setFavorites(catalogFavorites());
+    nodeCatalog_.setReadOnly(readOnly());
+}
+void EditorWindow::syncNodeInspector() {
+    const auto node = selection();
+    const auto reason = readOnlyReason();
+    nodeInspector_.setSelection(node);
+    nodeInspector_.setSelectionInfo(selectionInfo());
+    nodeInspector_.setProperties(properties());
+    nodeInspector_.setReadOnlyReason(reason);
+    nodeInspector_.setMessage(message());
+    nodeInspector_.setRunProgress(runProgress());
+    auto *fields = nodeInspector_.fields();
+    fields->setSelection(node);
+    fields->setReadOnly(!reason.isEmpty());
+    auto *history = nodeInspector_.history();
+    history->setGenerationHistory(generationHistory());
+    history->setSelection(node);
+    history->setReadOnly(!reason.isEmpty());
+    history->setPinnedGeneration(pinnedGeneration());
+    history->setReplayGenerations(replayGenerations());
 }
 void EditorWindow::addNode(const QString &type) {
   if (!tabOwner_) { activeEditor_->addNode(type); return; }
@@ -3752,7 +3831,7 @@ void nodetool::EditorWindow::setupAction(const QString &name) {
     dialog->setObjectName("setup-dialog");
     dialog->setWindowTitle(tr("Runtimes and packs"));
     auto *content = createOverlayDialog(dialog, engine_, {{"controller", QVariant::fromValue(&setup_)}},
-                                        QUrl("qrc:/editor/SetupPanel.qml"));
+                                        QUrl("qrc:/qt/qml/NodeTool/NodeEditor/SetupPanel.qml"));
     if (content->rootObject()) {
         connect(content->rootObject(), SIGNAL(closeRequested()), dialog,
                 SLOT(close()));

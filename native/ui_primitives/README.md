@@ -101,7 +101,7 @@ when hidden, inactive, or reduced motion is selected. `Ui.Progress` is for
 determinate progress. `Ui.ScrollBar` retains native position, size,
 orientation, and policy.
 
-`EditorButton.menuButton` marks a menu trigger and `menuExpanded` reports its open state independently of `checked`. Set `trailingIconName` to a catalog identity for a trailing icon; the control handles mirrored layout and label elision. `textRole` selects the label's typography role; its default is `Typography.SansLabel`.
+`EditorButton.menuButton` marks a menu trigger and `menuExpanded` reports its open state independently of `checked`. Set `trailingIconName` to a catalog identity for a trailing icon; the control handles mirrored layout and label elision. `textRole` selects the label's typography role; its default is `Typography.SansLabel`. `iconSize` takes a named `Metrics.icon*` value; its default is `Metrics.iconSm`.
 
 `Status` and `Banner` take `status` (`Status.Success`, `Warning`, `Error`,
 `Info`) and `message`. `Banner` also accepts optional `actionText` and emits

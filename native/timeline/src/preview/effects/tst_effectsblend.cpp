@@ -558,6 +558,35 @@ private slots:
         QVERIFY(shoulder.pixelColor(180,8).red()<shoulder.pixelColor(220,8).red());
         QVERIFY(shoulder.pixelColor(220,8).red()<shoulder.pixelColor(255,8).red());
         QVERIFY(shoulder.pixelColor(255,8).red()<255);
+        // Blacks offsets by 0.15 * blacks * (1 - v)^3: black rises to 38, white stays.
+        const auto lifted=effectStill({effect("exposure",{{"blacks",1}})},source);
+        QVERIFY(!lifted.isNull());
+        QVERIFY(std::abs(lifted.pixelColor(0,8).red()-38)<=1); QCOMPARE(lifted.pixelColor(255,8).red(),255);
+        const auto crushed=effectStill({effect("exposure",{{"blacks",-1}})},source);
+        QVERIFY(!crushed.isNull()); QCOMPARE(crushed.pixelColor(20,8).red(),0);
+    }
+    void hueSatCurvesPixels() {
+        QImage source(256,16,QImage::Format_RGBA8888_Premultiplied);
+        for (int y=0;y<16;++y) { for (int x=0;x<256;++x) { source.setPixelColor(x,y,x<128 ? QColor(Qt::red) : QColor(128,128,128)); } }
+        const auto flat=[](double y) { return QJsonArray{QJsonObject{{"x",0},{"y",y}},QJsonObject{{"x",1},{"y",y}}}; };
+        // Hue vs Sat at 0.25 halves red's saturation: (191, 64, 64). Gray has no saturation to change.
+        const auto halved=effectStill({effect("hueSatCurves",{{"hueVsSat",flat(0.25)}})},source);
+        QVERIFY(!halved.isNull());
+        const auto red=halved.pixelColor(32,8);
+        QVERIFY(std::abs(red.red()-191)<=1); QVERIFY(std::abs(red.green()-64)<=1); QVERIFY(std::abs(red.blue()-64)<=1);
+        QCOMPARE(halved.pixelColor(192,8),QColor(128,128,128));
+        // Hue vs Hue a third of a turn up moves red to green.
+        const auto rotated=effectStill({effect("hueSatCurves",{{"hueVsHue",flat(0.5+1./3.)}})},source);
+        QVERIFY(!rotated.isNull());
+        QVERIFY(rotated.pixelColor(32,8).red()<=2); QVERIFY(rotated.pixelColor(32,8).green()>=253); QVERIFY(rotated.pixelColor(32,8).blue()<=2);
+        // Hue vs Luma is scaled by saturation, so gray keeps its lightness.
+        const auto brighter=effectStill({effect("hueSatCurves",{{"hueVsLuma",flat(0.75)}})},source);
+        QVERIFY(!brighter.isNull());
+        QVERIFY(std::abs(brighter.pixelColor(32,8).green()-128)<=1); QCOMPARE(brighter.pixelColor(192,8),QColor(128,128,128));
+        // Sat vs Sat at zero for full saturation turns red gray.
+        const auto gray=effectStill({effect("hueSatCurves",{{"satVsSat",QJsonArray{QJsonObject{{"x",0},{"y",0.5}},QJsonObject{{"x",1},{"y",0}}}}})},source);
+        QVERIFY(!gray.isNull());
+        for (const int channel : {gray.pixelColor(32,8).red(),gray.pixelColor(32,8).green(),gray.pixelColor(32,8).blue()}) { QVERIFY(std::abs(channel-128)<=1); }
     }
     void curveFidelity() {
         const QJsonArray identity{QJsonObject{{"x",0},{"y",0}},QJsonObject{{"x",1},{"y",1}}};
@@ -631,6 +660,13 @@ private slots:
             const int vertical=circle.pixelColor(size.width()/2,size.height()/2+40).red();
             QVERIFY(std::abs(horizontal-vertical)<=1); QVERIFY(horizontal<240);
         }
+        // Negative roundness squares the falloff: the diagonal stays brighter, the axis is unchanged.
+        QImage square(128,128,QImage::Format_RGBA8888_Premultiplied); square.fill(Qt::white);
+        const auto oval=effectStill({effect("vignette",{{"amount",0.5},{"radius",1},{"softness",0.3}})},square);
+        const auto box=effectStill({effect("vignette",{{"amount",0.5},{"radius",1},{"softness",0.3},{"roundness",-1}})},square);
+        QVERIFY(!oval.isNull()); QVERIFY(!box.isNull());
+        QVERIFY(box.pixelColor(108,108).red()>oval.pixelColor(108,108).red()+5);
+        QVERIFY(std::abs(box.pixelColor(120,64).red()-oval.pixelColor(120,64).red())<=1);
     }
     void glowTintPixels() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::black);

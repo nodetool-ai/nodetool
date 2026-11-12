@@ -1,5 +1,6 @@
 #include "edit/ClipGestureController.h"
 #include "edit/clipeffects/ClipAnalysisController.h"
+#include "edit/clipeffects/ClipEffectsUi.h"
 #include "edit/inspectorsections/InspectorSectionRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -242,8 +243,11 @@ private slots:
     void secondaryColorEditing();
     void cancellationLocksAndPlayhead();
     void groupSections();
+    void analysisRefreshesOncePerEdit();
     void foldsAndSearch();
     void exportDocuments();
+    void effectMasks();
+    void effectMaskOverlay();
 };
 
 void TestClipEffects::stabilizationLifecycle() {
@@ -412,7 +416,7 @@ void TestClipEffects::catalogue_data() {
             R"({"type":"deflicker","enabled":true,"strength":1,"windowMs":500,"maxCorrection":1})",
             R"({"type":"deband","enabled":true,"strength":0,"range":16,"threshold":0.02,"dither":0.5})",
             R"({"type":"secondaryColor","enabled":true,"hueCenter":0,"hueWidth":180,"hueSoftness":15,"rangeSoftness":0.1,"saturationMin":0,"saturationMax":1,"lightnessMin":0,"lightnessMax":1,"hueShift":0,"saturation":1,"lightness":0})",
-            R"({"type":"exposure","enabled":true,"exposure":0,"rolloff":0,"whites":0})",
+            R"({"type":"exposure","enabled":true,"exposure":0,"rolloff":0,"whites":0,"blacks":0})",
             R"({"type":"blur","enabled":true,"radius":8})",
             R"({"type":"glow","enabled":true,"radius":8,"intensity":1})",
             R"({"type":"dropShadow","enabled":true,"offsetX":8,"offsetY":8,"blur":12,"color":"#000000","opacity":0.6})",
@@ -722,6 +726,14 @@ void TestClipEffects::cancellationLocksAndPlayhead() {
         QCOMPARE(clips.count(),0); QCOMPARE(timeline.count(),0); QCOMPARE(e.model.documentJson(),unedited);
     }
 
+void TestClipEffects::analysisRefreshesOncePerEdit() {
+        Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        ClipAnalysisController controller; controller.setModel(&e.model); controller.setClipId("picture");
+        QSignalSpy changed(&controller,&ClipAnalysisController::changed);
+        e.patch({{"name","renamed"}});
+        QCOMPARE(changed.count(),1);
+    }
+
 void TestClipEffects::groupSections() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); e.patch({{"mediaType","group"}});
         QVERIFY(e.showPanel("inspector"));
@@ -770,6 +782,112 @@ void TestClipEffects::exportDocuments() {
         QVERIFY(e.item("clipGroupPanel"));
         QVERIFY(number(e.item("colorBasic_saturation"),"change",0.5)); QVERIFY(save("group"));
     }
+
+namespace {
+ClipEffectsUi* maskUi(QQmlEngine& engine) { return engine.singletonInstance<ClipEffectsUi*>("NodeTool.Timeline", "ClipEffectsUi"); }
+QJsonArray masksOf(const QJsonObject& effect) { return effect["masks"].toArray(); }
+void shot(QQuickWindow& window, const QString& name) {
+    const QString directory = qEnvironmentVariable("NT_MASK_SHOTS");
+    if (directory.isEmpty()) { return; }
+    QDir().mkpath(directory);
+    window.grabWindow().save(directory + "/" + name + ".png");
+}
+}
+// Mask rows: create, one undo entry per slider gesture, invert, mode and delete.
+void TestClipEffects::effectMasks() {
+    Editor e; QVERIFY2(e.object,qPrintable(e.error));
+    QVERIFY(e.addGrade("g",{{"type","curves"},{"enabled",true},{"master",QJsonArray{QJsonObject{{"x",0},{"y",0}},QJsonObject{{"x",1},{"y",0.8}}}}}));
+    e.model.undoStack()->clear();
+    auto* ui = maskUi(e.engine); QVERIFY(ui);
+    ui->clearMaskSelection();
+    QVERIFY(QTest::qWaitFor([&] { return e.inEffectControls("effectMasks_g_create_ellipse") != nullptr; }));
+    e.click(e.inEffectControls("effectMasks_g_create_ellipse"));
+    auto masks = masksOf(e.effects()[0].toObject());
+    QCOMPARE(masks.size(), 1);
+    QCOMPARE(masks[0].toObject()["shape"].toString(), QString("ellipse"));
+    QCOMPARE(masks[0].toObject()["vertices"].toArray().size(), 4);
+    QCOMPARE(e.model.undoStack()->count(), 1);
+    QCOMPARE(ui->maskEffectId(), QString("g"));
+    QCOMPARE(ui->maskId(), masks[0].toObject()["id"].toString());
+    auto* feather = e.inEffectControls("effectMasks_g_feather_0"); QVERIFY(feather);
+    QVERIFY(QMetaObject::invokeMethod(feather,"gestureStarted"));
+    QVERIFY(number(feather,"preview",0.1)); QVERIFY(number(feather,"preview",0.2));
+    QCOMPARE(e.model.undoStack()->count(), 1);
+    QVERIFY(number(feather,"change",0.2));
+    QCOMPARE(e.model.undoStack()->count(), 2);
+    QCOMPARE(masksOf(e.effects()[0].toObject())[0].toObject()["feather"].toDouble(), 0.2);
+    e.click(e.inEffectControls("effectMasks_g_invert_0"));
+    QVERIFY(masksOf(e.effects()[0].toObject())[0].toObject()["inverted"].toBool());
+    auto* mode = e.inEffectControls("effectMasks_g_mode_0"); QVERIFY(mode);
+    QVERIFY(QMetaObject::invokeMethod(mode,"valueCommitted",Q_ARG(QVariant,QVariant(QString("subtract")))));
+    QCOMPARE(masksOf(e.effects()[0].toObject())[0].toObject()["mode"].toString(), QString("subtract"));
+    QCOMPARE(e.model.undoStack()->count(), 4);
+    e.click(e.inEffectControls("effectMasks_g_create_polygon"));
+    QCOMPARE(masksOf(e.effects()[0].toObject()).size(), 2);
+    shot(e.window, "effect-controls-mask-rows");
+    e.click(e.inEffectControls("effectMasks_g_remove_0"));
+    masks = masksOf(e.effects()[0].toObject());
+    QCOMPARE(masks.size(), 1);
+    QCOMPARE(masks[0].toObject()["shape"].toString(), QString("polygon"));
+    QCOMPARE(e.model.undoStack()->count(), 6);
+    e.click(e.inEffectControls("effectMasks_g_remove_0"));
+    QVERIFY(!e.effects()[0].toObject().contains("masks"));
+    e.model.undoStack()->undo();
+    QCOMPARE(masksOf(e.effects()[0].toObject()).size(), 1);
+    // The Color panel shows the same rows for the grade it masks.
+    QVERIFY(e.showPanel("color"));
+    QVERIFY(QTest::qWaitFor([&] { return find(e.item("colorPanel"), "effectMasks_g_create_ellipse") != nullptr; }));
+    QVERIFY(find(e.item("colorPanel"), "effectMasks_g_select_0"));
+    shot(e.window, "color-panel-mask-rows");
+    ui->clearMaskSelection();
+}
+// On-monitor editing: a vertex drag and a body drag are one undo entry each; Alt-click deletes a vertex.
+void TestClipEffects::effectMaskOverlay() {
+    Editor e; QVERIFY2(e.object,qPrintable(e.error));
+    QJsonObject mask{{"id","m"},{"shape","polygon"},{"feather",0.02},{"vertices",QJsonArray{
+        QJsonObject{{"x",0.25},{"y",0.25}},QJsonObject{{"x",0.75},{"y",0.25}},QJsonObject{{"x",0.75},{"y",0.75}},QJsonObject{{"x",0.25},{"y",0.75}}}}};
+    QVERIFY(e.addGrade("g",{{"type","exposure"},{"enabled",true},{"exposure",1},{"masks",QJsonArray{mask}}}));
+    e.model.undoStack()->clear();
+    auto* ui = maskUi(e.engine); QVERIFY(ui);
+    ui->selectMask("picture","g","m");
+    QVERIFY(QTest::qWaitFor([&] { auto* o = e.item("effectMaskOverlay"); return o && o->isVisible(); }));
+    auto* vertex = e.item("effectMaskVertex_0"); QVERIFY(vertex);
+    shot(e.window, "monitor-mask-overlay");
+    e.window.requestActivate(); QVERIFY(QTest::qWaitForWindowActive(&e.window));
+    const auto centre = [&](QQuickItem* item) { return item->mapToScene(QPointF(item->width()/2, item->height()/2)).toPoint(); };
+    const QPoint from = centre(vertex);
+    const auto overlayItem = e.item("effectMaskOverlay");
+    const QPointF opposite = e.item("effectMaskVertex_2")->mapToScene(QPointF(e.item("effectMaskVertex_2")->width()/2, 0));
+    const double span = opposite.x() - from.x();
+    QVERIFY(span > 20);
+    QTest::mousePress(&e.window, Qt::LeftButton, Qt::NoModifier, from);
+    QTest::mouseMove(&e.window, from + QPoint(5, 0));
+    QTest::mouseMove(&e.window, from + QPoint(int(span / 10), 0));
+    QTest::mouseRelease(&e.window, Qt::LeftButton, Qt::NoModifier, from + QPoint(int(span / 10), 0));
+    QCoreApplication::processEvents();
+    auto vertices = masksOf(e.effects()[0].toObject())[0].toObject()["vertices"].toArray();
+    QVERIFY2(std::abs(vertices[0].toObject()["x"].toDouble() - 0.30) < 0.02, qPrintable(QString::number(vertices[0].toObject()["x"].toDouble())));
+    QCOMPARE(vertices[1].toObject()["x"].toDouble(), 0.75);
+    QCOMPARE(e.model.undoStack()->count(), 1);
+    // Drag inside the path moves every vertex.
+    QVERIFY(overlayItem);
+    const QPoint inside = (centre(e.item("effectMaskVertex_1")) + centre(e.item("effectMaskVertex_3"))) / 2;
+    QTest::mousePress(&e.window, Qt::LeftButton, Qt::NoModifier, inside);
+    QTest::mouseMove(&e.window, inside + QPoint(0, 5));
+    QTest::mouseMove(&e.window, inside + QPoint(0, int(span / 10)));
+    QTest::mouseRelease(&e.window, Qt::LeftButton, Qt::NoModifier, inside + QPoint(0, int(span / 10)));
+    QCoreApplication::processEvents();
+    vertices = masksOf(e.effects()[0].toObject())[0].toObject()["vertices"].toArray();
+    QVERIFY(vertices[1].toObject()["y"].toDouble() > 0.26);
+    QCOMPARE(e.model.undoStack()->count(), 2);
+    QTest::mouseClick(&e.window, Qt::LeftButton, Qt::AltModifier, centre(e.item("effectMaskVertex_3")));
+    QCoreApplication::processEvents();
+    QCOMPARE(masksOf(e.effects()[0].toObject())[0].toObject()["vertices"].toArray().size(), 3);
+    QCOMPARE(e.model.undoStack()->count(), 3);
+    e.model.undoStack()->undo(); e.model.undoStack()->undo(); e.model.undoStack()->undo();
+    QCOMPARE(masksOf(e.effects()[0].toObject())[0].toObject(), mask);
+    ui->clearMaskSelection();
+}
 
 int main(int argc, char** argv) {
     if (qgetenv("QT_QPA_PLATFORM") != "offscreen") { qFatal("D6 tests require QT_QPA_PLATFORM=offscreen"); }
@@ -843,6 +961,8 @@ void TestClipEffects::dragReorder() {
         QJsonObject{{"id","c"},{"type","grain"},{"enabled",true},{"amount",0.25}}}}});
     QVERIFY(QTest::qWaitFor([&] { return e.item("effectsReorder_a") != nullptr; }));
     QQuickTest::qWaitForPolish(&e.window);
+    // The vignette's mask rows make its group taller; fold it so the drop point stays in the window.
+    e.click(e.item("effectControlsCollapse_effect:b"));
     auto* handle = e.item("effectsReorder_a"); QVERIFY(handle); e.reveal(handle);
     auto* target = e.item("effectControlsGroup_effect:c"); QVERIFY(target);
     const auto start = handle->mapToScene({handle->width()/2,handle->height()/2}).toPoint();

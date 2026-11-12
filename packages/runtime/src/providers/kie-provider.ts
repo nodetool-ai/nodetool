@@ -52,6 +52,8 @@ import {
   getManifestNodeMeta,
   selectPrimaryImageInput,
   selectMaskImageInput,
+  selectEndFrameInput,
+  endFrameUnsupportedError,
   type ModelInputField
 } from "./manifest-models.js";
 import { validateReferenceInputs } from "./manifest-models.js";
@@ -1536,6 +1538,14 @@ export class KieProvider extends BaseProvider {
     const modelId = params.model.id;
     const fields = getModelInputFields(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId);
     const input: Record<string, unknown> = this.imageInput(modelId, imageUrls);
+    if (params.endImage?.length) {
+      const endField = selectEndFrameInput(
+        getModelImageInputs(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, modelId)
+      );
+      if (!endField) throw endFrameUnsupportedError("Kie", modelId);
+      const [endUrl] = await this.uploadImages(apiKey, [params.endImage], signal);
+      if (endUrl) input[endField.apiName] = endField.isList ? [endUrl] : endUrl;
+    }
     if (params.prompt) input.prompt = params.prompt;
     this.applyEditOptions(input, fields, params);
     this.applyVideoDuration(input, fields, params);

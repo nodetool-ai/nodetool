@@ -164,6 +164,10 @@ const bool registered = [] {
     }
     nt::app::registerMenuItem({"marker", "clearSelectedMarkers", "Clear selected markers", {}, always, "clear", 40});
     nt::app::registerMenuItem({"marker", "clearAllMarkers", "Clear all markers", {}, always, "clear", 41});
+    // The ruler menu clears all sequence markers, as Premiere's Clear Markers does.
+    const auto rulerHasMarkers = [](const QVariantMap& c) { return c.value("hasMarkers").toBool(); };
+    nt::app::registerMenuItem({"ruler", "clearAllMarkers", "Clear all markers", {}, rulerHasMarkers, "clear", 41,
+        {}, {}, {}, rulerHasMarkers});
 
     // The Markers menu of the menu bar. The marks, Add Marker and the marker navigation
     // are in app/Menus/StandardMenus.cpp, ordered around these.

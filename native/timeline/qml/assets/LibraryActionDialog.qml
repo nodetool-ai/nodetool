@@ -10,13 +10,15 @@ Ui.Dialog {
     property string initialValue: ""
     property string actionLabel: "Save"
     property bool needsValue: true
+    // The field shows but may stay empty (clearing all tags).
+    property bool allowEmpty: false
     property bool destructive: false
     signal confirmed(string value)
     width: Math.min(384 * Ui.Theme.uiScale, parent ? parent.width - Ui.Metrics.xl * 2 : 0)
     height: Math.min(implicitHeight, parent ? parent.height - Ui.Metrics.xl * 2 : implicitHeight)
     onOpened: { input.value = initialValue; if (needsValue) input.forceActiveFocus() }
     function submit() {
-        if (needsValue && input.text.trim() === "") return
+        if (needsValue && !allowEmpty && input.text.trim() === "") return
         confirmed(input.text.trim())
         close()
     }
@@ -35,7 +37,7 @@ Ui.Dialog {
                 width: parent.width
                 spacing: Ui.Metrics.md
                 LibraryLabel { Layout.fillWidth: true; text: dialog.explanation }
-                LibraryLabel { visible: dialog.needsValue; text: dialog.fieldLabel + " (required)" }
+                LibraryLabel { visible: dialog.needsValue; text: dialog.allowEmpty ? dialog.fieldLabel : dialog.fieldLabel + " (required)" }
                 LibraryField {
                     id: input
                     objectName: "libraryActionInput"
@@ -44,7 +46,7 @@ Ui.Dialog {
                     accessibleName: dialog.fieldLabel
                     onAccepted: dialog.submit()
                 }
-                LibraryLabel { visible: dialog.needsValue && input.text.trim() === ""; text: "Enter " + dialog.fieldLabel.toLowerCase() + " to continue." }
+                LibraryLabel { visible: dialog.needsValue && !dialog.allowEmpty && input.text.trim() === ""; text: "Enter " + dialog.fieldLabel.toLowerCase() + " to continue." }
             }
         }
         RowLayout {
@@ -53,7 +55,7 @@ Ui.Dialog {
             LibraryButton {
                 text: dialog.actionLabel
                 destructive: dialog.destructive
-                enabled: !dialog.needsValue || input.text.trim() !== ""
+                enabled: !dialog.needsValue || dialog.allowEmpty || input.text.trim() !== ""
                 onClicked: dialog.submit()
             }
         }

@@ -441,6 +441,54 @@ describe("FalProvider", () => {
     vi.unstubAllGlobals();
   });
 
+  it("imageToVideo sends the end frame to the endpoint's end_image_url", async () => {
+    const uploadMock = vi
+      .fn()
+      .mockResolvedValueOnce("https://fal.media/files/start.png")
+      .mockResolvedValueOnce("https://fal.media/files/end.png");
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { video: { url: "https://fal.ai/result.mp4" } }
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
+      })
+    );
+    const p = createProvider();
+    (p as any)._client = { subscribe: subscribeMock, storage: { upload: uploadMock } };
+
+    await p.imageToVideo(new Uint8Array([1, 2, 3, 4]), {
+      prompt: "transition",
+      endImage: new Uint8Array([5, 6, 7, 8]),
+      model: { id: "fal-ai/luma-dream-machine/image-to-video", name: "Luma i2v", provider: "fal_ai" }
+    } as any);
+
+    const input = subscribeMock.mock.calls[0][1].input;
+    expect(input.image_url).toBe("https://fal.media/files/start.png");
+    expect(input.end_image_url).toBe("https://fal.media/files/end.png");
+    vi.unstubAllGlobals();
+  });
+
+  it("imageToVideo refuses an end frame on an endpoint without one, before uploading it", async () => {
+    const uploadMock = vi.fn().mockResolvedValue("https://fal.media/files/start.png");
+    const subscribeMock = vi.fn();
+    const p = createProvider();
+    (p as any)._client = { subscribe: subscribeMock, storage: { upload: uploadMock } };
+
+    await expect(
+      p.imageToVideo(new Uint8Array([1, 2, 3, 4]), {
+        prompt: "animate",
+        endImage: new Uint8Array([5, 6, 7, 8]),
+        model: { id: "fal-ai/ltx-video/image-to-video", name: "LTX", provider: "fal_ai" }
+      } as any)
+    ).rejects.toThrow("FAL model fal-ai/ltx-video/image-to-video takes no end frame");
+    expect(uploadMock).toHaveBeenCalledTimes(1);
+    expect(subscribeMock).not.toHaveBeenCalled();
+  });
+
   it("imageToVideo sends a numeric duration to an endpoint whose enum is numeric", async () => {
     // ltx-2.3/image-to-video/fast declares `duration: [6, 8, 10, ...]` as
     // numbers. A string comparison dropped every duration, so fal fell back

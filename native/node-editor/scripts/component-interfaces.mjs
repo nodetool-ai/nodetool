@@ -34,9 +34,6 @@ const INHERITED = { editor: new Set(["width", "height"]) };
 export const EDITOR_ALIASES = {
   "AuthoredControls.qml": { name: "host", source: "InlineTitlePresenter.cpp setInitialProperties host = editor" },
   "EditorChat.qml": { name: "host", source: "EditorChat.cpp setInitialProperties host = this" },
-  "GenerationHistory.qml": { name: "propertyHost", source: "Inspector.qml GenerationHistory { propertyHost: root.propertyHost }" },
-  "Inspector.qml": { name: "propertyHost", source: "Inspector.qml property var propertyHost: editor" },
-  "PropertyField.qml": { name: "host", source: "Inspector.qml PropertyField { host: root.propertyHost }" },
 };
 
 // Replaces comments with spaces and string contents with "_", keeping offsets,

@@ -30,6 +30,11 @@ protected:
     void click(const QString& name, Qt::KeyboardModifiers mods = Qt::NoModifier) {
         auto* target = item(name);
         QVERIFY2(target, qPrintable("Missing production item: " + name));
+        // A window that is not rendering does not lay out its positioners, so recreated
+        // delegates still share one spot. Lay out the target's ancestors before aiming.
+        QList<QQuickItem*> ancestors;
+        for (auto* ancestor = target; ancestor; ancestor = ancestor->parentItem()) { ancestors.prepend(ancestor); }
+        for (auto* ancestor : ancestors) { ancestor->ensurePolished(); }
         QTest::mouseClick(view.get(), Qt::LeftButton, mods, center(target));
         QCoreApplication::processEvents();
     }

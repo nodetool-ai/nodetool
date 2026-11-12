@@ -91,6 +91,7 @@ import type {
   VideoModel
 } from "./types.js";
 import { snapToGptImage2Size } from "./gpt-image-size.js";
+import { endFrameUnsupportedError } from "./manifest-models.js";
 
 function openAIImageUsage(
   response: OpenAI.Images.ImagesResponse,
@@ -2569,6 +2570,10 @@ export class OpenAIProvider extends BaseProvider {
   ): Promise<Uint8Array> {
     if (!image || image.length === 0) {
       throw new Error("The input image cannot be empty.");
+    }
+    // This API has no end-frame input.
+    if (params.endImage?.length) {
+      throw endFrameUnsupportedError("OpenAI", params.model.id);
     }
 
     const [width, height] = OpenAIProvider.extractImageDimensions(image);

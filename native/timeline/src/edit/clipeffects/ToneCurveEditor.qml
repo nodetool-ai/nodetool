@@ -2,10 +2,18 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
+import "../../../qml/color/ColorWheelMath.js" as WheelMath
 
 Column {
     id: root
     property bool cyclic: false
+    // Named curves of one effect, each neutral at 0.5: [{value, label, periodic, strip, caption}].
+    // Set with curves, the editor edits curves[channel] instead of the fixed hue or RGB fields.
+    property var customChannels: []
+    property var curves: ({})
+    readonly property var customSpec: customChannels.find(item => item.value === channel) ?? null
+    readonly property bool periodic: customSpec ? !!customSpec.periodic : cyclic
+    readonly property bool flat: customSpec ? true : cyclic
     property var hueCurve: undefined
     property var saturationCurve: undefined
     property var master: []
@@ -13,8 +21,8 @@ Column {
     property var g: undefined
     property var b: undefined
     property bool disabled: false
-    property string channel: cyclic ? "hueCurve" : "master"
-    readonly property var channels: cyclic ? [{value: "hueCurve", label: "Hue → hue"}, {value: "saturationCurve", label: "Hue → saturation"}] : [
+    property string channel: customChannels.length ? customChannels[0].value : cyclic ? "hueCurve" : "master"
+    readonly property var channels: customChannels.length ? customChannels : cyclic ? [{value: "hueCurve", label: "Hue → hue"}, {value: "saturationCurve", label: "Hue → saturation"}] : [
         {
             value: "master",
             label: "Master"
@@ -34,7 +42,10 @@ Column {
     ]
     readonly property string channelLabel: channels.find(item => item.value === channel)?.label ?? channel
     readonly property color curveColor: channel === "r" ? Ui.Theme.statusError : channel === "g" ? Ui.Theme.statusSuccess : channel === "b" ? Ui.Theme.statusInfo : Ui.Theme.textPrimary
-    readonly property var points: editablePoints(root[channel])
+    readonly property var points: editablePoints(customChannels.length ? curves[channel] : root[channel])
+    readonly property real stripHeight: Ui.Metrics.sm
+    // Zero keeps the graph square.
+    property real graphHeight: 0
     property int dragIndex: -1
     property bool dragChanged: false
     property var draft: []
@@ -46,12 +57,14 @@ Column {
         graph.requestPaint()
     onCurveColorChanged: if (graph)
         graph.requestPaint()
+    onCustomSpecChanged: if (graph)
+        graph.requestPaint()
     onDisabledChanged: if (disabled)
         cancelDrag()
     Component.onDestruction: if (dragIndex >= 0)
         gestureCancelled()
     function identity() {
-        if (cyclic) return [{x: 0, y: 0.5}, {x: 1, y: 0.5}];
+        if (flat) return [{x: 0, y: 0.5}, {x: 1, y: 0.5}];
         return [
             {
                 x: 0,
@@ -67,13 +80,13 @@ Column {
         return Math.min(1, Math.max(0, value));
     }
     function editablePoints(source) {
-        if (!source || source.length < (cyclic ? 1 : 2))
+        if (!source || source.length < (periodic ? 1 : 2))
             return identity();
         const valid = source.filter(point => Number.isFinite(point.x) && Number.isFinite(point.y)).map(point => ({
                     x: clamp(point.x),
                     y: clamp(point.y)
                 }));
-        if (!cyclic) return valid.length < 2 ? identity() : valid.sort((a, b) => a.x - b.x);
+        if (!periodic) return valid.length < 2 ? identity() : valid.sort((a, b) => a.x - b.x);
         if (!valid.length) return identity();
         const knots = new Map();
         for (const point of valid) {
@@ -95,7 +108,7 @@ Column {
         patch(change, phase);
     }
     function movePoint(source, index, next) {
-        if (cyclic && (index === 0 || index === source.length - 1)) {
+        if (periodic && (index === 0 || index === source.length - 1)) {
             return source.map((point, i) => i === 0 || i === source.length - 1 ? {x: point.x, y: clamp(next.y)} : point);
         }
         const left = index === 0 ? 0 : source[index - 1].x;
@@ -112,7 +125,7 @@ Column {
         if (disabled)
             return;
         const existing = points.findIndex(point => Math.abs(point.x - next.x) < 0.005);
-        if (cyclic && (existing === 0 || existing === points.length - 1)) {
+        if (periodic && (existing === 0 || existing === points.length - 1)) {
             write(movePoint(points, existing, next));
             return;
         }
@@ -122,7 +135,7 @@ Column {
             } : point));
     }
     function removePoint(index) {
-        if (cyclic && (index === 0 || index === points.length - 1)) return;
+        if (periodic && (index === 0 || index === points.length - 1)) return;
         if (points.length > 2)
             write(points.filter((_, i) => i !== index));
     }
@@ -189,7 +202,7 @@ Column {
             enabled: !root.disabled
             onClicked: {
                 root.cancelDrag();
-                root.write(root.cyclic || root.channel === "master" ? root.identity() : undefined);
+                root.write(root.flat || root.channel === "master" ? root.identity() : undefined);
             }
         }
     }
@@ -198,15 +211,29 @@ Column {
         id: graph
         objectName: "toneCurveGraph"
         width: parent.width
-        height: width
+        height: root.graphHeight > 0 ? root.graphHeight : width
         Accessible.role: Accessible.Grouping
         Accessible.name: root.channelLabel + " tone curve"
         onWidthChanged: requestPaint()
+        onHeightChanged: requestPaint()
         onPaint: {
             const ctx = getContext("2d");
             ctx.reset();
             ctx.fillStyle = Ui.Theme.surfacePanel;
             ctx.fillRect(0, 0, width, height);
+            if (root.customSpec && root.customSpec.strip) {
+                // The input's color behind the curve, and a solid band along the bottom.
+                // Data colors of the input axis, drawn as narrow solid columns.
+                const columns = 64;
+                for (let i = 0; i < columns; ++i) {
+                    const left = Math.floor(width * i / columns), right = Math.ceil(width * (i + 1) / columns);
+                    ctx.fillStyle = WheelMath.stripColor(root.customSpec.strip, (i + 0.5) / columns);
+                    ctx.globalAlpha = 0.22;
+                    ctx.fillRect(left, 0, right - left, height - root.stripHeight);
+                    ctx.globalAlpha = 1;
+                    ctx.fillRect(left, height - root.stripHeight, right - left, root.stripHeight);
+                }
+            }
             ctx.strokeStyle = Ui.Theme.borderSubtle;
             ctx.lineWidth = 1;
             ctx.strokeRect(0, 0, width, height);
@@ -223,8 +250,8 @@ Column {
             ctx.lineWidth = 0.75;
             ctx.setLineDash([2, 2]);
             ctx.beginPath();
-            ctx.moveTo(0, root.cyclic ? height / 2 : height);
-            ctx.lineTo(width, root.cyclic ? height / 2 : 0);
+            ctx.moveTo(0, root.flat ? height / 2 : height);
+            ctx.lineTo(width, root.flat ? height / 2 : 0);
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.strokeStyle = root.curveColor;
@@ -317,6 +344,6 @@ Column {
         tone: Ui.Text.Secondary
         wrapMode: Text.WordWrap
         width: parent.width
-        text: (root.cyclic ? "Input: red, yellow, green, cyan, blue, magenta, red. Red endpoints move together. " + (root.channel === "hueCurve" ? "Output: -180° at bottom, 0° at center, +180° at top. " : "Output: 0× at bottom, 1× at center, 2× at top. ") : "") + "Click to add a point. Drag points to shape the curve. Double-click an interior point or press Delete to remove it."
+        text: root.customSpec ? (root.customSpec.caption || "") + " Click to add a point. Drag points to shape the curve. Double-click an interior point or press Delete to remove it." : (root.cyclic ? "Input: red, yellow, green, cyan, blue, magenta, red. Red endpoints move together. " + (root.channel === "hueCurve" ? "Output: -180° at bottom, 0° at center, +180° at top. " : "Output: 0× at bottom, 1× at center, 2× at top. ") : "") + "Click to add a point. Drag points to shape the curve. Double-click an interior point or press Delete to remove it."
     }
 }

@@ -2,8 +2,8 @@
  * Timeline keyboard map.
  *
  * Every keyboard action the tracks region performs has an id here, and each
- * preset binds those ids to keys the way one editor's users expect: the
- * NodeTool layout, Premiere's, or Final Cut's. The window handler in
+ * preset binds those ids to keys the way one editor's users expect:
+ * Premiere's or Final Cut's. The window handler in
  * TracksRegion resolves an event to an action through `resolveTimelineAction`
  * and never looks at `e.key` itself, and the shortcut sheet renders the same
  * table, so the two cannot disagree.
@@ -13,11 +13,10 @@
  * the symbol already is the shifted character on most layouts ("?", "+").
  */
 
-export const TIMELINE_KEYBOARD_PRESETS = ["nodetool", "premiere", "fcp"] as const;
+export const TIMELINE_KEYBOARD_PRESETS = ["premiere", "fcp"] as const;
 export type TimelineKeyboardPreset = (typeof TIMELINE_KEYBOARD_PRESETS)[number];
 
 export const TIMELINE_KEYBOARD_PRESET_LABELS: Record<TimelineKeyboardPreset, string> = {
-  nodetool: "NodeTool",
   premiere: "Premiere Pro",
   fcp: "Final Cut Pro"
 };
@@ -191,68 +190,6 @@ const COMMON: Partial<Keymap> = {
   workspace4: [k("4", { alt: true, shift: true })]
 };
 
-const NODETOOL: Keymap = {
-  ...(COMMON as Keymap),
-  // The edit tools take Premiere's letters where this layout leaves them
-  // free. N is snapping here, so the Rolling Edit tool sits on Shift+B, next
-  // to Ripple. D, W and Shift+E are the source edits, so the Premiere edits
-  // that use them move to Shift+D, brackets and Ctrl+Shift+E.
-  selectTool: [k("v")],
-  trackSelectTool: [k("a")],
-  trackSelectBackwardTool: [k("a", { shift: true })],
-  rippleTool: [k("b")],
-  rollTool: [k("b", { shift: true })],
-  rateStretchTool: [k("r")],
-  cutTool: [k("c")],
-  slipTool: [k("y")],
-  selectClipAtPlayhead: [k("d", { shift: true })],
-  toggleClipEnabled: [k("e", { ctrl: true, shift: true })],
-  rippleTrimPrevToPlayhead: [k("[")],
-  rippleTrimNextToPlayhead: [k("]")],
-  liftRange: [k(";")],
-  extractRange: [k("'")],
-  stepFramesBack: [k("ArrowLeft", { alt: true, shift: true })],
-  stepFramesForward: [k("ArrowRight", { alt: true, shift: true })],
-  splitAtPlayhead: [k("s")],
-  // Ctrl/Cmd+K opens the app's command menu on every view.
-  cutAllTracks: [k("k", { ctrl: true, shift: true })],
-  rippleDeleteSelected: [k("Delete", { shift: true }), k("Backspace", { shift: true })],
-  duplicate: [k("d", { ctrl: true })],
-  duplicateWithGap: [k("d", { ctrl: true, shift: true })],
-  stepFrameBack: [k("ArrowLeft", { alt: true })],
-  stepFrameForward: [k("ArrowRight", { alt: true })],
-  nudgeLeft: [k("ArrowLeft")],
-  nudgeRight: [k("ArrowRight")],
-  nudgeLeftLarge: [k("ArrowLeft", { shift: true })],
-  nudgeRightLarge: [k("ArrowRight", { shift: true })],
-  extendEdit: [k("e")],
-  trimEditLeft: [k("ArrowLeft", { ctrl: true, shift: true })],
-  trimEditRight: [k("ArrowRight", { ctrl: true, shift: true })],
-  trimEditLeftLarge: [k("ArrowLeft", { ctrl: true, shift: true, alt: true })],
-  trimEditRightLarge: [k("ArrowRight", { ctrl: true, shift: true, alt: true })],
-  clearRange: [k("x", { ctrl: true, shift: true })],
-  nextMarker: [k("m", { shift: true })],
-  prevMarker: [k("m", { ctrl: true, shift: true })],
-  zoomIn: [k("+"), k("=")],
-  zoomOut: [k("-"), k("_")],
-  zoomFit: [k("z", { shift: true })],
-  toggleSnap: [k("n")],
-  applyDefaultTransition: [k("t", { ctrl: true })],
-  sourceAppend: [k("e", { shift: true })],
-  sourceInsert: [k("w")],
-  sourceOverwrite: [k("d")],
-  linkClips: [k("l", { ctrl: true })],
-  // Ctrl+Shift+D is duplicate-with-gap here, so the audio cross-fade sits
-  // beside the video one on Ctrl+Alt+T.
-  applyDefaultAudioTransition: [k("t", { ctrl: true, alt: true })],
-  pasteAttributes: [k("v", { ctrl: true, alt: true })],
-  pasteInsert: [k("v", { ctrl: true, shift: true })],
-  expandTracks: [k("=", { ctrl: true })],
-  shrinkTracks: [k("-", { ctrl: true })],
-  toggleLoop: [k("l", { shift: true })],
-  playInToOut: [k(" ", { ctrl: true, shift: true })]
-};
-
 const PREMIERE: Keymap = {
   ...(COMMON as Keymap),
   // Premiere's Tools panel: V A B N R C Y.
@@ -374,7 +311,6 @@ const FCP: Keymap = {
 };
 
 export const TIMELINE_KEYMAPS: Record<TimelineKeyboardPreset, Keymap> = {
-  nodetool: NODETOOL,
   premiere: PREMIERE,
   fcp: FCP
 };

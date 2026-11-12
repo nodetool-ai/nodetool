@@ -245,11 +245,15 @@ describe("Comfy GPU media fit", () => {
     expect(comfyGpuCatalog().templates.every((entry) => entry.inputs !== undefined)).toBe(true);
   });
 
-  it("lists image-to-video templates that take one image and reference templates without audio", async () => {
+  it("lists image-to-video templates that take a start image or a first/last pair, and reference templates without audio", async () => {
     const models = await new Provider().getAvailableVideoModels();
     const gpu = (task: string) => models.filter((model) => model.id.startsWith("comfyui-gpu/") && model.supportedTasks?.includes(task));
     expect(gpu("image_to_video").length).toBeGreaterThan(0);
-    for (const model of gpu("image_to_video")) {expect(model.inputs, model.id).toEqual({ image: 1, video: 0, audio: 0 });}
+    for (const model of gpu("image_to_video")) {
+      const images = model.inputs?.image ?? 0;
+      expect(model.inputs, model.id).toEqual({ image: images, video: 0, audio: 0 });
+      expect(model.endFrame, model.id).toBe(images === 2 ? "required" : "none");
+    }
     expect(gpu("reference_to_video").length).toBeGreaterThan(0);
     for (const model of gpu("reference_to_video")) {
       expect(model.inputs?.audio, model.id).toBe(0);
@@ -257,7 +261,7 @@ describe("Comfy GPU media fit", () => {
       expect(model.inputs?.image, model.id).toBeGreaterThanOrEqual(1);
     }
     const ids = models.map((model) => model.id);
-    expect(ids).not.toContain("comfyui-gpu/video_wan2_2_14B_flf2v");
+    expect(ids).toContain("comfyui-gpu/video_wan2_2_14B_flf2v");
     expect(ids).not.toContain("comfyui-gpu/video_wan2_2_14B_s2v");
   });
 

@@ -90,7 +90,7 @@ void InlinePropertyPresenter::activate(QtNodes::NodeId id, const QString &name) 
   widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
   widget->setInitialProperties({{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_}});
   reposition();
-  widget->setSource(QUrl("qrc:/editor/InlinePropertyEditor.qml"));
+  widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/InlinePropertyEditor.qml"));
   if (widget->status() == QQuickWidget::Error) { cancel(); return; }
   widget->show();
   widget->raise();

@@ -349,7 +349,6 @@ private slots:
  }
 };
 int main(int argc, char **argv) {
- Q_INIT_RESOURCE(editor_qml);
  QApplication app(argc, argv);
  node_editor::registerMediaTypes();
  RichOutputHostTest test;

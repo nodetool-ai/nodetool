@@ -9,7 +9,8 @@ import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: root
     EditorRoles { id: roles }
-    readonly property var entries: editor ? editor.notifications : []
+    required property Notifications notifications
+    readonly property var entries: root.notifications.entries
     color: Ui.Theme.surfaceOverlay
     border.color: Ui.Theme.borderControl
     border.width: Ui.Metrics.border
@@ -115,7 +116,7 @@ Rectangle {
                 iconName: "copy"
                 iconSize: Ui.Metrics.iconXs
                 accessibleName: qsTr("Copy notification")
-                onClicked: editor.copyText(entry.modelData.content)
+                onClicked: root.notifications.copy(entry.modelData.content)
             }
         }
     }

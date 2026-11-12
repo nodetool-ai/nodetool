@@ -57,6 +57,7 @@
     "packages/together-nodes",
     "packages/sandbox-compiler",
     "packages/workflow-runner",
+    "packages/kernels",
     "packages/nodes-utils",
     "packages/core-nodes",
     "packages/text-nodes",

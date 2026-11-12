@@ -112,6 +112,8 @@ interface AnyModel {
   name: string;
   provider: string;
   supportedTasks?: string[];
+  /** Image-to-video models only; see `VideoModel.endFrame` in the runtime. */
+  endFrame?: "required" | "optional" | "none";
 }
 
 interface FindModelResult extends CandidateRankingFields {
@@ -137,6 +139,13 @@ interface FindModelResult extends CandidateRankingFields {
    * blandest reading every one of them has.
    */
   prompting_skill?: string;
+  /**
+   * On `image_to_video` results: whether the model takes an end frame
+   * (`animate_image`'s `end_frame_file`). `required` models fail without one,
+   * `none` models refuse one, and `unknown` means the provider cannot tell
+   * before the call.
+   */
+  end_frame?: "required" | "optional" | "none" | "unknown";
 }
 
 interface ModelRef {
@@ -748,6 +757,9 @@ const findModel: CapabilityExport = {
       // skimming the answer.
       const promptingSkill = promptingSkillFor(model.id);
       if (promptingSkill) result.prompting_skill = promptingSkill;
+      if (capability === "image_to_video") {
+        result.end_frame = model.endFrame ?? "unknown";
+      }
       return result;
     });
 
@@ -811,6 +823,8 @@ interface RankedModel extends CandidateRankingFields {
   ref: ReturnType<typeof modelRef>;
   /** See {@link FindModelResult.prompting_skill}. */
   prompting_skill?: string;
+  /** See {@link FindModelResult.end_frame}. */
+  end_frame?: FindModelResult["end_frame"];
 }
 
 /** `find_model`'s answer; each note appears only when there is one. */

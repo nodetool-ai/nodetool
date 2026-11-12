@@ -16,7 +16,7 @@ private:
 private slots:
     void listActions() {
         QQmlEngine engine;
-        QQmlComponent component(&engine, QUrl("qrc:/editor/StructuredPropertyEditor.qml"));
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/StructuredPropertyEditor.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         const QVariantMap descriptor{{"kind", "list"}, {"dataType", QVariantMap{{"type", "list"}, {"type_args", QVariantList{QVariantMap{{"type", "int"}}}}}}};
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({{"descriptor", descriptor}, {"value", QVariantList{1, 2}}, {"writable", true}}));
@@ -35,7 +35,7 @@ private slots:
     }
     void dictionaryAndRecord() {
         QQmlEngine engine;
-        QQmlComponent component(&engine, QUrl("qrc:/editor/StructuredPropertyEditor.qml"));
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/StructuredPropertyEditor.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> dict(component.createWithInitialProperties({{"descriptor", QVariantMap{{"kind", "dict"}}}, {"value", QVariantMap{{"first", 1}, {"second", 2}}}, {"writable", true}}));
         QVERIFY(dict);
@@ -56,7 +56,7 @@ private slots:
     }
     void jsonDraft() {
         QQmlEngine engine;
-        QQmlComponent component(&engine, QUrl("qrc:/editor/StructuredPropertyEditor.qml"));
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/StructuredPropertyEditor.qml"));
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         std::unique_ptr<QObject> editor(component.createWithInitialProperties({{"descriptor", QVariantMap{{"kind", "json"}}}, {"value", QVariantMap{{"type", "json"}, {"data", "{}"}, {"future", 7}}}, {"writable", true}}));
         QVERIFY(editor);

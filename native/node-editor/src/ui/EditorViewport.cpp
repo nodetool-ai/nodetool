@@ -189,7 +189,7 @@ void EditorWindow::showMiniMapPopup(const QString &kind, const QPointF &anchorGl
   host->setResizeMode(QQuickWidget::SizeRootObjectToView);
   host->setGeometry(rect());
   host->setInitialProperties({{"kind", kind}, {"colorMode", miniMapColorMode_}, {"legend", legend}});
-  host->setSource(QUrl("qrc:/editor/MiniMapPopups.qml"));
+  host->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MiniMapPopups.qml"));
   if (!host->rootObject()) {
     closeMiniMapPopup();
     return;

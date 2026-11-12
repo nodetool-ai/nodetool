@@ -361,6 +361,8 @@ export interface MinimaxVideoRequest extends MinimaxVideoRenderSettings {
   model: string;
   prompt?: string;
   first_frame_image?: string;
+  /** The frame the clip ends on. MiniMax-Hailuo-02 only. */
+  last_frame_image?: string;
   subject_reference?: Array<{ type: string; image: string[] }>;
 }
 

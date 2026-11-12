@@ -88,6 +88,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   memory: [
     "memory_save",
+    "memory_get",
     "memory_list",
     "memory_search",
     "memory_update",
@@ -1130,6 +1131,16 @@ const nodetool = (() => {
       /** Remember something durably. Readable from every conversation. */
       save: (content, opts) =>
         __need("memory_save")(__merge(opts, { content: content })),
+      /**
+       * Read one memory back: by the title it was saved under (newest match),
+       * or by its id.
+       */
+      get: (key) =>
+        __need("memory_get")(
+          /^[0-9a-f]{12}([0-9a-f]{20})?$/.test(String(key))
+            ? { memory_id: key }
+            : { title: key }
+        ),
       list: (opts) => __need("memory_list")(__merge(opts)),
       /** Find memories by keyword. Every word must appear. */
       search: (query, opts) =>
@@ -1877,8 +1888,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "memory",
     skill: "api-memory",
     doc: `- \`nodetool.memory\` — durable notes across conversations: \`save(content,
-  {title, kind, resources})\`, \`search(query)\`, \`list()\`, \`update(id, fields)\`,
-  \`remove(id)\`. Put what you produce in \`resources\`.`
+  {title, kind, resources})\`, \`get(title or id)\`, \`search(query)\`, \`list()\`,
+  \`update(id, fields)\`, \`remove(id)\`. Put what you produce in \`resources\`, and
+  give a value a later action reads a \`title\` to \`get\` it by.`
   },
   {
     namespace: "threads",

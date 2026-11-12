@@ -15,6 +15,7 @@ namespace: "minimax"
 |----------|------|-------------|---------|
 | model | `enum` | The MiniMax video model to use. | `MiniMax-Hailuo-02` |
 | image | `image` |  | `{"type":"image","uri":"","asset_id":null,"data"...` |
+| end_image | `image` | Optional frame the video ends on. Only MiniMax-Hailuo-02 takes one. | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | prompt | `str` |  | `` |
 | duration | `int` | Video duration in seconds. | `6` |
 | resolution | `enum` | Output resolution. | `768P` |

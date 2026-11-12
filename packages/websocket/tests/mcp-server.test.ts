@@ -50,7 +50,8 @@ import {
 import {
   MCP_CAPABILITIES_RESOURCE_URI,
   MCP_SANDBOX_RESOURCE_URI,
-  MCP_SKILL_TOOL_NAMES
+  MCP_SKILL_TOOL_NAMES,
+  MCP_GENERATION_TOOL_NAMES
 } from "../src/mcp-agent-tools.js";
 
 const scope = { userId: "1", source: "stdio-local" as const };
@@ -196,7 +197,8 @@ describe("MCP server surface", () => {
       expect(
         DIRECT_TOOL_NAMES.has(name) ||
           PROVIDER_TOOL_NAMES.has(name) ||
-          MCP_SKILL_TOOL_NAMES.has(name)
+          MCP_SKILL_TOOL_NAMES.has(name) ||
+          MCP_GENERATION_TOOL_NAMES.has(name)
       ).toBe(true);
     }
     // The ones this session can actually build are all there. Node discovery
@@ -657,7 +659,8 @@ describe("MCP server surface", () => {
       expect(
         DIRECT_TOOL_NAMES.has(name) ||
           PROVIDER_TOOL_NAMES.has(name) ||
-          MCP_SKILL_TOOL_NAMES.has(name)
+          MCP_SKILL_TOOL_NAMES.has(name) ||
+          MCP_GENERATION_TOOL_NAMES.has(name)
       ).toBe(true);
     }
     expect(catalog.modules.map((m) => m.namespace)).toContain("workflows");

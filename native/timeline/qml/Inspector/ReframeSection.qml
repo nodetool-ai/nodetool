@@ -10,11 +10,10 @@ Item {
     property var gestures: typeof tracksRegion !== "undefined" ? tracksRegion.gestures : null
     property var playbackClock: controller ? controller.clock : typeof clock !== "undefined" ? clock : null
     property var selectedIds: gestures ? gestures.selection : []
-    readonly property var document: edits.document
-    readonly property var clip: selectedIds.length === 1 ? (document.clips || []).find(c => c.id === selectedIds[0] && ["video", "image", "overlay"].includes(c.mediaType)) || null : null
-    readonly property bool locked: !clip || !!clip.locked || (document.tracks || []).some(t => t.id === clip.trackId && t.locked)
+    readonly property var clip: selectedClip.clip && selectedClip.clip.id && ["video", "image", "overlay"].includes(selectedClip.clip.mediaType) ? selectedClip.clip : null
+    readonly property bool locked: !clip || selectedClip.locked
     readonly property var reframe: clip ? clip.reframe : null
-    readonly property var mediaTracks: clip ? (document.mediaTracks || []).filter(t => t.clipId === clip.id) : []
+    readonly property var mediaTracks: clip ? edits.mediaTracks.filter(t => t.clipId === clip.id) : []
     readonly property var reframeTrack: reframe ? mediaTracks.find(t => t.id === reframe.trackId) : undefined
     readonly property bool stale: !!clip && edits.evaluate({op: "isReframeStale", clip: clip, track: reframeTrack})
     readonly property real playheadMs: playbackClock ? playbackClock.time : 0
@@ -29,6 +28,7 @@ Item {
     implicitHeight: clip ? section.implicitHeight : 0
     visible: !!clip
     ReframeController { id: edits; model: root.timelineModel }
+    ClipInspectorController { id: selectedClip; timeline: root.timelineModel; clipId: root.selectedIds.length === 1 ? root.selectedIds[0] : "" }
     function addKeyframe() {
         if (!clip || locked || !playheadInClip) return
         edits.apply("addClipReframeKeyframe", {clipId: clip.id, sourceMs: edits.sourceMsAt(clip.id, playheadMs), x: focusX, y: focusY, zoom: zoom})

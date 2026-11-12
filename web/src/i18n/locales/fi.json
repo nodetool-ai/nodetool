@@ -16693,7 +16693,6 @@
       "press": "Paina",
       "toggleHint": "milloin tahansa avataksesi tai sulkeaksesi tämän paneelin · Ctrl vastaa myös ⌘-näppäintä macOS:ssä",
       "presets": {
-        "nodetool": "NodeTool",
         "premiere": "Premiere Pro",
         "fcp": "Final Cut Pro"
       },

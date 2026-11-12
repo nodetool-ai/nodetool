@@ -296,7 +296,6 @@ private slots:
   }
 };
 int main(int argc, char **argv) {
-  Q_INIT_RESOURCE(editor_qml);
   QApplication app(argc, argv);
   nodetool::node_editor::registerMediaTypes();
   CanvasMediaTest test;

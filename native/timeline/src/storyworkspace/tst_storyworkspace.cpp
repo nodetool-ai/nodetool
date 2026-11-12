@@ -14,6 +14,11 @@
 #include <QPointer>
 #include <QFile>
 #include <QJsonDocument>
+#include <QtQml/qqmlextensionplugin.h>
+
+Q_IMPORT_QML_PLUGIN(NodeTool_StoryboardPlugin)
+Q_IMPORT_QML_PLUGIN(NodeTool_MediaPlugin)
+Q_IMPORT_QML_PLUGIN(NodeTool_ModelPickerPlugin)
 
 namespace {
 QJsonObject board(const QString& id = "board", const QString& revision = "rev1") {

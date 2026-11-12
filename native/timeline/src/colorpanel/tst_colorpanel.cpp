@@ -335,6 +335,94 @@ private slots:
         QCOMPARE(e.model.undoStack()->count(), undoBefore + 3);
     }
 
+    void lightRowsWriteTheExposureEffect() {
+        Editor e({clipJson("a", 0, 1000)});
+        QVERIFY2(e.object, qPrintable(e.error));
+        e.workspace("Color");
+        e.select("a");
+        auto* blacks = e.item("colorBasic_blacks");
+        QVERIFY(blacks);
+        QTRY_VERIFY(blacks->width() > 100);
+        // The Premiere order of the tone rows.
+        double previous = -1;
+        for (const auto* key : {"exposure", "contrast", "highlights", "shadows", "whites", "blacks"}) {
+            auto* row = e.item(QString("colorBasic_") + key);
+            QVERIFY2(row, key);
+            const double y = row->mapToScene(QPointF{}).y();
+            QVERIFY2(y > previous, key);
+            previous = y;
+        }
+        const int undoBefore = e.model.undoStack()->count();
+        QTest::mouseClick(&e.window, Qt::LeftButton, Qt::NoModifier, e.reveal(blacks, QPointF(blacks->width() * 0.7, blacks->height() / 2)));
+        QTRY_COMPARE(e.model.undoStack()->count(), undoBefore + 1);
+        const auto exposure = e.effectOf("exposure");
+        QVERIFY(exposure.value("enabled").toBool());
+        QVERIFY(exposure.value("blacks").toDouble() > 0);
+        QCOMPARE(exposure.value("exposure").toDouble(), 0.0);
+        QVERIFY(e.effectOf("color").isEmpty());
+        QVERIFY(std::abs(e.item("colorBasic_blacks")->property("value").toDouble() - exposure.value("blacks").toDouble()) < 1e-9);
+        // The section switch turns the color and exposure effects off in one edit.
+        auto* control = toggle(e.item("colorBasicSection"));
+        QVERIFY(control);
+        QTest::mouseClick(&e.window, Qt::LeftButton, Qt::NoModifier, e.reveal(control, QPointF(control->width() / 2, control->height() / 2)));
+        e.settle();
+        QCOMPARE(e.model.undoStack()->count(), undoBefore + 2);
+        QVERIFY(!e.effectOf("exposure").value("enabled").toBool(true));
+        QVERIFY(!e.effectOf("color").value("enabled").toBool(true));
+        QVERIFY(e.item("colorBasic_exposure")->property("disabled").toBool());
+    }
+
+    void roundnessCurvesAndTheFxButton() {
+        auto a = clipJson("a", 0, 1000);
+        a.insert("name", "Interview A");
+        a.insert("effects", QJsonArray{QJsonObject{{"id", "soft"}, {"type", "blur"}, {"enabled", true}, {"radius", 3}},
+            QJsonObject{{"id", "tone"}, {"type", "curves"}, {"enabled", false}, {"master", QJsonArray{}}},
+            QJsonObject{{"id", "edge"}, {"type", "vignette"}, {"enabled", true}, {"amount", 0.3}, {"softness", 0.5}, {"roundness", -0.5}}});
+        Editor e({a});
+        QVERIFY2(e.object, qPrintable(e.error));
+        e.workspace("Color");
+        e.select("a");
+        auto* scope = e.item("colorPanelScope");
+        QVERIFY(scope);
+        QCOMPARE(scope->property("text").toString(), QString("Interview A"));
+        auto* roundness = e.item("colorVignette_roundness");
+        QVERIFY(roundness);
+        QCOMPARE(roundness->property("min").toDouble(), -1.0);
+        QCOMPARE(roundness->property("value").toDouble(), -0.5);
+        QCOMPARE(roundness->property("display").toString(), QString("-50"));
+        // Hue Saturation Curves: one editor per curve, written to one hueSatCurves effect after the curves.
+        for (const auto* key : {"hueVsSat", "hueVsHue", "hueVsLuma", "lumaVsSat", "satVsSat"}) {
+            QVERIFY2(e.item(QString("colorHueSat_") + key), key);
+        }
+        const QVariantMap change{{"lumaVsSat", QVariantList{QVariantMap{{"x", 0}, {"y", 0.5}}, QVariantMap{{"x", 1}, {"y", 0.2}}}}};
+        QVERIFY(QMetaObject::invokeMethod(e.item("colorPanel"), "writeSection", Q_ARG(QVariant, "hueSatCurves"),
+            Q_ARG(QVariant, QVariant(change)), Q_ARG(QVariant, "apply")));
+        e.settle();
+        auto effects = e.effects();
+        QCOMPARE(effects.size(), 4);
+        QCOMPARE(effects[2].toObject().value("type").toString(), QString("hueSatCurves"));
+        QCOMPARE(effects[2].toObject().value("lumaVsSat").toArray().size(), 2);
+        const auto points = e.item("colorHueSat_lumaVsSat")->property("points").toList();
+        QCOMPARE(points.size(), 2);
+        QCOMPARE(points[1].toMap().value("y").toDouble(), 0.2);
+        // fx turns every grade effect off in one edit and leaves the blur alone. On again turns them all on.
+        auto* fx = e.item("colorPanelFx");
+        QVERIFY(fx);
+        QVERIFY(fx->property("active").toBool());
+        const int undoBefore = e.model.undoStack()->count();
+        QTest::mouseClick(&e.window, Qt::LeftButton, Qt::NoModifier, e.reveal(fx, QPointF(fx->width() / 2, fx->height() / 2)));
+        e.settle();
+        QCOMPARE(e.model.undoStack()->count(), undoBefore + 1);
+        effects = e.effects();
+        QVERIFY(effects[0].toObject().value("enabled").toBool());
+        for (int i = 1; i < effects.size(); ++i) { QVERIFY(!effects[i].toObject().value("enabled").toBool(true)); }
+        QVERIFY(!fx->property("active").toBool());
+        QTest::mouseClick(&e.window, Qt::LeftButton, Qt::NoModifier, e.reveal(fx, QPointF(fx->width() / 2, fx->height() / 2)));
+        e.settle();
+        for (const auto& effect : e.effects()) { QVERIFY(effect.toObject().value("enabled").toBool()); }
+        e.grab("color-panel-curves-fx");
+    }
+
     void newEffectsFollowThePanelOrderAndKeepOthers() {
         auto a = clipJson("a", 0, 1000);
         a.insert("effects", QJsonArray{QJsonObject{{"id", "soft"}, {"type", "blur"}, {"enabled", true}, {"radius", 3}},

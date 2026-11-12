@@ -16985,7 +16985,6 @@
       "press": "Presse",
       "toggleHint": "à tout moment pour basculer ce panneau · Ctrl répond également à ⌘ sur macOS",
       "presets": {
-        "nodetool": "Outil de nœud",
         "premiere": "Première Pro",
         "fcp": "Final Cut Pro"
       },

@@ -3,25 +3,26 @@ import QtQuick
 import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
+import NodeTool.NodeEditor
 
 // The web Inspector: node header, Params / I/O / Help tabs, and scrolled fields.
 Rectangle {
     id: root
-    property var propertyHost: editor
+    required property NodeInspector inspector
     EditorRoles { id: roles }
     color: roles.panel
     implicitWidth: 350
     property int tab: 0
-    readonly property var info: propertyHost && propertyHost.selectionInfo ? propertyHost.selectionInfo : ({})
-    readonly property var fieldsModel: propertyHost ? propertyHost.properties : []
-    readonly property bool hasSelection: propertyHost && propertyHost.selection !== ""
+    readonly property var info: inspector.selectionInfo
+    readonly property var fieldsModel: inspector.properties
+    readonly property bool hasSelection: inspector.selection !== ""
     // RunSelectedNodesSection.tsx: the run count lives with the open inspector.
     property int runs: 1
-    readonly property bool canRun: !!propertyHost && typeof propertyHost.runSelectedNodes === "function"
+    readonly property bool canRun: inspector.canRun
     // Debounced, so a burst of preview runs does not flicker the run controls.
-    readonly property bool running: !!propertyHost && !!propertyHost.shownRunActive
-    readonly property var runProgress: propertyHost && propertyHost.runProgress ? propertyHost.runProgress : ({})
-    readonly property var cost: propertyHost && propertyHost.costEstimate ? propertyHost.costEstimate : ({})
+    readonly property bool running: inspector.running
+    readonly property var runProgress: inspector.runProgress
+    readonly property var cost: inspector.costEstimate
     component TabButton: PanelRow {
         id: tabButton
         property int index: 0
@@ -61,10 +62,10 @@ Rectangle {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 0
-                Ui.Text { objectName: "inspector-title"; Layout.fillWidth: true; text: root.info.title || (root.propertyHost ? root.propertyHost.selection : ""); role: Ui.Typography.SansLabel; font.weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1.3 }
+                Ui.Text { objectName: "inspector-title"; Layout.fillWidth: true; text: root.info.title || root.inspector.selection; role: Ui.Typography.SansLabel; font.weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1.3 }
                 Ui.Text { objectName: "inspector-namespace"; Layout.fillWidth: true; visible: text !== ""; text: root.info.namespace || ""; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary; elide: Text.ElideMiddle; lineHeight: 1.3 }
             }
-            NodeButton { objectName: "inspector-close"; text: ""; accessibleName: "Close inspector"; iconName: "close"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.compact; onClicked: root.propertyHost.action("Clear selection") }
+            NodeButton { objectName: "inspector-close"; text: ""; accessibleName: "Close inspector"; iconName: "close"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.compact; onClicked: root.inspector.clearSelection() }
         }
         Item {
             visible: root.hasSelection
@@ -113,8 +114,8 @@ Rectangle {
                         required property int index
                         Layout.fillWidth: true
                         descriptor: root.fieldsModel[index] || ({})
-                        host: root.propertyHost
-                        nodeId: root.propertyHost ? root.propertyHost.selection : ""
+                        host: root.inspector.fields
+                        nodeId: root.inspector.selection
                     }
                 }
             }
@@ -136,7 +137,7 @@ Rectangle {
                 y: Ui.Metrics.lg
                 width: ioScroll.width - Ui.Metrics.lg * 2
                 spacing: Ui.Metrics.sm
-                Loader { Layout.fillWidth: true; active: root.propertyHost && root.propertyHost.dynamicPorts !== undefined; sourceComponent: DynamicPorts { controller: root.propertyHost.dynamicPorts; enabled: !root.propertyHost.readOnly } }
+                Loader { Layout.fillWidth: true; active: root.inspector.dynamicPorts !== null; sourceComponent: DynamicPorts { controller: root.inspector.dynamicPorts; enabled: !root.inspector.readOnly } }
                 Repeater {
                     model: [{title: "Inputs", ports: root.info.inputs || []}, {title: "Outputs", ports: root.info.outputs || []}]
                     ColumnLayout {
@@ -191,7 +192,7 @@ Rectangle {
                 y: helpText.y + helpText.implicitHeight + Ui.Metrics.lg
                 text: qsTr("Focus")
                 iconName: "myLocation"
-                onClicked: root.propertyHost.userAction("Focus node")
+                onClicked: root.inspector.focusNode()
             }
         }
         Loader {
@@ -199,13 +200,13 @@ Rectangle {
             active: visible
             Layout.fillWidth: true
             Layout.fillHeight: true
-            sourceComponent: Component { GenerationHistory { propertyHost: root.propertyHost } }
+            sourceComponent: Component { GenerationHistory { generations: root.inspector.history } }
         }
         Item { visible: !root.hasSelection; Layout.fillHeight: true }
         Ui.Text {
             objectName: "inspector-message"
             visible: text !== ""
-            text: root.propertyHost ? (root.propertyHost.readOnly ? root.propertyHost.readOnlyReason : root.propertyHost.message) : ""
+            text: root.inspector.readOnly ? root.inspector.readOnlyReason : root.inspector.message
             role: Ui.Typography.SansCaption
             tone: Ui.Text.Secondary
             wrapMode: Text.WrapAnywhere
@@ -292,9 +293,9 @@ Rectangle {
                         iconName: "playArrow"
                         text: qsTr("Run selected")
                         accessibleName: qsTr("Run selected nodes")
-                        enabled: !root.running && !root.propertyHost.readOnly
-                        onHoveredChanged: root.propertyHost.showToolTip(hovered ? qsTr("Run selected nodes") + "  " + (Qt.platform.os === "osx" ? "⌘ Enter" : "Ctrl+Enter") : "")
-                        onClicked: root.propertyHost.runSelectedNodes(root.runs)
+                        enabled: !root.running && !root.inspector.readOnly
+                        onHoveredChanged: root.inspector.showToolTip(hovered ? qsTr("Run selected nodes") + "  " + (Qt.platform.os === "osx" ? "⌘ Enter" : "Ctrl+Enter") : "")
+                        onClicked: root.inspector.runSelectedNodes(root.runs)
                     }
                     Ui.Text {
                         objectName: "inspector-run-progress"

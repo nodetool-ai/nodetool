@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
+import NodeTool.Media
 import NodeTool.ModelPicker
 import "../assets/AssetContext.js" as Context
 
@@ -214,15 +215,13 @@ Ui.Dialog {
                             Layout.preferredHeight: Ui.Metrics.touch + Ui.Metrics.xs
                             color: Ui.Theme.surfaceInput
                             radius: Ui.Metrics.radiusControl
-                            Image {
+                            StableImage {
                                 id: current
                                 anchors.fill: parent
                                 anchors.margins: Ui.Metrics.micro
                                 source: dialog.imageUrl
-                                asynchronous: true
                                 fillMode: Image.PreserveAspectCrop
-                                sourceSize: Qt.size(width * 2, height * 2)
-                                visible: status === Image.Ready
+                                visible: loaded
                             }
                             Rectangle {
                                 anchors.fill: parent
@@ -333,12 +332,17 @@ Ui.Dialog {
                         columns: Math.max(1, Math.floor((width + gap) / (160 * Ui.Theme.uiScale + gap)))
                         columnSpacing: gap
                         rowSpacing: gap
+                        // New takes take their cells without gliding, like the other grids.
+                        GridReflow { id: takeReflow; columns: takeGrid.columns; enabled: takeRepeater.count > 0 && takeGrid.visible }
                         Repeater {
+                            id: takeRepeater
                             model: dialog.assist ? dialog.assist.takes : []
                             Item {
                                 id: take
                                 required property string modelData
                                 required property int index
+                                transform: takeGlide.shift
+                                GridGlide { id: takeGlide; target: take; active: takeReflow.active }
                                 readonly property bool chosen: dialog.chosenTake === modelData
                                 property real lastRelease: 0
                                 objectName: "entityTake_" + modelData
@@ -362,15 +366,13 @@ Ui.Dialog {
                                     anchors.fill: parent
                                     color: Ui.Theme.surfaceInput
                                     radius: Ui.Metrics.radiusControl
-                                    Image {
+                                    StableImage {
                                         id: takeImage
                                         anchors.fill: parent
                                         anchors.margins: Ui.Metrics.micro
                                         source: dialog.library && dialog.library.imageUrls[take.modelData] ? dialog.library.imageUrls[take.modelData] : ""
-                                        asynchronous: true
                                         fillMode: Image.PreserveAspectFit
-                                        sourceSize: Qt.size(width * 2, height * 2)
-                                        visible: status === Image.Ready
+                                        visible: loaded
                                     }
                                     Ui.Text {
                                         anchors.centerIn: parent

@@ -17,8 +17,13 @@ void ClipInspectorController::setTimeline(TimelineModel* model) {
         connect(model, &TimelineModel::beforeCommand, this, [this] {
             if (m_gesturing) { cancelGesture(); m_ignoreCommit = true; }
         });
-        connect(model, &TimelineModel::clipsChanged, this, &ClipInspectorController::changed);
-        connect(model, &TimelineModel::timelineChanged, this, &ClipInspectorController::changed);
+        // Clip contents arrive on clipsChanged, a track lock on timelineChanged alone.
+        connect(model, &TimelineModel::clipsChanged, this, [this] {
+            if (m_active && m_timeline->clipTouched(m_clipId)) { refresh(); }
+        });
+        connect(model, &TimelineModel::timelineChanged, this, [this] {
+            if (m_active && computeLocked(m_clip) != m_locked) { refresh(); }
+        });
         connect(model, &TimelineModel::documentReplaced, this, [this] {
             m_ignoreCommit = m_gesturing;
             m_gesturing = false;
@@ -28,11 +33,35 @@ void ClipInspectorController::setTimeline(TimelineModel* model) {
         });
         connect(model, &QObject::destroyed, this, [this] {
             m_gesturing = false;
+            m_clip = {};
+            m_locked = true;
+            m_clipMapValid = false;
             emit changed();
         });
     }
-    emit changed();
+    refresh(true);
     emit playheadChanged();
+}
+void ClipInspectorController::setActive(bool active) {
+    if (active == m_active) {
+        return;
+    }
+    m_active = active;
+    emit activeChanged();
+    if (active) {
+        refresh();
+    }
+}
+void ClipInspectorController::refresh(bool force) {
+    const auto next = selected();
+    const bool lockedNow = computeLocked(next);
+    if (!force && next == m_clip && lockedNow == m_locked) {
+        return;
+    }
+    m_clip = next;
+    m_locked = lockedNow;
+    m_clipMapValid = false;
+    emit changed();
 }
 void ClipInspectorController::setClock(PlaybackClock* clock) {
     if (m_clock == clock) {
@@ -54,32 +83,31 @@ void ClipInspectorController::setClipId(const QString& id) {
     }
     cancelGesture();
     m_clipId = id;
-    emit changed();
+    refresh(true);
     emit playheadChanged();
 }
 QJsonObject ClipInspectorController::selected() const {
-    // The typed clips keep each clip's JSON, so the lookup reads no JSON array.
     if (!m_timeline || m_clipId.isEmpty()) {
         return {};
     }
-    const auto id = m_clipId.toStdString();
-    for (const auto& clip : m_timeline->timeline().clips) {
-        if (clip.id == id) {
-            return clip.raw;
-        }
-    }
-    return {};
+    const auto* clip = m_timeline->findClip(m_clipId);
+    return clip ? clip->raw : QJsonObject{};
 }
-QVariantMap ClipInspectorController::clip() const { return selected().toVariantMap(); }
-bool ClipInspectorController::locked() const {
-    const auto c = selected();
-    if (c.isEmpty() || c["locked"].toBool()) {
+QVariantMap ClipInspectorController::clip() const {
+    if (!m_clipMapValid) {
+        m_clipMap = m_clip.toVariantMap();
+        m_clipMapValid = true;
+    }
+    return m_clipMap;
+}
+bool ClipInspectorController::computeLocked(const QJsonObject& c) const {
+    if (c.isEmpty() || c["locked"].toBool() || !m_timeline) {
         return true;
     }
-    for (const auto& value : m_timeline->timeline().raw["tracks"].toArray()) {
-        const auto t = value.toObject();
-        if (t["id"] == c["trackId"] && t["locked"].toBool()) {
-            return true;
+    const auto trackId = c["trackId"].toString().toStdString();
+    for (const auto& track : m_timeline->timeline().tracks) {
+        if (track.id == trackId) {
+            return track.raw["locked"].toBool();
         }
     }
     return false;

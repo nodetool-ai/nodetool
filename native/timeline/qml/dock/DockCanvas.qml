@@ -22,12 +22,27 @@ Item {
     property bool rightCollapsed: false
     readonly property bool hasLeft: groups("left").length > 0
     readonly property bool hasRight: groups("right").length > 0
-    readonly property real leftExtent: hasLeft && !leftCollapsed ? sizes.left : 0
-    readonly property real rightExtent: hasRight && !rightCollapsed ? sizes.right : 0
-    readonly property real bottomExtent: groups("bottom").length ? sizes.bottom : 0
-    readonly property real leftGap: leftExtent ? Ui.Metrics.sm : 0
-    readonly property real rightGap: rightExtent ? Ui.Metrics.sm : 0
+    // Animated fractions: 1 shows a side, maxT 1 fills the canvas with the maximized region.
+    // Only these fractions animate, so a window resize or a handle drag stays immediate.
+    property real leftShown: leftCollapsed ? 0 : 1
+    property real rightShown: rightCollapsed ? 0 : 1
+    property real maxT: maximizedGroup ? 1 : 0
+    property string maximizedRegion: ""
+    Behavior on leftShown { enabled: !Ui.Theme.reducedMotion; NumberAnimation { duration: Ui.Metrics.motionNormal; easing.type: Easing.OutCubic } }
+    Behavior on rightShown { enabled: !Ui.Theme.reducedMotion; NumberAnimation { duration: Ui.Metrics.motionNormal; easing.type: Easing.OutCubic } }
+    Behavior on maxT { enabled: !Ui.Theme.reducedMotion; NumberAnimation { duration: Ui.Metrics.motionNormal; easing.type: Easing.OutCubic } }
+    onMaximizedGroupChanged: if (maximizedGroup) maximizedRegion = Model.regionOfGroup(layout, maximizedGroup) || ""
+    readonly property bool hasLeftLayout: layout.regions.left.some(group => !!activePanel(group))
+    readonly property bool hasRightLayout: layout.regions.right.some(group => !!activePanel(group))
+    readonly property bool hasBottomLayout: layout.regions.bottom.some(group => !!activePanel(group))
+    readonly property real leftExtent: hasLeftLayout ? sizes.left * leftShown : 0
+    readonly property real rightExtent: hasRightLayout ? sizes.right * rightShown : 0
+    readonly property real bottomExtent: hasBottomLayout ? sizes.bottom : 0
+    readonly property real leftGap: hasLeftLayout ? Ui.Metrics.sm * leftShown : 0
+    readonly property real rightGap: hasRightLayout ? Ui.Metrics.sm * rightShown : 0
     readonly property real bottomGap: bottomExtent ? Ui.Metrics.sm : 0
+    function lerp(from, to) { return from + (to - from) * maxT }
+    function maximizedTarget(region, normal, full) { return lerp(normal, maximizedRegion === region ? full : 0) }
     readonly property var visiblePanels: Model.allGroups(layout).filter(group => !maximizedGroup || group.id === maximizedGroup)
         .map(group => activePanel(group)).filter(id => !!id)
     objectName: "dockCanvas"
@@ -39,7 +54,10 @@ Item {
     onYChanged: noteGeometry()
     onWidthChanged: noteGeometry()
     onHeightChanged: noteGeometry()
-    function noteGeometry() { ++geometryEpoch }
+    // One epoch step for each frame: the panel hosts then lay out their
+    // panels one time, at the final geometry, not at each step between.
+    function noteGeometry() { geometryTick.request() }
+    DockPolishTick { id: geometryTick; onTick: ++root.geometryEpoch }
     readonly property var panelIcons: ({assets: "all", script: "subtitles", storyboard: "gridGoldenratio", inspector: "tune",
         activity: "recent", assistant: "autoAwesome", mixer: "graphicEq", source: "videocam", program: "movieOutlined", tracks: "layers"})
     function icon(id) { return panelIcons[id] || "" }
@@ -153,32 +171,37 @@ Item {
     }
     DockRegionView {
         dock: root; region: "left"
-        width: root.maximizedGroup && root.groups("left").length ? root.width : root.leftExtent
+        z: root.maxT > 0 && !(root.maximizedRegion === "left") ? -TimelineMetrics.dockMaximizedLayer : 0
+        width: root.maximizedTarget("left", root.leftExtent, root.width)
         height: root.height
     }
     DockRegionView {
         dock: root; region: "right"
-        x: root.maximizedGroup ? 0 : root.width - root.rightExtent
-        width: root.maximizedGroup && root.groups("right").length ? root.width : root.rightExtent
+        z: root.maxT > 0 && !(root.maximizedRegion === "right") ? -TimelineMetrics.dockMaximizedLayer : 0
+        width: root.maximizedTarget("right", root.rightExtent, root.width)
+        x: root.width - width
         height: root.height
     }
     Item {
         id: center
+        readonly property bool holdsMaximized: root.maximizedRegion === "viewport" || root.maximizedRegion === "bottom"
         onXChanged: root.noteGeometry()
         onYChanged: root.noteGeometry()
-        x: root.maximizedGroup ? 0 : root.leftExtent + root.leftGap
-        width: root.maximizedGroup ? root.width : Math.max(0, root.width - x - root.rightExtent - root.rightGap)
+        z: root.maxT > 0 && !(holdsMaximized) ? -TimelineMetrics.dockMaximizedLayer : 0
+        x: root.lerp(root.leftExtent + root.leftGap, holdsMaximized ? 0 : root.leftExtent + root.leftGap)
+        width: root.lerp(Math.max(0, root.width - root.leftExtent - root.leftGap - root.rightExtent - root.rightGap),
+                         holdsMaximized ? root.width : 0)
         height: root.height
         DockRegionView {
             dock: root; region: "viewport"
             width: center.width
-            height: root.maximizedGroup ? root.height : Math.max(0, root.height - root.bottomExtent - root.bottomGap)
+            height: root.maximizedTarget("viewport", Math.max(0, root.height - root.bottomExtent - root.bottomGap), root.height)
         }
         DockRegionView {
             dock: root; region: "bottom"
-            y: root.maximizedGroup ? 0 : root.height - root.bottomExtent
+            height: root.maximizedTarget("bottom", root.bottomExtent, root.height)
+            y: root.height - height
             width: center.width
-            height: root.maximizedGroup && root.groups("bottom").length ? root.height : root.bottomExtent
         }
         DockResizeHandle {
             objectName: "dockResize_bottom"

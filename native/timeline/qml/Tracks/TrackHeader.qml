@@ -41,21 +41,24 @@ Rectangle {
     border.color: Ui.Theme.borderFocus
     clip: true
 
+    HoverHandler { id: headerHover }
     AutomationController { id: automation; timeline: header.timeline; trackId: header.trackId }
 
-    // padding: SPACING.xs SPACING.md; flex column, space-between.
-    Item {
+    // One compact row, as a conventional NLE track header: grip, source
+    // patch, lock, track target, sync lock, visibility, mute, solo, the name,
+    // then effects, automation and delete. The row stays at the top of a
+    // tall track.
+    Row {
         id: topRow
-        x: Ui.Metrics.md
-        y: Ui.Metrics.xs
-        width: header.width - 2 * Ui.Metrics.md
-        height: 26
+        x: Ui.Metrics.xs
+        y: Math.max(0, Math.min(Ui.Metrics.xs, (header.height - height) / 2))
+        height: Ui.Metrics.compact
+        spacing: Ui.Metrics.micro
 
-        // The reorder grip: 16 px wide, pulled 6 px left and 2 px right.
+        // The reorder grip.
         Ui.Icon {
             id: grip
             objectName: "trackGrip-" + header.trackId
-            x: -Ui.Metrics.sm
             anchors.verticalCenter: parent.verticalCenter
             name: "dragIndicator"
             size: Ui.Metrics.iconSm
@@ -69,29 +72,132 @@ Rectangle {
                 }
             }
         }
-        Rectangle {
-            id: glyph
-            x: grip.x + Ui.Metrics.iconSm - Ui.Metrics.micro + Ui.Metrics.md
+        // Source patching: Insert and Overwrite place that stream of the Source
+        // monitor's clip on this track. View state, not saved in the document.
+        // The slot keeps its width on other tracks, so the columns line up.
+        Item {
             width: Ui.Metrics.compact
-            height: Ui.Metrics.compact
-            radius: Ui.Metrics.radiusControl
-            color: Ui.Theme.surfacePanel
-            Ui.Icon {
-                anchors.centerIn: parent
-                name: TimelineVisuals.trackIconName(header.trackType)
-                size: Ui.Metrics.iconSm
-                domainColor: header.accent
+            height: parent.height
+            Rectangle {
+                anchors.fill: patchChip
+                visible: patchChip.visible
+                radius: Ui.Metrics.radiusControl
+                color: header.patched ? TimelineVisuals.targetFill : "transparent"
+                border.width: Ui.Metrics.border
+                border.color: header.patched ? TimelineVisuals.editBlue : Ui.Theme.borderSubtle
+            }
+            Ui.EditorButton {
+                id: patchChip
+                objectName: "sourcePatch-" + header.trackId
+                visible: header.patchKind !== ""
+                anchors.fill: parent
+                density: Ui.EditorButton.Compact
+                variant: Ui.EditorButton.Flat
+                checkable: true
+                active: header.patched
+                Binding { target: patchChip; property: "checked"; value: header.patched }
+                text: header.patchKind === "video" ? "V" : "A"
+                textRole: Ui.Typography.MonoCaption
+                textTone: header.patched ? Ui.Text.Primary : Ui.Text.Disabled
+                accessibleName: (header.patched ? "Unpatch source " : "Patch source ") + (header.patchKind === "video" ? "video" : "audio") + " to " + header.name
+                description: "Insert and Overwrite place Source " + (header.patchKind === "video" ? "video" : "audio") + " on this track"
+                onClicked: SourceViewerState.togglePatch(header.patchKind, header.trackId)
             }
         }
+        TrackIconButton {
+            objectName: "track-locked-" + header.trackId
+            anchors.verticalCenter: parent.verticalCenter
+            iconKey: header.locked ? "lock" : "lockOpen"
+            accessibleName: header.locked ? "Unlock track" : "Lock track"
+            tone: header.locked ? "warning" : "idle"
+            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackLocked", {trackId: header.trackId, locked: !header.locked}) }
+        }
+        // The index box doubles as the track-target toggle; a track is
+        // targeted unless the person turned it off.
+        Item {
+            width: chip.implicitWidth
+            height: parent.height
+            Rectangle {
+                anchors.fill: chip
+                radius: Ui.Metrics.radiusControl
+                color: header.targeted ? TimelineVisuals.targetFill : "transparent"
+                border.width: Ui.Metrics.border
+                border.color: header.targeted ? TimelineVisuals.editBlue : Ui.Theme.borderSubtle
+            }
+            Ui.EditorButton {
+                id: chip
+                objectName: "trackTarget-" + header.trackId
+                opacity: header.targeted ? 1 : 0.55
+                height: parent.height
+                density: Ui.EditorButton.Compact
+                variant: Ui.EditorButton.Flat
+                checkable: true
+                Binding { target: chip; property: "checked"; value: header.targeted }
+                text: TimelineVisuals.trackPrefix(header.trackType) + header.typedIndex
+                textRole: Ui.Typography.MonoCaption
+                textTone: header.targeted ? Ui.Text.Primary : Ui.Text.Disabled
+                accessibleName: (header.targeted ? "Untarget " : "Target ") + header.name + " track"
+                description: "Choose whether this track receives insert and paste commands"
+                onClicked: TrackTargeting.setTrackTargeted(header.trackId, !header.targeted)
+            }
+        }
+        TrackIconButton {
+            objectName: "trackSync-" + header.trackId
+            anchors.verticalCenter: parent.verticalCenter
+            // The slot keeps its width, so the columns line up across tracks.
+            opacity: header.trackType !== "chord" ? 1 : 0
+            enabled: header.trackType !== "chord"
+            Accessible.ignored: !(header.trackType !== "chord")
+            iconKey: header.syncLocked ? "sync" : "syncDisabled"
+            accessibleName: header.syncLocked ? "Unlock track sync" : "Lock track sync"
+            tone: header.syncLocked ? "idle" : "warning"
+            onClicked: TrackTargeting.setTrackSyncLocked(header.trackId, !header.syncLocked)
+        }
+        TrackIconButton {
+            objectName: "track-visible-" + header.trackId
+            anchors.verticalCenter: parent.verticalCenter
+            // The slot keeps its width, so the columns line up across tracks.
+            opacity: header.trackType !== "midi" ? 1 : 0
+            enabled: header.trackType !== "midi"
+            Accessible.ignored: !(header.trackType !== "midi")
+            iconKey: header.trackVisible ? "visibility" : "visibilityOff"
+            accessibleName: header.trackVisible ? "Hide track" : "Show track"
+            tone: header.trackVisible ? "idle" : "warning"
+            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackVisible", {trackId: header.trackId, visible: !header.trackVisible}) }
+        }
+        TrackIconButton {
+            objectName: "track-muted-" + header.trackId
+            anchors.verticalCenter: parent.verticalCenter
+            // The slot keeps its width, so the columns line up across tracks.
+            opacity: header.isSoundTrack ? 1 : 0
+            enabled: header.isSoundTrack
+            Accessible.ignored: !(header.isSoundTrack)
+            label: "M"
+            accessibleName: header.muted ? "Unmute track" : "Mute track"
+            tone: header.muted ? "success" : "idle"
+            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackMuted", {trackId: header.trackId, muted: !header.muted}) }
+        }
+        TrackIconButton {
+            objectName: "track-solo-" + header.trackId
+            anchors.verticalCenter: parent.verticalCenter
+            // The slot keeps its width, so the columns line up across tracks.
+            opacity: header.isSoundTrack ? 1 : 0
+            enabled: header.isSoundTrack
+            Accessible.ignored: !(header.isSoundTrack)
+            label: "S"
+            accessibleName: header.solo ? "Unsolo track" : "Solo track"
+            tone: header.solo ? "success" : "idle"
+            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackSolo", {trackId: header.trackId, solo: !header.solo}) }
+        }
+        Item { width: Ui.Metrics.xs; height: 1 }
         Ui.Text {
             id: nameText
             objectName: "trackName-" + header.trackId
-            x: glyph.x + glyph.width + Ui.Metrics.md
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, topRow.width - x - chip.width - Ui.Metrics.sm
-                - (patchChip.visible ? patchChip.width + Ui.Metrics.micro : 0))
+            width: Math.max(0, header.width - topRow.x - Ui.Metrics.sm - x)
             text: header.name
-            role: Ui.Typography.SansLabel
+            role: Ui.Typography.SansCaption
+            tone: Ui.Text.Secondary
             elide: Text.ElideRight
             HoverHandler { id: nameHover }
             Ui.Tooltip {
@@ -101,94 +207,26 @@ Rectangle {
                 text: header.name
             }
         }
-        // Source patching: Insert and Overwrite place that stream of the Source
-        // monitor's clip on this track. View state, not saved in the document.
-        Ui.EditorButton {
-            id: patchChip
-            objectName: "sourcePatch-" + header.trackId
-            visible: header.patchKind !== ""
-            x: nameText.x + nameText.width + Ui.Metrics.sm
-            anchors.verticalCenter: parent.verticalCenter
-            density: Ui.EditorButton.Compact
-            variant: Ui.EditorButton.Flat
-            checkable: true
-            active: header.patched
-            Binding { target: patchChip; property: "checked"; value: header.patched }
-            text: header.patchKind === "video" ? "V" : "A"
-            textRole: Ui.Typography.MonoCaption
-            textTone: header.patched ? Ui.Text.Primary : Ui.Text.Disabled
-            accessibleName: (header.patched ? "Unpatch source " : "Patch source ") + (header.patchKind === "video" ? "video" : "audio") + " to " + header.name
-            description: "Insert and Overwrite place Source " + (header.patchKind === "video" ? "video" : "audio") + " on this track"
-            onClicked: SourceViewerState.togglePatch(header.patchKind, header.trackId)
-        }
-        // The index chip doubles as the track-target toggle; a track is
-        // targeted unless the person turned it off.
-        Ui.EditorButton {
-            id: chip
-            objectName: "trackTarget-" + header.trackId
-            opacity: header.targeted ? 1 : 0.55
-            x: (patchChip.visible ? patchChip.x + patchChip.width + Ui.Metrics.micro : nameText.x + nameText.width + Ui.Metrics.sm)
-            anchors.verticalCenter: parent.verticalCenter
-            density: Ui.EditorButton.Compact
-            variant: Ui.EditorButton.Flat
-            checkable: true
-            Binding { target: chip; property: "checked"; value: header.targeted }
-            text: TimelineVisuals.trackPrefix(header.trackType) + header.typedIndex
-            textRole: Ui.Typography.MonoCaption
-            textTone: header.targeted ? Ui.Text.Primary : Ui.Text.Disabled
-            accessibleName: (header.targeted ? "Untarget " : "Target ") + header.name + " track"
-            description: "Choose whether this track receives insert and paste commands"
-            onClicked: TrackTargeting.setTrackTargeted(header.trackId, !header.targeted)
-        }
     }
 
-    // Controls row: gap SPACING.micro, pulled SPACING.xs left to align the
-    // glyph edges.
+    // Effects, automation and delete show while the pointer is on the
+    // header, or while a lane is open, so the name keeps the space. They
+    // sit over the end of the name on the header colour.
+    Rectangle {
+        anchors.fill: trailing
+        anchors.leftMargin: -Ui.Metrics.sm
+        opacity: trailing.opacity
+        color: header.color
+    }
     Row {
-        id: controls
-        x: Ui.Metrics.md - Ui.Metrics.xs
-        y: header.height - Ui.Metrics.xs - 1 - height
+        id: trailing
+        readonly property bool shown: headerHover.hovered || header.activeFocus || header.automationShown
+        anchors.right: parent.right
+        anchors.rightMargin: Ui.Metrics.xs
+        y: topRow.y
+        height: topRow.height
+        opacity: shown ? 1 : 0
         spacing: Ui.Metrics.micro
-
-        TrackIconButton {
-            objectName: "track-visible-" + header.trackId
-            visible: header.trackType !== "midi"
-            iconKey: header.trackVisible ? "visibility" : "visibilityOff"
-            accessibleName: header.trackVisible ? "Hide track" : "Show track"
-            tone: header.trackVisible ? "idle" : "warning"
-            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackVisible", {trackId: header.trackId, visible: !header.trackVisible}) }
-        }
-        TrackIconButton {
-            objectName: "track-locked-" + header.trackId
-            iconKey: header.locked ? "lock" : "lockOpen"
-            accessibleName: header.locked ? "Unlock track" : "Lock track"
-            tone: header.locked ? "warning" : "idle"
-            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackLocked", {trackId: header.trackId, locked: !header.locked}) }
-        }
-        TrackIconButton {
-            objectName: "trackSync-" + header.trackId
-            visible: header.trackType !== "chord"
-            iconKey: header.syncLocked ? "sync" : "syncDisabled"
-            accessibleName: header.syncLocked ? "Unlock track sync" : "Lock track sync"
-            tone: header.syncLocked ? "idle" : "warning"
-            onClicked: TrackTargeting.setTrackSyncLocked(header.trackId, !header.syncLocked)
-        }
-        TrackIconButton {
-            objectName: "track-muted-" + header.trackId
-            visible: header.isSoundTrack
-            iconKey: header.muted ? "volumeOffOutlined" : "volumeUpOutlined"
-            accessibleName: header.muted ? "Unmute track" : "Mute track"
-            tone: header.muted ? "warning" : "idle"
-            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackMuted", {trackId: header.trackId, muted: !header.muted}) }
-        }
-        TrackIconButton {
-            objectName: "track-solo-" + header.trackId
-            visible: header.isSoundTrack
-            label: "S"
-            accessibleName: header.solo ? "Unsolo track" : "Solo track"
-            tone: header.solo ? "success" : "idle"
-            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackSolo", {trackId: header.trackId, solo: !header.solo}) }
-        }
         TrackEffectsButton {
             visible: header.isSoundTrack || header.trackType === "video"
             trackId: header.trackId

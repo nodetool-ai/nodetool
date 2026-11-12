@@ -48,7 +48,8 @@ enum class Op {
     Deband,
     Stabilize,
     DenoiseTemporal,
-    DenoiseSpatial
+    DenoiseSpatial,
+    HueSatCurves
 };
 struct Pass {
     Op op = Op::Copy;
@@ -56,6 +57,10 @@ struct Pass {
     QString cube;
     bool rememberSource = false;
     QJsonObject curve;
+    // A masked effect's passes: the first saves its input, the last carries
+    // the masks that mix the result back into it.
+    bool maskStart = false;
+    QJsonArray masks;
 };
 struct CurveKnobs {
     double black = 0, white = 1, shadows = 0, midtones = 0, highlights = 0;
@@ -71,6 +76,9 @@ CurveKnobs fitCurve(const QJsonArray &points);
 double channelMidtones(const QJsonArray &points);
 std::array<float, 1024> secondaryCurveTransfer(const QJsonObject &effect);
 std::array<float, 1024> curveTransfer(const QJsonObject &effect);
+// 512 RGBA rows, laid out as hueSatCurvesTransfer in packages/timeline/src/render/hueSatCurves.ts.
+std::array<float, 2048> hueSatCurvesTransfer(const QJsonObject &effect);
+bool hueSatCurvesNeutral(const QJsonObject &effect);
 std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects = {});
 // A track's document effects in the form planChain takes, without the disabled ones.
 QJsonArray convertTrackEffects(const QJsonArray &effects);
@@ -92,6 +100,8 @@ class ClipEffectStage final : public LayerEffectStage {
     struct Lut;
     std::shared_ptr<DrawCache> m_drawCache;
     std::shared_ptr<DrawCache> m_denoiseCache;
+    std::shared_ptr<DrawCache> m_maskCache;
+    std::list<std::pair<QByteArray, std::shared_ptr<QRhiTexture>>> m_maskTextures;
     // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::list<std::pair<QByteArray, std::shared_ptr<Lut>>> m_luts;
 };

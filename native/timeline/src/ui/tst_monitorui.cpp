@@ -1,11 +1,14 @@
 // The Program monitor's view controls through the mounted editor, with real pointer and key events.
 #include "app/MenuRegistry.h"
+#include "app/Preferences/Preferences.h"
 #include "ui/MonitorViewRegistry.h"
 #include "ui/MonitorViewState.h"
 #include "wiring/WiringFixture.h"
 #include "edit/sourceEdit/SourceViewerState.h"
 #include "preview/gizmo/TransformGizmoController.h"
 #include "preview/PreviewCompositor.h"
+#include "ui/MonitorMiniTimeline.h"
+#include "ui/MonitorZoomBar.h"
 
 #include <QNativeGestureEvent>
 #include <QQmlEngine>
@@ -125,6 +128,21 @@ class TestMonitorUi : public WiringFixture {
     QPointF canvasAt(QPoint at) const {
         const QPointF local = frame()->mapFromScene(at);
         return {local.x() / frame()->width() * model.canvasWidth(), local.y() / frame()->height() * model.canvasHeight()};
+    }
+
+    MonitorMiniTimeline* scrubBar() const { return qobject_cast<MonitorMiniTimeline*>(item("transportScrubber")); }
+    MonitorZoomBar* zoomBar() const { return qobject_cast<MonitorZoomBar*>(item("monitorTimeZoomBar")); }
+    QQuickItem* previewArea() const { return item("transportBar")->parentItem(); }
+    // Shows every transport button again, as the Button Editor's Reset does.
+    void resetTransport() {
+        previewArea()->setProperty("timeZoomStart", 0.0);
+        previewArea()->setProperty("timeZoomEnd", 1.0);
+        QMetaObject::invokeMethod(previewArea(), "resetTransport");
+        settle();
+    }
+    // Presses, moves and releases inside one item, in its own coordinates.
+    void dragIn(QQuickItem* target, QPointF from, QPointF to) {
+        pointerDrag(Qt::LeftButton, scene(target, from), scene(target, to));
     }
 
 private slots:
@@ -612,6 +630,188 @@ private slots:
             view->grabWindow().save(dir + "/source.png");
         }
         state->setAsset({});
+    }
+    void miniTimelineSeeksAndScrubs() {
+        auto* bar = scrubBar();
+        QVERIFY(bar);
+        QCOMPARE(bar->height(), 24.0);
+        QSignalSpy scrubs(&clock, &PlaybackClock::scrubRequested);
+        const double y = bar->height() - 4;
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, scene(bar, {bar->width() / 4, y}));
+        settle();
+        QCOMPARE(clock.time(), bar->timeAt(bar->width() / 4));
+        QVERIFY(std::abs(clock.time() - 2500) < 40);
+        QCOMPARE(scrubs.count(), 0);
+        dragIn(bar, {bar->width() / 4, y}, {bar->width() * 3 / 4, y});
+        QVERIFY(scrubs.count() > 0);
+        QVERIFY(std::abs(clock.time() - 7500) < 40);
+        QVERIFY(!bar->scrubbing());
+        // Ticks: minor at least 12 px apart, major at least 110 px, on whole frames.
+        const auto steps = bar->tickSteps();
+        const double framePx = bar->width() / (10000.0 / (1000.0 / 30));
+        QVERIFY(steps.at(0).toDouble() * framePx >= 12);
+        QVERIFY(steps.at(1).toDouble() * framePx >= 110);
+        QCOMPARE(steps.at(1).toLongLong() % steps.at(0).toLongLong(), 0);
+    }
+    void miniTimelineMarkerSeeksAndEdits() {
+        QVERIFY(model.applyEdit("markers.add", {{"id", "m1"}, {"timeMs", 4000}, {"label", "Cue"}}));
+        settle();
+        auto* bar = scrubBar();
+        QCOMPARE(bar->markers().size(), 1);
+        clock.seek(0);
+        const QPointF flag(bar->xForTime(4000), 3);
+        QCOMPARE(bar->markerAt(flag.x(), flag.y()), 0);
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, scene(bar, flag));
+        settle();
+        QCOMPARE(clock.time(), 4000.0);
+        QSignalSpy edits(bar, &MonitorMiniTimeline::markerDoubleClicked);
+        QTest::mouseDClick(view.get(), Qt::LeftButton, Qt::NoModifier, scene(bar, flag));
+        settle();
+        QCOMPARE(edits.count(), 1);
+        QCOMPARE(edits.first().first().toInt(), 0);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        settle();
+        QSignalSpy menus(bar, &MonitorMiniTimeline::markerMenuRequested);
+        QTest::mouseClick(view.get(), Qt::RightButton, Qt::NoModifier, scene(bar, flag));
+        settle();
+        QCOMPARE(menus.count(), 1);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        settle();
+    }
+    void zoomBarHandlesZoomAndTheMiddleScrolls() {
+        resetTransport();
+        auto* bar = zoomBar();
+        auto* mini = scrubBar();
+        QVERIFY(bar);
+        QCOMPARE(bar->thumbRect().width(), bar->width());
+        const double y = bar->height() / 2;
+        const double w = bar->width();
+        // The right handle: the left end stays.
+        dragIn(bar, {w - y, y}, {w / 2 - y, y});
+        QCOMPARE(previewArea()->property("timeZoomStart").toDouble(), 0.0);
+        QVERIFY(std::abs(previewArea()->property("timeZoomEnd").toDouble() - 0.5) < 0.02);
+        QVERIFY(std::abs(mini->shownEndMs() - 5000) < 200);
+        // The middle scrolls with the span kept.
+        const QRectF thumb = bar->thumbRect();
+        dragIn(bar, {thumb.center().x(), y}, {thumb.center().x() + w / 4, y});
+        const double start = previewArea()->property("timeZoomStart").toDouble();
+        const double end = previewArea()->property("timeZoomEnd").toDouble();
+        QVERIFY(start > 0.2);
+        QVERIFY(std::abs((end - start) - 0.5) < 0.02);
+        // The left handle: the right end stays.
+        dragIn(bar, {bar->thumbRect().left() + y, y}, {bar->thumbRect().left() + y + w / 8, y});
+        QCOMPARE(previewArea()->property("timeZoomEnd").toDouble(), end);
+        QVERIFY(previewArea()->property("timeZoomStart").toDouble() > start + 0.05);
+        QVERIFY(std::abs(mini->shownStartMs() - previewArea()->property("timeZoomStart").toDouble() * 10000) < 1);
+        resetTransport();
+    }
+    void buttonEditorHidesAndResets() {
+        resetTransport();
+        QVERIFY(item("transport_liftRange"));
+        clickItem(item("transportButtonEditor"));
+        QQuickItem* entry = nullptr;
+        QTRY_VERIFY((entry = item("transportEditor_liftRange")) != nullptr && entry->isVisible() && entry->width() > 0);
+        QVERIFY(entry->property("checked").toBool());
+        clickItem(entry);
+        QTRY_VERIFY(item("transport_liftRange") == nullptr);
+        // The choice is a user preference, so a second editor shows the same transport.
+        nt::app::Preferences preferences;
+        QCOMPARE(preferences.hiddenTransportButtons(), QStringList{"liftRange"});
+        clickItem(item("transportButtonEditor"));
+        QQuickItem* reset = nullptr;
+        QTRY_VERIFY((reset = item("transportEditorReset")) != nullptr && reset->isVisible() && reset->width() > 0);
+        clickItem(reset);
+        QTRY_VERIFY(item("transport_liftRange") != nullptr);
+        QVERIFY(nt::app::Preferences().hiddenTransportButtons().isEmpty());
+    }
+    void transportButtonsRunTheirActions() {
+        resetTransport();
+        QVERIFY(gestures());
+        const auto press = [&](const QString& name) {
+            auto* button = item(name);
+            QVERIFY2(button && button->isVisible(), qPrintable("Missing transport button: " + name));
+            QVERIFY2(button->isEnabled(), qPrintable(name));
+            clickItem(button);
+        };
+        QCOMPARE(item("transportOverflow")->isVisible(), false);
+        QCOMPARE(item("transport_markIn")->property("shortcutText").toString(), gestures()->shortcutFor("markIn"));
+        clock.seek(1500);
+        press("transport_markIn");
+        QCOMPARE(clock.rangeInMs(), 1500.0);
+        clock.seek(2500);
+        press("transport_markOut");
+        QCOMPARE(clock.rangeOutMs(), 2500.0);
+        press("transport_goToIn");
+        QCOMPARE(clock.time(), 1500.0);
+        press("transport_goToOut");
+        QCOMPARE(clock.time(), 2500.0);
+        press("transport_nextCut");
+        QCOMPARE(clock.time(), 3000.0);
+        press("transport_prevCut");
+        QCOMPARE(clock.time(), 1000.0);
+        press("transport_stepFrameForward");
+        QVERIFY(std::abs(clock.time() - (1000 + 1000.0 / 30)) < 0.01);
+        press("transport_stepFrameBack");
+        QCOMPARE(clock.time(), 1000.0);
+        const auto markers = model.markersJson().size();
+        press("transport_addMarker");
+        QCOMPARE(model.markersJson().size(), markers + 1);
+        const bool loop = clock.loop();
+        press("transport_toggleLoop");
+        QCOMPARE(clock.loop(), !loop);
+        QVERIFY(item("transport_toggleLoop")->property("active").toBool() == clock.loop());
+        press("transport_toggleLoop");
+        QVERIFY(item("exportFrameButton"));
+        press("transportPlay");
+        QVERIFY(clock.playing());
+        press("transportPlay");
+        QVERIFY(!clock.playing());
+        // Lift and Extract remove the marked range from the clips under it.
+        const auto edits = doc();
+        press("transport_liftRange");
+        QVERIFY(doc() != edits);
+        QVERIFY(clip("c").value("durationMs").toDouble() < 2000);
+        clock.seek(5000);
+        press("transport_markIn");
+        clock.seek(5500);
+        press("transport_markOut");
+        press("transport_extractRange");
+        QVERIFY(clip("d").value("durationMs").toDouble() < 1000);
+    }
+    void narrowMonitorOverflowsTheTransport() {
+        resetTransport();
+        previewArea()->setProperty("width", 400);
+        settle();
+        QVERIFY(previewArea()->property("stackedControls").toBool());
+        QTRY_VERIFY(item("transportOverflow")->isVisible());
+        const int overflow = previewArea()->property("overflowTransport").toList().size();
+        QVERIFY(overflow > 0);
+        clickItem(item("transportOverflow"));
+        QQuickItem* loop = nullptr;
+        QTRY_VERIFY((loop = item("transportOverflow_toggleLoop")) != nullptr && loop->isVisible() && loop->width() > 0);
+        const bool before = clock.loop();
+        clickItem(loop);
+        QCOMPARE(clock.loop(), !before);
+        clock.setLoop(before);
+    }
+    // NT_SHOT_DIR=<dir> saves the Program monitor's controls with markers, an in/out range and the playhead.
+    void monitorControlsShot() {
+        const QString dir = qEnvironmentVariable("NT_SHOT_DIR");
+        if (dir.isEmpty()) { QSKIP("NT_SHOT_DIR is not set"); }
+        resetTransport();
+        QVERIFY(model.applyEdit("markers.add", {{"id", "s1"}, {"timeMs", 1200}, {"label", "One"}}));
+        QVERIFY(model.applyEdit("markers.add", {{"id", "s2"}, {"timeMs", 6800}, {"label", "Two"}, {"color", "#e5484d"}}));
+        clock.seek(2000);
+        gestures()->runAction("markIn");
+        clock.seek(5600);
+        gestures()->runAction("markOut");
+        clock.seek(4200);
+        settle();
+        QTest::qWait(100);
+        auto* area = previewArea();
+        const QRectF bounds = area->mapRectToScene(QRectF(0, area->height() - item("transportBar")->height() - 120, area->width(), item("transportBar")->height() + 120));
+        const qreal dpr = view->devicePixelRatio();
+        view->grabWindow().copy(QRectF(bounds.topLeft() * dpr, bounds.size() * dpr).toRect()).save(dir + "/monitor-controls.png");
     }
     void playbackUpdatesNoViewState() {
         monitor()->setZoomPercent(200);

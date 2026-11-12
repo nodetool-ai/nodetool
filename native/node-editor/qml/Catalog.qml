@@ -3,25 +3,30 @@ import QtQuick
 import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
+import NodeTool.NodeEditor
 
 // The web Node Library: search, namespaces with counts, and node rows.
 Rectangle {
     id: root
     EditorRoles { id: roles }
+    required property NodeCatalog catalog
+    required property PackSetup packSetup
+    // Hover text for the window's tool tip; empty hides it.
+    signal toolTipRequested(string text)
     color: roles.panel
     implicitWidth: 310
     property string query: ""
-    // A category id from editor.catalogCategories. "all" lists every node.
+    // A category id from catalog.categories. "all" lists every node.
     property string category: "all"
     property var hovered: null
-    readonly property var favoriteTypes: editor ? editor.catalogFavorites : []
-    readonly property var nodes: editor ? editor.catalog : []
+    readonly property var favoriteTypes: root.catalog.favorites
+    readonly property var nodes: root.catalog.nodes
     // Nodes whose provider key is missing stay out of the lists unless the user
     // shows them (web hooks/useNodeProviderFilter.ts, MissingKeyNodesNotice.tsx).
     // Before the server's secrets arrive nothing is known, so every node is listed.
-    readonly property var configuredKeys: editor ? editor.packSetup.configuredKeys : []
-    readonly property bool keyFilterActive: !!editor && editor.packSetup.secretsLoaded
-    readonly property bool showWithoutKey: !!editor && editor.packSetup.showNodesWithoutKey
+    readonly property var configuredKeys: root.packSetup.configuredKeys
+    readonly property bool keyFilterActive: root.packSetup.secretsLoaded
+    readonly property bool showWithoutKey: root.packSetup.showNodesWithoutKey
     function needsMissingKey(node) {
         return keyFilterActive && !!node.keyGate && !configuredKeys.includes(node.keyGate)
     }
@@ -30,11 +35,11 @@ Rectangle {
     function focusSearch() {
         search.forceActiveFocus(Qt.OtherFocusReason)
     }
-    readonly property var categoryList: editor ? editor.catalogCategories : []
+    readonly property var categoryList: root.catalog.categories
     // Optional packs that are off hide their nodes. A search still finds them.
     readonly property var browsable: {
-        const optionalCategories = editor.packSetup.categories
-        return listedNodes.filter(node => editor.packSetup.namespaceVisible(node.namespace))
+        const optionalCategories = root.packSetup.categories
+        return listedNodes.filter(node => root.packSetup.namespaceVisible(node.namespace))
     }
     // The web counts every category over the nodes it lists, so the counts ignore the search.
     readonly property var categories: categoryList.map(entry => ({
@@ -57,11 +62,11 @@ Rectangle {
     // The web search order: prefix, BM25 and fuzzy boosts over the field scores,
     // with recent and quick-action nodes first (utils/nodeSearch.ts rankSearchNodes).
     // The ranking runs in src/graph/CatalogSearch.cpp.
-    readonly property var recentTypes: editor ? editor.catalogRecent : []
+    readonly property var recentTypes: root.catalog.recent
     function rankNodes(listed, text) {
         // Reading recentTypes re-ranks when a node is added.
         void recentTypes
-        return editor.rankCatalog(listed, text).map(index => listed[index])
+        return root.catalog.rank(listed, text).map(index => listed[index])
     }
     // The provider filter of the web library (components/node_menu/NodeLibrary.tsx:363-430).
     // "" lists every provider. A provider that left the list stops filtering.
@@ -86,9 +91,9 @@ Rectangle {
     readonly property string activeProvider: providerOptions.some(option => option.value === provider) ? provider : ""
     readonly property var providerNodes: activeProvider === "" ? browsable : browsable.filter(node => node.provider === activeProvider)
     readonly property var visibleNodes: {
-        const optionalCategories = editor.packSetup.categories
+        const optionalCategories = root.packSetup.categories
         const searching = query.trim() !== ""
-        const listed = listedNodes.filter(node => (searching || editor.packSetup.namespaceVisible(node.namespace))
+        const listed = listedNodes.filter(node => (searching || root.packSetup.namespaceVisible(node.namespace))
             && (category === "all" || node.categories.includes(category))
             && (activeProvider === "" || node.provider === activeProvider)
 )
@@ -108,10 +113,10 @@ Rectangle {
         rows.positionViewAtIndex(highlighted, ListView.Contain)
     }
     function addHighlighted() {
-        if (highlighted < 0 || highlighted >= visibleNodes.length || !editor || editor.readOnly) {
+        if (highlighted < 0 || highlighted >= visibleNodes.length || root.catalog.readOnly) {
             return false
         }
-        editor.addNode(visibleNodes[highlighted].type)
+        root.catalog.add(visibleNodes[highlighted].type)
         return true
     }
     function clearSearch() {
@@ -133,7 +138,7 @@ Rectangle {
                 font.weight: Font.Normal
                 lineHeight: 1
                 // The PanelHeader title tooltip (config/quickAccessCategories.tsx, nodes).
-                HoverHandler { onHoveredChanged: if (editor) editor.showToolTip(hovered ? qsTr("Browse, search, and add nodes to the current workflow.") : "") }
+                HoverHandler { onHoveredChanged: root.toolTipRequested(hovered ? qsTr("Browse, search, and add nodes to the current workflow.") : "") }
             }
             Ui.Text { objectName: "catalog-count"; text: root.visibleNodes.length; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; lineHeight: 1 }
             // DocsHelpLink.tsx in its label variant: an open-in-new icon to the docs topic.
@@ -150,7 +155,7 @@ Rectangle {
                 leftPadding: Ui.Metrics.none
                 rightPadding: Ui.Metrics.none
                 accessibleName: qsTr("Nodes documentation")
-                onHoveredChanged: if (editor) editor.showToolTip(hovered ? accessibleName : "")
+                onHoveredChanged: root.toolTipRequested(hovered ? accessibleName : "")
                 onClicked: Qt.openUrlExternally("https://docs.nodetool.ai/nodes/")
             }
             Item { Layout.fillWidth: true }
@@ -238,7 +243,7 @@ Rectangle {
                 density: Ui.EditorButton.Compact
                 variant: Ui.EditorButton.Flat
                 text: root.showWithoutKey ? qsTr("Hide them") : qsTr("Show them")
-                onClicked: editor.packSetup.showNodesWithoutKey = !root.showWithoutKey
+                onClicked: root.packSetup.showNodesWithoutKey = !root.showWithoutKey
             }
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }
@@ -334,13 +339,13 @@ Rectangle {
                     height: 40
                     implicitHeight: 40
                     text: modelData.label
-                    enabled: editor && !editor.readOnly
+                    enabled: !root.catalog.readOnly
                     objectName: "catalog-node-" + modelData.type
-                    onClicked: editor.addNode(modelData.type)
+                    onClicked: root.catalog.add(modelData.type)
                     DragHandler {
                         objectName: "catalog-drag-" + nodeRow.modelData.type
                         target: null
-                        onActiveChanged: if (active && editor) editor.dragNode(nodeRow.modelData.type)
+                        onActiveChanged: if (active) root.catalog.drag(nodeRow.modelData.type)
                     }
                     onHoveredChanged: root.hovered = hovered ? modelData : null
                     RowLayout {
@@ -374,7 +379,7 @@ Rectangle {
                             implicitWidth: Ui.Metrics.small
                             implicitHeight: Ui.Metrics.small
                             accessibleName: active ? qsTr("Remove from favorites") : qsTr("Add to favorites")
-                            onClicked: editor.toggleCatalogFavorite(nodeRow.modelData.type)
+                            onClicked: root.catalog.toggleFavorite(nodeRow.modelData.type)
                         }
                     }
                     HoverHandler { id: rowHover }
