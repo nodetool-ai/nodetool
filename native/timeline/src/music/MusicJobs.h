@@ -37,6 +37,9 @@
 // `cancel_generation` and removes the placeholder in one undo step (JB-4).
 // Retry sends the stored request under a new request id (JB-5). A result
 // whose placeholder is gone stays in the record and `placeOrphan` places it.
+// `regenerate` replays a take's generation record into its own clip (TK-4):
+// the record's task, range, context, prompt and model, with the record's seed
+// and audio codes for the same seed.
 // The run time per generated second, from the response `timing`, is kept as
 // a moving average per task and model in the timeline preferences, and gives
 // each job its expected duration.
@@ -68,6 +71,7 @@
 class QThread;
 class TimelineModel;
 class TestMusicJobs;
+class TestMusicWire;
 class TestMusicAssistant;
 namespace nt::assets {
 class MediaProtection;
@@ -98,6 +102,9 @@ public:
         CanCancelRole,
         CanRetryRole,
         CanPlaceRole,
+        TitleRole,        // "Generate · Keyboard · bars 9–12"
+        PlacedCountRole,  // takes the result placed on the clip
+        SeedRole,         // the first placed take's seed, or -1
     };
     explicit MusicJobListModel(QObject* parent) : QAbstractListModel(parent) {}
     int rowCount(const QModelIndex& parent = {}) const override;
@@ -120,8 +127,13 @@ class MusicJobs : public QObject {
     Q_PROPERTY(QAbstractListModel* jobList READ jobList CONSTANT)
     Q_PROPERTY(int activeCount READ activeCount NOTIFY jobsChanged)
     // Hatched bands of running Regenerate jobs: {jobId, clipId, trackId,
-    // startFrame, endFrame}. Job state, never written to the document (9.2).
+    // startFrame, endFrame, state, bars ("bars 3–4"), contextStartFrame,
+    // contextEndFrame}. Job state, never written to the document (9.2).
     Q_PROPERTY(QVariantList bands READ bands NOTIFY jobsChanged)
+    // clipId -> {jobId, state, operation, error, title} of the newest active
+    // or failed job on that clip, for the clip's job state on the tracks
+    // (GN-7). `title` reads "Generate · Keyboard".
+    Q_PROPERTY(QVariantMap clipJobs READ clipJobs NOTIFY jobsChanged)
 public:
     static constexpr int kMaxActiveJobs = 8;
     static constexpr int kPollIntervalMs = 3000;
@@ -145,17 +157,27 @@ public:
     QAbstractListModel* jobList() const { return m_list; }
     int activeCount() const;
     QVariantList bands() const;
+    QVariantMap clipJobs() const;
 
     // Connects the job socket to the timeline's server. Submissions open it.
     Q_INVOKABLE void open();
     // Plans the operation for [startFrame, endFrame) on `trackId` and starts
     // it. `operation` is "text2music", "repaint", "lego", or empty for the
     // inferred one. `seed` below 0 lets the backend pick. `options` may carry
-    // "provider" (default "acestep"), "steps" and "lmModel". Returns the job
-    // id, or an empty string with `error` set.
+    // "provider" (default "acestep"), "steps", "lmModel" and "audioCodes"
+    // (the stored language model output, sent as `audio_codes`). Returns the
+    // job id, or an empty string with `error` set.
     Q_INVOKABLE QString submit(const QString& trackId, double startFrame, double endFrame, const QString& operation,
                                const QString& prompt, int candidates, double seed, const QString& model,
                                const QVariantMap& options = {});
+    // Replays take `takeId` of clip `clipId` from its `musicGeneration` record
+    // into the same clip as one candidate (TK-4). With `sameSeed` it sends the
+    // record's seed and audio codes, otherwise the backend picks a seed. A
+    // Generate take asks for its own segment only. Regenerate and Add
+    // instrument reuse the record's context asset and window, and Regenerate
+    // its splice parent, so nothing is bounced again. Returns the job id, or
+    // an empty string with `error` set.
+    Q_INVOKABLE QString regenerate(const QString& clipId, const QString& takeId, bool sameSeed);
     Q_INVOKABLE bool cancel(const QString& jobId);
     Q_INVOKABLE bool retry(const QString& jobId);
     // Places the takes a finished job holds because its placeholder was gone,
@@ -182,6 +204,7 @@ signals:
 
 private:
     friend class ::TestMusicJobs;
+    friend class ::TestMusicWire;
     friend class ::TestMusicAssistant;
     struct Job {
         QString id;
@@ -203,6 +226,8 @@ private:
         QString contextAssetId;
         int resubmitCount = 0;
         QJsonArray takes;     // music_takes not yet placed
+        int placedCount = 0;
+        qint64 resultSeed = -1;
         QJsonObject timing;
         QString error;
         QString createdAt;
@@ -218,6 +243,7 @@ private:
         static Job fromJson(const QJsonObject& value);
     };
 
+    bool canStart();
     bool canonicalizeTarget();
     Job* find(const QString& jobId);
     const Job* find(const QString& jobId) const;
@@ -230,6 +256,10 @@ private:
     void setState(Job& job, const QString& state);
     void publish();
     QVariantMap row(const Job& job) const;
+    // "bars 9–12" for the job's target, empty without a tempo.
+    QString barsText(const Job& job) const;
+    // "Generate · Keyboard", with " · bars 9–12" when `withBars`.
+    QString jobTitle(const Job& job, bool withBars) const;
 
     void startBounce(Job& job, const nt::Timeline& snapshot);
     void bounceFinished(const QString& jobId, const BounceResult& result);

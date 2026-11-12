@@ -7,6 +7,7 @@
 #include "music/MusicDocument.h"
 #include "music/MusicEdits.h"
 #include "music/MusicPlan.h"
+#include "music/MusicRange.h"
 #include "server/AssetCache.h"
 #include "server/ServerClient.h"
 #include "server/ServerSource.h"
@@ -89,6 +90,9 @@ QVariant MusicJobListModel::data(const QModelIndex& index, int role) const {
     case CanCancelRole: return row.value("canCancel");
     case CanRetryRole: return row.value("canRetry");
     case CanPlaceRole: return row.value("canPlace");
+    case TitleRole: return row.value("title");
+    case PlacedCountRole: return row.value("placedCount");
+    case SeedRole: return row.value("seed");
     default: return {};
     }
 }
@@ -101,7 +105,8 @@ QHash<int, QByteArray> MusicJobListModel::roleNames() const {
             {StartFrameRole, "startFrame"}, {EndFrameRole, "endFrame"},
             {ResubmitCountRole, "resubmitCount"}, {UnplacedTakesRole, "unplacedTakes"},
             {CanCancelRole, "canCancel"},   {CanRetryRole, "canRetry"},
-            {CanPlaceRole, "canPlace"}};
+            {CanPlaceRole, "canPlace"},     {TitleRole, "title"},
+            {PlacedCountRole, "placedCount"}, {SeedRole, "seed"}};
 }
 
 void MusicJobListModel::setRows(QList<QVariantMap> rows) {
@@ -149,6 +154,8 @@ QJsonObject MusicJobs::Job::toJson() const {
             {"contextAssetId", contextAssetId},
             {"resubmitCount", resubmitCount},
             {"takes", takes},
+            {"placedCount", placedCount},
+            {"resultSeed", resultSeed},
             {"timing", timing},
             {"error", error},
             {"createdAt", createdAt},
@@ -178,6 +185,8 @@ MusicJobs::Job MusicJobs::Job::fromJson(const QJsonObject& value) {
     job.contextAssetId = value.value("contextAssetId").toString();
     job.resubmitCount = value.value("resubmitCount").toInt();
     job.takes = value.value("takes").toArray();
+    job.placedCount = value.value("placedCount").toInt();
+    job.resultSeed = value.value("resultSeed").toInteger(-1);
     job.timing = value.value("timing").toObject();
     job.error = value.value("error").toString();
     job.createdAt = value.value("createdAt").toString();
@@ -342,8 +351,41 @@ QVariantList MusicJobs::bands() const {
                                {"trackId", job.trackId},
                                {"startFrame", static_cast<qint64>(job.startFrame)},
                                {"endFrame", static_cast<qint64>(job.endFrame)},
+                               {"state", job.state},
+                               {"bars", barsText(job)},
                                {"contextStartFrame", static_cast<qint64>(job.windowStartFrame)},
                                {"contextEndFrame", static_cast<qint64>(job.windowStartFrame + job.requestFrames)}});
+    }
+    return out;
+}
+
+QString MusicJobs::barsText(const Job& job) const {
+    if (!m_timeline || job.endFrame <= job.startFrame) return {};
+    const auto tempo = sequenceTempo(m_timeline->timeline().raw);
+    if (!tempo) return {};
+    auto bars = barRangeLabel(FrameRange{job.startFrame, job.endFrame}, *tempo);
+    bars[0] = bars[0].toLower();
+    return bars;
+}
+
+QString MusicJobs::jobTitle(const Job& job, bool withBars) const {
+    const auto task = parseTask(job.operation.toStdString());
+    QString title = task ? text(taskLabel(*task)) : job.operation;
+    if (m_timeline) {
+        for (const auto& value : m_timeline->timeline().raw.value("tracks").toArray()) {
+            if (value.toObject().value("id").toString() == job.trackId) title += QStringLiteral(" · ") + value.toObject().value("name").toString();
+        }
+    }
+    const auto bars = withBars ? barsText(job) : QString();
+    return bars.isEmpty() ? title : title + QStringLiteral(" · ") + bars;
+}
+
+QVariantMap MusicJobs::clipJobs() const {
+    QVariantMap out;
+    for (const auto& job : m_jobs) {
+        if (job.clipId.isEmpty() || (!isActive(job.state) && job.state != u"failed")) continue;
+        out.insert(job.clipId, QVariantMap{{"jobId", job.id}, {"state", job.state}, {"operation", job.operation},
+                                           {"error", job.error}, {"title", jobTitle(job, false)}});
     }
     return out;
 }
@@ -351,6 +393,9 @@ QVariantList MusicJobs::bands() const {
 QVariantMap MusicJobs::row(const Job& job) const {
     const bool placeable = !job.takes.isEmpty() && (job.state == u"done" || job.state == u"failed");
     return {{"jobId", job.id},
+            {"title", jobTitle(job, true)},
+            {"placedCount", job.placedCount},
+            {"seed", job.resultSeed},
             {"requestId", job.requestId},
             {"state", job.state},
             {"operation", job.operation},
@@ -510,22 +555,27 @@ void MusicJobs::restore() {
 
 // ---------------------------------------------------------------- submission
 
-QString MusicJobs::submit(const QString& trackId, double startFrame, double endFrame, const QString& operation,
-                          const QString& prompt, int candidates, double seed, const QString& model,
-                          const QVariantMap& options) {
+bool MusicJobs::canStart() {
     if (!m_timeline || !m_target) {
         setError(QStringLiteral("Open a server timeline to generate music."));
-        return {};
+        return false;
     }
-    if (!canonicalizeTarget()) return {};
+    if (!canonicalizeTarget()) return false;
     if (!m_target->expectedInstance.isEmpty()) {
         setError(QStringLiteral("Generation is unavailable for a server that requires instance verification."));
-        return {};
+        return false;
     }
     if (activeCount() >= kMaxActiveJobs) {
         setError(QStringLiteral("Eight music jobs are already running on this timeline. Wait for one to finish."));
-        return {};
+        return false;
     }
+    return true;
+}
+
+QString MusicJobs::submit(const QString& trackId, double startFrame, double endFrame, const QString& operation,
+                          const QString& prompt, int candidates, double seed, const QString& model,
+                          const QVariantMap& options) {
+    if (!canStart()) return {};
     if (prompt.trimmed().isEmpty() || model.trimmed().isEmpty()) {
         setError(QStringLiteral("Enter a prompt and choose a model before generating."));
         return {};
@@ -555,7 +605,8 @@ QString MusicJobs::submit(const QString& trackId, double startFrame, double endF
     }
     const auto plan = planMusicOperation(input);
     if (!plan.refusal.empty() || !plan.operation || !plan.windowStartFrame || !plan.requestFrames) {
-        setError(QString::fromStdString(plan.refusal.empty() ? plan.reason : plan.refusal));
+        // The message, not the refusal code: the panel and the assistant show it.
+        setError(QString::fromStdString(plan.reason));
         return {};
     }
     const auto task = *plan.operation;
@@ -592,6 +643,7 @@ QString MusicJobs::submit(const QString& trackId, double startFrame, double endF
     if (std::isfinite(seed) && seed >= 0) music.insert("seed", static_cast<qint64>(std::floor(seed)));
     if (options.contains("steps")) music.insert("steps", options.value("steps").toInt());
     if (!options.value("lmModel").toString().isEmpty()) music.insert("lm_model", options.value("lmModel").toString());
+    if (!options.value("audioCodes").toString().isEmpty()) music.insert("audio_codes", options.value("audioCodes").toString());
     if (task == MusicTask::Text2Music) {
         QJsonArray segments;
         for (const auto& segment : plan.segments.value_or(std::vector<FrameRange>{})) {
@@ -660,6 +712,136 @@ QString MusicJobs::submit(const QString& trackId, double startFrame, double endF
     emit errorChanged();
     const auto& submitted = m_jobs.back();
     emit jobSubmitted(submitted.id, submitted.clipId);
+    publish();
+    return jobId;
+}
+
+QString MusicJobs::regenerate(const QString& clipId, const QString& takeId, bool sameSeed) {
+    if (!canStart()) return {};
+    QJsonObject clip;
+    for (const auto& value : m_timeline->clipsJson()) {
+        if (value.toObject().value("id").toString() == clipId) clip = value.toObject();
+    }
+    QJsonObject version;
+    for (const auto& value : clip.value("versions").toArray()) {
+        if (value.toObject().value("id").toString() == takeId) version = value.toObject();
+    }
+    const auto record = musicGeneration(version);
+    const auto task = parseTask(record.value("task").toString().toStdString());
+    const auto model = version.value("model").toString(clip.value("model").toString());
+    const auto prompt = version.value("prompt").toString(clip.value("prompt").toString());
+    if (clip.isEmpty() || !task || model.isEmpty() || prompt.trimmed().isEmpty()) {
+        setError(QStringLiteral("This take has no generation record to regenerate from."));
+        return {};
+    }
+    const std::int64_t targetStart = record.value("targetStartFrame").toInteger(-1);
+    const std::int64_t targetEnd = record.value("targetEndFrame").toInteger(-1);
+    if (targetStart < 0 || targetEnd <= targetStart) {
+        setError(QStringLiteral("The take's record has no target range."));
+        return {};
+    }
+    const auto tempo = record.value("bpm").toInt();
+    QJsonObject music{{"task", record.value("task")},
+                      {"bpm", tempo},
+                      {"beats_per_bar", record.value("beatsPerBar").toInt()},
+                      {"beat_unit", record.value("beatUnit").toInt()},
+                      {"candidates", 1}};
+    if (record.value("key").isObject()) music.insert("key", record.value("key"));
+    if (record.value("steps").toInt() > 0) music.insert("steps", record.value("steps").toInt());
+    if (!record.value("lmModel").toString().isEmpty()) music.insert("lm_model", record.value("lmModel"));
+    if (sameSeed) {
+        if (!record.value("seed").isDouble()) {
+            setError(QStringLiteral("The take's record has no seed."));
+            return {};
+        }
+        music.insert("seed", record.value("seed").toInteger());
+        if (!record.value("audioCodes").toString().isEmpty()) music.insert("audio_codes", record.value("audioCodes"));
+    }
+
+    const auto jobId = newId();
+    Job job;
+    job.id = jobId;
+    job.requestId = jobId;
+    job.operation = text(taskName(*task));
+    job.provider = version.value("provider").toString(QStringLiteral("acestep"));
+    job.model = model;
+    job.prompt = prompt.trimmed();
+    job.trackId = clip.value("trackId").toString();
+    job.clipId = clipId;
+    job.clip = clip;
+    job.startFrame = targetStart;
+    job.endFrame = targetEnd;
+    job.createdAt = isoNow();
+    job.submittedAtMs = nowMs();
+    if (*task == MusicTask::Text2Music) {
+        // The window the take was cut from starts `segmentIndex` take lengths
+        // before it. Generate has no context, so the planner gives the same
+        // window again from the tempo alone.
+        const auto length = targetEnd - targetStart;
+        const auto segment = record.value("segmentIndex").toInt();
+        const auto windowStart = targetStart - segment * length;
+        PlanInput input;
+        input.tempo.bpm = tempo;
+        input.tempo.offsetMs = m_timeline->timeline().raw.value("tempo").toObject().value("offsetMs").toDouble();
+        input.tempo.beatsPerBar = music.value("beats_per_bar").toInt();
+        input.tempo.beatUnit = music.value("beat_unit").toInt();
+        input.selection = Selection{job.trackId.toStdString(), static_cast<double>(windowStart), static_cast<double>(windowStart + length)};
+        input.tracks.push_back(PlanTrack{job.trackId.toStdString(), "audio"});
+        input.operation = MusicTask::Text2Music;
+        const auto plan = planMusicOperation(input);
+        if (windowStart < 0 || !plan.refusal.empty() || !plan.segments || segment < 0 ||
+            segment >= static_cast<int>(plan.segments->size())) {
+            setError(QStringLiteral("The take's record does not fit the project's tempo."));
+            return {};
+        }
+        const auto& segmentRange = (*plan.segments)[static_cast<std::size_t>(segment)];
+        job.windowStartFrame = windowStart;
+        job.requestFrames = *plan.requestFrames;
+        job.plan = planToJson(plan);
+        music.insert("segments", QJsonArray{range(segmentRange.startFrame, segmentRange.endFrame)});
+        music.insert("beat_phase_frames", static_cast<qint64>(plan.beatPhaseFrames.value_or(0)));
+        music.insert("align", true);
+    } else {
+        const std::int64_t windowStart = record.value("contextStartFrame").toInteger(-1);
+        const std::int64_t windowEnd = record.value("contextEndFrame").toInteger(-1);
+        job.contextAssetId = record.value("contextAssetId").toString();
+        if (job.contextAssetId.isEmpty() || windowStart < 0 || windowEnd <= windowStart || targetStart < windowStart ||
+            targetEnd > windowEnd) {
+            setError(QStringLiteral("This take has no context audio to regenerate from."));
+            return {};
+        }
+        job.windowStartFrame = windowStart;
+        job.requestFrames = windowEnd - windowStart;
+        music.insert("context_asset_id", job.contextAssetId);
+        music.insert("region", range(targetStart - windowStart, targetEnd - windowStart));
+        if (*task == MusicTask::Repaint) {
+            const auto splice = record.value("splice").toObject();
+            if (splice.value("parentAssetId").toString().isEmpty()) {
+                setError(QStringLiteral("The take's record has no parent audio."));
+                return {};
+            }
+            music.insert("splice", QJsonObject{{"parent_asset_id", splice.value("parentAssetId")},
+                                               {"start_frame", splice.value("startFrame").toInteger()},
+                                               {"end_frame", splice.value("endFrame").toInteger()}});
+        } else if (!record.value("trackRole").toString().isEmpty()) {
+            music.insert("track_role", record.value("trackRole"));
+        }
+    }
+    music.insert("request_frames", static_cast<qint64>(job.requestFrames));
+    music.insert("window_start_frame", static_cast<qint64>(job.windowStartFrame));
+    job.request = QJsonObject{{"mode", "music"},
+                              {"provider", job.provider},
+                              {"model", job.model},
+                              {"prompt", job.prompt},
+                              {"timeline_context", QJsonObject{{"sequence_id", m_target->timelineId},
+                                                               {"target_clip_id", job.clipId}}},
+                              {"music", music}};
+    job.state = QStringLiteral("queued");
+    m_jobs.push_back(std::move(job));
+    send(m_jobs.back());
+    m_error.clear();
+    emit errorChanged();
+    emit jobSubmitted(jobId, clipId);
     publish();
     return jobId;
 }
@@ -965,6 +1147,8 @@ void MusicJobs::placed(const QString& jobId, const QString& requestId, bool rein
         for (const auto& value : takes) alreadyPlaced = alreadyPlaced && held.contains(value.toObject().value("assetId").toString());
     }
     if (alreadyPlaced || m_timeline->applyEdit("music.applyResult", payload) != 0) {
+        job->placedCount = static_cast<int>(job->takes.size());
+        job->resultSeed = job->takes.first().toObject().value("record").toObject().value("seed").toInteger(-1);
         job->takes = {};
         job->error.clear();
     } else {
