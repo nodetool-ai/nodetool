@@ -1,7 +1,9 @@
 #include "app/EditRegistry.h"
 #include "app/MenuRegistry.h"
 #include "app/PanelRegistry.h"
+#include "music/MusicPlan.h"
 #include "wiring/w/SceneItems.h"
+#include <QDebug>
 #include <QQuickItem>
 #include <cmath>
 
@@ -40,7 +42,18 @@ const bool settings = nt::app::registerEdit("setProjectSettings", [](QJsonObject
             !std::isfinite(offset.toDouble()) || offset.toDouble() < 0) {
             return raw;
         }
-        raw.insert("tempo", tempo);
+        // MD6 and MD9 (docs/MUSIC-MODE.md): the dialog shows the same message
+        // from ProjectSettingsValues::tempoRefusal before it applies.
+        if (const auto refusal = nt::music::tempoChangeRefusal(raw, tempo); !refusal.isEmpty()) {
+            qInfo().noquote() << "Refused tempo edit:" << refusal;
+            return raw;
+        }
+        // Fields the dialog does not edit, such as the key, stay.
+        auto next = raw.value("tempo").toObject();
+        for (auto it = tempo.begin(); it != tempo.end(); ++it) {
+            next.insert(it.key(), it.value());
+        }
+        raw.insert("tempo", next);
     }
     // These are sequence columns, as in the web's timeline.update patch.
     for (const auto* key : {"width", "height", "fps"}) {
