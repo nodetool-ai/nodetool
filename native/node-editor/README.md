@@ -35,7 +35,11 @@ property fields and its History tab. The tab bar and the subgraph strips take
 notification list take [`Notifications`](src/interfaces/Notifications.h). The document bar takes
 [`WorkflowHeader`](src/interfaces/WorkflowHeader.h), and it and the icon rail
 take [`PanelLayout`](src/interfaces/PanelLayout.h). The status bar takes
-[`StatusModel`](src/interfaces/StatusModel.h) and `PanelLayout`.
+[`StatusModel`](src/interfaces/StatusModel.h) and `PanelLayout`. The canvas
+toolbars and the group controls take
+[`EditorCommands`](src/interfaces/EditorCommands.h),
+[`Selection`](src/interfaces/Selection.h) and
+[`RunState`](src/interfaces/RunState.h).
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
 read `EditorWindow`.
 

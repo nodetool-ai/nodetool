@@ -25,6 +25,9 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/WorkflowHeader.cpp src/interfaces/WorkflowHeader.h
  src/interfaces/PanelLayout.cpp src/interfaces/PanelLayout.h
  src/interfaces/StatusModel.cpp src/interfaces/StatusModel.h
+ src/interfaces/EditorCommands.cpp src/interfaces/EditorCommands.h
+ src/interfaces/Selection.cpp src/interfaces/Selection.h
+ src/interfaces/RunState.cpp src/interfaces/RunState.h
  src/interfaces/Assign.h
  src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
@@ -361,6 +364,13 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_header_row_component_tests)
  add_test(NAME node_editor_header_row_component COMMAND node_editor_header_row_component_tests)
  set_tests_properties(node_editor_header_row_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# Toolbar.qml, SelectionToolbar.qml and AuthoredControls.qml with fixture
+# commands, selection and run state: no EditorWindow, graph runner or QtNodes.
+qt_add_executable(node_editor_toolbar_component_tests tests/ui/ToolbarComponentTest.cpp)
+target_link_libraries(node_editor_toolbar_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+nodetool_use_ui_primitives(node_editor_toolbar_component_tests)
+add_test(NAME node_editor_toolbar_component COMMAND node_editor_toolbar_component_tests)
+set_tests_properties(node_editor_toolbar_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  # Inspector.qml with a fixture inspector: no EditorWindow, graph runner or
  # QtNodes. The property fields preview media, so it builds the editor's media
  # QML types and links the model picker, as node_editor_asset_picker_tests does.

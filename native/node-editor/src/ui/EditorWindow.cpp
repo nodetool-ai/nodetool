@@ -291,6 +291,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&statusModel_, &node_editor::StatusModel::reconnectRequested, this, [this] { action("Reconnect"); });
   connect(&statusModel_, &node_editor::StatusModel::queueRequested, this, [this] { action("Queue"); });
   connect(&statusModel_, &node_editor::StatusModel::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(&editorCommands_, &node_editor::EditorCommands::commandRequested, this, [this](const QString &command) { action(command); });
+  connect(&editorCommands_, &node_editor::EditorCommands::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(&editorCommands_, &node_editor::EditorCommands::presentationRequested, this, &EditorWindow::presentation);
+  connect(&selection_, &node_editor::Selection::nodeMenuRequested, this, &EditorWindow::showNodeMenu);
+  connect(&runState_, &node_editor::RunState::authoredRequested, this, &EditorWindow::authoredAction);
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
@@ -725,8 +730,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   row->addLayout(column, 1);
   setCentralWidget(root);
   initializePanels();
-  const auto overlay = [this](const QString &file) {
-    auto widget = panel(file);
+  const auto overlay = [this](const QString &file, const QVariantMap &properties = {}) {
+    auto widget = panel(file, properties);
     widget->setParent(view_);
     widget->setAttribute(Qt::WA_AlwaysStackOnTop);
     widget->setClearColor(Qt::transparent);
@@ -734,7 +739,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     connect(widget, &QQuickWidget::sceneGraphError, this, [](auto, const QString &message) { qWarning() << message; });
     return widget;
   };
-  toolbarOverlay_ = overlay("Toolbar");
+  // The overlays' first bindings read the state the window has at this point.
+  syncChrome();
+  syncRuns();
+  toolbarOverlay_ = overlay("Toolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
+                                        {"runs", QVariant::fromValue(&runState_)}});
     initializeChat();
   queueOverlay_ = overlay("QueueOverlay");
   queueOverlay_->setParent(centralWidget());
@@ -748,9 +757,13 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   shownQueueTimer_->setInterval(shownQueueDelayMs);
   connect(shownQueueTimer_, &QTimer::timeout, this, [this] { updateShownQueue(true); });
   connect(&session_, &node_editor::WorkflowSession::stateChanged, this, [this] { updateShownQueue(false); });
+  connect(this, &EditorWindow::shownQueueChanged, this, &EditorWindow::syncRuns);
+  connect(&session_, &node_editor::WorkflowSession::stateChanged, this, &EditorWindow::syncRuns);
+  connect(&session_, &node_editor::WorkflowSession::workflowChanged, this, &EditorWindow::syncRuns);
   connect(this, &EditorWindow::shownQueueChanged, this, &EditorWindow::layoutOverlays, Qt::QueuedConnection);
   connect(&session_, &node_editor::WorkflowSession::systemStatsChanged, this, &EditorWindow::schedulePanelChanged);
-  selectionOverlay_ = overlay("SelectionToolbar");
+  selectionOverlay_ = overlay("SelectionToolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
+                                                  {"selection", QVariant::fromValue(&selection_)}});
   viewportOverlay_ = overlay("ViewportIndicator");
   miniMapControls_ = overlay("MiniMapControls");
   // The legend button joins the row in type mode, so the row keeps its right edge on the mini-map's.
@@ -2425,6 +2438,14 @@ void EditorWindow::syncChrome() {
                           .queuedCount = queuedCount(),
                           .queueAvailable = queueAvailable(),
                           .systemStats = systemStats()});
+  editorCommands_.setReadOnly(readOnly());
+  selection_.setSelection(selectedCount(), selectionInfo(), selectionDisabled(), selectionMostlyDisabled());
+}
+void EditorWindow::syncRuns() {
+  editorCommands_.setRunning(shownRunActive());
+  runState_.setQueue(shownQueue());
+  runState_.setConnected(session_.connected());
+  runState_.setWorkflowId(session_.workflow()["id"].toString());
 }
 void EditorWindow::syncNodeInspector() {
     const auto node = selection();

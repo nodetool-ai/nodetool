@@ -10,6 +10,9 @@
 #include "interfaces/Notifications.h"
 #include "interfaces/PanelLayout.h"
 #include "interfaces/StatusModel.h"
+#include "interfaces/EditorCommands.h"
+#include "interfaces/Selection.h"
+#include "interfaces/RunState.h"
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
@@ -60,10 +63,6 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool emptyCanvas READ emptyCanvas NOTIFY panelChanged)
   Q_PROPERTY(nodetool::node_editor::SetupController* setup READ setup CONSTANT)
     Q_PROPERTY(nodetool::node_editor::PackSetup* packSetup READ packSetup CONSTANT)
-  Q_PROPERTY(int selectedCount READ selectedCount NOTIFY panelChanged)
-  Q_PROPERTY(bool selectionDisabled READ selectionDisabled NOTIFY panelChanged)
-  Q_PROPERTY(bool selectionMostlyDisabled READ selectionMostlyDisabled NOTIFY panelChanged)
-  Q_PROPERTY(bool readOnly READ readOnly NOTIFY panelChanged)
   Q_PROPERTY(QString saveState READ saveState NOTIFY panelChanged)
   Q_PROPERTY(QString serverSaveState READ serverSaveState NOTIFY panelChanged)
   Q_PROPERTY(bool serverSyncAvailable READ serverSyncAvailable NOTIFY panelChanged)
@@ -73,16 +72,14 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(QString message READ message NOTIFY panelChanged)
   Q_PROPERTY(QVariantList outputMedia READ outputMedia NOTIFY mediaChanged)
   Q_PROPERTY(bool runActive READ runActive NOTIFY panelChanged)
-  // The run queue and run state the queue overlay, the toolbar and the
-  // inspector show. A change shows once the queue holds for shownQueueDelayMs,
-  // so a burst of short preview runs does not flicker them.
+  // The run queue the queue overlay shows. A change shows once the queue holds
+  // for shownQueueDelayMs, so a burst of short preview runs does not flicker it.
+  // The toolbars and the inspector read the same debounced state.
   Q_PROPERTY(QVariantList shownQueue READ shownQueue NOTIFY shownQueueChanged)
-  Q_PROPERTY(bool shownRunActive READ shownRunActive NOTIFY shownQueueChanged)
   Q_PROPERTY(bool outputVisible READ outputVisible NOTIFY panelChanged)
   // Space or a pane double-click arms the catalog to add at that canvas point, as the web node menu does.
   Q_PROPERTY(bool catalogAtPointer READ catalogAtPointer NOTIFY catalogPlacementChanged)
   Q_PROPERTY(QString graphSummary READ graphSummary NOTIFY panelChanged)
-  Q_PROPERTY(QVariantMap selectionInfo READ selectionInfo NOTIFY panelChanged)
   Q_PROPERTY(int zoomPercent READ zoomPercent NOTIFY zoomChanged)
   // "default" or "type", as MiniMapStore.ts colorMode.
   Q_PROPERTY(QString miniMapColorMode READ miniMapColorMode NOTIFY panelChanged)
@@ -111,6 +108,8 @@ public:
     node_editor::WorkflowHeader *workflowHeader() { return activeEditor() == this ? &workflowHeader_ : activeEditor()->workflowHeader(); }
     node_editor::StatusModel *statusModel() { return activeEditor() == this ? &statusModel_ : activeEditor()->statusModel(); }
     node_editor::PanelLayout *panelLayout() { return activeEditor() == this ? &panelLayout_ : activeEditor()->panelLayout(); }
+    node_editor::EditorCommands *editorCommands() { return activeEditor() == this ? &editorCommands_ : activeEditor()->editorCommands(); }
+    node_editor::RunState *runState() { return activeEditor() == this ? &runState_ : activeEditor()->runState(); }
     node_editor::NodeInspector *nodeInspector() { return activeEditor() == this ? &nodeInspector_ : activeEditor()->nodeInspector(); }
     void syncPackSetup();
   Q_INVOKABLE void setupAction(const QString &name);
@@ -232,13 +231,13 @@ public:
         ensureProjected();
         return scene_;
     }
-  Q_INVOKABLE void authoredAction(const QString &id, const QString &command, quint64 epoch, quint64 credentials);
+  void authoredAction(const QString &id, const QString &command, quint64 epoch, quint64 credentials);
   Q_INVOKABLE void styleOutputMarkdown(QObject *document, const QColor &link, const QColor &codeSurface, const QFont &codeFont);
   Q_INVOKABLE QString iconPath(const QString &name) const;
   Q_INVOKABLE void showToolTip(const QString &text);
   bool readOnly() const { return !readOnlyReason().isEmpty(); }
   QString readOnlyReason() const;
-  Q_INVOKABLE void presentation(const QVariantMap &roles);
+  void presentation(const QVariantMap &roles);
   bool confirmOpen();
   QString selection() const { return activeEditor() == this ? selected_ : activeEditor()->selection(); }
   int selectedCount() const { return activeEditor() == this ? selectedIds().size() : activeEditor()->selectedCount(); }
@@ -293,7 +292,7 @@ public:
   // harnesses and tests that read the result straight away see the final view.
   Q_INVOKABLE void userAction(const QString &name);
   // The More button of the card toolbar opens the node context menu below it.
-  Q_INVOKABLE void showNodeMenu(const QPointF &global);
+  void showNodeMenu(const QPointF &global);
   // Fits every node into the canvas area the floating toolbar leaves free, and
   // keeps it fitted across panel changes until the user moves the view.
   void fit();
@@ -426,6 +425,8 @@ private:
   void syncDocumentTabs();
   void syncNotifications();
   void syncChrome();
+  // Copies the shown queue and the session state into the run interfaces.
+  void syncRuns();
   Q_SLOT void layoutOverlays();
   void syncInspector();
   // Applies a node click or a programmatic selection to the inspector. It does
@@ -530,6 +531,12 @@ private:
     // What this tab's StatusBar reads about the server and the graph. Owned by
     // value, UI thread, destroyed with the tab after its panels.
     node_editor::StatusModel statusModel_;
+    // What this tab's canvas Toolbar, SelectionToolbar and group controls
+    // read about commands, the selection and runs. Owned by value, UI thread,
+    // destroyed with the tab.
+    node_editor::EditorCommands editorCommands_;
+    node_editor::Selection selection_;
+    node_editor::RunState runState_;
     QUrl packOrigin_;
     QString packToken_, packUser_;
   node_editor::SetupController setup_;

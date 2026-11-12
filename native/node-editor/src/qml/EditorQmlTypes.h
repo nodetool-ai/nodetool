@@ -8,6 +8,9 @@
 #include "interfaces/NodeInspector.h"
 #include "interfaces/PanelLayout.h"
 #include "interfaces/StatusModel.h"
+#include "interfaces/EditorCommands.h"
+#include "interfaces/Selection.h"
+#include "interfaces/RunState.h"
 #include "interfaces/WorkflowHeader.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PropertyHost.h"
@@ -87,6 +90,27 @@ struct StatusModelForeign {
     QML_FOREIGN(nodetool::node_editor::StatusModel)
     QML_NAMED_ELEMENT(StatusModel)
     QML_UNCREATABLE("A StatusModel comes from its owner.")
+};
+
+struct EditorCommandsForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::EditorCommands)
+    QML_NAMED_ELEMENT(EditorCommands)
+    QML_UNCREATABLE("An EditorCommands comes from its owner.")
+};
+
+struct SelectionForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::Selection)
+    QML_NAMED_ELEMENT(Selection)
+    QML_UNCREATABLE("A Selection comes from its owner.")
+};
+
+struct RunStateForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::RunState)
+    QML_NAMED_ELEMENT(RunState)
+    QML_UNCREATABLE("A RunState comes from its owner.")
 };
 
 }  // namespace nodetool::node_editor::qml
