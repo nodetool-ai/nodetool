@@ -231,6 +231,17 @@ hash and size.
   provider calls only the `sd-server` it starts on `127.0.0.1`, at a port it
   picked. Requests send no credentials and reject redirects. Job polling uses
   URLs built from the job id. The cloud profile excludes this provider.
+- `packages/runtime/src/providers/acestep-provider.ts` — the ACE-Step music
+  provider calls the `ace-server` it starts on `127.0.0.1`, or the remote
+  `ace-server` named by `ACESTEP_SERVER_URL`, normally the LAN, so screening
+  private addresses would refuse the ordinary case. Every request URL is that
+  origin plus a fixed path and the job id, never a URL from a response.
+  Requests send no credentials and reject redirects. The cloud profile
+  excludes the `acestep` provider and hides its settings group.
+- `packages/runtime/src/providers/acestep-server.ts` — polls `GET /health`
+  only on the `ace-server` it started on `127.0.0.1`, at a port it picked,
+  until that server answers. The cloud profile excludes the `acestep`
+  provider that starts it.
 - `packages/runtime/src/providers/wan2gp-client.ts` — a Wan2GP server, named
   by `WAN2GP_MCP_URL` or a `lib.wan2gp` node's server URL, normally localhost
   or the LAN. Requests send no credentials and reject redirects. A media

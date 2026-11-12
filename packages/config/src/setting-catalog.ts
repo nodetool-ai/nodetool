@@ -306,6 +306,27 @@ sec(
   "Bearer token for a Wan2GP server behind an authenticating proxy, such as the nodetool-wan2gp combined image. Leave empty for a server on your own machine."
 );
 s(
+  "ACESTEP_SERVER_PATH",
+  "AceStep",
+  "Path to an ace-server binary from acestep.cpp for music mode. Unset, the acestep provider uses the ace-server the ACE-Step package installs, then PATH."
+);
+s(
+  "ACESTEP_MODELS_DIR",
+  "AceStep",
+  "Folder of ACE-Step GGUF model files that the local ace-server loads. Unset, the provider uses the folder the ACE-Step package downloads models to."
+);
+s(
+  "ACESTEP_SERVER_URL",
+  "AceStep",
+  "Address of an ace-server you run on another machine, such as http://192.168.1.20:8080. When set, music mode uses it in place of the local ace-server."
+);
+s(
+  "ACESTEP_KEEP_LOADED",
+  "AceStep",
+  "Keep every ACE-Step model in memory between generations. Faster, and needs memory for the language model, both DiT models and the VAE at once.",
+  ["true", "false"]
+);
+s(
   "NODETOOL_TORCH_DEVICE",
   "PythonNodes",
   "Device the Python worker runs PyTorch models on: cuda, cuda:N for a specific GPU, mps, or cpu. Unset, the worker picks MPS, then CUDA, then CPU. Restart the backend after changing this setting, because the Python worker reads it at start."

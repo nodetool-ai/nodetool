@@ -44,6 +44,7 @@ import { GeminiVertexProvider } from "./gemini-vertex-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
 import { NodeLlamaCppProvider } from "./node-llama-cpp-provider.js";
 import { StableDiffusionCppProvider } from "./sdcpp-provider.js";
+import { AceStepProvider } from "./acestep-provider.js";
 import { Wan2GPProvider } from "./wan2gp-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { CodexProvider } from "./codex-provider.js";
@@ -270,6 +271,17 @@ export { GeminiProvider };
 export { LlamaProvider };
 export { NodeLlamaCppProvider };
 export { StableDiffusionCppProvider };
+export {
+  AceStepProvider,
+  ACESTEP_BACKEND,
+  ACESTEP_PROVIDER_ID,
+  defaultAceStepInstall,
+  startAceStepProbeServer,
+  type AceStepInstall,
+  type AceStepInstallLocator,
+  type AceStepProviderOptions
+} from "./acestep-provider.js";
+export { AceServerSupervisor, type AceServerLaunch } from "./acestep-server.js";
 export { Wan2GPProvider, resetWan2GPListings, wan2gpBaseSettings, wan2gpResolution } from "./wan2gp-provider.js";
 export { findInstalledWan2GP, stopWan2GPServer, warmWan2GPServer, withWan2GPClient } from "./wan2gp-server.js";
 export {
@@ -308,6 +320,14 @@ export type {
   Wan2GPRecord
 } from "./wan2gp-client.js";
 export { SD_CPP_MODELS, type SdCppModelSpec } from "./sdcpp-models.js";
+export {
+  ACESTEP_MODELS,
+  ACESTEP_REPO_ID,
+  aceStepDitFor,
+  aceStepModel,
+  type AceStepModelKind,
+  type AceStepModelSpec
+} from "./acestep-models.js";
 export { OpenAIProvider };
 export { snapToGptImage2Size } from "./gpt-image-size.js";
 export { CodexProvider };
@@ -878,6 +898,20 @@ if (!_cloudProfile) {
     {},
     { SD_CPP_SERVER_PATH: "", MODEL_FOLDERS: "" },
     { access: "local_service", displayName: "stable-diffusion.cpp" }
+  );
+  // ACE-Step music mode: starts acestep.cpp's ace-server on demand, or uses
+  // the remote one ACESTEP_SERVER_URL names. No secret.
+  registerBuiltinProvider(
+    PROVIDER_IDS.ACESTEP,
+    AceStepProvider,
+    {},
+    {
+      ACESTEP_SERVER_PATH: "",
+      ACESTEP_MODELS_DIR: "",
+      ACESTEP_SERVER_URL: "",
+      ACESTEP_KEEP_LOADED: ""
+    },
+    { access: "local_service", displayName: "ACE-Step" }
   );
   // Wan2GP: a server the user runs, reached over MCP. WAN2GP_MCP_URL
   // and WAN2GP_MCP_TOKEN re-resolve on every getProvider() call, so a changed
