@@ -34,3 +34,41 @@ if(NOT MSVC)
     set_source_files_properties(src/music/MusicTime.cpp src/music/MusicPlan.cpp
         PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
 endif()
+
+# ---- Package F: jobs, edits and context bounce (MUSIC-MODE.md MD13 to MD18,
+# sections 9, 13 and 14.3). Package E's selection, project and panel lines
+# stay outside this block.
+# The bounce renders with timeline_audio and uploads with timeline_server.
+nt_sources(server src/music/MusicBounce.h src/music/MusicBounce.cpp)
+# Registrars compile into the executables (src/app/README.md).
+nt_sources(app src/music/MusicBounceCli.cpp)
+nt_qml_sources(src/music/MusicEdits.h src/music/MusicEdits.cpp
+    src/music/MusicJobs.h src/music/MusicJobs.cpp)
+
+function(nt_music_jobs_tests)
+    # MM3 exits 5 to 7, MM6 durability: a scripted server over a real socket.
+    qt_add_executable(tst_musicjobs src/music/tst_musicjobs.cpp
+        src/music/MusicJobs.h src/music/MusicJobs.cpp
+        src/music/MusicEdits.h src/music/MusicEdits.cpp
+        src/model/TimelineModel.h src/model/TimelineModel.cpp
+        src/model/TrackListModel.h src/model/TrackListModel.cpp)
+    set_target_properties(tst_musicjobs PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_musicjobs PRIVATE ${NT_WARNINGS})
+    target_include_directories(tst_musicjobs PRIVATE tests)
+    target_link_libraries(tst_musicjobs PRIVATE timeline_core timeline_decode timeline_server timeline_audio
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::WebSockets Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    add_test(NAME tst_musicjobs COMMAND tst_musicjobs)
+    set_tests_properties(tst_musicjobs PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 300)
+
+    # MM5 exits 3 and 4: the dry and mix bounces, directly and through --music-bounce.
+    qt_add_executable(tst_musicbounce src/music/tst_musicbounce.cpp)
+    set_target_properties(tst_musicbounce PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_musicbounce PRIVATE ${NT_WARNINGS})
+    target_include_directories(tst_musicbounce PRIVATE tests)
+    target_compile_definitions(tst_musicbounce PRIVATE NT_TIMELINE_BINARY="$<TARGET_FILE:nodetool-timeline>")
+    target_link_libraries(tst_musicbounce PRIVATE timeline_core timeline_server timeline_audio Qt6::Test)
+    add_dependencies(tst_musicbounce nodetool-timeline)
+    add_test(NAME tst_musicbounce COMMAND tst_musicbounce)
+    set_tests_properties(tst_musicbounce PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 300)
+endfunction()
+nt_tests(nt_music_jobs_tests)
