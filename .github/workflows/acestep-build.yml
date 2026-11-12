@@ -1,0 +1,184 @@
+name: Build ace-server
+
+# Builds the acestep.cpp `ace-server` at the commit pinned in
+# packages/config/src/acestep-runtime.ts, signs and notarizes it, and attaches
+# the archive to a draft NodeTool release. A person publishes the draft and
+# then pastes the printed SHA-256 into ACESTEP_SHA256 of the same file: the
+# installer refuses the archive while the digest is unset.
+#
+# Run it from the Actions tab. It has no tag or push trigger, because the
+# build takes a signed release and the pin changes only by a deliberate edit
+# (design risk MR3 in native/timeline/docs/MUSIC-MODE.md).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: acestep-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: nodetool
+          persist-credentials: false
+      - name: Read the pin
+        id: pin
+        run: |
+          set -euo pipefail
+          pin=nodetool/packages/config/src/acestep-runtime.ts
+          commit=$(sed -n 's/^export const ACESTEP_COMMIT = "\([0-9a-f]\{40\}\)";$/\1/p' "$pin")
+          [[ ${#commit} == 40 ]]
+          short=${commit:0:7}
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "tag=acestep-$short" >> "$GITHUB_OUTPUT"
+          echo "archive=ace-server-$short-macos-arm64.zip" >> "$GITHUB_OUTPUT"
+          # The archive and tag names the installer expects must match what this job makes.
+          grep -F "ace-server-\${ACESTEP_COMMIT_SHORT}-macos-arm64.zip" "$pin"
+          grep -F 'acestep-${ACESTEP_COMMIT_SHORT}' "$pin"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ServeurpersoCom/acestep.cpp
+          ref: ${{ steps.pin.outputs.commit }}
+          path: acestep
+          submodules: recursive
+          persist-credentials: false
+      - name: Check the checkout
+        env:
+          PINNED: ${{ steps.pin.outputs.commit }}
+        run: |
+          set -euo pipefail
+          test "$(git -C acestep rev-parse HEAD)" = "$PINNED"
+          test "$(uname -m)" = arm64
+      - name: Install build tools
+        run: brew install ninja ccache
+      - name: Build ace-server (Metal)
+        env:
+          CMAKE_C_COMPILER_LAUNCHER: ccache
+          CMAKE_CXX_COMPILER_LAUNCHER: ccache
+        run: |
+          set -euo pipefail
+          cmake -S acestep -B acestep/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 -DGGML_METAL=ON
+          cmake --build acestep/build --target ace-server --parallel 4
+          test -x acestep/build/ace-server
+      - name: Stage the files
+        env:
+          COMMIT: ${{ steps.pin.outputs.commit }}
+        run: |
+          set -euo pipefail
+          mkdir stage
+          cp acestep/build/ace-server stage/
+          # The build links ggml as shared libraries next to the executable, as
+          # upstream's own macOS release does.
+          cp -P acestep/build/libggml*.dylib acestep/build/libacestep*.dylib stage/ 2>/dev/null || true
+          install_name_tool -add_rpath @executable_path stage/ace-server
+          cp acestep/LICENSE stage/LICENSE
+          echo "$COMMIT" > stage/COMMIT
+          otool -L stage/ace-server
+      - name: Install Apple certificate
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE }}
+          P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PWD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        # The same keychain and notarytool profile as release.yaml and native-timeline-release.yml.
+        run: |
+          set -euo pipefail
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode --output "$CERTIFICATE_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH" > /dev/null
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          rm -f "$CERTIFICATE_PATH"
+          xcrun notarytool store-credentials "AC_PASSWORD" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
+      - name: Sign and notarize
+        run: |
+          set -euo pipefail
+          sign=(codesign --force --timestamp --options runtime --sign "Developer ID Application")
+          # Libraries first, then the executable. ace-server needs no entitlements
+          # beyond the hardened runtime: it neither generates code nor loads
+          # unsigned plug-ins. A notarization rejection lists what it does need.
+          for lib in stage/*.dylib; do
+            [[ -e $lib && ! -L $lib ]] && "${sign[@]}" "$lib"
+          done
+          "${sign[@]}" stage/ace-server
+          codesign --verify --strict --verbose=2 stage/ace-server
+          ditto -c -k --sequesterRsrc stage "$RUNNER_TEMP/notarize.zip"
+          result=$(xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" --keychain-profile AC_PASSWORD --wait --output-format json)
+          id=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' <<< "$result")
+          status=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])' <<< "$result")
+          if [[ $status != Accepted ]]; then
+            echo "notarization $id ended as $status" >&2
+            xcrun notarytool log "$id" --keychain-profile AC_PASSWORD >&2 || true
+            exit 1
+          fi
+          # A bare executable and its libraries take no stapled ticket. Gatekeeper
+          # finds the ticket online. The NodeTool installer downloads without a
+          # quarantine flag, so no check runs there.
+      - name: Pack, smoke test and digest
+        id: pack
+        env:
+          ARCHIVE: ${{ steps.pin.outputs.archive }}
+        run: |
+          set -euo pipefail
+          mkdir release-assets
+          ditto -c -k --sequesterRsrc stage "release-assets/$ARCHIVE"
+          mkdir "$RUNNER_TEMP/check"
+          ditto -x -k "release-assets/$ARCHIVE" "$RUNNER_TEMP/check"
+          codesign --verify --strict "$RUNNER_TEMP/check/ace-server"
+          # Without arguments ace-server prints its usage and exits.
+          "$RUNNER_TEMP/check/ace-server" 2>&1 | grep -q 'Usage:'
+          digest=$(shasum -a 256 "release-assets/$ARCHIVE" | cut -d' ' -f1)
+          size=$(stat -f %z "release-assets/$ARCHIVE")
+          echo "$digest  $ARCHIVE" > "release-assets/$ARCHIVE.sha256"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          {
+            echo "### ace-server $ARCHIVE"
+            echo
+            echo "SHA-256: \`$digest\`"
+            echo "Size: $size bytes"
+            echo
+            echo "Publish the draft release, then set ACESTEP_SHA256 in packages/config/src/acestep-runtime.ts."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Create draft prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.pin.outputs.tag }}
+          COMMIT: ${{ steps.pin.outputs.commit }}
+          DIGEST: ${{ steps.pack.outputs.digest }}
+          ARCHIVE: ${{ steps.pin.outputs.archive }}
+        run: |
+          set -euo pipefail
+          # Fail if a release exists. A rebuild is not byte-identical, so a
+          # published digest must never change under an installed pin.
+          gh release create "$TAG" --target "$GITHUB_SHA" --draft --prerelease \
+            --title "ace-server $TAG" \
+            --notes "ace-server built from ServeurpersoCom/acestep.cpp at $COMMIT with Metal, for macOS arm64. Signed with a Developer ID and notarized.
+
+          SHA-256 of $ARCHIVE: $DIGEST
+
+          Set ACESTEP_SHA256 in packages/config/src/acestep-runtime.ts to this value after publishing." \
+            "release-assets/$ARCHIVE" "release-assets/$ARCHIVE.sha256"

@@ -9,6 +9,7 @@
   ],
   "references": [
     { "path": "../config" },
+    { "path": "../huggingface" },
     { "path": "../pack-manager" },
     { "path": "../protocol" }
   ]
