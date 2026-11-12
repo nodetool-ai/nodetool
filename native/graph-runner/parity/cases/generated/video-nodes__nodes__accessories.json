@@ -1,0 +1,92 @@
+{
+ "module": "@nodetool-ai/video-nodes/nodes/accessories",
+ "cases": [
+  {
+   "id": "nodetool.video.Keyframe#default",
+   "node": "nodetool.video.Keyframe",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Keyframe",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Element#default",
+   "node": "nodetool.video.Element",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Element",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.video.Shot#default",
+   "node": "nodetool.video.Shot",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.video.Shot",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -1557,7 +1557,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     if (!pipeline) {
       const module = this.device.createShaderModule({
         label: `${this.label}-unpremultiply`,
-        code: `${FULLSCREEN_QUAD_VERTEX}\n${UNPREMULTIPLY_FRAGMENT}`
+        code: `${FULLSCREEN_QUAD_VERTEX}\n${this.workingFormat === "rgba8unorm" ? UNPREMULTIPLY_FRAGMENT : UNPREMULTIPLY_FLOAT_FRAGMENT}`
       });
       pipeline = this.device.createRenderPipeline({
         label: `${this.label}-unpremultiply`,
@@ -2188,10 +2188,27 @@ function dipColorBytes(color: string): { r: number; g: number; b: number } {
 
 // Delivery coordinates follow all scene resampling. Working captures use neither
 // this shader nor its byte target. Match native DeliveryFrame's centered tile.
-const DITHERED_DELIVERY_FRAGMENT = UNPREMULTIPLY_FRAGMENT.replace(
+const UNPREMULTIPLY_RETURN = "return floor(straight * 255.0 + vec4f(0.5)) / 255.0;";
+
+/** Replaces `search` in `source`, failing loudly when the shared shader no longer contains it. */
+function replaceShaderText(source: string, search: string, replacement: string): string {
+  if (!source.includes(search)) {
+    throw new Error(`UNPREMULTIPLY_FRAGMENT no longer contains: ${search}`);
+  }
+  return source.replace(search, replacement);
+}
+
+// The shared resolve rounds to 8 bits for an RGBA8 target. A float working
+// target keeps the straight value, so a precomposite does not lose precision.
+const UNPREMULTIPLY_FLOAT_FRAGMENT = replaceShaderText(
+  UNPREMULTIPLY_FRAGMENT, UNPREMULTIPLY_RETURN, "return straight;"
+);
+
+const DITHERED_DELIVERY_FRAGMENT = replaceShaderText(replaceShaderText(
+  UNPREMULTIPLY_FRAGMENT,
   "@location(0) uv: vec2f)", "@location(0) uv: vec2f, @builtin(position) position: vec4f)"
-).replace(
-  "return vec4f(c.rgb / c.a, c.a);",
+),
+  UNPREMULTIPLY_RETURN,
   `var rank = 0u;
   for (var bit = 0u; bit < 3u; bit++) {
     let a = (u32(position.x) >> bit) & 1u;

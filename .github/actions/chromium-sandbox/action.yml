@@ -1,0 +1,42 @@
+name: Chromium sandbox
+description: >-
+  Let Playwright's Chromium keep its sandbox inside the CI image, and prove it
+  launches. The job must run in the CI image with `--init --user 1001 --privileged`
+  and have installed the browser (`npx playwright install chromium`). Later
+  steps get `CHROME_PATH` set to that browser, because the image has no
+  system Chrome for chrome-launcher to find.
+
+runs:
+  using: composite
+  steps:
+    # Chromium refuses its sandbox as root, so the job runs as uid 1001. The
+    # sandbox then needs an unprivileged user namespace, which Docker's default
+    # seccomp profile blocks (hence --privileged) and Ubuntu 24.04's AppArmor
+    # restricts host-wide. The sysctl lifts that restriction on the runner VM,
+    # which is discarded after the job, and the runner user already had root
+    # there through sudo.
+    # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
+    - name: Allow unprivileged user namespaces
+      shell: bash
+      run: |
+        if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+        fi
+
+    - name: Verify the Chromium sandbox
+      shell: bash
+      run: |
+        node --input-type=module <<'JS'
+        import { chromium } from "playwright";
+        const browser = await chromium.launch({ headless: true, chromiumSandbox: true });
+        await browser.close();
+        JS
+
+    # The value is the path Playwright reports for the browser it installed,
+    # not input from a pull request.
+    - name: Point CHROME_PATH at Playwright's Chromium
+      shell: bash
+      run: | # zizmor: ignore[github-env]
+        path=$(node --input-type=module -e 'import { chromium } from "playwright"; console.log(chromium.executablePath())')
+        test -x "$path"
+        echo "CHROME_PATH=$path" >> "$GITHUB_ENV"

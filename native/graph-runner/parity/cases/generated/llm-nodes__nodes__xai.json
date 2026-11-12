@@ -1,0 +1,149 @@
+{
+ "module": "@nodetool-ai/llm-nodes/nodes/xai",
+ "cases": [
+  {
+   "id": "xai.text.ChatComplete#default",
+   "node": "xai.text.ChatComplete",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "xai.text.ChatComplete",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "xai.text.WebSearch#default",
+   "node": "xai.text.WebSearch",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "xai.text.WebSearch",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "out_citations",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "citations"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_citations",
+      "source": "n",
+      "sourceHandle": "citations",
+      "target": "out_citations",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "xai.vision.ImageToText#default",
+   "node": "xai.vision.ImageToText",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "xai.vision.ImageToText",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "xai.image.GenerateImage#default",
+   "node": "xai.image.GenerateImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "xai.image.GenerateImage",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     },
+     {
+      "id": "out_revised_prompt",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "revised_prompt"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_revised_prompt",
+      "source": "n",
+      "sourceHandle": "revised_prompt",
+      "target": "out_revised_prompt",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

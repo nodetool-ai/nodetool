@@ -18,6 +18,7 @@ class TrickleHttpServer {
 public:
     explicit TrickleHttpServer(int lifetimeMs = 3000, QByteArray instanceSecret = {},
                                bool trickle = true, bool sendHeaders = true) {
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         const auto ready = std::make_shared<QSemaphore>();
         m_thread.reset(QThread::create([this, lifetimeMs, ready, instanceSecret, trickle, sendHeaders] {
             QTcpServer server;
@@ -26,7 +27,9 @@ public:
                 while (auto* socket = server.nextPendingConnection()) {
                     socket->setParent(&server);
                     socket->setSocketOption(QAbstractSocket::LowDelayOption, 1);
+                    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
                     auto responded = std::make_shared<bool>(false);
+                    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
                     auto request = std::make_shared<QByteArray>();
                     QObject::connect(socket, &QTcpSocket::readyRead, socket, [this, socket, responded, request, lifetimeMs, instanceSecret, trickle, sendHeaders] {
                         request->append(socket->readAll());

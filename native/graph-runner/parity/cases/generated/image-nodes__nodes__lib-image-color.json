@@ -1,0 +1,208 @@
+{
+ "module": "@nodetool-ai/image-nodes/nodes/lib-image-color",
+ "cases": [
+  {
+   "id": "lib.image.color.Invert#default",
+   "node": "lib.image.color.Invert",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color.Invert",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color.BrightnessContrast#default",
+   "node": "lib.image.color.BrightnessContrast",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color.BrightnessContrast",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color.HSB#default",
+   "node": "lib.image.color.HSB",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color.HSB",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color.Exposure#default",
+   "node": "lib.image.color.Exposure",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color.Exposure",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color.Posterize#default",
+   "node": "lib.image.color.Posterize",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color.Posterize",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color.Grade#default",
+   "node": "lib.image.color.Grade",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color.Grade",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.image.color.ChannelSplit#default",
+   "node": "lib.image.color.ChannelSplit",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.image.color.ChannelSplit",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -7,12 +7,18 @@ import NodeTool.UiPrimitives as Ui
 Item {
     id: root
     property var session: null
+    property bool embedded: false
+    readonly property real composerHeight: conversation.composerHeight
     readonly property bool narrow: width < ChatMetrics.narrow
     property var scrollPositions: ({})
     property bool threadPickerActive: false
     onNarrowChanged: if (!narrow) threadPickerActive = false
     objectName: "chatPanel"
-    Ui.Surface { anchors.fill: parent; variant: Ui.Surface.Canvas }
+    Ui.Surface {
+        anchors.fill: parent
+        variant: Ui.Surface.Canvas
+        visible: !root.embedded
+    }
     Flickable {
         id: viewport
         objectName: "chatWidthViewport"
@@ -52,29 +58,31 @@ Item {
                 Loader {
                     Layout.preferredWidth: ChatMetrics.sidebar
                     Layout.fillHeight: true
-                    active: !root.narrow
+                    active: !root.embedded && !root.narrow
                     visible: active
                     sourceComponent: ThreadList { session: root.session }
                 }
                 Ui.Separator {
                     Layout.fillHeight: true
-                    visible: !root.narrow
+                    visible: !root.embedded && !root.narrow
                     orientation: Qt.Vertical
                 }
                 Item {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     ConversationView {
+                        id: conversation
                         anchors.fill: parent
-                        visible: !root.narrow || !root.threadPickerActive
+                        visible: !root.embedded && !root.narrow || !root.threadPickerActive
                         session: root.session
                         scrollPositions: root.scrollPositions
                         showBack: root.narrow
+                        embedded: root.embedded
                         onBackRequested: root.threadPickerActive = true
                     }
                     Loader {
                         anchors.fill: parent
-                        active: root.narrow && root.threadPickerActive
+                        active: !root.embedded && root.narrow && root.threadPickerActive
                         sourceComponent: ThreadList {
                             session: root.session
                             onThreadOpened: root.threadPickerActive = false

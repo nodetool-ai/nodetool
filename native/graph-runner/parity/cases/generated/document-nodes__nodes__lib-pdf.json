@@ -1,0 +1,208 @@
+{
+ "module": "@nodetool-ai/document-nodes/nodes/lib-pdf",
+ "cases": [
+  {
+   "id": "lib.pdf.ExtractText#default",
+   "node": "lib.pdf.ExtractText",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.pdf.ExtractText",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.pdf.ExtractMarkdown#default",
+   "node": "lib.pdf.ExtractMarkdown",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.pdf.ExtractMarkdown",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.pdf.ExtractTables#default",
+   "node": "lib.pdf.ExtractTables",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.pdf.ExtractTables",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.pdf.ExtractStyledText#default",
+   "node": "lib.pdf.ExtractStyledText",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.pdf.ExtractStyledText",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.pdf.Screenshot#default",
+   "node": "lib.pdf.Screenshot",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.pdf.Screenshot",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.pdf.Pdftoppm#default",
+   "node": "lib.pdf.Pdftoppm",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.pdf.Pdftoppm",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.pdf.ExtractOcr#default",
+   "node": "lib.pdf.ExtractOcr",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.pdf.ExtractOcr",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

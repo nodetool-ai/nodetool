@@ -1,0 +1,67 @@
+{
+  "nodes": [
+    {
+      "id": "sub",
+      "type": "nodetool.workflows.subgraph.Subgraph",
+      "properties": {
+        "graph": {
+          "nodes": [
+            {
+              "id": "input",
+              "type": "nodetool.input.IntegerInput",
+              "properties": {
+                "name": "n",
+                "value": 3
+              }
+            },
+            {
+              "id": "inner-output",
+              "type": "nodetool.output.Output",
+              "properties": {
+                "name": "answer"
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "inner-edge",
+              "source": "input",
+              "sourceHandle": "output",
+              "target": "inner-output",
+              "targetHandle": "value"
+            }
+          ]
+        }
+      },
+      "dynamic_inputs": {
+        "n": {
+          "type": "int"
+        }
+      },
+      "dynamic_properties": {
+        "n": 17
+      },
+      "dynamic_outputs": {
+        "answer": {
+          "type": "int"
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "nodetool.output.Output",
+      "properties": {
+        "name": "result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "result",
+      "source": "sub",
+      "sourceHandle": "answer",
+      "target": "out",
+      "targetHandle": "value"
+    }
+  ]
+}

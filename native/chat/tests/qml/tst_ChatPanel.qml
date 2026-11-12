@@ -628,7 +628,7 @@ TestCase {
         verify(input !== null)
         verify(send !== null)
         verify(Qt.colorEqual(input.selectedTextColor, Ui.Theme.textOnAccent))
-        compare(input.Accessible.name, "Message")
+        compare(input.Accessible.name, "Message prompt")
         compare(send.enabled, false)
         testSession.draft = "Make a film"
         tryCompare(send, "enabled", true)

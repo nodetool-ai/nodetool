@@ -180,9 +180,9 @@ no Vulkan driver (ICD) is installed — Dawn has no software fallback of its own
 ```
 
 **This is an environment gap, not a broken test and not an unsupported
-platform.** CI already solves it: the `test-packages-*` shards of
-`.github/workflows/quality-checks.yml` and the browser job in `test.yml` both
-install `mesa-vulkan-drivers`, which ships **lavapipe** — a CPU Vulkan ICD. Do
+platform.** CI already solves it: the jobs run in the
+[CI image](https://github.com/nodetool-ai/nodetool/blob/main/docker/ci/README.md), which ships `mesa-vulkan-drivers`, and
+that package ships **lavapipe** — a CPU Vulkan ICD. Do
 not conclude from this error that shader-backed nodes cannot be tested, and do
 not skip a test because your box hits it; the same test passes in CI.
 

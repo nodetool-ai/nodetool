@@ -1,0 +1,15 @@
+import { readFileSync } from "node:fs";
+import { WorkflowRunner, Graph } from "@nodetool-ai/execution-core";
+import { ProcessingContext } from "@nodetool-ai/runtime";
+import { NodeRegistry, createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
+import * as triggers from "@nodetool-ai/automation-nodes/nodes/triggers";
+import { OutputNode } from "@nodetool-ai/audio-nodes/nodes/output";
+const registry = new NodeRegistry();
+for (const cls of [...Object.values(triggers), OutputNode]) if (typeof cls === "function" && cls.nodeType) registry.register(cls);
+const graph = await Graph.loadFromDict(JSON.parse(readFileSync(process.argv[2],"utf8")), { resolver: createGraphNodeTypeResolver(registry).resolveNodeType });
+const context = new ProcessingContext({ jobId: "job", workflowId: "wf", inheritHostDefaults: false });
+context.addMessageListener((message) => process.stdout.write(JSON.stringify(message)+"\n"));
+const runner = new WorkflowRunner("job", { resolveExecutor: (node) => registry.resolve(node), executionContext: context });
+const result = await runner.run({ job_id: "job", workflow_id: "wf", params: {}, trigger_event: JSON.parse(process.argv[3]) }, { nodes: [...graph.nodes], edges: [...graph.edges] });
+if (Object.keys(result.outputs).length) process.stdout.write(JSON.stringify({ type:"job_update", status:result.status, job_id:"job", workflow_id:"wf", error:result.error, result:{outputs:result.outputs} })+"\n");
+if (result.status !== "completed") process.exitCode=1;

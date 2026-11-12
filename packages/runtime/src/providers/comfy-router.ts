@@ -226,6 +226,12 @@ export function sniffMime(bytes: Uint8Array, fallback: string): string {
   return fallback;
 }
 
+/** WAV from its RIFF/WAVE header, MP3 otherwise: the two the Router's audio inputs take. */
+export function sniffAudioMime(bytes: Uint8Array): string {
+  const tag = (at: number): string => String.fromCharCode(...bytes.subarray(at, at + 4));
+  return tag(0) === "RIFF" && tag(8) === "WAVE" ? "audio/wav" : "audio/mpeg";
+}
+
 export function dataUri(media: MediaInput): string {
   return `data:${media.mimeType};base64,${Buffer.from(media.bytes).toString("base64")}`;
 }
@@ -269,6 +275,16 @@ export class RouterArgsBuilder {
     return true;
   }
 
+  /** The value written at a field's path, or undefined. */
+  valueOf(name: string): unknown {
+    let cur: unknown = this.body;
+    for (const key of this.pathOf(name)) {
+      if (!isRecord(cur)) return undefined;
+      cur = cur[key];
+    }
+    return cur;
+  }
+
   /** Write a value at a field's path without coercion. */
   put(name: string, value: unknown): this {
     const path = this.pathOf(name);
@@ -278,6 +294,18 @@ export class RouterArgsBuilder {
       cur = cur[key] as Json;
     }
     cur[path[path.length - 1]] = value;
+    return this;
+  }
+
+  /** Remove a field the body carries, at its path. */
+  unset(name: string): this {
+    const path = this.pathOf(name);
+    let cur: unknown = this.body;
+    for (const key of path.slice(0, -1)) {
+      if (!isRecord(cur)) return this;
+      cur = cur[key];
+    }
+    if (isRecord(cur)) delete cur[path[path.length - 1]];
     return this;
   }
 

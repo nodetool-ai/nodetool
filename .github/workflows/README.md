@@ -343,6 +343,17 @@ shape. `.github/tests/agent-workflows.test.mjs` enforces it in the `lint` leg of
 - **Outcomes.** `agent-pr-report.yml` reports merge rate and net lines per
   label each month. Use it to decide whether a routine still pays for itself.
 
+## The CI image
+
+The Linux Node and TypeScript jobs run in a prebuilt container,
+`ghcr.io/nodetool-ai/nodetool-ci`, so none of them runs `apt-get`. Each
+workflow's `ci-image` job calls `ci-image.yml`, which builds the image when
+`docker/ci/` changed and otherwise finds it published. The Linux legs of the
+native C++ workflows use a second image, `nodetool-ci-native`, built the same
+way from `docker/ci-native/`. See
+[docker/ci/README.md](../../docker/ci/README.md) for the tag scheme, the
+container options, and the jobs that still run on the bare runner.
+
 ## Manual Trigger
 
 ```bash

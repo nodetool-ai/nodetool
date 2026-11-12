@@ -190,7 +190,9 @@ std::optional<EasingFn> compileEasing(const std::string& idIn) {
 // The parsed easing, shared: a caller keeps it alive while it evaluates,
 // even when another thread clears the cache meanwhile. Null: not an easing.
 std::shared_ptr<const EasingFn> parsedEasing(const std::string& id) {
+    // native-rules #14: static mutex
     static std::mutex mutex;
+    // native-rules #14: static mutable cache
     static std::unordered_map<std::string, std::shared_ptr<const EasingFn>> cache;
     std::lock_guard lock(mutex);
     auto it = cache.find(id);
@@ -412,6 +414,7 @@ int sampleCountFor(double durationMs, double frequencyHz, int lo, int hi) {
 }
 
 std::function<double()> mulberry32(double seed) {
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     auto a = std::make_shared<uint32_t>(static_cast<uint32_t>(static_cast<int64_t>(seed)));
     return [a]() {
         *a += 0x6d2b79f5u;

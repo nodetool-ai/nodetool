@@ -58,6 +58,7 @@ Editorial Spec](docs/docs-editorial.spec.md).
 - **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — Required for all work.
 - **[Repository Skills](#repository-skills)** — Task-specific engineering and NodeTool authoring workflows.
 - **[Design System](docs/DESIGN.md)** — Required for React UI work.
+- **[Native C++ and Qt](native/AGENTS.md)** — Memory, thread ownership and sanitizer rules for every project under `native/`.
 - **[Native UI primitives](native/ui_primitives/AGENTS.md)** — Qt Quick presentation rules and the independent [native design specification](native/ui_primitives/DESIGN.md).
 - **[UX Guidelines](docs/UX_GUIDELINES.md)** — Required for UI work: entry points, model defaults, keeping work, empty states, errors, labels, small windows. Drawn from the UX research studies.
 - **[UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** — Required for frontend work.
@@ -306,8 +307,8 @@ Slash commands are in [.claude/README.md](.claude/README.md).
 - Run `npm run build:packages` before `test:affected` and `harness gate`.
   Selfchecks that run the CLI fail on a missing command-feature `dist/` output, which
   looks like a gate failure but is an unbuilt tree.
-- The runtime and base-nodes suites need a Vulkan ICD, as in CI
-  (`extra-apt` in `.github/workflows/quality-checks.yml`). Install
+- The runtime and base-nodes suites need a Vulkan ICD, as in CI (the
+  [CI image](docker/ci/README.md) ships it). Install
   `mesa-vulkan-drivers` before a suite-wide run. Media runs in process on
   `@nodetool-ai/runtime/media`, so no suite needs the `ffmpeg` binary; make
   test media with `@nodetool-ai/runtime/media/testing`, never the CLI.
@@ -361,6 +362,7 @@ for test design.
 | Test one backend package | `npm run test --workspace=packages/<name>` |
 | Watch one backend package | `npm run test:watch --workspace=packages/<name>` |
 | Inspect affected test selection | `npm run test:affected -- --dry-run` |
+| Run the C++ (ctest) tests affected by a change | `npm run test:affected:native` |
 | Full aggregate check, when explicitly needed | `npm run check` |
 
 ### Mandatory Post-Change Verification
@@ -386,7 +388,10 @@ plus working-tree changes. Backend tests run through Turbo with dependency
 builds. App-only changes select related Jest tests. Changes to app dependencies
 select the app's whole suite. A file outside every workspace selects the checks
 that `PATH_CHECKS` lists for it, such as `validate:examples` for an example
-generator. Any other non-documentation file outside every workspace selects all
+generator. A change under a native CMake project such as `native/graph-runner/`
+runs `npm run test:affected:native`. It reads the project's configured build
+directory and runs only the ctest tests whose sources, headers, scripts or
+bundles changed. Any other non-documentation file outside every workspace selects all
 suites. Use `-- --base <ref>` to change the base or pass file paths to inspect
 selection. If you change `buildPlan` in `scripts/test-affected.mjs`, update
 `scripts/__tests__/test-affected.test.mjs`.

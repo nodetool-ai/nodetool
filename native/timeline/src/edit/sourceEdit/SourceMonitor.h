@@ -11,6 +11,7 @@
 #include <optional>
 
 class QThread;
+// native-rules #9: owns a QThread worker whose lambda touches shared state, no thread affinity comment
 class SourceMonitor : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -91,10 +92,13 @@ private:
     double m_frameRate = 30;
     double m_durationMs = 0;
     QSize m_frameSize;
+    // native-rules #1: shared with the worker thread, no comment on why unique ownership is impossible
     std::shared_ptr<nt::assets::MediaProtection> m_protection;
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     std::shared_ptr<const nt::Timeline> m_silent;
     std::unique_ptr<nt::audio::AppAudio> m_audio;
     double m_recordSeconds = 0;
+    // native-rules #1: raw owning QThread* (QThread::create), owner is only implied by setParent and deleteLater
     QThread* m_worker = nullptr;
     std::optional<Request> m_pending;
     quint64 m_serial = 0;

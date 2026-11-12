@@ -1,0 +1,263 @@
+{
+ "module": "@nodetool-ai/blender-nodes",
+ "cases": [
+  {
+   "id": "nodetool.blender.RenderImage#default",
+   "node": "nodetool.blender.RenderImage",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.blender.RenderImage",
+      "properties": {}
+     },
+     {
+      "id": "out_image",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "image"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_image",
+      "source": "n",
+      "sourceHandle": "image",
+      "target": "out_image",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.blender.RenderPasses#default",
+   "node": "nodetool.blender.RenderPasses",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.blender.RenderPasses",
+      "properties": {}
+     },
+     {
+      "id": "out_color",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "color"
+      }
+     },
+     {
+      "id": "out_depth",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "depth"
+      }
+     },
+     {
+      "id": "out_depth_near",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "depth_near"
+      }
+     },
+     {
+      "id": "out_depth_far",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "depth_far"
+      }
+     },
+     {
+      "id": "out_normal",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "normal"
+      }
+     },
+     {
+      "id": "out_mask",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "mask"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_color",
+      "source": "n",
+      "sourceHandle": "color",
+      "target": "out_color",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_depth",
+      "source": "n",
+      "sourceHandle": "depth",
+      "target": "out_depth",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_depth_near",
+      "source": "n",
+      "sourceHandle": "depth_near",
+      "target": "out_depth_near",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_depth_far",
+      "source": "n",
+      "sourceHandle": "depth_far",
+      "target": "out_depth_far",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_normal",
+      "source": "n",
+      "sourceHandle": "normal",
+      "target": "out_normal",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_mask",
+      "source": "n",
+      "sourceHandle": "mask",
+      "target": "out_mask",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.blender.RenderAnimation#default",
+   "node": "nodetool.blender.RenderAnimation",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.blender.RenderAnimation",
+      "properties": {}
+     },
+     {
+      "id": "out_video",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "video"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_video",
+      "source": "n",
+      "sourceHandle": "video",
+      "target": "out_video",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.blender.BakeTimelineClip#default",
+   "node": "nodetool.blender.BakeTimelineClip",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.blender.BakeTimelineClip",
+      "properties": {}
+     },
+     {
+      "id": "out_video",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "video"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_video",
+      "source": "n",
+      "sourceHandle": "video",
+      "target": "out_video",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.blender.PrepareForEngine#default",
+   "node": "nodetool.blender.PrepareForEngine",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.blender.PrepareForEngine",
+      "properties": {}
+     },
+     {
+      "id": "out_model",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "model"
+      }
+     },
+     {
+      "id": "out_lods",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "lods"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_model",
+      "source": "n",
+      "sourceHandle": "model",
+      "target": "out_model",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_lods",
+      "source": "n",
+      "sourceHandle": "lods",
+      "target": "out_lods",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "nodetool.blender.ExportModel#default",
+   "node": "nodetool.blender.ExportModel",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.blender.ExportModel",
+      "properties": {}
+     },
+     {
+      "id": "out_file",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "file"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_file",
+      "source": "n",
+      "sourceHandle": "file",
+      "target": "out_file",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

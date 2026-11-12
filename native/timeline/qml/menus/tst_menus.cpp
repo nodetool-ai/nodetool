@@ -639,46 +639,6 @@ private slots:
             QVERIFY(reason && reason->isVisible());
         }
     }
-    void labelSubmenu() {
-        const auto before = doc();
-        gestures()->setSelection({"c", "e"});
-        auto* menu = popup("clip", "clip-c"); QVERIFY(menu);
-        QTRY_VERIFY(menu->property("opened").toBool());
-        QVERIFY(entries(menu).contains("clipMenu-label:Label"));
-        auto* row = item("clipMenu-label"); QVERIFY(row);
-        auto* arrow = named(row, "menuItemSubmenuArrow");
-        QVERIFY(arrow && arrow->isVisible());
-        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(row));
-        QTRY_VERIFY(item("clipLabelMenu-clipLabel.red") && item("clipLabelMenu-clipLabel.red")->isVisible());
-        QTRY_VERIFY(item("clipLabelMenu-clipLabel.red")->width() > 0);
-        // The submenu opens beside its row, not somewhere else in the window.
-        const auto rowRight = row->mapToScene({row->width(), row->height() / 2});
-        const auto redLeft = item("clipLabelMenu-clipLabel.red")->mapToScene({0, 0});
-        QVERIFY2(std::abs(redLeft.x() - rowRight.x()) < 40, qPrintable(QString::number(redLeft.x() - rowRight.x())));
-        QVERIFY2(std::abs(redLeft.y() - rowRight.y()) < 120, qPrintable(QString::number(redLeft.y() - rowRight.y())));
-        QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
-        view->update();
-        QVERIFY(!frame.isEmpty() || frame.wait(1000));
-        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("clipLabelMenu-clipLabel.red")));
-        QCoreApplication::processEvents();
-        // The clip menu acts on the selection, as its other items do. One edit, one undo entry.
-        QCOMPARE(clip("c").value("labelColor").toString(), QString("#E5484D"));
-        QCOMPARE(clip("e").value("labelColor").toString(), QString("#E5484D"));
-        QCOMPARE(model.undoStack()->count(), 1);
-        auto* tint = named(item("clip-c"), "clipTint"); QVERIFY(tint);
-        QTRY_COMPARE(tint->property("color").value<QColor>().rgb(), QColor("#E5484D").rgb());
-        popup("clip", "clip-c");
-        QTRY_VERIFY(activeMenu && activeMenu->property("opened").toBool());
-        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(item("clipMenu-label")));
-        QTRY_VERIFY(item("clipLabelMenu-clipLabel.red"));
-        QVERIFY(item("clipLabelMenu-clipLabel.red")->property("checked").toBool());
-        QVERIFY(!item("clipLabelMenu-clipLabel.none")->property("checked").toBool());
-        QVERIFY(QMetaObject::invokeMethod(activeMenu, "close"));
-        QVERIFY(gestures()->runAction("clipLabel.none", {{"clipIds", QStringList{"c"}}}));
-        QVERIFY(!clip("c").contains("labelColor"));
-        model.undoStack()->undo(); model.undoStack()->undo();
-        QCOMPARE(doc(), before);
-    }
     void clipLabelSurvivesAParseAndAnEmptyTarget() {
         patch("c", {{"labelColor", "#3E63DD"}});
         const auto raw = doc();

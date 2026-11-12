@@ -1,0 +1,19 @@
+{
+ "module": "@nodetool-ai/core-nodes/nodes/subgraph",
+ "cases": [
+  {
+   "id": "nodetool.workflows.subgraph.Subgraph#default",
+   "node": "nodetool.workflows.subgraph.Subgraph",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.workflows.subgraph.Subgraph",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  }
+ ]
+}

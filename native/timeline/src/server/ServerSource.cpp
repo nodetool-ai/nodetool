@@ -32,12 +32,14 @@ struct Args {
 };
 
 Args& args() {
+    // native-rules #14: function-local static mutable Args
     static Args a;
     return a;
 }
 
 // argv keeps a pointer into args().label, so loaded sources need separate storage.
 std::optional<Args>& loadedSource() {
+    // native-rules #14: function-local static mutable optional Args
     static std::optional<Args> source;
     return source;
 }

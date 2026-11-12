@@ -70,8 +70,8 @@ on:
 # "workflow does not contain permissions" rule.
 permissions:
   contents: read
-  # The `docker` leg reads main's buildcache from GHCR. Read-only: it never
-  # pushes an image or writes the cache.
+  # The `docker` leg reads main's buildcache from GHCR, and the Linux legs pull
+  # the CI image. Read-only: only the `ci-image` job below may push.
   packages: read
 
 jobs:
@@ -188,12 +188,12 @@ jobs:
   #   a && npm run b` script the flag landed on the last command and
   #   turbo ran every package on every PR.
   #
-  #   mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so Dawn can
-  #   acquire a WebGPU adapter on GPU-less runners — without it the
-  #   shader-backed base-nodes tests fail with "No WebGPU adapter
-  #   available (Node/Dawn)". Every shard installs it: the apt step costs
-  #   seconds, and a package that moves between shards must not lose its
-  #   driver on the way. Media tests need no ffmpeg: libav runs in process.
+  #   The CI image (docker/ci/) ships mesa-vulkan-drivers, whose lavapipe
+  #   (CPU Vulkan ICD) lets Dawn acquire a WebGPU adapter on GPU-less
+  #   runners — without it the shader-backed base-nodes tests fail with
+  #   "No WebGPU adapter available (Node/Dawn)". Every shard runs in the
+  #   same image, so a package that moves between shards keeps its driver.
+  #   Media tests need no ffmpeg: libav runs in process.
   #
   # `test-packages-nodes`:
   #   CI installs no Blender, so the Blender integration suites
@@ -230,6 +230,15 @@ jobs:
   #   for the same reason as
   #   `typecheck`: this is a gate, not a unit suite.
   #
+  # The Linux image the jobs below run in (docker/ci/). Built here on the
+  # first run after docker/ci/ changes, found in seconds otherwise.
+  ci-image:
+    if: ${{ !inputs.docs-only && inputs.shared }}
+    uses: ./.github/workflows/ci-image.yml
+    permissions:
+      contents: read
+      packages: write
+
   changes:
     name: changes
     if: ${{ !inputs.docs-only && inputs.shared }}
@@ -289,7 +298,6 @@ jobs:
               "check": "typecheck",
               "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run build:example-apps:check && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check && npm run check:node-catalog && npm run backend:smoke",
               "mobile-deps": "true",
-              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "false",
               "fetch-depth": "1",
               "when": "always",
@@ -299,7 +307,6 @@ jobs:
               "check": "test-packages-websocket",
               "command": "npx turbo run test --filter=@nodetool-ai/websocket $TURBO_AFFECTED",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_websocket",
@@ -309,7 +316,6 @@ jobs:
               "check": "test-packages-agents",
               "command": "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_agents",
@@ -319,7 +325,6 @@ jobs:
               "check": "test-packages-nodes",
               "command": "npx turbo run test --filter='./packages/*-nodes' --filter=@nodetool-ai/gpu --filter=@nodetool-ai/workflow-runner --filter=@nodetool-ai/nodes-utils $TURBO_AFFECTED",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers libgl1 libegl1 libsm6 libxi6 libxrender1 libxfixes3 libxkbcommon0 libxxf86vm1",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_nodes",
@@ -329,7 +334,6 @@ jobs:
               "check": "test-packages-core",
               "command": "npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli-game' --concurrency=2 $TURBO_AFFECTED",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_core",
@@ -339,7 +343,6 @@ jobs:
               "check": "test-packages-game",
               "command": "npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --filter=@nodetool-ai/cli-game --concurrency=1 $TURBO_AFFECTED",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_game",
@@ -349,7 +352,6 @@ jobs:
               "check": "test-web-1",
               "command": "npm test --workspace=web -- --shard=1/3 --cacheDirectory=\"$GITHUB_WORKSPACE/.jest-cache\"",
               "mobile-deps": "false",
-              "extra-apt": "",
               "is-test": "true",
               "fetch-depth": "1",
               "jest-cache": "web-1",
@@ -359,7 +361,6 @@ jobs:
               "check": "test-web-2",
               "command": "npm test --workspace=web -- --shard=2/3 --cacheDirectory=\"$GITHUB_WORKSPACE/.jest-cache\"",
               "mobile-deps": "false",
-              "extra-apt": "",
               "is-test": "true",
               "fetch-depth": "1",
               "jest-cache": "web-2",
@@ -369,7 +370,6 @@ jobs:
               "check": "test-web-3",
               "command": "npm test --workspace=web -- --shard=3/3 --cacheDirectory=\"$GITHUB_WORKSPACE/.jest-cache\"",
               "mobile-deps": "false",
-              "extra-apt": "",
               "is-test": "true",
               "fetch-depth": "1",
               "jest-cache": "web-3",
@@ -379,7 +379,6 @@ jobs:
               "check": "test-web",
               "command": "node scripts/ci-plan.mjs run web --base \"$CI_BASE_SHA\"",
               "mobile-deps": "false",
-              "extra-apt": "",
               "is-test": "true",
               "fetch-depth": "1",
               "when": "web_related",
@@ -389,7 +388,6 @@ jobs:
               "check": "harness-gate",
               "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 1 --timeout 1500 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 1 --timeout 1500 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "false",
               "fetch-depth": "0",
               "when": "always",
@@ -415,9 +413,20 @@ jobs:
   # ~minutes-long package build. Each leg surfaces its own status check.
   static:
     name: ${{ matrix.check }}
-    needs: changes
+    needs: [changes, ci-image]
     if: ${{ needs.changes.result == 'success' }}
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 30
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
@@ -454,7 +463,7 @@ jobs:
 
       - name: Install Chromium for agentic QA checks
         if: matrix.check == 'lint'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Check agentic QA origin restrictions
         if: matrix.check == 'lint'
@@ -470,8 +479,20 @@ jobs:
     name: build
     # `built` needs this job, so skipping it skips every leg that consumes the
     # dist artifact too.
+    needs: ci-image
     if: ${{ !inputs.docs-only && inputs.shared }}
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 30
     steps:
       - name: Checkout code
@@ -569,10 +590,25 @@ jobs:
   # only files under web/src changed, one `test-web` leg runs the tests
   # related to them (`scripts/ci-plan.mjs run web`). Electron and mobile are
   # small suites and run at the end of the `typecheck` leg.
+  #
+  # The Chromium suites keep the browser's sandbox, which needs a privileged
+  # container (see .github/actions/chromium-sandbox), so the whole matrix runs
+  # with `--privileged`.
   built:
     name: ${{ matrix.check }}
-    needs: [changes, build]
+    needs: [changes, build, ci-image]
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001 --privileged
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 45
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
@@ -593,38 +629,16 @@ jobs:
       - name: Set up Node, install deps
         uses: ./.github/actions/setup-build
         with:
-          extra-apt: ${{ matrix.extra-apt }}
           # The dist comes from the artifact below; don't rebuild it per leg.
           build-packages: "false"
 
       - name: Install Chromium for native 3D and timeline browser tests
         if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'test-packages-nodes' || matrix.check == 'harness-gate'
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
-      # Ubuntu restricts user namespaces for downloaded Chromium binaries.
-      # Allow only Playwright's browser paths so capture keeps its sandbox.
-      # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
       - name: Enable and verify the Chromium sandbox
         if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'test-packages-nodes' || matrix.check == 'harness-gate'
-        run: |
-          sudo tee /etc/apparmor.d/nodetool-playwright > /dev/null <<'PROFILE'
-          abi <abi/4.0>,
-          include <tunables/global>
-
-          profile nodetool-playwright-chromium /@{HOME}/.cache/ms-playwright/chromium-*/chrome-linux*/chrome flags=(unconfined) {
-            userns,
-          }
-
-          profile nodetool-playwright-headless /@{HOME}/.cache/ms-playwright/chromium_headless_shell-*/chrome-headless-shell-linux*/chrome-headless-shell flags=(unconfined) {
-            userns,
-          }
-          PROFILE
-          sudo apparmor_parser -r /etc/apparmor.d/nodetool-playwright
-          node --input-type=module <<'JS'
-          import { chromium } from "playwright";
-          const browser = await chromium.launch({ headless: true, chromiumSandbox: true });
-          await browser.close();
-          JS
+        uses: ./.github/actions/chromium-sandbox
 
       - name: Download package dist
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -915,10 +929,21 @@ jobs:
   # the other.
   integration:
     name: Workflow integration and runner E2E
-    needs: changes
+    needs: [changes, ci-image]
     # Skipped with `changes` for prose-only and marketing-only diffs.
     if: ${{ !inputs.skip-tests && (needs.changes.outputs.integration == 'true' || needs.changes.outputs.workflow-runner-e2e == 'true') }}
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 45
 
     steps:
@@ -926,14 +951,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Node, install deps, build packages
-        # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
-        # Chromium can acquire a WebGPU adapter on GPU-less CI runners. The
-        # workflow-runner browser harness uses it to drive shader-pool tests
-        # (color.brightnessContrast, etc.) against the same module catalog
-        # the server uses on Node/Dawn.
+        # The CI image's mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD)
+        # so headless Chromium can acquire a WebGPU adapter on GPU-less CI
+        # runners. The workflow-runner browser harness uses it to drive
+        # shader-pool tests (color.brightnessContrast, etc.) against the same
+        # module catalog the server uses on Node/Dawn.
         uses: ./.github/actions/setup-build
-        with:
-          extra-apt: mesa-vulkan-drivers
 
       - name: Run shipped-workflow execution tests
         if: ${{ !cancelled() && needs.changes.outputs.integration == 'true' }}
@@ -951,7 +974,7 @@ jobs:
 
       - name: Install Playwright Chromium browser
         if: ${{ !cancelled() && needs.changes.outputs.workflow-runner-e2e == 'true' }}
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
         working-directory: packages/workflow-runner
 
       - name: Type-check workflow-runner browser suite
@@ -1022,7 +1045,7 @@ jobs:
   # — fails the gate.
   quality:
     name: quality
-    needs: [changes, static, build, built, docker, integration, node-catalog]
+    needs: [ci-image, changes, static, build, built, docker, integration, node-catalog]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1035,6 +1058,7 @@ jobs:
           failed=""
           echo "## Quality Gate" >> $GITHUB_STEP_SUMMARY
           for leg in \
+            "ci-image:${{ needs.ci-image.result }}" \
             "changes:${{ needs.changes.result }}" \
             "static:${{ needs.static.result }}" \
             "build:${{ needs.build.result }}" \

@@ -12,7 +12,8 @@ class ResultModel final : public QAbstractListModel {
     Q_OBJECT
 public:
     enum Role { IdRole = Qt::UserRole + 1, ProviderRole, NameRole, DetailRole,
-                ExecutionRole, FavoriteRole, DefaultRole, CurrentRole, AvailableRole, RawRole };
+                ExecutionRole, FavoriteRole, DefaultRole, CurrentRole, AvailableRole, RawRole,
+                KindRole, NeedsDownloadRole, DownloadRole, DownloadHintRole, ExecutionStateRole };
     explicit ResultModel(QObject* parent = nullptr) : QAbstractListModel(parent) {}
     int rowCount(const QModelIndex& parent = {}) const override;
     QVariant data(const QModelIndex& index, int role) const override;
@@ -44,12 +45,37 @@ class Catalog : public QObject {
     Q_PROPERTY(bool needsProviderSetup READ needsProviderSetup NOTIFY changed)
     Q_PROPERTY(bool loading READ loading NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    // Web copy for the loading row, the failed-provider count and the
+    // "Add an API key" row of ModelMenuDialogBase.tsx.
+    Q_PROPERTY(QString loadingText READ loadingText NOTIFY changed)
+    Q_PROPERTY(int failedProviderCount READ failedProviderCount NOTIFY changed)
+    Q_PROPERTY(bool showAddKeyRow READ showAddKeyRow NOTIFY changed)
+    Q_PROPERTY(bool hasDownloads READ hasDownloads NOTIFY changed)
 public:
     using Completion = std::function<void(QJsonValue, QString)>;
     using Query = std::function<void(const QString&, QJsonObject, Completion)>;
+    // A tRPC mutation with a JSON body, such as models.huggingfaceCacheStatus.
+    using Mutation = std::function<void(const QString&, QJsonValue, Completion)>;
+    // Starts the downloads of one picker row. `rowKey` names the row, and each
+    // target is a catalogDownloadTargets entry.
+    struct DownloadHandler {
+        std::function<void(const QString& rowKey, const QVariantList& targets, const QString& modelType)> start;
+        std::function<void(const QString& id)> cancel;
+    };
     explicit Catalog(QObject* parent = nullptr);
     void setQuery(Query query);
     void setIdentity(const QString& identity);
+    // These apply on the next reload. Empty lists leave the catalog unfiltered.
+    void setDefaultContext(const QString& context) { m_defaultContext = context; }
+    void setFilter(const QStringList& allowedProviders, const QStringList& tasks);
+    void setHuggingFaceType(const QString& type) { m_huggingFaceType = type; }
+    void setMutation(Mutation mutation);
+    void setDownloadHandler(DownloadHandler handler);
+    // The procedure that lists recommended downloads, read on the next reload.
+    void setRecommendationProcedure(const QString& procedure);
+    // Download progress by download id, and the rows whose Download was clicked,
+    // shared by every catalog of one host.
+    void setDownloadState(const QVariantMap& downloads, const QStringList& requestedRows);
     QString mode() const { return m_mode; }
     void setMode(const QString& mode);
     QString modelScope() const { return m_scope; }
@@ -73,6 +99,25 @@ public:
     bool loaded() const { return m_loaded; }
     bool needsProviderSetup() const;
     Q_INVOKABLE bool hasAvailable(const QString& id, const QString& provider) const;
+    // An empty provider matches the first model with the id.
+    Q_INVOKABLE QVariantMap modelDetails(const QString& id, const QString& provider) const;
+    Q_INVOKABLE bool providerKeyMissing(const QString& provider) const;
+    // The secret a provider needs, from settings.providerCatalog keys.
+    Q_INVOKABLE QString providerSecret(const QString& provider) const;
+    // missingKeyWarning in web/src/components/properties/shared/missingKeyWarning.ts.
+    Q_INVOKABLE QString missingKeyWarning(const QString& provider) const;
+    Q_INVOKABLE bool providerHasModels(const QString& provider) const;
+    // The field button text for a stored value. See fieldLabel in ModelLabels.h.
+    Q_INVOKABLE QVariantMap fieldLabel(const QString& modelType, const QVariant& value, const QString& provider) const;
+    QString loadingText() const;
+    int failedProviderCount() const { return m_failedProviders; }
+    bool showAddKeyRow() const;
+    bool hasDownloads() const { return !m_recommended.isEmpty(); }
+    // Clears the search and the Favorites or Recent view, as the web menu does
+    // each time it opens. A provider filter with no models resets after loading.
+    Q_INVOKABLE void prepareOpen();
+    Q_INVOKABLE void requestDownload(const QString& id, const QString& provider);
+    Q_INVOKABLE void cancelDownload(const QString& id);
     bool loading() const { return m_loading; }
     QString error() const { return m_error; }
     Q_INVOKABLE void reload();
@@ -88,16 +133,31 @@ private:
     void present();
     void complete(quint64 revision);
     void restoreSelection();
+    void loadPreferences();
+    void loadRecommendations(quint64 revision);
+    void persistList(const QString& name, const QStringList& values) const;
+    QVariantMap downloadPresentation(const QStringList& ids, bool requireStatus) const;
+    void appendRecommendedRows(QVariantList& rows, const QString& query) const;
+    QString accountKey() const;
     QString preferenceKey() const;
     static QString key(const QString& id, const QString& provider);
     Query m_query;
+    Mutation m_mutation;
+    DownloadHandler m_downloadHandler;
     ResultModel m_results;
     QString m_identity, m_mode = QStringLiteral("video"), m_scope = QStringLiteral("local");
     QString m_search, m_group = QStringLiteral("All"), m_error;
     QStringList m_providers, m_favorites, m_recent;
-    QStringList m_rankedKeys;
+    QStringList m_rankedKeys, m_allowedProviders, m_tasks;
+    QString m_huggingFaceType = QStringLiteral("hf.model");
     QHash<QString, QVariantMap> m_providerMeta;
+    QString m_recommendationProcedure;
+    QVariantList m_recommended;
+    QHash<QString, bool> m_cacheStatus;
+    QVariantMap m_downloads;
+    QStringList m_requestedRows;
     QString m_default;
+    QString m_defaultContext;
     QVariantList m_models;
     QVariantMap m_selected;
     bool m_loading = false;
@@ -105,5 +165,9 @@ private:
     bool m_serverDefault = false;
     quint64 m_revision = 0;
     int m_pending = 0;
+    int m_totalProviders = 0;
+    int m_loadedProviders = 0;
+    int m_failedProviders = 0;
+    bool m_resetEmptyGroup = false;
 };
 }

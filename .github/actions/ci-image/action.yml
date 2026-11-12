@@ -1,0 +1,109 @@
+name: CI image
+description: >-
+  Resolve a CI image for the current contents of its directory and make sure
+  it exists in GHCR. The tag is a hash of the directory, so a commit that
+  changes the Dockerfile gets a new image and every other commit reuses the
+  published one. On a miss (the first run after the directory changed) this
+  builds and pushes it. The calling job must check out the directory first and
+  grant `packages: write`.
+
+inputs:
+  token:
+    description: "Token with `packages: write` on this repository's GHCR namespace."
+    required: true
+  image:
+    description: "Which image: `ci` (docker/ci/, the Node jobs) or `ci-native` (docker/ci-native/, the native jobs)."
+    default: ci
+
+outputs:
+  image:
+    description: The image reference pinned by digest, for a job's `container.image`.
+    value: ${{ steps.pin.outputs.image }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve the image tag
+      id: ref
+      shell: bash
+      env:
+        NAME: ${{ inputs.image }}
+        # hashFiles needs a literal pattern, so each image has its own.
+        CONTENT_HASH: ${{ inputs.image == 'ci-native' && hashFiles('docker/ci-native/**') || inputs.image == 'ci' && hashFiles('docker/ci/**') || '' }}
+      run: |
+        if [[ "$NAME" != ci && "$NAME" != ci-native ]]; then
+          echo "::error::Unknown CI image '$NAME'."
+          exit 1
+        fi
+        if [ -z "$CONTENT_HASH" ]; then
+          echo "::error::docker/$NAME/ is not checked out, so the image tag cannot be computed."
+          exit 1
+        fi
+        image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/nodetool-$NAME:${CONTENT_HASH:0:16}"
+        echo "image=$image" >> "$GITHUB_OUTPUT"
+        echo "context=docker/$NAME" >> "$GITHUB_OUTPUT"
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ inputs.token }}
+
+    - name: Check whether the image is published
+      id: exists
+      shell: bash
+      env:
+        IMAGE: ${{ steps.ref.outputs.image }}
+      run: |
+        if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
+          echo "found=true" >> "$GITHUB_OUTPUT"
+          echo "Already published."
+        else
+          echo "found=false" >> "$GITHUB_OUTPUT"
+          echo "Not published yet: building it."
+        fi
+
+    # A fork's token cannot push packages. A maintainer publishes the image by
+    # running the CI image workflow on a branch with the same directory contents.
+    - name: Refuse to build from a fork
+      if: steps.exists.outputs.found != 'true' && github.event.pull_request.head.repo.full_name != '' && github.event.pull_request.head.repo.full_name != github.repository
+      shell: bash
+      env:
+        NAME: ${{ inputs.image }}
+      run: |
+        echo "::error::This pull request changes docker/$NAME/ from a fork, which cannot publish the CI image. A maintainer must run the CI image workflow for this content first."
+        exit 1
+
+    - name: Set up Docker Buildx
+      if: steps.exists.outputs.found != 'true'
+      uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+    # The tag names the content, so it is never moved once pushed. Two runs that
+    # miss at once build the same Dockerfile and push equivalent images.
+    - name: Build and push the image
+      if: steps.exists.outputs.found != 'true'
+      uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+      with:
+        context: ${{ steps.ref.outputs.context }}
+        platforms: linux/amd64
+        push: true
+        tags: ${{ steps.ref.outputs.image }}
+        provenance: false
+        sbom: false
+
+    # Every job of the run pulls the exact image resolved here, even if the tag
+    # were pushed again while the run is in flight.
+    - name: Pin the image by digest
+      id: pin
+      shell: bash
+      env:
+        IMAGE: ${{ steps.ref.outputs.image }}
+      run: |
+        digest=$(docker buildx imagetools inspect "$IMAGE" --format '{{json .Manifest}}' | jq -r .digest)
+        if [[ "$digest" != sha256:* ]]; then
+          echo "::error::Could not read the digest of $IMAGE."
+          exit 1
+        fi
+        echo "image=$IMAGE@$digest" >> "$GITHUB_OUTPUT"
+        echo "CI image: $IMAGE@$digest"

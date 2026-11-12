@@ -1,0 +1,19 @@
+{
+ "module": "@nodetool-ai/integration-nodes/nodes/kie-dynamic",
+ "cases": [
+  {
+   "id": "kie.dynamic_schema.KieAI#default",
+   "node": "kie.dynamic_schema.KieAI",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "kie.dynamic_schema.KieAI",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  }
+ ]
+}

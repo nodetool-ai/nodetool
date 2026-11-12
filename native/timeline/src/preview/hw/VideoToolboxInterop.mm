@@ -9,8 +9,11 @@
 namespace nt::hw {
 namespace {
 
+// native-rules #14: global mutable state
 std::atomic<int> g_liveFrameRefs{0};
+// native-rules #14: global mutable state
 std::atomic<int> g_releasedInFlight{0};
+// native-rules #14: global mutable state
 std::atomic<long long> g_completedFrame{-1};
 
 }  // namespace
@@ -59,6 +62,7 @@ std::shared_ptr<VideoToolboxInterop> VideoToolboxInterop::create(QRhi* rhi) {
     if (CVMetalTextureCacheCreate(kCFAllocatorDefault, nullptr, device, nullptr, &cache) != kCVReturnSuccess) {
         return nullptr;
     }
+    // native-rules #2: naked new inside shared_ptr, use make_shared
     std::shared_ptr<VideoToolboxInterop> interop(new VideoToolboxInterop());
     interop->m_rhi = rhi;
     interop->m_cache = cache;
@@ -86,6 +90,7 @@ std::shared_ptr<FrameRef> VideoToolboxInterop::wrap(void* cvPixelBuffer, std::st
         return nullptr;
     }
     ++g_liveFrameRefs;  // the destructor decrements, also on the failure paths below
+    // native-rules #2: naked new inside shared_ptr, use make_shared
     std::shared_ptr<FrameRef> ref(new FrameRef());
     ref->m_interop = shared_from_this();
     ref->m_pixelBuffer = CVPixelBufferRetain(pb);

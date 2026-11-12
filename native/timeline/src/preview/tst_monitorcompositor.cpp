@@ -129,6 +129,8 @@ public:
         window.setRenderTarget(QQuickRenderTarget::fromRhiRenderTarget(target.get()));
     }
     ~Monitor() {
+        // native-rules #2: naked delete
+        // native-rules #3: object has a Qt parent (contentItem) and is also deleted by hand
         delete item;
         window.setRenderTarget({});
     }

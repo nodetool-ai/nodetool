@@ -34,7 +34,8 @@ for (const { file, wf } of routines) {
 
     const main = wf.jobs[name];
     assert.ok(main, `no job named ${name}`);
-    assert.equal(main.needs, "preflight");
+    // quality-assurance also waits for the CI image its test run needs.
+    assert.ok([main.needs].flat().includes("preflight"), "the agent job does not need preflight");
     assert.match(main.if, /workflow_dispatch/);
     assert.match(main.if, /needs\.preflight\.outputs\.skip != 'true'/);
 

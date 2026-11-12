@@ -1,13 +1,13 @@
 ---
 name: sandbox-expr
-description: Evaluate a math formula without eval in a Code node or CodeAct action, with expr-eval running on the host
+description: Evaluate a math formula without eval in a Code node or CodeAct action, with expr-eval-fork running on the host
 ---
 
 # Formulas in the sandbox
 
 Specifier: `@nodetool-ai/sandbox-expr`. Import it at the top of the body.
 
-The published expr-eval bundle trips the guest scanner, so this pack is a
+The published expr-eval-fork bundle trips the guest scanner, so this pack is a
 **host module**.
 
 ## evaluate — formula plus variables

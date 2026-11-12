@@ -85,6 +85,14 @@ const ALLOWED: ReadonlyArray<{ file: string; why: string }> = [
   },
   // The seam itself.
   { file: "packages/runtime/src/context.ts", why: "the seam's dispatch" },
+  {
+    file: "packages/runtime/src/node-context/provider-dispatch.ts",
+    why: "the seam's dispatch, shared by ProcessingContext and the native guest context"
+  },
+  {
+    file: "packages/runtime/src/node-context/generation.ts",
+    why: "the seam's dispatch, shared by ProcessingContext and the native guest context"
+  },
   // Wrapped in `runGenerationWith` (design § 8, S5/S6).
   {
     file: "packages/websocket/src/session/chat-turn.ts",

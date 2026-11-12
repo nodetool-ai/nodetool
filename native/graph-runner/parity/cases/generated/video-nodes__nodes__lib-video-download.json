@@ -1,0 +1,90 @@
+{
+ "module": "@nodetool-ai/video-nodes/nodes/lib-video-download",
+ "cases": [
+  {
+   "id": "lib.video.download.YtDlpDownload#default",
+   "node": "lib.video.download.YtDlpDownload",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.video.download.YtDlpDownload",
+      "properties": {}
+     },
+     {
+      "id": "out_video",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "video"
+      }
+     },
+     {
+      "id": "out_audio",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "audio"
+      }
+     },
+     {
+      "id": "out_metadata",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "metadata"
+      }
+     },
+     {
+      "id": "out_subtitles",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "subtitles"
+      }
+     },
+     {
+      "id": "out_thumbnail",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "thumbnail"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_video",
+      "source": "n",
+      "sourceHandle": "video",
+      "target": "out_video",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_audio",
+      "source": "n",
+      "sourceHandle": "audio",
+      "target": "out_audio",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_metadata",
+      "source": "n",
+      "sourceHandle": "metadata",
+      "target": "out_metadata",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_subtitles",
+      "source": "n",
+      "sourceHandle": "subtitles",
+      "target": "out_subtitles",
+      "targetHandle": "value"
+     },
+     {
+      "id": "e_out_thumbnail",
+      "source": "n",
+      "sourceHandle": "thumbnail",
+      "target": "out_thumbnail",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  }
+ ]
+}

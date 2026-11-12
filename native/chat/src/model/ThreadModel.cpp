@@ -57,6 +57,16 @@ QJsonObject ThreadModel::get(const QString &id) const {
   }
   return {};
 }
+void ThreadModel::remove(const QString &id) {
+    for (int i = 0; i < m_rows.size(); ++i) {
+        if (m_rows[i]["id"] == id) {
+            beginRemoveRows({}, i, i);
+            m_rows.removeAt(i);
+            endRemoveRows();
+            return;
+        }
+    }
+}
 void ThreadModel::clear() {
   beginResetModel();
   m_rows.clear();

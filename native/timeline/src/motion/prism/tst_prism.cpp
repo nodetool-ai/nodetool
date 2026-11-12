@@ -21,6 +21,7 @@ private slots:
         nt::FfmpegDecoder decoder(path.toStdString(), 0.0, nt::DecodeMode::Software);
         QElapsedTimer timer;
         timer.start();
+        // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
         std::shared_ptr<nt::DecodedFrame> frame;
         while (timer.elapsed() < 4000) {
             frame = decoder.frameAt(0.0);
@@ -34,6 +35,7 @@ private slots:
         QCOMPARE(frame->height, reference.height());
         double squaredError = 0;
         for (int y = 0; y < reference.height(); ++y) {
+            // native-rules #5: raw AVFrame* read from DecodedFrame across a module boundary
             const auto* actual = frame->frame->data[0] + y * frame->frame->linesize[0];
             const auto* expected = reference.constScanLine(y);
             for (int x = 0; x < reference.width(); ++x) {
@@ -43,6 +45,7 @@ private slots:
                         value = actual[x * 4 + channel];
                     } else {
                         QCOMPARE(frame->layout, nt::PlaneLayout::I420);
+                        // native-rules #5: raw AVFrame* read from DecodedFrame across a module boundary
                         const auto* decoded = frame->frame;
                         const auto rgb = nt::yuvToRgb(frame->matrix, frame->range,
                             decoded->data[0][y * decoded->linesize[0] + x],

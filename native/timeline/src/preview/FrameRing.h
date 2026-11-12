@@ -55,8 +55,10 @@ bool wantsMoreFrames(int queued, double newestPtsSec, double targetSec);
 // all of them as one snapshot. `Frame` must expose `double ptsSec` and
 // `long long generation`.
 template <typename Frame>
+// native-rules #9: shared by the worker and the render thread, no thread affinity comment
 class FrameRing {
 public:
+    // native-rules #1: shared_ptr without a comment on why unique ownership is impossible
     using Ptr = std::shared_ptr<Frame>;
 
     // What the consumer sees in one read.

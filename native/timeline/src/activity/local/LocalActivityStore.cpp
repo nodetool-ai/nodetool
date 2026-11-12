@@ -28,6 +28,7 @@ QString localScope(const QJsonObject& document) {
 }
 LocalActivityStore::LocalActivityStore(QString root, QObject* parent) : QObject(parent), m_root(std::move(root)) {}
 LocalActivityStore& LocalActivityStore::instance() {
+    // native-rules #14: static singleton pointer
     static auto* store = [] {
         auto root = qEnvironmentVariable("NODETOOL_TIMELINE_ACTIVITY_DIR");
         if (root.isEmpty()) {

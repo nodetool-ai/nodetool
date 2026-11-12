@@ -143,7 +143,9 @@ bool SceneEditController::begin(const QStringList& clipIds) {
     emit progressChanged();
     emit resultsChanged();
     m_poll.start();
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     auto shared = std::make_shared<std::vector<Job>>(std::move(jobs));
+    // native-rules #12: lambda captures raw this and runs on a pool thread
     m_pool.start([this, shared, state = m_run, generation]() { run(std::move(*shared), state, generation); });
     return true;
 }
@@ -180,6 +182,7 @@ void SceneEditController::run(std::vector<Job> jobs, std::shared_ptr<Run> state,
         }
         scans.push_back(std::move(job.scan));
     }
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     auto shared = std::make_shared<std::vector<ClipScan>>(std::move(scans));
     QMetaObject::invokeMethod(this, [this, shared, generation, cancelled]() { finish(std::move(*shared), generation, cancelled); },
         Qt::QueuedConnection);

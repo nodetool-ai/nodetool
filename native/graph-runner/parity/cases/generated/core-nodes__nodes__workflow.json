@@ -1,0 +1,19 @@
+{
+ "module": "@nodetool-ai/core-nodes/nodes/workflow",
+ "cases": [
+  {
+   "id": "nodetool.workflows.workflow_node.Workflow#default",
+   "node": "nodetool.workflows.workflow_node.Workflow",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "nodetool.workflows.workflow_node.Workflow",
+      "properties": {}
+     }
+    ],
+    "edges": []
+   }
+  }
+ ]
+}

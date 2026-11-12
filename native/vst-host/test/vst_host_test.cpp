@@ -7,6 +7,7 @@
 
 using namespace vsthost;
 
+// native-rules #14: file-scope mutable failure counter
 static int g_fail = 0;
 static void check(bool ok, const char* name, const juce::String& detail = {}) {
     std::printf("  [%s] %s%s\n", ok ? "PASS" : "FAIL", name, detail.isEmpty() ? "" : (" -> " + detail).toRawUTF8());

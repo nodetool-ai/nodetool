@@ -1,0 +1,12 @@
+{
+  "nodes": [
+    { "id": "n", "type": "nodetool.input.IntegerInput", "properties": { "name": "n", "value": 1, "min": 0, "max": 100 } },
+    { "id": "label", "type": "nodetool.input.StringInput", "properties": { "name": "label", "value": "default" } },
+    { "id": "out_n", "type": "nodetool.output.Output", "properties": { "name": "n" } },
+    { "id": "out_label", "type": "nodetool.output.Output", "properties": { "name": "label" } }
+  ],
+  "edges": [
+    { "id": "e1", "source": "n", "sourceHandle": "output", "target": "out_n", "targetHandle": "value" },
+    { "id": "e2", "source": "label", "sourceHandle": "output", "target": "out_label", "targetHandle": "value" }
+  ]
+}

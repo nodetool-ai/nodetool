@@ -25,6 +25,7 @@ RemixController::RemixController(QObject* parent)
     qRegisterMetaType<RemixRelay::Task>("RemixRelay::Task");
     // Workers hand their results to the GUI thread through a relay they own a share of. The relay outlives this
     // controller while a worker still runs, and its connection to this object ends when this object does.
+    // native-rules #2: naked new inside shared_ptr, make_shared cannot take the deleteLater deleter
     m_relay = std::shared_ptr<RemixRelay>(new RemixRelay, [](RemixRelay* relay) { relay->deleteLater(); });
     connect(m_relay.get(), &RemixRelay::post, this, [](const RemixRelay::Task& task) { task(); });
     connect(m_previewClock, &PlaybackClock::playingChanged, this, &RemixController::listeningChanged);

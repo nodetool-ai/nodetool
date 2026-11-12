@@ -22,6 +22,7 @@ QJsonObject isolatedClipDocument(const QJsonObject& snapshot, const QString& cli
 // Match: grades the selected shot toward a reference frame or shot. The frames come from the
 // editor's FrameCapture, the solving runs on a worker thread, and the result is one patchClip
 // edit, so one undo entry, of ordinary effect values.
+// native-rules #9: used across threads (QThreadPool worker, atomic cancel flag) and declares no thread affinity at its top
 class ColorMatchController : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -91,6 +92,7 @@ private:
     double m_referenceTimeMs = -1;
     double m_differenceBefore = 0;
     double m_differenceAfter = 0;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<std::atomic_bool> m_cancel;
     Step m_step = Step::Idle;
     int m_requestId = 0;

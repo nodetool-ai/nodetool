@@ -87,6 +87,7 @@ std::pair<Frame,Frame> pairedFrames(const QImage &a, const QImage &b) {
 }
 // A Curves pass carries the table the renderer samples, built once per plan.
 struct ColourPass : Pass {
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<const std::array<float,1024>> curveTable;
 };
 std::vector<ColourPass> colourPlan(const QJsonArray &effects, const QJsonArray &trackEffects) {

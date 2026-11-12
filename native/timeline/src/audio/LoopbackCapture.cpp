@@ -30,6 +30,7 @@ bool isLoopbackName(const std::string& name) {
 
 AudioDeviceList listAudioDevices(std::string* error) {
     AudioDeviceList list;
+    // native-rules #6: ma_context is freed by hand with ma_context_uninit, no RAII wrapper
     ma_context context;
     if (ma_context_init(nullptr, 0, nullptr, &context) != MA_SUCCESS) {
         if (error) *error = "cannot create the audio context";
@@ -55,6 +56,7 @@ AudioDeviceList listAudioDevices(std::string* error) {
 }
 
 struct LoopbackCapture::Impl {
+    // native-rules #6: ma_context and ma_device are freed by hand with uninit calls, no RAII wrapper
     ma_context context{};
     ma_device device{};
     bool contextReady = false;

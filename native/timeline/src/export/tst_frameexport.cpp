@@ -166,6 +166,7 @@ private slots:
     }
     void cancellingDoesNotWaitForABlockedWorker() {
         // A Source capture can sit on another download's cache lock, which does not see an interruption.
+        // native-rules #1: std::shared_ptr shared with a worker, no justification comment
         auto gate = std::make_shared<QSemaphore>();
         auto finished = std::make_shared<std::atomic_bool>(false);
         {

@@ -298,6 +298,11 @@ exclude:
   - plans/open-source-higgsfield-implementation.md
   - plans/provider-webhooks.md
   - plans/color-precision/
+  # Native runner and editor plans. They cite native/ and web/ source, which
+  # no built page can resolve, and only each other link to them.
+  - plans/graph-runner-*
+  - plans/native-node-editor.md
+  - native-node-editor-visual-comparison.md
   - superpowers/
   # Marketing-site audits. They cite repository source under marketing/ and
   # docs excluded above, which no built page can resolve, and nothing links

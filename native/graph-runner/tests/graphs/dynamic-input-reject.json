@@ -1,0 +1,32 @@
+{
+  "nodes": [
+    {
+      "id": "typed",
+      "type": "nodetool.constant.Integer",
+      "properties": {
+        "value": "wrong"
+      },
+      "dynamic_inputs": {
+        "value": {
+          "type": "int"
+        }
+      }
+    },
+    {
+      "id": "out",
+      "type": "nodetool.output.Output",
+      "properties": {
+        "name": "result"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "result",
+      "source": "typed",
+      "sourceHandle": "output",
+      "target": "out",
+      "targetHandle": "value"
+    }
+  ]
+}

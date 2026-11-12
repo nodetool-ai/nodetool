@@ -1,0 +1,1801 @@
+{
+ "metadata": [
+  {
+   "title": "Agent",
+   "description": "Chat with an LLM: send a prompt (plus optional images or audio), call tools, and stream back the response.\n    agent, llm, chat, text-generation, tools, streaming",
+   "namespace": "nodetool.agents",
+   "node_type": "nodetool.agents.Agent",
+   "layout": "default",
+   "body": "content_card",
+   "properties": [
+    {
+     "name": "model",
+     "type": {
+      "type": "language_model",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Model",
+     "description": "Model to use for execution",
+     "default": {
+      "type": "language_model",
+      "provider": "empty",
+      "id": "",
+      "name": "",
+      "path": null,
+      "supported_tasks": []
+     }
+    },
+    {
+     "name": "system",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "System",
+     "description": "Instructions that define the agent's persona, role, tone, and global behaviour. Sent to the model as the system message at the start of every run, before any history or user prompt. Use it for things that should always hold (e.g. \"You are a senior Python reviewer. Reply in Markdown.\"). Leave the prompt itself for the per\u2011run task.",
+     "default": "You are a friendly assistant"
+    },
+    {
+     "name": "prompt",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Prompt",
+     "description": "The user message for this run \u2014 the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message.",
+     "default": ""
+    },
+    {
+     "name": "tools",
+     "type": {
+      "type": "list",
+      "type_args": [
+       {
+        "type": "tool_name",
+        "type_args": []
+       }
+      ]
+     },
+     "required": false,
+     "title": "Tools",
+     "description": "Tools to enable for the agent. Select workspace tools (read_file, write_file, list_directory) to enable file operations.",
+     "default": []
+    },
+    {
+     "name": "image",
+     "type": {
+      "type": "list",
+      "type_args": [
+       {
+        "type": "image",
+        "type_args": []
+       }
+      ]
+     },
+     "required": false,
+     "title": "Images",
+     "description": "Images to attach to the prompt. Wire a list[image] source to send several at once, or a single Image (auto-wrapped into a one-item list). Each image becomes a separate block in the user message sent to the provider.",
+     "default": []
+    },
+    {
+     "name": "audio",
+     "type": {
+      "type": "list",
+      "type_args": [
+       {
+        "type": "audio",
+        "type_args": []
+       }
+      ]
+     },
+     "required": false,
+     "title": "Audio",
+     "description": "Audio clips to attach to the prompt. Wire a list[audio] source to send several at once, or a single Audio (auto-wrapped into a one-item list). Each clip becomes a separate block in the user message sent to the provider.",
+     "default": []
+    },
+    {
+     "name": "history",
+     "type": {
+      "type": "list",
+      "type_args": [
+       {
+        "type": "message",
+        "type_args": []
+       }
+      ]
+     },
+     "required": false,
+     "title": "Messages",
+     "description": "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad\u2011hoc context \u2014 for example, few\u2011shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt.",
+     "default": []
+    },
+    {
+     "name": "thread_id",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Thread ID",
+     "description": "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it \u2014 giving the agent long\u2011term memory across runs and across nodes that share the same ID. Leave empty for a stateless one\u2011shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation.",
+     "default": ""
+    },
+    {
+     "name": "max_tokens",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Max Tokens",
+     "description": "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192\u201316384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
+     "min": 1,
+     "max": 100000,
+     "default": 16384
+    },
+    {
+     "name": "max_turns",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Max Turns",
+     "description": "Upper bound on agentic turns \u2014 one turn is a model call plus any tool execution it triggers. Caps both the AgentNode tool-loop iteration count and the provider's internal multi-turn budget (e.g. Claude Agent SDK). Raise for long sandbox sessions; lower to fail fast on runaway loops.",
+     "min": 1,
+     "max": 1000,
+     "default": 100
+    },
+    {
+     "name": "cost_cap_usd",
+     "type": {
+      "type": "float",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Cost Cap (USD)",
+     "description": "Ceiling on provider spend for this run, in US dollars. A turn whose worst case (this prompt plus Max Tokens of output) would cross it is refused before the call is made, and the node fails with an error naming the cap \u2014 so the ceiling holds instead of being noticed after the money is gone. Zero or less means no cap, which is what a local-only install wants. Matches the install-wide default in NODETOOL_AGENT_TURN_COST_CAP_USD. Ignored when the node runs inside an agent run that already has a budget (a chat turn calling run_node): it reserves against that run's cap instead of opening a second allowance.",
+     "min": 0,
+     "max": 1000,
+     "default": 5
+    },
+    {
+     "name": "timeout_s",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Timeout (s)",
+     "description": "Wall-clock bound on this run, in seconds (default 1200, i.e. 20 minutes). Checked before every model turn, so a run stalled on a slow provider or a tool loop ends with an error naming the timeout instead of hanging until the workflow is cancelled. Ignored when the node runs inside an agent run that already has a budget \u2014 that run's deadline applies.",
+     "min": 1,
+     "max": 86400,
+     "default": 1200
+    }
+   ],
+   "outputs": [
+    {
+     "name": "text",
+     "type": {
+      "type": "str",
+      "type_args": []
+     }
+    },
+    {
+     "name": "chunk",
+     "type": {
+      "type": "chunk",
+      "type_args": []
+     }
+    },
+    {
+     "name": "thinking",
+     "type": {
+      "type": "chunk",
+      "type_args": []
+     }
+    },
+    {
+     "name": "audio",
+     "type": {
+      "type": "audio",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [
+    {
+     "id": "gpt-oss:20b",
+     "type": "llama_model",
+     "name": "GPT - OSS",
+     "repo_id": "gpt-oss:20b",
+     "description": "OpenAI's open-weight model excels at multi-tool routing and reasoning.",
+     "size_on_disk": 15032385536
+    },
+    {
+     "id": "qwen3-vl:4b",
+     "type": "llama_model",
+     "name": "Qwen3 VL - 4B",
+     "repo_id": "qwen3-vl:4b",
+     "description": "The most powerful vision-language model in the Qwen model family to date.",
+     "size_on_disk": 3543348019
+    },
+    {
+     "id": "qwen3-vl:8b",
+     "type": "llama_model",
+     "name": "Qwen3 VL - 8B",
+     "repo_id": "qwen3-vl:8b",
+     "description": "The most powerful vision-language model in the Qwen model family to date.",
+     "size_on_disk": 6549825126
+    },
+    {
+     "id": "gemma3:1b",
+     "type": "llama_model",
+     "name": "Gemma3 - 1B",
+     "repo_id": "gemma3:1b",
+     "description": "Gemma3 1B is a small model that can process text and images.",
+     "size_on_disk": 875099586
+    },
+    {
+     "id": "gemma3:4b",
+     "type": "llama_model",
+     "name": "Gemma3 - 4B",
+     "repo_id": "gemma3:4b",
+     "description": "Gemma3 4B is a small model that can process text and images.",
+     "size_on_disk": 3543348019
+    },
+    {
+     "id": "llama3.2:3b",
+     "type": "llama_model",
+     "name": "Llama 3.2 - 3B",
+     "repo_id": "llama3.2:3b",
+     "description": "Compact Llama 3.2 variant keeps latency low while following tool schemas accurately.",
+     "size_on_disk": 2040109465
+    },
+    {
+     "id": "qwen3:4b",
+     "type": "llama_model",
+     "name": "Qwen3 - 4B",
+     "repo_id": "qwen3:4b",
+     "description": "Qwen3 4B ships strong function-calling primitives and dependable multi-turn tool use.",
+     "size_on_disk": 2684354560
+    },
+    {
+     "id": "qwen3:8b",
+     "type": "llama_model",
+     "name": "Qwen3 - 8B",
+     "repo_id": "qwen3:8b",
+     "description": "Qwen3 8B ships strong function-calling primitives and dependable multi-turn tool use.",
+     "size_on_disk": 5583457484
+    },
+    {
+     "id": "deepseek-r1:8b",
+     "type": "llama_model",
+     "name": "Deepseek R1 - 8B",
+     "repo_id": "deepseek-r1:8b",
+     "description": "DeepSeek R1 8B balances reasoning with precise function calls for iterative agents.",
+     "size_on_disk": 5583457484
+    },
+    {
+     "id": "ggml-org/gpt-oss-20b-GGUF:gpt-oss-20b-mxfp4.gguf",
+     "type": "llama_cpp_model",
+     "name": "GPT-OSS 20B (GGUF)",
+     "repo_id": "ggml-org/gpt-oss-20b-GGUF",
+     "path": "gpt-oss-20b-mxfp4.gguf",
+     "description": "OpenAI's open-weight model in efficient MXFP4 format for llama.cpp.",
+     "size_on_disk": 9191230013,
+     "tags": [
+      "gguf",
+      "base_model:openai/gpt-oss-20b",
+      "base_model:quantized:openai/gpt-oss-20b",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 156909,
+     "likes": 135
+    },
+    {
+     "id": "ggml-org/gemma-3-4b-it-GGUF:gemma-3-4b-it-Q4_K_M.gguf",
+     "type": "llama_cpp_model",
+     "name": "Gemma 3 4B IT (GGUF)",
+     "repo_id": "ggml-org/gemma-3-4b-it-GGUF",
+     "path": "gemma-3-4b-it-Q4_K_M.gguf",
+     "size_on_disk": 3113851289,
+     "pipeline_tag": "image-text-to-text",
+     "tags": [
+      "gguf",
+      "image-text-to-text",
+      "arxiv:1905.07830",
+      "arxiv:1905.10044",
+      "arxiv:1911.11641",
+      "arxiv:1904.09728",
+      "arxiv:1705.03551",
+      "arxiv:1911.01547",
+      "arxiv:1907.10641",
+      "arxiv:1903.00161",
+      "arxiv:2009.03300",
+      "arxiv:2304.06364",
+      "arxiv:2103.03874",
+      "arxiv:2110.14168",
+      "arxiv:2311.12022",
+      "arxiv:2108.07732",
+      "arxiv:2107.03374",
+      "arxiv:2210.03057",
+      "arxiv:2106.03193",
+      "arxiv:1910.11856",
+      "arxiv:2502.12404",
+      "arxiv:2502.21228",
+      "arxiv:2404.16816",
+      "arxiv:2104.12756",
+      "arxiv:2311.16502",
+      "arxiv:2203.10244",
+      "arxiv:2404.12390",
+      "arxiv:1810.12440",
+      "arxiv:1908.02660",
+      "arxiv:2312.11805",
+      "base_model:google/gemma-3-4b-it",
+      "base_model:quantized:google/gemma-3-4b-it",
+      "license:gemma",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 25779,
+     "likes": 48,
+     "description": "Google's Gemma 3 4B in Q4_K_M quantization for efficient inference."
+    },
+    {
+     "id": "ggml-org/gemma-3-12b-it-GGUF:gemma-3-12b-it-Q4_K_M.gguf",
+     "type": "llama_cpp_model",
+     "name": "Gemma 3 12B IT (GGUF)",
+     "repo_id": "ggml-org/gemma-3-12b-it-GGUF",
+     "path": "gemma-3-12b-it-Q4_K_M.gguf",
+     "description": "Google's Gemma 3 12B in Q4_K_M quantization with strong reasoning.",
+     "size_on_disk": 7838315315,
+     "pipeline_tag": "image-text-to-text",
+     "tags": [
+      "gguf",
+      "image-text-to-text",
+      "arxiv:1905.07830",
+      "arxiv:1905.10044",
+      "arxiv:1911.11641",
+      "arxiv:1904.09728",
+      "arxiv:1705.03551",
+      "arxiv:1911.01547",
+      "arxiv:1907.10641",
+      "arxiv:1903.00161",
+      "arxiv:2009.03300",
+      "arxiv:2304.06364",
+      "arxiv:2103.03874",
+      "arxiv:2110.14168",
+      "arxiv:2311.12022",
+      "arxiv:2108.07732",
+      "arxiv:2107.03374",
+      "arxiv:2210.03057",
+      "arxiv:2106.03193",
+      "arxiv:1910.11856",
+      "arxiv:2502.12404",
+      "arxiv:2502.21228",
+      "arxiv:2404.16816",
+      "arxiv:2104.12756",
+      "arxiv:2311.16502",
+      "arxiv:2203.10244",
+      "arxiv:2404.12390",
+      "arxiv:1810.12440",
+      "arxiv:1908.02660",
+      "arxiv:2312.11805",
+      "base_model:google/gemma-3-12b-it",
+      "base_model:quantized:google/gemma-3-12b-it",
+      "license:gemma",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 214667,
+     "likes": 30
+    },
+    {
+     "id": "ggml-org/Kimi-VL-A3B-Thinking-2506-GGUF:Kimi-VL-A3B-Thinking-2506-Q4_K_M.gguf",
+     "type": "llama_cpp_model",
+     "name": "Kimi VL A3B Thinking (GGUF)",
+     "repo_id": "ggml-org/Kimi-VL-A3B-Thinking-2506-GGUF",
+     "path": "Kimi-VL-A3B-Thinking-2506-Q4_K_M.gguf",
+     "description": "Moonshot AI's vision-language model with enhanced reasoning capabilities.",
+     "size_on_disk": 2362232012,
+     "tags": [
+      "gguf",
+      "base_model:moonshotai/Kimi-VL-A3B-Thinking-2506",
+      "base_model:quantized:moonshotai/Kimi-VL-A3B-Thinking-2506",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 3039,
+     "likes": 29
+    },
+    {
+     "id": "ggml-org/Qwen3-Coder-30B-A3B-Instruct-Q8_0-GGUF:qwen3-coder-30b-a3b-instruct-q8_0.gguf",
+     "type": "llama_cpp_model",
+     "name": "Qwen3 Coder 30B A3B (GGUF)",
+     "repo_id": "ggml-org/Qwen3-Coder-30B-A3B-Instruct-Q8_0-GGUF",
+     "path": "qwen3-coder-30b-a3b-instruct-q8_0.gguf",
+     "description": "MoE coding model with 3B active params, excellent for code generation.",
+     "size_on_disk": 3865470566,
+     "pipeline_tag": "text-generation",
+     "tags": [
+      "transformers",
+      "gguf",
+      "llama-cpp",
+      "gguf-my-repo",
+      "text-generation",
+      "base_model:Qwen/Qwen3-Coder-30B-A3B-Instruct",
+      "base_model:quantized:Qwen/Qwen3-Coder-30B-A3B-Instruct",
+      "license:apache-2.0",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 80721,
+     "likes": 7
+    },
+    {
+     "id": "ggml-org/Qwen3-0.6B-GGUF:Qwen3-0.6B-Q4_0.gguf",
+     "type": "llama_cpp_model",
+     "name": "Qwen3 0.6B (GGUF)",
+     "repo_id": "ggml-org/Qwen3-0.6B-GGUF",
+     "path": "Qwen3-0.6B-Q4_0.gguf",
+     "description": "Ultra-lightweight Qwen3 for edge devices and fast inference.",
+     "size_on_disk": 429496729,
+     "tags": [
+      "gguf",
+      "base_model:Qwen/Qwen3-0.6B",
+      "base_model:quantized:Qwen/Qwen3-0.6B",
+      "license:apache-2.0",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 44304,
+     "likes": 13
+    },
+    {
+     "id": "ggml-org/gemma-3-270m-GGUF:gemma-3-270m-Q8_0.gguf",
+     "type": "llama_cpp_model",
+     "name": "Gemma 3 270M (GGUF)",
+     "repo_id": "ggml-org/gemma-3-270m-GGUF",
+     "path": "gemma-3-270m-Q8_0.gguf",
+     "description": "Tiny Gemma 3 for ultra-fast inference on CPU.",
+     "size_on_disk": 375809638,
+     "tags": [
+      "gguf",
+      "base_model:google/gemma-3-270m",
+      "base_model:quantized:google/gemma-3-270m",
+      "endpoints_compatible",
+      "region:us"
+     ],
+     "has_model_index": false,
+     "downloads": 595,
+     "likes": 19
+    },
+    {
+     "id": "ggml-org/gemma-3-27b-it-GGUF:gemma-3-27b-it-Q4_K_M.gguf",
+     "type": "llama_cpp_model",
+     "name": "Gemma 3 27B IT (GGUF)",
+     "repo_id": "ggml-org/gemma-3-27b-it-GGUF",
+     "path": "gemma-3-27b-it-Q4_K_M.gguf",
+     "description": "Google's largest Gemma 3 with strong reasoning and tool use.",
+     "size_on_disk": 16965120819,
+     "pipeline_tag": "image-text-to-text",
+     "tags": [
+      "gguf",
+      "image-text-to-text",
+      "arxiv:1905.07830",
+      "arxiv:1905.10044",
+      "arxiv:1911.11641",
+      "arxiv:1904.09728",
+      "arxiv:1705.03551",
+      "arxiv:1911.01547",
+      "arxiv:1907.10641",
+      "arxiv:1903.00161",
+      "arxiv:2009.03300",
+      "arxiv:2304.06364",
+      "arxiv:2103.03874",
+      "arxiv:2110.14168",
+      "arxiv:2311.12022",
+      "arxiv:2108.07732",
+      "arxiv:2107.03374",
+      "arxiv:2210.03057",
+      "arxiv:2106.03193",
+      "arxiv:1910.11856",
+      "arxiv:2502.12404",
+      "arxiv:2502.21228",
+      "arxiv:2404.16816",
+      "arxiv:2104.12756",
+      "arxiv:2311.16502",
+      "arxiv:2203.10244",
+      "arxiv:2404.12390",
+      "arxiv:1810.12440",
+      "arxiv:1908.02660",
+      "arxiv:2312.11805",
+      "base_model:google/gemma-3-27b-it",
+      "base_model:quantized:google/gemma-3-27b-it",
+      "license:gemma",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 2604,
+     "likes": 23
+    },
+    {
+     "id": "Qwen/Qwen3-30B-A3B-GGUF:Qwen3-30B-A3B-Q4_K_M.gguf",
+     "type": "llama_cpp_model",
+     "name": "Qwen3 30B A3B (GGUF)",
+     "repo_id": "Qwen/Qwen3-30B-A3B-GGUF",
+     "path": "Qwen3-30B-A3B-Q4_K_M.gguf",
+     "description": "Qwen3 30B MoE model (3B active) in Q4_K_M quantization.",
+     "size_on_disk": 19327352832,
+     "pipeline_tag": "text-generation",
+     "tags": [
+      "gguf",
+      "text-generation",
+      "arxiv:2309.00071",
+      "arxiv:2505.09388",
+      "base_model:Qwen/Qwen3-30B-A3B",
+      "base_model:quantized:Qwen/Qwen3-30B-A3B",
+      "license:apache-2.0",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 17644,
+     "likes": 65
+    },
+    {
+     "id": "Qwen/Qwen3-32B-GGUF:Qwen3-32B-Q4_K_M.gguf",
+     "type": "llama_cpp_model",
+     "name": "Qwen3 32B (GGUF)",
+     "repo_id": "Qwen/Qwen3-32B-GGUF",
+     "path": "Qwen3-32B-Q4_K_M.gguf",
+     "description": "Qwen3 32B dense model in Q4_K_M quantization.",
+     "size_on_disk": 20401094656,
+     "pipeline_tag": "text-generation",
+     "tags": [
+      "gguf",
+      "text-generation",
+      "arxiv:2309.00071",
+      "base_model:Qwen/Qwen3-32B",
+      "base_model:quantized:Qwen/Qwen3-32B",
+      "license:apache-2.0",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 27381,
+     "likes": 64
+    },
+    {
+     "id": "Qwen/Qwen3-14B-GGUF:Qwen3-14B-Q4_K_M.gguf",
+     "type": "llama_cpp_model",
+     "name": "Qwen3 14B (GGUF)",
+     "repo_id": "Qwen/Qwen3-14B-GGUF",
+     "path": "Qwen3-14B-Q4_K_M.gguf",
+     "description": "Qwen3 14B dense model in Q4_K_M quantization.",
+     "size_on_disk": 9663676416,
+     "pipeline_tag": "text-generation",
+     "tags": [
+      "gguf",
+      "text-generation",
+      "arxiv:2309.00071",
+      "base_model:Qwen/Qwen3-14B",
+      "base_model:quantized:Qwen/Qwen3-14B",
+      "license:apache-2.0",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 61212,
+     "likes": 73
+    },
+    {
+     "id": "Qwen/Qwen3-8B-GGUF:Qwen3-8B-Q4_K_M.gguf",
+     "type": "llama_cpp_model",
+     "name": "Qwen3 8B (GGUF)",
+     "repo_id": "Qwen/Qwen3-8B-GGUF",
+     "path": "Qwen3-8B-Q4_K_M.gguf",
+     "description": "Qwen3 8B dense model in Q4_K_M quantization.",
+     "size_on_disk": 5368709120,
+     "pipeline_tag": "text-generation",
+     "tags": [
+      "gguf",
+      "text-generation",
+      "arxiv:2309.00071",
+      "arxiv:2505.09388",
+      "base_model:Qwen/Qwen3-8B",
+      "base_model:quantized:Qwen/Qwen3-8B",
+      "license:apache-2.0",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 94189,
+     "likes": 156
+    },
+    {
+     "id": "Qwen/Qwen3-4B-GGUF:Qwen3-4B-Q4_K_M.gguf",
+     "type": "llama_cpp_model",
+     "name": "Qwen3 4B (GGUF)",
+     "repo_id": "Qwen/Qwen3-4B-GGUF",
+     "path": "Qwen3-4B-Q4_K_M.gguf",
+     "description": "Qwen3 4B dense model in Q4_K_M quantization.",
+     "size_on_disk": 2684354560,
+     "pipeline_tag": "text-generation",
+     "tags": [
+      "gguf",
+      "text-generation",
+      "arxiv:2309.00071",
+      "arxiv:2505.09388",
+      "base_model:Qwen/Qwen3-4B",
+      "base_model:quantized:Qwen/Qwen3-4B",
+      "license:apache-2.0",
+      "endpoints_compatible",
+      "region:us",
+      "conversational"
+     ],
+     "has_model_index": false,
+     "downloads": 48252,
+     "likes": 84
+    }
+   ],
+   "inline_fields": [],
+   "input_fields": [
+    "prompt",
+    "image",
+    "audio",
+    "history"
+   ],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": true,
+   "output_correlation": {
+    "text": {
+     "kind": "single",
+     "source": "__execution__"
+    },
+    "chunk": {
+     "kind": "iteration",
+     "source": "__execution__",
+     "group": "stream"
+    },
+    "thinking": {
+     "kind": "iteration",
+     "source": "__execution__",
+     "group": "stream"
+    },
+    "audio": {
+     "kind": "iteration",
+     "source": "__execution__",
+     "group": "stream"
+    }
+   },
+   "is_controlled": false,
+   "supports_dynamic_inputs": false,
+   "supports_dynamic_outputs": true,
+   "auto_save_asset": true,
+   "effect": "external",
+   "platforms": [
+    "node",
+    "workers",
+    "edge"
+   ]
+  },
+  {
+   "title": "Fake Generate Image",
+   "description": "Simulate image generation with a fake provider \u2014 no API calls.\nfake, placeholder, image, generate, test, demo\n\nUse cases:\n- Build and demo media apps without API keys or cost\n- Run an image-generation graph entirely in the browser\n- Stand in for a real provider while wiring a workflow",
+   "namespace": "nodetool.fake",
+   "node_type": "nodetool.fake.GenerateImage",
+   "layout": "default",
+   "body": "content_card",
+   "properties": [
+    {
+     "name": "prompt",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Prompt",
+     "description": "Describes the image. Seeds the placeholder; no real model runs.",
+     "default": "a serene mountain lake at sunset"
+    },
+    {
+     "name": "width",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Width",
+     "min": 16,
+     "max": 2048,
+     "default": 512
+    },
+    {
+     "name": "height",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Height",
+     "min": 16,
+     "max": 2048,
+     "default": 512
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": {
+      "type": "image",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [],
+   "input_fields": [
+    "prompt"
+   ],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": false,
+   "is_controlled": false,
+   "supports_dynamic_inputs": false,
+   "retry_safe": true,
+   "effect": "external",
+   "platforms": [
+    "node",
+    "workers",
+    "edge",
+    "browser"
+   ]
+  },
+  {
+   "title": "Blur",
+   "description": "Blur an image \u2014 Box, Gaussian, or horizontal Motion variants.\n    image, blur, gaussian, box, motion, filter",
+   "namespace": "nodetool.image",
+   "node_type": "nodetool.image.Blur",
+   "layout": "default",
+   "body": "content_card",
+   "properties": [
+    {
+     "name": "image",
+     "type": {
+      "type": "image",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Image",
+     "description": "The image to blur.",
+     "default": {
+      "type": "image",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+     }
+    },
+    {
+     "name": "blur_type",
+     "type": {
+      "type": "str",
+      "type_args": [],
+      "values": [
+       "gaussian",
+       "box",
+       "motion"
+      ]
+     },
+     "required": false,
+     "title": "Type",
+     "description": "Blur algorithm: gaussian (smooth), box (boxcar), motion (horizontal streak).",
+     "values": [
+      "gaussian",
+      "box",
+      "motion"
+     ],
+     "default": "gaussian"
+    },
+    {
+     "name": "size",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Size",
+     "description": "Blur amount (0 = none, 100 = max).",
+     "min": 0,
+     "max": 100,
+     "default": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": {
+      "type": "image",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [],
+   "inline_fields": [],
+   "input_fields": [
+    "image"
+   ],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": false,
+   "is_controlled": false,
+   "supports_dynamic_inputs": false,
+   "effect": "external",
+   "platforms": [
+    "node",
+    "browser"
+   ]
+  },
+  {
+   "title": "Get Metadata",
+   "description": "Get metadata about the input image.\n    metadata, properties, analysis, information",
+   "namespace": "nodetool.image",
+   "node_type": "nodetool.image.GetMetadata",
+   "layout": "default",
+   "body": "default",
+   "properties": [
+    {
+     "name": "image",
+     "type": {
+      "type": "image",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Image",
+     "description": "The input image.",
+     "default": {
+      "type": "image",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+     }
+    }
+   ],
+   "outputs": [
+    {
+     "name": "format",
+     "type": {
+      "type": "str",
+      "type_args": []
+     }
+    },
+    {
+     "name": "mode",
+     "type": {
+      "type": "str",
+      "type_args": []
+     }
+    },
+    {
+     "name": "width",
+     "type": {
+      "type": "int",
+      "type_args": []
+     }
+    },
+    {
+     "name": "height",
+     "type": {
+      "type": "int",
+      "type_args": []
+     }
+    },
+    {
+     "name": "channels",
+     "type": {
+      "type": "int",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [],
+   "inline_fields": [],
+   "input_fields": [
+    "image"
+   ],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": false,
+   "is_controlled": false,
+   "supports_dynamic_inputs": false,
+   "effect": "external",
+   "platforms": [
+    "node"
+   ]
+  },
+  {
+   "title": "Resize Image",
+   "description": "Scale, set exact dimensions, or fit inside a box. In dimensions mode, set width or height to 0 to preserve that axis.\n    image, resize, scale, fit, dimensions",
+   "namespace": "nodetool.image",
+   "node_type": "nodetool.image.ResizeImage",
+   "layout": "default",
+   "body": "content_card",
+   "properties": [
+    {
+     "name": "image",
+     "type": {
+      "type": "image",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Image",
+     "description": "The image to resize.",
+     "default": {
+      "type": "image",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+     }
+    },
+    {
+     "name": "mode",
+     "type": {
+      "type": "enum",
+      "type_args": [],
+      "values": [
+       "scale",
+       "dimensions",
+       "fit"
+      ]
+     },
+     "required": false,
+     "title": "Mode",
+     "description": "Scale multiplies pixel size; Dimensions sets exact W\u00d7H; Fit preserves aspect inside a box.",
+     "values": [
+      "scale",
+      "dimensions",
+      "fit"
+     ],
+     "default": "dimensions"
+    },
+    {
+     "name": "scale",
+     "type": {
+      "type": "float",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Scale",
+     "description": "Scale factor (scale mode).",
+     "min": 0.1,
+     "max": 10,
+     "default": 1
+    },
+    {
+     "name": "width",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Width",
+     "description": "Target width (dimensions / fit modes). Use 0 in dimensions mode to preserve aspect on this axis.",
+     "min": 0,
+     "max": 8192,
+     "default": 512
+    },
+    {
+     "name": "height",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Height",
+     "description": "Target height (dimensions / fit modes). Use 0 in dimensions mode to preserve aspect on this axis.",
+     "min": 0,
+     "max": 8192,
+     "default": 512
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": {
+      "type": "image",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [],
+   "inline_fields": [
+    "mode",
+    "scale",
+    "width",
+    "height"
+   ],
+   "input_fields": [
+    "image"
+   ],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": false,
+   "is_controlled": false,
+   "supports_dynamic_inputs": false,
+   "effect": "external",
+   "platforms": [
+    "node",
+    "browser"
+   ]
+  },
+  {
+   "title": "Image Input",
+   "description": "Accepts a reference to an image asset for workflows, specified by an 'ImageRef'.  An 'ImageRef' points to image data that can be used for display, analysis, or processing by vision models.\n    input, parameter, image, picture, graphic, visual, asset",
+   "namespace": "nodetool.input",
+   "node_type": "nodetool.input.ImageInput",
+   "layout": "default",
+   "body": "default",
+   "properties": [
+    {
+     "name": "name",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Name",
+     "description": "The parameter name for the workflow.",
+     "default": ""
+    },
+    {
+     "name": "value",
+     "type": {
+      "type": "image",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Value",
+     "description": "The image to use as input.",
+     "default": {
+      "type": "image",
+      "uri": "",
+      "asset_id": null,
+      "data": null,
+      "metadata": null
+     }
+    },
+    {
+     "name": "description",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Description",
+     "description": "The description of the input for the workflow.",
+     "default": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": {
+      "type": "image",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [],
+   "inline_fields": [
+    "value"
+   ],
+   "input_fields": [],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": false,
+   "is_controlled": false,
+   "supports_dynamic_inputs": false,
+   "retry_safe": true,
+   "effect": "external",
+   "platforms": [
+    "node",
+    "workers",
+    "edge",
+    "browser"
+   ]
+  },
+  {
+   "title": "Integer Input",
+   "description": "Accepts an integer (whole number) as a parameter for workflows, typically constrained by a minimum and maximum value.  This input is used for discrete numeric values like counts, indices, or iteration limits.\n    input, parameter, integer, number, count, index, whole_number",
+   "namespace": "nodetool.input",
+   "node_type": "nodetool.input.IntegerInput",
+   "layout": "default",
+   "body": "default",
+   "properties": [
+    {
+     "name": "name",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Name",
+     "description": "The parameter name for the workflow.",
+     "default": ""
+    },
+    {
+     "name": "value",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Value",
+     "default": 0
+    },
+    {
+     "name": "description",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Description",
+     "description": "The description of the input for the workflow.",
+     "default": ""
+    },
+    {
+     "name": "min",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Min",
+     "default": 0
+    },
+    {
+     "name": "max",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Max",
+     "default": 99999
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": {
+      "type": "int",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [],
+   "inline_fields": [
+    "value"
+   ],
+   "input_fields": [],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": false,
+   "is_controlled": false,
+   "supports_dynamic_inputs": false,
+   "retry_safe": true,
+   "effect": "external",
+   "platforms": [
+    "node",
+    "workers",
+    "edge",
+    "browser"
+   ]
+  },
+  {
+   "title": "String Input",
+   "description": "Accepts a string value as a parameter for workflows.\n    input, parameter, string, text, label, name, value\n\n    Use cases:\n    - Define a name for an entity or process.\n    - Specify a label for a component or output.\n    - Enter a short keyword or search term.\n    - Provide a simple configuration value (e.g., an API key, a model name).\n    - If you need to input multi-line text or the content of a file, use 'DocumentFileInput'.",
+   "namespace": "nodetool.input",
+   "node_type": "nodetool.input.StringInput",
+   "layout": "default",
+   "body": "default",
+   "properties": [
+    {
+     "name": "name",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Name",
+     "description": "The parameter name for the workflow.",
+     "default": ""
+    },
+    {
+     "name": "value",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Value",
+     "default": ""
+    },
+    {
+     "name": "description",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Description",
+     "description": "The description of the input for the workflow.",
+     "default": ""
+    },
+    {
+     "name": "max_length",
+     "type": {
+      "type": "int",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Max length",
+     "description": "Maximum number of characters allowed. Use 0 for unlimited.",
+     "min": 0,
+     "max": 100000,
+     "default": 0
+    },
+    {
+     "name": "line_mode",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Line mode",
+     "description": "Controls whether the UI should render the input as single-line or multiline.",
+     "json_schema_extra": {
+      "type": "enum",
+      "values": [
+       "single_line",
+       "multi_line"
+      ]
+     },
+     "default": "single_line"
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": {
+      "type": "str",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [],
+   "inline_fields": [
+    "value"
+   ],
+   "input_fields": [],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": false,
+   "is_controlled": false,
+   "supports_dynamic_inputs": false,
+   "retry_safe": true,
+   "effect": "pure",
+   "platforms": [
+    "node",
+    "workers",
+    "edge",
+    "browser"
+   ]
+  },
+  {
+   "title": "Output",
+   "description": "Generic output node for any type.\n    output, result, sink, return",
+   "namespace": "nodetool.output",
+   "node_type": "nodetool.output.Output",
+   "layout": "default",
+   "body": "default",
+   "properties": [
+    {
+     "name": "name",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Name",
+     "description": "The parameter name for the workflow.",
+     "default": ""
+    },
+    {
+     "name": "value",
+     "type": {
+      "type": "any",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Value",
+     "description": "The value of the output.",
+     "default": null
+    },
+    {
+     "name": "description",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Description",
+     "description": "The description of the output for the workflow.",
+     "default": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": {
+      "type": "any",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [],
+   "inline_fields": [],
+   "input_fields": [
+    "value"
+   ],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": true,
+   "input_mode": "buffered",
+   "output_correlation": {
+    "output": {
+     "kind": "forward",
+     "source": "value"
+    }
+   },
+   "is_controlled": false,
+   "supports_dynamic_inputs": false,
+   "effect": "external",
+   "platforms": [
+    "node",
+    "workers",
+    "edge"
+   ]
+  },
+  {
+   "title": "Prompt",
+   "description": "Compose a prompt string with named variables. Add variables via the Add Variable button; reference them in the prompt as {{ variable }} (or {variable}). Supports filters: {{ var|upper }}, {{ var|lower }}, {{ var|capitalize }}, {{ var|title }}, {{ var|trim }}, {{ var|truncate(n) }}, {{ var|default(val) }}.\n    prompt, text, template, variable, llm, agent",
+   "namespace": "nodetool.text",
+   "node_type": "nodetool.text.Prompt",
+   "layout": "default",
+   "body": "default",
+   "properties": [
+    {
+     "name": "prompt",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "required": false,
+     "title": "Prompt",
+     "description": "Prompt text. Reference variables with {{ name }} or {name}.",
+     "default": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": {
+      "type": "str",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [],
+   "input_fields": [
+    "prompt"
+   ],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": false,
+   "is_controlled": false,
+   "supports_dynamic_inputs": true,
+   "supports_dynamic_outputs": true,
+   "cache_ttl": "forever",
+   "effect": "pure",
+   "platforms": [
+    "node",
+    "workers",
+    "edge"
+   ]
+  },
+  {
+   "title": "Preview",
+   "description": "Preview values inside the workflow graph",
+   "namespace": "nodetool.workflows.base_node",
+   "node_type": "nodetool.workflows.base_node.Preview",
+   "layout": "default",
+   "body": "default",
+   "properties": [
+    {
+     "name": "value",
+     "type": {
+      "type": "any",
+      "type_args": []
+     },
+     "default": null
+    },
+    {
+     "name": "name",
+     "type": {
+      "type": "str",
+      "type_args": []
+     },
+     "default": ""
+    }
+   ],
+   "outputs": [
+    {
+     "name": "output",
+     "type": {
+      "type": "any",
+      "type_args": []
+     }
+    }
+   ],
+   "recommended_models": [],
+   "inline_fields": [
+    "name"
+   ],
+   "input_fields": [
+    "value"
+   ],
+   "required_settings": [],
+   "required_runtimes": [],
+   "is_streaming_input": false,
+   "is_streaming_output": false,
+   "is_controlled": false,
+   "supports_dynamic_inputs": false,
+   "effect": "read",
+   "platforms": [
+    "node",
+    "browser"
+   ]
+  }
+ ],
+ "workflow": {
+  "id": "a1windowparity0000000000000000a1",
+  "name": "Window parity fixture",
+  "description": "Twelve-node graph shared by the native and web whole-window captures.",
+  "access": "private",
+  "tags": [],
+  "graph": {
+   "nodes": [
+    {
+     "id": "subject",
+     "type": "nodetool.input.StringInput",
+     "data": {
+      "name": "subject",
+      "value": "A lighthouse at dusk"
+     },
+     "ui_properties": {
+      "position": {
+       "x": 0,
+       "y": 0
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "size",
+     "type": "nodetool.input.IntegerInput",
+     "data": {
+      "name": "size",
+      "value": 768,
+      "min": 64,
+      "max": 2048
+     },
+     "ui_properties": {
+      "position": {
+       "x": 0,
+       "y": 240
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "reference",
+     "type": "nodetool.input.ImageInput",
+     "data": {
+      "name": "reference"
+     },
+     "ui_properties": {
+      "position": {
+       "x": 0,
+       "y": 440
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "prompt",
+     "type": "nodetool.text.Prompt",
+     "data": {
+      "prompt": "Paint {{ subject }} in warm light"
+     },
+     "ui_properties": {
+      "position": {
+       "x": 320,
+       "y": 0
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "metadata",
+     "type": "nodetool.image.GetMetadata",
+     "data": {},
+     "ui_properties": {
+      "position": {
+       "x": 320,
+       "y": 440
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "generate",
+     "type": "nodetool.fake.GenerateImage",
+     "data": {
+      "prompt": "",
+      "width": 768,
+      "height": 512
+     },
+     "ui_properties": {
+      "position": {
+       "x": 640,
+       "y": 0
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "agent",
+     "type": "nodetool.agents.Agent",
+     "data": {
+      "system": "You write short captions."
+     },
+     "ui_properties": {
+      "position": {
+       "x": 640,
+       "y": 220
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "width",
+     "type": "nodetool.workflows.base_node.Preview",
+     "data": {
+      "name": "width"
+     },
+     "ui_properties": {
+      "position": {
+       "x": 960,
+       "y": 440
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "resize",
+     "type": "nodetool.image.ResizeImage",
+     "data": {},
+     "ui_properties": {
+      "position": {
+       "x": 960,
+       "y": 0
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "caption",
+     "type": "nodetool.workflows.base_node.Preview",
+     "data": {
+      "name": "caption"
+     },
+     "ui_properties": {
+      "position": {
+       "x": 1280,
+       "y": 240
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "blur",
+     "type": "nodetool.image.Blur",
+     "data": {
+      "size": 2
+     },
+     "ui_properties": {
+      "position": {
+       "x": 1280,
+       "y": 0
+      },
+      "selectable": true
+     }
+    },
+    {
+     "id": "image",
+     "type": "nodetool.output.Output",
+     "data": {
+      "name": "image"
+     },
+     "ui_properties": {
+      "position": {
+       "x": 1600,
+       "y": 0
+      },
+      "selectable": true
+     }
+    }
+   ],
+   "edges": [
+    {
+     "id": "e1",
+     "source": "subject",
+     "sourceHandle": "output",
+     "target": "prompt",
+     "targetHandle": "prompt",
+     "ui_properties": {
+      "className": ""
+     }
+    },
+    {
+     "id": "e2",
+     "source": "prompt",
+     "sourceHandle": "output",
+     "target": "generate",
+     "targetHandle": "prompt",
+     "ui_properties": {
+      "className": ""
+     }
+    },
+    {
+     "id": "e3",
+     "source": "size",
+     "sourceHandle": "output",
+     "target": "generate",
+     "targetHandle": "width",
+     "ui_properties": {
+      "className": ""
+     }
+    },
+    {
+     "id": "e4",
+     "source": "generate",
+     "sourceHandle": "output",
+     "target": "resize",
+     "targetHandle": "image",
+     "ui_properties": {
+      "className": ""
+     }
+    },
+    {
+     "id": "e5",
+     "source": "size",
+     "sourceHandle": "output",
+     "target": "resize",
+     "targetHandle": "width",
+     "ui_properties": {
+      "className": ""
+     }
+    },
+    {
+     "id": "e6",
+     "source": "resize",
+     "sourceHandle": "output",
+     "target": "blur",
+     "targetHandle": "image",
+     "ui_properties": {
+      "className": ""
+     }
+    },
+    {
+     "id": "e7",
+     "source": "blur",
+     "sourceHandle": "output",
+     "target": "image",
+     "targetHandle": "value",
+     "ui_properties": {
+      "className": ""
+     }
+    },
+    {
+     "id": "e8",
+     "source": "reference",
+     "sourceHandle": "output",
+     "target": "metadata",
+     "targetHandle": "image",
+     "ui_properties": {
+      "className": ""
+     }
+    },
+    {
+     "id": "e9",
+     "source": "metadata",
+     "sourceHandle": "width",
+     "target": "width",
+     "targetHandle": "value",
+     "ui_properties": {
+      "className": ""
+     }
+    },
+    {
+     "id": "e10",
+     "source": "prompt",
+     "sourceHandle": "output",
+     "target": "agent",
+     "targetHandle": "prompt",
+     "ui_properties": {
+      "className": ""
+     }
+    },
+    {
+     "id": "e11",
+     "source": "agent",
+     "sourceHandle": "text",
+     "target": "caption",
+     "targetHandle": "value",
+     "ui_properties": {
+      "className": ""
+     }
+    }
+   ]
+  }
+ }
+}

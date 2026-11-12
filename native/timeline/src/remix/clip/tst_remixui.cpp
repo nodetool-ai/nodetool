@@ -100,6 +100,7 @@ private:
 class TestRemixUi : public WiringFixture {
     Q_OBJECT
     QTemporaryDir dir;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<FakeBackend> backend;
     QString srcFile;
 

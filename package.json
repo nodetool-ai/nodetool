@@ -177,6 +177,7 @@
     "lint:eslint": "eslint packages/*/src",
     "workflow": "node ./scripts/run-workflow.mjs",
     "chat": "node ./packages/cli-chat/dist/index.js",
+    "node-editor": "node native/node-editor/scripts/run.mjs",
     "nodetool": "node ./packages/cli/dist/nodetool.js",
     "generate:node-docs": "node scripts/generate-node-docs.mjs && node scripts/build-node-index.mjs",
     "generate:node-catalog": "node scripts/generate-node-catalog.mjs",
@@ -207,6 +208,7 @@
     "test": "npm run test:web && npm run test:electron && npm run test:mobile",
     "test:all": "node scripts/run-turbo.mjs run test",
     "test:affected": "node scripts/test-affected.mjs",
+    "test:affected:native": "node scripts/test-affected-native.mjs",
     "test:web": "npm test --workspace=web",
     "test:electron": "npm test --workspace=electron",
     "test:mobile": "npm --prefix mobile test",
@@ -285,15 +287,18 @@
     "@types/jest": "^29.5.14",
     "@types/node": "^22.0.0",
     "@typescript/native": "npm:typescript@7.0.2",
-    "@vitest/coverage-v8": "^5.0.1",
-    "concurrently": "^9.0.0",
+    "@vitest/coverage-v8": "^5.1.0",
+    "concurrently": "^9.2.5",
     "eslint": "^9.39.4",
     "oxlint": "^1.78.0",
+    "text-encoding": "^0.7.0",
     "tsx": "^4.0.0",
     "turbo": "^2.9.6",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-eslint": "8.70.0",
-    "vitest": "^5.0.1",
+    "vite": "~8.0.16",
+    "vitest": "^5.1.0",
+    "whatwg-url": "^14.2.0",
     "zod": "~4.4.3"
   },
   "dependencies": {
@@ -315,7 +320,12 @@
     },
     "unzipper": ">=0.12.3",
     "sharp": "^0.35.3",
-    "katex": "^0.19.0"
+    "katex": "^0.19.0",
+    "dompurify": "^3.4.17",
+    "office-text-extractor": {
+      "fflate": "^0.8.3",
+      "file-type": "^21.3.4"
+    }
   },
   "engines": {
     "node": "24.22.1"

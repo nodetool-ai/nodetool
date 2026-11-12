@@ -87,6 +87,7 @@ private slots:
         save.setExternalSync(false);
         save.setAutosave(true);
         draft.insert("markers", QJsonArray{QJsonObject{{"id", "edit"}, {"timeMs", 0}}});
+        // native-rules #2: naked new handed to QUndoStack::push, a raw pointer that the stack owns
         undo.push(new QUndoCommand("edit"));
         QTRY_VERIFY_WITH_TIMEOUT(!sent.isEmpty(), 3000);
         QTRY_VERIFY_WITH_TIMEOUT(!save.dirty(), 3000);

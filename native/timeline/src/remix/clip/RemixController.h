@@ -43,6 +43,7 @@ signals:
 };
 
 // Carries a task from a worker thread to the controller's thread.
+// native-rules #9: used across threads (carries tasks from worker threads to the controller thread) and declares no thread affinity at its top
 class RemixRelay : public QObject {
     Q_OBJECT
 public:
@@ -52,6 +53,7 @@ signals:
 };
 Q_DECLARE_METATYPE(RemixRelay::Task)
 
+// native-rules #9: used across threads (QThread workers post back through RemixRelay) and declares no thread affinity at its top
 class RemixController : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -165,11 +167,15 @@ private:
     QString staleReason() const;
 
     QPointer<TimelineModel> m_timeline;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<nt::remix::Backend> m_backend;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     mutable std::shared_ptr<nt::remix::Backend> m_serverBackend;
     mutable bool m_serverBackendResolved = false;
     bool m_backendSet = false;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<nt::assets::MediaProtection> m_protection;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<RemixRelay> m_relay;
     QString m_clipId, m_clipName, m_currentAsset;
     QString m_state = QStringLiteral("closed");
@@ -183,6 +189,7 @@ private:
     quint64 m_generation = 0;
     quint64 m_serial = 0;
     double m_targetMs = 0, m_segments = 50, m_variations = 50;
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     std::shared_ptr<const nt::remix::Analysis> m_analysis;
     std::optional<nt::remix::Plan> m_plan;
     QString m_planError;

@@ -1,0 +1,2336 @@
+{
+ "counts": {
+  "parity": 312,
+  "mismatch": 11,
+  "native-unsupported": 22,
+  "reference-unavailable": 88,
+  "skipped": 32
+ },
+ "nodes": {
+  "anthropic.text.WebSearch": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (a..."
+  },
+  "claude_code.text.WebSearch": {
+   "status": "skipped",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "skip rule host-binary:claude-code: spawns the Claude Code CLI"
+  },
+  "codex.image.CreateImage": {
+   "status": "skipped",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "skip rule host-binary:codex: spawns the Codex CLI"
+  },
+  "codex.text.WebSearch": {
+   "status": "skipped",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "skip rule host-binary:codex: spawns the Codex CLI"
+  },
+  "gemini.audio.TextToSpeech": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected — assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini.audi..."
+  },
+  "gemini.audio.Transcribe": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a asr_model to be selected — assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini.audi..."
+  },
+  "gemini.image.ImageGeneration": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini...."
+  },
+  "gemini.text.Embedding": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+  },
+  "gemini.text.GroundedSearch": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (g..."
+  },
+  "gemini.video.ImageToVideo": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini...."
+  },
+  "gemini.video.TextToVideo": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini...."
+  },
+  "kie.dynamic_schema.KieAI": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: model_info is empty. Paste kie.ai API documentation.\",\"job_id\":\"job\",\"status\":\"failed\",\"type\":\"job_update\",\"workflow_id\":\"wf\"}\n  received: {\"error\":\"Graph validation failed with 1..."
+  },
+  "lib.audio.Bitcrush": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.Compress": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.Delay": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.Distortion": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.Gain": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.HighPassFilter": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.HighShelfFilter": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.Limiter": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.LowPassFilter": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.LowShelfFilter": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.NoiseGate": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.PeakFilter": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.Phaser": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.PitchShift": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.audio.Reverb": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.audio.TimeStretch": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.browser.Screenshot": {
+   "status": "skipped",
+   "package": "@nodetool-ai/automation-nodes",
+   "reason": "skip rule browser: launches Chromium through Playwright"
+  },
+  "lib.charts.ChartRenderer": {
+   "status": "parity",
+   "package": "@nodetool-ai/data-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "lib.comfy.RunComfyGraphOnCloud": {
+   "status": "skipped",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "skip rule host-binary:comfy: starts or calls ComfyUI"
+  },
+  "lib.comfy.RunWorkflow": {
+   "status": "skipped",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "skip rule host-binary:comfy: starts or calls ComfyUI"
+  },
+  "lib.comfy.RunWorkflowOnCloud": {
+   "status": "skipped",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "skip rule host-binary:comfy: starts or calls ComfyUI"
+  },
+  "lib.comfy.RunWorkflowOnWorker": {
+   "status": "skipped",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "skip rule host-binary:comfy: starts or calls ComfyUI"
+  },
+  "lib.grid.SliceImageGrid": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "lib.image.Mask": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.channel.Merge": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.channel.Shuffle": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color.BrightnessContrast": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color.ChannelSplit": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color.Exposure": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color.Grade": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color.HSB": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color.Invert": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "3 case(s) match"
+  },
+  "lib.image.color.Posterize": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color_grading.CDL": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color_grading.ColorBalance": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color_grading.Curves": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color_grading.Exposure": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color_grading.FilmLook": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color_grading.HSLAdjust": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color_grading.LiftGammaGain": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color_grading.SaturationVibrance": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color_grading.SplitToning": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.color_grading.Vignette": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.draw.AngularGradient": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.image.draw.Background": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.image.draw.Checkerboard": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.image.draw.DiamondGradient": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.image.draw.GaussianNoise": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.image.draw.LinearGradient": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.image.draw.RadialGradient": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.image.draw.RenderText": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.effects.Add": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.effects.ColorOverlay": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.effects.DropShadow": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "3 case(s) match"
+  },
+  "lib.image.effects.Glow": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.effects.Outline": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.enhance.AdaptiveContrast": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.enhance.AutoContrast": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.enhance.Detail": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.enhance.EdgeEnhance": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.enhance.Equalize": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "3 case(s) match"
+  },
+  "lib.image.enhance.RankFilter": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.Canny": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.Contour": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.ConvertToGrayscale": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.Emboss": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.Expand": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.FindEdges": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.GaussianBlur": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "3 case(s) match"
+  },
+  "lib.image.filter.Invert": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.Pixelate": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.Posterize": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.Smooth": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.Solarize": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.Threshold": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.UnsharpMask": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.filter.Vignette": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.keyer.ChromaKey": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "3 case(s) match"
+  },
+  "lib.image.keyer.LumaKey": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.mask.Apply": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.mask.FromImage": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.mask.Invert": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.warp.Affine": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.warp.CornerPin": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.warp.Displace": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.warp.Offset": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.warp.Pad": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.warp.PolarRemap": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.warp.Spherize": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.image.warp.Tile": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.pdf.ExtractMarkdown": {
+   "status": "parity",
+   "package": "@nodetool-ai/document-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "lib.pdf.ExtractOcr": {
+   "status": "parity",
+   "package": "@nodetool-ai/document-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "lib.pdf.ExtractStyledText": {
+   "status": "parity",
+   "package": "@nodetool-ai/document-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "lib.pdf.ExtractTables": {
+   "status": "parity",
+   "package": "@nodetool-ai/document-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "lib.pdf.ExtractText": {
+   "status": "parity",
+   "package": "@nodetool-ai/document-nodes",
+   "reason": "2 case(s) match"
+  },
+  "lib.pdf.Pdftoppm": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/document-nodes",
+   "reason": "first divergence: [edge e_out_output] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_output\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
+  },
+  "lib.pdf.Screenshot": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/document-nodes",
+   "reason": "first divergence: [edge e_out_output] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_output\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
+  },
+  "lib.sqlite.GetDatabasePath": {
+   "status": "parity",
+   "package": "@nodetool-ai/automation-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.stable_diffusion_cpp.GenerateImage": {
+   "status": "skipped",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "skip rule host-binary:stable-diffusion-cpp: spawns stable-diffusion.cpp"
+  },
+  "lib.svg.Document": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "1 case(s) match"
+  },
+  "lib.svg.SVGToImage": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "needs database: ProcessingContext model interface 'createAsset' is not configured"
+  },
+  "lib.video.download.YtDlpDownload": {
+   "status": "skipped",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "skip rule host-binary:yt-dlp: spawns yt-dlp"
+  },
+  "lib.wan2gp.Generate": {
+   "status": "skipped",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "skip rule host-binary:wan2gp: starts Wan2GP"
+  },
+  "lib.wan2gp.ImageToVideo": {
+   "status": "skipped",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "skip rule host-binary:wan2gp: starts Wan2GP"
+  },
+  "lib.wan2gp.ListModels": {
+   "status": "skipped",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "skip rule host-binary:wan2gp: starts Wan2GP"
+  },
+  "lib.wan2gp.TextToVideo": {
+   "status": "skipped",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "skip rule host-binary:wan2gp: starts Wan2GP"
+  },
+  "messaging.discord.DiscordBotTrigger": {
+   "status": "parity",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "messaging.telegram.TelegramBotTrigger": {
+   "status": "parity",
+   "package": "@nodetool-ai/integration-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "mistral.embeddings.Embedding": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+  },
+  "mistral.text.ChatComplete": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (m..."
+  },
+  "mistral.text.CodeComplete": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs secret: Mistral API key not configured"
+  },
+  "mistral.vision.ImageToText": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (m..."
+  },
+  "mistral.vision.OCR": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (m..."
+  },
+  "nodetool.agents.Agent": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.agents.Classifier": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.agents.CreateThread": {
+   "status": "skipped",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "skip rule nondeterministic: outputs a thread id made from the clock and a random suffix"
+  },
+  "nodetool.agents.Decision": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.agents.EnhancePrompt": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.agents.Extractor": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.agents.Summarizer": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.audio.AudioMixer": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.AudioToAudio": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a audio_to_audio_model to be selected — assign {type: \"audio_to_audio_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on..."
+  },
+  "nodetool.audio.ChunkToAudio": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.Concat": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.ConcatList": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.CreateSilence": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "needs database: ProcessingContext model interface 'createAsset' is not configured"
+  },
+  "nodetool.audio.FadeIn": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.FadeOut": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.GetAudioInfo": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.LoadAudioAssets": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.LoadAudioFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.LoadAudioFolder": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.MonoToStereo": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Could not decode audio: input is not WAV (8/16/24/32-bit PCM or 32-bit float) — WebAudio can't read it (Failed to execute 'decodeAudioData': unsupported feature: core (probe): no ..."
+  },
+  "nodetool.audio.Normalize": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.OverlayAudio": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Could not decode audio: input is not WAV (8/16/24/32-bit PCM or 32-bit float) — WebAudio can't read it (Failed to execute 'decodeAudioData': unsupported feature: core (probe): no ..."
+  },
+  "nodetool.audio.RemoveSilence": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.Repeat": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.Reverse": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.SaveAudio": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.SaveAudioFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.SliceAudio": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.StereoToMono": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.TextToMusic": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a music_model to be selected — assign {type: \"music_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.audio.TextToSpeech": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected — assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetool.au..."
+  },
+  "nodetool.audio.Trim": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.realtime.AudioOutput": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.realtime.AudioToChunks": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.audio.realtime.ChunksToAudio": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "needs database: ProcessingContext model interface 'createAsset' is not configured"
+  },
+  "nodetool.audio.realtime.StreamingGain": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.realtime.StreamingHighPass": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.realtime.StreamingLowPass": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.synth.ADSR": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.synth.Attenuverter": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.synth.Gate": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "reference run timed out"
+  },
+  "nodetool.audio.synth.LFO": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "reference run timed out"
+  },
+  "nodetool.audio.synth.Mixer": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.synth.Oscillator": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "reference run timed out"
+  },
+  "nodetool.audio.synth.SampleHold": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.synth.VCA": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.audio.synth.VCF": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.blender.BakeTimelineClip": {
+   "status": "skipped",
+   "package": "@nodetool-ai/blender-nodes",
+   "reason": "skip rule host-binary:blender: spawns Blender"
+  },
+  "nodetool.blender.ExportModel": {
+   "status": "skipped",
+   "package": "@nodetool-ai/blender-nodes",
+   "reason": "skip rule host-binary:blender: spawns Blender"
+  },
+  "nodetool.blender.PrepareForEngine": {
+   "status": "skipped",
+   "package": "@nodetool-ai/blender-nodes",
+   "reason": "skip rule host-binary:blender: spawns Blender"
+  },
+  "nodetool.blender.RenderAnimation": {
+   "status": "skipped",
+   "package": "@nodetool-ai/blender-nodes",
+   "reason": "skip rule host-binary:blender: spawns Blender"
+  },
+  "nodetool.blender.RenderImage": {
+   "status": "skipped",
+   "package": "@nodetool-ai/blender-nodes",
+   "reason": "skip rule host-binary:blender: spawns Blender"
+  },
+  "nodetool.blender.RenderPasses": {
+   "status": "skipped",
+   "package": "@nodetool-ai/blender-nodes",
+   "reason": "skip rule host-binary:blender: spawns Blender"
+  },
+  "nodetool.code.Code": {
+   "status": "parity",
+   "package": "@nodetool-ai/code-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.compare.CompareImages": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.constant.ASRModelConstant": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.constant.Audio": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.AudioList": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.constant.Bool": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.constant.DataFrame": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.Date": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.DateTime": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.Dict": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.constant.Document": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.EmbeddingModelConstant": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.constant.Entity": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.Float": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.constant.Image": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.ImageList": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.constant.ImageModelConstant": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.constant.ImageSize": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.constant.Integer": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.constant.JSON": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.constant.LanguageModelConstant": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.constant.List": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.constant.Model3D": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.Script": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.Select": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.Sketch": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.Storyboard": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.String": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.constant.TTSModelConstant": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.constant.TextList": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.constant.Timeline": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.Video": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.constant.VideoList": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.constant.VideoModelConstant": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.control.Chunk": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Collect": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Collection": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Count": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Cross": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Distinct": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "3 case(s) match"
+  },
+  "nodetool.control.Drop": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.DropWhile": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.FilterCode": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.FilterEqual": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "3 case(s) match"
+  },
+  "nodetool.control.ForEach": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "3 case(s) match"
+  },
+  "nodetool.control.If": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Last": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Loop": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.control.RepeatCount": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.RepeatValue": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Reroute": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Switch": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Take": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.TakeWhile": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Tap": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.TryCatch": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.control.Zip": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.creative.ApplyEntities": {
+   "status": "parity",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.creative.Director": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.creative.ScreenplayShots": {
+   "status": "parity",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.creative.ShotBatch": {
+   "status": "parity",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.creative.ShotChain": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 2 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.data.ForEachRow": {
+   "status": "parity",
+   "package": "@nodetool-ai/data-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.data.LoadCSVAssets": {
+   "status": "parity",
+   "package": "@nodetool-ai/data-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.document.ListDocuments": {
+   "status": "parity",
+   "package": "@nodetool-ai/document-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.document.LoadDocumentFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/document-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.document.SaveDocumentFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/document-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.entity.CreateEntity": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.entity.ListEntities": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "needs database: ProcessingContext model interface 'listEntities' is not configured"
+  },
+  "nodetool.entity.LoadEntity": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.fake.ColorGrade": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.fake.GenerateImage": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "needs database: ProcessingContext model interface 'createAsset' is not configured"
+  },
+  "nodetool.game.LoadGameTemplate": {
+   "status": "parity",
+   "package": "@nodetool-ai/game-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.game.MusicLoop": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.game.SeamlessImage": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.game.SlotPrompt": {
+   "status": "parity",
+   "package": "@nodetool-ai/game-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.game.SoundEffect": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.game.SpriteSheet": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.game.StageGameAssets": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/game-nodes",
+   "reason": "first divergence: [edge e_out_bindings] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_bindings\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
+  },
+  "nodetool.game.Tileset": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.generators.ChartGenerator": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.generators.DataGenerator": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.generators.ListGenerator": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.generators.SVGGenerator": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.generators.StructuredOutputGenerator": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.image.BatchToList": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.image.Blur": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.CanvasResize": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.Channels": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.Compositor": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.image.Crop": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.EstimateDepth": {
+   "status": "skipped",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "skip rule local-model: a model property defaults to a local provider"
+  },
+  "nodetool.image.Fit": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.GetMetadata": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.ImageToImage": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.image.ImagesToList": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.image.Levels": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.LoadImageAssets": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.image.LoadImageFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.LoadImageFolder": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.image.Painter": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "needs database: ProcessingContext model interface 'createAsset' is not configured"
+  },
+  "nodetool.image.Paste": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.Relight": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.image.RemoveBackground": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.image.Resize": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.ResizeImage": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.RotateAndFlip": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "3 case(s) match"
+  },
+  "nodetool.image.SaveImage": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.image.SaveImageFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.Scale": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.image.Segment": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.image.TextToImage": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.image.Upscale": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.image.Vectorize": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.input.ASRModelInput": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a asr_model to be selected — assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetool.in..."
+  },
+  "nodetool.input.AssetFolderInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.AudioInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.AudioListInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.BooleanInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.input.ColorInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.input.DataframeInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.DocumentFileInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.DocumentInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.EmbeddingModelInput": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+  },
+  "nodetool.input.FilePathInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.FloatInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.input.FolderPathInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.HuggingFaceModelInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.ImageInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.ImageListInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.ImageModelInput": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.input.ImageSizeInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.IntegerInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.input.LanguageModelInput": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.input.MessageDeconstructor": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.MessageInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.MessageListInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.Model3DInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.RealtimeAudioInput": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "reference run timed out"
+  },
+  "nodetool.input.SelectInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.input.StringInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.input.StringListInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.input.TTSModelInput": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a tts_model to be selected — assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetool.in..."
+  },
+  "nodetool.input.TextListInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.ValueInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.VideoInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.VideoListInput": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.input.VideoModelInput": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.manimgx.GenerateScene": {
+   "status": "skipped",
+   "package": "@nodetool-ai/manimgx-nodes",
+   "reason": "skip rule host-binary:manimgx: spawns ManimGX (Python)"
+  },
+  "nodetool.manimgx.InspectScene": {
+   "status": "skipped",
+   "package": "@nodetool-ai/manimgx-nodes",
+   "reason": "skip rule host-binary:manimgx: spawns ManimGX (Python)"
+  },
+  "nodetool.manimgx.RenderScene": {
+   "status": "skipped",
+   "package": "@nodetool-ai/manimgx-nodes",
+   "reason": "skip rule host-binary:manimgx: spawns ManimGX (Python)"
+  },
+  "nodetool.model3d.Boolean3D": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "first divergence: [edge e_out_output] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_output\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
+  },
+  "nodetool.model3d.CenterMesh": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.model3d.Decimate": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.model3d.ExtractLargestComponent": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.model3d.FlipNormals": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.model3d.FormatConverter": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.model3d.GetModel3DMetadata": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.model3d.ImageTo3D": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a model_3d_model to be selected — assign {type: \"model_3d_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.model3d.LoadModel3DFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.model3d.MergeMeshes": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.model3d.NormalizeModel3D": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.model3d.RecalculateNormals": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.model3d.RenderToImage": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "first divergence: [edge e_out_output] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_output\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
+  },
+  "nodetool.model3d.RepairMesh": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.model3d.SaveModel3D": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.model3d.SaveModel3DFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.model3d.TextTo3D": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a model_3d_model to be selected — assign {type: \"model_3d_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.model3d.Transform3D": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.output.Output": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.script.FillScript": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.script.LoadScript": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.script.ScriptToSubtitles": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.script.ScriptToTimeline": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.script.VoiceScript": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.script.WriteScript": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.sketch.CreateSketch": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.sketch.RenderSketch": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.sketch.SketchLayers": {
+   "status": "parity",
+   "package": "@nodetool-ai/image-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.storyboard.AssembleTimeline": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "first divergence: [edge e_out_retimed] missing from runner, reference has 1 message(s); first: {\"counter\":null,\"edge_id\":\"e_out_retimed\",\"job_id\":\"job\",\"status\":\"completed\",\"type\":\"edge_update\"}"
+  },
+  "nodetool.storyboard.CreateStoryboard": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 2 issue(s):\n  - Property \"image_model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.storyboard.LoadStoryboard": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.storyboard.RecastStoryboard": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.storyboard.RenderClips": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"video_model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.storyboard.RenderStills": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"image_model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+  },
+  "nodetool.storyboard.StoryboardShots": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.text.AutomaticSpeechRecognition": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "needs model: Graph validation failed with 2 issue(s):\n  - Property \"model\" requires a asr_model to be selected — assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetool.te..."
+  },
+  "nodetool.text.Collect": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.text.Concat": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "3 case(s) match"
+  },
+  "nodetool.text.Embedding": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+  },
+  "nodetool.text.FilterRegexString": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "3 case(s) match"
+  },
+  "nodetool.text.FilterString": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "4 case(s) match"
+  },
+  "nodetool.text.LoadTextAssets": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.text.LoadTextFolder": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.text.Prompt": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "3 case(s) match"
+  },
+  "nodetool.text.Rerank": {
+   "status": "skipped",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "skip rule local-model: a model property defaults to a local provider"
+  },
+  "nodetool.text.SaveText": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.text.SaveTextFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.text.Template": {
+   "status": "parity",
+   "package": "@nodetool-ai/text-nodes",
+   "reason": "3 case(s) match"
+  },
+  "nodetool.timeline.AddClips": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.timeline.FillTimelineText": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.timeline.RenderTimeline": {
+   "status": "skipped",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "skip rule browser: launches Chromium through Playwright"
+  },
+  "nodetool.timeline.RetargetTimeline": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.timeline.Transcript": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.triggers.FileWatchTrigger": {
+   "status": "skipped",
+   "package": "@nodetool-ai/automation-nodes",
+   "reason": "skip rule trigger: waits for outside events until cancelled"
+  },
+  "nodetool.triggers.IntervalTrigger": {
+   "status": "skipped",
+   "package": "@nodetool-ai/automation-nodes",
+   "reason": "skip rule trigger: waits for outside events until cancelled"
+  },
+  "nodetool.triggers.ManualTrigger": {
+   "status": "skipped",
+   "package": "@nodetool-ai/automation-nodes",
+   "reason": "skip rule trigger: waits for outside events until cancelled"
+  },
+  "nodetool.triggers.Wait": {
+   "status": "skipped",
+   "package": "@nodetool-ai/automation-nodes",
+   "reason": "skip rule nondeterministic: outputs the wall-clock time it resumed at"
+  },
+  "nodetool.triggers.WebhookTrigger": {
+   "status": "skipped",
+   "package": "@nodetool-ai/automation-nodes",
+   "reason": "skip rule trigger: waits for outside events until cancelled"
+  },
+  "nodetool.variable.GetVariable": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.variable.SetVariable": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "nodetool.video.AddAudio": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.AddAudio)"
+  },
+  "nodetool.video.AddSubtitles": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.AddSubtitles)"
+  },
+  "nodetool.video.Blur": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Blur)"
+  },
+  "nodetool.video.ChromaKey": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.ChromaKey)"
+  },
+  "nodetool.video.ColorBalance": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.ColorBalance)"
+  },
+  "nodetool.video.Concat": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.concatCopy is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Concat)"
+  },
+  "nodetool.video.Denoise": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Denoise)"
+  },
+  "nodetool.video.EaseCurve": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.EaseCurve)"
+  },
+  "nodetool.video.Element": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.video.ExtractAudio": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.convertAudioToWav is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.ExtractAudio)"
+  },
+  "nodetool.video.ExtractFrame": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.pngFrames is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.ExtractFrame)"
+  },
+  "nodetool.video.ForEachFrame": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.pngFrames is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.ForEachFrame)"
+  },
+  "nodetool.video.Fps": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.video.FrameToVideo": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.video.GetVideoInfo": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.video.ImageToVideo": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.video.Keyframe": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.video.LipSync": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.video.LoadVideoAssets": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.video.LoadVideoFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.video.Overlay": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Overlay)"
+  },
+  "nodetool.video.ReferenceToVideo": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.video.Resize": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Resize)"
+  },
+  "nodetool.video.Reverse": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Reverse)"
+  },
+  "nodetool.video.Rotate": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Rotate)"
+  },
+  "nodetool.video.Saturation": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Saturation)"
+  },
+  "nodetool.video.SaveVideo": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.video.SaveVideoFile": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.video.SetSpeed": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.SetSpeed)"
+  },
+  "nodetool.video.Sharpness": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Sharpness)"
+  },
+  "nodetool.video.Shot": {
+   "status": "parity",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "nodetool.video.Stabilize": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Stabilize)"
+  },
+  "nodetool.video.TextToVideo": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.video.Transition": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Transition)"
+  },
+  "nodetool.video.Trim": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/runtime/media.transformMedia is unavailable in the native runner (not-yet-ported: the runtime implements it with node-av, and host media has no equivalent yet) on node \"n\" (nodetool.video.Trim)"
+  },
+  "nodetool.video.VideoToVideo": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/video-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+  },
+  "nodetool.workflows.app_node.App": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Select an app to run.\",\"job_id\":\"job\",\"status\":\"failed\",\"type\":\"job_update\",\"workflow_id\":\"wf\"}\n  received: {\"error\":\"Graph validation failed with 1 issue(s):\\n  - @nodetool-ai/ke..."
+  },
+  "nodetool.workflows.base_node.Preview": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.workflows.subgraph.Subgraph": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "nodetool.workflows.workflow_node.Workflow": {
+   "status": "native-unsupported",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "Graph validation failed with 1 issue(s):\n  - @nodetool-ai/kernel.Graph is unavailable in the native runner (not-yet-ported: part of the TypeScript workflow kernel, which the C++ kernel in src/kernel/ replaces); @nodetool-ai/kernel.withExplicitNodeFlags is unavailable in the native runner (not-yet-po..."
+  },
+  "openai.agents.LiveAgent": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs secret: OPENAI_API_KEY is not configured"
+  },
+  "openai.agents.RealtimeAgent": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs secret: OPENAI_API_KEY is not configured"
+  },
+  "openai.agents.RealtimeTranscription": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs secret: OPENAI_API_KEY is not configured"
+  },
+  "openai.audio.TextToSpeech": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected — assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (openai.audi..."
+  },
+  "openai.audio.Transcribe": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a asr_model to be selected — assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (openai.audi..."
+  },
+  "openai.audio.Translate": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs secret: OPENAI_API_KEY is not configured"
+  },
+  "openai.image.CreateImage": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (openai...."
+  },
+  "openai.image.EditImage": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (openai...."
+  },
+  "openai.image.ImageVariation": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs secret: OPENAI_API_KEY is not configured"
+  },
+  "openai.text.Embedding": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+  },
+  "openai.text.Moderation": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs secret: OPENAI_API_KEY is not configured"
+  },
+  "openai.text.WebSearch": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs secret: OPENAI_API_KEY is not configured"
+  },
+  "vector.Collection": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "vector.Count": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "vector.GetDocuments": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "3 case(s) match"
+  },
+  "vector.HybridSearch": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "vector.IndexAggregatedText": {
+   "status": "mismatch",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Collection name cannot be empty\",\"job_id\":\"job\",\"status\":\"failed\",\"type\":\"job_update\",\"workflow_id\":\"wf\"}\n  received: {\"error\":\"Graph validation failed with 1 issue(s):\\n  - @node..."
+  },
+  "vector.IndexEmbedding": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "3 case(s) match"
+  },
+  "vector.IndexImage": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "vector.IndexString": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "vector.IndexTextChunk": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "vector.Peek": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "vector.QueryImage": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match; every reference run failed, so only the error path is covered"
+  },
+  "vector.QueryText": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "2 case(s) match"
+  },
+  "vector.RemoveOverlap": {
+   "status": "parity",
+   "package": "@nodetool-ai/core-nodes",
+   "reason": "1 case(s) match"
+  },
+  "vertex.audio.TextToSpeech": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected — assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (vertex.audi..."
+  },
+  "vertex.audio.Transcribe": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a asr_model to be selected — assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (vertex.audi..."
+  },
+  "vertex.image.ImageGeneration": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (vertex...."
+  },
+  "vertex.text.Embedding": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+  },
+  "vertex.text.GroundedSearch": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (v..."
+  },
+  "vertex.video.ImageToVideo": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (vertex...."
+  },
+  "vertex.video.TextToVideo": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (vertex...."
+  },
+  "xai.image.GenerateImage": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (xai.ima..."
+  },
+  "xai.text.ChatComplete": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (x..."
+  },
+  "xai.text.WebSearch": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (x..."
+  },
+  "xai.vision.ImageToText": {
+   "status": "reference-unavailable",
+   "package": "@nodetool-ai/llm-nodes",
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (x..."
+  }
+ }
+}

@@ -58,11 +58,13 @@ struct FetchResult {
     bool ok() const { return !path.isEmpty(); }
 };
 
+// native-rules #9: used from worker threads and the UI thread, no affinity comment
 class AssetCache {
 public:
     using Decorate = std::function<void(QNetworkRequest&)>;
     using Recheck = std::function<std::optional<RemoteFile>()>;
     using OnReady = std::function<void(const QString&)>;
+    // native-rules #1: std::shared_ptr lease alias with no comment on why unique ownership is impossible
     using Lease = std::shared_ptr<const QString>;
 
     AssetCache(QString root, QString serverKey, QString userKey, Decorate decorate = {});
@@ -96,9 +98,11 @@ private:
     Decorate m_decorate;
     qint64 m_budgetBytes = 0;
     struct Protected {
+        // native-rules #10: mutex does not say that it guards paths
         std::mutex mutex;
         std::map<QString, Lease> paths;
     };
+    // native-rules #1: std::shared_ptr Protected, no comment on why unique ownership is impossible
     std::shared_ptr<Protected> m_protected = std::make_shared<Protected>();
 };
 

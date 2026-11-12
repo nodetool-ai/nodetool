@@ -35,6 +35,8 @@ on:
 
 permissions:
   contents: read
+  # Pull the CI image.
+  packages: read
 
 # On main, every commit's reliability-ring1 run must reach a conclusion of its
 # own: fly-deploy.yml gates the deploy on this workflow's result for that exact
@@ -48,6 +50,15 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
+  # The Linux image the jobs below run in (docker/ci/). Built here on the
+  # first run after docker/ci/ changes, found in seconds otherwise.
+  ci-image:
+    if: ${{ github.event_name != 'pull_request' || github.event.label.name == 'browser-suites' }}
+    uses: ./.github/workflows/ci-image.yml
+    permissions:
+      contents: read
+      packages: write
+
   journeys:
     name: Drive the app the way a user does
     # Advisory, so it runs nightly, on dispatch, and on a PR when the
@@ -58,7 +69,19 @@ jobs:
       ${{ github.event_name == 'schedule'
       || github.event_name == 'workflow_dispatch'
       || (github.event_name == 'pull_request' && github.event.label.name == 'browser-suites') }}
+    needs: ci-image
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 45
 
     steps:
@@ -74,8 +97,6 @@ jobs:
         # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
         # Chromium can acquire a WebGPU adapter on GPU-less runners.
         uses: ./.github/actions/setup-build
-        with:
-          extra-apt: mesa-vulkan-drivers
 
       - name: Type-check journey suite
         working-directory: web
@@ -83,7 +104,7 @@ jobs:
 
       - name: Install Playwright Chromium browser
         working-directory: web
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run user-journey suite
         working-directory: web
@@ -111,7 +132,19 @@ jobs:
       ${{ github.event_name == 'schedule'
       || github.event_name == 'workflow_dispatch'
       || (github.event_name == 'pull_request' && github.event.label.name == 'browser-suites') }}
+    needs: ci-image
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 45
 
     steps:
@@ -127,7 +160,7 @@ jobs:
 
       - name: Install Playwright Chromium browser
         working-directory: web
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run latency suite
         working-directory: web
@@ -150,7 +183,19 @@ jobs:
 
   reliability-ring1:
     name: Reliability Ring 1 (full hermetic suite + differential + packaged)
+    needs: ci-image
     runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     timeout-minutes: 60
     if: github.event_name != 'pull_request'
     # Runs on every push to main, on schedule (alongside the nightly browser
@@ -170,8 +215,6 @@ jobs:
         # (used by the packaged-journey run below) shells out through the
         # electron workspace, which needs keytar's native build deps present.
         uses: ./.github/actions/setup-build
-        with:
-          extra-apt: libsecret-1-dev
 
       # Full hermetic suite (every reliability/journeys/* journey) on kernel
       # (oracle, strict) + ws-server, cross-surface diffed (`--diff`), plus

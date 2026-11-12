@@ -65,6 +65,7 @@ public:
     size_t bytes() const { return m_bytes; }
 
 private:
+    // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
     struct Slot { std::shared_ptr<Surface> surface; Lease lease; long long lastUsed; };
     void evictFreeUntil(size_t extra, long long frame) {
         while (m_bytes + extra > m_budget) {

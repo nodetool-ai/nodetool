@@ -28,6 +28,7 @@
 #include <functional>
 #include <optional>
 
+// native-rules #9: used across threads (QThread worker) and declares no thread affinity at its top
 class PremiereTransfer : public QObject {
     Q_OBJECT
     QML_ELEMENT
