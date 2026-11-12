@@ -10,8 +10,8 @@ Cross-plan references use `AS-`, for example `AS-D4`. References to the
 realtime design use `RT-`, for example `RT-D17` or `RT 10.1` for a section.
 
 Citations of the kernel library refer to pull request #7447 at `e7b8ee6ccb`,
-which is not on `main` yet. Other citations are relative to the repository
-root at `87062066bd`.
+which is on `main`. Other citations are relative to the repository root at
+`87062066bd`.
 
 ## 1. Goal
 
@@ -326,8 +326,10 @@ Exit evidence:
 - For each effect, a test splits a clip into blocks, runs the signal node and
   compares the joined output with the clip node. The samples are equal, with
   the tail for the delay.
-- For each signal node, a test shows that the output differs from the input
-  at the default properties.
+- Default controls change samples for effects with non-neutral defaults.
+  Gain, Low Shelf, High Shelf and Peak retain their neutral 0 dB defaults
+  for clip compatibility. Tests cover their neutral output and the change
+  produced by a non-zero gain.
 - A test changes a property between two blocks and finds the change in the
   second block.
 - A test sends one input array to two consumers and finds it unchanged.

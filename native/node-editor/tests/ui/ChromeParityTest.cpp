@@ -332,7 +332,7 @@ private slots:
             {"rail-projects", "Projects has no native surface yet. Switch projects from the project menu in the tab strip."},
             {"rail-library", "Library"},
             {"rail-entities", "Entities has no native panel yet."},
-            {"rail-examples", "Examples has no native panel yet."},
+            {"rail-examples", "Examples"},
             {"rail-more", "The More panel has no native equivalent. Native commands are in the toolbar More menu."},
         };
         for (const auto &tip : tips) {

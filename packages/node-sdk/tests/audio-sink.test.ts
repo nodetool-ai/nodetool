@@ -56,6 +56,12 @@ it("carries the class audio sink through metadata and both graph hydration paths
 it("clears a stale saved sink flag when the registered class is ordinary", async () => {
   const registry = new NodeRegistry();
   registry.register(Ordinary);
-  const hydrated = hydrateGraphNodeFlags({ nodes: [{ id: "n", type: Ordinary.nodeType, audio_sink: "live" }], edges: [] }, registry);
+  const hydrated = hydrateGraphNodeFlags(
+    {
+      nodes: [{ id: "n", type: Ordinary.nodeType, audio_sink: "live" }],
+      edges: []
+    },
+    registry
+  );
   expect(hydrated.nodes[0].audio_sink).toBeUndefined();
 });

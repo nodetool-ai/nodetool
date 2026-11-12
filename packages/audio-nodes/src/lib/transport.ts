@@ -31,8 +31,11 @@ export class AudioTransport {
     if (this.mode === "render") {
       if (++this.blocks % 32 === 0) {
         await new Promise<void>((resolve) => {
-          if (typeof setImmediate === "function") { setImmediate(resolve); }
-          else { setTimeout(resolve, 0); }
+          if (typeof setImmediate === "function") {
+            setImmediate(resolve);
+          } else {
+            setTimeout(resolve, 0);
+          }
         });
       }
       return;

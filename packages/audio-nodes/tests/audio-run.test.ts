@@ -277,8 +277,16 @@ const inputSamples = Float32Array.from(
 const audio = { type: "audio", data: encodeWav(inputSamples, SR, 1) };
 const decodedInput = parseWavBytes(audio.data)!.samples;
 const effects = [
-  { name: "LowPassFilter", clip: dsp.LowPassFilterNode, signal: StreamingLowPassNode },
-  { name: "HighPassFilter", clip: dsp.HighPassFilterNode, signal: StreamingHighPassNode },
+  {
+    name: "LowPassFilter",
+    clip: dsp.LowPassFilterNode,
+    signal: StreamingLowPassNode
+  },
+  {
+    name: "HighPassFilter",
+    clip: dsp.HighPassFilterNode,
+    signal: StreamingHighPassNode
+  },
   {
     name: "Bitcrush",
     clip: clips.BitcrushNode,
@@ -333,7 +341,10 @@ const effects = [
   }
 ];
 
-for (const effect of effects.filter(effect => effect.name !== "LowPassFilter" && effect.name !== "HighPassFilter")) {
+for (const effect of effects.filter(
+  (effect) =>
+    effect.name !== "LowPassFilter" && effect.name !== "HighPassFilter"
+)) {
   it(`${effect.name} preserves clip samples across irregular signal blocks and fan-out`, async () => {
     const props = { audio, gain_db: 6, delay_seconds: 0.01 };
     const clip = await new effect.clip(props).process();
@@ -544,8 +555,9 @@ it("emits a bounded live recording before input ends and drains later chunks", a
   expect(drained).toBe(true);
   expect(out.emitted).toHaveLength(1);
   const value = out.emitted[0][1];
-  if (typeof value !== "object" || value === null || !("data" in value))
+  if (typeof value !== "object" || value === null || !("data" in value)) {
     throw new Error("Expected audio");
+  }
   const wav = parseWavBytes(
     Uint8Array.from(atob(String(value.data)), (ch) => ch.charCodeAt(0))
   );
@@ -577,17 +589,37 @@ it("uses the file rate when looping without a resolved graph transport", async (
   await gen.return({});
 });
 
-
 it("keeps foreign chunks without rate metadata at 24 kHz through effects and recording", async () => {
-  const chunk = { content_type: "audio", content: new Float32Array(240), done: false };
+  const chunk = {
+    content_type: "audio",
+    content: new Float32Array(240),
+    done: false
+  };
   expect(readSignalChunk(chunk)?.sampleRate).toBe(24000);
   const amplified = recordingOutputs();
-  await new StreamingGainNode().run(makeInputs({ handles: { chunk: [chunk] } }), amplified.outputs);
+  await new StreamingGainNode().run(
+    makeInputs({ handles: { chunk: [chunk] } }),
+    amplified.outputs
+  );
   expect(readSignalChunk(amplified.emitted[0][1])?.sampleRate).toBe(24000);
   const out = recordingOutputs();
-  await new ChunksToAudioNode().run(makeInputs({ handles: { chunk: [chunk] } }), out.outputs);
+  await new ChunksToAudioNode().run(
+    makeInputs({ handles: { chunk: [chunk] } }),
+    out.outputs
+  );
   const ref = out.emitted[0][1];
-  expect(parseWavBytes(Buffer.from(String(typeof ref === "object" && ref !== null && "data" in ref ? ref.data : ""), "base64"))?.sampleRate).toBe(24000);
+  expect(
+    parseWavBytes(
+      Buffer.from(
+        String(
+          typeof ref === "object" && ref !== null && "data" in ref
+            ? ref.data
+            : ""
+        ),
+        "base64"
+      )
+    )?.sampleRate
+  ).toBe(24000);
 });
 
 it("yields bounded renders so timer cancellation can reach the source", async () => {
@@ -595,63 +627,133 @@ it("yields bounded renders so timer cancellation can reach the source", async ()
   const controller = new AbortController();
   let emitted = 0;
   const out = recordingOutputs();
-  out.outputs.emit = async (_slot, value) => { if (!readSignalChunk(value)?.done) emitted++; };
-  const timer = setTimeout(() => controller.abort(), 0);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  out.outputs.emit = async (_slot, value) => {
+    if (!readSignalChunk(value)?.done) {
+      emitted++;
+      if (emitted === 1) {
+        timer = setTimeout(() => controller.abort(), 0);
+      }
+    }
+  };
   try {
-    await new OscillatorNode().run(makeInputs({ handles: {}, signal: controller.signal }), out.outputs, ctx);
+    await new OscillatorNode().run(
+      makeInputs({ handles: {}, signal: controller.signal }),
+      out.outputs,
+      ctx
+    );
     expect(controller.signal.aborted).toBe(true);
     expect(emitted).toBeGreaterThan(0);
-    expect(emitted).toBeLessThan(600 * SR / 1024);
-  } finally { clearTimeout(timer); }
+    expect(emitted).toBeLessThan((600 * SR) / 1024);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 });
 
 it("yields at least once per 32 render blocks without wall-clock pacing", async () => {
   const immediate = vi.spyOn(globalThis, "setImmediate");
   const transport = new AudioTransport({ mode: "render", endFrame: SR });
-  for (let i = 0; i < 96; i++) await transport.until(i * 1024);
+  for (let i = 0; i < 96; i++) {
+    await transport.until(i * 1024);
+  }
   expect(immediate).toHaveBeenCalledTimes(3);
   immediate.mockRestore();
 });
 
 it("asserts the exact native effect fixture against TypeScript PCM", async () => {
-  const base = new URL("../../../native/graph-runner/tests/graphs/", import.meta.url);
-  const graph: { nodes: Array<{ id: string; type: string; properties: Record<string, unknown> }> } = JSON.parse(readFileSync(new URL("audio-effects.json", base), "utf8"));
-  const expected: Record<string, { frames: number; pcm_sha256: string }> = JSON.parse(readFileSync(new URL("audio-effects.expected.json", base), "utf8"));
-  expect(Object.keys(expected).sort()).toEqual(effects.map(effect => effect.name).sort());
-  const player = new AudioToChunksNode({ audio: graph.nodes.find(node => node.id === "source")?.properties.value, chunk_duration: 127 / SR });
+  const base = new URL(
+    "../../../native/graph-runner/tests/graphs/",
+    import.meta.url
+  );
+  const graph: {
+    nodes: Array<{
+      id: string;
+      type: string;
+      properties: Record<string, unknown>;
+    }>;
+  } = JSON.parse(readFileSync(new URL("audio-effects.json", base), "utf8"));
+  const expected: Record<string, { frames: number; pcm_sha256: string }> =
+    JSON.parse(
+      readFileSync(new URL("audio-effects.expected.json", base), "utf8")
+    );
+  expect(Object.keys(expected).sort()).toEqual(
+    effects.map((effect) => effect.name).sort()
+  );
+  const player = new AudioToChunksNode({
+    audio: graph.nodes.find((node) => node.id === "source")?.properties.value,
+    chunk_duration: 127 / SR
+  });
   const chunks = [];
-  for await (const item of player.genProcess()) chunks.push(item.chunk);
+  for await (const item of player.genProcess()) {
+    chunks.push(item.chunk);
+  }
   for (const effect of effects) {
-    const props = graph.nodes.find(node => node.id === effect.name)?.properties;
+    const props = graph.nodes.find(
+      (node) => node.id === effect.name
+    )?.properties;
     expect(props).toBeDefined();
     const out = recordingOutputs();
-    await new effect.signal(props).run(makeInputs({ handles: { chunk: chunks } }), out.outputs);
+    await new effect.signal(props).run(
+      makeInputs({ handles: { chunk: chunks } }),
+      out.outputs
+    );
     const pcm = concatEmitted(out.emitted);
-    expect({ frames: pcm.length, pcm_sha256: createHash("sha256").update(encodeWav(pcm, SR, 1).subarray(44)).digest("hex") }).toEqual(expected[effect.name]);
+    expect({
+      frames: pcm.length,
+      pcm_sha256: createHash("sha256")
+        .update(encodeWav(pcm, SR, 1).subarray(44))
+        .digest("hex")
+    }).toEqual(expected[effect.name]);
   }
 });
 
-for (const Effect of [StreamingGainNode, signals.StreamingHighShelfFilterNode, signals.StreamingLowShelfFilterNode, signals.StreamingPeakFilterNode]) {
+for (const Effect of [
+  StreamingGainNode,
+  signals.StreamingHighShelfFilterNode,
+  signals.StreamingLowShelfFilterNode,
+  signals.StreamingPeakFilterNode
+]) {
   it(`${Effect.name} preserves the existing neutral clip default`, async () => {
     const out = recordingOutputs();
-    await new Effect().run(makeInputs({ handles: { chunk: [makeSignalChunk(decodedInput, SR, 1, false, "pcm16le")] } }), out.outputs);
+    await new Effect().run(
+      makeInputs({
+        handles: {
+          chunk: [makeSignalChunk(decodedInput, SR, 1, false, "pcm16le")]
+        }
+      }),
+      out.outputs
+    );
     expect(concatEmitted(out.emitted)).toEqual(decodedInput);
   });
 }
-
 
 for (const mode of ["render", "live"] as const) {
   it(`${mode} players decode foreign audio and resample a 48 kHz WAV`, async () => {
     const { loadKernels } = await import("@nodetool-ai/kernels");
     const { decodeAudioToWav } = await import("../src/lib/audio-wav.js");
-    const base = new URL("../../../native/graph-runner/tests/graphs/audio-subgraph-render.json", import.meta.url);
+    const base = new URL(
+      "../../../native/graph-runner/tests/graphs/audio-subgraph-render.json",
+      import.meta.url
+    );
     const graph = JSON.parse(readFileSync(base, "utf8"));
     const wavRef = graph.nodes[0].properties.graph.nodes[0].properties.value;
-    const flac = readFileSync(new URL("./fixtures/player-48k.flac", import.meta.url));
+    const flac = readFileSync(
+      new URL("./fixtures/player-48k.flac", import.meta.url)
+    );
     for (const data of [Buffer.from(wavRef.data, "base64"), flac]) {
       const decoded = await decodeAudioToWav(data);
-      const expected = (await loadKernels()).resample(decoded.samples, decoded.numChannels, decoded.sampleRate, SR);
-      const player = new AudioToChunksNode({ audio: { type: "audio", data }, chunk_duration: 0.01 });
+      const expected = (await loadKernels()).resample(
+        decoded.samples,
+        decoded.numChannels,
+        decoded.sampleRate,
+        SR
+      );
+      const player = new AudioToChunksNode({
+        audio: { type: "audio", data },
+        chunk_duration: 0.01
+      });
       const emitted: Array<[string, unknown]> = [];
       const running = (async () => {
         for await (const item of player.genProcess(context(mode, 1))) {
@@ -660,15 +762,29 @@ for (const mode of ["render", "live"] as const) {
         }
       })();
       await running;
-      expect(encodeWav(concatEmitted(emitted), SR, decoded.numChannels)).toEqual(encodeWav(expected, SR, decoded.numChannels));
+      expect(
+        encodeWav(concatEmitted(emitted), SR, decoded.numChannels)
+      ).toEqual(encodeWav(expected, SR, decoded.numChannels));
     }
   });
 }
 
-for (const effect of effects.filter(effect => !["Gain", "LowShelfFilter", "HighShelfFilter", "PeakFilter"].includes(effect.name))) {
+for (const effect of effects.filter(
+  (effect) =>
+    !["Gain", "LowShelfFilter", "HighShelfFilter", "PeakFilter"].includes(
+      effect.name
+    )
+)) {
   it(`${effect.name} changes samples at its default controls`, async () => {
     const out = recordingOutputs();
-    await new effect.signal().run(makeInputs({ handles: { chunk: [makeSignalChunk(decodedInput, SR, 1, false, "pcm16le")] } }), out.outputs);
+    await new effect.signal().run(
+      makeInputs({
+        handles: {
+          chunk: [makeSignalChunk(decodedInput, SR, 1, false, "pcm16le")]
+        }
+      }),
+      out.outputs
+    );
     expect(concatEmitted(out.emitted)).not.toEqual(decodedInput);
   });
 }
