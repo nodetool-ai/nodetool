@@ -81,11 +81,25 @@ The [click/flash analyzer](spike/sync/README.md) decodes a supplied recording an
 reports picture-minus-sound offsets. Its test creates and decodes a synthetic
 recording with an intentional stream offset. No physical recording is included.
 
+## Visual clock preparation
+
+`spike/visual-clock/clock.h` implements the arithmetic of D7c on the render
+thread. Its caller supplies the predicted presentation-time audio or monotonic
+position, measured refresh period, elapsed period count and re-anchor events.
+Tests exercise missed refreshes, drift, callback jitter, discontinuities,
+display-period changes and invalid inputs. The correction fraction is an
+explicit experimental input, not a measured tuning decision.
+
+This value object owns its state and has no buffers, threads or callbacks.
+It is not connected to a surface or device. Refresh estimation, display latency
+and the ordering of surface acquire before clock reads still need WP01's Mac
+spike and hardware measurements.
+
 ## Remaining M0 work
 
 | Issue | Prepared here | Still required |
 |---|---|---|
-| [WP01](https://github.com/nodetool-ai/nodetool/issues/7392) | No surface spike yet | Qt/wgpu Metal surface, catalog shader chain, visual clock, same-device submit gate and second-device comparisons, pipeline timings |
+| [WP01](https://github.com/nodetool-ai/nodetool/issues/7392) | Portable visual-clock arithmetic and synthetic tests | Qt/wgpu Metal surface, catalog shader chain, measured refresh and clock integration, same-device submit gate and second-device comparisons, pipeline timings |
 | [WP02](https://github.com/nodetool-ai/nodetool/issues/7393) | Buffered driver, plan/state/parameter tests, null-device smoke, offline conversion benchmark | macOS realtime policy and device workgroup implementation, busy/GPU profiles, ten-minute hardware runs, hardware conversion cost, complete allocation audit |
 | [WP03](https://github.com/nodetool-ai/nodetool/issues/7394) | Native/Wasm/Chrome byte comparison and traced per-quantum offline timings | Required repository checks and any live-device qualification beyond the offline fixture |
 | [WP04](https://github.com/nodetool-ai/nodetool/issues/7395) | Timestamp-preserving recording analyzer and synthetic fixture | Combined click/flash producer, calibrated physical recording, measured design budgets and R1/R2 decision |
