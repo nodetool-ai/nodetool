@@ -80,6 +80,7 @@ import {
 import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import {
   createLogger,
+  getDefaultAssetsPath,
   getNodetoolDataDir,
   isGoogleWorkspaceEnabled
 } from "@nodetool-ai/config";
@@ -91,6 +92,7 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "./lib/storage.js";
+import { createTempUrlResolver } from "./lib/temp-url-resolver.js";
 import { normalizeAssetContentType } from "./lib/asset-paths.js";
 import { toAssetResponse } from "./lib/asset-response.js";
 import {
@@ -185,7 +187,12 @@ function buildAgentToolContext(userId: string): ProcessingContext {
     secretResolver: (key: string) => getSecret(key, userId),
     storage,
     workspaceDir,
-    workspaceStorage: new FileStorageAdapter(workspaceDir)
+    workspaceStorage: new FileStorageAdapter(workspaceDir),
+    // `download_file` and the other binary tools answer with a URL the client
+    // renders. Without a resolver that URL was the raw `supabase://` or
+    // `s3://` storage uri, which no MCP client can load. The resolver signs a
+    // cloud object, as the chat runner's context does.
+    tempUrlResolver: createTempUrlResolver(storage, getDefaultAssetsPath())
   });
   // The generation tracker. Every generation tool writes its record through
   // the prediction messages this context emits, and `get_generation`,
