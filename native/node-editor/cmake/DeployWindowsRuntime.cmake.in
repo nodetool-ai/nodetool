@@ -43,4 +43,11 @@ foreach(dependency IN LISTS resolved)
     get_filename_component(name "${dependency}" NAME)
     file(COPY_FILE "${dependency}" "${destination}/${name}" ONLY_IF_DIFFERENT)
 endforeach()
+# windeployqt and the copies above may place Qt's FFmpeg DLLs here. Stage the
+# runner's FFmpeg last so its DLLs replace any of the same name.
+set(GR_MEDIA_RUNTIME_NAMES "@media_runtime_names@")
+set(GR_MEDIA_RUNTIME_DIRECTORIES "@media_runtime_directories@")
+set(GR_RUNTIME_DIRECTORY "${destination}")
+set(GR_DUMPBIN "@NODETOOL_DUMPBIN@")
+include("@media_stage_script@")
 file(COPY_FILE "@guest_bundle@" "${destination}/guest.js" ONLY_IF_DIFFERENT)

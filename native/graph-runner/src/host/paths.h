@@ -46,6 +46,11 @@ public:
 // Windows paths use forward slashes and retain their drive prefix.
 std::string lexicalNormalize(const std::string& absolute);
 
+// The directory containing the absolute host path `path`. A parent that is a
+// filesystem root keeps its separator ("/", "C:/"), because Windows reads a
+// bare drive ("C:") as that drive's current directory.
+std::string parentOf(const std::string& path);
+
 // Whether `path` is `dir` or below it. Both are canonical absolute paths.
 bool isWithin(const std::string& dir, const std::string& path);
 

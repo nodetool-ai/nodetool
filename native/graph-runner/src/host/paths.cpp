@@ -75,16 +75,6 @@ std::optional<std::string> realPath(const std::string& path, int& err) {
   return std::nullopt;
 }
 
-std::string parentOf(const std::string& path) {
-#ifdef _WIN32
-  const auto parent = std::filesystem::u8path(path).parent_path().generic_u8string();
-  return std::string(parent.begin(), parent.end());
-#else
-  auto slash = path.rfind('/');
-  return slash == 0 || slash == std::string::npos ? "/" : path.substr(0, slash);
-#endif
-}
-
 std::string leafOf(const std::string& path) {
   auto slash = path.rfind('/');
   return slash == std::string::npos ? path : path.substr(slash + 1);
@@ -120,6 +110,16 @@ const Root* rootOf(const std::vector<Root>& roots, const std::string& real) {
 const char* kOutside = "outside the directories the native runner grants";
 
 }  // namespace
+
+std::string parentOf(const std::string& path) {
+#ifdef _WIN32
+  const auto parent = std::filesystem::u8path(path).parent_path().generic_u8string();
+  return std::string(parent.begin(), parent.end());
+#else
+  auto slash = path.rfind('/');
+  return slash == 0 || slash == std::string::npos ? "/" : path.substr(0, slash);
+#endif
+}
 
 FsError::FsError(const std::string& c, const std::string& syscall, const std::string& path,
                  const std::string& note)

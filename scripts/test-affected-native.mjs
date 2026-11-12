@@ -117,7 +117,10 @@ export const PROJECTS = {
   },
   // The editor's local-run tests load the graph runner's guest bundle from the
   // path in NODETOOL_GUEST_BUNDLE (native/node-editor/cmake/GraphRunner.cmake).
+  // On Windows the editor's launcher and check script build in `build-windows`
+  // (native/node-editor/scripts/run.mjs), so the default follows them there.
   "node-editor": {
+    windowsBuildDir: "build-windows",
     dependsOn: ["jobs"],
     prepare: [
       {
@@ -136,6 +139,7 @@ export function projectConfig(name) {
   return {
     envVar: config.envVar ?? `NODETOOL_${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_BUILD_DIR`,
     configureArgs: config.configureArgs ?? [],
+    windowsBuildDir: config.windowsBuildDir ?? "build",
     prepare: config.prepare ?? [],
     bundleInputs: config.bundleInputs ?? [],
     dependsOn: config.dependsOn ?? []
@@ -187,17 +191,21 @@ function cmakeFilesUnder(dir) {
 }
 
 /** The build directory of a project, and where the choice came from. */
-export function resolveBuildDir(name, overrides, env, root = repoRoot) {
+export function resolveBuildDir(name, overrides, env, root = repoRoot, platform = process.platform) {
   if (overrides[name]) return { dir: resolve(overrides[name]), source: "--build" };
   const { envVar } = projectConfig(name);
   if (env[envVar]) return { dir: resolve(env[envVar]), source: envVar };
-  return { dir: join(root, "native", name, "build"), source: "default" };
+  return { dir: join(root, "native", name, defaultBuildDirName(name, platform)), source: "default" };
+}
+
+function defaultBuildDirName(name, platform) {
+  return platform === "win32" ? projectConfig(name).windowsBuildDir : "build";
 }
 
 /** The exact command that configures a project's default build directory. */
-export function configureCommand(name) {
+export function configureCommand(name, platform = process.platform) {
   const dir = `native/${name}`;
-  return ["cmake", "-S", dir, "-B", `${dir}/build`, ...projectConfig(name).configureArgs].join(" ");
+  return ["cmake", "-S", dir, "-B", `${dir}/${defaultBuildDirName(name, platform)}`, ...projectConfig(name).configureArgs].join(" ");
 }
 
 export function readCache(buildDir) {

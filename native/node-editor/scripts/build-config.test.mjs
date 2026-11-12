@@ -13,6 +13,8 @@ test("reuses a Visual Studio build and its installed runtime paths", () => {
     const qt = join(root, "Qt with spaces");
     mkdirSync(join(qt, "bin"), { recursive: true });
     mkdirSync(join(qt, "plugins"));
+    const ffmpeg = join(root, "ffmpeg");
+    mkdirSync(join(ffmpeg, "bin"), { recursive: true });
     mkdirSync(join(root, "Release"));
     const executable = join(root, "Release", "nodetool-node-editor.exe");
     writeFileSync(executable, "fixture");
@@ -21,13 +23,15 @@ test("reuses a Visual Studio build and its installed runtime paths", () => {
       "CMAKE_GENERATOR:INTERNAL=Visual Studio 17 2022",
       "CMAKE_COMMAND:INTERNAL=C:/tools/cmake.exe",
       `CMAKE_PREFIX_PATH:UNINITIALIZED=${qt};${join(root, "missing")}`,
+      `GR_MEDIA_LIBRARY_DIRS:INTERNAL=${join(ffmpeg, "lib")}`,
       "", "# comment"
     ].join("\r\n"));
     const cache = readBuildCache(root);
     assert.equal(cache.CMAKE_GENERATOR, "Visual Studio 17 2022");
     assert.equal(cache.CMAKE_COMMAND, "C:/tools/cmake.exe");
     assert.equal(editorBinary(root), executable);
-    assert.deepEqual(windowsRuntimeDirectories(cache), [join(qt, "bin")]);
+    // The runner's FFmpeg precedes Qt's same-named FFmpeg DLLs.
+    assert.deepEqual(windowsRuntimeDirectories(cache), [join(ffmpeg, "bin"), join(qt, "bin")]);
     assert.deepEqual(windowsPluginDirectories(cache), [join(qt, "plugins")]);
   } finally {
     rmSync(root, { recursive: true, force: true });

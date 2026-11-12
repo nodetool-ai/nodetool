@@ -48,6 +48,9 @@ int main(int argc, char** argv) {
     const auto roots = canonicalRoots({{root, true}});
     require(roots.size() == 1, "canonical root");
     require(isWithin("C:/", "C:/file"), "canonical drive root contains its files");
+    // rm opens the parent of its target. "C:" would be the drive's current directory.
+    require(parentOf("C:/victim") == "C:/", "parent below a drive root keeps the root separator");
+    require(parentOf("C:/granted/victim") == "C:/granted", "parent of a nested path");
     require(!isWithin("C:/granted", "C:/Granted/file"), "distinct canonical directory names stay distinct");
     require(confine(roots, root, ".", Access::Read, "test").exists, "relative root");
     auto lowerDrive = root;

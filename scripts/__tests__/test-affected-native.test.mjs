@@ -381,7 +381,15 @@ describe("build directories and helpers", () => {
     });
     expect(resolveBuildDir("graph-runner", { "graph-runner": "/b/gr" }, { NODETOOL_GRAPH_RUNNER_BUILD_DIR: "/b/env" }, "/repo").dir).toBe(resolve("/b/gr"));
     expect(resolveBuildDir("timeline", {}, {}, "/repo")).toEqual({ dir: join("/repo", "native/timeline/build"), source: "default" });
-    expect(configureCommand("graph-runner")).toBe("cmake -S native/graph-runner -B native/graph-runner/build -DCMAKE_BUILD_TYPE=Release");
+    expect(configureCommand("graph-runner", "linux")).toBe("cmake -S native/graph-runner -B native/graph-runner/build -DCMAKE_BUILD_TYPE=Release");
+  });
+
+  it("defaults the editor to build-windows on Windows, as its launcher does", () => {
+    expect(resolveBuildDir("node-editor", {}, {}, "/repo", "win32")).toEqual({ dir: join("/repo", "native/node-editor/build-windows"), source: "default" });
+    expect(resolveBuildDir("node-editor", {}, {}, "/repo", "linux").dir).toBe(join("/repo", "native/node-editor/build"));
+    expect(resolveBuildDir("graph-runner", {}, {}, "/repo", "win32").dir).toBe(join("/repo", "native/graph-runner/build"));
+    expect(configureCommand("node-editor", "win32")).toBe("cmake -S native/node-editor -B native/node-editor/build-windows");
+    expect(configureCommand("node-editor", "darwin")).toBe("cmake -S native/node-editor -B native/node-editor/build");
   });
 
   it("parses Makefile depfiles with continuations, escaped spaces and relative paths", () => {

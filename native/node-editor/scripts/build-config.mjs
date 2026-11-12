@@ -22,8 +22,9 @@ export function editorBinary(build, configuration = "Release") {
 export function windowsRuntimeDirectories(cache) {
   const prefixes = (cache.CMAKE_PREFIX_PATH ?? "").split(";").filter(Boolean);
   const media = (cache.GR_MEDIA_LIBRARY_DIRS ?? "").split(";").filter(Boolean);
-  return [...prefixes.map((prefix) => join(prefix, "bin")),
-    ...media.map((lib) => join(dirname(lib), "bin"))].filter(existsSync);
+  // The runner's FFmpeg first: Qt's bin holds FFmpeg DLLs with the same names.
+  return [...media.map((lib) => join(dirname(lib), "bin")),
+    ...prefixes.map((prefix) => join(prefix, "bin"))].filter(existsSync);
 }
 
 export function windowsPluginDirectories(cache) {

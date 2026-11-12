@@ -424,9 +424,8 @@ struct FileGrants {
   // (host/paths.h). Checks `stop` before each batch and each entry and
   // returns false when it stopped, with part of the tree removed.
   bool removeTree(const std::string& real, const std::string& path, const std::stop_token& stop = {}) const {
-    const size_t slash = real.rfind('/');
-    const std::string leaf = real.substr(slash + 1);
-    UniqueFd parent(fsapi::open(slash == 0 ? "/" : real.substr(0, slash).c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC));
+    const std::string leaf = real.substr(real.rfind('/') + 1);
+    UniqueFd parent(fsapi::open(parentOf(real).c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC));
     if (!parent) throwErrno(errno, "rm", path);
     fsapi::FileStat st {};
     if (fsapi::fstatat(parent.get(), leaf.c_str(), &st, AT_SYMLINK_NOFOLLOW) != 0) throwErrno(errno, "rm", path);
