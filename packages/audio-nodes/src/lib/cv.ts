@@ -1,3 +1,4 @@
+import { AUDIO_SAMPLE_RATE } from "@nodetool-ai/protocol";
 /**
  * Control-voltage (CV) signal helpers for the modular synthesis nodes.
  *
@@ -14,7 +15,7 @@
  *    multi-input streaming nodes (the kernel has no sample-aligned zip;
  *    alignment is exact when one clock drives the patch, hold-last
  *    otherwise).
- *  - `abortableSleep` / `RealtimePacer` — wall-clock pacing for the
+ *  - `abortableSleep` — cancellation-aware waits for the
  *    free-running generators. Pacing only delays emission; signal content
  *    is identical to an unpaced run.
  */
@@ -29,10 +30,6 @@ import {
 
 export type SignalEncoding = "pcm16le" | "f32le";
 
-/** Default sample rate for synth generators (matches the chunk default). */
-export const SYNTH_SAMPLE_RATE = 24000;
-/** Frames per generated chunk (~21 ms @ 24 kHz). */
-export const SYNTH_CHUNK_FRAMES = 512;
 
 /** Default value for `@prop({ type: "chunk" })` declarations on signal nodes. */
 export const CHUNK_PROP_DEFAULT = {
@@ -76,7 +73,7 @@ export function readSignalChunk(item: unknown): SignalChunk | null {
     channels?: unknown;
   };
   const sampleRate =
-    isPositiveNumber(meta.sample_rate) ? meta.sample_rate : SYNTH_SAMPLE_RATE;
+    isPositiveNumber(meta.sample_rate) ? meta.sample_rate : AUDIO_SAMPLE_RATE;
   const channels = isPositiveNumber(meta.channels) ? meta.channels : 1;
   let samples: Float32Array;
   if (c.content instanceof Float32Array) {
@@ -309,29 +306,4 @@ export function abortableSleep(
     }, ms);
     signal.addEventListener("abort", onAbort, { once: true });
   });
-}
-
-/**
- * Drift-compensated wall-clock pacer for free-running generators: chunk k
- * is released no earlier than the cumulative duration of chunks 0..k-1
- * after start (absolute target times, same scheme as IntervalTriggerNode).
- * Pacing never alters chunk contents — a paced render is bit-identical to
- * an unpaced one.
- */
-export class RealtimePacer {
-  private _nextTargetMs = Date.now();
-
-  constructor(private readonly _signal?: AbortSignal) {}
-
-  /**
-   * Wait for the chunk's emission slot, then advance the next slot by
-   * `chunkMs` (this chunk's duration). Returns false when the run was
-   * cancelled — the caller must stop producing.
-   */
-  async waitNext(chunkMs: number): Promise<boolean> {
-    const waitMs = this._nextTargetMs - Date.now();
-    this._nextTargetMs += chunkMs;
-    if (waitMs > 0) await abortableSleep(waitMs, this._signal);
-    return !(this._signal?.aborted ?? false);
-  }
 }

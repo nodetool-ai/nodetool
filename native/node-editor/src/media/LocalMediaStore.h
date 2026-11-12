@@ -1,10 +1,12 @@
 #pragma once
-// Images an in-process run produced, kept in this process instead of sent
-// inline. The runner hands each GPU-texture output over as pixels
-// (gr::GpuOptions::outputImages), run messages carry its local-media:// URI,
-// and MediaResolver reads the pixels back. A run's images are released when
-// its session drops the run.
+// Pixels and encoded audio from local runs. Messages carry local-media://
+// locators. A run's entries are released when its session drops the run.
+#include <QCryptographicHash>
 #include <QHash>
+#include <QByteArray>
+#include <QCoreApplication>
+#include <QObject>
+#include <QThread>
 #include <QString>
 #include <cstdint>
 #include <memory>
@@ -17,22 +19,20 @@ namespace nodetool::node_editor {
 struct LocalImage {
   uint32_t width = 0;
   uint32_t height = 0;
-  // native-rules #1: std::shared_ptr without a comment saying why unique ownership is impossible
+  // Readers retain pixels across run eviction, so the store and readers share ownership.
   std::shared_ptr<const std::vector<uint8_t>> rgba;
   bool isNull() const { return !rgba; }
 };
 
-// native-rules #9: used from the runner worker thread and the GUI thread, no affinity comment at the top
+// Thread-safe: mutex_ guards entries_, clipKeys_ and next_. Readers receive immutable values.
 class LocalMediaStore {
 public:
   static constexpr char Scheme[] = "local-media://";
 
-  // One store per process: every session shares the one in-process runner.
-  static LocalMediaStore &instance() {
-    // native-rules #14: process-wide singleton holding mutable state
-    static LocalMediaStore store;
-    return store;
-  }
+  // Accessors run on the UI thread. The application owns the registry, while
+  // runner callbacks retain shared() until worker shutdown finishes.
+  static std::shared_ptr<LocalMediaStore> shared();
+  static LocalMediaStore &instance() { return *shared(); }
   static bool isLocalMedia(const QString &uri) { return uri.startsWith(QLatin1StringView(Scheme)); }
 
   // Thread-safe. The runner calls it on its worker thread.
@@ -47,8 +47,31 @@ public:
     std::lock_guard lock(mutex_);
     return entries_.value(uri).image;
   }
+  struct Clip {
+    QByteArray bytes;
+    QString contentType;
+    bool isNull() const { return bytes.isEmpty(); }
+  };
+  QString addClip(const QString &run, QByteArray bytes, QString contentType) {
+    std::lock_guard lock(mutex_);
+    const auto key = run + ':' + QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex());
+    if (clipKeys_.contains(key)) { return clipKeys_.value(key); }
+    const auto uri = QLatin1StringView(Scheme) + QString::number(++next_);
+    entries_.insert(uri, Entry{run, {}, Clip{std::move(bytes), std::move(contentType)}});
+    clipKeys_.insert(key, uri);
+    return uri;
+  }
+  Clip clip(const QString &uri) const {
+    std::lock_guard lock(mutex_);
+    return entries_.value(uri).clip;
+  }
+  bool contains(const QString &uri) const {
+    std::lock_guard lock(mutex_);
+    return entries_.contains(uri);
+  }
   void releaseRun(const QString &run) {
     std::lock_guard lock(mutex_);
+    clipKeys_.removeIf([this, &run](const auto &entry) { return entries_.value(entry.value()).run == run; });
     entries_.removeIf([&run](const auto &entry) { return entry.value().run == run; });
   }
 
@@ -56,11 +79,31 @@ private:
   struct Entry {
     QString run;
     LocalImage image;
+    Clip clip;
   };
-  // native-rules #10: mutex does not say which data it guards (entries_, next_)
+  // Guards entries_, clipKeys_ and next_, on both the runner and UI threads.
   mutable std::mutex mutex_;
   QHash<QString, Entry> entries_;
+  QHash<QString, QString> clipKeys_;
   quint64 next_ = 0;
 };
+
+// UI thread only. QObject parent ownership ties the registry to the application.
+class LocalMediaStoreOwner final : public QObject {
+public:
+  explicit LocalMediaStoreOwner(QObject *parent) : QObject(parent) {}
+  // Worker callbacks and UI readers must retain the store independently.
+  const std::shared_ptr<LocalMediaStore> store = std::make_shared<LocalMediaStore>();
+};
+inline std::shared_ptr<LocalMediaStore> LocalMediaStore::shared() {
+  auto *application = QCoreApplication::instance();
+  Q_ASSERT(application && application->thread() == QThread::currentThread());
+  for (auto *child : application->children()) {
+    if (auto *owner = dynamic_cast<LocalMediaStoreOwner *>(child)) { return owner->store; }
+  }
+  // The application QObject tree owns this registry and destroys it on exit.
+  auto *owner = new LocalMediaStoreOwner(application);
+  return owner->store;
+}
 
 } // namespace nodetool::node_editor

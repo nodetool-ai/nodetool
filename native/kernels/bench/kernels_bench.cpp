@@ -55,7 +55,23 @@ int main() {
     const char* input;
     double ms;
   };
+  const std::vector<float> block(1024 * kChannels, 0.2f);
+  std::vector<float> blockOut(block.size());
+  std::vector<double> reverbState(nt_audio_reverb_state_len(kChannels, kRate, 0));
+  nt_audio_reverb_init(reverbState.data(), kChannels, kRate, 0);
+  std::vector<double> delayState(nt_audio_delay_state_len(kChannels, kRate, 2));
+  nt_audio_delay_init(delayState.data(), kChannels, kRate, 2);
   const std::vector<Row> rows = {
+      {"Reverb block with state copies", "1024 stereo frames", timeMs([&] {
+        auto state = reverbState;
+        nt_audio_reverb_block(state.data(), block.data(), blockOut.data(), 1024, kChannels, kRate, 0.5, 0.5, 0.33, 0.4);
+        reverbState = state;
+      }, 101)},
+      {"2 s delay block with state copies", "1024 stereo frames", timeMs([&] {
+        auto state = delayState;
+        nt_audio_delay_block(state.data(), block.data(), blockOut.data(), 1024, kChannels, kRate, 2, 0.5, 0.5);
+        delayState = state;
+      }, 101)},
       {"AutoContrast", "1 MP", timeMs([&] { nt_image_auto_contrast(rgba.data(), dst.data(), kWidth, kHeight, 2); })},
       {"Equalize", "1 MP", timeMs([&] { nt_image_equalize(rgba.data(), dst.data(), kWidth, kHeight); })},
       {"AdaptiveContrast", "1 MP", timeMs([&] { nt_image_adaptive_contrast(rgba.data(), dst.data(), kWidth, kHeight, 2, 8); })},
@@ -70,6 +86,6 @@ int main() {
        })},
   };
   std::printf("| Kernel | Input | Native (ms) |\n|---|---|---:|\n");
-  for (const auto& row : rows) std::printf("| %s | %s | %.1f |\n", row.name, row.input, row.ms);
+  for (const auto& row : rows) std::printf("| %s | %s | %.3f |\n", row.name, row.input, row.ms);
   return 0;
 }

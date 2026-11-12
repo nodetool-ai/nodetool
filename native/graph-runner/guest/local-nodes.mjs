@@ -19,6 +19,19 @@ export const CORE_MODULES = [
   "@nodetool-ai/core-nodes/nodes/input"
 ];
 
+// Audio sources cannot finish in the original single-node parity fixtures.
+// Their finite render and effect paths are qualified by gr_audio_render_tests
+// and the editor's LocalRunTests, using the same PCM hashes as TypeScript.
+const AUDIO_SIGNAL_TYPES = [
+  "nodetool.audio.synth.Oscillator",
+  "nodetool.audio.synth.LFO",
+  "nodetool.audio.synth.Gate",
+  "nodetool.audio.realtime.AudioToChunks",
+  "nodetool.audio.realtime.ChunksToAudio",
+  "nodetool.audio.realtime.AudioOutput",
+  ...["LowShelf", "HighShelf", "Peak", "Bitcrush", "Compress", "Distortion", "Limiter", "NoiseGate", "Reverb", "Phaser", "Delay"].map(name => "nodetool.audio.realtime.Streaming" + name)
+];
+
 const STATEFUL_PREFIXES = ["vector.", "lib.sqlite."];
 
 export function localAdmission(baselinePath = join(here, "..", "parity", "baseline.json")) {
@@ -30,5 +43,5 @@ export function localAdmission(baselinePath = join(here, "..", "parity", "baseli
       !STATEFUL_PREFIXES.some((prefix) => type.startsWith(prefix)))
     .map(([type]) => type)
     .sort();
-  return { modules: CORE_MODULES, types };
+  return { modules: CORE_MODULES, types: [...new Set([...types, ...AUDIO_SIGNAL_TYPES])].sort() };
 }

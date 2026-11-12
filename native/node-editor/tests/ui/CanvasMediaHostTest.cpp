@@ -1,3 +1,4 @@
+#include "media/LocalMediaStore.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QClipboard>
 #include "ui/EditorWindow.h"
@@ -24,15 +25,15 @@ using namespace nodetool;
 namespace {
 const QString VideoNode = QStringLiteral("11111111111111111111111111111111");
 const QString AudioNode = QStringLiteral("22222222222222222222222222222222");
-QByteArray audioBytes() {
+QByteArray audioBytes(int seconds = 3, int rate = 8000) {
   QByteArray bytes;
   QDataStream stream(&bytes, QIODevice::WriteOnly);
   stream.setByteOrder(QDataStream::LittleEndian);
-  stream.writeRawData("RIFF", 4); stream << quint32(48036);
+  stream.writeRawData("RIFF", 4); stream << quint32(seconds * rate * 2 + 36);
   stream.writeRawData("WAVEfmt ", 8);
-  stream << quint32(16) << quint16(1) << quint16(1) << quint32(8000) << quint32(16000) << quint16(2) << quint16(16);
-  stream.writeRawData("data", 4); stream << quint32(48000);
-  for (int i = 0; i < 24000; ++i) { stream << qint16(i % 16 < 8 ? 12000 : -12000); }
+  stream << quint32(16) << quint16(1) << quint16(1) << quint32(rate) << quint32(rate * 2) << quint16(2) << quint16(16);
+  stream.writeRawData("data", 4); stream << quint32(seconds * rate * 2);
+  for (int i = 0; i < seconds * rate; ++i) { stream << qint16(i % 16 < 8 ? 12000 : -12000); }
   return bytes;
 }
 QJsonArray catalog() {
@@ -292,6 +293,21 @@ private slots:
     QTRY_VERIFY(previous.isNull());
     inject(AudioNode, "Old workflow result");
     QVERIFY(!overlay(window, AudioNode));
+  }
+  void storedMinuteOfAudioLoadsOnCard() {
+    EditorWindow window;
+    window.resize(1400, 900);
+    window.setCatalog(catalog());
+    QVERIFY(window.document()->load(workflow()));
+    window.show();
+    window.fit();
+    auto &store = node_editor::LocalMediaStore::instance();
+    const auto uri = store.addClip("minute-test", audioBytes(60, 44100), "audio/wav");
+    const QJsonObject audio{{"type", "audio"}, {"uri", uri}};
+    window.runOutput()->beginRun("minute-test");
+    window.runOutput()->ingest("minute-test", {{"type", "node_update"}, {"job_id", "minute-test"}, {"node_id", AudioNode}, {"status", "completed"}, {"result", QJsonObject{{"value", audio}}}});
+    QTRY_VERIFY_WITH_TIMEOUT(player(window, AudioNode) && player(window, AudioNode)->duration() >= 59900, 15000);
+    store.releaseRun("minute-test");
   }
   void outputToNativeCardsAndBoundaryCleanup() {
     QFile video(QStringLiteral(MEDIA_VIDEO_FIXTURE));

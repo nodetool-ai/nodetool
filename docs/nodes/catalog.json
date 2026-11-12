@@ -1,6 +1,6 @@
 {
   "schema_version": "1",
-  "generated_at": "2026-08-14T14:57:21.490Z",
+  "generated_at": "2026-11-12T13:51:48.349Z",
   "nodes": [
     {
       "type": "elevenlabs.RealtimeSpeechToText",
@@ -1632,19 +1632,6 @@
       "description": "Applies a bitcrushing effect to an audio file, reducing bit depth and/or sample rate.\n    audio, effect, distortion\n\n    Use cases:\n    - Create lo-fi or retro-style audio effects\n    - Simulate vintage digital audio equipment\n    - Add digital distortion and artifacts to sounds",
       "inputs": [
         {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to process.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
           "name": "bit_depth",
           "type": "int",
           "description": "The bit depth to reduce the audio to. Lower values create more distortion.",
@@ -1657,6 +1644,19 @@
           "description": "Factor by which to reduce the sample rate. Higher values create more aliasing.",
           "required": false,
           "default": 1
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to process.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
         }
       ],
       "outputs": [
@@ -1674,19 +1674,6 @@
       "namespace": "lib.audio",
       "description": "Applies dynamic range compression to an audio file.\n    audio, effect, dynamics\n\n    Use cases:\n    - Even out volume levels in a recording\n    - Increase perceived loudness of audio\n    - Control peaks in audio signals",
       "inputs": [
-        {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to process.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
         {
           "name": "threshold",
           "type": "float",
@@ -1721,6 +1708,19 @@
           "description": "Apply automatic makeup gain to compensate for the level lost to compression, keeping the output roughly as loud as the input.",
           "required": false,
           "default": true
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to process.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
         }
       ],
       "outputs": [
@@ -1738,19 +1738,6 @@
       "namespace": "lib.audio",
       "description": "Applies a delay effect to an audio file.\n    audio, effect, time-based\n\n    Use cases:\n    - Create echo effects\n    - Add spaciousness to sounds\n    - Produce rhythmic patterns",
       "inputs": [
-        {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to process.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
         {
           "name": "delay_seconds",
           "type": "float",
@@ -1771,6 +1758,19 @@
           "description": "Mix between the dry (original) and wet (delayed) signals.",
           "required": false,
           "default": 0.5
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to process.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
         }
       ],
       "outputs": [
@@ -1789,6 +1789,13 @@
       "description": "Applies a distortion effect to an audio file.\n    audio, effect, distortion\n\n    Use cases:\n    - Add grit and character to instruments\n    - Create aggressive sound effects\n    - Simulate overdriven amplifiers",
       "inputs": [
         {
+          "name": "drive_db",
+          "type": "float",
+          "description": "Amount of distortion to apply in decibels.",
+          "required": false,
+          "default": 25
+        },
+        {
           "name": "audio",
           "type": "audio",
           "description": "The audio file to process.",
@@ -1800,13 +1807,6 @@
             "data": null,
             "metadata": null
           }
-        },
-        {
-          "name": "drive_db",
-          "type": "float",
-          "description": "Amount of distortion to apply in decibels.",
-          "required": false,
-          "default": 25
         }
       ],
       "outputs": [
@@ -1825,6 +1825,13 @@
       "description": "Applies a gain (volume adjustment) to an audio file.\n    audio, effect, volume\n\n    Use cases:\n    - Increase or decrease overall volume of audio\n    - Balance levels between different audio tracks\n    - Prepare audio for further processing",
       "inputs": [
         {
+          "name": "gain_db",
+          "type": "float",
+          "description": "Gain to apply in decibels. Positive values increase volume, negative values decrease it.",
+          "required": false,
+          "default": 0
+        },
+        {
           "name": "audio",
           "type": "audio",
           "description": "The audio file to process.",
@@ -1836,13 +1843,6 @@
             "data": null,
             "metadata": null
           }
-        },
-        {
-          "name": "gain_db",
-          "type": "float",
-          "description": "Gain to apply in decibels. Positive values increase volume, negative values decrease it.",
-          "required": false,
-          "default": 0
         }
       ],
       "outputs": [
@@ -1861,6 +1861,13 @@
       "description": "Applies a high-pass filter to attenuate frequencies below a cutoff point.\n    audio, effect, equalizer\n\n    Use cases:\n    - Remove low-frequency rumble or noise\n    - Clean up the low end of a mix\n    - Create filter sweep effects",
       "inputs": [
         {
+          "name": "cutoff_frequency_hz",
+          "type": "float",
+          "description": "The cutoff frequency of the high-pass filter in Hz.",
+          "required": false,
+          "default": 80
+        },
+        {
           "name": "audio",
           "type": "audio",
           "description": "The audio file to process.",
@@ -1872,13 +1879,6 @@
             "data": null,
             "metadata": null
           }
-        },
-        {
-          "name": "cutoff_frequency_hz",
-          "type": "float",
-          "description": "The cutoff frequency of the high-pass filter in Hz.",
-          "required": false,
-          "default": 80
         }
       ],
       "outputs": [
@@ -1897,19 +1897,6 @@
       "description": "Applies a high shelf filter to boost or cut high frequencies.\n    audio, effect, equalizer\n\n    Use cases:\n    - Enhance or reduce treble frequencies\n    - Add brightness or air to audio\n    - Tame harsh high frequencies",
       "inputs": [
         {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to process.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
           "name": "cutoff_frequency_hz",
           "type": "float",
           "description": "The cutoff frequency of the shelf filter in Hz.",
@@ -1922,6 +1909,19 @@
           "description": "The gain to apply to the frequencies above the cutoff, in dB.",
           "required": false,
           "default": 0
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to process.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
         }
       ],
       "outputs": [
@@ -1939,19 +1939,6 @@
       "namespace": "lib.audio",
       "description": "Applies a limiter effect to an audio file.\n    audio, effect, dynamics\n\n    Use cases:\n    - Prevent audio clipping\n    - Increase perceived loudness without distortion\n    - Control dynamic range of audio",
       "inputs": [
-        {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to process.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
         {
           "name": "threshold_db",
           "type": "float",
@@ -1972,6 +1959,19 @@
           "description": "Apply automatic makeup gain so the limited peaks reach 0 dBFS, turning the headroom below the ceiling into added loudness (maximizer behaviour).",
           "required": false,
           "default": true
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to process.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
         }
       ],
       "outputs": [
@@ -1990,6 +1990,13 @@
       "description": "Applies a low-pass filter to attenuate frequencies above a cutoff point.\n    audio, effect, equalizer\n\n    Use cases:\n    - Reduce high-frequency harshness\n    - Simulate muffled or distant sounds\n    - Create dub-style effects",
       "inputs": [
         {
+          "name": "cutoff_frequency_hz",
+          "type": "float",
+          "description": "The cutoff frequency of the low-pass filter in Hz.",
+          "required": false,
+          "default": 5000
+        },
+        {
           "name": "audio",
           "type": "audio",
           "description": "The audio file to process.",
@@ -2001,13 +2008,6 @@
             "data": null,
             "metadata": null
           }
-        },
-        {
-          "name": "cutoff_frequency_hz",
-          "type": "float",
-          "description": "The cutoff frequency of the low-pass filter in Hz.",
-          "required": false,
-          "default": 5000
         }
       ],
       "outputs": [
@@ -2026,19 +2026,6 @@
       "description": "Applies a low shelf filter to boost or cut low frequencies.\n    audio, effect, equalizer\n\n    Use cases:\n    - Enhance or reduce bass frequencies\n    - Shape the low-end response of audio\n    - Compensate for speaker or room deficiencies",
       "inputs": [
         {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to process.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
           "name": "cutoff_frequency_hz",
           "type": "float",
           "description": "The cutoff frequency of the shelf filter in Hz.",
@@ -2051,6 +2038,19 @@
           "description": "The gain to apply to the frequencies below the cutoff, in dB.",
           "required": false,
           "default": 0
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to process.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
         }
       ],
       "outputs": [
@@ -2068,19 +2068,6 @@
       "namespace": "lib.audio",
       "description": "Applies a noise gate effect to an audio file.\n    audio, effect, dynamics\n\n    Use cases:\n    - Reduce background noise in recordings\n    - Clean up audio tracks with unwanted low-level sounds\n    - Create rhythmic effects by gating sustained sounds",
       "inputs": [
-        {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to process.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
         {
           "name": "threshold_db",
           "type": "float",
@@ -2101,6 +2088,19 @@
           "description": "Release time in milliseconds.",
           "required": false,
           "default": 100
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to process.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
         }
       ],
       "outputs": [
@@ -2118,19 +2118,6 @@
       "namespace": "lib.audio",
       "description": "Applies a peak filter to boost or cut a specific frequency range.\n    audio, effect, equalizer\n\n    Use cases:\n    - Isolate specific frequency ranges\n    - Create telephone or radio voice effects\n    - Focus on particular instrument ranges in a mix",
       "inputs": [
-        {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to process.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
         {
           "name": "cutoff_frequency_hz",
           "type": "float",
@@ -2151,6 +2138,19 @@
           "description": "The gain to apply at the centre frequency, in dB. Positive values boost, negative values cut.",
           "required": false,
           "default": 0
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to process.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
         }
       ],
       "outputs": [
@@ -2168,19 +2168,6 @@
       "namespace": "lib.audio",
       "description": "Applies a phaser effect to an audio file.\n    audio, effect, modulation\n\n    Use cases:\n    - Create sweeping, swooshing sounds\n    - Add movement to static sounds\n    - Produce psychedelic or space-like effects",
       "inputs": [
-        {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to process.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
         {
           "name": "rate_hz",
           "type": "float",
@@ -2215,6 +2202,19 @@
           "description": "Mix between the dry (original) and wet (effected) signals.",
           "required": false,
           "default": 0.5
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to process.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
         }
       ],
       "outputs": [
@@ -2269,19 +2269,6 @@
       "description": "Applies a reverb effect to an audio file.\n    audio, effect, reverb\n\n    Use cases:\n    - Add spatial depth to dry recordings\n    - Simulate different room acoustics\n    - Create atmospheric sound effects",
       "inputs": [
         {
-          "name": "audio",
-          "type": "audio",
-          "description": "The audio file to process.",
-          "required": false,
-          "default": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
           "name": "room_scale",
           "type": "float",
           "description": "Size of the simulated room. Higher values create larger spaces.",
@@ -2308,6 +2295,19 @@
           "description": "Level of the original signal in the output.",
           "required": false,
           "default": 0.5
+        },
+        {
+          "name": "audio",
+          "type": "audio",
+          "description": "The audio file to process.",
+          "required": false,
+          "default": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          }
         }
       ],
       "outputs": [
@@ -5410,7 +5410,7 @@
         {
           "name": "audio",
           "type": "audio",
-          "description": "The audio file to slice into chunks (must be WAV).",
+          "description": "The audio file to play as chunks.",
           "required": false,
           "default": {
             "type": "audio",
@@ -5426,6 +5426,13 @@
           "description": "Duration of each emitted chunk in seconds.",
           "required": false,
           "default": 0.25
+        },
+        {
+          "name": "loop",
+          "type": "bool",
+          "description": "Play the clip repeatedly until the run ends.",
+          "required": false,
+          "default": false
         }
       ],
       "outputs": [
@@ -5444,6 +5451,13 @@
       "description": "Accumulates a stream of PCM16 audio chunks into a single audio file.\n    audio, stream, chunk, realtime, accumulate\n\n    Use cases:\n    - Capture the output of streaming TTS or effects as a file\n    - Terminate a realtime audio chain with a playable result\n    - Record a processed live feed",
       "inputs": [
         {
+          "name": "duration",
+          "type": "float",
+          "description": "Seconds to record. Zero records until the stream ends.",
+          "required": false,
+          "default": 0
+        },
+        {
           "name": "chunk",
           "type": "chunk",
           "description": "Stream of PCM16LE audio chunks to accumulate.",
@@ -5460,23 +5474,188 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/chunkstoaudio.md"
     },
     {
+      "type": "nodetool.audio.realtime.StreamingBitcrush",
+      "title": "Streaming Bitcrush",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Processes audio chunks with persistent bitcrush state. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "bit_depth",
+          "type": "int",
+          "description": "The bit depth to reduce the audio to. Lower values create more distortion.",
+          "required": false,
+          "default": 8
+        },
+        {
+          "name": "sample_rate_reduction",
+          "type": "int",
+          "description": "Factor by which to reduce the sample rate. Higher values create more aliasing.",
+          "required": false,
+          "default": 1
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingbitcrush",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingbitcrush.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingCompress",
+      "title": "Streaming Compress",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Processes audio chunks with persistent compress state. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "threshold",
+          "type": "float",
+          "description": "Threshold in dB above which compression is applied.",
+          "required": false,
+          "default": -20
+        },
+        {
+          "name": "ratio",
+          "type": "float",
+          "description": "Compression ratio. Higher values result in more compression.",
+          "required": false,
+          "default": 4
+        },
+        {
+          "name": "attack",
+          "type": "float",
+          "description": "Attack time in milliseconds.",
+          "required": false,
+          "default": 5
+        },
+        {
+          "name": "release",
+          "type": "float",
+          "description": "Release time in milliseconds.",
+          "required": false,
+          "default": 50
+        },
+        {
+          "name": "auto_gain",
+          "type": "bool",
+          "description": "Apply automatic makeup gain to compensate for the level lost to compression, keeping the output roughly as loud as the input.",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingcompress",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingcompress.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingDelay",
+      "title": "Streaming Delay",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Processes audio chunks with persistent delay state. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "delay_seconds",
+          "type": "float",
+          "description": "Delay time in seconds.",
+          "required": false,
+          "default": 0.5
+        },
+        {
+          "name": "feedback",
+          "type": "float",
+          "description": "Amount of delayed signal fed back into the effect.",
+          "required": false,
+          "default": 0.3
+        },
+        {
+          "name": "mix",
+          "type": "float",
+          "description": "Mix between the dry (original) and wet (delayed) signals.",
+          "required": false,
+          "default": 0.5
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingdelay",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingdelay.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingDistortion",
+      "title": "Streaming Distortion",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Applies distortion to each audio chunk. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "drive_db",
+          "type": "float",
+          "description": "Amount of distortion to apply in decibels.",
+          "required": false,
+          "default": 25
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingdistortion",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingdistortion.md"
+    },
+    {
       "type": "nodetool.audio.realtime.StreamingGain",
       "title": "Streaming Gain",
       "namespace": "nodetool.audio.realtime",
       "description": "Applies a gain (volume adjustment) to each chunk of a realtime audio stream.\n    audio, stream, chunk, realtime, effect, volume\n\n    Use cases:\n    - Adjust the level of a live audio feed\n    - Balance streaming sources before mixing\n    - Attenuate or boost streaming TTS output",
       "inputs": [
         {
-          "name": "chunk",
-          "type": "chunk",
-          "description": "Stream of PCM16LE audio chunks to process.",
-          "required": true
-        },
-        {
           "name": "gain_db",
           "type": "float",
           "description": "Gain to apply in decibels. Positive values increase volume, negative values decrease it.",
           "required": false,
           "default": 0
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Stream of PCM16LE audio chunks to process.",
+          "required": true
         }
       ],
       "outputs": [
@@ -5495,17 +5674,17 @@
       "description": "Applies a high-pass filter to a realtime audio stream, keeping filter state across chunks.\n    audio, stream, chunk, realtime, effect, equalizer\n\n    Use cases:\n    - Remove rumble from a live microphone feed\n    - Clean up the low end of streaming audio\n    - Thin out streaming sources before mixing",
       "inputs": [
         {
-          "name": "chunk",
-          "type": "chunk",
-          "description": "Stream of PCM16LE audio chunks to process.",
-          "required": true
-        },
-        {
           "name": "cutoff_frequency_hz",
           "type": "float",
           "description": "The cutoff frequency of the high-pass filter in Hz.",
           "required": false,
           "default": 80
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Stream of PCM16LE audio chunks to process.",
+          "required": true
         },
         {
           "name": "q",
@@ -5524,23 +5703,102 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminghighpass.md"
     },
     {
+      "type": "nodetool.audio.realtime.StreamingHighShelf",
+      "title": "Streaming High Shelf",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Processes audio chunks with persistent highshelffilter state. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "cutoff_frequency_hz",
+          "type": "float",
+          "description": "The cutoff frequency of the shelf filter in Hz.",
+          "required": false,
+          "default": 5000
+        },
+        {
+          "name": "gain_db",
+          "type": "float",
+          "description": "The gain to apply to the frequencies above the cutoff, in dB.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminghighshelf",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminghighshelf.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingLimiter",
+      "title": "Streaming Limiter",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Processes audio chunks with persistent limiter state. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "threshold_db",
+          "type": "float",
+          "description": "Threshold in dB above which the limiter is applied.",
+          "required": false,
+          "default": -2
+        },
+        {
+          "name": "release_ms",
+          "type": "float",
+          "description": "Release time in milliseconds.",
+          "required": false,
+          "default": 250
+        },
+        {
+          "name": "auto_gain",
+          "type": "bool",
+          "description": "Apply automatic makeup gain so the limited peaks reach 0 dBFS, turning the headroom below the ceiling into added loudness (maximizer behaviour).",
+          "required": false,
+          "default": true
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminglimiter",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminglimiter.md"
+    },
+    {
       "type": "nodetool.audio.realtime.StreamingLowPass",
       "title": "Streaming Low Pass",
       "namespace": "nodetool.audio.realtime",
       "description": "Applies a low-pass filter to a realtime audio stream, keeping filter state across chunks.\n    audio, stream, chunk, realtime, effect, equalizer\n\n    Use cases:\n    - Soften a live audio feed\n    - Remove high-frequency noise from streaming audio\n    - Create realtime dub-style effects",
       "inputs": [
         {
-          "name": "chunk",
-          "type": "chunk",
-          "description": "Stream of PCM16LE audio chunks to process.",
-          "required": true
-        },
-        {
           "name": "cutoff_frequency_hz",
           "type": "float",
           "description": "The cutoff frequency of the low-pass filter in Hz.",
           "required": false,
           "default": 5000
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Stream of PCM16LE audio chunks to process.",
+          "required": true
         },
         {
           "name": "q",
@@ -5557,6 +5815,235 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminglowpass",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminglowpass.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingLowShelf",
+      "title": "Streaming Low Shelf",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Processes audio chunks with persistent lowshelffilter state. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "cutoff_frequency_hz",
+          "type": "float",
+          "description": "The cutoff frequency of the shelf filter in Hz.",
+          "required": false,
+          "default": 200
+        },
+        {
+          "name": "gain_db",
+          "type": "float",
+          "description": "The gain to apply to the frequencies below the cutoff, in dB.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminglowshelf",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streaminglowshelf.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingNoiseGate",
+      "title": "Streaming Noise Gate",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Processes audio chunks with persistent noisegate state. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "threshold_db",
+          "type": "float",
+          "description": "Threshold in dB below which the gate is active.",
+          "required": false,
+          "default": -50
+        },
+        {
+          "name": "attack_ms",
+          "type": "float",
+          "description": "Attack time in milliseconds.",
+          "required": false,
+          "default": 1
+        },
+        {
+          "name": "release_ms",
+          "type": "float",
+          "description": "Release time in milliseconds.",
+          "required": false,
+          "default": 100
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingnoisegate",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingnoisegate.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingPeak",
+      "title": "Streaming Peak",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Processes audio chunks with persistent peakfilter state. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "cutoff_frequency_hz",
+          "type": "float",
+          "description": "The cutoff frequency of the band-pass filter in Hz.",
+          "required": false,
+          "default": 1000
+        },
+        {
+          "name": "q_factor",
+          "type": "float",
+          "description": "The Q factor, determining the width of the band. Higher values create narrower bands.",
+          "required": false,
+          "default": 1
+        },
+        {
+          "name": "gain_db",
+          "type": "float",
+          "description": "The gain to apply at the centre frequency, in dB. Positive values boost, negative values cut.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingpeak",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingpeak.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingPhaser",
+      "title": "Streaming Phaser",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Processes audio chunks with persistent phaser state. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "rate_hz",
+          "type": "float",
+          "description": "Rate of the phaser effect in Hz.",
+          "required": false,
+          "default": 1
+        },
+        {
+          "name": "depth",
+          "type": "float",
+          "description": "Depth of the phaser effect.",
+          "required": false,
+          "default": 0.5
+        },
+        {
+          "name": "centre_frequency_hz",
+          "type": "float",
+          "description": "Centre frequency of the phaser in Hz.",
+          "required": false,
+          "default": 1300
+        },
+        {
+          "name": "feedback",
+          "type": "float",
+          "description": "Feedback of the phaser effect. Negative values invert the phase.",
+          "required": false,
+          "default": 0
+        },
+        {
+          "name": "mix",
+          "type": "float",
+          "description": "Mix between the dry (original) and wet (effected) signals.",
+          "required": false,
+          "default": 0.5
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingphaser",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingphaser.md"
+    },
+    {
+      "type": "nodetool.audio.realtime.StreamingReverb",
+      "title": "Streaming Reverb",
+      "namespace": "nodetool.audio.realtime",
+      "description": "Processes audio chunks with persistent reverb state. Properties apply at the next block.",
+      "inputs": [
+        {
+          "name": "room_scale",
+          "type": "float",
+          "description": "Size of the simulated room. Higher values create larger spaces.",
+          "required": false,
+          "default": 0.5
+        },
+        {
+          "name": "damping",
+          "type": "float",
+          "description": "Amount of high frequency absorption. Higher values create a duller sound.",
+          "required": false,
+          "default": 0.5
+        },
+        {
+          "name": "wet_level",
+          "type": "float",
+          "description": "Level of the reverb effect in the output.",
+          "required": false,
+          "default": 0.15
+        },
+        {
+          "name": "dry_level",
+          "type": "float",
+          "description": "Level of the original signal in the output.",
+          "required": false,
+          "default": 0.5
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Audio signal to process.",
+          "required": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingreverb",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/audio/realtime/streamingreverb.md"
     },
     {
       "type": "nodetool.audio.RemoveSilence",
@@ -5962,7 +6449,7 @@
       "type": "nodetool.audio.synth.Gate",
       "title": "Gate",
       "namespace": "nodetool.audio.synth",
-      "description": "Generates a repeating on/off gate CV pattern — the patch's master clock.\n    cv, synthesis, gate, trigger, clock, modular\n\n    Emits `amplitude` for on_duration seconds, 0 for off_duration, cycling wall-clock paced until the run is stopped. Drive an ADSR with it; every node downstream is sample-aligned to it by construction and paced with it.\n\n    Use cases:\n    - Trigger envelopes rhythmically\n    - Master clock for clocked LFOs and sample & hold\n    - Heartbeat of a live patch",
+      "description": "Generates a repeating on/off gate CV pattern — the patch's master clock.\n    cv, synthesis, gate, trigger, clock, modular\n\n    Emits `amplitude` for on_duration seconds, 0 for off_duration, cycling until the render ends or the run is stopped. Drive an ADSR with it; every node downstream is sample-aligned to it by construction and paced with it.\n\n    Use cases:\n    - Trigger envelopes rhythmically\n    - Master clock for clocked LFOs and sample & hold\n    - Heartbeat of a live patch",
       "inputs": [
         {
           "name": "on_duration",
@@ -5984,12 +6471,6 @@
           "description": "Gate-high output level.",
           "required": false,
           "default": 1
-        },
-        {
-          "name": "sample_rate",
-          "type": "int",
-          "description": "Output sample rate in Hz.",
-          "required": true
         }
       ],
       "outputs": [
@@ -6005,7 +6486,7 @@
       "type": "nodetool.audio.synth.LFO",
       "title": "LFO",
       "namespace": "nodetool.audio.synth",
-      "description": "Low-frequency oscillator emitting a control-voltage stream.\n    cv, synthesis, lfo, modulation, modular\n\n    Output is offset + depth * wave(phase). With a clock patched, emits one chunk per clock chunk (sample-aligned) and resets phase on each clock rising edge; otherwise free-runs wall-clock paced until the run is stopped.\n\n    Use cases:\n    - Vibrato/tremolo via Oscillator fm or VCA cv\n    - Filter sweeps via VCF cutoff_cv\n    - Slow parameter drift in generative patches",
+      "description": "Low-frequency oscillator emitting a control-voltage stream.\n    cv, synthesis, lfo, modulation, modular\n\n    Output is offset + depth * wave(phase). With a clock patched, emits one chunk per clock chunk (sample-aligned) and resets phase on each clock rising edge; otherwise free-runs paced by the run transport, or ending at the render duration.\n\n    Use cases:\n    - Vibrato/tremolo via Oscillator fm or VCA cv\n    - Filter sweeps via VCF cutoff_cv\n    - Slow parameter drift in generative patches",
       "inputs": [
         {
           "name": "clock",
@@ -6040,12 +6521,6 @@
           "description": "Constant added to the output.",
           "required": false,
           "default": 0
-        },
-        {
-          "name": "sample_rate",
-          "type": "int",
-          "description": "Free-run sample rate in Hz.",
-          "required": true
         }
       ],
       "outputs": [
@@ -6129,7 +6604,7 @@
       "type": "nodetool.audio.synth.Oscillator",
       "title": "Oscillator",
       "namespace": "nodetool.audio.synth",
-      "description": "Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.\n    audio, synthesis, oscillator, vco, modular\n\n    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it free-runs wall-clock paced until the run is stopped. Naive waveforms — saw/square alias at high frequencies.\n\n    Use cases:\n    - Sound source for a modular synth voice\n    - FM/vibrato via the fm input driven by an LFO\n    - Melodic sequences via a pitch CV stream",
+      "description": "Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.\n    audio, synthesis, oscillator, vco, modular\n\n    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it follows the run transport until the render ends or the run is stopped. Naive waveforms — saw/square alias at high frequencies.\n\n    Use cases:\n    - Sound source for a modular synth voice\n    - FM/vibrato via the fm input driven by an LFO\n    - Melodic sequences via a pitch CV stream",
       "inputs": [
         {
           "name": "pitch_cv",
@@ -6177,12 +6652,6 @@
           "description": "Depth of linear frequency modulation from the fm input.",
           "required": false,
           "default": 0
-        },
-        {
-          "name": "sample_rate",
-          "type": "int",
-          "description": "Free-run sample rate in Hz.",
-          "required": true
         }
       ],
       "outputs": [
@@ -10998,6 +11467,29 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/input/ttsmodelinput.md"
     },
     {
+      "type": "nodetool.input.ValueInput",
+      "title": "Value Input",
+      "namespace": "nodetool.input",
+      "description": "Accept a named workflow parameter without converting its value.",
+      "inputs": [
+        {
+          "name": "value",
+          "type": "any",
+          "description": "",
+          "required": false,
+          "default": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "any"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/input/valueinput",
+      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/input/valueinput.md"
+    },
+    {
       "type": "nodetool.input.VideoInput",
       "title": "Video Input",
       "namespace": "nodetool.input",
@@ -14846,6 +15338,93 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/workflows/workflow_node/workflow.md"
     },
     {
+      "type": "openai.agents.LiveAgent",
+      "title": "Live Agent",
+      "namespace": "openai.agents",
+      "description": "",
+      "inputs": [
+        {
+          "name": "model",
+          "type": "enum",
+          "description": "",
+          "required": false,
+          "default": "gpt-live-1"
+        },
+        {
+          "name": "instructions",
+          "type": "str",
+          "description": "Conversation instructions for the voice model: style, and when to delegate to the backend",
+          "required": false,
+          "default": "Be concise. Delegate requests needing current information or lookups to the backend."
+        },
+        {
+          "name": "chunk",
+          "type": "chunk",
+          "description": "Streaming input. Audio chunks are base64 mono PCM16 at 24 kHz. Text chunks are queued for the backend as user messages.",
+          "required": false,
+          "default": {
+            "type": "chunk",
+            "node_id": null,
+            "thread_id": null,
+            "workflow_id": null,
+            "content_type": "audio",
+            "content": "",
+            "content_metadata": {},
+            "done": false,
+            "thinking": false
+          }
+        },
+        {
+          "name": "voice",
+          "type": "enum",
+          "description": "The voice for spoken output. Fixed for the session.",
+          "required": false,
+          "default": "marin"
+        },
+        {
+          "name": "backend_model",
+          "type": "str",
+          "description": "Responses model that handles delegated reasoning and tools",
+          "required": false,
+          "default": "gpt-5.6-luna"
+        },
+        {
+          "name": "backend_instructions",
+          "type": "str",
+          "description": "Prompt for the backend model: task rules and how to return results",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "web_search",
+          "type": "bool",
+          "description": "Let the backend model search the web",
+          "required": false,
+          "default": true
+        }
+      ],
+      "outputs": [
+        {
+          "name": "chunk",
+          "type": "chunk"
+        },
+        {
+          "name": "audio",
+          "type": "audio"
+        },
+        {
+          "name": "text",
+          "type": "str"
+        },
+        {
+          "name": "input_transcript",
+          "type": "str"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/openai/agents/liveagent",
+      "markdown_url": "https://docs.nodetool.ai/nodes/openai/agents/liveagent.md"
+    },
+    {
       "type": "openai.agents.RealtimeAgent",
       "title": "Realtime Agent",
       "namespace": "openai.agents",
@@ -14977,93 +15556,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/openai/agents/realtimetranscription",
       "markdown_url": "https://docs.nodetool.ai/nodes/openai/agents/realtimetranscription.md"
-    },
-    {
-      "type": "openai.agents.LiveAgent",
-      "title": "Live Agent",
-      "namespace": "openai.agents",
-      "description": "",
-      "inputs": [
-        {
-          "name": "model",
-          "type": "enum",
-          "description": "",
-          "required": false,
-          "default": "gpt-live-1"
-        },
-        {
-          "name": "instructions",
-          "type": "str",
-          "description": "Conversation instructions for the voice model: style, and when to delegate to the backend",
-          "required": false,
-          "default": "Be concise. Delegate requests needing current information or lookups to the backend."
-        },
-        {
-          "name": "chunk",
-          "type": "chunk",
-          "description": "Streaming input. Audio chunks are base64 mono PCM16 at 24 kHz. Text chunks are queued for the backend as user messages.",
-          "required": false,
-          "default": {
-            "type": "chunk",
-            "node_id": null,
-            "thread_id": null,
-            "workflow_id": null,
-            "content_type": "audio",
-            "content": "",
-            "content_metadata": {},
-            "done": false,
-            "thinking": false
-          }
-        },
-        {
-          "name": "voice",
-          "type": "enum",
-          "description": "The voice for spoken output. Fixed for the session.",
-          "required": false,
-          "default": "marin"
-        },
-        {
-          "name": "backend_model",
-          "type": "str",
-          "description": "Responses model that handles delegated reasoning and tools",
-          "required": false,
-          "default": "gpt-5.6-luna"
-        },
-        {
-          "name": "backend_instructions",
-          "type": "str",
-          "description": "Prompt for the backend model: task rules and how to return results",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "web_search",
-          "type": "bool",
-          "description": "Let the backend model search the web",
-          "required": false,
-          "default": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "chunk",
-          "type": "chunk"
-        },
-        {
-          "name": "audio",
-          "type": "audio"
-        },
-        {
-          "name": "text",
-          "type": "str"
-        },
-        {
-          "name": "input_transcript",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/openai/agents/liveagent",
-      "markdown_url": "https://docs.nodetool.ai/nodes/openai/agents/liveagent.md"
     },
     {
       "type": "openai.audio.TextToSpeech",
@@ -17448,29 +17940,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/xai/vision/imagetotext",
       "markdown_url": "https://docs.nodetool.ai/nodes/xai/vision/imagetotext.md"
-    },
-    {
-      "type": "nodetool.input.ValueInput",
-      "title": "Value Input",
-      "namespace": "nodetool.input",
-      "description": "Accept a named workflow parameter without converting its value.",
-      "inputs": [
-        {
-          "name": "value",
-          "type": "any",
-          "description": "",
-          "required": false,
-          "default": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "any"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/input/valueinput",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/input/valueinput.md"
     }
   ]
 }

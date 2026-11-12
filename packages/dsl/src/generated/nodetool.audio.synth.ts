@@ -11,7 +11,6 @@ export type OscillatorInputs = {
   amplitude?: Connectable<number>;
   pulse_width?: Connectable<number>;
   fm_amount?: Connectable<number>;
-  sample_rate?: Connectable<number>;
 };
 
 export interface OscillatorOutputs {
@@ -29,7 +28,6 @@ export type LFOInputs = {
   rate_hz?: Connectable<number>;
   depth?: Connectable<number>;
   offset?: Connectable<number>;
-  sample_rate?: Connectable<number>;
 };
 
 export interface LFOOutputs {
@@ -62,7 +60,6 @@ export type GateInputs = {
   on_duration?: Connectable<number>;
   off_duration?: Connectable<number>;
   amplitude?: Connectable<number>;
-  sample_rate?: Connectable<number>;
 };
 
 export interface GateOutputs {

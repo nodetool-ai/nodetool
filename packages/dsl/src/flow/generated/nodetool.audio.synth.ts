@@ -13,7 +13,6 @@ export type OscillatorInputs = {
   amplitude?: number | number[];
   pulse_width?: number | number[];
   fm_amount?: number | number[];
-  sample_rate?: number | number[];
 };
 
 export interface OscillatorOutputs {
@@ -35,7 +34,6 @@ export type LFOInputs = {
   rate_hz?: number | number[];
   depth?: number | number[];
   offset?: number | number[];
-  sample_rate?: number | number[];
 };
 
 export interface LFOOutputs {
@@ -76,7 +74,6 @@ export type GateInputs = {
   on_duration?: number | number[];
   off_duration?: number | number[];
   amplitude?: number | number[];
-  sample_rate?: number | number[];
 };
 
 export interface GateOutputs {

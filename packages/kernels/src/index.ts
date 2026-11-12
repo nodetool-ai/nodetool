@@ -22,6 +22,8 @@ export { NT_ERR_ARGS, NT_OK } from "./backend.js";
 
 /* ── Constants of kernels.h ─────────────────────────────────────────── */
 
+export const MAX_STREAM_DELAY_SECONDS = 2;
+
 export const BIQUAD_TYPES = {
   lowpass: 0,
   highpass: 1,
@@ -290,6 +292,144 @@ export class Kernels {
     this.run("nt_audio_delay", [
       { in: samples }, { out }, frames, channels, sampleRate, p.delaySeconds, p.feedback, p.mix
     ]);
+    return out;
+  }
+
+  createBitcrushState(channels: number, sampleRate: number): Float64Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_bitcrush_state_len", [channels, sampleRate, 0]);
+    if (!Number.isSafeInteger(length) || length <= 0) throw new RangeError("Invalid bitcrush state dimensions");
+    const state = new Float64Array(length);
+    this.run("nt_audio_bitcrush_init", [{ out: state }, channels, sampleRate, 0]);
+    return state;
+  }
+  bitcrushBlock(state: Float64Array, samples: Float32Array, channels: number, bitDepth: number, reduction: number): Float32Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_bitcrush_state_len", [channels, 44100, 0]);
+    if (length <= 0) throw new RangeError("Invalid bitcrush state dimensions");
+    atLeast(state, length, "state");
+    const frames = Math.floor(samples.length / channels);
+    const out = new Float32Array(frames * channels);
+    this.run("nt_audio_bitcrush_block", [{ inout: state }, { in: samples }, { out }, frames, channels, bitDepth, Math.max(1, Math.floor(reduction))]);
+    return out;
+  }
+  createCompressState(channels: number, sampleRate: number): Float64Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_compress_state_len", [channels, sampleRate, 0]);
+    if (!Number.isSafeInteger(length) || length <= 0) throw new RangeError("Invalid compress state dimensions");
+    const state = new Float64Array(length);
+    this.run("nt_audio_compress_init", [{ out: state }, channels, sampleRate, 0]);
+    return state;
+  }
+  compressBlock(state: Float64Array, samples: Float32Array, channels: number, sampleRate: number, p: CompressParams): Float32Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_compress_state_len", [channels, sampleRate, 0]);
+    if (length <= 0) throw new RangeError("Invalid compress state dimensions");
+    atLeast(state, length, "state");
+    const frames = Math.floor(samples.length / channels);
+    const out = new Float32Array(frames * channels);
+    this.run("nt_audio_compress_block", [{ inout: state }, { in: samples }, { out }, frames, channels, sampleRate, p.thresholdDb, p.ratio, p.attackMs, p.releaseMs, p.autoGain ? 1 : 0]);
+    return out;
+  }
+  createLimiterState(channels: number, sampleRate: number): Float64Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_limiter_state_len", [channels, sampleRate, 0]);
+    if (!Number.isSafeInteger(length) || length <= 0) throw new RangeError("Invalid limiter state dimensions");
+    const state = new Float64Array(length);
+    this.run("nt_audio_limiter_init", [{ out: state }, channels, sampleRate, 0]);
+    return state;
+  }
+  limiterBlock(state: Float64Array, samples: Float32Array, channels: number, sampleRate: number, p: LimiterParams): Float32Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_limiter_state_len", [channels, sampleRate, 0]);
+    if (length <= 0) throw new RangeError("Invalid limiter state dimensions");
+    atLeast(state, length, "state");
+    const frames = Math.floor(samples.length / channels);
+    const out = new Float32Array(frames * channels);
+    this.run("nt_audio_limiter_block", [{ inout: state }, { in: samples }, { out }, frames, channels, sampleRate, p.thresholdDb, p.releaseMs, p.autoGain ? 1 : 0]);
+    return out;
+  }
+  createNoiseGateState(channels: number, sampleRate: number): Float64Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_noise_gate_state_len", [channels, sampleRate, 0]);
+    if (!Number.isSafeInteger(length) || length <= 0) throw new RangeError("Invalid noiseGate state dimensions");
+    const state = new Float64Array(length);
+    this.run("nt_audio_noise_gate_init", [{ out: state }, channels, sampleRate, 0]);
+    return state;
+  }
+  noiseGateBlock(state: Float64Array, samples: Float32Array, channels: number, sampleRate: number, p: NoiseGateParams): Float32Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_noise_gate_state_len", [channels, sampleRate, 0]);
+    if (length <= 0) throw new RangeError("Invalid noiseGate state dimensions");
+    atLeast(state, length, "state");
+    const frames = Math.floor(samples.length / channels);
+    const out = new Float32Array(frames * channels);
+    this.run("nt_audio_noise_gate_block", [{ inout: state }, { in: samples }, { out }, frames, channels, sampleRate, p.thresholdDb, p.attackMs, p.releaseMs]);
+    return out;
+  }
+  createPhaserState(channels: number, sampleRate: number): Float64Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_phaser_state_len", [channels, sampleRate, 0]);
+    if (!Number.isSafeInteger(length) || length <= 0) throw new RangeError("Invalid phaser state dimensions");
+    const state = new Float64Array(length);
+    this.run("nt_audio_phaser_init", [{ out: state }, channels, sampleRate, 0]);
+    return state;
+  }
+  phaserBlock(state: Float64Array, samples: Float32Array, channels: number, sampleRate: number, p: PhaserParams): Float32Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_phaser_state_len", [channels, sampleRate, 0]);
+    if (length <= 0) throw new RangeError("Invalid phaser state dimensions");
+    atLeast(state, length, "state");
+    const frames = Math.floor(samples.length / channels);
+    const out = new Float32Array(frames * channels);
+    this.run("nt_audio_phaser_block", [{ inout: state }, { in: samples }, { out }, frames, channels, sampleRate, p.rateHz, p.depth, p.centreFrequencyHz, p.feedback, p.mix]);
+    return out;
+  }
+  createReverbState(channels: number, sampleRate: number): Float64Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_reverb_state_len", [channels, sampleRate, 0]);
+    if (!Number.isSafeInteger(length) || length <= 0) throw new RangeError("Invalid reverb state dimensions");
+    const state = new Float64Array(length);
+    this.run("nt_audio_reverb_init", [{ out: state }, channels, sampleRate, 0]);
+    return state;
+  }
+  reverbBlock(state: Float64Array, samples: Float32Array, channels: number, sampleRate: number, p: ReverbParams): Float32Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_reverb_state_len", [channels, sampleRate, 0]);
+    if (length <= 0) throw new RangeError("Invalid reverb state dimensions");
+    atLeast(state, length, "state");
+    const frames = Math.floor(samples.length / channels);
+    const out = new Float32Array(frames * channels);
+    this.run("nt_audio_reverb_block", [{ inout: state }, { in: samples }, { out }, frames, channels, sampleRate, p.roomScale, p.damping, p.wetLevel, p.dryLevel]);
+    return out;
+  }
+  createDelayState(channels: number, sampleRate: number, delaySeconds: number): Float64Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_delay_state_len", [channels, sampleRate, delaySeconds]);
+    if (!Number.isSafeInteger(length) || length <= 0) throw new RangeError("Invalid delay state dimensions");
+    const state = new Float64Array(length);
+    this.run("nt_audio_delay_init", [{ out: state }, channels, sampleRate, delaySeconds]);
+    return state;
+  }
+  delayBlock(state: Float64Array, samples: Float32Array, channels: number, sampleRate: number, p: DelayParams): Float32Array {
+    positiveInt(channels, "channels");
+    const length = this.backend.call("nt_audio_delay_state_len", [channels, sampleRate, p.delaySeconds]);
+    if (length <= 0) throw new RangeError("Invalid delay state dimensions");
+    atLeast(state, length, "state");
+    const frames = Math.floor(samples.length / channels);
+    const out = new Float32Array(frames * channels);
+    this.run("nt_audio_delay_block", [{ inout: state }, { in: samples }, { out }, frames, channels, sampleRate, p.delaySeconds, p.feedback, p.mix]);
+    return out;
+  }
+
+  resample(samples: Float32Array, channels: number, inRate: number, outRate: number): Float32Array {
+    positiveInt(channels, "channels");
+    if (!(inRate > 0 && inRate <= 1536000 && outRate > 0 && outRate <= 1536000)) throw new RangeError("Invalid sample rate");
+    if (inRate === outRate || samples.length === 0) return samples;
+    const frames = Math.floor(samples.length / channels);
+    const count = this.backend.call("nt_resample_output_frames", [frames, inRate, outRate]);
+    const out = new Float32Array(count * channels);
+    this.run("nt_resample", [{ in: samples }, { out }, frames, channels, inRate, outRate]);
     return out;
   }
 

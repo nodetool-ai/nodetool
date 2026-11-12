@@ -1,3 +1,4 @@
+import { AUDIO_RUN_KEY, resolveAudioRun } from "@nodetool-ai/protocol";
 /**
  * WorkflowRunner – DAG orchestration.
  *
@@ -662,6 +663,7 @@ export class WorkflowRunner {
     // _resetRunState mints a fresh controller per run, so this must be
     // re-published each time rather than wired once at construction.
     if (this._options.executionContext) {
+      this._options.executionContext.set?.(AUDIO_RUN_KEY, resolveAudioRun(graphData.nodes));
       this._options.executionContext.signal = this._abortController.signal;
       this._options.executionContext.triggerEvent =
         request.trigger_event ?? null;

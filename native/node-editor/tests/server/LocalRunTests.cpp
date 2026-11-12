@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QImage>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QTemporaryDir>
 #include <QtTest>
 #include <memory>
@@ -69,6 +70,90 @@ private slots:
     qputenv("ASSET_FOLDER", QFile::encodeName(m_assets.path()));
     qputenv("NODETOOL_LOCAL_RUNNER", "1");
     WorkflowSession::setGuestBundlePath(GUEST_BUNDLE);
+  }
+  void rendersSynthToStoredClip_data() {
+    QTest::addColumn<int>("seconds");
+    QTest::newRow("example") << 4;
+    QTest::newRow("minute") << 60;
+  }
+  void rendersSynthToStoredClip() {
+    QFETCH(int, seconds);
+    QJsonObject result;
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    QFile example(QStringLiteral(EXAMPLES_DIR "/render-synth.json"));
+    QVERIFY(example.open(QIODevice::ReadOnly));
+    auto doc = QJsonDocument::fromJson(example.readAll()).object();
+    auto graph = doc["graph"].toObject();
+    auto nodes = graph["nodes"].toArray();
+    bool configured = false;
+    for (qsizetype i = 0; i < nodes.size(); ++i) {
+      auto current = nodes[i].toObject();
+      if (current["id"] != "out") { continue; }
+      auto data = current["data"].toObject();
+      data["duration"] = seconds;
+      current["data"] = data;
+      nodes[i] = current;
+      configured = true;
+    }
+    QVERIFY(configured);
+    graph["nodes"] = nodes;
+    doc["graph"] = graph;
+    connect(&session, &WorkflowSession::runEvent, this, [&result](const QString &, const QJsonObject &event) {
+      if (event["type"] == "output_update" && event["node_id"] == "out") { result = event["value"].toObject(); }
+    });
+    const auto id = session.run(doc);
+    QVERIFY(session.runsInProcess(id));
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("completed"), 30000);
+    const auto uri = result["uri"].toString();
+    QVERIFY(LocalMediaStore::isLocalMedia(uri));
+    const auto clip = LocalMediaStore::instance().clip(uri);
+    // PCM16 WAV: the requested duration, one channel, 44-byte header.
+    QCOMPARE(clip.bytes.size(), 44 + seconds * 44100 * 2);
+    QVERIFY(!result.contains("data"));
+    MediaResolver resolver;
+    QSignalSpy resolved(&resolver, &MediaResolver::resolved);
+    resolver.resolve("clip", result.toVariantMap());
+    QTRY_COMPARE(resolved.size(), 1);
+    LocalMediaStore::instance().releaseRun(id);
+    QTemporaryDir saves;
+    const auto destination = QUrl::fromLocalFile(saves.filePath("render.wav"));
+    QVERIFY(resolver.suggestedFilename("clip", {}, "audio").endsWith(".wav"));
+    QVERIFY(resolver.saveResolved("clip", destination));
+    QFile saved(destination.toLocalFile());
+    QVERIFY(saved.open(QIODevice::ReadOnly));
+    QCOMPARE(saved.readAll(), clip.bytes);
+  }
+  void liveSynthDeliversPcmAndCancels() {
+    int chunks = 0;
+    bool recorded = false;
+    WorkflowSession session;
+    QTRY_VERIFY_WITH_TIMEOUT(session.localRunnerReady(), 60000);
+    QFile example(QStringLiteral(EXAMPLES_DIR "/live-synth.json"));
+    QVERIFY(example.open(QIODevice::ReadOnly));
+    auto doc = QJsonDocument::fromJson(example.readAll()).object();
+    auto graph = doc["graph"].toObject();
+    auto nodes = graph["nodes"].toArray();
+    nodes.append(node("capture", "nodetool.audio.realtime.ChunksToAudio", {{"duration", 0.05}}));
+    auto edges = graph["edges"].toArray();
+    edges.append(edge("capture-edge", "room", "chunk", "capture", "chunk"));
+    graph["nodes"] = nodes;
+    graph["edges"] = edges;
+    doc["graph"] = graph;
+    connect(&session, &WorkflowSession::runEvent, this, [&chunks, &recorded](const QString &, const QJsonObject &event) {
+      if (event["type"] != "output_update") { return; }
+      const auto value = event["value"].toObject();
+      if (event["node_id"] == "out" && value["content_type"] == "audio" && !value["done"].toBool()) { ++chunks; }
+      if (event["node_id"] == "capture" && value["type"] == "audio") { recorded = true; }
+    });
+    const auto id = session.run(doc);
+    QVERIFY(session.runsInProcess(id));
+    QTRY_VERIFY_WITH_TIMEOUT(chunks > 0 && recorded, 1000);
+    const auto afterCapture = chunks;
+    QTRY_VERIFY_WITH_TIMEOUT(chunks > afterCapture, 1000);
+    QCOMPARE(statusOf(session, id), QString("running"));
+    session.stop(id);
+    QTRY_COMPARE_WITH_TIMEOUT(statusOf(session, id), QString("cancelled"), 30000);
   }
   void runsWithoutServer() {
     WorkflowSession session;

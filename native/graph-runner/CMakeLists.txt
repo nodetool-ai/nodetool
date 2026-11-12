@@ -299,6 +299,10 @@ if(PROJECT_IS_TOP_LEVEL)
     COMMAND "${GR_NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/check-public-runtime.mjs"
       "$<TARGET_FILE:gr_public_run>" "${NODETOOL_GUEST_BUNDLE}")
   set_tests_properties(gr_public_runtime_tests PROPERTIES TIMEOUT 300)
+  add_test(NAME gr_audio_render_tests
+    COMMAND "${GR_NODE_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/unittests/check-audio-render.mjs"
+      "$<TARGET_FILE:gr_public_run>" "${NODETOOL_GUEST_BUNDLE}")
+  set_tests_properties(gr_audio_render_tests PROPERTIES TIMEOUT 240)
   add_executable(gr_library_tests unittests/library.cpp)
   target_link_libraries(gr_library_tests PRIVATE nodetool_graph_runner
                         nlohmann_json::nlohmann_json)

@@ -31,7 +31,8 @@ add_executable(node_editor_local_run_tests LocalRunTests.cpp
  ../../src/run/OutputCollectionModel.cpp ../../src/run/OutputCollectionModel.h
  ../../src/media/PcmStream.cpp ../../src/media/PcmStream.h)
 target_include_directories(node_editor_local_run_tests PRIVATE ../../src)
-target_compile_definitions(node_editor_local_run_tests PRIVATE GUEST_BUNDLE="${NODETOOL_GUEST_BUNDLE}")
+target_compile_definitions(node_editor_local_run_tests PRIVATE GUEST_BUNDLE="${NODETOOL_GUEST_BUNDLE}"
+ EXAMPLES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../../examples")
 target_link_libraries(node_editor_local_run_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Network Qt6::WebSockets Qt6::Test Qt6::Multimedia)
 nodetool_stage_graph_runner_runtime(node_editor_local_run_tests)
 add_test(NAME node_editor_local_run COMMAND node_editor_local_run_tests)

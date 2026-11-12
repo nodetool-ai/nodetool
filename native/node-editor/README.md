@@ -70,6 +70,13 @@ The adapter uses its `AbstractGraphModel`, `BasicGraphicsScene`,
 `-DFETCHCONTENT_SOURCE_DIR_QTNODES=/path/to/nodeeditor` for offline builds.
 QtNodes supports Qt 5/6. This host requires Qt 6.12 to match the primitives.
 
+## Audio examples
+
+The audio signal examples cover [live synthesis](examples/live-synth.json),
+[offline rendering](examples/render-synth.json) and
+[a clip through a live phaser](examples/live-clip-phaser.json).
+Open these workflow files in the editor to run them locally.
+
 ## Local runs
 
 The editor links [`native/graph-runner`](../graph-runner/README.md) and loads

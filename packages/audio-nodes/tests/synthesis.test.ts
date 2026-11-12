@@ -1,3 +1,4 @@
+import { AUDIO_BLOCK_FRAMES, AUDIO_SAMPLE_RATE } from "@nodetool-ai/protocol";
 import { describe, it, expect } from "vitest";
 import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 import {
@@ -14,11 +15,10 @@ import {
   makeDoneSignalChunk,
   readSignalChunk,
   DEFAULT_Q,
-  SYNTH_CHUNK_FRAMES
 } from "@nodetool-ai/audio-nodes";
 import { loadKernels } from "@nodetool-ai/kernels";
 
-const SR = 24000;
+const SR = AUDIO_SAMPLE_RATE;
 
 /**
  * Multi-handle streaming fake. A handle is "patched" iff its key exists in
@@ -124,7 +124,7 @@ function signChanges(samples: Float32Array): number {
 }
 
 describe("Oscillator (free run)", () => {
-  it("emits 512-frame chunks until cancelled, then a done marker", async () => {
+  it("emits transport-sized chunks until cancelled, then a done marker", async () => {
     const node = new OscillatorNode({
       waveform: "sine",
       frequency: 100,
@@ -140,7 +140,7 @@ describe("Oscillator (free run)", () => {
     expect(last.done).toBe(true);
 
     const samples = concatEmitted(emitted);
-    expect(samples.length).toBe(chunks * SYNTH_CHUNK_FRAMES);
+    expect(samples.length).toBe(chunks * AUDIO_BLOCK_FRAMES);
     // 100 Hz sine → 2 zero crossings per period.
     const expected = Math.round((2 * 100 * samples.length) / SR);
     expect(Math.abs(signChanges(samples) - expected)).toBeLessThanOrEqual(2);
@@ -254,12 +254,12 @@ describe("Oscillator (clocked by pitch CV)", () => {
 
 describe("ADSR", () => {
   it("detects gate edges at exact sample offsets and times segments in samples", async () => {
-    const frames = 2048;
+    const frames = 4096;
     const edgeAt = 100;
-    const releaseAt = 1500;
+    const releaseAt = 3000;
     const gate = new Float32Array(frames);
     gate.fill(1, edgeAt, releaseAt);
-    const attack = 0.01; // 240 samples @ 24 kHz
+    const attack = 0.01; // 441 samples at the run rate
     const node = new AdsrNode({
       attack,
       decay: 0.01, // settles to sustain well before the falling edge
@@ -333,7 +333,7 @@ describe("ADSR", () => {
 describe("Gate", () => {
   it("emits the on/off pattern with sample-exact period", async () => {
     const node = new GateNode({
-      on_duration: 0.01, // 240 frames
+      on_duration: 0.01, // 441 frames
       off_duration: 0.01,
       amplitude: 1,
       sample_rate: SR
@@ -342,15 +342,15 @@ describe("Gate", () => {
     const { outputs, emitted, signal } = abortAfter(2);
     await node.run(makeInputs({ handles: {}, signal }), outputs);
     const cv = concatEmitted(emitted);
-    expect(cv.length).toBe(2 * SYNTH_CHUNK_FRAMES);
+    expect(cv.length).toBe(2 * AUDIO_BLOCK_FRAMES);
     expect(cv[0]).toBe(1);
-    expect(cv[239]).toBe(1);
-    expect(cv[240]).toBe(0);
-    expect(cv[479]).toBe(0);
-    expect(cv[480]).toBe(1); // second cycle
-    expect(cv[719]).toBe(1);
-    expect(cv[720]).toBe(0);
-    expect(cv[960]).toBe(1); // third cycle
+    expect(cv[440]).toBe(1);
+    expect(cv[441]).toBe(0);
+    expect(cv[881]).toBe(0);
+    expect(cv[882]).toBe(1); // second cycle
+    expect(cv[1322]).toBe(1);
+    expect(cv[1323]).toBe(0);
+    expect(cv[1764]).toBe(1); // third cycle
   });
 
   it("paces emission with the wall clock", async () => {
@@ -369,7 +369,7 @@ describe("Gate", () => {
     // unpaced, so the run must take at least ~3 chunk periods (loose bound
     // against CI jitter).
     expect(elapsedMs).toBeGreaterThan(40);
-    expect(concatEmitted(emitted).length).toBe(4 * SYNTH_CHUNK_FRAMES);
+    expect(concatEmitted(emitted).length).toBe(4 * AUDIO_BLOCK_FRAMES);
   });
 
   it("stops on abort and terminates the stream with a done marker", async () => {
@@ -624,7 +624,7 @@ describe("LFO (free run)", () => {
 
     expect(emitted).toHaveLength(4);
     const cv = concatEmitted(emitted);
-    expect(cv.length).toBe(3 * SYNTH_CHUNK_FRAMES);
+    expect(cv.length).toBe(3 * AUDIO_BLOCK_FRAMES);
     expect(cv[0]).toBe(-1); // saw starts at phase 0
     // Phase advances across chunk boundaries: 10 Hz over 1536 frames stays
     // within the first period, so the saw rises monotonically throughout.

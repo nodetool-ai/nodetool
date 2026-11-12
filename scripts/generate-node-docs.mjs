@@ -20,7 +20,9 @@ const repoRoot = path.resolve(__dirname, "..");
 const args = process.argv.slice(2);
 let outDir = path.join(repoRoot, "docs", "nodes");
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--out" && args[i + 1]) outDir = args[++i];
+  if (args[i] === "--out" && args[i + 1]) {
+    outDir = args[++i];
+  }
 }
 
 // The `typescript` package name is the supported TypeScript 6 compiler API.
@@ -53,7 +55,7 @@ const SKIP_DIRS = new Set([
   "__tests__",
   "tests",
   "test",
-  "generated",
+  "generated"
 ]);
 
 // ---------------------------------------------------------------------------
@@ -62,7 +64,9 @@ const SKIP_DIRS = new Set([
 
 /** Get text of a string literal or template literal node */
 function getString(node) {
-  if (!node) return null;
+  if (!node) {
+    return null;
+  }
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
     return node.text;
   }
@@ -75,15 +79,32 @@ function getString(node) {
 
 /** Get the numeric/string value from a literal expression */
 function getLiteralValue(node) {
-  if (!node) return undefined;
-  if (ts.isStringLiteral(node)) return node.text;
-  if (ts.isNumericLiteral(node)) return Number(node.text);
-  if (node.kind === ts.SyntaxKind.TrueKeyword) return true;
-  if (node.kind === ts.SyntaxKind.FalseKeyword) return false;
-  if (node.kind === ts.SyntaxKind.NullKeyword) return null;
-  if (ts.isPrefixUnaryExpression(node) && node.operator === ts.SyntaxKind.MinusToken) {
+  if (!node) {
+    return undefined;
+  }
+  if (ts.isStringLiteral(node)) {
+    return node.text;
+  }
+  if (ts.isNumericLiteral(node)) {
+    return Number(node.text);
+  }
+  if (node.kind === ts.SyntaxKind.TrueKeyword) {
+    return true;
+  }
+  if (node.kind === ts.SyntaxKind.FalseKeyword) {
+    return false;
+  }
+  if (node.kind === ts.SyntaxKind.NullKeyword) {
+    return null;
+  }
+  if (
+    ts.isPrefixUnaryExpression(node) &&
+    node.operator === ts.SyntaxKind.MinusToken
+  ) {
     const inner = getLiteralValue(node.operand);
-    if (typeof inner === "number") return -inner;
+    if (typeof inner === "number") {
+      return -inner;
+    }
   }
   if (ts.isObjectLiteralExpression(node)) {
     const result = {};
@@ -104,11 +125,19 @@ function getLiteralValue(node) {
 /** Extract properties from an object literal: { key: value, ... } */
 function extractObjectProps(objLiteral) {
   const result = {};
-  if (!objLiteral || !ts.isObjectLiteralExpression(objLiteral)) return result;
+  if (!objLiteral || !ts.isObjectLiteralExpression(objLiteral)) {
+    return result;
+  }
   for (const prop of objLiteral.properties) {
-    if (!ts.isPropertyAssignment(prop)) continue;
-    const key = prop.name.text ?? (prop.name.escapedText ? String(prop.name.escapedText) : null);
-    if (!key) continue;
+    if (!ts.isPropertyAssignment(prop)) {
+      continue;
+    }
+    const key =
+      prop.name.text ??
+      (prop.name.escapedText ? String(prop.name.escapedText) : null);
+    if (!key) {
+      continue;
+    }
     result[key] = getLiteralValue(prop.initializer);
   }
   return result;
@@ -116,9 +145,15 @@ function extractObjectProps(objLiteral) {
 
 /** Get text from a multi-line template literal or string literal. */
 function getDescriptionText(node) {
-  if (!node) return "";
-  if (ts.isStringLiteral(node)) return node.text;
-  if (ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  if (!node) {
+    return "";
+  }
+  if (ts.isStringLiteral(node)) {
+    return node.text;
+  }
+  if (ts.isNoSubstitutionTemplateLiteral(node)) {
+    return node.text;
+  }
   if (ts.isTemplateExpression(node)) {
     let s = node.head.text;
     for (const span of node.templateSpans) {
@@ -158,21 +193,131 @@ function getDescriptionText(node) {
  * @property {OutputMeta[]} outputs
  */
 
+const sourceFiles = new Map();
+function sourceFile(file) {
+  const resolved = path.resolve(file);
+  if (!sourceFiles.has(resolved)) {
+    sourceFiles.set(
+      resolved,
+      ts.createSourceFile(
+        resolved,
+        fs.readFileSync(resolved, "utf8"),
+        ts.ScriptTarget.Latest,
+        true
+      )
+    );
+  }
+  return sourceFiles.get(resolved);
+}
+
+const classIndexes = new WeakMap();
+function findClass(file, name) {
+  if (!classIndexes.has(file)) {
+    classIndexes.set(
+      file,
+      new Map(
+        file.statements
+          .filter(
+            (statement) => ts.isClassDeclaration(statement) && statement.name
+          )
+          .map((declaration) => [declaration.name.text, declaration])
+      )
+    );
+  }
+  return classIndexes.get(file).get(name);
+}
+
+/** Resolve a local or relatively imported base class without evaluating modules. */
+function baseClass(cls, sf) {
+  const base = cls.heritageClauses?.find(
+    (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword
+  )?.types[0]?.expression;
+  if (!base || !ts.isIdentifier(base)) {
+    return null;
+  }
+  const local = findClass(sf, base.text);
+  if (local) {
+    return { cls: local, sf };
+  }
+  for (const statement of sf.statements) {
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      !statement.moduleSpecifier.text.startsWith(".")
+    ) {
+      continue;
+    }
+    const bindings = statement.importClause?.namedBindings;
+    if (!bindings || !ts.isNamedImports(bindings)) {
+      continue;
+    }
+    const binding = bindings.elements.find(
+      (element) => element.name.text === base.text
+    );
+    if (!binding) {
+      continue;
+    }
+    const imported = path.resolve(
+      path.dirname(sf.fileName),
+      statement.moduleSpecifier.text
+    );
+    const file = [
+      imported.replace(/\.js$/, ".ts"),
+      imported + ".ts",
+      path.join(imported, "index.ts")
+    ].find(
+      (candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile()
+    );
+    if (!file) {
+      return null;
+    }
+    const parentSource = sourceFile(file);
+    const parent = findClass(
+      parentSource,
+      binding.propertyName?.text ?? binding.name.text
+    );
+    return parent ? { cls: parent, sf: parentSource } : null;
+  }
+  return null;
+}
+
+/** Base controls first, child overrides last. The set also bounds cyclic input. */
+function inheritedMembers(cls, sf) {
+  const chain = [];
+  const seen = new Set();
+  let current = { cls, sf };
+  while (current && !seen.has(current.cls)) {
+    seen.add(current.cls);
+    chain.push(current.cls);
+    current = baseClass(current.cls, current.sf);
+  }
+  return chain.reverse().flatMap((declaration) => [...declaration.members]);
+}
+
 /**
  * Parse a TypeScript source file and return NodeMeta for each class found.
  * @param {string} filePath
  * @returns {NodeMeta[]}
  */
 function parseNodeFile(filePath) {
-  const src = fs.readFileSync(filePath, "utf8");
-  const sf = ts.createSourceFile(filePath, src, ts.ScriptTarget.Latest, true);
+  const resolved = path.resolve(filePath);
+  // Keep shared base files cached. Ordinary source ASTs can be reclaimed as
+  // the package walk advances instead of retaining the entire monorepo.
+  const sf =
+    sourceFiles.get(resolved) ??
+    ts.createSourceFile(
+      resolved,
+      fs.readFileSync(resolved, "utf8"),
+      ts.ScriptTarget.Latest,
+      true
+    );
 
   /** @type {NodeMeta[]} */
   const results = [];
 
   function visit(node) {
     if (ts.isClassDeclaration(node) && node.name) {
-      const classMeta = extractClassMeta(node, sf, src);
+      const classMeta = extractClassMeta(node, sf);
       if (classMeta && classMeta.nodeType) {
         results.push(classMeta);
       }
@@ -197,14 +342,16 @@ function extractClassMeta(cls, sf) {
   /** @type {OutputMeta[]} */
   const outputs = [];
 
-  for (const member of cls.members) {
+  for (const member of inheritedMembers(cls, sf)) {
     // Static readonly nodeType / title / description
     if (
+      member.parent === cls &&
       ts.isPropertyDeclaration(member) &&
       member.modifiers?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword) &&
       member.modifiers?.some((m) => m.kind === ts.SyntaxKind.ReadonlyKeyword)
     ) {
-      const nameText = member.name?.text ?? String(member.name?.escapedText ?? "");
+      const nameText =
+        member.name?.text ?? String(member.name?.escapedText ?? "");
       if (nameText === "nodeType" && member.initializer) {
         nodeType = getString(member.initializer);
       }
@@ -218,21 +365,30 @@ function extractClassMeta(cls, sf) {
 
     // Instance properties decorated with @prop(...)
     if (ts.isPropertyDeclaration(member) && member.modifiers) {
-      const decorators = ts.getDecorators ? ts.getDecorators(member) : (member.decorators ?? []);
-      if (!decorators) continue;
+      const decorators = ts.getDecorators
+        ? ts.getDecorators(member)
+        : (member.decorators ?? []);
+      if (!decorators) {
+        continue;
+      }
       for (const dec of decorators) {
         const expr = dec.expression;
         // Check if it's a call expression: @prop({...})
         if (ts.isCallExpression(expr)) {
           const callee = expr.expression;
           const calleeName = ts.isIdentifier(callee) ? callee.text : null;
-          if (calleeName !== "prop") continue;
+          if (calleeName !== "prop") {
+            continue;
+          }
 
           const arg = expr.arguments[0];
-          if (!arg || !ts.isObjectLiteralExpression(arg)) continue;
+          if (!arg || !ts.isObjectLiteralExpression(arg)) {
+            continue;
+          }
 
           const opts = extractObjectProps(arg);
-          const propName = member.name?.text ?? String(member.name?.escapedText ?? "");
+          const propName =
+            member.name?.text ?? String(member.name?.escapedText ?? "");
 
           properties.push({
             name: propName,
@@ -242,7 +398,7 @@ function extractClassMeta(cls, sf) {
             title: opts.title ?? null,
             min: opts.min ?? null,
             max: opts.max ?? null,
-            values: opts.values ?? null,
+            values: opts.values ?? null
           });
         }
       }
@@ -257,12 +413,17 @@ function extractClassMeta(cls, sf) {
       ts.isPropertyDeclaration(member) &&
       member.modifiers?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword)
     ) {
-      const nameText = member.name?.text ?? String(member.name?.escapedText ?? "");
+      const nameText =
+        member.name?.text ?? String(member.name?.escapedText ?? "");
       if (nameText === "outputs" || nameText === "metadataOutputTypes") {
-        if (member.initializer && ts.isObjectLiteralExpression(member.initializer)) {
+        if (
+          member.initializer &&
+          ts.isObjectLiteralExpression(member.initializer)
+        ) {
           for (const prop of member.initializer.properties) {
             if (ts.isPropertyAssignment(prop)) {
-              const outputName = prop.name.text ?? String(prop.name.escapedText ?? "");
+              const outputName =
+                prop.name.text ?? String(prop.name.escapedText ?? "");
               const outputType = getString(prop.initializer) ?? "any";
               outputs.push({ name: outputName, type: outputType });
             }
@@ -272,7 +433,9 @@ function extractClassMeta(cls, sf) {
     }
   }
 
-  if (!nodeType) return null;
+  if (!nodeType) {
+    return null;
+  }
 
   const ns = nodeType.includes(".")
     ? nodeType.slice(0, nodeType.lastIndexOf("."))
@@ -283,8 +446,12 @@ function extractClassMeta(cls, sf) {
     title: title || nodeType.split(".").pop() || nodeType,
     description: description || "",
     namespace: ns,
-    properties,
-    outputs,
+    properties: [
+      ...new Map(
+        properties.map((property) => [property.name, property])
+      ).values()
+    ],
+    outputs
   };
 }
 
@@ -297,11 +464,17 @@ const byNamespace = new Map();
 
 function walkDir(dir, collect) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (entry.isDirectory() && SKIP_DIRS.has(entry.name)) continue;
+    if (entry.isDirectory() && SKIP_DIRS.has(entry.name)) {
+      continue;
+    }
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       walkDir(full, collect);
-    } else if (entry.isFile() && entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+    } else if (
+      entry.isFile() &&
+      entry.name.endsWith(".ts") &&
+      !entry.name.endsWith(".d.ts")
+    ) {
       const nodes = parseNodeFile(full);
       for (const node of nodes) {
         collect(node);
@@ -314,9 +487,13 @@ function walkDir(dir, collect) {
 const seenNodeTypes = new Set();
 for (const srcDir of nodeSourceDirs) {
   walkDir(srcDir, (node) => {
-    if (seenNodeTypes.has(node.nodeType)) return;
+    if (seenNodeTypes.has(node.nodeType)) {
+      return;
+    }
     seenNodeTypes.add(node.nodeType);
-    if (!byNamespace.has(node.namespace)) byNamespace.set(node.namespace, []);
+    if (!byNamespace.has(node.namespace)) {
+      byNamespace.set(node.namespace, []);
+    }
     byNamespace.get(node.namespace).push(node);
   });
 }
@@ -336,7 +513,9 @@ function typeToString(typeStr) {
 }
 
 function escapeCell(value) {
-  if (value === undefined || value === null) return "";
+  if (value === undefined || value === null) {
+    return "";
+  }
   return String(value)
     .replace(/\\/g, "\\\\")
     .replace(/\|/g, "\\|")
@@ -344,8 +523,12 @@ function escapeCell(value) {
 }
 
 function formatDefault(value) {
-  if (value === undefined) return "-";
-  if (value === null) return "null";
+  if (value === undefined) {
+    return "-";
+  }
+  if (value === null) {
+    return "null";
+  }
   if (typeof value === "string") {
     const s = value.length > 50 ? `${value.slice(0, 47)}...` : value;
     return `\`${s}\``;
@@ -427,9 +610,7 @@ function generateNodePage(meta) {
 
   lines.push("## Related Nodes");
   lines.push("");
-  lines.push(
-    `Browse other nodes in the [${meta.namespace}](./) namespace.`
-  );
+  lines.push(`Browse other nodes in the [${meta.namespace}](./) namespace.`);
   lines.push("");
 
   return lines.join("\n");
@@ -448,14 +629,14 @@ function catalogEntry(meta) {
       type: typeToString(prop.type),
       description: prop.description ?? "",
       required: prop.default === undefined,
-      ...(prop.default === undefined ? {} : { default: prop.default }),
+      ...(prop.default === undefined ? {} : { default: prop.default })
     })),
     outputs: meta.outputs.map((output) => ({
       name: output.name,
-      type: typeToString(output.type),
+      type: typeToString(output.type)
     })),
     documentation_url: `https://docs.nodetool.ai/nodes/${pathParts}/${slug}`,
-    markdown_url: `https://docs.nodetool.ai/nodes/${pathParts}/${slug}.md`,
+    markdown_url: `https://docs.nodetool.ai/nodes/${pathParts}/${slug}.md`
   };
 }
 
@@ -496,7 +677,9 @@ function generateMainIndex(nsMap) {
   const groups = new Map();
   for (const [ns] of nsMap) {
     const group = topGroup(ns);
-    if (!groups.has(group)) groups.set(group, []);
+    if (!groups.has(group)) {
+      groups.set(group, []);
+    }
     groups.get(group).push(ns);
   }
 
@@ -564,9 +747,12 @@ const catalog = {
   nodes: [...byNamespace.values()]
     .flat()
     .sort((a, b) => a.nodeType.localeCompare(b.nodeType))
-    .map(catalogEntry),
+    .map(catalogEntry)
 };
-fs.writeFileSync(path.join(outDir, "catalog.json"), `${JSON.stringify(catalog, null, 2)}\n`);
+fs.writeFileSync(
+  path.join(outDir, "catalog.json"),
+  `${JSON.stringify(catalog, null, 2)}\n`
+);
 
 console.log(
   `Generated ${written} pages and ${catalog.nodes.length} catalog entries across ${byNamespace.size} namespaces to ${outDir}`

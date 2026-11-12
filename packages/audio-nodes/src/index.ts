@@ -59,3 +59,5 @@ export function registerAudioNodes(registry: NodeRegistry): void {
     registry.register(nodeClass);
   }
 }
+
+export * from "./nodes/signal-effects.js";

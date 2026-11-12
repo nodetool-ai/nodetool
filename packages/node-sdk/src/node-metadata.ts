@@ -290,6 +290,7 @@ export function getNodeMetadata(
     is_join_node: nodeClass.isJoinNode || undefined,
     is_trigger: nodeClass.isTrigger || undefined,
     always_emit_output_updates: nodeClass.alwaysEmitOutputUpdates || undefined,
+    audio_sink: nodeClass.audioSink,
     supports_dynamic_inputs: nodeClass.supportsDynamicInputs || false,
     allowed_dynamic_slot_types: nodeClass.allowedDynamicSlotTypes?.map(
       toMetadataType

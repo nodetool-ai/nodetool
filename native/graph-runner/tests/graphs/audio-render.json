@@ -1,0 +1,61 @@
+{
+  "nodes": [
+    {
+      "id": "gate",
+      "type": "nodetool.audio.synth.Gate",
+      "properties": {}
+    },
+    {
+      "id": "env",
+      "type": "nodetool.audio.synth.ADSR",
+      "properties": {}
+    },
+    {
+      "id": "osc",
+      "type": "nodetool.audio.synth.Oscillator",
+      "properties": {}
+    },
+    {
+      "id": "amp",
+      "type": "nodetool.audio.synth.VCA",
+      "properties": {}
+    },
+    {
+      "id": "out",
+      "type": "nodetool.audio.realtime.ChunksToAudio",
+      "properties": {
+        "duration": 2
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "0",
+      "source": "gate",
+      "sourceHandle": "cv",
+      "target": "env",
+      "targetHandle": "gate"
+    },
+    {
+      "id": "1",
+      "source": "env",
+      "sourceHandle": "cv",
+      "target": "amp",
+      "targetHandle": "cv"
+    },
+    {
+      "id": "2",
+      "source": "osc",
+      "sourceHandle": "chunk",
+      "target": "amp",
+      "targetHandle": "audio"
+    },
+    {
+      "id": "3",
+      "source": "amp",
+      "sourceHandle": "chunk",
+      "target": "out",
+      "targetHandle": "chunk"
+    }
+  ]
+}
