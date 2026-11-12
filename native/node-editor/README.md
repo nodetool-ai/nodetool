@@ -43,6 +43,9 @@ toolbars and the group controls take
 buttons and popups take [`Viewport`](src/interfaces/Viewport.h). The
 first-workflow guide takes
 [`FirstWorkflowGuide`](src/interfaces/FirstWorkflowGuide.h).
+The workflow browser takes
+[`WorkflowBrowser`](src/server/WorkflowBrowser.h), and it and the asset library
+take `PanelLayout` and `StatusModel`.
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
 read `EditorWindow`.
 

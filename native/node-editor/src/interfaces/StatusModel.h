@@ -8,7 +8,8 @@ namespace nodetool::node_editor {
 // What the status bar (StatusBar.qml) reads and does about the server and the
 // graph: the connection, the node and edge counts, the queue count, the system
 // readout, and the connect, reconnect, queue and tool tip requests. The bar's
-// panel tabs come from PanelLayout.
+// panel tabs come from PanelLayout. The workflow browser and the asset library
+// read the connection and send the connect request too.
 //
 // The owner fills the state with setStatus and handles the *Requested
 // signals. A test can use a plain instance and a QSignalSpy. QML gets a
@@ -20,6 +21,8 @@ class StatusModel : public QObject {
     // idle, connecting, connected, offline and the other WorkflowSession states.
     Q_PROPERTY(QString connectionStatus READ connectionStatus NOTIFY statusChanged)
     Q_PROPERTY(QString connectionDetail READ connectionDetail NOTIFY statusChanged)
+    // The session holds a live server connection.
+    Q_PROPERTY(bool connected READ connected NOTIFY statusChanged)
     Q_PROPERTY(int nodeCount READ nodeCount NOTIFY statusChanged)
     Q_PROPERTY(int edgeCount READ edgeCount NOTIFY statusChanged)
     Q_PROPERTY(int queuedCount READ queuedCount NOTIFY statusChanged)
@@ -32,6 +35,7 @@ public:
     struct Status {
         QString connectionStatus = QStringLiteral("idle");
         QString connectionDetail;
+        bool connected = false;
         int nodeCount = 0;
         int edgeCount = 0;
         int queuedCount = 0;
@@ -45,6 +49,7 @@ public:
 
     QString connectionStatus() const { return status_.connectionStatus; }
     QString connectionDetail() const { return status_.connectionDetail; }
+    bool connected() const { return status_.connected; }
     int nodeCount() const { return status_.nodeCount; }
     int edgeCount() const { return status_.edgeCount; }
     int queuedCount() const { return status_.queuedCount; }

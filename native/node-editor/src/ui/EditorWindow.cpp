@@ -304,7 +304,6 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&nodeCatalog_, &node_editor::NodeCatalog::runtimesRequested, this, [this] { setupAction("dependencies"); });
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
-  engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
   engine_->rootContext()->setContextProperty("libraryBrowser", &library_);
   engine_->rootContext()->setContextProperty("runOutput", &runOutput_);
   engine_->rootContext()->setContextProperty("workflowSession", &session_);
@@ -360,6 +359,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   });
   connect(&library_, &node_editor::LibraryBrowser::changed, this, &EditorWindow::schedulePanelChanged);
   connect(&browser_, &node_editor::WorkflowBrowser::created, this, &EditorWindow::openWorkflow);
+  connect(&browser_, &node_editor::WorkflowBrowser::openRequested, this, &EditorWindow::openWorkflow);
+  connect(&browser_, &node_editor::WorkflowBrowser::deleteRequested, this, &EditorWindow::deleteWorkflow);
+  connect(&browser_, &node_editor::WorkflowBrowser::reloadRequested, this, [this] { action("Refresh workflows"); });
   connect(&browser_, &node_editor::WorkflowBrowser::renamed, this, [this](const QString &id) {
     if (id == document_.snapshot()["id"].toString() && document_.undoStack()->isClean()) { session_.openWorkflow(id); }
   });
@@ -673,10 +675,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   nodeMenu_->setClearColor(Qt::transparent);
   nodeMenu_->installEventFilter(this);
   nodeMenu_->hide();
-  browserDock_ = dock(tr("Workflows"), "WorkflowBrowser", Qt::LeftDockWidgetArea);
+  const QVariantMap chromeProperties{{"panels", QVariant::fromValue(&panelLayout_)},
+                                     {"status", QVariant::fromValue(&statusModel_)}};
+  auto browserProperties = chromeProperties;
+  browserProperties.insert("browser", QVariant::fromValue(&browser_));
+  browserDock_ = dock(tr("Workflows"), "WorkflowBrowser", Qt::LeftDockWidgetArea, browserProperties);
   browserDock_->setObjectName("workflow-browser-dock");
   browserDock_->hide();
-  libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea);
+  libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea, chromeProperties);
   libraryDock_->setObjectName("library-dock");
   libraryDock_->hide();
   // The panel's first bindings read the state the window has at this point.
@@ -2443,6 +2449,7 @@ void EditorWindow::syncChrome() {
                           .versions = versionsVisible()});
   statusModel_.setStatus({.connectionStatus = connectionStatus(),
                           .connectionDetail = connectionDetail(),
+                          .connected = connectionState() == tr("Connected"),
                           .nodeCount = nodeCount(),
                           .edgeCount = edgeCount(),
                           .queuedCount = queuedCount(),
