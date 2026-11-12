@@ -199,6 +199,7 @@ import type {
   ToolBridge,
   WebSocketClientSessionOptions
 } from "../websocket-client-session.js";
+import { registerDslFlowBackend } from "../flow-backend.js";
 
 function restrictedTraceToolNames(): string[] {
   const modules = new Set<string>(TRACE_RESTRICTED_CAPABILITY_MODULES);
@@ -2329,6 +2330,7 @@ export class ChatTurnHandler {
       const directSchemas = allSchemas.filter(
         (s) => s.name !== "view_image" && directNames.has(s.name)
       );
+      registerDslFlowBackend();
       codeactSession = createChatCodeActSession({
         includeProductKnowledge: false,
         tools: allSchemas

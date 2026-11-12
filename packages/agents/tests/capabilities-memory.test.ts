@@ -150,6 +150,44 @@ describe("behaviour through toolFromCapability", () => {
     expect(empty.count).toBe(0);
   });
 
+  it("reads one saved memory back by title or by id", async () => {
+    const context = ctx();
+    await asTool(byName("memory_save")).process(context, {
+      content: "clip: asset://older",
+      title: "Hero clip"
+    });
+    const saved = (await asTool(byName("memory_save")).process(context, {
+      content: "clip: asset://newer",
+      title: "Hero clip"
+    })) as { memory_id: string };
+    await asTool(byName("memory_save")).process(context, {
+      content: "Hero clip notes, not the clip",
+      title: "Notes"
+    });
+
+    const get = asTool(byName("memory_get"));
+    const byTitle = (await get.process(context, { title: "hero clip" })) as {
+      success: boolean;
+      memory: { memory_id: string; content: string; title: string };
+    };
+    expect(byTitle.success).toBe(true);
+    expect(byTitle.memory.content).toBe("clip: asset://newer");
+    expect(byTitle.memory.memory_id).toBe(saved.memory_id);
+
+    const byId = (await get.process(context, {
+      memory_id: saved.memory_id.slice(0, 12)
+    })) as { success: boolean; memory: { content: string } };
+    expect(byId.success).toBe(true);
+    expect(byId.memory.content).toBe("clip: asset://newer");
+
+    const missing = (await get.process(context, { title: "Villain clip" })) as {
+      success: boolean;
+      error: string;
+    };
+    expect(missing.success).toBe(false);
+    expect(missing.error).toMatch(/Villain clip/);
+  });
+
   it("resolves a compact asset id to the user's full id before saving", async () => {
     const asset = await Asset.create<Asset>({
       user_id: "u1",

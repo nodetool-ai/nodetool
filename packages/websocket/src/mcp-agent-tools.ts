@@ -93,6 +93,7 @@ import { fileURLToPath } from "node:url";
 import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "./lib/storage.js";
 import { createTempUrlResolver } from "./lib/temp-url-resolver.js";
+import { registerDslFlowBackend } from "./flow-backend.js";
 import { normalizeAssetContentType } from "./lib/asset-paths.js";
 import { toAssetResponse } from "./lib/asset-response.js";
 import {
@@ -1002,6 +1003,7 @@ export function registerAgentMcpTools(
   // without an explicit user binding has no surface at all — a default user
   // here would cross the tenant boundary on any mount serving more than one
   // caller. `createMcpServer` refuses such a session before reaching here.
+  registerDslFlowBackend();
   const scope = options.agentToolsScope;
   if (!scope) {
     throw new Error(
