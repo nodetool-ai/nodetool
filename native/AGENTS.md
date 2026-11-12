@@ -82,4 +82,8 @@ that needs a marker.
     only the ctest tests that depend on the changed files. Pass
     `--build <project>=<dir>` to reuse a build directory, and `--dry-run` to
     see the selection first. A project with changes and no configured build
-    fails the run and prints the command that configures it.
+    fails the run and prints the command that configures it. Pull request
+    runs of the native timeline and graph-runner workflows apply the same
+    selection to their own build through
+    `scripts/native-ci-test-selection.mjs`. A file under a project that maps
+    to no test input runs every test, so new runtime inputs need no CI change.
