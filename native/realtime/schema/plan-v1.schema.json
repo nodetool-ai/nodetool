@@ -1,0 +1,762 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nodetool.ai/schemas/realtime/plan-v1.schema.json",
+  "title": "Provisional realtime plan IR v1",
+  "description": "Prepare-time description. Hardware budgets and platform decisions remain gated by M0. Audio edges identify producer ports independently of physical buffer assignments.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "session": {
+      "type": "object",
+      "properties": {
+        "sampleRate": {
+          "enum": [
+            44100,
+            48000
+          ]
+        },
+        "quantum": {
+          "const": 128
+        },
+        "channels": {
+          "enum": [
+            "mono",
+            "stereo"
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      },
+      "required": [
+        "sampleRate",
+        "quantum",
+        "channels",
+        "width",
+        "height",
+        "seed"
+      ],
+      "additionalProperties": false
+    },
+    "params": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slot": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4294967295
+          },
+          "node": {
+            "type": "string",
+            "minLength": 1
+          },
+          "field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "smooth": {
+            "enum": [
+              "none",
+              "ramp"
+            ]
+          },
+          "sync": {
+            "enum": [
+              "immediate",
+              "audio"
+            ]
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 2,
+                "maxItems": 4
+              }
+            ]
+          }
+        },
+        "required": [
+          "slot",
+          "node",
+          "field",
+          "smooth",
+          "sync",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "maxItems": 100000
+    },
+    "slots": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "const": "texture"
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "output": {
+                "type": "object",
+                "properties": {
+                  "format": {
+                    "enum": [
+                      "rgba8unorm",
+                      "rgba16float"
+                    ]
+                  },
+                  "size": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "session"
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "fixed"
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16384
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16384
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "width",
+                          "height"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "input"
+                          },
+                          "input": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "scale": {
+                            "type": "number",
+                            "exclusiveMinimum": 0,
+                            "maximum": 16
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "input",
+                          "scale"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "colorSpace": {
+                    "enum": [
+                      "linear",
+                      "srgb",
+                      "encoded-sdr",
+                      "data"
+                    ]
+                  },
+                  "alpha": {
+                    "enum": [
+                      "premultiplied",
+                      "straight"
+                    ]
+                  }
+                },
+                "required": [
+                  "format",
+                  "size",
+                  "colorSpace",
+                  "alpha"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "source",
+              "output"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "const": "buffer"
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              },
+              "channels": {
+                "enum": [
+                  "mono",
+                  "stereo"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "source",
+              "channels"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "enum": [
+                  "control",
+                  "event",
+                  "latched"
+                ]
+              },
+              "source": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "kind",
+              "source"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "maxItems": 100000
+    },
+    "control": {
+      "type": "object",
+      "properties": {
+        "registers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "ops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node": {
+                "type": "string",
+                "minLength": 1
+              },
+              "op": {
+                "type": "string",
+                "minLength": 1
+              },
+              "domain": {
+                "enum": [
+                  "audio",
+                  "render"
+                ]
+              },
+              "out": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                "maxItems": 100000
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 100000
+              }
+            },
+            "required": [
+              "node",
+              "op",
+              "domain",
+              "out",
+              "in",
+              "values"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 100000
+        },
+        "stateful": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node": {
+                "type": "string",
+                "minLength": 1
+              },
+              "op": {
+                "type": "string",
+                "minLength": 1
+              },
+              "domain": {
+                "enum": [
+                  "audio",
+                  "render"
+                ]
+              },
+              "out": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                "maxItems": 100000
+              },
+              "values": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 100000
+              },
+              "stateVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295
+              }
+            },
+            "required": [
+              "node",
+              "op",
+              "domain",
+              "out",
+              "in",
+              "values",
+              "stateVersion"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 100000
+        }
+      },
+      "required": [
+        "registers",
+        "ops",
+        "stateful"
+      ],
+      "additionalProperties": false
+    },
+    "render": {
+      "type": "object",
+      "properties": {
+        "passes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node": {
+                "type": "string",
+                "minLength": 1
+              },
+              "module": {
+                "type": "string",
+                "minLength": 1
+              },
+              "inputs": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "uniforms": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                "maxItems": 100000
+              },
+              "retention": {
+                "enum": [
+                  "volatile",
+                  "retained"
+                ]
+              },
+              "output": {
+                "type": "object",
+                "properties": {
+                  "format": {
+                    "enum": [
+                      "rgba8unorm",
+                      "rgba16float"
+                    ]
+                  },
+                  "size": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "session"
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "fixed"
+                          },
+                          "width": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16384
+                          },
+                          "height": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 16384
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "width",
+                          "height"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "const": "input"
+                          },
+                          "input": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "scale": {
+                            "type": "number",
+                            "exclusiveMinimum": 0,
+                            "maximum": 16
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "input",
+                          "scale"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "colorSpace": {
+                    "enum": [
+                      "linear",
+                      "srgb",
+                      "encoded-sdr",
+                      "data"
+                    ]
+                  },
+                  "alpha": {
+                    "enum": [
+                      "premultiplied",
+                      "straight"
+                    ]
+                  }
+                },
+                "required": [
+                  "format",
+                  "size",
+                  "colorSpace",
+                  "alpha"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "node",
+              "module",
+              "inputs",
+              "uniforms",
+              "retention",
+              "output"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 100000
+        },
+        "present": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "colorSpace": {
+              "enum": [
+                "linear",
+                "srgb",
+                "encoded-sdr",
+                "data"
+              ]
+            }
+          },
+          "required": [
+            "source",
+            "colorSpace"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "passes"
+      ],
+      "additionalProperties": false
+    },
+    "audio": {
+      "type": "object",
+      "properties": {
+        "buffers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "channels": {
+                "enum": [
+                  "mono",
+                  "stereo"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "channels"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 100000
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kernel": {
+                "type": "string",
+                "minLength": 1
+              },
+              "stateVersion": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4294967295
+              },
+              "in": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "node": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "output": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 4294967295
+                    }
+                  },
+                  "required": [
+                    "node",
+                    "output"
+                  ],
+                  "additionalProperties": false
+                },
+                "maxItems": 100000
+              },
+              "out": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                "maxItems": 100000
+              },
+              "params": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                "maxItems": 100000
+              }
+            },
+            "required": [
+              "node",
+              "kernel",
+              "stateVersion",
+              "in",
+              "out",
+              "params"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 100000
+        },
+        "sinks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node": {
+                "type": "string",
+                "minLength": 1
+              },
+              "buffer": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 4294967295
+              },
+              "kind": {
+                "enum": [
+                  "device",
+                  "tap",
+                  "record"
+                ]
+              },
+              "subgraphHash": {
+                "type": "string",
+                "pattern": "^[0-9a-f]+$",
+                "minLength": 8,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "node",
+              "buffer",
+              "kind",
+              "subgraphHash"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 100000
+        }
+      },
+      "required": [
+        "buffers",
+        "nodes",
+        "sinks"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "revision",
+    "session",
+    "params",
+    "slots",
+    "control",
+    "render",
+    "audio"
+  ],
+  "additionalProperties": false
+}

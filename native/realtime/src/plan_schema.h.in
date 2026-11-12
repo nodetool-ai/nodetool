@@ -1,0 +1,5 @@
+#pragma once
+#include <string_view>
+namespace nt::realtime {
+inline constexpr std::string_view planSchema = R"nt_schema(@NT_PLAN_SCHEMA@)nt_schema";
+}

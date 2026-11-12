@@ -6,6 +6,9 @@ media pipeline, the graph runner and the VST host. Area overlays such as
 [Native chat](chat/AGENTS.md) add to them. For C++ idioms, use the
 [modern-cpp skill](../.claude/skills/modern-cpp/SKILL.md).
 
+[Realtime engine rules](realtime/AGENTS.md) cover the headless realtime core
+and its provisional milestone gates.
+
 The memory and thread ownership rules below are non-negotiable. Code that
 breaks any of them has a bug, even when it compiles and its tests pass. If a
 requirement cannot be met cleanly, stop and explain the conflict instead of

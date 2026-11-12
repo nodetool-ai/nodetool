@@ -1,0 +1,50 @@
+name: Native realtime core
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "native/realtime/**"
+      - ".github/workflows/native-realtime.yml"
+  push:
+    branches: [main]
+    paths:
+      - "native/realtime/**"
+      - ".github/workflows/native-realtime.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-realtime-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  core:
+    name: Core / ${{ matrix.preset }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [release, sanitize, tsan]
+    env:
+      ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+      TSAN_OPTIONS: halt_on_error=1
+    defaults:
+      run:
+        working-directory: native/realtime
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }} --no-tests=error
