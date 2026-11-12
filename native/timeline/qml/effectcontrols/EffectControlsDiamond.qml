@@ -25,7 +25,7 @@ Item {
         width: Ui.Metrics.md
         height: Ui.Metrics.md
         rotation: 45
-        color: root.selected ? Ui.Theme.accentPrimary : Ui.Theme.textSecondary
+        color: root.selected ? TimelineVisuals.editBlue : Ui.Theme.textSecondary
         border.width: Ui.Metrics.border
         border.color: root.selected ? Ui.Theme.borderStrong : Ui.Theme.surfacePanel
     }

@@ -300,7 +300,7 @@ export const trackVignetteEffect = z.object({
   softness: z.number(),
   centerX: z.number().min(0).max(1).optional(),
   centerY: z.number().min(0).max(1).optional(),
-  roundness: z.number().min(0).max(1).optional()
+  roundness: z.number().min(-1).max(1).optional()
 });
 
 export const trackChromaKeyEffect = z.object({
@@ -961,7 +961,30 @@ export type KnownClipTransition = z.infer<typeof knownClipTransition>;
 /** The catch-all a cut from a newer build lands in. */
 export type UnknownClipTransition = z.infer<typeof forwardClipTransition>;
 
+/** One vertex of an effect mask path, clip-normalized, with relative Bézier tangents. */
+export const effectMaskVertex = z.object({
+  x: z.number(), y: z.number(),
+  inX: z.number().optional(), inY: z.number().optional(),
+  outX: z.number().optional(), outY: z.number().optional()
+});
+
+/** A mask that limits where one grade effect lands. See `EffectMask` in `@nodetool-ai/timeline`. */
+export const effectMask = z.object({
+  id: z.string(),
+  shape: z.string(),
+  vertices: z.array(effectMaskVertex),
+  feather: z.number().min(0).max(1).optional(),
+  opacity: z.number().min(0).max(1).optional(),
+  expansion: z.number().min(-1).max(1).optional(),
+  inverted: z.boolean().optional(),
+  mode: z.enum(["add", "subtract", "intersect"]).optional(),
+  enabled: z.boolean().optional(),
+  name: z.string().optional()
+});
+export type EffectMaskSchema = z.infer<typeof effectMask>;
+
 export const clipColorEffect = z.object({
+  masks: z.array(effectMask).optional(),
   id: z.string(),
   type: z.literal("color"),
   enabled: z.boolean(),
@@ -976,6 +999,7 @@ export const clipColorEffect = z.object({
 });
 
 export const clipBlurEffect = z.object({
+  masks: z.array(effectMask).optional(),
   id: z.string(),
   type: z.literal("blur"),
   enabled: z.boolean(),
@@ -1075,6 +1099,7 @@ export const clipDropShadowEffect = z.object({
 });
 
 export const clipVignetteEffect = z.object({
+  masks: z.array(effectMask).optional(),
   id: z.string(),
   type: z.literal("vignette"),
   enabled: z.boolean(),
@@ -1084,10 +1109,11 @@ export const clipVignetteEffect = z.object({
   radius: z.number().optional(),
   centerX: z.number().min(0).max(1).optional(),
   centerY: z.number().min(0).max(1).optional(),
-  roundness: z.number().min(0).max(1).optional()
+  roundness: z.number().min(-1).max(1).optional()
 });
 
 export const clipSharpenEffect = z.object({
+  masks: z.array(effectMask).optional(),
   id: z.string(),
   type: z.literal("sharpen"),
   enabled: z.boolean(),
@@ -1108,6 +1134,7 @@ export const clipChromaKeyEffect = z.object({
 });
 
 export const clipCurvesEffect = z.object({
+  masks: z.array(effectMask).optional(),
   id: z.string(),
   type: z.literal("curves"),
   enabled: z.boolean(),
@@ -1131,6 +1158,7 @@ export const clipLevelsEffect = z.object({
 const rgbTriple = z.tuple([z.number(), z.number(), z.number()]);
 
 export const clipLiftGammaGainEffect = z.object({
+  masks: z.array(effectMask).optional(),
   id: z.string(),
   type: z.literal("liftGammaGain"),
   enabled: z.boolean(),
@@ -1203,6 +1231,7 @@ export const clipDebandEffect = z.object({
   threshold: z.number().min(0).max(0.1).optional(), dither: z.number().min(0).max(1).optional()
 });
 export const clipSecondaryColorEffect = z.object({
+  masks: z.array(effectMask).optional(),
   id: z.string(), type: z.literal("secondaryColor"), enabled: z.boolean(),
   hueCenter: z.number().min(0).max(360).optional(),
   hueWidth: z.number().min(0).max(180).optional(),
@@ -1220,10 +1249,22 @@ export const clipSecondaryColorEffect = z.object({
 });
 
 export const clipExposureEffect = z.object({
+  masks: z.array(effectMask).optional(),
   id: z.string(), type: z.literal("exposure"), enabled: z.boolean(),
   exposure: z.number().min(-5).max(5).optional(),
   rolloff: z.number().min(0).max(1).optional(),
-  whites: z.number().min(-2).max(2).optional()
+  whites: z.number().min(-2).max(2).optional(),
+  blacks: z.number().min(-1).max(1).optional()
+});
+
+export const clipHueSatCurvesEffect = z.object({
+  masks: z.array(effectMask).optional(),
+  id: z.string(), type: z.literal("hueSatCurves"), enabled: z.boolean(),
+  hueVsSat: secondaryCurvePoints.optional(),
+  hueVsHue: secondaryCurvePoints.optional(),
+  hueVsLuma: secondaryCurvePoints.optional(),
+  lumaVsSat: secondaryCurvePoints.optional(),
+  satVsSat: secondaryCurvePoints.optional()
 });
 
 const knownClipEffect = z.discriminatedUnion("type", [
@@ -1233,6 +1274,7 @@ const knownClipEffect = z.discriminatedUnion("type", [
   clipDebandEffect,
   clipSecondaryColorEffect,
   clipExposureEffect,
+  clipHueSatCurvesEffect,
   clipColorEffect,
   clipBlurEffect,
   clipPixelateEffect,
@@ -1264,6 +1306,7 @@ export const KNOWN_CLIP_EFFECT_TYPE_LIST = [
   "deband",
   "secondaryColor",
   "exposure",
+  "hueSatCurves",
   "color",
   "blur",
   "pixelate",

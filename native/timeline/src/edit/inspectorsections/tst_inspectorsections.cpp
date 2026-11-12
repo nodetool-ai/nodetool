@@ -1,5 +1,6 @@
 #include "InspectorSectionRegistry.h"
 #include "InspectorEdits.h"
+#include "edit/keyframes/ClipInspectorController.h"
 #include "app/EditRegistry.h"
 #include <algorithm>
 #include "edit/ClipGestureController.h"
@@ -360,7 +361,7 @@ private slots:
         QJSEngine engine;
         const auto setup = engine.evaluate("var mapReads = 0; var OriginalMap = Map; Map = class extends OriginalMap { get(key) { ++mapReads; return super.get(key); } };");
         QVERIFY2(!setup.isError(),qPrintable(setup.toString()));
-        engine.globalObject().setProperty("document",engine.toScriptValue(QJsonObject{{"clips",clips}}.toVariantMap()));
+        engine.globalObject().setProperty("edits",engine.toScriptValue(QVariantMap{{"groupClips",clips.toVariantList()}}));
         engine.globalObject().setProperty("root",engine.toScriptValue(QVariantMap{{"clip",QVariantMap{{"id","leaf"}}}}));
         const auto run = [&] { return engine.evaluate("(function() {" + binding + "\n})()"); };
         auto result = run(); QVERIFY2(!result.isError(),qPrintable(result.toString()));
@@ -377,7 +378,7 @@ private slots:
         QCOMPARE(options.size(),1); QCOMPARE(options[0].toMap()["value"].toString(),QString("none"));
         // A cycle away from the selected clip stays selectable and terminates.
         auto first = clips[0].toObject(); first.insert("parentId","g1999"); clips[0] = first;
-        engine.globalObject().setProperty("document",engine.toScriptValue(QJsonObject{{"clips",clips}}.toVariantMap()));
+        engine.globalObject().setProperty("edits",engine.toScriptValue(QVariantMap{{"groupClips",clips.toVariantList()}}));
         engine.globalObject().property("root").setProperty("clip",engine.toScriptValue(QVariantMap{{"id","leaf"}}));
         result = run(); QVERIFY2(!result.isError(),qPrintable(result.toString())); QCOMPARE(result.toVariant().toList().size(),groupCount + 1);
     }
@@ -414,6 +415,39 @@ private slots:
         raw.insert("clips",many);
         const auto large = speed(raw, {{"clipId","0"},{"speed",2.0}})["clips"].toArray();
         QCOMPARE(large.size(),many.size()); QCOMPARE(large.last().toObject()["durationMs"].toDouble(),1500.0);
+    }
+    // F10/F15: a slider step reaches only the preview, and a clip's inspector hears only its own clip.
+    void narrowNotifications() {
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(R"({"name":"n","width":640,"height":360,"fps":30,"durationMs":7000,"tracks":[{"id":"v","type":"video","name":"Video"}],"clips":[{"id":"g","name":"Group","trackId":"v","mediaType":"group","startMs":0,"durationMs":6000},{"id":"a","name":"First","trackId":"v","parentId":"g","mediaType":"image","startMs":0,"durationMs":3000},{"id":"b","name":"Second","trackId":"v","mediaType":"image","startMs":3000,"durationMs":3000}]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        InspectorEdits edits; edits.setModel(&model); edits.setParentId("g");
+        QCOMPARE(edits.childCount(), 1); QCOMPARE(edits.groupClips().size(), 1);
+        ClipInspectorController inspectA; inspectA.setTimeline(&model); inspectA.setClipId("a");
+        QSignalSpy clips(&model, &TimelineModel::clipsChanged);
+        QSignalSpy aChanged(&inspectA, &ClipInspectorController::changed);
+        QSignalSpy groups(&edits, &InspectorEdits::groupClipsChanged);
+        QSignalSpy children(&edits, &InspectorEdits::childCountChanged);
+        edits.beginGesture("patchClip", {{"clipId","b"}});
+        for (int i = 1; i <= 10; ++i) { edits.preview({{"patch",QJsonObject{{"opacity",i / 10.0}}}}); }
+        QCOMPARE(clips.count(), 0);
+        edits.commit("patchClip", {{"clipId","b"},{"patch",QJsonObject{{"opacity",0.5}}}});
+        QCOMPARE(clips.count(), 1);
+        QCOMPARE(model.findClip("b")->raw["opacity"].toDouble(), 0.5);
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(aChanged.count(), 0);
+        QCOMPARE(groups.count(), 0); QCOMPARE(children.count(), 0);
+        QVERIFY(model.applyEdit("patchClip", {{"clipId","a"},{"patch",QJsonObject{{"name","Renamed"}}}}));
+        QCOMPARE(aChanged.count(), 1);
+        QCOMPARE(inspectA.clip()["name"].toString(), QString("Renamed"));
+        QVERIFY(model.applyEdit("patchClip", {{"clipId","b"},{"patch",QJsonObject{{"parentId","g"}}}}));
+        QCOMPARE(children.count(), 1); QCOMPARE(edits.childCount(), 2);
+        inspectA.setActive(false);
+        QVERIFY(model.applyEdit("patchClip", {{"clipId","a"},{"patch",QJsonObject{{"name","Hidden"}}}}));
+        QCOMPARE(aChanged.count(), 1);
+        inspectA.setActive(true);
+        QCOMPARE(aChanged.count(), 2); QCOMPARE(inspectA.clip()["name"].toString(), QString("Hidden"));
     }
     void staleTimingGesture() {
         Editor e; QVERIFY2(e.object, qPrintable(e.error));

@@ -1225,7 +1225,7 @@ export function getManifestNodeMeta(
 // must never receive the primary source image in a generic request.
 const AUXILIARY_IMAGE_RE =
   // Stryker disable next-line Regex: heuristic alternation; auxiliary-vs-primary behaviour is pinned by tests, but the optional `[_-]?` separator variants are functionally interchangeable for real field names.
-  /mask|control|reference|style|depth|canny|pose|ip[_-]?adapter|redux|face|last_frame|end_image|end_frame/i;
+  /mask|control|reference|style|depth|canny|pose|ip[_-]?adapter|redux|face|last_frame|last_image|end_image|end_frame|tail_image|image_tail/i;
 
 // Primary source-image field names, best first. Covers i2i (`image`,
 // `input_image`, `image_input`) and i2v first-frame (`first_frame_image`,
@@ -1244,6 +1244,46 @@ const PRIMARY_IMAGE_PRIORITY = [
   "subject_image",
   "file"
 ];
+
+// Field names that take the frame a clip ends on, across fal, KIE, Replicate,
+// Comfy and AtlasCloud schemas. Matched whole, so `end_image_strength` or
+// `return_last_frame` never receive an image.
+const END_FRAME_INPUT_NAMES = new Set([
+  "end_image",
+  "end_image_url",
+  "end_frame",
+  "end_frame_url",
+  "end_frame_image",
+  "last_frame",
+  "last_frame_url",
+  "last_frame_image",
+  "last_frame_image_url",
+  "last_image",
+  "last_image_url",
+  "tail_image",
+  "tail_image_url",
+  "image_tail"
+]);
+
+/**
+ * Choose the input that takes the last frame of an image-to-video clip, by its
+ * declared name or API name. Undefined when the model declares none: the caller
+ * then refuses the end frame instead of animating without it.
+ */
+export function selectEndFrameInput<T extends { apiName: string; name: string }>(
+  inputs: readonly T[]
+): T | undefined {
+  return inputs.find(
+    (i) =>
+      END_FRAME_INPUT_NAMES.has(i.name.toLowerCase()) ||
+      END_FRAME_INPUT_NAMES.has(i.apiName.toLowerCase())
+  );
+}
+
+/** The error a provider throws for an end frame its model cannot take. */
+export function endFrameUnsupportedError(provider: string, modelId: string): Error {
+  return new Error(`${provider} model ${modelId} takes no end frame`);
+}
 
 /**
  * Choose the mask image input declared by a model's manifest entry. Returns the

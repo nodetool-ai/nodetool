@@ -119,6 +119,7 @@ import {
   createChatCodeActSession,
   createSandboxClock,
   sandboxPackagesForChat,
+  surfaceServerTools,
   CODEACT_RESIDENT_TOOL_NAMES,
   EXECUTE_CODE_TOOL_NAME,
   type ChatCodeActSession,
@@ -199,6 +200,7 @@ import type {
   ToolBridge,
   WebSocketClientSessionOptions
 } from "../websocket-client-session.js";
+import { registerDslFlowBackend } from "../flow-backend.js";
 
 function restrictedTraceToolNames(): string[] {
   const modules = new Set<string>(TRACE_RESTRICTED_CAPABILITY_MODULES);
@@ -2054,7 +2056,13 @@ export class ChatTurnHandler {
         specsByName.set(spec.name, spec);
       }
     }
-    const baseSpecs = [...specsByName.values()];
+    // A surface that does its own editing and rendering (the native timeline
+    // editor) limits the server tools, and the capability runs below refuse
+    // the rest, so a sandbox import cannot reach them either.
+    const surfaceTools = surfaceServerTools(uiContext?.source);
+    const baseSpecs = [...specsByName.values()].filter(
+      (spec) => !surfaceTools || surfaceTools.has(spec.name)
+    );
     const legacyByName = new Map(legacyCapabilities.map((entry) => [entry.spec.name, entry]));
     // Delegated executors still consume Tool[]. Adapt only at that boundary.
     // Each child context owns a separate run so its memory and depth are local.
@@ -2066,7 +2074,8 @@ export class ChatTurnHandler {
           context, gate: chatGate, nodeRegistry: this.session.nodeRegistry,
           providers: chatProviders, budget: turnBudget,
           availableSecrets: contextSecretAvailability(context),
-          ...mcpToolHostDeps(), capabilities: legacyCapabilities
+          ...mcpToolHostDeps(), capabilities: legacyCapabilities,
+          allowedNames: surfaceTools ?? undefined
         });
         childRuns.set(context, run);
       }
@@ -2290,7 +2299,8 @@ export class ChatTurnHandler {
       budget: turnBudget,
       secretPrompt: (request) => this.requestSecretEntry(threadId, request),
       ...mcpToolHostDeps(),
-      capabilities: legacyCapabilities
+      capabilities: legacyCapabilities,
+      allowedNames: surfaceTools ?? undefined
     });
     const gameAssetRun = this.chatCapabilityRun;
     const gameAssetNodeRunner: GameAssetNodeRunner = (args) => gameAssetRun.invoke("run_node", args);
@@ -2329,6 +2339,7 @@ export class ChatTurnHandler {
       const directSchemas = allSchemas.filter(
         (s) => s.name !== "view_image" && directNames.has(s.name)
       );
+      registerDslFlowBackend();
       codeactSession = createChatCodeActSession({
         includeProductKnowledge: false,
         tools: allSchemas

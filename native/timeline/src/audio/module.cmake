@@ -40,6 +40,14 @@ function(nt_audio_tests)
     target_sources(tst_shuttleaudio PRIVATE src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp)
     target_link_libraries(tst_shuttleaudio PRIVATE Qt6::Qml)
     set_tests_properties(tst_shuttleaudio PROPERTIES FIXTURES_REQUIRED media)
+    qt_add_executable(tst_appaudio tests/tst_appaudio.cpp
+        src/model/TimelineModel.h src/model/TimelineModel.cpp src/model/TrackListModel.h src/model/TrackListModel.cpp
+        src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp)
+    set_target_properties(tst_appaudio PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_options(tst_appaudio PRIVATE ${NT_WARNINGS})
+    target_include_directories(tst_appaudio PRIVATE src/playback)
+    target_link_libraries(tst_appaudio PRIVATE timeline_core timeline_audio Qt6::Gui Qt6::Qml Qt6::Test)
+    add_test(NAME tst_appaudio COMMAND tst_appaudio)
     # The curve vectors come from the TypeScript functions on every run.
     add_test(NAME fade_vectors COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/scripts/fade-vectors.mjs
         --out ${CMAKE_CURRENT_BINARY_DIR}/fade-vectors.json)

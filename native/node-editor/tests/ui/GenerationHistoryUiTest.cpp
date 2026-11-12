@@ -65,7 +65,7 @@ private slots:
   const auto media=[](const QString &id){return QJsonObject{{"type","image"},{"asset_id",id},{"uri","asset://"+id}};};
   store.ingest("multi",{{"type","generation_complete"},{"node_id",NodeId},{"outputs",QJsonObject{{"first",media(Image)},{"second",media(OtherImage)}}}},1000);
   node_editor::GenerationHistory history(&store);history.configure(server.url(),{},"1");history.setWorkflow(workflow());history.selectNode(NodeId);HistoryHost host(&history);node_editor::MediaResolver resolver;resolver.configure(server.url(),{});
-  QQuickWidget widget;widget.setResizeMode(QQuickWidget::SizeRootObjectToView);widget.rootContext()->setContextProperty("mediaResolver",&resolver);widget.setInitialProperties({{"propertyHost",QVariant::fromValue(&host)}});widget.setSource(QUrl("qrc:/editor/GenerationHistory.qml"));widget.resize(350,700);widget.show();QVERIFY(widget.status()==QQuickWidget::Ready);
+  QQuickWidget widget;widget.setResizeMode(QQuickWidget::SizeRootObjectToView);widget.rootContext()->setContextProperty("mediaResolver",&resolver);widget.setInitialProperties({{"propertyHost",QVariant::fromValue(&host)}});widget.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/GenerationHistory.qml"));widget.resize(350,700);widget.show();QVERIFY(widget.status()==QQuickWidget::Ready);
   QList<QQuickItem*> images;const auto collect=[&](auto &&self,QQuickItem *item)->void{if(item->objectName()=="preview-image"){images.append(item);}for(auto child:item->childItems()){self(self,child);}};
   QTRY_VERIFY([&]{images.clear();collect(collect,widget.rootObject());return images.size()==2;}());
   QTRY_COMPARE(images[0]->property("status").toInt(),1);QTRY_COMPARE(images[1]->property("status").toInt(),1);

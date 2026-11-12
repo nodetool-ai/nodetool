@@ -12,6 +12,7 @@
 #include <QJsonDocument>
 #include <QCryptographicHash>
 #include <QFileInfo>
+#include <QTimer>
 #include <QUuid>
 #include <QDir>
 #include <QSet>
@@ -53,7 +54,7 @@ void AssetBrowser::setTimeline(TimelineModel* model) {
     if (model) {
         connect(model, &TimelineModel::documentReplaced, this, &AssetBrowser::resetDocumentState);
         connect(model, &TimelineModel::clipsChanged, this, [this] {
-            protectDocumentMedia();
+            scheduleProtectDocumentMedia();
             reconcileLinkedAudio();
         });
         connect(model->undoStack(), &QUndoStack::indexChanged, this, &AssetBrowser::reconcileLinkedAudio);
@@ -74,14 +75,23 @@ void AssetBrowser::resetDocumentState() {
         m_folderPath.clear();
         m_pending.clear();
         ++m_queryGeneration;
-        m_assets = {};
         emit filtersChanged();
         emit folderChanged();
-        emit assetsChanged();
+        applyAssets({}, true);
         if (m_hasQueried) { refresh(); }
     }
     emit libraryScopeChanged();
     m_mediaProtection->reset(m_timeline ? m_timeline->resolvedMediaPaths() : QSet<QString>{});
+}
+
+void AssetBrowser::scheduleProtectDocumentMedia() {
+    // One lease swap after a burst of edits, not one per edit.
+    if (m_protectQueued) { return; }
+    m_protectQueued = true;
+    QTimer::singleShot(0, this, [this] {
+        m_protectQueued = false;
+        protectDocumentMedia();
+    });
 }
 
 void AssetBrowser::protectDocumentMedia() {
@@ -182,22 +192,24 @@ void AssetBrowser::receive(const Result& result) {
     if (result.queryGeneration && *result.queryGeneration != m_queryGeneration) { return; }
     if (result.folder && *result.folder != m_folderId) { return; }
     m_error = result.error;
-    if (result.replace) { m_assets = result.assets; }
+    auto next = m_assets;
+    if (result.replace) { next = result.assets; }
     else {
         QHash<QString, qsizetype> indices;
-        indices.reserve(m_assets.size());
-        for (qsizetype i = 0; i < m_assets.size(); ++i) {
-            indices.insert(m_assets[i].toObject().value("id").toString(), i);
+        indices.reserve(next.size());
+        for (qsizetype i = 0; i < next.size(); ++i) {
+            indices.insert(next[i].toObject().value("id").toString(), i);
         }
         QJsonArray added;
         for (const auto& asset : result.assets) {
             const auto existing = indices.constFind(asset.toObject().value("id").toString());
-            if (existing != indices.cend()) { m_assets[*existing] = asset; }
+            if (existing != indices.cend()) { next[*existing] = asset; }
             else { added.append(asset); }
         }
-        for (const auto& asset : m_assets) { added.append(asset); }
-        m_assets = added;
+        for (const auto& asset : next) { added.append(asset); }
+        next = added;
     }
+    applyAssets(next);
     for (const auto& value : result.assets) {
         const auto asset = value.toObject();
         const auto id = asset.value("id").toString();
@@ -209,8 +221,14 @@ void AssetBrowser::receive(const Result& result) {
     for (const auto& id : result.failedWatchIds) { m_pending.remove(id); }
     m_poll.start();
     if (m_pending.isEmpty()) { m_poll.stop(); }
-    emit assetsChanged();
     emit stateChanged();
+}
+
+void AssetBrowser::applyAssets(const QJsonArray& next, bool reset) {
+    m_assets = next;
+    if (!m_model.apply(next, reset)) { return; }
+    m_assetList = next.toVariantList();
+    emit assetsChanged();
 }
 
 QString AssetBrowser::projectId() const {
@@ -237,19 +255,19 @@ QVariantList AssetBrowser::breadcrumbs() const {
 
 void AssetBrowser::setSearchText(const QString& value) {
     if (m_searchText == value) { return; }
-    m_searchText = value; emit filtersChanged(); refresh();
+    m_searchText = value; emit filtersChanged(); applyAssets({}, true); refresh();
 }
 void AssetBrowser::setTypeFilter(const QString& value) {
     if (!QStringList{"", "image", "video", "audio", "folder", "other"}.contains(value) || m_typeFilter == value) { return; }
-    m_typeFilter = value; emit filtersChanged(); refresh();
+    m_typeFilter = value; emit filtersChanged(); applyAssets({}, true); refresh();
 }
 void AssetBrowser::setTagFilter(const QString& value) {
     if (m_tagFilter == value) { return; }
-    m_tagFilter = value; emit filtersChanged(); refresh();
+    m_tagFilter = value; emit filtersChanged(); applyAssets({}, true); refresh();
 }
 void AssetBrowser::setFavoritesOnly(bool value) {
     if (m_favoritesOnly == value) { return; }
-    m_favoritesOnly = value; emit filtersChanged(); refresh();
+    m_favoritesOnly = value; emit filtersChanged(); applyAssets({}, true); refresh();
 }
 
 void AssetBrowser::refresh() {
@@ -257,8 +275,7 @@ void AssetBrowser::refresh() {
     const auto generation = ++m_queryGeneration;
     m_pending.clear();
     m_poll.stop();
-    m_assets = {};
-    emit assetsChanged();
+    emit queryStarted();
     // native-rules #1: std::shared_ptr atomic flag shared with a worker, no justification comment
     const auto cancelled = std::make_shared<std::atomic_bool>(false);
     request([cancelled, folder = m_folderId, search = m_searchText.trimmed(), type = m_typeFilter,
@@ -322,10 +339,9 @@ void AssetBrowser::setFolderId(const QString& id) {
     if (id.isEmpty()) { m_folderPath.clear(); }
     else if (ancestor >= 0) { m_folderPath = m_folderPath.mid(0, ancestor); }
     m_folderId = id;
-    m_assets = {};
     m_pending.clear();
     emit folderChanged();
-    emit assetsChanged();
+    applyAssets({}, true);
     refresh();
 }
 

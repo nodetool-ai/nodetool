@@ -19,6 +19,7 @@ Animate static images into video with AI-powered motion using any supported vide
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | image | `list[image]` | Input image(s) to animate. Only the first non-empty image is used as the start frame. Use Reference To Video for reference media. | `[]` |
+| end_image | `image` | Optional frame the clip ends on. The run fails on a model that takes no last frame. | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | model | `video_model` | The video generation model to use | `{"type":"video_model","provider":"gemini","id":...` |
 | prompt | `str` | Text prompt to guide the video animation. Veo animates an image without one; Kling refuses an empty one. Leaving it blank ties the graph to the models that treat it as optional. | `` |
 | negative_prompt | `str` | Text prompt describing what to avoid in the video | `` |

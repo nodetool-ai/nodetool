@@ -8,6 +8,7 @@ on:
       - "native/vst-host/**"
       - "electron/scripts/build-vst-host.mjs"
       - ".github/workflows/vst-host.yml"
+      - "docker/ci-native/**"
   push:
     branches: [main]
     paths:
@@ -23,12 +24,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The Linux leg runs in the native CI image (docker/ci-native/) instead of
+  # installing its system packages with apt.
+  ci-image:
+    uses: ./.github/workflows/ci-image.yml
+    with:
+      image: ci-native
+    permissions:
+      contents: read
+      packages: write
+
   build:
+    needs: ci-image
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2022]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      packages: read
+    # An empty image runs the job on the runner itself: macOS and Windows.
+    container:
+      image: ${{ matrix.os == 'ubuntu-latest' && needs.ci-image.outputs.image || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -36,14 +58,6 @@ jobs:
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: .nvmrc
-
-      - name: Install build libraries (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libasound2-dev libx11-dev libxext-dev libxinerama-dev \
-            libxrandr-dev libxcursor-dev libfreetype6-dev libfontconfig1-dev \
-            xvfb xauth xfwm4 dbus-x11 x11-utils
 
       - name: Build and test
         shell: bash

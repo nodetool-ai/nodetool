@@ -123,7 +123,7 @@ Item {
                     height: childrenRect.height
                     spacing: Ui.Metrics.xs
                     Repeater {
-                        model: ["nodetool", "premiere", "fcp"]
+                        model: ["premiere", "fcp"]
                         delegate: ToolButton {
                             required property string modelData
                             objectName: "preset_" + modelData

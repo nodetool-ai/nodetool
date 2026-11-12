@@ -16985,7 +16985,6 @@
       "press": "prensa",
       "toggleHint": "en cualquier momento para alternar este panel · Ctrl también responde a ⌘ en macOS",
       "presets": {
-        "nodetool": "Herramienta de nodo",
         "premiere": "Estreno Pro",
         "fcp": "Final Cut Pro"
       },

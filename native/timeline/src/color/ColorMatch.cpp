@@ -467,7 +467,7 @@ QJsonArray probeEffects(const QJsonArray &effects) {
     return out;
 }
 QString colorEffectAfterCorrection(const QJsonArray &effects) {
-    constexpr std::array unmodelled{"lut","posterize","stylize","generator","chromaKey","glow","exposure","secondaryColor"};
+    constexpr std::array unmodelled{"lut","posterize","stylize","generator","chromaKey","glow","exposure","secondaryColor","hueSatCurves"};
     for (int i = matchIndex(effects)+1; i < effects.size(); ++i) {
         const auto e = effects[i].toObject();
         const auto type = e["type"].toString();

@@ -210,7 +210,7 @@ void CompatibleNodePicker::showWidget() {
     widget->setClearColor(Qt::transparent);
     widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
     widget->setInitialProperties({{"picker",QVariant::fromValue(this)}});
-    widget->setSource(QUrl("qrc:/editor/CompatibleNodePicker.qml"));
+    widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CompatibleNodePicker.qml"));
     if (widget->status()==QQuickWidget::Error) { widget_.clear(); widget->deleteLater(); cancel(); return; }
   }
   const auto widget=widget_;

@@ -3,18 +3,19 @@ import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import { defineModule } from "../../../../module.js";
 
-const Params = d.struct({exposure: d.f32, rolloff: d.f32, whites: d.f32});
+const Params = d.struct({exposure: d.f32, rolloff: d.f32, whites: d.f32, blacks: d.f32});
 const layout = tgpu.bindGroupLayout({source: {texture: "float"}, outputTexture: {storageTexture: "rgba8unorm"}, params: {uniform: Params}});
 
 export const colorExposureLinearV1 = defineModule({
   precision: { "source": "working", "output": "working" },
   id: "color.exposureLinear", version: 1, surface: "internal", category: "color",
   linearity: "nonlinear-in-rgb", kind: "compute", params: Params,
-  paramDefaults: {exposure: 0, rolloff: 0, whites: 0},
+  paramDefaults: {exposure: 0, rolloff: 0, whites: 0, blacks: 0},
   paramUi: {
     exposure: {min: -5, max: 5, step: 0.1, label: "Exposure", notes: "Linear-light stops"},
     rolloff: {min: 0, max: 1, step: 0.01, label: "Highlight roll-off"},
-    whites: {min: -2, max: 2, step: 0.1, label: "Whites", notes: "Stops, weighted toward source highlights"}
+    whites: {min: -2, max: 2, step: 0.1, label: "Whites", notes: "Stops, weighted toward source highlights"},
+    blacks: {min: -1, max: 1, step: 0.01, label: "Blacks", notes: "Encoded offset weighted toward shadows"}
   },
   layout, workgroupSize: [16, 16, 1],
   wgsl: /* wgsl */ `
@@ -32,7 +33,10 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   if (strength > 0.0 && peak > knee) {
     gain *= (knee + (1.0 - knee) * (1.0 - exp(-(peak - knee) / (1.0 - knee)))) / peak;
   }
-  textureStore(layout.$.outputTexture, at, vec4f(clamp(encode(linear * gain), vec3f(0), vec3f(1)) * src.a, src.a));
+  let encoded = encode(linear * gain);
+  let shade = vec3f(1) - clamp(encoded, vec3f(0), vec3f(1));
+  let lifted = encoded + clamp(p.blacks, -1.0, 1.0) * 0.15 * shade * shade * shade;
+  textureStore(layout.$.outputTexture, at, vec4f(clamp(lifted, vec3f(0), vec3f(1)) * src.a, src.a));
 }`,
   io: {
     inputs: {source: {colorSpace: "srgb", alpha: "premultiplied", bindingKinds: ["texture_2d"]}},

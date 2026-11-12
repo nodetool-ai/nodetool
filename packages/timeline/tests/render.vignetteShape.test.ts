@@ -47,3 +47,15 @@ describe("vignette geometry", () => {
     expect(neutral.data.every(value => value === 255)).toBe(true);
   });
 });
+
+describe("vignette roundness below zero", () => {
+  it("squares the falloff toward a rounded rectangle", () => {
+    const oval = white(128, 128), square = white(128, 128);
+    applyCpuLegacyEffects(oval, [{...vignette, radius: 1, softness: 0.3}]);
+    applyCpuLegacyEffects(square, [{...vignette, radius: 1, softness: 0.3, roundness: -1}]);
+    // On the diagonal the rounded rectangle reaches farther out before it darkens.
+    expect(red(square, 108, 108)).toBeGreaterThan(red(oval, 108, 108));
+    // On an axis both shapes measure the same distance.
+    expect(Math.abs(red(square, 120, 64) - red(oval, 120, 64))).toBeLessThanOrEqual(1);
+  });
+});

@@ -43,11 +43,12 @@ Column {
             height: parent.height
             onPressed: root.selectRow()
         }
+        // Rows sit one step in from their group's heading, as Premiere indents a property under its effect.
         RowLayout {
-            x: Ui.Metrics.xs
-            width: root.panel.listWidth - Ui.Metrics.md
+            x: Ui.Metrics.lg
+            width: root.panel.listWidth - Ui.Metrics.lg - Ui.Metrics.xs
             height: Ui.Metrics.compact
-            spacing: Ui.Metrics.micro
+            spacing: Ui.Metrics.xs
             Ui.ToolbarIconButton {
                 objectName: "effectControlsGraphs_" + root.rowId
                 Layout.preferredWidth: Ui.Metrics.iconLg
@@ -76,11 +77,12 @@ Column {
                 text: root.row.label
                 elide: Text.ElideRight
                 role: Ui.Typography.SansCaption
+                tone: root.editable ? Ui.Text.Primary : Ui.Text.Disabled
             }
-            // Keeps the values' room on the line when they sit on it.
+            // The values start in one column for all rows, after the labels.
             Item {
                 visible: !root.panel.stackedRows
-                Layout.preferredWidth: inputs.width
+                Layout.preferredWidth: Math.max(inputs.width, root.panel.listWidth - root.panel.valueX - navigator.width - Ui.Metrics.sm)
                 Layout.preferredHeight: 1
             }
             Row {
@@ -103,6 +105,8 @@ Column {
                     text: "◆"
                     label: root.live.here ? "Delete keyframe at playhead" : "Add keyframe at playhead"
                     active: root.live.here
+                    // As in Premiere, the navigator shows on an animated property only.
+                    opacity: root.doc.keyframed ? 1 : 0
                     enabled: root.editable && root.controller.playheadMs >= 0
                     onClicked: { root.selectRow(); root.controller.write({action: "toggle", row: root.rowId}) }
                 }
@@ -121,7 +125,7 @@ Column {
         Row {
             id: inputs
             spacing: Ui.Metrics.micro
-            x: root.panel.listWidth - Ui.Metrics.xs - width - (root.panel.stackedRows ? 0 : navigator.width)
+            x: root.panel.stackedRows ? Ui.Metrics.lg + Ui.Metrics.iconLg * 2 : root.panel.valueX
             y: root.panel.stackedRows ? Ui.Metrics.compact : (Ui.Metrics.compact - height) / 2
             Repeater {
                 model: root.row.inputs
@@ -133,6 +137,8 @@ Column {
                     value: ((root.live.values[index] || 0) * displayScale).toFixed(modelData.decimals)
                     unit: modelData.unit
                     minWidth: Ui.Metrics.touch * 1.45
+                    quiet: true
+                    quietColor: TimelineVisuals.editBlue
                     ariaLabel: modelData.label
                     disabled: !root.editable || (root.doc.keyframed && root.controller.playheadMs < 0)
                     scrub: ({step: modelData.step, min: modelData.min, max: modelData.max})
@@ -169,7 +175,7 @@ Column {
                 width: root.panel.xOf(lane.times[lane.times.length - 1] || 0) - x
                 height: Ui.Metrics.border
                 anchors.verticalCenter: parent.verticalCenter
-                color: Ui.Theme.textDisabled
+                color: Ui.Theme.borderControl
             }
             Repeater {
                 model: lane.times
@@ -185,7 +191,6 @@ Column {
                 }
             }
         }
-        Ui.Separator { y: parent.height - height; width: parent.width }
     }
     Loader {
         objectName: "effectControlsGraphLoader_" + root.rowId

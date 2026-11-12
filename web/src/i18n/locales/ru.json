@@ -17277,7 +17277,6 @@
       "press": "Нажмите",
       "toggleHint": "в любой момент, чтобы показать или скрыть эту панель · в macOS вместо Ctrl также работает ⌘",
       "presets": {
-        "nodetool": "NodeTool",
         "premiere": "Premiere Pro",
         "fcp": "Final Cut Pro"
       },

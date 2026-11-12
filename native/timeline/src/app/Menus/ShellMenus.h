@@ -67,7 +67,7 @@ private:
     std::vector<RegisteredItem> m_registered;
     QPointer<Preferences> m_preferences;
     QPointer<QQuickItem> m_anchor;
-    QString m_preset = QStringLiteral("nodetool");
+    QString m_preset = QStringLiteral("premiere");
     QPointer<QObject> m_bar;
 };
 }

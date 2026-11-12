@@ -134,12 +134,14 @@ private slots:
         auto* dock = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
         QVERIFY(dock);
         for (const auto* side : {"left", "right"}) { dock->resizeRegion(side, 100, view->width(), view->height()); }
+        // The monitors' controls sit under the pictures, so the timeline leaves them room.
+        dock->resizeRegion("bottom", 320, view->width(), view->height());
         QTRY_VERIFY(exporter());
         exporter()->captureForTest()->setExecutable(QStringLiteral(NT_EXPORT_BINARY));
     }
     void init() {
         loadVideo();
-        gestures()->setKeyboardPreset("nodetool");
+        gestures()->setKeyboardPreset("premiere");
         view->requestActivate();
         QVERIFY(QTest::qWaitForWindowActive(view.get()));
         view->rootObject()->forceActiveFocus();
@@ -253,7 +255,7 @@ private slots:
         QTRY_VERIFY(shown("exportFrameDialog"));
         QTest::keyClick(view.get(), Qt::Key_Escape);
         QTRY_VERIFY(!shown("exportFrameDialog"));
-        gestures()->setKeyboardPreset("nodetool");
+        gestures()->setKeyboardPreset("fcp");
         QTest::keyClick(view.get(), Qt::Key_E, Qt::ControlModifier | Qt::AltModifier);
         QTRY_VERIFY(shown("exportFrameDialog"));
     }

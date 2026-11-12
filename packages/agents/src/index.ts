@@ -5,6 +5,7 @@
 // Types
 export type { Step, Task, TaskPlan } from "./types.js";
 export { PERMISSION_GATE_CONTEXT_KEY } from "./types.js";
+export { registerFlowBackend, type FlowBackend } from "./capabilities/flow.js";
 export { GAME_ASSET_NODE_RUNNER_CONTEXT_KEY, type GameAssetNodeRunner } from "./capabilities/game-asset-source.js";
 
 // Tools
@@ -116,6 +117,7 @@ export {
   capabilityModuleOf,
   listCapabilitySpecs,
   createCapabilityRun,
+  surfaceServerTools,
   contextSecretAvailability,
   capabilityProviderTool,
   resolveCapabilityMessage,

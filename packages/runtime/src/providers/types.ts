@@ -51,9 +51,18 @@ export interface VideoModel {
   aspectRatios?: string[];
   /** Exact media counts a graph-backed model consumes, when the provider knows them. */
   inputs?: { image: number; video: number; audio: number };
+  /**
+   * Whether an image-to-video model takes `endImage`: it must have one
+   * (`required`), may take one (`optional`), or refuses one (`none`). Absent
+   * when the provider cannot tell without the model's live schema.
+   */
+  endFrame?: VideoEndFrame;
   /** Execution adapter facts for a model whose files run on this host. */
   adapter?: ModelAdapterInfo;
 }
+
+/** See {@link VideoModel.endFrame}. */
+export type VideoEndFrame = "required" | "optional" | "none";
 
 export interface ModelArtifactRef {
   source: "huggingface";

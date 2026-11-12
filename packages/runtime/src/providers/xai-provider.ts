@@ -13,6 +13,7 @@ import type {
   VideoModel
 } from "./types.js";
 import type { ProviderCapability } from "./base-provider.js";
+import { endFrameUnsupportedError } from "./manifest-models.js";
 
 const XAI_BASE_URL = "https://api.x.ai/v1";
 
@@ -437,6 +438,10 @@ export class XAIProvider extends OpenAICompatProvider {
   ): Promise<Uint8Array> {
     if (image.length === 0) {
       throw new Error("The input image cannot be empty.");
+    }
+    // This API has no end-frame input.
+    if (params.endImage?.length) {
+      throw endFrameUnsupportedError("xAI", params.model.id);
     }
 
     const request: Record<string, unknown> = {

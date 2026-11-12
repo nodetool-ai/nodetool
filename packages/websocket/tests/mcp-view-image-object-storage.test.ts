@@ -116,16 +116,13 @@ async function view(
 }
 
 describe("MCP view_image on object storage", () => {
-  it("offers no crop or downscale arguments", async () => {
+  it("offers a downscale but no crop", async () => {
     const client = await connect();
     const { tools } = await client.listTools();
     const viewImage = tools.find((tool) => tool.name === "view_image");
-    expect(Object.keys(viewImage?.inputSchema.properties ?? {})).not.toContain(
-      "region"
-    );
-    expect(Object.keys(viewImage?.inputSchema.properties ?? {})).not.toContain(
-      "detail"
-    );
+    const properties = Object.keys(viewImage?.inputSchema.properties ?? {});
+    expect(properties).not.toContain("region");
+    expect(properties).toContain("detail");
   });
 
   it.each([ASSET_ID, `${ASSET_ID}.jpg`, `asset://${ASSET_ID}.jpg`])(
@@ -134,6 +131,7 @@ describe("MCP view_image on object storage", () => {
       const { width, height, structured } = await view({ image_id: imageId });
       expect({ width, height }).toEqual({ width: 1024, height: 1024 });
       expect(structured["asset_id"]).toBe(ASSET_ID);
+      expect(structured["detail"]).toBe("high");
       const url = new URL(String(structured["url"]));
       expect(url.protocol).toBe("https:");
       expect(url.pathname).toContain(`1/${ASSET_ID}.jpg`);
@@ -141,10 +139,21 @@ describe("MCP view_image on object storage", () => {
     }
   );
 
-  it("ignores a crop or downscale a client still sends", async () => {
+  it("downsamples for detail low, says so, and links the original", async () => {
     const { width, height, structured } = await view({
       image_id: `${ASSET_ID}.jpg`,
-      detail: "low",
+      detail: "low"
+    });
+    expect(Math.max(width ?? 0, height ?? 0)).toBe(768);
+    expect(structured["detail"]).toBe("low");
+    const url = new URL(String(structured["url"]));
+    expect(url.protocol).toBe("https:");
+    expect(url.pathname).toContain(`1/${ASSET_ID}.jpg`);
+  });
+
+  it("ignores a crop a client still sends", async () => {
+    const { width, height, structured } = await view({
+      image_id: `${ASSET_ID}.jpg`,
       region: { x: 0, y: 0, width: 200, height: 120 }
     });
     expect({ width, height }).toEqual({ width: 1024, height: 1024 });

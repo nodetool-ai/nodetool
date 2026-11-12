@@ -141,7 +141,7 @@ void EditorWindow::showNotifications(const QPointF &global) {
     popup->setClearColor(Qt::transparent);
     popup->setAttribute(Qt::WA_DeleteOnClose);
     popup->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    popup->setSource(QUrl(QStringLiteral("qrc:/editor/NotificationsPanel.qml")));
+    popup->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/NotificationsPanel.qml")));
     notificationPopup_ = popup;
   }
   auto *popup = notificationPopup_.data();

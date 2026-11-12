@@ -42,6 +42,7 @@ import type {
   ProviderCapability
 } from "./base-provider.js";
 import { recordGenerationReceiptAsync } from "../generation-receipt.js";
+import { endFrameUnsupportedError } from "./manifest-models.js";
 
 const log = createLogger("nodetool.runtime.providers.minimax");
 
@@ -712,6 +713,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
       durationSeconds: params.durationSeconds,
       resolution: params.resolution,
       firstFrame: image,
+      lastFrame: this._lastFrameFor(params.model.id, params.endImage),
       signal: combineSignals(params.signal, this._timeoutSignal(params.timeoutSeconds))
     });
   }
@@ -734,6 +736,16 @@ export class MinimaxProvider extends OpenAICompatProvider {
   }
 
   /**
+   * MiniMax takes `last_frame_image` on MiniMax-Hailuo-02 only (first-and-last
+   * frame mode). Any other model refuses an end frame rather than ignoring it.
+   */
+  private _lastFrameFor(modelId: string, endImage?: Uint8Array | null): Uint8Array | undefined {
+    if (!endImage?.length) return undefined;
+    if (modelId !== "MiniMax-Hailuo-02") throw endFrameUnsupportedError("MiniMax", modelId);
+    return endImage;
+  }
+
+  /**
    * Per-call timeout signal (mirrors the gemini provider): threaded into the
    * poll-loop fetch and sleep so an expired budget aborts the in-flight request
    * promptly instead of leaking it until the fixed poll cap.
@@ -753,6 +765,7 @@ export class MinimaxProvider extends OpenAICompatProvider {
       durationSeconds?: number | null;
       resolution?: string | null;
       firstFrame?: Uint8Array;
+      lastFrame?: Uint8Array;
       subjectReference?: Uint8Array;
       signal?: AbortSignal;
     }
@@ -800,6 +813,10 @@ export class MinimaxProvider extends OpenAICompatProvider {
     } else if (opts.firstFrame) {
       const dataUrl = `data:image/png;base64,${b64(opts.firstFrame)}`;
       body.first_frame_image = dataUrl;
+    }
+    if (opts.lastFrame) {
+      const mime = sniffImageMime(opts.lastFrame) ?? "image/png";
+      body.last_frame_image = `data:${mime};base64,${b64(opts.lastFrame)}`;
     }
 
     log.debug("MiniMax textToVideo submit", { model: modelId });

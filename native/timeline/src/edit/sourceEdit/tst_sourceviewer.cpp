@@ -58,7 +58,8 @@ private slots:
     }
     void init() {
         QFile::remove(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"));
-        open(300);
+        // The monitors' controls sit under the pictures, so the timeline needs room to show the audio track.
+        open(400);
         view->resize(1800, 1200);
         state = view->engine()->singletonInstance<SourceViewerState*>("NodeTool.Timeline", "SourceViewerState");
         QVERIFY(state);
@@ -374,7 +375,7 @@ private slots:
     }
     void keysActOnSourceWhenFocused_data() {
         QTest::addColumn<QString>("preset");
-        for (const auto* preset : {"nodetool", "premiere", "fcp"}) { QTest::newRow(preset) << QString(preset); }
+        for (const auto* preset : {"premiere", "fcp"}) { QTest::newRow(preset) << QString(preset); }
     }
     void keysActOnSourceWhenFocused() {
         QFETCH(QString, preset);
@@ -571,8 +572,8 @@ private slots:
     void edits_data() {
         QTest::addColumn<QString>("kind"); QTest::addColumn<QString>("preset"); QTest::addColumn<bool>("keyboard");
         for (const auto& kind : {"append", "insert", "overwrite"}) {
-            QTest::newRow(qPrintable(QString(kind) + "-pointer")) << QString(kind) << QString("nodetool") << false;
-            for (const auto& preset : {"nodetool", "premiere", "fcp"}) {
+            QTest::newRow(qPrintable(QString(kind) + "-pointer")) << QString(kind) << QString("premiere") << false;
+            for (const auto& preset : {"premiere", "fcp"}) {
                 QTest::newRow(qPrintable(QString(kind) + "-" + preset)) << QString(kind) << QString(preset) << true;
             }
         }

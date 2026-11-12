@@ -8,6 +8,7 @@
 # null backend. Hosted runners have no hardware video decoder, so the
 # hardware decode tests are skipped (NT_NO_HW_DECODE=1); the benches and the
 # window checks (scripts/window-checks.sh) need a reference machine.
+# Packaging the app runs only in native-timeline-release.yml, on release tags.
 name: Native timeline
 
 # Pull requests and main pushes run only when native code or this workflow
@@ -27,6 +28,7 @@ on:
       - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
+      - "docker/ci-native/**"
   # A pull request can restore only its own caches and its base branch's. This
   # run builds the base branch and saves its compiler caches, so the first run
   # of each pull request does not compile from scratch.
@@ -39,6 +41,7 @@ on:
       - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
       - ".github/actions/setup-native-timeline/**"
+      - "docker/ci-native/**"
 
 permissions:
   contents: read
@@ -54,6 +57,13 @@ env:
   CCACHE_BASEDIR: ${{ github.workspace }}
   CCACHE_COMPILERCHECK: content
   CCACHE_MAXSIZE: 2G
+  # A pull request that changes one of these runs every native test: CI
+  # itself, the test selection, and the packages that scratch-server, oracle
+  # and golden tests load, which no build file records.
+  NT_TEST_FORCE: >-
+    .github/workflows/native-timeline.yml .github/actions/ docker/ci-native/
+    scripts/test-affected-native.mjs scripts/test-affected.mjs scripts/native-ci-test-selection.mjs
+    packages/ package.json package-lock.json
 
 jobs:
   # Decides whether a scheduled run has anything new to test. Every other
@@ -90,12 +100,69 @@ jobs:
           echo "No reference package changed since $since"
           echo "run=false" >> "$GITHUB_OUTPUT"
 
+  # The Linux legs run in the native CI image (docker/ci-native/) instead of
+  # installing their system packages with apt.
+  ci-image:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    uses: ./.github/workflows/ci-image.yml
+    with:
+      image: ci-native
+    permissions:
+      contents: read
+      packages: write
+
+  # The TypeScript package build output is platform-independent, so one Linux
+  # leg builds it and every native leg below downloads the artifact instead
+  # of each rebuilding ~55 packages from scratch (previously five full builds
+  # per run). Mirrors the `build` job in quality-checks.yml.
+  ts-dist:
+    name: TypeScript package dist
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node, install deps, build packages
+        uses: ./.github/actions/setup-build
+        with:
+          build-packages: "true"
+
+      - name: Upload package dist
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packages-dist
+          path: packages/*/dist
+          retention-days: 1
+          if-no-files-found: error
+
   build:
     name: ${{ matrix.name }}
-    needs: changes
+    needs: [changes, ci-image, ts-dist]
     if: needs.changes.outputs.run == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: read
+    # An empty image runs the job on the runner itself: macOS and Windows.
+    container:
+      image: ${{ matrix.os == 'ubuntu-24.04' && needs.ci-image.outputs.image || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     strategy:
       fail-fast: false
       matrix:
@@ -110,35 +177,36 @@ jobs:
       run:
         shell: bash
     steps:
+      # Depth 2 keeps the pull request's base commit, which the test
+      # selection diffs against.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
 
       - name: Set native temporary paths
         run: |
           echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
           echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
 
-      - name: Set up Node
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version-file: ".nvmrc"
-
-      # Motion contracts and golden checks read the shipped example media.
-      - name: Restore package media
-        uses: ./.github/actions/package-media
-
       # Scratch-server and golden checks also load decorated node packages.
-      - name: Build the server and timeline packages
-        env:
-          NODETOOL_TURBO_CONCURRENCY: "2"
-        run: |
-          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm ci --ignore-scripts
-          npm run rebuild:native
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            npm run build:packages:tsc
-          else
-            npm run build:packages
-          fi
+      # The TypeScript build output is platform-independent, so the `ts-dist`
+      # job below builds it once and every native leg downloads it instead of
+      # rebuilding it (previously five full builds per run). The shared setup
+      # still installs node_modules (cached per OS) and restores the example
+      # media; only the dist comes from the artifact.
+      - name: Install dependencies
+        uses: ./.github/actions/setup-build
+        with:
+          build-packages: "false"
+          turbo: "off"
+          cache: read-only
+
+      - name: Download TypeScript package dist
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages-dist
+          path: packages
 
       - name: Set up native dependencies
         uses: ./.github/actions/setup-native-timeline
@@ -176,8 +244,12 @@ jobs:
             native/timeline/src/server/sync/sync-e2e-transport.test.mjs
           native/timeline/scripts/make-fixtures.sh
 
+      # The File API query makes the configure write the target model the
+      # test selection reads, so selecting needs no second configure.
       - name: Configure
         run: |
+          query=native/timeline/build-ci/.cmake/api/v1/query
+          mkdir -p "$query" && touch "$query/codemodel-v2" "$query/cmakeFiles-v1"
           launcher=(-DCMAKE_CXX_COMPILER_LAUNCHER="$NT_COMPILER_LAUNCHER")
           if [[ "$RUNNER_OS" == macOS ]]; then launcher+=(-DCMAKE_OBJCXX_COMPILER_LAUNCHER="$NT_COMPILER_LAUNCHER"); fi
           cmake -S native/timeline -B native/timeline/build-ci -G Ninja -DCMAKE_BUILD_TYPE=Release \
@@ -206,6 +278,21 @@ jobs:
           path: ${{ env.CCACHE_DIR }}
           key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
 
+      # A pull request runs only the tests that depend on its changed files:
+      # the selection of `npm run test:affected:native`, read from this
+      # build's target model and compiler depfiles. Changes to CI, to the
+      # selection scripts or to any package run every test, as scheduled and
+      # manual runs do. If the selection fails, every test runs.
+      - name: Select affected tests
+        id: select
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          force=()
+          for prefix in $NT_TEST_FORCE; do force+=(--force "$prefix"); done
+          node scripts/native-ci-test-selection.mjs --project timeline --build native/timeline/build-ci \
+            --base "${{ github.event.pull_request.base.sha }}" --label render "${force[@]}"
+
       # The offscreen QPA platform has no QRhi: Qt Quick falls back to the
       # software scene graph there, and tst_editpreview cannot initialize its
       # render control. So no step sets QT_QPA_PLATFORM=offscreen globally;
@@ -217,51 +304,81 @@ jobs:
       # The render tests run apart, with the scene graph and QRhi logs on, and
       # the log must name the backend and the adapter.
       - name: Test (headless, macOS)
-        if: github.event_name != 'push' && runner.os == 'macOS'
+        if: github.event_name != 'push' && runner.os == 'macOS' && steps.select.outputs.run != 'false'
+        env:
+          NT_TEST_FILTER: ${{ steps.select.outputs.filter }}
+          NT_TEST_RENDER: ${{ steps.select.outputs.render }}
+          NT_TEST_OTHERS: ${{ steps.select.outputs.others }}
         run: |
           # The render tests run even when the others fail, so one failure cannot hide
           # theirs. The crash diagnoses read the failure list, which each run rewrites.
           failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
           status=0
-          ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
-          cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
-          QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
-            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
-            | tee "$RUNNER_TEMP/render.log" || status=$?
-          cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
-          grep -q "Creating QRhi with backend Metal" "$RUNNER_TEMP/render.log" ||
-            { echo "::error::the render tests did not run on Metal"; exit 1; }
+          sel=()
+          if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
+          if [[ "$NT_TEST_OTHERS" != false ]]; then
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render "${sel[@]}" || status=$?
+            cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
+          fi
+          if [[ "$NT_TEST_RENDER" != false ]]; then
+            QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render "${sel[@]}" --no-tests=error -V \
+              | tee "$RUNNER_TEMP/render.log" || status=$?
+            cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
+            grep -q "Creating QRhi with backend Metal" "$RUNNER_TEMP/render.log" ||
+              { echo "::error::the render tests did not run on Metal"; exit 1; }
+          fi
           exit "$status"
 
       - name: Test (headless, Linux)
-        if: github.event_name != 'push' && runner.os == 'Linux'
+        if: github.event_name != 'push' && runner.os == 'Linux' && steps.select.outputs.run != 'false'
         env:
           QT_QPA_PLATFORM: xcb
           QSG_RHI_BACKEND: vulkan
+          NT_TEST_FILTER: ${{ steps.select.outputs.filter }}
+          NT_TEST_RENDER: ${{ steps.select.outputs.render }}
+          NT_TEST_OTHERS: ${{ steps.select.outputs.others }}
         run: |
           # The render tests run even when the others fail, so one failure cannot hide
           # theirs. The crash diagnoses read the failure list, which each run rewrites.
           failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
           status=0
-          xvfb-run -a -s "-screen 0 1920x1080x24" \
-            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
-          cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
-          QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" xvfb-run -a -s "-screen 0 1920x1080x24" \
-            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
-            | tee "$RUNNER_TEMP/render.log" || status=$?
-          cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
-          grep -q "Creating QRhi with backend Vulkan" "$RUNNER_TEMP/render.log" ||
-            { echo "::error::the render tests did not run on Vulkan"; exit 1; }
-          grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep "using this physical device" > /dev/null ||
-            { echo "::error::the render tests did not run on lavapipe"; exit 1; }
+          sel=()
+          if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
+          if [[ "$NT_TEST_OTHERS" != false ]]; then
+            xvfb-run -a -s "-screen 0 1920x1080x24" \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render "${sel[@]}" \
+              | tee "$RUNNER_TEMP/non-render.log" || status=$?
+            cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
+          fi
+          if [[ "$NT_TEST_RENDER" != false ]]; then
+            QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" xvfb-run -a -s "-screen 0 1920x1080x24" \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render "${sel[@]}" --no-tests=error -V \
+              | tee "$RUNNER_TEMP/render.log" || status=$?
+            cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
+            grep -q "Creating QRhi with backend Vulkan" "$RUNNER_TEMP/render.log" ||
+              { echo "::error::the render tests did not run on Vulkan"; exit 1; }
+            grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep "using this physical device" > /dev/null ||
+              { echo "::error::the render tests did not run on lavapipe"; exit 1; }
+          fi
+          # The verbose render log buries the other tests' failures, so repeat them last.
+          if [[ -s "$RUNNER_TEMP/failed-non-render.log" ]]; then
+            echo "::error::non-render tests failed: $(cut -d: -f2 "$RUNNER_TEMP/failed-non-render.log" | paste -sd ' ')"
+            echo "::group::Non-render test output"
+            tail -n 2000 "$RUNNER_TEMP/non-render.log"
+            echo "::endgroup::"
+          fi
           exit "$status"
 
       - name: Test (headless, Windows)
-        if: github.event_name != 'push' && runner.os == 'Windows'
+        if: github.event_name != 'push' && runner.os == 'Windows' && steps.select.outputs.run != 'false'
         env:
           QSG_RHI_BACKEND: d3d11
           QSG_RHI_PREFER_SOFTWARE_RENDERER: "1"
           QT_FORCE_STDERR_LOGGING: "1"
+          NT_TEST_FILTER: ${{ steps.select.outputs.filter }}
+          NT_TEST_RENDER: ${{ steps.select.outputs.render }}
+          NT_TEST_OTHERS: ${{ steps.select.outputs.others }}
         run: |
           # Offscreen FreeType does not discover Windows system fallback fonts.
           export QT_QPA_FONTDIR="$(cygpath -m "$WINDIR/Fonts")"
@@ -269,16 +386,22 @@ jobs:
           # theirs. The crash diagnoses read the failure list, which each run rewrites.
           failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
           status=0
-          ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render || status=$?
-          cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
-          QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
-            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
-            | tee "$RUNNER_TEMP/render.log" || status=$?
-          cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
-          grep -q "Creating QRhi with backend D3D11" "$RUNNER_TEMP/render.log" ||
-            { echo "::error::the render tests did not run on D3D11"; exit 1; }
-          grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep "using this adapter" > /dev/null ||
-            { echo "::error::the render tests did not run on WARP"; exit 1; }
+          sel=()
+          if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
+          if [[ "$NT_TEST_OTHERS" != false ]]; then
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render "${sel[@]}" || status=$?
+            cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
+          fi
+          if [[ "$NT_TEST_RENDER" != false ]]; then
+            QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render "${sel[@]}" --no-tests=error -V \
+              | tee "$RUNNER_TEMP/render.log" || status=$?
+            cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
+            grep -q "Creating QRhi with backend D3D11" "$RUNNER_TEMP/render.log" ||
+              { echo "::error::the render tests did not run on D3D11"; exit 1; }
+            grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep "using this adapter" > /dev/null ||
+              { echo "::error::the render tests did not run on WARP"; exit 1; }
+          fi
           exit "$status"
 
       - name: Diagnose macOS entity panel crash
@@ -335,71 +458,31 @@ jobs:
           path: ${{ runner.temp }}/matte-gdb.log
           if-no-files-found: ignore
 
-      # package-macos.sh configures its own build directory. These variables
-      # route that build through the compiler cache, which already holds the
-      # objects of the Build step. Without them the step compiled for about
-      # 18 minutes.
-      - name: Package (macOS, unsigned)
-        if: github.event_name != 'push' && runner.os == 'macOS'
-        env:
-          CMAKE_CXX_COMPILER_LAUNCHER: ${{ env.NT_COMPILER_LAUNCHER }}
-          CMAKE_OBJCXX_COMPILER_LAUNCHER: ${{ env.NT_COMPILER_LAUNCHER }}
-          AWS_ACCESS_KEY_ID: ${{ github.event_name == 'push' && secrets.NATIVE_CACHE_R2_WRITE_KEY_ID || secrets.NATIVE_CACHE_R2_READ_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ github.event_name == 'push' && secrets.NATIVE_CACHE_R2_WRITE_SECRET || secrets.NATIVE_CACHE_R2_READ_SECRET }}
-        run: |
-          "$NT_COMPILER_LAUNCHER" --zero-stats
-          native/timeline/scripts/package-macos.sh
-          "$NT_COMPILER_LAUNCHER" --show-stats
-          DEV_BIN=build-ci/nodetool-timeline native/timeline/scripts/check-package-macos.sh
-
-      # Not verified: written for M6 (review F12); no run has checked it.
-      # The smoke runs use a copy of the package in a fresh folder, with PATH
-      # cut to the Windows system folders and no Qt variable, so a DLL, a
-      # plug-in or a QML import missing from the package cannot load from the
-      # Qt or FFmpeg folders of the build (review F3). They render the whole
-      # QML editor (--screenshot) and decode video through the packaged
-      # FFmpeg (--stills).
-      - name: Package (Windows, windeployqt, unverified)
-        if: github.event_name != 'push' && runner.os == 'Windows'
-        run: |
-          bash native/timeline/scripts/package-windows.sh
-          out=native/timeline/build-ci/package-windows
-          tmp=$(cygpath -u "$RUNNER_TEMP")
-          copy="$tmp/package-copy"
-          rm -rf "$copy" && cp -R "$out" "$copy"
-          smoke="$tmp/package-smoke"
-          rm -rf "$smoke" && mkdir -p "$smoke"
-          cd native/timeline
-          (
-            export PATH="/c/Windows/System32:/c/Windows:/c/Windows/System32/Wbem"
-            unset QT_PLUGIN_PATH QML_IMPORT_PATH QML2_IMPORT_PATH QT_QPA_PLATFORM_PLUGIN_PATH QT_QPA_PLATFORM
-            export QSG_RHI_BACKEND=d3d11 QSG_RHI_PREFER_SOFTWARE_RENDERER=1
-            exe="$copy/nodetool-timeline.exe"
-            "$exe" fixtures/three-tracks.json --dump-plan --times 0,8500 > /dev/null
-            dry=$("$exe" fixtures/av-sync.json --audio-dry-run)
-            [[ "$dry" == "audio mode: system" ]] || { echo "::error::--audio-dry-run printed '$dry'"; exit 1; }
-            "$exe" fixtures/three-tracks.json --screenshot "$smoke/editor.png" --audio none
-            [[ -s "$smoke/editor.png" ]] || { echo "::error::--screenshot of the packaged editor wrote nothing"; exit 1; }
-            "$exe" fixtures/video-cuts.json --stills "$smoke/stills" --still-frames 0,59,60 --audio none
-            shopt -s nullglob  # only bash builtins here: PATH has no Git tools
-            stills=("$smoke"/stills/frame_*.png)
-            [[ ${#stills[@]} == 3 ]] || { echo "::error::expected 3 stills from the package, got ${#stills[@]}"; exit 1; }
-          )
-
-      # Not verified: written for M6 (review F12); no run has checked it.
-      - name: Package (Linux AppImage, unverified)
-        if: github.event_name != 'push' && runner.os == 'Linux'
-        run: |
-          bash native/timeline/scripts/package-linux.sh
-
   sanitizers:
     name: Linux ${{ matrix.preset }}
     # Base branch runs only build and seed the compiler caches, as the build
     # job does. Pull requests restore them and run the checks.
-    needs: changes
+    needs: [changes, ci-image, ts-dist]
     if: needs.changes.outputs.run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: read
+    # TSan re-executes itself through personality(ADDR_NO_RANDOMIZE) when the
+    # kernel's mmap randomization is too wide for its shadow memory. Docker's
+    # default seccomp profile refuses that call.
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001 --security-opt seccomp=unconfined
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     strategy:
       fail-fast: false
       matrix:
@@ -409,57 +492,35 @@ jobs:
         shell: bash
         working-directory: native/timeline
     steps:
+      # Depth 2 keeps the pull request's base commit, which the test
+      # selection diffs against.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
       - name: Set native temporary paths
         run: |
           echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
           echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
-      - name: Set up Node
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      # Same shared TypeScript build as the platform legs: the dist comes
+      # from the `ts-dist` artifact, so the sanitizer presets skip the build
+      # (and the Turbo download) entirely.
+      - name: Install dependencies
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-      - name: Restore package media
-        uses: ./.github/actions/package-media
-      - name: Build the server and timeline packages
-        working-directory: .
-        run: |
-          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" npm ci --ignore-scripts
-          npm run rebuild:native
-          npm run build:packages
-      # Hosted runners have run out of disk while building FFmpeg (No space left on device).
-      - name: Free disk space
-        run: |
-          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
-          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
+          build-packages: "false"
+          turbo: "off"
+          cache: read-only
 
-      - name: Install dependencies (Linux)
-        working-directory: .
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang libclang-rt-dev ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev libvulkan-dev \
-            mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
-            libasound2-dev libpulse-dev libharfbuzz-dev libfreetype-dev \
-            xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
-            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 \
-            libxcb-xinerama0 libxcb-xkb1
-          # Vulkan on lavapipe only: the loader sees no other driver.
-          icd=$(compgen -G '/usr/share/vulkan/icd.d/lvp_icd*.json' | head -1 || true)
-          if [[ -z "$icd" ]]; then
-            echo "::error::mesa-vulkan-drivers installed no lavapipe ICD"
-            exit 1
-          fi
-          echo "VK_DRIVER_FILES=$icd" >> "$GITHUB_ENV"
-          echo "VK_ICD_FILENAMES=$icd" >> "$GITHUB_ENV"
-          VK_DRIVER_FILES=$icd vulkaninfo --summary | tee "$RUNNER_TEMP/vulkaninfo.txt"
-          grep -qi "llvmpipe" "$RUNNER_TEMP/vulkaninfo.txt"
-          pipx run aqtinstall install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
-          echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
-          # FFmpeg as LGPL shared libraries, as the packages ship it.
-          bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh" native/timeline/scripts/build-ffmpeg-lgpl.sh
-          echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib/pkgconfig" >> "$GITHUB_ENV"
-          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib" >> "$GITHUB_ENV"
+      - name: Download TypeScript package dist
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packages-dist
+          path: packages
+      # The native CI image has the system packages, Clang among them. This
+      # frees disk, then installs Qt and builds the LGPL FFmpeg.
+      - name: Set up native dependencies
+        uses: ./.github/actions/setup-native-timeline
 
       - name: Verify prerequisites and prepare media
         run: |
@@ -489,6 +550,8 @@ jobs:
           ccache --zero-stats
       - name: Configure
         run: |
+          query="build-${{ matrix.preset }}/.cmake/api/v1/query"
+          mkdir -p "$query" && touch "$query/codemodel-v2" "$query/cmakeFiles-v1"
           # ELF compression keeps line tables without duplicating large debug sections.
           cmake --preset "${{ matrix.preset }}" -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
             -DCMAKE_EXE_LINKER_FLAGS="-Wl,--compress-debug-sections=zlib" \
@@ -515,13 +578,30 @@ jobs:
         run: |
           node tools/sanitizers/check-plants.mjs --self-test
           node tools/sanitizers/check-plants.mjs "${{ matrix.preset }}"
+      # The ASan preset runs the tests the changed files affect, selected as
+      # in the build job. The TSan preset already runs a fixed short list,
+      # which a -R filter would replace, so it always runs whole.
+      - name: Select affected tests
+        id: select
+        if: github.event_name == 'pull_request' && matrix.preset == 'sanitize'
+        continue-on-error: true
+        working-directory: .
+        run: |
+          force=()
+          for prefix in $NT_TEST_FORCE; do force+=(--force "$prefix"); done
+          node scripts/native-ci-test-selection.mjs --project timeline --build native/timeline/build-sanitize \
+            --base "${{ github.event.pull_request.base.sha }}" "${force[@]}"
       - name: Test on lavapipe
-        if: github.event_name != 'push'
+        if: github.event_name != 'push' && steps.select.outputs.run != 'false'
         env:
           QT_QPA_PLATFORM: xcb
           QSG_RHI_BACKEND: vulkan
           QSG_INFO: "1"
-        run: xvfb-run -a ctest --preset "${{ matrix.preset }}" --output-on-failure
+          NT_TEST_FILTER: ${{ steps.select.outputs.filter }}
+        run: |
+          sel=()
+          if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
+          xvfb-run -a ctest --preset "${{ matrix.preset }}" --output-on-failure "${sel[@]}"
       - name: Upload sanitizer logs
         if: github.event_name != 'push' && always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

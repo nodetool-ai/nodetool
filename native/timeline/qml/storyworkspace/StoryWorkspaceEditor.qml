@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.Storyboard
 import NodeTool.UiPrimitives as Ui
 
 Ui.Surface {
@@ -407,6 +408,7 @@ Ui.Surface {
             controller: panel.controller
             renders: shotRenders
             mediaBrowser: panel.mediaBrowser
+            clipPlayer: shotClipPlayer
             onEditShotRequested: id => panel.selectedShotId = id
             onEntityRequested: id => { panel.returnId = panel.resource.id; panel.returnKind = panel.documentKind; panel.kind = "entities"; panel.controller.openEntity(id) }
             onScriptRequested: id => panel.openResource(id, "scripts")
@@ -774,6 +776,21 @@ Ui.Surface {
             }
         }
     }
+    Component {
+        id: shotClipPlayer
+        Loader {
+            id: clipLoader
+            property string assetId: ""
+            property real durationMs: 0
+            function togglePlay() { if (item) item.togglePlay() }
+            source: Qt.resolvedUrl("ShotClipPlayer.qml")
+            onLoaded: {
+                item.timeline = Qt.binding(() => panel.controller.timeline)
+                item.durationMs = Qt.binding(() => clipLoader.durationMs)
+                item.assetId = Qt.binding(() => clipLoader.assetId)
+            }
+        }
+    }
     ShotWorkflow {
         id: shotRenders
         objectName: "shotRenders"
@@ -790,6 +807,7 @@ Ui.Surface {
             workspace: panel.workspace
             controller: panel.controller
             mediaBrowser: panel.mediaBrowser
+            clipPlayer: shotClipPlayer
             renders: shotRenders
             shotId: panel.selectedShotId
             Component.onCompleted: forceActiveFocus()

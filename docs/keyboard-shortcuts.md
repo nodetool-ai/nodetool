@@ -126,57 +126,57 @@ Shortcuts by editor. In the app, `Ctrl + /` (Windows/Linux), `⌘ + /` (Mac), or
 
 ## Timeline editor
 
-The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. Open the shortcut sheet with `?` and pick a layout. The choice is stored in the `timelineKeyboardPreset` setting. The tables below show the NodeTool layout first. On Mac, `Ctrl` in these tables means `⌘`.
+The timeline has two key layouts: Premiere Pro, the default, and Final Cut Pro. Open the shortcut sheet with `?` and pick a layout. The choice is stored in the `timelineKeyboardPreset` setting. The tables below show the Premiere Pro layout first. On Mac, `Ctrl` in these tables means `⌘`.
 
 | Group | Key | Action |
 |-------|-----|--------|
 | Tools | `V` | Select tool |
 | Tools | `A` | Track select tool: every clip from the click on, `Shift` for one track |
 | Tools | `Shift + A` | Track select backward tool: every clip up to the click |
-| Tools | `B` / `Shift + B` | Ripple edit tool / rolling edit tool |
+| Tools | `B` / `N` | Ripple edit tool / rolling edit tool |
 | Tools | `R` | Rate stretch tool: drag an edge to change the clip's speed |
 | Tools | `C` | Cut (blade) tool |
 | Tools | `Y` | Slip tool: drag a clip to change which part of its source plays |
 | Tools | `U` | Slide tool: drag a clip along its track while its neighbours trim to follow |
 | Tools | `H` | Hand tool: drag to scroll the timeline |
 | Tools | `Z` | Zoom tool: click to zoom in, `Alt + click` to zoom out |
-| Tools | `N` | Toggle snapping |
+| Tools | `S` | Toggle snapping |
 | Tools | `Esc` | Clear selection and return to Select |
-| Editing | `S` | Split selected clips at the playhead |
+| Editing | `Ctrl + Alt + K` | Split selected clips at the playhead |
 | Editing | `Ctrl + Shift + K` | Cut all tracks at the playhead |
 | Editing | `Delete` or `Backspace` | Delete selected clips, or close a gap selected by clicking it |
 | Editing | `Shift + Delete` | Ripple delete (closes the gap) |
-| Editing | `Ctrl + D` | Duplicate |
-| Editing | `Ctrl + Shift + D` | Duplicate with a 1 second gap |
-| Editing | `Ctrl + T` | Cross-fade into selected clips |
+| Editing | `Alt + D` | Duplicate |
+| Editing | `Alt + Shift + D` | Duplicate with a 1 second gap |
+| Editing | `Ctrl + D` | Cross-fade into selected clips |
 | Editing | `Alt + T` | Fade selected clips in and out |
-| Editing | `Ctrl + Alt + T` | Cross-fade the audio at the selected clips' edits |
+| Editing | `Ctrl + Shift + D` | Cross-fade the audio at the selected clips' edits |
 | Editing | `Ctrl + R` | Speed and duration of the selected clips |
 | Editing | `G` | Audio gain of the selected clips |
 | Editing | `Ctrl + A` / `Ctrl + Shift + A` | Select all clips / deselect all |
-| Editing | `Shift + D` | Select the clips at the playhead |
-| Editing | `Ctrl + Shift + E` | Enable or disable selected clips |
+| Editing | `D` | Select the clips at the playhead |
+| Editing | `Shift + E` | Enable or disable selected clips |
 | Editing | `Ctrl + L` | Link or unlink selected clips |
 | Editing | `Ctrl + G` / `Ctrl + Shift + G` | Group / ungroup |
-| Editing | `[` / `]` | Ripple trim the previous / next edit to the playhead |
+| Editing | `Q` / `W` | Ripple trim the previous / next edit to the playhead |
 | Editing | `;` / `'` | Lift / extract the in to out range |
 | Editing | `E` | Extend the selected edit point to the playhead |
-| Editing | `Ctrl + Shift + ←` / `→` | Trim the edit point one frame |
-| Editing | `Ctrl + Shift + Alt + ←` / `→` | Trim the edit point ten frames |
+| Editing | `Ctrl + Alt + ←` / `→` | Trim the edit point one frame |
+| Editing | `Ctrl + Alt + Shift + ←` / `→` | Trim the edit point ten frames |
 | Clipboard | `Ctrl + C` / `X` / `V` | Copy, cut, paste at the playhead |
 | Clipboard | `Ctrl + Shift + V` | Paste insert: paste and push later clips right |
 | Clipboard | `Ctrl + Alt + V` | Paste attributes of the copied clip onto the selection |
-| Move | `←` / `→` | Nudge selected clips one frame |
-| Move | `Shift + ←` / `→` | Nudge selected clips one second |
+| Move | `Alt + ←` / `→` | Nudge selected clips one frame |
+| Move | `Alt + Shift + ←` / `→` | Nudge selected clips one second |
 | Playback | `Space` | Play or pause |
 | Playback | `Ctrl + Shift + Space` | Play from in to out |
 | Playback | `Shift + L` | Loop playback between in and out |
-| Playback | `Alt + ←` / `→` | Step the playhead one frame |
+| Playback | `←` / `→` | Step the playhead one frame |
 | Playback | `J` / `K` / `L` | Shuttle back, stop, shuttle forward (press again for faster) |
 | Playback | `I` / `O` | Mark in, mark out |
 | Playback | `X` | Mark the selection, or the clip under the playhead |
 | Playback | `Shift + I` / `Shift + O` | Go to in, go to out |
-| Playback | `Alt + Shift + ←` / `→` | Step the playhead five frames |
+| Playback | `Shift + ←` / `→` | Step the playhead five frames |
 | Playback | `Ctrl + Shift + X` | Clear in and out |
 | Playback | `↑` / `↓` or `Page Up` / `Page Down` | Previous or next cut |
 | Playback | `M` | Add a marker at the playhead |
@@ -185,11 +185,11 @@ The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. O
 | Playback | `Shift + F` | Reveal the clip's media in Assets |
 | Keyframes | `Alt + K` | Keyframe the selected clip at the playhead |
 | Keyframes | `Alt + Shift + K` / `Ctrl + Alt + Shift + K` | Next or previous keyframe |
-| Source | `Shift + E` | Append the source range to the end |
-| Source | `W` | Insert the source range at the playhead |
-| Source | `D` | Overwrite with the source range at the playhead |
-| View | `+` or `=` / `-` | Zoom in or out |
-| View | `Shift + Z` | Zoom to fit content |
+| Source | `Ctrl + Shift + E` | Append the source range to the end |
+| Source | `,` | Insert the source range at the playhead |
+| Source | `.` | Overwrite with the source range at the playhead |
+| View | `=` / `-` | Zoom in or out |
+| View | `\` | Zoom to fit content |
 | View | `Ctrl + =` / `Ctrl + -` | Make tracks taller or shorter |
 | History | `Ctrl + Z` | Undo |
 | History | `Ctrl + Shift + Z` or `Ctrl + Y` | Redo |
@@ -198,40 +198,40 @@ The timeline has three key layouts: NodeTool, Premiere Pro, and Final Cut Pro. O
 | Mouse | `Ctrl + drag clip` | Insert on drop and push later clips right |
 | Mouse | `Alt + drag clip` | Duplicate: leave a copy where the clip was |
 
-Premiere Pro and Final Cut Pro layouts change these keys:
+The Final Cut Pro layout changes these keys:
 
-| Action | Premiere Pro | Final Cut Pro |
-|--------|--------------|---------------|
-| Select tool | `V` | `A` |
-| Track select tool | `A` | `Shift + A` |
-| Track select backward tool | `Shift + A` | `Alt + Shift + A` |
-| Ripple edit / rolling edit tool | `B` / `N` | `T` / `Shift + T` |
-| Rate stretch tool | `R` | `R` |
-| Cut tool | `C` | `B` |
-| Slip tool | `Y` | `Y` |
-| Select the clips at the playhead | `D` | `C` |
-| Enable or disable clips | `Shift + E` | `V` |
-| Ripple trim previous / next edit to playhead | `Q` / `W` | `Alt + [` / `Alt + ]` |
-| Step five frames | `Shift + ←` / `→` | `Shift + ←` / `→` |
-| Split at playhead | `Ctrl + Alt + K` | `Ctrl + B` |
-| Cut all tracks | `Ctrl + Shift + K` | `Ctrl + Shift + B` |
-| Delete | `Delete` | `Shift + Delete` |
-| Ripple delete | `Shift + Delete` | `Delete` |
-| Duplicate | `Alt + D` | `Ctrl + D` |
-| Nudge one frame | `Alt + ←` / `→` | `,` / `.` |
-| Toggle snapping | `S` | `N` |
-| Zoom to fit | `\` | `Shift + Z` |
-| Cross-fade into selection | `Ctrl + D` | `Ctrl + T` |
-| Insert / overwrite source range | `,` / `.` | `W` / `D` |
-| Append source range | `Ctrl + Shift + E` | `E` |
-| Link or unlink clips | `Ctrl + L` | `Ctrl + Alt + L` |
-| Cross-fade the audio | `Ctrl + Shift + D` | `Ctrl + Alt + T` |
-| Paste insert / paste attributes | `Ctrl + Shift + V` / `Ctrl + Alt + V` | `Ctrl + Alt + V` / `Ctrl + Shift + V` |
-| Taller / shorter tracks | `Ctrl + =` / `Ctrl + -` | `Ctrl + Alt + ↑` / `↓` |
-| Loop playback | `Shift + L` | `Ctrl + L` |
-| Play from in to out | `Ctrl + Shift + Space` | `/` |
+| Action | Final Cut Pro |
+|--------|---------------|
+| Select tool | `A` |
+| Track select tool | `Shift + A` |
+| Track select backward tool | `Alt + Shift + A` |
+| Ripple edit / rolling edit tool | `T` / `Shift + T` |
+| Rate stretch tool | `R` |
+| Cut tool | `B` |
+| Slip tool | `Y` |
+| Select the clips at the playhead | `C` |
+| Enable or disable clips | `V` |
+| Ripple trim previous / next edit to playhead | `Alt + [` / `Alt + ]` |
+| Step five frames | `Shift + ←` / `→` |
+| Split at playhead | `Ctrl + B` |
+| Cut all tracks | `Ctrl + Shift + B` |
+| Delete | `Shift + Delete` |
+| Ripple delete | `Delete` |
+| Duplicate | `Ctrl + D` |
+| Nudge one frame | `,` / `.` |
+| Toggle snapping | `N` |
+| Zoom to fit | `Shift + Z` |
+| Cross-fade into selection | `Ctrl + T` |
+| Insert / overwrite source range | `W` / `D` |
+| Append source range | `E` |
+| Link or unlink clips | `Ctrl + Alt + L` |
+| Cross-fade the audio | `Ctrl + Alt + T` |
+| Paste insert / paste attributes | `Ctrl + Alt + V` / `Ctrl + Shift + V` |
+| Taller / shorter tracks | `Ctrl + Alt + ↑` / `↓` |
+| Loop playback | `Ctrl + L` |
+| Play from in to out | `/` |
 
-In the Premiere Pro and Final Cut Pro layouts, bare `←` / `→` step the playhead one frame. The NodeTool layout uses `Alt + ←` / `→` for that because bare arrows nudge clips. Shuttle, marking, marker, cut navigation, keyframe, copy and paste, undo, Slide, Hand, Zoom, Speed/Duration, audio gain, and match frame keys are the same in all three layouts. See the [Video Editor](video-editor.md#keyboard-shortcuts) guide for the editor itself.
+In both layouts, bare `←` / `→` step the playhead one frame. Shuttle, marking, marker, cut navigation, keyframe, copy and paste, undo, Slide, Hand, Zoom, Speed/Duration, audio gain, and match frame keys are the same in both layouts. See the [Video Editor](video-editor.md#keyboard-shortcuts) guide for the editor itself.
 
 ## Sketch editor
 

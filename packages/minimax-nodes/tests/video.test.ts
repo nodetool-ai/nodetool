@@ -117,6 +117,28 @@ describe("MinimaxTextToVideoNode", () => {
 });
 
 describe("MinimaxImageToVideoNode", () => {
+  it("sends an end image as last_frame_image on Hailuo-02", async () => {
+    const { provider, context } = scriptedVideo();
+    await new MinimaxImageToVideoNode({
+      image: { type: "image", data: imageB64 },
+      end_image: { type: "image", data: imageB64 },
+      prompt: "transition"
+    }).process(context);
+    const input = provider.endpointCalls[0].input;
+    expect(String(input.last_frame_image)).toContain("base64,");
+  });
+
+  it("refuses an end image on a model that takes none", async () => {
+    const { provider, context } = scriptedVideo();
+    await expect(new MinimaxImageToVideoNode({
+      model: "MiniMax-Hailuo-2.3",
+      image: { type: "image", data: imageB64 },
+      end_image: { type: "image", data: imageB64 },
+      prompt: "transition"
+    }).process(context)).rejects.toThrow("MiniMax model MiniMax-Hailuo-2.3 takes no end frame");
+    expect(provider.endpointCalls).toHaveLength(0);
+  });
+
   it("sends the input image as the first frame", async () => {
     const { provider, context } = scriptedVideo();
     const result = await new MinimaxImageToVideoNode({

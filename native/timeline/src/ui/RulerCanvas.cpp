@@ -127,39 +127,29 @@ void RulerCanvas::paint(QPainter* painter) {
         const bool isMajor = tick.value("major").toBool();
         const double px = tick.value("timeMs").toDouble() / m_msPerPx - m_scrollLeftPx;
         painter->setPen(tickPen);
-        painter->drawLine(QPointF(px, h), QPointF(px, isMajor ? h / 2.0 : h * 0.75));
+        // As in Premiere: short minor ticks and taller major ticks at the bottom.
+        painter->drawLine(QPointF(px, h), QPointF(px, isMajor ? h * 0.7 : h * 0.84));
         const auto label = tick.value("label").toString();
         if (label.isEmpty()) { continue; }
         painter->setPen(m_text);
         const double textX = m_rulerMode == u"timecode"
             ? std::max(0.0, std::min(px + 3.0, w - metrics.horizontalAdvance(label) - 3.0)) : px + 3.0;
-        painter->drawText(QPointF(textX, 3.0 + metrics.ascent()), label);
+        // The timecode sits in the middle row, under the marker row.
+        painter->drawText(QPointF(textX, h * 0.36 + metrics.ascent()), label);
         ++labels;
     }
-    // Markers: a full-height guide line; the flag is a QML item on top. A range
-    // marker also shades the span of its duration and closes it with an end line.
+    // Markers: the glyph is a QML item in the top row. A range marker draws its
+    // span as a bar in that row, as Premiere's extended marker does.
+    const double markerRowPx = h * 0.34;
     for (const QVariant& v : m_markers) {
         const QVariantMap m = v.toMap();
         const double px = m.value(QStringLiteral("timeMs")).toDouble() / m_msPerPx - m_scrollLeftPx;
         const double durationPx = m.value(QStringLiteral("durationMs")).toDouble() / m_msPerPx;
-        if (px > w || px + durationPx < 0) continue;
+        if (durationPx <= 0 || px > w || px + durationPx < 0) continue;
         const QString color = m.value(QStringLiteral("color")).toString();
-        const QColor ink = color.isEmpty() ? m_marker : QColor(color);
-        if (durationPx > 0) {
-            QColor span = ink;
-            span.setAlphaF(0.22 * ink.alphaF());
-            painter->fillRect(QRectF(px, 0, durationPx, h), span);
-            QPen bar(ink);
-            bar.setWidthF(2.0);
-            painter->setPen(bar);
-            painter->drawLine(QPointF(px, h - 1.0), QPointF(px + durationPx, h - 1.0));
-            painter->drawLine(QPointF(px + durationPx, 0), QPointF(px + durationPx, h));
-        }
-        if (px < 0) continue;
-        QPen pen(ink);
-        pen.setWidthF(1.0);
-        painter->setPen(pen);
-        painter->drawLine(QPointF(px + 0.5, 0), QPointF(px + 0.5, h));
+        QColor span = color.isEmpty() ? m_marker : QColor(color);
+        span.setAlphaF(0.45 * span.alphaF());
+        painter->fillRect(QRectF(px, 1.0, durationPx, markerRowPx - 1.0), span);
     }
     m_labelCount = labels;
     emit painted();
@@ -170,9 +160,24 @@ void RulerCanvas::setTimeline(TimelineModel* timeline) {
     if (m_timeline) { disconnect(m_timeline, nullptr, this, nullptr); }
     m_timeline = timeline;
     if (m_timeline) {
-        connect(m_timeline, &TimelineModel::timelineChanged, this, &RulerCanvas::changedValue);
+        m_tempoKey = tempoKey();
+        m_dropFrameKey = m_timeline->timeline().raw.value("dropFrame").toBool();
+        connect(m_timeline, &TimelineModel::timelineChanged, this, &RulerCanvas::timelineEdited);
         connect(m_timeline, &QObject::destroyed, this, &RulerCanvas::changedValue);
     }
+    changedValue();
+}
+
+QJsonValue RulerCanvas::tempoKey() const {
+    return m_timeline ? QJsonValue(m_timeline->timeline().raw.value("tempo")) : QJsonValue();
+}
+
+void RulerCanvas::timelineEdited() {
+    const QJsonValue tempo = tempoKey();
+    const bool dropFrame = m_timeline && m_timeline->timeline().raw.value("dropFrame").toBool();
+    if (tempo == m_tempoKey && dropFrame == m_dropFrameKey) { return; }
+    m_tempoKey = tempo;
+    m_dropFrameKey = dropFrame;
     changedValue();
 }
 

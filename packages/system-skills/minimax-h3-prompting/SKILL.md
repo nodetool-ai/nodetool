@@ -20,9 +20,9 @@ reference-to-video with `find_model` for `reference_to_video`, then
 `generate_video_from_references`. Those forward the prompt, the media, the
 duration, the aspect ratio and the resolution. `generate_video_from_references`
 carries reference images and videos but no audio files, `animate_image`
-forwards an end frame (`end_frame_file`) on AtlasCloud but not on fal or kie,
-and none of them sets prompt expansion. Audio references, a fal or kie end
-frame and the expansion switch exist only on the route's own node: find it with `search_nodes`, read its fields with `get_node_info`,
+sends an end frame (`end_frame_file`) to the route's last-frame field, and
+none of them sets prompt expansion. Audio references and the expansion switch
+exist only on the route's own node: find it with `search_nodes`, read its fields with `get_node_info`,
 and run it with `run_node`. Each run is a paid generation, so confirm the
 scope with the user before rendering several.
 

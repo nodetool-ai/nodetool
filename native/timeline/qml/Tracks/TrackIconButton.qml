@@ -8,6 +8,7 @@ Ui.EditorButton {
     property string tone: "idle"
     readonly property bool engaged: tone === "warning" || tone === "success"
     density: Ui.EditorButton.Compact
+    implicitWidth: Ui.Metrics.compact
     variant: Ui.EditorButton.Flat
     iconName: label === "" ? iconKey : ""
     text: label

@@ -357,6 +357,22 @@ describe("SettingsStore", () => {
       expect(restored).toBe("default");
     });
 
+    test("a persisted nodetool keyboard preset falls back to Premiere", async () => {
+      localStorage.setItem(
+        "settings-storage",
+        JSON.stringify({
+          state: { settings: { timelineKeyboardPreset: "nodetool" } },
+          version: 0
+        })
+      );
+      let restored = "";
+      await jest.isolateModulesAsync(async () => {
+        const fresh = await import("../SettingsStore");
+        restored = fresh.useSettingsStore.getState().settings.timelineKeyboardPreset;
+      });
+      expect(restored).toBe("premiere");
+    });
+
     test("defaultAutosaveSettings has correct structure", () => {
       expect(defaultAutosaveSettings.enabled).toBe(true);
       expect(defaultAutosaveSettings.intervalMinutes).toBe(10);

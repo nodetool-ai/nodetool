@@ -18,12 +18,21 @@ void ReframeController::setModel(TimelineModel* model) {
     m_model = model;
     if (model) {
         connect(model, &TimelineModel::beforeCommand, this, &ReframeController::cancelGesture);
-        connect(model, &TimelineModel::clipsChanged, this, &ReframeController::documentChanged);
-        connect(model, &TimelineModel::timelineChanged, this, &ReframeController::documentChanged);
+        // The model emits timelineChanged after every clipsChanged, so one connection hears both.
+        connect(model, &TimelineModel::timelineChanged, this, &ReframeController::refresh);
         connect(model, &TimelineModel::documentReplaced, this, [this] { m_before = {}; });
     }
     emit modelChanged();
+    refresh();
+}
+void ReframeController::refresh() {
+    ++m_revision;
     emit documentChanged();
+    const auto tracks = m_model ? m_model->timeline().raw.value(u"mediaTracks").toArray() : QJsonArray{};
+    if (tracks != m_mediaTracks) {
+        m_mediaTracks = tracks;
+        emit mediaTracksChanged();
+    }
 }
 QVariantMap ReframeController::document() const {
     return m_model ? m_model->timeline().raw.toVariantMap() : QVariantMap{};
