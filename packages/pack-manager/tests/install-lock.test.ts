@@ -88,9 +88,8 @@ describe("shared installer lock", () => {
 describe("cross-process exclusion", () => {
   it("makes a second installer process wait for the first owner", async () => {
     const { spawn } = await import("node:child_process");
-    const { fileURLToPath } = await import("node:url");
     const moduleUrl = new URL("../src/install-lock.ts", import.meta.url).href;
-    const tsxApi = fileURLToPath(new URL("../../../node_modules/tsx/dist/esm/api/index.mjs", import.meta.url));
+    const tsxApi = new URL("../../../node_modules/tsx/dist/esm/api/index.mjs", import.meta.url).href;
     const childScript = join(root, "installer.mjs");
     await writeFile(childScript, `
       import { tsImport } from ${JSON.stringify(tsxApi)};
@@ -107,7 +106,7 @@ describe("cross-process exclusion", () => {
     child.stderr.on("data", (chunk: Buffer) => { errors += chunk.toString(); });
     const finished = new Promise<number | null>((resolve, reject) => {
       child.on("error", reject);
-      child.on("exit", resolve);
+      child.on("close", resolve);
     });
     try {
       await new Promise((resolve) => setTimeout(resolve, 100));
