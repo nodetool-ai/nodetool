@@ -43,6 +43,16 @@ constexpr std::int64_t kChunkFrames = 4096;
 // each burst is long enough to hear.
 constexpr double kScrubMs = 70.0;
 constexpr double kScrubRampMs = 5.0;
+// At a loop wrap, the session that played up to the loop end keeps sounding
+// past it for this long and fades out under the wrapped audio (MD19 step 4).
+constexpr double kLoopFadeMs = 3.0;
+
+// The life of a wrap session in the second slot. The callback claims a ready
+// one when it crosses the loop end. The worker withdraws a ready one it
+// replaces. One compare-exchange decides which happened first.
+constexpr int kWrapReady = 0;
+constexpr int kWrapClaimed = 1;
+constexpr int kWrapWithdrawn = 2;
 
 std::string voiceKey(const VoicePlan& voice) {
     return voice.segmentId.empty() ? voice.clipId : voice.clipId + '\x1f' + voice.segmentId;
@@ -50,12 +60,20 @@ std::string voiceKey(const VoicePlan& voice) {
 
 // One mix snapshot's PCM: rings are retained across unchanged mappings and
 // released by the worker after the callback no longer reads their snapshots.
-// native-rules #9: atomics shared by the worker and the device callback, no affinity comment at the top
+// Thread affinity: the decode worker builds, fills and frees it. The device
+// callback reads it only while a hazard slot (Impl::inUse, Impl::inUseWrap)
+// names it, and writes only the atomics, `pcm` and its rings' read floors.
+// The plain fields other than `pcm` are set before the worker publishes it.
 struct Session {
     std::atomic<std::uint64_t> seekSeq{0};
     double startMs = 0.0;
     std::uint64_t planVersion = 0;
-    // native-rules #1: std::shared_ptr MixPlan, no comment on why unique ownership is impossible
+    // Loop wraps since the seek: a wrap session is its current session's pass + 1.
+    std::uint64_t pass = 0;
+    // Wrap sessions only: kWrapReady, kWrapClaimed or kWrapWithdrawn.
+    std::atomic<int> wrapState{kWrapReady};
+    // Shared: every session built from one plan version holds it, and
+    // Impl::plan holds the newest until the next edit replaces it.
     std::shared_ptr<const MixPlan> plan;
     // Shared only between worker-owned snapshots. The callback never copies
     // or destroys an owner. Old snapshots retain rings until their hazard clears.
@@ -79,6 +97,11 @@ struct AudioEngine::Impl {
     std::atomic<bool> running{false};
     std::atomic<Session*> published{nullptr};
     std::atomic<Session*> inUse{nullptr};
+    // MD19: the session primed from the loop start, written by the worker,
+    // and the callback's hazard slot for it. The worker frees a session only
+    // when none of published, inUse, wrapSlot and inUseWrap names it.
+    std::atomic<Session*> wrapSlot{nullptr};
+    std::atomic<Session*> inUseWrap{nullptr};
     double sampleRate = 48000.0;
     std::atomic<double> latencySec{0.0};
     std::atomic<std::uint64_t> generation{0};
@@ -91,8 +114,21 @@ struct AudioEngine::Impl {
     std::atomic<std::int64_t> waitBlocks{0};
     std::atomic<std::int64_t> playedFrames{0};  // frames mixed while playing
     std::atomic<std::int64_t> lateStarts{0};
+    std::atomic<std::int64_t> loopWraps{0};
+    std::atomic<std::int64_t> loopMisses{0};
     std::atomic<double> lastPlayStartMs{-1.0};
     std::int64_t seenStartNs = 0;
+    // The loop crossing, callback only. `crossed` is the wrap session the
+    // callback plays until the worker publishes it as current; inUseWrap
+    // keeps naming it until then. During the fade the callback keeps both
+    // hazard slots as they are, so `fadeFrom` (named by inUse) stays alive.
+    Session* crossed = nullptr;
+    Session* fadeFrom = nullptr;
+    Session* heldCurrent = nullptr;  // the published session the fade holds
+    double fadeFromMs = 0.0;         // timeline time of the next outgoing frame
+    std::int64_t fadeFrames = 0;     // kLoopFadeMs at the device rate, set in start()
+    std::int64_t fadeDone = 0;       // frames of the fade mixed so far
+    std::vector<float> fadeScratch;  // fadeFrames stereo frames, sized in start()
     // The loudness meter of the played mix. Created in start() before the device runs, driven only by the
     // callback. `meterPlaying` and `meterSeq` are the callback's own: a pause or a seek restarts the short
     // windows once, not on every block.
@@ -135,7 +171,7 @@ struct AudioEngine::Impl {
     std::mutex mutex;  // guards plan, planVersion, stopWorker
     std::condition_variable wake;
     bool stopWorker = false;
-    // native-rules #1: std::shared_ptr MixPlan, no comment on why unique ownership is impossible
+    // Shared with every session built from it (Session::plan).
     std::shared_ptr<const MixPlan> plan = std::make_shared<MixPlan>();
     std::uint64_t planVersion = 1;
     std::uint64_t publishedPlanVersion = 0;  // guarded by mutex, caller publication acknowledgement
@@ -181,7 +217,7 @@ struct AudioEngine::Impl {
     }
 
     double queryLatency() {
-        if (options.backend == Backend::Null) return options.simulatedLatencySec;
+        if (options.backend != Backend::System) return options.simulatedLatencySec;
 #if defined(MA_SUPPORT_COREAUDIO)
         if (device.pContext->backend == ma_backend_coreaudio) {
             const OutputLatency facts = queryCoreAudioOutputLatency(device.coreaudio.deviceObjectIDPlayback);
@@ -198,21 +234,93 @@ struct AudioEngine::Impl {
     }
 
     // ---- callback ----
-    Session* acquireSession() {
+    // A hazard pointer: names the session in `slot` in `hazard`, and checks
+    // that the slot still holds it, so the worker cannot have freed it.
+    static Session* acquire(const std::atomic<Session*>& slot, std::atomic<Session*>& hazard) {
         Session* s = nullptr;
         do {
-            s = published.load(std::memory_order_seq_cst);
-            inUse.store(s, std::memory_order_seq_cst);
-        } while (s != published.load(std::memory_order_seq_cst));
+            s = slot.load(std::memory_order_seq_cst);
+            hazard.store(s, std::memory_order_seq_cst);
+        } while (s != slot.load(std::memory_order_seq_cst));
         return s;
     }
 
-    void render(float* out, std::uint32_t frames) {
-        const std::int64_t hostNs = steadyNowNs();
-        Session* s = acquireSession();
-        const AudioAnchor anchor = driver->beginBlock(hostNs, frames, sampleRate, [s](std::uint64_t seq) {
-            return s && s->seekSeq.load(std::memory_order_acquire) == seq && s->primed.load(std::memory_order_acquire);
-        });
+    // Mixes `frames` frames of `s` from timeline time `t0` into `out`.
+    // Returns true when a voice lacked PCM.
+    bool mixSession(Session& s, double t0, double msPerFrame, std::int64_t frames, float* out) {
+        const double tEnd = t0 + msPerFrame * static_cast<double>(frames);
+        const MixPlan& plan = *s.plan;
+        bool missing = false;
+        for (std::size_t i = 0; i < plan.voices.size(); ++i) {
+            const VoicePlan& v = plan.voices[i];
+            const bool overlaps = !v.silent && tEnd > v.startMs && t0 < v.startMs + v.durationMs;
+            s.pcm[i].ring = overlaps ? s.live[i].load(std::memory_order_acquire) : nullptr;
+            if (overlaps && !s.pcm[i].ring && !s.failed[i].load(std::memory_order_relaxed)) missing = true;
+        }
+        MixStats st;
+        mixBlock(plan, s.pcm.data(), sampleRate, t0, msPerFrame, static_cast<int>(frames), out, st);
+        s.doneMs.store(tEnd, std::memory_order_release);
+        s.consumed.store(true, std::memory_order_release);
+        return missing || st.underruns > 0;
+    }
+
+    // The fade of MD19 step 4 over `frames` frames of `out`, which hold the
+    // wrapped audio: the session that played up to the loop end continues
+    // past it with a gain from 1 down to 1/fadeFrames, and the wrapped audio
+    // rises to match, so the first frame after the wrap continues the last
+    // frame before it. A plan with effects or automation keeps its state in
+    // the plan, so only a plan without either fades (a third mixBlock at
+    // another time would advance that state); with one, the wrap is a cut.
+    bool mixFade(float* out, std::int64_t frames, double msPerFrame) {
+        const std::int64_t n = std::min(frames, fadeFrames - fadeDone);
+        if (n <= 0 || !fadeFrom) return false;
+        const bool missing = mixSession(*fadeFrom, fadeFromMs, msPerFrame, n, fadeScratch.data());
+        for (std::int64_t i = 0; i < n; ++i) {
+            const double out1 = 1.0 - static_cast<double>(fadeDone + i) / static_cast<double>(fadeFrames);
+            for (int c = 0; c < 2; ++c) {
+                const auto at = static_cast<std::size_t>(i * 2 + c);
+                out[at] = static_cast<float>(out[at] * (1.0 - out1) + fadeScratch[at] * out1);
+            }
+        }
+        fadeDone += n;
+        fadeFromMs += msPerFrame * static_cast<double>(n);
+        if (fadeDone >= fadeFrames) fadeFrom = nullptr;
+        return missing;
+    }
+
+    void render(float* out, std::uint32_t frames, std::int64_t hostNs) {
+        // While a fade runs, both hazard slots keep the sessions they named
+        // when the block crossed the loop end. Otherwise take the published
+        // session, and the wrap slot unless the callback is still in a wrap
+        // session the worker has not published.
+        Session* s = fadeFrom ? heldCurrent : acquire(published, inUse);
+        if (crossed && s && s->seekSeq.load(std::memory_order_acquire) == crossed->seekSeq.load(std::memory_order_acquire) &&
+            s->pass == crossed->pass) {
+            crossed = nullptr;  // the worker made it current
+        }
+        Session* wrap = crossed ? crossed : (fadeFrom ? inUseWrap.load(std::memory_order_relaxed) : acquire(wrapSlot, inUseWrap));
+        Session* play = crossed ? crossed : s;
+        const AudioAnchor anchor = driver->beginBlock(
+            hostNs, frames, sampleRate,
+            [s](std::uint64_t seq) {
+                return s && s->seekSeq.load(std::memory_order_acquire) == seq && s->primed.load(std::memory_order_acquire);
+            },
+            [&](std::uint64_t seq, double loopStartMs) {
+                // One crossing at a time, from the published session only.
+                if (crossed || fadeFrom || !play || !wrap || wrap == play) return false;
+                if (play->seekSeq.load(std::memory_order_acquire) != seq || wrap->seekSeq.load(std::memory_order_acquire) != seq ||
+                    wrap->pass != play->pass + 1 || wrap->startMs != loopStartMs || !wrap->primed.load(std::memory_order_acquire)) {
+                    return false;
+                }
+                int expected = kWrapReady;
+                return wrap->wrapState.compare_exchange_strong(expected, kWrapClaimed, std::memory_order_acq_rel);
+            });
+        if (crossed && crossed->seekSeq.load(std::memory_order_acquire) != anchor.seekSeq) {
+            // A seek started: the wrap session belongs to the one before.
+            crossed = nullptr;
+            fadeFrom = nullptr;
+            play = s;
+        }
         const std::int64_t framesAt = driver->framesRendered() - frames;
         if (driver->lastStartNs() != seenStartNs) {
             seenStartNs = driver->lastStartNs();
@@ -221,11 +329,13 @@ struct AudioEngine::Impl {
             if (driver->lastStartLate()) lateStarts.fetch_add(1, std::memory_order_relaxed);
         }
         const auto silence = [&]() { std::fill(out, out + static_cast<std::size_t>(frames) * 2, 0.0f); };
+        if (!anchor.playing || driver->seekPending()) fadeFrom = nullptr;
+        if (driver->wrapMissed()) loopMisses.fetch_add(1, std::memory_order_relaxed);
         if (!anchor.playing) {
             meterPlaying = false;
             silence();
             renderScrub(s, out, frames);
-        } else if (driver->seekPending() || !s || s->seekSeq.load(std::memory_order_acquire) != anchor.seekSeq) {
+        } else if (driver->seekPending() || !play || play->seekSeq.load(std::memory_order_acquire) != anchor.seekSeq) {
             meterPlaying = false;
             silence();
             waitBlocks.fetch_add(1, std::memory_order_relaxed);
@@ -235,18 +345,30 @@ struct AudioEngine::Impl {
         } else {
             const double t0 = CallbackClockDriver::timelineAt(anchor, framesAt, sampleRate);
             const double msPerFrame = 1000.0 / sampleRate * anchor.rate;
-            const double tEnd = t0 + msPerFrame * frames;
-            const MixPlan& plan = *s->plan;
+            const std::int64_t wrapAt = driver->wrapOffset();
             bool missing = false;
-            for (std::size_t i = 0; i < plan.voices.size(); ++i) {
-                const VoicePlan& v = plan.voices[i];
-                const bool overlaps = !v.silent && tEnd > v.startMs && t0 < v.startMs + v.durationMs;
-                s->pcm[i].ring = overlaps ? s->live[i].load(std::memory_order_acquire) : nullptr;
-                if (overlaps && !s->pcm[i].ring && !s->failed[i].load(std::memory_order_relaxed)) missing = true;
+            if (wrapAt < 0) {
+                missing = mixSession(*play, t0, msPerFrame, frames, out);
+                if (fadeFrom) missing = mixFade(out, frames, msPerFrame) || missing;
+            } else {
+                // MD19 step 3: the frames before the wrap from the current
+                // session, the frames after it from the wrap session.
+                const double endMs = t0 + msPerFrame * static_cast<double>(wrapAt);
+                if (wrapAt > 0) missing = mixSession(*play, t0, msPerFrame, wrapAt, out);
+                float* after = out + wrapAt * 2;
+                const std::int64_t rest = static_cast<std::int64_t>(frames) - wrapAt;
+                missing = mixSession(*wrap, driver->command().loopStartMs, msPerFrame, rest, after) || missing;
+                loopWraps.fetch_add(1, std::memory_order_relaxed);
+                if (!play->plan->state) {
+                    fadeFrom = play;
+                    heldCurrent = s;
+                    fadeFromMs = endMs;
+                    fadeDone = 0;
+                    missing = mixFade(after, rest, msPerFrame) || missing;
+                }
+                crossed = wrap;
             }
-            MixStats st;
-            mixBlock(plan, s->pcm.data(), sampleRate, t0, msPerFrame, static_cast<int>(frames), out, st);
-            if (st.underruns > 0 || missing) underruns.fetch_add(1, std::memory_order_relaxed);
+            if (missing) underruns.fetch_add(1, std::memory_order_relaxed);
             if (liveLoudness) {
                 if (!meterPlaying || meterSeq != anchor.seekSeq) {
                     liveLoudness->discontinuity();
@@ -255,9 +377,7 @@ struct AudioEngine::Impl {
                 }
                 liveLoudness->process(out, static_cast<int>(frames));
             }
-            s->doneMs.store(tEnd, std::memory_order_release);
             playedFrames.fetch_add(frames, std::memory_order_relaxed);
-            s->consumed.store(true, std::memory_order_release);
         }
         if (!record.empty()) {
             const std::int64_t cap = static_cast<std::int64_t>(record.size() / 2);
@@ -335,7 +455,7 @@ struct AudioEngine::Impl {
     }
 
     static void dataCallback(ma_device* dev, void* output, const void*, ma_uint32 frames) {
-        static_cast<Impl*>(dev->pUserData)->render(static_cast<float*>(output), frames);
+        static_cast<Impl*>(dev->pUserData)->render(static_cast<float*>(output), frames, steadyNowNs());
     }
 
     static void notificationCallback(const ma_device_notification* n) {
@@ -395,15 +515,16 @@ struct AudioEngine::Impl {
         return raw;
     }
 
-    // Closes every decoder whose clip has no ring in the current session:
-    // its clip has played out or is beyond the lookahead. A later seek opens
-    // it again. Also totals the decode errors.
-    void evictSources(const Session* current) {
+    // Closes every decoder whose clip has no ring in the current session or
+    // the wrap session: its clip has played out or is beyond the lookahead.
+    // A later seek opens it again. Also totals the decode errors.
+    void evictSources(const Session* current, const Session* wrap) {
         std::set<std::string> wanted;
-        if (current) {
-            for (std::size_t i = 0; i < current->plan->voices.size(); ++i) {
-                if (current->rings[i]) {
-                    const VoicePlan& v = current->plan->voices[i];
+        for (const Session* keep : {current, wrap}) {
+            if (!keep) continue;
+            for (std::size_t i = 0; i < keep->plan->voices.size(); ++i) {
+                if (keep->rings[i]) {
+                    const VoicePlan& v = keep->plan->voices[i];
                     wanted.insert(v.clipId + '\n' + v.mediaPath);
                 }
             }
@@ -471,6 +592,7 @@ struct AudioEngine::Impl {
                     std::ceil(v.sourceFrameAt(v.startMs + v.durationMs, sampleRate))) + 2;
             }
             s->consumed.store(previous->consumed.load(std::memory_order_acquire));
+            s->pass = previous->pass;
         }
         sessionCount.fetch_add(1);
         return s;
@@ -542,12 +664,93 @@ struct AudioEngine::Impl {
         return primed;
     }
 
+    // Frees every session that neither slot nor either hazard slot names.
+    // The slots are read before the hazards, so a session the callback is
+    // about to name has either left its slot (the callback's recheck then
+    // fails) or is still named here.
     void retire() {
-        Session* current = published.load();
+        Session* current = published.load(std::memory_order_seq_cst);
+        Session* wrap = wrapSlot.load(std::memory_order_seq_cst);
         Session* used = inUse.load(std::memory_order_seq_cst);
+        Session* usedWrap = inUseWrap.load(std::memory_order_seq_cst);
         std::erase_if(sessions, [&](const std::unique_ptr<Session>& s) {
-            return s.get() != current && s.get() != used;
+            const Session* p = s.get();
+            return p != current && p != wrap && p != used && p != usedWrap;
         });
+    }
+
+    // ---- loop (MD19) ----
+    // Takes the wrap session out of its slot unless the callback crossed
+    // into it first. Returns true when it did cross: the caller promotes it.
+    bool withdrawWrap() {
+        Session* w = wrapSlot.load(std::memory_order_seq_cst);
+        if (!w) return false;
+        int expected = kWrapReady;
+        if (w->wrapState.compare_exchange_strong(expected, kWrapWithdrawn, std::memory_order_acq_rel) ||
+            expected == kWrapWithdrawn) {
+            wrapSlot.store(nullptr, std::memory_order_seq_cst);
+            return false;
+        }
+        return true;
+    }
+
+    // MD19 step 5: the wrap session the callback crossed into becomes current.
+    Session* promoteWrap() {
+        Session* w = wrapSlot.load(std::memory_order_seq_cst);
+        published.store(w, std::memory_order_seq_cst);
+        wrapSlot.store(nullptr, std::memory_order_seq_cst);
+        return w;
+    }
+
+    bool wrapClaimed() const {
+        const Session* w = wrapSlot.load(std::memory_order_seq_cst);
+        return w && w->wrapState.load(std::memory_order_acquire) == kWrapClaimed;
+    }
+
+    // Keeps a primed session from the loop start in the second slot while
+    // the command loops: builds it, rebuilds it after an edit (retaining
+    // its rings) or a changed range, and drops it when the loop ends.
+    void maintainWrap(const playback::TransportCommand& cmd, Session*& current) {
+        const bool loops = cmd.playing && cmd.rate == 1.0 && !cmd.keepPitch && cmd.loopEndMs > cmd.loopStartMs &&
+                           cmd.loopStartMs >= 0.0 && current && current->seekSeq.load() == cmd.seekSeq &&
+                           current->primed.load(std::memory_order_acquire);
+        Session* w = wrapSlot.load(std::memory_order_seq_cst);
+        if (w && w->wrapState.load(std::memory_order_acquire) == kWrapReady) {
+            const bool fits = loops && w->seekSeq.load() == current->seekSeq.load() && w->pass == current->pass + 1 &&
+                              w->startMs == cmd.loopStartMs;
+            if (fits && w->planVersion == current->planVersion) {
+                if (!w->primed.load(std::memory_order_acquire) && fill(*w, false)) {
+                    w->primed.store(true, std::memory_order_release);
+                }
+                return;
+            }
+            // An edit: the wrap session follows it as the current one did,
+            // retaining its rings. The old one stays in the slot while the
+            // new one primes, so a loop end meanwhile still wraps.
+            std::unique_ptr<Session> next = fits ? buildWrap(cmd, *current, w) : nullptr;
+            if (withdrawWrap()) {
+                // The callback crossed meanwhile. The next pass rebuilds it.
+                current = promoteWrap();
+                return;
+            }
+            if (next) installWrap(std::move(next));
+            return;
+        }
+        if (!w && loops) installWrap(buildWrap(cmd, *current, nullptr));
+    }
+
+    std::unique_ptr<Session> buildWrap(const playback::TransportCommand& cmd, const Session& current,
+                                       const Session* previous) {
+        auto w = buildSession(current.seekSeq.load(), cmd.loopStartMs, previous);
+        w->pass = current.pass + 1;
+        w->primed.store(fill(*w, false), std::memory_order_release);
+        return w;
+    }
+
+    void installWrap(std::unique_ptr<Session> w) {
+        Session* raw = w.get();
+        sessions.push_back(std::move(w));
+        wrapSlot.store(raw, std::memory_order_seq_cst);
     }
 
     struct ShuttleMixSource : ShuttleSource {
@@ -663,6 +866,20 @@ struct AudioEngine::Impl {
                     sessions.push_back(std::move(s));
                     published.store(current, std::memory_order_seq_cst);
                 }
+                // The wrap session belongs to the old position. A callback
+                // that crossed into it still plays the old seek, which ends
+                // in silence as soon as it reads the new command.
+                if (Session* w = wrapSlot.exchange(nullptr, std::memory_order_seq_cst)) {
+                    int expected = kWrapReady;
+                    w->wrapState.compare_exchange_strong(expected, kWrapWithdrawn, std::memory_order_acq_rel);
+                }
+            }
+            if (wrapClaimed()) {
+                if (current && wrapSlot.load()->seekSeq.load() == current->seekSeq.load()) {
+                    current = promoteWrap();
+                } else {
+                    wrapSlot.store(nullptr, std::memory_order_seq_cst);  // crossed under an older seek
+                }
             }
             std::uint64_t version = 0;
             {
@@ -687,13 +904,14 @@ struct AudioEngine::Impl {
                 const bool primed = fill(*current, cmd.playing);
                 if (primed) current->primed.store(true, std::memory_order_release);
             }
+            maintainWrap(cmd, current);
             if (current && cmd.scrub && !cmd.playing && cmd.seekSeq == current->seekSeq.load() && cmd.seekSeq != lastScrubArmed &&
                 current->primed.load(std::memory_order_acquire)) {
                 lastScrubArmed = cmd.seekSeq;
                 scrubRequest.store(cmd.seekSeq, std::memory_order_release);
             }
             produceShuttle(current);
-            evictSources(current);
+            evictSources(current, wrapSlot.load(std::memory_order_seq_cst));
             retire();
             idle = !cmd.playing && (!current || (current->seekSeq.load() == cmd.seekSeq &&
                                                  current->primed.load(std::memory_order_acquire) &&
@@ -753,11 +971,14 @@ bool AudioEngine::start(const Options& options, std::string* error) {
         stop();
         return false;
     };
-    ma_backend nullBackend[] = {ma_backend_null};
-    const ma_result ctx = options.backend == Backend::Null ? ma_context_init(nullBackend, 1, nullptr, &d.context)
-                                                           : ma_context_init(nullptr, 0, nullptr, &d.context);
-    if (ctx != MA_SUCCESS) return fail("cannot create the audio context");
-    d.contextReady = true;
+    const bool manual = options.backend == Backend::Manual;
+    if (!manual) {
+        ma_backend nullBackend[] = {ma_backend_null};
+        const ma_result ctx = options.backend == Backend::Null ? ma_context_init(nullBackend, 1, nullptr, &d.context)
+                                                               : ma_context_init(nullptr, 0, nullptr, &d.context);
+        if (ctx != MA_SUCCESS) return fail("cannot create the audio context");
+        d.contextReady = true;
+    }
 
     ma_device_config config = ma_device_config_init(ma_device_type_playback);
     config.playback.format = ma_format_f32;
@@ -772,7 +993,7 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     ma_device_info* playbackDevices = nullptr;
     ma_uint32 playbackCount = 0;
     d.selectedDevice = false;
-    if (hasOutputDeviceProvider() &&
+    if (!manual && hasOutputDeviceProvider() &&
         ma_context_get_devices(&d.context, &playbackDevices, &playbackCount, nullptr, nullptr) == MA_SUCCESS) {
         std::vector<std::string> names;
         names.reserve(playbackCount);
@@ -782,9 +1003,13 @@ bool AudioEngine::start(const Options& options, std::string* error) {
             d.selectedDevice = true;
         }
     }
-    if (ma_device_init(&d.context, &config, &d.device) != MA_SUCCESS) return fail("cannot open the audio device");
-    d.deviceReady = true;
-    d.sampleRate = static_cast<double>(d.device.sampleRate);
+    if (manual) {
+        d.sampleRate = options.sampleRate > 0 ? options.sampleRate : kDefaultMixRate;
+    } else {
+        if (ma_device_init(&d.context, &config, &d.device) != MA_SUCCESS) return fail("cannot open the audio device");
+        d.deviceReady = true;
+        d.sampleRate = static_cast<double>(d.device.sampleRate);
+    }
     prepareMixPlan(*d.plan, d.sampleRate);
     // Before the device starts, so the callback never sees a half-built meter.
     d.liveLoudness.reset();
@@ -793,8 +1018,8 @@ bool AudioEngine::start(const Options& options, std::string* error) {
         d.liveLoudness = std::make_unique<LiveLoudness>(*options.loudness);
         d.liveLoudness->prepare(d.sampleRate);
     }
-    d.backendName = ma_get_backend_name(d.context.backend);
-    d.deviceName = d.device.playback.name;
+    d.backendName = manual ? "manual" : ma_get_backend_name(d.context.backend);
+    d.deviceName = manual ? "manual" : d.device.playback.name;
     d.latencySec.store(d.queryLatency());
     d.driver = std::make_unique<CallbackClockDriver>(d.feed);
     d.shuttleStamp.store(0);
@@ -808,6 +1033,13 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     if (options.recordSeconds > 0.0) {
         d.record.assign(static_cast<std::size_t>(options.recordSeconds * d.sampleRate) * 2, 0.0f);
     }
+    // The loop fade's scratch: only the callback touches it, at most
+    // fadeFrames frames per block.
+    d.fadeFrames = std::max<std::int64_t>(1, std::llround(kLoopFadeMs * d.sampleRate / 1000.0));
+    d.fadeScratch.assign(static_cast<std::size_t>(d.fadeFrames) * 2, 0.0f);
+    d.crossed = nullptr;
+    d.fadeFrom = nullptr;
+    d.heldCurrent = nullptr;
     {
         std::lock_guard lock(d.mutex);
         d.stopWorker = false;
@@ -816,8 +1048,14 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     d.running.store(true);
     d.generation.fetch_add(1);
     d.publishDevice(true);
-    if (ma_device_start(&d.device) != MA_SUCCESS) return fail("cannot start the audio device");
+    if (!manual && ma_device_start(&d.device) != MA_SUCCESS) return fail("cannot start the audio device");
     return true;
+}
+
+void AudioEngine::renderManual(std::span<float> out, std::int64_t hostNs) {
+    Impl& d = *m_impl;
+    if (d.options.backend != Backend::Manual || !d.running.load()) return;
+    d.render(out.data(), static_cast<std::uint32_t>(out.size() / 2), hostNs);
 }
 
 void AudioEngine::stop() {
@@ -843,6 +1081,11 @@ void AudioEngine::stop() {
     if (wasRunning) d.publishDevice(false);
     d.published.store(nullptr);
     d.inUse.store(nullptr);
+    d.wrapSlot.store(nullptr);
+    d.inUseWrap.store(nullptr);
+    d.crossed = nullptr;
+    d.fadeFrom = nullptr;
+    d.heldCurrent = nullptr;
     d.sessions.clear();
     d.stretcher.reset();
     d.shuttleRing.reset();
@@ -854,7 +1097,7 @@ void AudioEngine::stop() {
 
 void AudioEngine::simulateDeviceChange(double latencySec) {
     Impl& d = *m_impl;
-    if (d.options.backend != Backend::Null) return;
+    if (d.options.backend == Backend::System) return;
     d.options.simulatedLatencySec = latencySec;
     d.latencySec.store(latencySec);
     d.generation.fetch_add(1);
@@ -863,7 +1106,7 @@ void AudioEngine::simulateDeviceChange(double latencySec) {
 
 void AudioEngine::simulateDeviceNotification(bool started) {
     Impl& d = *m_impl;
-    if (d.options.backend != Backend::Null) return;
+    if (d.options.backend == Backend::System) return;
     d.onNotification(started ? ma_device_notification_type_started : ma_device_notification_type_stopped);
 }
 
@@ -878,6 +1121,8 @@ AudioEngine::Stats AudioEngine::stats() const {
     s.waitBlocks = d.waitBlocks.load();
     s.playedFrames = d.playedFrames.load();
     s.lateStarts = d.lateStarts.load();
+    s.loopWraps = d.loopWraps.load();
+    s.loopMisses = d.loopMisses.load();
     s.lastPlayStartMs = d.lastPlayStartMs.load();
     s.sampleRate = d.sampleRate;
     s.outputLatencySec = d.latencySec.load();

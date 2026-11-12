@@ -72,7 +72,10 @@
         "tst_easing",
         "tst_framering",
         "tst_retirequeue",
-        "tst_framecache"
+        "tst_framecache",
+        "tst_transport",
+        "tst_liveaudioedit",
+        "tst_looptransport"
       ]
     },
     {
@@ -117,7 +120,7 @@
       },
       "filter": {
         "include": {
-          "name": "^tst_(sourcepool|ffmpegsource|cpuusage|audioengine|easing|framering|retirequeue|framecache)$"
+          "name": "^tst_(sourcepool|ffmpegsource|cpuusage|audioengine|easing|framering|retirequeue|framecache|transport|liveaudioedit|looptransport)$"
         }
       },
       "description": "Disable hardware decode because NVIDIA/CUDA threads crash the TSan runtime (thr->slot CHECK)."

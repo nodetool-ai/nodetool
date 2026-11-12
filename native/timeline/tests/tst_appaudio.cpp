@@ -4,6 +4,7 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 
+#include <QJsonObject>
 #include <QtTest>
 
 using namespace nt;
@@ -24,6 +25,31 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(audio.engine()->stats().planBuilds, before + 1, 1000);
         QTest::qWait(50);
         QCOMPARE(audio.engine()->stats().planBuilds, before + 1);
+    }
+    // MUSIC-MODE.md 14.1: a sequence with a `music` object mixes at 48 kHz on
+    // the system device. The window follows each document the model loads.
+    void musicProjectSetsTheEngineRate() {
+        nt::Timeline plain;
+        nt::Timeline music;
+        music.raw.insert(QStringLiteral("music"), QJsonObject{{QStringLiteral("key"), QStringLiteral("C major")}});
+        QCOMPARE(engineRateFor(plain), 0);
+        QCOMPARE(engineRateFor(music), kMusicEngineRate);
+        TimelineModel model;
+        model.setTimeline(music);
+        PlaybackClock clock;
+        AppAudio audio;
+        audio.setFollowDocumentRate(true);
+        QString error;
+        QVERIFY2(audio.start(QStringLiteral("null"), 0, model, clock, &error), qPrintable(error));
+        QCOMPARE(audio.systemRate(), kMusicEngineRate);
+        AudioEngine* engine = audio.engine();
+        model.setTimeline(plain);
+        QCOMPARE(audio.systemRate(), 0);
+        model.setTimeline(music);
+        QCOMPARE(audio.systemRate(), kMusicEngineRate);
+        // The null device always runs at 48 kHz: no restart.
+        QCOMPARE(audio.engine(), engine);
+        QCOMPARE(audio.engine()->stats().sampleRate, 48000.0);
     }
     void idleWorkerDoesNotPoll() {
         TimelineModel model;
