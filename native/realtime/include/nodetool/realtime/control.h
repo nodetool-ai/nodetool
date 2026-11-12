@@ -23,6 +23,7 @@ struct ControlTickResult {
     bool accepted = false;
     std::uint64_t steps = 0;
     std::uint64_t skipped = 0;
+    std::uint64_t operations = 0;
 };
 
 // Prepared on the host thread, then exclusively owned by one render OR audio

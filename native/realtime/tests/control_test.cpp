@@ -151,6 +151,15 @@ void stateful() {
 }
 
 void cadence() {
+    auto analyticPlan = base(); constant(analyticPlan, 0, {1});
+    analyticPlan["control"]["ops"].push_back(operation("tanh", 1, {0}));
+    auto analyticOnly = prepare(analyticPlan);
+    const auto pure = analyticOnly->tick(tickAt(2));
+    require(pure.operations == 2 && pure.steps == 0 && pure.skipped == 0, "Analytic-only program repeated between consumer ticks");
+    auto mixedPlan = statePlan("damp", {1, 0.2});
+    mixedPlan["control"]["ops"].push_back(operation("pow", 11, {0, 1}));
+    auto mixed = prepare(mixedPlan);
+    require(mixed->tick(tickAt(128.0 / 48000)).operations == 6, "Independent analytic operation repeated during state stepping");
     for (const unsigned rate : {44100u, 48000u}) {
         auto plan = statePlan("damp", {1, 0.2}); plan["session"]["sampleRate"] = rate;
         auto slow = prepare(plan); auto fast = prepare(plan); auto exact = prepare(plan);
