@@ -82,6 +82,30 @@ frame. Minimum live-set requirements are reserved before optional cache space.
 
 ## Verification still needed
 
+### Native pipeline API blocker
+
+The graph runner pins wgpu-native `v29.0.1.1` in
+[host-image-gpu.cmake](../graph-runner/cmake/host-image-gpu.cmake).
+[Design section 9.2, rule 4](../../docs/plans/graph-runner-realtime.md#92-device-presenters-and-the-shared-queue)
+requires shader compilation information and asynchronous pipeline status
+callbacks without concurrent device-wide error scopes. That release exports
+`wgpuDeviceCreateComputePipelineAsync`, `wgpuDeviceCreateRenderPipelineAsync`
+and `wgpuShaderModuleGetCompilationInfo`, but their bodies are
+[`unimplemented!()` stubs](https://github.com/gfx-rs/wgpu-native/blob/v29.0.1.1/src/unimplemented.rs).
+The same stubs exist in the inspected
+[upstream revision](https://github.com/gfx-rs/wgpu-native/blob/589e6caa4e9fa5596f601e82ca5d3937a1afc829/src/unimplemented.rs).
+Header availability therefore does not establish runtime support. These entry
+points must not be called by the backend.
+
+Backend implementation needs a decision: either maintain a native API patch,
+or authorize an explicit provisional offline-only exception that creates
+pipelines synchronously before activation on a private device. The latter
+would not qualify shared-device live preparation or resolve RT-F44. The design
+has not been changed, and no fallback has been implemented. This finding comes
+from source inspection, not a runtime test.
+
+### Pending execution evidence
+
 The `realtime-render-schedule` test source covers 100-frame retention beside a
 volatile chain, synthetic pixel preservation, liveness reuse, LRU pressure,
 uniform/slot invalidation, paused edits, target exposure, failed submissions,

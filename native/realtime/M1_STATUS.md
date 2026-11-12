@@ -118,3 +118,10 @@ Actual wgpu-native encoding, asynchronous pipeline preparation, uniform
 packing/bind-group caching, texture presentation, nonblocking staging readback
 and software-adapter pixel goldens remain unfinished. WP08 stays open, and this
 increment does not qualify M1 or resolve any M0 hardware gate.
+
+GPU backend preparation is blocked on a dependency/design decision. The pinned
+wgpu-native release contains unimplemented stubs for all three compilation and
+async pipeline APIs required by design section 9.2, rule 4. The inspected upstream
+revision has the same limitation. [Source evidence and alternatives](render.md#native-pipeline-api-blocker)
+are recorded alongside the render contracts. No synchronous fallback or design
+exception has been approved or implemented.
