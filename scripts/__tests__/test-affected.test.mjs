@@ -260,7 +260,9 @@ describe("buildPlan", () => {
   it.each([
     "scripts/test-affected-native.mjs",
     "scripts/__tests__/test-affected-native.test.mjs",
-    "scripts/__tests__/fixtures/test-affected-native/ctest.json"
+    "scripts/__tests__/fixtures/test-affected-native/ctest.json",
+    "scripts/native-ci-test-selection.mjs",
+    "scripts/__tests__/native-ci-test-selection.test.mjs"
   ])("tests the native selection rules for %s", (file) => {
     expect(plan([file]).globalFiles).toEqual([]);
     expect(labels([file])).toEqual(["native test selection"]);

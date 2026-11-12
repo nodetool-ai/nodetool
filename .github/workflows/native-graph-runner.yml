@@ -74,8 +74,12 @@ jobs:
       run:
         shell: bash
     steps:
+      # Depth 2 keeps the pull request's base commit, which the test
+      # selection diffs against.
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
 
       # Native C++ jobs install their system packages with apt on the runner
       # (docker/ci/README.md).
@@ -155,6 +159,9 @@ jobs:
           CCACHE_DIR: ${{ runner.temp }}/ccache
           SAN_FLAGS: ${{ matrix.flags }}
         run: |
+          # The File API query makes the configure write the target model the
+          # test selection reads.
+          mkdir -p build/.cmake/api/v1/query && touch build/.cmake/api/v1/query/{codemodel-v2,cmakeFiles-v1}
           # GCC 13 stops with an internal compiler error in catalog_support.cpp.
           cmake -S . -B build -G Ninja \
             -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
@@ -177,6 +184,29 @@ jobs:
           node guest/host/gpu-catalog.mjs build/gpu-catalog.json
           ./build/nodetool-graph-runner compile --bundle build/guest.js --out build/guest.bin
 
+      # A pull request runs only the tests that depend on its changed files:
+      # the selection of `npm run test:affected:native`, read from this
+      # build's target model and compiler depfiles. Changes to CI or to the
+      # selection scripts run every test, as manual runs do. If the selection
+      # fails, every test runs.
+      - name: Select affected tests
+        id: select
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          node scripts/native-ci-test-selection.mjs --project graph-runner --build native/graph-runner/build \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --force .github/workflows/native-graph-runner.yml --force scripts/test-affected-native.mjs \
+            --force scripts/test-affected.mjs --force scripts/native-ci-test-selection.mjs
+
+      # Two tests at a time: the suite ran one at a time, and a TSan run took
+      # about 55 minutes, most of it in a few long tests.
       - name: Test
+        if: steps.select.outputs.run != 'false'
         working-directory: native/graph-runner
-        run: ctest --test-dir build --output-on-failure --timeout 900
+        env:
+          NT_TEST_FILTER: ${{ steps.select.outputs.filter }}
+        run: |
+          sel=()
+          if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
+          ctest --test-dir build --output-on-failure --timeout 900 -j 2 "${sel[@]}"
