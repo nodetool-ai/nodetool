@@ -306,8 +306,7 @@ jobs:
       # QVulkanInstance, hw/HwWindow.cpp). Windows: the Windows platform,
       # D3D11 on the WARP software adapter.
       # The render tests run apart, with the scene graph and QRhi logs on, and
-      # the log must name the backend and the adapter. They run two at a time;
-      # the ones that measure time are RUN_SERIAL and still run alone.
+      # the log must name the backend and the adapter.
       - name: Test (headless, macOS)
         if: github.event_name != 'push' && runner.os == 'macOS' && steps.select.outputs.run != 'false'
         env:
@@ -326,10 +325,16 @@ jobs:
             cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
           fi
           if [[ "$NT_TEST_RENDER" != false ]]; then
+            # The golden shards render offscreen and run side by side. The other
+            # render tests show windows, which must not compete for focus.
             QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
-              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -L render "${sel[@]}" --no-tests=error -V \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -L '^golden$' "${sel[@]}" --no-tests=ignore -V \
               | tee "$RUNNER_TEMP/render.log" || status=$?
-            cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
+            cp "$failed" "$RUNNER_TEMP/failed-golden.log" 2>/dev/null || true
+            QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render -LE '^golden$' "${sel[@]}" --no-tests=ignore -V \
+              | tee -a "$RUNNER_TEMP/render.log" || status=$?
+            cat "$RUNNER_TEMP/failed-golden.log" "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
             grep -q "Creating QRhi with backend Metal" "$RUNNER_TEMP/render.log" ||
               { echo "::error::the render tests did not run on Metal"; exit 1; }
           fi
@@ -357,10 +362,16 @@ jobs:
             cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
           fi
           if [[ "$NT_TEST_RENDER" != false ]]; then
+            # The golden shards render offscreen and run side by side. The other
+            # render tests show windows, which must not compete for focus.
             QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" xvfb-run -a -s "-screen 0 1920x1080x24" \
-              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -L render "${sel[@]}" --no-tests=error -V \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -L '^golden$' "${sel[@]}" --no-tests=ignore -V \
               | tee "$RUNNER_TEMP/render.log" || status=$?
-            cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
+            cp "$failed" "$RUNNER_TEMP/failed-golden.log" 2>/dev/null || true
+            QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" xvfb-run -a -s "-screen 0 1920x1080x24" \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render -LE '^golden$' "${sel[@]}" --no-tests=ignore -V \
+              | tee -a "$RUNNER_TEMP/render.log" || status=$?
+            cat "$RUNNER_TEMP/failed-golden.log" "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
             grep -q "Creating QRhi with backend Vulkan" "$RUNNER_TEMP/render.log" ||
               { echo "::error::the render tests did not run on Vulkan"; exit 1; }
             grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep "using this physical device" > /dev/null ||
@@ -398,10 +409,16 @@ jobs:
             cp "$failed" "$RUNNER_TEMP/failed-non-render.log" 2>/dev/null || true
           fi
           if [[ "$NT_TEST_RENDER" != false ]]; then
+            # The golden shards render offscreen and run side by side. The other
+            # render tests show windows, which must not compete for focus.
             QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
-              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -L render "${sel[@]}" --no-tests=error -V \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -L '^golden$' "${sel[@]}" --no-tests=ignore -V \
               | tee "$RUNNER_TEMP/render.log" || status=$?
-            cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
+            cp "$failed" "$RUNNER_TEMP/failed-golden.log" 2>/dev/null || true
+            QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render -LE '^golden$' "${sel[@]}" --no-tests=ignore -V \
+              | tee -a "$RUNNER_TEMP/render.log" || status=$?
+            cat "$RUNNER_TEMP/failed-golden.log" "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
             grep -q "Creating QRhi with backend D3D11" "$RUNNER_TEMP/render.log" ||
               { echo "::error::the render tests did not run on D3D11"; exit 1; }
             grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep "using this adapter" > /dev/null ||

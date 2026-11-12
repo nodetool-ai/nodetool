@@ -29,14 +29,15 @@ function(nt_export_tests)
             RUN_SERIAL TRUE)
     endforeach()
     # The golden comparison is the longest test (10 to 19 minutes on hosted
-    # runners). It measures PSNR, not time, so its four shards run beside other
-    # tests. The shards together hold every fixture once (check-checks.mjs).
+    # runners). It measures PSNR, not time, and renders offscreen, so its four
+    # shards (label `golden`) run side by side, apart from the render tests
+    # that show windows. Together they hold every fixture once (check-checks.mjs).
     set(NT_GOLDEN_SHARDS 4)
     foreach(shard RANGE 1 ${NT_GOLDEN_SHARDS})
         add_test(NAME export_golden_${shard} COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-export.mjs
             --shard ${shard}/${NT_GOLDEN_SHARDS} --bin $<TARGET_FILE:nodetool-timeline>)
         # A full fixture export under ASan takes about 18 minutes, a shard about a third of it.
-        set_tests_properties(export_golden_${shard} PROPERTIES LABELS render FIXTURES_REQUIRED media TIMEOUT 1200)
+        set_tests_properties(export_golden_${shard} PROPERTIES LABELS "render;golden" FIXTURES_REQUIRED media TIMEOUT 1200)
     endforeach()
     add_test(NAME export_range COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-export.mjs --range
         --bin $<TARGET_FILE:nodetool-timeline>)
