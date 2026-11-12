@@ -320,6 +320,7 @@ QHash<QString, QString> buildDenied() {
           "keyframes.animations", "keyframes.bypass", "keyframes.deleteMany", "keyframes.easing", "keyframes.easingMany", "keyframes.field", "keyframes.move", "keyframes.moveMany", "keyframes.stopwatch"},
          internal);
     deny({"ai.insertGeneration", "ai.insertImageVideo", "assistant.commitBeatGeneration", "assistant.generateClip"}, "it places generated media, which stays behind its review step. Use ui_timeline_generate_clip");
+    deny({"music.insertPlaceholder", "music.applyResult"}, "it is a step of a music job, which the music panel submits and places");
     deny({"assistant.foldedCommand"}, internal);
     deny({"assistant.ui_timeline_delete_clip", "assistant.ui_timeline_move_clip", "assistant.ui_timeline_plan_beats", "assistant.ui_timeline_remove_beat",
           "assistant.ui_timeline_set_clip_binding", "assistant.ui_timeline_set_setup", "assistant.ui_timeline_split_clip", "assistant.ui_timeline_update_beat"},

@@ -121,7 +121,7 @@ private slots:
         QTest::addColumn<QString>("id");
         for (const auto* id : {"exportVideo", "quickExport", "exportFrame", "exportPremiere", "importPremiere", "exportMarkersCsv",
                                "remixClip", "sceneEditDetection", "projectSettings", "toggleSnap", "playPause", "resetWorkspace", "updateTrackEffect",
-                               "ai.insertGeneration", "assets.dropAsset", "restoreDocument", "acceptExternalUnit", "toggleScrubAudio"}) {
+                               "ai.insertGeneration", "music.insertPlaceholder", "music.applyResult", "assets.dropAsset", "restoreDocument", "acceptExternalUnit", "toggleScrubAudio"}) {
             QTest::newRow(id) << QString(id);
         }
     }
