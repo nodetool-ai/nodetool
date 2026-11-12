@@ -48,6 +48,7 @@ const RUNTIME_GROUP: Record<string, RuntimeGroup> = {
   "node-llama-cpp": "ai",
   "whisper-cpp": "ai",
   "sd-cpp": "ai",
+  acestep: "ai",
   wan2gp: "ai",
   "tesseract-ocr": "ai",
   playwright: "media"

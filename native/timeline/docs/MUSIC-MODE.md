@@ -413,7 +413,7 @@ If the process exits during a job, or `GET /job` no longer knows the id, the pro
 
 ### 12.4 Install and models
 
-`AceStepRuntimePackage` follows `SdCppRuntimePackage`. It differs in the source of the binary: a NodeTool workflow builds `ace-server` at the pinned commit with Metal for macOS arm64, signs and notarises it, and attaches the archive to a NodeTool release (MF14). `packages/config/src/acestep-runtime.ts` pins the commit, the archive name and its SHA-256, and the installer checks the digest before unpacking.
+`AceStepRuntimePackage` follows `SdCppRuntimePackage`. It differs in the source of the binary: a NodeTool workflow builds `ace-server` at the pinned commit with Metal for macOS arm64, signs and notarises it, and attaches the archive to a NodeTool release (MF14). `packages/config/src/acestep-runtime.ts` pins the commit, the archive name and its SHA-256, and the installer checks the digest before unpacking. The digest is unset until the workflow has built the first archive, and the installer refuses to install while it is unset. After the first build, the digest the workflow prints goes into `ACESTEP_SHA256`.
 
 Models come from `Serveurperso/ACE-Step-1.5-GGUF` through the existing Hugging Face downloader, with progress in the music panel. The first-run set is the text encoder, the language model, the turbo DiT and the VAE, about 7.7 GB at Q8 with the 4B language model (`ARCHITECTURE.md:61-82`). The base DiT downloads on the first Add instrument. MM0 picks the language model size (MQ6).
 
