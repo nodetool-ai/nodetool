@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { registry } from "@/data/registry";
 import { routeUpdated } from "@/data/contentDates";
-import { HOME_LANGUAGE_ALTERNATES } from "@/data/japanesePage";
+import { HOME_LANGUAGE_ALTERNATES } from "@/data/languagePages";
 
 const BASE_URL = "https://nodetool.ai";
 

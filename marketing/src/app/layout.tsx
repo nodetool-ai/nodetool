@@ -5,7 +5,7 @@ import Script from "next/script";
 import MotionProvider from "../components/MotionProvider";
 import JsonLd from "../components/JsonLd";
 import { DEFAULT_OG_IMAGES } from "../lib/defaultOgImage";
-import { HOME_LANGUAGE_ALTERNATES } from "../data/japanesePage";
+import { HOME_LANGUAGE_ALTERNATES } from "../data/languagePages";
 import {
   organizationSchema,
   softwareApplicationSchema,
