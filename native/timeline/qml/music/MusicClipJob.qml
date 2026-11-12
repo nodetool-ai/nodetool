@@ -4,7 +4,7 @@
 // a clip under a running Regenerate job shows a hatched band over the bars being
 // replaced; a generated music clip names its active take and shows a drift badge
 // when that take drifts. The take count stays with the existing take badge. The
-// state comes from the editor's MusicJobs and is never written to the document.
+// state comes from the timeline's MusicJobs and is never written to the document.
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
@@ -18,17 +18,9 @@ Item {
     property var viewState: null
     anchors.fill: parent
 
-    // Only music clips look for the job module: other clips pay one property read.
+    // Only music clips ask for the timeline's job module.
     readonly property bool musicClip: clip.audioRole === "music" || clip.status === "queued"
-    readonly property var jobs: musicClip ? jobsAbove() : null
-    function jobsAbove() {
-        let item = parent
-        while (item) {
-            if (item.musicJobs !== undefined) return item.musicJobs
-            item = item.parent
-        }
-        return null
-    }
+    readonly property var jobs: musicClip && timeline ? MusicJobsRegistry.forTimeline(timeline) : null
     readonly property var job: jobs ? jobs.clipJobs[clip.id] : undefined
     readonly property bool placeholder: clip.status === "queued"
     readonly property var bands: jobs ? jobs.bands.filter(band => band.clipId === clip.id) : []

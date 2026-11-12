@@ -1,7 +1,7 @@
 // The wired music panel in the mounted editor (docs/MUSIC-MODE.md section 15,
 // parts 5 to 7, sections 9, 12.4 and 13), driven by synthetic pointer and key
 // events against two scripted servers on real sockets (MusicTestServer.h): one
-// for the editor's MusicJobs, one for its MusicSetupModel.
+// for the timeline's MusicJobs, one for the editor's MusicSetupModel.
 //
 // - Generate submits the panel's values, records the prompt once, and the job
 //   list shows queued, running and done while the placeholder shows its state.
@@ -115,7 +115,8 @@ class TestMusicWire : public WiringFixture {
     Q_OBJECT
     QTemporaryDir m_cache;
 
-    MusicJobs* jobs() const { return qobject_cast<MusicJobs*>(view->rootObject()->property("musicJobs").value<QObject*>()); }
+    // The timeline's one job module, which the panel reaches through MusicJobsRegistry.
+    MusicJobs* jobs() { return MusicJobs::forTimeline(&model); }
     MusicSetupModel* setup() const {
         return qobject_cast<MusicSetupModel*>(view->rootObject()->property("musicSetup").value<QObject*>());
     }
@@ -393,6 +394,14 @@ private slots:
         QTRY_COMPARE(jobs()->job(id).value("state").toString(), QStringLiteral("done"));
         QCOMPARE(model.clipsJson().size(), clipsBefore);
         QCOMPARE(clip("keys").value("versions").toArray().size(), 3);
+
+        // A refused submission reports the planner's message, not its code.
+        selection()->set("c", barFrame(8), barFrame(10));
+        QTRY_VERIFY(!panel()->findChild<QObject*>("musicPanelModel")->property("refusal").toString().isEmpty());
+        const auto reason = panel()->findChild<QObject*>("musicPanelModel")->property("reason").toString();
+        QVERIFY(jobs()->submit("c", barFrame(8), barFrame(10), {}, "x", 1, -1, "turbo").isEmpty());
+        QCOMPARE(jobs()->error(), reason);
+        QVERIFY(jobs()->error().contains(' '));
 
         // New seed: no seed, no codes.
         QVERIFY(!jobs()->regenerate("keys", "t0", false).isEmpty());

@@ -7,8 +7,10 @@
 // backend status line. Layout and copy follow the music mode mockup
 // (native/timeline/docs/music-mode-mockup.html).
 //
-// The job module and the setup state belong to the editor (TimelineEditor.qml
-// `musicJobs` and `musicSetup`), so jobs keep running while this panel is hidden.
+// The job module is the timeline's one MusicJobs (MusicJobsRegistry), which the
+// assistant commands and the take clean-up share, so jobs keep running while this
+// panel is hidden. The setup state belongs to the editor (TimelineEditor.qml
+// `musicSetup`).
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
@@ -50,7 +52,7 @@ Rectangle {
     Component.onCompleted: Qt.callLater(attach)
     onParentChanged: Qt.callLater(attach)
 
-    readonly property var jobs: editor && editor.musicJobs !== undefined ? editor.musicJobs : null
+    readonly property var jobs: editor && editor.timeline ? MusicJobsRegistry.forTimeline(editor.timeline) : null
     readonly property var setup: editor && editor.musicSetup !== undefined ? editor.musicSetup : null
 
     MusicPanelModel {

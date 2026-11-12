@@ -605,7 +605,8 @@ QString MusicJobs::submit(const QString& trackId, double startFrame, double endF
     }
     const auto plan = planMusicOperation(input);
     if (!plan.refusal.empty() || !plan.operation || !plan.windowStartFrame || !plan.requestFrames) {
-        setError(QString::fromStdString(plan.refusal.empty() ? plan.reason : plan.refusal));
+        // The message, not the refusal code: the panel and the assistant show it.
+        setError(QString::fromStdString(plan.reason));
         return {};
     }
     const auto task = *plan.operation;

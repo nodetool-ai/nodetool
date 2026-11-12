@@ -27,10 +27,9 @@ Controls.Control {
         owner: tracksHost.item ? tracksHost.item.gestures : null
         onRevealRequested: if (!shownInView) layoutStore.dispatch({type: "reveal", panelId: "reference"})
     }
-    // Music mode (docs/MUSIC-MODE.md MD18, section 15): one job module per editor,
-    // so its jobs, socket and placeholders outlive the music panel when the layout
-    // hides it, and the backend setup state with its own socket.
-    readonly property MusicJobs musicJobs: MusicJobs { timeline: root.timeline }
+    // Music mode (docs/MUSIC-MODE.md section 15, BE-5): the backend setup state of
+    // this editor, with its own socket, so a download outlives the music panel when
+    // the layout hides it. The job module is the timeline's (MusicJobsRegistry).
     readonly property MusicSetupModel musicSetup: MusicSetupModel {}
     readonly property var dockPanels: {
         const panels = [{id: "program", title: "Program", defaultRegion: "viewport"},
