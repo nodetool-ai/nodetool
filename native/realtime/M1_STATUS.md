@@ -30,7 +30,7 @@ not measurements. Q8 requires the WP10 native/browser comparison.
 |---|---|
 | [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Linux Release, ASan/UBSan and TSan CI pass. Local instruction-alias verification remains blocked as described below |
 | [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Windows Release/ASan and Linux Release/ASan+UBSan/TSan pass. Aggregate verification remains incomplete as described below. See [operation contracts](control.md) |
-| [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, ramps/events, built-in kernels and sink sanitation implemented. Verification in progress. See [audio contracts](audio.md) |
+| [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, linear/one-pole smoothing, events, built-in kernels and sink sanitation implemented. Windows Release/ASan and audio-scoped affected tests pass. See [audio contracts](audio.md) and verification below |
 | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Not implemented |
 | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | Not implemented |
 | [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Not implemented |
@@ -73,3 +73,31 @@ This Windows checkout materializes the tracked `.claude` symlink as a text
 placeholder. Local `check:agents-docs` consequently fails that existing alias
 check. The new instruction files have matching companions and are linked from
 `native/AGENTS.md`; CI must verify the complete instruction graph.
+
+## Audio verification
+
+The WP07 implementation passes Windows Release and ASan CTest, including the C
+ABI consumer. [Linux audio CI](https://github.com/nodetool-ai/nodetool/actions/runs/43309938791)
+passes Release, ASan/UBSan and TSan. Reference tests cover every built-in kernel, including a fixed
+noise sequence and node-identity seeding. Tests also cover planar routing,
+buffer reuse, snapshots, linear and one-pole smoothing, event ordering, late
+events, sink sanitation and byte-identical repeated runs. The ordinary build
+counts zero C++ allocations over 4,096 quanta, with a positive control. This
+does not audit C allocation functions or device callbacks.
+
+Review found that biquads ignored sampled parameter curves with equal
+endpoints. The direct ABI regression fails before the fix and passes afterward.
+Silence-after-signal tests verify cleared filter/delay tails and report timings.
+Their broad regression guard does not establish hardware deadlines.
+
+Package build, typecheck, lint, `test:affected:native` and the audio-only
+`test:affected -- --base f20f3f6376` selection pass. This scoped result does not
+clear the broader Windows aggregate failures above. No hardware-dependent issue
+is closed. WP12 device integration, WP13 synchronized parameter handoffs and
+WP24 Wasm qualification remain separate work.
+
+The audio-turn full harness run fails `repo-scripts`: its invocation omitted the
+local `jq` directory from `PATH`, breaking CI-planning and deploy fixtures, and
+the pack-contamination test exceeded its five-second budget. All five failed
+cases pass in a focused rerun with local `jq` and Git's Unix tools on `PATH`.
+That rerun does not turn the aggregate result into a pass.
