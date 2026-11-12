@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Status | A native timeline feature served by the NodeTool server, with no web editor UI. Implemented. Exit checks that need the reference Apple Silicon Mac or a real `ace-server` with models are listed per milestone and have not been run by the automated tests. |
+| Status | A native timeline feature served by the NodeTool server, with no web editor UI. Implemented. Exit checks that need the reference Apple Silicon Mac or a real `ace-server` with models are listed per milestone and have not been run by the automated tests. Open review findings are in [music-mode-backlog.md](music-mode-backlog.md). |
 | Target | `native/timeline/` (C++20, Qt 6.12), the NodeTool server, acestep.cpp `ace-server` |
 | Read at | `nodetool-ai/nodetool` `4ca80f25`, `ServeurpersoCom/acestep.cpp` `07abf07` |
 
