@@ -7,7 +7,8 @@ namespace nt::exporting {
 QVariantMap toVariant(const Settings& settings) {
     return {{"format", settings.format}, {"alpha", settings.alpha}, {"startMs", settings.startMs},
         {"endMs", settings.endMs}, {"width", settings.width}, {"height", settings.height},
-        {"fps", settings.fps}, {"videoBitrateKbps", settings.videoBitrateKbps}, {"scaleMode", settings.scaleMode}};
+        {"fps", settings.fps}, {"videoBitrateKbps", settings.videoBitrateKbps}, {"scaleMode", settings.scaleMode},
+        {"audioBitDepth", settings.audioBitDepth}};
 }
 Settings settingsFromVariant(const QVariantMap& values) {
     Settings settings;
@@ -26,6 +27,7 @@ Settings settingsFromVariant(const QVariantMap& values) {
     settings.height = std::max(0, values.value("height").toInt());
     settings.fps = nonnegative("fps", 0);
     settings.videoBitrateKbps = std::max(0, values.value("videoBitrateKbps").toInt());
+    if (values.value("audioBitDepth").toInt() == 24) { settings.audioBitDepth = 24; }
     if (values.value("scaleMode").toString() == u"fill") { settings.scaleMode = QStringLiteral("fill"); }
     return settings;
 }
@@ -42,6 +44,7 @@ QStringList cliArguments(const Settings& settings) {
     if (settings.fps != 0) { number("--fps", settings.fps); }
     if (settings.videoBitrateKbps != 0) { number("--video-bitrate", settings.videoBitrateKbps); }
     if (settings.scaleMode != u"fit") { args.append({"--scale-mode", settings.scaleMode}); }
+    if (settings.format == u"wav" && settings.audioBitDepth == 24) { args.append({"--audio-bit-depth", "24"}); }
     if (settings.alpha) { args.append("--alpha"); }
     return args;
 }
