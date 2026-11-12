@@ -933,10 +933,26 @@ export class ComfyCloudProvider extends BaseProvider {
       b.setFirst(SIZE_FIELDS, acceptedSize(modelId, width, height));
       return;
     }
-    if (aspect && !b.firstDeclared(ASPECT_FIELDS) && IMAGE_SIZES[aspect]) {
-      const [w, h] = IMAGE_SIZES[aspect].split("x").map(Number);
-      b.setFirst(SIZE_FIELDS, acceptedSize(modelId, w, h));
+    if (!aspect || b.firstDeclared(ASPECT_FIELDS)) return;
+    // A schema with no aspect field takes the ratio as a size: one size
+    // string, or width and height (BFL's FLUX.2). With neither filled the
+    // model answers at its default size and the ratio is lost.
+    const pair = b.declares("width") && b.declares("height");
+    if (!pair && !b.firstDeclared(SIZE_FIELDS)) return;
+    const preset = IMAGE_SIZES[aspect];
+    if (!preset) {
+      throw new Error(
+        `Comfy model ${modelId} takes a pixel size, and aspect ratio "${aspect}" has no preset size. ` +
+          `Pass one of ${Object.keys(IMAGE_SIZES).join(", ")}, or width and height ` +
+          "(target_width and target_height for an edit)."
+      );
     }
+    const [w, h] = preset.split("x").map(Number);
+    if (pair) {
+      b.set("width", w).set("height", h);
+      return;
+    }
+    b.setFirst(SIZE_FIELDS, acceptedSize(modelId, w, h));
   }
 
   private setVideoTiming(b: RouterArgsBuilder, modelId: string, durationSeconds?: number | null, numFrames?: number | null): void {
