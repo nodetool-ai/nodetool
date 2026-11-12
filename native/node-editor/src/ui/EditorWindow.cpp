@@ -340,7 +340,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
         quick->setResizeMode(QQuickWidget::SizeRootObjectToView);
         // DynamicPorts.qml is also embedded in the Inspector, so the overlay
         // surface wraps it here instead of in its root.
-        const QUrl surfaceUrl("qrc:/editor/DynamicPortsOverlay.qml");
+        const QUrl surfaceUrl("qrc:/qt/qml/NodeTool/NodeEditor/DynamicPortsOverlay.qml");
         QQmlComponent surface(engine_);
         surface.setData(QByteArrayLiteral(
             "import QtQuick\n"
@@ -971,7 +971,7 @@ QQuickWidget *EditorWindow::panel(const QString &file) {
     if (file == "Inspector") {
         w->setAcceptDrops(true);
     }
-  w->setSource(QUrl("qrc:/editor/" + file + ".qml"));
+  w->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/" + file + ".qml"));
   return w;
 }
 QString EditorWindow::serverSaveState() const {
@@ -1033,7 +1033,7 @@ void EditorWindow::showWorkflowDetails(const QString &kind) {
     auto *content = new QQuickWidget(engine_, dock);
     content->setResizeMode(QQuickWidget::SizeRootObjectToView);
     content->setInitialProperties({{"controller", QVariant::fromValue(&versions_)}});
-    content->setSource(QUrl("qrc:/editor/VersionHistoryPanel.qml"));
+    content->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/VersionHistoryPanel.qml"));
     // The dock never narrows below the width where every control keeps its label on one line.
     // The panel's minimum follows the UI scale and the panel reports each change, so the dock follows it.
     content->setMinimumWidth(qCeil(content->rootObject()->property("minimumWidth").toReal()));
@@ -1055,7 +1055,7 @@ void EditorWindow::showWorkflowDetails(const QString &kind) {
   auto *dialog = new QDialog(this);
   dialog->setObjectName("workflow-details-dialog");
   auto *content = createOverlayDialog(dialog, engine_, {{"controller", QVariant::fromValue(&versions_)}, {"kind", kind}},
-                                      QUrl("qrc:/editor/WorkflowDetails.qml"));
+                                      QUrl("qrc:/qt/qml/NodeTool/NodeEditor/WorkflowDetails.qml"));
   connect(this, &EditorWindow::documentEpochChanged, dialog, &QDialog::close);
   connect(this, &EditorWindow::credentialsEpochChanged, dialog, &QDialog::close);
   showOverlayDialog(dialog, content, this, {640, 680});
@@ -1075,7 +1075,7 @@ void EditorWindow::showRunTrace() {
   auto *content = new QQuickWidget(engine_, dock);
   content->setResizeMode(QQuickWidget::SizeRootObjectToView);
   content->setInitialProperties({{"controller", QVariant::fromValue(&runTrace_)}});
-  content->setSource(QUrl("qrc:/editor/RunTracePanel.qml"));
+  content->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/RunTracePanel.qml"));
   dock->setWidget(content);
   if (content->rootObject()) {
     connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close()));
@@ -1109,7 +1109,7 @@ void EditorWindow::showServerSync() {
   auto *content = createOverlayDialog(dialog, engine_,
                                       {{"workflowSession", QVariant::fromValue(&session_)},
                                        {"lastError", session_.autosaveState() == "error" ? message_ : QString{}}},
-                                      QUrl("qrc:/editor/ServerSyncPanel.qml"));
+                                      QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ServerSyncPanel.qml"));
   if (const auto root = content->rootObject()) {
     connect(root, SIGNAL(closeRequested()), dialog, SLOT(close()));
     connect(root, SIGNAL(saveLocalAsRequested()), this, SLOT(saveLocalCopyAs()));
@@ -1123,7 +1123,7 @@ void EditorWindow::showCanvasDrops() {
   dialog->setWindowTitle(tr("Canvas uploads"));
   canvasDropDialog_ = dialog;
   auto *content = createOverlayDialog(dialog, engine_, {{"controller", QVariant::fromValue(canvasDrops_)}},
-                                      QUrl("qrc:/editor/CanvasDropPanel.qml"));
+                                      QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CanvasDropPanel.qml"));
   if (const auto root = content->rootObject()) connect(root, SIGNAL(closeRequested()), dialog, SLOT(close()));
   showOverlayDialog(dialog, content, this, {444, 540});
 }
@@ -1764,7 +1764,7 @@ void EditorWindow::showDynamicPortDialog(const QString &id, bool output, const Q
     quick->setClearColor(Qt::transparent);
     quick->setResizeMode(QQuickWidget::SizeRootObjectToView);
     quick->setInitialProperties({{"controller", QVariant::fromValue(controller)}, {"nodeId", id}, {"output", output}, {"originalName", name}});
-    quick->setSource(QUrl("qrc:/editor/DynamicPortDialog.qml"));
+    quick->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/DynamicPortDialog.qml"));
     if (!quick->rootObject()) { dialog->deleteLater(); return; }
     dialog->form = quick->rootObject();
     dialog->renaming = !name.isEmpty();
@@ -3752,7 +3752,7 @@ void nodetool::EditorWindow::setupAction(const QString &name) {
     dialog->setObjectName("setup-dialog");
     dialog->setWindowTitle(tr("Runtimes and packs"));
     auto *content = createOverlayDialog(dialog, engine_, {{"controller", QVariant::fromValue(&setup_)}},
-                                        QUrl("qrc:/editor/SetupPanel.qml"));
+                                        QUrl("qrc:/qt/qml/NodeTool/NodeEditor/SetupPanel.qml"));
     if (content->rootObject()) {
         connect(content->rootObject(), SIGNAL(closeRequested()), dialog,
                 SLOT(close()));

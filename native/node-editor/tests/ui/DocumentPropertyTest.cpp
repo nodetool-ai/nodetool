@@ -291,7 +291,7 @@ private slots:
         controller.configure(origin, "secret", "owner");
         QQmlEngine engine;
         engine.rootContext()->setContextProperty("documentPickerController", &controller);
-        QQmlComponent component(&engine, QUrl("qrc:/editor/DocumentPropertyEditor.qml"));
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/DocumentPropertyEditor.qml"));
         QTRY_VERIFY(component.status() != QQmlComponent::Loading);
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         const QVariantMap descriptor{{"name", "document"}, {"dataType", QVariantMap{{"type", kind}}}};

@@ -76,7 +76,22 @@ set_target_properties(nodetool-node-editor PROPERTIES MACOSX_BUNDLE ${NT_MACOS_B
 nodetool_stage_graph_runner_runtime(nodetool-node-editor)
 target_link_libraries(nodetool-node-editor PRIVATE node_editor_core)
 nodetool_use_ui_primitives(nodetool-node-editor)
-qt_add_resources(node_editor_core editor_qml PREFIX /editor BASE qml FILES qml/EditorChat.qml qml/QueueOverlay.qml qml/SetupGuide.qml qml/SetupPanel.qml qml/CodeSyntax.qml qml/VersionHistoryPanel.qml qml/VersionGraphPreview.qml qml/WorkflowDetails.qml qml/ActionPanel.qml qml/ContextMenuPanel.qml qml/FindPanel.qml qml/ShortcutKeyboard.qml qml/AuthoredControls.qml qml/EditorRoles.qml qml/PanelRow.qml qml/NodeButton.qml qml/TypeIcon.qml qml/TabBar.qml qml/NotificationsPanel.qml qml/CanvasTabStrip.qml qml/Rail.qml qml/StatusBar.qml qml/ViewportIndicator.qml qml/MiniMapControls.qml qml/MiniMapPopups.qml qml/Toolbar.qml qml/HeaderRow.qml qml/SelectionToolbar.qml qml/InlinePropertyEditor.qml qml/InlineTitleEditor.qml qml/OptionalPacksSection.qml qml/Catalog.qml qml/NodeMenu.qml qml/Inspector.qml qml/GenerationHistory.qml qml/DynamicPorts.qml qml/DynamicPortDialog.qml qml/WorkflowBrowser.qml qml/LibraryPanel.qml qml/PropertyField.qml qml/RemainingResourcePropertyEditor.qml qml/PathPropertyEditor.qml qml/FilePropertyEditor.qml qml/ToolsPropertyEditor.qml qml/MediaParameterPropertyEditor.qml qml/CodePropertyEditor.qml qml/ModelPropertyEditor.qml qml/AssetPropertyEditor.qml qml/MediaListPropertyEditor.qml qml/ColorPropertyEditor.qml qml/ImageSizePropertyEditor.qml qml/PropertyPresets.js qml/WorkflowPropertyEditor.qml qml/CollectionPropertyEditor.qml qml/StructuredPropertyEditor.qml qml/RunOutput.qml qml/RunTracePanel.qml qml/TraceSpanLane.qml qml/TraceAttributeList.qml qml/TraceSpanDetails.qml qml/TraceLogDetails.qml qml/TraceLogList.qml qml/TraceSpanPicker.qml qml/RichOutput.qml qml/ObjectOutput.qml qml/TextOutput.qml qml/ImageComparisonOutput.qml qml/DataframeOutput.qml qml/MediaPreview.qml qml/CanvasMedia.qml qml/CardMediaPlayer.qml qml/MediaGallery.qml qml/ImageViewer.qml qml/ServerSyncPanel.qml qml/CompatibleNodePicker.qml qml/CanvasDropPanel.qml)
+# The editor's QML as the NodeTool.NodeEditor module, compiled by qmlcachegen.
+# Files load as qrc:/qt/qml/NodeTool/NodeEditor/<File>.qml: the alias drops the
+# qml/ source directory from the resource path.
+file(GLOB node_editor_qml_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS qml/*.qml qml/*.js)
+foreach(file IN LISTS node_editor_qml_files)
+    get_filename_component(name ${file} NAME)
+    set_source_files_properties(${file} PROPERTIES QT_RESOURCE_ALIAS ${name})
+endforeach()
+qt_add_library(node_editor_qml STATIC)
+qt_add_qml_module(node_editor_qml
+    URI NodeTool.NodeEditor
+    RESOURCE_PREFIX /qt/qml
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/NodeEditor
+    QML_FILES ${node_editor_qml_files})
+target_link_libraries(node_editor_qml PUBLIC nodetool_ui_primitives Qt6::Qml Qt6::Quick Qt6::QuickControls2)
+target_link_libraries(node_editor_core PUBLIC node_editor_qml node_editor_qmlplugin)
 qt_add_resources(node_editor_core editor_assets PREFIX /editor/resources BASE resources FILES resources/nodetool_48px.png)
 # The web data type icons from web/src/icons/data_types/nodetool, drawn in card headers.
 qt_add_resources(node_editor_core editor_type_icons PREFIX /editor/data_types BASE resources/data_types FILES resources/data_types/any.svg resources/data_types/asset.svg resources/data_types/assistant.svg resources/data_types/audio.svg resources/data_types/bool.svg resources/data_types/chunk.svg resources/data_types/database.svg resources/data_types/dataframe.svg resources/data_types/date.svg resources/data_types/datetime.svg resources/data_types/dict.svg resources/data_types/document.svg resources/data_types/enum.svg resources/data_types/file.svg resources/data_types/float.svg resources/data_types/flow.svg resources/data_types/folder.svg resources/data_types/help.svg resources/data_types/image_model.svg resources/data_types/image.svg resources/data_types/int.svg resources/data_types/language_model.svg resources/data_types/list.svg resources/data_types/model_3d.svg resources/data_types/model.svg resources/data_types/notype.svg resources/data_types/np_array.svg resources/data_types/preview.svg resources/data_types/star.svg resources/data_types/string.svg resources/data_types/str.svg resources/data_types/task.svg resources/data_types/tensor.svg resources/data_types/text.svg resources/data_types/thread_message.svg resources/data_types/thread.svg resources/data_types/union.svg resources/data_types/video.svg)
@@ -265,7 +280,6 @@ endif()
 if(BUILD_TESTING)
  qt_add_executable(node_editor_structured_ui_tests tests/properties/StructuredPropertyUiTest.cpp)
  target_link_libraries(node_editor_structured_ui_tests PRIVATE node_editor_core Qt6::Test)
- qt_add_resources(node_editor_structured_ui_tests structured_test_qml PREFIX /editor BASE qml FILES qml/StructuredPropertyEditor.qml qml/EditorRoles.qml qml/NodeButton.qml)
  nodetool_use_ui_primitives(node_editor_structured_ui_tests)
  add_test(NAME node_editor_structured_ui COMMAND node_editor_structured_ui_tests)
  set_tests_properties(node_editor_structured_ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
@@ -527,7 +541,6 @@ if(BUILD_TESTING)
     set_tests_properties(node_editor_document_property PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
-qt_add_resources(node_editor_core document_property_qml PREFIX /editor BASE qml FILES qml/DocumentPropertyEditor.qml qml/Model3DPropertyEditor.qml)
 
 if(BUILD_TESTING)
     qt_add_executable(node_editor_property_behavior_tests tests/ui/PropertyBehaviorTest.cpp)

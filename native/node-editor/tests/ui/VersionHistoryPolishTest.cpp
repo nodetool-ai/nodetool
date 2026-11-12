@@ -727,7 +727,7 @@ private slots:
         QQuickWidget isolated(widget->engine(), nullptr);
         isolated.setResizeMode(QQuickWidget::SizeRootObjectToView);
         isolated.setInitialProperties({{"controller", QVariant::fromValue(controllerOf(widget))}});
-        isolated.setSource(QUrl("qrc:/editor/VersionHistoryPanel.qml"));
+        isolated.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/VersionHistoryPanel.qml"));
         QVERIFY(isolated.rootObject());
         isolated.resize(minimum, 720);
         isolated.show();

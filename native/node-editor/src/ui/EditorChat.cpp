@@ -28,7 +28,7 @@ void EditorWindow::initializeChat() {
     chatOverlay_->setObjectName("editor-chat-overlay");
     chatOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
     chatOverlay_->setInitialProperties({{"session", QVariant::fromValue(&chat_)}, {"host", QVariant::fromValue(this)}});
-    chatOverlay_->setSource(QUrl("qrc:/editor/EditorChat.qml"));
+    chatOverlay_->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/EditorChat.qml"));
     chatOverlay_->hide();
     connect(chatOverlay_->rootObject(), SIGNAL(closeRequested()), this, SLOT(toggleChat()));
     initializeChatTools();

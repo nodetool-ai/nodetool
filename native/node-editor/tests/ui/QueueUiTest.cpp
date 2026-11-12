@@ -83,7 +83,7 @@ private slots:
         widget.rootContext()->setContextProperty("workflowSession", &session);
         widget.rootContext()->setContextProperty("runOutput", &output);
         widget.setResizeMode(QQuickWidget::SizeRootObjectToView);
-        widget.setSource(QUrl("qrc:/editor/QueueOverlay.qml"));
+        widget.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/QueueOverlay.qml"));
         QVERIFY(widget.rootObject());
         widget.resize(304, 92);
         widget.show();
@@ -109,7 +109,7 @@ private slots:
         widget.rootContext()->setContextProperty("workflowSession", &session);
         widget.rootContext()->setContextProperty("runOutput", &output);
         widget.setResizeMode(QQuickWidget::SizeRootObjectToView);
-        widget.setSource(QUrl("qrc:/editor/QueueOverlay.qml"));
+        widget.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/QueueOverlay.qml"));
         QVERIFY2(widget.rootObject(),
                  qPrintable(widget.errors().isEmpty()
                                 ? QString()
