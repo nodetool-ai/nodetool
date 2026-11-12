@@ -140,3 +140,16 @@ inspected upstream revision leave the compilation-info and async pipeline APIs
 required by design section 9.2, rule 4 unimplemented. [Source evidence](render.md#native-pipeline-api-limitation)
 remains documented. WP08 stays open, and the offline exception neither qualifies
 M1 nor resolves any M0 hardware gate.
+
+## Offline driver preparation
+
+WP09 now has an [exact offline clock](offline.md) with rational frame scheduling,
+integer quantum boundaries and final audio-quantum trimming. Its library and
+fixture executable compile and link with MSVC Release. The fixtures cover
+fractional frame rates, long schedules, rejected inputs and partial exports,
+but have not been run. Sanitizers and aggregate checks remain deferred.
+
+Driver orchestration, control-to-audio parameter bindings, catalog registry
+construction, PNG/WAV export, CLI integration, output fixtures and the registry
+gate remain pending. WP09 stays open. This increment does not change the M0
+hardware gaps or the live/shared-device block.
