@@ -9,11 +9,21 @@ function(nt_keyboard_tests)
     nt_add_timeline_qml(tst_keyboardpresets OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_keyboardpresets_qml/NodeTool/Timeline)
     qt_add_resources(tst_keyboardpresets keyboard_sync_banner PREFIX /nodetool/sync BASE src/server/sync
         FILES src/server/sync/ExternalConflictsBanner.qml)
-    add_test(NAME tst_keyboardpresets COMMAND tst_keyboardpresets)
-    set_tests_properties(tst_keyboardpresets PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-    # everyBindingRuns reloads a document for each action. That takes close to QtTest's 5 minutes
-    # per function on hosted macOS and Windows runners, and about 9 minutes under ASan on two cores.
-    set_tests_properties(tst_keyboardpresets PROPERTIES TIMEOUT 1500)
-    set_property(TEST tst_keyboardpresets APPEND PROPERTY ENVIRONMENT "QTEST_FUNCTION_TIMEOUT=1200000")
+    # The whole binary takes 6 to 15 minutes on hosted runners, the longest of
+    # the non-render tests, so its functions run in three groups side by side.
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    foreach(group RANGE 0 2)
+        if(group EQUAL 0)
+            set(test_name tst_keyboardpresets)
+        else()
+            set(test_name tst_keyboardpresets_${group})
+        endif()
+        add_test(NAME ${test_name} COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/scripts/run-qtest-group.py $<TARGET_FILE:tst_keyboardpresets> ${group} 3)
+        # everyBindingRuns reloads a document for each action. That takes close to QtTest's 5 minutes
+        # per function on hosted macOS and Windows runners, and about 9 minutes under ASan on two cores.
+        set_tests_properties(${test_name} PROPERTIES TIMEOUT 1500
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QTEST_FUNCTION_TIMEOUT=1200000")
+    endforeach()
 endfunction()
 nt_tests(nt_keyboard_tests)

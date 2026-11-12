@@ -793,7 +793,7 @@ Export has no key.
 `ExportCli.cpp`. The editor waits at most `kShutdownGraceMs` plus 1 s on close.
 
 Tests: `tst_exportdialog`, `tst_exportqueue`, `tst_exportsnapshot`, `export_range`, `export_range_bitrate`, `export_cancel`,
-`export_controller_cancel`, `export_golden`.
+`export_controller_cancel`, `export_golden_1` to `export_golden_4`.
 
 ### Export Frame and Frame Hold
 

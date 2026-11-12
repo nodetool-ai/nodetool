@@ -54,7 +54,6 @@ concurrency:
 env:
   QT_VERSION: "6.12.0"
   NT_NO_HW_DECODE: "1"
-  CCACHE_BASEDIR: ${{ github.workspace }}
   CCACHE_COMPILERCHECK: content
   CCACHE_MAXSIZE: 2G
   # A pull request that changes one of these runs every native test: CI
@@ -187,6 +186,9 @@ jobs:
       - name: Set native temporary paths
         run: |
           echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
+          # The checkout path as the compiler sees it: in the Linux container
+          # it differs from github.workspace, which names the host path.
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
           echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
 
       # Scratch-server and golden checks also load decorated node packages.
@@ -252,6 +254,8 @@ jobs:
           mkdir -p "$query" && touch "$query/codemodel-v2" "$query/cmakeFiles-v1"
           launcher=(-DCMAKE_CXX_COMPILER_LAUNCHER="$NT_COMPILER_LAUNCHER")
           if [[ "$RUNNER_OS" == macOS ]]; then launcher+=(-DCMAKE_OBJCXX_COMPILER_LAUNCHER="$NT_COMPILER_LAUNCHER"); fi
+          # About 190 executables link the static timeline libraries. lld links them faster than GNU ld.
+          if [[ "$RUNNER_OS" == Linux ]]; then launcher+=(-DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"); fi
           cmake -S native/timeline -B native/timeline/build-ci -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="$QT_PREFIX" "${launcher[@]}"
 
@@ -302,7 +306,8 @@ jobs:
       # QVulkanInstance, hw/HwWindow.cpp). Windows: the Windows platform,
       # D3D11 on the WARP software adapter.
       # The render tests run apart, with the scene graph and QRhi logs on, and
-      # the log must name the backend and the adapter.
+      # the log must name the backend and the adapter. They run two at a time;
+      # the ones that measure time are RUN_SERIAL and still run alone.
       - name: Test (headless, macOS)
         if: github.event_name != 'push' && runner.os == 'macOS' && steps.select.outputs.run != 'false'
         env:
@@ -322,7 +327,7 @@ jobs:
           fi
           if [[ "$NT_TEST_RENDER" != false ]]; then
             QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
-              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render "${sel[@]}" --no-tests=error -V \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -L render "${sel[@]}" --no-tests=error -V \
               | tee "$RUNNER_TEMP/render.log" || status=$?
             cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
             grep -q "Creating QRhi with backend Metal" "$RUNNER_TEMP/render.log" ||
@@ -353,7 +358,7 @@ jobs:
           fi
           if [[ "$NT_TEST_RENDER" != false ]]; then
             QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" xvfb-run -a -s "-screen 0 1920x1080x24" \
-              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render "${sel[@]}" --no-tests=error -V \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -L render "${sel[@]}" --no-tests=error -V \
               | tee "$RUNNER_TEMP/render.log" || status=$?
             cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
             grep -q "Creating QRhi with backend Vulkan" "$RUNNER_TEMP/render.log" ||
@@ -394,7 +399,7 @@ jobs:
           fi
           if [[ "$NT_TEST_RENDER" != false ]]; then
             QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
-              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render "${sel[@]}" --no-tests=error -V \
+              ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -L render "${sel[@]}" --no-tests=error -V \
               | tee "$RUNNER_TEMP/render.log" || status=$?
             cat "$RUNNER_TEMP/failed-non-render.log" >> "$failed" 2>/dev/null || true
             grep -q "Creating QRhi with backend D3D11" "$RUNNER_TEMP/render.log" ||
@@ -501,6 +506,9 @@ jobs:
       - name: Set native temporary paths
         run: |
           echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
+          # The checkout path as the compiler sees it: in the Linux container
+          # it differs from github.workspace, which names the host path.
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
           echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       # Same shared TypeScript build as the platform legs: the dist comes
       # from the `ts-dist` artifact, so the sanitizer presets skip the build
@@ -553,8 +561,9 @@ jobs:
           query="build-${{ matrix.preset }}/.cmake/api/v1/query"
           mkdir -p "$query" && touch "$query/codemodel-v2" "$query/cmakeFiles-v1"
           # ELF compression keeps line tables without duplicating large debug sections.
+          # lld links the many test executables faster than GNU ld.
           cmake --preset "${{ matrix.preset }}" -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
-            -DCMAKE_EXE_LINKER_FLAGS="-Wl,--compress-debug-sections=zlib" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld -Wl,--compress-debug-sections=zlib" \
             -DCMAKE_C_COMPILER_LAUNCHER="$NT_COMPILER_LAUNCHER" -DCMAKE_CXX_COMPILER_LAUNCHER="$NT_COMPILER_LAUNCHER"
       - name: Build
         env:

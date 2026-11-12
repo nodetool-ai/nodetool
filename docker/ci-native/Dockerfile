@@ -12,14 +12,15 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # General tools the jobs call (git, jq, pipx for aqtinstall, zstd for
 # actions/cache) and both toolchains: GCC for the release build, Clang with
-# its runtime libraries for the ASan and TSan presets. llvm puts
+# its runtime libraries for the ASan and TSan presets, and lld, which links
+# the many test executables faster than GNU ld for both. llvm puts
 # llvm-symbolizer on PATH: without it sanitizer stacks have no function names
 # and the name-based suppressions in tools/sanitizers/lsan.supp match nothing.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates curl gnupg git openssh-client sudo \
       jq zstd xz-utils unzip zip file rsync procps psmisc lsof \
-      build-essential clang libclang-rt-dev llvm cmake ninja-build pkg-config nasm ccache gdb \
+      build-essential clang libclang-rt-dev llvm lld cmake ninja-build pkg-config nasm ccache gdb \
       python3 python3-venv python3-pip pipx \
  && rm -rf /var/lib/apt/lists/*
 
