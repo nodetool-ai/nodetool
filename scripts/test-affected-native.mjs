@@ -18,7 +18,9 @@
  * editor builds graph-runner). Such a project is never reconfigured. A
  * project that lists another in `dependsOn` treats that project's changed
  * files as its own, since it always builds them: graph-runner and the node
- * editor build native/jobs.
+ * editor build native/jobs. A project's `sharedDirs` count as part of it for
+ * selection too: the timeline build compiles native/ui_primitives,
+ * native/chat and native/model-picker and runs their tests.
  *
  * The dependency model of each test is read from the build directory:
  *
@@ -131,6 +133,13 @@ export const PROJECTS = {
       }
     ],
     bundleInputs: GUEST_INPUTS
+  },
+  // The timeline build compiles these through add_subdirectory and registers
+  // their tests, and its tests load their QML. A file under them that maps to
+  // no test input selects every timeline test, as a file under
+  // native/timeline/ does.
+  timeline: {
+    sharedDirs: ["native/ui_primitives", "native/chat", "native/model-picker"]
   }
 };
 
@@ -142,7 +151,8 @@ export function projectConfig(name) {
     windowsBuildDir: config.windowsBuildDir ?? "build",
     prepare: config.prepare ?? [],
     bundleInputs: config.bundleInputs ?? [],
-    dependsOn: config.dependsOn ?? []
+    dependsOn: config.dependsOn ?? [],
+    sharedDirs: config.sharedDirs ?? []
   };
 }
 
@@ -615,6 +625,7 @@ export function buildModel({
   return {
     name,
     projectDir,
+    ownDirs: [projectDir, ...(config.sharedDirs ?? [])],
     buildDir,
     config: api.config,
     tests,
@@ -636,7 +647,8 @@ const isCpp = (f) => CPP_SOURCE.test(f) || CPP_HEADER.test(f);
  */
 export function selectTests(model, changed, { all = false } = {}) {
   const files = changed.filter((f) => !DOC_ONLY.test(f));
-  const inProject = (f) => under(f, model.projectDir);
+  const ownDirs = model.ownDirs ?? [model.projectDir];
+  const inProject = (f) => ownDirs.some((dir) => under(f, dir));
   const everything = (trigger, why) => ({
     all: true,
     reason: `${trigger}: ${why}`,
@@ -730,10 +742,10 @@ export function ctestRegex(names) {
   return `^(${names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})$`;
 }
 
-/** Whether a non-documentation file under native/<name>/ changed. */
-/** A changed file under the project, or under a project it depends on. */
+/** A changed file under the project, a project it depends on, or a shared directory. */
 export function projectHasOwnChanges(name, files) {
-  const dirs = [name, ...projectConfig(name).dependsOn].map((dir) => `native/${dir}`);
+  const { dependsOn, sharedDirs } = projectConfig(name);
+  const dirs = [...[name, ...dependsOn].map((dir) => `native/${dir}`), ...sharedDirs];
   return files.some((f) => dirs.some((dir) => under(f, dir)) && !DOC_ONLY.test(f));
 }
 

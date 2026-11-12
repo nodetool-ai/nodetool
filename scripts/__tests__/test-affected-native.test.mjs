@@ -207,6 +207,15 @@ describe("selectTests", () => {
     expect(selection.reason).toContain("maps to no test input");
   });
 
+  it("treats an unknown file under a shared directory as the project's own", () => {
+    const file = "native/ui_primitives/qml/Button.qml";
+    expect(select([file]).selected).toEqual([]);
+    const { model } = setup({ config: { prepare: [], bundleInputs: [], sharedDirs: ["native/ui_primitives"] } });
+    const selection = selectTests(model, [file]);
+    expect(selection.all).toBe(true);
+    expect(selection.reason).toBe(`${file}: file under the project that maps to no test input`);
+  });
+
   it("selects nothing for documentation", () => {
     const selection = select(["native/graph-runner/README.md", "native/graph-runner/guest/host/README.md", "docs/cli.md"]);
     expect(selection.selected).toEqual([]);
