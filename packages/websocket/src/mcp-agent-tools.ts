@@ -1058,11 +1058,10 @@ export function registerAgentMcpTools(
     const isImageTool = tool.name === "view_image";
     const schema = { ...jsonSchemaToZodShape(tool.inputSchema) };
     if (isImageTool) {
-      // The MCP mount shows the stored image as it is. Crops and downscales
-      // are stored copies with no asset row, so they had no public URL to
-      // hand a chat client, and the client can scale the original itself.
+      // A crop is a stored copy with no asset row, so it has no public URL to
+      // hand a chat client. `detail: "low"` keeps working: the downscaled
+      // pixels ride the MCP image content and `url` links the original.
       delete schema["region"];
-      delete schema["detail"];
       schema["image_id"] = z
         .string()
         .describe(
@@ -1079,7 +1078,6 @@ export function registerAgentMcpTools(
           const input: Record<string, unknown> = { ...args };
           if (isImageTool) {
             delete input["region"];
-            delete input["detail"];
           }
           const imageId =
             isImageTool && isString(input["image_id"])
