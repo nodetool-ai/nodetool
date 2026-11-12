@@ -28,7 +28,7 @@ not measurements. Q8 requires the WP10 native/browser comparison.
 
 | Work package | State |
 |---|---|
-| [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Sanitizer CI and aggregate verification pending |
+| [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Linux Release, ASan/UBSan and TSan CI pass. Local instruction-alias verification remains blocked as described below |
 | [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Not implemented |
 | [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | Not implemented |
 | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Not implemented |
@@ -39,6 +39,13 @@ M0's local build, typecheck, lint, native tests and harness checks pass. The
 latest aggregate affected test run stops at Windows browser-isolation tests.
 Browser isolation and credential ACL work are deferred. Real file-symlink
 tests await CI with symlink privileges. These are not passing results.
+
+M1's package build, typecheck, lint, Windows Release and ASan loader tests,
+affected native tests and affected tests against `codex/realtime-m0-spikes`
+pass. The Linux core CI results are recorded in
+[the initial core run](https://github.com/nodetool-ai/nodetool/actions/runs/43292903682).
+The M1-scoped affected run does not replace the incomplete aggregate run
+against main described above.
 
 This Windows checkout materializes the tracked `.claude` symlink as a text
 placeholder. Local `check:agents-docs` consequently fails that existing alias
