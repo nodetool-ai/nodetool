@@ -6,7 +6,7 @@ import {
   Prediction
 } from "@nodetool-ai/models";
 import type { RpcErrorPayload, WebSocketMode } from "@nodetool-ai/protocol";
-import { generateMediaDataSchema } from "@nodetool-ai/protocol";
+import { generateMediaDataSchema, musicGenerationRequestSchema } from "@nodetool-ai/protocol";
 import { isSdkV1RetryableError } from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
 
 import {
@@ -788,9 +788,23 @@ export class CommandRouter {
             continue;
           }
           seen.add(id);
-          const referenceFields: { media_edit_references?: unknown } = {};
+          const referenceFields: {
+            media_edit_references?: unknown;
+            music_takes?: unknown;
+            timing?: unknown;
+            music_status?: unknown;
+          } = {};
           if (row.parameters?.media_edit_references) {
             referenceFields.media_edit_references = row.parameters.media_edit_references;
+          }
+          // Music mode takes and timing (MUSIC-MODE.md section 10), and while
+          // the row runs, whether the backend has started the job.
+          if (row.parameters?.music_takes) {
+            referenceFields.music_takes = row.parameters.music_takes;
+            referenceFields.timing = row.parameters.timing;
+          }
+          if (row.status === "running" && row.parameters?.music_status) {
+            referenceFields.music_status = row.parameters.music_status;
           }
           generations.push({
             request_id: id,
@@ -987,6 +1001,10 @@ export class CommandRouter {
       this.mediaGenerations.set(requestId, controller);
       const task: Promise<void> = this.runRpc(command, requestId, () => {
         const references = referenceMediaDataSchema.parse(data);
+        const music =
+          data.music === undefined
+            ? undefined
+            : musicGenerationRequestSchema.parse(data.music);
         return inference.runDirectMediaGeneration({
           mode,
           provider,
@@ -1016,6 +1034,7 @@ export class CommandRouter {
           language,
           instructions,
           audioFormat,
+          music,
           presetIds: references.preset_ids,
           capability: references.capability,
           referenceAssetIds: references.reference_asset_ids,
