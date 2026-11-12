@@ -17,6 +17,9 @@
 //   - exit 6: a null-device recording at 48 kHz equals renderOffline of the
 //     loop range within 1e-6 per sample, pass after pass, with the 3 ms fade
 //     of the outgoing audio at each wrap modelled from renderOffline as well;
+//   - a loop with a fractional number of frames, ending inside the last
+//     frame of a block, wraps at frame 0 of the next block on every pass,
+//     with no transport seek;
 //   - the transport sends the loop range only at rate 1 with the device as
 //     the clock, keeps today's seek otherwise, and falls back to it when the
 //     device misses a wrap.
@@ -315,6 +318,77 @@ private slots:
             QVERIFY2(lagMs >= -0.001 && lagMs <= 1000.0 / 60.0 + 0.001,
                      qPrintable(QStringLiteral("wrap %1: playhead %2 ms after the audio").arg(i).arg(lagMs)));
         }
+    }
+
+    // A loop whose length is not a whole number of frames, placed so that
+    // each pass ends inside the last frame of a block: 22559.5 frames from a
+    // block start, with 480-frame blocks. Each pass wraps at frame 0 of the
+    // next block, 22560 frames after the last wrap, with no transport seek.
+    void nonWholeFrameLoopWraps() {
+        const double loopOut = kLoopIn + 22559.5 / kRate * 1000.0;
+        const std::int64_t spacing = 22560;
+        AudioEngine engine;
+        engine.setTimeline(sineTimeline());
+        AudioEngine::Options options;
+        options.backend = AudioEngine::Backend::Manual;
+        options.sampleRate = static_cast<int>(kRate);
+        options.periodFrames = kPeriod;
+        options.simulatedLatencySec = 0.020;
+        std::string error;
+        QVERIFY2(engine.start(options, &error), error.c_str());
+        const std::int64_t t0 = 1'000'000'000;
+        std::int64_t now = t0;
+        PlaybackClock clock;
+        clock.setNowSource([&now] { return now; });
+        clock.setDurationMs(8000);
+        clock.setRangeIn(kLoopIn);
+        clock.setRangeOut(loopOut);
+        clock.setLoop(true);
+        clock.setAudioFeed(&engine.feed());
+        clock.seek(kLoopIn);
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        clock.play();
+        const TransportCommand sent = engine.feed().command.load();
+        QCOMPARE(sent.loopEndMs, loopOut);
+        const std::uint64_t seekSeq = sent.seekSeq;
+
+        std::vector<float> block(kPeriod * 2);
+        std::int64_t frame = 0;
+        std::int64_t playStart = -1;
+        std::vector<std::int64_t> wraps;
+        std::int64_t seenFrame = -1;
+        std::uint64_t seenCommand = 0;
+        while (wraps.size() < 60) {
+            QVERIFY2(frame < 120 * static_cast<std::int64_t>(kRate), "the loop stopped wrapping");
+            now = t0 + static_cast<std::int64_t>(static_cast<double>(frame) / kRate * 1e9);
+            engine.renderManual(block, now);
+            clock.tick();
+            QVERIFY2(engine.feed().command.load().seekSeq == seekSeq,
+                     qPrintable(QStringLiteral("the transport seeked after %1 wraps").arg(wraps.size())));
+            const CallbackState cb = engine.feed().callback.load();
+            for (int i = 0; i < cb.anchorCount; ++i) {
+                const AudioAnchor& a = cb.anchors[i];
+                if (a.frame < seenFrame || (a.frame == seenFrame && a.commandSeq <= seenCommand)) continue;
+                seenFrame = a.frame;
+                seenCommand = a.commandSeq;
+                if (a.seek && a.playing) {
+                    playStart = a.frame;
+                } else if (!a.seek && a.timelineMs == kLoopIn) {
+                    wraps.push_back(a.frame);
+                }
+            }
+            frame += kPeriod;
+            std::this_thread::sleep_for(std::chrono::microseconds(1000));
+        }
+        const AudioEngine::Stats s = engine.stats();
+        engine.stop();
+        QVERIFY(playStart >= 0);
+        QCOMPARE(playStart % kPeriod, std::int64_t(0));
+        QCOMPARE(wraps.front() - playStart, spacing);
+        for (std::size_t i = 1; i < wraps.size(); ++i) QCOMPARE(wraps[i] - wraps[i - 1], spacing);
+        QCOMPARE(s.loopMisses, std::int64_t(0));
+        QCOMPARE(s.underruns, std::int64_t(0));
+        QCOMPARE(s.loopWraps, static_cast<std::int64_t>(wraps.size()));
     }
 
     // MM4 exit 6, on the null device in real time.
