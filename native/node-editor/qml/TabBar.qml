@@ -13,6 +13,8 @@ Rectangle {
     property int dragSource: -1
     property int dropTarget: -1
     property bool dropAfter: false
+    required property DocumentTabs tabs
+    required property Notifications notifications
     property int renaming: -1
     color: roles.chrome
     implicitHeight: roles.tabHeight
@@ -33,17 +35,14 @@ Rectangle {
         const after = dropAfter;
         dragSource = -1;
         dropTarget = -1;
-        if (editor && source >= 0 && target >= 0) {
-            editor.dropTab(source, target, after);
+        if (source >= 0 && target >= 0) {
+            root.tabs.dropTab(source, target, after);
         }
     }
     function reveal() {
-        if (!editor) {
-            return;
-        }
         const limit = Math.max(0, strip.contentWidth - strip.width);
-        strip.contentX = Math.max(0, Math.min(editor.tabStripOffset(), limit));
-        const item = tabRepeater.itemAt(editor.activeTab);
+        strip.contentX = Math.max(0, Math.min(root.tabs.stripOffset, limit));
+        const item = tabRepeater.itemAt(root.tabs.activeTab);
         if (!item) {
             return;
         }
@@ -72,9 +71,7 @@ Rectangle {
     function unhint() {
         tooltipTimer.stop();
         tooltipTimer.owner = null;
-        if (editor) {
-            editor.showTabToolTip("", Qt.point(0, 0));
-        }
+        root.tabs.showToolTip("", Qt.point(0, 0));
     }
     Timer {
         id: tooltipTimer
@@ -82,14 +79,12 @@ Rectangle {
         property string text: ""
         property point at
         onTriggered: {
-            if (editor) {
-                editor.showTabToolTip(text, at);
-            }
+            root.tabs.showToolTip(text, at);
         }
     }
     Connections {
-        target: editor
-        function onTabRenameRequested(index) {
+        target: root.tabs
+        function onRenameStarted(index) {
             root.renaming = index;
         }
         function onTabsChanged() {
@@ -144,7 +139,7 @@ Rectangle {
                     id: projectLabel
                     objectName: "project-name"
                     Layout.fillWidth: true
-                    text: editor ? editor.projectName : ""
+                    text: root.tabs.projectName
                     role: Ui.Typography.SansLabel
                     elide: Text.ElideRight
                 }
@@ -179,22 +174,20 @@ Rectangle {
             flickableDirection: Flickable.HorizontalFlick
             boundsBehavior: Flickable.StopAtBounds
             onContentXChanged: {
-                if (editor) {
-                    editor.setTabStripOffset(contentX);
-                }
+                root.tabs.scrollStrip(contentX);
             }
             Row {
                 id: tabRow
                 height: strip.height
                 Repeater {
                     id: tabRepeater
-                    model: editor ? editor.workflowTabs : []
+                    model: root.tabs.tabs
                     delegate: Rectangle {
                         id: tab
                         required property int index
                         required property var modelData
                         readonly property int tabIndex: index
-                        readonly property bool active: !!editor && editor.activeTab === index
+                        readonly property bool active: root.tabs.activeTab === index
                         objectName: "workflow-tab-" + index
                         height: tabRow.height
                         width: Math.max(roles.tabMinWidth, Math.min(roles.tabMaxWidth, tabContent.implicitWidth + Ui.Metrics.lg * 2))
@@ -204,9 +197,9 @@ Rectangle {
                         Accessible.name: modelData.title + (modelData.running ? ", running" : "") + (modelData.dirty ? ", unsaved changes" : "")
                         Accessible.checkable: true
                         Accessible.checked: active
-                        Accessible.onPressAction: editor.activateTab(index)
-                        Keys.onReturnPressed: editor.activateTab(index)
-                        Keys.onSpacePressed: editor.activateTab(index)
+                        Accessible.onPressAction: root.tabs.activateTab(index)
+                        Keys.onReturnPressed: root.tabs.activateTab(index)
+                        Keys.onSpacePressed: root.tabs.activateTab(index)
                         HoverHandler {
                             id: tabHover
                         }
@@ -249,12 +242,12 @@ Rectangle {
                             }
                             onClicked: mouse => {
                                 if (mouse.button === Qt.MiddleButton) {
-                                    editor.closeTab(tab.index);
+                                    root.tabs.closeTab(tab.index);
                                 } else if (mouse.button === Qt.RightButton) {
-                                    editor.showTabMenu(tab.index, mapToGlobal(mouse.x, mouse.y));
+                                    root.tabs.showTabMenu(tab.index, mapToGlobal(mouse.x, mouse.y));
                                 } else if (!dragging) {
                                     tab.forceActiveFocus();
-                                    editor.activateTab(tab.index);
+                                    root.tabs.activateTab(tab.index);
                                 }
                             }
                             onDoubleClicked: mouse => {
@@ -309,7 +302,7 @@ Rectangle {
                                 }
                                 onValueCommitted: value => {
                                     root.renaming = -1;
-                                    editor.renameTab(tab.index, value);
+                                    root.tabs.renameTab(tab.index, value);
                                 }
                                 onEditCanceled: root.renaming = -1
                                 onAccepted: root.renaming = -1
@@ -344,7 +337,7 @@ Rectangle {
                                 accessibleName: "Close " + tab.modelData.title
                                 onHoveredChanged: root.hint(closeButton, hovered ? accessibleName : "", Ui.Metrics.tooltipDelay)
                                 onPressed: root.unhint()
-                                onClicked: editor.closeTab(tab.index)
+                                onClicked: root.tabs.closeTab(tab.index)
                             }
                         }
                         Rectangle {
@@ -389,7 +382,7 @@ Rectangle {
                 accessibleName: "New workflow tab"
                 onHoveredChanged: root.hint(newTab, hovered ? accessibleName : "", Ui.Metrics.tooltipDelay)
                 onPressed: root.unhint()
-                onClicked: editor.newTab()
+                onClicked: root.tabs.newTab()
             }
         }
     }
@@ -402,7 +395,7 @@ Rectangle {
         anchors.rightMargin: Ui.Metrics.xs
         anchors.verticalCenter: parent.verticalCenter
         spacing: Ui.Metrics.xs
-        readonly property int unread: editor ? editor.unreadNotifications : 0
+        readonly property int unread: root.notifications.unread
         Ui.EditorButton {
             id: bell
             objectName: "tabbar-notifications"
@@ -422,7 +415,7 @@ Rectangle {
                 : qsTr("Notifications, %1 unread notifications").arg(rightActions.unread)
             onHoveredChanged: root.hint(bell, hovered ? qsTr("Notifications") : "", Ui.Metrics.tooltipDelay)
             onPressed: root.unhint()
-            onClicked: editor.showNotifications(bell.mapToGlobal(bell.width, bell.height))
+            onClicked: root.notifications.open(bell.mapToGlobal(bell.width, bell.height))
             // The web CountBadge in its dot form, in the secondary color.
             Rectangle {
                 objectName: "tabbar-notifications-unread"
@@ -452,12 +445,10 @@ Rectangle {
             accessibleName: qsTr("Settings")
             onHoveredChanged: root.hint(settingsButton, hovered ? qsTr("Open settings") : "", Ui.Metrics.tooltipDelay)
             onPressed: root.unhint()
-            onClicked: editor.openSettings()
+            onClicked: root.tabs.openSettings()
         }
     }
     function openProjects() {
-        if (editor) {
-            editor.showProjectMenu(selector.mapToGlobal(0, selector.height));
-        }
+        root.tabs.showProjectMenu(selector.mapToGlobal(0, selector.height));
     }
 }

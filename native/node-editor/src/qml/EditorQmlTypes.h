@@ -2,9 +2,11 @@
 #include <QObject>
 #include <QtQml/qqmlregistration.h>
 
+#include "interfaces/DocumentTabs.h"
 #include "interfaces/GenerationReplay.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInspector.h"
+#include "interfaces/Notifications.h"
 #include "interfaces/PropertyHost.h"
 #include "server/PackSetup.h"
 
@@ -47,6 +49,20 @@ struct GenerationReplayForeign {
     QML_FOREIGN(nodetool::node_editor::GenerationReplay)
     QML_NAMED_ELEMENT(GenerationReplay)
     QML_UNCREATABLE("A GenerationReplay comes from its owner.")
+};
+
+struct DocumentTabsForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::DocumentTabs)
+    QML_NAMED_ELEMENT(DocumentTabs)
+    QML_UNCREATABLE("A DocumentTabs comes from its owner.")
+};
+
+struct NotificationsForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::Notifications)
+    QML_NAMED_ELEMENT(Notifications)
+    QML_UNCREATABLE("A Notifications comes from its owner.")
 };
 
 }  // namespace nodetool::node_editor::qml

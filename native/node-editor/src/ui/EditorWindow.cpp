@@ -250,6 +250,25 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::toggleReplayRequested, this, &EditorWindow::toggleReplayGeneration);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::clearReplayRequested, this, &EditorWindow::clearReplayGenerations);
   nodeInspector_.setDynamicPorts(&dynamicPorts_);
+  // The tab bar's state lives in the root window, which tells every tab.
+  connect(this, &EditorWindow::tabsChanged, this, &EditorWindow::syncDocumentTabs);
+  connect(this, &EditorWindow::notificationsChanged, this, &EditorWindow::syncNotifications);
+  connect(&documentTabs_, &node_editor::DocumentTabs::newTabRequested, this, &EditorWindow::newTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::activateTabRequested, this, &EditorWindow::activateTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::closeTabRequested, this, &EditorWindow::closeTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::dropTabRequested, this, &EditorWindow::dropTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::renameTabRequested, this, &EditorWindow::renameTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::tabMenuRequested, this, &EditorWindow::showTabMenu);
+  connect(&documentTabs_, &node_editor::DocumentTabs::projectMenuRequested, this, &EditorWindow::showProjectMenu);
+  connect(&documentTabs_, &node_editor::DocumentTabs::toolTipRequested, this, &EditorWindow::showTabToolTip);
+  connect(&documentTabs_, &node_editor::DocumentTabs::stripScrolled, this, &EditorWindow::setTabStripOffset);
+  connect(&documentTabs_, &node_editor::DocumentTabs::activateSurfaceRequested, this, &EditorWindow::activateSurface);
+  connect(&documentTabs_, &node_editor::DocumentTabs::closeSurfaceRequested, this, &EditorWindow::closeSurface);
+  connect(&documentTabs_, &node_editor::DocumentTabs::settingsRequested, this, &EditorWindow::openSettings);
+  connect(&notificationList_, &node_editor::Notifications::openRequested, this, &EditorWindow::showNotifications);
+  connect(&notificationList_, &node_editor::Notifications::copyRequested, this, &EditorWindow::copyText);
+  syncDocumentTabs();
+  syncNotifications();
   engine_ = new QQmlEngine(this);
   engine_->rootContext()->setContextProperty("editor", this);
   engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
@@ -574,7 +593,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     auto headerRow = panel("HeaderRow");
     headerRow->setFixedHeight(qCeil(headerRow->rootObject()->implicitHeight()));
     canvasLayout->addWidget(headerRow);
-    auto canvasTabs = panel("CanvasTabStrip");
+    auto canvasTabs = panel("CanvasTabStrip", {{"tabs", QVariant::fromValue(&documentTabs_)}});
     const auto resizeCanvasTabs = [canvasTabs] {
         canvasTabs->setFixedHeight(qCeil(canvasTabs->rootObject()->implicitHeight()));
     };
@@ -650,7 +669,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   catalogPanel_->hide();
   auto rail = panel("Rail");
   rail->setFixedWidth(rail->initialSize().width());
-  auto tabs = panel("TabBar");
+  auto tabs = panel("TabBar", {{"tabs", QVariant::fromValue(&documentTabs_)},
+                               {"notifications", QVariant::fromValue(&notificationList_)}});
     const auto resizeTabs = [tabs] {
         if (tabs->rootObject()) {
             tabs->setFixedHeight(tabs->rootObject()->implicitHeight());
