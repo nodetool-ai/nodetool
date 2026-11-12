@@ -4,7 +4,7 @@
 #include <QSet>
 #include <QTimer>
 #include <optional>
-#include "graph/CatalogSearch.h"
+#include "interfaces/NodeCatalog.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
 #include "document/WorkflowDocument.h"
@@ -64,7 +64,6 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(int selectedCount READ selectedCount NOTIFY panelChanged)
   Q_PROPERTY(bool selectionDisabled READ selectionDisabled NOTIFY panelChanged)
   Q_PROPERTY(bool selectionMostlyDisabled READ selectionMostlyDisabled NOTIFY panelChanged)
-  Q_PROPERTY(QVariantList catalog READ catalog NOTIFY catalogChanged)
   Q_PROPERTY(QVariantList properties READ properties NOTIFY panelChanged)
   Q_PROPERTY(bool readOnly READ readOnly NOTIFY panelChanged)
   Q_PROPERTY(QString readOnlyReason READ readOnlyReason NOTIFY panelChanged)
@@ -92,16 +91,11 @@ class EditorWindow final : public QMainWindow {
   Q_PROPERTY(bool catalogVisible READ catalogVisible NOTIFY panelChanged)
   // Space or a pane double-click arms the catalog to add at that canvas point, as the web node menu does.
   Q_PROPERTY(bool catalogAtPointer READ catalogAtPointer NOTIFY catalogPlacementChanged)
-  // Recently added node types, which the catalog ranks first (web stores/RecentNodesStore.ts).
-  Q_PROPERTY(QStringList catalogRecent READ catalogRecent NOTIFY catalogRecentChanged)
-  // Favorite node types, newest first, shown as tiles on the node menu home (web stores/FavoriteNodesStore.ts).
-  Q_PROPERTY(QStringList catalogFavorites READ catalogFavorites NOTIFY catalogFavoritesChanged)
   Q_PROPERTY(bool inspectorVisible READ inspectorVisible NOTIFY panelChanged)
   Q_PROPERTY(QString workflowName READ workflowName NOTIFY panelChanged)
   Q_PROPERTY(QString graphSummary READ graphSummary NOTIFY panelChanged)
   Q_PROPERTY(QVariantMap selectionInfo READ selectionInfo NOTIFY panelChanged)
   Q_PROPERTY(int zoomPercent READ zoomPercent NOTIFY zoomChanged)
-  Q_PROPERTY(QVariantList catalogCategories READ catalogCategories CONSTANT)
   Q_PROPERTY(bool miniMapVisible READ miniMapVisible NOTIFY panelChanged)
   // "default" or "type", as MiniMapStore.ts colorMode.
   Q_PROPERTY(QString miniMapColorMode READ miniMapColorMode NOTIFY panelChanged)
@@ -144,6 +138,8 @@ public:
   bool emptyCanvas() const { return document_.nodes().isEmpty(); }
   node_editor::SetupController *setup() { return &setup_; }
     node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
+    // The root window has no panels of its own, so it returns the active tab's.
+    node_editor::NodeCatalog *nodeCatalog() { return activeEditor() == this ? &nodeCatalog_ : activeEditor()->nodeCatalog(); }
     void syncPackSetup();
   Q_INVOKABLE void setupAction(const QString &name);
   QVariantList workflowTabs() const;
@@ -205,9 +201,6 @@ public:
   bool inspectorVisible() const;
   QString workflowName() const;
   QString graphSummary() const;
-  QVariantList catalogCategories() const;
-  // Indexes into `nodes` in the web search order for a query (src/graph/CatalogSearch.h).
-  Q_INVOKABLE QVariantList rankCatalog(const QVariantList &nodes, const QString &query) const;
   bool miniMapVisible() const;
   // The web hides the mini-map until the user turns it on, and keeps the choice
   // for every workflow. See web/src/stores/MiniMapStore.ts.
@@ -300,24 +293,23 @@ public:
   // Opens a workflow file in its own tab, or switches to the tab that has it.
   void openFileInTab(const QString &path);
   bool saveFile(const QString &path);
-  Q_INVOKABLE void addNode(const QString &type);
-  Q_INVOKABLE void dragNode(const QString &type);
+  void addNode(const QString &type);
+  void dragNode(const QString &type);
   bool catalogAtPointer() const { return activeEditor() == this ? catalogPoint_.has_value() : activeEditor()->catalogAtPointer(); }
   Q_INVOKABLE void cancelCatalogPlacement();
   Q_INVOKABLE void focusCanvas();
   // The floating node menu (web components/node_menu/NodeMenu.tsx). It opens at
   // the armed pointer point, or in the canvas center without one.
   void openNodeMenu();
-  Q_INVOKABLE void closeNodeMenu();
+  void closeNodeMenu();
   // The menu header drag moves the menu inside the canvas area.
-  Q_INVOKABLE void moveNodeMenu(qreal dx, qreal dy);
+  void moveNodeMenu(qreal dx, qreal dy);
   bool nodeMenuVisible() const;
   QStringList catalogRecent() const;
   QStringList catalogFavorites() const;
-  Q_INVOKABLE void toggleCatalogFavorite(const QString &type);
-  Q_INVOKABLE void clearCatalogFavorites();
-  Q_INVOKABLE void clearCatalogRecent();
-  Q_INVOKABLE QVariantList catalogQuickActions() const;
+  void toggleCatalogFavorite(const QString &type);
+  void clearCatalogFavorites();
+  void clearCatalogRecent();
   Q_INVOKABLE void setProperty(const QString &name, const QVariant &value);
   Q_INVOKABLE bool commitProperty(const QString &nodeId, const QString &name, const QVariant &value);
   Q_INVOKABLE bool removeProperty(const QString &nodeId, const QString &name);
@@ -363,8 +355,6 @@ protected:
 private slots:
   void saveLocalCopyAs();
 private:
-  // The node menu ranking caches. rankCatalog is const for QML, so the cache is mutable.
-  mutable CatalogRanker catalogRanker_;
   // An edit to rerun: the node, an uncommitted value of one of its properties
   // ({"name", "value"}, empty for a committed edit), and whether only an
   // in-process run may serve it.
@@ -457,7 +447,8 @@ private:
   QStringList selectedIds() const;
   QList<bool> selectedRunnableStates() const;
   bool singleRunnableCardSelected() const;
-  QQuickWidget *panel(const QString &file);
+  QQuickWidget *panel(const QString &file, const QVariantMap &properties = {});
+  void syncNodeCatalog();
   Q_SLOT void layoutOverlays();
   void syncInspector();
   // Applies a node click or a programmatic selection to the inspector. It does
@@ -540,6 +531,10 @@ private:
   QPointer<QObject> viewAnimation_;
 
     node_editor::PackSetup packSetup_;
+    // What this tab's Catalog and NodeMenu panels read and do. Owned by value,
+    // UI thread, destroyed with the tab after its panels (~EditorWindow deletes
+    // them first).
+    node_editor::NodeCatalog nodeCatalog_;
     QUrl packOrigin_;
     QString packToken_, packUser_;
   node_editor::SetupController setup_;

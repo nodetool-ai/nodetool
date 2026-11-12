@@ -25,6 +25,13 @@ more than 1024 logical pixels therefore bends less than React Flow's.
 `NodeButton` and `PanelRow` are editor controls for the web's button and row
 styles. Other native apps keep the [native design](../ui_primitives/DESIGN.md).
 
+The panels form the `NodeTool.NodeEditor` QML module. A panel that has moved off
+the `editor` context property takes small interface objects as required
+properties instead, such as [`NodeCatalog`](src/interfaces/NodeCatalog.h) for
+the node library and the node menu.
+[Component interfaces](docs/component-interfaces.md) tracks which panels still
+read `EditorWindow`.
+
 ## Build and run
 
 Install CMake, a C++20 compiler, Git, and Qt 6.12 with Widgets, QuickWidgets,
@@ -304,6 +311,10 @@ scope changes. Run them with `ctest --test-dir <build> -R
 provider chip and pointer placement. Run it with `ctest --test-dir <build> -R
 'node_editor_catalog$' --output-on-failure`. `NODETOOL_CATALOG_CAPTURE_DIR`
 writes its captures in both themes.
+[NodeMenuComponentTest](tests/ui/NodeMenuComponentTest.cpp) loads `NodeMenu.qml`
+with a fixture catalog and no `EditorWindow`, so it links no graph runner,
+QtNodes or media. Run it with `ctest --test-dir <build> -R
+'node_editor_node_menu_component$' --output-on-failure`.
 Complete successful-reconnect acceptance, inferred Code ports, dedicated canvas
 add-variable targets, full Agent-control presentation, value/code convenience
 actions remain outside these subsets.

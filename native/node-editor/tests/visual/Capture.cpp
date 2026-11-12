@@ -114,6 +114,8 @@ int main(int argc, char **argv) {
     QQuickWidget fixture;
     fixture.setResizeMode(QQuickWidget::SizeRootObjectToView);
     fixture.rootContext()->setContextProperty("editor", &editor);
+    fixture.setInitialProperties({{"nodeCatalog", QVariant::fromValue(editor.nodeCatalog())},
+                                  {"packSetup", QVariant::fromValue(editor.packSetup())}});
     fixture.setSource(QUrl("qrc:/editor/Fixture.qml"));
     require(fixture.status() == QQuickWidget::Ready, "Cannot load production QML fixture");
     fixture.resize(1000, 1200); fixture.show();
