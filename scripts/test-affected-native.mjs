@@ -204,7 +204,7 @@ export function readCache(buildDir) {
   const cache = {};
   const path = join(buildDir, "CMakeCache.txt");
   if (!existsSync(path)) return null;
-  for (const line of readFileSync(path, "utf8").split("\n")) {
+  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
     const match = /^([^#/][^:=]*):[A-Z]+=(.*)$/.exec(line);
     if (match) cache[match[1]] = match[2];
   }
@@ -399,7 +399,7 @@ export function producersOf(paths, targets, buildDir, cache) {
       const rules = join(target.buildDir, "CMakeFiles", `${target.name}.dir`, "build.make");
       if (!existsSync(rules)) continue;
       const text = readFileSync(rules, "utf8");
-      for (const path of paths) if (text.includes(path)) found.get(path).add(target.name);
+      for (const path of paths) if (text.includes(path) || text.includes(path.replaceAll("\\", "/"))) found.get(path).add(target.name);
     }
     return found;
   }
@@ -408,7 +408,7 @@ export function producersOf(paths, targets, buildDir, cache) {
     for (const block of blocks) {
       for (const target of utilities) {
         if (!block.includes(`CMakeFiles/${target.name}`)) continue;
-        for (const path of paths) if (block.includes(path)) found.get(path).add(target.name);
+        for (const path of paths) if (block.includes(path) || block.includes(path.replaceAll("\\", "/"))) found.get(path).add(target.name);
       }
     }
     return found;
@@ -789,7 +789,7 @@ export function diskReaders() {
 export function loadModel(name, buildDir, cache, log, { refresh = true } = {}) {
   const api = refresh ? ensureFileApi(buildDir, log) : readFileApi(buildDir);
   if (!api) return null;
-  const result = spawnSync("ctest", ["--test-dir", buildDir, "--show-only=json-v1"], { encoding: "utf8", maxBuffer: 1 << 28 });
+  const result = spawnSync("ctest", ["--test-dir", buildDir, ...(api.config ? ["-C", api.config] : []), "--show-only=json-v1"], { encoding: "utf8", maxBuffer: 1 << 28 });
   if (result.status !== 0) throw new Error(`ctest --show-only failed in ${buildDir}: ${result.stderr}`);
   const ctest = JSON.parse(result.stdout);
   const generated = [];

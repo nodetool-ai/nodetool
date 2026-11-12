@@ -1,3 +1,4 @@
+#include "host/platform_fs.h"
 #include "host/paths.h"
 
 #include <cerrno>
@@ -5,7 +6,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
-#include <sys/stat.h>
+#include <filesystem>
+#ifdef _WIN32
+#include <windows.h>
+#include <algorithm>
+#include <cctype>
+#endif
 
 namespace gr::host {
 namespace {
@@ -64,14 +70,19 @@ std::string message(const std::string& code, const std::string& syscall,
 
 std::optional<std::string> realPath(const std::string& path, int& err) {
   char buf[PATH_MAX];
-  if (::realpath(path.c_str(), buf)) return std::string(buf);
+  if (fsapi::realpath(path.c_str(), buf)) return std::string(buf);
   err = errno;
   return std::nullopt;
 }
 
 std::string parentOf(const std::string& path) {
+#ifdef _WIN32
+  const auto parent = std::filesystem::u8path(path).parent_path().generic_u8string();
+  return std::string(parent.begin(), parent.end());
+#else
   auto slash = path.rfind('/');
   return slash == 0 || slash == std::string::npos ? "/" : path.substr(0, slash);
+#endif
 }
 
 std::string leafOf(const std::string& path) {
@@ -80,7 +91,20 @@ std::string leafOf(const std::string& path) {
 }
 
 std::string joinPath(const std::string& dir, const std::string& leaf) {
-  return dir == "/" ? "/" + leaf : dir + "/" + leaf;
+  return dir.ends_with('/') ? dir + leaf : dir + "/" + leaf;
+}
+
+bool isWithinInput(const std::string& dir, const std::string& path) {
+#ifdef _WIN32
+  const auto root = std::filesystem::u8path(dir).wstring();
+  const auto candidate = std::filesystem::u8path(path).wstring();
+  if (root.empty() || candidate.size() < root.size()) return false;
+  if (CompareStringOrdinal(root.data(), static_cast<int>(root.size()), candidate.data(),
+      static_cast<int>(root.size()), TRUE) != CSTR_EQUAL) return false;
+  return candidate.size() == root.size() || root.back() == L'/' || candidate[root.size()] == L'/';
+#else
+  return isWithin(dir, path);
+#endif
 }
 
 // The root holding `real`, preferring a writable one when roots nest.
@@ -111,14 +135,20 @@ std::vector<Root> canonicalRoots(const std::vector<std::pair<std::string, bool>>
     if (dir.empty()) continue;
     int err = 0;
     auto real = realPath(dir, err);
-    struct stat st {};
-    if (!real || ::stat(real->c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) continue;
-    roots.push_back({*real, writable, dir[0] == '/' ? lexicalNormalize(dir) : *real});
+    fsapi::FileStat st {};
+    if (!real || fsapi::stat(real->c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) continue;
+    roots.push_back({*real, writable, std::filesystem::u8path(dir).is_absolute() ? lexicalNormalize(dir) : *real});
   }
   return roots;
 }
 
 std::string lexicalNormalize(const std::string& absolute) {
+#ifdef _WIN32
+  auto result = std::filesystem::u8path(absolute).lexically_normal().generic_u8string();
+  std::string text(result.begin(), result.end());
+  if (text.size() > 3 && text.back() == '/') text.pop_back();
+  return text;
+#else
   std::vector<std::string> parts;
   size_t i = 0;
   while (i <= absolute.size()) {
@@ -135,10 +165,12 @@ std::string lexicalNormalize(const std::string& absolute) {
   std::string out;
   for (const auto& p : parts) out += "/" + p;
   return out.empty() ? "/" : out;
+#endif
 }
 
 bool isWithin(const std::string& dir, const std::string& path) {
-  if (dir == "/") return !path.empty() && path[0] == '/';
+  // Resolved paths preserve filesystem casing, including case-sensitive NTFS directories.
+  if (!dir.empty() && dir.back() == '/') return path.starts_with(dir);
   return path == dir || (path.size() > dir.size() && path.compare(0, dir.size(), dir) == 0 &&
                          path[dir.size()] == '/');
 }
@@ -148,7 +180,7 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
   if (path.empty()) throw FsError("ENOENT", syscall, path);
   if (path.find('\0') != std::string::npos) throw FsError("EINVAL", syscall, path);
   std::string absolute;
-  if (path[0] == '/') {
+  if (std::filesystem::u8path(path).is_absolute()) {
     absolute = path;
   } else if (cwd.empty()) {
     throw FsError("EACCES", syscall, path, "a relative path needs a workspace directory");
@@ -156,10 +188,28 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
     absolute = cwd + "/" + path;
   }
   const std::string lexical = lexicalNormalize(absolute);
+#ifdef _WIN32
+  // Refuse device namespaces, alternate streams and Win32 names that alias another entry.
+  if (lexical.starts_with("//") || lexical.size() < 3 || lexical[1] != ':' || lexical[2] != '/') {
+    throw FsError("EACCES", syscall, path, "a local drive path is required");
+  }
+  for (const auto& part : std::filesystem::u8path(lexical).relative_path()) {
+    const auto encoded = part.u8string();
+    std::string name(encoded.begin(), encoded.end());
+    if (name.empty()) continue;
+    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+    const auto stem = name.substr(0, name.find('.'));
+    if (name.find(':') != std::string::npos || name.back() == '.' || name.back() == ' ' ||
+        stem == "CON" || stem == "PRN" || stem == "AUX" || stem == "NUL" ||
+        (stem.size() == 4 && (stem.starts_with("COM") || stem.starts_with("LPT")) && stem[3] >= '0' && stem[3] <= '9')) {
+      throw FsError("EACCES", syscall, path, "reserved Windows path");
+    }
+  }
+#endif
   // Refuse before touching the file system, so a refused path reveals
   // nothing about what exists outside the roots.
   bool inside = false;
-  for (const auto& r : roots) inside = inside || isWithin(r.dir, lexical) || isWithin(r.given, lexical);
+  for (const auto& r : roots) inside = inside || isWithinInput(r.dir, lexical) || isWithinInput(r.given, lexical);
   if (!inside) throw FsError("EACCES", syscall, path, kOutside);
 
   auto check = [&](const std::string& real, const std::string& lexicalForm) -> const Root* {
@@ -167,7 +217,7 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
     if (!root) throw FsError("EACCES", syscall, path, kOutside);
     // A symlink above the root, such as /var -> /private/var on macOS, was
     // resolved when the root was granted. Only a symlink below it is refused.
-    const bool viaGiven = root->given != "/" && isWithin(root->given, lexicalForm);
+    const bool viaGiven = root->given != "/" && isWithinInput(root->given, lexicalForm);
     const std::string expected = viaGiven ? root->dir + lexicalForm.substr(root->given.size()) : lexicalForm;
     if (noSymlinks && real != expected) {
       throw FsError("EACCES", syscall, path, "symbolic links are refused here");
@@ -184,8 +234,8 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
     return {*real, true, root};
   }
   if (err != ENOENT) throwErrno(err, syscall, path);
-  struct stat st {};
-  if (::lstat(lexical.c_str(), &st) == 0) {
+  fsapi::FileStat st {};
+  if (fsapi::lstat(lexical.c_str(), &st) == 0) {
     // A dangling symlink. Following it on create could leave the roots.
     throw FsError(access == Access::Read ? "ENOENT" : "EACCES", syscall, path,
                   access == Access::Read ? "" : "dangling symbolic link");
@@ -200,7 +250,7 @@ Resolved confine(const std::vector<Root>& roots, const std::string& cwd, const s
       return {joinPath(*real, tail), false, root};
     }
     if (err != ENOENT || access == Access::Write) throwErrno(err, syscall, path);
-    if (::lstat(ancestor.c_str(), &st) == 0) {
+    if (fsapi::lstat(ancestor.c_str(), &st) == 0) {
       throw FsError("EACCES", syscall, path, "dangling symbolic link");
     }
     tail = leafOf(ancestor) + "/" + tail;

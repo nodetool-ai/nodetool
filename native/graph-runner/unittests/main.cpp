@@ -618,11 +618,12 @@ void bytesHaveTheirWireText() {
                       {"d", Json::array({Json::binary(Blob({}, BlobKind::ArrayBuffer)), 1.0, "x\n", nullptr})},
                       {"e", {{"k\"", Json::binary(Blob({255, 254}, BlobKind::DataView))}}},
                       {"f", {{"n", 1}, {"list", {1, 2.5, true}}}}};
-  CHECK(gr::dumpWire(value) ==
+  const std::string expectedWire =
         R"({"a":{"__bytes__":"AQID"},"b":{"__bytes__":"BAUG","__buffer__":true},)"
         R"("c":{"__typed__":"Float32Array","__bytes__":"AADAPwAAEMA="},)"
         R"("d":[{"__typed__":"ArrayBuffer","__bytes__":""},1.0,"x\n",null],)"
-        R"("e":{"k\"":{"__typed__":"DataView","__bytes__":"//4="}},"f":{"n":1,"list":[1,2.5,true]}})");
+        R"("e":{"k\"":{"__typed__":"DataView","__bytes__":"//4="}},"f":{"n":1,"list":[1,2.5,true]}})";
+  CHECK(gr::dumpWire(value) == expectedWire);
   // Without bytes the text is the one dump() gives.
   const Json numbers = {{"n", 1.0}, {"s", "\xff"}};
   CHECK(gr::dumpWire(numbers, Json::error_handler_t::replace) == numbers.dump(-1, ' ', false, Json::error_handler_t::replace));
@@ -632,10 +633,11 @@ void bytesHaveTheirWireText() {
   // way back.
   std::vector<Blob> blobs;
   const std::string transit = gr::dumpTransit(value, blobs);
-  CHECK(transit ==
+  const std::string expectedTransit =
         R"({"a":{"__blob__":0},"b":{"__blob__":1,"__buffer__":true},"c":{"__typed__":"Float32Array","__blob__":2},)"
         R"("d":[{"__typed__":"ArrayBuffer","__blob__":3},1.0,"x\n",null],)"
-        R"("e":{"k\"":{"__typed__":"DataView","__blob__":4}},"f":{"n":1,"list":[1,2.5,true]}})");
+        R"("e":{"k\"":{"__typed__":"DataView","__blob__":4}},"f":{"n":1,"list":[1,2.5,true]}})";
+  CHECK(transit == expectedTransit);
   CHECK(blobs.size() == 5);
   Json back = Json::parse(transit);
   gr::attachBlobs(back, blobs);

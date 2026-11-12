@@ -1,8 +1,8 @@
-// An owned POSIX file descriptor, for the file and asset hosts.
+// An owned file descriptor, for the file and asset hosts.
 #pragma once
 
+#include "host/platform_fs.h"
 #include <cerrno>
-#include <unistd.h>
 #include <utility>
 
 namespace gr::host {
@@ -29,15 +29,16 @@ public:
   ~UniqueFd() { reset(); }
 
   int get() const { return fd_; }
+  int release() { return std::exchange(fd_, -1); }
   explicit operator bool() const { return fd_ >= 0; }
   // Closes now. Not retried on EINTR: the descriptor may already be freed.
   void reset() {
-    if (fd_ >= 0) ::close(std::exchange(fd_, -1));
+    if (fd_ >= 0) fsapi::close(std::exchange(fd_, -1));
   }
   // Closes now and returns close()'s errno, or 0.
   int close() {
     if (fd_ < 0) return 0;
-    return ::close(std::exchange(fd_, -1)) == 0 ? 0 : errno;
+    return fsapi::close(std::exchange(fd_, -1)) == 0 ? 0 : errno;
   }
 
 private:

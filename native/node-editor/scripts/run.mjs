@@ -17,10 +17,13 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { qtPrefix } from "./check.mjs";
+import { editorBinary, readBuildCache, windowsPluginDirectories, windowsRuntimeDirectories } from "./build-config.mjs";
 
 const editorSource = fileURLToPath(new URL("..", import.meta.url));
 const root = resolve(editorSource, "../..");
-const build = process.env.NODETOOL_NODE_EDITOR_BUILD_DIR || join(editorSource, "build");
+const windows = process.platform === "win32";
+const build = process.env.NODETOOL_NODE_EDITOR_BUILD_DIR || join(editorSource, windows ? "build-windows" : "build");
+const configuration = process.env.CMAKE_BUILD_TYPE || "Release";
 const guest = join(root, "native/graph-runner/build/guest.js");
 const serverUrl = "http://127.0.0.1:7777";
 const serverStartTimeoutMs = 120_000;
@@ -103,6 +106,7 @@ async function startServer() {
   const server = spawn(process.execPath, ["scripts/dev-server.mjs"], {
     cwd: root,
     detached: true,
+    windowsHide: true,
     stdio: ["ignore", fd, fd],
     env: { ...process.env, ...database, HOST: "127.0.0.1", PORT: "7777" }
   });
@@ -125,6 +129,16 @@ async function startServer() {
 }
 
 function signalGroup(server, signal) {
+  if (windows) {
+    if (server.exitCode !== null) {
+      return false;
+    }
+    if (signal === 0) {
+      return true;
+    }
+    const result = spawnSync("taskkill.exe", ["/PID", String(server.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+    return result.status === 0;
+  }
   try {
     process.kill(-server.pid, signal);
     return true;
@@ -133,8 +147,11 @@ function signalGroup(server, signal) {
   }
 }
 
-async function stopServer(server) {
+export async function stopServer(server) {
   if (!server || !signalGroup(server, "SIGTERM")) {
+    return;
+  }
+  if (windows) {
     return;
   }
   const started = Date.now();
@@ -167,22 +184,30 @@ function runEditor(binary, args, server) {
 
 async function main() {
   const { rebuildGuest, startServer: wantServer, editorArgs } = parseArgs(process.argv.slice(2));
+  const cache = readBuildCache(build);
+  const cmake = cache.CMAKE_COMMAND || "cmake";
   if (rebuildGuest || !existsSync(guest)) {
     console.log("Building the graph runner guest bundle");
     run(process.execPath, ["native/graph-runner/guest/build.mjs"]);
   }
-  // A failed configure leaves CMakeCache.txt, but build.ninja exists only after a complete one.
-  if (!existsSync(join(build, "build.ninja"))) {
+  // The install script is written only after successful CMake generation, for every generator.
+  if (!existsSync(join(build, "cmake_install.cmake"))) {
     // ICU_ROOT is not enough: the SDK's partial unicode/ headers would still win the include search.
     const prefixes = [qtPrefix(), homebrewIcu()].filter(Boolean);
-    run("cmake", ["-S", editorSource, "-B", build, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release", "-DBUILD_TESTING=ON",
+    run(cmake, ["-S", editorSource, "-B", build,
+      ...(cache.CMAKE_GENERATOR ? [] : ["-G", windows ? "Visual Studio 17 2022" : "Ninja", ...(windows ? ["-A", "x64"] : [])]),
+      `-DCMAKE_BUILD_TYPE=${configuration}`, "-DBUILD_TESTING=ON",
       ...(prefixes.length > 0 ? [`-DCMAKE_PREFIX_PATH=${prefixes.join(";")}`] : [])]);
   }
-  run("cmake", ["--build", build, "--target", "nodetool-node-editor"]);
-  const binary = [join(build, "nodetool-node-editor"), join(build, "nodetool-node-editor.exe"),
-    join(build, "nodetool-node-editor.app/Contents/MacOS/nodetool-node-editor")].find(existsSync);
+  run(cmake, ["--build", build, "--config", configuration, "--target", "nodetool-node-editor"]);
+  const binary = editorBinary(build, configuration);
   if (!binary) {
     throw new Error(`No nodetool-node-editor binary in ${build}`);
+  }
+  if (windows) {
+    const runtimeCache = readBuildCache(build);
+    process.env.PATH = [...windowsRuntimeDirectories(runtimeCache), process.env.PATH ?? ""].join(";");
+    process.env.QT_PLUGIN_PATH = [...windowsPluginDirectories(runtimeCache), process.env.QT_PLUGIN_PATH].filter(Boolean).join(";");
   }
   const server = wantServer ? await startServer() : undefined;
   try {
@@ -192,9 +217,11 @@ async function main() {
   }
 }
 
-try {
-  await main();
-} catch (error) {
-  console.error(`Native node editor run failed: ${error.message}`);
-  process.exitCode = 1;
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    await main();
+  } catch (error) {
+    console.error(`Native node editor run failed: ${error.message}`);
+    process.exitCode = 1;
+  }
 }
