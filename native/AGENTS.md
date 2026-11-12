@@ -8,6 +8,9 @@ media pipeline, the graph runner and the VST host. Area overlays such as
 that load or scroll, follow
 [Qt Quick performance](ui_primitives/PERFORMANCE.md).
 
+[Realtime engine rules](realtime/AGENTS.md) cover the headless realtime core
+and its provisional milestone gates.
+
 The memory and thread ownership rules below are non-negotiable. Code that
 breaks any of them has a bug, even when it compiles and its tests pass. If a
 requirement cannot be met cleanly, stop and explain the conflict instead of

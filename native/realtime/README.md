@@ -1,9 +1,29 @@
-# Realtime M0 preparation
+# Realtime engine and M0 preparation
 
 These standalone spikes prepare [RT M0](../../docs/plans/graph-runner-realtime-issues.md).
 They do not implement the production engine or satisfy its measurement gate.
 
+Provisional M1 development adds the [plan IR and loader](schema/README.md).
+See [milestone status and unverified assumptions](M1_STATUS.md). The remaining
+executors are not implemented yet.
+
 ## Build and test
+
+For the headless M1 core alone, without Node, Qt, GPU or audio dependencies:
+
+```sh
+cmake -S native/realtime -B native/realtime/build -DNT_REALTIME_BUILD_SPIKES=OFF
+cmake --build native/realtime/build --config Release
+ctest --test-dir native/realtime/build -C Release --output-on-failure
+```
+
+On Linux, from `native/realtime`, the `release`, `sanitize` and `tsan` presets
+configure Ninja builds. Run `cmake --preset sanitize`,
+`cmake --build --preset sanitize`, then `ctest --preset sanitize`.
+The native CI job runs all three configurations. Windows ASan uses the flags
+and developer environment described below. Windows cannot verify TSan here.
+
+To include the standalone M0 spikes, keep `NT_REALTIME_BUILD_SPIKES=ON`:
 
 Build the repository packages first for the in-process media decoder. Use a
 C++20 compiler, CMake and the repository Node version:
