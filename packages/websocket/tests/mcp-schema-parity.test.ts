@@ -17,12 +17,11 @@ import { capabilityForName } from "@nodetool-ai/agents";
 import { createMcpServer } from "../src/mcp-server.js";
 
 /**
- * Parameters the MCP mount leaves out on purpose. view_image's region crop and
- * downscale are stored copies with no asset row, so the mount has no URL to
- * give for them.
+ * Parameters the MCP mount leaves out on purpose. view_image's region crop is
+ * a stored copy with no asset row, so the mount has no URL to give for it.
  */
 const MCP_OMITTED: Record<string, readonly string[]> = {
-  view_image: ["region", "detail"]
+  view_image: ["region"]
 };
 
 let dataDir: string;
