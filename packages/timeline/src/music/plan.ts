@@ -301,9 +301,11 @@ export function planMusicOperation(input: MusicPlanInput): MusicPlan {
     target: { trackId: selection.trackId, startFrame: selection.startFrame, endFrame: selection.endFrame },
     bpm: tempo.bpm,
     beatsPerBar: tempo.timeSignature.beatsPerBar,
-    beatUnit: tempo.timeSignature.beatUnit,
-    ...(tempo.key ? { key: { tonic: tempo.key.tonic, mode: tempo.key.mode } } : {})
+    beatUnit: tempo.timeSignature.beatUnit
   };
+  if (tempo.key) {
+    plan.key = { tonic: tempo.key.tonic, mode: tempo.key.mode };
+  }
   const refuse = (refusal: MusicPlanRefusal, reason: string): MusicPlan => ({ ...plan, refusal, reason });
 
   if (!isFrame(selection.startFrame) || !isFrame(selection.endFrame) || selection.endFrame <= selection.startFrame) {

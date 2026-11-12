@@ -34,11 +34,11 @@ export interface AceStepModelFile {
 const MB = 1_000_000;
 const GB = 1_000_000_000;
 
-const LM_APPROX_BYTES: Record<AceStepLmSize, number> = {
+const LM_APPROX_BYTES = {
   "0.6B": 700 * MB,
   "1.7B": 1.9 * GB,
   "4B": 4.2 * GB
-};
+} satisfies Record<AceStepLmSize, number>;
 
 /**
  * The first-run set: text encoder, language model, turbo DiT and VAE, about
