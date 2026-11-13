@@ -1,5 +1,6 @@
 #include "CanvasDropController.h"
 #include "WorkflowGraphModel.h"
+#include "CardBodies.h"
 #include "CardMedia.h"
 #include <QApplication>
 #include <QDropEvent>
@@ -64,6 +65,14 @@ DocumentDrop documentDrop(const QJsonObject &drag) {
     const auto name = payload["name"].toString();
     if (kind == "sketch") { return {"nodetool.constant.Sketch", kind, id, name.isEmpty() ? QObject::tr("Untitled sketch") : name}; }
     return {"nodetool.constant.Timeline", kind, id, name.isEmpty() ? QObject::tr("Untitled video") : name};
+}
+// A Collection's zone names its kind "collection", or "collection:<type>" once
+// its first item locks the type. It takes any asset kind until then.
+bool collectionZone(const QString &target) { return target == QLatin1String("collection") || target.startsWith(QLatin1String("collection:")); }
+bool zoneTakes(const QString &target, const QString &kind) {
+  if (!collectionZone(target)) return kind == target;
+  const auto locked = target.section(QLatin1Char(':'), 1);
+  return !kind.isEmpty() && (locked.isEmpty() || locked == kind);
 }
 bool sameOrigin(const QUrl &a, const QUrl &b) { return a.scheme() == b.scheme() && a.host() == b.host() && a.port(a.scheme() == "https" ? 443 : 80) == b.port(b.scheme() == "https" ? 443 : 80); }
 QJsonObject trpcData(const QByteArray &bytes) {
@@ -227,7 +236,7 @@ bool CanvasDropController::eventFilter(QObject *object, QEvent *event) {
   return true;
 }
 void CanvasDropController::pickFile(const QStringList &zone, const QPoint &viewportPosition) {
-    const auto &kind = zone[2];
+    const auto kind = collectionZone(zone[2]) ? zone[2].section(QLatin1Char(':'), 1) : zone[2];
     QString path;
     if (chooseFile) {
         path = chooseFile(kind);
@@ -277,6 +286,10 @@ QStringList CanvasDropController::clickZone(const QPoint &viewportPosition) cons
             }
             const auto local = node->mapFromScene(view_.mapToScene(viewportPosition));
             const auto &row = model_.layout(node->nodeId()).rows[model_.dropZoneAt(node->nodeId(), local)];
+            // A Collection's grid holds its tiles, so only the empty grid opens the picker.
+            if (collectionZone(row.typeName)) {
+                return row.placeholder ? zone << QStringLiteral("pick") : QStringList{};
+            }
             if (row.placeholder || row.mediaKind.isEmpty() || cardMediaActionRect(row, CardMediaAction::Replace).contains(local)) {
                 return zone << QStringLiteral("pick");
             }
@@ -302,8 +315,8 @@ void CanvasDropController::drop(const QMimeData *mime, const QPointF &position, 
     return;
   }
   const auto ids = assetIds(dragPayload(mime));
-  // A drop zone takes one file, as the web's single media property does.
-  const auto count = !zone.isEmpty() ? qsizetype(1) : ids.isEmpty() ? mime->urls().size() : ids.size();
+  // A drop zone takes one file, as the web's single media property does. A Collection takes them all.
+  const auto count = !zone.isEmpty() && !collectionZone(zone[2]) ? qsizetype(1) : ids.isEmpty() ? mime->urls().size() : ids.size();
   for (qsizetype index = 0; index < count; ++index) {
     Transfer row; row.key = QUuid::createUuid().toString(QUuid::Id128); row.position = position + QPointF((index % 2) * 250, (index / 2) * 250);
     if (!zone.isEmpty()) {
@@ -323,12 +336,16 @@ void CanvasDropController::start(const QString &key) {
   if (row.file.isEmpty()) { fetchAsset(key); return; }
   if (!row.file.isLocalFile() || !QFileInfo(row.file.toLocalFile()).isFile()) { fail(key, tr("Drop a readable local file")); return; }
   const auto mime = QMimeDatabase{}.mimeTypeForFile(row.file.toLocalFile()).name(); row.kind = mediaKind(mime, row.name);
-  if (!row.targetNode.isEmpty() && row.kind != row.targetKind) {
-      fail(key, tr("Drop a %1 file here").arg(row.targetKind));
+  if (!row.targetNode.isEmpty() && !zoneTakes(row.targetKind, row.kind)) {
+      const auto locked = collectionZone(row.targetKind) ? row.targetKind.section(QLatin1Char(':'), 1) : row.targetKind;
+      fail(key, locked.isEmpty() ? tr("Unsupported drop type: %1").arg(row.name)
+                : collectionZone(row.targetKind) ? tr("Collection only accepts \"%1\" items.").arg(locked)
+                                                 : tr("Drop a %1 file here").arg(locked));
       return;
   }
   if (row.kind.isEmpty() || (row.targetNode.isEmpty() && !catalog_.contains(nodeType(row.kind)))) { fail(key, tr("Unsupported drop type or missing node metadata: %1").arg(row.name)); return; }
-  if (row.kind == "text" || (row.kind == "dataframe" && mime == "text/csv")) {
+  // A Collection keeps the uploaded asset, not the file's text.
+  if (!collectionZone(row.targetKind) && (row.kind == "text" || (row.kind == "dataframe" && mime == "text/csv"))) {
     QFile file(row.file.toLocalFile()); if (!file.open(QIODevice::ReadOnly) || file.size() > TextLimit) { fail(key, tr("Could not read text file, or it exceeds the 8 MiB limit")); return; }
     const auto bytes = file.readAll(); QString text;
     if (!utf8(bytes, text)) { fail(key, tr("Drop a UTF-8 text file")); return; }
@@ -372,9 +389,9 @@ void CanvasDropController::fetchAsset(const QString &key) {
     const bool prefix = requested.size() == 12 && QRegularExpression("^[0-9a-f]{32}$").match(id).hasMatch() && id.left(12) == requested;
     if (reply->error() != QNetworkReply::NoError || status != 200 || id.isEmpty() || (id != requested && !prefix)) { fail(key, tr("Could not load the dropped asset (HTTP %1)").arg(status)); return; }
     auto &row = transfers_[key]; const auto kind = mediaKind(asset["content_type"].toString(), asset["name"].toString());
-    if (kind.isEmpty() || (row.targetNode.isEmpty() ? !catalog_.contains(nodeType(kind)) : kind != row.targetKind) || (!row.file.isEmpty() && kind != row.kind)) { fail(key, tr("The asset type is unsupported or does not match the dropped file")); return; }
+    if (kind.isEmpty() || (row.targetNode.isEmpty() ? !catalog_.contains(nodeType(kind)) : !zoneTakes(row.targetKind, kind)) || (!row.file.isEmpty() && kind != row.kind)) { fail(key, tr("The asset type is unsupported or does not match the dropped file")); return; }
     row.assetId = id; row.kind = kind; row.name = asset["name"].toString(id);
-    if ((kind == "text" || kind == "dataframe") && !row.hasValue && row.file.isEmpty()) {
+    if ((kind == "text" || kind == "dataframe") && !row.hasValue && row.file.isEmpty() && !collectionZone(row.targetKind)) {
       auto contentUrl = QUrl(asset["get_url"].toString());
       if (contentUrl.isEmpty()) contentUrl = origin_.resolved(QUrl("/api/content/" + id));
       else if (contentUrl.isRelative() && !contentUrl.toString().startsWith("//")) contentUrl = origin_.resolved(contentUrl);
@@ -402,6 +419,10 @@ void CanvasDropController::downloadText(const QString &key, const QUrl &url) {
 void CanvasDropController::finish(const QString &key, const QJsonValue &value) {
   if (!transfers_.contains(key) || transfers_[key].state == "cancelled") return;
   const auto row = transfers_[key]; const auto type = nodeType(row.kind);
+  if (!row.targetNode.isEmpty() && collectionZone(row.targetKind)) {
+      finishCollection(key, row);
+      return;
+  }
   if (!row.targetNode.isEmpty()) {
       // Keep fields of the stored reference that this drop does not replace.
       auto reference = QJsonObject{};
@@ -430,5 +451,28 @@ void CanvasDropController::finish(const QString &key, const QJsonValue &value) {
   const auto node = createNode(catalog_.value(type), row.position, properties);
   if (node["id"].toString().isEmpty() || node["type"] != type || !applyCommand(QJsonObject{{"op", "addNode"}, {"node", node}})) { fail(key, tr("Could not add the dropped asset. Local work is unchanged.")); return; }
   transfers_.remove(key); order_.removeAll(key); emit changed(); emit nodeCreated(node["id"].toString());
+}
+void CanvasDropController::finishCollection(const QString &key, const Transfer &row) {
+  // assetToItem in collectionItems.ts: the asset reference with the asset's name.
+  const QJsonObject item{{"type", row.kind}, {"asset_id", row.assetId}, {"uri", "asset://" + row.assetId}, {"name", row.name}};
+  QJsonArray items;
+  for (const auto id : model_.allNodeIds()) {
+    if (model_.resourceId(id) == row.targetNode) { items = model_.nodeSnapshot(id)["data"].toObject()[row.targetProperty].toArray(); }
+  }
+  const auto result = appendCollectionItems(items, QJsonArray{item});
+  if (!result.ok) {
+    // An asset already in the collection is left as it is.
+    if (result.expected == row.kind) { transfers_.remove(key); order_.removeAll(key); emit changed(); return; }
+    fail(key, tr("Collection only accepts \"%1\" items.").arg(result.expected));
+    return;
+  }
+  const QJsonObject command{{"op", "setProperty"}, {"id", row.targetNode}, {"name", row.targetProperty}, {"value", result.items}};
+  if (model_.readOnly() || !applyCommand || !applyCommand(command)) {
+    fail(key, tr("Could not add the dropped file. Local work is unchanged."));
+    return;
+  }
+  transfers_.remove(key);
+  order_.removeAll(key);
+  emit changed();
 }
 }

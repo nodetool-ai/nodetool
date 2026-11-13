@@ -3,6 +3,7 @@
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QSet>
 #include <QVariantMap>
 #include <QTextLayout>
 #include <QVector>
@@ -10,6 +11,8 @@
 #include <vector>
 
 namespace nodetool {
+class CardMediaStore;
+
 // The body a node type draws, as the bespoke registry in
 // web/src/components/node_types/editing/bespokeRegistry.ts, ReactFlowWrapper.tsx
 // and the content card registry route it.
@@ -56,6 +59,12 @@ struct CardBodyInput {
     QStringList graphVariables;
     // The selected preview tab of a Before/After or Mask body, empty for its default.
     QString previewTab;
+    // The node's run state, which the List Generator body lists its items from.
+    QJsonObject runtime;
+    // The List Generator items the user expanded, by index.
+    QSet<int> expandedItems;
+    // Loaded thumbnails for the Collection body's image tiles, when the card has them.
+    const CardMediaStore *media = nullptr;
 };
 
 // Lays out a bespoke body: its rows, port positions, result area and size. A
@@ -90,4 +99,29 @@ struct PromptToken {
 };
 QVector<PromptToken> promptTokens(const QString &line);
 QStringList promptVariables(const QString &text);
+
+// ExtractVideoFrameBody.tsx counts frames at 30 fps until playback measures the
+// rate. The timecode is MM:SS:FF, or HH:MM:SS:FF from the first hour.
+inline constexpr double videoFrameRate = 30;
+QString videoTimecode(double seconds, double fps = videoFrameRate);
+// The time `frames` frames from seconds, on the frame grid and never below zero.
+double steppedVideoTime(double seconds, int frames, double fps = videoFrameRate);
+
+// ListGeneratorBody.tsx: the item strings of a run, from the list on the
+// `output` handle, and an item's first line without markdown markers.
+QStringList listGeneratorItems(const QJsonObject &runtime);
+QString listItemPreview(const QString &item);
+
+// The Collection node keeps `{ type, uri, asset_id, name }` items of one type,
+// as web/src/utils/collectionItems.ts. The first item's type locks the rest.
+inline constexpr auto collectionNodeType = "nodetool.control.Collection";
+QString collectionType(const QJsonArray &items);
+struct CollectionAppend {
+    bool ok = false;
+    QJsonArray items;
+    // On a rejected drop, the type the collection holds.
+    QString expected;
+};
+// Appends the items of the collection's type and skips ones already present.
+CollectionAppend appendCollectionItems(const QJsonArray &existing, const QJsonArray &incoming);
 } // namespace nodetool
