@@ -71,9 +71,24 @@ TestCase {
         Ui.Text { id: flatLabel; anchors.fill: parent; text: "Flat" }
     }
     SignalSpy { id: flatClicks; target: flatRow; signalName: "clicked" }
+    Ui.ListRow {
+        id: draggableRow
+        x: 10; y: 110; width: 100; height: 30
+        flat: true
+        accessibleName: "Draggable"
+        DragHandler { id: rowDrag; target: null }
+        Ui.Text { anchors.fill: parent; text: "Drag" }
+    }
+    SignalSpy { id: draggableClicks; target: draggableRow; signalName: "clicked" }
     SignalSpy { id: rowClicks; target: row; signalName: "clicked" }
     SignalSpy { id: nestedClicks; target: nested; signalName: "clicked" }
     function init() { chosen = []; menuCount = 0; rowClicks.clear(); nestedClicks.clear(); Ui.Theme.preference = Ui.Theme.Dark }
+    function test_flatRowWithADragHandlerStillClicks() {
+        draggableClicks.clear()
+        mouseClick(draggableRow)
+        compare(draggableClicks.count, 1)
+        compare(rowDrag.parent, draggableRow)
+    }
     function test_flatRowHasNoPaddingAndNoMinimumHeight() {
         compare(flatRow.leftPadding, 0)
         compare(flatRow.rightPadding, 0)

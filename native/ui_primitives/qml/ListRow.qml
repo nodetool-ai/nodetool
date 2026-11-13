@@ -12,7 +12,14 @@ Basic.Button {
     implicitHeight: flat ? 0 : Math.max(Metrics.standard, content.implicitHeight + Metrics.md)
     leftPadding: flat ? 0 : Metrics.md; rightPadding: flat ? 0 : Metrics.md
     topPadding: 0; bottomPadding: 0
-    Component.onCompleted: if (flat) focusPolicy = Qt.TabFocus
+    // A pointer handler declared in the row lands in the content item, where a press no
+    // longer reaches the button. Move each one onto the row itself.
+    Component.onCompleted: {
+        if (flat) focusPolicy = Qt.TabFocus
+        for (const child of content.data) {
+            if (child && child.grabPermissions !== undefined && child.parent === content) child.parent = root
+        }
+    }
     Keys.onReturnPressed: if (flat && enabled) click()
     Keys.onEnterPressed: if (flat && enabled) click()
     // A flat row's children anchor to it, so its content reports no implicit size of its own.
