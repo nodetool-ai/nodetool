@@ -1,10 +1,9 @@
 // The output renderers web cards show and the native card bodies now match:
-// the Plotly chart, the agent status row, JSON colors and the Copy action in
+// the agent status row, JSON colors and the Copy action in
 // RichOutput.qml, and the image grid's hover actions, selection, comparison
 // and batch download in MediaGallery.qml. Each QML file loads on its own with
 // a MediaResolver, as MediaUiTest does.
 #include "media/MediaResolver.h"
-#include "media/PlotlyChart.h"
 #include "media/VideoFrameView.h"
 #include "properties/CodeHighlighter.h"
 #include "run/RunOutputModel.h"
@@ -14,7 +13,6 @@
 #include <QDir>
 #include <QFile>
 #include <QImage>
-#include <QPainter>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -28,7 +26,6 @@
 #include <memory>
 
 using nodetool::node_editor::MediaResolver;
-using nodetool::node_editor::PlotlyChart;
 using nodetool::node_editor::RunOutputModel;
 
 class OutputRenderersTest final : public QObject {
@@ -38,21 +35,6 @@ class OutputRenderersTest final : public QObject {
     if (item->objectName() == name && (!visibleOnly || item->isVisible())) { return item; }
     for (auto *child : item->childItems()) { if (auto *found = findItem(child, name, visibleOnly)) { return found; } }
     return nullptr;
-  }
-  static QImage render(PlotlyChart &chart, int width = 400, int height = 300) {
-    chart.setSize(QSizeF(width, height));
-    QImage image(width, height, QImage::Format_ARGB32_Premultiplied);
-    image.fill(Qt::transparent);
-    QPainter painter(&image);
-    chart.paint(&painter);
-    return image;
-  }
-  static int count(const QImage &image, QRgb color) {
-    int matches = 0;
-    for (int y = 0; y < image.height(); ++y) {
-      for (int x = 0; x < image.width(); ++x) { if ((image.pixel(x, y) & 0xffffff) == (color & 0xffffff) && qAlpha(image.pixel(x, y)) == 255) { ++matches; } }
-    }
-    return matches;
   }
   static QVariantMap entry(const QJsonValue &value) {
     RunOutputModel model;
@@ -80,65 +62,7 @@ class OutputRenderersTest final : public QObject {
   static void click(QObject *button) { QVERIFY(button); QVERIFY(QMetaObject::invokeMethod(button, "clicked")); }
 
 private slots:
-  void chartDrawsBarsAndScatter() {
-    PlotlyChart chart;
-    chart.setFigure({{"data", QVariantList{
-                        QVariantMap{{"type", "bar"}, {"name", "Sales"}, {"x", QVariantList{"Mon", "Tue", "Wed"}}, {"y", QVariantList{3, 7, 5}}, {"marker", QVariantMap{{"color", "rgb(200, 20, 30)"}}}},
-                        QVariantMap{{"type", "scatter"}, {"name", "Trend"}, {"x", QVariantList{"Mon", "Tue", "Wed"}}, {"y", QVariantList{2, 4, 6}}, {"line", QVariantMap{{"color", "#10a050"}}}}}},
-                     {"layout", QVariantMap{{"title", QVariantMap{{"text", "Week"}}}}}});
-    QVERIFY(chart.supported());
-    QCOMPARE(chart.traceCount(), 2);
-    QCOMPARE(chart.title(), QString("Week"));
-    const auto image = render(chart);
-    QVERIFY2(count(image, qRgb(200, 20, 30)) > 500, "The bars are filled with the marker color");
-    QVERIFY2(count(image, qRgb(0x10, 0xa0, 0x50)) > 40, "The scatter line is drawn in the line color");
-    // The tallest bar (Tue, 7) is under the pointer in the middle of the plot.
-    bool found = false;
-    for (int y = 40; y < 280 && !found; y += 4) {
-      const auto hit = chart.pointAt(200, y);
-      if (hit.value("trace") == "Sales") {
-        QCOMPARE(hit.value("x").toString(), QString("Tue"));
-        QCOMPARE(hit.value("y").toString(), QString("7"));
-        QCOMPARE(hit.value("label").toString(), QString("Sales: (Tue, 7)"));
-        found = true;
-      }
-    }
-    QVERIFY(found);
-    QVERIFY(chart.pointAt(-50, -50).isEmpty());
-  }
-
-  void chartDrawsPieHistogramAndHeatmap() {
-    PlotlyChart pie;
-    pie.setFigure({{"data", QVariantList{QVariantMap{{"type", "pie"}, {"values", QVariantList{1, 3}}, {"labels", QVariantList{"a", "b"}},
-                                                      {"marker", QVariantMap{{"colors", QVariantList{"#0000ff", "#ff0000"}}}}}}}});
-    const auto pieImage = render(pie);
-    const int blue = count(pieImage, qRgb(0, 0, 255)), red = count(pieImage, qRgb(255, 0, 0));
-    QVERIFY(blue > 200);
-    QVERIFY2(red > blue * 2, "The 75% slice is about three times the 25% slice");
-
-    PlotlyChart histogram;
-    histogram.setFigure({{"data", QVariantList{QVariantMap{{"type", "histogram"}, {"x", QVariantList{1, 1, 1, 2, 9}}, {"nbinsx", 2}, {"marker", QVariantMap{{"color", "#123456"}}}}}}});
-    QVERIFY(count(render(histogram), qRgb(0x12, 0x34, 0x56)) > 500);
-
-    PlotlyChart heatmap;
-    heatmap.setFigure({{"data", QVariantList{QVariantMap{{"type", "heatmap"}, {"z", QVariantList{QVariantList{0, 1}, QVariantList{1, 0}}},
-                                                          {"colorscale", QVariantList{QVariantList{0, "#000000"}, QVariantList{1, "#00ff00"}}}}}}});
-    QVERIFY(count(render(heatmap), qRgb(0, 255, 0)) > 1000);
-  }
-
-  void chartListsUnsupportedTraces() {
-    PlotlyChart chart;
-    chart.setFigure({{"data", QVariantList{QVariantMap{{"type", "scatter3d"}}, QVariantMap{{"type", "sankey"}}}}});
-    QVERIFY(!chart.supported());
-    QCOMPARE(chart.unsupportedTypes(), QStringList({"scatter3d", "sankey"}));
-  }
-
-  void runOutputCarriesFigureAndAgentStatus() {
-    const QJsonObject figure{{"data", QJsonArray{QJsonObject{{"type", "bar"}, {"y", QJsonArray{1, 2}}}}}, {"layout", QJsonObject{}}};
-    const auto plotly = entry(QJsonObject{{"type", "plotly_config"}, {"config", figure}});
-    QCOMPARE(plotly.value("renderer").toString(), QString("plotly"));
-    QCOMPARE(plotly.value("plotly").toMap().value("data").toList().size(), 1);
-
+  void runOutputCarriesAgentStatus() {
     const auto status = entry(QJsonObject{{"type", "chunk"}, {"content_type", "agent_status"}, {"content", "Breaking the task down"},
                                           {"content_metadata", QJsonObject{{"kind", "planning"}, {"phase", "outline"}}}});
     QCOMPARE(status.value("renderer").toString(), QString("agent_status"));
@@ -152,7 +76,7 @@ private slots:
     QCOMPARE(warning.value("statusSeverity").toString(), QString("warning"));
   }
 
-  void richOutputDrawsChartStatusAndCopy() {
+  void richOutputDrawsStatusAndCopy() {
     MediaResolver resolver;
     QQmlEngine engine;
     QQuickWindow surface;
@@ -166,26 +90,6 @@ private slots:
       return output;
     };
     surface.show();
-
-    const QJsonObject figure{{"data", QJsonArray{QJsonObject{{"type", "scatter"}, {"y", QJsonArray{1, 3, 2}}}}}};
-    auto chartOutput = load(entry(QJsonObject{{"type", "plotly_config"}, {"config", figure}}));
-    QVERIFY2(chartOutput, qPrintable(component.errorString()));
-    auto *root = qobject_cast<QQuickItem *>(chartOutput.get());
-    auto *chart = qobject_cast<PlotlyChart *>(findItem(root, "output-plotly-chart"));
-    QVERIFY(chart);
-    QVERIFY(chart->supported());
-    QVERIFY(chart->height() > 100);
-    QVERIFY2(!findItem(root, "run-output-text"), "A drawn chart replaces the configuration text");
-    chart->setFigure({{"data", QVariantList{
-                         QVariantMap{{"type", "bar"}, {"name", "Sales"}, {"x", QVariantList{"Mon", "Tue", "Wed", "Thu"}}, {"y", QVariantList{3, 7, 5, 6}}},
-                         QVariantMap{{"type", "scatter"}, {"name", "Trend"}, {"x", QVariantList{"Mon", "Tue", "Wed", "Thu"}}, {"y", QVariantList{2, 4, 6, 7}}}}},
-                      {"layout", QVariantMap{{"title", "Weekly sales"}, {"yaxis", QVariantMap{{"title", "Units"}}}}}});
-    capture(surface, "plotly-chart.png");
-    chartOutput.reset();
-
-    auto unsupported = load(entry(QJsonObject{{"type", "plotly_config"}, {"config", QJsonObject{{"data", QJsonArray{QJsonObject{{"type", "sankey"}}}}}}}));
-    QVERIFY(findItem(qobject_cast<QQuickItem *>(unsupported.get()), "run-output-text"));
-    QVERIFY(!findItem(qobject_cast<QQuickItem *>(unsupported.get()), "output-plotly"));
 
     auto status = load(entry(QJsonObject{{"type", "chunk"}, {"content_type", "agent_status"}, {"content", "Running search"},
                                          {"content_metadata", QJsonObject{{"kind", "tool_call"}, {"name", "web_search"}}}}));

@@ -150,50 +150,11 @@ Rectangle {
         }
     }
 }
-// PlotlyChart.tsx: the figure drawn natively. A figure with no drawable trace keeps the data fallback.
-Item {
-    id: plotly
-    objectName: "output-plotly"
-    readonly property bool drawn: chart.supported
-    visible: modelData.renderer === "plotly" && drawn
-    Layout.fillWidth: true
-    Layout.preferredHeight: Math.max(Ui.Metrics.comfortable * 6, Math.min(width * 0.62, Ui.Metrics.comfortable * 12))
-    PlotlyChart {
-        id: chart
-        objectName: "output-plotly-chart"
-        anchors.fill: parent
-        figure: modelData.renderer === "plotly" && modelData.plotly ? modelData.plotly : ({})
-        textColor: Ui.Theme.textSecondary
-        gridColor: Ui.Theme.borderSubtle
-        font: Ui.Typography.font(Ui.Typography.SansCaption)
-        Accessible.role: Accessible.Graphic
-        Accessible.name: (chart.title || "Plotly chart") + ", " + chart.traceCount + (chart.traceCount === 1 ? " trace" : " traces")
-    }
-    HoverHandler {
-        id: chartHover
-        onPointChanged: plotly.hovered = chart.pointAt(point.position.x, point.position.y)
-        onHoveredChanged: if (!hovered) plotly.hovered = ({})
-    }
-    property var hovered: ({})
-    Rectangle {
-        objectName: "output-plotly-hover"
-        visible: !!plotly.hovered.label
-        x: Math.min(plotly.width - width, chartHover.point.position.x + Ui.Metrics.md)
-        y: Math.max(0, chartHover.point.position.y - height - Ui.Metrics.xs)
-        width: hoverLabel.implicitWidth + Ui.Metrics.sm * 2
-        height: hoverLabel.implicitHeight + Ui.Metrics.xs * 2
-        color: Ui.Theme.surfaceOverlay
-        radius: Ui.Metrics.radiusOverlay
-        border.width: Ui.Metrics.border
-        border.color: Ui.Theme.borderControl
-        Ui.Text { id: hoverLabel; anchors.centerIn: parent; text: plotly.hovered.label || ""; role: Ui.Typography.SansCaption }
-    }
-}
 Ui.Text {
-    visible: (modelData.renderer === "plotly" && !plotly.drawn) || (modelData.renderer === "object" && !!modelData.objectNotice)
+    visible: modelData.renderer === "plotly" || (modelData.renderer === "object" && !!modelData.objectNotice)
     Layout.fillWidth: true
     role: Ui.Typography.SansCaption
-    text: modelData.renderer === "plotly" ? (chart.unsupportedTypes.length > 0 ? "The native editor cannot draw " + chart.unsupportedTypes.join(", ") + " traces. Configuration and data:" : "This Plotly figure has no traces to draw. Configuration and data:") : (modelData.objectNotice || "")
+    text: modelData.renderer === "plotly" ? "Plotly chart unavailable in native editor. Configuration and data:" : (modelData.objectNotice || "")
     wrapMode: Text.Wrap
 }
 ObjectOutput {
@@ -219,7 +180,7 @@ TextOutput {
 Ui.TextArea {
     objectName: "run-output-text"
     id: plainOutput
-    visible: modelData.renderer !== "pcm" && modelData.renderer !== "text" && modelData.renderer !== "sequence" && (!modelData.items || modelData.items.length === 0) && modelData.renderer !== "dataframe" && modelData.renderer !== "object" && modelData.renderer !== "tool_call" && modelData.renderer !== "image_comparison" && modelData.renderer !== "agent_status" && !(modelData.renderer === "plotly" && plotly.drawn)
+    visible: modelData.renderer !== "pcm" && modelData.renderer !== "text" && modelData.renderer !== "sequence" && (!modelData.items || modelData.items.length === 0) && modelData.renderer !== "dataframe" && modelData.renderer !== "object" && modelData.renderer !== "tool_call" && modelData.renderer !== "image_comparison" && modelData.renderer !== "agent_status"
     Layout.fillWidth: true
     variant: Ui.TextArea.Plain
     role: modelData.renderer === "text" ? Ui.Typography.SansBody : Ui.Typography.MonoCode

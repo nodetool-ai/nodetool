@@ -1634,22 +1634,10 @@
       "inventory": "F31"
     },
     "web/src/components/node/output/PlotlyChart.tsx": {
-      "native": [
-        "native/node-editor/src/media/PlotlyChart.cpp",
-        "native/node-editor/qml/RichOutput.qml"
-      ],
-      "status": "partial",
-      "note": "Scatter, bar, histogram, pie and heatmap traces with hover labels. Other trace types, log axes, frames and the zoom and pan mode bar are missing; those figures show the data fallback.",
-      "inventory": "F31"
+      "accepted": "Plotly charts are deprecated (Matthias, 2026-11-13). Native keeps the configuration and data fallback."
     },
     "web/src/components/node/output/PlotlyRenderer.tsx": {
-      "native": [
-        "native/node-editor/src/media/PlotlyChart.cpp",
-        "native/node-editor/qml/RichOutput.qml"
-      ],
-      "status": "partial",
-      "note": "Scatter, bar, histogram, pie and heatmap traces with hover labels. Other trace types, log axes, frames and the zoom and pan mode bar are missing; those figures show the data fallback.",
-      "inventory": "F31"
+      "accepted": "Plotly charts are deprecated (Matthias, 2026-11-13). Native keeps the configuration and data fallback."
     },
     "web/src/components/node/output/RealtimeAudioOutput.tsx": {
       "native": [

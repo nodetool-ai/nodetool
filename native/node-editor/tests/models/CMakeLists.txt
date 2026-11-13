@@ -26,7 +26,6 @@ if(TARGET node_editor_qml)
   ../../src/media/MediaResolver.cpp ../../src/media/MediaResolver.h
   ../../src/media/AudioWaveform.cpp ../../src/media/AudioWaveform.h
   ../../src/media/VideoFrameView.cpp ../../src/media/VideoFrameView.h
-  ../../src/media/PlotlyChart.cpp ../../src/media/PlotlyChart.h
   ../../src/media/PcmStream.cpp ../../src/media/PcmStream.h ../../src/media/AudioVisualAnalysis.h
   ../../src/media/LiveAudioVisualizer.cpp ../../src/media/LiveAudioVisualizer.h
   ../../src/media/MediaGalleryModel.cpp ../../src/media/MediaGalleryModel.h)

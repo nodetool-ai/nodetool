@@ -551,12 +551,7 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
     }
     else if (tag == "dataframe") { renderer = "dataframe"; }
     else if (tag == "image_comparison") { renderer = "image_comparison"; entry["comparison"] = object.toVariantMap(); }
-    else if (tag == "plotly_config") {
-      // PlotlyRenderer.tsx draws config.config; a figure over 4 MB keeps only the text fallback.
-      renderer = "plotly";
-      const auto figure = object["config"].toObject();
-      if (QJsonDocument(figure).toJson(QJsonDocument::Compact).size() <= 4 * 1024 * 1024) { entry["plotly"] = figure.toVariantMap(); }
-    }
+    else if (tag == "plotly_config") { renderer = "plotly"; }
     else if (value.isObject() && tag.isEmpty()) { renderer = "object"; }
     if (value.isBool() || (tag == "boolean" && object["value"].isBool())) {
       renderer = "text";

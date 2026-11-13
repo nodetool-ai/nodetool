@@ -2,7 +2,6 @@
 #include "AudioWaveform.h"
 #include "LiveAudioVisualizer.h"
 #include "MediaGalleryModel.h"
-#include "PlotlyChart.h"
 #include <QClipboard>
 #include <QGuiApplication>
 #include <QImage>
@@ -68,7 +67,6 @@ void registerMediaTypes() {
   // native-rules #14: function-static mutable registration flag
   static std::once_flag registered;
   std::call_once(registered, [] { qmlRegisterType<MediaViewerHost>("NodeTool.NodeEditor.Media", 1, 0, "MediaViewerHost"); qmlRegisterType<MediaClipboard>("NodeTool.NodeEditor.Media", 1, 0, "MediaClipboard"); qmlRegisterType<MediaGalleryModel>("NodeTool.NodeEditor.Media", 1, 0, "MediaGalleryModel"); qmlRegisterType<LiveAudioVisualizer>("NodeTool.NodeEditor.Media", 1, 0, "LiveAudioVisualizer"); qmlRegisterType<AudioWaveform>("NodeTool.NodeEditor.Media", 1, 0, "AudioWaveform"); qmlRegisterType<VideoFrameView>("NodeTool.NodeEditor.Media", 1, 0, "VideoFrameView"); });
-  registerPlotlyChart();
 }
 }
 
