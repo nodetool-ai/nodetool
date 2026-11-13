@@ -67,6 +67,8 @@ public:
     Q_INVOKABLE void connectServer() { emit connectRequested(); }
     Q_INVOKABLE void reconnect() { emit reconnectRequested(); }
     Q_INVOKABLE void openQueue() { emit queueRequested(); }
+    // Report on a failure banner opens a prefilled bug report. `source` names the surface, such as "Library error".
+    Q_INVOKABLE void reportError(const QString &source, const QString &text) { emit reportRequested(source, text); }
     // Empty text hides the tool tip.
     Q_INVOKABLE void showToolTip(const QString &text) { emit toolTipRequested(text); }
 
@@ -75,6 +77,7 @@ signals:
     void connectRequested();
     void reconnectRequested();
     void queueRequested();
+    void reportRequested(const QString &source, const QString &text);
     void toolTipRequested(const QString &text);
 
 private:

@@ -42,7 +42,6 @@
 #include <QMainWindow>
 #include <QPointer>
 class QTimer;
-class QMenu;
 class QDialog;
 class QQmlEngine;
 class QQuickWidget;
@@ -51,6 +50,7 @@ class QBoxLayout;
 class QGraphicsView;
 class QStackedWidget;
 namespace nodetool {
+struct EntryMenuRequest;
 namespace node_editor { class LineageLayer; }
 class EditorScene;
 class InlinePropertyPresenter;
@@ -77,6 +77,8 @@ public:
     nt::chat::ChatSession *chatSession();
     Q_INVOKABLE void askAgent(const QString &message);
     Q_SLOT void askRunAgent(const QString &runId, const QString &spanId = {});
+    // A failure banner's Report: opens a prefilled bug report. `source` names the surface.
+    Q_SLOT void reportError(const QString &source, const QString &text);
     Q_SLOT void toggleChat();
     void beginChatGeometry();
     void resetChatPosition();
@@ -372,12 +374,13 @@ private:
     void installTabShortcuts();
     void harvestProjects(const QJsonArray &projects);
     void populateProjectMenu();
+    QVariantList projectEntries() const;
     QQuickWidget *tabBarWidget() const;
     QString assignedProject_;
     QJsonArray projects_;
     QString projectsAccount_;
     QHash<QString, QPointer<EditorWindow>> projectActive_;
-    QPointer<QMenu> projectMenu_;
+    QPointer<QQuickWidget> projectMenu_;
     QVariantList tabSignature_;
     qreal tabStripOffset_ = 0;
     bool discardApproved_ = false;
@@ -501,6 +504,7 @@ private:
   bool menuActionEnabled(const QString &name) const;
   // Context menus are Quick popups on a transparent overlay (EditorMenus.cpp).
   friend class ContextMenuBuilder;
+  QQuickWidget *showEntryMenu(const EntryMenuRequest &request);
   void showContextMenu(const QString &kind, const QPoint &globalPosition, const QString &nodeId = {}, const QString &edgeId = {}, const QPointF &scenePosition = {});
   void showFindPanel();
   void revealFound(const QString &resourceId);

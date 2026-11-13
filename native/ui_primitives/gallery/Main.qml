@@ -56,6 +56,7 @@ Window {
                 Ui.Toggle { width: Math.min(implicitWidth, parent.width); text: "Enabled"; checked: true }
                 Ui.BusyIndicator { accessibleName: "Loading" }
                 Ui.Status { width: Math.min(implicitWidth, parent.width); status: Ui.Status.Success; message: "Saved" }
+                Ui.Chip { variant: Ui.Chip.Tone; text: "Chip"; maximumWidth: parent.width }
                 Ui.Progress { width: Math.min(implicitWidth, parent.width); value: 0.6; accessibleName: "Progress" }
             }
             Flow {

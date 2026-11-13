@@ -2,7 +2,7 @@
 #include "../graph/BodyConnectionFixture.h"
 #include "graph/EditorScene.h"
 #include <QGraphicsView>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QtTest>
 #include <QContextMenuEvent>
 #include <QClipboard>
@@ -510,14 +510,13 @@ private slots:
     void moreOpensDropdownWithDocumentedActions() {
         EditorWindow window; window.show(); QTest::qWait(50);
         window.action("More");
-        QTRY_VERIFY(window.findChild<QMenu *>("more-menu"));
+        QTRY_VERIFY(entry_menu::host(window, "more"));
         QVERIFY(!window.findChild<QDialog *>("command-panel"));
-        QStringList labels;
-        for (auto *item : window.findChild<QMenu *>("more-menu")->actions()) { labels << item->text(); }
+        const auto labels = entry_menu::labels(entry_menu::host(window, "more"));
         for (const auto *expected : {"Auto layout", "Arrange selection", "Link selected", "Find node", "Group selection", "Ungroup", "Remove from group", "Run selected", "Disable selected", "Rename node", "Add comment", "Edit comment", "Server sync", "Canvas uploads"}) {
             QVERIFY2(labels.contains(expected), expected);
         }
-        window.findChild<QMenu *>("more-menu")->close();
+        closeMenu(window);
     }
 
     // KeyboardShortcutsView.tsx and ShortcutsSearchableList.tsx

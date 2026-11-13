@@ -1,4 +1,5 @@
 #include "EditorWindow.h"
+#include "EntryMenu.h"
 #include "document/ChildPorts.h"
 #include "graph/EditorScene.h"
 #include "graph/CanvasMediaPresenter.h"
@@ -9,7 +10,6 @@
 #include <QKeySequence>
 #include <QClipboard>
 #include <QJsonDocument>
-#include <QMenu>
 #include <QDialog>
 #include <QVBoxLayout>
 #include <QQuickWidget>
@@ -196,55 +196,6 @@ QStringList webKeys(const QString &sequence) {
     }
     return keys;
 }
-
-struct RowOptions {
-    QString shortcut;
-    QString tooltip;
-    QString reason;
-    bool enabled = true;
-    bool destructive = false;
-};
-
-// Entries for ContextMenuPanel.qml plus the action each id runs.
-class MenuBuilder {
-public:
-    void item(const QString &id, const QString &label, const QString &icon, std::function<void()> run, const RowOptions &options = {}) {
-        QVariantMap entry{{"id", id}, {"label", label}, {"icon", icon}, {"enabled", options.enabled}, {"destructive", options.destructive}};
-        if (!options.shortcut.isEmpty()) { entry.insert("shortcut", options.shortcut); }
-        if (!options.tooltip.isEmpty()) { entry.insert("tooltip", options.tooltip); }
-        if (!options.reason.isEmpty() && !options.enabled) { entry.insert("reason", options.reason); }
-        entries_.append(entry);
-        actions_.insert(id, std::move(run));
-    }
-    void submenu(const QString &id, const QString &label, const QString &icon, const MenuBuilder &children, const RowOptions &options = {}) {
-        QVariantMap entry{{"id", id}, {"label", label}, {"icon", icon}, {"enabled", options.enabled && !children.entries_.isEmpty()}, {"submenu", children.entries_}};
-        if (!options.reason.isEmpty() && !entry.value("enabled").toBool()) { entry.insert("reason", options.reason); }
-        entries_.append(entry);
-        for (auto it = children.actions_.cbegin(); it != children.actions_.cend(); ++it) {
-            actions_.insert(it.key(), it.value());
-        }
-    }
-    void separator() {
-        if (entries_.isEmpty() || entries_.last().toMap().contains("separator")) {
-            return;
-        }
-        entries_.append(QVariantMap{{"separator", true}});
-    }
-    void header(const QString &label) {
-        entries_.append(QVariantMap{{"header", label}});
-    }
-    QVariantList entries() const {
-        auto result = entries_;
-        while (!result.isEmpty() && result.last().toMap().contains("separator")) {
-            result.removeLast();
-        }
-        return result;
-    }
-    const QHash<QString, std::function<void()>> &actions() const { return actions_; }
-private:
-    QVariantList entries_;
-    QHash<QString, std::function<void()>> actions_;
-};
 
 QString hint(const char *sequence) {
     return QKeySequence(QString::fromLatin1(sequence)).toString(QKeySequence::NativeText);
@@ -688,6 +639,26 @@ void EditorWindow::showContextMenu(const QString &kind, const QPoint &globalPosi
     if (menu.entries().isEmpty()) {
         return;
     }
+    EntryMenuRequest request;
+    request.kind = kind;
+    request.global = globalPosition;
+    request.entries = menu.entries();
+    request.actions = menu.actions();
+    request.guardSelection = true;
+    // The entry actions capture the builder, so the menu keeps it alive.
+    request.keepAlive = builder;
+    showEntryMenu(request);
+}
+
+// Shows entries in ContextMenuPanel.qml on a transparent overlay of this window,
+// the same surface as the canvas context menus. Returns the overlay, or null
+// when it could not be created.
+QQuickWidget *EditorWindow::showEntryMenu(const EntryMenuRequest &menuRequest) {
+    if (contextMenuHost_) {
+        contextMenuHost_->hide();
+        contextMenuHost_->deleteLater();
+    }
+    const auto request = std::make_shared<const EntryMenuRequest>(menuRequest);
     const auto epoch = documentEpoch_;
     const auto credentials = credentialsEpoch_;
     const auto selection = selectedIds();
@@ -695,15 +666,14 @@ void EditorWindow::showContextMenu(const QString &kind, const QPoint &globalPosi
     auto *host = new QQuickWidget(engine_, this);
     contextMenuHost_ = host;
     host->setObjectName("context-menu-host");
-    host->setProperty("menuKind", kind);
+    host->setProperty("menuKind", request->kind);
     host->setAttribute(Qt::WA_AlwaysStackOnTop);
     host->setAttribute(Qt::WA_TranslucentBackground);
     host->setClearColor(Qt::transparent);
     host->setResizeMode(QQuickWidget::SizeRootObjectToView);
     host->setGeometry(rect());
     auto *dispatch = new MenuDispatch(host);
-    const auto actions = menu.actions();
-    dispatch->invoke = [this, host, epoch, credentials, selection, actions, prior, builder](const QString &id) {
+    dispatch->invoke = [this, host, epoch, credentials, selection, prior, request](const QString &id) {
         if (!host->isVisible()) {
             return;
         }
@@ -712,26 +682,42 @@ void EditorWindow::showContextMenu(const QString &kind, const QPoint &globalPosi
         if (prior) {
             prior->setFocus();
         }
-        if (id.isEmpty() || epoch != documentEpoch_ || credentials != credentialsEpoch_ || selection != selectedIds()) {
+        if (id.isEmpty()
+            || (request->guardDocument && (epoch != documentEpoch_ || credentials != credentialsEpoch_))
+            || (request->guardSelection && selection != selectedIds())) {
             return;
         }
-        if (const auto run = actions.value(id)) {
+        std::function<void()> run;
+        if (request->choose) {
+            run = [request, id] { request->choose(id); };
+        } else if (const auto action = request->actions.value(id)) {
+            run = action;
+        }
+        if (!run) {
+            return;
+        }
+        if (request->deferChoice) {
+            QTimer::singleShot(0, this, run);
+        } else {
             run();
         }
     };
-    connect(this, &EditorWindow::documentEpochChanged, host, [dispatch] { dispatch->choose(""); });
-    connect(this, &EditorWindow::credentialsEpochChanged, host, [dispatch] { dispatch->choose(""); });
-    host->setInitialProperties({{"dispatch", QVariant::fromValue(dispatch)}, {"entries", menu.entries()}});
+    if (request->guardDocument) {
+        connect(this, &EditorWindow::documentEpochChanged, host, [dispatch] { dispatch->choose(""); });
+        connect(this, &EditorWindow::credentialsEpochChanged, host, [dispatch] { dispatch->choose(""); });
+    }
+    host->setInitialProperties({{"dispatch", QVariant::fromValue(dispatch)}, {"entries", request->entries}});
     host->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ContextMenuPanel.qml"));
     if (!host->rootObject()) {
         host->deleteLater();
-        return;
+        return nullptr;
     }
     host->show();
     host->raise();
     host->setFocus();
-    const auto local = mapFromGlobal(globalPosition);
+    const auto local = mapFromGlobal(request->global);
     QMetaObject::invokeMethod(host->rootObject(), "popupAt", Q_ARG(QVariant, local.x()), Q_ARG(QVariant, local.y()));
+    return host;
 }
 
 // The nodes whose title, type, ID, or property names and values contain the term.
@@ -904,15 +890,9 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
   showContextMenu(kind == "group" ? QString("node") : kind, position, kind == "pane" || kind == "selection" ? QString() : selectedIds().value(0));
   return;
  }
- auto *menu = new QMenu(this);
- menu->setObjectName(kind + "-menu"); menu->setAttribute(Qt::WA_DeleteOnClose);
  const auto epoch = documentEpoch_, credentials = credentialsEpoch_;
  const auto selection = selectedIds();
- connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
- connect(this, &EditorWindow::credentialsEpochChanged, menu, &QMenu::close);
  if (kind == "command" || kind == "shortcuts") {
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  delete menu;
   auto *panel = new QDialog(this, Qt::Popup | Qt::FramelessWindowHint);
   panel->setObjectName(kind + "-panel");
   panel->setAttribute(Qt::WA_TranslucentBackground);
@@ -980,16 +960,20 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
 #ifndef Q_OS_MACOS
   if (kind == "more") { names.insert(1, mouseNavigation() ? "Canvas navigation: Mouse" : "Canvas navigation: Trackpad"); }
 #endif
+  if (names.isEmpty()) { return; }
+  EntryMenuRequest request;
+  request.kind = kind;
+  request.global = position;
+  request.guardSelection = true;
   for (const auto &name : names) {
-   auto *item = menu->addAction(name);
-   item->setEnabled(menuActionEnabled(name));
-   connect(item, &QAction::triggered, this, [this, name, epoch, credentials, selection] {
-    if (epoch != documentEpoch_ || credentials != credentialsEpoch_ || selection != selectedIds() || !menuActionEnabled(name)) { return; }
-    userAction(name);
-   });
+   request.entries.append(QVariantMap{{"id", name}, {"label", name}, {"enabled", menuActionEnabled(name)}});
   }
+  request.choose = [this, epoch, credentials, selection](const QString &name) {
+   if (epoch != documentEpoch_ || credentials != credentialsEpoch_ || selection != selectedIds() || !menuActionEnabled(name)) { return; }
+   userAction(name);
+  };
+  showEntryMenu(request);
  }
- menu->popup(position);
 }
 }
 

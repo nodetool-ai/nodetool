@@ -1378,7 +1378,7 @@ Remaining differences:
 - Find highlights no inspector property for a property match, and the web 150 ms debounce is not tied to a live node store.
 - Help shows the native bindings, not every web shortcut. The Assets category is empty. The web list shows both platforms at once, the native list follows the platform toggle. Web hover and press tooltips on keys are native tooltips.
 - Right-click on an empty selection rectangle and the property, input and output context menus of F03 are unchanged.
-- The Command menu and the More dropdown remain the earlier panel and `QMenu`.
+- The Command menu remains the earlier panel. The More dropdown uses the shared Quick context-menu overlay.
 - Offscreen tests do not establish platform accessibility, fractional-DPI rendering or real popup behavior.
 
 The shortcut inventory includes surrounding web panels and asset shortcuts. Those remain open when their native surface or binding is absent.

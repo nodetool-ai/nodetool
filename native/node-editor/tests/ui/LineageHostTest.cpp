@@ -4,7 +4,7 @@
 #include "ui/EditorWindow.h"
 #include <QDir>
 #include <QGraphicsView>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QPointer>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -222,19 +222,10 @@ private slots:
       QCOMPARE(clicked.size(), 1);
     } else {
       window.action("More");
-      auto *menu = window.findChild<QMenu *>();
+      auto *menu = entry_menu::host(window, "more");
       QVERIFY(menu);
-      QAction *command = nullptr;
-      for (auto *action : menu->actions()) {
-        if (action->text() == "Link selected") {
-          command = action;
-          break;
-        }
-      }
-      QVERIFY(command);
-      QVERIFY(command->isEnabled());
-      QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier,
-                        menu->actionGeometry(command).center());
+      QVERIFY(entry_menu::entry(menu, "Link selected")["enabled"].toBool());
+      QVERIFY(entry_menu::click(menu, "Link selected"));
     }
     QTRY_COMPARE(window.document()->graph()["links"].toArray().size(), 1);
     const auto link =

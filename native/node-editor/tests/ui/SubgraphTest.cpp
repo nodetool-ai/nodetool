@@ -4,7 +4,7 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QJsonDocument>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QGraphicsView>
@@ -187,11 +187,10 @@ private slots:
     QCOMPARE(parent->snapshot(), original);
     QVERIFY(click(w, "close-tab-1"));
     w.action("Linked workflows");
-    auto menu = w.activeEditor()->findChild<QMenu *>("linked-workflows-menu");
+    auto menu = entry_menu::host(*w.activeEditor(), "linked-workflows-menu");
     QVERIFY(menu);
-    QVERIFY(!menu->actions().isEmpty());
-    QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier,
-                      menu->actionGeometry(menu->actions().first()).center());
+    QVERIFY(!entry_menu::entries(menu).isEmpty());
+    QVERIFY(entry_menu::click(menu, entry_menu::entries(menu).first().toMap()["id"].toString()));
     QTRY_VERIFY(server.pending);
     ChildServer::respond(server.pending, response);
     server.pending.clear();

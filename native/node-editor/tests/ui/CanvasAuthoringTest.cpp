@@ -8,7 +8,7 @@
 #include <QDir>
 #include <QDragEnterEvent>
 #include <QGraphicsView>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QMimeData>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -172,11 +172,8 @@ private slots:
   const auto original = workflow();
   QVERIFY(window.document()->load(original)); window.show(); QTest::qWait(100);
   window.action("More");
-  auto menu = window.findChild<QMenu *>(); QVERIFY(menu);
-  QAction *layout = nullptr;
-  for (auto action : menu->actions()) { if (action->text() == "Auto layout") { layout = action; } }
-  QVERIFY(layout);
-  QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, menu->actionGeometry(layout).center());
+  auto menu = entry_menu::host(window, "more"); QVERIFY(menu);
+  QVERIFY(entry_menu::click(menu, "Auto layout"));
   QTRY_COMPARE(window.document()->undoStack()->count(), 1);
   QTRY_VERIFY(position(window.document()->node("n0")) != QPointF(450, 400));
     // Document commands precede the coalesced canvas projection.

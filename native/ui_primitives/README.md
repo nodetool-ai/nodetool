@@ -64,6 +64,12 @@ Presentation types:
   `Ui.ContextMenu.popupAt(item, x, y)` opens at a point of an item and keeps the menu in the window.
   `Ui.MenuItem` inherits native menu-item and Action semantics. Its `reasonText` shows under the
   label while the item is disabled.
+  `Ui.ContextMenu.entries` builds the menu from data: a list of maps with `id`, `label`, `icon`,
+  `shortcut`, `tooltip`, `reason`, `enabled`, `destructive`, `checked` (a checkmark) and `submenu`
+  (a nested list). A map with only `separator: true` is a divider and one with only `header` is a
+  section label. A chosen entry emits `entryTriggered(id)`. Setting `entries` rebuilds the menu,
+  also while it is open. `Ui.MenuSeparator` and `Ui.MenuHeader` are the divider and section label
+  for hand-built menus.
 - `Ui.Dialog.contentItem` is its explicit body layout slot. The module owns the
   header, background, and focus behavior. `returnFocusTo` supplies the focus
   target on close.
@@ -100,12 +106,18 @@ semantics. They emit `checkedChangedByUser(bool)` only for user changes.
 when hidden, inactive, or reduced motion is selected. `Ui.Progress` is for
 determinate progress. `Ui.ScrollBar` retains native position, size,
 orientation, and policy.
+`Ui.ScrollArea` is a clipped scroll view with `Ui.ScrollBar` on both axes. Its content is as wide
+as the view unless `contentWidth` is set. `Ui.Chip` is a small read-only label with `text`,
+`variant` (`Chip.Scrim` over media, `Chip.Tone` on a control surface), `tone`, `ink`,
+`maximumWidth` and `elide`. It hides when `text` is empty.
 
 `EditorButton.menuButton` marks a menu trigger and `menuExpanded` reports its open state independently of `checked`. Set `trailingIconName` to a catalog identity for a trailing icon; the control handles mirrored layout and label elision. `textRole` selects the label's typography role; its default is `Typography.SansLabel`. `iconSize` takes a named `Metrics.icon*` value; its default is `Metrics.iconSm`.
 
 `Status` and `Banner` take `status` (`Status.Success`, `Warning`, `Error`,
 `Info`) and `message`. `Banner` also accepts optional `actionText` and emits
-`actionTriggered()`, and wraps a long message. `Status.wrap` does the same for a
+`actionTriggered()`, and wraps a long message. `retryable` shows Retry and `reportable` shows
+Report. They emit `retryRequested()` and `reportRequested()`, and the host decides what they do.
+`Banner.textFormat` defaults to plain text, so server errors show literally. `Status.wrap` does the same for a
 standalone status; without it the message elides on one line. `EmptyState`
 exposes `title`, `message`, optional `actionText` and `actionTriggered()`. A
 positive `maxTextWidth` wraps and centers its text and action. `Progress` reports determinate progress;
