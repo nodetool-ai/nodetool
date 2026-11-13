@@ -359,13 +359,24 @@ async function runTask(
     const lmResult = await runBackendJob(run, "lm", (baseUrl) => postJson(`${baseUrl}/lm`, lmBody));
     lmMs = Date.now() - lmStart;
     const produced = parseLmResult(lmResult.bytes);
+    // `--max-batch` caps `lm_batch_size` (ace-server.cpp:668-674) and the
+    // default is 1, but `synth_batch_size` is capped only at nine tracks per
+    // call. The missing candidates are rendered as seed variants of the
+    // results /lm returned (backlog M4).
+    const variants = splitCandidates(candidates, produced.length);
     if (produced.length < candidates) {
-      log.warn("ace-server returned fewer language model results than requested", {
+      log.info("ace-server returned fewer language model results than candidates", {
         requested: candidates,
         returned: produced.length
       });
     }
-    synthRequests = produced.map((request) => ({ ...request, ...synthFields }));
+    synthRequests = produced.map((request, index) => {
+      const synth: AceRequest = { ...request, ...synthFields };
+      if ((variants[index] ?? 1) > 1) {
+        synth.synth_batch_size = variants[index];
+      }
+      return synth;
+    });
   }
 
   const synthStart = Date.now();
@@ -393,6 +404,20 @@ async function runTask(
     backend: ACESTEP_BACKEND,
     timing: { queueMs, lmMs, synthMs }
   };
+}
+
+/**
+ * How many `/synth` variants each of `results` language model results
+ * renders so that together they make `candidates` tracks. Earlier results take
+ * the remainder.
+ */
+export function splitCandidates(candidates: number, results: number): number[] {
+  if (results <= 0) {
+    return [];
+  }
+  const each = Math.floor(candidates / results);
+  const rest = candidates % results;
+  return Array.from({ length: results }, (_, index) => Math.max(1, each + (index < rest ? 1 : 0)));
 }
 
 /**

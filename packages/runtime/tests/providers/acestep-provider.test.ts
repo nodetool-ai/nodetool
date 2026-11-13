@@ -159,6 +159,35 @@ describe("acestep provider requests", () => {
     expect(result.timing.queueMs).toBeGreaterThanOrEqual(0);
   });
 
+  it("renders every candidate when a remote server's --max-batch is below the request (M4)", async () => {
+    // ace-server's default --max-batch is 1 (ace-server.cpp:198), so /lm
+    // returns one result for four candidates.
+    const server = await fake({ maxBatch: 1 });
+    const result = await provider(server).musicTask({ ...base, candidates: 4 });
+
+    const lm = posts(server, "/lm");
+    expect(lm).toHaveLength(1);
+    const synth = posts(server, "/synth");
+    expect(synth).toHaveLength(1);
+    const items = synth[0]!.json as Array<Record<string, unknown>> | Record<string, unknown>;
+    const requests = Array.isArray(items) ? items : [items];
+    expect(requests).toHaveLength(1);
+    expect(requests[0]!.synth_batch_size).toBe(4);
+    expect(result.candidates).toHaveLength(4);
+    expect(result.candidates.map((candidate) => candidate.seed)).toEqual([42, 43, 44, 45]);
+    const codes = requests[0]!.audio_codes;
+    expect(result.candidates.every((candidate) => candidate.audioCodes === codes)).toBe(true);
+  });
+
+  it("splits the missing candidates over the returned /lm results (M4)", async () => {
+    const server = await fake({ maxBatch: 2 });
+    const result = await provider(server).musicTask({ ...base, candidates: 3 });
+
+    const items = posts(server, "/synth")[0]!.json as Array<Record<string, unknown>>;
+    expect(items.map((item) => item.synth_batch_size ?? 1)).toEqual([2, 1]);
+    expect(result.candidates).toHaveLength(3);
+  });
+
   it("sends repaint to /synth only, with the source as the multipart audio part", async () => {
     const server = await fake();
     const source = floatWav(4800);
