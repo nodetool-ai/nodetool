@@ -21,11 +21,11 @@ const DESKTOP = [
   "nodetool-web-0.9.0.zip",
   "nodetool-0.9.0.mcpb",
 ];
-const TIMELINE = ["", "with-server-"].flatMap((variant) => [
-  `nodetool-timeline-${variant}0.9.0-macos-arm64.zip`,
-  `nodetool-timeline-${variant}0.9.0-windows-x64.zip`,
-  `nodetool-timeline-${variant}0.9.0-linux-x64.AppImage`,
-]);
+const TIMELINE = [
+  "nodetool-timeline-0.9.0-macos-arm64.zip",
+  "nodetool-timeline-0.9.0-windows-x64.zip",
+  "nodetool-timeline-0.9.0-linux-x64.AppImage",
+];
 
 function validate(files, args = ["--with-timeline"]) {
   const directory = mkdtempSync(join(tmpdir(), "release-assets-"));

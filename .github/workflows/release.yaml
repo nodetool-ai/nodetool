@@ -935,8 +935,8 @@ jobs:
             electron/dist/*.blockmap
             electron/dist/*.yml
 
-  # The native timeline app, plain and with the NodeTool server inside, for
-  # macOS, Windows and Linux. Its assets join this release. It builds the
+  # The native timeline app with the NodeTool server inside, for macOS,
+  # Windows and Linux. Its assets join this release. It builds the
   # run's own commit, so a desktop recovery from source_tag skips it.
   native-timeline:
     name: Native timeline

@@ -120,60 +120,49 @@ jobs:
           native/timeline/scripts/make-fixtures.sh
           # Use the same built app for the existing parity check: no second build.
           # The check refuses an identity signature, so it runs before signing.
+          # It audits the app without the backend, whose native Node modules
+          # are outside its licence audit.
           DEV_BIN='build-package/nodetool-timeline.app/Contents/MacOS/nodetool-timeline' native/timeline/scripts/check-package-macos.sh
-          for name in 'NodeTool Timeline' 'NodeTool Timeline (with server)'; do
-            native/timeline/scripts/sign-macos.sh "native/timeline/build-package/$name.app"
-          done
-          package() {
-            local name=$1 asset=$2
-            ditto -c -k --sequesterRsrc --keepParent "native/timeline/build-package/$name.app" "release-assets/$asset"
-            mkdir "$RUNNER_TEMP/$asset"
-            ditto -x -k "release-assets/$asset" "$RUNNER_TEMP/$asset"
-            spctl --assess --type execute --verbose=2 "$RUNNER_TEMP/$asset/$name.app"
-            python3 native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/$asset/$name.app/Contents/MacOS/nodetool-timeline" \
-              --package "$RUNNER_TEMP/$asset" --version "$APP_VERSION"
-          }
-          package 'NodeTool Timeline' "nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
-          package 'NodeTool Timeline (with server)' "nodetool-timeline-with-server-$VERSION-$RELEASE_PLATFORM.zip"
-          node scripts/smoke-backend-bundle.mjs \
-            "$RUNNER_TEMP/nodetool-timeline-with-server-$VERSION-$RELEASE_PLATFORM.zip/NodeTool Timeline (with server).app/Contents/Resources/backend"
+          # Only the app with the server ships, under the plain name.
+          build=native/timeline/build-package
+          rm -rf "$build/NodeTool Timeline.app"
+          mv "$build/NodeTool Timeline (with server).app" "$build/NodeTool Timeline.app"
+          native/timeline/scripts/sign-macos.sh "$build/NodeTool Timeline.app"
+          asset="nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$build/NodeTool Timeline.app" "release-assets/$asset"
+          mkdir "$RUNNER_TEMP/release-extracted"
+          ditto -x -k "release-assets/$asset" "$RUNNER_TEMP/release-extracted"
+          app="$RUNNER_TEMP/release-extracted/NodeTool Timeline.app"
+          spctl --assess --type execute --verbose=2 "$app"
+          python3 native/timeline/scripts/smoke-package.py "$app/Contents/MacOS/nodetool-timeline" \
+            --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
+          node scripts/smoke-backend-bundle.mjs "$app/Contents/Resources/backend"
       - name: Package and verify Windows
         if: runner.os == 'Windows'
         run: |
           bash native/timeline/scripts/package-windows.sh
+          bash native/timeline/scripts/package-windows-with-server.sh
           # Future Windows signing belongs here, before archiving.
-          7z a "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip" ./native/timeline/build-ci/package-windows/*
-          7z x -o"$RUNNER_TEMP/release-extracted" "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
+          asset="nodetool-timeline-$VERSION-$RELEASE_PLATFORM.zip"
+          7z a "release-assets/$asset" ./native/timeline/build-ci/package-windows-with-server/*
+          7z x -o"$RUNNER_TEMP/release-extracted" "release-assets/$asset"
           python native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted/nodetool-timeline.exe" \
             --package "$RUNNER_TEMP/release-extracted" --version "$APP_VERSION"
-          bash native/timeline/scripts/package-windows-with-server.sh
-          asset="nodetool-timeline-with-server-$VERSION-$RELEASE_PLATFORM.zip"
-          7z a "release-assets/$asset" ./native/timeline/build-ci/package-windows-with-server/*
-          7z x -o"$RUNNER_TEMP/release-extracted-with-server" "release-assets/$asset"
-          python native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted-with-server/nodetool-timeline.exe" \
-            --package "$RUNNER_TEMP/release-extracted-with-server" --version "$APP_VERSION"
-          node scripts/smoke-backend-bundle.mjs "$RUNNER_TEMP/release-extracted-with-server/backend"
+          node scripts/smoke-backend-bundle.mjs "$RUNNER_TEMP/release-extracted/backend"
       - name: Package and verify Linux
         if: runner.os == 'Linux'
         run: |
+          # package-linux.sh deploys the AppDir that the server package copies.
           bash native/timeline/scripts/package-linux.sh
+          rm -f ./*.AppImage
+          bash native/timeline/scripts/package-linux-with-server.sh
           # Future Linux package signing belongs here.
-          images=(./*.AppImage)
-          [[ ${#images[@]} == 1 ]]
-          mv "${images[0]}" "release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.AppImage"
           image="$GITHUB_WORKSPACE/release-assets/nodetool-timeline-$VERSION-$RELEASE_PLATFORM.AppImage"
+          mv nodetool-timeline-with-server-linux-x64.AppImage "$image"
           chmod +x "$image"
           mkdir "$RUNNER_TEMP/release-extracted"
           (cd "$RUNNER_TEMP/release-extracted" && "$image" --appimage-extract)
-          xvfb-run -a python3 native/timeline/scripts/smoke-package.py "$RUNNER_TEMP/release-extracted/squashfs-root/AppRun" \
-            --package "$RUNNER_TEMP/release-extracted/squashfs-root" --version "$APP_VERSION"
-          bash native/timeline/scripts/package-linux-with-server.sh
-          image="$GITHUB_WORKSPACE/release-assets/nodetool-timeline-with-server-$VERSION-$RELEASE_PLATFORM.AppImage"
-          mv nodetool-timeline-with-server-linux-x64.AppImage "$image"
-          chmod +x "$image"
-          mkdir "$RUNNER_TEMP/release-extracted-with-server"
-          (cd "$RUNNER_TEMP/release-extracted-with-server" && "$image" --appimage-extract)
-          root="$RUNNER_TEMP/release-extracted-with-server/squashfs-root"
+          root="$RUNNER_TEMP/release-extracted/squashfs-root"
           xvfb-run -a python3 native/timeline/scripts/smoke-package.py "$root/AppRun" \
             --package "$root" --version "$APP_VERSION"
           node scripts/smoke-backend-bundle.mjs "$root/usr/share/nodetool-timeline/backend"
