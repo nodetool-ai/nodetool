@@ -3047,7 +3047,7 @@ export const canonicalModels: CanonicalModel[] = [
 export const modelDirectory: ModelDirectoryGroup[] = [
   {
     "kind": "language",
-    "total": 223,
+    "total": 232,
     "providers": [
       {
         "provider": "replicate",
@@ -3759,6 +3759,47 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "zai",
+        "models": [
+          {
+            "id": "glm-4.6",
+            "name": "GLM-4.6"
+          },
+          {
+            "id": "glm-4.7",
+            "name": "GLM-4.7"
+          },
+          {
+            "id": "glm-5",
+            "name": "GLM-5"
+          },
+          {
+            "id": "glm-5.1",
+            "name": "GLM-5.1"
+          },
+          {
+            "id": "glm-5.2",
+            "name": "GLM-5.2"
+          },
+          {
+            "id": "glm-5.3",
+            "name": "GLM-5.3"
+          },
+          {
+            "id": "glm-5.3-flash",
+            "name": "GLM-5.3-Flash"
+          },
+          {
+            "id": "glm-5.3-flashx",
+            "name": "GLM-5.3-FlashX"
+          },
+          {
+            "id": "glm-5.3-flashx-legal",
+            "name": "GLM-5.3-FlashX-Legal"
+          }
+        ]
+      },
+      {
         "provider": "codex",
         "models": [
           {
@@ -3909,7 +3950,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 1055,
+    "total": 1059,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7295,6 +7336,23 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "kling",
+        "models": [
+          {
+            "id": "kling-image-o1",
+            "name": "Kling Image O1"
+          },
+          {
+            "id": "kling-v3",
+            "name": "Kling Image 3.0"
+          },
+          {
+            "id": "kling-v3-omni",
+            "name": "Kling Image 3.0 Omni"
+          }
+        ]
+      },
+      {
         "provider": "meta",
         "models": [
           {
@@ -7359,16 +7417,26 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "MiniMax Image-01"
           }
         ]
+      },
+      {
+        "provider": "zai",
+        "models": [
+          {
+            "id": "glm-image",
+            "name": "GLM-Image"
+          }
+        ]
       }
     ],
     "liveProviders": [
+      "alibaba",
       "gemini_web",
       "xai"
     ]
   },
   {
     "kind": "video",
-    "total": 1053,
+    "total": 1061,
     "providers": [
       {
         "provider": "fal_ai",
@@ -10791,6 +10859,39 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "kling",
+        "models": [
+          {
+            "id": "kling-2.6",
+            "name": "Kling 2.6"
+          },
+          {
+            "id": "kling-3.0",
+            "name": "Kling 3.0"
+          },
+          {
+            "id": "kling-3.0-omni",
+            "name": "Kling 3.0 Omni"
+          },
+          {
+            "id": "kling-3.0-turbo",
+            "name": "Kling 3.0 Turbo"
+          },
+          {
+            "id": "kling-4.0",
+            "name": "Kling 4.0"
+          },
+          {
+            "id": "kling-4.0-flash",
+            "name": "Kling 4.0 Flash"
+          },
+          {
+            "id": "kling-o1",
+            "name": "Kling O1"
+          }
+        ]
+      },
+      {
         "provider": "vgenv",
         "models": [
           {
@@ -10879,9 +10980,19 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Gemini Video (web)"
           }
         ]
+      },
+      {
+        "provider": "zai",
+        "models": [
+          {
+            "id": "cogvideox-3",
+            "name": "CogVideoX-3"
+          }
+        ]
       }
     ],
     "liveProviders": [
+      "alibaba",
       "openrouter",
       "xai"
     ]
@@ -11722,12 +11833,13 @@ export const modelDirectory: ModelDirectoryGroup[] = [
       }
     ],
     "liveProviders": [
+      "alibaba",
       "openrouter"
     ]
   },
   {
     "kind": "transcription",
-    "total": 48,
+    "total": 49,
     "providers": [
       {
         "provider": "replicate",
@@ -11932,6 +12044,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "muse-voice-transcribe-1.0",
             "name": "Muse Voice Transcribe 1.0"
+          }
+        ]
+      },
+      {
+        "provider": "zai",
+        "models": [
+          {
+            "id": "glm-asr-2512",
+            "name": "GLM-ASR-2512"
           }
         ]
       }

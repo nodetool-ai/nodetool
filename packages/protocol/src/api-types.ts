@@ -1191,6 +1191,8 @@ export const PROVIDER_IDS = {
   MISTRAL: "mistral",
   MOONSHOT: "moonshot",
   MINIMAX: "minimax",
+  // Z.ai (Zhipu) GLM chat, GLM-Image and CogVideoX.
+  ZAI: "zai",
   DEEPSEEK: "deepseek",
   XAI: "xai",
   COHERE: "cohere",
@@ -1233,6 +1235,7 @@ export const PROVIDER_IDS = {
   USEAPI: "useapi",
   VGENV: "vgenv",
   TOAPIS: "toapis",
+  KLING: "kling",
   AKI: "aki",
   MESHY: "meshy",
   RODIN: "rodin",

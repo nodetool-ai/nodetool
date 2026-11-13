@@ -1,6 +1,7 @@
 #include "audio/effects/Effects.h"
 #include "audio/effects/Oversampler.h"
 #include "audio/Mixer.h"
+#include "nodetool/kernels.h"
 #include <QJsonArray>
 #include <QJsonObject>
 #include <algorithm>
@@ -8,7 +9,6 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
-#include <numbers>
 #include <stdexcept>
 #include <unordered_map>
 extern "C" {
@@ -33,61 +33,26 @@ struct Biquad {
         y2[c] = y1[c]; y1[c] = y;
         return static_cast<float>(y);
     }
-    // Web Audio BiquadFilterNode: low/highpass Q is in dB, unlike bandpass.
-    // https://webaudio.github.io/web-audio-api/#filters-characteristics
+    // Web Audio BiquadFilterNode, designed by the kernel the lib.audio nodes
+    // use (native/kernels): low/highpass Q is in dB, unlike bandpass.
     void configure(std::string_view type, double frequency, double q, double gain, double rate) {
-        frequency = std::clamp<double>(static_cast<float>(frequency), 0., rate / 2);
-        q = static_cast<float>(q); gain = static_cast<float>(gain);
-        const auto constant = [this](double value) { b0 = value; b1 = b2 = a1 = a2 = 0; };
-        if (frequency == 0 || frequency == rate / 2) {
-            const bool top = frequency > 0;
-            if (type == "lowpass") { constant(top ? 1 : 0); }
-            else if (type == "highpass") { constant(top ? 0 : 1); }
-            else if (type == "bandpass") { constant(0); }
-            else if (type == "lowshelf") { constant(top ? std::pow(10., gain / 20) : 1); }
-            else if (type == "highshelf") { constant(top ? 1 : std::pow(10., gain / 20)); }
-            else { constant(1); }
+        double k[NT_BIQUAD_COEFFS_LEN];
+        if (nt_biquad_design_webaudio(biquadType(type), rate, frequency, q, gain, k) != NT_OK) {
+            // An invalid rate: pass the input through.
+            b0 = 1; b1 = b2 = a1 = a2 = 0;
             return;
         }
-        if (q <= 0 && (type == "bandpass" || type == "peaking")) {
-            constant(type == "bandpass" ? 1 : std::pow(10., gain / 20)); return;
-        }
-        const double w = 2 * std::numbers::pi * frequency / rate;
-        const double c = std::cos(w), s = std::sin(w), A = std::pow(10., gain / 40.);
-        double a0 = 1;
-        if (type == "lowpass" || type == "highpass") {
-            const double alpha = s / (2 * std::pow(10., q / 20.));
-            b0 = (1 + (type == "lowpass" ? -c : c)) / 2;
-            b1 = type == "lowpass" ? 1 - c : -(1 + c); b2 = b0;
-            a0 = 1 + alpha; a1 = -2 * c; a2 = 1 - alpha;
-        } else if (type == "bandpass" || type == "peaking") {
-            const double alpha = s / (2 * std::max(q, 1e-12));
-            if (type == "bandpass") {
-                b0 = alpha; b1 = 0; b2 = -alpha;
-                a0 = 1 + alpha; a1 = -2 * c; a2 = 1 - alpha;
-            } else {
-                b0 = 1 + alpha * A; b1 = -2 * c; b2 = 1 - alpha * A;
-                a0 = 1 + alpha / A; a1 = -2 * c; a2 = 1 - alpha / A;
-            }
-        } else {
-            const double t = 2 * std::sqrt(A) * s / std::sqrt(2.);
-            if (type == "lowshelf") {
-                b0 = A * ((A + 1) - (A - 1) * c + t);
-                b1 = 2 * A * ((A - 1) - (A + 1) * c);
-                b2 = A * ((A + 1) - (A - 1) * c - t);
-                a0 = (A + 1) + (A - 1) * c + t;
-                a1 = -2 * ((A - 1) + (A + 1) * c);
-                a2 = (A + 1) + (A - 1) * c - t;
-            } else {
-                b0 = A * ((A + 1) + (A - 1) * c + t);
-                b1 = -2 * A * ((A - 1) + (A + 1) * c);
-                b2 = A * ((A + 1) + (A - 1) * c - t);
-                a0 = (A + 1) - (A - 1) * c + t;
-                a1 = 2 * ((A - 1) - (A + 1) * c);
-                a2 = (A + 1) - (A - 1) * c - t;
-            }
-        }
-        b0 /= a0; b1 /= a0; b2 /= a0; a1 /= a0; a2 /= a0;
+        b0 = k[0]; b1 = k[1]; b2 = k[2]; a1 = k[3]; a2 = k[4];
+    }
+    static int biquadType(std::string_view type) {
+        if (type == "lowpass") return NT_BIQUAD_LOWPASS;
+        if (type == "highpass") return NT_BIQUAD_HIGHPASS;
+        if (type == "bandpass") return NT_BIQUAD_BANDPASS;
+        if (type == "lowshelf") return NT_BIQUAD_LOWSHELF;
+        if (type == "peaking") return NT_BIQUAD_PEAKING;
+        // highshelf, and an unknown mode from a malformed document, which the
+        // design before the kernel also treated as highshelf.
+        return NT_BIQUAD_HIGHSHELF;
     }
 };
 

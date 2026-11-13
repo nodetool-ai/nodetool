@@ -52,6 +52,7 @@ import { GroqProvider } from "./groq-provider.js";
 import { MinimaxProvider } from "./minimax-provider.js";
 import { MistralProvider } from "./mistral-provider.js";
 import { MoonshotProvider } from "./moonshot-provider.js";
+import { ZaiProvider } from "./zai-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { RequestyProvider } from "./requesty-provider.js";
 import { OpperProvider } from "./opper-provider.js";
@@ -102,6 +103,7 @@ import { HiggsfieldProvider } from "./higgsfield-provider.js";
 import { UseapiProvider } from "./useapi-provider.js";
 import { VgenvProvider } from "./vgenv-provider.js";
 import { ToapisProvider } from "./toapis-provider.js";
+import { KlingProvider } from "./kling-provider.js";
 export { BaseProvider, estimatePromptTokens } from "./base-provider.js";
 export {
   FAL_PROVIDER_ID,
@@ -320,6 +322,7 @@ export { GroqProvider };
 export { MinimaxProvider };
 export { MistralProvider };
 export { MoonshotProvider };
+export { ZaiProvider };
 export { OpenRouterProvider };
 export { RequestyProvider };
 export { OpperProvider };
@@ -654,6 +657,14 @@ registerBuiltinProvider(PROVIDER_IDS.MOONSHOT, MoonshotProvider, {
 registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, {
   MINIMAX_API_KEY: ""
 });
+// Z.ai GLM: ZAI_REGION picks the international (api.z.ai) or China
+// (open.bigmodel.cn) host.
+registerBuiltinProvider(
+  PROVIDER_IDS.ZAI,
+  ZaiProvider,
+  { ZAI_API_KEY: "" },
+  { ZAI_REGION: "" }
+);
 registerBuiltinProvider(PROVIDER_IDS.REPLICATE, ReplicateProvider, {
   REPLICATE_API_TOKEN: ""
 });
@@ -702,6 +713,9 @@ registerBuiltinProvider(PROVIDER_IDS.VGENV, VgenvProvider, {
 });
 registerBuiltinProvider(PROVIDER_IDS.TOAPIS, ToapisProvider, {
   TOAPIS_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.KLING, KlingProvider, {
+  KLING_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {

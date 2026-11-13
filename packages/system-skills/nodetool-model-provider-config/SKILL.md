@@ -55,7 +55,7 @@ the user's own. Every other provider bills the user's own account.
 | **MLX** | Local | — | MLX Python pack, Apple Silicon only |
 
 Other registered chat providers (any of these is valid for the CLI's `-p/--provider`):
-`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `alibaba`
+`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `zai`, `cerebras`, `alibaba`
 (`DASHSCOPE_API_KEY`, Qwen via Alibaba Cloud Model Studio), `together`,
 `openrouter`, `requesty`, `opper`, `cheaperinference`, `api_route`, `runcrate`, `standardcompute`, `uberllm`, `codex`, `claude_agent_sdk`, `lmstudio`,
 `azure_openai` (`AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_ENDPOINT`, models from
