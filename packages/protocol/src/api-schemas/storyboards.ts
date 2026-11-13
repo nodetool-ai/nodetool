@@ -175,7 +175,10 @@ export const storyboardShot = z
     // A one-sentence camera string (written by agents and older imports) is
     // read as the structured direction instead of failing the whole board.
     camera: z.preprocess(
-      (value) => (typeof value === "string" ? normalizeCameraDirection(value) : value),
+      (value) =>
+        z.string().safeParse(value).success
+          ? normalizeCameraDirection(value)
+          : value,
       z.object({
         framing: z.string().optional(),
         lens: z.string().optional(),

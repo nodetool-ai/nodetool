@@ -345,14 +345,13 @@ export interface CameraDirection {
 export function normalizeCameraDirection(
   value: unknown
 ): CameraDirection | undefined {
-  if (typeof value === "string") {
-    const text = value.trim();
+  const sentence = z.string().safeParse(value);
+  if (sentence.success) {
+    const text = sentence.data.trim();
     return text ? { movement: text } : undefined;
   }
-  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-    return value as CameraDirection;
-  }
-  return undefined;
+  const direction = z.record(z.string(), z.unknown()).safeParse(value);
+  return direction.success ? (direction.data as CameraDirection) : undefined;
 }
 
 // ---------------------------------------------------------------------------
