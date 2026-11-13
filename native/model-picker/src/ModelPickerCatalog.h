@@ -68,7 +68,8 @@ public:
     // These apply on the next reload. Empty lists leave the catalog unfiltered.
     void setDefaultContext(const QString& context) { m_defaultContext = context; }
     void setFilter(const QStringList& allowedProviders, const QStringList& tasks);
-    void setHuggingFaceType(const QString& type) { m_huggingFaceType = type; }
+    // The hf.* or tjs.* type a repository catalog lists.
+    void setRepositoryType(const QString& type) { m_repositoryType = type; }
     void setMutation(Mutation mutation);
     void setDownloadHandler(DownloadHandler handler);
     // The procedure that lists recommended downloads, read on the next reload.
@@ -149,7 +150,7 @@ private:
     QString m_search, m_group = QStringLiteral("All"), m_error;
     QStringList m_providers, m_favorites, m_recent;
     QStringList m_rankedKeys, m_allowedProviders, m_tasks;
-    QString m_huggingFaceType = QStringLiteral("hf.model");
+    QString m_repositoryType = QStringLiteral("hf.model");
     QHash<QString, QVariantMap> m_providerMeta;
     QString m_recommendationProcedure;
     QVariantList m_recommended;

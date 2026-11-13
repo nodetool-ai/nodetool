@@ -127,6 +127,41 @@ private slots:
    QCOMPARE(mail["text"].toString(), QString("From: a@x\nTo: b@x\nSubject: Hi\n\nBody"));
  }
 
+ // TaskView, TaskPlanView, CalendarEventView, ThreadMessageList and ArrayView
+ // in web/src/components/node, as Markdown or code text.
+ void agentAndArrayOutputs() {
+   RunOutputModel model; model.beginRun("typed");
+   int output = 0;
+   auto show = [&](const QJsonValue &value) {
+     model.ingest("typed", {{"job_id", "typed"}, {"type", "output_update"}, {"node_id", "node"}, {"output_name", QString::number(++output)}, {"value", value}});
+     return model.entries().last().toMap();
+   };
+   const QJsonObject task{{"type", "task"}, {"title", "Research"}, {"description", "Find sources"},
+     {"steps", QJsonArray{QJsonObject{{"instructions", "Search"}, {"completed", true}}, QJsonObject{{"instructions", "Summarize"}}}}};
+   const auto single = show(task);
+   QCOMPARE(single["renderer"].toString(), QString("text"));
+   QCOMPARE(single["text"].toString(), QString("### Research\n\nFind sources\n\n- [x] Search\n- [ ] Summarize"));
+   const auto plan = show(QJsonObject{{"type", "task_plan"}, {"title", "Plan"}, {"tasks", QJsonArray{task}}});
+   QVERIFY(plan["text"].toString().startsWith("## Plan\n\n### Research"));
+   const QJsonObject start{{"type", "datetime"}, {"year", 2026}, {"month", 11}, {"day", 13}, {"hour", 9}, {"minute", 30}};
+   const QJsonObject end{{"type", "datetime"}, {"year", 2026}, {"month", 11}, {"day", 13}, {"hour", 10}};
+   const auto event = show(QJsonObject{{"type", "calendar_event"}, {"title", "Review"}, {"start_date", start}, {"end_date", end}, {"location", "Room 2"}, {"notes", "Bring notes"}});
+   QCOMPARE(event["text"].toString(), QString("**Review**\n\n2026-11-13 09:30 - 2026-11-13 10:00\n\nRoom 2\n\nBring notes"));
+   const auto message = show(QJsonObject{{"type", "message"}, {"role", "assistant"}, {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", "Hello"}}}}});
+   QCOMPARE(message["text"].toString(), QString("**assistant**\n\nHello"));
+   const auto list = show(QJsonArray{QJsonObject{{"type", "message"}, {"role", "user"}, {"content", "Hi"}}, QJsonObject{{"type", "message"}, {"role", "assistant"}, {"content", "Yes"}}});
+   QCOMPARE(list["renderer"].toString(), QString("sequence"));
+   QCOMPARE(list["children"].toList().size(), 2);
+   QCOMPARE(list["children"].toList().first().toMap()["text"].toString(), QString("**user**\n\nHi"));
+   const auto array = show(QJsonObject{{"type", "np_array"}, {"dtype", "float32"}, {"shape", QJsonArray{2}}, {"value", QJsonArray{1.5, 2}}});
+   QCOMPARE(array["renderer"].toString(), QString("json"));
+   QVERIFY(array["text"].toString().startsWith("Array (float32)\nShape: 2\n\n["));
+   QJsonArray many;
+   for (int i = 0; i < 150; ++i) { many.append(i); }
+   const auto cut = show(QJsonObject{{"type", "np_array"}, {"dtype", "int64"}, {"shape", QJsonArray{150}}, {"value", many}});
+   QVERIFY(cut["text"].toString().endsWith("99]..."));
+ }
+
  void dataframePreviewLimits() {
    RunOutputModel model; model.beginRun("table");
    QJsonArray rows;

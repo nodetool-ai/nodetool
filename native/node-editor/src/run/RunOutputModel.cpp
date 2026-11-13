@@ -25,6 +25,41 @@ QString display(const QJsonValue &value) {
   const auto wrapped = QJsonDocument(QJsonArray{value}).toJson(QJsonDocument::Compact);
   return QString::fromUtf8(wrapped.mid(1, wrapped.size() - 2));
 }
+// TaskView.tsx: the title, its description, then each step as a checklist line.
+QString taskMarkdown(const QJsonObject &task, const QString &heading) {
+  QStringList lines{heading + ' ' + task["title"].toString()};
+  if (!task["description"].toString().isEmpty()) { lines << QString{} << task["description"].toString(); }
+  const auto steps = task["steps"].toArray();
+  if (!steps.isEmpty()) {
+    lines << QString{};
+    for (const auto &value : steps) {
+      const auto step = value.toObject();
+      lines << QStringLiteral("- [%1] %2").arg(step["completed"].toBool() ? 'x' : ' ').arg(step["instructions"].toString());
+    }
+  }
+  return lines.join('\n');
+}
+QString datetimeText(const QJsonValue &value) {
+  const auto object = value.toObject();
+  const QDateTime when(QDate(object["year"].toInt(), object["month"].toInt(), object["day"].toInt()),
+                       QTime(object["hour"].toInt(), object["minute"].toInt(), object["second"].toInt()));
+  return when.isValid() ? when.toString("yyyy-MM-dd HH:mm") : value.toString();
+}
+// ThreadMessageList.tsx: the role, then the message's text parts.
+QString messageMarkdown(const QJsonObject &message) {
+  QStringList parts;
+  const auto content = message["content"];
+  if (content.isString()) { parts << content.toString(); }
+  for (const auto &value : content.toArray()) {
+    const auto part = value.toObject();
+    if (part["type"] == "text") { parts << part["text"].toString(); }
+    else if (!part["type"].toString().isEmpty()) { parts << '[' + part["type"].toString() + ']'; }
+  }
+  for (const auto &value : message["tool_calls"].toArray()) {
+    parts << QStringLiteral("Tool call: `%1`").arg(value.toObject()["name"].toString());
+  }
+  return QStringLiteral("**%1**\n\n%2").arg(message["role"].toString("message"), parts.join("\n\n"));
+}
 QVariantMap renderTree(const QJsonValue &value, int &budget, int depth = 0) {
   if (--budget < 0 || depth >= 8) { return {{"renderer", "text"}, {"text", "[Preview truncated]"}}; }
   const auto object = value.toObject();
@@ -446,6 +481,42 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
       const auto body = data.isObject() ? QJsonDocument(data.toObject()) : data.isArray() ? QJsonDocument(data.toArray()) : parsed;
       entry["text"] = body.isNull() ? (data.isString() ? data.toString() : display(data))
                                     : QString::fromUtf8(body.toJson(QJsonDocument::Indented)).left(MaxText);
+    }
+    else if (tag == "task") {
+      renderer = "text";
+      entry["text"] = taskMarkdown(object, QStringLiteral("###")).left(MaxText);
+    }
+    else if (tag == "task_plan") {
+      // TaskPlanView.tsx: the plan title over each task.
+      renderer = "text";
+      QStringList tasks{"## " + object["title"].toString()};
+      for (const auto &task : object["tasks"].toArray()) { tasks << taskMarkdown(task.toObject(), QStringLiteral("###")); }
+      entry["text"] = tasks.join("\n\n").left(MaxText);
+    }
+    else if (tag == "calendar_event") {
+      // CalendarEventView.tsx: title, time span, location, calendar and notes.
+      renderer = "text";
+      QStringList lines{"**" + object["title"].toString() + "**", datetimeText(object["start_date"]) + " - " + datetimeText(object["end_date"])};
+      for (const auto key : {"location", "calendar"}) {
+        if (!object[key].toString().isEmpty()) { lines << object[key].toString(); }
+      }
+      if (!object["notes"].toString().isEmpty()) { lines << object["notes"].toString(); }
+      entry["text"] = lines.join("\n\n").left(MaxText);
+    }
+    else if (tag == "thread_message" || tag == "message") {
+      renderer = "text";
+      entry["text"] = messageMarkdown(object).left(MaxText);
+    }
+    else if (tag == "np_array") {
+      // ArrayView.tsx: dtype, shape, then the values, cut after 100 entries.
+      renderer = "json";
+      const auto values = object["value"].toArray();
+      QStringList shape;
+      for (const auto &dimension : object["shape"].toArray()) { shape << QString::number(dimension.toInteger()); }
+      const auto shown = values.size() > 100 ? QJsonArray::fromVariantList(values.toVariantList().mid(0, 100)) : values;
+      const auto body = object["value"].isArray() ? QString::fromUtf8(QJsonDocument(shown).toJson(values.size() > 100 ? QJsonDocument::Compact : QJsonDocument::Indented)) + (values.size() > 100 ? QStringLiteral("...") : QString{})
+                                                  : QStringLiteral("No data");
+      entry["text"] = (QStringLiteral("Array (%1)\nShape: %2\n\n").arg(object["dtype"].toString(), shape.join(", ")) + body).left(MaxText);
     }
     else if (tag == "email") {
       renderer = "text";

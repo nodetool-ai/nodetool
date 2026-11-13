@@ -1589,6 +1589,11 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 if (!reference["id"].toString().isEmpty()) { emit documentOpenRequested(row.value, reference["id"].toString()); }
                 return true;
             }
+            if (row.action == QStringLiteral("connectProvider")) {
+                select();
+                emit providerConnectRequested(row.value);
+                return true;
+            }
             if (row.action == QStringLiteral("expandEditor")) {
                 select();
                 emit inlineExpandRequested(id, row.value);

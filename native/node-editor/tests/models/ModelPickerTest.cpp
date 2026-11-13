@@ -514,6 +514,8 @@ private slots:
         QTest::newRow("audio to audio") << "audio_to_audio_model" << "" << "models.audioToAudioByProvider" << "audio_to_audio" << basic;
         QTest::newRow("rerank") << "rerank_model" << "" << "models.rerankByProvider" << "rerank" << basic;
         QTest::newRow("hugging face") << "hf.text_to_image" << "" << "models.huggingfaceByType" << "" << QStringList{"type", "repo_id", "path"};
+        QTest::newRow("transformers js") << "tjs.text_classification" << "" << "models.transformersJsByType" << "" << QStringList{"type", "repo_id", "path"};
+        QTest::newRow("ollama") << "llama_model" << "" << "models.ollama" << "" << QStringList{"type", "repo_id"};
     }
     void everyModelTypeUsesItsRouteAndValueShape() {
         QFETCH(QString, modelType);
@@ -529,9 +531,14 @@ private slots:
             return QJsonArray{providerSetting("cloud", "Cloud AI", true, {"CLOUD_API_KEY"})};
         };
         const bool video = modelType == "video_model";
-        host.server.routes[procedure] = [modelType, video](const FakeServer::Request&) {
-            if (modelType.startsWith("hf.")) {
+        const bool repository = modelType.startsWith("hf.") || modelType.startsWith("tjs.");
+        host.server.routes[procedure] = [modelType, video, repository](const FakeServer::Request&) {
+            if (repository) {
                 return QJsonArray{QJsonObject{{"id", "org/repo"}, {"repo_id", "org/repo"}, {"path", "weights.safetensors"}, {"name", "org/repo"}, {"type", modelType}}};
+            }
+            if (modelType == "llama_model") {
+                // models.ollama returns tags without an id, as toOllamaModel.
+                return QJsonArray{QJsonObject{{"type", "llama_model"}, {"name", "Llama 3"}, {"repo_id", "llama3:8b"}}};
             }
             QJsonObject model{{"id", "m-1"}, {"name", "Model One"}, {"type", modelType}, {"provider", "cloud"}, {"execution", execution("api")}};
             if (video) {
@@ -547,7 +554,9 @@ private slots:
         Field field(*host.engine, host.controller.get(), descriptor(modelType, nodeType), QVariant());
         QVERIFY(field.item);
         QVERIFY(field.open());
-        const auto rowName = modelType.startsWith("hf.") ? QStringLiteral("choose_huggingface_org/repo") : QStringLiteral("choose_cloud_m-1");
+        const auto rowName = modelType.startsWith("hf.") ? QStringLiteral("choose_huggingface_org/repo")
+            : modelType.startsWith("tjs.") ? QStringLiteral("choose_transformers_js_org/repo")
+            : modelType == "llama_model" ? QStringLiteral("choose_ollama_llama3:8b") : QStringLiteral("choose_cloud_m-1");
         QTRY_VERIFY(field.find(rowName));
         const auto calls = host.server.calls(procedure);
         QVERIFY(!calls.isEmpty());
@@ -557,6 +566,10 @@ private slots:
             if (modelType.startsWith("hf.")) {
                 QCOMPARE(call.input.toObject().value("model_type").toString(), modelType);
                 QCOMPARE(call.input.toObject().value("scope").toString(), QStringLiteral("local"));
+            } else if (modelType.startsWith("tjs.")) {
+                QCOMPARE(call.input.toObject(), (QJsonObject{{"model_type", modelType}}));
+            } else if (modelType == "llama_model") {
+                QCOMPARE(call.input.toObject(), QJsonObject{});
             } else {
                 // The provider without the capability is never asked.
                 QCOMPARE(call.input.toObject().value("provider").toString(), QStringLiteral("cloud"));
@@ -572,9 +585,11 @@ private slots:
         expected.sort();
         QVERIFY2(actual == expected, qPrintable(actual.join(',')));
         QCOMPARE(value.value("type").toString(), modelType);
-        if (modelType.startsWith("hf.")) {
+        if (repository) {
             QCOMPARE(value.value("repo_id").toString(), QStringLiteral("org/repo"));
             QCOMPARE(value.value("path").toString(), QStringLiteral("weights.safetensors"));
+        } else if (modelType == "llama_model") {
+            QCOMPARE(value.value("repo_id").toString(), QStringLiteral("llama3:8b"));
         } else {
             QCOMPARE(value.value("id").toString(), QStringLiteral("m-1"));
             QCOMPARE(value.value("provider").toString(), QStringLiteral("cloud"));
@@ -997,6 +1012,13 @@ private slots:
         QCOMPARE(label.label, QStringLiteral("org/repo"));
         QCOMPARE(label.secondary, QStringLiteral("a.safetensors"));
         QCOMPARE(fieldLabel("hf.text_to_image", QVariant(), {}, {}).label, QStringLiteral("Select HuggingFace model"));
+        label = fieldLabel("tjs.text_classification", QVariantMap{{"repo_id", "Xenova/bert"}}, {}, {});
+        QCOMPARE(label.label, QStringLiteral("Xenova/bert"));
+        QVERIFY(label.active);
+        QCOMPARE(fieldLabel("tjs.text_classification", QVariant(), {}, {}).label, QStringLiteral("Select Transformers.js model"));
+        QCOMPARE(fieldLabel("llama_model", QVariantMap{{"repo_id", "llama3:8b"}}, {}, {}).label, QStringLiteral("llama3:8b"));
+        QCOMPARE(fieldLabel("llama_model", QVariantMap{{"repo_id", "llama3:8b"}}, QVariantMap{{"name", "Llama 3"}}, {}).label, QStringLiteral("Llama 3"));
+        QCOMPARE(fieldLabel("llama_model", QVariant(), {}, {}).label, QStringLiteral("Select Ollama model"));
         QCOMPARE(nt::modelpicker::providerDisplayName("huggingface_groq"), QStringLiteral("Groq"));
         QCOMPARE(nt::modelpicker::providerDisplayName("BlackForestLabs"), QStringLiteral("Black Forest Labs"));
         QCOMPARE(nt::modelpicker::providerDisplayName("fal_ai"), QStringLiteral("FAL AI"));
@@ -1103,7 +1125,7 @@ private slots:
         QVERIFY(!validatePropertyValue(declaration, 42).isEmpty());
         QVERIFY(!validatePropertyValue(declaration, QJsonObject{{"type", "image_model"}, {"id", "m"}, {"provider", "locked"}}).isEmpty());
         const auto kindOf = [](const char* type) { return propertyKind(QJsonObject{{"type", QJsonObject{{"type", type}}}}); };
-        for (const auto* type : {"image_model", "video_model", "tts_model", "asr_model", "music_model", "embedding_model", "rerank_model", "audio_to_audio_model", "hf.text_to_image"}) {
+        for (const auto* type : {"image_model", "video_model", "tts_model", "asr_model", "music_model", "embedding_model", "rerank_model", "audio_to_audio_model", "hf.text_to_image", "tjs.text_classification", "llama_model"}) {
             QCOMPARE(kindOf(type), QString("model"));
         }
         QCOMPARE(kindOf("model_3d_model"), QString("unsupported"));
@@ -1112,6 +1134,12 @@ private slots:
         QVERIFY(validatePropertyValue(image, QJsonObject{{"type", "image_model"}, {"id", "m"}, {"provider", "other"}}).isEmpty());
         const QJsonObject hf{{"type", QJsonObject{{"type", "hf.text_to_image"}}}};
         QVERIFY(validatePropertyValue(hf, QJsonObject{{"type", "hf.text_to_image"}, {"repo_id", "org/repo"}, {"path", QJsonValue::Null}}).isEmpty());
+        const QJsonObject tjs{{"type", QJsonObject{{"type", "tjs.text_classification"}}}};
+        QVERIFY(validatePropertyValue(tjs, QJsonObject{{"type", "tjs.text_classification"}, {"repo_id", "Xenova/bert"}, {"path", QJsonValue::Null}}).isEmpty());
+        QVERIFY(!validatePropertyValue(tjs, QJsonObject{{"type", "hf.text_to_image"}, {"repo_id", "Xenova/bert"}}).isEmpty());
+        const QJsonObject llama{{"type", QJsonObject{{"type", "llama_model"}}}};
+        QVERIFY(validatePropertyValue(llama, QJsonObject{{"type", "llama_model"}, {"repo_id", "llama3:8b"}}).isEmpty());
+        QVERIFY(!validatePropertyValue(llama, QJsonObject{{"type", "llama_model"}}).isEmpty());
     }
 };
 QTEST_MAIN(ModelPickerTest)

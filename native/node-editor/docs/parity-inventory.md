@@ -149,7 +149,7 @@ for the missing flows in this inventory.
 ### User-approved scope changes
 
 On 2026-11-06 the user decided to document the preview gaps SC1 to SC3 and not
-implement them. On 2026-11-07 the user decided SC4 and SC5. Each one is a scope
+implement them. On 2026-11-07 the user decided SC4 and SC5, and on 2026-11-13 SC6. Each one is a scope
 change for its row, not an implemented flow.
 
 | Code | Row | Web behavior | Native behavior | What closing it would need |
@@ -159,6 +159,7 @@ change for its row, not an implemented flow.
 | SC3 | F21, F23 | Document assets render in an embedded PDF viewer and a sandboxed HTML viewer. | TXT and HTML show plain text without executing HTML. PDF, DOC and DOCX show the asset name. Every type opens externally. | QtPdf or QtWebEngine in the Qt kit, with a sandboxed HTML integration, or an external preview service. |
 | SC4 | F41 | Persistent chrome casts shadows: the toolbar, viewport control, side panels, bottom panel and Preview and Output cards (whole-window comparison W26). | Flat, as the [native design](../../ui_primitives/DESIGN.md#appearance) requires for persistent chrome. The user decided on 2026-11-07 to keep it flat. | An exception to the native design rule for these surfaces. |
 | SC5 | F41 | Graph and Chain switch between the canvas and the linear chain editor (`WorkflowChainSurface.tsx`, whole-window comparison W29). | No chain view. Chain is disabled, and its tooltip says the chain view is not available. The user decided on 2026-11-07 not to build it. | A native linear chain editor bound to the same document. |
+| SC6 | F22, F31, W4 | The 3D, game, sketch and timeline editors, and the sketch and timeline bodies and viewers on cards. | Not built. On 2026-11-13 the user decided that the native app has two editors, the node editor and the compositor. The node graph is the focus. The [parity census](../../parity/README.md#out-of-scope) lists these features as out of scope. | A product decision to add another editor to the native app. |
 
 ## Native acceptance commands
 

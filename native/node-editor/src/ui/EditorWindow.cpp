@@ -474,6 +474,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     if (inlinePresenter_->active() && !inlinePresenter_->expanded()) { inlinePresenter_->expand(); }
   });
   connect(scene_, &EditorScene::documentOpenRequested, this, [this](const QString &kind, const QString &id) { documentPicker_.open(kind, id); });
+  // The web opens provider onboarding at the key. Native opens the server's provider settings.
+  connect(scene_, &EditorScene::providerConnectRequested, this, [this] { packSetup()->openProviderSettings(); });
   connect(inlinePresenter_, &InlinePropertyPresenter::popupChanged, this, &EditorWindow::positionSelectionToolbar);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
   connect(this, &EditorWindow::documentEpochChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
@@ -3279,6 +3281,11 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "Reset zoom") {
     zoomTo(1.0);
+    return;
+  }
+  // The web zoom50, zoom100 and zoom200 shortcuts.
+  if (name == "Zoom to 50%" || name == "Zoom to 100%" || name == "Zoom to 200%") {
+    zoomTo(name.mid(8).chopped(1).toDouble() / 100.0);
     return;
   }
   if (name == "Add node") {

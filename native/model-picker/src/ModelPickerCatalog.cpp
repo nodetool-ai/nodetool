@@ -129,7 +129,7 @@ bool Catalog::providerHasModels(const QString& provider) const {
 QVariantMap Catalog::fieldLabel(const QString& modelType, const QVariant& value, const QString& provider) const {
     const auto object = value.toMap();
     auto id = value.typeId() == QMetaType::QString ? value.toString() : object.value("id").toString();
-    if (modelType.startsWith("hf.") && !object.value("repo_id").toString().isEmpty()) {
+    if (detail::isRepositoryMode(detail::catalogModeForType(modelType)) && !object.value("repo_id").toString().isEmpty()) {
         const auto path = object.value("path").toString();
         id = object.value("repo_id").toString() + (path.isEmpty() ? QString{} : ":" + path);
     }
@@ -321,12 +321,23 @@ void Catalog::reload() {
     emit changed();
     loadRecommendations(revision);
     const QPointer<Catalog> guard(this);
-    if (m_mode == "huggingface_model") {
-        m_query("models.huggingfaceByType", {{"model_type", m_huggingFaceType}, {"scope", m_scope}}, [guard, revision](QJsonValue value, QString error) {
+    if (detail::isRepositoryMode(m_mode)) {
+        // One list for the field: Hugging Face repositories of the field's type,
+        // Transformers.js repositories of its tjs.* task, or the Ollama tags.
+        QJsonObject input;
+        QString provider = QStringLiteral("ollama");
+        if (m_mode == "huggingface_model") {
+            input = {{"model_type", m_repositoryType}, {"scope", m_scope}};
+            provider = QStringLiteral("huggingface");
+        } else if (m_mode == "transformers_js_model") {
+            input = {{"model_type", m_repositoryType}};
+            provider = QStringLiteral("transformers_js");
+        }
+        m_query(detail::catalogProcedure(m_mode), input, [guard, revision, provider](QJsonValue value, QString error) {
             if (!guard || revision != guard->m_revision) return;
             if (error.isEmpty()) {
-                guard->m_models = detail::catalogModels(value.toArray(), "huggingface", guard->m_mode);
-                guard->m_providers = {"huggingface"};
+                guard->m_models = detail::catalogModels(value.toArray(), provider, guard->m_mode);
+                guard->m_providers = {provider};
             } else {
                 guard->m_models.clear(); guard->m_providers.clear();
             }

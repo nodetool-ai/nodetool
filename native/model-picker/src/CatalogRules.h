@@ -26,8 +26,22 @@ inline QString catalogCapability(const QString& mode) {
     if (mode == "music") return QStringLiteral("text_to_music");
     return {};
 }
+// Modes whose models are repositories listed by one procedure, not per provider:
+// Hugging Face (HuggingFaceModelSelect.tsx), Transformers.js
+// (TransformersJsModelSelect.tsx) and Ollama (LlamaModelSelect.tsx).
+inline bool isRepositoryMode(const QString& mode) {
+    return mode == "huggingface_model" || mode == "transformers_js_model" || mode == "llama_model";
+}
+// The catalog mode of a model field type.
+inline QString catalogModeForType(const QString& modelType) {
+    if (modelType.startsWith("hf.")) return QStringLiteral("huggingface_model");
+    if (modelType.startsWith("tjs.")) return QStringLiteral("transformers_js_model");
+    return modelType;
+}
 inline QString catalogProcedure(const QString& mode) {
     if (mode == "huggingface_model") return QStringLiteral("models.huggingfaceByType");
+    if (mode == "transformers_js_model") return QStringLiteral("models.transformersJsByType");
+    if (mode == "llama_model") return QStringLiteral("models.ollama");
     if (mode == "video_to_video" || mode == "image_to_video" || mode == "extend_video" || mode == "reference_to_video") return QStringLiteral("models.videoByProvider");
     if (mode == "chat" || mode == "language_model") return QStringLiteral("models.llmByProvider");
     if (mode == "image_model") return QStringLiteral("models.imageByProvider");
@@ -124,7 +138,7 @@ inline QVariantList catalogModels(const QJsonArray& models, const QString& provi
     QVariantList result;
     for (const auto& value : models) {
         auto raw = value.toObject();
-        if (mode == "huggingface_model" && raw.value("id").toString().isEmpty()) raw.insert("id", raw.value("repo_id"));
+        if (isRepositoryMode(mode) && raw.value("id").toString().isEmpty()) raw.insert("id", raw.value("repo_id"));
         if (raw.value("id").toString().isEmpty()) continue;
         // The web basic-generation picker accepts undeclared tasks, but an
         // explicit task list must include the selected generation task.

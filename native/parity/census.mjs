@@ -30,8 +30,8 @@ export const WEB_COMPONENT_DIRS = [
     "web/src/components/version"
 ];
 
-// Credit per status. Accepted and unreviewed items are left out of the
-// parity percentage. Unreviewed items lower the coverage percentage instead.
+// Credit per status. Accepted, out-of-scope and unreviewed items are left out
+// of the parity percentage. Unreviewed items lower the coverage percentage instead.
 export const CREDIT = { match: 1, partial: 0.5, differs: 0.5, missing: 0 };
 
 // ---------------------------------------------------------------- keys
@@ -230,6 +230,9 @@ function classify(entry, present) {
     if (!entry) {
         return "unreviewed";
     }
+    if (entry.outOfScope) {
+        return "outOfScope";
+    }
     if (entry.accepted) {
         return "accepted";
     }
@@ -277,7 +280,9 @@ export function censusPropertyTypes(web, native, registry) {
             (native.hfModels && id.startsWith("hf."));
         const entry = registry[id];
         let status = supported ? "match" : "missing";
-        if (entry?.accepted) {
+        if (entry?.outOfScope) {
+            status = "outOfScope";
+        } else if (entry?.accepted) {
             status = "accepted";
         } else if (entry?.partial) {
             status = "partial";
@@ -285,18 +290,29 @@ export function censusPropertyTypes(web, native, registry) {
             // Handled by a path the source scan cannot see, named in the note.
             status = "match";
         }
-        return { id, status, note: entry?.accepted ?? entry?.partial ?? entry?.native };
+        return { id, status, note: entry?.outOfScope ? `out of scope: ${entry.outOfScope}` : entry?.accepted ?? entry?.partial ?? entry?.native };
     });
     const problems = Object.keys(registry).filter((id) => !web.some((t) => t.id === id))
         .map((id) => `propertyTypes.${id}: the web resolver has no case for this type`);
     return { items, problems };
 }
 
-export function censusComponents(web, registry, root = ROOT) {
+// The out-of-scope feature that owns a web path: one whose `web` list names
+// the path or a directory above it.
+export function outOfScopeFeature(path, outOfScope) {
+    return Object.keys(outOfScope).find((name) =>
+        (outOfScope[name].web ?? []).some((prefix) => path === prefix || path.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`)));
+}
+
+export function censusComponents(web, registry, root = ROOT, outOfScope = {}) {
     const problems = [];
     const items = web.map(({ id }) => {
-        const entry = registry[id];
+        const owner = outOfScopeFeature(id, outOfScope);
+        const entry = registry[id] ?? (owner ? { outOfScope: owner } : undefined);
         const status = classify(entry, entry?.status === "partial" ? "partial" : "match");
+        if (entry?.outOfScope && !outOfScope[entry.outOfScope]) {
+            problems.push(`components.${id}: out-of-scope feature "${entry.outOfScope}" is not listed in outOfScope`);
+        }
         if (entry?.native) {
             for (const path of entry.native) {
                 if (!existsSync(join(root, path))) {
@@ -304,7 +320,8 @@ export function censusComponents(web, registry, root = ROOT) {
                 }
             }
         }
-        return { id, status, native: entry?.native, inventory: entry?.inventory, note: entry?.missing ?? entry?.accepted ?? entry?.note };
+        const note = entry?.outOfScope ? `out of scope: ${entry.outOfScope}` : entry?.missing ?? entry?.accepted ?? entry?.note;
+        return { id, status, native: entry?.native, inventory: entry?.inventory, note };
     });
     for (const id of Object.keys(registry)) {
         if (!web.some((c) => c.id === id)) {
@@ -314,14 +331,34 @@ export function censusComponents(web, registry, root = ROOT) {
     return { items, problems };
 }
 
+// Features the native editor will not get. Each names its web sources, which
+// must exist, so a renamed directory does not silently return to the count.
+export function censusOutOfScope(outOfScope, root = ROOT) {
+    const problems = [];
+    for (const [name, feature] of Object.entries(outOfScope)) {
+        if (!feature.reason) {
+            problems.push(`outOfScope.${name}: no reason`);
+        }
+        if (!Array.isArray(feature.web) || feature.web.length === 0) {
+            problems.push(`outOfScope.${name}: names no web sources`);
+        }
+        for (const path of feature.web ?? []) {
+            if (!existsSync(join(root, path))) {
+                problems.push(`outOfScope.${name}: web path ${path} does not exist`);
+            }
+        }
+    }
+    return problems;
+}
+
 export function summarize(items) {
-    const counts = { match: 0, partial: 0, differs: 0, missing: 0, accepted: 0, unreviewed: 0 };
+    const counts = { match: 0, partial: 0, differs: 0, missing: 0, accepted: 0, outOfScope: 0, unreviewed: 0 };
     for (const item of items) {
         counts[item.status]++;
     }
     const scored = counts.match + counts.partial + counts.differs + counts.missing;
     const credit = Object.entries(CREDIT).reduce((sum, [status, value]) => sum + counts[status] * value, 0);
-    const reviewable = items.length - counts.accepted;
+    const reviewable = items.length - counts.accepted - counts.outOfScope;
     return {
         total: items.length,
         counts,
@@ -339,9 +376,16 @@ export async function runCensus(root = ROOT, registry = JSON.parse(readFileSync(
     const inventories = {
         shortcuts: censusShortcuts(webKeys, nativeKeys, registry.shortcuts ?? {}),
         propertyTypes: censusPropertyTypes(webTypes, nativeTypes, registry.propertyTypes ?? {}),
-        components: censusComponents(components, registry.components ?? {}, root)
+        components: censusComponents(components, registry.components ?? {}, root, registry.outOfScope ?? {})
     };
-    const problems = [];
+    const problems = censusOutOfScope(registry.outOfScope ?? {}, root);
+    for (const name of ["shortcuts", "propertyTypes"]) {
+        for (const [id, entry] of Object.entries(registry[name] ?? {})) {
+            if (entry.outOfScope && !registry.outOfScope?.[entry.outOfScope]) {
+                problems.push(`${name}.${id}: out-of-scope feature "${entry.outOfScope}" is not listed in outOfScope`);
+            }
+        }
+    }
     const read = { shortcuts: [webKeys.length, nativeKeys.length], propertyTypes: [webTypes.length, nativeTypes.types.size], components: [components.length, 1] };
     for (const [name, [webCount, nativeCount]] of Object.entries(read)) {
         if (webCount === 0 || nativeCount === 0) {
@@ -353,7 +397,7 @@ export async function runCensus(root = ROOT, registry = JSON.parse(readFileSync(
     }
     const summaries = Object.fromEntries(Object.entries(inventories).map(([name, inv]) => [name, summarize(inv.items)]));
     const all = summarize(Object.values(inventories).flatMap((inv) => inv.items));
-    return { version: 1, summary: all, inventories: Object.fromEntries(Object.entries(inventories).map(([name, inv]) => [name, { ...summaries[name], items: inv.items }])), problems, nativeShortcuts: nativeKeys };
+    return { version: 1, summary: all, outOfScope: registry.outOfScope ?? {}, inventories: Object.fromEntries(Object.entries(inventories).map(([name, inv]) => [name, { ...summaries[name], items: inv.items }])), problems, nativeShortcuts: nativeKeys };
 }
 
 function formatPercent(value) {
@@ -367,7 +411,14 @@ export function formatReport(report, limit = 15) {
     for (const [name, inv] of Object.entries(report.inventories)) {
         const c = inv.counts;
         lines.push(`  ${name.padEnd(14)} ${formatPercent(inv.parity).padStart(6)} parity  ${formatPercent(inv.coverage).padStart(6)} reviewed  ` +
-            `(${c.match} match, ${c.partial} partial, ${c.differs} differ, ${c.missing} missing, ${c.accepted} accepted, ${c.unreviewed} unreviewed of ${inv.total})`);
+            `(${c.match} match, ${c.partial} partial, ${c.differs} differ, ${c.missing} missing, ${c.accepted} accepted, ${c.outOfScope} out of scope, ${c.unreviewed} unreviewed of ${inv.total})`);
+    }
+    const excluded = Object.entries(report.outOfScope ?? {});
+    if (excluded.length > 0) {
+        lines.push("", "Out of scope for the native editor (not counted):");
+        for (const [name, feature] of excluded) {
+            lines.push(`  ${name}: ${feature.reason}`);
+        }
     }
     for (const [name, inv] of Object.entries(report.inventories)) {
         const open = inv.items.filter((item) => item.status === "missing" || item.status === "differs" || item.status === "partial");
