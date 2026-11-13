@@ -486,6 +486,8 @@ export {
 export type {
   CredentialCheckStatus,
   CredentialCheckResult,
+  CredentialAccount,
+  CredentialAccountState,
   CheckCredentialOptions
 } from "./credential-check.js";
 export {

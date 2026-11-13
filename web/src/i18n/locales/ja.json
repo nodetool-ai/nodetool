@@ -19963,5 +19963,33 @@
         "public": "公開"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "プロバイダー",
+    "title": {
+      "billing": "{{target}} を実行できません: アカウントにクレジットまたは請求設定がありません。",
+      "quota": "{{target}} を実行できません: このキーには残りのクォータがありません。",
+      "auth": "{{target}} が API キーを拒否しました。",
+      "model_unavailable": "{{target}} はこのキーでは利用できません。",
+      "rate_limit": "{{target}} へのリクエストが多すぎます。"
+    },
+    "hint": {
+      "billing": "プロバイダーでクレジットを追加するか、別のモデルに切り替えてください。",
+      "quota": "無料枠のキーにはこのモデルのクォータがないことがよくあります。プロバイダーで請求を有効にするか、別のモデルに切り替えてください。",
+      "auth": "設定でキーを確認するか、別のプロバイダーのモデルに切り替えてください。",
+      "model_unavailable": "モデル一覧から削除しました。別のモデルを選んでください。",
+      "rate_limit": "少し待ってから再試行してください。"
+    },
+    "repeated": "同じ理由で再び失敗したため、再試行しても解決しません。別のモデルに切り替えてください。",
+    "switchTo": "{{model}} を使う",
+    "openKeys": "API キーを開く",
+    "addCredit": "クレジットを追加",
+    "enableBilling": "請求を有効にする"
+  },
+  "runReadiness": {
+    "addKey": "API キーを追加",
+    "missingKeysDetail": "このワークフローには {{keys}} が必要です。実行する前に設定で追加してください。",
+    "costPerRun": "1 回あたり約 {{cost}}",
+    "costUnknown": "コスト不明"
   }
 }

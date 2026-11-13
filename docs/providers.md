@@ -468,9 +468,12 @@ Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key. Point Nod
 ## If it fails
 
 - **Missing key:** the provider throws when called, naming the secret. Examples: `OPENAI_API_KEY is required`, `CEREBRAS_API_KEY is required`, `AKI_API_KEY is not configured`, `AZURE_OPENAI_ENDPOINT is required`, and for Anthropic `Anthropic authentication is not configured (API key, auth token, credentials, config, or profile required)`. The node fails with that message.
-- **Rejected key:** HTTP 401 or 403 is classified `auth`. **Test** on the provider in **Settings → Models & Providers** probes the provider's listing endpoint and reports `valid`, `invalid`, or `unverifiable` (a 429, a 5xx, a timeout, or a provider with no probe).
-- **Rate limit:** HTTP 429 is classified `rate_limit`. Replicate calls wait with backoff and honor `Retry-After` before the original error is thrown. Other providers pass the provider's message through.
-- **Insufficient balance:** HTTP 402 is classified `payment`.
+- **Rejected key:** HTTP 401 or 403 is classified `auth`, as is a 400 that says the key is not valid (Gemini). Saving a key, or **Test** on the provider in **Settings → Models & Providers**, probes the provider's listing endpoint and reports `valid`, `invalid`, or `unverifiable` (a 429, a 5xx, a timeout, or a provider with no probe).
+- **Key with no credit or quota:** a listing endpoint accepts a key on an empty account. For OpenAI, Anthropic, Gemini, DeepSeek and OpenRouter, the key check then asks about the account: DeepSeek's balance endpoint, OpenRouter's key endpoint, or a one-token request to the provider's cheapest model. It reports `no_credit`, `no_quota` or `free_tier`, and the key is saved with that warning.
+- **Rate limit or quota:** HTTP 429 is classified `quota` when the provider's message names a quota (Gemini's free tier answers `limit: 0`), otherwise `rate_limit`. Replicate calls wait with backoff and honor `Retry-After` before the original error is thrown. Other providers pass the provider's message through.
+- **Insufficient balance:** HTTP 402 is classified `payment`, as are OpenAI's `insufficient_quota` 429 and Anthropic's "credit balance is too low" 400.
+- **Model not served:** HTTP 404, or a 400 that says the model is not found, is classified `not_found`. The web app then leaves that model out of the user's model pickers for a week, or until a key is saved or removed.
+- **In chat:** a `payment`, `quota`, `auth` or `not_found` failure shows one card with the fix and a switch to another model. When the same failure repeats, the card drops Retry. The rules are `classifyProviderFailure` in `packages/protocol/src/provider-failure.ts`, shared by the server and the web app.
 - **Failure report:** a failed provider call produces a `provider_call_failed` message with provider, model, operation, kind, status, and message. A cancelled run produces none.
 
 Sources: `provider-call-failure.ts`, `credential-check.ts`, `replicate-retry.ts` in `packages/runtime/src/providers/`.
