@@ -6,32 +6,82 @@
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WmQTWZRcYE)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.txt)
 
-**Open-source agent-first creative workspace**
+**Open-source AI film studio · agent + node workflows**
 
-Create images, video, audio, and text with agents that work alongside you.
-Describe what you want, let the agent build it, then take over whenever you
-like.
-
-**Create with AI. Make it your own.** NodeTool combines an AI
-video editor with node-based workflows. Ask the agent to create a video,
-refine it in the timeline, or connect nodes to build a process you can reuse.
+**Direct AI films, shot by shot.** Start with one sentence. The agent writes
+the story, draws a still for every shot, and cuts the clips on a timeline.
+Approve each still before you pay for its clip, reshoot any shot on its own,
+and save what works as a workflow you can run again.
 
 **[Download NodeTool Studio](https://github.com/nodetool-ai/nodetool/releases/latest)** ·
+**[Try it in your browser](https://app.nodetool.ai)** (alpha) ·
 **[Quick start](#first-run-in-studio)** ·
 **[Documentation](https://docs.nodetool.ai/)** · **[MCP setup](#mcp)** ·
 **[Contribute](#contributing)**
 
 ![NodeTool: one sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut](marketing/public/hero-flow-readme.gif)
 
-## Every model you need, on your own keys
+One sentence becomes a short film. The agent outlines the story, designs the
+characters, draws a storyboard, generates the clips, and edits them together.
 
-Run local models or connect cloud providers with your own API keys. NodeTool
-calls the provider with your key, at their price, with no billing unit in
-between. When a better model ships, add it the day it ships.
+Studio is free and open source for macOS, Windows, and Linux. In Studio, sign
+in with your ChatGPT or Claude plan and the agent runs on it. Or add your own
+provider keys and pay list price, with nothing added.
 
-[Models and Providers](docs/models-and-providers.md) lists what runs where.
+## Films
 
-## Run it on the AI plan you already pay for
+Write the script, storyboard every shot, and cut the clips on a timeline, all
+in one project. The storyboard holds one still per shot, and only the shots
+you approve become video. A Seedream 5 Lite still costs $0.03 on Kie.ai. Five
+seconds of Seedance 2 costs $1.03 (list prices via genspend.io, August 2026).
+Settle the shot on stills, then animate the one that works.
+
+Bind a workflow to a timeline clip. Change one of its inputs and the clip shows
+it is out of date, so you regenerate that take while the rest of the cut stays.
+
+The [storyboard gallery](https://nodetool.ai/storyboards) holds finished films,
+each with the brief it started from and every shot with its camera and
+direction. The [film quick start](docs/getting-started.md) walks through each
+step.
+
+## The agent
+
+Tell the agent what to change in plain words. It edits the project, and you can
+take over at any point. Each editor exposes its actions to the agent as tools,
+so it can wire a graph, paint a layer, cut a clip, revise a shot, or voice a
+line in the same documents you work in.
+
+- **Build workflows.** Describe the pipeline. The agent picks the nodes, wires
+  the edges, and validates the graph, and leaves behind a workflow you own.
+- **Build apps.** Ask for a custom UI. The agent plans the workflow, places
+  widgets, and replays interactions. A judge model grades the result. No
+  passing verdict, no app.
+- **Repair on the fly.** Put an agent on the failure path and it decides
+  whether to retry, repair, skip, or stop, within the cost budget you set.
+- **Bring your own agent.** The toolbelt is exposed over [MCP](#mcp), so Claude
+  Desktop, Claude Code, or Codex can drive the studio.
+
+Underneath, a planner turns an objective into a DAG of steps, executors walk it
+in parallel, and every LLM call emits an OpenTelemetry span with tokens and
+cost. See the [agent guide](https://docs.nodetool.ai/agents/) and
+[docs/AGENTS.md](docs/AGENTS.md).
+
+## Node workflows
+
+<a href="marketing/public/hero-nodes.mp4"><img src="marketing/public/hero-nodes-poster.webp" alt="A NodeTool workflow: five shots run through For Each, Text To Image, Image To Video, Collect, and Concatenate Video into one cut" width="640"></a>
+
+Made it once? Run it again. Underneath every project is a node graph. Save the
+pipeline that worked and run it on the next episode, twenty ad variants, or the
+same character in a new scene. Bring a ComfyUI workflow you already have, wire
+nodes by hand, or ask the agent to build the graph and check it before a paid
+run.
+
+Drag nodes in, connect typed ports, and read the live output at each step.
+Double-click the canvas to search for a node, or drag a connection into empty
+space to see what fits. The editor refuses a mismatch, so an image cannot land
+in a text field. See [node-based workflows](https://nodetool.ai/node-based-workflows).
+
+## Plans, keys, and models
 
 Sign in with ChatGPT or Claude in Studio and the agent runs on that $20
 subscription instead of a metered API bill. ChatGPT and Gemini plans also
@@ -48,19 +98,12 @@ Subscriptions run in Studio, the desktop app, not in Cloud. Gemini also needs
 the [NodeTool Chrome extension](https://docs.nodetool.ai/chrome-extension) in
 the browser where you are signed in.
 
-## Why NodeTool
-
-- Agents drive the real editors. They wire the graph and run it. You take the
-  wheel at any point.
-- Inspect intermediate results, swap a model, and rerun only what changed.
-- The graph, inputs, assets, and edits stay together in your project.
-- Run the same workflow from the studio, the CLI, or an external agent over
-  [MCP](#mcp).
-
-Studio is free and runs on macOS, Windows, and Linux. Local models have
-hardware requirements that depend on the model, and offline work needs the
-models and assets on your machine. [NodeTool Cloud](https://nodetool.ai/cloud)
-is in alpha and runs on hosted storage and cloud providers.
+Every other model runs on your own provider key, at the provider's price, with
+no billing unit in between, or locally on your own hardware. Local models have
+hardware requirements that depend on the model. [NodeTool
+Cloud](https://nodetool.ai/cloud) is in alpha and runs on hosted storage and
+cloud providers. [Models and Providers](docs/models-and-providers.md) lists
+what runs where.
 
 ## First run in Studio
 
@@ -71,16 +114,11 @@ is in alpha and runs on hosted storage and cloud providers.
 3. Start a new project and follow along.
 
 
-## One workspace, brief through final cut
+## The editors
 
-Write a brief and ask the agent for a storyboard. Approve the stills before
-spending on video, then assemble the clips on a timeline. Trim the cut, add
-narration, and export an MP4. Revise one shot without regenerating the film.
-The [film quick start](docs/getting-started.md) walks through each step.
-
-Seven editors share one project, so a piece never leaves the studio to be
-finished. Each editor exposes its actions to the agent as tools, so the agent
-works in all of them.
+Seven editors share one project: storyboard, script, timeline, sketch, 3D,
+game, and the node graph. A piece never leaves the studio to be finished, and
+the agent works in all of them.
 
 ### Storyboard
 
@@ -90,9 +128,6 @@ Board the film shot by shot. Pitch a concept, a style, and a shot count, and
 you get back a screenplay: one shot per card with action, camera, motion, and
 duration, plus the logline, style bible, narration, and music direction.
 
-- **Cheap stages first.** A Seedream 5 Lite still costs $0.03 on Kie.ai. Five
-  seconds of Seedance 2 costs $1.03 (list prices via genspend.io, August 2026).
-  Generate stills until one looks right, then animate that one.
 - **Revise one shot, not the reel.** "Make it darker, add rain" runs
   video-to-video on that clip alone and returns a new take. You decide whether
   it replaces the old one.
@@ -120,8 +155,7 @@ every line that still needs it, then cuts the sequence for you.
 
 Arrange, trim, and layer video and audio across tracks, down to the frame and
 the stem. Drop in your own footage, or bind a workflow to a clip and generate
-in place: change a parameter and the clip regenerates, tweak the workflow and
-the clip flags itself stale. Export to MP4. The agent edits the same document
+in place. Export to MP4. The agent edits the same document
 when you ask it to tighten the opening.
 [Video editor guide →](https://docs.nodetool.ai/video-editor)
 
@@ -155,18 +189,6 @@ sprites, sounds, and models to their slots. Ask the agent for a new enemy or a
 darker level and it edits the same draft. Publish a revision, then export it as
 a standalone web player that runs without NodeTool.
 [Game editor guide →](https://docs.nodetool.ai/game-editor)
-
-## The node editor
-
-<img src="marketing/public/surface-nodes-poster.webp" alt="NodeTool node editor" width="640">
-
-Underneath the editors is the node graph. Drag nodes in, connect typed ports,
-and read the live output at each step. Double-click the canvas to search for a
-node, or drag a connection into empty space to see what fits. The editor
-refuses a mismatch, so an image cannot land in a text field.
-
-The editors connect to it. A timeline clip or a sketch layer can bind to a
-workflow, and the storyboard sends its stills and clips to one.
 
 ## Example timelines
 
@@ -226,7 +248,7 @@ with you. The table compares the category, not a product.
 
 | | NodeTool | Hosted AI video apps |
 | :--- | :--- | :--- |
-| **Models** | Every major provider, switched in one click | The list they picked |
+| **Models** | Every major provider, on your own keys | The list they picked |
 | **When a better model ships** | Add it the day it ships | Wait for them to add it |
 | **What you pay** | The provider's own price, through your own account | Credits you buy from them, at prices they set |
 | **What you keep** | The storyboard, every generated clip, and the edited video, as a project you can reopen | An exported video. The project stays in their app. |
@@ -236,27 +258,6 @@ with you. The table compares the category, not a product.
 Choosing against a node tool instead? See
 [ComfyUI](https://nodetool.ai/alternatives/comfyui) and
 [Figma Weave](https://nodetool.ai/alternatives/figma-weave).
-
-## The agent
-
-Most tools bolt a chat panel onto an editor. NodeTool built the editors around
-the agent: each surface exposes its actions to the agent as tools, so it can
-wire a graph, paint a layer, cut a clip, revise a shot, or voice a line.
-
-- **Build workflows.** Describe the pipeline. The agent picks the nodes, wires
-  the edges, and validates the graph, and leaves behind a workflow you own.
-- **Build apps.** Ask for a custom UI. The agent plans the workflow, places
-  widgets, and replays interactions. A judge model grades the result. No
-  passing verdict, no app.
-- **Repair on the fly.** Put an agent on the failure path and it decides
-  whether to retry, repair, skip, or stop, within the cost budget you set.
-- **Bring your own agent.** The toolbelt is exposed over [MCP](#mcp), so Claude
-  Desktop, Claude Code, or Codex can drive the studio.
-
-Underneath, a planner turns an objective into a DAG of steps, executors walk it
-in parallel, and every LLM call emits an OpenTelemetry span with tokens and
-cost. See the [agent guide](https://docs.nodetool.ai/agents/) and
-[docs/AGENTS.md](docs/AGENTS.md).
 
 ## What is underneath
 

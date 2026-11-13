@@ -5,6 +5,7 @@
 #include "interfaces/DocumentTabs.h"
 #include "interfaces/Notifications.h"
 
+#include <functional>
 #include <QDateTime>
 #include <QQuickItem>
 #include <QQuickView>
@@ -197,6 +198,31 @@ private slots:
         click(view, copy);
         QTRY_COMPARE(copied.size(), 1);
         QCOMPARE(copied.first().first().toString(), QString("The render failed."));
+    }
+
+    // NotificationButton.tsx: only an error notification offers Report.
+    void errorNotificationReports() {
+        Notifications notifications;
+        QSignalSpy reported(&notifications, &Notifications::reportRequested);
+        QQuickView view;
+        show(view, {{"notifications", QVariant::fromValue(&notifications)}}, "NotificationsPanel.qml", {600, 400});
+        auto *root = view.rootObject();
+        notifications.setEntries({QVariantMap{{"type", "info"}, {"content", "Saved."}, {"timestamp", QDateTime::currentDateTime()}},
+                                  QVariantMap{{"type", "error"}, {"content", "The render failed."}, {"timestamp", QDateTime::currentDateTime()}}});
+        QList<QQuickItem *> buttons;
+        const std::function<void(QQuickItem *)> collect = [&](QQuickItem *item) {
+            if (item->objectName() == QStringLiteral("notification-report")) { buttons.append(item); }
+            for (auto *child : item->childItems()) { collect(child); }
+        };
+        QTRY_VERIFY((buttons.clear(), collect(root), buttons.size() == 2));
+        QList<QQuickItem *> visible;
+        for (auto *item : buttons) {
+            if (item->isVisible()) { visible.append(item); }
+        }
+        QCOMPARE(visible.size(), 1);
+        click(view, visible.first());
+        QTRY_COMPARE(reported.size(), 1);
+        QCOMPARE(reported.first().first().toString(), QString("The render failed."));
     }
 };
 

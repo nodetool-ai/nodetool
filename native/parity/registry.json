@@ -1,0 +1,2504 @@
+{
+  "version": 1,
+  "outOfScope": {
+    "chain-view": {
+      "reason": "The linear chain editor (Graph and Chain switch). Decided 2026-11-07 (scope change SC5) and again 2026-11-13.",
+      "web": [
+        "web/src/components/chain_editor",
+        "web/src/components/workspace/WorkflowChainSurface.tsx"
+      ]
+    },
+    "3d-editor": {
+      "reason": "The 3D model editor and embedded 3D viewers. Matthias, 2026-11-13: the native app has two editors, the node editor and the compositor. Picking a 3D generation model on a node stays in scope.",
+      "web": [
+        "web/src/components/model_editor"
+      ]
+    },
+    "game-editor": {
+      "reason": "The game editor. Matthias, 2026-11-13: the native app has two editors, the node editor and the compositor.",
+      "web": [
+        "web/src/components/game"
+      ]
+    },
+    "sketch-editor": {
+      "reason": "The sketch (image document) editor and sketch bodies on cards. Matthias, 2026-11-13: the native app has two editors, the node editor and the compositor.",
+      "web": [
+        "web/src/components/sketch"
+      ]
+    },
+    "timeline-editor": {
+      "reason": "The timeline editor and timeline bodies on cards. Matthias, 2026-11-13: the native app has two editors, the node editor and the compositor. Keyframe inputs of video model nodes stay in scope.",
+      "web": [
+        "web/src/components/timeline"
+      ]
+    }
+  },
+  "shortcuts": {
+    "copy": {
+      "native": "Copy"
+    },
+    "cut": {
+      "native": "Cut"
+    },
+    "paste": {
+      "native": "Paste"
+    },
+    "undo": {
+      "native": "Undo"
+    },
+    "redo": {
+      "native": "Redo"
+    },
+    "selectAll": {
+      "native": "Select all"
+    },
+    "align": {
+      "native": "Align"
+    },
+    "alignWithSpacing": {
+      "native": "Align with spacing"
+    },
+    "duplicate": {
+      "native": "Duplicate"
+    },
+    "duplicateVertical": {
+      "native": "Duplicate vertical"
+    },
+    "fitView": {
+      "native": "Fit"
+    },
+    "deleteNode": {
+      "native": "Delete"
+    },
+    "deleteNodeBackspace": {
+      "native": "Delete"
+    },
+    "resetDefault": {
+      "missing": "No native binding"
+    },
+    "groupSelected": {
+      "native": "Group selection"
+    },
+    "moveLeft": {
+      "native": "Move left"
+    },
+    "moveRight": {
+      "native": "Move right"
+    },
+    "moveUp": {
+      "native": "Move up"
+    },
+    "moveDown": {
+      "native": "Move down"
+    },
+    "bypassNode": {
+      "native": "Disable toggle"
+    },
+    "toggleNodeCollapsed": {
+      "native": "Toggle collapse"
+    },
+    "selectConnectedAll": {
+      "native": "Select all connected"
+    },
+    "selectConnectedInputs": {
+      "native": "Select inputs"
+    },
+    "selectConnectedOutputs": {
+      "native": "Select outputs"
+    },
+    "alignLeft": {
+      "native": "Align left"
+    },
+    "alignCenter": {
+      "native": "Align center"
+    },
+    "alignRight": {
+      "native": "Align right"
+    },
+    "alignTop": {
+      "native": "Align top"
+    },
+    "alignMiddle": {
+      "native": "Align middle"
+    },
+    "alignBottom": {
+      "native": "Align bottom"
+    },
+    "distributeHorizontal": {
+      "native": "Distribute horizontally"
+    },
+    "stackSelected": {
+      "native": "Stack selection"
+    },
+    "arrangeGrid": {
+      "native": "Arrange grid"
+    },
+    "addPromptNode": {
+      "native": "Add Prompt"
+    },
+    "addTextToImageNode": {
+      "native": "Add Text to Image"
+    },
+    "addTextToVideoNode": {
+      "native": "Add Text to Video"
+    },
+    "addAgentNode": {
+      "native": "Add Agent"
+    },
+    "deleteSelected": {
+      "native": "Delete"
+    },
+    "nodeInfo": {
+      "missing": "No native binding"
+    },
+    "openNodeMenu": {
+      "native": "Add node"
+    },
+    "toggleWorkflows": {
+      "native": "Workflows"
+    },
+    "toggleAssets": {
+      "missing": "No native binding"
+    },
+    "toggleInspector": {
+      "native": "Toggle inspector"
+    },
+    "toggleWorkflowSettings": {
+      "missing": "No native binding"
+    },
+    "toggleOperator": {
+      "missing": "No native binding"
+    },
+    "newChat": {
+      "missing": "No native binding"
+    },
+    "focusChatComposer": {
+      "missing": "No native binding"
+    },
+    "runWorkflow": {
+      "native": "Run"
+    },
+    "saveWorkflow": {
+      "native": "Save"
+    },
+    "newWorkflow": {
+      "native": "newTab()"
+    },
+    "closeWorkflow": {
+      "native": "closeTab(activeTab()"
+    },
+    "prevTab": {
+      "native": "selectAdjacentTab(-1)"
+    },
+    "nextTab": {
+      "native": "selectAdjacentTab(1)"
+    },
+    "switchToTab1": {
+      "native": "activateTab(0)"
+    },
+    "switchToTab2": {
+      "native": "activateTab(1)"
+    },
+    "switchToTab3": {
+      "native": "activateTab(2)"
+    },
+    "switchToTab4": {
+      "native": "activateTab(3)"
+    },
+    "switchToTab5": {
+      "native": "activateTab(4)"
+    },
+    "switchToTab6": {
+      "native": "activateTab(5)"
+    },
+    "switchToTab7": {
+      "native": "activateTab(6)"
+    },
+    "switchToTab8": {
+      "native": "activateTab(7)"
+    },
+    "switchToTab9": {
+      "native": "activateTab(8)"
+    },
+    "renameAsset": {
+      "missing": "No native binding"
+    },
+    "assetSelectRange": {
+      "missing": "No native binding"
+    },
+    "assetToggleSelect": {
+      "missing": "No native binding"
+    },
+    "assetViewerPrevJump": {
+      "missing": "No native binding"
+    },
+    "assetViewerNextJump": {
+      "missing": "No native binding"
+    },
+    "clearAssetSearch": {
+      "missing": "No native binding"
+    },
+    "showKeyboardShortcuts": {
+      "native": "Keyboard shortcuts"
+    },
+    "openSettings": {
+      "missing": "No native binding"
+    },
+    "findInWorkflow": {
+      "native": "Find node"
+    },
+    "resetZoom": {
+      "native": "Reset zoom"
+    },
+    "zoomIn": {
+      "native": "Zoom in"
+    },
+    "zoomOut": {
+      "native": "Zoom out"
+    },
+    "zoom50": {
+      "native": "Zoom to 50%"
+    },
+    "zoom100": {
+      "native": "Zoom to 100%"
+    },
+    "zoom200": {
+      "native": "Zoom to 200%"
+    },
+    "navigateNextNode": {
+      "missing": "No native binding"
+    },
+    "navigatePrevNode": {
+      "missing": "No native binding"
+    },
+    "selectFocusedNode": {
+      "missing": "No native binding"
+    },
+    "focusNodeUp": {
+      "missing": "No native binding"
+    },
+    "focusNodeDown": {
+      "missing": "No native binding"
+    },
+    "focusNodeLeft": {
+      "missing": "No native binding"
+    },
+    "focusNodeRight": {
+      "missing": "No native binding"
+    },
+    "goBack": {
+      "missing": "No native binding"
+    },
+    "exitFullscreen": {
+      "native": "Cancel gesture"
+    },
+    "stopWorkflow": {
+      "native": "Cancel gesture"
+    },
+    "stopChatGeneration": {
+      "missing": "The native chat composer does not stop a reply on Escape"
+    },
+    "assetViewerPrev": {
+      "missing": "No native asset viewer"
+    },
+    "assetViewerNext": {
+      "missing": "No native asset viewer"
+    },
+    "exitNavigationMode": {
+      "missing": "No native keyboard navigation mode"
+    }
+  },
+  "propertyTypes": {
+    "enum": {
+      "native": "PropertyFields.h propertyOptions reads the enum values, and propertyKind returns choice"
+    },
+    "select": {
+      "native": "PropertyFields.h: a str with json_schema_extra.type select becomes a choice with options from the node"
+    },
+    "tool_name": {
+      "native": "PropertyFields.h: list[tool_name] becomes the tools kind"
+    },
+    "keyframe": {
+      "partial": "The web shows only the label and handle. Native marks the property unsupported and preserves its value."
+    },
+    "video_element": {
+      "partial": "The web shows only the label and handle. Native marks the property unsupported and preserves its value."
+    },
+    "shot": {
+      "partial": "The web shows only the label and handle. Native marks the property unsupported and preserves its value."
+    },
+    "text": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "text_list": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_automatic_speech_recognition_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_audio_classification_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_image_classification_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_text_classification_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_summarization_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_text_to_image_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_translation_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_text_to_text_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_text_to_speech_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_text_to_audio_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_text_generation_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_image_to_image_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    },
+    "inference_provider_image_segmentation_model": {
+      "accepted": "No node in the catalog declares this type, so the web case is unreachable"
+    }
+  },
+  "components": {
+    "web/src/components/context_menus/AssetGridContextMenu.tsx": {
+      "missing": "Asset library grid menu. Native has no library panel (rail Library is disabled).",
+      "inventory": "C2"
+    },
+    "web/src/components/context_menus/AssetInfoPanel.tsx": {
+      "missing": "Asset info panel of the library. Native has no library panel.",
+      "inventory": "C2"
+    },
+    "web/src/components/context_menus/AssetItemContextMenu.tsx": {
+      "missing": "Asset item menu of the library. Native has no library panel.",
+      "inventory": "C2"
+    },
+    "web/src/components/context_menus/ConnectableNodes.tsx": {
+      "native": [
+        "native/node-editor/qml/CompatibleNodePicker.qml",
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp"
+      ],
+      "status": "partial",
+      "note": "Picker works. The pinned Preview, Reroute, Save, Constant, Input, Prompt and AI shortcuts are missing.",
+      "inventory": "F03"
+    },
+    "web/src/components/context_menus/ConnectionMatchMenu.tsx": {
+      "missing": "Handle-to-handle match menu shown when a dropped wire fits several handles. No native counterpart found.",
+      "inventory": "F03"
+    },
+    "web/src/components/context_menus/ContextMenuItem.tsx": {
+      "native": [
+        "native/node-editor/qml/ContextMenuPanel.qml"
+      ],
+      "inventory": "F14"
+    },
+    "web/src/components/context_menus/ContextMenus.tsx": {
+      "native": [
+        "native/node-editor/qml/ContextMenuPanel.qml",
+        "native/node-editor/src/ui/EditorMenus.cpp"
+      ],
+      "inventory": "F14"
+    },
+    "web/src/components/context_menus/EdgeContextMenu.tsx": {
+      "native": [
+        "native/node-editor/src/ui/EditorMenus.cpp"
+      ],
+      "note": "Includes reroute insertion and deletion.",
+      "inventory": "F14"
+    },
+    "web/src/components/context_menus/InputContextMenu.tsx": {
+      "native": [
+        "native/node-editor/qml/CompatibleNodePicker.qml"
+      ],
+      "status": "partial",
+      "note": "Opens the compatible-node picker. Same shortcut gaps as ConnectableNodes.",
+      "inventory": "F03"
+    },
+    "web/src/components/context_menus/NodeContextMenu.tsx": {
+      "native": [
+        "native/node-editor/src/ui/EditorMenus.cpp"
+      ],
+      "inventory": "F14"
+    },
+    "web/src/components/context_menus/OutputContextMenu.tsx": {
+      "native": [
+        "native/node-editor/qml/CompatibleNodePicker.qml"
+      ],
+      "status": "partial",
+      "note": "Opens the compatible-node picker and deletes dynamic outputs. Same shortcut gaps as ConnectableNodes.",
+      "inventory": "F03"
+    },
+    "web/src/components/context_menus/PaneContextMenu.tsx": {
+      "native": [
+        "native/node-editor/src/ui/EditorMenus.cpp"
+      ],
+      "inventory": "F14"
+    },
+    "web/src/components/context_menus/PropertyContextMenu.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml",
+        "native/node-editor/qml/DynamicPorts.qml"
+      ],
+      "status": "partial",
+      "note": "Reset uses Ctrl or Cmd with right click and slot types use the card chip. There is no property right-click menu, and multi-node reset is open.",
+      "inventory": "F16"
+    },
+    "web/src/components/context_menus/SelectionContextMenu.tsx": {
+      "native": [
+        "native/node-editor/src/ui/EditorMenus.cpp"
+      ],
+      "inventory": "F14"
+    },
+    "web/src/components/context_menus/SidebarDocumentContextMenu.tsx": {
+      "missing": "Menu of the documents tree. Native has no documents tree.",
+      "inventory": "C7"
+    },
+    "web/src/components/context_menus/WorkflowContextMenu.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml"
+      ],
+      "status": "partial",
+      "note": "Browser offers rename and delete. The web menu's other entries are not in the native browser.",
+      "inventory": "F34"
+    },
+    "web/src/components/node_editor/Alert.tsx": {
+      "native": [
+        "native/node-editor/qml/NotificationsPanel.qml",
+        "native/node-editor/src/interfaces/Notifications.cpp"
+      ],
+      "status": "partial",
+      "note": "Errors become bell notifications. The web shows top-right toasts with one action; native has no toast.",
+      "inventory": "W16"
+    },
+    "web/src/components/node_editor/AxisMarker.tsx": {
+      "missing": "Origin axis lines that follow the viewport. Not drawn natively."
+    },
+    "web/src/components/node_editor/ConnectionLine.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "note": "Glow, width, control dash and pointer dot match.",
+      "inventory": "F03"
+    },
+    "web/src/components/node_editor/ControlEdge.tsx": {
+      "native": [
+        "native/node-editor/src/graph/LineageLayer.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "note": "Control handle visibility rules remain open.",
+      "inventory": "F11"
+    },
+    "web/src/components/node_editor/CustomEdge.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "inventory": "W32"
+    },
+    "web/src/components/node_editor/FindInWorkflowDialog.tsx": {
+      "native": [
+        "native/node-editor/qml/FindPanel.qml"
+      ],
+      "inventory": "F14"
+    },
+    "web/src/components/node_editor/FirstWorkflowGuide.tsx": {
+      "native": [
+        "native/node-editor/qml/SetupGuide.qml",
+        "native/node-editor/src/interfaces/FirstWorkflowGuide.cpp"
+      ],
+      "inventory": "F38"
+    },
+    "web/src/components/node_editor/LinkLayer.tsx": {
+      "native": [
+        "native/node-editor/src/graph/LineageLayer.cpp"
+      ],
+      "inventory": "F11"
+    },
+    "web/src/components/node_editor/NodeEditor.tsx": {
+      "native": [
+        "native/node-editor/src/ui/EditorWindow.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Canvas host. Platform input, accessibility and latency acceptance is unverified.",
+      "inventory": "F42"
+    },
+    "web/src/components/node_editor/NodeInfoPanel.tsx": {
+      "missing": "No native counterpart. Its Focus button lives in the inspector Help tab.",
+      "inventory": "F40"
+    },
+    "web/src/components/node_editor/RuntimeInstallDialog.tsx": {
+      "native": [
+        "native/node-editor/src/server/PackSetup.cpp",
+        "native/node-editor/qml/SetupPanel.qml"
+      ],
+      "status": "partial",
+      "note": "Local CLI runtimes install. Electron-only provider installs are out of reach.",
+      "inventory": "F38"
+    },
+    "web/src/components/node_editor/SelectionActionToolbar.tsx": {
+      "native": [
+        "native/node-editor/qml/SelectionToolbar.qml",
+        "native/node-editor/src/layout/SelectionLayout.cpp"
+      ],
+      "inventory": "F12"
+    },
+    "web/src/components/node_editor/ViewportStatusIndicator.tsx": {
+      "native": [
+        "native/node-editor/qml/ViewportIndicator.qml"
+      ],
+      "status": "partial",
+      "note": "Step buttons animate 200 ms where the web uses 100 ms, and the 400/800 ms fits differ.",
+      "inventory": "F40"
+    },
+    "web/src/components/node_menu/CategorySearchBar.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml",
+        "native/node-editor/src/graph/CatalogSearch.cpp"
+      ],
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/FavoritesTiles.tsx": {
+      "native": [
+        "native/node-editor/qml/NodeMenu.qml"
+      ],
+      "status": "partial",
+      "note": "Home tiles exist. Layout differs from the web (node-menu.search-add screenshot).",
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/HistoryTilesPanel.tsx": {
+      "missing": "Left-panel History view. Native recent nodes are on the menu home only.",
+      "inventory": "C5"
+    },
+    "web/src/components/node_menu/MissingKeyNodesNotice.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml"
+      ],
+      "inventory": "W17"
+    },
+    "web/src/components/node_menu/NamespaceIcon.tsx": {
+      "native": [
+        "native/node-editor/qml/TypeIcon.qml",
+        "native/node-editor/src/graph/CatalogCategories.cpp"
+      ],
+      "inventory": "W17"
+    },
+    "web/src/components/node_menu/NamespaceItem.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml",
+        "native/node-editor/src/graph/CatalogCategories.cpp"
+      ],
+      "inventory": "W17"
+    },
+    "web/src/components/node_menu/NamespaceList.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml",
+        "native/node-editor/src/graph/CatalogCategories.cpp"
+      ],
+      "inventory": "W17"
+    },
+    "web/src/components/node_menu/NamespacePanel.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml"
+      ],
+      "inventory": "W17"
+    },
+    "web/src/components/node_menu/NodeInfo.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml"
+      ],
+      "status": "partial",
+      "note": "Node description shows in the catalog. Per-node examples and the info card layout are not compared.",
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/NodeItem.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml"
+      ],
+      "status": "partial",
+      "note": "Rows exist with favorite stars. Result rows look different (node-menu.search-add screenshot).",
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/NodeLibrary.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml",
+        "native/node-editor/qml/LibraryPanel.qml"
+      ],
+      "status": "partial",
+      "note": "Toolbar Add node and the sidebar open the docked library without the menu layout.",
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/NodeLibraryRow.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml"
+      ],
+      "status": "partial",
+      "note": "See NodeItem.",
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/NodeMenu.tsx": {
+      "native": [
+        "native/node-editor/qml/NodeMenu.qml"
+      ],
+      "status": "partial",
+      "note": "Scenario node-menu.search-add: search results, highlight and the add intent match. The home layout and result rows look different.",
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/NodeProviderFilter.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml"
+      ],
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/OptionalPacksSection.tsx": {
+      "native": [
+        "native/node-editor/qml/OptionalPacksSection.qml"
+      ],
+      "inventory": "F38"
+    },
+    "web/src/components/node_menu/QuickAccessSidebar.tsx": {
+      "native": [
+        "native/node-editor/qml/Rail.qml"
+      ],
+      "status": "partial",
+      "note": "Projects, Library, Entities, Examples and More are disabled natively (C1 to C5).",
+      "inventory": "W25"
+    },
+    "web/src/components/node_menu/QuickActionTiles.constants.tsx": {
+      "native": [
+        "native/node-editor/qml/NodeMenu.qml"
+      ],
+      "status": "partial",
+      "note": "Script, snippet and AI palette materialization remains open.",
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/QuickActionTiles.tsx": {
+      "native": [
+        "native/node-editor/qml/NodeMenu.qml"
+      ],
+      "status": "partial",
+      "note": "Tiles use output type icons where the web uses its own art.",
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/RecentNodesTiles.tsx": {
+      "native": [
+        "native/node-editor/qml/NodeMenu.qml"
+      ],
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/RenderNamespaces.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml"
+      ],
+      "inventory": "W17"
+    },
+    "web/src/components/node_menu/RenderNodes.tsx": {
+      "native": [
+        "native/node-editor/qml/Catalog.qml"
+      ],
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/SearchResultItem.tsx": {
+      "native": [
+        "native/node-editor/qml/NodeMenu.qml"
+      ],
+      "status": "partial",
+      "note": "Result rows look different (node-menu.search-add screenshot).",
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/SearchResultsPanel.tsx": {
+      "native": [
+        "native/node-editor/qml/NodeMenu.qml",
+        "native/node-editor/src/graph/CatalogSearch.cpp"
+      ],
+      "note": "Ranking is a port of rankSearchNodes.",
+      "inventory": "F01"
+    },
+    "web/src/components/node_menu/TypeFilterChips.tsx": {
+      "native": [
+        "native/node-editor/qml/NodeMenu.qml"
+      ],
+      "status": "partial",
+      "note": "The Filters popover is two inline menus.",
+      "inventory": "F01"
+    },
+    "web/src/components/node_types/code_assistant/CodeAssistantChatPanel.tsx": {
+      "missing": "Code node AI assistant. Not found in native sources."
+    },
+    "web/src/components/node_types/code_assistant/CodeAssistantDialog.tsx": {
+      "missing": "Code node AI assistant. Not found in native sources."
+    },
+    "web/src/components/node_types/CodeBody.tsx": {
+      "native": [
+        "native/node-editor/qml/CodePropertyEditor.qml",
+        "native/node-editor/src/properties/CodeInference.cpp"
+      ],
+      "status": "partial",
+      "note": "Native shows the code as a row on the card, not the web Monaco body. Completion and diagnostics are web-only.",
+      "inventory": "F18"
+    },
+    "web/src/components/node_types/CodeNodeScriptLink.tsx": {
+      "missing": "Code node script-link header (pick a script, lift the body into one). Not found in native sources."
+    },
+    "web/src/components/node_types/ContentCardBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/AdjustmentBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/AdjustmentSlider.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/BlurBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/CanvasResizeBody.tsx": {
+      "missing": "Image editing body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ChannelsBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ChromaKeyBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/CollectionBody.tsx": {
+      "missing": "Bespoke body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ColorOverlayBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "The inline color popover is missing.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/CompositorBody.tsx": {
+      "missing": "Image editing body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ConstantSketchBody.tsx": {
+      "outOfScope": "sketch-editor",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ConstantTimelineBody.tsx": {
+      "outOfScope": "timeline-editor",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/CropBody.tsx": {
+      "missing": "Image editing body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/CurvesBody.tsx": {
+      "missing": "Image editing body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/DropShadowBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ExtractVideoFrameBody.tsx": {
+      "missing": "Bespoke body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/FitBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/GeneratorBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/GetVariableBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/HSLAdjustBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ImagePreview.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/LayerRow.tsx": {
+      "missing": "Image editing body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/LevelsBody.tsx": {
+      "missing": "Image editing body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ListGeneratorBody.tsx": {
+      "missing": "Bespoke body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/MaskBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Upstream images in the Before and Mask preview tabs are missing.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/MasksExtractorBody.tsx": {
+      "missing": "Image editing body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/OffsetBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/OutlineBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/PadBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/PainterBody.tsx": {
+      "missing": "Image editing body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/PasteBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Overlay rectangle and dimension badges need upstream image sizes the canvas does not read.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/AssetDropPlugin.tsx": {
+      "missing": "Prompt composer @asset and @entity mentions. The native composer has variable chips only.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/AssetMentionChip.tsx": {
+      "missing": "Prompt composer @asset and @entity mentions. The native composer has variable chips only.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/AssetMentionMenu.tsx": {
+      "missing": "Prompt composer @asset and @entity mentions. The native composer has variable chips only.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/AssetMentionNode.tsx": {
+      "missing": "Prompt composer @asset and @entity mentions. The native composer has variable chips only.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/AssetMentionPlugin.tsx": {
+      "missing": "Prompt composer @asset and @entity mentions. The native composer has variable chips only.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/EntityMentionChip.tsx": {
+      "missing": "Prompt composer @asset and @entity mentions. The native composer has variable chips only.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/EntityMentionNode.tsx": {
+      "missing": "Prompt composer @asset and @entity mentions. The native composer has variable chips only.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/MentionAssetTile.tsx": {
+      "missing": "Prompt composer @asset and @entity mentions. The native composer has variable chips only.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/MentionEntityTile.tsx": {
+      "missing": "Prompt composer @asset and @entity mentions. The native composer has variable chips only.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/VariableChip.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/promptComposer/VariableNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/PromptComposerBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ResizeBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ResizeImageBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/RotateAndFlipBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/ScaleBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/editing/SimpleFilterBody.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/PlaceholderNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Unknown-metadata cards warn. The disabled-pack enable action of the placeholder is not compared.",
+      "inventory": "F38"
+    },
+    "web/src/components/node_types/SaveToMyNodesDialog.tsx": {
+      "missing": "Code node Save to My Nodes. Not found in native sources."
+    },
+    "web/src/components/node_types/synth/AdsrPreview.tsx": {
+      "missing": "Synth module body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/synth/AudioOutBody.tsx": {
+      "missing": "Synth module body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/synth/SynthKnob.tsx": {
+      "missing": "Synth module body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/synth/SynthModuleBody.tsx": {
+      "missing": "Synth module body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node_types/synth/WaveformSelector.tsx": {
+      "missing": "Synth module body drawn with the generic card body natively.",
+      "inventory": "W4"
+    },
+    "web/src/components/node/AddDynamicOutputButton.tsx": {
+      "native": [
+        "native/node-editor/qml/DynamicPorts.qml",
+        "native/node-editor/src/properties/DynamicPortsController.cpp"
+      ],
+      "inventory": "F04"
+    },
+    "web/src/components/node/AddDynamicOutputDialog.tsx": {
+      "native": [
+        "native/node-editor/qml/DynamicPortDialog.qml"
+      ],
+      "inventory": "F04"
+    },
+    "web/src/components/node/ApiKeyValidation.tsx": {
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Generic card bodies show the missing-key band and Connect provider, which opens the server's provider settings. Bespoke bodies do not show it, and native does not open provider onboarding at the key.",
+      "inventory": "F20"
+    },
+    "web/src/components/node/AppNode/AppLoader.tsx": {
+      "native": [
+        "native/node-editor/src/document/ChildPorts.cpp"
+      ],
+      "status": "partial",
+      "note": "Derived ports and child tabs exist. F09 remains partial.",
+      "inventory": "F09"
+    },
+    "web/src/components/node/AppNode/AppNode.tsx": {
+      "native": [
+        "native/node-editor/src/document/ChildPorts.cpp"
+      ],
+      "status": "partial",
+      "note": "Native draws the generic card body.",
+      "inventory": "F09"
+    },
+    "web/src/components/node/AppNode/AppNodeContent.tsx": {
+      "missing": "Native draws the generic card body.",
+      "inventory": "W4"
+    },
+    "web/src/components/node/ArrayView.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "note": "dtype, shape and the first 100 values as code text."
+    },
+    "web/src/components/node/BaseNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/NodeLayout.cpp"
+      ],
+      "status": "partial",
+      "note": "Open: handle drop shadow, overview-zoom disabled handles, Focused badge, ambient ring for another run's node, control handle tone.",
+      "inventory": "F39"
+    },
+    "web/src/components/node/BitmapCanvas.tsx": {
+      "accepted": "Transport for the in-browser runner's ImageBitmap previews. Native previews in process."
+    },
+    "web/src/components/node/BypassGroupButton.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "inventory": "F07"
+    },
+    "web/src/components/node/CalendarEventView.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Title, time span, location, calendar and notes as Markdown. No icons."
+    },
+    "web/src/components/node/ChunkDisplay.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/run/NodeRuntimeModel.cpp"
+      ],
+      "inventory": "F26"
+    },
+    "web/src/components/node/Column.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "inventory": "F17"
+    },
+    "web/src/components/node/ColumnsManager.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Record columns edit through the shared row editor, which differs in layout.",
+      "inventory": "F17"
+    },
+    "web/src/components/node/CommentNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/InlineTitlePresenter.cpp"
+      ],
+      "status": "partial",
+      "note": "Rich-text editing and the format toolbar, the 500 ms save delay and width refit are open.",
+      "inventory": "F08"
+    },
+    "web/src/components/node/CompareImagesNode/CompareImagesNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "status": "partial",
+      "note": "The comparer slider is not on the card.",
+      "inventory": "W4"
+    },
+    "web/src/components/node/ConstantStringNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "status": "partial",
+      "note": "Open editor expands inline where the web opens a modal.",
+      "inventory": "F39"
+    },
+    "web/src/components/node/DataTable/DataTable.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Constant List and Dict tables edit through the shared row editor, which differs in layout from the web tables.",
+      "inventory": "F17"
+    },
+    "web/src/components/node/DataTable/DataTableEditors.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "See DataTable.",
+      "inventory": "F17"
+    },
+    "web/src/components/node/DataTable/DictTable.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "See DataTable.",
+      "inventory": "F17"
+    },
+    "web/src/components/node/DataTable/ListTable.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "See DataTable.",
+      "inventory": "F17"
+    },
+    "web/src/components/node/DataTable/TableActions.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "The value type select and the JSON copy and expand buttons are missing.",
+      "inventory": "F17"
+    },
+    "web/src/components/node/DynamicComfySchemaNode/ComfyWorkflowLoader.tsx": {
+      "missing": "No native schema loader."
+    },
+    "web/src/components/node/DynamicComfySchemaNode/DynamicComfySchemaContent.tsx": {
+      "missing": "Comfy nodes use the generic card body.",
+      "inventory": "W4"
+    },
+    "web/src/components/node/DynamicComfySchemaNode/DynamicComfySchemaNode.tsx": {
+      "missing": "Comfy nodes use the generic card body.",
+      "inventory": "W4"
+    },
+    "web/src/components/node/DynamicFalSchemaNode/DynamicFalSchemaContent.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node/DynamicFalSchemaNode/DynamicFalSchemaNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "status": "partial",
+      "note": "Shell matches. No pricing footer.",
+      "inventory": "W4"
+    },
+    "web/src/components/node/DynamicFalSchemaNode/FalSchemaLoader.tsx": {
+      "missing": "No native schema loader, so no reload button."
+    },
+    "web/src/components/node/DynamicKieSchemaNode/DynamicKieSchemaContent.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node/DynamicKieSchemaNode/DynamicKieSchemaNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "status": "partial",
+      "note": "Shell matches. No credits footer.",
+      "inventory": "W4"
+    },
+    "web/src/components/node/DynamicKieSchemaNode/KieSchemaLoader.tsx": {
+      "missing": "No native schema loader, so no reload button."
+    },
+    "web/src/components/node/DynamicReplicateNode/DynamicReplicateContent.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node/DynamicReplicateNode/DynamicReplicateNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node/DynamicReplicateNode/ReplicateSchemaLoader.tsx": {
+      "missing": "No native schema loader, so no reload button."
+    },
+    "web/src/components/node/DynamicSchemaNodeShell.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "status": "partial",
+      "note": "No schema loader, so no reload button. A stored dynamic property hides the hint.",
+      "inventory": "F39"
+    },
+    "web/src/components/node/DynamicSlotTypePicker.tsx": {
+      "native": [
+        "native/node-editor/qml/DynamicPorts.qml"
+      ],
+      "inventory": "F04"
+    },
+    "web/src/components/node/EditableTitle.tsx": {
+      "native": [
+        "native/node-editor/src/graph/InlineTitlePresenter.cpp",
+        "native/node-editor/qml/InlineTitleEditor.qml"
+      ],
+      "inventory": "F06"
+    },
+    "web/src/components/node/ExposedLabeledInputs.tsx": {
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "inventory": "F05"
+    },
+    "web/src/components/node/FalPricingFooter.tsx": {
+      "missing": "FAL price chip and popover on selected FAL nodes. Not found natively."
+    },
+    "web/src/components/node/GhostNode.tsx": {
+      "native": [
+        "native/node-editor/src/ui/EditorWindow.cpp"
+      ],
+      "status": "partial",
+      "note": "Pointer placement is armed natively. A ghost preview of the node under the pointer was not found.",
+      "inventory": "F01"
+    },
+    "web/src/components/node/GroupNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Open: exact icon ink, custom colors, group-body pointer pass-through, Ctrl-held group selection.",
+      "inventory": "F07"
+    },
+    "web/src/components/node/HandleColumn.tsx": {
+      "native": [
+        "native/node-editor/src/graph/NodeLayout.cpp"
+      ],
+      "inventory": "W1"
+    },
+    "web/src/components/node/HandleOnlyField.tsx": {
+      "native": [
+        "native/node-editor/src/graph/NodeLayout.cpp"
+      ],
+      "inventory": "W1"
+    },
+    "web/src/components/node/ImageDimensions.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "inventory": "F19"
+    },
+    "web/src/components/node/ImageRefPreview.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardMedia.cpp",
+        "native/node-editor/src/media/MediaResolver.cpp"
+      ],
+      "inventory": "F19"
+    },
+    "web/src/components/node/ImageView.tsx": {
+      "native": [
+        "native/node-editor/qml/ImageViewer.qml",
+        "native/node-editor/qml/MediaPreview.qml"
+      ],
+      "inventory": "F28"
+    },
+    "web/src/components/node/InputNodeNameWarning.tsx": {
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Name required and Duplicate name bands. The tooltip is missing."
+    },
+    "web/src/components/node/InputProperty.tsx": {
+      "native": [
+        "native/node-editor/src/graph/NodeLayout.cpp"
+      ],
+      "inventory": "W1"
+    },
+    "web/src/components/node/KeyboardConnectionPicker.tsx": {
+      "missing": "Keyboard path to connect a handle (from the handle tooltip). Not found natively.",
+      "inventory": "F42"
+    },
+    "web/src/components/node/KeyframeTimingStrip.tsx": {
+      "missing": "Time axis under keyframe model nodes. Native marks keyframe lists unsupported."
+    },
+    "web/src/components/node/KieCreditsFooter.tsx": {
+      "missing": "KIE credits chip and popover. Not found natively."
+    },
+    "web/src/components/node/MediaAspectResizeControl.tsx": {
+      "missing": "Media aspect resize is open.",
+      "inventory": "F06"
+    },
+    "web/src/components/node/MediaOverlayContext.tsx": {
+      "accepted": "Web plumbing with no user-facing surface of its own."
+    },
+    "web/src/components/node/MiniMapNavigator.tsx": {
+      "native": [
+        "native/node-editor/qml/MiniMapControls.qml",
+        "native/node-editor/qml/MiniMapPopups.qml"
+      ],
+      "status": "partial",
+      "note": "React Flow's drag geometry on the mini-map is not matched. No Show legend flag.",
+      "inventory": "F40"
+    },
+    "web/src/components/node/ModelSetupCallout.tsx": {
+      "missing": "Callout under a model selector after a run fails for a missing model. Not found natively.",
+      "inventory": "F20"
+    },
+    "web/src/components/node/NodeChunkDisplay.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "inventory": "F26"
+    },
+    "web/src/components/node/NodeContent.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "inventory": "F26"
+    },
+    "web/src/components/node/NodeDependencyWarning.tsx": {
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "inventory": "F38"
+    },
+    "web/src/components/node/NodeErrors.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/run/BugReport.cpp"
+      ],
+      "status": "partial",
+      "note": "Report opens the prefilled, redacted GitHub issue the web dialog opens. The dialog's description fields and report bundle are missing.",
+      "inventory": "F26"
+    },
+    "web/src/components/node/NodeExecutionTime.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Not compared against the web pill.",
+      "inventory": "F26"
+    },
+    "web/src/components/node/NodeHeader.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/NodeLayout.cpp"
+      ],
+      "inventory": "W31"
+    },
+    "web/src/components/node/NodeHistoryViewer.tsx": {
+      "native": [
+        "native/node-editor/qml/GenerationHistory.qml",
+        "native/node-editor/src/run/GenerationHistory.cpp"
+      ],
+      "status": "partial",
+      "note": "List, not the web grouped thumbnail grid or single-view pager. History download and quick actions are open.",
+      "inventory": "F32"
+    },
+    "web/src/components/node/NodeInputs.tsx": {
+      "native": [
+        "native/node-editor/src/graph/NodeLayout.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "inventory": "F05"
+    },
+    "web/src/components/node/NodeLogs.tsx": {
+      "native": [
+        "native/node-editor/qml/TraceLogList.qml"
+      ],
+      "status": "partial",
+      "note": "Logs show in the trace dock. No per-node logs dialog.",
+      "inventory": "F32"
+    },
+    "web/src/components/node/NodeModelChips.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/qml/ModelPropertyEditor.qml"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/node/NodeOutput.tsx": {
+      "native": [
+        "native/node-editor/src/graph/NodeLayout.cpp"
+      ],
+      "inventory": "W6"
+    },
+    "web/src/components/node/NodeOutputs.tsx": {
+      "native": [
+        "native/node-editor/src/graph/NodeLayout.cpp"
+      ],
+      "inventory": "W6"
+    },
+    "web/src/components/node/NodeProgress.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "inventory": "W12"
+    },
+    "web/src/components/node/NodePropertyForm.tsx": {
+      "native": [
+        "native/node-editor/qml/Inspector.qml",
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F16"
+    },
+    "web/src/components/node/NodeResizeHandle.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "inventory": "F06"
+    },
+    "web/src/components/node/NodeResizer.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "inventory": "F06"
+    },
+    "web/src/components/node/NodeSelectionToolbar.tsx": {
+      "native": [
+        "native/node-editor/qml/SelectionToolbar.qml"
+      ],
+      "inventory": "F06"
+    },
+    "web/src/components/node/NodeStatus.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "inventory": "W11"
+    },
+    "web/src/components/node/NodeToolButtons.tsx": {
+      "native": [
+        "native/node-editor/qml/SelectionToolbar.qml"
+      ],
+      "inventory": "F25"
+    },
+    "web/src/components/node/output/Actions.tsx": {
+      "native": [
+        "native/node-editor/qml/MediaPreview.qml"
+      ],
+      "status": "partial",
+      "note": "See OutputQuickActionButtons.",
+      "inventory": "F30"
+    },
+    "web/src/components/node/output/AgentStatusRenderer.tsx": {
+      "missing": "Agent status output. Not found natively."
+    },
+    "web/src/components/node/output/ArrayRenderer.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "note": "dtype, shape and the first 100 values as code text."
+    },
+    "web/src/components/node/output/AssetGrid.tsx": {
+      "native": [
+        "native/node-editor/qml/MediaGallery.qml"
+      ],
+      "status": "partial",
+      "note": "Grid hover actions, multi-select and batch download are open.",
+      "inventory": "F30"
+    },
+    "web/src/components/node/output/BooleanRenderer.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/ChunkRenderer.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/DataframeRenderer.tsx": {
+      "native": [
+        "native/node-editor/qml/DataframeOutput.qml"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/DatetimeRenderer.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/EmailRenderer.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/ImageComparisonRenderer.tsx": {
+      "native": [
+        "native/node-editor/qml/ImageComparisonOutput.qml"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/JSONRenderer.tsx": {
+      "native": [
+        "native/node-editor/qml/ObjectOutput.qml"
+      ],
+      "status": "partial",
+      "note": "Structured fields render. Copy and expand actions not compared.",
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/markdown.tsx": {
+      "native": [
+        "native/node-editor/qml/TextOutput.qml"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/ObjectRenderer.tsx": {
+      "native": [
+        "native/node-editor/qml/ObjectOutput.qml"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/PlotlyChart.tsx": {
+      "native": [
+        "native/node-editor/qml/RichOutput.qml"
+      ],
+      "status": "partial",
+      "note": "Native shows a configuration and data fallback, not a chart.",
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/PlotlyRenderer.tsx": {
+      "native": [
+        "native/node-editor/qml/RichOutput.qml"
+      ],
+      "status": "partial",
+      "note": "Native shows a configuration and data fallback, not a chart.",
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/RealtimeAudioOutput.tsx": {
+      "native": [
+        "native/node-editor/src/media/PcmStream.cpp"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/StreamPcm16Player.tsx": {
+      "native": [
+        "native/node-editor/src/media/PcmStream.cpp"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/svg.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "match",
+      "note": "svg_element outputs render to a PNG through QSvgRenderer, after the same element and attribute filter.",
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/TextRenderer.tsx": {
+      "native": [
+        "native/node-editor/qml/TextOutput.qml"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/output/ToolCallRenderer.tsx": {
+      "native": [
+        "native/node-editor/qml/RichOutput.qml"
+      ],
+      "inventory": "F31"
+    },
+    "web/src/components/node/OutputNode/OutputNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node/OutputQuickActionButtons.tsx": {
+      "native": [
+        "native/node-editor/qml/MediaPreview.qml"
+      ],
+      "status": "partial",
+      "note": "Copy and Download exist. Grid hover actions, multi-select compare, batch download and the viewer's edit, transform and open-workflow actions are open.",
+      "inventory": "F30"
+    },
+    "web/src/components/node/OutputRenderer.tsx": {
+      "native": [
+        "native/node-editor/qml/RichOutput.qml",
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "partial",
+      "note": "html renders as formatted text with images removed, and a stored html or document output links to its URL. PDF and inline document previews are missing. Task, task plan, calendar event, message and np_array outputs render as text. Sketch, timeline and model_3d viewers are out of scope.",
+      "inventory": "F31"
+    },
+    "web/src/components/node/PlanningUpdateDisplay.tsx": {
+      "missing": "Agent planning updates on the card. Not found natively."
+    },
+    "web/src/components/node/PreviewImageGrid.tsx": {
+      "native": [
+        "native/node-editor/qml/MediaGallery.qml",
+        "native/node-editor/src/media/MediaGalleryModel.cpp"
+      ],
+      "inventory": "F30"
+    },
+    "web/src/components/node/PreviewNode/PreviewActions.tsx": {
+      "native": [
+        "native/node-editor/qml/MediaPreview.qml"
+      ],
+      "status": "partial",
+      "note": "See OutputQuickActionButtons.",
+      "inventory": "F30"
+    },
+    "web/src/components/node/PreviewNode/PreviewNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "inventory": "W4"
+    },
+    "web/src/components/node/PropertyField.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F15"
+    },
+    "web/src/components/node/PropertyInput.resolver.tsx": {
+      "native": [
+        "native/node-editor/src/properties/PropertyFields.h"
+      ],
+      "status": "partial",
+      "note": "See the propertyTypes inventory. 3D generation model fields (model_3d_model) are unsupported.",
+      "inventory": "F15"
+    },
+    "web/src/components/node/PropertyInput.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F15"
+    },
+    "web/src/components/node/PropertyLabel.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "W19"
+    },
+    "web/src/components/node/ReactFlowWrapper.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/ui/EditorWindow.cpp"
+      ],
+      "inventory": "F02"
+    },
+    "web/src/components/node/RequiredSettingsWarning.tsx": {
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Warns for required settings the server lists as secrets. Non-secret required settings are not checked, and a key the provider key band already names is not repeated."
+    },
+    "web/src/components/node/RerouteNode.tsx": {
+      "native": [
+        "native/node-editor/src/graph/RerouteTypes.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "inventory": "F10"
+    },
+    "web/src/components/node/RunGroupButton.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "A group Run acts on every descendant where the web acts on direct children.",
+      "inventory": "F25"
+    },
+    "web/src/components/node/SaveDestinationHint.tsx": {
+      "missing": "Where a Save node's file goes. Not found natively."
+    },
+    "web/src/components/node/SketchNode/SketchNode.tsx": {
+      "outOfScope": "sketch-editor",
+      "inventory": "W4"
+    },
+    "web/src/components/node/StepView.tsx": {
+      "missing": "Agent step output. Not found natively."
+    },
+    "web/src/components/node/SubgraphNode/SubgraphNode.tsx": {
+      "native": [
+        "native/node-editor/src/document/ChildPorts.cpp",
+        "native/node-editor/src/document/GroupIntoSubgraph.cpp"
+      ],
+      "status": "partial",
+      "note": "F09 remains partial.",
+      "inventory": "F09"
+    },
+    "web/src/components/node/SubgraphNode/SubgraphNodeContent.tsx": {
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Card footer exists. Specialized subgraph overlays are open.",
+      "inventory": "F09"
+    },
+    "web/src/components/node/SubgraphNode/SubgraphSync.tsx": {
+      "native": [
+        "native/node-editor/src/document/ChildPorts.cpp"
+      ],
+      "inventory": "F09"
+    },
+    "web/src/components/node/TaskPlanView.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Plan title over each task as Markdown."
+    },
+    "web/src/components/node/TaskUpdateDisplay.tsx": {
+      "missing": "Agent task updates on the card. Not found natively."
+    },
+    "web/src/components/node/TaskView.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Title, description and a step checklist as Markdown."
+    },
+    "web/src/components/node/ThreadMessageList.tsx": {
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Role and text parts as Markdown. Tool calls show their name only."
+    },
+    "web/src/components/node/WorkflowNode/WorkflowLoader.tsx": {
+      "native": [
+        "native/node-editor/src/document/ChildPorts.cpp"
+      ],
+      "status": "partial",
+      "inventory": "F09"
+    },
+    "web/src/components/node/WorkflowNode/WorkflowNode.tsx": {
+      "native": [
+        "native/node-editor/src/document/ChildPorts.cpp"
+      ],
+      "status": "partial",
+      "note": "Native draws the generic card body.",
+      "inventory": "F09"
+    },
+    "web/src/components/node/WorkflowNode/WorkflowNodeContent.tsx": {
+      "missing": "Native draws the generic card body.",
+      "inventory": "W4"
+    },
+    "web/src/components/panels/AppPagesList.tsx": {
+      "missing": "App pages (Settings, Help, Downloads) of the rail logo menu. The native logo has no menu.",
+      "inventory": "C6"
+    },
+    "web/src/components/panels/CanvasChatWindow.tsx": {
+      "native": [
+        "native/node-editor/qml/EditorChat.qml",
+        "native/node-editor/src/ui/EditorChat.cpp"
+      ],
+      "status": "partial",
+      "note": "Not accepted.",
+      "inventory": "F36"
+    },
+    "web/src/components/panels/CanvasMediaComposer.tsx": {
+      "native": [
+        "native/node-editor/qml/EditorChat.qml"
+      ],
+      "status": "partial",
+      "note": "Media modes and setting chips send the web payloads. Not accepted.",
+      "inventory": "F36"
+    },
+    "web/src/components/panels/ComfyTargetSelector.tsx": {
+      "missing": "Where Comfy workflows run. Not found natively."
+    },
+    "web/src/components/panels/DocumentsTree.tsx": {
+      "missing": "Native rail Documents opens the workflow browser, which lists workflows only.",
+      "inventory": "C7"
+    },
+    "web/src/components/panels/FloatingToolBar.tsx": {
+      "native": [
+        "native/node-editor/qml/Toolbar.qml"
+      ],
+      "inventory": "W14"
+    },
+    "web/src/components/panels/FrontendToolRuntimeSync.tsx": {
+      "native": [
+        "native/node-editor/src/ui/EditorChatTools.cpp"
+      ],
+      "inventory": "F36"
+    },
+    "web/src/components/panels/generations/GenerationsPanel.tsx": {
+      "missing": "Status Generations is disabled natively.",
+      "inventory": "C8"
+    },
+    "web/src/components/panels/generations/GenerationTile.tsx": {
+      "missing": "Status Generations is disabled natively.",
+      "inventory": "C8"
+    },
+    "web/src/components/panels/generations/OpenAsWorkflowAction.tsx": {
+      "missing": "Status Generations is disabled natively.",
+      "inventory": "C8"
+    },
+    "web/src/components/panels/HidePanelOnAssetOpen.tsx": {
+      "accepted": "Web plumbing with no user-facing surface of its own."
+    },
+    "web/src/components/panels/jobs/JobItem.tsx": {
+      "native": [
+        "native/node-editor/qml/QueueOverlay.qml",
+        "native/node-editor/src/server/AccountJobs.cpp"
+      ],
+      "status": "partial",
+      "note": "Error jobs have no Report control.",
+      "inventory": "F24"
+    },
+    "web/src/components/panels/jobs/QueuePanel.tsx": {
+      "native": [
+        "native/node-editor/qml/QueueOverlay.qml"
+      ],
+      "status": "partial",
+      "note": "Opens only while jobs exist.",
+      "inventory": "C11"
+    },
+    "web/src/components/panels/LogPanel.tsx": {
+      "native": [
+        "native/node-editor/qml/TraceLogList.qml"
+      ],
+      "status": "partial",
+      "note": "The stored-log list is open.",
+      "inventory": "F32"
+    },
+    "web/src/components/panels/MobileRailLauncher.tsx": {
+      "accepted": "Mobile layout. The native editor is desktop only."
+    },
+    "web/src/components/panels/MorePanel.tsx": {
+      "missing": "Rail More is disabled natively.",
+      "inventory": "C5"
+    },
+    "web/src/components/panels/NotificationButton.tsx": {
+      "native": [
+        "native/node-editor/qml/NotificationsPanel.qml",
+        "native/node-editor/src/run/BugReport.cpp"
+      ],
+      "status": "partial",
+      "note": "Report opens the prefilled, redacted GitHub issue the web dialog opens. The dialog's description fields and report bundle are missing.",
+      "inventory": "W16"
+    },
+    "web/src/components/panels/PanelBottom.tsx": {
+      "native": [
+        "native/node-editor/qml/RunOutput.qml",
+        "native/node-editor/qml/StatusBar.qml"
+      ],
+      "status": "partial",
+      "note": "Status bar gaps C8 to C13.",
+      "inventory": "W23"
+    },
+    "web/src/components/panels/PanelLeft.tsx": {
+      "native": [
+        "native/node-editor/qml/LibraryPanel.qml",
+        "native/node-editor/qml/Rail.qml"
+      ],
+      "status": "partial",
+      "note": "Library, Entities, Examples and More views are missing.",
+      "inventory": "W25"
+    },
+    "web/src/components/panels/PanelRight.tsx": {
+      "native": [
+        "native/node-editor/qml/Inspector.qml"
+      ],
+      "note": "Cost table and unsaved-edit pricing are open.",
+      "inventory": "W20"
+    },
+    "web/src/components/panels/QueueOverlay.tsx": {
+      "native": [
+        "native/node-editor/qml/QueueOverlay.qml"
+      ],
+      "status": "partial",
+      "note": "Pinned focus and acceptance are open.",
+      "inventory": "F24"
+    },
+    "web/src/components/panels/RailAppMenu.tsx": {
+      "missing": "The native logo has no menu.",
+      "inventory": "C6"
+    },
+    "web/src/components/panels/SettingsHeaderButton.tsx": {
+      "native": [
+        "native/node-editor/qml/TabBar.qml"
+      ],
+      "inventory": "W16"
+    },
+    "web/src/components/panels/StatusMessage.tsx": {
+      "native": [
+        "native/node-editor/qml/StatusBar.qml"
+      ],
+      "status": "partial",
+      "note": "Runner status messages are not shown natively.",
+      "inventory": "W24"
+    },
+    "web/src/components/panels/TracePanel.tsx": {
+      "native": [
+        "native/node-editor/qml/RunTracePanel.qml",
+        "native/node-editor/src/run/RunTraceController.cpp"
+      ],
+      "status": "partial",
+      "note": "Popup sizing, status pills and the richer run picker are open.",
+      "inventory": "F32"
+    },
+    "web/src/components/panels/TriggerActivationButton.tsx": {
+      "missing": "Arms a workflow's trigger nodes. Not found natively."
+    },
+    "web/src/components/panels/useAppMenuActions.tsx": {
+      "missing": "The native logo has no menu.",
+      "inventory": "C6"
+    },
+    "web/src/components/properties/ASRModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/properties/AssetProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/AssetPropertyEditor.qml",
+        "native/node-editor/src/properties/AssetPickerController.cpp"
+      ],
+      "inventory": "F19"
+    },
+    "web/src/components/properties/AudioListProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/MediaListPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Recording, connected upstream-list previews and list drop zones on the card are open.",
+      "inventory": "F19"
+    },
+    "web/src/components/properties/AudioProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/AssetPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Recording and trim are open.",
+      "inventory": "F19"
+    },
+    "web/src/components/properties/AudioToAudioModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/properties/BoolProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F15"
+    },
+    "web/src/components/properties/CodeProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/CodePropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Monaco completion and semantic diagnostics are web-only.",
+      "inventory": "F18"
+    },
+    "web/src/components/properties/CollectionProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/CollectionPropertyEditor.qml"
+      ],
+      "inventory": "F21"
+    },
+    "web/src/components/properties/ColorProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/ColorPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Saved swatches, history, harmony and contrast tools, eyedropper and gradients are missing.",
+      "inventory": "F23"
+    },
+    "web/src/components/properties/ConnectedBadge.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F16"
+    },
+    "web/src/components/properties/curated/CuratedModelSelect.tsx": {
+      "missing": "Studio curated selects are open.",
+      "inventory": "F20"
+    },
+    "web/src/components/properties/DataframeEditorModal.tsx": {
+      "missing": "The dataframe editor is outside the native structured slice.",
+      "inventory": "F17"
+    },
+    "web/src/components/properties/DataframeProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Dataframe editing is outside the native structured slice. Cards show Add column and a drop zone.",
+      "inventory": "F17"
+    },
+    "web/src/components/properties/DictProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "inventory": "F17"
+    },
+    "web/src/components/properties/DocumentPickerProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/DocumentPropertyEditor.qml",
+        "native/node-editor/src/properties/DocumentPickerController.cpp"
+      ],
+      "status": "partial",
+      "note": "No creation or refresh controls.",
+      "inventory": "F22"
+    },
+    "web/src/components/properties/DocumentProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/AssetPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "No embedded PDF or HTML viewer (scope change SC3).",
+      "inventory": "F21"
+    },
+    "web/src/components/properties/EmbeddingModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/properties/EntityProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/RemainingResourcePropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Entity-library create and open have no native host.",
+      "inventory": "F21"
+    },
+    "web/src/components/properties/EnumProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F15"
+    },
+    "web/src/components/properties/FilePathProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/PathPropertyEditor.qml"
+      ],
+      "inventory": "F23"
+    },
+    "web/src/components/properties/FileProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/FilePropertyEditor.qml"
+      ],
+      "inventory": "F23"
+    },
+    "web/src/components/properties/FloatProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F15"
+    },
+    "web/src/components/properties/FolderPathProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/PathPropertyEditor.qml"
+      ],
+      "inventory": "F23"
+    },
+    "web/src/components/properties/FolderProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/RemainingResourcePropertyEditor.qml"
+      ],
+      "inventory": "F21"
+    },
+    "web/src/components/properties/FontProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/RemainingResourcePropertyEditor.qml"
+      ],
+      "inventory": "F23"
+    },
+    "web/src/components/properties/HuggingFaceModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/properties/ImageListProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/MediaListPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Connected upstream-list previews and list drop zones on the card are open.",
+      "inventory": "F19"
+    },
+    "web/src/components/properties/ImageModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/properties/ImageProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/AssetPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Crop and internal library drag payloads are open.",
+      "inventory": "F19"
+    },
+    "web/src/components/properties/ImageSizePresetsMenu.tsx": {
+      "native": [
+        "native/node-editor/qml/ImageSizePropertyEditor.qml"
+      ],
+      "inventory": "F23"
+    },
+    "web/src/components/properties/ImageSizeProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/ImageSizePropertyEditor.qml"
+      ],
+      "inventory": "F23"
+    },
+    "web/src/components/properties/InferenceProviderModelSelect.tsx": {
+      "accepted": "No node in the catalog declares an inference_provider_* type."
+    },
+    "web/src/components/properties/IntegerProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F15"
+    },
+    "web/src/components/properties/JSONProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "JSON copy and expand buttons are missing.",
+      "inventory": "F17"
+    },
+    "web/src/components/properties/LanguageModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/properties/ListProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "The value type select is missing.",
+      "inventory": "F17"
+    },
+    "web/src/components/properties/LlamaModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "note": "Lists models.ollama and stores {type: llama_model, repo_id}.",
+      "inventory": "F20"
+    },
+    "web/src/components/properties/MediaPickerProperties.tsx": {
+      "native": [
+        "native/node-editor/qml/MediaParameterPropertyEditor.qml"
+      ],
+      "inventory": "F23"
+    },
+    "web/src/components/properties/Model3DModelSelect.tsx": {
+      "missing": "model_3d_model fields are unsupported natively (ImageTo3D, TextTo3D). The web picker fetches /api/models/3d, which the TypeScript server does not serve, so there is no list to port.",
+      "inventory": "F20"
+    },
+    "web/src/components/properties/Model3DProperty.tsx": {
+      "outOfScope": "3d-editor",
+      "native": [
+        "native/node-editor/qml/Model3DPropertyEditor.qml"
+      ],
+      "inventory": "F22"
+    },
+    "web/src/components/properties/ModelProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/node-editor/src/properties/ModelPickerController.cpp"
+      ],
+      "status": "partial",
+      "note": "Open: recommended_models and model_packs, worker-scoped downloads, provider enable and disable, rail counts, size filter, curated selects, 32 px rows.",
+      "inventory": "F20"
+    },
+    "web/src/components/properties/MusicModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/properties/NumberProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F15"
+    },
+    "web/src/components/properties/PropertyDropzone.tsx": {
+      "native": [
+        "native/node-editor/qml/AssetPropertyEditor.qml"
+      ],
+      "inventory": "F19"
+    },
+    "web/src/components/properties/PropertyListThumb.tsx": {
+      "native": [
+        "native/node-editor/qml/MediaListPropertyEditor.qml"
+      ],
+      "inventory": "F19"
+    },
+    "web/src/components/properties/PropertyVisibilityToggle.tsx": {
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Native reads exposed_inputs_labeled and exposed_inputs_hidden. The inspector toggle that sets them was not found.",
+      "inventory": "F05"
+    },
+    "web/src/components/properties/RecordTypeProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "inventory": "F17"
+    },
+    "web/src/components/properties/RerankModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/properties/ScriptProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/DocumentPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Opens Studio in the external browser.",
+      "inventory": "F22"
+    },
+    "web/src/components/properties/SelectProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F15"
+    },
+    "web/src/components/properties/shared/BasePathProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/PathPropertyEditor.qml"
+      ],
+      "inventory": "F23"
+    },
+    "web/src/components/properties/shared/ModelSelectButton.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Row and execution chip styling differ.",
+      "inventory": "F20"
+    },
+    "web/src/components/properties/SketchProperty.tsx": {
+      "outOfScope": "sketch-editor",
+      "native": [
+        "native/node-editor/qml/DocumentPropertyEditor.qml"
+      ],
+      "inventory": "F22"
+    },
+    "web/src/components/properties/StoryboardProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/DocumentPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Opens Studio in the external browser.",
+      "inventory": "F22"
+    },
+    "web/src/components/properties/StringListProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/StructuredPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "The string list editor is outside the native structured slice.",
+      "inventory": "F17"
+    },
+    "web/src/components/properties/StringProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/PropertyField.qml"
+      ],
+      "inventory": "F15"
+    },
+    "web/src/components/properties/TextAssetDisplay.tsx": {
+      "native": [
+        "native/node-editor/qml/AssetPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Plain text only.",
+      "inventory": "F21"
+    },
+    "web/src/components/properties/TextEditorModal.tsx": {
+      "native": [
+        "native/node-editor/qml/InlinePropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Native expands the text inline instead of a modal editor.",
+      "inventory": "F05"
+    },
+    "web/src/components/properties/TextListProperty.tsx": {
+      "accepted": "No node in the catalog declares list[text]."
+    },
+    "web/src/components/properties/TextProperty.tsx": {
+      "accepted": "No node in the catalog declares the text type. Native maps text in unions to str."
+    },
+    "web/src/components/properties/TimelineProperty.tsx": {
+      "outOfScope": "timeline-editor",
+      "native": [
+        "native/node-editor/qml/DocumentPropertyEditor.qml"
+      ],
+      "inventory": "F22"
+    },
+    "web/src/components/properties/ToolsListProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/ToolsPropertyEditor.qml"
+      ],
+      "inventory": "F21"
+    },
+    "web/src/components/properties/TransformersJsModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "status": "partial",
+      "note": "Lists models.transformersJsByType and stores {type, repo_id, path}. The web main list shows downloaded models only and offers the rest as recommended downloads; native lists every model the server returns.",
+      "inventory": "F20"
+    },
+    "web/src/components/properties/TTSModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/properties/VideoListProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/MediaListPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Connected upstream-list previews and list drop zones on the card are open.",
+      "inventory": "F19"
+    },
+    "web/src/components/properties/VideoModelSelect.tsx": {
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "inventory": "F20"
+    },
+    "web/src/components/properties/VideoProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/AssetPropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Recording and trim are open.",
+      "inventory": "F19"
+    },
+    "web/src/components/properties/WorkflowListProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowPropertyEditor.qml"
+      ],
+      "inventory": "F21"
+    },
+    "web/src/components/properties/WorkflowProperty.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowPropertyEditor.qml"
+      ],
+      "inventory": "F21"
+    },
+    "web/src/components/version/GraphVisualDiff.tsx": {
+      "native": [
+        "native/node-editor/qml/VersionGraphPreview.qml"
+      ],
+      "inventory": "F37"
+    },
+    "web/src/components/version/VersionDiff.tsx": {
+      "native": [
+        "native/node-editor/qml/VersionHistoryPanel.qml",
+        "native/node-editor/src/server/WorkflowVersions.cpp"
+      ],
+      "inventory": "F37"
+    },
+    "web/src/components/version/VersionHistoryPanel.tsx": {
+      "native": [
+        "native/node-editor/qml/VersionHistoryPanel.qml"
+      ],
+      "inventory": "F37"
+    },
+    "web/src/components/version/VersionListItem.tsx": {
+      "native": [
+        "native/node-editor/qml/VersionHistoryPanel.qml"
+      ],
+      "inventory": "F37"
+    },
+    "web/src/components/version/WorkflowGraphPreview.tsx": {
+      "native": [
+        "native/node-editor/qml/VersionGraphPreview.qml"
+      ],
+      "inventory": "F37"
+    },
+    "web/src/components/version/WorkflowMiniPreview.tsx": {
+      "native": [
+        "native/node-editor/qml/VersionGraphPreview.qml"
+      ],
+      "inventory": "F37"
+    }
+  }
+}

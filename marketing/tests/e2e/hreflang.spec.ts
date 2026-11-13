@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { LANGUAGE_PAGES } from "../../src/data/languagePages";
+import { DIRECT_PROVIDER_HREFS, LANGUAGE_PAGES } from "../../src/data/languagePages";
 
 /** hreflang alternates as { lang: href } from a page's <head>. */
 function alternates(html: string): Record<string, string> {
@@ -56,4 +56,20 @@ test("the footer links every language page", async ({ request }) => {
   for (const page of PAGES) {
     expect(html, page.path).toContain(`href="${page.path}"`);
   }
+});
+
+test("the Japanese, Chinese and Hindi pages list the direct providers with English links", async ({ request }) => {
+  for (const page of PAGES) {
+    const html = await (await request.get(page.path)).text();
+    if (!page.providers) {
+      expect(html, page.path).not.toContain(`id="${page.path.slice(1)}-providers"`);
+      continue;
+    }
+    expect(html, page.path).toContain(`id="${page.path.slice(1)}-providers"`);
+    for (const item of page.providers.items) {
+      const href = DIRECT_PROVIDER_HREFS[item.provider];
+      expect(html, `${page.path} ${item.provider}`).toMatch(new RegExp(`<a href="${href.replace(/[.?]/g, "\\$&")}" hrefLang="en"`, "i"));
+    }
+  }
+  expect(PAGES.filter((page) => page.providers).map((page) => page.path).sort()).toEqual(["/hi", "/ja", "/zh"]);
 });

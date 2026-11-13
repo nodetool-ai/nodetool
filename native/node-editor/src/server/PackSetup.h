@@ -28,6 +28,8 @@ public:
     QString error() const { return error_; }
     bool secretsLoaded() const { return secretsLoaded_; }
     QStringList configuredKeys() const;
+    // Every secret settings.secrets.list returns, configured or not.
+    QStringList secretKeys() const;
     bool showNodesWithoutKey() const { return showNodesWithoutKey_; }
     void setShowNodesWithoutKey(bool show);
     void configure(const QUrl &origin, const QString &token, const QString &user);

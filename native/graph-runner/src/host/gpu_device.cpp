@@ -9,7 +9,17 @@
 #include <webgpu/webgpu.h>
 #include <webgpu/wgpu.h>
 
+#if NODETOOL_GPU_SHARE_VULKAN
+#include "host/gpu_share_vulkan.h"
+#endif
+#if NODETOOL_GPU_SHARE_METAL
+#include <CoreFoundation/CoreFoundation.h>
+#include <objc/message.h>
+#include <objc/runtime.h>
+#endif
+
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <functional>
@@ -142,16 +152,68 @@ struct Tex {
   bool straight = false;
 };
 
+class WgpuDevice;
+
+// A texture that a consumer on another GPU runtime may hold (gpu_share.h).
+// It owns the WGPUTexture: the device's table and every consumer share it,
+// and the texture is destroyed when the last of them lets go.
+//
+// Thread affinity: publish() and reclaim() take the device mutex, which
+// guards `written_` and `layout_`. The atomics are read from any thread.
+// The destructor may run on any thread: wgpu-native objects are thread-safe
+// and destroying a texture uses no queue.
+class ShareState final : public SharedTexture {
+public:
+  // `device` is shared because consumers call publish() and open() after
+  // the run that made the texture ended. The device lives as long as the
+  // process (Device::acquire).
+  ShareState(std::shared_ptr<WgpuDevice> device, uint64_t id, WGPUTexture texture, ShareDescriptor descriptor)
+      : device_(std::move(device)), id_(id), texture_(texture), descriptor_(descriptor) {}
+  ShareState(const ShareState&) = delete;
+  ShareState& operator=(const ShareState&) = delete;
+  ~ShareState() override {
+    wgpuTextureDestroy(texture_);
+    wgpuTextureRelease(texture_);
+  }
+
+  uint64_t id() const override { return id_; }
+  const ShareDescriptor& descriptor() const override { return descriptor_; }
+  std::chrono::nanoseconds publish() override;
+  void reclaim() override;
+  bool published() const override { return published_.load(); }
+  NativeShareHandle open(std::string& error) const override;
+  uint64_t cpuTransfers() const override { return cpuTransfers_.load(); }
+
+  std::shared_ptr<WgpuDevice> device_;
+  const uint64_t id_;
+  const WGPUTexture texture_;
+  const ShareDescriptor descriptor_;
+  // Vulkan: the image and memory wgpu-native keeps alive for this texture.
+  uint64_t vulkanImage_ = 0;
+  uint64_t vulkanMemory_ = 0;
+  // Guarded by the device mutex: whether a pass wrote the texture, and the
+  // Vulkan layout wgpu-hal left it in after its last use.
+  bool written_ = false;
+  uint32_t layout_ = 0;
+  std::atomic<bool> published_{false};
+  std::atomic<uint64_t> cpuTransfers_{0};
+};
+
 struct Stored {
   Tex tex;
   std::string run;
+  // Set for a texture that share() can hand out. It then owns the texture.
+  std::shared_ptr<ShareState> share;
 };
 
 // native-rules #14: process-wide mutable texture id counter
 std::atomic<uint64_t> nextTextureId{1};
 
-// native-rules #9: process-wide device used from many threads, no affinity comment
-class WgpuDevice final : public Device {
+// Thread affinity: thread-safe. Every public method takes `mutex_`, which
+// also serializes all use of the wgpu queue and of the device-wide error
+// scope stack. openShared() takes no lock and reads only members that are
+// fixed after open().
+class WgpuDevice final : public Device, public std::enable_shared_from_this<WgpuDevice> {
 public:
   explicit WgpuDevice(const GpuOptions& options) { open(options); }
 
@@ -188,50 +250,217 @@ public:
     if (!(width > 0 && width <= 65535 && height > 0 && height <= 65535)) {
       throw std::runtime_error("invalid GPU output dimensions");
     }
-    const Module& module = catalog.module(key);
-    std::map<std::string, Tex> inputs;
-    for (const auto& [name, id] : inputIds) inputs[name] = find(id).tex;
-
     const uint32_t w = uint32_t(std::max(1.0, std::floor(width)));
     const uint32_t h = uint32_t(std::max(1.0, std::floor(height)));
     Tex output = createTexture(w, h, WGPUTextureFormat_RGBA8Unorm, kOutputUsage, key + "-output");
-
-    Encoding enc;
-    WGPUCommandEncoderDescriptor ced = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
-    enc.encoder = wgpuDeviceCreateCommandEncoder(device_, &ced);
-    wgpuDevicePushErrorScope(device_, WGPUErrorFilter_Validation);
-    std::string error;
     try {
-      if (module.kind == "recipe") {
-        encodeRecipe(enc, catalog, module, inputs, output, params);
-      } else {
-        Dispatch dispatch;
-        if (module.kind == "compute") {
-          dispatch = {true, uint32_t(std::ceil(width / module.workgroupSize[0])),
-                      uint32_t(std::ceil(height / module.workgroupSize[1])), 1};
-        }
-        encodeModule(enc, catalog, module, inputs, output, params, dispatch);
-      }
-      WGPUCommandBufferDescriptor cbd = WGPU_COMMAND_BUFFER_DESCRIPTOR_INIT;
-      WGPUCommandBuffer commands = wgpuCommandEncoderFinish(enc.encoder, &cbd);
-      wgpuQueueSubmit(queue_, 1, &commands);
-      wgpuCommandBufferRelease(commands);
-    } catch (const std::exception& e) {
-      error = e.what();
-    }
-    const std::string scopeError = popErrorScope();
-    enc.release();
-    if (error.empty()) error = scopeError;
-    if (!error.empty()) {
+      encodeAndSubmit(catalog, key, params, inputIds, output, width, height);
+    } catch (...) {
       destroy(output);
-      throw std::runtime_error(key + ": " + error);
+      throw;
     }
     return store(output, run);
   }
 
+  ShareSupport shareSupport() const override { return shareSupport_; }
+
+  uint64_t createShareable(uint32_t width, uint32_t height, ShareFormat format, const std::string& run) override {
+    std::lock_guard lock(mutex_);
+    if (shareSupport_.backend == ShareBackend::None) {
+      throw std::runtime_error("GPU texture sharing is unavailable: " + shareSupport_.reason);
+    }
+    if (width == 0 || height == 0 || width > 65535 || height > 65535) {
+      throw std::runtime_error("invalid GPU output dimensions");
+    }
+    ShareDescriptor descriptor;
+    descriptor.backend = shareSupport_.backend;
+    descriptor.width = width;
+    descriptor.height = height;
+    descriptor.format = format;
+    descriptor.metalDeviceRegistryId = metalRegistryId_;
+    const WGPUTextureFormat wgpuFormat =
+        format == ShareFormat::Rgba16Float ? WGPUTextureFormat_RGBA16Float : WGPUTextureFormat_RGBA8Unorm;
+    const uint64_t id = nextTextureId++;
+    Tex tex;
+    std::shared_ptr<ShareState> state;
+#if NODETOOL_GPU_SHARE_VULKAN
+    if (shareSupport_.backend == ShareBackend::Vulkan) {
+      std::unique_ptr<vkshare::ExportedImage> image = vulkan_->createImage(descriptor);
+      const uint64_t vkImage = image->image();
+      const uint64_t vkMemory = image->memory();
+      WGPUTextureDescriptor td = WGPU_TEXTURE_DESCRIPTOR_INIT;
+      td.label = {"shareable-output", WGPU_STRLEN};
+      td.size = {width, height, 1};
+      td.format = wgpuFormat;
+      td.usage = kOutputUsage;
+      wgpuDevicePushErrorScope(device_, WGPUErrorFilter_Validation);
+      // From here wgpu-native owns the image: the drop callback frees it
+      // once no GPU work uses the texture.
+      vkshare::ExportedImage* handedOver = image.release();
+      tex.texture = wgpuDeviceCreateTextureFromNativeVulkanImage(
+          device_, &td, vkImage,
+          [](void* owned) { std::unique_ptr<vkshare::ExportedImage>(static_cast<vkshare::ExportedImage*>(owned)); },
+          handedOver);
+      // A null result means wgpu-native took nothing and will not call back.
+      if (!tex.texture) image.reset(handedOver);
+      const std::string error = popErrorScope();
+      if (!tex.texture || !error.empty()) {
+        if (tex.texture) wgpuTextureRelease(tex.texture);
+        throw std::runtime_error("cannot wrap a shareable Vulkan image: " +
+                                 (error.empty() ? std::string("wgpu-native rejected it") : error));
+      }
+      tex.width = width;
+      tex.height = height;
+      tex.format = wgpuFormat;
+      state = std::make_shared<ShareState>(shared_from_this(), id, tex.texture, descriptor);
+      state->vulkanImage_ = vkImage;
+      state->vulkanMemory_ = vkMemory;
+    }
+#endif
+    if (!state) {
+      tex = createTexture(width, height, wgpuFormat, kOutputUsage, "shareable-output");
+      state = std::make_shared<ShareState>(shared_from_this(), id, tex.texture, descriptor);
+    }
+    textures_[id] = {tex, run, state};
+    return id;
+  }
+
+  void runInto(const Catalog& catalog, const std::string& key, const Json& params,
+               const std::map<std::string, uint64_t>& inputIds, uint64_t target) override {
+    std::lock_guard lock(mutex_);
+    Stored& stored = find(target);
+    if (!stored.share) {
+      throw std::runtime_error("GPU texture " + std::to_string(target) + " was not created with createShareable");
+    }
+    if (stored.share->published()) {
+      throw std::runtime_error("GPU texture " + std::to_string(target) +
+                               " is published to a consumer: reclaim it before writing");
+    }
+    for (const auto& [name, id] : inputIds) {
+      if (id == target) throw std::runtime_error(key + ": input \"" + name + "\" is the output texture");
+    }
+    // A compute module names the format of the storage texture it writes.
+    const Module& module = catalog.module(key);
+    if (module.kind == "compute") {
+      for (const auto& entry : module.layout) {
+        if (!entry.contains("storageTexture")) continue;
+        if (textureFormat(entry["storageTexture"].at("format").get<std::string>()) != stored.tex.format) {
+          throw std::runtime_error(key + ": the module writes " +
+                                   entry["storageTexture"].at("format").get<std::string>() +
+                                   " storage, which is not the format of GPU texture " + std::to_string(target));
+        }
+      }
+    }
+    // Keeps the texture alive for the whole pass.
+    const std::shared_ptr<ShareState> share = stored.share;
+    const Tex output = stored.tex;
+    const std::string lastKind = encodeAndSubmit(catalog, key, params, inputIds, output, output.width, output.height);
+    share->written_ = true;
+#if NODETOOL_GPU_SHARE_VULKAN
+    // The layout wgpu-hal leaves a texture in after its last use: a storage
+    // write is GENERAL, a color attachment COLOR_ATTACHMENT_OPTIMAL. read()
+    // and a use as an input record theirs. The validation run of
+    // gr_gpu_share_tests checks these against the driver's view.
+    share->layout_ = lastKind == "fragment" ? vkshare::Context::layoutColorAttachment()
+                                            : vkshare::Context::layoutGeneral();
+#else
+    (void)lastKind;
+#endif
+  }
+
+  std::shared_ptr<SharedTexture> share(uint64_t id) override {
+    std::lock_guard lock(mutex_);
+    Stored& stored = find(id);
+    if (stored.share) return stored.share;
+    if (shareSupport_.backend == ShareBackend::None) {
+      throw std::runtime_error("GPU texture sharing is unavailable: " + shareSupport_.reason);
+    }
+    if (shareSupport_.backend != ShareBackend::Metal) {
+      throw std::runtime_error("GPU texture " + std::to_string(id) +
+                               " was not created with createShareable, so its memory cannot be exported");
+    }
+    // Metal: any texture of the device can be shared. The table entry hands
+    // its ownership of the texture to the share state.
+    ShareDescriptor descriptor;
+    descriptor.backend = ShareBackend::Metal;
+    descriptor.width = stored.tex.width;
+    descriptor.height = stored.tex.height;
+    if (stored.tex.format == WGPUTextureFormat_RGBA16Float) {
+      descriptor.format = ShareFormat::Rgba16Float;
+    } else if (stored.tex.format != WGPUTextureFormat_RGBA8Unorm) {
+      throw std::runtime_error("only rgba8unorm and rgba16float textures can be shared");
+    }
+    descriptor.premultiplied = !stored.tex.straight;
+    descriptor.metalDeviceRegistryId = metalRegistryId_;
+    stored.share = std::make_shared<ShareState>(shared_from_this(), id, stored.tex.texture, descriptor);
+    stored.share->written_ = true;
+    return stored.share;
+  }
+
+  // SharedTexture::publish().
+  std::chrono::nanoseconds publishShared(ShareState& state) {
+    std::lock_guard lock(mutex_);
+    if (state.published_.load()) return std::chrono::nanoseconds(0);
+    if (!state.written_) throw std::runtime_error("a shared GPU texture was published before any pass wrote it");
+    const auto start = std::chrono::steady_clock::now();
+    // Returns once every submission on the queue has completed.
+    wgpuDevicePoll(device_, true, nullptr);
+    wgpuInstanceProcessEvents(instance_);
+    if (!lost_.empty()) throw std::runtime_error("the GPU device was lost: " + lost_);
+#if NODETOOL_GPU_SHARE_VULKAN
+    if (state.vulkanImage_) {
+      vulkan_->transfer(state.vulkanImage_, state.layout_, vkshare::Context::layoutShaderReadOnly(), true);
+    }
+#endif
+    state.published_.store(true);
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - start);
+  }
+
+  // SharedTexture::reclaim().
+  void reclaimShared(ShareState& state) {
+    std::lock_guard lock(mutex_);
+    if (!state.published_.load()) return;
+#if NODETOOL_GPU_SHARE_VULKAN
+    if (state.vulkanImage_) {
+      vulkan_->transfer(state.vulkanImage_, vkshare::Context::layoutShaderReadOnly(), state.layout_, false);
+    }
+#endif
+    state.published_.store(false);
+  }
+
+  // SharedTexture::open(). Takes no lock: a consumer's render thread calls
+  // it and must not wait for a run.
+  NativeShareHandle openShared(const ShareState& state, std::string& error) const {
+#if NODETOOL_GPU_SHARE_VULKAN
+    if (state.vulkanMemory_) {
+      const int fd = vulkan_->exportFd(state.vulkanMemory_, error);
+      return fd < 0 ? NativeShareHandle() : NativeShareHandle::fromFd(fd);
+    }
+#endif
+#if NODETOOL_GPU_SHARE_METAL
+    if (void* texture = wgpuTextureGetNativeMetalTexture(state.texture_)) {
+      CFRetain(static_cast<CFTypeRef>(texture));
+      return NativeShareHandle::fromObject(texture, [](void* object) { CFRelease(static_cast<CFTypeRef>(object)); });
+    }
+#endif
+    (void)state;
+    error = "this texture has no native handle to share";
+    return {};
+  }
+
   std::vector<uint8_t> read(uint64_t id, uint32_t& width, uint32_t& height) override {
     std::lock_guard lock(mutex_);
-    const Tex& tex = find(id).tex;
+    const Stored& stored = find(id);
+    if (stored.share) {
+      if (stored.share->published()) {
+        throw std::runtime_error("GPU texture " + std::to_string(id) + " is published to a consumer");
+      }
+      ++stored.share->cpuTransfers_;
+#if NODETOOL_GPU_SHARE_VULKAN
+      stored.share->layout_ = vkshare::Context::layoutTransferSource();  // the copy below
+#endif
+    }
+    const Tex& tex = stored.tex;
     if (tex.format != WGPUTextureFormat_RGBA8Unorm) {
       throw std::runtime_error("only rgba8unorm textures can be read back");
     }
@@ -306,7 +535,7 @@ public:
     std::lock_guard lock(mutex_);
     auto it = textures_.find(id);
     if (it == textures_.end()) return;
-    destroy(it->second.tex);
+    drop(it->second);
     textures_.erase(it);
   }
 
@@ -315,7 +544,7 @@ public:
     size_t freed = 0;
     for (auto it = textures_.begin(); it != textures_.end();) {
       if (it->second.run == run) {
-        destroy(it->second.tex);
+        drop(it->second);
         it = textures_.erase(it);
         ++freed;
       } else {
@@ -363,6 +592,112 @@ private:
     }
   };
 
+  // Frees a table entry's texture, unless a share state owns it: that one
+  // destroys the texture when its last holder lets go.
+  void drop(Stored& stored) {
+    if (stored.share) {
+      stored.tex.texture = nullptr;
+    } else {
+      destroy(stored.tex);
+    }
+  }
+
+  // The body of run(): encodes `key` into `output` and submits it. Returns
+  // the kind of the pass that wrote `output` last ("compute" or "fragment").
+  std::string encodeAndSubmit(const Catalog& catalog, const std::string& key, const Json& params,
+                              const std::map<std::string, uint64_t>& inputIds, const Tex& output, double width,
+                              double height) {
+    const Module& module = catalog.module(key);
+    std::map<std::string, Tex> inputs;
+    for (const auto& [name, id] : inputIds) {
+      const Stored& stored = find(id);
+      if (stored.share && stored.share->published()) {
+        throw std::runtime_error(key + ": input \"" + name + "\" is published to a consumer");
+      }
+#if NODETOOL_GPU_SHARE_VULKAN
+      if (stored.share) stored.share->layout_ = vkshare::Context::layoutShaderReadOnly();  // sampled below
+#endif
+      inputs[name] = stored.tex;
+    }
+    std::string lastKind = module.kind;
+    if (module.kind == "recipe") {
+      for (const auto& pass : module.passes) {
+        if (!pass.at("out").is_string()) continue;
+        lastKind = catalog
+                       .module(pass.at("op").at("id").get<std::string>() + "@" +
+                               std::to_string(pass.at("op").at("version").get<int>()))
+                       .kind;
+      }
+    }
+
+    Encoding enc;
+    WGPUCommandEncoderDescriptor ced = WGPU_COMMAND_ENCODER_DESCRIPTOR_INIT;
+    enc.encoder = wgpuDeviceCreateCommandEncoder(device_, &ced);
+    wgpuDevicePushErrorScope(device_, WGPUErrorFilter_Validation);
+    std::string error;
+    try {
+      if (module.kind == "recipe") {
+        encodeRecipe(enc, catalog, module, inputs, output, params);
+      } else {
+        Dispatch dispatch;
+        if (module.kind == "compute") {
+          dispatch = {true, uint32_t(std::ceil(width / module.workgroupSize[0])),
+                      uint32_t(std::ceil(height / module.workgroupSize[1])), 1};
+        }
+        encodeModule(enc, catalog, module, inputs, output, params, dispatch);
+      }
+      WGPUCommandBufferDescriptor cbd = WGPU_COMMAND_BUFFER_DESCRIPTOR_INIT;
+      WGPUCommandBuffer commands = wgpuCommandEncoderFinish(enc.encoder, &cbd);
+      wgpuQueueSubmit(queue_, 1, &commands);
+      wgpuCommandBufferRelease(commands);
+    } catch (const std::exception& e) {
+      error = e.what();
+    }
+    const std::string scopeError = popErrorScope();
+    enc.release();
+    if (error.empty()) error = scopeError;
+    if (!error.empty()) throw std::runtime_error(key + ": " + error);
+    return lastKind;
+  }
+
+  // Finds how this device can share textures (shareSupport()).
+  void openSharing(WGPUBackendType backend) {
+    if (backend == WGPUBackendType_Vulkan) {
+#if NODETOOL_GPU_SHARE_VULKAN
+      std::string reason;
+      vulkan_ = vkshare::Context::create(wgpuDeviceGetNativeVulkanPhysicalDevice(device_),
+                                         wgpuDeviceGetNativeVulkanDevice(device_),
+                                         wgpuDeviceGetNativeVulkanQueue(device_),
+                                         wgpuDeviceGetNativeVulkanQueueFamilyIndex(device_), reason);
+      shareSupport_ = vulkan_ ? ShareSupport{ShareBackend::Vulkan, {}} : ShareSupport{ShareBackend::None, reason};
+#else
+      shareSupport_ = {ShareBackend::None,
+                       "this build cannot export Vulkan textures: it needs the Vulkan headers and a wgpu-native "
+                       "with the native interop functions (native/graph-runner/third_party/wgpu-native)"};
+#endif
+    } else if (backend == WGPUBackendType_Metal) {
+#if NODETOOL_GPU_SHARE_METAL
+      if (void* device = wgpuDeviceGetNativeMetalDevice(device_)) {
+        using RegistryId = uint64_t (*)(id, SEL);
+        metalRegistryId_ =
+            reinterpret_cast<RegistryId>(objc_msgSend)(static_cast<id>(device), sel_registerName("registryID"));
+        shareSupport_ = {ShareBackend::Metal, {}};
+      } else {
+        shareSupport_ = {ShareBackend::None, "wgpu-native returned no MTLDevice for this device"};
+      }
+#else
+      shareSupport_ = {ShareBackend::None, "this build has no Metal texture sharing"};
+#endif
+    } else if (backend == WGPUBackendType_D3D12) {
+      shareSupport_ = {ShareBackend::None,
+                       "D3D12 texture sharing is not implemented: the resource state handoff between wgpu and "
+                       "the consumer has not been built or tested on Windows"};
+    } else {
+      shareSupport_ = {ShareBackend::None, std::string("the ") + backendName(backend) +
+                                               " backend has no texture sharing"};
+    }
+  }
+
   struct Pipeline {
     // native-rules #6: raw WGPU pipeline handles never released
     WGPUBindGroupLayout layout = nullptr;
@@ -391,6 +726,7 @@ private:
     wgpuAdapterGetInfo(adapter_, &info);
     description_ = text(info.device) + " (" + backendName(info.backendType) + ", " +
                    adapterTypeName(info.adapterType) + ")";
+    const WGPUBackendType backendType = info.backendType;
     wgpuAdapterInfoFreeMembers(info);
 
     WGPUDeviceDescriptor dd = WGPU_DEVICE_DESCRIPTOR_INIT;
@@ -432,6 +768,7 @@ private:
                            WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst, "default-white-1x1");
     const uint8_t pixel[4] = {255, 255, 255, 255};
     writeTexture(white_, pixel);
+    openSharing(backendType);
   }
 
   WGPUAdapter requestAdapter(bool software) {
@@ -516,7 +853,7 @@ private:
 
   uint64_t store(const Tex& tex, const std::string& run) {
     const uint64_t id = nextTextureId++;
-    textures_[id] = {tex, run};
+    textures_[id] = {tex, run, nullptr};
     return id;
   }
 
@@ -836,7 +1173,18 @@ private:
   std::map<uint64_t, Stored> textures_;
   std::map<std::string, Pipeline> pipelines_;
   std::map<std::string, WGPUSampler> samplers_;
+  // Set once in open(), then read-only.
+  ShareSupport shareSupport_;
+  uint64_t metalRegistryId_ = 0;
+#if NODETOOL_GPU_SHARE_VULKAN
+  // Its queue and command pool are used under mutex_ only.
+  std::unique_ptr<vkshare::Context> vulkan_;
+#endif
 };
+
+std::chrono::nanoseconds ShareState::publish() { return device_->publishShared(*this); }
+void ShareState::reclaim() { device_->reclaimShared(*this); }
+NativeShareHandle ShareState::open(std::string& error) const { return device_->openShared(*this, error); }
 
 // native-rules #14: process-wide mutex for the device registry
 std::mutex devicesMutex;

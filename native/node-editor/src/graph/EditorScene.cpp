@@ -40,6 +40,17 @@ namespace nodetool {
 namespace {
 namespace nm = node_metrics;
 
+// NodeErrors.tsx: a failed card offers Report at its bottom left, across from
+// the status label.
+QRectF reportErrorRect(const WorkflowGraphModel &model, QtNodes::NodeId id, const NodeLayout &layout) {
+  if (layout.collapsed) { return {}; }
+  const auto status = model.runtimeState(id)["status"].toString();
+  if (status != QStringLiteral("error") && status != QStringLiteral("failed")) { return {}; }
+  const auto inset = double(nm::borderWidth + nm::padding);
+  const auto bottom = 2.0 + (layout.subgraph ? nm::handleRowStep : 0);
+  return {inset, layout.size.height() - bottom - nm::rowHeight, 56, double(nm::rowHeight)};
+}
+
 // BaseNode's .loading::before: a 3px conic ring 4px outside the card with the
 // xl radius, its stops evenly spaced and closed on the first color.
 void paintRunningRing(QPainter *painter, const QRectF &box, const QVector<QColor> &colors, double cssAngle) {
@@ -562,6 +573,12 @@ public:
             label = QString("%1 / %2").arg(runtime["progress"].toDouble()).arg(total);
         }
         painter->drawText(box.adjusted(inset, 0, -inset, -2 - bottomInset), Qt::AlignRight | Qt::AlignBottom, label);
+        if (const auto report = reportErrorRect(model, item.nodeId(), layout); !report.isEmpty()) {
+            auto font = canvasFont(theme, nm::fontValue, QFont::Medium);
+            font.setUnderline(true);
+            painter->setFont(font);
+            painter->drawText(report, Qt::AlignLeft | Qt::AlignBottom, QObject::tr("Report"));
+        }
     }
     if (!model.readOnly() && !layout.collapsed) { paintResizeHandle(painter, layout.size, theme.textSecondary); }
     painter->restore();
@@ -1521,6 +1538,10 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
     // A copy: selecting and every control action can rebuild this card's layout.
     const auto layout = model_.layout(id);
     const auto resource = model_.resourceId(id);
+    if (const auto report = reportErrorRect(model_, id, layout); !report.isEmpty() && report.contains(local)) {
+        emit errorReportRequested(resource);
+        return true;
+    }
     for (const auto &row : layout.rows) {
         if (!row.renameButtonRect.isEmpty() && row.renameButtonRect.contains(local)) {
             if (auto *item = nodeGraphicsObject(id)) {
@@ -1587,6 +1608,11 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 select();
                 const auto reference = model_.nodeSnapshot(id)["data"].toObject()[row.propertyName].toObject();
                 if (!reference["id"].toString().isEmpty()) { emit documentOpenRequested(row.value, reference["id"].toString()); }
+                return true;
+            }
+            if (row.action == QStringLiteral("connectProvider")) {
+                select();
+                emit providerConnectRequested(row.value);
                 return true;
             }
             if (row.action == QStringLiteral("expandEditor")) {

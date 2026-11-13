@@ -113,6 +113,12 @@ function parsedRecord(
   }
 }
 
+/** A 400 or 422 queue answer: the provider refused the request itself. */
+function isProviderRejection(error: unknown): boolean {
+  const status = record(error)?.status;
+  return status === 400 || status === 422;
+}
+
 function asString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
@@ -670,6 +676,18 @@ export class DurableGenerationRecoveryWorker {
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      // fal answers 400 or 422 for a request it rejected, such as input its
+      // content checker flagged. Every later read answers the same, so the
+      // generation has failed rather than become unreadable.
+      if (isProviderRejection(error)) {
+        return this.finalizeAttempt(
+          claimed,
+          { state: "failed", error: message },
+          nowIso,
+          expiresAt,
+          true
+        );
+      }
       // The bounded wait times out on any request still in the provider's
       // queue. That is progress, not an unresolved read.
       const inProgress = lastState as string | null;

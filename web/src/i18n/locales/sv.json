@@ -18176,6 +18176,8 @@
         "mediumDescription": "Balanserar hastighet och djup.",
         "high": "Hög",
         "highDescription": "Orsaker längst. Långsammare och kostar mer.",
+        "xhigh": "Mycket hög",
+        "xhighDescription": "Resonerar längst av alla. Långsammast och dyrast.",
         "level": "Resonemangsnivå",
         "title": "Resonemang",
         "titleWithLevel": "Resonemang: {{level}}"
@@ -19961,5 +19963,33 @@
         "public": "Offentlig"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "Leverantören",
+    "title": {
+      "billing": "{{target}} kan inte köras: kontot har ingen kredit eller fakturering.",
+      "quota": "{{target}} kan inte köras: den här nyckeln har ingen kvot kvar för den.",
+      "auth": "{{target}} avvisade din API-nyckel.",
+      "model_unavailable": "{{target}} är inte tillgänglig för din nyckel.",
+      "rate_limit": "{{target}} får för många förfrågningar."
+    },
+    "hint": {
+      "billing": "Fyll på kredit hos leverantören, eller byt till en annan modell.",
+      "quota": "Gratisnycklar har ofta ingen kvot för den här modellen. Aktivera fakturering hos leverantören, eller byt till en annan modell.",
+      "auth": "Kontrollera nyckeln i Inställningar, eller byt till en modell från en annan leverantör.",
+      "model_unavailable": "Den har tagits bort från dina modellistor. Välj en annan modell.",
+      "rate_limit": "Vänta en stund och försök sedan igen."
+    },
+    "repeated": "Det misslyckades på samma sätt igen, så ett nytt försök hjälper inte. Byt till en annan modell.",
+    "switchTo": "Använd {{model}}",
+    "openKeys": "Öppna API-nycklar",
+    "addCredit": "Fyll på kredit",
+    "enableBilling": "Aktivera fakturering"
+  },
+  "runReadiness": {
+    "addKey": "Lägg till API-nyckel",
+    "missingKeysDetail": "Det här arbetsflödet behöver {{keys}}. Lägg till den i Inställningar innan du kör det.",
+    "costPerRun": "≈ {{cost}} per körning",
+    "costUnknown": "Okänd kostnad"
   }
 }

@@ -18176,6 +18176,8 @@
         "mediumDescription": "Balanserer hastighet og dybde.",
         "high": "Høy",
         "highDescription": "Grunner lengst. Tregere og koster mer.",
+        "xhigh": "Svært høy",
+        "xhighDescription": "Resonnerer lengst av alle. Tregest og dyrest.",
         "level": "Resonnementnivå",
         "title": "Resonnement",
         "titleWithLevel": "Begrunnelse: {{level}}"
@@ -19961,5 +19963,33 @@
         "public": "Offentlig"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "Leverandøren",
+    "title": {
+      "billing": "{{target}} kan ikke kjøre: kontoen har ingen kreditt eller fakturering.",
+      "quota": "{{target}} kan ikke kjøre: denne nøkkelen har ingen kvote igjen for den.",
+      "auth": "{{target}} avviste API-nøkkelen din.",
+      "model_unavailable": "{{target}} er ikke tilgjengelig for nøkkelen din.",
+      "rate_limit": "{{target}} får for mange forespørsler."
+    },
+    "hint": {
+      "billing": "Legg til kreditt hos leverandøren, eller bytt til en annen modell.",
+      "quota": "Gratisnøkler har ofte ingen kvote for denne modellen. Slå på fakturering hos leverandøren, eller bytt til en annen modell.",
+      "auth": "Sjekk nøkkelen i Innstillinger, eller bytt til en modell fra en annen leverandør.",
+      "model_unavailable": "Den er fjernet fra modellistene dine. Velg en annen modell.",
+      "rate_limit": "Vent et øyeblikk, og prøv igjen."
+    },
+    "repeated": "Dette feilet på samme måte igjen, så et nytt forsøk hjelper ikke. Bytt til en annen modell.",
+    "switchTo": "Bruk {{model}}",
+    "openKeys": "Åpne API-nøkler",
+    "addCredit": "Legg til kreditt",
+    "enableBilling": "Slå på fakturering"
+  },
+  "runReadiness": {
+    "addKey": "Legg til API-nøkkel",
+    "missingKeysDetail": "Denne arbeidsflyten trenger {{keys}}. Legg den til i Innstillinger før du kjører den.",
+    "costPerRun": "≈ {{cost}} per kjøring",
+    "costUnknown": "Ukjent kostnad"
   }
 }

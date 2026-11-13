@@ -728,9 +728,9 @@ export interface Message {
   permission_mode?: "plan" | "default" | "auto" | null;
   /**
    * Reasoning level for the chat turn. The server forwards it only to models
-   * that `supportsReasoningEffort` accepts. Omitted keeps the provider default.
+   * whose `reasoningEffortLevels` include it. Omitted keeps the provider default.
    */
-  reasoning_effort?: "low" | "medium" | "high" | null;
+  reasoning_effort?: "low" | "medium" | "high" | "xhigh" | null;
   /**
    * The read-only `run_search` fan-out primitive — a `run_search` tool next to
    * `run_subtask` whose child loop is restricted to read-only tools and cannot
@@ -1190,7 +1190,11 @@ export const PROVIDER_IDS = {
   GROQ: "groq",
   MISTRAL: "mistral",
   MOONSHOT: "moonshot",
+  // Sarvam AI (India): Token Factory chat, Bulbul TTS, Saaras speech-to-text.
+  SARVAM: "sarvam",
   MINIMAX: "minimax",
+  // Z.ai (Zhipu) GLM chat, GLM-Image and CogVideoX.
+  ZAI: "zai",
   DEEPSEEK: "deepseek",
   XAI: "xai",
   COHERE: "cohere",
@@ -1204,6 +1208,8 @@ export const PROVIDER_IDS = {
   UBERLLM: "uberllm",
   TOGETHER: "together",
   ALIBABA: "alibaba",
+  // ByteDance BytePlus ModelArk: Seed chat, Seedream images, Seedance video.
+  BYTEPLUS: "byteplus",
   CEREBRAS: "cerebras",
   EVOLINK: "evolink",
   GMI: "gmi",
@@ -1231,6 +1237,7 @@ export const PROVIDER_IDS = {
   USEAPI: "useapi",
   VGENV: "vgenv",
   TOAPIS: "toapis",
+  KLING: "kling",
   AKI: "aki",
   MESHY: "meshy",
   RODIN: "rodin",

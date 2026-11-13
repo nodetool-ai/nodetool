@@ -7,12 +7,14 @@
 #pragma once
 
 #include "host/gpu_catalog.h"
+#include "host/gpu_share.h"
 #include "nodetool/graph_runner.h"
 
 #include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -59,6 +61,33 @@ public:
   // Frees every texture of `run`. Returns how many there were.
   virtual size_t releaseRun(const std::string& run) = 0;
   virtual size_t liveTextures() const = 0;
+
+  // Sharing with another GPU runtime (host/gpu_share.h). The defaults are
+  // those of a build without GPU support.
+
+  // Whether textures of this device can be shared, with which mechanism.
+  virtual ShareSupport shareSupport() const { return {ShareBackend::None, "this build has no GPU support"}; }
+  // Allocates an output texture that share() can hand to another GPU
+  // runtime without a copy, and returns its id. It belongs to `run` like
+  // any other texture. Its content is undefined until runInto() writes it.
+  virtual uint64_t createShareable(uint32_t, uint32_t, ShareFormat, const std::string&) {
+    throw std::runtime_error("GPU texture sharing is unavailable in this build");
+  }
+  // run(), writing into the existing shareable texture `target` at its own
+  // size. Throws while the texture is published to a consumer.
+  virtual void runInto(const Catalog&, const std::string&, const Json&, const std::map<std::string, uint64_t>&,
+                       uint64_t) {
+    throw std::runtime_error("GPU texture sharing is unavailable in this build");
+  }
+  // A hold on texture `id` for a consumer. The GPU allocation then outlives
+  // release() and releaseRun(), which only remove the id. On Vulkan the
+  // texture must come from createShareable(): memory of an ordinary texture
+  // cannot be exported, and there is no copying fallback.
+  // The result is shared between the device's table and every consumer,
+  // which live on different threads and end in no fixed order.
+  virtual std::shared_ptr<SharedTexture> share(uint64_t) {
+    throw std::runtime_error("GPU texture sharing is unavailable in this build");
+  }
 };
 
 // The straight-alpha conversions the TypeScript path applies on upload and

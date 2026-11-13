@@ -2,7 +2,7 @@ import React, { memo, useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import PsychologyIcon from "@mui/icons-material/PsychologyOutlined";
 import {
-  supportsReasoningEffort,
+  reasoningEffortLevels,
   type ReasoningEffort
 } from "@nodetool-ai/protocol";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
@@ -39,6 +39,11 @@ const LEVEL_IDS: Array<{ id: ReasoningEffort | null; key: string; descriptionKey
     id: "high",
     key: "high",
     descriptionKey: "highDescription"
+  },
+  {
+    id: "xhigh",
+    key: "xhigh",
+    descriptionKey: "xhighDescription"
   }
 ];
 
@@ -51,9 +56,9 @@ interface ReasoningSelectorProps {
 }
 
 /**
- * Composer-footer dropdown for the chat reasoning level. Renders nothing for
- * a model that takes no reasoning level, so the select appears only where
- * the provider will act on it.
+ * Composer-footer dropdown for the chat reasoning level. Lists only the
+ * levels the picked model accepts and renders nothing for a model that takes
+ * none, so the select appears only where the provider will act on it.
  */
 const ReasoningSelector: React.FC<ReasoningSelectorProps> = ({
   provider,
@@ -65,7 +70,10 @@ const ReasoningSelector: React.FC<ReasoningSelectorProps> = ({
   const effort = useGlobalChatStore((s) => s.reasoningEffort);
   const setReasoningEffort = useGlobalChatStore((s) => s.setReasoningEffort);
   const { t } = useTranslation();
-  const levels: LevelItem[] = LEVEL_IDS.map((level) => ({
+  const accepted = reasoningEffortLevels(provider, model);
+  const levels: LevelItem[] = LEVEL_IDS.filter(
+    (level) => level.id === null || accepted.includes(level.id)
+  ).map((level) => ({
     id: level.id,
     label: t(`i18n-next54.composer.reasoning.${level.key}`),
     description: t(`i18n-next54.composer.reasoning.${level.descriptionKey}`)
@@ -79,7 +87,7 @@ const ReasoningSelector: React.FC<ReasoningSelectorProps> = ({
     [setReasoningEffort]
   );
 
-  if (!supportsReasoningEffort(provider, model)) {
+  if (accepted.length === 0) {
     return null;
   }
 

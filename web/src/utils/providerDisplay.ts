@@ -172,6 +172,9 @@ export const formatGenericProviderName = (provider?: string): string => {
   if (providerLower === "moonshot" || providerLower === "kimi") {
     return "Moonshot AI";
   }
+  if (providerLower === "sarvam") {
+    return "Sarvam AI";
+  }
   if (providerLower === "minimax") {
     return "MiniMax";
   }
@@ -183,6 +186,9 @@ export const formatGenericProviderName = (provider?: string): string => {
   }
   if (providerLower === "alibaba") {
     return "Alibaba Cloud";
+  }
+  if (providerLower === "byteplus") {
+    return "BytePlus";
   }
   if (providerLower === "cohere") {
     return "Cohere";
@@ -353,6 +359,9 @@ export const getProviderUrl = (provider?: string): string | null => {
   if (providerLower.includes("moonshot") || providerLower.includes("kimi")) {
     return "https://platform.moonshot.ai";
   }
+  if (providerLower === "sarvam") {
+    return "https://www.sarvam.ai";
+  }
   if (providerLower.includes("minimax")) {
     return "https://platform.minimax.io";
   }
@@ -364,6 +373,9 @@ export const getProviderUrl = (provider?: string): string | null => {
   }
   if (providerLower === "alibaba") {
     return "https://modelstudio.console.alibabacloud.com/";
+  }
+  if (providerLower === "byteplus") {
+    return "https://console.byteplus.com/ark";
   }
   if (providerLower === "cohere") {
     return "https://cohere.com";

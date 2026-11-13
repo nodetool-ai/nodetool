@@ -155,6 +155,16 @@ void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow 
 }
 
 void paintAction(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+    if (row.warning) {
+        // The Connect provider button: dark ink on the warning fill.
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(theme.warning);
+        painter->drawRoundedRect(row.rect, nm::borderWidth, nm::borderWidth);
+        painter->setPen(theme.canvas);
+        painter->setFont(sans(theme, nm::fontValue));
+        painter->drawText(row.rect, Qt::AlignCenter, row.label);
+        return;
+    }
     if (!row.icon.isEmpty()) {
         paintIconButton(painter, theme, row);
         return;
@@ -469,6 +479,17 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
     case NodeRowKind::Label: {
         if (row.rect.isEmpty()) {
             return false;
+        }
+        if (row.warning) {
+            auto fill = theme.warning;
+            fill.setAlphaF(0.1);
+            painter->fillRect(row.rect, fill);
+            painter->setPen(theme.warning);
+            auto font = sans(theme, nm::fontValue);
+            font.setCapitalization(QFont::AllUppercase);
+            painter->setFont(font);
+            painter->drawText(row.rect, Qt::AlignCenter, painter->fontMetrics().elidedText(row.label, Qt::ElideRight, int(row.rect.width())));
+            return true;
         }
         auto text = row.rect;
         // A footer strip has a rule along its top and pads its caption.

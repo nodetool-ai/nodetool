@@ -94,7 +94,7 @@ npm run dev:chat -- --url ws://localhost:7777/ws
 Chat flags:
 ```
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
-                         moonshot, minimax, cerebras, meta, alibaba, together,
+                         moonshot, minimax, zai, cerebras, meta, alibaba, together,
                          openrouter, requesty, opper, cheaperinference, api_route,
                          runcrate, standardcompute, uberllm, huggingface, replicate,
                          kie, aki, ollama, lmstudio, claude_agent_sdk, codex, gmi,
@@ -2349,6 +2349,24 @@ runs every journey on the kernel and the ws-server with `--diff`, and the
 packaged backend with `--packaged`, on every push to `main`. A journey added to
 `reliability/journeys/` joins Ring 1 automatically. Add it to `RING0_JOURNEYS`
 when it is hermetic and fast.
+
+### npm run parity (Native vs Web Editor Parity)
+
+Compares the native Qt node editor with the web editor to rank what to port or
+fix next. `npm run parity:census` counts shortcuts, property editor types and
+components from the two source trees and prints parity and review coverage.
+`npm run parity` mounts one component at a time on both sides with the same
+fixture: the Qt side in `nodetool-parity-host`, built without the editor
+window or the graph runner, and the web side on `web/parity.html` under
+Playwright. It plays a scenario and compares probe state, the intents each
+component sent its host, and screenshots. Neither runs in CI. Setup, the
+scenario format and how to add a component are in
+[native/parity/README.md](https://github.com/nodetool-ai/nodetool/blob/main/native/parity/README.md).
+
+```bash
+npm run parity:census
+npm run parity -- --scenario node-menu.search-add
+```
 
 ### nodetool package (Node-Pack Authoring)
 

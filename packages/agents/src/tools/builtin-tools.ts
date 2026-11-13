@@ -124,6 +124,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "refine_image_brief",
   "validate_sketch",
   "render_sketch",
+  "delete_sketch",
 
   // Timeline snapshot history (find a cut, pin a state, roll one back)
   "list_timelines",

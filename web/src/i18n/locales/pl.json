@@ -18784,6 +18784,8 @@
         "mediumDescription": "Równoważy prędkość i głębokość.",
         "high": "Wysoka",
         "highDescription": "Powody najdłuższe. Wolniejsze i droższe.",
+        "xhigh": "Bardzo wysoki",
+        "xhighDescription": "Rozumuje najdłużej. Najwolniejszy i najdroższy.",
         "level": "Poziom rozumowania",
         "title": "Rozumowanie",
         "titleWithLevel": "Rozumowanie: {{level}}"
@@ -20583,5 +20585,33 @@
         "public": "Publiczny"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "Dostawca",
+    "title": {
+      "billing": "{{target}} nie może działać: konto nie ma środków ani rozliczeń.",
+      "quota": "{{target}} nie może działać: ten klucz nie ma już dla niego limitu.",
+      "auth": "{{target}} odrzucił Twój klucz API.",
+      "model_unavailable": "{{target}} nie jest dostępny dla Twojego klucza.",
+      "rate_limit": "{{target}} otrzymuje zbyt wiele żądań."
+    },
+    "hint": {
+      "billing": "Doładuj środki u dostawcy lub przełącz się na inny model.",
+      "quota": "Darmowe klucze często nie mają limitu dla tego modelu. Włącz rozliczenia u dostawcy lub przełącz się na inny model.",
+      "auth": "Sprawdź klucz w Ustawieniach lub przełącz się na model innego dostawcy.",
+      "model_unavailable": "Usunięto go z Twoich list modeli. Wybierz inny model.",
+      "rate_limit": "Poczekaj chwilę i spróbuj ponownie."
+    },
+    "repeated": "To znów nie powiodło się w ten sam sposób, więc ponowna próba nie pomoże. Przełącz się na inny model.",
+    "switchTo": "Użyj {{model}}",
+    "openKeys": "Otwórz klucze API",
+    "addCredit": "Doładuj środki",
+    "enableBilling": "Włącz rozliczenia"
+  },
+  "runReadiness": {
+    "addKey": "Dodaj klucz API",
+    "missingKeysDetail": "Ten workflow wymaga: {{keys}}. Dodaj go w Ustawieniach przed uruchomieniem.",
+    "costPerRun": "≈ {{cost}} za uruchomienie",
+    "costUnknown": "Koszt nieznany"
   }
 }

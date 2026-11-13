@@ -196,6 +196,8 @@
     "dev:workflow": "node scripts/run-dev.mjs ./packages/cli/src/nodetool.ts workflows run",
     "capabilities:sync": "node scripts/sync-capability-coverage.mjs",
     "capabilities:check": "node scripts/sync-capability-coverage.mjs --check",
+    "parity": "node native/parity/run.mjs",
+    "parity:census": "node native/parity/census.mjs",
     "dev:nodetool": "node scripts/run-dev.mjs ./packages/cli/src/nodetool.ts",
     "bump-version": "node ./scripts/bump-version.mjs",
     "prepare-publish": "node ./scripts/prepare-publish.mjs",

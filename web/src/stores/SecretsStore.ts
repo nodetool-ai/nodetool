@@ -5,6 +5,7 @@ import { SecretResponse } from "./ApiTypes";
 import { queryClient } from "../queryClient";
 import useRemoteSettingsStore from "./RemoteSettingStore";
 import { isString } from "../utils/typePredicates";
+import { useUnavailableModelStore } from "./UnavailableModelStore";
 
 /**
  * What the server learned by probing a credential. `unverifiable` is its own
@@ -15,7 +16,21 @@ export interface SecretValidation {
   status: "valid" | "invalid" | "unverifiable";
   valid: boolean;
   message: string;
+  /**
+   * What a valid key can pay for, when the server could tell. Anything but
+   * `ok` means the key works and the first real call would still fail.
+   */
+  account?: {
+    state: "ok" | "no_credit" | "no_quota" | "free_tier";
+    message: string;
+  };
 }
+
+/** The account warning to show for a validation, or null when there is none. */
+export const accountWarning = (validation: SecretValidation): string | null =>
+  validation.account && validation.account.state !== "ok"
+    ? validation.account.message
+    : null;
 
 interface SecretsStore {
   secrets: SecretResponse[];
@@ -107,6 +122,7 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
       >[0] = { key, value };
       if (description !== undefined) input.description = description;
       await trpcClient.settings.secrets.upsert.mutate(input);
+      useUnavailableModelStore.getState().clear();
       await get().fetchSecrets();
       invalidateProviderDependentCaches();
     } catch (err: unknown) {
@@ -122,6 +138,7 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
     set({ error: null });
     try {
       await trpcClient.settings.secrets.delete.mutate({ key });
+      useUnavailableModelStore.getState().clear();
       // Refresh secrets list
       await get().fetchSecrets();
       invalidateProviderDependentCaches();

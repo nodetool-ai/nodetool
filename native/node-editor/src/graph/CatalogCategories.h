@@ -22,6 +22,9 @@ QString catalogProviderName(const QString &providerId);
 // Claude Code) depend on the server's provider list and are not gated here.
 // Source: web/src/utils/providerPacks.ts getKeyGateForNamespace.
 QString catalogKeyGate(const QString &nameSpace);
+// The name a card's missing-key warning shows for a secret, such as "OpenAI API Key".
+// Source: web/src/utils/nodeProvider.ts getSecretDisplayName.
+QString catalogSecretDisplayName(const QString &secretKey);
 // The top-level type names of a node's properties or outputs, in order and
 // without repeats. A type given as a string or as {"type": ...} both count.
 // Source: web/src/components/node_menu/typeFilterUtils.ts filterTypesByInputExact.

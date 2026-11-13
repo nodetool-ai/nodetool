@@ -18480,6 +18480,8 @@
         "mediumDescription": "Equilibra velocidad y profundidad.",
         "high": "Alto",
         "highDescription": "Razones más largas. Más lento y cuesta más.",
+        "xhigh": "Muy alto",
+        "xhighDescription": "Razona más que nunca. Es lo más lento y lo más caro.",
         "level": "nivel de razonamiento",
         "title": "Razonamiento",
         "titleWithLevel": "Razonamiento: {{level}}"
@@ -20272,5 +20274,33 @@
         "public": "Público"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "El proveedor",
+    "title": {
+      "billing": "{{target}} no puede ejecutarse: la cuenta no tiene crédito ni facturación.",
+      "quota": "{{target}} no puede ejecutarse: esta clave no tiene cuota restante para él.",
+      "auth": "{{target}} rechazó tu clave de API.",
+      "model_unavailable": "{{target}} no está disponible para tu clave.",
+      "rate_limit": "{{target}} está recibiendo demasiadas solicitudes."
+    },
+    "hint": {
+      "billing": "Añade crédito con el proveedor o cambia a otro modelo.",
+      "quota": "Las claves gratuitas suelen no tener cuota para este modelo. Activa la facturación con el proveedor o cambia a otro modelo.",
+      "auth": "Revisa la clave en Ajustes o cambia a un modelo de otro proveedor.",
+      "model_unavailable": "Se ha quitado de tus listas de modelos. Elige otro modelo.",
+      "rate_limit": "Espera un momento y vuelve a intentarlo."
+    },
+    "repeated": "Volvió a fallar de la misma forma, así que reintentar no ayudará. Cambia a otro modelo.",
+    "switchTo": "Usar {{model}}",
+    "openKeys": "Abrir claves de API",
+    "addCredit": "Añadir crédito",
+    "enableBilling": "Activar facturación"
+  },
+  "runReadiness": {
+    "addKey": "Añadir clave de API",
+    "missingKeysDetail": "Este flujo de trabajo necesita {{keys}}. Añádela en Ajustes antes de ejecutarlo.",
+    "costPerRun": "≈ {{cost}} por ejecución",
+    "costUnknown": "Coste desconocido"
   }
 }

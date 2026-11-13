@@ -550,8 +550,10 @@ private slots:
         QVERIFY(key("c") && key("c")->property("lit").toBool());
         QVERIFY(key("control")->property("lit").toBool());
         QVERIFY(!key("meta")->property("lit").toBool());
-        QVERIFY(!key("1")->property("lit").toBool());
-        QVERIFY(key("1")->property("elsewhere").toBool());
+        // Ctrl+Alt+1 zooms to 100% in the editor category, as the web zoom100.
+        QVERIFY(key("1")->property("lit").toBool());
+        QVERIFY(!key("s")->property("lit").toBool());
+        QVERIFY(key("s")->property("elsewhere").toBool());
         QCOMPARE(key("control")->property("caption").toString(), QString("CTRL"));
         QVERIFY(!key("ß"));
         // Platform: Control becomes Command on macOS.
