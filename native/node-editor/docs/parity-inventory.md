@@ -116,6 +116,31 @@ Each family below needs its own fixtures.
 | F41 | Catalog/inspector/toolbars/panels and elevations. W: `components/node_editor/NodeInfoPanel.tsx`, `components/panels/FloatingToolBar.tsx`, `components/node_menu/NodeMenu.tsx`, `components/node_menu/NodeLibrary.tsx`, `components/inspector/RunSelectedNodesSection.tsx`, `components/panels/PanelBottom.tsx` | Partial. Native Params/I/O/Help, catalog, rail/output/status exist. Selection run and enable/disable controls exist in the floating toolbar, with More-menu access on compact canvases. Matched whole-window captures of empty, graph, selected, running, catalog and output states exist in both themes and two sizes. Inspector descriptions are label tooltips, and a field at its default shows no hint or reset action, as on the web. The header row, the floating toolbar contents and its run state follow the web as W13 to W15 record. The tab bar ends with notifications and settings (W16). The node library overlays the canvas without changing zoom, focuses its search, hides nodes that need a missing key behind a notice and links the nodes documentation (W17). The inspector has the Runs stepper, Run selected and a per-run cost estimate from the server preflight (W20), one drop zone per media list (W21) and the web default width (W22). The status bar is the Output panel's tab strip, the Output body has the web run picker, empty state and 32 px rows (W23), and the status bar tabs show and toggle their panels (W24). The chat window opens by default on a wide window (W28). `ChromeParityTest` drives these with pointer and key events and a local server. Open: the cost table and unsaved-edit pricing, the media thumbnail grid, the stored-log list and the remaining status bar gaps C8 to C13, all in the [whole-window comparison](parity.md#whole-window-comparison). Flat chrome (W26) and the missing chain view (W29) are scope changes [SC4 and SC5](#user-approved-scope-changes). Acceptance pending. | Whole-window captures at matched size/scale, empty/loading/error/focus states and open/closed panels. Component captures do not establish whole-window parity. |
 | F42 | Platform input, accessibility and measured interaction performance. Web reference is behavior of the entry points above. | Unverified. Offscreen tests and synthetic projection are limited evidence, as N: `README.md` states. | Real desktop keyboard/focus/screen-reader/IME, high-DPI and mixed-renderer pointer flow. Measure input-to-paint on specified large graphs, report hardware/renderer/fixture and percentile latency. |
 
+### Painted card controls
+
+Card rows are painted, not instantiated, because a QML item per row costs too
+much on large graphs. The painters live in
+[CardControls.cpp](../src/graph/CardControls.cpp) as the `card_controls` set,
+the canvas twin of the QML controls in `NodeTool.UiPrimitives`. They read colors
+from `CanvasTheme`, which `CanvasTheme::fromRoles` fills from `Ui.Theme`, and
+lengths from `node_metrics`. `paintCardBodyRow` in
+[CardBodyPainter.cpp](../src/graph/CardBodyPainter.cpp) picks the control for a
+row kind.
+
+| Painted control | QML twin |
+| --- | --- |
+| `fillField`, `paintField` | `Ui.TextField` |
+| `paintChevron`, `paintField` with a choice | `Ui.Select` chevron |
+| `paintSlider` | `Ui.Slider` |
+| `paintIconButton` | `Ui.ToolbarIconButton` |
+| `paintAction` | `Ui.EditorButton` |
+| `paintModelChip` | `Ui.ChipMenu` |
+| `paintTextArea`, `paintComposer` | `Ui.TextArea` |
+| `paintPlaceholder` | `Ui.EmptyState` |
+| `paintImageSize` | `Ui.NumberField` with `Ui.ToolbarIconButton` icons |
+| `paintSegmented` | none yet (review finding F4) |
+| `paintSwatch`, `paintDropZone` | none |
+
 ## Ordered implementation phases
 
 1. **A1: Finish core graph editing.** Close F02–F06 and F13–F16 before adding

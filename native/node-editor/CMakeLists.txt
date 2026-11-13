@@ -95,6 +95,7 @@ add_library(node_editor_core STATIC
  src/graph/NodeLayout.cpp src/graph/NodeLayout.h
  src/graph/CardBodies.cpp src/graph/CardBodies.h src/graph/ImageSizePresets.h
  src/graph/CardBodyPainter.cpp src/graph/CardBodyPainter.h
+ src/graph/CardControls.cpp src/graph/CardControls.h
  src/graph/EditorScene.cpp src/graph/EditorScene.h
  src/graph/LineageLayer.cpp src/graph/LineageLayer.h
  src/graph/InlinePropertyPresenter.cpp src/graph/InlinePropertyPresenter.h

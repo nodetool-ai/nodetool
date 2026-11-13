@@ -188,6 +188,25 @@ inline constexpr double gridCross = 3;
 inline constexpr int fontTitle = 13;
 inline constexpr int fontLabel = 13;
 inline constexpr int fontValue = 11;
+// Painted card controls (CardControls.h). Fades are alpha factors on a theme color.
+inline constexpr int fontCaption = fontValue - micro;
+inline constexpr double mutedOpacity = 0.7;
+inline constexpr double placeholderIconOpacity = 0.65;
+inline constexpr double chipFillOpacity = 0.18;
+inline constexpr double activeFillOpacity = 0.1;
+// A 1 px outline is stroked on pixel centers, 0.5 px inside its rect.
+inline constexpr double outlineInset = 0.5;
+inline constexpr int actionRadius = 1;
+// The checker cell of an empty state and the right padding a choice reserves for its chevron.
+inline constexpr int placeholderCell = 16;
+inline constexpr int choiceInset = 24;
+// The chevron: its center sits 12 px from the field's right edge, 6 px wide and 3 px tall.
+inline constexpr double chevronInset = 12;
+inline constexpr double chevronHalfWidth = 3;
+inline constexpr double chevronHalfHeight = 1.5;
+inline constexpr double chevronStroke = 1.2;
+// A drop zone's icon-hint text line.
+inline constexpr double dropZoneLine = 12;
 } // namespace node_metrics
 
 // Composer, Slider, Segmented, Lock, ModelChip, Action and DropZone rows belong
