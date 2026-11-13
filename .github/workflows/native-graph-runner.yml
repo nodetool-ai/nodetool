@@ -47,7 +47,6 @@ env:
   TESSERACT_VERSION: "5.5.3"
   TESSERACT_SHA256: 9218e62793116d42a9f6d14cd9348518b27f382096eea3d0f2d1a24616bb5884
   DEPS_PREFIX: /opt/nt-graph-runner-deps
-  CCACHE_BASEDIR: ${{ github.workspace }}
   CCACHE_COMPILERCHECK: content
   CCACHE_MAXSIZE: 2G
 
@@ -102,11 +101,9 @@ jobs:
     env:
       ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
-      LSAN_OPTIONS: suppressions=${{ github.workspace }}/native/graph-runner/tools/lsan.supp
       # Hosted runners are about twice as slow as the machine the tests' wall-clock
       # budgets were measured on (unittests/sanitizer_build.h).
       GR_TEST_TIME_SCALE: "2"
-      TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1:suppressions=${{ github.workspace }}/native/graph-runner/tools/tsan.supp
     defaults:
       run:
         shell: bash
@@ -117,6 +114,14 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2
+
+      # In a container job `github.workspace` names the runner's path, not
+      # the container's, so the paths come from GITHUB_WORKSPACE instead.
+      - name: Point ccache and the sanitizers at the workspace
+        run: | # zizmor: ignore[github-env]
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          echo "LSAN_OPTIONS=suppressions=$GITHUB_WORKSPACE/native/graph-runner/tools/lsan.supp" >> "$GITHUB_ENV"
+          echo "TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1:suppressions=$GITHUB_WORKSPACE/native/graph-runner/tools/tsan.supp" >> "$GITHUB_ENV"
 
       # The guest bundle reads the node packages' dist/ output.
       - name: Set up and build backend packages
