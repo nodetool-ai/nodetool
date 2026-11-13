@@ -142,6 +142,14 @@ export function nativeShortcuts(root = ROOT) {
     for (const [, keys, call] of body.matchAll(/\n\s*bind\("([^"]+)", \[this\] \{ ([A-Za-z]+\([^)]*\))/g)) {
         bindings.push({ command: call, combo: normalizeCombo(keys), source: "src/ui/EditorTabs.cpp" });
     }
+    // The application menu binds the tab shortcuts web lists as prevTab,
+    // nextTab, newWorkflow and closeWorkflow.
+    const appMenu = readFileSync(join(root, "native/node-editor/src/ui/EditorAppMenu.cpp"), "utf8");
+    for (const [, call, list] of appMenu.matchAll(/entry\(\w+, tr\("[^"]*"\), \[this\] \{ ([A-Za-z]+\([^)]*\))[^}]*\},\s*\{((?:QKeySequence\(QStringLiteral\("[^"]+"\)\),?\s*)+)\}\)/g)) {
+        for (const [, keys] of list.matchAll(/QStringLiteral\("([^"]+)"\)/g)) {
+            bindings.push({ command: call, combo: normalizeCombo(keys), source: "src/ui/EditorAppMenu.cpp" });
+        }
+    }
     return bindings;
 }
 
