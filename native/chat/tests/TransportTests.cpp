@@ -4,7 +4,9 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QWebSocketServer>
+#include <QTemporaryDir>
 #include <QTemporaryFile>
+#include <QSettings>
 #include <QtTest>
 #include <QTimer>
 #include <algorithm>
@@ -293,6 +295,71 @@ private slots:
         session.applyEvent(call);
         QTRY_COMPARE(server.count("type", "tool_result"), 2);
         QCOMPARE(actions.count(), 1);
+    }
+    // GlobalChatStore.ts setPermissionMode: Auto allows the thread's pending tool
+    // approvals, the server hears set_permission_mode and the next send carries it.
+    void permissionModeIsSentAndAutoAllowsPendingApprovals() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        ChatSession session;
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_VERIFY(!session.historyLoading());
+        QCOMPARE(session.permissionMode(), QStringLiteral("default"));
+        server.emitEvent({{"type", "tool_approval_request"}, {"thread_id", ThreadId}, {"approval_id", "approval-auto"},
+                          {"tool_name", "write"}, {"message", "Change document?"}});
+        server.emitEvent({{"type", "plan_approval_request"}, {"thread_id", ThreadId}, {"approval_id", "plan-kept"},
+                          {"plan", QJsonObject{}}}, 20);
+        QTest::qWait(80);
+        session.setPermissionMode("auto");
+        QTRY_COMPARE(server.count("command", "set_permission_mode"), 1);
+        const auto mode = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "set_permission_mode"; });
+        QCOMPARE(mode["data"].toObject(), (QJsonObject{{"thread_id", ThreadId}, {"permission_mode", "auto"}}));
+        QTRY_COMPARE(server.count("type", "tool_approval_response"), 1);
+        const auto allowed = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["type"] == "tool_approval_response"; });
+        QCOMPARE(allowed["approval_id"].toString(), QStringLiteral("approval-auto"));
+        QCOMPARE(allowed["decision"].toString(), QStringLiteral("allow"));
+        // Only tool approvals are allowed. A plan still waits for its review.
+        QCOMPARE(server.count("type", "plan_approval_response"), 0);
+        session.setPermissionMode("everything");
+        QCOMPARE(session.permissionMode(), QStringLiteral("auto"));
+        session.setDraft("Go");
+        session.send();
+        QTRY_COMPARE(server.count("command", "chat_message"), 1);
+        const auto sent = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "chat_message"; });
+        QCOMPARE(sent["data"].toObject()["permission_mode"].toString(), QStringLiteral("auto"));
+    }
+    // GlobalChatStore.ts and MediaGenerationStore.ts persist the reasoning level,
+    // permission modes and media parameters, but not the media mode.
+    void preferencesSurviveANewSession() {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const auto file = directory.filePath("chat.ini");
+        QVariant picked;
+        {
+            ChatSession session;
+            session.usePreferences(std::make_unique<QSettings>(file, QSettings::IniFormat));
+            session.setReasoningEffort("high");
+            session.setPermissionMode("plan");
+            session.setMediaMode("image");
+            const auto initial = session.mediaSettings()["aspectRatio"];
+            for (const auto &option : session.mediaOptions("aspectRatio")) {
+                if (option.toMap()["value"] != initial) {
+                    picked = option.toMap()["value"];
+                }
+            }
+            QVERIFY(picked.isValid());
+            session.setMediaSetting("aspectRatio", picked);
+            QCOMPARE(session.mediaSettings()["aspectRatio"], picked);
+        }
+        ChatSession restored;
+        QCOMPARE(restored.reasoningEffort(), QString());
+        restored.usePreferences(std::make_unique<QSettings>(file, QSettings::IniFormat));
+        QCOMPARE(restored.reasoningEffort(), QStringLiteral("high"));
+        QCOMPARE(restored.permissionMode(), QStringLiteral("plan"));
+        QCOMPARE(restored.mediaMode(), QStringLiteral("chat"));
+        restored.setMediaMode("image");
+        QCOMPARE(restored.mediaSettings()["aspectRatio"], picked);
     }
     void interruptedInitialHistoryCanReconnectAndSend() {
         ChatServer server;

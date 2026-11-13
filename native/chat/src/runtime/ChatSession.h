@@ -7,6 +7,7 @@
 #include <QQuickTextDocument>
 #include <QColor>
 #include <QSet>
+#include <QSettings>
 #include <QTimer>
 #include <map>
 #include <memory>
@@ -42,6 +43,9 @@ public:
     Q_PROPERTY(QString reasoningEffort READ reasoningEffort WRITE setReasoningEffort NOTIFY stateChanged)
     Q_PROPERTY(bool reasoningSupported READ reasoningSupported NOTIFY stateChanged)
     Q_PROPERTY(QVariantList reasoningLevels READ reasoningLevels CONSTANT)
+    // PermissionSelector.tsx: the selected thread's mode, else the last one picked.
+    Q_PROPERTY(QString permissionMode READ permissionMode WRITE setPermissionMode NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList permissionModes READ permissionModes CONSTANT)
     Q_PROPERTY(QVariantList assetResults READ assetResults NOTIFY assetsChanged)
     Q_PROPERTY(QVariantList recentAssets READ recentAssets NOTIFY assetsChanged)
     Q_PROPERTY(bool hasMoreAssets READ hasMoreAssets NOTIFY assetsChanged)
@@ -83,6 +87,14 @@ public:
     void setReasoningEffort(const QString &effort);
     bool reasoningSupported() const;
     QVariantList reasoningLevels() const;
+    QString permissionMode() const { return permissionModeFor(m_selected); }
+    void setPermissionMode(const QString &mode);
+    QVariantList permissionModes() const;
+    QString permissionModeFor(const QString &threadId) const;
+    // Keeps the composer selections the web persists (GlobalChatStore and
+    // MediaGenerationStore partialize): reasoning level, permission modes and
+    // media settings. Without it they last for the session. Restores them now.
+    void usePreferences(std::unique_ptr<QSettings> preferences);
     QVariantList assetResults() const { return m_assetResults; }
     QVariantList recentAssets() const;
     bool hasMoreAssets() const { return !m_assetCursor.isEmpty(); }
@@ -177,6 +189,10 @@ private:
     QString m_mediaMode = "chat";
     QHash<QString, QVariantMap> m_mediaSettings;
     QString m_reasoningEffort;
+    QHash<QString, QString> m_permissionModes;
+    QString m_lastPermissionMode = "default";
+    std::unique_ptr<QSettings> m_preferences;
+    void savePreferences();
     QVariantList m_assetResults;
     QVariantList m_recentAssets;
     QString m_assetQuery;

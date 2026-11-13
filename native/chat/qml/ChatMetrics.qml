@@ -9,4 +9,10 @@ QtObject {
     readonly property real sidebar: 240 * Ui.Theme.uiScale
     readonly property real narrow: 640 * Ui.Theme.uiScale
     readonly property real mentionMenu: 240 * Ui.Theme.uiScale
+    // MediaChatComposer.tsx NARROW_CARD_WIDTH: below it the chips go icon-first.
+    readonly property real narrowComposer: 520 * Ui.Theme.uiScale
+    // tokens.ts EYEBROW letterSpacing, as a share of the font size.
+    readonly property real eyebrowTracking: 0.06
+    // usePromptHistory.ts maxEntries.
+    readonly property int promptHistory: 50
 }

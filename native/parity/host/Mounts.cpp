@@ -1,5 +1,6 @@
 #include "Mounts.h"
 
+#include "ComposerSession.h"
 #include "interfaces/NodeCatalog.h"
 #include "server/PackSetup.h"
 
@@ -64,11 +65,42 @@ private:
     PackSetup packSetup_;
 };
 
-using Factory = std::function<std::unique_ptr<Mount>(const QJsonObject &)>;
+// ChatComposer.qml of NodeTool.Chat, as the editor's chat window holds it.
+// The fixture needs no fields: the session starts empty and idle.
+class ChatComposerMount final : public Mount {
+public:
+    QUrl source() const override { return QUrl("qrc:/qt/qml/NodeTool/Chat/ChatComposer.qml"); }
+    QVariantMap initialProperties() override { return {{"session", QVariant::fromValue(&session_)}}; }
+    std::vector<QObject *> interfaces() override { return {&session_}; }
+    // The composer inside the chat window's default 420 pixel width.
+    QSize size() const override { return {400, 160}; }
+    void opened(QQuickItem &root) override { QMetaObject::invokeMethod(&root, "focusEditor"); }
+    QJsonObject probe(QQuickItem &root) const override {
+        const auto *input = root.findChild<QQuickItem *>("chatInput");
+        return {{"draft", input ? input->property("text").toString() : QString()},
+                {"running", session_.turnStatus() != "idle"},
+                {"compact", root.property("compact").toBool()},
+                {"permission", session_.permissionMode()}};
+    }
+
+private:
+    ComposerSession session_;
+};
+
+using Factory = std::function<std::unique_ptr<Mount>(const QJsonObject &, QString &)>;
 
 const std::map<QString, Factory> &factories() {
     static const std::map<QString, Factory> table{
-        {"NodeMenu", [](const QJsonObject &fixture) { return std::make_unique<NodeMenuMount>(fixture); }},
+        {"NodeMenu", [](const QJsonObject &fixture, QString &error) -> std::unique_ptr<Mount> {
+             if (!fixture["metadata"].isArray()) {
+                 error = "The fixture has no metadata array";
+                 return nullptr;
+             }
+             return std::make_unique<NodeMenuMount>(fixture);
+         }},
+        {"ChatComposer", [](const QJsonObject &, QString &) -> std::unique_ptr<Mount> {
+             return std::make_unique<ChatComposerMount>();
+         }},
     };
     return table;
 }
@@ -82,11 +114,7 @@ std::unique_ptr<Mount> makeMount(const QString &component, const QJsonObject &fi
         error = QString("No mount for component %1. Known: %2").arg(component, mountNames().join(", "));
         return nullptr;
     }
-    if (!fixture["metadata"].isArray()) {
-        error = "The fixture has no metadata array";
-        return nullptr;
-    }
-    return found->second(fixture);
+    return found->second(fixture, error);
 }
 
 QStringList mountNames() {

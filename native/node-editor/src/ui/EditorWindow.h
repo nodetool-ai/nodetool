@@ -80,6 +80,10 @@ public:
     Q_INVOKABLE void askAgent(const QString &message);
     Q_SLOT void askRunAgent(const QString &runId, const QString &spanId = {});
     Q_SLOT void toggleChat();
+    // web/src/config/shortcuts.ts newChat and focusChatComposer, handled by
+    // ChatView.tsx. Both open the chat when it is closed.
+    void newChatConversation();
+    void focusChatComposer();
     void beginChatGeometry();
     void resetChatPosition();
     void changeChatGeometry(int dx, int dy, int edges, bool finished);

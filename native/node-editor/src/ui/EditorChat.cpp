@@ -1,5 +1,6 @@
 #include "EditorWindow.h"
 #include <QGraphicsView>
+#include <QGuiApplication>
 #include <QJsonDocument>
 #include <QtQml/QQmlExtensionPlugin>
 #include <QQmlContext>
@@ -23,6 +24,8 @@ void EditorWindow::initializeChat() {
     chatOffset_ = settings.value("canvas-chat-dock/position", QPoint()).toPoint();
     chatSize_ = settings.value("canvas-chat-dock/size", QSize(420, 2000)).toSize();
     chatVisible_ = !settings.value("canvas-chat-dock/collapsed", true).toBool();
+    // The session owns its settings handle: reasoning level, permission modes and media settings.
+    chat_.usePreferences(std::make_unique<QSettings>());
     chatOverlay_ = new QQuickWidget(engine_, view_);
     chatOverlay_->setClearColor(Qt::transparent);
     chatOverlay_->setAttribute(Qt::WA_TranslucentBackground);
@@ -91,6 +94,45 @@ void EditorWindow::toggleChat() {
     QSettings().setValue("canvas-chat-dock/collapsed", !chatVisible_);
     layoutOverlays();
     schedulePanelChanged();
+}
+
+void EditorWindow::newChatConversation() {
+    if (activeEditor() != this) {
+        activeEditor()->newChatConversation();
+        return;
+    }
+    if (!chatVisible_) {
+        toggleChat();
+    }
+    // The header's New conversation button needs a connection too.
+    if (chat_.connectionStatus() == QStringLiteral("connected")) {
+        chat_.createThread();
+    }
+}
+
+void EditorWindow::focusChatComposer() {
+    if (activeEditor() != this) {
+        activeEditor()->focusChatComposer();
+        return;
+    }
+    // ChatView.tsx handleFocusComposer never takes a keystroke from a field.
+    const auto *focused = QGuiApplication::focusObject();
+    if (focused && (focused->inherits("QQuickTextEdit") || focused->inherits("QQuickTextInput")
+                    || focused->inherits("QLineEdit") || focused->inherits("QTextEdit") || focused->inherits("QPlainTextEdit"))) {
+        return;
+    }
+    if (!chatVisible_) {
+        toggleChat();
+    }
+    if (!chatOverlay_ || !chatOverlay_->rootObject()) {
+        return;
+    }
+    auto *input = chatOverlay_->rootObject()->findChild<QQuickItem *>(QStringLiteral("chatInput"));
+    if (!input) {
+        return;
+    }
+    chatOverlay_->setFocus(Qt::ShortcutFocusReason);
+    input->forceActiveFocus(Qt::ShortcutFocusReason);
 }
 
 void EditorWindow::askAgent(const QString &message) {

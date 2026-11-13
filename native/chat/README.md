@@ -48,8 +48,13 @@ QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software native/chat/build/nodetool-c
   --replay native/chat/fixtures/streaming.json --screenshot native/chat/build/conversation.png
 ```
 
-The composer keeps Enter for newlines and uses Ctrl+Enter or Cmd+Enter to send.
-This avoids submitting text during IME composition. The model button opens the
+The composer follows the web composer's keys. Enter and Ctrl+Enter send,
+Shift+Enter inserts a line, and keys during IME composition stay with the input
+method. Escape stops a reply in flight. Up from the start of the field and Down
+from its end step through the prompts sent from this composer. Below 520 pixels
+the mode, reasoning and permission chips show their icons only. A host that
+calls `ChatSession::usePreferences` keeps the reasoning level, the permission
+modes and the media settings across sessions. The model button opens the
 shared model picker. Server default clears the provider and model together. The
 picker loads models from the connected server and opens its provider settings
 page for setup. In a narrow dock, chat opens

@@ -613,7 +613,7 @@ TestCase {
         verify(input !== null)
         input.forceActiveFocus()
         typeLetters("first")
-        keyClick(Qt.Key_Return)
+        keyClick(Qt.Key_Return, Qt.ShiftModifier)
         typeLetters("second")
         compare(testSession.draft, "first\nsecond")
         testSession.selectThread("b")
@@ -621,6 +621,58 @@ TestCase {
         typeLetters("other")
         testSession.selectThread("a")
         tryCompare(input, "text", "first\nsecond")
+    }
+    // MediaChatComposer.tsx: Enter sends, and usePromptHistory.ts recalls sent
+    // prompts with Up from the start of the field and Down from its end.
+    function test_composerEnterSendsAndRecallsHistory() {
+        const composer = findChild(panel, "chatComposer")
+        const input = findChild(panel, "chatInput")
+        verify(composer !== null)
+        verify(input !== null)
+        testSession.draft = ""
+        composer.promptHistory = []
+        input.forceActiveFocus()
+        typeLetters("one")
+        keyClick(Qt.Key_Return)
+        // The test session has no server, so the send is refused and the draft kept.
+        compare(composer.promptHistory, ["one"])
+        verify(testSession.error.indexOf("Connect") === 0)
+        compare(testSession.draft, "one")
+        testSession.draft = ""
+        tryCompare(input, "text", "")
+        typeLetters("draft")
+        keyClick(Qt.Key_Home)
+        keyClick(Qt.Key_Up)
+        tryCompare(input, "text", "one")
+        keyClick(Qt.Key_End)
+        keyClick(Qt.Key_Down)
+        tryCompare(input, "text", "draft")
+        compare(composer.historyIndex, -1)
+        // Up away from the start of the field moves the caret instead.
+        keyClick(Qt.Key_Up)
+        compare(input.text, "draft")
+        testSession.draft = ""
+    }
+    // MediaChatComposer.tsx isCompact and PermissionSelector.tsx.
+    Component { id: sizedComposer; ChatComposer { session: testSession } }
+    function test_composerNarrowChipsAndPermission() {
+        const wide = createTemporaryObject(sizedComposer, test, {width: 600})
+        const narrow = createTemporaryObject(sizedComposer, test, {width: 400})
+        verify(wide !== null && narrow !== null)
+        compare(wide.compact, false)
+        compare(narrow.compact, true)
+        compare(findChild(wide, "mediaModeChip").display, AbstractButton.TextBesideIcon)
+        compare(findChild(narrow, "mediaModeChip").display, AbstractButton.IconOnly)
+        const permission = findChild(wide, "permissionChip")
+        verify(permission !== null)
+        compare(permission.text, "Default")
+        compare(permission.accessibleName, "Permission mode: Default")
+        compare(findChild(narrow, "permissionChip").display, AbstractButton.IconOnly)
+        testSession.permissionMode = "plan"
+        compare(permission.text, "Plan")
+        testSession.permissionMode = "unknown"
+        compare(testSession.permissionMode, "plan")
+        testSession.permissionMode = "default"
     }
     function test_accessibleComposerAndSendState() {
         const input = findChild(panel, "chatInput")

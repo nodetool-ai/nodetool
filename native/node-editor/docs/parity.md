@@ -2660,15 +2660,39 @@ the picker above the prompt, and the reasoning levels. No web capture of this
 surface exists, because the web preview routes do not include the composer.
 The comparison is against the web sources cited above.
 
-These differences remain. The native chip row wraps in the 420-pixel window,
-where the web goes icon-first on one line below 520 pixels. Native menu rows
-have no secondary descriptions or subheaders, because `Ui.MenuItem` shows a
-caption only for disabled rows. The picker is inline above the prompt and lists
-assets only, without web entities, rename or thumbnails. Presets, the cost
-estimate, the provider-setup banner, the permission selector, slash commands,
-prompt history, dictation and Enter-to-send are absent. Media settings,
-reasoning level and recent assets last for the session, where the web persists
-settings and the level. Thread headings have no letter spacing. F36 is not
+The composer follows the
+[handleKeyDown](../../../web/src/components/chat/composer/MediaChatComposer.tsx)
+order: IME composition, the mention picker, Escape to stop a reply, prompt
+history as [usePromptHistory](../../../web/src/components/chat/hooks/usePromptHistory.ts),
+then Enter to send and Shift+Enter for a line. Below the 520-pixel card width
+the mode, reasoning and permission chips show icons only, as `isCompact` does.
+The permission chip follows
+[PermissionSelector](../../../web/src/components/chat/composer/PermissionSelector.tsx):
+Plan, Default and Auto per thread, a new thread takes the last picked mode,
+`set_permission_mode` reaches the server, and Auto allows the thread's pending
+tool approvals. The reasoning level, the permission modes and each media
+mode's settings persist in `QSettings` group `chat-composer`, as the web
+persists them in `global-chat-storage` and `nodetool-media-generation`. The
+media mode itself is not kept. Tools menu New Conversation (Ctrl+Shift+O) and
+Focus Chat Composer (Ctrl+Shift+L) open the chat when it is closed. The thread
+list shows the [EmptyThreadList](../../../web/src/components/chat/thread/EmptyThreadList.tsx)
+titles and its headings use the web eyebrow letter spacing.
+
+The parity harness mounts `ChatComposer` on both sides. Scenario
+`chat-composer.keys` types a two-line prompt, sends it with Enter, stops the
+reply with Escape and recalls the prompt with ArrowUp, comparing the draft,
+the turn state and the send and stop intents. Every intent and state check
+matches. The screenshot differs, because the web composer is one row with the
+send button beside the chips and the Qt composer gives the send button its own
+row. The census covers
+`web/src/components/chat` in the components inventory.
+
+These differences remain. Native menu rows have no secondary descriptions or
+subheaders, because `Ui.MenuItem` shows a caption only for disabled rows, and
+the permission dot has one tone. The picker is inline above the prompt and
+lists assets only, without web entities, rename or thumbnails. Presets, the
+cost estimate, the provider-setup banner, the `/` menu of commands and skills,
+and dictation are absent. Threads cannot be renamed. F36 is not
 accepted.
 
 

@@ -201,6 +201,8 @@ void EditorWindow::installApplicationMenu() {
     auto *tools = bar->addMenu(tr("Tools"));
     tools->setObjectName(QStringLiteral("application-menu-tools"));
     entry(tools, tr("Chat"), [this] { toggleChat(); });
+    entry(tools, tr("New Conversation"), [this] { newChatConversation(); }, {QKeySequence(QStringLiteral("Ctrl+Shift+O"))});
+    entry(tools, tr("Focus Chat Composer"), [this] { focusChatComposer(); }, {QKeySequence(QStringLiteral("Ctrl+Shift+L"))});
     entry(tools, tr("Logs"), [this] { toggleStatusView(QStringLiteral("logs")); });
     entry(tools, tr("Run Trace"), [this] { toggleStatusView(QStringLiteral("trace")); });
     entry(tools, tr("Version History"), [this] { toggleStatusView(QStringLiteral("versions")); });

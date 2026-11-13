@@ -35,6 +35,7 @@ ChatSession::ChatSession(QObject *parent)
         if (composer::isMediaMode(m_mediaMode)) {
             m_mediaSettings[m_mediaMode] =
                 composer::clampSettings(m_mediaMode, mediaSettings(), m_mediaCatalog.constraints());
+            savePreferences();
         }
         emit stateChanged();
     });
@@ -387,6 +388,9 @@ void ChatSession::createThread(const QString &draft) {
             }
             const auto id = result.toObject()["id"].toString();
             m_threadWorkflows[id] = workflow;
+            // GlobalChatStore.ts createNewThread pins the last picked mode on the new thread.
+            m_permissionModes[id] = m_lastPermissionMode;
+            savePreferences();
             upsertThread(result.toObject());
             state(id).draft = draft;
             if (workflow == m_workflow) {
@@ -588,7 +592,7 @@ void ChatSession::send() {
       {"media_generation", QJsonValue::Null},
       {"project_id",
        m_threads.get(m_selected)["project_id"].toString("default")},
-      {"permission_mode", "default"}};
+      {"permission_mode", permissionModeFor(m_selected)}};
   // MediaChatComposer.tsx submitPrompt sends a text part only for a non-blank prompt.
   QJsonArray content;
     if (!s.draft.trimmed().isEmpty()) {
@@ -1077,7 +1081,99 @@ void ChatSession::setReasoningEffort(const QString &effort) {
         return;
     }
     m_reasoningEffort = effort;
+    savePreferences();
     emit stateChanged();
+}
+QString ChatSession::permissionModeFor(const QString &threadId) const {
+    const auto mode = threadId.isEmpty() ? QString() : m_permissionModes.value(threadId);
+    return mode.isEmpty() ? m_lastPermissionMode : mode;
+}
+QVariantList ChatSession::permissionModes() const {
+    return composer::permissionModes();
+}
+// GlobalChatStore.ts setPermissionMode: Auto allows the thread's pending tool
+// approvals, and the server hears the change through set_permission_mode.
+void ChatSession::setPermissionMode(const QString &mode) {
+    if (!composer::isPermissionMode(mode)) {
+        return;
+    }
+    m_lastPermissionMode = mode;
+    if (!m_selected.isEmpty()) {
+        m_permissionModes[m_selected] = mode;
+    }
+    savePreferences();
+    if (!m_selected.isEmpty()) {
+        if (mode == "auto") {
+            const auto ids = m_actions.keys();
+            for (const auto &id : ids) {
+                const auto action = m_actions.value(id);
+                if (action["thread_id"].toString() == m_selected && action["type"].toString() == "tool_approval_request") {
+                    respondToAction(id, true);
+                }
+            }
+        }
+        m_client.send({{"command", "set_permission_mode"},
+                       {"data", QJsonObject{{"thread_id", m_selected}, {"permission_mode", mode}}}});
+    }
+    emit stateChanged();
+}
+void ChatSession::usePreferences(std::unique_ptr<QSettings> preferences) {
+    m_preferences = std::move(preferences);
+    if (!m_preferences) {
+        return;
+    }
+    m_preferences->beginGroup("chat-composer");
+    const auto effort = m_preferences->value("reasoningEffort").toString();
+    if (effort.isEmpty() || effort == "low" || effort == "medium" || effort == "high") {
+        m_reasoningEffort = effort;
+    }
+    const auto last = m_preferences->value("lastPermissionMode").toString();
+    if (composer::isPermissionMode(last)) {
+        m_lastPermissionMode = last;
+    }
+    const auto modes = m_preferences->value("permissionModes").toMap();
+    for (auto it = modes.cbegin(); it != modes.cend(); ++it) {
+        if (composer::isPermissionMode(it.value().toString())) {
+            m_permissionModes[it.key()] = it.value().toString();
+        }
+    }
+    // MediaGenerationStore keeps each mode's parameters, not the mode itself.
+    const auto media = m_preferences->value("mediaSettings").toMap();
+    for (const auto &entry : composer::mediaModes()) {
+        const auto mode = entry.toMap()["id"].toString();
+        if (!composer::isMediaMode(mode) || !media.contains(mode)) {
+            continue;
+        }
+        auto settings = composer::defaultSettings(mode);
+        const auto saved = media[mode].toMap();
+        for (auto it = saved.cbegin(); it != saved.cend(); ++it) {
+            if (settings.contains(it.key())) {
+                settings[it.key()] = it.value();
+            }
+        }
+        m_mediaSettings[mode] = settings;
+    }
+    m_preferences->endGroup();
+    emit stateChanged();
+}
+void ChatSession::savePreferences() {
+    if (!m_preferences) {
+        return;
+    }
+    QVariantMap modes;
+    for (auto it = m_permissionModes.cbegin(); it != m_permissionModes.cend(); ++it) {
+        modes[it.key()] = it.value();
+    }
+    QVariantMap media;
+    for (auto it = m_mediaSettings.cbegin(); it != m_mediaSettings.cend(); ++it) {
+        media[it.key()] = it.value();
+    }
+    m_preferences->beginGroup("chat-composer");
+    m_preferences->setValue("reasoningEffort", m_reasoningEffort);
+    m_preferences->setValue("lastPermissionMode", m_lastPermissionMode);
+    m_preferences->setValue("permissionModes", modes);
+    m_preferences->setValue("mediaSettings", media);
+    m_preferences->endGroup();
 }
 bool ChatSession::reasoningSupported() const {
     return composer::supportsReasoningEffort(m_provider, m_model);
@@ -1102,6 +1198,7 @@ void ChatSession::setMediaSetting(const QString &key, const QVariant &value) {
     }
     settings[key] = value;
     m_mediaSettings[m_mediaMode] = settings;
+    savePreferences();
     emit stateChanged();
 }
 QVariantList ChatSession::mediaOptions(const QString &key) const {
