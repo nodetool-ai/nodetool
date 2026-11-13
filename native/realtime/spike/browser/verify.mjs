@@ -6,6 +6,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
+import { build } from "esbuild";
+import sharp from "sharp";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 const [candidateDirectory, nativeExecutable] = process.argv.slice(2);
@@ -18,6 +20,9 @@ const mixed = structuredClone(render);
 mixed.audio = audio.audio; mixed.params = audio.params;
 mixed.control.ops.push(...audio.control.ops); mixed.control.stateful = audio.control.stateful;
 const routes = new Map([["/", ["text/html", Buffer.from("<!doctype html><title>RT-Q8 offline comparison</title>")]]]);
+const typescript = await build({ entryPoints: [fileURLToPath(new URL("typescript-candidate.mjs", import.meta.url))],
+  bundle: true, format: "esm", platform: "browser", write: false });
+routes.set("/typescript.mjs", ["text/javascript", typescript.outputFiles[0].contents]);
 for (const [name, type] of [["candidate.mjs", "text/javascript"], ["candidate.wasm", "application/wasm"], ["candidate.data", "application/octet-stream"]]) {
   routes.set(`/${name}`, [type, readFileSync(join(candidateDirectory, name))]);
 }
@@ -93,9 +98,36 @@ try {
       assert.throws(() => compareArtifacts(corrupted), /browser\/native bytes differ/);
       assert.throws(() => compareArtifacts({}));
       console.log(`${name}: three PNG frames and manifest match native bytes; WAV header/length match`);
+      const typescriptPixels = await page.evaluate(async (plan) => {
+        const { renderFixture } = await import("/typescript.mjs");
+        for (const [change, reason] of [
+          [(invalid) => { invalid.render.passes[0].module = "unsupported@1"; }, "Unsupported shader module"],
+          [(invalid) => { invalid.control.ops[0].op = "time"; }, "Unsupported render control operation"],
+          [(invalid) => { invalid.render.passes[1].inputs.source = "missing"; }, "Unsupported invert binding"]
+        ]) {
+          const invalid = structuredClone(plan);
+          change(invalid);
+          let rejected = false;
+          try { await renderFixture(invalid); } catch (error) {
+            if (!error.message.includes(reason)) { throw error; }
+            rejected = true;
+          }
+          if (!rejected) { throw new Error(`Invalid fixture was accepted: ${reason}`); }
+        }
+        return await renderFixture(plan);
+      }, plan);
+      for (const file of readdirSync(output).filter((file) => file.endsWith(".png"))) {
+        const { data, info } = await sharp(readFileSync(join(output, file))).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+        assert.deepEqual([info.width, info.height, info.channels], [4, 4, 4]);
+        assert.deepEqual(Buffer.from(typescriptPixels), data, `${name}/${file}: TypeScript/native pixels differ`);
+        const corruptedPixels = Buffer.from(typescriptPixels);
+        corruptedPixels[0] ^= 1;
+        assert.throws(() => assert.deepEqual(corruptedPixels, data));
+      }
+      console.log(`${name}: existing TypeScript Executor pixels match all three native frames`);
     } finally { clearTimeout(watchdog); await page.close(); }
   }
-  console.log(`Browser: ${browser.version()}. This verifies the C++ offline experiment only; Q8 remains open.`);
+  console.log(`Browser: ${browser.version()}. Fixture comparisons pass; Q8 timing and size evidence remains open.`);
 } finally {
   await browser?.close();
   if (server.listening) { await new Promise((accept, reject) => server.close((error) => error ? reject(error) : accept())); }

@@ -1,8 +1,9 @@
 # RT-Q8 browser executor comparison
 
 WP10 is in progress. The adapted C++ candidate passes both Chrome frame
-comparisons. No browser executor has been selected. The TypeScript comparison,
-64-pass timings and complete candidate download-size measurements remain open in
+comparisons. The existing TypeScript Executor also matches both fixtures' pixels.
+No browser executor has been selected. The 64-pass timings and complete
+candidate download-size measurements remain open in
 [design section 14.5](../../../../docs/plans/graph-runner-realtime.md#145-browser).
 
 ## Pinned inputs
@@ -107,6 +108,7 @@ Observed with Emscripten 7.0.0 and Chrome **156.0.8078.80** on Windows:
 | wasm32 render-scheduling fixture | Compile and Node execution pass |
 | Adapted offline candidate | Compiles and runs in Chrome with SwiftShader |
 | WP09 render-only and mixed fixtures | Three PNG frames and manifest per fixture match native bytes |
+| Existing TypeScript Executor | Pixels match all three native frames for both fixtures |
 | Audio outputs | WAV header and length match. Sample-byte parity is not claimed |
 
 These are successful offline fixture runs, not a callback-teardown sanitizer
@@ -114,10 +116,27 @@ qualification. The candidate's complete offline app also includes audio,
 filesystem and PNG code. Its size must not be presented as a minimal render-only
 module or compared against a TypeScript renderer that omits those services.
 
+## TypeScript fixture adapter
+
+The same verification command bundles `typescript-candidate.mjs` with the public
+`@nodetool-ai/gpu/pool` entry point. It uses the existing TypeScript Executor and
+shader modules. The adapter reads the same IR constants, bindings and pass order,
+then compares its readback with decoded native PNG pixels. It applies the same
+integer unpremultiplication as the native PNG writer. Both fixtures are static,
+so their three native frames are compared against one TypeScript evaluation.
+
+This adapter supports only the fixtures' 4x4 solid/invert render subset. It
+rejects unsupported shaders, render control operations and missing bindings,
+with negative checks in the browser. Audio is not executed by this adapter.
+The pool's encoded-sdr labels describe these shaders' channel operations. No
+transfer-function conversion is inserted for the fixture IR's linear label.
+This comparison does not establish a general color-management or IR adapter.
+Each evaluation owns a private device, textures and readback buffer, destroyed
+on success or failure. No browser runtime is selected or shipped by this spike.
+
 ## Remaining comparison
 
-Drive the existing TypeScript `Executor` from the same IR and measure
-both candidates on the same 64-pass plan, adapter and browser. Compare artifacts
+Measure both candidates on the same 64-pass plan, adapter and browser. Compare artifacts
 with matching service scope. Record warm-up,
 sampling method, submit/encode versus completion timing, and complete compressed
 and uncompressed download sizes. Only then answer Q8 in the design and plan.
