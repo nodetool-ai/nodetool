@@ -141,14 +141,16 @@ Rectangle {
             label: "Queue"
             glyph: "playlistPlay"
             count: root.status.queuedCount
-            unavailable: root.status.queueAvailable ? "" : qsTr("The queue opens while jobs are queued or running.")
+            active: root.panels.queueVisible
             onActivated: root.status.openQueue()
         }
         StatusTab {
             objectName: "status-generations"
             label: "Generations"
             glyph: "autoAwesomeOutlined"
-            unavailable: qsTr("Generations across workflows have no native panel. Select a node and open History in the inspector.")
+            count: root.status.generatingCount
+            active: root.panels.generationsVisible
+            onActivated: root.panels.toggleStatusView("generations")
         }
         StatusTab {
             objectName: "status-workers"

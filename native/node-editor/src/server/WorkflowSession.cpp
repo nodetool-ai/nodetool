@@ -17,6 +17,7 @@
 #include <QPointer>
 #include <QSet>
 #include <QTimer>
+#include <QUrlQuery>
 #include <algorithm>
 #include <mutex>
 #include <utility>
@@ -569,6 +570,22 @@ void WorkflowSession::request(const QByteArray &method, const QString &path,
         cb(doc.isArray() ? QJsonObject{{"nodes", doc.array()}} : doc.object(),
            status, {});
       });
+}
+void WorkflowSession::listGenerations(std::function<void(QJsonArray, QString)> done) {
+  if (m_base.isEmpty()) {
+    done({}, QStringLiteral("Connect to a server to load generations."));
+    return;
+  }
+  // GENERATION_HISTORY_LIMIT finished generations plus room for running ones.
+  QUrlQuery query;
+  query.addQueryItem("input", QString::fromUtf8(QJsonDocument(QJsonObject{{"limit", 100}}).toJson(QJsonDocument::Compact)));
+  request("GET", "/trpc/generations.list?" + query.toString(QUrl::FullyEncoded), {},
+          [done = std::move(done)](QJsonObject response, int, QString error) {
+            auto data = response["result"].toObject()["data"].toObject();
+            if (data["json"].isObject()) { data = data["json"].toObject(); }
+            if (error.isEmpty() && !data["generations"].isArray()) { error = QStringLiteral("Invalid generations response"); }
+            done(data["generations"].toArray(), error);
+          });
 }
 void WorkflowSession::preflightCost(std::function<void(QJsonObject, QString)> done) {
   if (!serverBound()) {
@@ -1315,6 +1332,10 @@ void WorkflowSession::receive(const QByteArray &bytes) {
   auto event = decoded->toObject();
   if (event["type"] == "ping") {
     m_socket.sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "pong"}}));
+    return;
+  }
+  if (event["type"] == "prediction") {
+    emit predictionReceived(event);
     return;
   }
   if (event["type"] == "system_stats") {

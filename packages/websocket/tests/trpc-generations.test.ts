@@ -64,6 +64,16 @@ describe("generation activity router", () => {
     });
   });
 
+  it("names the workflow run that made a generation", async () => {
+    await generation({ workflow_id: "wf-1", job_id: "job-1", node_id: "node-1" });
+    await generation({ created_at: "2026-01-01T00:00:00Z" });
+    const result = await caller().list({ project_id: "project" });
+    expect(result.generations.map(({ workflow_id, job_id }) => ({ workflow_id, job_id }))).toEqual([
+      { workflow_id: "wf-1", job_id: "job-1" },
+      { workflow_id: null, job_id: null }
+    ]);
+  });
+
   it("preserves recovery, cancellation intent, cost provenance, and billing units", async () => {
     await generation({
       lifecycle_owner: "durable", status: "completed", provider_status: "succeeded",

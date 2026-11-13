@@ -1896,15 +1896,29 @@
       "inventory": "F36"
     },
     "web/src/components/panels/generations/GenerationsPanel.tsx": {
-      "missing": "Status Generations is disabled natively.",
+      "native": [
+        "native/node-editor/qml/GenerationsPanel.qml",
+        "native/node-editor/src/interfaces/GenerationActivity.cpp"
+      ],
+      "status": "partial",
+      "note": "Lists workflow-run predictions and the generations.list history, not chat media turns or generate_media requests, which the native editor does not send.",
       "inventory": "C8"
     },
     "web/src/components/panels/generations/GenerationTile.tsx": {
-      "missing": "Status Generations is disabled natively.",
+      "native": [
+        "native/node-editor/qml/GenerationsPanel.qml"
+      ],
+      "status": "partial",
+      "note": "Video and audio tiles show their kind icon, not a frame or waveform. Stop is absent, as it is on the web for a workflow prediction.",
       "inventory": "C8"
     },
     "web/src/components/panels/generations/OpenAsWorkflowAction.tsx": {
-      "missing": "Status Generations is disabled natively.",
+      "native": [
+        "native/node-editor/src/run/GenerationWorkflow.cpp",
+        "native/node-editor/src/interfaces/GenerationActivity.cpp"
+      ],
+      "status": "partial",
+      "note": "Only the recorded-request path. A generation with presets and no recorded request needs the web preset catalog. History records carry no preset ids, so only live generations offer the action.",
       "inventory": "C8"
     },
     "web/src/components/panels/HidePanelOnAssetOpen.tsx": {
@@ -1916,7 +1930,7 @@
         "native/node-editor/src/server/AccountJobs.cpp"
       ],
       "status": "partial",
-      "note": "Error jobs have no Report control.",
+      "note": "Failed jobs offer Report. History rows show no output thumbnails, duration or short job id.",
       "inventory": "F24"
     },
     "web/src/components/panels/jobs/QueuePanel.tsx": {
@@ -1924,7 +1938,7 @@
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Opens only while jobs exist.",
+      "note": "Opens at any time with the Active and History sections, filters and day groups, as a canvas overlay rather than a bottom panel view.",
       "inventory": "C11"
     },
     "web/src/components/panels/LogPanel.tsx": {
