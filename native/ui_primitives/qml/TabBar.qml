@@ -60,18 +60,19 @@ Item {
         spacing: root.filled ? 0 : Ui.Metrics.md
         Repeater {
             id: repeater
-            model: root.tabs
+            // Counting the tabs keeps each delegate alive while a tab's title or count changes.
+            model: root.tabs.length
             delegate: Item {
                 id: cell
                 required property int index
-                required property var modelData
-                readonly property bool active: root.tabActive(modelData)
-                readonly property bool available: root.tabEnabled(modelData)
-                readonly property string label: modelData.label
-                readonly property string iconName: modelData.iconName !== undefined ? modelData.iconName : ""
-                readonly property string disabledReason: modelData.disabledReason !== undefined ? modelData.disabledReason : ""
-                readonly property bool hasCount: modelData.count !== undefined
-                objectName: modelData.objectName !== undefined ? modelData.objectName : ""
+                readonly property var entry: root.tabs[index] || ({})
+                readonly property bool active: root.tabActive(entry)
+                readonly property bool available: root.tabEnabled(entry)
+                readonly property string label: entry.label
+                readonly property string iconName: entry.iconName !== undefined ? entry.iconName : ""
+                readonly property string disabledReason: entry.disabledReason !== undefined ? entry.disabledReason : ""
+                readonly property bool hasCount: entry.count !== undefined
+                objectName: entry.objectName !== undefined ? entry.objectName : ""
                 height: tabRow.height
                 width: root.filled ? content.implicitWidth + Ui.Metrics.lg * 2 : content.implicitWidth + Ui.Metrics.sm
                 function forceFocus() { button.forceActiveFocus() }
@@ -80,7 +81,7 @@ Item {
                 Accessible.description: disabledReason
                 Accessible.checkable: true
                 Accessible.checked: active
-                Accessible.onPressAction: if (available) root.valueCommitted(modelData.value)
+                Accessible.onPressAction: if (available) root.valueCommitted(entry.value)
                 // A disabled control receives no hover, so the reason hangs on the cell.
                 HoverHandler { id: hover }
                 Basic.AbstractButton {
@@ -108,7 +109,7 @@ Item {
                             event.accepted = true
                         }
                     }
-                    onClicked: root.valueCommitted(cell.modelData.value)
+                    onClicked: root.valueCommitted(cell.entry.value)
                 }
                 Row {
                     id: content
@@ -136,8 +137,8 @@ Item {
                         objectName: cell.objectName === "" ? "" : cell.objectName + "-count"
                         anchors.verticalCenter: root.filled ? parent.verticalCenter : undefined
                         y: root.filled ? 0 : Ui.Metrics.micro
-                        visible: cell.hasCount && (!root.filled || cell.modelData.count > 0)
-                        text: cell.hasCount ? cell.modelData.count : ""
+                        visible: cell.hasCount && (!root.filled || cell.entry.count > 0)
+                        text: cell.hasCount ? cell.entry.count : ""
                         role: Ui.Typography.SansCaption
                         lineHeight: 1
                         tone: Ui.Text.Secondary

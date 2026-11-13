@@ -109,14 +109,15 @@ Item {
             height: strip.height
             Repeater {
                 id: repeater
-                model: root.tabs
+                // Counting the tabs keeps each delegate alive while a tab's title or count changes.
+                model: root.tabs.length
                 delegate: Rectangle {
                     id: tab
                     required property int index
-                    required property var modelData
+                    readonly property var entry: root.tabs[index] || ({})
                     readonly property int tabIndex: index
                     readonly property bool active: root.currentIndex === index
-                    readonly property bool closable: modelData.closable !== false
+                    readonly property bool closable: entry.closable !== false
                     readonly property bool renaming: root.renamingIndex === index
                     objectName: root.objectNameFor("tab", index)
                     height: tabRow.height - (active ? 0 : root.unchosenInset)
@@ -124,7 +125,7 @@ Item {
                     color: active ? root.selectedColor : hover.hovered ? root.hoverColor : "transparent"
                     activeFocusOnTab: true
                     Accessible.role: Accessible.PageTab
-                    Accessible.name: root.accessibleNameFor(modelData)
+                    Accessible.name: root.accessibleNameFor(entry)
                     Accessible.checkable: true
                     Accessible.checked: active
                     Accessible.onPressAction: root.tabActivated(index)
@@ -169,7 +170,7 @@ Item {
                             }
                         }
                         onDoubleClicked: mouse => {
-                            if (mouse.button === Qt.LeftButton && tab.modelData.renamable) {
+                            if (mouse.button === Qt.LeftButton && tab.entry.renamable) {
                                 root.renamingIndex = tab.index
                                 root.renameRequested(tab.index)
                             }
@@ -185,7 +186,7 @@ Item {
                         spacing: root.contentSpacing
                         Ui.BusyIndicator {
                             objectName: root.objectNameFor("busy", tab.index)
-                            visible: tab.modelData.busy === true && !tab.renaming
+                            visible: tab.entry.busy === true && !tab.renaming
                             running: visible
                             implicitWidth: Ui.Metrics.iconXs
                             implicitHeight: Ui.Metrics.iconXs
@@ -197,7 +198,7 @@ Item {
                             objectName: root.objectNameFor("title", tab.index)
                             visible: !tab.renaming
                             Layout.fillWidth: true
-                            text: tab.modelData.title
+                            text: tab.entry.title
                             role: Ui.Typography.SansLabel
                             tone: tab.active || hover.hovered ? Ui.Text.Primary : Ui.Text.Secondary
                             elide: Text.ElideRight
@@ -206,7 +207,7 @@ Item {
                             Ui.Tooltip {
                                 trigger: title
                                 delay: root.titleTooltipDelay
-                                text: tab.modelData.title
+                                text: tab.entry.title
                                 visible: titleHover.hovered && title.truncated
                             }
                         }
@@ -216,7 +217,7 @@ Item {
                             Layout.fillWidth: true
                             density: Ui.EditorButton.Compact
                             accessibleName: root.renameLabel
-                            value: tab.modelData.title
+                            value: tab.entry.title
                             onVisibleChanged: if (visible) { forceActiveFocus(); selectAll() }
                             onValueCommitted: value => { root.renamingIndex = -1; root.renameCommitted(tab.index, value) }
                             onEditCanceled: root.renamingIndex = -1
@@ -226,7 +227,7 @@ Item {
                         }
                         Rectangle {
                             objectName: root.objectNameFor("modified", tab.index)
-                            visible: tab.modelData.modified === true && !tab.renaming
+                            visible: tab.entry.modified === true && !tab.renaming
                             implicitWidth: Ui.Metrics.md
                             implicitHeight: Ui.Metrics.md
                             radius: Ui.Metrics.radiusPill
@@ -242,7 +243,7 @@ Item {
                             implicitHeight: Ui.Metrics.iconSm
                             leftPadding: Ui.Metrics.none
                             rightPadding: Ui.Metrics.none
-                            accessibleName: qsTr("Close %1").arg(tab.modelData.title)
+                            accessibleName: qsTr("Close %1").arg(tab.entry.title)
                             onClicked: root.closeRequested(tab.index)
                         }
                     }
@@ -262,7 +263,7 @@ Item {
                         width: parent.width
                         height: Ui.Metrics.focus
                         visible: tab.active && !dropIndicator.visible
-                        color: tab.modelData.accent !== undefined ? tab.modelData.accent : root.indicatorColor
+                        color: tab.entry.accent !== undefined ? tab.entry.accent : root.indicatorColor
                     }
                     Rectangle {
                         anchors.right: parent.right

@@ -543,7 +543,10 @@ void EditorWindow::showTabMenu(int index, const QPointF &global) {
     request.actions = menu.actions();
     request.guardDocument = false;
     request.deferChoice = true;
-    owner->showEntryMenu(request);
+    // The owner window only stacks tabs and has no engine or scene, so a tab hosts the menu.
+    if (auto host = tabOwner_ ? this : owner->activeEditor_) {
+        host->showEntryMenu(request);
+    }
 }
 void EditorWindow::closeOtherTabs(int index) {
     auto owner = tabOwner_ ? tabOwner_ : this;
@@ -714,7 +717,11 @@ void EditorWindow::showProjectMenu(const QPointF &global) {
             owner->selectProject(id.mid(QString("project:").size()));
         }
     };
-    owner->projectMenu_ = owner->showEntryMenu(request);
+    auto host = tabOwner_ ? this : owner->activeEditor_;
+    if (!host) {
+        return;
+    }
+    owner->projectMenu_ = host->showEntryMenu(request);
     auto active = owner->activeEditor_;
     if (active && !active->session_.serverUrl().isEmpty()) {
         active->browser_.loadProjects();
