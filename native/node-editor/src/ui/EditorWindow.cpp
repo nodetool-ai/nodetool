@@ -572,6 +572,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
       if (documentEpoch == documentEpoch_ && credentialsEpoch == credentialsEpoch_ && !document_.node(id).isEmpty()) selectNode(id);
     });
   });
+  // The AI rows: the chat opens with a draft that names the new Code node.
+  connect(compatiblePicker_, &CompatibleNodePicker::codeRequested, this, [this](const QString &, const QString &draft) { askAgent(draft); });
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, compatiblePicker_, &CompatibleNodePicker::cancel);
   connect(this, &EditorWindow::documentEpochChanged, compatiblePicker_, &CompatibleNodePicker::cancel);
   canvasDrops_ = new CanvasDropController(model_, *view_, this);

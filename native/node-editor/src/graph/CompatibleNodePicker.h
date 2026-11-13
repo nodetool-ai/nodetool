@@ -64,6 +64,9 @@ public slots:
 signals:
   void changed();
   void nodeCreated(const QString &id);
+  // An AI row created a Code node wired to the handle. The host opens the chat with `draft`
+  // (web useCodeGenFromHandle.ts opens the Code assistant dialog instead).
+  void codeRequested(const QString &id, const QString &draft);
 protected:
   bool eventFilter(QObject *object, QEvent *event) override;
 private:
@@ -99,6 +102,8 @@ private:
     QString key, label, type, port, receivingName;
     QJsonObject overrides;
     bool replaceTarget = false, destructive = false;
+    // Transform output / Create value with AI: a Code node with one slot typed from the handle.
+    bool code = false;
   };
   QVector<FixedAction> fixed_;
   QJsonObject metadataFor(const QString &type) const;
@@ -116,7 +121,9 @@ private:
   QJsonObject connectCommand(const QJsonObject &metadata, bool forward, const QString &resource, const QString &handle,
                              const QString &port, const QPointF &position, QString &id,
                              const QJsonObject &overrides = {}, const QString &receivingName = {},
-                             bool replaceTarget = false) const;
+                             bool replaceTarget = false, const QJsonObject &dynamic = {}) const;
+  // The Code node, its seeded slot and the wire for an AI row (useCodeGenFromHandle.ts).
+  bool chooseCode(const QJsonObject &metadata);
   bool owns(QObject *object) const;
   void positionWidget();
 };
