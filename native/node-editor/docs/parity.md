@@ -3293,10 +3293,37 @@ Bodies native still draws with the generic or content card body:
 2. Image editing bodies: Canvas Resize, Compositor, Crop, Curves, Levels,
    Masks Extractor and Painter.
 3. Other bodies: Collection, Constant Sketch, Constant Timeline, Extract Video
-   Frame, List Generator, the synth modules, the audio effects and Audio Output.
+   Frame and List Generator.
 4. The Code body (`CodeBody.tsx`), which native shows as a code row.
 5. The inline color popover and the upstream images in the Before and Mask
    preview tabs, listed under the part 2 differences above.
+
+### Synth module bodies
+
+`SynthModules.cpp` draws `SynthModuleBody.tsx` for the synth modules and the
+audio effects, and `AudioOutBody.tsx` for Audio Output. The faceplate configs
+come from `synthModules.ts` and `audioEffectModules.ts` through
+`resources/synth/modules.json`, which
+`node native/node-editor/scripts/generate-synth-modules.mjs` writes and checks
+with `--check`. A card has its input jacks with their labels, the module
+label, the waveform selector, the mode and on/off toggles, the ADSR envelope
+sketch and a centered grid of knobs, at the web default height. A knob drag
+moves 1/160 of the range per pixel, a tenth as fast with Shift, and commits
+once on release. A double-click restores the default. `CardBodiesTest` covers
+the layout, the knob math, the drag and reset, and the selector and toggle
+edits.
+
+Differences in these bodies:
+
+1. Knobs take no keyboard focus, so the arrow, Home and End keys do nothing.
+2. A knob drag schedules the instant rerun, as a slider drag does. The web
+   pushes the value into the running job.
+3. The waveform buttons have no hover fill or tooltip.
+4. Audio Output plays through the shared canvas audio playback, not the web
+   transport and visualizer on the faceplate.
+5. `CanvasTheme` has no info or error role, so modules with those accents,
+   such as LFO and Gate, use the web dark palette's `info.main` and
+   `error.main` in both themes.
 
 ### Media values on cards
 

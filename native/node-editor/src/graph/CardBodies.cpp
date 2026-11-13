@@ -1,4 +1,5 @@
 #include "CardBodies.h"
+#include "SynthModules.h"
 #include <QFont>
 #include <QFontMetricsF>
 #include <QTextLayout>
@@ -1104,6 +1105,13 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
     if (bodies.contains(type)) {
         return bodies.value(type);
     }
+    // bespokeRegistry.ts routes SYNTH_NODE_TYPES and AUDIO_EFFECT_NODE_TYPES to SynthModuleBody.
+    if (type == QLatin1String(audioOutType)) {
+        return CardBody::AudioOut;
+    }
+    if (!synthModule(type).isEmpty()) {
+        return CardBody::SynthModule;
+    }
     if (adjustments.contains(type)) {
         return CardBody::Adjustment;
     }
@@ -1159,6 +1167,10 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
         return false;
     case CardBody::GetVariable:
         return name == QStringLiteral("trigger");
+    case CardBody::SynthModule:
+        return synthModule(metadata["node_type"].toString())["inputs"].toArray().contains(name);
+    case CardBody::AudioOut:
+        return name == QStringLiteral("chunk");
     default:
         return metadata["input_fields"].toArray().contains(name);
     }
@@ -1297,6 +1309,12 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
     case CardBody::Paste:
         layoutPaste(layout, input);
         growPreview(layout, input);
+        break;
+    case CardBody::SynthModule:
+        layoutSynthModule(layout, input);
+        break;
+    case CardBody::AudioOut:
+        layoutAudioOut(layout, input);
         break;
     default:
         break;
