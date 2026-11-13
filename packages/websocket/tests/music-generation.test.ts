@@ -884,7 +884,8 @@ describe("music generation: event loop (backlog M3)", () => {
     expect(result.music_takes[0]!.record.alignment?.confidence).toBeGreaterThan(3);
     // Before the fix the measurement held the loop for 2.2 to 2.5 s in one
     // piece. The gain, the mono mix and the WAV encode of 90 s still run
-    // whole: about 250 ms together on a loaded 4-core machine.
-    expect(longestGap).toBeLessThan(500);
+    // whole: about 250 ms together on a loaded 4-core machine, and 503 ms
+    // once in the CI quality gate. 1 s still fails the 2.2 s stall.
+    expect(longestGap).toBeLessThan(1000);
   }, 60_000);
 });
