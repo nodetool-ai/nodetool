@@ -166,6 +166,20 @@ export const concatTextChunksSafely = (
   };
 };
 
+/**
+ * True when any row holds an object or array value. A table cell shows only
+ * scalars, so such rows render as JSON instead of a table of
+ * "[object Object]" cells.
+ */
+export const hasNestedRecordValues = (rows: readonly unknown[]): boolean =>
+  rows.some(
+    (row) =>
+      isRecord(row) &&
+      Object.values(row).some(
+        (value) => typeof value === "object" && value !== null
+      )
+  );
+
 export const formatAudioChunkTimestamp = (seconds: number): string => {
   if (!Number.isFinite(seconds) || seconds < 0) {
     return "00:00.000";

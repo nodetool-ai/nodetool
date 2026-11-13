@@ -5,6 +5,7 @@ import {
   documentBytes,
   formatAudioChunkTimestamp,
   groupTextChunks,
+  hasNestedRecordValues,
   hashBytesBounded,
   hashStringBounded,
   htmlFromData,
@@ -195,5 +196,18 @@ describe("groupTextChunks", () => {
       { kind: "text", chunks: [c] }
     ]);
     expect(groupTextChunks([], isText)).toEqual([]);
+  });
+});
+
+describe("hasNestedRecordValues", () => {
+  it("is false for flat records", () => {
+    expect(hasNestedRecordValues([{ a: 1, b: "x" }, { a: null }, null])).toBe(false);
+  });
+
+  it("is true when a row nests an array or object", () => {
+    expect(
+      hasNestedRecordValues([{ name: "rect" }, { name: "g", children: [{ name: "rect" }] }])
+    ).toBe(true);
+    expect(hasNestedRecordValues([{ attrs: { x: 1 } }])).toBe(true);
   });
 });

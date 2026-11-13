@@ -298,7 +298,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
               );
             }
 
-            const Component = getComponentForProperty(prop);
+            const Component = getComponentForProperty(prop, nodeType);
             return (
               <Box
                 className="chain-property-item"
