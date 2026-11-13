@@ -67,6 +67,23 @@ target_link_libraries(node_editor_qml PUBLIC node_editor_interfaces nodetool_ui_
 if(NODETOOL_PARITY_HOST)
     add_subdirectory(../parity/host parity-host)
 endif()
+# The table editors through the QML module alone, so they build in the
+# components-only configuration too.
+if(BUILD_TESTING)
+    # PropertyField loads every field type, so the test builds the editor's media
+    # QML types and links the model picker, as node_editor_inspector_component_tests does.
+    qt_add_executable(node_editor_data_table_tests tests/ui/DataTableEditorTest.cpp
+     src/media/MediaResolver.cpp src/media/MediaResolver.h
+     src/media/AudioWaveform.cpp src/media/AudioWaveform.h
+     src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+     src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
+     src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
+     src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
+    target_link_libraries(node_editor_data_table_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin nodetool_model_picker nodetool_model_pickerplugin Qt6::Quick Qt6::Multimedia Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_data_table_tests)
+    add_test(NAME node_editor_data_table COMMAND node_editor_data_table_tests)
+    set_tests_properties(node_editor_data_table PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
 if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
     return()
 endif()
