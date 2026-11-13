@@ -251,6 +251,8 @@ describe("buildPlan", () => {
   });
 
   it.each([
+    "native/kernels/src/audio.cpp",
+    "native/kernels/include/nodetool/kernels.h",
     "native/graph-runner/src/kernel/task.cpp",
     "native/graph-runner/CMakeLists.txt",
     "native/graph-runner/guest/host/provider-jobs.mjs",

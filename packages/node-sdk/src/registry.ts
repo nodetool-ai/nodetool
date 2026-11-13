@@ -664,6 +664,7 @@ export function hydrateGraphNodeFlags(
       // supervisor a retry on a side-effecting node — the asymmetric failure
       // docs/workflow-supervisor-design.md §5.3 exists to prevent.
       retry_safe: (cls ? cls.retrySafe : meta?.retry_safe) ?? false,
+      audio_sink: cls ? cls.audioSink : meta?.audio_sink,
       always_emit_output_updates:
         (cls
           ? cls.alwaysEmitOutputUpdates
@@ -777,6 +778,7 @@ export function createGraphNodeTypeResolver(
         }),
         descriptorDefaults: {
           name: metadata.title,
+          audio_sink: metadata.audio_sink,
           // Explicit booleans, never omitted: Graph.loadFromDict resolves each
           // flag as `descriptorDefaults.flag ?? saved ?? false`, so an omitted
           // false here would let a stale saved `true` survive a node type's

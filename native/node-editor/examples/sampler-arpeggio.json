@@ -1,0 +1,212 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "An Arpeggio from One Note",
+  "tool_name": null,
+  "description": "A sampler plays one plucked note at four pitches, with up to eight voices at a time, through a reverb until you stop the run. Runs locally with no file, model or key.",
+  "tags": [
+    "audio",
+    "dsp",
+    "music",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# An Arpeggio from One Note\n\nOne recorded note becomes a melody that plays live, until you stop the run. Every step runs in the editor process, with no file, model or key.\n\n**How it works:** \"1 Note\" is a Code node that writes one plucked note. \"2 Clock\" is a Gate with four rising edges for each second. Each edge starts a voice of \"4 Sampler\". The voice reads the pitch from \"3 Steps\" at that moment and keeps it. \"3 Steps\" is a triangle LFO of one cycle for each second, so the four notes are the root, the fifth, the ninth and the fifth. A note lasts longer than the time to the next one, so several voices at different pitches sound together. \"5 Room\" adds a reverb.\n\n**Try this:** Set Voices on \"4 Sampler\" to 1: each note then cuts the note before it. Set Depth and Offset on \"3 Steps\" to 1 for octave steps, or set Tune on \"4 Sampler\" to -12."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 340
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "note",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "// One plucked note: 220 Hz (A3) with three harmonics, 1.2 seconds.\nconst rate = 44100, seconds = 1.2, freq = 220;\nconst samples = new Float32Array(Math.round(rate * seconds));\nfor (let i = 0; i < samples.length; i++) {\n  const t = i / rate;\n  const tone = Math.sin(2 * Math.PI * freq * t) + 0.4 * Math.sin(4 * Math.PI * freq * t) + 0.2 * Math.sin(6 * Math.PI * freq * t);\n  // A fast attack, a decay, and a 5 ms fade at the end.\n  samples[i] = 0.4 * tone * Math.min(1, t / 0.002) * Math.exp(-4 * t) * Math.min(1, (samples.length - 1 - i) / 220);\n}\n\n// 16-bit PCM WAV bytes from interleaved samples in [-1, 1].\nfunction wav(samples, rate, channels) {\n  const bytes = new Uint8Array(44 + samples.length * 2);\n  const view = new DataView(bytes.buffer);\n  const tag = (at, text) => { for (let i = 0; i < 4; i++) bytes[at + i] = text.charCodeAt(i); };\n  tag(0, \"RIFF\"); view.setUint32(4, 36 + samples.length * 2, true); tag(8, \"WAVE\");\n  tag(12, \"fmt \"); view.setUint32(16, 16, true); view.setUint16(20, 1, true);\n  view.setUint16(22, channels, true); view.setUint32(24, rate, true);\n  view.setUint32(28, rate * channels * 2, true); view.setUint16(32, channels * 2, true);\n  view.setUint16(34, 16, true); tag(36, \"data\"); view.setUint32(40, samples.length * 2, true);\n  samples.forEach((s, i) => view.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, s)) * 32767), true));\n  return bytes;\n}\n\nawait output(\"audio\", await media.toAudio(wav(samples, rate, 1), { mimeType: \"audio/wav\", filename: \"note.wav\" }));\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Note"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "audio": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "clock",
+        "type": "nodetool.audio.synth.Gate",
+        "data": {
+          "on_duration": 0.06,
+          "off_duration": 0.19
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 620
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Clock"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "steps",
+        "type": "nodetool.audio.synth.LFO",
+        "data": {
+          "waveform": "triangle",
+          "rate_hz": 1,
+          "depth": 0.5833,
+          "offset": 0.5833
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 860
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Steps"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sampler",
+        "type": "nodetool.audio.synth.Sampler",
+        "data": {
+          "voices": 8,
+          "gain": 0.6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Sampler"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "room",
+        "type": "nodetool.audio.realtime.StreamingReverb",
+        "data": {
+          "room_scale": 0.7,
+          "damping": 0.4,
+          "wet_level": 0.35,
+          "dry_level": 0.8
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Room"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.audio.realtime.AudioOutput",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "note-sampler",
+        "source": "note",
+        "sourceHandle": "audio",
+        "target": "sampler",
+        "targetHandle": "audio",
+        "ui_properties": {}
+      },
+      {
+        "id": "clock-sampler",
+        "source": "clock",
+        "sourceHandle": "cv",
+        "target": "sampler",
+        "targetHandle": "gate",
+        "ui_properties": {}
+      },
+      {
+        "id": "steps-sampler",
+        "source": "steps",
+        "sourceHandle": "cv",
+        "target": "sampler",
+        "targetHandle": "pitch_cv",
+        "ui_properties": {}
+      },
+      {
+        "id": "sampler-room",
+        "source": "sampler",
+        "sourceHandle": "chunk",
+        "target": "room",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      },
+      {
+        "id": "room-out",
+        "source": "room",
+        "sourceHandle": "chunk",
+        "target": "out",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

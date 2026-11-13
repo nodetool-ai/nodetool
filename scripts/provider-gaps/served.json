@@ -1,0 +1,10 @@
+{
+  "$comment": "Model ids NodeTool offers or that users reached and got 404 for. provider-model-gaps.mjs --served asks the provider for each one and reports any it no longer serves. `get` ids are checked with GET models/<id>; `generate` ids with a one-token generateContent call, because Google keeps listing models that answer 404 to new keys. The Veo ids in GEMINI_VIDEO_MODELS are added from the source. Say why next to each group.",
+  "gemini": {
+    "get": {},
+    "generate": {
+      "listed to new keys but answered 404 in first sessions (Nov 2026)": ["gemini-2.5-pro"],
+      "the model the Gemini key check sends its test request to": ["gemini-2.5-flash-lite"]
+    }
+  }
+}

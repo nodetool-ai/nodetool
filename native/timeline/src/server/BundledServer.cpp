@@ -23,7 +23,23 @@ constexpr int kStopTimeoutMs = 5000;
 QString backendDir() {
     const QString env = qEnvironmentVariable("NT_BUNDLED_BACKEND_DIR");
     if (!env.isEmpty()) return env;
-    return QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("../Resources/backend"));
+    const QDir appDir(QCoreApplication::applicationDirPath());
+#if defined(Q_OS_MACOS)
+    return appDir.filePath(QStringLiteral("../Resources/backend"));
+#elif defined(Q_OS_WIN)
+    return appDir.filePath(QStringLiteral("backend"));
+#else
+    // The AppImage holds the app in usr/bin.
+    return appDir.filePath(QStringLiteral("../share/nodetool-timeline/backend"));
+#endif
+}
+
+QString nodeBinary() {
+#if defined(Q_OS_WIN)
+    return QStringLiteral("runtime/node.exe");
+#else
+    return QStringLiteral("runtime/node");
+#endif
 }
 
 int freePort() {
@@ -48,7 +64,13 @@ bool healthy(QNetworkAccessManager& network, const QUrl& url) {
 void stopOnQuit(QProcess* server) {
     QObject::connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, server, [server] {
         if (server->state() == QProcess::NotRunning) return;
+#if defined(Q_OS_WIN)
+        // terminate() posts WM_CLOSE, which a console process without a
+        // window never receives.
+        server->kill();
+#else
         server->terminate();
+#endif
         if (!server->waitForFinished(kStopTimeoutMs)) {
             server->kill();
             server->waitForFinished(kStopTimeoutMs);
@@ -62,7 +84,7 @@ QUrl startBundledServer(QString* error) {
     if (!qEnvironmentVariableIsEmpty("NODETOOL_SERVER_URL")) return {};
     const QDir backend(backendDir());
     const QString entry = backend.filePath(QStringLiteral("server.mjs"));
-    const QString node = backend.filePath(QStringLiteral("runtime/node"));
+    const QString node = backend.filePath(nodeBinary());
     if (!QFileInfo::exists(entry) || !QFileInfo(node).isExecutable()) return {};
 
     const int port = freePort();

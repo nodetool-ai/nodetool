@@ -12,7 +12,7 @@ namespace nodetool::node_editor {
 // output (RunOutput.qml) read and do about runs: the shown queue, whether the
 // server is connected, the open workflow's id, the run output's runs, selected
 // run and models, and the authored command, ask-the-agent, cancel, select and
-// clear requests.
+// clear requests, and the queue history's report request.
 //
 // The owner fills the state with the setters and handles the *Requested
 // signals. A test can use a plain instance and a QSignalSpy. QML gets a
@@ -67,6 +67,8 @@ public:
     Q_INVOKABLE void selectRun(const QString &runId) { emit selectRunRequested(runId); }
     // Clears the run output.
     Q_INVOKABLE void clearOutput() { emit clearOutputRequested(); }
+    // Opens a bug report for a failed job in the queue history.
+    Q_INVOKABLE void reportJob(const QString &jobId) { emit reportJobRequested(jobId); }
 
 signals:
     void queueChanged();
@@ -79,6 +81,7 @@ signals:
     void cancelRequested(const QString &jobId);
     void selectRunRequested(const QString &runId);
     void clearOutputRequested();
+    void reportJobRequested(const QString &jobId);
 
 private:
     QVariantList queue_;

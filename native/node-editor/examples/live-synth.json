@@ -1,0 +1,161 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "Live Synth in a Room",
+  "tool_name": null,
+  "description": "A gated synth voice plays through reverb until you stop the run.",
+  "tags": [
+    "audio",
+    "dsp",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "gate",
+        "type": "nodetool.audio.synth.Gate",
+        "data": {
+          "on_duration": 0.2,
+          "off_duration": 0.3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "env",
+        "type": "nodetool.audio.synth.ADSR",
+        "data": {
+          "attack": 0.01,
+          "decay": 0.1,
+          "sustain": 0.4,
+          "release": 0.2
+        },
+        "ui_properties": {
+          "position": {
+            "x": 280,
+            "y": 0
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "osc",
+        "type": "nodetool.audio.synth.Oscillator",
+        "data": {
+          "frequency": 220
+        },
+        "ui_properties": {
+          "position": {
+            "x": 280,
+            "y": 420
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "amp",
+        "type": "nodetool.audio.synth.VCA",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "room",
+        "type": "nodetool.audio.realtime.StreamingReverb",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 840,
+            "y": 0
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.audio.realtime.AudioOutput",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1120,
+            "y": 0
+          },
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "gate-env",
+        "source": "gate",
+        "sourceHandle": "cv",
+        "target": "env",
+        "targetHandle": "gate",
+        "ui_properties": {}
+      },
+      {
+        "id": "env-amp",
+        "source": "env",
+        "sourceHandle": "cv",
+        "target": "amp",
+        "targetHandle": "cv",
+        "ui_properties": {}
+      },
+      {
+        "id": "osc-amp",
+        "source": "osc",
+        "sourceHandle": "chunk",
+        "target": "amp",
+        "targetHandle": "audio",
+        "ui_properties": {}
+      },
+      {
+        "id": "amp-room",
+        "source": "amp",
+        "sourceHandle": "chunk",
+        "target": "room",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      },
+      {
+        "id": "room-out",
+        "source": "room",
+        "sourceHandle": "chunk",
+        "target": "out",
+        "targetHandle": "chunk",
+        "ui_properties": {}
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

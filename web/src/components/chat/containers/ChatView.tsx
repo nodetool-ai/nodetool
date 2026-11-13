@@ -636,6 +636,10 @@ const ChatView = ({
               error={chatError}
               onDismiss={handleDismissError}
               onRetry={!isBusy && failedSubmission?.threadId !== effectiveThreadId && lastUserMessage ? handleRetry : undefined}
+              model={model}
+              onModelChange={hideModelPicker ? undefined : onModelChange}
+              allowedProviders={allowedProviders}
+              requireToolSupport={requireToolSupport}
             />
           </FlexColumn>
         )}

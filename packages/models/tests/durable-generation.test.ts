@@ -10,6 +10,11 @@ import {
   DurableGenerationIdempotencyConflictError
 } from "../src/index.js";
 import { deriveGenerationStatus } from "../src/index.js";
+import { ACCEPTED_RECOVERY_GRACE_MS } from "../src/durable-generation.js";
+
+/** An instant after the grace window of a generation accepted now. */
+const afterAcceptGrace = (extraMs = 0): string =>
+  new Date(Date.now() + ACCEPTED_RECOVERY_GRACE_MS + 1_000 + extraMs).toISOString();
 
 describe("durable generation persistence", () => {
   beforeEach(() => initTestDb({ strictProjects: true }));
@@ -632,6 +637,29 @@ describe("durable generation persistence", () => {
     ).toBe("contradictory terminal observation");
   });
 
+  it("leaves a just-accepted generation to its caller until the grace window passes", async () => {
+    const accepted = await Prediction.acceptGenerationWithAttempt({
+      user_id: "u1",
+      provider: "fal_ai",
+      model: "flux",
+      idempotency_key: "accepted-live",
+      input_fingerprint: "hash"
+    });
+    const now = new Date().toISOString();
+    const due = await GenerationAttempt.recoverable(now);
+    expect(due.some((attempt) => attempt.id === accepted.attempt.id)).toBe(false);
+    const generations = await Prediction.recoverableGenerations(now);
+    expect(generations.some((g) => g.id === accepted.generation.id)).toBe(false);
+    // The live caller can still take both leases.
+    const expiresAt = new Date(Date.now() + 60_000).toISOString();
+    expect(
+      await Prediction.claimGenerationLease(accepted.generation.id, "live", now, expiresAt)
+    ).not.toBeNull();
+    expect(
+      await GenerationAttempt.claimLease(accepted.attempt.id, "live", now, expiresAt)
+    ).not.toBeNull();
+  });
+
   it("keeps accepted attempts and retained raw outputs in the recovery queue", async () => {
     const accepted = await Prediction.acceptGenerationWithAttempt({
       user_id: "u1",
@@ -640,7 +668,7 @@ describe("durable generation persistence", () => {
       idempotency_key: "accepted-restart",
       input_fingerprint: "hash"
     });
-    const due = await GenerationAttempt.recoverable("2026-09-13T10:00:00.000Z");
+    const due = await GenerationAttempt.recoverable(afterAcceptGrace());
     expect(due.some((attempt) => attempt.id === accepted.attempt.id)).toBe(
       true
     );
@@ -654,8 +682,8 @@ describe("durable generation persistence", () => {
     const lease = await GenerationAttempt.claimLease(
       accepted.attempt.id,
       "worker-a",
-      "2026-09-13T10:00:00.000Z",
-      "2026-09-13T10:01:00.000Z"
+      afterAcceptGrace(),
+      afterAcceptGrace(60_000)
     );
     await GenerationOutput.transition(
       output.id,
@@ -684,8 +712,8 @@ describe("durable generation persistence", () => {
       parameters: { image_url: media },
       request_payload: { image_url: media }
     });
-    const now = "2026-09-13T10:00:00.000Z";
-    const expiresAt = "2026-09-13T10:01:00.000Z";
+    const now = afterAcceptGrace();
+    const expiresAt = afterAcceptGrace(60_000);
 
     const [due] = await GenerationAttempt.recoverable(now);
     expect(due?.id).toBe(accepted.attempt.id);

@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Cloud is in alpha. For production work, use",
       "ssoTitle": "Sign in to NodeTool",
       "ssoSignIn": "Sign in with {{provider}}",
-      "ssoFailed": "Sign-in failed ({{reason}}). Try again, or ask your administrator for access."
+      "ssoFailed": "Sign-in failed ({{reason}}). Try again, or ask your administrator for access.",
+      "marketingOptIn": "Email me about new launches and free offers. Unsubscribe any time."
     },
     "inspector": {
       "params": "Params",
@@ -6396,6 +6397,16 @@
           "image": "Image",
           "video": "Video",
           "audio": "Audio"
+        },
+        "attachedFileActions": {
+          "label": "Start from your files",
+          "hint": "Files attached. Describe what to make, or start from them:",
+          "animate": "Animate into a video",
+          "image": "Make new images",
+          "retake": "Edit the video",
+          "script": "Turn into a script",
+          "ask": "Ask about them",
+          "askPrompt": "Look at the attached files and suggest what I could make from them."
         }
       }
     }
@@ -18176,6 +18187,8 @@
         "mediumDescription": "Balances speed and depth.",
         "high": "High",
         "highDescription": "Reasons longest. Slower and costs more.",
+        "xhigh": "Extra high",
+        "xhighDescription": "Reasons longest of all. Slowest and costs the most.",
         "level": "Reasoning level",
         "title": "Reasoning",
         "titleWithLevel": "Reasoning: {{level}}"
@@ -19961,5 +19974,39 @@
         "public": "Public"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "The provider",
+    "title": {
+      "billing": "{{target}} can't run: the account has no credit or billing.",
+      "quota": "{{target}} can't run: this key has no quota left for it.",
+      "auth": "{{target}} refused your API key.",
+      "model_unavailable": "{{target}} is not available to your key.",
+      "rate_limit": "{{target}} is getting too many requests."
+    },
+    "hint": {
+      "billing": "Add credit with the provider, or switch to another model.",
+      "quota": "Free-tier keys often have no quota for this model. Enable billing with the provider, or switch to another model.",
+      "auth": "Check the key in Settings, or switch to a model from another provider.",
+      "model_unavailable": "It is removed from your model lists. Pick another model.",
+      "rate_limit": "Wait a moment, then try again."
+    },
+    "repeated": "This failed the same way again, so retrying won't help. Switch to another model.",
+    "switchTo": "Use {{model}}",
+    "openKeys": "Open API keys",
+    "addCredit": "Add credit",
+    "enableBilling": "Enable billing"
+  },
+  "runReadiness": {
+    "addKey": "Add API key",
+    "missingKeysDetail": "This workflow needs {{keys}}. Add it in Settings before you run it.",
+    "costPerRun": "≈ {{cost}} per run",
+    "costUnknown": "Cost unknown"
+  },
+  "marketingEmails": {
+    "title": "Product emails",
+    "label": "Email me about launches and free offers",
+    "description": "Hear about new features, models and free offers. Every email has an unsubscribe link, and you can turn this off here any time.",
+    "saveFailed": "Your email preference was not saved. Try again."
   }
 }

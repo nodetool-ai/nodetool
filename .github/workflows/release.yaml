@@ -935,6 +935,18 @@ jobs:
             electron/dist/*.blockmap
             electron/dist/*.yml
 
+  # The native timeline app with the NodeTool server inside, for macOS,
+  # Windows and Linux. Its assets join this release. It builds the
+  # run's own commit, so a desktop recovery from source_tag skips it.
+  native-timeline:
+    name: Native timeline
+    needs: [preflight]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.preflight.outputs.ref == github.sha }}
+    uses: ./.github/workflows/native-timeline-release.yml
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+    secrets: inherit
+
   nightly-docker-tag:
     name: Retag GHCR image for nightly
     # Waits for the desktop build so :nightly only moves when it succeeded.
@@ -996,8 +1008,8 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [preflight, release-build]
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
+    needs: [preflight, release-build, native-timeline]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (needs.native-timeline.result == 'success' || (needs.native-timeline.result == 'skipped' && needs.preflight.outputs.ref != github.sha)) && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -1018,7 +1030,7 @@ jobs:
         run: node scripts/merge-mac-update-manifests.mjs release-assets
 
       - name: Validate release assets
-        run: node scripts/validate-release-assets.mjs release-assets "${{ needs.preflight.outputs.release_channel }}"
+        run: node scripts/validate-release-assets.mjs release-assets "${{ needs.preflight.outputs.release_channel }}" ${{ needs.native-timeline.result == 'success' && '--with-timeline' || '' }}
 
       - name: Smoke-test updater manifests
         run: node scripts/smoke-release-updater-assets.mjs release-assets "${{ needs.preflight.outputs.version }}" "${{ needs.preflight.outputs.release_channel }}"

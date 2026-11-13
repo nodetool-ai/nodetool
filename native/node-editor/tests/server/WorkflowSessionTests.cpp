@@ -288,6 +288,63 @@ private slots:
     QTRY_COMPARE(events.count(), 4);
     QVERIFY(!session.run(snapshot).isEmpty());
   }
+  // A live property change of a server run goes out as the web's
+  // update_node_properties command, and only while the run is in progress.
+  void livePropertyChangeGoesToTheServer() {
+    QWebSocketServer server("live properties", QWebSocketServer::NonSecureMode);
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    QPointer<QWebSocket> peer;
+    QList<QJsonObject> commands;
+    connect(&server, &QWebSocketServer::newConnection, this, [&] {
+      peer = server.nextPendingConnection();
+      peer->setParent(&server);
+      connect(peer, &QWebSocket::binaryMessageReceived, this, [&](QByteArray bytes) {
+        auto v = decodeMsgPack(bytes);
+        QVERIFY(v.has_value());
+        commands.append(v->toObject());
+      });
+    });
+    WorkflowSession session;
+    QStringList errors;
+    connect(&session, &WorkflowSession::errorOccurred, this, [&errors](const QString &message) { errors.append(message); });
+    const QJsonObject snapshot{{"id", "workflow"}, {"name", "Test"},
+                               {"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "knob"}, {"type", "x"}}}}, {"edges", QJsonArray{}}}}};
+    QVERIFY(!session.updateNodeProperties("missing", "knob", {{"level", 1}}));
+    session.connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), "secret");
+    QTRY_VERIFY(session.connected());
+    const auto job = session.run(snapshot);
+    QVERIFY(!job.isEmpty());
+    QVERIFY(!session.runsInProcess(job));
+    QTRY_COMPARE(commands.size(), 1);
+    QVERIFY(session.updateNodeProperties(job, "knob", {{"level", 0.5}, {"on", true}}));
+    QTRY_COMPARE(commands.size(), 2);
+    QCOMPARE(commands[1]["type"].toString(), QString("update_node_properties"));
+    QCOMPARE(commands[1]["command"].toString(), QString("update_node_properties"));
+    const auto data = commands[1]["data"].toObject();
+    QCOMPARE(data["job_id"].toString(), job);
+    QCOMPARE(data["workflow_id"].toString(), QString("workflow"));
+    QCOMPARE(data["node_id"].toString(), QString("knob"));
+    QCOMPARE(data["properties"].toObject(), (QJsonObject{{"level", 0.5}, {"on", true}}));
+    // Refused: no node, no values, and another run.
+    QVERIFY(!session.updateNodeProperties(job, "", {{"level", 1}}));
+    QVERIFY(!session.updateNodeProperties(job, "knob", {}));
+    QVERIFY(!session.updateNodeProperties("other", "knob", {{"level", 1}}));
+    const auto second = session.run(snapshot);
+    QTRY_COMPARE(commands.size(), 3);
+    // A finished run takes none.
+    QSignalSpy events(&session, &WorkflowSession::runEvent);
+    peer->sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "job_update"}, {"job_id", job}, {"status", "completed"}, {"job_seq", 1}}));
+    QTRY_COMPARE(events.count(), 1);
+    QVERIFY(!session.updateNodeProperties(job, "knob", {{"level", 1}}));
+    // A change that cannot reach the server is dropped, with no error: the
+    // document holds the value for the next run.
+    peer->close();
+    QTRY_VERIFY(!session.connected());
+    QVERIFY(!session.updateNodeProperties(second, "knob", {{"level", 1}}));
+    QTest::qWait(50);
+    QCOMPARE(commands.size(), 3);
+    QVERIFY2(!errors.contains("Connect before sending a run command"), qPrintable(errors.join('\n')));
+  }
   void rejectedWebsocketAuthentication() {
     QTcpServer server;
     QVERIFY(server.listen(QHostAddress::LocalHost));

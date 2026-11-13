@@ -23,6 +23,13 @@
  *   node scripts/provider-model-gaps.mjs --provider fal
  *   node scripts/provider-model-gaps.mjs --out gaps.json       # also write the report
  *   node scripts/provider-model-gaps.mjs --check               # exit 1 on any gap
+ *   node scripts/provider-model-gaps.mjs --served              # only the served-model check
+ *
+ * The other direction matters too: an id NodeTool offers that the provider
+ * stopped serving answers 404 to every user who picks it. For Gemini the
+ * report also lists `stale` ids: the Veo models in `GEMINI_VIDEO_MODELS` and
+ * the ids in `scripts/provider-gaps/served.json`, each asked of the provider
+ * directly. `--check` fails on a stale id as well as on a gap.
  *
  * A provider whose key is missing or whose catalog request fails is reported
  * with `ok: false` and does not stop the others.
@@ -37,12 +44,17 @@ import {
   parseFalModelsPage,
   parseGeminiImageModels,
   parseGeminiShippedIds,
-  parseReplicateCollection
+  parseGeminiVideoIds,
+  parseReplicateCollection,
+  staleServedModels
 } from "./provider-gaps/gaps.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const IGNORE = JSON.parse(
   readFileSync(join(ROOT, "scripts/provider-gaps/ignore.json"), "utf8")
+);
+const SERVED = JSON.parse(
+  readFileSync(join(ROOT, "scripts/provider-gaps/served.json"), "utf8")
 );
 
 function configIds(dir) {
@@ -125,6 +137,43 @@ const PROVIDERS = {
         pageToken = page.nextPageToken ?? null;
       } while (pageToken);
       return ids;
+    },
+    async served() {
+      const key = process.env.GEMINI_API_KEY;
+      if (!key) throw new Error("GEMINI_API_KEY is not set");
+      const source = readFileSync(
+        join(ROOT, "packages/runtime/src/providers/gemini-provider.ts"),
+        "utf8"
+      );
+      const getIds = [
+        ...parseGeminiVideoIds(source),
+        ...Object.values(SERVED.gemini?.get ?? {}).flat()
+      ];
+      const generateIds = Object.values(SERVED.gemini?.generate ?? {}).flat();
+      const base = "https://generativelanguage.googleapis.com/v1beta/models";
+      const query = `key=${encodeURIComponent(key)}`;
+      const results = [];
+      for (const id of new Set(getIds)) {
+        const response = await fetch(`${base}/${id}?${query}`);
+        results.push({ id, ok: response.ok, status: response.status });
+      }
+      for (const id of new Set(generateIds)) {
+        const response = await fetch(`${base}/${id}:generateContent?${query}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: "hi" }] }],
+            generationConfig: { maxOutputTokens: 1 }
+          })
+        });
+        // 429 is the key's quota, not the model: it says nothing about drift.
+        results.push({
+          id,
+          ok: response.ok || response.status === 429,
+          status: response.status
+        });
+      }
+      return staleServedModels(results);
     }
   }
 };
@@ -138,6 +187,7 @@ async function main() {
   const only = argValue("--provider");
   const out = argValue("--out");
   const check = process.argv.includes("--check");
+  const servedOnly = process.argv.includes("--served");
   const names = only ? [only] : Object.keys(PROVIDERS);
   for (const name of names) {
     if (!PROVIDERS[name]) throw new Error(`Unknown provider "${name}"`);
@@ -145,6 +195,10 @@ async function main() {
 
   const providers = [];
   for (const name of names) {
+    if (servedOnly) {
+      providers.push({ provider: name, ok: true, missing: [] });
+      continue;
+    }
     try {
       const upstream = await PROVIDERS[name].upstream();
       const { missing, ignored } = diffCatalog({
@@ -174,10 +228,29 @@ async function main() {
     }
   }
 
+  for (const entry of providers) {
+    const served = PROVIDERS[entry.provider].served;
+    if (!served) continue;
+    try {
+      entry.stale = await served();
+      console.error(`${entry.provider}: ${entry.stale.length} offered model(s) no longer served`);
+      for (const { id, status } of entry.stale) console.error(`  ${id} (${status})`);
+    } catch (error) {
+      entry.stale = [];
+      entry.staleError = String(error?.message ?? error);
+      console.error(`${entry.provider}: served check skipped, ${entry.staleError}`);
+    }
+  }
+
   const report = { generatedAt: new Date().toISOString(), providers };
   if (out) writeFileSync(out, `${JSON.stringify(report, null, 2)}\n`);
   else console.log(JSON.stringify(report, null, 2));
-  if (check && providers.some((p) => p.missing.length > 0)) process.exit(1);
+  if (
+    check &&
+    providers.some((p) => p.missing.length > 0 || (p.stale?.length ?? 0) > 0)
+  ) {
+    process.exit(1);
+  }
 }
 
 await main();

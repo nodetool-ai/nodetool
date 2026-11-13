@@ -566,6 +566,43 @@ describe("AtlasCloudProvider — imageToImage", () => {
     expect((body.images as string[])[0]).toMatch(/^data:image\/png;base64,/);
   });
 
+  it("sends the source images in reference_image_urls when that is the only image field", async () => {
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 1, 2]);
+    await p.imageToImage([png], {
+      model: imageModel("qwen-image-3.0-pro/edit"),
+      prompt: "make it pink"
+    });
+    const refs = capture.submitBody!.reference_image_urls as string[];
+    expect(refs).toHaveLength(1);
+    expect(refs[0]).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("downscales a source image above 4 MP before submitting it", async () => {
+    const sharp = (await import("sharp")).default;
+    const big = new Uint8Array(
+      await sharp({
+        create: { width: 4000, height: 3000, channels: 3, background: "#808080" }
+      })
+        .jpeg()
+        .toBuffer()
+    );
+    const capture: { submitBody?: Record<string, unknown> } = {};
+    mockAtlasFetch({ capture });
+    const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
+    await p.imageToImage([big], {
+      model: imageModel("google/nano-banana-2/edit"),
+      prompt: "x"
+    });
+    const uri = (capture.submitBody!.images as string[])[0];
+    const sent = Buffer.from(uri.slice(uri.indexOf(",") + 1), "base64");
+    const { width, height } = await sharp(sent).metadata();
+    expect(width! * height!).toBeLessThanOrEqual(2048 * 2048);
+    expect(width! / height!).toBeCloseTo(4 / 3, 2);
+  });
+
   it("rejects empty input bytes", async () => {
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     await expect(

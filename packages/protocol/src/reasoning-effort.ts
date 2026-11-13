@@ -1,17 +1,19 @@
 /**
  * The chat composer's reasoning level and which models accept it.
  *
- * The web composer shows its reasoning select only when
- * {@link supportsReasoningEffort} is true for the picked model, and the chat
- * turn forwards the level to the provider only under the same check. Each
+ * The web composer offers the levels {@link reasoningEffortLevels} returns for
+ * the picked model and hides its select when there are none. The chat turn
+ * forwards a level to the provider only when it is in that list. Each
  * provider maps the level to its own setting (Anthropic `output_config.effort`,
  * OpenAI `reasoning.effort`, Gemini `thinkingConfig`). Everything else never
  * receives it.
  */
 
+import { geminiModelCapabilities } from "./gemini-models.js";
 import { isString } from "./predicates.js";
 
-export const REASONING_EFFORTS = ["low", "medium", "high"] as const;
+/** Every level the composer can carry. A model offers a subset. */
+export const REASONING_EFFORTS = ["low", "medium", "high", "xhigh"] as const;
 
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
@@ -54,32 +56,56 @@ function openaiSupportsEffort(model: string): boolean {
   return /^gpt-5(?:[.-]|$)/.test(id);
 }
 
-/** Gemini 2.5 and 3 text models think. Image, speech and live models do not. */
-function geminiSupportsEffort(model: string): boolean {
-  const id = bareModelId(model);
-  if (/image|tts|audio|live|transcribe|embedding/.test(id)) return false;
-  return /^gemini-(?:2\.5|3)(?:[.-]|$)/.test(id);
+const STANDARD_LEVELS: readonly ReasoningEffort[] = ["low", "medium", "high"];
+const NO_LEVELS: readonly ReasoningEffort[] = [];
+
+/**
+ * Gemini levels come from the per-model capability table. A Gemini 2.5
+ * thinking budget maps from all three standard levels. A Gemini 3 model that
+ * only takes "low" and "high" still lists "medium", which the adapter answers
+ * by leaving the model's own default in place.
+ */
+function geminiEffortLevels(model: string): readonly ReasoningEffort[] {
+  const thinking = geminiModelCapabilities(model).thinking;
+  if (!thinking) return NO_LEVELS;
+  if (thinking.kind === "budget") return STANDARD_LEVELS;
+  return thinking.levels.includes("xhigh")
+    ? REASONING_EFFORTS
+    : STANDARD_LEVELS;
+}
+
+/**
+ * The composer levels a model accepts, in display order. Empty when the
+ * model takes no reasoning level.
+ */
+export function reasoningEffortLevels(
+  provider: string | null | undefined,
+  model: string | null | undefined
+): readonly ReasoningEffort[] {
+  if (!isString(provider) || !isString(model) || model === "") {
+    return NO_LEVELS;
+  }
+  switch (provider) {
+    case "anthropic":
+      return anthropicSupportsEffort(model) ? STANDARD_LEVELS : NO_LEVELS;
+    // Subscription CLIs: their model aliases resolve to current models, and
+    // both CLIs take an `--effort` flag.
+    case "claude_agent_sdk":
+    case "antigravity":
+      return STANDARD_LEVELS;
+    case "openai":
+      return openaiSupportsEffort(model) ? STANDARD_LEVELS : NO_LEVELS;
+    case "gemini":
+    case "gemini_vertex":
+      return geminiEffortLevels(model);
+    default:
+      return NO_LEVELS;
+  }
 }
 
 export function supportsReasoningEffort(
   provider: string | null | undefined,
   model: string | null | undefined
 ): boolean {
-  if (!isString(provider) || !isString(model) || model === "") return false;
-  switch (provider) {
-    case "anthropic":
-      return anthropicSupportsEffort(model);
-    // Subscription CLIs: their model aliases resolve to current models, and
-    // both CLIs take an `--effort` flag.
-    case "claude_agent_sdk":
-    case "antigravity":
-      return true;
-    case "openai":
-      return openaiSupportsEffort(model);
-    case "gemini":
-    case "gemini_vertex":
-      return geminiSupportsEffort(model);
-    default:
-      return false;
-  }
+  return reasoningEffortLevels(provider, model).length > 0;
 }

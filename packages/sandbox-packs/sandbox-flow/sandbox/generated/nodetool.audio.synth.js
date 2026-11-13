@@ -24,6 +24,12 @@ function gate(inputs) {
 gate.stream = function(inputs) {
   return streamNode("nodetool.audio.synth.Gate", inputs);
 };
+function trigger(inputs) {
+  return callNode("nodetool.audio.synth.Trigger", inputs);
+}
+trigger.stream = function(inputs) {
+  return streamNode("nodetool.audio.synth.Trigger", inputs);
+};
 function vca(inputs) {
   return callNode("nodetool.audio.synth.VCA", inputs);
 }
@@ -54,6 +60,12 @@ function mixer(inputs) {
 mixer.stream = function(inputs) {
   return streamNode("nodetool.audio.synth.Mixer", inputs);
 };
+function sampler(inputs) {
+  return callNode("nodetool.audio.synth.Sampler", inputs);
+}
+sampler.stream = function(inputs) {
+  return streamNode("nodetool.audio.synth.Sampler", inputs);
+};
 export {
   adsr,
   attenuverter,
@@ -62,6 +74,8 @@ export {
   mixer,
   oscillator,
   sampleHold,
+  sampler,
+  trigger,
   vca,
   vcf
 };

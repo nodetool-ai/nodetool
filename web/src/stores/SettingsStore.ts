@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { DEFAULT_LOCALE, resolveLocale, type Locale } from "../i18n/locales";
+import { browserLocale, resolveLocale, type Locale } from "../i18n/locales";
 import { isMac } from "../utils/platform";
 import {
   DEFAULT_TEXT_SIZE,
@@ -127,7 +127,7 @@ interface SettingsStore {
 }
 
 export const defaultSettings: Settings = {
-  locale: DEFAULT_LOCALE,
+  locale: browserLocale(),
   snapToGrid: false,
   // Matches the canvas background grid gap, so a snapped node lands on a
   // visible grid crossing.

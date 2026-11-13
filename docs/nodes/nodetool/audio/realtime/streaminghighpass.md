@@ -23,8 +23,8 @@ Applies a high-pass filter to a realtime audio stream, keeping filter state acro
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| chunk | `chunk` | Stream of PCM16LE audio chunks to process. | - |
 | cutoff_frequency_hz | `float` | The cutoff frequency of the high-pass filter in Hz. | `80` |
+| chunk | `chunk` | Stream of PCM16LE audio chunks to process. | - |
 | q | `float` | Filter resonance (quality factor). | - |
 
 ## Outputs

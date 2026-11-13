@@ -234,11 +234,13 @@ const secretsRouter = router({
       }
 
       const result = await checkCredential(input.key, value);
-      return {
+      const output: z.infer<typeof secretValidateOutput> = {
         status: result.status,
         valid: result.status === "valid",
         message: result.message
       };
+      if (result.account) output.account = result.account;
+      return output;
     })
 });
 

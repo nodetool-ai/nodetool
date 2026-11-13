@@ -118,35 +118,6 @@
    }
   },
   {
-   "id": "lib.audio.Reverb#default",
-   "node": "lib.audio.Reverb",
-   "graph": {
-    "nodes": [
-     {
-      "id": "n",
-      "type": "lib.audio.Reverb",
-      "properties": {}
-     },
-     {
-      "id": "out_output",
-      "type": "nodetool.output.Output",
-      "properties": {
-       "name": "output"
-      }
-     }
-    ],
-    "edges": [
-     {
-      "id": "e_out_output",
-      "source": "n",
-      "sourceHandle": "output",
-      "target": "out_output",
-      "targetHandle": "value"
-     }
-    ]
-   }
-  },
-  {
    "id": "lib.audio.NoiseGate#default",
    "node": "lib.audio.NoiseGate",
    "graph": {
@@ -212,6 +183,35 @@
      {
       "id": "n",
       "type": "lib.audio.PitchShift",
+      "properties": {}
+     },
+     {
+      "id": "out_output",
+      "type": "nodetool.output.Output",
+      "properties": {
+       "name": "output"
+      }
+     }
+    ],
+    "edges": [
+     {
+      "id": "e_out_output",
+      "source": "n",
+      "sourceHandle": "output",
+      "target": "out_output",
+      "targetHandle": "value"
+     }
+    ]
+   }
+  },
+  {
+   "id": "lib.audio.Reverb#default",
+   "node": "lib.audio.Reverb",
+   "graph": {
+    "nodes": [
+     {
+      "id": "n",
+      "type": "lib.audio.Reverb",
       "properties": {}
      },
      {

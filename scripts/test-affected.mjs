@@ -100,7 +100,7 @@ export const PATH_CHECKS = [
       { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
     ]
   },
-  { path: /^native\/(?:gpu-preview|graph-runner|jobs|model-picker|node-editor|timeline)\//, steps: [NATIVE_CTEST] },
+  { path: /^native\/(?:gpu-preview|graph-runner|jobs|kernels|model-picker|node-editor|timeline)\//, steps: [NATIVE_CTEST] },
   {
     path: /^native\/parity\//,
     steps: [
@@ -111,6 +111,10 @@ export const PATH_CHECKS = [
   {
     path: /^native\/chat\//,
     steps: [{ label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }]
+  },
+  {
+    path: /^scripts\/(?:provider-model-gaps\.mjs|provider-gaps\/|__tests__\/provider-model-gaps\.test\.mjs)/,
+    steps: [{ label: "provider model gap and drift helpers", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/provider-model-gaps.test.mjs"] }]
   },
   {
     path: /^scripts\/(?:ci-plan\.mjs|__tests__\/ci-plan\.test\.mjs)$/,

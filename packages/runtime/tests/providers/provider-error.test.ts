@@ -63,6 +63,29 @@ describe("httpStatusFromError", () => {
 });
 
 describe("annotateProviderError", () => {
+  it("names a free-tier quota failure instead of a rate limit", () => {
+    const error = httpError(
+      429,
+      "Quota exceeded for metric: generate_content_free_tier_requests, limit: 0"
+    );
+    annotateProviderError(error, { provider: "gemini", model: "veo-3.1-generate-preview" });
+    expect(error.message).toContain("has no quota left on this key");
+    expect(error.message).toContain("enable billing with gemini");
+  });
+
+  it("names an empty account behind a 400", () => {
+    const error = httpError(400, "Your credit balance is too low to access the Anthropic API.");
+    annotateProviderError(error, { provider: "anthropic", model: "claude-sonnet-4-6" });
+    expect(error.message).toContain("no credit or billing");
+  });
+
+  it("says a burst 429 is a rate limit, without mentioning quota", () => {
+    const error = httpError(429, "Rate limit reached for requests");
+    annotateProviderError(error, { provider: "openai", model: "gpt-5.4-mini" });
+    expect(error.message).toContain("limiting how fast requests arrive");
+    expect(error.message).not.toMatch(/quota/i);
+  });
+
   it("explains a 403 and names the provider and model", () => {
     const error = httpError(403, "Your request was blocked.");
     annotateProviderError(error, { provider: "gemini", model: "gemini-3-pro" });

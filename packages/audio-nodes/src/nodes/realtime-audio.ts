@@ -1,3 +1,15 @@
+import { SIGNAL_EFFECT_NODES } from "./signal-effects.js";
+import { applyToSignal } from "../lib/signal-effect.js";
+import { GainEffect } from "../lib/effect-descriptors.js";
+import {
+  GainProperties,
+  LowPassFilterProperties,
+  HighPassFilterProperties
+} from "../lib/effect-properties.js";
+import { getTransport } from "../lib/transport.js";
+import {
+  MAX_AUDIO_RENDER_SECONDS
+} from "@nodetool-ai/protocol";
 /**
  * Realtime/streaming audio nodes — chunked PCM16LE audio flowing through the
  * kernel's streaming machinery.
@@ -27,14 +39,14 @@ import {
   audioBytesAsync,
   audioRefFromWav,
   encodeWav,
-  parseWavBytes
+  parseWavBytes,
+  decodeAudioToWav
 } from "../lib/audio-wav.js";
 import {
   CHUNK_PROP_DEFAULT,
   makeDoneSignalChunk,
   makeSignalChunk,
-  readSignalChunk,
-  SYNTH_SAMPLE_RATE
+  readSignalChunk
 } from "../lib/cv.js";
 import { DEFAULT_Q } from "../lib/biquad.js";
 
@@ -43,7 +55,7 @@ import { DEFAULT_Q } from "../lib/biquad.js";
 // ../lib/cv.ts — shared with the synthesis nodes so CV streams can be patched
 // into any of these audio inputs.
 
-const DEFAULT_SAMPLE_RATE = SYNTH_SAMPLE_RATE;
+const DEFAULT_SAMPLE_RATE = 24000;
 
 // ── AudioToChunks ──────────────────────────────────────────────────
 
@@ -71,7 +83,7 @@ export class AudioToChunksNode extends BaseNode {
       metadata: null
     },
     title: "Audio",
-    description: "The audio file to slice into chunks (must be WAV)."
+    description: "The audio file to play as chunks."
   })
   declare audio: Record<string, unknown>;
 
@@ -85,6 +97,14 @@ export class AudioToChunksNode extends BaseNode {
   })
   declare chunk_duration: number;
 
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Loop",
+    description: "Play the clip repeatedly until the run ends."
+  })
+  declare loop: boolean;
+
   // Required by BaseNode but unused — genProcess is the execution path
   async process(): Promise<Record<string, unknown>> {
     return {};
@@ -93,26 +113,58 @@ export class AudioToChunksNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const audio = this.audio;
-    const chunkDuration = this.chunk_duration;
-
-    const bytes = await audioBytesAsync(audio, context);
-    const wav = parseWavBytes(bytes);
-    if (!wav) throw new Error("AudioToChunks requires a valid WAV input");
-
-    const { samples, sampleRate, numChannels } = wav;
-    const channels = Math.max(1, numChannels);
+    const transport = getTransport(context);
+    const bytes = await audioBytesAsync(this.audio, context);
+    const wav =
+      transport.mode === "free"
+        ? parseWavBytes(bytes)
+        : await decodeAudioToWav(bytes);
+    if (!wav)
+      throw new Error("AudioToChunks requires a valid WAV input in free mode");
+    const channels = wav.numChannels;
+    const sampleRate =
+      transport.mode === "free" ? wav.sampleRate : transport.sampleRate;
+    const kernels = await loadKernels();
+    const samples =
+      transport.mode === "free"
+        ? wav.samples
+        : kernels.resample(wav.samples, channels, wav.sampleRate, sampleRate);
     const totalFrames = Math.floor(samples.length / channels);
-    const framesPerChunk = Math.max(1, Math.round(chunkDuration * sampleRate));
-
-    for (let start = 0; start < totalFrames; start += framesPerChunk) {
-      const end = Math.min(start + framesPerChunk, totalFrames);
-      const slice = samples.subarray(start * channels, end * channels);
+    const framesPerChunk = Math.max(
+      1,
+      Math.round(this.chunk_duration * sampleRate)
+    );
+    let frame = 0;
+    const signal = context?.signal;
+    while (
+      totalFrames > 0 &&
+      !signal?.aborted &&
+      (this.loop || frame < totalFrames) &&
+      (transport.endFrame === null || frame < transport.endFrame)
+    ) {
+      if (transport.mode !== "free" || this.loop)
+        await transport.until(
+          (frame * transport.sampleRate) / sampleRate,
+          signal
+        );
+      if (signal?.aborted) break;
+      const start = frame % totalFrames;
+      const count = Math.min(
+        framesPerChunk,
+        totalFrames - start,
+        transport.endFrame === null ? Infinity : transport.endFrame - frame
+      );
       yield {
-        chunk: makeSignalChunk(slice, sampleRate, channels, false, "pcm16le")
+        chunk: makeSignalChunk(
+          samples.subarray(start * channels, (start + count) * channels),
+          sampleRate,
+          channels,
+          false,
+          "pcm16le"
+        )
       };
+      frame += count;
     }
-
     yield { chunk: makeDoneSignalChunk(sampleRate, channels, "pcm16le") };
   }
 }
@@ -120,6 +172,17 @@ export class AudioToChunksNode extends BaseNode {
 // ── ChunksToAudio ──────────────────────────────────────────────────
 
 export class ChunksToAudioNode extends BaseNode {
+  static readonly audioSink = "render" as const;
+
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Duration",
+    description: "Seconds to record. Zero records until the stream ends.",
+    min: 0,
+    max: MAX_AUDIO_RENDER_SECONDS
+  })
+  declare duration: number;
   static readonly nodeType = "nodetool.audio.realtime.ChunksToAudio";
   static readonly title = "Chunks To Audio";
   static readonly description =
@@ -144,44 +207,84 @@ export class ChunksToAudioNode extends BaseNode {
     return {};
   }
 
-  async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs,
+    context?: ProcessingContext
+  ): Promise<void> {
     const parts: Float32Array[] = [];
     let total = 0;
     let sampleRate = DEFAULT_SAMPLE_RATE;
     let channels = 1;
     let formatSeen = false;
+    let captured = false;
+    const live = getTransport(context).mode === "live";
+    const emitRecording = async (): Promise<void> => {
+      const samples = new Float32Array(total);
+      let offset = 0;
+      for (const part of parts) {
+        samples.set(part, offset);
+        offset += part.length;
+      }
+      parts.length = 0;
+      await outputs.emit(
+        "audio",
+        audioRefFromWav(encodeWav(samples, sampleRate, channels))
+      );
+    };
 
     for await (const item of inputs.stream("chunk")) {
       const chunk = readSignalChunk(item);
-      if (!chunk) continue;
+      if (!chunk) {
+        continue;
+      }
+      if (captured) {
+        if (chunk.done) {
+          break;
+        }
+        continue;
+      }
       if (!formatSeen && chunk.samples.length > 0) {
         sampleRate = chunk.sampleRate;
         channels = chunk.channels;
         formatSeen = true;
       }
       if (chunk.samples.length > 0) {
-        parts.push(chunk.samples);
-        total += chunk.samples.length;
+        const limit =
+          this.duration > 0
+            ? Math.round(
+                Math.min(this.duration, MAX_AUDIO_RENDER_SECONDS) * sampleRate
+              ) * channels
+            : null;
+        const remaining =
+          limit === null ? chunk.samples.length : Math.max(0, limit - total);
+        const part = chunk.samples.subarray(0, remaining);
+        parts.push(part);
+        total += part.length;
+        if (limit !== null && total >= limit) {
+          captured = true;
+          await emitRecording();
+          if (!live) {
+            return;
+          }
+          // Keep this live edge drained after capture without retaining PCM.
+          // The other sinks continue playing until the run is cancelled.
+        }
       }
-      if (chunk.done) break;
+      if (chunk.done) {
+        break;
+      }
     }
-
-    const samples = new Float32Array(total);
-    let offset = 0;
-    for (const part of parts) {
-      samples.set(part, offset);
-      offset += part.length;
+    if (!captured) {
+      await emitRecording();
     }
-    await outputs.emit(
-      "audio",
-      audioRefFromWav(encodeWav(samples, sampleRate, channels))
-    );
   }
 }
 
 // ── AudioOutput ────────────────────────────────────────────────────
 
 export class AudioOutputNode extends BaseNode {
+  static readonly audioSink = "live" as const;
   static readonly nodeType = "nodetool.audio.realtime.AudioOutput";
   static readonly title = "Audio Out";
   static readonly description =
@@ -225,7 +328,7 @@ export class AudioOutputNode extends BaseNode {
 
 // ── StreamingGain ──────────────────────────────────────────────────
 
-export class StreamingGainNode extends BaseNode {
+export class StreamingGainNode extends GainProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingGain";
   static readonly title = "Streaming Gain";
   static readonly description =
@@ -245,52 +348,13 @@ export class StreamingGainNode extends BaseNode {
   })
   declare chunk: Chunk;
 
-  @prop({
-    type: "float",
-    default: 0,
-    title: "Gain Db",
-    description:
-      "Gain to apply in decibels. Positive values increase volume, negative values decrease it.",
-    min: -60,
-    max: 24
-  })
-  declare gain_db: number;
-
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const kernels = await loadKernels();
-    for await (const item of inputs.stream("chunk")) {
-      const chunk = readSignalChunk(item);
-      if (!chunk) continue;
-
-      if (chunk.done) {
-        await outputs.emit(
-          "chunk",
-          makeDoneSignalChunk(chunk.sampleRate, chunk.channels, "pcm16le")
-        );
-        break;
-      }
-      if (chunk.samples.length === 0) continue;
-
-      // Per chunk — live updates apply. The kernel writes a fresh buffer:
-      // the input Float32Array is shared by reference with fan-out edges and
-      // any UI buffer holding the upstream chunk.
-      const scaled = kernels.scaleOffset(chunk.samples, Math.pow(10, this.gain_db / 20));
-      await outputs.emit(
-        "chunk",
-        makeSignalChunk(
-          scaled,
-          chunk.sampleRate,
-          chunk.channels,
-          false,
-          "pcm16le"
-        )
-      );
-    }
+    await applyToSignal(GainEffect, this, inputs, outputs);
   }
 }
 
@@ -308,46 +372,27 @@ async function runStreamingFilter(
   inputs: StreamingInputs,
   outputs: StreamingOutputs
 ): Promise<void> {
-  const kernels = await loadKernels();
-  let state: Float64Array | undefined;
-  let stateChannels = 0;
-
-  for await (const item of inputs.stream("chunk")) {
-    const chunk = readSignalChunk(item);
-    if (!chunk) continue;
-
-    if (chunk.done) {
-      await outputs.emit(
-        "chunk",
-        makeDoneSignalChunk(chunk.sampleRate, chunk.channels, "pcm16le")
-      );
-      break;
-    }
-    if (chunk.samples.length === 0) continue;
-
-    if (!state || stateChannels !== chunk.channels) {
-      state = kernels.createBiquadState(chunk.channels);
-      stateChannels = chunk.channels;
-    }
-    const { frequency, q } = params();
-    const coeffs = kernels.biquadDesign("rbj", type, chunk.sampleRate, frequency, q);
-    // The kernel filters the interleaved buffer directly, one state per
-    // channel, so no deinterleave copy is needed.
-    const filteredSamples = kernels.biquadProcess(coeffs, state, chunk.samples, chunk.channels);
-    await outputs.emit(
-      "chunk",
-      makeSignalChunk(
-        filteredSamples,
-        chunk.sampleRate,
-        chunk.channels,
-        false,
-        "pcm16le"
-      )
-    );
-  }
+  await applyToSignal(
+    {
+      kernel: "nt_biquad_process",
+      create: (_n, k, c) => k.createBiquadState(c),
+      process: (_n, k, state, samples, c, r) => {
+        const p = params();
+        return k.biquadProcess(
+          k.biquadDesign("rbj", type, r, p.frequency, p.q),
+          state,
+          samples,
+          c
+        );
+      }
+    },
+    undefined,
+    inputs,
+    outputs
+  );
 }
 
-export class StreamingLowPassNode extends BaseNode {
+export class StreamingLowPassNode extends LowPassFilterProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingLowPass";
   static readonly title = "Streaming Low Pass";
   static readonly description =
@@ -366,16 +411,6 @@ export class StreamingLowPassNode extends BaseNode {
     description: "Stream of PCM16LE audio chunks to process."
   })
   declare chunk: Chunk;
-
-  @prop({
-    type: "float",
-    default: 5000,
-    title: "Cutoff Frequency Hz",
-    description: "The cutoff frequency of the low-pass filter in Hz.",
-    min: 500,
-    max: 20000
-  })
-  declare cutoff_frequency_hz: number;
 
   @prop({
     type: "float",
@@ -405,7 +440,7 @@ export class StreamingLowPassNode extends BaseNode {
   }
 }
 
-export class StreamingHighPassNode extends BaseNode {
+export class StreamingHighPassNode extends HighPassFilterProperties {
   static readonly nodeType = "nodetool.audio.realtime.StreamingHighPass";
   static readonly title = "Streaming High Pass";
   static readonly description =
@@ -424,16 +459,6 @@ export class StreamingHighPassNode extends BaseNode {
     description: "Stream of PCM16LE audio chunks to process."
   })
   declare chunk: Chunk;
-
-  @prop({
-    type: "float",
-    default: 80,
-    title: "Cutoff Frequency Hz",
-    description: "The cutoff frequency of the high-pass filter in Hz.",
-    min: 20,
-    max: 5000
-  })
-  declare cutoff_frequency_hz: number;
 
   @prop({
     type: "float",
@@ -464,6 +489,7 @@ export class StreamingHighPassNode extends BaseNode {
 }
 
 export const REALTIME_AUDIO_NODES: readonly NodeClass[] = tagAsHybrid([
+  ...SIGNAL_EFFECT_NODES,
   AudioToChunksNode,
   AudioOutputNode,
   ChunksToAudioNode,

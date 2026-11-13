@@ -10,8 +10,15 @@
  * the same record.
  */
 
-import type { ProviderCallFailed } from "@nodetool-ai/protocol";
-import { isObjectLike, isString } from "@nodetool-ai/protocol";
+import type {
+  ProviderCallFailed,
+  ProviderFailureKind
+} from "@nodetool-ai/protocol";
+import {
+  classifyProviderFailure,
+  isObjectLike,
+  isString
+} from "@nodetool-ai/protocol";
 import { httpStatusFromError } from "./provider-error.js";
 import { sanitizeForLog } from "./provider-request-log.js";
 
@@ -22,20 +29,8 @@ const WIRE_SANITIZE = {
   maxDepth: 8
 } as const;
 
-/**
- * Failure classes a surface can branch on. Derived from the status when there
- * is one, otherwise from the error's `code`/`name`.
- */
-export type ProviderFailureKind =
-  | "auth"
-  | "payment"
-  | "not_found"
-  | "rate_limit"
-  | "timeout"
-  | "server"
-  | "network"
-  | "client"
-  | "unknown";
+/** Failure classes a surface can branch on. See `classifyProviderFailure`. */
+export type { ProviderFailureKind };
 
 const NETWORK_CODES = new Set([
   "ENOTFOUND",
@@ -49,28 +44,39 @@ const NETWORK_CODES = new Set([
   "CERT_HAS_EXPIRED"
 ]);
 
+/**
+ * The failure class of a thrown provider error, from its status, its code and
+ * its message. The words decide the account classes, because providers answer
+ * an empty account or a free-tier key with different statuses.
+ */
 export function providerFailureKind(error: unknown): ProviderFailureKind {
   const status = httpStatusFromError(error);
-  if (status !== null) {
-    if (status === 401 || status === 403) return "auth";
-    if (status === 402) return "payment";
-    if (status === 404) return "not_found";
-    if (status === 429) return "rate_limit";
-    if (status === 408 || status === 504) return "timeout";
-    if (status >= 500) return "server";
-    if (status >= 400) return "client";
+  if (!isObjectLike(error)) {
+    return status === null ? "unknown" : classifyProviderFailure({ status });
   }
-  if (!isObjectLike(error)) return "unknown";
-  const candidate = error as { code?: unknown; name?: unknown; message?: unknown };
+  const candidate = error as {
+    code?: unknown;
+    name?: unknown;
+    message?: unknown;
+    error?: unknown;
+  };
   const code = isString(candidate.code) ? candidate.code : "";
-  if (NETWORK_CODES.has(code)) return "network";
+  if (status === null && NETWORK_CODES.has(code)) return "network";
   const name = isString(candidate.name) ? candidate.name : "";
-  if (name === "TimeoutError") return "timeout";
-  const message = isString(candidate.message) ? candidate.message : "";
-  if (/fetch failed|network error|socket hang up/i.test(message)) {
-    return "network";
-  }
-  return "unknown";
+  if (status === null && name === "TimeoutError") return "timeout";
+  // The OpenAI SDK keeps the provider's own error code on `error.code` too.
+  const nested = isObjectLike(candidate.error)
+    ? (candidate.error as { code?: unknown; type?: unknown })
+    : undefined;
+  const providerCode =
+    code ||
+    (isString(nested?.code) ? nested.code : "") ||
+    (isString(nested?.type) ? nested.type : "");
+  return classifyProviderFailure({
+    status,
+    code: providerCode,
+    message: isString(candidate.message) ? candidate.message : ""
+  });
 }
 
 /**

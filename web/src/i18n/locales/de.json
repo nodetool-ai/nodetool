@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Cloud befindet sich in der Alpha-Phase. Für den produktiven Einsatz verwende",
       "ssoTitle": "Bei NodeTool anmelden",
       "ssoSignIn": "Mit {{provider}} anmelden",
-      "ssoFailed": "Anmeldung fehlgeschlagen ({{reason}}). Versuche es erneut oder bitte deine Administration um Zugriff."
+      "ssoFailed": "Anmeldung fehlgeschlagen ({{reason}}). Versuche es erneut oder bitte deine Administration um Zugriff.",
+      "marketingOptIn": "Schick mir E-Mails zu neuen Launches und kostenlosen Angeboten. Abmelden jederzeit möglich."
     },
     "inspector": {
       "params": "Parameter",
@@ -6396,6 +6397,16 @@
           "image": "Bild",
           "video": "Video",
           "audio": "Audio"
+        },
+        "attachedFileActions": {
+          "label": "Mit deinen Dateien starten",
+          "hint": "Dateien angehängt. Beschreibe, was entstehen soll, oder starte direkt damit:",
+          "animate": "Als Video animieren",
+          "image": "Neue Bilder erstellen",
+          "retake": "Video bearbeiten",
+          "script": "Als Skript übernehmen",
+          "ask": "Fragen dazu stellen",
+          "askPrompt": "Sieh dir die angehängten Dateien an und schlage vor, was ich daraus machen könnte."
         }
       }
     }
@@ -18176,6 +18187,8 @@
         "mediumDescription": "Gleicht Geschwindigkeit und Tiefe aus.",
         "high": "Höhen",
         "highDescription": "Denkt am längsten nach. Dauert länger und kostet mehr.",
+        "xhigh": "Sehr hoch",
+        "xhighDescription": "Denkt am gründlichsten nach. Am langsamsten und am teuersten.",
         "level": "Denkstufe",
         "title": "Denken",
         "titleWithLevel": "Denken: {{level}}"
@@ -19961,5 +19974,39 @@
         "public": "Öffentlich"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "Der Anbieter",
+    "title": {
+      "billing": "{{target}} kann nicht laufen: Das Konto hat kein Guthaben oder keine Abrechnung.",
+      "quota": "{{target}} kann nicht laufen: Dieser Schlüssel hat dafür kein Kontingent mehr.",
+      "auth": "{{target}} hat deinen API-Schlüssel abgelehnt.",
+      "model_unavailable": "{{target}} ist für deinen Schlüssel nicht verfügbar.",
+      "rate_limit": "{{target}} erhält zu viele Anfragen."
+    },
+    "hint": {
+      "billing": "Lade beim Anbieter Guthaben auf oder wechsle zu einem anderen Modell.",
+      "quota": "Kostenlose Schlüssel haben für dieses Modell oft kein Kontingent. Aktiviere die Abrechnung beim Anbieter oder wechsle zu einem anderen Modell.",
+      "auth": "Prüfe den Schlüssel in den Einstellungen oder wechsle zu einem Modell eines anderen Anbieters.",
+      "model_unavailable": "Es wurde aus deinen Modelllisten entfernt. Wähle ein anderes Modell.",
+      "rate_limit": "Warte einen Moment und versuche es dann erneut."
+    },
+    "repeated": "Das ist wieder genauso fehlgeschlagen, ein neuer Versuch hilft nicht. Wechsle zu einem anderen Modell.",
+    "switchTo": "{{model}} verwenden",
+    "openKeys": "API-Schlüssel öffnen",
+    "addCredit": "Guthaben aufladen",
+    "enableBilling": "Abrechnung aktivieren"
+  },
+  "runReadiness": {
+    "addKey": "API-Schlüssel hinzufügen",
+    "missingKeysDetail": "Dieser Workflow braucht {{keys}}. Füge ihn vor dem Ausführen in den Einstellungen hinzu.",
+    "costPerRun": "≈ {{cost}} pro Lauf",
+    "costUnknown": "Kosten unbekannt"
+  },
+  "marketingEmails": {
+    "title": "Produkt-E-Mails",
+    "label": "Schick mir E-Mails zu Launches und kostenlosen Angeboten",
+    "description": "Erfahre von neuen Funktionen, Modellen und kostenlosen Angeboten. Jede E-Mail enthält einen Abmeldelink, und du kannst das hier jederzeit ausschalten.",
+    "saveFailed": "Deine E-Mail-Einstellung wurde nicht gespeichert. Versuch es noch einmal."
   }
 }

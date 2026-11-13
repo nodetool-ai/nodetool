@@ -503,7 +503,8 @@ export class Graph {
         // `retry_safe: true` for a node whose class never declared it would
         // hand the supervisor a retry on a side-effecting node. An unresolved
         // type therefore gets no retry rather than the saved claim.
-        retry_safe: descriptorDefaults.retry_safe ?? false
+        retry_safe: descriptorDefaults.retry_safe ?? false,
+        audio_sink: descriptorDefaults.audio_sink
       };
 
       resolvedNodes.push(hydratedNode);

@@ -6,6 +6,7 @@ import {
   trackExecutionFinished,
   trackExecutionStarted
 } from "../backend-analytics.js";
+import { syncCustomProviderRegistry } from "../custom-providers.js";
 /**
  * Everything between "run_job arrived" and "terminal status persisted": the
  * admission gates, the concurrency queue, run start-up, the message stream,
@@ -1686,6 +1687,16 @@ export class JobExecutionManager {
     }
 
     phaseStartedAt = performance.now();
+    // The provider registry is shared by the whole process. After a restart,
+    // or on a replica this user has not listed models on, their custom
+    // providers are not registered yet and preflight would refuse the run.
+    if (JSON.stringify(graph.nodes).includes('"custom_')) {
+      try {
+        await syncCustomProviderRegistry(userId);
+      } catch (err) {
+        this.session.logError("custom provider sync failed", err);
+      }
+    }
     if (this.deps.beforeRunJob) {
       try {
         await this.deps.beforeRunJob(graph);
