@@ -1762,7 +1762,7 @@ void EditorScene::moveCrop(const QPointF &scenePosition) {
         // Card pixels to image pixels, as renderedScale.
         const QPointF delta((local.x() - cropPointer_.x()) * row.minimum / row.rect.width(),
                             (local.y() - cropPointer_.y()) * row.maximum / row.rect.height());
-        const auto value = cropDragged(cropHandle_, cropStart_, delta, QSizeF(row.minimum, row.maximum));
+        const auto value = cropDragged(cropHandle_, cropStart_, delta, QSizeF(row.minimum, row.maximum), row.step);
         if (value == cropValue_) { return; }
         cropValue_ = value;
         item->update();

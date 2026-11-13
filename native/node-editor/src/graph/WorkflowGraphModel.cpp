@@ -1517,6 +1517,23 @@ bool WorkflowGraphModel::isComment(NodeId id) const {
 }
 QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name) const {
   if (readOnly_ || !nodeExists(id) || inlineFieldRect(id, name).isEmpty()) { return {}; }
+  if (isCropControl(name)) {
+    // The Crop body's aspect select and size boxes edit card values, not properties.
+    for (const auto &row : layout(id).rows) {
+      if (row.propertyName != name) { continue; }
+      const bool aspect = name == QLatin1String(cropAspectControl);
+      QVariantList options;
+      for (int i = 0; aspect && i < row.optionValues.size(); ++i) { options.append(QVariantMap{{"label", row.options.value(i)}, {"value", row.optionValues[i]}}); }
+      const auto edges = cropEdges(row);
+      const auto value = aspect ? QVariant(row.optionValues.value(int(row.options.indexOf(row.value)))) 
+                                : QVariant(name == QLatin1String(cropWidthControl) ? edges.width() : edges.height());
+      return {{"name", name}, {"label", aspect ? QObject::tr("Aspect ratio") : name == QLatin1String(cropWidthControl) ? QObject::tr("Crop width") : QObject::tr("Crop height")},
+              {"kind", aspect ? QStringLiteral("choice") : QStringLiteral("integer")}, {"value", value}, {"hasValue", true}, {"editable", true},
+              {"connected", false}, {"options", options}, {"min", aspect ? QVariant{} : QVariant(1.0)},
+              {"max", aspect ? QVariant{} : QVariant(name == QLatin1String(cropWidthControl) ? row.minimum : row.maximum)}, {"step", 1.0}};
+    }
+    return {};
+  }
   for (const auto &value : node_editor::propertyFields(nodes_.value(id), metadata(id), edges_)) {
     const auto field = value.toMap();
     if (field["name"].toString() != name || !field["editable"].toBool() || field["connected"].toBool()) { continue; }
@@ -1587,6 +1604,29 @@ QJsonObject WorkflowGraphModel::propertyCommand(NodeId id, const QString &name, 
     return {{"op", "batch"}, {"commands", QJsonArray{
         QJsonObject{{"op", "setProperty"}, {"id", resource}, {"name", name}, {"value", entered}},
         QJsonObject{{"op", "setProperty"}, {"id", resource}, {"name", otherName}, {"value", other}}}}};
+}
+QJsonObject WorkflowGraphModel::cropControlCommand(NodeId id, const QString &name, const QVariant &value) const {
+    for (const auto &row : layout(id).rows) {
+        if (row.propertyName != QLatin1String(cropWidthControl)) { continue; }
+        const auto crop = cropEdges(row);
+        const auto next = cropControlled(name, value, crop, QSizeF(row.minimum, row.maximum), row.step);
+        if (next == crop) { return {}; }
+        const auto resource = resourceId(id);
+        QJsonArray commands;
+        for (const auto &[edge, number] : {std::pair{"left", next.left()}, std::pair{"top", next.top()},
+                                           std::pair{"right", next.right()}, std::pair{"bottom", next.bottom()}}) {
+            commands.append(QJsonObject{{"op", "setProperty"}, {"id", resource}, {"name", QLatin1String(edge)}, {"value", number}});
+        }
+        return {{"op", "batch"}, {"commands", commands}};
+    }
+    return {};
+}
+void WorkflowGraphModel::setCropControl(NodeId id, const QString &name, const QVariant &value) {
+    if (readOnly_ || !nodeExists(id) || !isCropControl(name)) { return; }
+    // handleAspectChange sets the aspect, then fits the crop to it.
+    const auto command = cropControlCommand(id, name, value);
+    if (name == QLatin1String(cropAspectControl)) { setPreviewTab(id, value.toString()); }
+    if (!command.isEmpty() && commit) { commit(command); }
 }
 QJsonObject WorkflowGraphModel::addDataframeColumnCommand(NodeId id, const QString &name) const {
     const auto data = nodes_.value(id)["data"].toObject();

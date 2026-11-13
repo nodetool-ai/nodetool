@@ -1819,6 +1819,30 @@ private slots:
         QCOMPARE(cropDragged("move", QRectF(10, 10, 50, 50), QPointF(500, -500), bounds), QRectF(150, 0, 50, 50));
     }
 
+    // CropBody.tsx: the aspect select fits the crop's height to its width, the
+    // width and height boxes keep a selected aspect, and a locked handle drag
+    // moves the other side with it.
+    void cropControlsFollowTheAspect() {
+        const QSizeF bounds(200, 100);
+        QCOMPARE(cropAspectRatio("free"), 0.0);
+        QCOMPARE(cropAspectRatio("16:9"), 16.0 / 9);
+        QCOMPARE(cropAspectRatio("5:4"), 0.0);
+        // 1:1 keeps the 80 px width and the top-left corner.
+        QCOMPARE(cropControlled(cropAspectControl, "1:1", QRectF(10, 10, 80, 40), bounds, 0), QRectF(10, 10, 80, 80));
+        // A taller crop than the image leaves stops at its bottom edge and moves up.
+        QCOMPARE(cropControlled(cropAspectControl, "9:16", QRectF(0, 50, 50, 40), bounds, 0), QRectF(QPointF(0, 11), QPointF(50, 100)));
+        QCOMPARE(cropControlled(cropAspectControl, "free", QRectF(0, 0, 50, 40), bounds, 0), QRectF(0, 0, 50, 40));
+        QCOMPARE(cropControlled(cropWidthControl, 60.4, QRectF(10, 10, 80, 40), bounds, 0), QRectF(10, 10, 60, 40));
+        QCOMPARE(cropControlled(cropWidthControl, 60, QRectF(10, 10, 80, 40), bounds, 2), QRectF(10, 10, 60, 30));
+        QCOMPARE(cropControlled(cropHeightControl, 30, QRectF(10, 10, 80, 40), bounds, 2), QRectF(10, 10, 60, 30));
+        QCOMPARE(cropControlled(cropWidthControl, 900, QRectF(10, 10, 80, 40), bounds, 0), QRectF(QPointF(10, 10), QPointF(200, 50)));
+        // An east drag at 2:1 sets the bottom from the new width, a north one the top.
+        QCOMPARE(cropDragged("e", QRectF(0, 0, 100, 50), QPointF(-40, 0), bounds, 2), QRectF(0, 0, 60, 30));
+        QCOMPARE(cropDragged("ne", QRectF(0, 40, 100, 50), QPointF(-40, 5), bounds, 2), QRectF(QPointF(0, 60), QPointF(60, 90)));
+        QCOMPARE(cropDragged("s", QRectF(0, 0, 100, 50), QPointF(0, -20), bounds, 2), QRectF(0, 0, 60, 30));
+        QCOMPARE(cropDragged("move", QRectF(0, 0, 100, 50), QPointF(10, 10), bounds, 2), QRectF(10, 10, 100, 50));
+    }
+
     // CropBody.tsx: the source shows with the crop rectangle; dragging a handle
     // or the rectangle writes the four edges in one undo step, and Reset selects the whole image.
     void cropRectangleDragsAndResets() {
@@ -1897,6 +1921,49 @@ private slots:
         QCOMPARE(host.data("crop")["right"].toDouble(), 200.0);
         QCOMPARE(host.data("crop")["bottom"].toDouble(), 100.0);
         QCOMPARE(host.undoCount(), ++undo);
+        // The width box opens the inline number editor on the crop width.
+        auto *presenter = host.window.findChild<InlinePropertyPresenter *>();
+        QVERIFY(presenter);
+        const auto *width = host.row("crop", NodeRowKind::Field, cropWidthControl);
+        QVERIFY(width);
+        QCOMPARE(width->value, QStringLiteral("200"));
+        host.click("crop", width->rect.center());
+        QTRY_VERIFY(presenter->active());
+        QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("integer"));
+        QCOMPARE(presenter->descriptor()["value"].toDouble(), 200.0);
+        QCOMPARE(presenter->descriptor()["max"].toDouble(), 200.0);
+        presenter->cancel();
+        // The aspect select offers the web's ratios, and 1:1 fits the crop to a square.
+        const auto *aspect = host.row("crop", NodeRowKind::Field, cropAspectControl);
+        QVERIFY(aspect);
+        QVERIFY(aspect->choice);
+        QCOMPARE(aspect->value, QStringLiteral("Free"));
+        QCOMPARE(aspect->optionValues.size(), 8);
+        host.click("crop", aspect->rect.center());
+        QTRY_VERIFY(presenter->active());
+        QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("choice"));
+        QCOMPARE(presenter->descriptor()["options"].toList().size(), 8);
+        presenter->cancel();
+        host.model().setCropControl(host.id("crop"), cropWidthControl, 80);
+        QTRY_COMPARE(host.data("crop")["right"].toDouble(), 80.0);
+        QCOMPARE(host.undoCount(), ++undo);
+        host.model().setCropControl(host.id("crop"), cropAspectControl, "1:1");
+        QTRY_COMPARE(host.data("crop")["bottom"].toDouble(), 80.0);
+        QCOMPARE(host.undoCount(), ++undo);
+        QCOMPARE(host.row("crop", NodeRowKind::Field, cropAspectControl)->value, QStringLiteral("1:1 Square"));
+        QCOMPARE(host.row("crop", NodeRowKind::Crop)->step, 1.0);
+        // With the aspect held, the height box moves the width with it.
+        host.model().setCropControl(host.id("crop"), cropHeightControl, 50);
+        QTRY_COMPARE(host.data("crop")["right"].toDouble(), 50.0);
+        QCOMPARE(host.data("crop")["bottom"].toDouble(), 50.0);
+        QCOMPARE(host.undoCount(), ++undo);
+        // An unchanged crop adds no undo step.
+        host.model().setCropControl(host.id("crop"), cropWidthControl, 50);
+        settle();
+        QCOMPARE(host.undoCount(), undo);
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QVERIFY(host.render(QStringLiteral("crop")).save(directory + QStringLiteral("/Crop-square-dark.png")));
+        }
     }
 
     // CurvesBody.tsx: five Tonal and three RGB midtone sliders under eyebrows,

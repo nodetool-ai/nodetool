@@ -120,6 +120,12 @@ public:
   QJsonObject propertyCommand(QtNodes::NodeId id, const QString &name, const QJsonValue &value) const;
   // DataframeProperty.tsx's Add column: appends the first free "Column N" as a string column.
   QJsonObject addDataframeColumnCommand(QtNodes::NodeId id, const QString &name) const;
+  // The edge batch a Crop body control makes (see isCropControl), empty when
+  // the crop stays the same.
+  QJsonObject cropControlCommand(QtNodes::NodeId id, const QString &name, const QVariant &value) const;
+  // Applies a Crop body control: the aspect becomes the body tab, and changed
+  // edges commit as one step.
+  void setCropControl(QtNodes::NodeId id, const QString &name, const QVariant &value);
   // The media drop zone row under a card-local point, or -1.
   int dropZoneAt(QtNodes::NodeId id, const QPointF &point) const;
   bool readOnly() const { return readOnly_; }

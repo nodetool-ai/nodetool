@@ -1,4 +1,5 @@
 #include "InlinePropertyPresenter.h"
+#include "CardBodies.h"
 #include "EditorScene.h"
 #include "WorkflowGraphModel.h"
 #include "interfaces/PropertyHost.h"
@@ -134,6 +135,13 @@ void InlinePropertyPresenter::flushCommit() {
   const auto id = model_.resourceId(node_);
   const auto name = name_;
   const auto value = pendingValue_;
+  if (isCropControl(name)) {
+    const auto node = node_;
+    cancel();
+    model_.setCropControl(node, name, value);
+    view_.setFocus(Qt::OtherFocusReason);
+    return;
+  }
   const auto command = model_.propertyCommand(node_, name, QJsonValue::fromVariant(value));
   cancel();
   if (command["op"] == QStringLiteral("batch") && commitCommand) { commitCommand(command); }

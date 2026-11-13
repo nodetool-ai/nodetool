@@ -835,10 +835,12 @@
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/CardBodyPainter.cpp",
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/InlinePropertyPresenter.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
       ],
-      "status": "partial",
-      "note": "The incoming image with the darkened outside, thirds grid, crop rectangle, eight handles, move and resize drags, size badge and Reset match. The aspect select and the width and height boxes are missing.",
+      "status": "match",
+      "note": "The incoming image with the darkened outside, thirds grid, crop rectangle, eight handles, move and resize drags, size badge, aspect select with its drag lock, width and height boxes and Reset match.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CurvesBody.tsx": {

@@ -1240,36 +1240,74 @@ void layoutLevels(NodeLayout &layout, const CardBodyInput &input) {
     column.finish();
 }
 
-// CropBody.tsx: the source with its crop rectangle, the size badge, and Reset.
-// The aspect select and the width and height boxes are not drawn yet.
+// CropBody.tsx: the source with its crop rectangle and size badge, then the
+// aspect select, the width and height boxes and Reset. The aspect is view
+// state, kept as the body tab, and the boxes edit the crop's edges.
 void layoutCrop(NodeLayout &layout, const CardBodyInput &input) {
     auto column = imageColumn(layout, input);
-    column.y += nm::micro;
-    const auto size = double(nm::iconButtonSize);
-    layout.rows.append(iconAction(QStringLiteral("resetCrop"), {}, QStringLiteral("restartAlt"), QObject::tr("Reset crop"),
-                                  QRectF(column.x + column.width - size, column.y, size, size)));
-    column.y += size;
-    column.finish();
     showSource(layout, input, QStringLiteral("image"));
     const auto *source = readySource(input, QStringLiteral("image"));
-    if (!source) {
-        return;
-    }
-    const auto natural = QSizeF(source->natural);
-    auto image = QRectF(QPointF(), natural.scaled(layout.resultRect.size(), Qt::KeepAspectRatio));
-    image.moveCenter(layout.resultRect.center());
-    auto crop = controlRow(NodeRowKind::Crop, {}, QObject::tr("Crop"), image);
-    crop.minimum = natural.width();
-    crop.maximum = natural.height();
-    // An unset right or bottom edge is the image's, as props.right ?? imgDims.w.
+    // writeRect clamps to 4096 until the image's size is known, and an unset
+    // right or bottom edge is the image's, as props.right ?? imgDims.w ?? 512.
+    const auto natural = source ? QSizeF(source->natural) : QSizeF();
+    const auto bounds = source ? natural : QSizeF(4096, 4096);
     const auto data = input.node["data"].toObject();
     const auto edge = [&data](const char *name, double fallback) {
         const auto value = data.value(QLatin1String(name));
         return value.isDouble() ? value.toDouble() : fallback;
     };
-    crop.optionValues = {edge("left", 0), edge("top", 0), edge("right", natural.width()), edge("bottom", natural.height())};
-    crop.parts = {layout.resultRect};
-    layout.rows.append(crop);
+    const QVariantList edges{edge("left", 0), edge("top", 0), edge("right", source ? natural.width() : 512),
+                             edge("bottom", source ? natural.height() : 512)};
+    const auto keys = cropAspectKeys();
+    const auto aspect = keys.contains(input.previewTab) ? input.previewTab : keys.first();
+    const auto ratio = cropAspectRatio(aspect);
+    const auto cropRow = [&](NodeRow row) {
+        row.optionValues = edges;
+        row.minimum = bounds.width();
+        row.maximum = bounds.height();
+        row.step = ratio;
+        return row;
+    };
+    // .controls: minmax(0, auto) minmax(40px, 1fr) auto columns, 4 px gaps, padded 2 px by 4 px.
+    column.y += nm::micro;
+    const auto gap = double(nm::chipGap);
+    const auto labelWidth = std::max(captionWidth(QObject::tr("Aspect")), captionWidth(QObject::tr("Size")));
+    const auto controls = column.x + labelWidth + gap;
+    auto select = selectRow({}, QLatin1String(cropAspectControl), QObject::tr("Aspect"),
+                            QRectF(controls, column.y, column.x + column.width - controls, nm::controlHeight));
+    for (const auto &key : keys) {
+        select.options.append(key == QStringLiteral("free") ? QObject::tr("Free") : key == QStringLiteral("1:1") ? QObject::tr("1:1 Square") : key);
+        select.optionValues.append(key);
+    }
+    select.value = select.options.value(int(keys.indexOf(aspect)));
+    select.placeholder = false;
+    layout.rows.append(select);
+    column.y += nm::controlHeight + gap;
+    layout.rows.append(labelRow(QObject::tr("Size"), QRectF(column.x, column.y, labelWidth, nm::controlHeight)));
+    const auto size = double(nm::controlHeight);
+    const auto times = QStringLiteral("×");
+    const auto timesWidth = captionWidth(times) + 2 * nm::micro;
+    const auto clusterRight = column.x + column.width - size - gap;
+    const auto boxWidth = std::max(1.0, (clusterRight - controls - timesWidth) / 2);
+    const QRectF crop(QPointF(edges[0].toDouble(), edges[1].toDouble()), QPointF(edges[2].toDouble(), edges[3].toDouble()));
+    const auto box = [&](const char *name, double value, const QRectF &rect) {
+        layout.rows.append(cropRow(numberBox({{QStringLiteral("value"), std::max(1.0, value)}}, QLatin1String(name), rect)));
+    };
+    box(cropWidthControl, crop.width(), QRectF(controls, column.y, boxWidth, nm::controlHeight));
+    layout.rows.append(labelRow(times, QRectF(controls + boxWidth, column.y, timesWidth, nm::controlHeight)));
+    box(cropHeightControl, crop.height(), QRectF(controls + boxWidth + timesWidth, column.y, boxWidth, nm::controlHeight));
+    layout.rows.append(iconAction(QStringLiteral("resetCrop"), {}, QStringLiteral("restartAlt"), QObject::tr("Reset crop"),
+                                  QRectF(column.x + column.width - size, column.y, size, size)));
+    column.y += size + nm::micro;
+    column.finish();
+    if (!source) {
+        return;
+    }
+    auto image = QRectF(QPointF(), natural.scaled(layout.resultRect.size(), Qt::KeepAspectRatio));
+    image.moveCenter(layout.resultRect.center());
+    auto overlay = cropRow(controlRow(NodeRowKind::Crop, {}, QObject::tr("Crop"), image));
+    overlay.parts = {layout.resultRect};
+    layout.rows.append(overlay);
 }
 } // namespace
 
@@ -1375,7 +1413,18 @@ QString cropHandleAt(const NodeRow &row, const QRectF &crop, const QPointF &loca
     return card.contains(local) ? QStringLiteral("move") : QString{};
 }
 
-QRectF cropDragged(const QString &handle, const QRectF &start, const QPointF &delta, const QSizeF &bounds) {
+namespace {
+// writeRect: whole pixels, at least one pixel, inside the image.
+QRectF cropClamped(double left, double top, double right, double bottom, const QSizeF &bounds) {
+    const auto l = std::clamp(std::round(left), 0.0, std::max(0.0, bounds.width() - 1));
+    const auto t = std::clamp(std::round(top), 0.0, std::max(0.0, bounds.height() - 1));
+    const auto r = std::clamp(std::round(right), l + 1, std::max(l + 1, bounds.width()));
+    const auto b = std::clamp(std::round(bottom), t + 1, std::max(t + 1, bounds.height()));
+    return QRectF(QPointF(l, t), QPointF(r, b));
+}
+} // namespace
+
+QRectF cropDragged(const QString &handle, const QRectF &start, const QPointF &delta, const QSizeF &bounds, double ratio) {
     auto left = start.left(), top = start.top(), right = start.right(), bottom = start.bottom();
     if (handle == QStringLiteral("move")) {
         // Moving keeps the size and stops at the image's edges.
@@ -1383,18 +1432,71 @@ QRectF cropDragged(const QString &handle, const QRectF &start, const QPointF &de
         top = std::clamp(start.top() + delta.y(), 0.0, std::max(0.0, bounds.height() - start.height()));
         right = left + start.width();
         bottom = top + start.height();
-    } else {
-        if (handle.contains(QLatin1Char('w'))) { left += delta.x(); }
-        if (handle.contains(QLatin1Char('e'))) { right += delta.x(); }
-        if (handle.contains(QLatin1Char('n'))) { top += delta.y(); }
-        if (handle.contains(QLatin1Char('s'))) { bottom += delta.y(); }
+        return cropClamped(left, top, right, bottom, bounds);
     }
-    // writeRect: whole pixels, at least one pixel, inside the image.
-    const auto l = std::clamp(std::round(left), 0.0, bounds.width() - 1);
-    const auto t = std::clamp(std::round(top), 0.0, bounds.height() - 1);
-    const auto r = std::clamp(std::round(right), l + 1, std::max(l + 1, bounds.width()));
-    const auto b = std::clamp(std::round(bottom), t + 1, std::max(t + 1, bounds.height()));
-    return QRectF(QPointF(l, t), QPointF(r, b));
+    if (handle.contains(QLatin1Char('w'))) { left += delta.x(); }
+    if (handle.contains(QLatin1Char('e'))) { right += delta.x(); }
+    if (handle.contains(QLatin1Char('n'))) { top += delta.y(); }
+    if (handle.contains(QLatin1Char('s'))) { bottom += delta.y(); }
+    if (ratio > 0) {
+        // The dragged edge leads and the other side follows. A side handle or
+        // a mostly horizontal corner drag sets the height from the width.
+        const auto width = std::max(1.0, right - left), height = std::max(1.0, bottom - top);
+        const auto horizontal = handle == QStringLiteral("e") || handle == QStringLiteral("w")
+                                || std::abs(delta.x()) >= std::abs(delta.y());
+        if (horizontal) {
+            if (handle.contains(QLatin1Char('n'))) { top = bottom - width / ratio; } else { bottom = top + width / ratio; }
+        } else if (handle == QStringLiteral("nw") || handle == QStringLiteral("sw") || handle == QStringLiteral("w")) {
+            left = right - height * ratio;
+        } else {
+            right = left + height * ratio;
+        }
+    }
+    return cropClamped(left, top, right, bottom, bounds);
+}
+
+QStringList cropAspectKeys() {
+    return {QStringLiteral("free"), QStringLiteral("1:1"), QStringLiteral("4:3"), QStringLiteral("3:2"), QStringLiteral("16:9"),
+            QStringLiteral("3:4"), QStringLiteral("2:3"), QStringLiteral("9:16")};
+}
+
+double cropAspectRatio(const QString &key) {
+    const auto parts = key.split(QLatin1Char(':'));
+    if (parts.size() != 2 || !cropAspectKeys().contains(key)) {
+        return 0;
+    }
+    const auto a = parts[0].toDouble(), b = parts[1].toDouble();
+    return a > 0 && b > 0 ? a / b : 0;
+}
+
+bool isCropControl(const QString &name) {
+    return name == QLatin1String(cropAspectControl) || name == QLatin1String(cropWidthControl) || name == QLatin1String(cropHeightControl);
+}
+
+QRectF cropControlled(const QString &control, const QVariant &value, const QRectF &crop, const QSizeF &bounds, double ratio) {
+    auto left = crop.left(), top = crop.top(), right = crop.right(), bottom = crop.bottom();
+    if (control == QLatin1String(cropAspectControl)) {
+        // The new ratio keeps the width and the top-left corner, and the
+        // bottom stops at the image's edge.
+        const auto next = cropAspectRatio(value.toString());
+        if (next <= 0) {
+            return crop;
+        }
+        const auto height = std::round(std::max(1.0, crop.width()) / next);
+        bottom = std::min(bounds.height(), top + height);
+        top = bottom - height < 0 ? 0 : bottom - height;
+    } else if (control == QLatin1String(cropWidthControl)) {
+        const auto width = std::max(1.0, std::round(value.toDouble()));
+        right = left + width;
+        if (ratio > 0) { bottom = top + std::round(width / ratio); }
+    } else if (control == QLatin1String(cropHeightControl)) {
+        const auto height = std::max(1.0, std::round(value.toDouble()));
+        bottom = top + height;
+        if (ratio > 0) { right = left + std::round(height * ratio); }
+    } else {
+        return crop;
+    }
+    return cropClamped(left, top, right, bottom, bounds);
 }
 
 bool drawsOwnHandles(CardBody body) {

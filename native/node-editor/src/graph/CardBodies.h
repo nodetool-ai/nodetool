@@ -76,7 +76,24 @@ QRectF cropEdges(const NodeRow &row);
 QRectF cropOnCard(const NodeRow &row, const QRectF &crop);
 double cropHandleRadius(const NodeRow &row);
 QString cropHandleAt(const NodeRow &row, const QRectF &crop, const QPointF &local);
-QRectF cropDragged(const QString &handle, const QRectF &start, const QPointF &delta, const QSizeF &bounds);
+// A non-zero ratio holds width / height while a handle is dragged, as the
+// aspect select's lock does. A move keeps the size whatever the ratio.
+QRectF cropDragged(const QString &handle, const QRectF &start, const QPointF &delta, const QSizeF &bounds, double ratio = 0);
+// The aspect select's options: "free" first, then the ratios as "W:H" keys.
+QStringList cropAspectKeys();
+// width / height for an aspect key, or 0 for "free" and unknown keys.
+double cropAspectRatio(const QString &key);
+// The Crop body's controls are card values, not node properties. These names
+// mark their rows, and the inline editor commits them through
+// cropControlled instead of writing a property.
+inline constexpr auto cropAspectControl = "@crop:aspect";
+inline constexpr auto cropWidthControl = "@crop:width";
+inline constexpr auto cropHeightControl = "@crop:height";
+bool isCropControl(const QString &name);
+// The crop the aspect select or a width or height box makes from crop, as
+// handleAspectChange, handleWidthChange and handleHeightChange in CropBody.tsx.
+// ratio is the selected aspect for the width and height boxes.
+QRectF cropControlled(const QString &control, const QVariant &value, const QRectF &crop, const QSizeF &bounds, double ratio);
 
 // Lays out a bespoke body: its rows, port positions, result area and size. A
 // body whose web preview-area flexes grows it to fill an authored height or
