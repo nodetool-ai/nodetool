@@ -6,6 +6,11 @@ an acceptance of unmeasured behavior. The
 [implementation plan](../../docs/plans/graph-runner-realtime-issues.md)
 still defines the work packages and their exit evidence.
 
+The user authorizes independent work to proceed with explicit deferrals.
+Use the [scoped M1 progress gate](../../docs/plans/graph-runner-realtime.md#152-provisional-m1-progress-gate)
+and keep every missing requirement in the [acceptance ledger](#deferred-acceptance-work).
+No unfinished issue or milestone is closed by a deferral.
+
 This branch is based on [M0 PR #7445](https://github.com/nodetool-ai/nodetool/pull/7445).
 Its PR targets the M0 branch to keep the milestone diff separate. Review and
 merge ordering must preserve the M0 changes before retargeting M1 to main.
@@ -335,20 +340,36 @@ harness and the full graph-runner command-dispatch job. Linux and full-host
 qualification of these new CLI cases remains pending CI. Broad checks were
 not rerun for this CLI-check-only batch.
 
-## Gate wording to reconcile
+## Provisional progress gate
 
-The [M1 milestone gate](../../docs/plans/graph-runner-realtime-issues.md#milestones)
-refers to section 15 with three exceptions. Two remaining section 15 requirements
-depend on work assigned to later phases:
+The user accepts [WP09's scoped M1 evidence](https://github.com/nodetool-ai/nodetool/issues/7400)
+for implementation progress, plus WP10's Wasm build and Q8 decision. The
+[design](../../docs/plans/graph-runner-realtime.md#152-provisional-m1-progress-gate)
+and [plan](../../docs/plans/graph-runner-realtime-issues.md#provisional-progress-and-deferred-work)
+now use that scope. Broader acceptance requirements remain tracked below.
+Current-revision CI must supply its actual results before qualification is claimed.
 
-| Requirement | Plan dependency and current evidence |
-|---|---|
-| Graph-to-IR snapshots | The compiler belongs to [WP16](https://github.com/nodetool-ai/nodetool/issues/7407). This branch tests stored IR loading, not graph compilation |
-| Synchronized parameter changes | Parameter handoffs belong to [WP13](https://github.com/nodetool-ai/nodetool/issues/7404). The damper and `audioControl` fixtures test offline endpoint conventions, not synchronized parameter changes |
+## Deferred acceptance work
 
-[WP09's exit list](https://github.com/nodetool-ai/nodetool/issues/7400) names IR
-loading, repeat, frame goldens, realtime rules, stateful control and retention.
-It does not name these two later-phase requirements. This discrepancy remains
-unresolved. No milestone-wide acceptance or waiver is claimed, and this branch
-does not start WP13 or WP16. The M0 dependencies and driver-allocation gaps above
-also remain open.
+Every row remains open until its completion evidence passes. Independent work
+can use the prepared offline contracts. These deferrals do not enable live or
+shared-device operation, close issues or change PR merge ordering.
+
+| Deferred requirement | Owning work | Evidence needed to finish |
+|---|---|---|
+| Graph-to-IR snapshots | [WP16 #7407](https://github.com/nodetool-ai/nodetool/issues/7407) | Fixture graphs compile to stored IR that loads through the canonical loader, with stable slots and state keys |
+| Synchronized parameter changes | [WP13 #7404](https://github.com/nodetool-ai/nodetool/issues/7404) | A change reaches audio and picture at the required quantum/frame, including rapid revisions and clock-generation changes |
+| Stall and live-device timing | [WP12 #7403](https://github.com/nodetool-ai/nodetool/issues/7403), [WP15 #7406](https://github.com/nodetool-ai/nodetool/issues/7406) | Stall/load fixtures and measured device budgets pass on the required hardware |
+| Swap-state continuity | [WP18 #7409](https://github.com/nodetool-ai/nodetool/issues/7409) | Unchanged audio paths preserve bytes, and changed paths satisfy the sink-ramp checks |
+| Browser audio sample parity | [WP24 #7415](https://github.com/nodetool-ai/nodetool/issues/7415) | Each qualified kernel meets its required native/Wasm agreement level |
+| Driver allocation audit and supported live preparation | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399) | Allocation evidence covers the required driver paths, and the live backend supports the compilation/error APIs required by the design |
+| M0 hardware evidence and R1/R2 | [M0 dependencies](#unverified-m0-dependencies) | Mac/device measurements, calibrated physical recording and decisions specified by WP01–WP04 |
+| WP09 completion/merge before compiler integration qualification | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400), [PR #7471](https://github.com/nodetool-ai/nodetool/pull/7471) | Required verification and merge ordering complete, then compiler fixtures are reconciled with the merged contracts |
+
+## Next independent implementation
+
+Proceed with WP16's pure graph-to-IR compiler and snapshot fixtures using the
+checked-in schema and loader. The final row above records the dependency-order
+deferral while WP09 remains open. Node descriptors, runner/editor integration
+and live-device behavior stay outside that initial compiler scope. M1 and the
+unfinished issues remain open.
