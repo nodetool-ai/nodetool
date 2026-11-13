@@ -6396,6 +6396,12 @@
           "image": "Image",
           "video": "Video",
           "audio": "Audio"
+        },
+        "attachedImageActions": {
+          "label": "Images to start from",
+          "hint": "Pictures attached. Describe what to make, or start from them:",
+          "video": "Animate into a video",
+          "image": "Make new images"
         }
       }
     }

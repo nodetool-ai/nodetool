@@ -6568,6 +6568,12 @@
           "image": "Obraz",
           "video": "Wideo",
           "audio": "Dźwięk"
+        },
+        "attachedImageActions": {
+          "label": "Obrazy na start",
+          "hint": "Obrazy dołączone. Opisz, co chcesz stworzyć, albo zacznij od nich:",
+          "video": "Animuj jako wideo",
+          "image": "Utwórz nowe obrazy"
         }
       }
     }

@@ -6396,6 +6396,12 @@
           "image": "Bild",
           "video": "Video",
           "audio": "Ljud"
+        },
+        "attachedImageActions": {
+          "label": "Bilder att utgå från",
+          "hint": "Bilder bifogade. Beskriv vad du vill skapa, eller utgå från dem:",
+          "video": "Animera till en video",
+          "image": "Skapa nya bilder"
         }
       }
     }

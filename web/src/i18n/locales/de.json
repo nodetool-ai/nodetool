@@ -6396,6 +6396,12 @@
           "image": "Bild",
           "video": "Video",
           "audio": "Audio"
+        },
+        "attachedImageActions": {
+          "label": "Bilder als Ausgangspunkt",
+          "hint": "Bilder angehängt. Beschreibe, was entstehen soll, oder starte direkt damit:",
+          "video": "Als Video animieren",
+          "image": "Neue Bilder erstellen"
         }
       }
     }

@@ -6396,6 +6396,12 @@
           "image": "Bilde",
           "video": "Video",
           "audio": "Lyd"
+        },
+        "attachedImageActions": {
+          "label": "Bilder å starte fra",
+          "hint": "Bilder lagt ved. Beskriv hva du vil lage, eller start fra dem:",
+          "video": "Animer til en video",
+          "image": "Lag nye bilder"
         }
       }
     }

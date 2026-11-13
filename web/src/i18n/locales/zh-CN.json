@@ -6396,6 +6396,12 @@
           "image": "图像",
           "video": "视频",
           "audio": "音频"
+        },
+        "attachedImageActions": {
+          "label": "以图片开始",
+          "hint": "已附加图片。描述你想创作的内容，或直接从图片开始：",
+          "video": "制作成视频",
+          "image": "生成新图片"
         }
       }
     }

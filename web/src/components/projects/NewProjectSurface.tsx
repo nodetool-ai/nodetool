@@ -1652,6 +1652,23 @@ const NewProjectSurface = ({
     runDestinationFlow(HOME_GOAL_FLOWS[goal]);
   }, [goal, handleStart, isUploading, pendingFlow, runDestinationFlow, starting]);
 
+  // Attached pictures with an empty prompt: the chat send stays off until
+  // there are words, so the composer names the next step instead.
+  const showAttachedImageActions =
+    goal === "chat" &&
+    prompt.trim().length === 0 &&
+    droppedFiles.some((file) => file.type.startsWith("image/"));
+  const handleAttachedImageAction = useCallback(
+    (next: "image" | "video") => {
+      setGoal(next);
+      if (pendingFlow !== null || starting || isUploading) {
+        return;
+      }
+      runDestinationFlow(HOME_GOAL_FLOWS[next]);
+    },
+    [isUploading, pendingFlow, runDestinationFlow, starting]
+  );
+
   const handleNewModel = async (): Promise<void> => {
     if (
       starting ||
@@ -2520,6 +2537,35 @@ const NewProjectSurface = ({
                       </Box>
                       )
                     )}
+                  </FlexRow>
+                )}
+
+                {/* Pictures with no words leave the send off. Say why, and
+                    offer the two things pictures most often start. */}
+                {showAttachedImageActions && (
+                  <FlexRow
+                    align="center"
+                    gap={SPACING.sm}
+                    wrap
+                    role="group"
+                    aria-label={t("pass3_32.projects.home.attachedImageActions.label")}
+                    sx={{ px: SPACING.xl, pt: SPACING.md }}
+                  >
+                    <Caption color="muted">
+                      {t("pass3_32.projects.home.attachedImageActions.hint")}
+                    </Caption>
+                    <Chip
+                      compact
+                      icon={<VideocamOutlinedIcon />}
+                      label={t("pass3_32.projects.home.attachedImageActions.video")}
+                      onClick={() => handleAttachedImageAction("video")}
+                    />
+                    <Chip
+                      compact
+                      icon={<ImageOutlinedIcon />}
+                      label={t("pass3_32.projects.home.attachedImageActions.image")}
+                      onClick={() => handleAttachedImageAction("image")}
+                    />
                   </FlexRow>
                 )}
 
