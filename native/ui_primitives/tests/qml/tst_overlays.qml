@@ -91,7 +91,7 @@ TestCase {
         const received = []
         const record = text => received.push(text)
         Ui.TooltipHost.requested.connect(record)
-        Ui.TooltipHost.native = true
+        Ui.TooltipHost.routeToHost = true
         tooltip.text = "word ".repeat(300)
         tooltip.visible = true
         tryVerify(() => received.length > 0)
@@ -99,7 +99,7 @@ TestCase {
         compare(tooltip.opacity, 0)
         tooltip.visible = false
         tryVerify(() => received[received.length - 1] === "")
-        Ui.TooltipHost.native = false
+        Ui.TooltipHost.routeToHost = false
         Ui.TooltipHost.requested.disconnect(record)
         tooltip.text = "Tooltip near the edge"
     }

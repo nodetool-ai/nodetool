@@ -279,7 +279,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   // Panels are QQuickWidgets sized to their strip, so an overlay tooltip clips there.
   // Ui.Tooltip hands its text to the window when the overlay cannot hold it.
   if (auto *tooltips = engine_->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost")) {
-    tooltips->setProperty("native", true);
+    tooltips->setProperty("routeToHost", true);
     const auto *meta = tooltips->metaObject();
     connect(tooltips, meta->method(meta->indexOfSignal("requested(QString)")), this,
             metaObject()->method(metaObject()->indexOfMethod("showToolTip(QString)")));

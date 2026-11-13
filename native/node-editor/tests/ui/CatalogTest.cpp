@@ -146,7 +146,7 @@ private slots:
         QVERIFY(catalogWidget);
         auto *host = catalogWidget->engine()->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost");
         QVERIFY(host);
-        QVERIFY(host->property("native").toBool());
+        QVERIFY(host->property("routeToHost").toBool());
         QVERIFY(QMetaObject::invokeMethod(host, "requested", Q_ARG(QString, "Node library")));
         QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), QString("Node library"), 1000);
         QVERIFY(QMetaObject::invokeMethod(host, "requested", Q_ARG(QString, QString())));

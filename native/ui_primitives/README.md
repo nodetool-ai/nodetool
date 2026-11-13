@@ -109,7 +109,7 @@ Presentation types:
   Movement of the trigger or its ancestors dismisses it. Pointer presses,
   scrolling, key presses, and focus changes dismiss stale help. Use this
   primitive instead of attached Qt tooltips. A host whose panels are small
-  `QQuickWidget`s, where an overlay clips, sets `Ui.TooltipHost.native` and
+  `QQuickWidget`s, where an overlay clips, sets `Ui.TooltipHost.routeToHost` and
   connects `Ui.TooltipHost.requested(text)`. A tooltip that its overlay cannot place beside
   its trigger then stays invisible and sends its text to the host, and an empty text hides it. `Ui.ShortcutHint` renders its
   inherited text in the mono caption role.
