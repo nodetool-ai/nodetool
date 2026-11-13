@@ -2676,6 +2676,11 @@ export const UNCLAIMED_PATHS: Record<string, string> = {
   "examples/nextjs-cloudflare/":
     "Deployment example app, same standing as examples/nextjs-vercel/: " +
     "typechecked in CI, built only on deploy, no headless harness.",
+  "native/parity/":
+    "The native vs web parity harness is a manual tool for choosing native " +
+    "editor work, kept out of the gate on purpose. Its runner needs a Qt " +
+    "build and Chromium. `npm run test:affected` runs its census check and " +
+    "unit tests for a diff here (PATH_CHECKS in scripts/test-affected.mjs).",
   "packages/compute/":
     "Provisions and reaps real RunPod/Vast.ai GPU workers; only its hermetic " +
     "unit tests run headlessly today. A harness needs a recorded-fixture " +
