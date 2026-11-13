@@ -2821,6 +2821,757 @@ test_host = "tst_wiringedit"
 test_scope = "build/import"
 qml_callers = []
 replacement = "Synthetic timeline hit-testing fixture; no product chrome"
+
+[[file]]
+path = "native/node-editor/qml/ActionPanel.qml"
+category = "pending"
+controls = ["Rectangle", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Flow", "Ui.SegmentedControl", "ShortcutKeyboard", "Ui.TextField", "ListView", "Ui.ScrollBar", "Ui.ListRow"]
+signals = []
+test_host = "native/node-editor/tests/ui/MenusTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/AssetPropertyEditor.qml"
+category = "pending"
+controls = ["ColumnLayout", "Connections", "Ui.Text", "Ui.EditorButton", "Loader", "Component", "MediaPreview", "Ui.TextField", "RowLayout", "Ui.Select", "Rectangle", "HoverHandler", "Ui.Tooltip", "TapHandler", "DropArea", "Timer", "FileDialog"]
+signals = ["valueCommitted", "scopeInvalidated", "referencesCommitted"]
+test_host = "native/node-editor/tests/ui/CanvasDropTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/MediaListPropertyEditor.qml", "native/node-editor/qml/PropertyField.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/AuthoredControls.qml"
+category = "pending"
+controls = ["Row", "Ui.ToolbarIconButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Popover", "Grid", "Repeater", "Rectangle"]
+signals = []
+test_host = "native/node-editor/tests/ui/ToolbarComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/CanvasDropPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "ListView", "Ui.Progress", "Ui.Separator"]
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/CanvasDropTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.Progress, Ui.Separator"
+
+[[file]]
+path = "native/node-editor/qml/CanvasMedia.qml"
+category = "pending"
+controls = ["Item", "Rectangle", "Loader", "Component", "MediaGallery", "Flickable", "Ui.ScrollBar", "FocusScope", "TapHandler", "RichOutput", "HoverHandler", "RowLayout", "Ui.Text", "Ui.EditorButton", "MediaClipboard", "FileDialog", "Connections"]
+signals = []
+test_host = "native/node-editor/tests/ui/CanvasMediaHostTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/CanvasTabStrip.qml"
+category = "chrome"
+controls = ["Item", "EditorRoles", "Column", "Repeater", "Rectangle", "Ui.DocumentTabStrip"]
+signals = []
+test_host = "native/node-editor/tests/ui/TabBarComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.DocumentTabStrip"
+
+[[file]]
+path = "native/node-editor/qml/CardMediaPlayer.qml"
+category = "chrome"
+controls = ["Item", "EditorRoles", "Repeater", "Connections", "MediaPlayer", "AudioOutput", "Rectangle", "VideoFrameView", "Row", "Ui.ToolbarIconButton", "Ui.Text", "Ui.Slider", "AudioWaveform", "MouseArea", "Column"]
+signals = ["naturalSizeReported"]
+test_host = "native/node-editor/tests/ui/MediaCardsTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Text, Ui.Slider"
+
+[[file]]
+path = "native/node-editor/qml/Catalog.qml"
+category = "pending"
+controls = ["Rectangle", "EditorRoles", "ColumnLayout", "RowLayout", "Ui.Text", "HoverHandler", "Ui.Tooltip", "Ui.EditorButton", "Item", "Ui.TextField", "TypeIcon", "Ui.ChipMenu", "GridLayout", "ListView", "Ui.ListRow", "Ui.Icon", "Ui.ScrollBar", "DragHandler", "Ui.ToolbarIconButton", "Ui.EmptyState", "OptionalPacksSection"]
+signals = []
+test_host = "native/node-editor/tests/ui/EditorChatTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/ModelPropertyEditor.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/CodePropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "Ui.EditorButton", "Rectangle", "Flickable", "Item", "Repeater", "Ui.Text", "Ui.TextArea", "Loader"]
+signals = ["editCanceled", "editStarted", "valueCommitted"]
+test_host = "native/node-editor/tests/ui/CodePropertyTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/InlinePropertyEditor.qml", "native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text, Ui.TextArea"
+
+[[file]]
+path = "native/node-editor/qml/CodeSyntax.qml"
+category = "chrome"
+controls = ["Item", "CodeHighlighter"]
+signals = []
+test_host = "native/node-editor/tests/ui/EditorTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/CodePropertyEditor.qml"]
+replacement = "Node editor geometry in Ui.Metrics and Ui.Theme tokens"
+
+[[file]]
+path = "native/node-editor/qml/CollectionPropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "Connections", "Ui.Text", "Ui.TextField", "Ui.Select", "Ui.EditorButton"]
+signals = ["valueCommitted", "scopeInvalidated"]
+test_host = "native/node-editor/tests/models/ResourcePickerTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextField, Ui.Select, Ui.EditorButton"
+
+[[file]]
+path = "native/node-editor/qml/ColorPropertyEditor.qml"
+category = "pending"
+controls = ["ColumnLayout", "RowLayout", "Rectangle", "Ui.TextField", "Flow", "Repeater", "Ui.EditorButton", "Ui.Icon", "Ui.Text", "ColorDialog"]
+signals = ["valueCommitted"]
+test_host = "native/node-editor/tests/models/PresentationPropertyTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/PropertyField.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/CompatibleNodePicker.qml"
+category = "pending"
+controls = ["Rectangle", "Connections", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.TextField", "Column", "Repeater", "Ui.Separator", "ListView", "Ui.ScrollBar"]
+signals = []
+test_host = "native/node-editor/tests/ui/CompatiblePickerHostTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/ContextMenuPanel.qml"
+category = "chrome"
+controls = ["Item", "Ui.ContextMenu"]
+signals = []
+test_host = "native/node-editor/tests/ui/EditorTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu"
+
+[[file]]
+path = "native/node-editor/qml/DataframeOutput.qml"
+category = "chrome"
+controls = ["ColumnLayout", "TextMetrics", "Ui.EditorButton", "Component", "Column", "Row", "Repeater", "Rectangle", "Ui.Text", "MouseArea", "ListView", "Ui.ScrollBar", "Loader", "Ui.Dialog"]
+signals = []
+test_host = "native/node-editor/tests/ui/RichOutputHostTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/RichOutput.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text, Ui.ScrollBar, Ui.Dialog"
+
+[[file]]
+path = "native/node-editor/qml/DocumentPropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "Connections", "RowLayout", "Ui.Select", "Ui.ToolbarIconButton"]
+signals = ["valueCommitted", "scopeInvalidated"]
+test_host = "native/node-editor/tests/ui/DocumentPropertyTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/InlinePropertyEditor.qml", "native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Select, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/node-editor/qml/DynamicPortDialog.qml"
+category = "chrome"
+controls = ["Rectangle", "ColumnLayout", "Ui.Text", "Ui.TextField", "Ui.Select", "RowLayout", "Ui.EditorButton"]
+signals = ["completed"]
+test_host = "native/node-editor/tests/ui/DynamicCardTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextField, Ui.Select, Ui.EditorButton"
+
+[[file]]
+path = "native/node-editor/qml/DynamicPorts.qml"
+category = "pending"
+controls = ["ColumnLayout", "EditorRoles", "Connections", "Ui.Text", "Repeater", "Ui.Select", "Ui.TextField", "Rectangle", "RowLayout", "Ui.EditorButton", "PortDirection"]
+signals = []
+test_host = "native/node-editor/tests/dynamic-ui/DynamicPortsTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/Inspector.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/EditorChat.qml"
+category = "pending"
+controls = ["Ui.Surface", "Timer", "ColumnLayout", "Item", "MouseArea", "RowLayout", "Ui.Icon", "Ui.Text", "Ui.ToolbarIconButton", "Ui.Separator", "ChatPanel", "Ui.TextField", "Ui.Banner", "ListView", "Column", "NumberAnimation", "Ui.EditorButton", "Ui.Dialog", "Repeater"]
+signals = ["closeRequested", "reportRequested"]
+test_host = "native/node-editor/tests/ui/ChatWindowComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/EditorRoles.qml"
+category = "chrome"
+controls = ["QtObject"]
+signals = []
+test_host = "native/node-editor/tests/visual/Fixture.qml"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/CanvasTabStrip.qml", "native/node-editor/qml/CardMediaPlayer.qml", "native/node-editor/qml/Catalog.qml", "native/node-editor/qml/DynamicPorts.qml", "native/node-editor/qml/HeaderRow.qml", "native/node-editor/qml/ImageComparisonOutput.qml", "native/node-editor/qml/Inspector.qml", "native/node-editor/qml/LibraryPanel.qml", "native/node-editor/qml/MiniMapControls.qml", "native/node-editor/qml/NodeMenu.qml", "native/node-editor/qml/NotificationsPanel.qml", "native/node-editor/qml/Rail.qml", "native/node-editor/qml/RunOutput.qml", "native/node-editor/qml/StatusBar.qml", "native/node-editor/qml/TabBar.qml", "native/node-editor/qml/Toolbar.qml", "native/node-editor/qml/ViewportIndicator.qml", "native/node-editor/qml/WorkflowBrowser.qml"]
+replacement = "Node editor geometry in Ui.Metrics and Ui.Theme tokens"
+
+[[file]]
+path = "native/node-editor/qml/FilePropertyEditor.qml"
+category = "chrome"
+controls = ["Ui.Text"]
+signals = []
+test_host = "native/node-editor/tests/ui/RemainingPropertyTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/node-editor/qml/FindPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "ColumnLayout", "RowLayout", "Ui.TextField", "Ui.ToolbarIconButton", "Ui.CloseButton", "Ui.Separator", "Ui.Text", "ListView", "Ui.ScrollBar", "Ui.ListRow", "Column", "Row", "Ui.EmptyState"]
+signals = []
+test_host = "native/node-editor/tests/ui/MenusTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.TextField, Ui.ToolbarIconButton, Ui.CloseButton, Ui.Separator, Ui.Text, Ui.ScrollBar, Ui.ListRow, Ui.EmptyState"
+
+[[file]]
+path = "native/node-editor/qml/GenerationHistory.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "Ui.EditorButton", "Ui.Text", "ListView", "Repeater", "MediaPreview"]
+signals = []
+test_host = "native/node-editor/tests/ui/GenerationHistoryUiTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/Inspector.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text"
+
+[[file]]
+path = "native/node-editor/qml/HeaderRow.qml"
+category = "pending"
+controls = ["Rectangle", "EditorRoles", "Ui.ToolbarIconButton", "RowLayout", "Ui.Text", "HoverHandler", "Ui.Tooltip", "MouseArea", "Ui.TextField", "Row", "Ui.BusyIndicator", "Ui.EditorButton", "SlotDivider", "HeaderButton", "Ui.SegmentedControl", "Item"]
+signals = []
+test_host = "native/node-editor/tests/ui/WorkflowVersionsHostTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/ImageComparisonOutput.qml"
+category = "pending"
+controls = ["ColumnLayout", "EditorRoles", "Item", "Connections", "Image", "Ui.Text", "ComparisonLayer", "Rectangle", "Ui.Chip", "Column", "Repeater", "Row", "Ui.EditorButton", "Ui.Icon", "HoverHandler", "DragHandler"]
+signals = []
+test_host = "native/node-editor/tests/ui/ImageComparisonTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/ImageViewer.qml", "native/node-editor/qml/RichOutput.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/ImageSizePropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "Ui.Text", "Ui.NumberField", "Ui.EditorButton", "Ui.Select"]
+signals = ["valueCommitted"]
+test_host = "native/node-editor/tests/models/PresentationPropertyTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/InlinePropertyEditor.qml", "native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.NumberField, Ui.EditorButton, Ui.Select"
+
+[[file]]
+path = "native/node-editor/qml/ImageViewer.qml"
+category = "chrome"
+controls = ["Window", "Connections", "Ui.Surface", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Item", "Loader", "Component", "ImageComparisonOutput", "MediaPreview"]
+signals = []
+test_host = "native/node-editor/tests/ui/MediaUiTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/MediaGallery.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/node-editor/qml/InlinePropertyEditor.qml"
+category = "pending"
+controls = ["Item", "Loader", "Ui.EditorButton", "Component", "CodePropertyEditor", "Ui.TextArea", "Ui.NumberField", "Ui.CheckBox", "ModelPropertyEditor", "Rectangle", "Flickable", "StructuredPropertyEditor", "DocumentPropertyEditor", "Binding", "Connections", "ImageSizePropertyEditor", "Ui.Select"]
+signals = []
+test_host = "native/node-editor/tests/ui/CardBodiesTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/InlineTitleEditor.qml"
+category = "pending"
+controls = ["Item", "Flickable", "Ui.ScrollBar", "Ui.TextArea"]
+signals = []
+test_host = "native/node-editor/tests/ui/GroupAuthoringTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/Inspector.qml"
+category = "pending"
+controls = ["Rectangle", "EditorRoles", "ColumnLayout", "RowLayout", "TypeIcon", "Ui.Text", "Ui.EditorButton", "Item", "Ui.TabBar", "Flickable", "Ui.ScrollBar", "Repeater", "PropertyField", "Loader", "DynamicPorts", "Component", "GenerationHistory", "GridLayout", "Row"]
+signals = []
+test_host = "native/node-editor/tests/ui/ViewportNavigatorTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/LibraryPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "EditorRoles", "Ui.EditorButton", "Ui.Text", "ColumnLayout", "RowLayout", "LibraryLabel", "LibraryButton", "Ui.TextField", "Timer", "Ui.MenuButton", "Ui.ContextMenu", "Repeater", "Ui.MenuItem", "Flickable", "Row", "Ui.Banner", "Ui.Slider", "Media.AssetGrid", "FileDialog", "Ui.Dialog", "Connections"]
+signals = []
+test_host = "native/node-editor/tests/ui/LibraryPanelTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text, Ui.TextField, Ui.MenuButton, Ui.ContextMenu, Ui.MenuItem, Ui.Banner, Ui.Slider, Ui.Dialog"
+
+[[file]]
+path = "native/node-editor/qml/MediaGallery.qml"
+category = "pending"
+controls = ["ColumnLayout", "MediaViewerHost", "ImageViewer", "MediaGalleryModel", "Ui.Text", "Flow", "Ui.EditorButton", "Loader", "Component", "MediaPreview", "Ui.TextArea", "Item", "GridView", "Ui.ScrollBar", "Ui.Surface", "MouseArea"]
+signals = []
+test_host = "native/node-editor/tests/ui/MediaUiTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/CanvasMedia.qml", "native/node-editor/qml/RunOutput.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/MediaListPropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "Repeater", "MediaPreview", "RowLayout", "Ui.EditorButton", "Timer", "AssetPropertyEditor"]
+signals = ["valueCommitted", "scopeInvalidated"]
+test_host = "native/node-editor/tests/models/AssetPickerTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
+
+[[file]]
+path = "native/node-editor/qml/MediaParameterPropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "Connections", "Ui.ChipMenu"]
+signals = ["scopeInvalidated", "valueCommitted"]
+test_host = "native/node-editor/tests/ui/RemainingPropertyTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ChipMenu"
+
+[[file]]
+path = "native/node-editor/qml/MediaPreview.qml"
+category = "pending"
+controls = ["Item", "Timer", "Connections", "MediaClipboard", "MediaPlayer", "AudioOutput", "FileDialog", "Window", "ColumnLayout", "Ui.Text", "Image", "Translate", "MouseArea", "VideoFrameView", "AudioWaveform", "Rectangle", "Ui.Slider", "RowLayout", "Ui.EditorButton", "Flow", "Ui.Select"]
+signals = ["imageActivated"]
+test_host = "native/node-editor/tests/ui/MediaUiTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/AssetPropertyEditor.qml", "native/node-editor/qml/GenerationHistory.qml", "native/node-editor/qml/ImageViewer.qml", "native/node-editor/qml/MediaGallery.qml", "native/node-editor/qml/MediaListPropertyEditor.qml", "native/node-editor/qml/RemainingResourcePropertyEditor.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/MiniMapControls.qml"
+category = "chrome"
+controls = ["Item", "EditorRoles", "Rectangle", "Ui.EditorButton", "Row", "FramedButton"]
+signals = ["clicked"]
+test_host = "native/node-editor/tests/ui/ViewportNavigatorTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
+
+[[file]]
+path = "native/node-editor/qml/MiniMapPopups.qml"
+category = "pending"
+controls = ["Item", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Popover", "Column", "Ui.Text", "Repeater", "Row", "Rectangle"]
+signals = []
+test_host = "native/node-editor/tests/ui/ViewportComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/Model3DPropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "Connections", "Ui.Icon", "Item", "Ui.EditorButton", "Ui.TextField", "DropArea", "Rectangle", "Image", "Ui.Text", "Ui.Banner"]
+signals = ["valueCommitted", "scopeInvalidated", "reportRequested"]
+test_host = "native/node-editor/tests/ui/DocumentPropertyTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Icon, Ui.EditorButton, Ui.TextField, Ui.Text, Ui.Banner"
+
+[[file]]
+path = "native/node-editor/qml/ModelPropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "ModelPickerButton", "RowLayout", "Ui.Text", "Ui.Icon", "Ui.Select"]
+signals = ["valueCommitted"]
+test_host = "native/node-editor/tests/models/ModelPickerTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/InlinePropertyEditor.qml", "native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Icon, Ui.Select"
+
+[[file]]
+path = "native/node-editor/qml/NodeMenu.qml"
+category = "pending"
+controls = ["Rectangle", "EditorRoles", "Ui.ListRow", "DragHandler", "RowLayout", "TypeIcon", "Ui.Text", "Ui.ToolbarIconButton", "ColumnLayout", "Flow", "Repeater", "Tile", "Item", "HoverHandler", "Ui.TextField", "ListView", "Ui.ScrollBar", "Ui.Icon", "Flickable", "TileSection", "Ui.EmptyState"]
+signals = ["removed", "cleared", "removed"]
+test_host = "native/node-editor/tests/ui/NodeMenuComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/NotificationsPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "EditorRoles", "Ui.Text", "Ui.EmptyState", "ListView", "Ui.ScrollBar", "ColumnLayout", "Row", "Ui.EditorButton"]
+signals = []
+test_host = "native/node-editor/tests/ui/TabBarComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EmptyState, Ui.ScrollBar, Ui.EditorButton"
+
+[[file]]
+path = "native/node-editor/qml/ObjectOutput.qml"
+category = "pending"
+controls = ["ColumnLayout", "Repeater", "Ui.Text", "Loader"]
+signals = []
+test_host = "native/node-editor/tests/ui/EditorTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/RichOutput.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/OptionalPacksSection.qml"
+category = "chrome"
+controls = ["ColumnLayout", "Ui.Separator", "Ui.EditorButton", "Ui.Popover", "Ui.ScrollArea", "Ui.Text", "RowLayout", "Repeater", "Ui.Toggle"]
+signals = []
+test_host = "native/node-editor/tests/ui/SetupGuideComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/Catalog.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Separator, Ui.EditorButton, Ui.Popover, Ui.ScrollArea, Ui.Text, Ui.Toggle"
+
+[[file]]
+path = "native/node-editor/qml/PathPropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "Ui.EditorButton", "Ui.Text", "Ui.CloseButton", "FileDialog", "FolderDialog"]
+signals = ["valueCommitted"]
+test_host = "native/node-editor/tests/ui/RemainingPropertyTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text, Ui.CloseButton"
+
+[[file]]
+path = "native/node-editor/qml/PropertyField.qml"
+category = "pending"
+controls = ["ColumnLayout", "RowLayout", "Ui.Text", "HoverHandler", "Ui.Tooltip", "Rectangle", "TapHandler", "Loader", "Component", "CodePropertyEditor", "Ui.TextField", "Ui.TextArea", "Ui.NumberField", "Ui.CheckBox", "Ui.Select", "StructuredPropertyEditor", "Model3DPropertyEditor", "DocumentPropertyEditor", "RemainingResourcePropertyEditor", "PathPropertyEditor", "ToolsPropertyEditor", "MediaParameterPropertyEditor", "FilePropertyEditor", "AssetPropertyEditor", "CollectionPropertyEditor", "WorkflowPropertyEditor", "ColorPropertyEditor", "ImageSizePropertyEditor", "MediaListPropertyEditor", "ModelPropertyEditor", "Ui.EditorButton"]
+signals = []
+test_host = "native/node-editor/tests/ui/CompatiblePickerHostTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/Inspector.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/QueueOverlay.qml"
+category = "pending"
+controls = ["Ui.Surface", "Translate", "NumberAnimation", "Timer", "ColumnLayout", "RowLayout", "Ui.StatusDot", "Ui.Text", "Ui.ToolbarIconButton", "Ui.Progress", "Ui.Icon", "Ui.ScrollArea", "Repeater", "HoverHandler", "MouseArea", "Ui.CloseButton"]
+signals = []
+test_host = "native/node-editor/tests/ui/QueueDataTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/Rail.qml"
+category = "chrome"
+controls = ["Rectangle", "EditorRoles", "Item", "Ui.ToolbarIconButton", "ColumnLayout", "Image", "RailEntry", "Ui.Separator"]
+signals = ["activated"]
+test_host = "native/node-editor/tests/ui/AuthoringUiTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Separator"
+
+[[file]]
+path = "native/node-editor/qml/RemainingResourcePropertyEditor.qml"
+category = "pending"
+controls = ["ColumnLayout", "Connections", "Repeater", "RowLayout", "Ui.Text", "Ui.EditorButton", "Flow", "Rectangle", "Ui.Dialog", "Ui.TextField", "Flickable", "Ui.SelectionCard", "Component", "MediaPreview", "Ui.Select", "Ui.MenuButton", "Ui.Popover"]
+signals = ["valueCommitted", "scopeInvalidated"]
+test_host = "native/node-editor/tests/ui/RemainingPropertyTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/PropertyField.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/RichOutput.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "Ui.EditorButton", "LiveAudioVisualizer", "Ui.Text", "Ui.TextArea", "Loader", "Component", "ImageComparisonOutput", "DataframeOutput", "ObjectOutput", "Repeater", "TextOutput"]
+signals = []
+test_host = "native/node-editor/tests/ui/RichOutputHostTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/CanvasMedia.qml", "native/node-editor/qml/ObjectOutput.qml", "native/node-editor/qml/RunOutput.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text, Ui.TextArea"
+
+[[file]]
+path = "native/node-editor/qml/RunOutput.qml"
+category = "chrome"
+controls = ["Rectangle", "EditorRoles", "ColumnLayout", "RowLayout", "Ui.Select", "Ui.EditorButton", "Item", "Ui.Text", "Ui.EmptyState", "Flickable", "Ui.ScrollBar", "Repeater", "MediaGallery", "RichOutput", "Ui.Separator"]
+signals = []
+test_host = "native/node-editor/tests/ui/RichOutputHostTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Select, Ui.EditorButton, Ui.Text, Ui.EmptyState, Ui.ScrollBar, Ui.Separator"
+
+[[file]]
+path = "native/node-editor/qml/RunTracePanel.qml"
+category = "chrome"
+controls = ["Rectangle", "ColumnLayout", "RowLayout", "Ui.Text", "Item", "Ui.EditorButton", "Ui.Select", "Ui.Banner", "Ui.CheckBox", "Ui.TextField", "GridLayout", "TraceSpanPicker", "Ui.ScrollArea", "TraceSpanLane", "TraceLogList", "TraceSpanDetails", "TraceLogDetails"]
+signals = ["closeRequested", "askAgentRequested", "reportRequested"]
+test_host = "native/node-editor/tests/ui/RunTraceTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.Select, Ui.Banner, Ui.CheckBox, Ui.TextField, Ui.ScrollArea"
+
+[[file]]
+path = "native/node-editor/qml/SelectionToolbar.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.ToolbarIconButton", "Loader", "Component", "RowLayout", "Action", "Ui.Separator"]
+signals = []
+test_host = "native/node-editor/tests/ui/ToolbarComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.ToolbarIconButton, Ui.Separator"
+
+[[file]]
+path = "native/node-editor/qml/ServerSyncPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "Connections", "Ui.ScrollArea", "ColumnLayout", "Ui.Text", "Ui.CheckBox", "Ui.EditorButton", "GridLayout", "Ui.TextArea", "Flow"]
+signals = ["closeRequested", "saveLocalAsRequested"]
+test_host = "native/node-editor/tests/ui/ServerSyncHostTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.ScrollArea, Ui.Text, Ui.CheckBox, Ui.EditorButton, Ui.TextArea"
+
+[[file]]
+path = "native/node-editor/qml/SetupGuide.qml"
+category = "chrome"
+controls = ["Item", "Ui.Surface", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Repeater", "Rectangle", "Ui.Icon", "Flow"]
+signals = []
+test_host = "native/node-editor/tests/ui/SetupGuideComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.Icon"
+
+[[file]]
+path = "native/node-editor/qml/SetupPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "ColumnLayout", "Ui.Text", "Ui.BusyIndicator", "Ui.TextArea", "Ui.EditorButton", "ListView", "RowLayout"]
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/RuntimeInstallTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.BusyIndicator, Ui.TextArea, Ui.EditorButton"
+
+[[file]]
+path = "native/node-editor/qml/ShortcutKeyboard.qml"
+category = "chrome"
+controls = ["Rectangle", "Column", "Repeater", "RowLayout", "Ui.Text", "HoverHandler", "Ui.Tooltip"]
+signals = []
+test_host = "native/node-editor/tests/ui/EditorTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/ActionPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Tooltip"
+
+[[file]]
+path = "native/node-editor/qml/StatusBar.qml"
+category = "chrome"
+controls = ["Rectangle", "EditorRoles", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.TabBar", "Item", "Readout"]
+signals = []
+test_host = "native/node-editor/tests/ui/ServerSyncHostTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.TabBar"
+
+[[file]]
+path = "native/node-editor/qml/StructuredPropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "Ui.TextArea", "Ui.EditorButton", "Ui.Text", "Repeater", "RowLayout", "Ui.TextField", "Ui.NumberField", "Ui.CheckBox", "Ui.Select"]
+signals = ["editStarted", "valueCommitted"]
+test_host = "native/node-editor/tests/properties/StructuredPropertyUiTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/InlinePropertyEditor.qml", "native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.TextArea, Ui.EditorButton, Ui.Text, Ui.TextField, Ui.NumberField, Ui.CheckBox, Ui.Select"
+
+[[file]]
+path = "native/node-editor/qml/TabBar.qml"
+category = "pending"
+controls = ["Rectangle", "EditorRoles", "Timer", "Connections", "Row", "Item", "HoverHandler", "RowLayout", "Ui.Text", "Ui.Icon", "MouseArea", "Ui.DocumentTabStrip", "Ui.EditorButton"]
+signals = []
+test_host = "native/node-editor/tests/ui/TabBarComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/Inspector.qml", "native/node-editor/qml/StatusBar.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/TextOutput.qml"
+category = "chrome"
+controls = ["ColumnLayout", "Connections", "Ui.Text", "Ui.EditorButton", "Timer", "Ui.TextArea"]
+signals = []
+test_host = "native/node-editor/tests/ui/RichOutputHostTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/RichOutput.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.TextArea"
+
+[[file]]
+path = "native/node-editor/qml/Toolbar.qml"
+category = "pending"
+controls = ["Item", "EditorRoles", "Connections", "Timer", "Ui.ToolbarIconButton", "Rectangle", "RowLayout", "Row", "ActionButton", "Ui.ListRow", "Ui.Tooltip", "Ui.Icon", "Ui.Text"]
+signals = []
+test_host = "native/node-editor/tests/ui/ToolbarComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/ToolsPropertyEditor.qml"
+category = "pending"
+controls = ["ColumnLayout", "RowLayout", "Repeater", "Ui.ToolbarIconButton", "Ui.MenuButton", "Ui.ContextMenu", "Instantiator", "Ui.MenuItem", "Ui.Icon", "Ui.Text", "Rectangle"]
+signals = ["valueCommitted"]
+test_host = "native/node-editor/tests/ui/RemainingPropertyTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/PropertyField.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/TraceAttributeList.qml"
+category = "chrome"
+controls = ["Item", "ColumnLayout", "Ui.Text", "Repeater", "RowLayout", "Ui.ScrollArea", "Ui.TextArea"]
+signals = []
+test_host = "native/node-editor/tests/ui/EditorTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/TraceLogDetails.qml", "native/node-editor/qml/TraceSpanDetails.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.ScrollArea, Ui.TextArea"
+
+[[file]]
+path = "native/node-editor/qml/TraceLogDetails.qml"
+category = "chrome"
+controls = ["ColumnLayout", "Ui.Text", "Flow", "Ui.EditorButton", "Ui.ScrollArea", "TraceAttributeList", "Connections"]
+signals = ["askAgentRequested"]
+test_host = "native/node-editor/tests/ui/RunTraceTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/RunTracePanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.ScrollArea"
+
+[[file]]
+path = "native/node-editor/qml/TraceLogList.qml"
+category = "pending"
+controls = ["ColumnLayout", "RowLayout", "Ui.Text", "ListView", "Ui.ScrollBar", "Ui.EditorButton"]
+signals = ["logSelected", "spanFocused"]
+test_host = "native/node-editor/tests/ui/RunTraceTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/RunTracePanel.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/TraceSpanDetails.qml"
+category = "chrome"
+controls = ["ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.ScrollArea", "Ui.Banner", "TraceAttributeList", "Repeater", "Connections"]
+signals = ["askAgentRequested", "reportRequested"]
+test_host = "native/node-editor/tests/ui/RunTraceTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/RunTracePanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.ScrollArea, Ui.Banner"
+
+[[file]]
+path = "native/node-editor/qml/TraceSpanLane.qml"
+category = "pending"
+controls = ["Item", "ColumnLayout", "RowLayout", "Ui.Text", "ListView", "Ui.ScrollBar", "Ui.EditorButton", "Rectangle"]
+signals = ["spanFocused"]
+test_host = "native/node-editor/tests/ui/EditorTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/RunTracePanel.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/TraceSpanPicker.qml"
+category = "pending"
+controls = ["Ui.EditorButton", "RowLayout", "Ui.Text", "Ui.Icon", "Ui.Popover", "ColumnLayout", "Ui.TextField", "ListView", "Ui.ScrollBar", "Ui.Status"]
+signals = []
+test_host = "native/node-editor/tests/ui/RunTraceTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/RunTracePanel.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/TypeIcon.qml"
+category = "pending"
+controls = ["Image"]
+signals = []
+test_host = "native/node-editor/tests/ui/RunOutputComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/Catalog.qml", "native/node-editor/qml/Inspector.qml", "native/node-editor/qml/NodeMenu.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/VersionGraphPreview.qml"
+category = "pending"
+controls = ["Rectangle", "Canvas", "Connections", "DragHandler", "WheelHandler", "Ui.Text", "Column", "Repeater", "Row"]
+signals = []
+test_host = "native/node-editor/tests/ui/EditorTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/VersionHistoryPanel.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/VersionHistoryPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "Binding", "RowLayout", "ColumnLayout", "Ui.EditorButton", "Ui.Text", "Repeater", "Item", "Ui.ScrollArea", "VersionGraphPreview", "HoverHandler", "Ui.Tooltip", "Ui.CheckBox", "Ui.Dialog", "Ui.TextField"]
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/WorkflowVersionsHostTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text, Ui.ScrollArea, Ui.Tooltip, Ui.CheckBox, Ui.Dialog, Ui.TextField"
+
+[[file]]
+path = "native/node-editor/qml/ViewportIndicator.qml"
+category = "chrome"
+controls = ["Item", "EditorRoles", "Rectangle", "RowLayout", "Ui.EditorButton", "Ui.ListRow", "Ui.Text"]
+signals = []
+test_host = "native/node-editor/tests/ui/ViewportNavigatorTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.ListRow, Ui.Text"
+
+[[file]]
+path = "native/node-editor/qml/WorkflowBrowser.qml"
+category = "chrome"
+controls = ["Rectangle", "EditorRoles", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.TextField", "Ui.Select", "Ui.EmptyState", "Flickable", "Ui.ScrollBar", "Repeater", "Ui.Separator"]
+signals = []
+test_host = "native/node-editor/tests/ui/WorkflowBrowserComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.TextField, Ui.Select, Ui.EmptyState, Ui.ScrollBar, Ui.Separator"
+
+[[file]]
+path = "native/node-editor/qml/WorkflowDetails.qml"
+category = "chrome"
+controls = ["Rectangle", "Basic.ScrollView", "ColumnLayout", "Ui.Text", "Ui.EditorButton", "RowLayout", "Repeater", "Item", "Ui.Separator", "Ui.Select", "Ui.TextField"]
+signals = []
+test_host = "native/node-editor/tests/ui/WorkflowVersionsHostTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.Separator, Ui.Select, Ui.TextField"
+
+[[file]]
+path = "native/node-editor/qml/WorkflowPropertyEditor.qml"
+category = "chrome"
+controls = ["ColumnLayout", "Connections", "Repeater", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.TextField", "Ui.Select"]
+signals = ["valueCommitted", "scopeInvalidated"]
+test_host = "native/node-editor/tests/models/ResourcePickerTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/PropertyField.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.TextField, Ui.Select"
+
 [[exception]]
 path = "native/timeline/qml/takes/TakeGridView.qml"
 object = "view/panel/cells/Repeater[0]/cell/press"

@@ -9,7 +9,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = Path(__file__).resolve().parents[1]
-ROOTS = ('native/timeline/qml', 'native/timeline/src', 'native/chat/qml', 'native/model-picker/qml', 'native/media/qml', 'native/entities/qml', 'native/storyboard/qml')
+ROOTS = ('native/timeline/qml', 'native/timeline/src', 'native/chat/qml', 'native/model-picker/qml', 'native/media/qml', 'native/entities/qml', 'native/storyboard/qml', 'native/node-editor/qml')
 TOKEN = re.compile(r'''(?P<space>\s+)|(?P<comment>//[^\n]*|/\*[\s\S]*?\*/)|(?P<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(?P<ident>[A-Za-z_$][\w$]*)|(?P<number>0[xX][\da-fA-F]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)|(?P<punct>.)''')
 RAW_CONTROLS = {
     'Button', 'ToolButton', 'RoundButton', 'TextField', 'TextArea', 'ComboBox',
