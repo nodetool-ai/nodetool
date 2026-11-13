@@ -84,6 +84,7 @@ export interface PlanParameter extends ParameterIdentity {
   readonly smooth: "none" | "ramp" | "onePole";
   readonly timeConstant?: number;
   readonly sync: "audio";
+  readonly audioControl?: number;
 }
 export interface AudioNode {
   readonly node: string;
@@ -98,7 +99,7 @@ export interface Diagnostic { readonly node: string; readonly reason: string; re
 export interface ControlInstruction {
   readonly node: string;
   readonly op: string;
-  readonly domain: "render";
+  readonly domain: "render" | "audio";
   readonly out: number;
   readonly in: readonly number[];
   readonly values: readonly number[];

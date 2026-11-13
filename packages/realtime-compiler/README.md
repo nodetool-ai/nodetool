@@ -4,7 +4,7 @@ Pure WP16 preparation against the [canonical plan schema](../../native/realtime/
 The compiler handles one render sink or one audio sink. Render graphs support
 registered shader/control descriptors, property/expression uniforms, render-domain
 state and explicit batch texture boundaries. Audio graphs support built-in DSP
-DAGs with property parameters. Results contain plan data, boundary reports,
+DAGs with property/control parameters. Results contain plan data, boundary reports,
 parameter allocation and state keys, or graph-node diagnostics, without I/O.
 
 ```ts
@@ -44,6 +44,17 @@ compile-time property. The delay kernel does not authorize graph feedback.
 Pass ordering and buffer liveness are computed iteratively. Inputs remain live
 through their last consumer, and outputs never overwrite inputs in the same node.
 
+A DSP parameter's property port can connect to a live scalar control producer.
+The compiler lowers that control region into the audio domain and emits an
+`audioControl` register binding. Shared producers get one operation. The stored
+parameter value supplies the initial smoothing endpoint. Offline execution samples
+controls at quantum endpoints, independent of render frame rate, then applies the
+declared smoothing. Vector producers and connected structural fields reject.
+Runtime targets follow the native host's [scalar checks](../../native/realtime/audio.md#parameters-events-and-slots).
+Audio and render lowering use the same control compiler. Sharing a stateful
+producer between both domains still requires the deferred signal-history and
+handoff work.
+
 Pass the successful result's `allocation` back on the next call to preserve
 parameter slots. This detached session ledger reserves removed `(node, field)`
 identities, so removing/reintroducing a node cannot reuse another parameter's
@@ -54,8 +65,9 @@ exhaustion rejects the candidate. It is not a cross-thread parameter table.
 using the design's graph identity, operation/version and session fields. Audio
 keys also include structural delay size and channel layout. Nonstructural
 parameter edits preserve those keys. Audio sink hashes include the logical
-upstream edges, state keys, seed, initial parameter values and smoothing. They
-exclude physical buffer IDs, parameter slot IDs and display dimensions.
+upstream edges, state keys, seed, initial parameter values, smoothing and control
+dependencies. They exclude physical buffer IDs, parameter slot IDs and control
+register numbers. Display dimensions enter a hash when a control reads them.
 These are compiler metadata. State transfer and sink-ramp behavior remain WP18.
 
 Build and test with `npm run build --workspace=packages/realtime-compiler` and
@@ -65,7 +77,7 @@ browser/QuickJS hosts and ships in the package, with no runtime filesystem impor
 Run `npm run test:native --workspace=packages/realtime-compiler -- <executable>`
 for snapshot-to-native-loader/render and WAV checks with a configured software GPU.
 
-WP16 remains open. Mixed audio/render graphs, connected audio controls, render
+WP16 remains open. Mixed audio/render graphs, cross-domain control sharing, render
 parameter slots, PCM/sample-player boundaries, multiple sinks, the full descriptor
 expression vocabulary, reverse/floating-point alpha conversion, delayed feedback,
 batch graph rewriting and cross-domain stateful handoffs remain unimplemented.

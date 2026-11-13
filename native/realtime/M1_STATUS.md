@@ -357,7 +357,7 @@ shared-device operation, close issues or change PR merge ordering.
 
 | Deferred requirement | Owning work | Evidence needed to finish |
 |---|---|---|
-| Graph-to-IR snapshots | [WP16 #7407](https://github.com/nodetool-ai/nodetool/issues/7407) | Fixture graphs compile to stored IR that loads through the canonical loader, with stable slots and state keys |
+| Complete graph-to-IR compiler and snapshots | [WP16 #7407](https://github.com/nodetool-ai/nodetool/issues/7407) | Required graph forms, including mixed-domain placement, batch rewrites and PCM boundaries, compile to loader-qualified snapshots with stable slots and state keys |
 | Synchronized parameter changes | [WP13 #7404](https://github.com/nodetool-ai/nodetool/issues/7404) | A change reaches audio and picture at the required quantum/frame, including rapid revisions and clock-generation changes |
 | Stall and live-device timing | [WP12 #7403](https://github.com/nodetool-ai/nodetool/issues/7403), [WP15 #7406](https://github.com/nodetool-ai/nodetool/issues/7406) | Stall/load fixtures and measured device budgets pass on the required hardware |
 | Swap-state continuity | [WP18 #7409](https://github.com/nodetool-ai/nodetool/issues/7409) | Unchanged audio paths preserve bytes, and changed paths satisfy the sink-ramp checks |
@@ -396,7 +396,7 @@ The compiler tests and selected harness-registry tests pass. Package builds,
 compiler typechecking, scoped lint, packed imports, browser bundling and the gate
 dry run pass. Broad local checks were deferred under the targeted-check policy.
 
-WP16 remains open. Mixed audio/render lowering, connected audio controls, render
+WP16 remains open. Mixed audio/render lowering, cross-domain control sharing, render
 parameter slots, PCM/sample-player boundaries, multiple sinks, the full descriptor
 expression vocabulary, reverse/floating-point alpha conversion, delayed feedback, batch graph rewriting
 and cross-domain stateful handoffs remain unimplemented. Product descriptors,
@@ -466,8 +466,13 @@ The native checker exports gain-chain, fan-out and delay graphs at both session
 rates and layouts against an independent quadrature reference. It also checks
 the supported kernel ABI shapes, deterministic noise repeats and rejection of
 overlapping live buffers. Corrupted PCM fails the reference check. Remaining
-compiler scope is listed above. Linux qualification of this audio batch remains
-pending CI, and unfinished issues stay open.
+compiler scope is listed above. The
+[standalone Linux run at `a5f8e529b8`](https://github.com/nodetool-ai/nodetool/actions/runs/43507918542)
+passes the audio fixtures in Release and ASan/UBSan, plus core sanitizers and
+Wasm/browser checks. The
+[full graph-runner run at that revision](https://github.com/nodetool-ai/nodetool/actions/runs/43507917916)
+also passes Release, ASan/UBSan and TSan.
+Unfinished issues stay open.
 
 Targeted compiler and SHA-256 tests, package build/typechecking and scoped lint
 pass. The expanded native checker passes on Windows Release and ASan. A normal
@@ -475,3 +480,35 @@ packed install outside the workspace imports the compiler and portable hash
 subpath and compiles an audio graph. Render/audio results also match through an
 isolated browser bundle with no Node globals or external imports. Broad local
 checks remain deferred under the targeted-check policy.
+
+## WP16 audio control bindings
+
+Connected scalar control producers now lower into the audio domain and bind
+DSP parameters through `audioControl`. A shared producer appears once. Stored
+parameter values remain the initial smoothing endpoints. Audio and render use
+one control lowering implementation. Control state keys remain independent of
+the domain, while logical path hashes include the domain's control dependencies
+and context-reading operations. Register allocation does not enter those hashes.
+
+A stored snapshot covers a damper feeding gain. The native checker also loads
+both checked-in audio snapshots directly through the loader and WAV exporter.
+Targeted compiler checks cover
+shared producers, stable slots/state keys, control hashes under different valid
+register orders, dimension-dependent hashes, full graph identities, invalid
+widths/versions/ports, cycles and a large iterative control chain. The native
+fixture matrix compares clock, damper, ramp, one-pole and shared-control WAVs
+against independent quantum references at both session rates and layouts. WAV
+bytes must agree at 2, 60 and 120 fps. Wrong-domain and vector bindings reject
+before output, and corrupted PCM fails the reference check.
+
+Mixed-domain placement, signal history, WP13 synchronization and WP18 state
+transfer remain deferred. The bindings use the offline host. Live parameter
+transport stays in WP13. WP16 and unfinished issues remain open. Linux
+qualification of this new control batch is pending CI.
+
+Targeted compiler checks, package build/typechecking and scoped lint pass.
+The expanded control fixture matrix passes with Windows Release and ASan.
+Normal-script packed imports compile an audio control binding outside the
+workspace. Render/audio/control results also agree through an isolated browser
+bundle without Node globals or external imports. Broad local checks remain
+deferred under the targeted-check policy.

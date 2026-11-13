@@ -10,6 +10,7 @@ import sharp from "sharp";
 import { compileRealtimeGraph } from "@nodetool-ai/realtime-compiler";
 import { fixture, expressionFixture, alphaFixture } from "./fixtures/RenderGraph.ts";
 import { checkAudio } from "./native-audio-check.mjs";
+import { checkAudioControls } from "./native-control-check.mjs";
 
 assert.equal(process.argv.length, 3, "Pass a GPU-enabled native realtime executable");
 const executable = resolve(process.argv[2]);
@@ -65,5 +66,6 @@ try {
   assert.ifError(bypassed.error); assert.equal(bypassed.status, 1); assert.match(bypassed.stderr, /^invert\/alpha:/m);
   assert.equal(existsSync(bypassOutput), false);
   checkAudio(executable, root);
-  console.log("Compiled render/audio fixtures export through native CLI; invalid registers, alpha bypass and overlapping buffers reject before output.");
+  checkAudioControls(executable, root);
+  console.log("Compiled render/audio/control fixtures match native references; invalid bindings, alpha bypass and buffer overlap reject before output.");
 } finally { rmSync(root, { recursive: true, force: true }); }
