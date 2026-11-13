@@ -114,11 +114,11 @@ Rectangle {
                 lineHeight: 1
             }
             // A server that was chosen retries by itself. The button retries now, like the web's retryNow.
-            NodeButton {
+            Ui.EditorButton {
                 objectName: "status-reconnect"
                 visible: !root.connected
                 text: root.connection === "offline" ? "Reconnect" : "Connect"
-                variant: NodeButton.Flat
+                variant: Ui.EditorButton.Outlined; flat: true
                 implicitHeight: Ui.Metrics.small
                 onClicked: {
                     if (root.connection === "offline") {

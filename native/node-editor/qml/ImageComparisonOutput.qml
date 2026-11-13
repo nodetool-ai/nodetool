@@ -234,25 +234,25 @@ ColumnLayout {
                         text: status.modelData.failure.length > 0 ? status.modelData.side + ": " + status.modelData.failure : "Loading " + status.modelData.side + "…"
                         maximumWidth: viewport.width - 2 * viewport.inset - retry.width - Ui.Metrics.sm
                     }
-                    NodeButton {
+                    Ui.EditorButton {
                         id: retry
                         anchors.verticalCenter: parent.verticalCenter
                         visible: status.modelData.failure.length > 0
                         text: "Retry " + status.modelData.side
-                        variant: NodeButton.Flat
+                        variant: Ui.EditorButton.Outlined; flat: true
                         onClicked: status.modelData.resolve()
                     }
                 }
             }
         }
 
-        NodeButton {
+        Ui.EditorButton {
             id: toggle
             objectName: "comparison-mode"
             anchors.right: parent.right; anchors.rightMargin: Ui.Metrics.xxl
             anchors.bottom: parent.bottom; anchors.bottomMargin: Ui.Metrics.md
             accessibleName: root.horizontal ? "Switch to vertical" : "Switch to horizontal"
-            variant: NodeButton.Flat
+            variant: Ui.EditorButton.Outlined; flat: true
             onClicked: root.toggleMode()
             background: Rectangle {
                 radius: Ui.Metrics.radiusControl

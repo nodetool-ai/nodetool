@@ -39,6 +39,7 @@ Window {
                     x: Ui.Metrics.lg; y: Ui.Metrics.lg; width: parent.width - 2 * Ui.Metrics.lg; spacing: Ui.Metrics.md
                     Ui.EditorButton { width: Math.min(implicitWidth, parent.width); text: "Primary"; variant: Ui.EditorButton.Primary }
                     Ui.EditorButton { width: Math.min(implicitWidth, parent.width); text: "Default"; iconName: "add" }
+                    Ui.EditorButton { width: Math.min(implicitWidth, parent.width); text: "Outlined"; variant: Ui.EditorButton.Outlined }
                     Ui.ToolbarIconButton { width: Math.min(implicitWidth, parent.width); text: "Search"; accessibleName: text; iconName: "search" }
                     Ui.EditorButton { width: Math.min(implicitWidth, parent.width); text: "Disabled"; enabled: false; disabledReason: "Unavailable" }
                     Ui.EditorButton { width: Math.min(implicitWidth, parent.width); text: "Loading"; loading: true }

@@ -34,7 +34,6 @@ public:
 
     Q_INVOKABLE void run(const QString &command) { emit commandRequested(command); }
     // Empty text hides the tool tip.
-    Q_INVOKABLE void showToolTip(const QString &text) { emit toolTipRequested(text); }
     // The theme roles the canvas paints with, sent when the theme changes.
     Q_INVOKABLE void present(const QVariantMap &roles) { emit presentationRequested(roles); }
 
@@ -42,7 +41,6 @@ signals:
     void readOnlyChanged();
     void runningChanged();
     void commandRequested(const QString &command);
-    void toolTipRequested(const QString &text);
     void presentationRequested(const QVariantMap &roles);
 
 private:

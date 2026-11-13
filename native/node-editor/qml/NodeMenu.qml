@@ -235,8 +235,9 @@ Rectangle {
 
     // A tile of the menu home: the node's type icon and its label (QuickActionTiles.tsx,
     // FavoritesTiles.tsx, RecentNodesTiles.tsx). A node that the catalog lacks stays but cannot add.
-    component Tile: PanelRow {
+    component Tile: Ui.ListRow {
         id: tile
+        flat: true
         required property string tileType
         required property string tileLabel
         property bool removable: false
@@ -439,8 +440,9 @@ Rectangle {
                 boundsBehavior: Flickable.StopAtBounds
                 Basic.ScrollBar.vertical: Ui.ScrollBar {}
                 model: root.namespaceRows
-                delegate: PanelRow {
+                delegate: Ui.ListRow {
                     id: namespaceRow
+                    flat: true
                     required property var modelData
                     objectName: "node-menu-namespace-" + modelData.path.join(".")
                     x: Ui.Metrics.xs
@@ -537,8 +539,9 @@ Rectangle {
                 boundsBehavior: Flickable.StopAtBounds
                 Basic.ScrollBar.vertical: Ui.ScrollBar {}
                 model: root.visibleNodes
-                delegate: PanelRow {
+                delegate: Ui.ListRow {
                     id: nodeRow
+                    flat: true
                     required property var modelData
                     required property int index
                     active: index === root.highlighted

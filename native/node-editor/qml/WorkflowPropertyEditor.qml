@@ -121,9 +121,9 @@ ColumnLayout {
             Layout.fillWidth: true
             spacing: Ui.Metrics.xs
             Ui.Text { Layout.fillWidth: true; text: root.selectedLabel(parent.modelData); role: Ui.Typography.SansCaption; wrapMode: Text.WrapAnywhere }
-            NodeButton { text: "Up"; visible: root.listMode; enabled: root.writable && parent.index > 0; onClicked: root.moveAt(parent.index, -1) }
-            NodeButton { text: "Down"; visible: root.listMode; enabled: root.writable && parent.index + 1 < root.selected.length; onClicked: root.moveAt(parent.index, 1) }
-            NodeButton { text: "Remove"; visible: root.listMode; enabled: root.writable; onClicked: root.removeAt(parent.index) }
+            Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Up"; visible: root.listMode; enabled: root.writable && parent.index > 0; onClicked: root.moveAt(parent.index, -1) }
+            Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Down"; visible: root.listMode; enabled: root.writable && parent.index + 1 < root.selected.length; onClicked: root.moveAt(parent.index, 1) }
+            Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Remove"; visible: root.listMode; enabled: root.writable; onClicked: root.removeAt(parent.index) }
         }
     }
     Ui.TextField {
@@ -147,8 +147,8 @@ ColumnLayout {
     }
     RowLayout {
         spacing: Ui.Metrics.xs
-        NodeButton { text: "Browse workflows"; enabled: root.writable && root.controller && !root.loading; onClicked: root.browse(false) }
-        NodeButton { text: "Load more"; visible: root.nextCursor !== ""; enabled: root.writable && !root.loading; onClicked: root.browse(true) }
+        Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Browse workflows"; enabled: root.writable && root.controller && !root.loading; onClicked: root.browse(false) }
+        Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Load more"; visible: root.nextCursor !== ""; enabled: root.writable && !root.loading; onClicked: root.browse(true) }
     }
     Ui.Text {
         Layout.fillWidth: true

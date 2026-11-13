@@ -25,7 +25,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     qt_add_executable(node_editor_structured_ui_tests StructuredPropertyUiTest.cpp)
     target_link_libraries(node_editor_structured_ui_tests PRIVATE Qt6::Widgets Qt6::Quick Qt6::Qml Qt6::Test)
     qt_add_resources(node_editor_structured_ui_tests structured_qml PREFIX /editor BASE ../../qml FILES
-        ../../qml/StructuredPropertyEditor.qml ../../qml/EditorRoles.qml ../../qml/NodeButton.qml)
+        ../../qml/StructuredPropertyEditor.qml ../../qml/EditorRoles.qml)
     nodetool_use_ui_primitives(node_editor_structured_ui_tests)
     add_test(NAME node_editor_structured_ui COMMAND node_editor_structured_ui_tests)
     set_tests_properties(node_editor_structured_ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

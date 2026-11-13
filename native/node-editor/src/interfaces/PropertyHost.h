@@ -69,7 +69,6 @@ public:
     }
     Q_INVOKABLE void removeProperty(const QString &nodeId, const QString &name) { emit removeRequested(nodeId, name); }
     // Empty text hides the tool tip.
-    Q_INVOKABLE void showToolTip(const QString &text) { emit toolTipRequested(text); }
 
 signals:
     void selectionChanged();
@@ -79,7 +78,6 @@ signals:
     void servicesChanged();
     void commitRequested(const QString &nodeId, const QString &name, const QVariant &value);
     void removeRequested(const QString &nodeId, const QString &name);
-    void toolTipRequested(const QString &text);
 
 private:
     QString selection_;

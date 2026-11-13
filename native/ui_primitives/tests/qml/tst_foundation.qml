@@ -99,6 +99,22 @@ TestCase {
         button.density = 99; compare(button.density, Ui.EditorButton.Standard)
         button.variant = 99; compare(button.variant, Ui.EditorButton.Default)
     }
+    function test_outlined_variant() {
+        button.variant = Ui.EditorButton.Outlined
+        verify(button.outlined)
+        compare(button.implicitHeight, Ui.Metrics.compact)
+        compare(button.outlinedInk, Ui.Theme.accentPrimary)
+        button.flat = true
+        compare(button.outlinedInk, Ui.Theme.textSecondary)
+        button.flat = false
+        button.highlighted = true
+        compare(button.outlinedInk, Ui.Theme.textOnAccent)
+        button.highlighted = false
+        button.enabled = false
+        compare(button.outlinedInk, Ui.Theme.outlinedDisabledInk)
+        button.enabled = true
+        button.variant = Ui.EditorButton.Outlined + 1; compare(button.variant, Ui.EditorButton.Default)
+    }
     function luminance(color) {
         function channel(v) { return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }
         return 0.2126 * channel(color.r) + 0.7152 * channel(color.g) + 0.0722 * channel(color.b)

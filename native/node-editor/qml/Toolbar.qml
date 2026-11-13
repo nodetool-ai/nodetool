@@ -78,27 +78,20 @@ Item {
     implicitHeight: frame.implicitHeight
     // The web toolbar: Add node and Auto layout on the left, then Stop while a
     // run is active, Run and the workflow menu. See web/src/components/panels/FloatingToolBar.tsx.
-    component ActionButton: PanelRow {
+    component ActionButton: Ui.ToolbarIconButton {
         id: action
         property string glyph: ""
         property string tooltip: text
+        property string shortcut: ""
         implicitWidth: Ui.Metrics.compact
         implicitHeight: Ui.Metrics.compact
         enabled: !root.commands.readOnly || !["Run", "Add node", "Auto layout"].includes(text)
         objectName: "toolbar-" + text.toLowerCase().split(" ").join("-")
-        accessibleName: text
+        accessibleName: tooltip
+        shortcutText: shortcut
+        iconName: glyph
+        iconTone: enabled ? Ui.Text.Secondary : Ui.Text.Disabled
         onClicked: root.commands.run(text)
-        HoverHandler {
-            onHoveredChanged: {
-                root.commands.showToolTip(hovered ? action.tooltip : "")
-            }
-        }
-        Ui.Icon {
-            anchors.centerIn: parent
-            name: action.glyph
-            size: Ui.Metrics.iconSm
-            tone: action.enabled ? Ui.Text.Secondary : Ui.Text.Disabled
-        }
     }
     Rectangle {
         id: frame
@@ -119,7 +112,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Add node"
                     glyph: "addCircle"
-                    tooltip: "Add node (Space)"
+                    shortcut: "Space"
                 }
                 // A phone keeps Auto layout in the workflow menu, as the web does.
                 ActionButton {
@@ -137,11 +130,12 @@ Item {
                     text: "Stop"
                     glyph: "stop"
                     accessibleName: root.runLabel === "Stopping" ? "Stopping workflow" : "Stop workflow"
-                    tooltip: "Stop workflow (Esc)"
+                    shortcut: "Esc"
                     enabled: root.runLabel !== "Stopping"
                 }
-                PanelRow {
+                Ui.ListRow {
                     id: runButton
+                    flat: true
                     objectName: "run-workflow"
                     readonly property string actionName: "Run"
                     anchors.verticalCenter: parent.verticalCenter
@@ -151,10 +145,10 @@ Item {
                     implicitHeight: Ui.Metrics.comfortable
                     implicitWidth: Math.ceil(Math.max(Ui.Metrics.comfortable, runRow.implicitWidth + Ui.Metrics.lg * 2))
                     onClicked: root.commands.run(actionName)
-                    HoverHandler {
-                        onHoveredChanged: {
-                            root.commands.showToolTip(hovered ? root.runTooltip : "")
-                        }
+                    Ui.Tooltip {
+                        trigger: runButton
+                        visible: runButton.hovered && text !== ""
+                        text: root.runTooltip
                     }
                     // A running workflow turns the pill to the panel surface.
                     background: Rectangle {

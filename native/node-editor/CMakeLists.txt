@@ -183,7 +183,7 @@ if(BUILD_TESTING)
     qt_add_resources(node_editor_remaining_property_tests remaining_property_qml PREFIX /editor BASE qml FILES
         qml/RemainingResourcePropertyEditor.qml qml/PathPropertyEditor.qml qml/FilePropertyEditor.qml
         qml/ToolsPropertyEditor.qml qml/MediaParameterPropertyEditor.qml qml/AssetPropertyEditor.qml
-        qml/MediaPreview.qml qml/NodeButton.qml qml/EditorRoles.qml)
+        qml/MediaPreview.qml qml/EditorRoles.qml)
     nodetool_use_ui_primitives(node_editor_remaining_property_tests)
     add_test(NAME node_editor_remaining_property COMMAND node_editor_remaining_property_tests)
     set_tests_properties(node_editor_remaining_property PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

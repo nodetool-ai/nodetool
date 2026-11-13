@@ -48,9 +48,59 @@ TestCase {
         Ui.Text { id: rowText; text: "Model"; anchors.verticalCenter: parent.verticalCenter }
         Ui.ToolbarIconButton { id: nested; anchors.right: parent.right; iconName: "star"; accessibleName: "Favorite" }
     }
+    Ui.ListRow {
+        id: flatRow
+        x: 10; y: 70; width: 100; height: 30
+        flat: true
+        accessibleName: "Flat"
+        Ui.Text { id: flatLabel; anchors.fill: parent; text: "Flat" }
+    }
+    SignalSpy { id: flatClicks; target: flatRow; signalName: "clicked" }
     SignalSpy { id: rowClicks; target: row; signalName: "clicked" }
     SignalSpy { id: nestedClicks; target: nested; signalName: "clicked" }
     function init() { menuCount = 0; rowClicks.clear(); nestedClicks.clear(); Ui.Theme.preference = Ui.Theme.Dark }
+    function test_flatRowHasNoPaddingAndNoMinimumHeight() {
+        compare(flatRow.leftPadding, 0)
+        compare(flatRow.rightPadding, 0)
+        compare(flatRow.implicitHeight, 0)
+        compare(flatLabel.width, 100)
+        compare(flatLabel.height, 30)
+        verify(row.leftPadding > 0)
+        verify(row.implicitHeight >= Ui.Metrics.standard)
+        flatClicks.clear()
+        flatRow.forceActiveFocus()
+        keyClick(Qt.Key_Return)
+        compare(flatClicks.count, 1)
+    }
+    function test_tooltipHostReceivesTextThatTheOverlayCannotHold() {
+        const received = []
+        const record = text => received.push(text)
+        Ui.TooltipHost.requested.connect(record)
+        Ui.TooltipHost.native = true
+        tooltip.text = "word ".repeat(300)
+        tooltip.visible = true
+        tryVerify(() => received.length > 0)
+        compare(received[0], tooltip.text)
+        compare(tooltip.opacity, 0)
+        tooltip.visible = false
+        tryVerify(() => received[received.length - 1] === "")
+        Ui.TooltipHost.native = false
+        Ui.TooltipHost.requested.disconnect(record)
+        tooltip.text = "Tooltip near the edge"
+    }
+    function test_tooltipStaysInOverlayWithoutAHost() {
+        const received = []
+        const record = text => received.push(text)
+        Ui.TooltipHost.requested.connect(record)
+        tooltip.text = "word ".repeat(300)
+        tooltip.visible = true
+        tryVerify(() => tooltip.visible)
+        compare(received.length, 0)
+        compare(tooltip.opacity, 1)
+        tooltip.visible = false
+        Ui.TooltipHost.requested.disconnect(record)
+        tooltip.text = "Tooltip near the edge"
+    }
     function test_tooltipStaysInOverlay() {
         tooltip.text = "A translated tooltip with a long description ".repeat(6)
         tooltip.visible = true

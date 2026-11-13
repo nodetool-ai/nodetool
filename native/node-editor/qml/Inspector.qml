@@ -65,7 +65,7 @@ Rectangle {
                 Ui.Text { objectName: "inspector-title"; Layout.fillWidth: true; text: root.info.title || root.inspector.selection; role: Ui.Typography.SansLabel; font.weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1.3 }
                 Ui.Text { objectName: "inspector-namespace"; Layout.fillWidth: true; visible: text !== ""; text: root.info.namespace || ""; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary; elide: Text.ElideMiddle; lineHeight: 1.3 }
             }
-            NodeButton { objectName: "inspector-close"; text: ""; accessibleName: "Close inspector"; iconName: "close"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.compact; onClicked: root.inspector.clearSelection() }
+            Ui.EditorButton { objectName: "inspector-close"; text: ""; display: Basic.AbstractButton.IconOnly; accessibleName: "Close inspector"; iconName: "close"; variant: Ui.EditorButton.Outlined; flat: true; implicitWidth: Ui.Metrics.compact; onClicked: root.inspector.clearSelection() }
         }
         Item {
             visible: root.hasSelection
@@ -185,8 +185,9 @@ Rectangle {
                 tone: Ui.Text.Secondary
             }
             // NodeInfoPanel.tsx: the Focus button centers the canvas on the node.
-            NodeButton {
+            Ui.EditorButton {
                 id: focusButton
+                variant: Ui.EditorButton.Outlined
                 objectName: "inspector-focus"
                 x: Ui.Metrics.lg
                 y: helpText.y + helpText.implicitHeight + Ui.Metrics.lg
@@ -294,7 +295,7 @@ Rectangle {
                         text: qsTr("Run selected")
                         accessibleName: qsTr("Run selected nodes")
                         enabled: !root.running && !root.inspector.readOnly
-                        onHoveredChanged: root.inspector.showToolTip(hovered ? qsTr("Run selected nodes") + "  " + (Qt.platform.os === "osx" ? "⌘ Enter" : "Ctrl+Enter") : "")
+                        shortcutText: Qt.platform.os === "osx" ? "⌘ Enter" : "Ctrl+Enter"
                         onClicked: root.inspector.runSelectedNodes(root.runs)
                     }
                     Ui.Text {

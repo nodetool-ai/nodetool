@@ -16,8 +16,8 @@ ColumnLayout {
         visible: modelData.renderer === "pcm"
         Layout.fillWidth: true
         RowLayout {
-            NodeButton { objectName: "pcm-start-stop"; text: pcmOutput.controller && pcmOutput.controller.playing ? "Stop" : "Start"; accessibleName: text + " streaming audio"; enabled: !!pcmOutput.controller; onClicked: pcmOutput.controller.playing ? pcmOutput.controller.stop() : pcmOutput.controller.start() }
-            NodeButton { objectName: "pcm-restart"; text: "Restart"; accessibleName: "Restart streaming audio"; enabled: !!pcmOutput.controller; onClicked: pcmOutput.controller.restart() }
+            Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "pcm-start-stop"; text: pcmOutput.controller && pcmOutput.controller.playing ? "Stop" : "Start"; accessibleName: text + " streaming audio"; enabled: !!pcmOutput.controller; onClicked: pcmOutput.controller.playing ? pcmOutput.controller.stop() : pcmOutput.controller.start() }
+            Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "pcm-restart"; text: "Restart"; accessibleName: "Restart streaming audio"; enabled: !!pcmOutput.controller; onClicked: pcmOutput.controller.restart() }
         }
         LiveAudioVisualizer {
             objectName: "pcm-visualizer"
@@ -47,11 +47,11 @@ ColumnLayout {
     property bool expanded: false
     visible: modelData.renderer === "tool_call"
     Layout.fillWidth: true
-    NodeButton {
+    Ui.EditorButton {
         objectName: "output-tool-toggle"
         text: ["TOOL", modelData.toolName || "tool", tool.expanded ? "" : modelData.toolSummary, modelData.toolId ? (modelData.toolId.length > 12 ? modelData.toolId.slice(0, 8) + "…" : modelData.toolId) : "", tool.expanded ? "⌄" : "›"].filter(Boolean).join("  ")
         accessibleName: text + (tool.expanded ? " Hide arguments" : " Show arguments")
-        variant: NodeButton.Flat
+        variant: Ui.EditorButton.Outlined; flat: true
         onClicked: tool.expanded = !tool.expanded
     }
     Ui.TextArea {

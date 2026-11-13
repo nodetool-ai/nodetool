@@ -213,10 +213,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&nodeInspector_, &node_editor::NodeInspector::clearSelectionRequested, this, [this] { action("Clear selection"); });
   connect(&nodeInspector_, &node_editor::NodeInspector::focusNodeRequested, this, [this] { userAction("Focus node"); });
   connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
-  connect(&nodeInspector_, &node_editor::NodeInspector::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitProperty);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::removeRequested, this, &EditorWindow::removeProperty);
-  connect(nodeInspector_.fields(), &node_editor::PropertyHost::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::pinRequested, this, &EditorWindow::pinGeneration);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::toggleReplayRequested, this, &EditorWindow::toggleReplayGeneration);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::clearReplayRequested, this, &EditorWindow::clearReplayGenerations);
@@ -259,14 +257,12 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&panelLayout_, &node_editor::PanelLayout::toggleInspectorRequested, this, [this] { action("Toggle inspector"); });
   connect(&panelLayout_, &node_editor::PanelLayout::togglePanelRequested, this, [this] { action("Toggle panel"); });
   connect(&panelLayout_, &node_editor::PanelLayout::miniMapRequested, this, &EditorWindow::setMiniMapVisible);
-  connect(&panelLayout_, &node_editor::PanelLayout::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(&panelLayout_, &node_editor::PanelLayout::statusViewRequested, this, &EditorWindow::toggleStatusView);
   connect(&statusModel_, &node_editor::StatusModel::connectRequested, this, [this] { action("Connect"); });
   connect(&statusModel_, &node_editor::StatusModel::reconnectRequested, this, [this] { action("Reconnect"); });
   connect(&statusModel_, &node_editor::StatusModel::queueRequested, this, [this] { action("Queue"); });
   connect(&statusModel_, &node_editor::StatusModel::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(&editorCommands_, &node_editor::EditorCommands::commandRequested, this, [this](const QString &command) { action(command); });
-  connect(&editorCommands_, &node_editor::EditorCommands::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(&editorCommands_, &node_editor::EditorCommands::presentationRequested, this, &EditorWindow::presentation);
   connect(&selection_, &node_editor::Selection::nodeMenuRequested, this, &EditorWindow::showNodeMenu);
   connect(&runState_, &node_editor::RunState::authoredRequested, this, &EditorWindow::authoredAction);
@@ -278,6 +274,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&firstWorkflowGuide_, &node_editor::FirstWorkflowGuide::actionRequested, this, &EditorWindow::setupAction);
   connect(&nodeCatalog_, &node_editor::NodeCatalog::runtimesRequested, this, [this] { setupAction("dependencies"); });
   engine_ = new QQmlEngine(this);
+  // Panels are QQuickWidgets sized to their strip, so an overlay tooltip clips there.
+  // Ui.Tooltip hands its text to the window when the overlay cannot hold it.
+  if (auto *tooltips = engine_->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost")) {
+    tooltips->setProperty("native", true);
+    const auto *meta = tooltips->metaObject();
+    connect(tooltips, meta->method(meta->indexOfSignal("requested(QString)")), this,
+            metaObject()->method(metaObject()->indexOfMethod("showToolTip(QString)")));
+  }
   // The property editors, the inspector's history and the card editors reach
   // the resolver and the pickers through the property host.
   nodeInspector_.fields()->setServices({.media = &mediaResolver_,
@@ -650,12 +654,6 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   const QVariantMap catalogProperties{{"catalog", QVariant::fromValue(&nodeCatalog_)},
                                       {"packSetup", QVariant::fromValue(packSetup())}};
   catalogPanel_ = panel("Catalog", catalogProperties);
-  {
-    // Hover text goes up as a signal, and the window shows it.
-    const auto *root = catalogPanel_->rootObject()->metaObject();
-    connect(catalogPanel_->rootObject(), root->method(root->indexOfSignal("toolTipRequested(QString)")), this,
-            metaObject()->method(metaObject()->indexOfMethod("showToolTip(QString)")));
-  }
   catalogPanel_->setParent(dockHost_);
   catalogPanel_->setObjectName("catalog-panel");
   catalogPanel_->setFocusPolicy(Qt::StrongFocus);

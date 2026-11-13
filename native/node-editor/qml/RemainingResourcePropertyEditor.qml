@@ -146,7 +146,8 @@ ColumnLayout {
                 role: Ui.Typography.SansCaption
                 wrapMode: Text.WrapAnywhere
             }
-            NodeButton {
+            Ui.EditorButton {
+                variant: Ui.EditorButton.Outlined
                 text: "Remove"
                 visible: root.multiple || root.descriptor.nullable === true
                 enabled: root.writable
@@ -317,11 +318,13 @@ ColumnLayout {
                 onValueCommitted: value => root.folderName = value
             }
             RowLayout {
-                NodeButton {
+                Ui.EditorButton {
+                    variant: Ui.EditorButton.Outlined
                     text: "Cancel"
                     onClicked: folderPopover.close()
                 }
-                NodeButton {
+                Ui.EditorButton {
+                    variant: Ui.EditorButton.Outlined
                     objectName: "remaining-create-folder"
                     text: "Create folder"
                     enabled: root.writable && root.controller && root.folderName.trim() !== "" && !root.loading

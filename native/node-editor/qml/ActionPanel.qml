@@ -223,8 +223,9 @@ Rectangle {
                 tone: Ui.Text.Secondary
             }
             Basic.ScrollBar.vertical: Ui.ScrollBar {}
-            delegate: PanelRow {
+            delegate: Ui.ListRow {
                 id: row
+                flat: true
                 required property var modelData
                 required property int index
                 width: ListView.view.width - Ui.Metrics.md
