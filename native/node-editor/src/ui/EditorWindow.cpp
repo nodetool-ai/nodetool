@@ -3034,6 +3034,7 @@ void EditorWindow::action(const QString &name) {
     emit scene_->selectionChanged();
     return;
   }
+  if (name == "Settings") { openSettings(); return; }
   if (name == "Cut") { if (menuActionEnabled(name)) { action("Copy"); action("Delete"); } return; }
   if (name == "Version history" || name == "Share workflow" || name == "Workflow metadata") {
     showWorkflowDetails(name == "Version history" ? "versions" : name == "Share workflow" ? "sharing" : "metadata"); return;

@@ -2086,6 +2086,12 @@ void EditorScene::drawBackground(QPainter *painter, const QRectF &rect) {
   painter->setRenderHint(QPainter::Antialiasing, false);
   painter->setPen(QPen(theme_.grid, 0));
   painter->drawLines(crosses);
+  // Origin axes (web AxisMarker.tsx): 1px lines from (0, 0) running 80000 screen
+  // pixels right and down, in the palette's c_editor_axis_color.
+  const auto axisLength = axisMarkerLength / std::max(std::abs(zoom), 1e-6);
+  const QLineF axes[] = {{0, 0, axisLength, 0}, {0, 0, 0, axisLength}};
+  painter->setPen(QPen(axisMarkerColor(theme_.canvas.lightnessF() < .5), 0));
+  painter->drawLines(axes, 2);
 }
 
 void EditorScene::drawForeground(QPainter *painter, const QRectF &) {

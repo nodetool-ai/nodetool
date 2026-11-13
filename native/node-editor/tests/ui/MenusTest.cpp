@@ -334,6 +334,23 @@ private slots:
         QTRY_COMPARE(window.selectedCount(), 1);
         QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "c"))->isSelected());
     }
+    // shortcuts.ts: Ctrl+, opens settings and W opens the workflow settings.
+    void settingsShortcuts() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "settings"}, {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1000, 700);
+        window.show();
+        auto *canvas = view(window)->viewport();
+        view(window)->setFocus();
+        // No server is connected, so settings explain what is missing.
+        QTest::keyClick(canvas, Qt::Key_Comma, Qt::ControlModifier);
+        QCOMPARE(window.message(), QString("Connect to a server to open settings."));
+        QTest::keyClick(canvas, Qt::Key_W);
+        QTRY_VERIFY(window.findChild<QDialog *>("workflow-details-dialog"));
+        window.findChild<QDialog *>("workflow-details-dialog")->close();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
     void nodeMenuEntriesAndActions() {
         EditorWindow window;
         window.setCatalog(catalog());

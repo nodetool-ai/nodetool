@@ -177,7 +177,7 @@ const Shortcut shortcuts[] = {
  {"Add Prompt", "Shift+P"}, {"Add Text to Image", "Shift+G"}, {"Add Text to Video", "Shift+V"}, {"Add Agent", "Shift+L"},
  {"Focus next node", "Ctrl+Alt+N"}, {"Focus previous node", "Ctrl+Alt+P"}, {"Focus node above", "Alt+Up"}, {"Focus node below", "Alt+Down"},
  {"Focus node left", "Alt+Left"}, {"Focus node right", "Alt+Right"}, {"Focus back", "Ctrl+Alt+B"},
- {"Select focused node", "Return"}
+ {"Select focused node", "Return"}, {"Settings", "Ctrl+,"}, {"Workflow metadata", "W"}
 };
 
 // The web shortcut category (config/shortcuts.ts) of each native command.

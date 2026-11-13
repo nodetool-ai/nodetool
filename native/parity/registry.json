@@ -164,7 +164,8 @@
       "native": "Toggle inspector"
     },
     "toggleWorkflowSettings": {
-      "missing": "No native binding"
+      "native": "Workflow metadata",
+      "note": "Opens the workflow metadata dialog. The web toggles a side panel with the same fields."
     },
     "toggleOperator": {
       "missing": "No native binding"
@@ -242,7 +243,7 @@
       "native": "Keyboard shortcuts"
     },
     "openSettings": {
-      "missing": "No native binding"
+      "native": "Settings"
     },
     "findInWorkflow": {
       "native": "Find node"
@@ -484,7 +485,10 @@
       "inventory": "W16"
     },
     "web/src/components/node_editor/AxisMarker.tsx": {
-      "missing": "Origin axis lines that follow the viewport. Not drawn natively."
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "note": "EditorScene::drawBackground draws the 1px origin lines in c_editor_axis_color."
     },
     "web/src/components/node_editor/ConnectionLine.tsx": {
       "native": [

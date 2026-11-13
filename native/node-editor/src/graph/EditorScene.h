@@ -16,6 +16,11 @@
 namespace nodetool {
 class WorkflowGraphModel;
 
+// web AxisMarker.tsx: the origin lines run this many screen pixels, in
+// c_editor_axis_color from paletteDark.ts or paletteLight.ts.
+inline constexpr double axisMarkerLength = 80000;
+inline QColor axisMarkerColor(bool dark) { return dark ? QColor("#17181B") : QColor("#E4E4E7"); }
+
 // Colors and font families the canvas receives from Qt Quick. The web's node
 // background, canvas grid, and translucent controls are native-editor roles.
 struct CanvasTheme {
