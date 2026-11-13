@@ -1246,17 +1246,18 @@ scripts/check-portable.sh         # the non-Apple code, as far as macOS can buil
 scripts/build-ffmpeg-lgpl.sh      # FFmpeg 8.0 as LGPL shared libraries
 ```
 
-### Standalone releases
+### Releases
 
-The [release workflow](../../.github/workflows/native-timeline-release.yml)
-creates a draft prerelease, separate from Electron. Set `PROJECT_VERSION` in
-`CMakeLists.txt`, commit the workflow and app changes, then push an existing
-commit as `timeline-vX.Y.Z` (or `timeline-vX.Y.Z-test.1`). The numeric tag
-version must match CMake. `--version` reports that numeric version. The full
-tag version, including its suffix, names the downloads. Manual dispatch takes
-an existing tag and builds that tagged commit.
+Every NodeTool release ships the native timeline. The
+[NodeTool release workflow](../../.github/workflows/release.yaml), on a `v*`
+tag or a nightly, calls the
+[timeline release workflow](../../.github/workflows/native-timeline-release.yml),
+and its downloads join that GitHub release. The release publishes only when
+the timeline packages build and pass their smoke checks. The NodeTool release
+version names the downloads. `--version` reports `PROJECT_VERSION` from
+`CMakeLists.txt`.
 
-Each platform has two downloads, plus `SHA256SUMS.txt`:
+Each platform has two downloads:
 `nodetool-timeline-<version>-<platform>` connects to a NodeTool server the
 user runs, and `nodetool-timeline-with-server-<version>-<platform>` holds
 its own server. The platforms are `macos-arm64` and `windows-x64` (ZIP) and
@@ -1265,8 +1266,7 @@ its own server. The platforms are `macos-arm64` and `windows-x64` (ZIP) and
 The macOS builds are signed and notarized by
 [scripts/sign-macos.sh](scripts/sign-macos.sh), with the Developer ID
 certificate and notarization login of the Electron release. The Windows and
-Linux builds are unsigned. The draft notes explain SmartScreen and Linux
-executable permissions.
+Linux builds are unsigned.
 
 The "with server" builds come from
 [scripts/package-macos-with-server.sh](scripts/package-macos-with-server.sh),
@@ -1283,8 +1283,7 @@ each extracted backend with
 Opened without a file, the app starts that server on a free loopback port and
 lists its timelines ([src/server/BundledServer.h](src/server/BundledServer.h)).
 The server stops when the app quits and logs to `server.log` in the app's
-data folder. Review the package smoke logs and checksums before
-publishing the draft manually.
+data folder.
 
 The workflow builds only the app, checks the extracted packages with
 [scripts/smoke-package.py](scripts/smoke-package.py), and retains the existing

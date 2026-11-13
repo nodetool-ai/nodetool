@@ -935,6 +935,18 @@ jobs:
             electron/dist/*.blockmap
             electron/dist/*.yml
 
+  # The native timeline app, plain and with the NodeTool server inside, for
+  # macOS, Windows and Linux. Its assets join this release.
+  native-timeline:
+    name: Native timeline
+    needs: [preflight]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' }}
+    uses: ./.github/workflows/native-timeline-release.yml
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+      ref: ${{ needs.preflight.outputs.ref }}
+    secrets: inherit
+
   nightly-docker-tag:
     name: Retag GHCR image for nightly
     # Waits for the desktop build so :nightly only moves when it succeeded.
@@ -996,8 +1008,8 @@ jobs:
 
   publish-release:
     name: Publish GitHub Release
-    needs: [preflight, release-build]
-    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
+    needs: [preflight, release-build, native-timeline]
+    if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && needs.native-timeline.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

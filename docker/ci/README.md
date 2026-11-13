@@ -59,9 +59,9 @@ browser libraries `install-deps` installs.
   ran apt.
 - `docker` in `quality-checks.yml` and `docker.yml` build and run Docker
   images, which needs the runner's own Docker daemon. They install nothing.
-- `native-timeline-release.yml` and the release jobs in `release.yaml` and
-  `publish.yaml` still install their packages with apt on the runner. A tag
-  push is the only way to exercise them, so they move after the native image
+- `native-timeline-release.yml`, which `release.yaml` calls, and the release
+  jobs in `release.yaml` and `publish.yaml` still install their packages with
+  apt on the runner. A release run is the only way to exercise them, so they move after the native image
   has a record of green nightly runs.
 
 ## The native image
