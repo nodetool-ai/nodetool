@@ -435,7 +435,11 @@ private slots:
     QTRY_COMPARE_WITH_TIMEOUT(updates.size(), 2, 30000);
     QVERIFY(!updates[0].contains("result"));
     // Final outputs are keyed by the Output node's name, as in the TypeScript runner.
-    const QJsonObject outputs{{"items", QJsonArray{QJsonArray{0, 1, 2}}}};
+    // Appended, because compilers disagree on whether QJsonArray{QJsonArray{…}}
+    // nests the inner array or copies it.
+    QJsonArray items;
+    items.append(QJsonArray{0, 1, 2});
+    const QJsonObject outputs{{"items", items}};
     QCOMPARE(updates[1]["result"].toObject(), (QJsonObject{{"outputs", outputs}}));
     QCOMPARE(statusOf(session, id), QString("completed"));
     QCOMPARE(output.selectedRunId(), id);
