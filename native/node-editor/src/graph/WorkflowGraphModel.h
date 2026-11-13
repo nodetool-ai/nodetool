@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QPointF>
 #include <QRectF>
+#include "CardBodies.h"
 #include "NodeLayout.h"
 #include "CardMedia.h"
 #include "RerouteTypes.h"
@@ -181,6 +182,7 @@ private:
   QHash<QtNodes::NodeId, std::unordered_set<QtNodes::ConnectionId>> adjacency_;
   QPointer<node_editor::NodeRuntimeModel> runtime_;
   QHash<QString, QImage> previews_;
+  QHash<QString, ImageHistogram> histograms_;
   QSet<QString> canvasMediaNodes_;
   QSet<QString> configuredSecrets_;
   bool secretsKnown_ = false;

@@ -364,6 +364,7 @@ void WorkflowGraphModel::setRuntimeModel(node_editor::NodeRuntimeModel *runtime)
   if (runtime_) { disconnect(runtime_, nullptr, this, nullptr); }
   runtime_ = runtime;
   previews_.clear();
+  histograms_.clear();
   runningShown_.clear();
   runningSince_.clear();
   runningTimer_.stop();
@@ -423,6 +424,11 @@ void WorkflowGraphModel::setRuntimePreview(const QString &nodeId, const QImage &
   if (!ids_.contains(nodeId)) { return; }
   if (image.isNull()) { previews_.remove(nodeId); }
   else { previews_[nodeId] = image.scaled(512, 512, Qt::KeepAspectRatio, Qt::SmoothTransformation); }
+  // LevelsBody draws the result's histogram, counted once per result.
+  histograms_.remove(nodeId);
+  if (!image.isNull() && cardBodyFor(nodes_.value(ids_.value(nodeId))["type"].toString(), metadata(ids_.value(nodeId))) == CardBody::Levels) {
+    histograms_.insert(nodeId, imageHistogram(previews_.value(nodeId)));
+  }
   refreshRuntimeNode(nodeId);
   emit runtimeChanged();
 }
@@ -774,7 +780,8 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
           }
       }
       layoutBespokeBody(result, {node, meta, inputs, int(outputs.size()), fields, dimensionLinks_.contains(resourceId(id)),
-                                 graphVariables_, previewTabs_.value(resourceId(id)), result.sources});
+                                 graphVariables_, previewTabs_.value(resourceId(id)), result.sources,
+                                 histograms_.contains(resourceId(id)) ? std::optional(histograms_.value(resourceId(id))) : std::nullopt});
       if (canvasMediaNodes_.contains(resourceId(id))) {
           result.size.rheight() += nm::playbackHeight + nm::rowHeight;
       } else if (result.resultRect.isEmpty() && hasRuntimeOutput(id)) {

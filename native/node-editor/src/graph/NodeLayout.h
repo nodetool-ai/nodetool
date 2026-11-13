@@ -157,6 +157,8 @@ inline constexpr int iconSize = 16;
 inline constexpr int runButtonPadding = 16;
 inline constexpr int runButtonGap = 6;
 inline constexpr int runButtonHeight = 24;
+// LevelsBody's HIST_HEIGHT.
+inline constexpr int histogramHeight = 56;
 inline constexpr int fieldRadius = 6;
 inline constexpr double handleDiameter = 12;
 inline constexpr double handleRing = 2;
@@ -205,7 +207,11 @@ enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Previe
                          // CropBody's crop rectangle over the image in rect. minimum and
                          // maximum hold the image size, optionValues the left, top,
                          // right and bottom edges in image pixels, value the size badge.
-                         Crop };
+                         Crop,
+                         // LevelsBody's histogram: parts[0] the area, rect the bars,
+                         // optionValues 256 bar heights from 0 to 1, value the view
+                         // ("r", "g", "b" or "luminance") that picks the color.
+                         Histogram };
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,

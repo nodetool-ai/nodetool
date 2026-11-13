@@ -154,6 +154,29 @@ void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow 
     painter->restore();
 }
 
+// LevelsBody's histogram panel: background.default behind bars in HIST_COLORS.
+void paintHistogram(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+    const auto area = row.parts.value(0, row.rect);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(theme.canvas);
+    painter->drawRoundedRect(area, nm::chipRadius, nm::chipRadius);
+    if (row.optionValues.size() != 256) {
+        return;
+    }
+    static const QHash<QString, QColor> colors{{QStringLiteral("r"), QColor(244, 67, 54, 217)},
+                                               {QStringLiteral("g"), QColor(76, 175, 80, 217)},
+                                               {QStringLiteral("b"), QColor(33, 150, 243, 217)},
+                                               {QStringLiteral("luminance"), QColor(255, 255, 255, 217)}};
+    painter->setBrush(colors.value(row.value, colors.value(QStringLiteral("luminance"))));
+    const auto bin = row.rect.width() / 256;
+    for (int i = 0; i < 256; ++i) {
+        const auto height = row.optionValues[i].toDouble() * row.rect.height();
+        if (height > 0) {
+            painter->drawRect(QRectF(row.rect.x() + i * bin, row.rect.bottom() - height, std::max(1.0, bin), height));
+        }
+    }
+}
+
 // RunModelButton: dark ink on the primary fill with a play icon, and a darker
 // fill with light ink while the node runs.
 void paintRunButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, bool running) {
@@ -557,6 +580,9 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         } else {
             paintAction(painter, theme, row);
         }
+        return true;
+    case NodeRowKind::Histogram:
+        paintHistogram(painter, theme, row);
         return true;
     case NodeRowKind::Segmented:
         paintSegmented(painter, theme, row);

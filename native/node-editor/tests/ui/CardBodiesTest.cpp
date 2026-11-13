@@ -2066,6 +2066,24 @@ private slots:
 
     // LevelsBody.tsx: the channel toggle is view state that swaps the Black,
     // Gamma and White sliders; Reset neutralizes all three channels at once.
+    // computeHistogramFromRgba: per channel counts and Rec. 709 luminance.
+    void imageHistogramCountsChannels() {
+        QImage image(4, 1, QImage::Format_RGB32);
+        image.setPixelColor(0, 0, QColor(255, 0, 0));
+        image.setPixelColor(1, 0, QColor(0, 255, 0));
+        image.setPixelColor(2, 0, QColor(0, 0, 255));
+        image.setPixelColor(3, 0, QColor(255, 255, 255));
+        const auto histogram = imageHistogram(image);
+        QCOMPARE(histogram.bins[0][255], 2u);
+        QCOMPARE(histogram.bins[0][0], 2u);
+        QCOMPARE(histogram.bins[1][255], 2u);
+        QCOMPARE(histogram.bins[2][255], 2u);
+        QCOMPARE(histogram.bins[3][54], 1u);
+        QCOMPARE(histogram.bins[3][182], 1u);
+        QCOMPARE(histogram.bins[3][18], 1u);
+        QCOMPARE(histogram.bins[3][255], 1u);
+    }
+
     void levelsChannelToggleAndReset() {
         Host host(withNodes({partTwoNode("levels", "nodetool.image.Levels", QPointF(0, 700),
                                          {{"r_black", 10}, {"g_gamma", 2.5}, {"b_white", 200}})}), allMetadata());
@@ -2079,12 +2097,49 @@ private slots:
         };
         QCOMPARE(sliders(), (QStringList{"r_black", "r_gamma", "r_white"}));
         QCOMPARE(host.row("levels", NodeRowKind::Slider, "r_black")->number, 10.0);
-        const auto *toggle = host.row("levels", NodeRowKind::Segmented);
-        QVERIFY(toggle);
-        QCOMPARE(toggle->selected, 0);
+        const auto toggles = [&host] {
+            QVector<NodeRow> rows;
+            for (const auto &row : host.model().layout(host.id("levels")).rows) {
+                if (row.kind == NodeRowKind::Segmented) { rows.append(row); }
+            }
+            return rows;
+        };
+        QCOMPARE(toggles().size(), 2);
+        QCOMPARE(toggles()[0].options, QStringList({"R", "G", "B", "L"}));
+        QCOMPARE(toggles()[0].selected, 3);
+        const auto toggle = toggles()[1];
+        QCOMPARE(toggle.options, QStringList({"Red", "Green", "Blue"}));
+        QCOMPARE(toggle.selected, 0);
+        // No result yet, so the histogram panel is empty.
+        const auto *histogram = host.row("levels", NodeRowKind::Histogram);
+        QVERIFY(histogram);
+        QCOMPARE(histogram->rect.height(), 56.0);
+        QVERIFY(histogram->optionValues.isEmpty());
         auto undo = host.undoCount();
-        host.click("levels", toggle->parts[1].center());
+        host.click("levels", toggle.parts[1].center());
         QTRY_COMPARE(sliders(), (QStringList{"g_black", "g_gamma", "g_white"}));
+        // A result fills the histogram, and the view toggle keeps the channel.
+        // 512 x 256 is the preview size already, so no resampling blends the two colors.
+        QImage result(512, 256, QImage::Format_RGB32);
+        result.fill(QColor(200, 100, 0));
+        for (int x = 0; x < 128; ++x) {
+            for (int y = 0; y < 256; ++y) { result.setPixelColor(x, y, QColor(0, 0, 0)); }
+        }
+        host.model().setRuntimePreview(QStringLiteral("levels"), result);
+        QTRY_COMPARE(host.row("levels", NodeRowKind::Histogram)->optionValues.size(), 256);
+        QCOMPARE(host.row("levels", NodeRowKind::Histogram)->value, QStringLiteral("luminance"));
+        host.click("levels", toggles()[0].parts[0].center());
+        QTRY_COMPARE(host.row("levels", NodeRowKind::Histogram)->value, QStringLiteral("r"));
+        QCOMPARE(sliders(), (QStringList{"g_black", "g_gamma", "g_white"}));
+        // Three quarters of the pixels have red 200: past the 85% cap, the bar is full.
+        const auto bars = host.row("levels", NodeRowKind::Histogram)->optionValues;
+        QCOMPARE(bars[200].toDouble(), 1.0);
+        QCOMPARE(bars[0].toDouble(), 32768.0 / (98304 * 0.85));
+        QCOMPARE(bars[100].toDouble(), 0.0);
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("levels")).save(directory + QStringLiteral("/Levels-dark.png")));
+        }
         // The channel never enters the document.
         QCOMPARE(host.undoCount(), undo);
         QCOMPARE(host.row("levels", NodeRowKind::Slider, "g_gamma")->number, 2.5);

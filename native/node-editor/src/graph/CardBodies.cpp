@@ -1243,14 +1243,49 @@ void layoutCurves(NodeLayout &layout, const CardBodyInput &input) {
     column.finish();
 }
 
-// LevelsBody.tsx: a Red, Green and Blue toggle picks which channel's Black,
-// Gamma and White sliders show. The channel is view state, kept as the body
-// tab. Reset returns all nine values to neutral.
+// LevelsBody.tsx: the result's histogram with an R, G, B and L view toggle,
+// then a Red, Green and Blue toggle that picks which channel's Black, Gamma
+// and White sliders show. Both choices are view state, kept together as the
+// body tab "<channel>:<view>". Reset returns all nine values to neutral.
 void layoutLevels(NodeLayout &layout, const CardBodyInput &input) {
     auto column = imageColumn(layout, input);
-    const QVariantList channels{QStringLiteral("r"), QStringLiteral("g"), QStringLiteral("b")};
-    const auto channel = channels.contains(input.previewTab) ? input.previewTab : QStringLiteral("r");
-    auto toggle = toggleRow(column, column.x, {}, {QObject::tr("Red"), QObject::tr("Green"), QObject::tr("Blue")}, channels,
+    const QStringList channels{QStringLiteral("r"), QStringLiteral("g"), QStringLiteral("b")};
+    const QStringList views{QStringLiteral("r"), QStringLiteral("g"), QStringLiteral("b"), QStringLiteral("luminance")};
+    const auto tab = input.previewTab.split(QLatin1Char(':'));
+    const auto channel = channels.contains(tab.value(0)) ? tab.value(0) : channels.first();
+    const auto view = views.contains(tab.value(1)) ? tab.value(1) : views.last();
+    const auto key = [](const QString &c, const QString &v) { return c + QLatin1Char(':') + v; };
+    // .histogram-area: a 2 px padded panel holding the 56 px canvas and the view toggle 2 px below it.
+    const auto top = column.y;
+    const QRectF bars(column.x + nm::micro, top + nm::micro, column.width - 2 * nm::micro, nm::histogramHeight);
+    auto histogram = controlRow(NodeRowKind::Histogram, {}, QObject::tr("Histogram"), bars);
+    histogram.value = view;
+    if (input.histogram) {
+        const auto &bins = input.histogram->bins[size_t(views.indexOf(view))];
+        const auto peak = *std::max_element(bins.cbegin(), bins.cend());
+        // Clip extreme outliers so the histogram is readable.
+        const auto cap = std::max(1.0, peak * 0.85);
+        for (const auto count : bins) {
+            histogram.optionValues.append(peak > 0 ? std::min(1.0, count / cap) : 0.0);
+        }
+    }
+    const auto bottom = bars.bottom() + nm::micro + nm::toggleHeight + nm::micro;
+    histogram.parts = {QRectF(column.x, top, column.width, bottom - top)};
+    layout.rows.append(histogram);
+    Column inner = column;
+    inner.x = bars.x();
+    inner.width = bars.width();
+    inner.y = bars.bottom() + nm::micro;
+    QVariantList viewValues;
+    for (const auto &v : views) { viewValues.append(key(channel, v)); }
+    auto viewToggle = toggleRow(inner, inner.x, {}, {QStringLiteral("R"), QStringLiteral("G"), QStringLiteral("B"), QStringLiteral("L")},
+                                viewValues, int(views.indexOf(view)), ToggleFit::Flexible, true);
+    viewToggle.action = QStringLiteral("previewTab");
+    layout.rows.append(viewToggle);
+    column.y = bottom + nm::chipGap;
+    QVariantList channelValues;
+    for (const auto &c : channels) { channelValues.append(key(c, view)); }
+    auto toggle = toggleRow(column, column.x, {}, {QObject::tr("Red"), QObject::tr("Green"), QObject::tr("Blue")}, channelValues,
                             int(channels.indexOf(channel)), ToggleFit::Equal, false);
     toggle.action = QStringLiteral("previewTab");
     layout.rows.append(toggle);
@@ -1263,9 +1298,9 @@ void layoutLevels(NodeLayout &layout, const CardBodyInput &input) {
     const auto size = double(nm::iconButtonSize);
     auto reset = iconAction(QStringLiteral("resetSliders"), {}, QStringLiteral("restartAlt"), QObject::tr("Reset levels"),
                             QRectF(column.x, column.y, size, size));
-    for (const auto &key : channels) {
+    for (const auto &c : channels) {
         for (const auto &[suffix, neutral] : {std::pair{"_black", 0.0}, std::pair{"_gamma", 1.0}, std::pair{"_white", 255.0}}) {
-            reset.options.append(key.toString() + QString::fromLatin1(suffix));
+            reset.options.append(c + QString::fromLatin1(suffix));
             reset.optionValues.append(neutral);
         }
     }
@@ -1410,6 +1445,23 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
 bool readsBodySources(CardBody body) {
     return body == CardBody::CanvasResize || body == CardBody::Paste || body == CardBody::Crop || body == CardBody::SimpleFilter
            || body == CardBody::Mask || body == CardBody::MasksExtractor;
+}
+
+ImageHistogram imageHistogram(const QImage &image) {
+    ImageHistogram histogram;
+    const auto rgb = image.convertToFormat(QImage::Format_RGBA8888);
+    for (int y = 0; y < rgb.height(); ++y) {
+        const auto *line = rgb.constScanLine(y);
+        for (int x = 0; x < rgb.width(); ++x) {
+            const int r = line[4 * x], g = line[4 * x + 1], b = line[4 * x + 2];
+            ++histogram.bins[0][size_t(r)];
+            ++histogram.bins[1][size_t(g)];
+            ++histogram.bins[2][size_t(b)];
+            const auto luminance = std::lround(0.2126 * r + 0.7152 * g + 0.0722 * b);
+            ++histogram.bins[3][size_t(std::clamp(luminance, 0L, 255L))];
+        }
+    }
+    return histogram;
 }
 
 QString bodySourceKey(const QString &handle) {

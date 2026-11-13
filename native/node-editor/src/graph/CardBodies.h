@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <optional>
 #include "NodeLayout.h"
 #include <QHash>
 #include <QJsonArray>
@@ -45,6 +47,12 @@ SchemaProvider schemaProvider(const QString &type);
 QString schemaTitleDetail(const SchemaProvider &provider, const QJsonObject &ui);
 QString schemaFooter(const SchemaProvider &provider, const QJsonObject &ui);
 
+// computeHistogramFromRgba: 256 bins of R, G, B and Rec. 709 luminance.
+struct ImageHistogram {
+    std::array<std::array<quint32, 256>, 4> bins{};
+};
+ImageHistogram imageHistogram(const QImage &image);
+
 struct CardBodyInput {
     QJsonObject node;
     QJsonObject metadata;
@@ -59,6 +67,8 @@ struct CardBodyInput {
     QString previewTab;
     // The image arriving at each image handle, for a body that reads its source.
     QHash<QString, CardMediaItem> sources;
+    // The histogram of the node's result image, for the Levels body.
+    std::optional<ImageHistogram> histogram;
 };
 
 // Bodies that show or measure the image arriving at their image handles, as

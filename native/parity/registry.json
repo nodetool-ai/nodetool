@@ -907,8 +907,8 @@
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/EditorScene.cpp"
       ],
-      "status": "partial",
-      "note": "Channel toggle, Black, Gamma and White sliders and Reset match. The histogram and its R, G, B and L view toggle are not drawn.",
+      "status": "match",
+      "note": "Histogram with its R, G, B and L view toggle, channel toggle, Black, Gamma and White sliders and Reset match. The histogram counts the 512 px result preview rather than the full-size image.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ListGeneratorBody.tsx": {
