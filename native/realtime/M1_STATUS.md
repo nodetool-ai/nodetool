@@ -31,9 +31,9 @@ not measurements. Q8 selects C++/Wasm from the WP10 native/browser comparison.
 | [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Linux Release, ASan/UBSan and TSan CI pass. Local instruction-alias verification remains blocked as described below |
 | [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Windows Release/ASan and Linux Release/ASan+UBSan/TSan pass. Aggregate verification remains incomplete as described below. See [operation contracts](control.md) |
 | [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, linear/one-pole smoothing, events, built-in kernels and sink sanitation implemented. Windows Release/ASan and audio-scoped affected tests pass. See [audio contracts](audio.md) and verification below |
-| [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and provisional private-device offline GPU backend implemented. Windows Release/ASan and Linux software-adapter references pass. Linux GPU sanitizer results, driver allocation audit and live-device exit evidence remain pending. See [render contracts](render.md) |
+| [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and provisional private-device offline GPU backend implemented. Windows Release/ASan and Linux software-adapter references pass. Full-host Linux Release, ASan/UBSan and TSan pass with lavapipe. Driver allocation audit and live-device exit evidence remain pending. See [render contracts](render.md) |
 | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | PNG/WAV export, local PCM/texture slots, shared CLI parsing and registered offline harness implemented. Windows Release/ASan and Linux offline checks pass. Full graph-runner Release dispatch passes in CI. Remaining qualification is listed below |
-| [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Header inventory, C++/TypeScript Chrome frame comparisons, 64-pass timings and render-only candidate download sizes are recorded. A mid-range color regression verifies presentation conversion. Q8 selects C++/Wasm. Pinned toolchain CI is configured, with its first execution pending. See [comparison results](spike/browser/README.md) |
+| [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Header inventory, C++/TypeScript Chrome frame comparisons, 64-pass timings and render-only candidate download sizes are recorded. A mid-range color regression verifies presentation conversion. Q8 selects C++/Wasm. Pinned toolchain CI passes at `d1656fead3`, including both Wasm builds, fixture comparisons and benchmark guards. See [comparison results](spike/browser/README.md) |
 
 M0's local build, typecheck, lint, native tests and harness checks pass. The
 latest aggregate affected test run stops at Windows browser-isolation tests.
@@ -179,10 +179,16 @@ The cause is not established. With lavapipe explicitly selected, the
 [standalone offline sanitizer job at `ff8dffdd6d`](https://github.com/nodetool-ai/nodetool/actions/runs/43352730471/job/131647522012)
 passes ASan/UBSan with leak detection enabled. The same run passes offline
 Release and all three core configurations. No leak suppression was added.
-This qualifies that configuration, not the cause of the earlier leak. Full-host
-sanitizer reruns are still pending. Driver-internal allocation audits remain incomplete.
+This qualifies that configuration, not the cause of the earlier leak. The
+[full-host ASan/UBSan rerun at `d1656fead3`](https://github.com/nodetool-ai/nodetool/actions/runs/43357864437/job/131664189109)
+also passes all 65 CTest entries and realtime CLI checks with lavapipe and
+leak detection enabled. The same run's
+[Release](https://github.com/nodetool-ai/nodetool/actions/runs/43357864437/job/131664188926)
+and [TSan](https://github.com/nodetool-ai/nodetool/actions/runs/43357864437/job/131664188698)
+jobs each pass all 65 tests and CLI checks. No new suppression was added.
+Driver-internal allocation audits remain incomplete.
 Earlier audio/control sanitizer evidence applies only to its recorded revision.
-WP08 and WP09 remain open. WP10 toolchain CI, broader native/Wasm parity and
+WP08 and WP09 remain open. Broader native/Wasm parity and
 all M0 hardware measurements remain unfinished. No hardware-dependent issue
 receives a closing reference.
 
@@ -202,3 +208,24 @@ surface mapping. A regression reproduces that gap. The new manual browser
 harness fixes the mapping, all 230 registry tests pass, and the gate dry run
 reports no unmapped code or mapping violations. The affected package builds and
 typechecks. The full gate is not rerun for this registry-only correction.
+
+The [Linux realtime run at `d1656fead3`](https://github.com/nodetool-ai/nodetool/actions/runs/43357864455)
+passes core Release, ASan/UBSan and TSan, and standalone offline Release and
+ASan/UBSan with lavapipe and leak detection enabled. Its
+[browser comparison step](https://github.com/nodetool-ai/nodetool/actions/runs/43357864455/job/131664095588)
+verifies the pinned Emscripten SDK revision and Emdawn checksum, builds both
+wasm32 hosts and passes all three fixture comparisons in Chromium
+148.0.7778.96. The benchmark completes three trials per candidate with pixel
+and catalog guards. These CI timings are diagnostic. They do not replace the
+recorded Windows comparison or qualify hardware deadlines, callback lifecycle,
+production asynchronous preparation or live/shared-device use.
+
+The [packed verification run at `d1656fead3`](https://github.com/nodetool-ai/nodetool/actions/runs/43357864518)
+passes fixed checks, packed installation, release pins and every verification
+bucket except the game bucket. The game tests pass, but their post-test
+diagnostic step exits 127:
+the container's default `sh` cannot execute Bash's `shopt`. The dependent
+`core-smoke` status also fails. Both Chromium diagnostic steps now explicitly
+select Bash. A regression fails before that correction and passes afterward,
+including execution of the diagnostic success path. All three focused
+Chromium workflow tests pass. CI verification of the correction remains pending.

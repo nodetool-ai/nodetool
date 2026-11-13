@@ -194,11 +194,12 @@ larger download cost. The design and implementation plan record this decision. C
 lifecycle qualification and production asynchronous preparation remain separate
 work. No benchmark result enables live/shared-device use.
 
-The Linux offline Release CI job installs the pinned Emscripten SDK, verifies
-the Emdawn archive checksum, builds both Wasm hosts and runs fixture comparisons
-and benchmark guards in Chromium. Its timing output is diagnostic and does not
-replace the recorded Chrome measurements. The new toolchain CI result remains
-pending until this revision runs.
+The [Linux offline Release CI job at `d1656fead3`](https://github.com/nodetool-ai/nodetool/actions/runs/43357864455/job/131664095588)
+passes the pinned Emscripten SDK revision and Emdawn archive checksum checks,
+both Wasm builds, all three fixture comparisons and benchmark pixel/catalog
+guards in Chromium 148.0.7778.96. All three trials per candidate complete.
+Its timing output is diagnostic and does not replace the recorded Windows
+Chrome measurements or qualify hardware deadlines.
 
 The [offline-only preparation exception and M0 hardware gaps](../../M1_STATUS.md)
 remain unchanged. This probe introduces no live/shared-device support.
