@@ -813,10 +813,10 @@
     "web/src/components/node_types/editing/ColorOverlayBody.tsx": {
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
-        "native/node-editor/src/graph/CardBodyPainter.cpp"
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
       ],
-      "status": "partial",
-      "note": "The inline color popover is missing.",
+      "status": "match",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CompositorBody.tsx": {
@@ -972,7 +972,7 @@
         "native/node-editor/qml/InlinePropertyEditor.qml"
       ],
       "status": "partial",
-      "note": "Canvas over the incoming image, brush and eraser strokes into mask_data, color, Undo, Redo, Clear, size, opacity, canvas size and background opacity match. The brush cursor circle and dropping an image on the canvas are missing.",
+      "note": "Canvas over the incoming image, brush and eraser strokes into mask_data, color, Undo, Redo, Clear, size, opacity, canvas size and background opacity match. The brush cursor circle follows the pointer, but the system cursor still shows over the canvas. Dropping an image on the canvas is missing.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/PasteBody.tsx": {
@@ -1237,10 +1237,12 @@
     },
     "web/src/components/node/CompareImagesNode/CompareImagesNode.tsx": {
       "native": [
-        "native/node-editor/src/graph/CardBodies.cpp"
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
       ],
       "status": "partial",
-      "note": "The comparer slider is not on the card.",
+      "note": "The comparer is on the card with labels, sizes and the mode toggle. The divider follows a drag where the web follows hover, and the card compares the incoming images where the web waits for the run's comparison.",
       "inventory": "W4"
     },
     "web/src/components/node/ConstantStringNode.tsx": {

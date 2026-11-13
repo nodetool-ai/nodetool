@@ -155,6 +155,9 @@ public:
   double sliderDraftValue() const { return sliderValue_; }
   // The crop under a drag on a Crop card, in image pixels, painted before it is committed.
   QtNodes::NodeId cropDraftNode() const { return cropNode_; }
+  // The Painter card under the pointer and the card-local brush cursor center.
+  QtNodes::NodeId brushCursorNode() const { return brushNode_; }
+  QPointF brushCursor() const { return brushPoint_; }
   QRectF cropDraft() const { return cropValue_; }
   // The stroke under a drag on a Painter card, at full alpha in canvas pixels.
   QtNodes::NodeId paintDraftNode() const { return paintNode_; }
@@ -272,6 +275,13 @@ private:
   QImage paintStroke_;
   QPointF paintLast_;
   void movePaint(const QPointF &scenePosition);
+  // A drag of ImageComparer's divider. The position is view state, so no undo step.
+  QtNodes::NodeId compareNode_ = QtNodes::InvalidNodeId;
+  void moveCompare(const QPointF &scenePosition);
+  // PainterBody's .brush-cursor: shown while the pointer is over a paint canvas.
+  QtNodes::NodeId brushNode_ = QtNodes::InvalidNodeId;
+  QPointF brushPoint_;
+  void updateBrushCursor(const QPointF &scenePosition);
   void finishPaint(bool commit);
   // A synth knob drag: vertical, from the press's card-local y, a tenth as fast with Shift.
   bool knobDrag_ = false;

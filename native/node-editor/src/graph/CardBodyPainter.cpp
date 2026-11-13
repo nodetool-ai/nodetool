@@ -159,7 +159,8 @@ void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow 
 // PainterBody's canvas: the paper letterbox, a checker under the canvas, the
 // source at the background opacity, the saved mask and the stroke in flight
 // at the brush opacity.
-void paintPaintCanvas(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, const QImage *draft) {
+void paintPaintCanvas(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, const QImage *draft,
+                      const std::optional<QPointF> &cursor) {
     const auto area = row.parts.value(0, row.rect);
     painter->save();
     QPainterPath clip;
@@ -191,6 +192,101 @@ void paintPaintCanvas(QPainter *painter, const CanvasTheme &theme, const NodeRow
     if (draft && !draft->isNull()) {
         painter->setOpacity(std::clamp(row.optionValues.value(0, 1).toDouble(), 0.0, 1.0));
         painter->drawImage(QRectF(row.rect.topLeft(), QSizeF(draft->size()) * scale), *draft);
+    }
+    // .brush-cursor: the brush size in canvas pixels, a white circle outlined in black.
+    if (cursor && row.rect.contains(*cursor)) {
+        painter->setOpacity(1);
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setBrush(Qt::NoBrush);
+        const auto radius = std::max(2.0, row.step * scale) / 2;
+        painter->setPen(QPen(Qt::black, 1));
+        painter->drawEllipse(*cursor, radius + 1, radius + 1);
+        painter->setPen(QPen(Qt::white, 1));
+        painter->drawEllipse(*cursor, radius, radius);
+    }
+    painter->restore();
+}
+
+// ImageComparer: the checker, B contain-fit, A clipped before the divider,
+// the white divider, the scrim labels and each image's size.
+void paintCompare(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+    const auto area = row.rect;
+    painter->save();
+    QPainterPath clip;
+    clip.addRoundedRect(area, nm::chipRadius, nm::chipRadius);
+    painter->setClipPath(clip, Qt::IntersectClip);
+    painter->fillRect(area, theme.alphaBase);
+    const auto cell = double(nm::chipGap) * 2;
+    for (double y = area.top(); y < area.bottom(); y += cell) {
+        for (double x = area.left() + (int((y - area.top()) / cell) % 2) * cell; x < area.right(); x += 2 * cell) {
+            painter->fillRect(QRectF(x, y, cell, cell), theme.alphaChecker);
+        }
+    }
+    painter->setRenderHint(QPainter::SmoothPixmapTransform);
+    const auto fitted = [&area](const CardMediaItem &item) {
+        const QSizeF natural = item.natural.isValid() ? QSizeF(item.natural) : QSizeF(item.image.size());
+        const auto size = natural.scaled(area.size(), Qt::KeepAspectRatio);
+        return QRectF(area.center() - QPointF(size.width() / 2, size.height() / 2), size);
+    };
+    const auto vertical = row.checked;
+    const auto position = std::clamp(row.number, 0.0, 1.0);
+    if (row.media.size() > 1) { painter->drawImage(fitted(row.media[1]), row.media[1].image); }
+    // clipPathA: inset(0 (100 - position)% 0 0), or from the bottom when vertical.
+    const auto split = vertical ? QRectF(area.left(), area.top(), area.width(), area.height() * position)
+                                : QRectF(area.left(), area.top(), area.width() * position, area.height());
+    if (!row.media.isEmpty()) {
+        painter->save();
+        painter->setClipRect(split, Qt::IntersectClip);
+        painter->drawImage(fitted(row.media[0]), row.media[0].image);
+        painter->restore();
+    }
+    // .divider-line: 2 px of common.white.
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(Qt::white);
+    painter->drawRect(vertical ? QRectF(area.left(), split.bottom() - 1, area.width(), 2) : QRectF(split.right() - 1, area.top(), 2, area.height()));
+    // .label: 8 px in, scrim fill, semibold white text. B is top right, or bottom left when vertical.
+    const auto labelFont = sans(theme, nm::fontValue - 1, QFont::DemiBold);
+    const QFontMetricsF metrics(labelFont);
+    const auto pill = [&](const QString &text, const QFont &font, double width, const QPointF &corner, Qt::Alignment from) {
+        const QSizeF size(width + 2 * nm::chipGap, card_media::badgeHeight);
+        const auto x = from & Qt::AlignRight ? corner.x() - size.width() : corner.x();
+        const auto y = from & Qt::AlignBottom ? corner.y() - size.height() : corner.y();
+        const QRectF badge(QPointF(x, y), size);
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(theme.mediaScrim);
+        painter->drawRoundedRect(badge, nm::fieldRadius, nm::fieldRadius);
+        painter->setFont(font);
+        painter->setPen(Qt::white);
+        painter->drawText(badge, Qt::AlignCenter, text);
+    };
+    const auto inset = 8.0;
+    const auto labelA = row.options.value(0), labelB = row.options.value(1);
+    pill(labelA, labelFont, metrics.horizontalAdvance(labelA), area.topLeft() + QPointF(inset, inset), Qt::AlignLeft | Qt::AlignTop);
+    if (vertical) {
+        pill(labelB, labelFont, metrics.horizontalAdvance(labelB), area.bottomLeft() + QPointF(inset, -inset), Qt::AlignLeft | Qt::AlignBottom);
+    } else {
+        pill(labelB, labelFont, metrics.horizontalAdvance(labelB), area.topRight() + QPointF(-inset, inset), Qt::AlignRight | Qt::AlignTop);
+    }
+    // .metadata: the natural size, bottom left for A and 56 px from the right for B
+    // (top left 32 px down and bottom left 32 px up when vertical).
+    const auto metaFont = sans(theme, nm::fontValue - 1);
+    const QFontMetricsF metaMetrics(metaFont);
+    const auto sizeText = [](const CardMediaItem &item) {
+        return item.natural.isValid() ? QStringLiteral("%1 × %2").arg(item.natural.width()).arg(item.natural.height()) : QString();
+    };
+    for (int i = 0; i < std::min<qsizetype>(2, row.media.size()); ++i) {
+        const auto text = sizeText(row.media[i]);
+        if (text.isEmpty()) { continue; }
+        QPointF corner;
+        Qt::Alignment from;
+        if (!vertical) {
+            corner = i == 0 ? area.bottomLeft() + QPointF(inset, -inset) : area.bottomRight() + QPointF(-56, -inset);
+            from = i == 0 ? (Qt::AlignLeft | Qt::AlignBottom) : (Qt::AlignRight | Qt::AlignBottom);
+        } else {
+            corner = i == 0 ? area.topLeft() + QPointF(inset, 32) : area.bottomLeft() + QPointF(inset, -32);
+            from = i == 0 ? (Qt::AlignLeft | Qt::AlignTop) : (Qt::AlignLeft | Qt::AlignBottom);
+        }
+        pill(text, metaFont, metaMetrics.horizontalAdvance(text), corner, from);
     }
     painter->restore();
 }
@@ -623,7 +719,10 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         }
         return true;
     case NodeRowKind::Paint:
-        paintPaintCanvas(painter, theme, row, state.paintDraft);
+        paintPaintCanvas(painter, theme, row, state.paintDraft, state.brushCursor);
+        return true;
+    case NodeRowKind::Compare:
+        paintCompare(painter, theme, row);
         return true;
     case NodeRowKind::Histogram:
         paintHistogram(painter, theme, row);

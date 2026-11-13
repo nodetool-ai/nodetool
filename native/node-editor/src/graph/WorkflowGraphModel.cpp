@@ -1640,6 +1640,12 @@ QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name)
       return select;
     }
     const auto kind = field["kind"].toString();
+    // A color swatch on a card opens the ColorPicker popover, which needs room for its presets.
+    if (kind == "color") {
+      auto color = field;
+      color["minimumWidth"] = node_metrics::colorEditorWidth;
+      return color;
+    }
     if (kind == "text" || kind == "multiline" || kind == "number" || kind == "integer" || kind == "choice" || kind == "boolean" || kind == "model"
         || kind == "image_size" || kind == "document_ref" || inlineResource(kind) || inlineStructured(field)) { return field; }
   }

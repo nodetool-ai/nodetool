@@ -992,6 +992,8 @@ void layoutGetVariable(NodeLayout &layout, const CardBodyInput &input) {
     layout.size.setHeight(int(std::ceil(y + nm::getVariableGap + nm::micro + nm::padding + nm::borderWidth)));
 }
 
+NodeRow iconAction(const QString &action, const QString &name, const QString &icon, const QString &label, const QRectF &rect);
+
 void layoutCompareImages(NodeLayout &layout, const CardBodyInput &input) {
     // The card has no content that sizes it, so it takes its 300 by 250 minimum.
     const auto ui = input.node["ui_properties"].toObject();
@@ -1004,8 +1006,32 @@ void layoutCompareImages(NodeLayout &layout, const CardBodyInput &input) {
     placePort(layout, input.inputs, QStringLiteral("image_b"), nm::contentTop + nm::rowHeight / 2.0 + nm::handleRowStep);
     const auto inset = double(nm::borderWidth + nm::padding);
     const QRectF area(inset, nm::contentTop, layout.size.width() - 2 * inset, layout.size.height() - nm::contentTop - inset);
-    layout.rows.append(placeholderRow(QObject::tr("Connect two images, then run"), QStringLiteral("compare"), area));
     layout.resultRect = area;
+    const auto *a = readySource(input, QStringLiteral("image_a"));
+    const auto *b = readySource(input, QStringLiteral("image_b"));
+    if (!a || !b) {
+        layout.rows.append(placeholderRow(QObject::tr("Connect two images, then run"), QStringLiteral("compare"), area));
+        return;
+    }
+    // ImageComparer: B under A, A clipped at the divider, labels, sizes and the mode toggle.
+    const auto view = compareView(input.previewTab);
+    auto compare = controlRow(NodeRowKind::Compare, {}, QObject::tr("Compare images"), area);
+    compare.media = {*a, *b};
+    compare.number = view.position;
+    compare.checked = view.vertical;
+    const auto label = [&input](const QString &name, const QString &fallback) {
+        const auto value = fieldValue(input.fields.value(name)).toString();
+        return value.isEmpty() ? fallback : value;
+    };
+    compare.options = {label(QStringLiteral("label_a"), QStringLiteral("A")), label(QStringLiteral("label_b"), QStringLiteral("B"))};
+    layout.rows.append(compare);
+    // .toggle-button: 8 px from the bottom and 24 px from the right.
+    const auto button = double(nm::layerButton);
+    auto toggle = iconAction(QStringLiteral("compareMode"), {}, view.vertical ? QStringLiteral("swapHoriz") : QStringLiteral("swapVert"),
+                             view.vertical ? QObject::tr("Switch to horizontal") : QObject::tr("Switch to vertical"),
+                             QRectF(area.right() - 24 - button, area.bottom() - 8 - button, button, button));
+    layout.rows.append(toggle);
+    layout.sourceTab = true;
 }
 
 } // namespace
@@ -1688,7 +1714,8 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
 
 bool readsBodySources(CardBody body) {
     return body == CardBody::CanvasResize || body == CardBody::Paste || body == CardBody::Crop || body == CardBody::SimpleFilter
-           || body == CardBody::Mask || body == CardBody::MasksExtractor || body == CardBody::Painter || body == CardBody::Compositor;
+           || body == CardBody::Mask || body == CardBody::MasksExtractor || body == CardBody::Painter || body == CardBody::Compositor
+           || body == CardBody::CompareImages;
 }
 
 ImageHistogram imageHistogram(const QImage &image) {
@@ -1813,6 +1840,19 @@ bool isPainterControl(const QString &name) {
 
 bool isCompositorControl(const QString &name) {
     return name.startsWith(QStringLiteral("@compositor:opacity:")) || name.startsWith(QStringLiteral("@compositor:blend:"));
+}
+
+CompareView compareView(const QString &tab) {
+    CompareView view;
+    view.vertical = tab.startsWith(QStringLiteral("v:"));
+    bool ok = false;
+    const auto position = tab.section(':', 1).toDouble(&ok);
+    if (ok) { view.position = std::clamp(position, 0.0, 1.0); }
+    return view;
+}
+
+QString compareTab(const CompareView &view) {
+    return QStringLiteral("%1:%2").arg(view.vertical ? QStringLiteral("v") : QStringLiteral("h")).arg(std::clamp(view.position, 0.0, 1.0));
 }
 
 bool isCardControl(const QString &name) {

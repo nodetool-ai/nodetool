@@ -77,6 +77,14 @@ bool isPainterControl(const QString &name);
 // The Compositor's per-layer opacity slider and blend select, named
 // "@compositor:opacity:<index>" and "@compositor:blend:<index>".
 bool isCompositorControl(const QString &name);
+// ImageComparer's view state, kept in the body tab as "h:0.5" or "v:0.5":
+// the divider direction and its position from 0 to 1.
+struct CompareView {
+    bool vertical = false;
+    double position = 0.5;
+};
+CompareView compareView(const QString &tab);
+QString compareTab(const CompareView &view);
 // A Crop, Painter or Compositor control: a card value with a row name but no property.
 bool isCardControl(const QString &name);
 

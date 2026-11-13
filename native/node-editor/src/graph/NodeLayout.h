@@ -224,7 +224,11 @@ enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Previe
                          // brush size, value the color, checked the eraser and
                          // optionValues[0] the brush opacity.
                          Paint,
-                         Knob, Waveform, Envelope, Caption };
+                         Knob, Waveform, Envelope, Caption,
+                         // ImageComparer: media[0] image A over media[1] image B in rect,
+                         // number the divider from 0 to 1, checked vertical, options the
+                         // two labels.
+                         Compare };
 
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.

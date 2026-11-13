@@ -508,6 +508,9 @@ public:
     if (scene_.paintDraftNode() == item.nodeId()) {
         bodyState.paintDraft = &scene_.paintDraft();
     }
+    if (scene_.brushCursorNode() == item.nodeId()) {
+        bodyState.brushCursor = scene_.brushCursor();
+    }
     for (const auto &row : layout.rows) {
         if (!paintCardBodyRow(painter, theme, layout, row, bodyState)) {
             // nodes.zoomed.css hides property rows and their labels at overview zoom.
@@ -1709,6 +1712,12 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 model_.commit({{"op", "batch"}, {"commands", QJsonArray{
                     model_.propertyCommand(id, QStringLiteral("width"), row.number),
                     model_.propertyCommand(id, QStringLiteral("height"), row.number)}}});
+            } else if (row.action == QStringLiteral("compareMode")) {
+                // ImageComparer's toggle switches the divider direction and keeps its position.
+                for (const auto &compare : layout.rows) {
+                    if (compare.kind != NodeRowKind::Compare) { continue; }
+                    model_.setPreviewTab(id, compareTab({!compare.checked, compare.number}));
+                }
             } else if (row.action.startsWith(QStringLiteral("compositor"))) {
                 model_.compositorAction(id, row.action, int(row.number));
             } else if (row.action.startsWith(QStringLiteral("painter"))) {
@@ -1758,6 +1767,18 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                     model_.propertyCommand(id, QStringLiteral("flip_horizontal"), false),
                     model_.propertyCommand(id, QStringLiteral("flip_vertical"), false)}}});
             }
+            return true;
+        }
+        if (row.kind == NodeRowKind::Compare) {
+            if (!row.rect.contains(local)) { continue; }
+            // The mode toggle sits over the images and takes its own press.
+            bool onButton = false;
+            for (const auto &other : layout.rows) { onButton = onButton || (other.kind == NodeRowKind::Action && other.rect.contains(local)); }
+            if (onButton) { continue; }
+            select();
+            compareNode_ = id;
+            const auto position = row.checked ? (local.y() - row.rect.top()) / row.rect.height() : (local.x() - row.rect.left()) / row.rect.width();
+            model_.setPreviewTab(id, compareTab({row.checked, std::clamp(position, 0.0, 1.0)}));
             return true;
         }
         if (row.kind == NodeRowKind::Paint) {
@@ -1870,6 +1891,40 @@ void EditorScene::moveCrop(const QPointF &scenePosition) {
         return;
     }
 }
+void EditorScene::updateBrushCursor(const QPointF &scenePosition) {
+    auto next = InvalidNodeId;
+    QPointF point;
+    for (auto *item : items(scenePosition, Qt::IntersectsItemShape, Qt::DescendingOrder)) {
+        auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
+        if (!node) { continue; }
+        const auto local = node->mapFromScene(scenePosition);
+        for (const auto &row : model_.layout(node->nodeId()).rows) {
+            if (row.kind == NodeRowKind::Paint && row.rect.contains(local)) {
+                next = node->nodeId();
+                point = local;
+            }
+        }
+        break;
+    }
+    if (next == brushNode_ && point == brushPoint_) { return; }
+    const auto previous = std::exchange(brushNode_, next);
+    brushPoint_ = point;
+    if (auto *item = nodeGraphicsObject(previous)) { item->update(); }
+    if (previous != next) {
+        if (auto *item = nodeGraphicsObject(next)) { item->update(); }
+    }
+}
+void EditorScene::moveCompare(const QPointF &scenePosition) {
+    auto *item = nodeGraphicsObject(compareNode_);
+    if (!item) { compareNode_ = InvalidNodeId; return; }
+    for (const auto &row : model_.layout(compareNode_).rows) {
+        if (row.kind != NodeRowKind::Compare || row.rect.isEmpty()) { continue; }
+        const auto local = item->mapFromScene(scenePosition);
+        const auto position = row.checked ? (local.y() - row.rect.top()) / row.rect.height() : (local.x() - row.rect.left()) / row.rect.width();
+        model_.setPreviewTab(compareNode_, compareTab({row.checked, std::clamp(position, 0.0, 1.0)}));
+        return;
+    }
+}
 void EditorScene::movePaint(const QPointF &scenePosition) {
     auto *item = nodeGraphicsObject(paintNode_);
     if (!item) { finishPaint(false); return; }
@@ -1878,7 +1933,9 @@ void EditorScene::movePaint(const QPointF &scenePosition) {
         const auto local = item->mapFromScene(scenePosition);
         const QPointF point((local.x() - row.rect.x()) * row.minimum / row.rect.width(),
                             (local.y() - row.rect.y()) * row.maximum / row.rect.height());
-        if (point == paintLast_) { return; }
+        brushNode_ = paintNode_;
+        brushPoint_ = local;
+        if (point == paintLast_) { item->update(); return; }
         QPainter stroke(&paintStroke_);
         stroke.setRenderHint(QPainter::Antialiasing);
         stroke.setPen(QPen(QColor(row.value), row.step, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
@@ -1956,7 +2013,13 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
         event->accept();
         return;
     }
+    if (compareNode_ != InvalidNodeId) {
+        moveCompare(event->scenePos());
+        event->accept();
+        return;
+    }
     updateHandleHover(event->scenePos());
+    updateBrushCursor(event->scenePos());
     if (auto *old = nodeGraphicsObject(footerHover_)) {
         old->setProperty("footerHovered", false);
         old->setProperty("headerActionHovered", false);
@@ -2031,6 +2094,13 @@ void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
     if (cropNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
         moveCrop(event->scenePos());
         finishCrop(true);
+        inlinePress_ = false;
+        event->accept();
+        return;
+    }
+    if (compareNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
+        moveCompare(event->scenePos());
+        compareNode_ = InvalidNodeId;
         inlinePress_ = false;
         event->accept();
         return;

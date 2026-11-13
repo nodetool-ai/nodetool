@@ -13,6 +13,8 @@ struct CardBodyPaintState {
     bool running = false;
     // The stroke being drawn on a Painter card, at full alpha.
     const QImage *paintDraft = nullptr;
+    // The card-local pointer over a Painter canvas, where the brush circle draws.
+    std::optional<QPointF> brushCursor;
     // The slider value under an active drag, before it is committed.
     QString draftProperty;
     double draftValue = 0;

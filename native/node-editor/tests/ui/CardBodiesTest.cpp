@@ -2104,6 +2104,111 @@ private slots:
 
     // CropBody.tsx: the source shows with the crop rectangle; dragging a handle
     // or the rectangle writes the four edges in one undo step, and Reset selects the whole image.
+    // CompareImagesNode: the incoming images in ImageComparer, a divider that
+    // follows a drag, the A and B labels, each size and the mode toggle.
+    void compareImagesSliderOnTheCard() {
+        const auto png = [](const QSize &size, const QColor &color) {
+            QImage image(size, QImage::Format_RGB32);
+            image.fill(color);
+            QByteArray bytes;
+            QBuffer buffer(&bytes);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "PNG");
+            return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
+        };
+        const auto constant = [](const QString &id, const QString &uri, double y) {
+            return QJsonObject{{"id", id}, {"type", "nodetool.constant.Image"},
+                               {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", uri}}}}},
+                               {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", y}}}}}};
+        };
+        auto workflow = withNodes({constant("left", png({200, 100}, Qt::red), 700), constant("right", png({200, 100}, Qt::blue), 900),
+                                   partTwoNode("compare", "nodetool.compare.CompareImages", QPointF(0, 700))});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "e-a"}, {"source", "left"}, {"sourceHandle", "output"}, {"target", "compare"}, {"targetHandle", "image_a"}});
+        edges.append(QJsonObject{{"id", "e-b"}, {"source", "right"}, {"sourceHandle", "output"}, {"target", "compare"}, {"targetHandle", "image_b"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        const auto id = host.id("compare");
+        QTRY_VERIFY(host.row("compare", NodeRowKind::Compare));
+        auto compare = *host.row("compare", NodeRowKind::Compare);
+        QCOMPARE(compare.number, 0.5);
+        QVERIFY(!compare.checked);
+        QCOMPARE(compare.options, (QStringList{"A", "B"}));
+        QCOMPARE(compare.media.size(), 2);
+        QVERIFY(host.model().layout(id).sourceTab);
+        const auto pixel = [&host](const QPointF &local) {
+            const auto image = host.render(QStringLiteral("compare"));
+            return image.pixelColor((local * image.width() / host.model().layout(host.id("compare")).size.width()).toPoint());
+        };
+        const auto rect = compare.rect;
+        const auto middle = rect.center().y();
+        QCOMPARE(pixel(QPointF(rect.left() + rect.width() * 0.25, middle)), QColor(Qt::red));
+        QCOMPARE(pixel(QPointF(rect.left() + rect.width() * 0.75, middle)), QColor(Qt::blue));
+        // A drag moves the divider without an undo step.
+        const auto undo = host.undoCount();
+        const auto start = host.point("compare", rect.center());
+        const auto end = host.point("compare", QPointF(rect.left() + rect.width() * 0.8, middle));
+        QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+        QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(host.view->viewport(), &move);
+        QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+        settle();
+        QVERIFY(std::abs(host.row("compare", NodeRowKind::Compare)->number - 0.8) < 0.02);
+        QCOMPARE(pixel(QPointF(rect.left() + rect.width() * 0.75, middle)), QColor(Qt::red));
+        QCOMPARE(host.undoCount(), undo);
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("compare")).save(directory + QStringLiteral("/CompareImages-dark.png")));
+        }
+        // The toggle splits top and bottom and keeps the position.
+        host.click("compare", host.row("compare", NodeRowKind::Action, "compareMode")->rect.center());
+        QTRY_VERIFY(host.row("compare", NodeRowKind::Compare)->checked);
+        QVERIFY(std::abs(host.row("compare", NodeRowKind::Compare)->number - 0.8) < 0.02);
+        QCOMPARE(compareView(QStringLiteral("v:0.25")).position, 0.25);
+        QVERIFY(compareView(QStringLiteral("v:0.25")).vertical);
+        QCOMPARE(compareView({}).position, 0.5);
+    }
+
+    // PainterBody.tsx's .brush-cursor: a circle of the brush size follows the
+    // pointer over the canvas and goes away off it.
+    void painterBrushCursorFollowsThePointer() {
+        Host host(withNodes({partTwoNode("paint", "nodetool.image.Painter", QPointF(0, 700), {{"canvas_width", 200}, {"canvas_height", 100}})}),
+                  allMetadata());
+        const auto id = host.id("paint");
+        const auto canvas = host.row("paint", NodeRowKind::Paint)->rect;
+        const auto hover = [&host](const QPointF &local) {
+            const auto point = host.point("paint", local);
+            QMouseEvent move(QEvent::MouseMove, QPointF(point), QPointF(host.view->viewport()->mapToGlobal(point)), Qt::NoButton, Qt::NoButton,
+                             Qt::NoModifier);
+            QApplication::sendEvent(host.view->viewport(), &move);
+            settle();
+        };
+        const auto before = host.render(QStringLiteral("paint"));
+        hover(canvas.center());
+        QCOMPARE(host.window.scene()->brushCursorNode(), id);
+        QVERIFY(std::abs(host.window.scene()->brushCursor().x() - canvas.center().x()) < 1.5);
+        QVERIFY(host.render(QStringLiteral("paint")) != before);
+        hover(QPointF(canvas.center().x(), canvas.bottom() + 40));
+        QCOMPARE(host.window.scene()->brushCursorNode(), QtNodes::InvalidNodeId);
+    }
+
+    // ColorOverlayBody.tsx: the Fill swatch opens the ColorPicker popover on the card.
+    void colorSwatchOpensThePicker() {
+        Host host(withNodes({partTwoNode("overlay", "lib.image.effects.ColorOverlay", QPointF(0, 700))}), allMetadata());
+        const auto *swatch = host.row("overlay", NodeRowKind::Swatch, "color");
+        QVERIFY(swatch);
+        auto *presenter = host.window.findChild<InlinePropertyPresenter *>();
+        QVERIFY(presenter);
+        host.click("overlay", swatch->rect.center());
+        QTRY_VERIFY(presenter->active());
+        QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("color"));
+        QCOMPARE(presenter->descriptor()["minimumWidth"].toInt(), int(node_metrics::colorEditorWidth));
+        QTRY_VERIFY(host.overlay() && host.overlay()->rootObject()->findChild<QQuickItem *>("inline-color"));
+        presenter->cancel();
+    }
+
     // CompositorBody.tsx: image_0 draws on top, each layer row edits the
     // layers property, and add and delete keep the states aligned.
     void compositorLayersCompositeAndEdit() {
