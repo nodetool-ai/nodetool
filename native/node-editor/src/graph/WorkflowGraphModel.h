@@ -132,6 +132,9 @@ public:
   // PainterBody's tool buttons: "painterTool" with "brush" or "eraser",
   // "painterUndo", "painterRedo" and "painterClear".
   void painterAction(QtNodes::NodeId id, const QString &action, const QString &value = {});
+  // LayerRow and Add another layer: compositorAdd, compositorVisible and
+  // compositorDelete, each one undo step.
+  void compositorAction(QtNodes::NodeId id, const QString &action, int index);
   // Lays a finished stroke, drawn at full alpha on a canvas-sized image, on
   // the mask and writes mask_data as one undo step.
   void finishPaintStroke(QtNodes::NodeId id, const QImage &stroke);

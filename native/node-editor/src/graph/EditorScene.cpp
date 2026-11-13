@@ -1677,6 +1677,8 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 model_.commit({{"op", "batch"}, {"commands", QJsonArray{
                     model_.propertyCommand(id, QStringLiteral("width"), row.number),
                     model_.propertyCommand(id, QStringLiteral("height"), row.number)}}});
+            } else if (row.action.startsWith(QStringLiteral("compositor"))) {
+                model_.compositorAction(id, row.action, int(row.number));
             } else if (row.action.startsWith(QStringLiteral("painter"))) {
                 model_.painterAction(id, row.action, row.value);
             } else if (row.action == QStringLiteral("runNode")) {

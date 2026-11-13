@@ -820,7 +820,13 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CompositorBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Layer handles, live composite, layer rows and Add another layer are native. The Edit layout dialog for per-layer transforms and canvas size is not.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ConstantSketchBody.tsx": {
@@ -899,7 +905,11 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/LayerRow.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "match",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/LevelsBody.tsx": {

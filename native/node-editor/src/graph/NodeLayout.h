@@ -161,6 +161,10 @@ inline constexpr int runButtonHeight = 24;
 inline constexpr int histogramHeight = 56;
 // The width the inline color editor takes over a small swatch.
 inline constexpr int colorEditorWidth = 240;
+// LayerRow: 40 px thumbnail, 96 px blend select and 28 px icon buttons.
+inline constexpr int layerThumbnail = 40;
+inline constexpr int layerBlendWidth = 96;
+inline constexpr int layerButton = 28;
 inline constexpr int fieldRadius = 6;
 inline constexpr double handleDiameter = 12;
 inline constexpr double handleRing = 2;
@@ -226,7 +230,7 @@ enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeIma
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
                       CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves, Levels, Crop,
-                      MasksExtractor, Painter };
+                      MasksExtractor, Painter, Compositor };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.

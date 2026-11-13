@@ -172,6 +172,13 @@ QJsonArray partTwoMetadata() {
         metadataFor("nodetool.image.Painter", "Painter", {image(), property("mask_data", "str", {{"default", ""}}),
                                                           property("canvas_width", "int", {{"default", 512}}),
                                                           property("canvas_height", "int", {{"default", 512}})}),
+        [] {
+            auto compositor = metadataFor("nodetool.image.Compositor", "Compositor",
+                                          {property("layers", "list", {{"default", QJsonArray{}}}), property("canvas_width", "int", {{"default", 0}}),
+                                           property("canvas_height", "int", {{"default", 0}})});
+            compositor["supports_dynamic_inputs"] = true;
+            return compositor;
+        }(),
         metadataFor("lib.image.color_grading.HSLAdjust", "HSL Adjust",
                     {image(), property("color_range", "str", {{"values", ranges}, {"default", "all"}}), slider("hue_shift", -1, 1, 0),
                      slider("saturation", -1, 1, 0), slider("luminance", -1, 1, 0)}),
@@ -1986,6 +1993,97 @@ private slots:
 
     // CropBody.tsx: the source shows with the crop rectangle; dragging a handle
     // or the rectangle writes the four edges in one undo step, and Reset selects the whole image.
+    // CompositorBody.tsx: image_0 draws on top, each layer row edits the
+    // layers property, and add and delete keep the states aligned.
+    void compositorLayersCompositeAndEdit() {
+        const auto png = [](const QSize &size, const QColor &color) {
+            QImage image(size, QImage::Format_RGB32);
+            image.fill(color);
+            QByteArray bytes;
+            QBuffer buffer(&bytes);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "PNG");
+            return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
+        };
+        const auto constant = [](const QString &id, const QString &uri, double y) {
+            return QJsonObject{{"id", id}, {"type", "nodetool.constant.Image"},
+                               {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", uri}}}}},
+                               {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", y}}}}}};
+        };
+        auto node = partTwoNode("comp", "nodetool.image.Compositor", QPointF(0, 700));
+        node["dynamic_properties"] = QJsonObject{{"image_0", QJsonValue::Null}, {"image_1", QJsonValue::Null}};
+        auto workflow = withNodes({constant("top", png({100, 100}, Qt::red), 700), constant("bottom", png({200, 100}, Qt::blue), 900), node});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "e-top"}, {"source", "top"}, {"sourceHandle", "output"}, {"target", "comp"}, {"targetHandle", "image_0"}});
+        edges.append(QJsonObject{{"id", "e-bottom"}, {"source", "bottom"}, {"sourceHandle", "output"}, {"target", "comp"}, {"targetHandle", "image_1"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        const auto id = host.id("comp");
+        QCOMPARE(host.model().layout(id).body, CardBody::Compositor);
+        QVERIFY(!host.row("comp", NodeRowKind::Action, "addInput"));
+        QCOMPARE(compositorLayerKeys(host.model().nodeSnapshot(id)), (QStringList{"image_0", "image_1"}));
+        QTRY_VERIFY(host.model().layout(id).sourceTab);
+        // The canvas is the first visible layer's size, 100x100, so the
+        // 200x100 bottom layer is fitted to 100x50 and the red layer covers it.
+        const auto composite = [&host, id] {
+            const auto layout = host.model().layout(id);
+            for (const auto &row : layout.rows) {
+                if (row.kind == NodeRowKind::Preview && row.rect == layout.resultRect && !row.media.isEmpty()) { return row.media.first(); }
+            }
+            return CardMediaItem{};
+        };
+        QCOMPARE(composite().natural, QSize(100, 100));
+        const auto center = [&composite] {
+            const auto image = composite().image;
+            return image.pixelColor(image.width() / 2, image.height() / 2);
+        };
+        QCOMPARE(center(), QColor(Qt::red));
+        auto undo = host.undoCount();
+        // Opacity 0 on the top layer shows the bottom layer, as one undo step.
+        host.model().setCardControl(id, QStringLiteral("@compositor:opacity:0"), 0.0);
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        ++undo;
+        QCOMPARE(host.data("comp")["layers"].toArray()[0].toObject()["opacity"].toDouble(), 0.0);
+        // A hidden top layer no longer sets the canvas, so the canvas is the bottom layer's size.
+        QCOMPARE(composite().natural, QSize(200, 100));
+        QCOMPARE(center(), QColor(Qt::blue));
+        host.model().setCardControl(id, QStringLiteral("@compositor:opacity:0"), 1.0);
+        host.model().setCardControl(id, QStringLiteral("@compositor:blend:1"), QStringLiteral("multiply"));
+        QTRY_COMPARE(host.data("comp")["layers"].toArray()[1].toObject()["blend_mode"].toString(), QStringLiteral("multiply"));
+        undo = host.undoCount();
+        auto *visible = host.row("comp", NodeRowKind::Action, "compositorVisible");
+        QVERIFY(visible);
+        QCOMPARE(visible->icon, QStringLiteral("visibility"));
+        host.click("comp", visible->rect.center());
+        QTRY_COMPARE(host.data("comp")["layers"].toArray()[0].toObject()["visible"].toBool(), false);
+        QCOMPARE(host.undoCount(), undo + 1);
+        QCOMPARE(host.row("comp", NodeRowKind::Action, "compositorVisible")->icon, QStringLiteral("visibilityOff"));
+        QCOMPARE(center(), QColor(Qt::blue));
+        // The blend select opens the inline editor with the blend modes.
+        auto *presenter = host.window.findChild<InlinePropertyPresenter *>();
+        QVERIFY(presenter);
+        host.click("comp", host.row("comp", NodeRowKind::Field, "@compositor:blend:1")->rect.center());
+        QTRY_VERIFY(presenter->active());
+        QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("choice"));
+        QCOMPARE(presenter->descriptor()["options"].toList().size(), 13);
+        presenter->cancel();
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("comp")).save(directory + QStringLiteral("/Compositor-dark.png")));
+        }
+        // Delete drops the top layer's input, its edge and its state.
+        host.click("comp", host.row("comp", NodeRowKind::Action, "compositorDelete")->rect.center());
+        QTRY_COMPARE(compositorLayerKeys(host.model().nodeSnapshot(id)), QStringList{"image_1"});
+        QCOMPARE(host.data("comp")["layers"].toArray().size(), 1);
+        QCOMPARE(host.data("comp")["layers"].toArray()[0].toObject()["blend_mode"].toString(), QStringLiteral("multiply"));
+        // Add another layer appends image_2 with a default state.
+        host.click("comp", host.row("comp", NodeRowKind::Action, "compositorAdd")->rect.center());
+        QTRY_COMPARE(compositorLayerKeys(host.model().nodeSnapshot(id)), (QStringList{"image_1", "image_2"}));
+        QCOMPARE(host.data("comp")["layers"].toArray()[1].toObject()["blend_mode"].toString(), QStringLiteral("normal"));
+    }
+
     void cropRectangleDragsAndResets() {
         QImage source(200, 100, QImage::Format_RGB32);
         source.fill(Qt::blue);

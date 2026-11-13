@@ -760,11 +760,21 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       result.size.setWidth(width > 0 ? int(width) : nm::defaultWidth);
       if (readsBodySources(result.body)) {
           // useUpstreamValue: a wired handle shows its source's value, an unwired one the node's own.
+          QVector<std::pair<QString, QJsonValue>> handles;
           for (const auto &value : meta["properties"].toArray()) {
               const auto property = value.toObject();
               const auto name = property["name"].toString();
               if (typeOf(property) != QStringLiteral("image") || !bespokeHandle(result.body, meta, name)) { continue; }
-              QJsonValue image = node["data"].toObject().value(name);
+              handles.append({name, node["data"].toObject().value(name)});
+          }
+          // The Compositor's layers are its image_N dynamic inputs.
+          if (result.body == CardBody::Compositor) {
+              for (const auto &name : compositorLayerKeys(node)) {
+                  handles.append({name, node["dynamic_properties"].toObject().value(name)});
+              }
+          }
+          for (const auto &[name, own] : handles) {
+              QJsonValue image = own;
               for (const auto &entry : edges_) {
                   const auto edge = entry.toObject();
                   if (edge["target"] == node["id"] && edge["targetHandle"] == name) {
@@ -1281,7 +1291,9 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       end = y + nm::micro + nm::borderWidth;
   };
   // A provider node's inputs follow its schema, so the shell offers no add buttons.
-  if (!result.unknown && meta["supports_dynamic_inputs"].toBool() && !result.subgraph && provider.label.isEmpty()) {
+  // The Compositor body adds its own image_N inputs with Add another layer.
+  if (!result.unknown && meta["supports_dynamic_inputs"].toBool() && !result.subgraph && provider.label.isEmpty()
+      && result.body != CardBody::Compositor) {
       addAction(contentCard ? QStringLiteral("addContentInput") : QStringLiteral("addInput"), contentCard ? contentInputLabel(meta) : tr("Add input"), false);
   }
   if (!result.unknown && meta["supports_dynamic_outputs"].toBool() && !result.subgraph && provider.label.isEmpty()) {
@@ -1552,6 +1564,15 @@ QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name)
     }
     return {};
   }
+  if (name.startsWith(QStringLiteral("@compositor:blend:"))) {
+    // LayerRow's blend select edits one entry of the layers property.
+    const auto index = name.section(':', 2).toInt();
+    QVariantList options;
+    for (const auto &[mode, label] : compositorBlendModes()) { options.append(QVariantMap{{"label", label}, {"value", mode}}); }
+    return {{"name", name}, {"label", QObject::tr("Layer %1 blend mode").arg(index + 1)}, {"kind", QStringLiteral("choice")},
+            {"value", compositorLayers(nodes_.value(id)).value(index).blend}, {"hasValue", true}, {"editable", true},
+            {"connected", false}, {"options", options}};
+  }
   for (const auto &value : node_editor::propertyFields(nodes_.value(id), metadata(id), edges_)) {
     const auto field = value.toMap();
     if (field["name"].toString() != name || !field["editable"].toBool() || field["connected"].toBool()) { continue; }
@@ -1681,6 +1702,34 @@ void WorkflowGraphModel::painterAction(NodeId id, const QString &action, const Q
         writePaintMask(id, {}, {});
     }
 }
+void WorkflowGraphModel::compositorAction(NodeId id, const QString &action, int index) {
+    if (readOnly_ || !nodeExists(id) || !commit) { return; }
+    const auto node = nodes_.value(id);
+    const auto resource = resourceId(id);
+    const auto keys = compositorLayerKeys(node);
+    auto layers = compositorLayers(node);
+    if (action == QStringLiteral("compositorAdd")) {
+        // nextImageIndex: one past the highest image_N.
+        int next = 0;
+        for (const auto &key : keys) { next = std::max(next, key.section('_', 1).toInt() + 1); }
+        layers.append(CompositorLayer{});
+        commit({{"op", "batch"}, {"commands", QJsonArray{
+            QJsonObject{{"op", "addDynamicInput"}, {"id", resource}, {"name", QStringLiteral("image_%1").arg(next)}},
+            propertyCommand(id, QStringLiteral("layers"), compositorLayersJson(layers))}}});
+        return;
+    }
+    if (index < 0 || index >= keys.size()) { return; }
+    if (action == QStringLiteral("compositorVisible")) {
+        layers[index].visible = !layers[index].visible;
+        commit(propertyCommand(id, QStringLiteral("layers"), compositorLayersJson(layers)));
+    } else if (action == QStringLiteral("compositorDelete")) {
+        // The remaining states stay aligned to the remaining sorted inputs.
+        layers.remove(index);
+        commit({{"op", "batch"}, {"commands", QJsonArray{
+            propertyCommand(id, QStringLiteral("layers"), compositorLayersJson(layers)),
+            QJsonObject{{"op", "removeDynamicInput"}, {"id", resource}, {"name", keys[index]}}}}});
+    }
+}
 void WorkflowGraphModel::finishPaintStroke(NodeId id, const QImage &stroke) {
     if (readOnly_ || !nodeExists(id) || stroke.isNull()) { return; }
     const auto resource = resourceId(id);
@@ -1710,6 +1759,15 @@ void WorkflowGraphModel::setCardControl(NodeId id, const QString &name, const QV
             if (QColor::isValidColorName(color)) { view.color = color; }
         }
         refreshRuntimeNode(resourceId(id));
+        return;
+    }
+    if (isCompositorControl(name)) {
+        auto layers = compositorLayers(nodes_.value(id));
+        const auto index = name.section(':', 2).toInt();
+        if (index < 0 || index >= layers.size()) { return; }
+        if (name.startsWith(QStringLiteral("@compositor:opacity:"))) { layers[index].opacity = std::clamp(value.toDouble(), 0.0, 1.0); }
+        else { layers[index].blend = value.toString(); }
+        if (commit) { commit(propertyCommand(id, QStringLiteral("layers"), compositorLayersJson(layers))); }
         return;
     }
     if (!isCropControl(name)) { return; }

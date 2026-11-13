@@ -74,8 +74,26 @@ inline constexpr auto painterOpacityControl = "@painter:opacity";
 inline constexpr auto painterFadeControl = "@painter:fade";
 inline constexpr auto painterColorControl = "@painter:color";
 bool isPainterControl(const QString &name);
-// A Crop or Painter control: a card value with a row name but no property.
+// The Compositor's per-layer opacity slider and blend select, named
+// "@compositor:opacity:<index>" and "@compositor:blend:<index>".
+bool isCompositorControl(const QString &name);
+// A Crop, Painter or Compositor control: a card value with a row name but no property.
 bool isCardControl(const QString &name);
+
+// CompositorBody.tsx: the image_N dynamic inputs in N order, each layer's
+// state from the layers property (defaults for a missing entry), and the
+// blend modes in @nodetool-ai/gpu's display order.
+struct CompositorLayer {
+    double opacity = 1;
+    QString blend = QStringLiteral("normal");
+    bool visible = true;
+    // LayerTransform2D: the center in canvas pixels, scale and rotation in radians.
+    std::optional<QJsonObject> transform;
+};
+QStringList compositorLayerKeys(const QJsonObject &node);
+QVector<CompositorLayer> compositorLayers(const QJsonObject &node);
+QJsonArray compositorLayersJson(const QVector<CompositorLayer> &layers);
+const QVector<std::pair<QString, QString>> &compositorBlendModes();
 
 struct CardBodyInput {
     QJsonObject node;

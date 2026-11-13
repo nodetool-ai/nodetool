@@ -5,6 +5,7 @@
 #include <QLineF>
 #include <QObject>
 #include <QPainter>
+#include <QtMath>
 #include <QRegularExpression>
 #include <QSet>
 #include <algorithm>
@@ -1390,6 +1391,159 @@ void layoutPainter(NodeLayout &layout, const CardBodyInput &input) {
     layout.rows.append(paint);
 }
 
+// CompositorPreview: the layers drawn bottom first (image_0 is on top), each
+// at its transform or contain-fit centered, with its opacity and blend mode,
+// on a canvas of the given size scaled to fit the area.
+QImage compositeLayers(const QStringList &keys, const QVector<CompositorLayer> &layers, const QHash<QString, CardMediaItem> &sources,
+                       const QSize &canvas, const QSizeF &area) {
+    static const QHash<QString, QPainter::CompositionMode> modes{
+        {"normal", QPainter::CompositionMode_SourceOver}, {"multiply", QPainter::CompositionMode_Multiply},
+        {"screen", QPainter::CompositionMode_Screen}, {"overlay", QPainter::CompositionMode_Overlay},
+        {"darken", QPainter::CompositionMode_Darken}, {"lighten", QPainter::CompositionMode_Lighten},
+        {"color-dodge", QPainter::CompositionMode_ColorDodge}, {"color-burn", QPainter::CompositionMode_ColorBurn},
+        {"hard-light", QPainter::CompositionMode_HardLight}, {"soft-light", QPainter::CompositionMode_SoftLight},
+        {"difference", QPainter::CompositionMode_Difference}, {"exclusion", QPainter::CompositionMode_Exclusion},
+        {"add", QPainter::CompositionMode_Plus}};
+    const auto size = QSizeF(canvas).scaled(area, Qt::KeepAspectRatio).toSize();
+    if (size.isEmpty()) { return {}; }
+    QImage result(size, QImage::Format_ARGB32_Premultiplied);
+    result.fill(Qt::transparent);
+    QPainter painter(&result);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    const auto scale = double(size.width()) / canvas.width();
+    for (auto i = keys.size() - 1; i >= 0; --i) {
+        const auto layer = layers.value(i);
+        const auto source = sources.constFind(keys[i]);
+        if (!layer.visible || layer.opacity <= 0 || source == sources.cend() || source->state != CardMediaState::Ready || source->image.isNull()) {
+            continue;
+        }
+        const QSizeF natural = source->natural.isValid() ? QSizeF(source->natural) : QSizeF(source->image.size());
+        // defaultLayerTransform: contain-fit, never upscaled, centered.
+        const auto fit = std::min({canvas.width() / natural.width(), canvas.height() / natural.height(), 1.0});
+        QPointF center(canvas.width() / 2.0, canvas.height() / 2.0);
+        QSizeF factor(fit, fit);
+        double rotation = 0;
+        if (layer.transform) {
+            const auto &t = *layer.transform;
+            center = QPointF(t["x"].toDouble(), t["y"].toDouble());
+            factor = QSizeF(t["scaleX"].toDouble(1), t["scaleY"].toDouble(1));
+            rotation = t["rotation"].toDouble();
+        }
+        painter.save();
+        painter.scale(scale, scale);
+        painter.translate(center);
+        painter.rotate(qRadiansToDegrees(rotation));
+        painter.scale(factor.width(), factor.height());
+        painter.setOpacity(layer.opacity);
+        painter.setCompositionMode(modes.value(layer.blend, QPainter::CompositionMode_SourceOver));
+        painter.drawImage(QRectF(QPointF(-natural.width() / 2, -natural.height() / 2), natural), source->image);
+        painter.restore();
+    }
+    painter.end();
+    return result;
+}
+
+// CompositorBody.tsx: a handle per image_N layer over the live composite,
+// a LayerRow per layer (thumbnail, opacity, blend mode, visibility and
+// delete), and Add another layer. The layout editor dialog is not native.
+void layoutCompositor(NodeLayout &layout, const CardBodyInput &input) {
+    Column column(layout, input);
+    const auto keys = compositorLayerKeys(input.node);
+    const auto layers = compositorLayers(input.node);
+    column.handles(keys);
+    column.preview(QObject::tr("Add layers, then run"));
+    column.y += nm::micro;
+    const auto gap = double(nm::chipGap);
+    const auto thumb = double(nm::layerThumbnail);
+    const auto button = double(nm::layerButton);
+    if (keys.isEmpty()) {
+        layout.rows.append(labelRow(QObject::tr("No layers yet"), QRectF(column.x, column.y, column.width, nm::rowHeight)));
+        column.y += nm::rowHeight;
+        layout.rows.append(labelRow(QObject::tr("Add one below."), QRectF(column.x, column.y, column.width, nm::rowHeight)));
+        column.y += nm::rowHeight + nm::micro;
+    }
+    QVariantList blendValues;
+    QStringList blendLabels;
+    for (const auto &[value, label] : compositorBlendModes()) {
+        blendValues.append(value);
+        blendLabels.append(label);
+    }
+    for (int i = 0; i < keys.size(); ++i) {
+        const auto layer = layers.value(i);
+        const auto top = column.y;
+        const auto middle = top + thumb / 2;
+        // 40px | minmax(0, 1fr) | 96px | 28px | 28px.
+        auto preview = placeholderRow({}, QStringLiteral("image"), QRectF(column.x, top, thumb, thumb));
+        preview.label = QObject::tr("Layer %1 thumbnail").arg(i + 1);
+        if (const auto *source = readySource(input, keys[i])) {
+            preview.media = {*source};
+            preview.mediaKind = QStringLiteral("image");
+        }
+        layout.rows.append(preview);
+        const auto right = column.x + column.width;
+        const auto deleteX = right - button;
+        const auto visibleX = deleteX - gap - button;
+        const auto blendX = visibleX - gap - nm::layerBlendWidth;
+        const auto sliderX = column.x + thumb + gap;
+        auto slider = sliderRow({{QStringLiteral("value"), layer.opacity}}, QStringLiteral("@compositor:opacity:%1").arg(i), {},
+                                QRectF(sliderX, middle - nm::controlHeight / 2.0, blendX - gap - sliderX, nm::controlHeight), 0, 1, 0.01,
+                                QStringLiteral("%1"));
+        // NumberInput with showSlider: the value and a track, no label.
+        slider.labelWidth = 0.01;
+        slider.valueWidth = std::ceil(captionWidth(QStringLiteral("0.00"), true, true)) + nm::micro;
+        slider.columnGap = nm::micro;
+        layout.rows.append(slider);
+        auto blend = selectRow({{QStringLiteral("value"), layer.blend}}, QStringLiteral("@compositor:blend:%1").arg(i), {},
+                               QRectF(blendX, middle - nm::controlHeight / 2.0, nm::layerBlendWidth, nm::controlHeight));
+        blend.bare = true;
+        blend.options = blendLabels;
+        blend.optionValues = blendValues;
+        blend.value = blendLabels.value(int(blendValues.indexOf(layer.blend)), blendLabels.first());
+        layout.rows.append(blend);
+        auto visible = iconAction(QStringLiteral("compositorVisible"), {}, layer.visible ? QStringLiteral("visibility") : QStringLiteral("visibilityOff"),
+                                  layer.visible ? QObject::tr("Hide") : QObject::tr("Show"), QRectF(visibleX, middle - button / 2, button, button));
+        visible.number = i;
+        layout.rows.append(visible);
+        auto remove = iconAction(QStringLiteral("compositorDelete"), {}, QStringLiteral("deleteOutline"), QObject::tr("Delete layer"),
+                                 QRectF(deleteX, middle - button / 2, button, button));
+        remove.number = i;
+        layout.rows.append(remove);
+        placePort(layout, input.inputs, keys[i], nm::contentTop + nm::rowHeight / 2.0 + i * nm::handleRowStep);
+        column.y = top + thumb + nm::micro;
+    }
+    column.y += nm::micro;
+    auto add = controlRow(NodeRowKind::Action, {}, QObject::tr("Add another layer"),
+                          QRectF(column.x, column.y, std::min(column.width, captionWidth(QObject::tr("Add another layer")) + nm::iconSize + 3 * nm::padding),
+                                 nm::controlHeight));
+    add.action = QStringLiteral("compositorAdd");
+    layout.rows.append(add);
+    column.y += nm::controlHeight;
+    column.finish();
+    // The live composite replaces the run result once a layer image arrives.
+    bool anySource = false;
+    for (const auto &key : keys) { anySource = anySource || readySource(input, key); }
+    if (!anySource) { return; }
+    layout.sourceTab = true;
+    QSize canvas;
+    const auto data = input.node["data"].toObject();
+    for (int i = 0; i < keys.size() && canvas.isEmpty(); ++i) {
+        const auto *source = readySource(input, keys[i]);
+        if (source && layers.value(i).visible && layers.value(i).opacity > 0) { canvas = source->natural; }
+    }
+    const auto width = data.value(QStringLiteral("canvas_width")).toDouble(), height = data.value(QStringLiteral("canvas_height")).toDouble();
+    canvas = QSize(width > 0 ? int(width) : canvas.isEmpty() ? 512 : canvas.width(), height > 0 ? int(height) : canvas.isEmpty() ? 512 : canvas.height());
+    CardMediaItem composite;
+    composite.state = CardMediaState::Ready;
+    composite.image = compositeLayers(keys, layers, input.sources, canvas, layout.resultRect.size() * 2);
+    composite.natural = canvas;
+    for (auto &row : layout.rows) {
+        if (row.kind == NodeRowKind::Preview && row.rect == layout.resultRect) {
+            row.media = {composite};
+            row.mediaKind = QStringLiteral("image");
+        }
+    }
+}
+
 // CropBody.tsx: the source with its crop rectangle and size badge, then the
 // aspect select, the width and height boxes and Reset. The aspect is view
 // state, kept as the body tab, and the boxes edit the crop's edges.
@@ -1511,7 +1665,7 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
         {"replicate.image.background.BackgroundRemover_Codeplug", CardBody::MasksExtractor},
         {"replicate.image.process.RemoveBackground", CardBody::MasksExtractor},
         {"fal.image_to_image.BriaBackgroundRemove", CardBody::MasksExtractor},
-        {"nodetool.image.Painter", CardBody::Painter}};
+        {"nodetool.image.Painter", CardBody::Painter}, {"nodetool.image.Compositor", CardBody::Compositor}};
     if (bodies.contains(type)) {
         return bodies.value(type);
     }
@@ -1526,7 +1680,7 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
 
 bool readsBodySources(CardBody body) {
     return body == CardBody::CanvasResize || body == CardBody::Paste || body == CardBody::Crop || body == CardBody::SimpleFilter
-           || body == CardBody::Mask || body == CardBody::MasksExtractor || body == CardBody::Painter;
+           || body == CardBody::Mask || body == CardBody::MasksExtractor || body == CardBody::Painter || body == CardBody::Compositor;
 }
 
 ImageHistogram imageHistogram(const QImage &image) {
@@ -1649,8 +1803,65 @@ bool isPainterControl(const QString &name) {
            || name == QLatin1String(painterFadeControl) || name == QLatin1String(painterColorControl);
 }
 
+bool isCompositorControl(const QString &name) {
+    return name.startsWith(QStringLiteral("@compositor:opacity:")) || name.startsWith(QStringLiteral("@compositor:blend:"));
+}
+
 bool isCardControl(const QString &name) {
-    return isCropControl(name) || isPainterControl(name);
+    return isCropControl(name) || isPainterControl(name) || isCompositorControl(name);
+}
+
+QStringList compositorLayerKeys(const QJsonObject &node) {
+    static const QRegularExpression layer(QStringLiteral("^image_(\\d+)$"));
+    QVector<std::pair<int, QString>> found;
+    const auto values = node["dynamic_properties"].toObject();
+    for (auto it = values.begin(); it != values.end(); ++it) {
+        if (const auto match = layer.match(it.key()); match.hasMatch()) { found.append({match.captured(1).toInt(), it.key()}); }
+    }
+    std::sort(found.begin(), found.end());
+    QStringList keys;
+    for (const auto &entry : found) { keys.append(entry.second); }
+    return keys;
+}
+
+const QVector<std::pair<QString, QString>> &compositorBlendModes() {
+    static const QVector<std::pair<QString, QString>> modes{
+        {"normal", QObject::tr("Normal")}, {"multiply", QObject::tr("Multiply")}, {"screen", QObject::tr("Screen")},
+        {"overlay", QObject::tr("Overlay")}, {"darken", QObject::tr("Darken")}, {"lighten", QObject::tr("Lighten")},
+        {"color-dodge", QObject::tr("Color Dodge")}, {"color-burn", QObject::tr("Color Burn")}, {"hard-light", QObject::tr("Hard Light")},
+        {"soft-light", QObject::tr("Soft Light")}, {"difference", QObject::tr("Difference")}, {"exclusion", QObject::tr("Exclusion")},
+        {"add", QObject::tr("Add")}};
+    return modes;
+}
+
+QVector<CompositorLayer> compositorLayers(const QJsonObject &node) {
+    const auto stored = node["data"].toObject().value(QStringLiteral("layers")).toArray();
+    QVector<CompositorLayer> layers;
+    for (qsizetype i = 0; i < compositorLayerKeys(node).size(); ++i) {
+        const auto raw = stored.at(i).toObject();
+        CompositorLayer layer;
+        if (raw["opacity"].isDouble()) { layer.opacity = std::clamp(raw["opacity"].toDouble(), 0.0, 1.0); }
+        // coerceBlendMode: the legacy "over" is normal, and an unknown name falls back to normal.
+        const auto blend = raw["blend_mode"].toString();
+        for (const auto &mode : compositorBlendModes()) {
+            if (mode.first == blend) { layer.blend = blend; }
+        }
+        if (!raw["visible"].isUndefined()) { layer.visible = raw["visible"].toBool() || (raw["visible"].isDouble() && raw["visible"].toDouble() != 0); }
+        const auto transform = raw["transform"].toObject();
+        if (transform["x"].isDouble() && transform["y"].isDouble()) { layer.transform = transform; }
+        layers.append(layer);
+    }
+    return layers;
+}
+
+QJsonArray compositorLayersJson(const QVector<CompositorLayer> &layers) {
+    QJsonArray result;
+    for (const auto &layer : layers) {
+        QJsonObject entry{{"opacity", layer.opacity}, {"blend_mode", layer.blend}, {"visible", layer.visible}};
+        if (layer.transform) { entry["transform"] = *layer.transform; }
+        result.append(entry);
+    }
+    return result;
 }
 
 QSize painterCanvasSize(const CardBodyInput &input) {
@@ -1744,6 +1955,8 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
         return name == QStringLiteral("image");
     case CardBody::Paste:
         return name == QStringLiteral("image") || name == QStringLiteral("paste");
+    case CardBody::Compositor:
+        return name == QStringLiteral("layers") || QRegularExpression(QStringLiteral("^image_\\d+$")).match(name).hasMatch();
     case CardBody::CompareImages:
         return name == QStringLiteral("image_a") || name == QStringLiteral("image_b");
     case CardBody::ConstantString:
@@ -1837,6 +2050,9 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
         break;
     case CardBody::Painter:
         layoutPainter(layout, input);
+        break;
+    case CardBody::Compositor:
+        layoutCompositor(layout, input);
         break;
     case CardBody::Scale:
         layoutScale(layout, input);
