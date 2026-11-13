@@ -39,7 +39,24 @@ export interface ShaderDescriptor {
   readonly retention: "retained" | "volatile";
 }
 export interface RenderOutputDescriptor { readonly kind: "render-output"; readonly input: string; readonly colorSpace: ColorSpace; }
-export type LiveDescriptor = ControlDescriptor | ShaderDescriptor | RenderOutputDescriptor;
+export type DspKernel = "oscillator" | "noise" | "gain" | "mix" | "level-meter" | "delay" |
+  "biquad.lowpass" | "biquad.highpass" | "biquad.bandpass" | "biquad.notch" | "biquad.allpass" |
+  "biquad.peaking" | "biquad.lowshelf" | "biquad.highshelf";
+export interface AudioParameterBinding extends ValueBinding {
+  readonly smoothing?: { readonly kind: "none" | "ramp" } | { readonly kind: "onePole"; readonly timeConstant: number };
+}
+export interface DspDescriptor {
+  readonly kind: "dsp";
+  readonly kernel: DspKernel;
+  readonly stateVersion: number;
+  readonly inputs: readonly string[];
+  readonly output: string;
+  readonly params: readonly AudioParameterBinding[];
+  readonly channels?: Session["channels"];
+  readonly delayFrames?: ValueBinding;
+}
+export interface AudioOutputDescriptor { readonly kind: "audio-output"; readonly input: string; readonly sink: "device" | "tap" | "record"; }
+export type LiveDescriptor = ControlDescriptor | ShaderDescriptor | RenderOutputDescriptor | DspDescriptor | AudioOutputDescriptor;
 export interface Session {
   readonly sampleRate: 44100 | 48000;
   readonly quantum: 128;
@@ -56,6 +73,26 @@ export interface CompileInput {
   readonly session: Session;
   readonly revision: number;
   readonly batchTextures?: readonly BatchTexture[];
+  readonly allocation?: ParameterAllocation;
+}
+export interface ParameterIdentity { readonly node: string; readonly field: string; readonly slot: number; }
+/** Session-owned ledger. Removed identities remain reserved until the session ends. */
+export interface ParameterAllocation { readonly entries: readonly ParameterIdentity[]; readonly nextSlot: number; }
+export interface StateKey { readonly node: string; readonly kind: "audio" | "control"; readonly key: string; }
+export interface PlanParameter extends ParameterIdentity {
+  readonly value: number;
+  readonly smooth: "none" | "ramp" | "onePole";
+  readonly timeConstant?: number;
+  readonly sync: "audio";
+}
+export interface AudioNode {
+  readonly node: string;
+  readonly kernel: DspKernel;
+  readonly stateVersion: number;
+  readonly in: readonly { readonly node: string; readonly output: number }[];
+  readonly out: readonly number[];
+  readonly params: readonly number[];
+  readonly delayFrames?: number;
 }
 export interface Diagnostic { readonly node: string; readonly reason: string; readonly detail: string; }
 export interface ControlInstruction {
@@ -74,16 +111,21 @@ export interface RenderPass {
   readonly retention: "retained" | "volatile";
   readonly output: TextureContract;
 }
-export interface RenderPlan {
+export interface RealtimePlan {
   readonly schemaVersion: 1;
   readonly revision: number;
   readonly session: Session;
-  readonly params: readonly never[];
+  readonly params: readonly PlanParameter[];
   readonly slots: readonly { readonly id: string; readonly kind: "texture"; readonly source: string; readonly output: TextureContract }[];
   readonly control: { readonly registers: number; readonly ops: readonly ControlInstruction[]; readonly stateful: readonly (ControlInstruction & { readonly stateVersion: number })[] };
-  readonly render: { readonly passes: readonly RenderPass[]; readonly present: { readonly source: string; readonly colorSpace: ColorSpace } };
-  readonly audio: { readonly buffers: readonly never[]; readonly nodes: readonly never[]; readonly sinks: readonly never[] };
+  readonly render: { readonly passes: readonly RenderPass[]; readonly present?: { readonly source: string; readonly colorSpace: ColorSpace } };
+  readonly audio: {
+    readonly buffers: readonly { readonly id: number; readonly channels: Session["channels"] }[];
+    readonly nodes: readonly AudioNode[];
+    readonly sinks: readonly { readonly node: string; readonly buffer: number; readonly kind: "device" | "tap" | "record"; readonly subgraphHash: string }[];
+  };
 }
+export type RenderPlan = RealtimePlan;
 export interface BatchBoundary { readonly node: string; readonly output: string; readonly slot: string; readonly reason: "no_live_descriptor"; }
-export type CompileResult = { readonly status: "ok"; readonly plan: RenderPlan; readonly boundaries: readonly BatchBoundary[]; readonly warnings: readonly Diagnostic[] } |
+export type CompileResult = { readonly status: "ok"; readonly plan: RealtimePlan; readonly boundaries: readonly BatchBoundary[]; readonly warnings: readonly Diagnostic[]; readonly allocation: ParameterAllocation; readonly stateKeys: readonly StateKey[] } |
   { readonly status: "error"; readonly diagnostics: readonly Diagnostic[] };

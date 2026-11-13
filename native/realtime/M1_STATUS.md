@@ -387,16 +387,18 @@ the existing core Release, ASan/UBSan, TSan and Wasm/browser checks.
 The [full graph-runner run at that revision](https://github.com/nodetool-ai/nodetool/actions/runs/43381172430)
 also passes Release, ASan/UBSan and TSan. Packed-install, release-pin and selected
 aggregate CI checks pass. The Windows Node 24 package-matrix runner lost contact
-with GitHub during workspace setup. A targeted rerun was requested. This runner-loss
-failure remains unqualified until a subsequent Windows matrix job passes.
+with GitHub during workspace setup. The
+[subsequent package matrix at `54a6b15657`](https://github.com/nodetool-ai/nodetool/actions/runs/43501833748)
+passes, including Windows Node 24. That resolves this runner-loss check without
+a speculative source change.
 
 The compiler tests and selected harness-registry tests pass. Package builds,
 compiler typechecking, scoped lint, packed imports, browser bundling and the gate
 dry run pass. Broad local checks were deferred under the targeted-check policy.
 
-WP16 remains open. DSP/audio lowering, parameter slots, structural state keys,
-the full descriptor expression vocabulary, reverse/floating-point alpha conversion,
-delayed feedback, batch graph rewriting
+WP16 remains open. Mixed audio/render lowering, connected audio controls, render
+parameter slots, PCM/sample-player boundaries, multiple sinks, the full descriptor
+expression vocabulary, reverse/floating-point alpha conversion, delayed feedback, batch graph rewriting
 and cross-domain stateful handoffs remain unimplemented. Product descriptors,
 runner/editor integration and live-device behavior also remain outside this slice.
 The dependency-order deferral above still applies while WP09 remains open. M1
@@ -435,8 +437,41 @@ contract work before it can be lowered.
 A stored snapshot and native fixture cover fractional and zero-alpha pixels.
 The native checker compares decoded PNG pixels with an independent quantized
 premultiply/invert reference. Removing the conversion must make the loader reject
-the plan before creating output. Linux qualification of this new fixture remains
-pending CI. The compiler tests, native Release/ASan fixture checks, package
+the plan before creating output. The
+[standalone Linux run at `54a6b15657`](https://github.com/nodetool-ai/nodetool/actions/runs/43501833824)
+passes the alpha fixture, core sanitizers and Wasm/browser checks. The compiler
+tests, native Release/ASan fixture checks, package
 build/typechecking, scoped lint and browser bundling pass locally. Broad local
 checks remain deferred under the targeted-check policy. WP16 and the deferred
 acceptance ledger remain open.
+
+## WP16 audio DAGs and stable identities
+
+The compiler now lowers audio-only DAGs for supported ABI 1 built-in kernels.
+It orders nodes, assigns physical buffers by last use, and never aliases a
+node's input/output without an in-place kernel contract. A fan-out fixture and
+a large-chain check cover retention of shared inputs and bounded buffer reuse.
+Delay size is structural data. Feedback cycles still reject.
+
+Audio property parameters get audio sync, declared smoothing and stable slots.
+The caller returns the detached allocation ledger on subsequent compiles.
+Removed identities remain reserved until the session ends. State keys follow
+the design's audio/control identity fields. Audio sink hashes cover logical
+upstream content, independent of physical buffer and slot allocation. Initial
+parameter values and smoothing are included because this slice embeds those
+values at compile time. These metadata do not implement WP13 parameter transport
+or WP18 state transfer and sink ramps.
+
+The native checker exports gain-chain, fan-out and delay graphs at both session
+rates and layouts against an independent quadrature reference. It also checks
+the supported kernel ABI shapes, deterministic noise repeats and rejection of
+overlapping live buffers. Corrupted PCM fails the reference check. Remaining
+compiler scope is listed above. Linux qualification of this audio batch remains
+pending CI, and unfinished issues stay open.
+
+Targeted compiler and SHA-256 tests, package build/typechecking and scoped lint
+pass. The expanded native checker passes on Windows Release and ASan. A normal
+packed install outside the workspace imports the compiler and portable hash
+subpath and compiles an audio graph. Render/audio results also match through an
+isolated browser bundle with no Node globals or external imports. Broad local
+checks remain deferred under the targeted-check policy.
