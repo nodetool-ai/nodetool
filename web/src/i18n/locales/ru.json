@@ -3899,10 +3899,9 @@
           "lightingPlaceholder": "Как освещена сцена",
           "shotHeader": "Кадр {{count}}",
           "shotAction": "Кадр {{count}} · Действие",
-          "shotDialogue": "Кадр {{count}} · Диалог",
-          "dialoguePlaceholder": "Диалог",
-          "addDialogue": "Добавить диалог",
+          "dialogue": "Диалог",
           "seconds": "Секунды",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Сцена {{count}}"
         },
         "fallback": {

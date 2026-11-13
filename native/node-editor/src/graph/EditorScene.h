@@ -42,6 +42,8 @@ struct CanvasTheme {
   // web palette success.main and warning.main, the prompt variable chips.
   QColor success{"#50fa7b"};
   QColor warning{"#ffb86c"};
+  // Ui.Theme.statusInfo, the keyword color of painted code.
+  QColor info{"#60a5fa"};
   // ControlEdge.tsx CONTROL_EDGE_COLOR, a fixed amber in both themes.
   QColor controlWire{"#f59e0b"};
   // A card inside a group: the edge, and the fill that replaces the card color.

@@ -11,6 +11,7 @@
 #include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QPointer>
 #include <QQuickItem>
 #include <QQuickView>
 #include <QSignalSpy>
@@ -216,12 +217,13 @@ private slots:
         QCOMPARE(open.first().first().toString(), QString("wf1"));
 
         click(view, named(root, "generations-filter-failed"));
-        QTRY_COMPARE(root->property("shown").toList().size(), 1);
-        QCOMPARE(root->property("shown").toList().first().toMap()["id"].toString(), QString("bad"));
+        auto *grid = named(root, "generations-grid");
+        QTRY_COMPARE(grid->property("count").toInt(), 1);
+        QTRY_VERIFY(named(root, "generation-tile-bad"));
         // A filter whose last generation left the list falls back to everything.
         click(view, named(root, "generations-clear-finished"));
         QTRY_COMPARE(root->property("activeFilter").toString(), QString("all"));
-        QCOMPARE(root->property("shown").toList().size(), 1);
+        QTRY_COMPARE(grid->property("count").toInt(), 1);
         QVERIFY(!named(root, "generations-clear-finished")->isVisible());
         click(view, named(root, "generations-refresh"));
         QTRY_COMPARE(refresh.size(), 2);
@@ -275,6 +277,33 @@ private slots:
         click(view, named(root, "queue-collapse"));
         QTRY_VERIFY(!root->property("opened").toBool());
         QTRY_VERIFY(!root->property("presented").toBool());
+    }
+
+    // A change to one generation updates its tile in place. Every other tile keeps its delegate.
+    void tilesKeepTheirDelegatesAcrossChanges() {
+        GenerationActivity activity;
+        QQuickView view;
+        show(view, {{"activity", QVariant::fromValue(&activity)}}, "GenerationsPanel.qml", {900, 520});
+        auto *root = view.rootObject();
+        const auto now = [] { return QDateTime::currentMSecsSinceEpoch(); };
+        activity.ingestPrediction(prediction("run", "running", "text_to_image"), now());
+        activity.ingestPrediction(prediction("bad", "running", "text_to_video"), now());
+        activity.ingestPrediction(prediction("bad", "failed", "text_to_video", {{"error", "Provider rejected the prompt"}}), now());
+        QTRY_VERIFY(named(root, "generation-tile-run"));
+        QTRY_VERIFY(named(root, "generation-tile-bad"));
+        QPointer<QQuickItem> runTile = named(root, "generation-tile-run");
+        QPointer<QQuickItem> badTile = named(root, "generation-tile-bad");
+        activity.ingestPrediction(prediction("new", "running", "text_to_image"), now());
+        QTRY_VERIFY(named(root, "generation-tile-new"));
+        activity.ingestPrediction(prediction("new", "completed", "text_to_image", {{"asset_ids", QJsonArray{"a1"}}}), now());
+        QTRY_COMPARE(named(root, "generation-status-new")->property("text").toString(), QString("done"));
+        QPointer<QQuickItem> newTile = named(root, "generation-tile-new");
+        activity.setWorkflowNames({{"wf1", "Fox renders"}});
+        QCoreApplication::processEvents();
+        QVERIFY(runTile && badTile && newTile);
+        QCOMPARE(named(root, "generation-tile-run"), runTile.data());
+        QCOMPARE(named(root, "generation-tile-bad"), badTile.data());
+        QCOMPARE(named(root, "generation-tile-new"), newTile.data());
     }
 };
 

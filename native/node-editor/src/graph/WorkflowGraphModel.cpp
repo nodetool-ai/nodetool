@@ -576,6 +576,28 @@ namespace {
 // collapsed.css: a collapsed card is a 40 px strip as wide as its header, at
 // least 140 px and never wider than the expanded card. Sockets sit on the
 // strip's midline and nothing else draws.
+// A Code card the user made taller gives the extra height to its code field.
+// Rows and handles below the field move down by the same amount.
+void stretchCodeField(NodeLayout &layout, double extra) {
+  if (extra <= 0) { return; }
+  const auto field = std::find_if(layout.rows.begin(), layout.rows.end(), [](const NodeRow &row) { return row.code; });
+  if (field == layout.rows.end()) { return; }
+  const auto bottom = field->rect.bottom();
+  field->rect.setHeight(field->rect.height() + extra);
+  field->height = field->rect.height();
+  const auto shift = [&](QRectF &rect) { if (!rect.isEmpty() && rect.top() >= bottom) { rect.translate(0, extra); } };
+  for (auto &row : layout.rows) {
+    if (row.code || row.y < bottom) { continue; }
+    row.y += extra;
+    row.fieldY += extra;
+    shift(row.rect);
+    shift(row.listZone);
+    for (auto &part : row.parts) { shift(part); }
+    for (auto &item : row.media) { shift(item.rect); }
+  }
+  for (auto &y : layout.inputY) { if (y >= bottom) { y += extra; } }
+  for (auto &y : layout.outputY) { if (y >= bottom) { y += extra; } }
+}
 NodeLayout collapsedLayout(NodeLayout layout, const QJsonObject &ui) {
   namespace nm = node_metrics;
   QFont font(QStringLiteral("Inter"));
@@ -1107,6 +1129,14 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       row.fieldY = y;
       row.height = nm::fieldHeight;
       y += row.height;
+    } else if (!connected && name == "code" && (kind == "text" || kind == "multiline")) {
+      row.kind = NodeRowKind::Multiline;
+      row.code = true;
+      row.value = hasValue ? value.toString() : QString();
+      row.fieldY = y;
+      row.height = nm::codeMinimumHeight;
+      row.rect = QRectF(inset, y, cardWidth - 2 * inset, row.height);
+      y += row.height;
     } else if (!connected && (kind == "text" || kind == "multiline" || kind == "choice")) {
       row.kind = kind == "multiline" ? NodeRowKind::Multiline : NodeRowKind::Field;
       row.choice = kind == "choice";
@@ -1384,7 +1414,9 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     if (result.addOutput) { result.size.rheight() += nm::handleRowStep; }
     if (result.subgraph) { result.size.rheight() += nm::handleRowStep; }
   result.minimumSize = QSize(150, result.size.height());
+  const auto natural = result.size.height();
   result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+  stretchCodeField(result, result.size.height() - natural);
   stretchCardMedia(result, type);
   addRenameControls();
   if (ui["collapsed"].toBool()) { result = collapsedLayout(result, ui); }

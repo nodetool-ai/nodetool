@@ -22,15 +22,20 @@ class EditorCommands : public QObject {
     Q_PROPERTY(bool readOnly READ readOnly NOTIFY readOnlyChanged)
     // Debounced, so a burst of preview runs does not flicker the run controls.
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+    // Where this Comfy workflow runs, as ComfyTargetSelector labels it. Empty
+    // outside a Comfy workflow, which hides the control.
+    Q_PROPERTY(QString comfyTarget READ comfyTarget NOTIFY comfyTargetChanged)
 public:
     explicit EditorCommands(QObject *parent = nullptr);
     ~EditorCommands() override;
 
     bool readOnly() const { return readOnly_; }
     bool running() const { return running_; }
+    QString comfyTarget() const { return comfyTarget_; }
 
     void setReadOnly(bool readOnly);
     void setRunning(bool running);
+    void setComfyTarget(const QString &label);
 
     Q_INVOKABLE void run(const QString &command) { emit commandRequested(command); }
     // Empty text hides the tool tip.
@@ -41,6 +46,7 @@ public:
 signals:
     void readOnlyChanged();
     void runningChanged();
+    void comfyTargetChanged();
     void commandRequested(const QString &command);
     void toolTipRequested(const QString &text);
     void presentationRequested(const QVariantMap &roles);
@@ -48,6 +54,7 @@ signals:
 private:
     bool readOnly_ = false;
     bool running_ = false;
+    QString comfyTarget_;
 };
 
 }  // namespace nodetool::node_editor

@@ -31,6 +31,13 @@
       "web": [
         "web/src/components/timeline"
       ]
+    },
+    "web-share-pages": {
+      "reason": "Browser routes opened from a link: the public workflow page (/public/:id) and the share invitation landing page (/share/:token). They are web pages outside the editor, so the native app has nothing to port. Proposed in the workflow list parity work, 2026-11-13, pending Matthias's confirmation.",
+      "web": [
+        "web/src/components/workflows/PublicWorkflowPage.tsx",
+        "web/src/components/workflows/AcceptSharePage.tsx"
+      ]
     }
   },
   "shortcuts": {
@@ -472,8 +479,8 @@
       "native": [
         "native/node-editor/qml/WorkflowBrowser.qml"
       ],
-      "status": "partial",
-      "note": "Browser offers rename and delete. The web menu's other entries are not in the native browser.",
+      "status": "match",
+      "note": "Favorite, Edit, Duplicate and Delete open on right-click, the Menu key or the row's more button. Native adds Rename. The web's Open as app entry needs a caller that WorkflowList does not pass.",
       "inventory": "F34"
     },
     "web/src/components/node_editor/Alert.tsx": {
@@ -1958,7 +1965,13 @@
       "inventory": "F36"
     },
     "web/src/components/panels/ComfyTargetSelector.tsx": {
-      "missing": "Where Comfy workflows run. Not found natively."
+      "native": [
+        "native/node-editor/qml/Toolbar.qml",
+        "native/node-editor/src/ui/EditorComfy.cpp",
+        "native/node-editor/src/server/ComfyBackend.cpp"
+      ],
+      "status": "partial",
+      "note": "The toolbar control in a Comfy workflow opens Comfy Cloud, the running workers and the ComfyUI server, and a change reloads the target's nodes. The menu also shows the saved server's status. The server URL is typed in a dialog instead of a field inside the menu."
     },
     "web/src/components/panels/DocumentsTree.tsx": {
       "missing": "Native rail Documents opens the workflow browser, which lists workflows only.",
@@ -3003,6 +3016,101 @@
       ],
       "status": "partial",
       "note": "Search, date groups and delete. Thread headings follow the web eyebrow style."
+    },
+    "web/src/components/workflows/CreateWorkflowButton.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml"
+      ],
+      "status": "partial",
+      "note": "The browser's name field and Create button make an empty workflow in the list's project and open it. The web button creates an untitled workflow in one click.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/SendToWorkflowMenu.tsx": {
+      "missing": "The native library has no Send to workflow entry. Its storyboard, script and timeline callers are out of scope.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/ShareWorkflowDialog.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowDetails.qml"
+      ],
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowDeleteDialog.tsx": {
+      "native": [
+        "native/node-editor/src/ui/EditorWindow.cpp",
+        "native/node-editor/src/server/WorkflowBrowser.cpp"
+      ],
+      "status": "partial",
+      "note": "A confirmation for one workflow or the selection. Every delete runs and the failures are counted in the browser's error. The web also moves the editor off a deleted open workflow.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowForm.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml"
+      ],
+      "status": "partial",
+      "note": "Name, description, tags, run mode, workspace and tool name, each saved when its field commits. Tags are a comma-separated field without the web's suggestions, and the workspace is an ID field instead of a picker.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowFormModal.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml"
+      ],
+      "status": "partial",
+      "note": "The settings form opens inside the browser above the list instead of in a dialog.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowList.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml",
+        "native/node-editor/src/server/WorkflowBrowser.cpp"
+      ],
+      "status": "match",
+      "note": "Name search, project filter, favorites only, tag filters that need every tag, the empty states, Retry, duplicate as Name (n), rename and bulk delete. Native loads pages of 100 with Load more where the web loads 1000 at once, and keeps a create field in the panel.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowListItem.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml",
+        "native/node-editor/src/server/WorkflowBrowser.cpp"
+      ],
+      "status": "partial",
+      "note": "Click opens after the double-click interval, double-click renames in place, the checkbox in selection mode, the favorite star, the relative date in name order and the current-workflow highlight. The hover tooltip shows the name, description and tags as text, without the web's tag chips and mini graph.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowListView.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml",
+        "native/node-editor/src/server/WorkflowBrowser.cpp"
+      ],
+      "status": "match",
+      "note": "Newest first with Today, Yesterday, N days ago and relative week, month and year headers, or by name without headers, and the graph preview mode.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowShareDialogHost.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowDetails.qml"
+      ],
+      "status": "partial",
+      "note": "The Share workflow command opens sharing for the open workflow. Nothing opens it for another workflow.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowToolbar.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml"
+      ],
+      "status": "match",
+      "note": "Tag filter menu, delete selected, selection checkboxes, favorites only, graph preview and the sort menu, then the active tag chips with Clear all. Sort, preview, tags and favorites persist in QSettings.",
+      "inventory": "F34"
+    },
+    "web/src/components/workflows/WorkflowTriggerIndicator.tsx": {
+      "native": [
+        "native/node-editor/qml/WorkflowBrowser.qml",
+        "native/node-editor/src/server/WorkflowBrowser.cpp"
+      ],
+      "status": "match",
+      "note": "The badge and its label from jobs.triggersRunning, in the error tone when a trigger failed or was disarmed.",
+      "inventory": "F34"
     }
   }
 }

@@ -474,6 +474,48 @@ describe("OpenRouterProvider", () => {
       expect(imageGenerate.mock.calls[0][0].input_references).toBeUndefined();
     });
 
+    it("omits size when a resolution or aspect ratio preset is set", async () => {
+      const imageGenerate = generated();
+      const provider = providerWith(imageGenerate);
+      await provider.textToImage({
+        model: gemini,
+        prompt: "a dog",
+        width: 1536,
+        height: 1024,
+        resolution: "1K"
+      });
+      await provider.textToImage({
+        model: gemini,
+        prompt: "a dog",
+        width: 1536,
+        height: 1024,
+        aspectRatio: "3:2"
+      });
+      await provider.imageToImage([PNG], {
+        model: gemini,
+        prompt: "a dog",
+        targetWidth: 1536,
+        targetHeight: 1024,
+        resolution: "1K"
+      });
+      expect(imageGenerate.mock.calls[0][0].size).toBeUndefined();
+      expect(imageGenerate.mock.calls[0][0].resolution).toBe("1K");
+      expect(imageGenerate.mock.calls[1][0].size).toBeUndefined();
+      expect(imageGenerate.mock.calls[1][0].aspect_ratio).toBe("3:2");
+      expect(imageGenerate.mock.calls[2][0].size).toBeUndefined();
+    });
+
+    it("sends the snapped size when no preset is set", async () => {
+      const imageGenerate = generated();
+      await providerWith(imageGenerate).textToImage({
+        model: gemini,
+        prompt: "a dog",
+        width: 1536,
+        height: 1024
+      });
+      expect(imageGenerate.mock.calls[0][0].size).toBe("1536x1024");
+    });
+
     it("sends source and entity images as input_references on imageToImage", async () => {
       const imageGenerate = generated();
       const out = await providerWith(imageGenerate).imageToImage([], {

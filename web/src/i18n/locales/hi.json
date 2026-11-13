@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "कैसे दृश्य जला दिया जाता है",
           "shotHeader": "शॉट {{count}}",
           "shotAction": "शॉट {{count}} कार्रवाई",
-          "shotDialogue": "शॉट {{count}} · संवाद",
-          "dialoguePlaceholder": "संवाद",
-          "addDialogue": "संवाद जोड़ें",
+          "dialogue": "संवाद",
           "seconds": "दूसरा",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "दृश्य {{count}}"
         },
         "fallback": {

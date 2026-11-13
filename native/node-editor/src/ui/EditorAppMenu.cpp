@@ -103,6 +103,8 @@ void EditorWindow::installApplicationMenu() {
     auto *file = bar->addMenu(tr("File"));
     file->setObjectName(QStringLiteral("application-menu-file"));
     entry(file, tr("New Workflow"), [this] { newTab(); }, {QKeySequence(QStringLiteral("Ctrl+T"))});
+    // NewProjectSurface's "Comfy workflow": a graph of ComfyUI nodes that runs on the Comfy target.
+    entry(file, tr("New Comfy Workflow"), [this] { newComfyWorkflow(); }, {});
     command(file, tr("Open…"), QStringLiteral("Open file"), {QKeySequence(QStringLiteral("Ctrl+O"))});
     auto *examples = file->addMenu(tr("Open Example"));
     examples->setObjectName(QStringLiteral("application-menu-examples"));
@@ -192,7 +194,6 @@ void EditorWindow::installApplicationMenu() {
     command(workflow, tr("Reconnect"), QStringLiteral("Reconnect"));
     workflow->addSeparator();
     command(workflow, tr("Linked Workflows…"), QStringLiteral("Linked workflows"));
-    command(workflow, tr("Share…"), QStringLiteral("Share workflow"));
     command(workflow, tr("Metadata…"), QStringLiteral("Workflow metadata"));
     command(workflow, tr("Canvas Uploads…"), QStringLiteral("Canvas uploads"));
     track(workflow);

@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "Wie die Szene beleuchtet ist",
           "shotHeader": "Einstellung {{count}}",
           "shotAction": "Einstellung {{count}} · Handlung",
-          "shotDialogue": "Einstellung {{count}} · Dialog",
-          "dialoguePlaceholder": "Dialog",
-          "addDialogue": "Dialog hinzufügen",
+          "dialogue": "Dialog",
           "seconds": "Sekunden",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Szene {{count}}"
         },
         "fallback": {

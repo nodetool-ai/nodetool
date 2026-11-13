@@ -221,12 +221,12 @@ void InlinePropertyPresenter::reposition() {
   if (holding_) { return; }
   if (!widget_ || !current()) { if (active()) { cancel(); } return; }
   auto local = model_.inlineFieldRect(node_, name_);
-  if (contentHeight_ > 0) { local.setHeight(std::max(local.height(), contentHeight_)); }
+  if (contentHeight_ > 0 && name_ != "code") { local.setHeight(std::max(local.height(), contentHeight_)); }
   const auto kind = descriptor_["kind"].toString();
   // A small control, such as the Painter's swatch, opens a wider editor to its right.
   if (const auto minimum = descriptor_.value(QStringLiteral("minimumWidth")).toDouble(); minimum > local.width()) { local.setWidth(minimum); }
-  if (name_ == "code") { local.setHeight(std::max(280.0, local.height())); }
-  if (kind == "text" || kind == "multiline") {
+  // The code editor covers the card's code field exactly and has no Expand strip.
+  if (name_ != "code" && (kind == "text" || kind == "multiline")) {
     if (expanded_) { local.setHeight(std::max(180.0, local.height())); }
     // A narrow action strip expands multiline editing without discarding draft.
     local.setHeight(local.height() + 24);

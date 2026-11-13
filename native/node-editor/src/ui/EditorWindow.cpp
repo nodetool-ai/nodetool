@@ -154,6 +154,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     connect(&generations_, &node_editor::GenerationActivity::rowsChanged, this, [this] {
       for (auto *tab : tabs_) { tab->schedulePanelChanged(); }
     });
+    installComfy();
     return;
   }
   setWindowTitle(tr("NodeTool Workflow[*]"));
@@ -177,6 +178,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     emit documentEpochChanged();
     QTimer::singleShot(0, this, &EditorWindow::refreshChildReferences);
   });
+  installComfy();
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &setup_, &node_editor::SetupController::configure);
   // Every prediction a run on this socket reports reaches the shared Generations list.
   connect(&session_, &node_editor::WorkflowSession::predictionReceived, this, [this](const QJsonObject &message) {
@@ -279,7 +281,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&workflowHeader_, &node_editor::WorkflowHeader::redoRequested, this, [this] { action("Redo"); });
   connect(&workflowHeader_, &node_editor::WorkflowHeader::saveToServerRequested, this, [this] { action("Server Save"); });
   connect(&workflowHeader_, &node_editor::WorkflowHeader::serverSyncRequested, this, [this] { action("Server sync"); });
-  connect(&workflowHeader_, &node_editor::WorkflowHeader::moreRequested, this, [this] { action("More"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::actionRequested, this, [this](const QString &name) {
+    if (menuActionEnabled(name)) { userAction(name); }
+  });
   connect(&workflowHeader_, &node_editor::WorkflowHeader::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(&panelLayout_, &node_editor::PanelLayout::toggleBrowserRequested, this, [this] { action("Workflows"); });
   connect(&panelLayout_, &node_editor::PanelLayout::toggleChatRequested, this, &EditorWindow::toggleChat);
@@ -356,13 +360,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     schedulePanelChanged();
     if (browserLoadingProjects_ && !browser_.projectsLoading()) {
       browserLoadingProjects_ = false;
-      if (browser_.error().isEmpty()) { browser_.refresh(); }
+      if (browser_.error().isEmpty()) { browser_.refresh(); browser_.loadTriggers(); }
     }
   });
   connect(&library_, &node_editor::LibraryBrowser::changed, this, &EditorWindow::schedulePanelChanged);
   connect(&browser_, &node_editor::WorkflowBrowser::created, this, &EditorWindow::openWorkflow);
   connect(&browser_, &node_editor::WorkflowBrowser::openRequested, this, &EditorWindow::openWorkflow);
   connect(&browser_, &node_editor::WorkflowBrowser::deleteRequested, this, &EditorWindow::deleteWorkflow);
+  connect(&browser_, &node_editor::WorkflowBrowser::deleteSelectedRequested, this, &EditorWindow::deleteWorkflows);
   connect(&browser_, &node_editor::WorkflowBrowser::reloadRequested, this, [this] { action("Refresh workflows"); });
   connect(&browser_, &node_editor::WorkflowBrowser::renamed, this, [this](const QString &id) {
     if (id == document_.snapshot()["id"].toString() && document_.undoStack()->isClean()) { session_.openWorkflow(id); }
@@ -1505,6 +1510,9 @@ bool EditorWindow::libraryVisible() const {
   if (!tabOwner_) { return activeEditor_->libraryVisible(); } return libraryDock_ && !libraryDock_->isHidden(); }
 void EditorWindow::loadBrowser() {
   if (session_.serverUrl().isEmpty()) { return; }
+  // Favourites and view choices other tabs changed since the last load. Its
+  // change signal must come before the project load is marked pending.
+  browser_.restoreViewSettings();
   browserLoadingProjects_ = true;
   browser_.loadProjects();
 }
@@ -1547,6 +1555,16 @@ void EditorWindow::deleteWorkflow(const QString &id, const QString &name) {
   const auto epoch = browserEpoch_;
   const auto answer = QMessageBox::question(this, tr("Delete workflow"), tr("Delete “%1” from the server? This cannot be undone.").arg(name), QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
   if (answer == QMessageBox::Yes && epoch == browserEpoch_) { browser_.deleteWorkflow(id); }
+}
+// WorkflowDeleteDialog.tsx with several workflows.
+void EditorWindow::deleteWorkflows(const QStringList &ids) {
+  if (!tabOwner_) { activeEditor_->deleteWorkflows(ids); return; }
+  if (ids.isEmpty()) { return; }
+  const auto epoch = browserEpoch_;
+  const auto answer = QMessageBox::question(this, tr("Delete workflows?"),
+      tr("Delete %n workflow(s) and their graphs from the server? This cannot be undone.", nullptr, int(ids.size())),
+      QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
+  if (answer == QMessageBox::Yes && epoch == browserEpoch_) { browser_.deleteWorkflows(ids); }
 }
 QPair<bool, bool> EditorWindow::queueActivity(const QVariantList &queue) const {
   QPair<bool, bool> activity{false, false};
@@ -2208,13 +2226,15 @@ bool EditorWindow::apply(const QJsonObject &c) {
 }
 void EditorWindow::setCatalog(const QJsonArray &source) {
   if (codeSnippets_.isEmpty()) { codeSnippets_ = loadCodeSnippets(); }
-  const auto metadata = withCodeSnippets(source, codeSnippets_);
+  // A Comfy workflow's tab adds its target's ComfyUI node classes to the catalog.
+  baseCatalog_ = source;
+  const auto metadata = withCodeSnippets(node_editor::mergeComfyCatalog(source, comfyRecords_), codeSnippets_);
   if (!tabOwner_) { metadata_ = metadata; for (auto tab : tabs_) tab->setCatalog(metadata); emit catalogChanged(); return; }
   metadata_ = metadata;
   // Panels can bind to the tab or to the window that owns the tabs.
   emit catalogChanged();
   emit tabOwner_->catalogChanged();
-  compatiblePicker_->setCatalog(metadata);
+  compatiblePicker_->setCatalog(node_editor::comfyMenuMetadata(metadata, comfyWorkflow_));
   canvasDrops_->setCatalog(metadata);
   session_.setNodeMetadata(metadata);
   document_.setNodeMetadata(metadata_);
@@ -2288,7 +2308,7 @@ void EditorWindow::syncLineage() {
 }
 QVariantList EditorWindow::catalog() const {
   if (!tabOwner_) { return activeEditor_->catalog(); }
-  return node_editor::NodeCatalog::entriesFromMetadata(metadata_);
+  return node_editor::NodeCatalog::entriesFromMetadata(node_editor::comfyMenuMetadata(metadata_, comfyWorkflow_));
 }
 bool EditorWindow::miniMapVisible() const {
     if (!tabOwner_) { return activeEditor_->miniMapVisible(); }
@@ -2494,6 +2514,15 @@ void EditorWindow::syncChrome() {
   workflowHeader_.setRenamable(workflowRenamable());
   workflowHeader_.setSaveStatus(documentSaveStatus());
   workflowHeader_.setHistory(canUndo(), canRedo());
+  browser_.setCurrentId(document_.snapshot()["id"].toString());
+  // The outer window shows the active tab's commands.
+  const auto *source = tabOwner_ || !activeEditor_ ? this : activeEditor_;
+  QStringList enabled;
+  for (const auto *name : {"Save", "Version history", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu",
+                           "Instant Update: On", "Canvas navigation: Mouse"}) {
+    if (source->menuActionEnabled(QString::fromLatin1(name))) { enabled << QString::fromLatin1(name); }
+  }
+  workflowHeader_.setActions(enabled, source->instantUpdate_, mouseNavigation());
   panelLayout_.setPanels({.browser = browserVisible(),
                           .chat = chatVisible(),
                           .library = libraryVisible(),
@@ -3210,8 +3239,8 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "Settings") { openSettings(); return; }
   if (name == "Cut") { if (menuActionEnabled(name)) { action("Copy"); action("Delete"); } return; }
-  if (name == "Version history" || name == "Share workflow" || name == "Workflow metadata") {
-    showWorkflowDetails(name == "Version history" ? "versions" : name == "Share workflow" ? "sharing" : "metadata"); return;
+  if (name == "Version history" || name == "Workflow metadata") {
+    showWorkflowDetails(name == "Version history" ? "versions" : "metadata"); return;
   }
     if (name == "Save" && inlineChild_ && childParent_) {
         flushChild();
@@ -3439,6 +3468,10 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "More") {
     showMoreMenu();
+    return;
+  }
+  if (name == "Comfy target") {
+    showComfyTargetMenu();
     return;
   }
   if (name == "Zoom in" || name == "Zoom out") {
@@ -3967,6 +4000,9 @@ void EditorWindow::presentation(const QVariantMap &roles) {
   }
   if (color("success").isValid()) {
       theme.success = color("success");
+  }
+  if (color("info").isValid()) {
+      theme.info = color("info");
   }
   theme.selectionShadow = color("shadow");
   for (const auto &[name, target] : {std::pair{"mediaScrim", &theme.mediaScrim}, std::pair{"mediaScrimInk", &theme.mediaScrimInk},

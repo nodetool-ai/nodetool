@@ -39,6 +39,13 @@ inline constexpr int handleRowStep = 28;
 inline constexpr int inlineRowGap = 6;
 inline constexpr int fieldHeight = 29;
 inline constexpr int multilineFieldHeight = 65;
+// The code field of a Code node card. CodePropertyEditor.qml uses the same
+// numbers, so the inline editor lands on the painted field without a shift.
+inline constexpr int codeFontSize = 12;
+inline constexpr int codePaddingY = 6;
+inline constexpr int codeGutterWidth = 32;
+inline constexpr int codeTextGap = 8;
+inline constexpr int codeMinimumHeight = 200;
 inline constexpr int previewHeight = 80;
 // ContentCardBody's top padding places its preview below the handle column.
 inline constexpr int contentPreviewTop = 47;
@@ -271,6 +278,8 @@ struct NodeRow {
   bool checked = false;
   bool choice = false;
   bool bare = false;
+  // A Multiline row that holds source code: a monospace field with a line gutter.
+  bool code = false;
   double y = 0;
   double height = 0;
   double fieldY = 0;
