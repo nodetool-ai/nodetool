@@ -51,10 +51,6 @@ Rectangle {
         id: roles
     }
 
-    function showHint(text) {
-        root.header.showToolTip(text)
-    }
-
     component HeaderButton: Ui.ToolbarIconButton {
         property string tooltip: text
         accessibleName: tooltip
