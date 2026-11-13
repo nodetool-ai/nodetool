@@ -263,7 +263,7 @@ That is a separate decision, not part of this refactor.
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 0 read a root context property, 0 of them read the editor window. `EditorWindow.h` exposes 11 properties and 12 invokable methods or slots (23 members) and 14 signals.
+Scanned 82 files in `qml/`. 0 read a root context property, 0 of them read the editor window. `EditorWindow.h` exposes 11 properties and 12 invokable methods or slots (23 members) and 14 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|

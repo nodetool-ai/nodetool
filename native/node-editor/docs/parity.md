@@ -525,14 +525,14 @@ captures are described below.
 | 4 | The editor follows undo and agent writes while unfocused (`JSONProperty.tsx` 104-110) | Implemented | Implemented |
 | 5 | Open in a larger editor and copy buttons (`JSONProperty.tsx` 203-215) | Missing | Missing |
 | 6 | Dict rows add, remove and rename. A rename onto an existing key is refused (`DictTable.tsx` 84-100) | Implemented | Implemented |
-| 7 | A value type select of int, string, datetime and float (`DictProperty.tsx` 12-60, `ListProperty.tsx` 11-36) | Partial. The declared entry type decides the editor | Partial |
+| 7 | A value type select of int, string, datetime and float (`DictProperty.tsx` 12-60, `ListProperty.tsx` 11-36) | Partial. The declared entry type decides the editor | Implemented in `DataTableEditor.qml` for the constant List and Dict nodes, read from the first value |
 | 8 | List rows add, remove and reorder (`ListProperty.tsx`, `ListTable.tsx`) | Implemented | Implemented |
 | 9 | Nested lists and dictionaries as values | Missing. They showed as read-only text | Implemented. Each is a JSON editor that checks the declared container and leaves the document alone on invalid text |
 | 10 | A new record column takes the first free "Column N" name (`RecordTypeProperty.tsx` 70-89) | Implemented | Implemented |
-| 11 | A record column renames, retypes and describes. A duplicate name is refused (`ColumnsManager.tsx`) | Implemented | Implemented |
+| 11 | A record column renames and retypes. A duplicate name is refused (`ColumnsManager.tsx`) | Implemented | Implemented in `ColumnsEditor.qml`, which drops the description field the web does not show |
 | 12 | Rows and unknown fields of a record survive a column edit (`RecordTypeProperty.tsx` 62-69) | Implemented | Implemented |
 | 13 | Each committed edit is one undo step, and the document schema rejects wrong shapes | Implemented at the API level only | Implemented and driven by real clicks and keys |
-| 14 | String list and dataframe editors (`StringListProperty.tsx`, `DataframeProperty.tsx`) | Missing | Missing. Outside this slice |
+| 14 | String list and dataframe editors (`StringListProperty.tsx`, `DataframeProperty.tsx`) | Missing | The dataframe edits columns and cells in the inspector (`DataTableEditor.qml`). The string list editor and editing on the dataframe card are missing |
 
 Evidence: `PropertyBehaviorTest` clicks Add, Remove and reorder buttons,
 types into the nested, JSON, key and record editors with real key events, and

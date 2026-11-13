@@ -11,7 +11,9 @@ Item {
     readonly property int token: activationToken
     readonly property var value: descriptor.hasValue ? descriptor.value : descriptor.hasDefault ? descriptor.defaultValue : null
     readonly property string kind: descriptor.kind || ""
-    readonly property bool structured: ["list", "dict", "json", "record_type"].includes(kind)
+    readonly property bool structured: ["list", "dict", "json", "record_type"].includes(kind) || table
+    // The constant List and Dict cards edit through the web's table, as the inspector does.
+    readonly property bool table: (kind === "list" && descriptor.nodeType === "nodetool.constant.List") || (kind === "dict" && descriptor.nodeType === "nodetool.constant.Dict")
     readonly property bool resource: ["workflow", "workflow_list", "collection"].includes(kind)
     readonly property bool imageSize: kind === "image_size"
     function commit(value) { presenter.commit(value, token) }
@@ -161,7 +163,7 @@ Item {
         Rectangle {
             id: panel
             objectName: "inline-structured"
-            readonly property real wanted: Math.min(editor.implicitHeight + Ui.Metrics.md * 2, Ui.Metrics.touch * 10)
+            readonly property real wanted: Math.min(editor.implicitContent + Ui.Metrics.md * 2, Ui.Metrics.touch * 10)
             color: Ui.Theme.surfaceOverlay
             radius: Ui.Metrics.radiusOverlay
             border.width: Ui.Metrics.border
@@ -178,15 +180,40 @@ Item {
                 anchors.margins: Ui.Metrics.md
                 clip: true
                 contentWidth: width
-                contentHeight: editor.implicitHeight
+                contentHeight: editor.implicitContent
                 boundsBehavior: Flickable.StopAtBounds
-                StructuredPropertyEditor {
+                Loader {
                     id: editor
                     width: parent.width
-                    descriptor: root.descriptor
-                    value: root.value
-                    writable: true
-                    onValueCommitted: value => root.presenter.apply(value, root.token)
+                    readonly property real implicitContent: item ? item.implicitHeight : 0
+                    sourceComponent: root.table ? tableBody : root.kind === "record_type" ? recordTypeBody : structuredBody
+                }
+                Component {
+                    id: structuredBody
+                    StructuredPropertyEditor {
+                        descriptor: root.descriptor
+                        value: root.value
+                        writable: true
+                        onValueCommitted: value => root.presenter.apply(value, root.token)
+                    }
+                }
+                Component {
+                    id: tableBody
+                    DataTableEditor {
+                        descriptor: root.descriptor
+                        value: root.value
+                        writable: true
+                        onValueCommitted: value => root.presenter.apply(value, root.token)
+                    }
+                }
+                Component {
+                    id: recordTypeBody
+                    RecordTypeEditor {
+                        descriptor: root.descriptor
+                        value: root.value
+                        writable: true
+                        onValueCommitted: value => root.presenter.apply(value, root.token)
+                    }
                 }
             }
         }
