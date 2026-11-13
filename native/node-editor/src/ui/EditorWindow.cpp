@@ -356,13 +356,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     schedulePanelChanged();
     if (browserLoadingProjects_ && !browser_.projectsLoading()) {
       browserLoadingProjects_ = false;
-      if (browser_.error().isEmpty()) { browser_.refresh(); }
+      if (browser_.error().isEmpty()) { browser_.refresh(); browser_.loadTriggers(); }
     }
   });
   connect(&library_, &node_editor::LibraryBrowser::changed, this, &EditorWindow::schedulePanelChanged);
   connect(&browser_, &node_editor::WorkflowBrowser::created, this, &EditorWindow::openWorkflow);
   connect(&browser_, &node_editor::WorkflowBrowser::openRequested, this, &EditorWindow::openWorkflow);
   connect(&browser_, &node_editor::WorkflowBrowser::deleteRequested, this, &EditorWindow::deleteWorkflow);
+  connect(&browser_, &node_editor::WorkflowBrowser::deleteSelectedRequested, this, &EditorWindow::deleteWorkflows);
   connect(&browser_, &node_editor::WorkflowBrowser::reloadRequested, this, [this] { action("Refresh workflows"); });
   connect(&browser_, &node_editor::WorkflowBrowser::renamed, this, [this](const QString &id) {
     if (id == document_.snapshot()["id"].toString() && document_.undoStack()->isClean()) { session_.openWorkflow(id); }
@@ -1505,6 +1506,9 @@ bool EditorWindow::libraryVisible() const {
   if (!tabOwner_) { return activeEditor_->libraryVisible(); } return libraryDock_ && !libraryDock_->isHidden(); }
 void EditorWindow::loadBrowser() {
   if (session_.serverUrl().isEmpty()) { return; }
+  // Favourites and view choices other tabs changed since the last load. Its
+  // change signal must come before the project load is marked pending.
+  browser_.restoreViewSettings();
   browserLoadingProjects_ = true;
   browser_.loadProjects();
 }
@@ -1547,6 +1551,16 @@ void EditorWindow::deleteWorkflow(const QString &id, const QString &name) {
   const auto epoch = browserEpoch_;
   const auto answer = QMessageBox::question(this, tr("Delete workflow"), tr("Delete “%1” from the server? This cannot be undone.").arg(name), QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
   if (answer == QMessageBox::Yes && epoch == browserEpoch_) { browser_.deleteWorkflow(id); }
+}
+// WorkflowDeleteDialog.tsx with several workflows.
+void EditorWindow::deleteWorkflows(const QStringList &ids) {
+  if (!tabOwner_) { activeEditor_->deleteWorkflows(ids); return; }
+  if (ids.isEmpty()) { return; }
+  const auto epoch = browserEpoch_;
+  const auto answer = QMessageBox::question(this, tr("Delete workflows?"),
+      tr("Delete %n workflow(s) and their graphs from the server? This cannot be undone.", nullptr, int(ids.size())),
+      QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
+  if (answer == QMessageBox::Yes && epoch == browserEpoch_) { browser_.deleteWorkflows(ids); }
 }
 QPair<bool, bool> EditorWindow::queueActivity(const QVariantList &queue) const {
   QPair<bool, bool> activity{false, false};
@@ -2494,6 +2508,7 @@ void EditorWindow::syncChrome() {
   workflowHeader_.setRenamable(workflowRenamable());
   workflowHeader_.setSaveStatus(documentSaveStatus());
   workflowHeader_.setHistory(canUndo(), canRedo());
+  browser_.setCurrentId(document_.snapshot()["id"].toString());
   panelLayout_.setPanels({.browser = browserVisible(),
                           .chat = chatVisible(),
                           .library = libraryVisible(),

@@ -162,6 +162,7 @@ public:
   bool browserVisible() const;
   bool libraryVisible() const;
   void openWorkflow(const QString &id);
+  void deleteWorkflows(const QStringList &ids);
   void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
   bool runActive() const;
