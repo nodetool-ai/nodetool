@@ -196,6 +196,14 @@ export const useStoryboardSetupFlow = ({
 
   const look = useLookStep(boardId);
 
+  // The Director needs a language model. The footer's model field fills in
+  // a default from the models this account can reach and says when there are
+  // none, so the button only has to wait for a model to be on the board.
+  const hasDirectorModel = Boolean(directorModel?.id);
+  const directorModelReason = hasDirectorModel
+    ? undefined
+    : "Pick a model to write the screenplay";
+
   const onStageChange = useCallback(
     (next: StoryboardSetupStage) => setSetup(boardId, { stage: next }),
     [boardId, setSetup]
@@ -404,7 +412,11 @@ export const useStoryboardSetupFlow = ({
       {
         stage: "idea",
         label: "Idea",
-        primaryLabel: "Continue",
+        // A board with no screenplay goes from the brief straight to shots:
+        // genre is optional and the length and model have defaults, so asking
+        // for them first only added a step most boards stopped at. The genre
+        // step stays one click away as the skip action.
+        primaryLabel: hasScreenplay ? "Continue" : "Write shots",
         // An imported script that is kept verbatim is the story, so the brief
         // beside it is optional (F3).
         // A file being read lands on the brief, so Continue waits for it
@@ -412,10 +424,58 @@ export const useStoryboardSetupFlow = ({
         canAdvance:
           !importingFile &&
           !contextError &&
-          (brief.trim().length > 0 || imported?.preserveWords === true),
+          (brief.trim().length > 0 || imported?.preserveWords === true) &&
+          (hasScreenplay || hasDirectorModel),
         blockedReason: importingFile
           ? "Reading your file"
-          : (contextError ?? "Write a sentence, or bring your own script"),
+          : (contextError ??
+            (brief.trim().length > 0 || imported?.preserveWords === true
+              ? directorModelReason
+              : "Write a sentence, or bring your own script")),
+        pending: hasScreenplay ? undefined : directing,
+        pendingLabel: cameraPass
+          ? `Directing ${shotsLabel(directedShotCount)}`
+          : `Writing ${shotsLabel(directedShotCount)}`,
+        onCancel: !hasScreenplay && directing ? cancelDirecting : undefined,
+        generation: hasScreenplay
+          ? undefined
+          : {
+              result: `Write a ${shotCount}-shot screenplay you can edit as text`,
+              next: "Review and edit the scenes and shots next. No stills are rendered until the Look step.",
+              model: directorModel,
+              brief,
+              maxOutputTokens: DIRECTOR_MAX_OUTPUT_TOKENS,
+              noModelCall: false
+            },
+        // The model and length sit here too, so the creator sees which model
+        // will write the screenplay before writing the brief.
+        footerControls: hasScreenplay
+          ? undefined
+          : (context) =>
+              createElement(GenreFooterControls, {
+                boardId,
+                readOnly: context.readOnly,
+                shotCount,
+                onShotCountChange: setShotCount,
+                hideShotCount: false
+              }),
+        skipLabel: hasScreenplay ? undefined : "Choose a genre first",
+        onSkip: hasScreenplay ? undefined : () => undefined,
+        // The run moves the board from idea to review itself, so the shell
+        // has no stage left to write.
+        onAdvance: hasScreenplay
+          ? undefined
+          : async (context) => {
+              setRewriteRan(false);
+              const directed = await runDirector(shotCount, context?.signal);
+              if (!directed) {
+                throw new Error(
+                  directErrorRef.current ??
+                    "The Director did not return a screenplay."
+                );
+              }
+              return false;
+            },
         render: (context) =>
           createElement(IdeaStep, {
             boardId,
@@ -438,8 +498,10 @@ export const useStoryboardSetupFlow = ({
           : hasScreenplay
             ? "Re-direct your screenplay"
             : "Generate screenplay",
-        canAdvance: genre.length > 0,
-        blockedReason: "Pick a genre",
+        // Genre seasons the screenplay but is not required: the Director
+        // writes from the brief alone.
+        canAdvance: upToDate || hasDirectorModel,
+        blockedReason: directorModelReason,
         pending: directing,
         pendingLabel: cameraPass
           ? `Directing ${shotsLabel(directedShotCount)}`
@@ -612,9 +674,10 @@ export const useStoryboardSetupFlow = ({
       directedShotCount,
       directing,
       directorModel,
+      directorModelReason,
       entityIds.length,
       finish,
-      genre,
+      hasDirectorModel,
       hasScreenplay,
       imported?.preserveWords,
       importingFile,
