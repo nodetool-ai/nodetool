@@ -530,6 +530,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Task result URLs are screened; upload, create and poll use the fixed API host."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/kling-provider.ts",
+    "Kling AI video and image result downloads",
+    "provider-response",
+    "Task result URLs are screened; create and poll use the fixed API host."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",

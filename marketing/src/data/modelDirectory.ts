@@ -41,6 +41,7 @@ const PROVIDER_NAMES: Record<string, string> = {
   higgsfield: "Higgsfield",
   huggingface: "Hugging Face (local)",
   jina: "Jina AI",
+  kling: "Kling AI",
   llama_cpp: "llama.cpp server",
   lmstudio: "LM Studio",
   meshy: "Meshy",

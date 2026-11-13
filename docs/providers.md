@@ -53,6 +53,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | UseAPI | | ✅ | ✅ | | | | |
 | vgenv | | | ✅ | | | | |
 | ToAPIs | | ✅ | ✅ | | | | |
+| Kling AI | | ✅ | ✅ | | | | |
 | Replicate | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | FAL | ✅ | ✅ | ✅ | ✅ | | | |
 | Comfy Cloud | | ⁵ | ⁵ | | | | |
@@ -249,6 +250,10 @@ vgenv is an independent API for MiniMax H3 video, not affiliated with MiniMax. I
 ## ToAPIs
 
 ToAPIs (toapis.com) is an independent API gateway for third-party image and video models. NodeTool uses it for GPT Image 2, GPT Image 2 VIP, and GPT Image 2.5 Flare and Sunburst (text-to-image and image-to-image at 1K, 2K, or 4K) and for Seedance 2, Seedance 2 Fast, and Seedance 2 Mini (text-to-video, image-to-video with a first and optional last frame, and reference-to-video with up to nine images, 4 to 15 seconds). Input images are uploaded to ToAPIs first, because its image models take URLs only. Every generation is an asynchronous task that NodeTool polls, then downloads within the 24-hour result window. ToAPIs has no cancel endpoint, so a stopped run stops waiting but the task still finishes and is billed. No chat. Cloud only, keyed by `TOAPIS_API_KEY`.
+
+## Kling AI
+
+The `kling` provider calls Kling AI (Kuaishou) directly at its global endpoint, `api-singapore.klingai.com`. Video covers Kling 4.0, 4.0 Flash, 3.0 Turbo, 3.0, 3.0 Omni, O1, and 2.6, each for text-to-video and image-to-video. Kling 4.0, 3.0, 3.0 Omni, O1, and 2.6 also take a last frame. Images cover Kling Image 3.0 (`kling-v3`), Image 3.0 Omni (`kling-v3-omni`), and Image O1 (`kling-image-o1`), for text-to-image and image-to-image. Image 3.0 takes one reference image and the two omni models take up to ten. Kling has no model listing endpoint, so these models are a static list kept in `kling-provider.ts`. Every generation is an asynchronous task that NodeTool polls, then downloads. Kling keeps results for 30 days. Kling has no cancel endpoint, so a stopped run stops waiting but the task still finishes and is billed. No chat. Cloud only, keyed by `KLING_API_KEY`, an API key from the Kling AI console. The older Access Key and Secret Key pair is not supported, because Kling's newer video endpoints accept only API keys. Kling models are also reachable through kie.ai and other gateways, which use their own keys.
 
 ## Replicate
 

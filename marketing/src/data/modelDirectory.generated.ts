@@ -3909,7 +3909,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 1055,
+    "total": 1058,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7295,6 +7295,23 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "kling",
+        "models": [
+          {
+            "id": "kling-image-o1",
+            "name": "Kling Image O1"
+          },
+          {
+            "id": "kling-v3",
+            "name": "Kling Image 3.0"
+          },
+          {
+            "id": "kling-v3-omni",
+            "name": "Kling Image 3.0 Omni"
+          }
+        ]
+      },
+      {
         "provider": "meta",
         "models": [
           {
@@ -7368,7 +7385,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "video",
-    "total": 1053,
+    "total": 1060,
     "providers": [
       {
         "provider": "fal_ai",
@@ -10787,6 +10804,39 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "wan2.6-text-to-video",
             "name": "Wan 2.6 (Text to Video)"
+          }
+        ]
+      },
+      {
+        "provider": "kling",
+        "models": [
+          {
+            "id": "kling-2.6",
+            "name": "Kling 2.6"
+          },
+          {
+            "id": "kling-3.0",
+            "name": "Kling 3.0"
+          },
+          {
+            "id": "kling-3.0-omni",
+            "name": "Kling 3.0 Omni"
+          },
+          {
+            "id": "kling-3.0-turbo",
+            "name": "Kling 3.0 Turbo"
+          },
+          {
+            "id": "kling-4.0",
+            "name": "Kling 4.0"
+          },
+          {
+            "id": "kling-4.0-flash",
+            "name": "Kling 4.0 Flash"
+          },
+          {
+            "id": "kling-o1",
+            "name": "Kling O1"
           }
         ]
       },

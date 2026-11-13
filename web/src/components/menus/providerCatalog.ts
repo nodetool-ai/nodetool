@@ -489,6 +489,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://docs.toapis.com/"
   },
   {
+    key: "KLING_API_KEY",
+    providerId: PROVIDER_IDS.KLING,
+    name: "Kling AI",
+    description: "Kling 4.0, 3.0, O1, and 2.6 video, and Kling Image 3.0 and O1.",
+    section: "media",
+    docsUrl: "https://kling.ai/document-api/api/get-started/authentication"
+  },
+  {
     key: "REVE_API_KEY",
     providerId: PROVIDER_IDS.REVE,
     name: "Reve",

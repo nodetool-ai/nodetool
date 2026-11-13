@@ -117,6 +117,7 @@ const SOURCE_PROVIDERS = {
   "useapi-provider.ts": "useapi",
   "vgenv-provider.ts": "vgenv",
   "toapis-provider.ts": "toapis",
+  "kling-provider.ts": "kling",
   "openrouter-provider.ts": "openrouter",
   "requesty-provider.ts": "requesty",
   "opper-provider.ts": "opper",

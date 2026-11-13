@@ -98,6 +98,7 @@ import { HiggsfieldProvider } from "./higgsfield-provider.js";
 import { UseapiProvider } from "./useapi-provider.js";
 import { VgenvProvider } from "./vgenv-provider.js";
 import { ToapisProvider } from "./toapis-provider.js";
+import { KlingProvider } from "./kling-provider.js";
 export { BaseProvider, estimatePromptTokens } from "./base-provider.js";
 export {
   FAL_PROVIDER_ID,
@@ -697,6 +698,9 @@ registerBuiltinProvider(PROVIDER_IDS.VGENV, VgenvProvider, {
 });
 registerBuiltinProvider(PROVIDER_IDS.TOAPIS, ToapisProvider, {
   TOAPIS_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.KLING, KlingProvider, {
+  KLING_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {
