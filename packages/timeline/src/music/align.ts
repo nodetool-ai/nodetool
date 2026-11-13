@@ -74,8 +74,26 @@ export interface OnsetEnvelope {
   firstFrame: number;
 }
 
+/**
+ * Envelope hops computed between two yields of {@link measureAlignmentAsync}:
+ * about 15 ms of work on a laptop core.
+ */
+const HOPS_PER_SLICE = 2048;
+
+/** Run a sliced computation to its end without yielding. */
+function drain<T>(steps: Generator<void, T, void>): T {
+  for (;;) {
+    const next = steps.next();
+    if (next.done) return next.value;
+  }
+}
+
 /** The normalized spectral flux of the mono mix of `samples`. */
 export function onsetEnvelope(samples: Float32Array): OnsetEnvelope {
+  return drain(onsetEnvelopeSteps(samples));
+}
+
+function* onsetEnvelopeSteps(samples: Float32Array): Generator<void, OnsetEnvelope, void> {
   const frames = pcmFrames(samples);
   const mono = new Float32Array(frames);
   for (let frame = 0; frame < frames; frame += 1) {
@@ -84,6 +102,7 @@ export function onsetEnvelope(samples: Float32Array): OnsetEnvelope {
         (samples[frame * MUSIC_CHANNELS + 1] ?? 0)) /
       2;
   }
+  yield;
   const window = hannWindow(ALIGN_FFT_SIZE);
   const count = Math.max(
     0,
@@ -96,6 +115,7 @@ export function onsetEnvelope(samples: Float32Array): OnsetEnvelope {
     const magnitude = magnitudeSpectrum(mono, offset, window);
     values[index] = spectralFlux(magnitude, previous);
     previous = magnitude;
+    if ((index + 1) % HOPS_PER_SLICE === 0) yield;
   }
   return {
     values: subtractBaseline(values, BASELINE_HALF_WIDTH_HOPS),
@@ -247,11 +267,11 @@ export function beatPeriodFrames(bpm: number, beatUnit = 4): number {
  * The best beat period within 97%..103% of `periodFrames`, as a scale of it.
  * A coarse 0.1% pass picks the neighbourhood and a fine pass refines it.
  */
-function searchTempoScale(
+function* searchTempoScale(
   envelope: OnsetEnvelope,
   periodFrames: number,
   phaseFrames: number
-): { scale: number; confidence: number } {
+): Generator<void, { scale: number; confidence: number }, void> {
   let bestScale = 1;
   let best = Number.NEGATIVE_INFINITY;
   let bestMean = 0;
@@ -259,6 +279,7 @@ function searchTempoScale(
   for (let step = 0; step <= steps; step += 1) {
     const scale = TEMPO_SEARCH_MIN + step * TEMPO_COARSE_STEP;
     const { peak, mean } = searchLag(envelope, periodFrames * scale, phaseFrames);
+    yield;
     if (peak > best) {
       best = peak;
       bestMean = mean;
@@ -271,6 +292,7 @@ function searchTempoScale(
   for (let step = 0; step <= fineSteps; step += 1) {
     const scale = from + step * TEMPO_FINE_STEP;
     const { peak, mean } = searchLag(envelope, periodFrames * scale, phaseFrames);
+    yield;
     if (peak > best) {
       best = peak;
       bestMean = mean;
@@ -283,20 +305,49 @@ function searchTempoScale(
 /**
  * Measure the grid offset and the tempo deviation of `samples`. The offset is
  * measured at the project's beat period. The tempo scan does not change it.
+ *
+ * This runs to the end on the calling thread: about 1 s for a 64 s window and
+ * 5 s for 300 s. A server measures with {@link measureAlignmentAsync}.
  */
 export function measureAlignment(
   samples: Float32Array,
   options: MeasureAlignmentOptions
 ): MusicAlignment {
+  return drain(measureAlignmentSteps(samples, options));
+}
+
+/**
+ * {@link measureAlignment} in slices of about 15 ms, awaiting `yieldToHost`
+ * between slices so a server keeps answering other requests while it
+ * measures a long window (backlog M3). The result is identical.
+ */
+export async function measureAlignmentAsync(
+  samples: Float32Array,
+  options: MeasureAlignmentOptions,
+  yieldToHost: () => Promise<void>
+): Promise<MusicAlignment> {
+  const steps = measureAlignmentSteps(samples, options);
+  for (;;) {
+    const next = steps.next();
+    if (next.done) return next.value;
+    await yieldToHost();
+  }
+}
+
+function* measureAlignmentSteps(
+  samples: Float32Array,
+  options: MeasureAlignmentOptions
+): Generator<void, MusicAlignment, void> {
   const period = beatPeriodFrames(options.bpm, options.beatUnit);
   const phase = options.beatPhaseFrames ?? 0;
-  const envelope = onsetEnvelope(samples);
+  const envelope = yield* onsetEnvelopeSteps(samples);
   const lag = searchLag(envelope, period, phase);
+  yield;
   const confidence =
     lag.mean > 0 && Number.isFinite(lag.peak) ? lag.peak / lag.mean : 0;
   const tempo =
     confidence > 0
-      ? searchTempoScale(envelope, period, phase)
+      ? yield* searchTempoScale(envelope, period, phase)
       : { scale: 1, confidence: 0 };
   const measured = {
     offsetFrames: confidence > 0 ? Math.round(lag.lagFrames) : 0,

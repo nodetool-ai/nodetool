@@ -15,6 +15,7 @@ import {
   cutFrames,
   cutRange,
   measureAlignment,
+  measureAlignmentAsync,
   peakNormalizeGain,
   samplePeak
 } from "../src/music/process.js";
@@ -276,5 +277,24 @@ describe("cutFrames", () => {
   it("refuses fractional frames and reversed ranges", () => {
     expect(() => cutFrames(samples, 0.5, 2)).toThrow(/whole frames/);
     expect(() => cutFrames(samples, 3, 2)).toThrow(/ends before/);
+  });
+});
+
+describe("measureAlignmentAsync (backlog M3)", () => {
+  it("returns what measureAlignment returns, yielding to the host between slices", async () => {
+    const window = clickTrack({
+      seconds: 17,
+      firstFrame: 2400,
+      periodFrames: beatPeriodFrames(120) / 1.01,
+      noise: 0.01
+    });
+    const options = { bpm: 120, beatPhaseFrames: 2400, takeFrames: 16 * RATE };
+    let yields = 0;
+    const sliced = await measureAlignmentAsync(window, options, async () => {
+      yields += 1;
+    });
+    expect(sliced).toEqual(measureAlignment(window, options));
+    // The envelope of 17 s takes eight slices, and the tempo scan one per period.
+    expect(yields).toBeGreaterThan(60);
   });
 });

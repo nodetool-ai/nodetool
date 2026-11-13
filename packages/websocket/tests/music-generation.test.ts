@@ -829,3 +829,60 @@ describe("music generation: routing and refusals (MD17)", () => {
     expect(STORED.size).toBe(0);
   });
 });
+
+describe("music generation: event loop (backlog M3)", () => {
+  // measureAlignment takes about 1 s per minute of window. Run synchronously
+  // in the handler, it stalls every other request on the server for that long.
+  it("keeps the event loop turning while it processes a long window", async () => {
+    const frames = 90 * RATE;
+    const audio = wav(clickTrack(frames, 0, 0.5));
+    let last = 0;
+    let longestGap = 0;
+    let ticker: ReturnType<typeof setInterval> | undefined;
+    // The clock starts when the backend answers: what follows is the handler's own work.
+    const scripted = new ScriptedMusicProvider(async () => {
+      last = performance.now();
+      ticker = setInterval(() => {
+        const now = performance.now();
+        longestGap = Math.max(longestGap, now - last);
+        last = now;
+      }, 5);
+      return {
+        candidates: [{ audio, seed: 1 }],
+        backend: "acestep.cpp@07abf07",
+        timing: { queueMs: 0, lmMs: 0, synthMs: 0 }
+      };
+    });
+    let reply: Record<string, unknown>;
+    try {
+      reply = await rpc(scripted, "generate_media", "music-long", {
+        mode: "music",
+        provider: "acestep",
+        model: "acestep-v15-turbo",
+        prompt: "x",
+        music: {
+          task: "text2music",
+          bpm: 120,
+          beats_per_bar: 4,
+          beat_unit: 4,
+          candidates: 1,
+          request_frames: frames,
+          beat_phase_frames: 0,
+          segments: [{ start_frame: 0, end_frame: frames }],
+          // The measurement runs either way; align off keeps the cut in place.
+          align: false
+        }
+      });
+    } finally {
+      clearInterval(ticker);
+      longestGap = Math.max(longestGap, performance.now() - last);
+    }
+    expect(reply.error).toBeUndefined();
+    const result = reply.result as { music_takes: Array<{ record: MusicGenerationRecord }> };
+    expect(result.music_takes[0]!.record.alignment?.confidence).toBeGreaterThan(3);
+    // Before the fix the measurement held the loop for 2.2 to 2.5 s in one
+    // piece. The gain, the mono mix and the WAV encode of 90 s still run
+    // whole: about 250 ms together on a loaded 4-core machine.
+    expect(longestGap).toBeLessThan(500);
+  }, 60_000);
+});

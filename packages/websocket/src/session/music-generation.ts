@@ -52,7 +52,7 @@ import {
   alignmentForTake,
   applyGain,
   cutRange,
-  measureAlignment,
+  measureAlignmentAsync,
   pcmFrames,
   peakNormalizeGain,
   spliceRegion,
@@ -259,6 +259,14 @@ interface CandidateTakes {
   }>;
 }
 
+/**
+ * Let the server answer other requests between slices of the alignment
+ * measurement, which takes about 1 s per minute of audio (backlog M3).
+ */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
 interface SpliceParent {
   id: string;
   pcm: DecodedPcm;
@@ -290,21 +298,25 @@ function requireFrames(
  * alternative for the clip at the first segment's place (MUSIC-MODE.md
  * section 10), so it moves back by `index` segment lengths.
  */
-function generateTakes(
+async function generateTakes(
   music: MusicGenerationRequest,
   samples: Float32Array,
   candidate: number
-): CandidateTakes {
+): Promise<CandidateTakes> {
   const segments = music.segments ?? [];
   const { gain, gainDb } = peakNormalizeGain(samples);
   const scaled = applyGain(samples, gain);
   const firstSegment = segments[0];
-  const measured = measureAlignment(scaled, {
-    bpm: music.bpm,
-    beatUnit: music.beat_unit,
-    beatPhaseFrames: music.beat_phase_frames ?? 0,
-    takeFrames: firstSegment ? firstSegment.end_frame - firstSegment.start_frame : 0
-  });
+  const measured = await measureAlignmentAsync(
+    scaled,
+    {
+      bpm: music.bpm,
+      beatUnit: music.beat_unit,
+      beatPhaseFrames: music.beat_phase_frames ?? 0,
+      takeFrames: firstSegment ? firstSegment.end_frame - firstSegment.start_frame : 0
+    },
+    yieldToEventLoop
+  );
   const corrected = music.align === true && measured.confident;
   const offset = corrected ? measured.offsetFrames : 0;
   const windowStart = music.window_start_frame ?? 0;
@@ -331,36 +343,40 @@ function generateTakes(
 }
 
 /** The region of a repaint or lego candidate, and its tempo measurement. */
-function regionOf(
+async function regionOf(
   music: MusicGenerationRequest,
   samples: Float32Array,
   candidate: number
-): { region: Float32Array; alignment: MusicAlignment } {
+): Promise<{ region: Float32Array; alignment: MusicAlignment }> {
   const range = music.region;
   if (!range) throw new Error(`${music.task} needs a region`);
   requireFrames(samples, range.end_frame, candidate, "the region");
   const region = cutRange(samples, range);
-  const alignment = measureAlignment(region, {
-    bpm: music.bpm,
-    beatUnit: music.beat_unit,
-    // The phase is window-relative; the region starts later in the window.
-    beatPhaseFrames: (music.beat_phase_frames ?? 0) - range.start_frame,
-    takeFrames: range.end_frame - range.start_frame
-  });
+  const alignment = await measureAlignmentAsync(
+    region,
+    {
+      bpm: music.bpm,
+      beatUnit: music.beat_unit,
+      // The phase is window-relative; the region starts later in the window.
+      beatPhaseFrames: (music.beat_phase_frames ?? 0) - range.start_frame,
+      takeFrames: range.end_frame - range.start_frame
+    },
+    yieldToEventLoop
+  );
   return { region, alignment };
 }
 
 /** repaint: splice the region into a copy of the parent. */
-function repaintTakes(
+async function repaintTakes(
   music: MusicGenerationRequest,
   samples: Float32Array,
   parent: SpliceParent,
   candidate: number
-): CandidateTakes {
+): Promise<CandidateTakes> {
   const splice = music.splice;
   const range = music.region;
   if (!splice || !range) throw new Error("repaint needs a region and a splice parent");
-  const { region, alignment } = regionOf(music, samples, candidate);
+  const { region, alignment } = await regionOf(music, samples, candidate);
   const spliced = spliceRegion(
     parent.pcm.samples,
     region,
@@ -392,14 +408,14 @@ function repaintTakes(
 }
 
 /** lego: the region at the backend's level. */
-function legoTakes(
+async function legoTakes(
   music: MusicGenerationRequest,
   samples: Float32Array,
   candidate: number
-): CandidateTakes {
+): Promise<CandidateTakes> {
   const range = music.region;
   if (!range) throw new Error("lego needs a region");
-  const { region, alignment } = regionOf(music, samples, candidate);
+  const { region, alignment } = await regionOf(music, samples, candidate);
   const windowStart = music.window_start_frame ?? 0;
   return {
     takes: [
@@ -529,12 +545,12 @@ export async function runMusicGeneration(
           const { samples } = await decodeMusicPcm(output.audio, abort);
           let built: CandidateTakes;
           if (music.task === "text2music") {
-            built = generateTakes(music, samples, candidate);
+            built = await generateTakes(music, samples, candidate);
           } else if (music.task === "repaint") {
             if (!parent) throw new Error("repaint needs a splice parent");
-            built = repaintTakes(music, samples, parent, candidate);
+            built = await repaintTakes(music, samples, parent, candidate);
           } else {
-            built = legoTakes(music, samples, candidate);
+            built = await legoTakes(music, samples, candidate);
           }
           for (const take of built.takes) {
             abort.throwIfAborted();
