@@ -228,4 +228,28 @@ the container's default `sh` cannot execute Bash's `shopt`. The dependent
 `core-smoke` status also fails. Both Chromium diagnostic steps now explicitly
 select Bash. A regression fails before that correction and passes afterward,
 including execution of the diagnostic success path. All three focused
-Chromium workflow tests pass. CI verification of the correction remains pending.
+Chromium workflow tests pass. The
+[game verification bucket at `a75ccb5de9`](https://github.com/nodetool-ai/nodetool/actions/runs/43365856600/job/131690884743)
+also passes, including the corrected diagnostic step. The same revision's
+[realtime CI](https://github.com/nodetool-ai/nodetool/actions/runs/43365856623)
+passes core Release, ASan/UBSan and TSan, standalone offline Release/ASan+UBSan
+and the wasm32 fixture/benchmark checks.
+
+## GPU retention and replacement resize
+
+The software-adapter fixture now reads back a retained red source combined with
+alternating volatile output for 101 frames. A separate schedule instance verifies
+one retained execution and four volatile executions per frame, with two reused
+volatile textures. The GPU pixels preserve the retained channel while the
+volatile channel changes. Corrupting a retained pixel fails the comparator.
+Preparing the unchanged pass graph with an 8×8 session produces the resized
+golden instead of reusing the old 4×4 resources. This is offline replacement
+preparation, not live resizing or cross-plan cache migration.
+
+Windows MSVC Release passes `realtime-render-schedule` and
+`realtime-offline-gpu`. The affected-native command against `a75ccb5de9`, using
+the GPU build and restricting CTest to those two tests, also passes. Windows
+MSVC ASan passes `realtime-offline-gpu`. The GPU fixture requests a software
+adapter. Sanitizers cover C++ host code, not the prebuilt GPU library or driver.
+Linux sanitizer qualification of this expanded fixture remains pending CI.
+Broad checks were not rerun for this fixture-only batch.

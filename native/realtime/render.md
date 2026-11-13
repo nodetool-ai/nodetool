@@ -176,6 +176,15 @@ compute upload/readback, optional-mask defaults, unused-slot readiness,
 readback ordering/backpressure, invalid preparation and pending-map destruction.
 It requests a software adapter and fails when one is unavailable.
 
+The retention fixture combines a retained red source with an alternating green
+volatile chain for 101 frames. A separate schedule instance checks that the
+retained producer runs once and four volatile passes run every frame, using
+two pool textures. GPU readbacks check both channels on every frame, and a
+deliberately corrupted retained pixel fails the comparator. These schedule
+counts are not direct GPU execution counters. Preparing the same pass graph
+with an 8×8 session replaces the 4×4 resources and passes the resized golden.
+This covers offline replacement preparation, not in-place live resizing.
+
 Static uniform ranges produced incorrect per-pass values on the tested pinned
 Windows D3D12 backend. Explicit block sizes alone did not fix same-sized blocks
 with different values. Binding each aligned range through a dynamic offset
@@ -185,7 +194,9 @@ reference was relaxed.
 The Windows ASan offline harness also passes, including pending-map teardown.
 The prebuilt GPU library and driver are not instrumented. Standalone Linux
 lavapipe Release and ASan/UBSan checks pass with leak detection enabled.
-Full-host sanitizer reruns, driver allocation checks and live preparation remain
-pending. Live/shared-device support still requires
+Full-host Linux Release, ASan/UBSan and TSan also pass at `d1656fead3`.
+The expanded retention/resize fixture passes Windows Release and ASan. Its
+Linux sanitizer qualification remains pending CI. Driver allocation checks
+and live preparation remain pending. Live/shared-device support still requires
 supported asynchronous compilation/error reporting outside the offline
 exception. See [verification details and M0 gaps](M1_STATUS.md).

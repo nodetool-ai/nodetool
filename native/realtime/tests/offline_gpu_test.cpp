@@ -66,8 +66,8 @@ std::vector<std::byte> read(OfflineGpu& gpu, std::uint64_t expectedFrame) {
     }
     throw std::runtime_error("Readback did not complete within test deadline");
 }
-void golden(const std::vector<std::byte>& pixels, std::array<unsigned, 4> expected) {
-    require(pixels.size() == 64, "Unexpected readback dimensions");
+void golden(const std::vector<std::byte>& pixels, std::array<unsigned, 4> expected, unsigned width = 4, unsigned height = 4) {
+    require(pixels.size() == width * height * 4, "Unexpected readback dimensions");
     for (unsigned i = 0; i < pixels.size(); ++i) {
         const auto actual = std::to_integer<int>(pixels[i]);
         if (std::abs(actual - static_cast<int>(expected[i % 4])) > 1) {
@@ -75,6 +75,53 @@ void golden(const std::vector<std::byte>& pixels, std::array<unsigned, 4> expect
                 std::to_string(actual) + ", expected " + std::to_string(expected[i % 4]));
         }
     }
+}
+void retainedPixelsAndResize(const Plan& catalog) {
+    Fixture fixture;
+    fixture.add(catalog, "sources.solid@1", Plan::object(), {{"color", {0.25, 0, 0, 1}}});
+    fixture.add(catalog, "sources.solid@1", Plan::object(), {{"color", {0, 0.25, 0, 1}}});
+    fixture.add(catalog, "color.invert@1", {{"source", "pass-1"}});
+    fixture.add(catalog, "color.invert@1", {{"source", "pass-2"}});
+    fixture.add(catalog, "mixer.add@1", {{"source", "pass-0"}, {"over", "pass-3"}});
+    for (unsigned pass = 1; pass < 5; ++pass) { fixture.plan["render"]["passes"][pass]["retention"] = "volatile"; }
+    auto prepared = RenderSchedule::prepare(fixture.plan, fixture.registry);
+    require(bool(prepared.schedule), "Retention schedule preparation failed");
+    auto& schedule = *prepared.schedule;
+    require(schedule.textures().size() == 3, "Volatile GPU fixture did not reuse two pool textures");
+    auto gpu = fixture.prepare(catalog);
+    const auto moving = fixture.plan["render"]["passes"][1]["uniforms"][0].get<unsigned>();
+    unsigned retained = NO_RENDER_TEXTURE;
+    for (unsigned frame = 0; frame < 101; ++frame) {
+        fixture.values[moving].lanes[1] = frame % 2 == 0 ? 0.25 : 0.5;
+        const RenderFrameInput input{fixture.values, fixture.versions, true, true};
+        const auto planned = schedule.beginFrame(input);
+        require(planned.accepted && planned.present, "Retention frame was not scheduled");
+        require(planned.commands.size() == (frame == 0 ? 5u : 4u), "Clean retained pass was scheduled again");
+        for (const auto& command : planned.commands) {
+            if (command.pass == 0) {
+                require(frame == 0, "Clean retained producer ran after its initial frame");
+                retained = command.output;
+            }
+            else { require(command.output != retained, "Volatile GPU fixture overwrote retained pool storage"); }
+        }
+        schedule.completeFrame(true);
+        const auto rendered = gpu->render(input, true);
+        require(rendered.accepted && rendered.presented && rendered.readbackQueued, "Retention GPU frame rejected");
+        const auto pixels = read(*gpu, frame);
+        const std::array<unsigned, 4> expected{64, frame % 2 == 0 ? 64u : 128u, 0, 255};
+        golden(pixels, expected);
+        if (frame == 100) {
+            auto corrupted = pixels; corrupted[0] = std::byte{0};
+            bool rejected = false;
+            try { golden(corrupted, expected); } catch (const std::runtime_error&) { rejected = true; }
+            require(rejected, "Retention golden accepted corrupted retained pixels");
+        }
+    }
+    fixture.plan["session"]["width"] = 8; fixture.plan["session"]["height"] = 8;
+    auto resized = fixture.prepare(catalog);
+    require(resized->readbackBytes() == 8 * 8 * 4, "Resize retained the old readback dimensions");
+    require(resized->render({fixture.values, fixture.versions, true}, true).readbackQueued, "Resized GPU frame rejected");
+    golden(read(*resized, 0), {64, 64, 0, 255}, 8, 8);
 }
 void chains(const Plan& catalog) {
     for (unsigned chain = 0; chain < 4; ++chain) {
@@ -124,6 +171,7 @@ void computeAndRejections(const Plan& catalog) {
 int main() {
     try {
         std::ifstream input(NT_GPU_CATALOG); require(bool(input), "Export the GPU catalog before testing"); Plan catalog; input >> catalog;
-        chains(catalog); computeAndRejections(catalog); std::cout << "Offline software-adapter GPU tests passed\n";
+        chains(catalog); retainedPixelsAndResize(catalog); computeAndRejections(catalog);
+        std::cout << "Offline software-adapter GPU tests passed\n";
     } catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }
