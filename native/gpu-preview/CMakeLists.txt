@@ -9,6 +9,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(CTest)
 
+# Apple's libc++ keeps std::jthread and std::stop_token behind this flag.
+# The job core and the shader frame source use both.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-fexperimental-library>)
+    add_link_options(-fexperimental-library)
+endif()
+
 # Sanitizer builds: -DNT_SANITIZE=address,undefined or thread.
 set(NT_SANITIZE "" CACHE STRING "Sanitizers: empty, address,undefined, or thread")
 if(NT_SANITIZE)
