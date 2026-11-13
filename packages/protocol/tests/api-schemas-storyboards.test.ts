@@ -10,6 +10,7 @@ import {
   storyboardShotGraphics,
   storyboardScreenplay
 } from "../src/api-schemas/storyboards.js";
+import { normalizeCameraDirection } from "../src/creative.js";
 
 /** The shape an agent sent that the persistence layer silently refused. */
 const agentScreenplay = {
@@ -669,5 +670,15 @@ describe("camera written as one sentence", () => {
 
   it("still leaves a shot without a camera untouched", () => {
     expect(storyboardShot.parse(target)).not.toHaveProperty("camera");
+  });
+});
+
+describe("normalizeCameraDirection", () => {
+  it("keeps an object, reads a sentence as movement and drops anything else", () => {
+    expect(normalizeCameraDirection({ framing: "wide" })).toEqual({ framing: "wide" });
+    expect(normalizeCameraDirection("slow push in")).toEqual({ movement: "slow push in" });
+    expect(normalizeCameraDirection(["wide"])).toBeUndefined();
+    expect(normalizeCameraDirection(42)).toBeUndefined();
+    expect(normalizeCameraDirection(null)).toBeUndefined();
   });
 });
