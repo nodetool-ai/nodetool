@@ -3861,10 +3861,9 @@
           "lightingPlaceholder": "Come è illuminata la scena",
           "shotHeader": "Tiro {{count}}",
           "shotAction": "Scatto {{count}} · Azione",
-          "shotDialogue": "Inquadratura {{count}} · Dialogo",
-          "dialoguePlaceholder": "Dialogo",
-          "addDialogue": "Aggiungi dialogo",
+          "dialogue": "Dialogo",
           "seconds": "Secondi",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scena {{count}}"
         },
         "fallback": {

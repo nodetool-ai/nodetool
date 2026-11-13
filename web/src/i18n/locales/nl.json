@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "Hoe de scène wordt verlicht",
           "shotHeader": "Schot {{count}}",
           "shotAction": "Schot {{count}} · Actie",
-          "shotDialogue": "Schot {{count}} · Dialoog",
-          "dialoguePlaceholder": "Dialoog",
-          "addDialogue": "Dialoog toevoegen",
+          "dialogue": "Dialoog",
           "seconds": "Seconden",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scène {{count}}"
         },
         "fallback": {
