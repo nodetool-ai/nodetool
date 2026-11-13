@@ -179,6 +179,7 @@
     "workflow": "node ./scripts/run-workflow.mjs",
     "chat": "node ./packages/cli-chat/dist/index.js",
     "node-editor": "node native/node-editor/scripts/run.mjs",
+    "timeline": "node native/timeline/scripts/run.mjs",
     "nodetool": "node ./packages/cli/dist/nodetool.js",
     "generate:node-docs": "node scripts/generate-node-docs.mjs && node scripts/build-node-index.mjs",
     "generate:node-catalog": "node scripts/generate-node-catalog.mjs",
