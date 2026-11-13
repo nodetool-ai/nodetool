@@ -41,3 +41,11 @@ export function expressionFixture(): CompileInput {
   graph.edges.push({ source: "damp", sourceHandle: "value", target: "solid", targetHandle: "red" });
   return { ...input, graph, descriptors };
 }
+
+export function alphaFixture(): CompileInput {
+  const input = fixture();
+  return { ...input, graph: { nodes: [{ id: "batch", type: "image" }, { id: "invert", type: "invert" }, { id: "out", type: "out" }], edges: [
+    { source: "batch", sourceHandle: "image", target: "invert", targetHandle: "source" },
+    { source: "invert", sourceHandle: "image", target: "out", targetHandle: "image" }
+  ] }, batchTextures: [{ node: "batch", output: "image", texture: { ...texture, alpha: "straight" } }] };
+}

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 import console from "node:console";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -7,7 +8,7 @@ import { join, resolve } from "node:path";
 import process from "node:process";
 import sharp from "sharp";
 import { compileRealtimeGraph } from "@nodetool-ai/realtime-compiler";
-import { fixture, expressionFixture } from "./fixtures/RenderGraph.ts";
+import { fixture, expressionFixture, alphaFixture } from "./fixtures/RenderGraph.ts";
 
 assert.equal(process.argv.length, 3, "Pass a GPU-enabled native realtime executable");
 const executable = resolve(process.argv[2]);
@@ -36,5 +37,31 @@ try {
     assert.ifError(rejected.error); assert.equal(rejected.status, 1); assert.match(rejected.stderr, /register/);
     assert.equal(existsSync(invalidOutput), false);
   }
-  console.log("Compiler snapshot loads and renders through native CLI; invalid IR is rejected before output.");
+  const alpha = compileRealtimeGraph(alphaFixture());
+  assert.equal(alpha.status, "ok", JSON.stringify(alpha));
+  const raw = join(root, "straight.rgba"), alphaFile = join(root, "alpha.json"), alphaOutput = join(root, "alpha");
+  const pixels = Buffer.alloc(64);
+  for (let pixel = 0; pixel < 16; pixel++) {
+    pixels.set(pixel % 2 === 0 ? [204, 102, 51, 128] : [255, 127, 63, 0], pixel * 4);
+  }
+  writeFileSync(raw, pixels); writeFileSync(alphaFile, JSON.stringify(alpha.plan));
+  const alphaRun = (file, output) => spawnSync(executable, ["live", file, "--duration", "0.01", "--fps", "60", "--out", output,
+    "--slot", `${alpha.plan.slots[0].id}=${raw}`, "--null-audio"], { encoding: "utf8", timeout: 60000 });
+  const converted = alphaRun(alphaFile, alphaOutput);
+  assert.ifError(converted.error); assert.equal(converted.status, 0, converted.stderr);
+  const { data, info } = await sharp(join(alphaOutput, "frame-000000.png")).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  assert.deepEqual([info.width, info.height, info.channels], [4, 4, 4]);
+  for (let byte = 0; byte < 64; byte++) {
+    const start = byte - byte % 4, coverage = pixels[start + 3];
+    const expected = byte % 4 === 3 ? coverage : coverage === 0 ? 0 :
+      Math.round((coverage - Math.round(pixels[byte] * coverage / 255)) * 255 / coverage);
+    assert.ok(Math.abs(data[byte] - expected) <= 2, "Converted alpha differs from independent quantized pixel reference");
+  }
+  const bypass = join(root, "alpha-bypass.json"), bypassOutput = join(root, "alpha-bypass");
+  writeFileSync(bypass, JSON.stringify({ ...alpha.plan, render: { ...alpha.plan.render, passes: alpha.plan.render.passes.slice(1).map((pass) =>
+    ({ ...pass, inputs: { ...pass.inputs, source: alpha.plan.slots[0].id } })) } }));
+  const bypassed = alphaRun(bypass, bypassOutput);
+  assert.ifError(bypassed.error); assert.equal(bypassed.status, 1); assert.match(bypassed.stderr, /^invert\/alpha:/m);
+  assert.equal(existsSync(bypassOutput), false);
+  console.log("Compiler snapshots load and render through native CLI; invalid IR and bypassed alpha conversion reject before output.");
 } finally { rmSync(root, { recursive: true, force: true }); }

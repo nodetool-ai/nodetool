@@ -209,6 +209,7 @@ function compile(input: CompileInput): CompileResult {
   const boundaries: BatchBoundary[] = []; const warnings: Diagnostic[] = [];
   const registers = new Map<string, { index: number; width: number }>(); let registerCount = 0;
   const textures = new Map<string, { id: string; contract: TextureContract; retained: boolean }>();
+  const alphaConversions = new Map<string, { id: string; contract: TextureContract; retained: boolean }>();
   const batch = new Map<string, TextureContract>();
   for (const entry of input.batchTextures ?? []) {
     const key = identity(entry.node, entry.output);
@@ -286,6 +287,16 @@ function compile(input: CompileInput): CompileResult {
     boundaries.push({ node: edge.source, output: edge.sourceHandle, slot: result.id, reason: "no_live_descriptor" });
     return result;
   }
+  function premultiply(edge: Edge, source: { id: string; contract: TextureContract; retained: boolean }) {
+    const existing = alphaConversions.get(source.id);
+    if (existing) { return existing; }
+    // RT-D3: lower the catalog's straight ingress conversion explicitly into IR.
+    const id = synthetic("alpha", edge.source, edge.sourceHandle);
+    const contract: TextureContract = { ...source.contract, alpha: "premultiplied", size: { kind: "input", input: "source", scale: 1 } };
+    passes.push({ node: id, module: "alpha.straightToPremul@1", inputs: { source: source.id }, uniforms: [], retention: source.retained ? "retained" : "volatile", output: contract });
+    const result = { id, contract, retained: source.retained };
+    alphaConversions.set(source.id, result); return result;
+  }
   for (const id of ordered) {
     const node = nodes.get(id); if (!node) { fail(id, "missing_node", id); }
     const descriptor: LiveDescriptor | undefined = descriptors.get(node.type);
@@ -315,9 +326,14 @@ function compile(input: CompileInput): CompileResult {
       for (const [port, contract] of Object.entries(descriptor.textureInputs).sort(([a], [b]) => compareNames(a, b))) {
         const edge = incoming.get(id)?.get(port);
         if (!edge) { if (contract.optional) { continue; } return fail(id, "missing_input", port); }
-        const source = texture(edge);
-        if (source.contract.alpha !== contract.alpha) { fail(id, "alpha_conversion_required", port); }
+        let source = texture(edge);
         if (contract.format && source.contract.format !== contract.format) { fail(id, "format", port); }
+        if (source.contract.alpha !== contract.alpha) {
+          if (source.contract.alpha !== "straight" || contract.alpha !== "premultiplied" || source.contract.format !== "rgba8unorm") {
+            fail(id, "alpha_conversion_required", port);
+          }
+          source = premultiply(edge, source);
+        }
         if (descriptor.retention === "retained" && !source.retained) { fail(id, "retention", "Retained input depends on a volatile output"); }
         if (source.contract.colorSpace !== contract.colorSpace) { warnings.push({ node: id, reason: "color_space", detail: port }); }
         inputs.set(port, source.id);

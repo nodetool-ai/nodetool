@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "session": {
+    "sampleRate": 48000,
+    "quantum": 128,
+    "channels": "stereo",
+    "width": 4,
+    "height": 4,
+    "seed": 17
+  },
+  "params": [],
+  "slots": [
+    {
+      "id": "@slot:batch:image",
+      "kind": "texture",
+      "source": "[\"batch\",\"image\"]",
+      "output": {
+        "format": "rgba8unorm",
+        "alpha": "straight",
+        "colorSpace": "srgb",
+        "size": {
+          "kind": "session"
+        }
+      }
+    }
+  ],
+  "control": {
+    "registers": 1,
+    "ops": [
+      {
+        "node": "@uniform:invert:amount",
+        "op": "constant",
+        "domain": "render",
+        "out": 0,
+        "in": [],
+        "values": [
+          1
+        ]
+      }
+    ],
+    "stateful": []
+  },
+  "render": {
+    "passes": [
+      {
+        "node": "@alpha:batch:image",
+        "module": "alpha.straightToPremul@1",
+        "inputs": {
+          "source": "@slot:batch:image"
+        },
+        "uniforms": [],
+        "retention": "retained",
+        "output": {
+          "format": "rgba8unorm",
+          "alpha": "premultiplied",
+          "colorSpace": "srgb",
+          "size": {
+            "kind": "input",
+            "input": "source",
+            "scale": 1
+          }
+        }
+      },
+      {
+        "node": "invert",
+        "module": "color.invert@1",
+        "inputs": {
+          "source": "@alpha:batch:image"
+        },
+        "uniforms": [
+          0
+        ],
+        "retention": "retained",
+        "output": {
+          "format": "rgba8unorm",
+          "alpha": "premultiplied",
+          "colorSpace": "srgb",
+          "size": {
+            "kind": "session"
+          }
+        }
+      }
+    ],
+    "present": {
+      "source": "invert",
+      "colorSpace": "srgb"
+    }
+  },
+  "audio": {
+    "buffers": [],
+    "nodes": [],
+    "sinks": []
+  }
+}
