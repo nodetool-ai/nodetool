@@ -21,7 +21,8 @@
  *
  * Usage (from web/):
  *   npx tsx tests/agentic-qa/serveApp.ts [--state empty|failing-run|other-provider|working-run|unwired-run|storyboard|timeline|seeded-demo]
- *     [--backend-port 7790] [--web-port 3010]
+ *     [--backend-port 7790] [--web-port 3010] [--no-web]
+ * `--no-web` starts only the backend, for a native app that connects to it directly.
  * Stop with Ctrl+C.
  */
 
@@ -78,9 +79,11 @@ async function main(): Promise<void> {
     options: {
       "backend-port": { type: "string", default: "7790" },
       "web-port": { type: "string", default: "3010" },
-      state: { type: "string", default: "seeded-demo" }
+      state: { type: "string", default: "seeded-demo" },
+      "no-web": { type: "boolean", default: false }
     }
   });
+  const withWeb = !values["no-web"];
   const state = values.state ?? "seeded-demo";
   if (!["seeded-demo", "empty", "failing-run", "other-provider", "working-run", "unwired-run", "storyboard", "timeline"].includes(state)) {
     throw new Error(
@@ -89,7 +92,7 @@ async function main(): Promise<void> {
   }
   const backendPort = Number(values["backend-port"]);
   const webPort = Number(values["web-port"]);
-  for (const port of [backendPort, webPort]) {
+  for (const port of withWeb ? [backendPort, webPort] : [backendPort]) {
     if (await isPortOpen(port)) {
       throw new Error(`Port ${port} is in use. Choose another port.`);
     }
@@ -116,6 +119,16 @@ async function main(): Promise<void> {
   );
   children.push(backend);
   await waitForPort(backendPort, backend, "Backend");
+
+  if (!withWeb) {
+    console.log(
+      `[agentic-qa] Backend ready at http://${HOST}:${backendPort} ` +
+        `(fake providers ${process.env.NODETOOL_FAKE_PROVIDERS ?? "1"}, state ${state})`
+    );
+    await new Promise((done) => backend.once("exit", done));
+    stop();
+    return;
+  }
 
   // `vite/bin/vite.js` is not an exported subpath, so resolve the manifest.
   const viteManifest = createRequire(resolve(WEB_DIR, "package.json")).resolve("vite/package.json");
