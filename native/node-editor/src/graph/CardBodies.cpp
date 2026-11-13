@@ -1376,6 +1376,50 @@ QString schemaFooter(const SchemaProvider &provider, const QJsonObject &ui) {
     return model.isEmpty() ? provider.label : QStringLiteral("%1 · %2").arg(provider.label, model);
 }
 
+ChildPicker childPicker(const QString &type) {
+    // The i18n-next37 workflowLoader and appLoader select labels.
+    if (type == QStringLiteral("nodetool.workflows.workflow_node.Workflow")) {
+        return {QStringLiteral("workflow_id"), QStringLiteral("workflow"), QObject::tr("Select workflow"), QStringLiteral("workflow_json")};
+    }
+    if (type == QStringLiteral("nodetool.workflows.app_node.App")) {
+        return {QStringLiteral("app_id"), QStringLiteral("app"), QObject::tr("Select app"), QStringLiteral("app_json")};
+    }
+    return {};
+}
+
+QVariantMap childPickerReference(const ChildPicker &picker, const QJsonObject &data) {
+    if (picker.property.isEmpty()) {
+        return {};
+    }
+    const auto snapshot = data[picker.snapshotKey].toObject();
+    // WorkflowLoader reads workflow_id, then the stored copy's id.
+    auto id = data[picker.property].toString();
+    if (id.isEmpty() && picker.kind == QStringLiteral("workflow")) {
+        id = snapshot["id"].toString();
+    }
+    if (id.isEmpty()) {
+        return {};
+    }
+    // The select shows the listed name. The card has no list, so it shows the
+    // name stored with the copy, or the id before a copy exists.
+    const auto name = snapshot["name"].toString();
+    return {{QStringLiteral("type"), picker.kind}, {QStringLiteral("id"), id}, {QStringLiteral("name"), name.isEmpty() ? id : name}};
+}
+
+bool compositeHiddenProperty(const QString &type, const QString &name) {
+    if (type == QStringLiteral("nodetool.workflows.app_node.App")) {
+        return name == QStringLiteral("app_json");
+    }
+    return type == QStringLiteral("nodetool.workflows.subgraph.Subgraph") && name == QStringLiteral("graph");
+}
+
+bool comfySchemaNode(const QString &type) {
+    // DYNAMIC_COMFY_NODE_TYPES in web/src/constants/nodeTypes.ts.
+    return type == QStringLiteral("lib.comfy.RunWorkflow") || type == QStringLiteral("lib.comfy.RunWorkflowOnCloud");
+}
+
+QColor comfyAccent() { return QColor(0x1F, 0x9E, 0x89); }
+
 bool readsGraphVariables(CardBody body) {
     return body == CardBody::Prompt || body == CardBody::GetVariable;
 }
