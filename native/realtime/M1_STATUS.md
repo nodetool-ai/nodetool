@@ -297,6 +297,24 @@ Windows MSVC Release passes `realtime-offline-gpu` and
 `realtime-render-schedule` through the affected-native command against
 `a8b1958691`, restricted to those two tests. Windows MSVC ASan passes
 `realtime-offline-gpu`. The test thread owns the schedules, private devices,
-staging storage and callback records until backend destruction. Linux
-qualification of the new cases remains pending CI. Broad checks were not
-rerun for this fixture-only batch. Live/shared-device support remains blocked.
+staging storage and callback records until backend destruction. The
+[standalone Linux realtime run at `270251bb0f`](https://github.com/nodetool-ai/nodetool/actions/runs/43371697041)
+passes offline Release and ASan/UBSan with lavapipe, including these cases,
+and core Release/ASan+UBSan/TSan and wasm32 checks. Broad checks were not
+rerun locally for this fixture-only batch. Live/shared-device support remains blocked.
+
+## Stateful browser comparison
+
+The browser harness now includes the damper fixture. All three changing PNG
+frames and the manifest match native bytes. Decoded browser pixels also match
+the independent completed-quantum exponential reference within one byte per
+channel. Corrupted decoded pixels fail that check. The TypeScript fixture
+adapter rejects the unsupported control operations, while its original three
+static comparisons still pass. WAV checks remain limited to header and length.
+
+A fresh C++/Wasm candidate build with the pinned Emscripten SDK and the
+four-fixture comparison pass on Windows Chrome 156.0.8078.80 with SwiftShader.
+The existing Linux CI command will run the expanded comparison. Its result
+remains pending. This does not qualify native/Wasm audio sample parity,
+production asynchronous preparation, live/shared-device use or M0 hardware
+measurements. Broad checks were not rerun for this browser-fixture-only batch.

@@ -16,6 +16,7 @@ if (!candidateDirectory || !nativeExecutable || process.argv.length !== 4) {
 }
 const render = JSON.parse(readFileSync(join(root, "tests/fixtures/offline-render.json"), "utf8"));
 const audio = JSON.parse(readFileSync(join(root, "tests/fixtures/offline-audio.json"), "utf8"));
+const damper = JSON.parse(readFileSync(join(root, "tests/fixtures/offline-damper.json"), "utf8"));
 const mixed = structuredClone(render);
 const conversion = structuredClone(render);
 conversion.control.ops[0].values = [0.25, 0.125, 0.0625, 0.5];
@@ -41,7 +42,7 @@ try {
     args: ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader", "--enable-unsafe-swiftshader"] });
   const endpoint = server.address();
   assert.ok(endpoint && typeof endpoint !== "string");
-  for (const [name, plan] of [["render", render], ["mixed", mixed], ["conversion", conversion]]) {
+  for (const [name, plan] of [["render", render], ["mixed", mixed], ["conversion", conversion], ["damper", damper]]) {
     const input = join(directory, `${name}.json`), output = join(directory, name);
     writeFileSync(input, JSON.stringify(plan));
     const native = spawnSync(resolve(nativeExecutable), ["live", input, "--duration", "0.05", "--fps", "60", "--out", output], { encoding: "utf8", timeout: 60000 });
@@ -100,6 +101,33 @@ try {
       assert.throws(() => compareArtifacts(corrupted), /browser\/native bytes differ/);
       assert.throws(() => compareArtifacts({}));
       console.log(`${name}: three PNG frames and manifest match native bytes; WAV header/length match`);
+      if (name === "damper") {
+        const frames = readdirSync(output).filter((file) => file.endsWith(".png")).sort();
+        for (const [frame, file] of frames.entries()) {
+          const { data, info } = await sharp(Buffer.from(result[file])).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+          assert.deepEqual([info.width, info.height, info.channels], [4, 4, 4]);
+          const rate = plan.session.sampleRate;
+          const quanta = Math.floor(frame * rate / (60 * 128));
+          const red = Math.round(255 * 0.75 * (1 - Math.exp(-quanta * 128 / (rate * 0.2))));
+          const expected = [red, 0, 0, 255];
+          const comparePixels = (pixels) => {
+            assert.equal(pixels.length, 64);
+            for (let byte = 0; byte < pixels.length; byte++) {
+              assert.ok(Math.abs(pixels[byte] - expected[byte % 4]) <= 1,
+                `${file}: damper pixel differs from completed-quantum reference`);
+            }
+          };
+          comparePixels(data);
+          const corruptedPixels = Buffer.from(data); corruptedPixels[0] ^= 255;
+          assert.throws(() => comparePixels(corruptedPixels), /completed-quantum reference/);
+        }
+        await assert.rejects(page.evaluate(async (plan) => {
+          const { renderFixture } = await import("/typescript.mjs");
+          return renderFixture(plan);
+        }, plan), /Unsupported render control operation/);
+        console.log(`${name}: C++/Wasm frames match the quantum reference; TypeScript fixture adapter rejects this IR`);
+        continue;
+      }
       const typescriptPixels = await page.evaluate(async (plan) => {
         const { renderFixture } = await import("/typescript.mjs");
         for (const [change, reason] of [
