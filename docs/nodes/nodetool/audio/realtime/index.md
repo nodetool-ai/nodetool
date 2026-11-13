@@ -3,13 +3,26 @@ layout: page
 title: "nodetool.audio.realtime Nodes"
 ---
 
-This namespace contains 6 node(s).
+This namespace contains 17 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Audio Out](audioout.md)** - Plays a realtime audio chunk stream — the patch's speaker.
-- **[Audio To Chunks](audiotochunks.md)** - Slices an audio file into a stream of fixed-duration PCM16 chunks.
-- **[Chunks To Audio](chunkstoaudio.md)** - Accumulates a stream of PCM16 audio chunks into a single audio file.
-- **[Streaming Gain](streaminggain.md)** - Applies a gain (volume adjustment) to each chunk of a realtime audio stream.
-- **[Streaming High Pass](streaminghighpass.md)** - Applies a high-pass filter to a realtime audio stream, keeping filter state a...
-- **[Streaming Low Pass](streaminglowpass.md)** - Applies a low-pass filter to a realtime audio stream, keeping filter state ac...
+- **[Audio Out](audioout.md)**
+- **[Audio To Chunks](audiotochunks.md)**
+- **[Chunks To Audio](chunkstoaudio.md)**
+- **[Streaming Bitcrush](streamingbitcrush.md)**
+- **[Streaming Compress](streamingcompress.md)**
+- **[Streaming Delay](streamingdelay.md)**
+- **[Streaming Distortion](streamingdistortion.md)**
+- **[Streaming Gain](streaminggain.md)**
+- **[Streaming High Pass](streaminghighpass.md)**
+- **[Streaming High Shelf](streaminghighshelf.md)**
+- **[Streaming Limiter](streaminglimiter.md)**
+- **[Streaming Low Pass](streaminglowpass.md)**
+- **[Streaming Low Shelf](streaminglowshelf.md)**
+- **[Streaming Noise Gate](streamingnoisegate.md)**
+- **[Streaming Peak](streamingpeak.md)**
+- **[Streaming Phaser](streamingphaser.md)**
+- **[Streaming Reverb](streamingreverb.md)**
+
+[Back to all nodes](../../../)

@@ -221,20 +221,19 @@ private slots:
                             .toPoint());
       QCOMPARE(clicked.size(), 1);
     } else {
-      window.action("More");
-      auto *menu = window.findChild<QMenu *>();
+      auto *menu = window.findChild<QMenu *>("application-menu-node");
       QVERIFY(menu);
       QAction *command = nullptr;
       for (auto *action : menu->actions()) {
-        if (action->text() == "Link selected") {
+        if (action->text() == "Link Selected") {
           command = action;
           break;
         }
       }
       QVERIFY(command);
+      emit menu->aboutToShow();
       QVERIFY(command->isEnabled());
-      QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier,
-                        menu->actionGeometry(command).center());
+      command->trigger();
     }
     QTRY_COMPARE(window.document()->graph()["links"].toArray().size(), 1);
     const auto link =

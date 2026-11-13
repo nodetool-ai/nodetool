@@ -1653,6 +1653,9 @@ R6 serves both.
 - [Color precision plan][color-plan]: the SDR working contract of the shader
   catalog
 - [Harness-first rules][harness]
+- [Batch and live audio before the realtime engine][audio-interim]: the
+  stateful effect kernels, the effect descriptors and the run transport that
+  come before phase P1
 
 ## Appendix A. Benchmark method
 
@@ -1719,6 +1722,7 @@ folder. P1 replaces it with `live bench`.
 [rs-plan]: reactive-sessions-events.md
 [sv-plan]: shared-variables-input-bindings.md
 [harness]: ../HARNESS_FIRST.md
+[audio-interim]: audio-signal-nodes.md
 [gr-engine]: ../../native/graph-runner/src/js/engine.h
 [web-browser-runner]: ../../web/src/lib/workflow/browserWorkflowRunner.ts
 [audio-effects]: ../../packages/audio-nodes/src/nodes/lib-audio-effects.ts

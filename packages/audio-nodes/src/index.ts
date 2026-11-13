@@ -14,6 +14,7 @@ export * from "./nodes/lib-audio-dsp.js";
 export * from "./nodes/lib-audio-effects.js";
 export * from "./nodes/output.js";
 export * from "./nodes/realtime-audio.js";
+export * from "./nodes/sampler.js";
 export * from "./nodes/synthesis.js";
 
 // Audio codec helpers — exposed so sibling node packages (e.g. video) can
@@ -59,3 +60,5 @@ export function registerAudioNodes(registry: NodeRegistry): void {
     registry.register(nodeClass);
   }
 }
+
+export * from "./nodes/signal-effects.js";

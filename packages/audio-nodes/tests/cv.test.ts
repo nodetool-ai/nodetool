@@ -1,10 +1,10 @@
+import { AudioTransport } from "../src/lib/transport.js";
 import { describe, it, expect } from "vitest";
 import {
   f32leToFloat32,
   float32ToF32le,
   makeSignalChunk,
   readSignalChunk,
-  RealtimePacer,
   SampleFifo,
   float32ToPcm16
 } from "@nodetool-ai/audio-nodes";
@@ -137,26 +137,28 @@ describe("SampleFifo", () => {
   });
 });
 
-describe("RealtimePacer", () => {
+describe("AudioTransport", () => {
   it("paces variable-length chunks by cumulative duration", async () => {
     // The pacer's origin is its construction time, so the clock this test
     // measures against is read first: on a loaded runner the gap between the
     // two reached 30 ms and shortened the wait below the assertion.
     const start = Date.now();
-    const pacer = new RealtimePacer();
+    const pacer = new AudioTransport(undefined);
     // Chunk 0 (80 ms) is released immediately; its duration sets the next slot.
-    await pacer.waitNext(80);
+    await pacer.until(0);
     expect(Date.now() - start).toBeLessThan(40);
     // A short final chunk must still wait out chunk 0's duration — pacing by
     // `emitted * chunkMs` would release it ~70 ms early here.
-    await pacer.waitNext(10);
+    await pacer.until(3528);
     expect(Date.now() - start).toBeGreaterThanOrEqual(70);
   });
 
-  it("returns false once the signal aborts", async () => {
+  it("returns immediately once the signal aborts", async () => {
     const controller = new AbortController();
-    const pacer = new RealtimePacer(controller.signal);
+    const pacer = new AudioTransport(undefined);
     controller.abort();
-    expect(await pacer.waitNext(1000)).toBe(false);
+    const start = Date.now();
+    await pacer.until(44100, controller.signal);
+    expect(Date.now() - start).toBeLessThan(40);
   });
 });

@@ -159,6 +159,11 @@ void MediaResolver::resolve(const QString &key, const QVariant &source) {
   }
   if (id.isEmpty() && LocalMediaStore::isLocalMedia(uri)) {
     if (useCached(key, serial, uri)) { return; }
+    const auto clip = LocalMediaStore::instance().clip(uri);
+    if (!clip.isNull()) {
+      store(key, serial, clip.bytes, {}, clip.contentType);
+      return;
+    }
     const auto image = localImage(uri);
     if (image.isNull()) { emit failed(key, "This run's image is no longer kept"); return; }
     // The cache file only feeds the preview, so it is written for speed: BMP
@@ -291,7 +296,7 @@ QString MediaResolver::suggestedFilename(const QString &key, const QString &requ
       {"audio/aac", "aac"}, {"audio/aacp", "aac"}, {"audio/mp4", "m4a"}, {"audio/x-m4a", "m4a"},
       {"audio/aiff", "aiff"}, {"audio/x-aiff", "aiff"}, {"audio/basic", "au"}, {"audio/x-ms-wma", "wma"}
     };
-    extension = LocalMediaStore::isLocalMedia(identity) ? QStringLiteral("png") : audioExtensions.value(mime);
+    extension = LocalMediaStore::isLocalMedia(identity) && entry->contentType.startsWith("image/") ? QStringLiteral("png") : audioExtensions.value(mime);
     if (extension.isEmpty() && mime.startsWith("audio/")) {
       extension = mime.mid(6);
       if (extension.startsWith("x-")) { extension.remove(0, 2); }
@@ -325,7 +330,7 @@ bool MediaResolver::saveResolved(const QString &key, const QUrl &destination) {
     emit saveFailed(key, "The media preview is no longer available"); return false;
   }
   QSaveFile output(destination.toLocalFile());
-  if (LocalMediaStore::isLocalMedia(identity)) {
+  if (LocalMediaStore::isLocalMedia(identity) && entry->contentType.startsWith("image/")) {
     const auto png = savedLocalImage(identity);
     if (png.isEmpty() || !output.open(QIODevice::WriteOnly) || output.write(png) != png.size() || !output.commit()) {
       emit saveFailed(key, "Could not save media to the selected file"); return false;
@@ -368,7 +373,7 @@ bool MediaResolver::saveToAssets(const QString &key, const QString &requested, c
   auto multipart = std::make_unique<QHttpMultiPart>(QHttpMultiPart::FormDataType);
   QIODevice *file = nullptr;
   auto mime = entry->contentType.section(';', 0, 0).trimmed();
-  if (LocalMediaStore::isLocalMedia(identity)) {
+  if (LocalMediaStore::isLocalMedia(identity) && entry->contentType.startsWith("image/")) {
     auto *buffer = new QBuffer(multipart.get());
     buffer->setData(savedLocalImage(identity));
     file = buffer;
@@ -442,7 +447,7 @@ void MediaResolver::store(const QString &key, quint64 serial, const QByteArray &
   const auto knownIdentity = identities_.value(key);
   if (entries_.contains(knownIdentity) && useCached(key, serial, knownIdentity)) { return; }
   if (bytes.isEmpty()) { emit failed(key, "Media response was empty"); return; }
-  if (bytes.size() > ItemLimit || !cache_.isValid() || !makeRoom(bytes.size())) {
+  if ((bytes.size() > ItemLimit && LocalMediaStore::instance().clip(knownIdentity).isNull()) || !cache_.isValid() || !makeRoom(bytes.size())) {
     emit failed(key, "Preview cache limit reached. Close the workflow to release previews"); return;
   }
   const QRegularExpression plainSuffix("^[a-zA-Z0-9]{1,8}$");

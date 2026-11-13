@@ -5,10 +5,18 @@
 #include <QUrl>
 #include <QPointer>
 #include <QVariantList>
+#include <QTimer>
+#include <mutex>
+#include <thread>
+#include <optional>
 #include <memory>
 #include <vector>
 namespace nodetool::node_editor {
-// UI thread only.
+struct WaveformEnvelope {
+  std::vector<float> peaks;
+  qint64 bucketMilliseconds = 20;
+};
+// UI thread only. PCM envelope computation owns its file and buffers on a worker thread.
 class AudioWaveform : public QQuickPaintedItem {
   Q_OBJECT
   Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
@@ -22,12 +30,13 @@ class AudioWaveform : public QQuickPaintedItem {
   Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 public:
   explicit AudioWaveform(QQuickItem *parent = nullptr);
+  ~AudioWaveform() override;
   QUrl source() const { return source_; }
   void setSource(const QUrl &source);
   QVariantList peaks() const;
   AudioWaveform *dataSource() const { return dataSource_; }
   void setDataSource(AudioWaveform *source);
-  bool loading() const { return decoder_ && decoder_->isDecoding(); }
+  bool loading() const { return bool(task_) || (decoder_ && decoder_->isDecoding()); }
   void paint(QPainter *painter) override;
 signals:
   void sourceChanged();
@@ -37,6 +46,16 @@ signals:
   void loadingChanged();
 private:
   void consume();
+  void startDecoder();
+  struct EnvelopeTask {
+    std::mutex mutex;
+    std::optional<WaveformEnvelope> result;
+    bool done = false;
+  };
+  // UI and worker share the task until the worker joins. mutex guards its result.
+  std::shared_ptr<EnvelopeTask> task_;
+  std::jthread worker_;
+  QTimer envelopeTimer_;
   const std::vector<float> &envelope() const;
   QPointer<AudioWaveform> dataSource_;
   QMetaObject::Connection peaksConnection_;

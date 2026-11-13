@@ -5,8 +5,8 @@ import type { AudioRef } from "../types.js";
 
 // Gain — lib.audio.Gain
 export type GainInputs = {
-  audio?: Connectable<AudioRef>;
   gain_db?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface GainOutputs {
@@ -19,10 +19,10 @@ export function gain(inputs: GainInputs, options?: NodeOptions): NodeWithOutputs
 
 // Delay — lib.audio.Delay
 export type DelayInputs = {
-  audio?: Connectable<AudioRef>;
   delay_seconds?: Connectable<number>;
   feedback?: Connectable<number>;
   mix?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface DelayOutputs {
@@ -35,8 +35,8 @@ export function delay(inputs: DelayInputs, options?: NodeOptions): NodeWithOutpu
 
 // High Pass Filter — lib.audio.HighPassFilter
 export type HighPassFilterInputs = {
-  audio?: Connectable<AudioRef>;
   cutoff_frequency_hz?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface HighPassFilterOutputs {
@@ -49,8 +49,8 @@ export function highPassFilter(inputs: HighPassFilterInputs, options?: NodeOptio
 
 // Low Pass Filter — lib.audio.LowPassFilter
 export type LowPassFilterInputs = {
-  audio?: Connectable<AudioRef>;
   cutoff_frequency_hz?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface LowPassFilterOutputs {
@@ -63,9 +63,9 @@ export function lowPassFilter(inputs: LowPassFilterInputs, options?: NodeOptions
 
 // High Shelf Filter — lib.audio.HighShelfFilter
 export type HighShelfFilterInputs = {
-  audio?: Connectable<AudioRef>;
   cutoff_frequency_hz?: Connectable<number>;
   gain_db?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface HighShelfFilterOutputs {
@@ -78,9 +78,9 @@ export function highShelfFilter(inputs: HighShelfFilterInputs, options?: NodeOpt
 
 // Low Shelf Filter — lib.audio.LowShelfFilter
 export type LowShelfFilterInputs = {
-  audio?: Connectable<AudioRef>;
   cutoff_frequency_hz?: Connectable<number>;
   gain_db?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface LowShelfFilterOutputs {
@@ -93,10 +93,10 @@ export function lowShelfFilter(inputs: LowShelfFilterInputs, options?: NodeOptio
 
 // Peak Filter — lib.audio.PeakFilter
 export type PeakFilterInputs = {
-  audio?: Connectable<AudioRef>;
   cutoff_frequency_hz?: Connectable<number>;
   q_factor?: Connectable<number>;
   gain_db?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface PeakFilterOutputs {
@@ -109,9 +109,9 @@ export function peakFilter(inputs: PeakFilterInputs, options?: NodeOptions): Nod
 
 // Bitcrush — lib.audio.Bitcrush
 export type BitcrushInputs = {
-  audio?: Connectable<AudioRef>;
   bit_depth?: Connectable<number>;
   sample_rate_reduction?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface BitcrushOutputs {
@@ -124,12 +124,12 @@ export function bitcrush(inputs: BitcrushInputs, options?: NodeOptions): NodeWit
 
 // Compress — lib.audio.Compress
 export type CompressInputs = {
-  audio?: Connectable<AudioRef>;
   threshold?: Connectable<number>;
   ratio?: Connectable<number>;
   attack?: Connectable<number>;
   release?: Connectable<number>;
   auto_gain?: Connectable<boolean>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface CompressOutputs {
@@ -142,8 +142,8 @@ export function compress(inputs: CompressInputs, options?: NodeOptions): NodeWit
 
 // Distortion — lib.audio.Distortion
 export type DistortionInputs = {
-  audio?: Connectable<AudioRef>;
   drive_db?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface DistortionOutputs {
@@ -156,10 +156,10 @@ export function distortion(inputs: DistortionInputs, options?: NodeOptions): Nod
 
 // Limiter — lib.audio.Limiter
 export type LimiterInputs = {
-  audio?: Connectable<AudioRef>;
   threshold_db?: Connectable<number>;
   release_ms?: Connectable<number>;
   auto_gain?: Connectable<boolean>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface LimiterOutputs {
@@ -172,11 +172,11 @@ export function limiter(inputs: LimiterInputs, options?: NodeOptions): NodeWithO
 
 // Reverb — lib.audio.Reverb
 export type ReverbInputs = {
-  audio?: Connectable<AudioRef>;
   room_scale?: Connectable<number>;
   damping?: Connectable<number>;
   wet_level?: Connectable<number>;
   dry_level?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface ReverbOutputs {
@@ -189,10 +189,10 @@ export function reverb(inputs: ReverbInputs, options?: NodeOptions): NodeWithOut
 
 // Noise Gate — lib.audio.NoiseGate
 export type NoiseGateInputs = {
-  audio?: Connectable<AudioRef>;
   threshold_db?: Connectable<number>;
   attack_ms?: Connectable<number>;
   release_ms?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface NoiseGateOutputs {
@@ -205,12 +205,12 @@ export function noiseGate(inputs: NoiseGateInputs, options?: NodeOptions): NodeW
 
 // Phaser — lib.audio.Phaser
 export type PhaserInputs = {
-  audio?: Connectable<AudioRef>;
   rate_hz?: Connectable<number>;
   depth?: Connectable<number>;
   centre_frequency_hz?: Connectable<number>;
   feedback?: Connectable<number>;
   mix?: Connectable<number>;
+  audio?: Connectable<AudioRef>;
 };
 
 export interface PhaserOutputs {

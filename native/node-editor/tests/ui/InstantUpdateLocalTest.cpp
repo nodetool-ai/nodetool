@@ -6,9 +6,12 @@
 #include "../../src/graph/EditorScene.h"
 #include "../../src/graph/WorkflowGraphModel.h"
 #include "../../src/media/LocalMediaStore.h"
+#include "../../src/media/PcmStream.h"
+#include "../../src/run/RunOutputModel.h"
 #include "../../src/server/WorkflowSession.h"
 #include "../../src/ui/EditorWindow.h"
 #include <QApplication>
+#include <cstring>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -19,6 +22,27 @@
 #include <QtTest>
 using namespace nodetool;
 using node_editor::WorkflowSession;
+
+namespace {
+// Takes the samples and plays none, so a live run makes no sound.
+class SilentSink final : public node_editor::PcmSink {
+public:
+  QAudioFormat preferredFormat() const override {
+    QAudioFormat format;
+    format.setSampleRate(44100);
+    format.setChannelCount(1);
+    format.setSampleFormat(QAudioFormat::Float);
+    return format;
+  }
+  bool supports(const QAudioFormat &) const override { return true; }
+  bool start(const QAudioFormat &) override { return true; }
+  qsizetype capacityBytes() const override { return 1 << 16; }
+  qint64 write(QByteArrayView bytes) override { return bytes.size(); }
+  bool drained() const override { return true; }
+  bool failed() const override { return false; }
+  void stop() override {}
+};
+}  // namespace
 
 class InstantUpdateLocalTest : public QObject {
   Q_OBJECT
@@ -325,6 +349,93 @@ private slots:
     QVERIFY2(drawn.isEmpty(), qPrintable(drawn.join('\n')));
     QVERIFY2(messages.isEmpty(), qPrintable(messages.join('\n')));
     QVERIFY(!model.runtimePreview(b).isNull());
+  }
+  // [trigger] -> gate -> [audio out], pitch -> [audio out]. A property edit
+  // during the live run goes to that run: the gate fires and the pitch
+  // follows, with no new run. The stopped run starts no rerun.
+  void editReachesTheLiveRun() {
+    EditorWindow window;
+    window.resize(1280, 900);
+    window.show();
+    window.runOutput()->setPcmSinkFactory([] { return std::make_unique<SilentSink>(); });
+    const QJsonArray nodes{
+        QJsonObject{{"id", "trig"}, {"type", "nodetool.audio.synth.Trigger"}, {"data", QJsonObject{{"trigger", false}, {"note", 0.0}, {"length", 0.02}}}},
+        QJsonObject{{"id", "gate"}, {"type", "nodetool.audio.realtime.AudioOutput"}, {"data", QJsonObject{}}},
+        QJsonObject{{"id", "pitch"}, {"type", "nodetool.audio.realtime.AudioOutput"}, {"data", QJsonObject{}}}};
+    const QJsonArray edges{
+        QJsonObject{{"id", "e1"}, {"source", "trig"}, {"sourceHandle", "gate"}, {"target", "gate"}, {"targetHandle", "chunk"}},
+        QJsonObject{{"id", "e2"}, {"source", "trig"}, {"sourceHandle", "pitch"}, {"target", "pitch"}, {"targetHandle", "chunk"}}};
+    QVERIFY(window.document()->load({{"id", "wf-live-edit"}, {"name", "Live edit"}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}}).ok);
+    window.setCatalog(QJsonDocument::fromJson(R"([
+      {"node_type":"nodetool.audio.synth.Trigger","inline_fields":["trigger","note"],
+       "properties":[{"name":"trigger","type":{"type":"bool"},"default":false},{"name":"note","type":{"type":"float"},"default":0,"min":-48,"max":48},{"name":"length","type":{"type":"float"},"default":0.1}],
+       "outputs":[{"name":"gate","type":{"type":"cv"}},{"name":"pitch","type":{"type":"cv"}}]},
+      {"node_type":"nodetool.audio.realtime.AudioOutput","audio_sink":"live",
+       "properties":[{"name":"chunk","type":{"type":"chunk"}}],"outputs":[{"name":"chunk","type":{"type":"chunk"}}]}
+    ])").array());
+    auto *session = window.session();
+    QVERIFY(!session->connected());
+    QTRY_VERIFY_WITH_TIMEOUT(session->localRunnerReady(), 120000);
+    QStringList submitted;
+    connect(session, &WorkflowSession::runSubmitted, this, [&](const QString &id) { submitted.append(id); });
+    // Blocks of the gate stream with a sample that is not zero, and the first
+    // sample of the latest pitch block.
+    int blocks = 0;
+    int pulses = 0;
+    float pitch = 0;
+    QString status;
+    connect(session, &WorkflowSession::runEvent, this, [&](const QString &, const QJsonObject &event) {
+      if (event["type"] == "job_update") { status = event["status"].toString(); }
+      if (event["type"] != "output_update") { return; }
+      const auto value = event["value"].toObject();
+      if (value["done"].toBool()) { return; }
+      const auto content = value["content"];
+      const auto text = content.isObject() ? content.toObject()["__bytes__"].toString() : content.toString();
+      const auto bytes = QByteArray::fromBase64(text.toLatin1());
+      if (event["node_id"] == "gate") {
+        ++blocks;
+        if (bytes.count('\0') != bytes.size()) { ++pulses; }
+      } else if (event["node_id"] == "pitch" && bytes.size() >= 4) {
+        std::memcpy(&pitch, bytes.constData(), 4);
+      }
+    });
+    window.action("Run");
+    QTRY_COMPARE_WITH_TIMEOUT(submitted.size(), 1, 30000);
+    QTRY_VERIFY_WITH_TIMEOUT(blocks >= 3, 30000);
+    QCOMPARE(pulses, 0);
+    // An inspector edit.
+    QVERIFY(window.selectNode("trig"));
+    QVERIFY(window.commitProperty("trig", "trigger", true));
+    QTRY_COMPARE_WITH_TIMEOUT(pulses, 1, 30000);
+    // Undo and redo change the saved value, so each fires the gate.
+    window.document()->undo();
+    QTRY_COMPARE_WITH_TIMEOUT(pulses, 2, 30000);
+    window.document()->redo();
+    QTRY_COMPARE_WITH_TIMEOUT(pulses, 3, 30000);
+    // A card body edit.
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    QtNodes::NodeId card = QtNodes::InvalidNodeId;
+    for (const auto node : model.allNodeIds()) {
+      if (model.resourceId(node) == "trig") { card = node; }
+    }
+    QVERIFY(card != QtNodes::InvalidNodeId);
+    QVERIFY(model.commit(model.propertyCommand(card, "trigger", false)));
+    QTRY_COMPARE_WITH_TIMEOUT(pulses, 4, 30000);
+    QVERIFY(model.commit(model.propertyCommand(card, "note", 12.0)));
+    QTRY_COMPARE_WITH_TIMEOUT(pitch, 1.0f, 30000);
+    // A slider draft sounds before it is saved.
+    emit window.scene()->sliderDraftChanged(card, "note", -12.0);
+    QTRY_COMPARE_WITH_TIMEOUT(pitch, -1.0f, 30000);
+    QCOMPARE(window.document()->node("trig")["data"].toObject()["note"].toDouble(), 12.0);
+    // Every edit went to the one run.
+    QCOMPARE(submitted.size(), 1);
+    QCOMPARE(pulses, 4);
+    window.action("Stop");
+    QTRY_COMPARE_WITH_TIMEOUT(status, QString("cancelled"), 30000);
+    QTRY_VERIFY_WITH_TIMEOUT(!window.activeEditor()->runActive(), 30000);
+    // No rerun follows the stopped run, which would play again.
+    QTest::qWait(600);
+    QCOMPARE(submitted.size(), 1);
   }
 };
 

@@ -1,5 +1,38 @@
 // Built from @nodetool-ai/dsl by scripts/build.mjs — do not edit
 import { createNode } from "../core.js";
+function streamingBitcrush(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingBitcrush", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
+function streamingCompress(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingCompress", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
+function streamingDistortion(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingDistortion", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
+function streamingLimiter(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingLimiter", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
+function streamingReverb(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingReverb", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
+function streamingNoiseGate(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingNoiseGate", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
+function streamingPhaser(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingPhaser", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
+function streamingDelay(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingDelay", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
+function streamingHighShelf(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingHighShelf", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
+function streamingLowShelf(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingLowShelf", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
+function streamingPeak(inputs, options) {
+  return createNode("nodetool.audio.realtime.StreamingPeak", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streamingInput: true });
+}
 function audioToChunks(inputs, options) {
   return createNode("nodetool.audio.realtime.AudioToChunks", inputs, { id: options?.id, outputNames: ["chunk"], outputTypes: { "chunk": "chunk" }, defaultOutput: "chunk", streaming: true, outputCorrelation: { "chunk": { "kind": "iteration", "source": "__execution__", "group": "stream" } } });
 }
@@ -22,7 +55,18 @@ export {
   audioOutput,
   audioToChunks,
   chunksToAudio,
+  streamingBitcrush,
+  streamingCompress,
+  streamingDelay,
+  streamingDistortion,
   streamingGain,
   streamingHighPass,
-  streamingLowPass
+  streamingHighShelf,
+  streamingLimiter,
+  streamingLowPass,
+  streamingLowShelf,
+  streamingNoiseGate,
+  streamingPeak,
+  streamingPhaser,
+  streamingReverb
 };

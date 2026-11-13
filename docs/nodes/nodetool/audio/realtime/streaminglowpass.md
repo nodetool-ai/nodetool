@@ -23,8 +23,8 @@ Applies a low-pass filter to a realtime audio stream, keeping filter state acros
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| chunk | `chunk` | Stream of PCM16LE audio chunks to process. | - |
 | cutoff_frequency_hz | `float` | The cutoff frequency of the low-pass filter in Hz. | `5000` |
+| chunk | `chunk` | Stream of PCM16LE audio chunks to process. | - |
 | q | `float` | Filter resonance (quality factor). | - |
 
 ## Outputs

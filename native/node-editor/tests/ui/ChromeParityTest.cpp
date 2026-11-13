@@ -14,6 +14,7 @@
 #include <QToolTip>
 #include <QWebSocket>
 #include <QWebSocketServer>
+#include <QMenu>
 #include <QtTest>
 
 using namespace nodetool;
@@ -332,7 +333,7 @@ private slots:
             {"rail-projects", "Projects has no native surface yet. Switch projects from the project menu in the tab strip."},
             {"rail-library", "Library"},
             {"rail-entities", "Entities has no native panel yet."},
-            {"rail-examples", "Examples has no native panel yet."},
+            {"rail-examples", "Examples"},
             {"rail-more", "The More panel has no native equivalent. Native commands are in the toolbar More menu."},
         };
         for (const auto &tip : tips) {
@@ -367,8 +368,13 @@ private slots:
         QTRY_VERIFY(window.chatVisible());
         click(rail, entry("rail-chats"));
         QTRY_VERIFY(!window.chatVisible());
+        // Examples opens the menu of bundled examples.
+        click(rail, entry("rail-examples"));
+        QTRY_VERIFY(window.findChild<QMenu *>("examples-menu"));
+        window.findChild<QMenu *>("examples-menu")->close();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         // A disabled entry changes nothing.
-        for (const auto *name : {"rail-projects", "rail-library", "rail-entities", "rail-examples", "rail-more"}) {
+        for (const auto *name : {"rail-projects", "rail-library", "rail-entities", "rail-more"}) {
             click(rail, entry(name));
             QTest::qWait(30);
             QVERIFY2(!window.catalogVisible() && !window.browserVisible() && !window.chatVisible(), name);

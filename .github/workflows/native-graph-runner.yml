@@ -16,6 +16,9 @@ on:
       - "native/graph-runner/**"
       - "native/jobs/**"
       - "native/kernels/**"
+      - "native/node-editor/**"
+      - "packages/audio-nodes/**"
+      - "packages/kernels/**"
       - ".github/workflows/native-graph-runner.yml"
   push:
     branches: [main]
@@ -23,6 +26,9 @@ on:
       - "native/graph-runner/**"
       - "native/jobs/**"
       - "native/kernels/**"
+      - "native/node-editor/**"
+      - "packages/audio-nodes/**"
+      - "packages/kernels/**"
       - ".github/workflows/native-graph-runner.yml"
 
 permissions:
@@ -174,6 +180,7 @@ jobs:
             -DGR_TEST_TESSDATA=/usr/share/tesseract-ocr/5/tessdata
 
       - name: Build
+        id: native_build
         working-directory: native/graph-runner
         env:
           CCACHE_DIR: ${{ runner.temp }}/ccache
@@ -185,6 +192,29 @@ jobs:
           node guest/build.mjs
           node guest/host/gpu-catalog.mjs build/gpu-catalog.json
           ./build/nodetool-graph-runner compile --bundle build/guest.js --out build/guest.bin
+
+      - name: Check Linux signal-effect parity
+        if: matrix.name == 'Release'
+        working-directory: native/graph-runner
+        run: |
+          # Match the ephemeral-runner setup in .github/actions/chromium-sandbox.
+          # parity/run.mjs still proves that its network namespace is offline.
+          if [ -f /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          node parity/run.mjs --runner build/nodetool-graph-runner \
+            --modules @nodetool-ai/core-nodes/nodes/constant,@nodetool-ai/audio-nodes/nodes/realtime-audio \
+            --only nodetool.audio.realtime.Streaming --check 2>&1 | tee build/audio-parity.log
+
+      - name: Save Linux signal-effect parity results
+        if: ${{ !cancelled() && matrix.name == 'Release' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: audio-signal-parity
+          path: |
+            native/graph-runner/build/parity/result.json
+            native/graph-runner/build/audio-parity.log
+          if-no-files-found: error
 
       # A pull request runs only the tests that depend on its changed files:
       # the selection of `npm run test:affected:native`, read from this
@@ -214,3 +244,37 @@ jobs:
           sel=()
           if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
           ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"
+
+      - name: Install Qt for the node editor
+        id: editor_qt
+        if: ${{ !cancelled() && matrix.name == 'Release' && steps.native_build.outcome == 'success' }}
+        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4
+        with:
+          version: '6.12.0'
+          modules: 'qtmultimedia qtwebsockets qtshadertools'
+          cache: false
+
+      - name: Build and test the audio examples in the editor
+        if: ${{ !cancelled() && matrix.name == 'Release' && steps.editor_qt.outcome == 'success' }}
+        env:
+          CCACHE_DIR: ${{ runner.temp }}/ccache
+        run: |
+          sudo apt-get install -y libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libpulse0 libasound2t64
+          # install-qt-action replaces PKG_CONFIG_PATH, so the pinned vips and
+          # WebP of the runner are no longer found. Put them back in front.
+          export PKG_CONFIG_PATH="$DEPS_PREFIX/lib/pkgconfig:$DEPS_PREFIX/lib/x86_64-linux-gnu/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+          export LD_LIBRARY_PATH="$DEPS_PREFIX/lib:$DEPS_PREFIX/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+          # The editor compiles the runner as a subproject, so it needs the
+          # runner's compiler (see Configure above).
+          cmake -S native/node-editor -B native/node-editor/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-18 -DCMAKE_CXX_COMPILER=clang++-18 \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build native/node-editor/build --parallel 2 --target nodetool-node-editor \
+            node_editor_menus_tests node_editor_canvas_media_host_tests node_editor_media_ui_tests node_editor_local_run_tests
+          QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+            native/node-editor/build/node_editor_menus_tests examplesMenuOpensEachBundledExample
+          QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+            native/node-editor/build/node_editor_canvas_media_host_tests storedMinuteOfAudioLoadsOnCard
+          QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
+            native/node-editor/build/node_editor_media_ui_tests longWaveformStaysBounded
+          ctest --test-dir native/node-editor/build -R '^node_editor_local_run$' --output-on-failure
