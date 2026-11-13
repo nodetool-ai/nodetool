@@ -5,6 +5,7 @@
 #include "music/MusicDocument.h"
 #include "music/MusicJobs.h"
 #include "music/MusicPlan.h"
+#include "music/MusicRange.h"
 #include "music/MusicTime.h"
 
 #include <QJsonArray>
@@ -159,7 +160,9 @@ QJsonObject run(const QString& name, const QJsonObject& args, TimelineModel& mod
     }
 
     // The frame math needs a tempo it can read; the planner states the rule.
-    const auto tempo = tempoFromJson(raw.value("tempo").toObject());
+    // A sequence with no tempo object reads at DEFAULT_TEMPO, as in the panel and MusicJobs.
+    auto tempo = tempoFromJson(raw.value("tempo").toObject());
+    if (const auto sequence = sequenceTempo(raw)) tempo = *sequence;
     if (const auto refusal = musicTempoRefusal(tempo); !refusal.empty()) {
         auto refused = failure(QString::fromStdString(refusal));
         refused.insert("refusal", "tempo");
@@ -176,7 +179,9 @@ QJsonObject run(const QString& name, const QJsonObject& args, TimelineModel& mod
                                {"tracks", raw.value("tracks")},
                                {"clips", model.clipsJson()},
                                {"operation", taskText(tool->task)}};
-    const auto plan = planMusicOperation(planInputFromJson(planJson));
+    auto planInput = planInputFromJson(planJson);
+    static_cast<MusicTempo&>(planInput.tempo) = tempo;
+    const auto plan = planMusicOperation(planInput);
     if (!plan.refusal.empty()) {
         auto refused = failure(QString::fromStdString(plan.reason));
         refused.insert("refusal", QString::fromStdString(plan.refusal));

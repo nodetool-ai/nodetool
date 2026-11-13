@@ -178,6 +178,23 @@ private slots:
         QCOMPARE(music.value("seed").toInteger(), 7);
     }
 
+    // A sequence with no tempo object plans at DEFAULT_TEMPO, as the panel does.
+    void generateWithoutATempoObject() {
+        Server server;
+        auto document = sequence({track(kBass, 0, "bass")}, {});
+        document.remove("tempo");
+        auto timeline = model(document);
+        auto& jobs = attach(*timeline, server);
+        QTRY_VERIFY(jobs.ready());
+        const auto result = run("ui_timeline_music_generate",
+                                {{"track_id", kBass}, {"start_bar", 1}, {"end_bar", 2}, {"prompt", "bass"}},
+                                *timeline, jobs);
+        QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+        QCOMPARE(static_cast<qint64>(result.value("end_frame").toDouble()), 2 * kBar);
+        QTRY_COMPARE(server.all("generate_media").size(), 1);
+        QCOMPARE(server.all("generate_media").first().value("data").toObject().value("music").toObject().value("bpm").toInt(), 120);
+    }
+
     // Each tool asks the planner for its own operation and refuses with its message.
     void refusesWithThePlannersReason() {
         Server server;
