@@ -226,14 +226,17 @@ private slots:
         QCOMPARE(sent.loopEndMs, kLoopOut);
         const std::uint64_t seekSeq = sent.seekSeq;
 
-        // Ten times real time, block by block. macOS sleeps far past a 1 ms
-        // request, so 50,000 sleeps outrun the test timeout, and catching up
-        // after a late sleep sends blocks in bursts the worker cannot fill.
-        // There the loop yields until each block's deadline. Elsewhere it
-        // sleeps, which leaves the core to the worker under TSan.
+        // 1 ms of sleep per 10 ms block runs the device at ten times real
+        // time. macOS sleeps far past a 1 ms request, so 1000 wraps there
+        // outrun the 300 s test timeout. Faster pacing on the macOS runner
+        // (deadline catch-up, or a yield loop) ended in underruns and seek
+        // fallbacks, so macOS checks 250 wraps with the same sleeps.
         const auto paceUs = qEnvironmentVariableIsSet("NT_LOOP_PACE_US") ? qEnvironmentVariableIntValue("NT_LOOP_PACE_US") : 1000;
-        [[maybe_unused]] const auto paceStart = std::chrono::steady_clock::now();
-        [[maybe_unused]] std::int64_t pacedBlocks = 0;
+#if defined(__APPLE__)
+        constexpr std::size_t kWraps = 250;
+#else
+        constexpr std::size_t kWraps = 1000;
+#endif
         std::vector<float> block(kPeriod * 2);
         float last[2] = {0, 0};
         float worstStep = 0;
@@ -248,7 +251,7 @@ private slots:
         std::vector<std::int64_t> tickWrapNs;
         double worstError = 0;
         const std::int64_t latencyFrames = static_cast<std::int64_t>(std::llround(options.simulatedLatencySec * kRate));
-        while (wraps.size() < 1000) {
+        while (wraps.size() < kWraps) {
             QVERIFY2(frame < 600 * static_cast<std::int64_t>(kRate), "the loop stopped wrapping");
             const std::int64_t blockNs = t0 + static_cast<std::int64_t>(static_cast<double>(frame) / kRate * 1e9);
             while (nextTickNs < blockNs) {
@@ -293,14 +296,7 @@ private slots:
             last[0] = block[kPeriod * 2 - 2];
             last[1] = block[kPeriod * 2 - 1];
             frame += kPeriod;
-            if (paceUs > 0) {
-#if defined(__APPLE__)
-                const auto deadline = paceStart + std::chrono::microseconds(paceUs) * ++pacedBlocks;
-                while (std::chrono::steady_clock::now() < deadline) std::this_thread::yield();
-#else
-                std::this_thread::sleep_for(std::chrono::microseconds(paceUs));
-#endif
-            }
+            if (paceUs > 0) std::this_thread::sleep_for(std::chrono::microseconds(paceUs));
         }
         const AudioEngine::Stats s = engine.stats();
         engine.stop();
