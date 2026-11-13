@@ -55,6 +55,31 @@ afterEach(() => {
   useStoryboardStore.getState().removeBoard(BOARD);
 });
 
+describe("setShotStatus failure reason", () => {
+  it("saves the reason with a failed status", () => {
+    seed();
+    useStoryboardStore
+      .getState()
+      .setShotStatus(BOARD, SHOT, "failed", " Out of credits ");
+
+    expect(getShot()).toMatchObject({
+      status: "failed",
+      failure_reason: "Out of credits"
+    });
+  });
+
+  it("drops the reason once the shot leaves the failed status", () => {
+    seed();
+    const store = useStoryboardStore.getState();
+    store.setShotStatus(BOARD, SHOT, "failed", "Out of credits");
+
+    store.setShotStatus(BOARD, SHOT, "keyframe_generating");
+
+    expect(getShot()?.status).toBe("keyframe_generating");
+    expect(getShot()).not.toHaveProperty("failure_reason");
+  });
+});
+
 describe("setShotKeyframe", () => {
   it("selects a sole legacy candidate when loading a finished board", () => {
     seed();

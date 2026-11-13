@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} skott",
         "modelLabel": "Modell",
         "modelPlaceholder": "Manusmodell",
+        "noModels": "Ingen språkmodell är tillgänglig. Lägg till en leverantörsnyckel i Inställningar, under Modeller och leverantörer.",
         "shotsLabel": "Skott",
         "title": "Välj din genre",
         "description": "Ton, pacing och inramning följer ditt val. Du kan ändra det senare.",
