@@ -2130,8 +2130,22 @@ export class GeminiProvider extends BaseProvider {
     ];
   }
 
+  /**
+   * The video models this file describes, less any Veo model the key's live
+   * listing leaves out. A Veo id offered from this file alone answered 404 to
+   * keys that cannot reach it. Omni Flash runs through the Interactions API,
+   * which the listing does not cover, so it stays. Without a listing the
+   * known models are returned unchanged.
+   */
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return [...GEMINI_VIDEO_MODELS];
+    const entries = await this.listModelEntries();
+    if (!entries) return [...GEMINI_VIDEO_MODELS];
+    const listed = new Set(
+      entries.map((entry) => entry.name?.split("/").pop()).filter(Boolean)
+    );
+    return GEMINI_VIDEO_MODELS.filter(
+      (model) => !model.id.startsWith("veo-") || listed.has(model.id)
+    );
   }
 
   override async getAvailableMusicModels(): Promise<MusicModel[]> {

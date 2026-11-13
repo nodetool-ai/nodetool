@@ -12,6 +12,7 @@
 import { getProviderSecretKey } from "./provider-registry.js";
 import {
   PROVIDER_IDS,
+  classifyProviderFailure,
   isNumber,
   isObjectLike,
   isString
@@ -163,7 +164,7 @@ function hintForStatus(
     case 404:
       return `${target} does not expose this model (404). Pick another model, or check that your ${provider} account has access to it.`;
     case 429:
-      return `${target} is rate limiting or out of quota (429). Wait and retry, or check your ${provider} plan limits.`;
+      return `${target} is limiting how fast requests arrive (429). Wait a moment and retry.`;
     case 408:
     case 504:
       return `${target} timed out (${status}). Retry, or lower the request size.`;
@@ -175,12 +176,48 @@ function hintForStatus(
   }
 }
 
+/**
+ * Remedy for an account failure the status does not name: an empty account
+ * behind OpenAI's 429 or Anthropic's 400, a free-tier key with no quota behind
+ * Gemini's 429, a retired model behind a 400.
+ */
+function hintForAccountFailure(
+  error: ErrorLike,
+  status: number | null,
+  provider: string,
+  model: string
+): string | null {
+  const kind = classifyProviderFailure({
+    status,
+    message: isString(error.message) ? error.message : "",
+    code: isString(error.code) ? error.code : ""
+  });
+  const target = model ? `${provider}/${model}` : provider;
+  const label = status === null ? "" : ` (${status})`;
+  switch (kind) {
+    case "payment":
+      return status === 402
+        ? null
+        : `${target} reports the account has no credit or billing${label}. Top up or enable billing with ${provider}, or switch to another model.`;
+    case "quota":
+      return `${target} has no quota left on this key${label}. Free-tier keys often have none for this model: enable billing with ${provider}, or switch to another model.`;
+    case "not_found":
+      return status === 404
+        ? null
+        : `${target} is not available to this key${label}. Pick another model.`;
+    default:
+      return null;
+  }
+}
+
 function hintFor(
   error: ErrorLike,
   provider: string,
   model: string
 ): string | null {
   const status = httpStatusFromError(error);
+  const accountHint = hintForAccountFailure(error, status, provider, model);
+  if (accountHint) return accountHint;
   if (status !== null) return hintForStatus(status, provider, model);
   if (isNetworkFailure(error)) {
     const target = model ? `${provider}/${model}` : provider;

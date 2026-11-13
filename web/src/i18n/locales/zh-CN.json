@@ -19963,5 +19963,33 @@
         "public": "公开"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "提供商",
+    "title": {
+      "billing": "{{target}} 无法运行：账户没有余额或未开通计费。",
+      "quota": "{{target}} 无法运行：此密钥已没有剩余配额。",
+      "auth": "{{target}} 拒绝了你的 API 密钥。",
+      "model_unavailable": "{{target}} 对你的密钥不可用。",
+      "rate_limit": "{{target}} 收到的请求过多。"
+    },
+    "hint": {
+      "billing": "请在提供商处充值，或切换到其他模型。",
+      "quota": "免费密钥通常没有此模型的配额。请在提供商处开通计费，或切换到其他模型。",
+      "auth": "请在设置中检查密钥，或切换到其他提供商的模型。",
+      "model_unavailable": "它已从你的模型列表中移除。请选择其他模型。",
+      "rate_limit": "请稍等片刻再试。"
+    },
+    "repeated": "同样的错误再次出现，重试不会有帮助。请切换到其他模型。",
+    "switchTo": "使用 {{model}}",
+    "openKeys": "打开 API 密钥",
+    "addCredit": "充值",
+    "enableBilling": "开通计费"
+  },
+  "runReadiness": {
+    "addKey": "添加 API 密钥",
+    "missingKeysDetail": "此工作流需要 {{keys}}。请在运行前到设置中添加。",
+    "costPerRun": "每次运行约 {{cost}}",
+    "costUnknown": "费用未知"
   }
 }

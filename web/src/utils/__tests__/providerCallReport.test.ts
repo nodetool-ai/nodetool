@@ -33,7 +33,7 @@ describe("providerCallTarget / providerCallSummary", () => {
   it("names provider and model", () => {
     expect(providerCallTarget(failure())).toBe("openai/gpt-5.4-mini");
     expect(providerCallSummary(failure())).toBe(
-      "openai/gpt-5.4-mini 429 — rate limited or out of quota"
+      "openai/gpt-5.4-mini 429 — rate limited"
     );
   });
 
