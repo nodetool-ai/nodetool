@@ -2,7 +2,7 @@
 
 WP09 is in progress. The exact clock and control/audio driver are implemented,
 with a standalone CLI and float WAV output. Render integration, external slots,
-control-to-audio parameter bindings, PNG output, the graph-runner command and
+PNG output, the graph-runner command and
 registry gate remain pending. Local test execution is deferred.
 
 ## Prepared audio command
@@ -25,7 +25,18 @@ validates the plan and prepares executors before creating it. Each declared
 audio sink produces an interleaved IEEE float32 WAV at session rate and layout.
 Files are `audio.wav`, `audio-1.wav` and so on, in sink declaration order.
 Control-only plans write a silent `audio.wav`. Audio parameters use their plan
-values and existing smoothing. Control registers do not yet drive parameters.
+values unless `audioControl` names a scalar audio-domain register. The driver
+resolves bindings during preparation into a preallocated dense snapshot,
+including sparse parameter slot IDs. Each quantum samples its endpoint value
+after audio control advances, then applies existing audio smoothing from the
+parameter's initial value. Unbound parameters keep their plan values.
+Audio-domain `time.frame` counts quantum endpoints starting at one, including
+the final drain. It does not use the video frame index.
+
+Missing or wrong-domain producers and vector bindings fail preparation before
+output creation. A bound non-finite value or value outside float32 range aborts
+the export without publishing a success manifest. This synchronous binding
+does not implement WP13's live cross-thread synchronization.
 
 The driver closes every WAV before writing a temporary manifest and renaming
 it to `manifest.json`. The manifest records sample, quantum and control-frame
@@ -77,7 +88,11 @@ The driver and its fixture executable compile and link with MSVC Release.
 Prepared `realtime-offline-driver` cases cover WAV chunks and sample values,
 partial-quantum trimming, silence, multiple sinks, repeat bytes, low-frame-rate
 stateful controls, invalid clocks, unsupported slots and existing-output
-preservation. These fixtures remain unrun. CLI runtime behavior, sanitizer
+preservation. Binding cases cover sparse IDs, stateful endpoint samples,
+cadence independence, wrong-domain/missing producers, vector values and float
+overflow. Source inspection corrected an earlier fixture's nonexistent
+`constant` kernel to an oscillator with an independent sine reference.
+These fixtures remain unrun. CLI runtime behavior, sanitizer
 checks and aggregate checks are also unverified.
 
 The [private-device GPU exception](render.md#native-pipeline-api-limitation)

@@ -87,6 +87,11 @@
             "exclusiveMinimum": 0,
             "maximum": 60
           },
+          "audioControl": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 99999
+          },
           "sync": {
             "enum": [
               "immediate",

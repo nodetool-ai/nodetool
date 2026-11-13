@@ -161,7 +161,20 @@ repeatability, low-frame-rate control progression and rejection paths. They
 remain unrun. Source review corrected partial-manifest publication and narrow
 Windows argument decoding. No runtime reproduction or pass is claimed.
 
-Control-to-audio parameter bindings, external slots, catalog registry
+Optional `audioControl` parameter bindings now connect scalar audio-domain
+registers to prepared dense snapshots at quantum endpoints. Sparse slot IDs
+are resolved before execution, and existing smoothing applies. Source fixtures
+cover stateful binding, cadence independence and invalid bindings. The earlier
+unrun constant-signal fixture referenced a nonexistent audio kernel. Source
+inspection corrected it to an oscillator with a sine reference. These cases
+still require runtime and sanitizer verification. WP13 live handoffs are not
+implemented by this synchronous offline path.
+Source review also corrected audio-domain `time.frame` to count quantum
+endpoints instead of video frames, with an unrun regression for frame-rate
+independence and the final drain. Bound ramp fixtures preserve the initial
+parameter value and interpolate to each quantum's target.
+
+External slots, catalog registry
 construction, render/PNG export, graph-runner CLI integration, image goldens
 and the registry gate remain pending. WP09 stays open. This increment does not
 change the M0 hardware gaps or the live/shared-device block.

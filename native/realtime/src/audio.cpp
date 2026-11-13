@@ -1,4 +1,5 @@
 #include "nodetool/realtime/audio.h"
+#include "nodetool/realtime/control.h"
 #include "nodetool/realtime/math.h"
 #include <algorithm>
 #include <array>
@@ -160,12 +161,11 @@ AudioExecutor::Prepared AudioExecutor::prepare(const Plan& plan, std::vector<Aud
     const auto failure = [&](std::string reason, std::string detail) -> Prepared { return {nullptr, Diagnostic{current, std::move(reason), std::move(detail)}}; };
     try {
         if (options.maxEvents == 0 || options.maxEvents > 65536 || options.maxBytes > 1024ull * 1024 * 1024) { return failure("budget", "Invalid audio preparation limits"); }
-        // Validate the audio projection with the canonical loader. Other domains
-        // have their own registries/executors and are not accepted on its behalf.
+        // Preserve control producers for parameter-reference validation. The host
+        // still prepares control instructions and supplies snapshots separately.
         auto projection = plan;
         projection["render"] = {{"passes", Plan::array()}};
-        projection["control"] = {{"registers", 0}, {"ops", Plan::array()}, {"stateful", Plan::array()}};
-        Registry registry; registerAudioKernels(registry);
+        Registry registry; registerAudioKernels(registry); registerControlOperations(registry);
         const auto loaded = loadPlan(projection.dump(), registry);
         if (!loaded.plan) { return {nullptr, loaded.error}; }
         const auto& document = *loaded.plan;

@@ -37,6 +37,13 @@ Scalar audio parameters support `none`, `ramp` and `onePole` smoothing. Only
 `onePole` requires a `timeConstant` in seconds, greater than zero and at most 60.
 The [audio contracts](../audio.md) define sample timing and snapshot retention.
 
+An optional `audioControl` parameter field names an audio-domain control
+register. The loader requires a producer in that domain and a scalar initial
+value. The offline host checks the prepared register width and resolves sparse
+parameter slots into a dense snapshot before execution. It samples bindings
+at each quantum endpoint. Unbound parameters retain their plan values. This
+does not implement WP13 cross-thread synchronization or revision handoffs.
+
 Audio nodes can carry `delayFrames` and `bufferSlot` structural fields. The
 [audio executor](../audio.md) permits them only for `delay` and `sample-player`
 respectively, validates the binding, and allocates state during preparation.

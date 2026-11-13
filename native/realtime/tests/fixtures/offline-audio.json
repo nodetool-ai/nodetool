@@ -4,10 +4,14 @@
   "session": { "sampleRate": 48000, "quantum": 128, "channels": "stereo", "width": 64, "height": 64, "seed": 17 },
   "params": [
     { "slot": 0, "node": "tone", "field": "frequency", "smooth": "none", "sync": "audio", "value": 440 },
-    { "slot": 1, "node": "tone", "field": "amplitude", "smooth": "none", "sync": "audio", "value": 0.25 }
+    { "slot": 1, "node": "tone", "field": "amplitude", "smooth": "ramp", "sync": "audio", "value": 0, "audioControl": 1 }
   ],
   "slots": [],
-  "control": { "registers": 0, "ops": [], "stateful": [] },
+  "control": {
+    "registers": 2,
+    "ops": [{ "node": "rise-rate", "op": "constant", "domain": "audio", "out": 0, "in": [], "values": [0.25] }],
+    "stateful": [{ "node": "amplitude-rise", "op": "integrator", "domain": "audio", "out": 1, "in": [0], "values": [], "stateVersion": 1 }]
+  },
   "render": { "passes": [] },
   "audio": {
     "buffers": [{ "id": 0, "channels": "stereo" }],

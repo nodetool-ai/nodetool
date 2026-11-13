@@ -153,6 +153,15 @@ void semantics(const Json& plan, const Registry& registry, const Plan* previous,
             ops.push_back(&op); opNames.push_back(node);
         }
     }
+    for (const auto& param : plan["params"]) {
+        if (!param.contains("audioControl")) { continue; }
+        if (!param["value"].is_number() && !param["value"].is_boolean()) {
+            reject(param["node"], "parameter", "Audio control bindings require scalar parameter values");
+        }
+        if (!registers.contains("audio:" + std::to_string(param["audioControl"].get<unsigned>()))) {
+            reject(param["node"], "register", "Parameter binding has no audio-domain producer");
+        }
+    }
     std::vector<std::vector<std::size_t>> controlEdges(ops.size());
     for (std::size_t i = 0; i < ops.size(); ++i) {
         for (const auto& input : (*ops[i])["in"]) {
