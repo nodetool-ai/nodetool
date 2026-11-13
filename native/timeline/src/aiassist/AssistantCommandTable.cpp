@@ -115,7 +115,6 @@ QList<Command> buildAllowed() {
     actions({"markIn", "markOut"}, seek);
     actions({"markClip", "markSelection"}, clips);
     actions({"goToIn", "goToOut", "clearIn", "clearOut", "clearRange"});
-    actions({"goToSequenceStart", "goToSequenceEnd"});
     // Markers.
     actions({"addMarker", "addRangeMarker", "clearMarker"}, seek);
     action("addMarkerInOut", range);

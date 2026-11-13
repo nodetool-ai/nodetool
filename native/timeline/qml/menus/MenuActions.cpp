@@ -147,18 +147,6 @@ const bool registered = [] {
         gestures.setSelection({id});
         return true;
     }});
-    // Home and End move the playhead to the ends of the sequence, as in
-    // Premiere's Timeline panel, whichever panel has the keys.
-    nt::wiring::registerKeyAction({"goToSequenceStart", "Go to start", {QKeySequence(Qt::Key_Home)}, [](ClipGestureController& gestures, const QVariantMap&) {
-        if (!gestures.clock()) { return false; }
-        gestures.clock()->seek(0);
-        return true;
-    }, "Playback"});
-    nt::wiring::registerKeyAction({"goToSequenceEnd", "Go to end", {QKeySequence(Qt::Key_End)}, [](ClipGestureController& gestures, const QVariantMap&) {
-        if (!gestures.clock() || !gestures.timeline()) { return false; }
-        gestures.clock()->seek(gestures.timeline()->contentEndMs());
-        return true;
-    }, "Playback"});
     // The toolbar's Add text: a title at the playhead, over every picture.
     nt::wiring::registerKeyAction({"addTextAtPlayhead", "Add text", {}, [](ClipGestureController& gestures, const QVariantMap&) {
         if (!gestures.timeline()) { return false; }

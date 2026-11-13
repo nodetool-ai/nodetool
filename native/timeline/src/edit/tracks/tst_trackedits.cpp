@@ -78,6 +78,95 @@ private slots:
         QVERIFY(!model.applyEdit("setTrackLocked", {{"trackId", "a"}, {"locked", true}}));
         QCOMPARE(model.undoStack()->count(), 1);
     }
+    void addTextOnTopReusesFreeTop_data() {
+        QTest::addColumn<QString>("type");
+        QTest::newRow("video") << QString("video");
+        QTest::newRow("overlay") << QString("overlay");
+    }
+    void addTextOnTopReusesFreeTop() {
+        QFETCH(QString, type);
+        const auto edit = nt::app::findEdit("addTextOnTop");
+        QVERIFY(edit);
+        // The top track has a clip that ends where the title starts.
+        const QJsonObject raw{{"tracks", QJsonArray{QJsonObject{{"id", "top"}, {"type", type}, {"locked", false}},
+                                                   QJsonObject{{"id", "low"}, {"type", "video"}}}},
+                              {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "top"}, {"startMs", 0}, {"durationMs", 1000}}}}};
+        const auto after = edit(raw, {{"atMs", 1000}, {"clipId", "title"}, {"text", "Hello"}, {"durationMs", 2000}});
+        QCOMPARE(after.value("tracks"), raw.value("tracks"));
+        const auto clips = after.value("clips").toArray();
+        QCOMPARE(clips.size(), 2);
+        const auto title = clips.last().toObject();
+        QCOMPARE(title.value("id").toString(), QString("title"));
+        QCOMPARE(title.value("trackId").toString(), QString("top"));
+        QCOMPARE(title.value("mediaType").toString(), QString("text"));
+        QCOMPARE(title.value("startMs").toDouble(), 1000.0);
+        QCOMPARE(title.value("durationMs").toDouble(), 2000.0);
+        QCOMPARE(title.value("textStyle").toObject().value("text").toString(), QString("Hello"));
+    }
+    void addTextOnTopInsertsTitles_data() {
+        QTest::addColumn<QJsonObject>("top");
+        QTest::addColumn<QJsonArray>("clips");
+        const QJsonArray none;
+        QTest::newRow("audio") << QJsonObject{{"id", "top"}, {"type", "audio"}} << none;
+        QTest::newRow("locked") << QJsonObject{{"id", "top"}, {"type", "video"}, {"locked", true}} << none;
+        QTest::newRow("occupied") << QJsonObject{{"id", "top"}, {"type", "overlay"}}
+            << QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "top"}, {"startMs", 500}, {"durationMs", 1000}}};
+        QTest::newRow("occupied after") << QJsonObject{{"id", "top"}, {"type", "video"}}
+            << QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "top"}, {"startMs", 3999}, {"durationMs", 1000}}};
+    }
+    void addTextOnTopInsertsTitles() {
+        QFETCH(QJsonObject, top);
+        QFETCH(QJsonArray, clips);
+        const auto edit = nt::app::findEdit("addTextOnTop");
+        QVERIFY(edit);
+        const QJsonObject raw{{"tracks", QJsonArray{top, QJsonObject{{"id", "low"}, {"type", "video"}}}}, {"clips", clips}};
+        const auto after = edit(raw, {{"atMs", 1000}, {"clipId", "title"}});
+        const auto tracks = after.value("tracks").toArray();
+        QCOMPARE(tracks.size(), 3);
+        const auto titles = tracks.first().toObject();
+        QCOMPARE(titles.value("name").toString(), QString("Titles"));
+        QCOMPARE(titles.value("type").toString(), QString("overlay"));
+        QVERIFY(!titles.value("id").toString().isEmpty());
+        QCOMPARE(tracks[1].toObject().value("id").toString(), QString("top"));
+        const auto added = after.value("clips").toArray();
+        QCOMPARE(added.size(), clips.size() + 1);
+        const auto title = added.last().toObject();
+        QCOMPARE(title.value("trackId"), titles.value("id"));
+        QCOMPARE(title.value("startMs").toDouble(), 1000.0);
+        QCOMPARE(title.value("durationMs").toDouble(), 3000.0);
+        QCOMPARE(title.value("name").toString(), QString("Text"));
+    }
+    void addTextOnTopEmptyAndRefused() {
+        const auto edit = nt::app::findEdit("addTextOnTop");
+        QVERIFY(edit);
+        const auto empty = edit(QJsonObject{{"tracks", QJsonArray{}}, {"clips", QJsonArray{}}}, {{"atMs", 0}});
+        QCOMPARE(empty.value("tracks").toArray().size(), 1);
+        QCOMPARE(empty.value("clips").toArray().first().toObject().value("trackId"),
+                 empty.value("tracks").toArray().first().toObject().value("id"));
+        const QJsonObject raw{{"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}}, {"clips", QJsonArray{}}};
+        for (const auto& payload : {QJsonObject{}, QJsonObject{{"atMs", -1}}, QJsonObject{{"atMs", 0}, {"durationMs", 0}},
+                                    QJsonObject{{"atMs", 0}, {"text", ""}}}) {
+            QCOMPARE(edit(raw, payload), raw);
+        }
+    }
+    void addTextOnTopIsOneUndoStep() {
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(R"({"name":"Fixture","width":640,"height":360,"fps":30,"durationMs":5000,
+            "tracks":[{"id":"a","name":"Audio","type":"audio","index":0,"visible":true,"locked":false},
+                      {"id":"v","name":"Video","type":"video","index":1,"visible":true,"locked":false}],
+            "clips":[{"id":"c","trackId":"v","name":"Clip","startMs":0,"durationMs":5000,"mediaType":"video"}]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        const auto before = QJsonDocument::fromJson(model.documentJson()).object();
+        QVERIFY(model.applyEdit("addTextOnTop", {{"atMs", 1000}, {"clipId", "title"}}));
+        const auto after = QJsonDocument::fromJson(model.documentJson()).object();
+        const auto tracks = after.value("tracks").toArray();
+        QCOMPARE(tracks.size(), 3);
+        QCOMPARE(tracks.first().toObject().value("name").toString(), QString("Titles"));
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QCOMPARE(QJsonDocument::fromJson(model.documentJson()).object(), before);
+    }
     void largeLinkedGroupUnit() {
         QJsonArray clips;
         constexpr int count = 20000;
