@@ -22,6 +22,7 @@
 #include "document/WorkflowDocument.h"
 #include "graph/WorkflowGraphModel.h"
 #include "server/WorkflowSession.h"
+#include "run/BugReport.h"
 #include "run/RunOutputModel.h"
 #include "run/RunTraceController.h"
 #include "run/NodeRuntimeModel.h"
@@ -203,6 +204,9 @@ public:
     // The web settings page of the connected server (SettingsHeaderButton.tsx).
     void openSettings();
     void copyText(const QString &text);
+    // Opens the prefilled GitHub issue the web Report controls open, with this
+    // tab's workflow and latest run filled in when the context has none.
+    void reportBug(node_editor::BugReportContext context);
     // The per-run cost the server's preflight reports: available, caption.
     QVariantMap costEstimate() const;
     // Runs the selection `runs` times, each after the previous one completes
@@ -398,6 +402,14 @@ private:
   // clearOverlap moves the new card vertically off the top-level cards it would cover,
   // as a node menu add does (web hooks/useCreateNode.ts resolveVerticalOverlap).
   bool addNodeAt(const QString &type, const QPointF &position, bool clearOverlap = false);
+  // The node type a quick-add command ("Add Prompt") creates, or empty.
+  static QString quickAddNodeType(const QString &command) {
+    if (command == QLatin1String("Add Prompt")) { return QStringLiteral("nodetool.text.Prompt"); }
+    if (command == QLatin1String("Add Text to Image")) { return QStringLiteral("nodetool.image.TextToImage"); }
+    if (command == QLatin1String("Add Text to Video")) { return QStringLiteral("nodetool.video.TextToVideo"); }
+    if (command == QLatin1String("Add Agent")) { return QStringLiteral("nodetool.agents.Agent"); }
+    return {};
+  }
   // Web useAddConnectedNode: a node of `type` beside `sourceId`'s output, wired into `targetPort`.
   bool addConnectedNode(const QString &sourceId, const QString &outputName, const QString &type, const QString &targetPort);
   void autoLayout(bool selectedOnly);

@@ -21,7 +21,7 @@ add_executable(node_editor_autosave_tests WorkflowAutosaveTests.cpp
 target_link_libraries(node_editor_autosave_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Gui Qt6::Network Qt6::WebSockets Qt6::Test)
 nodetool_stage_graph_runner_runtime(node_editor_autosave_tests)
 add_test(NAME node_editor_autosave_tests COMMAND node_editor_autosave_tests)
-find_package(Qt6 REQUIRED COMPONENTS Multimedia)
+find_package(Qt6 REQUIRED COMPONENTS Multimedia Svg)
 add_executable(node_editor_local_run_tests LocalRunTests.cpp
  ../../src/media/MediaResolver.cpp ../../src/media/MediaResolver.h ../../src/media/LocalMediaStore.h
  ../../src/server/WorkflowSession.cpp ../../src/server/WorkflowSession.h ../../src/server/AccountJobs.cpp ../../src/server/AccountJobs.h
@@ -32,7 +32,7 @@ add_executable(node_editor_local_run_tests LocalRunTests.cpp
  ../../src/media/PcmStream.cpp ../../src/media/PcmStream.h)
 target_include_directories(node_editor_local_run_tests PRIVATE ../../src)
 target_compile_definitions(node_editor_local_run_tests PRIVATE GUEST_BUNDLE="${NODETOOL_GUEST_BUNDLE}")
-target_link_libraries(node_editor_local_run_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Network Qt6::WebSockets Qt6::Test Qt6::Multimedia)
+target_link_libraries(node_editor_local_run_tests PRIVATE nodetool_graph_runner Qt6::Core Qt6::Network Qt6::WebSockets Qt6::Test Qt6::Multimedia Qt6::Gui Qt6::Svg)
 nodetool_stage_graph_runner_runtime(node_editor_local_run_tests)
 add_test(NAME node_editor_local_run COMMAND node_editor_local_run_tests)
 set_tests_properties(node_editor_local_run PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")

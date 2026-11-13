@@ -111,6 +111,7 @@ add_library(node_editor_core STATIC
  src/run/PreviewSourceAssets.cpp src/run/PreviewSourceAssets.h
  src/run/PartialRunPlanner.cpp src/run/PartialRunPlanner.h
  src/run/RunOutputModel.cpp src/run/RunOutputModel.h
+ src/run/BugReport.cpp src/run/BugReport.h
  src/run/OutputCollectionModel.cpp src/run/OutputCollectionModel.h
  src/run/NodeRuntimeModel.cpp src/run/NodeRuntimeModel.h
  src/media/MediaResolver.cpp src/media/MediaResolver.h

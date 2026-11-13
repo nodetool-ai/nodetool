@@ -438,14 +438,17 @@ void WorkflowGraphModel::clearCardMedia() {
   cardMedia_.clear();
   for (auto it = ids_.cbegin(); it != ids_.cend(); ++it) { layouts_.remove(*it); emit nodeUpdated(*it); }
 }
-void WorkflowGraphModel::setConfiguredSecrets(const QStringList &keys, bool known) {
+void WorkflowGraphModel::setConfiguredSecrets(const QStringList &keys, bool known, const QStringList &secretKeys) {
   const QSet<QString> configured(keys.cbegin(), keys.cend());
-  if (configured == configuredSecrets_ && known == secretsKnown_) { return; }
+  const QSet<QString> listed(secretKeys.cbegin(), secretKeys.cend());
+  if (configured == configuredSecrets_ && known == secretsKnown_ && listed == secretKeys_) { return; }
   configuredSecrets_ = configured;
   secretsKnown_ = known;
+  secretKeys_ = listed;
   for (auto it = ids_.cbegin(); it != ids_.cend(); ++it) {
     const auto meta = metadata(*it);
-    if (!catalogKeyGate(meta["namespace"].toString(meta["node_type"].toString())).isEmpty()) {
+    if (!catalogKeyGate(meta["namespace"].toString(meta["node_type"].toString())).isEmpty()
+        || !meta["required_settings"].toArray().isEmpty()) {
       layouts_.remove(*it);
       emit nodeUpdated(*it);
     }
@@ -740,6 +743,30 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       connect.height = connect.rect.height();
       result.rows.append(connect);
       y = connect.rect.bottom() + nm::chipGap;
+    }
+    // RequiredSettingsWarning: required settings the server lists as secrets
+    // and reports unset. The provider key band above already names its gate.
+    QStringList missing;
+    if (secretsKnown_) {
+      for (const auto &value : meta["required_settings"].toArray()) {
+        const auto key = value.toString();
+        if (key != gate && secretKeys_.contains(key) && !configuredSecrets_.contains(key)) { missing.append(key); }
+      }
+    }
+    if (!missing.isEmpty()) {
+      band(missing.size() == 1 ? tr("Required setting %1 is not configured!").arg(missing.first())
+                               : tr("Required settings %1 are not configured!").arg(missing.join(QStringLiteral(", "))));
+      NodeRow configure;
+      configure.kind = NodeRowKind::Action;
+      configure.action = QStringLiteral("connectProvider");
+      configure.value = missing.first();
+      configure.warning = true;
+      configure.label = tr("Configure in settings");
+      configure.rect = QRectF(nm::warningButtonInset, y, bandWidth + 2.0 * nm::borderWidth - 2.0 * nm::warningButtonInset, nm::warningButtonHeight);
+      configure.y = configure.rect.center().y();
+      configure.height = configure.rect.height();
+      result.rows.append(configure);
+      y = configure.rect.bottom() + nm::chipGap;
     }
     if (node["type"].toString().startsWith(QStringLiteral("nodetool.input."))) {
       const auto name = node["data"].toObject()["name"].toString();

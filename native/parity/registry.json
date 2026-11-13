@@ -134,16 +134,16 @@
       "native": "Arrange grid"
     },
     "addPromptNode": {
-      "missing": "No native binding"
+      "native": "Add Prompt"
     },
     "addTextToImageNode": {
-      "missing": "No native binding"
+      "native": "Add Text to Image"
     },
     "addTextToVideoNode": {
-      "missing": "No native binding"
+      "native": "Add Text to Video"
     },
     "addAgentNode": {
-      "missing": "No native binding"
+      "native": "Add Agent"
     },
     "deleteSelected": {
       "native": "Delete"
@@ -1421,10 +1421,11 @@
     },
     "web/src/components/node/NodeErrors.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/run/BugReport.cpp"
       ],
       "status": "partial",
-      "note": "Errors show on cards. The web error box carries a Report control to the bug dialog; native has none.",
+      "note": "Report opens the prefilled, redacted GitHub issue the web dialog opens. The dialog's description fields and report bundle are missing.",
       "inventory": "F26"
     },
     "web/src/components/node/NodeExecutionTime.tsx": {
@@ -1638,7 +1639,11 @@
       "inventory": "F31"
     },
     "web/src/components/node/output/svg.tsx": {
-      "missing": "svg_element outputs have no native renderer.",
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "match",
+      "note": "svg_element outputs render to a PNG through QSvgRenderer, after the same element and attribute filter.",
       "inventory": "F31"
     },
     "web/src/components/node/output/TextRenderer.tsx": {
@@ -1673,7 +1678,7 @@
         "native/node-editor/src/run/RunOutputModel.cpp"
       ],
       "status": "partial",
-      "note": "No native renderer for svg_element, html or document outputs. Task, task plan, calendar event, message and np_array outputs render as text. Sketch, timeline and model_3d viewers are out of scope.",
+      "note": "html renders as formatted text with images removed, and a stored html or document output links to its URL. PDF and inline document previews are missing. Task, task plan, calendar event, message and np_array outputs render as text. Sketch, timeline and model_3d viewers are out of scope.",
       "inventory": "F31"
     },
     "web/src/components/node/PlanningUpdateDisplay.tsx": {
@@ -1734,7 +1739,11 @@
       "inventory": "F02"
     },
     "web/src/components/node/RequiredSettingsWarning.tsx": {
-      "missing": "Card warning for missing required settings with Open settings. Not found natively."
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Warns for required settings the server lists as secrets. Non-secret required settings are not checked, and a key the provider key band already names is not repeated."
     },
     "web/src/components/node/RerouteNode.tsx": {
       "native": [
@@ -1916,10 +1925,11 @@
     },
     "web/src/components/panels/NotificationButton.tsx": {
       "native": [
-        "native/node-editor/qml/NotificationsPanel.qml"
+        "native/node-editor/qml/NotificationsPanel.qml",
+        "native/node-editor/src/run/BugReport.cpp"
       ],
       "status": "partial",
-      "note": "No Report control on error notifications.",
+      "note": "Report opens the prefilled, redacted GitHub issue the web dialog opens. The dialog's description fields and report bundle are missing.",
       "inventory": "W16"
     },
     "web/src/components/panels/PanelBottom.tsx": {

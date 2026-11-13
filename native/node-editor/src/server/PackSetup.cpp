@@ -109,6 +109,11 @@ QStringList PackSetup::configuredKeys() const {
     }
     return keys;
 }
+QStringList PackSetup::secretKeys() const {
+    QStringList keys;
+    for (const auto &secret : secrets_) { keys.append(secret.toObject()["key"].toString()); }
+    return keys;
+}
 void PackSetup::setShowNodesWithoutKey(bool show) {
     if (showNodesWithoutKey_ == show) {
         return;

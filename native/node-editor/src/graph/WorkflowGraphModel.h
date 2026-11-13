@@ -62,7 +62,8 @@ public:
   void setCanvasMediaNodes(const QSet<QString> &nodes);
   // The secrets the account has set. Until `known`, no card warns about a
   // missing key, as useApiKeyValidation waits for the credential check.
-  void setConfiguredSecrets(const QStringList &keys, bool known);
+  // `secretKeys` lists every secret the server knows, configured or not.
+  void setConfiguredSecrets(const QStringList &keys, bool known, const QStringList &secretKeys = {});
   // Thumbnails and load states of the media values cards show, from CardMediaLoader.
   void setCardMedia(const QString &nodeId, const QString &property, int index, const CardMediaItem &item);
   void clearCardMedia();
@@ -167,6 +168,7 @@ private:
   QSet<QString> canvasMediaNodes_;
   QSet<QString> configuredSecrets_;
   bool secretsKnown_ = false;
+  QSet<QString> secretKeys_;
   // How many input nodes carry each name, for InputNodeNameWarning.tsx.
   QHash<QString, int> inputNames_;
   CardMediaStore cardMedia_;
