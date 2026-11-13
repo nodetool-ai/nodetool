@@ -3253,6 +3253,16 @@ qml_callers = ["native/node-editor/qml/InlinePropertyEditor.qml", "native/node-e
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Icon, Ui.Select"
 
 [[file]]
+path = "native/node-editor/qml/NodeInfoPanel.qml"
+category = "pending"
+controls = ["ColumnLayout", "Flickable", "Flow", "Rectangle", "Repeater", "RowLayout", "Ui.CloseButton", "Ui.EditorButton", "Ui.ScrollBar", "Ui.Text"]
+signals = []
+test_host = "native/node-editor/tests/ui/NodeInfoComponentTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
 path = "native/node-editor/qml/NodeMenu.qml"
 category = "pending"
 controls = ["Rectangle", "EditorRoles", "Ui.ListRow", "DragHandler", "RowLayout", "TypeIcon", "Ui.Text", "Ui.ToolbarIconButton", "ColumnLayout", "Flow", "Repeater", "Tile", "Item", "HoverHandler", "Ui.TextField", "ListView", "Ui.ScrollBar", "Ui.Icon", "Flickable", "TileSection", "Ui.EmptyState"]

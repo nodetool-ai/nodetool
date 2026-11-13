@@ -22,18 +22,18 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.preferredHeight: 0
         visible: richOutput.showCopy && richOutput.copyText.length > 0
-        z: 2
+        z: Ui.Metrics.layerOverlay
         RowLayout {
             anchors.top: parent.top
             anchors.right: parent.right
             spacing: Ui.Metrics.xs
             visible: outputHover.hovered || richOutput.copyStatus.length > 0
             Ui.Text { objectName: "output-copy-status"; visible: richOutput.copyStatus.length > 0; text: richOutput.copyStatus; role: Ui.Typography.SansCaption }
-            NodeButton {
+            Ui.EditorButton {
                 objectName: "output-copy"
                 text: "Copy"
                 accessibleName: "Copy output"
-                variant: NodeButton.Flat
+                variant: Ui.EditorButton.Outlined; flat: true
                 onClicked: richOutput.copyStatus = outputClipboard.copyText(richOutput.copyText) ? "Copied!" : "Could not copy the output"
             }
         }
@@ -138,7 +138,7 @@ Rectangle {
             Layout.alignment: Qt.AlignTop
             text: (modelData.statusLabel || "log").toUpperCase()
             role: Ui.Typography.SansCaption
-            color: agentStatus.accent
+            domainColor: agentStatus.accent
         }
         Ui.Text {
             objectName: "output-agent-status-text"

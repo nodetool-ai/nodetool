@@ -188,10 +188,10 @@ ColumnLayout {
         visible: !gallery.singleView && root.canSelect && root.compareItems.length === 0
         Layout.fillWidth: true
         spacing: Ui.Metrics.xs
-        NodeButton { objectName: "gallery-select"; text: root.selectionMode ? "Exit select" : "Select"; accessibleName: root.selectionMode ? "Exit selection mode" : "Select outputs"; variant: NodeButton.Flat; onClicked: root.toggleSelectionMode() }
-        NodeButton { objectName: "gallery-compare"; visible: root.selectionMode && root.selectedKeys.length > 0; text: "Compare"; accessibleName: "Compare the two selected images"; enabled: root.selectedImages.length === 2 && root.selectedKeys.length === 2; variant: NodeButton.Flat; onClicked: root.compareSelected() }
-        NodeButton { objectName: "gallery-download-selected"; visible: root.selectionMode && root.selectedKeys.length > 0; text: "Download"; accessibleName: "Download the selected outputs"; enabled: !!root.resolver && Object.keys(root.batchPending).length === 0; variant: NodeButton.Flat; onClicked: batchDialog.open() }
-        NodeButton { objectName: "gallery-clear-selection"; visible: root.selectionMode && root.selectedKeys.length > 0; text: "Clear"; accessibleName: "Clear selection"; variant: NodeButton.Flat; onClicked: root.clearSelection() }
+        Ui.EditorButton { objectName: "gallery-select"; text: root.selectionMode ? "Exit select" : "Select"; accessibleName: root.selectionMode ? "Exit selection mode" : "Select outputs"; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.toggleSelectionMode() }
+        Ui.EditorButton { objectName: "gallery-compare"; visible: root.selectionMode && root.selectedKeys.length > 0; text: "Compare"; accessibleName: "Compare the two selected images"; enabled: root.selectedImages.length === 2 && root.selectedKeys.length === 2; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.compareSelected() }
+        Ui.EditorButton { objectName: "gallery-download-selected"; visible: root.selectionMode && root.selectedKeys.length > 0; text: "Download"; accessibleName: "Download the selected outputs"; enabled: !!root.resolver && Object.keys(root.batchPending).length === 0; variant: Ui.EditorButton.Outlined; flat: true; onClicked: batchDialog.open() }
+        Ui.EditorButton { objectName: "gallery-clear-selection"; visible: root.selectionMode && root.selectedKeys.length > 0; text: "Clear"; accessibleName: "Clear selection"; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.clearSelection() }
         Ui.Text { objectName: "gallery-selected-count"; visible: root.selectionMode && root.selectedKeys.length > 0; height: Ui.Metrics.compact; verticalAlignment: Text.AlignVCenter; text: root.selectedKeys.length + " selected"; role: Ui.Typography.SansCaption }
         Ui.Text { objectName: "gallery-batch-status"; visible: root.batchStatus.length > 0; height: Ui.Metrics.compact; verticalAlignment: Text.AlignVCenter; text: root.batchStatus; role: Ui.Typography.SansCaption }
     }
@@ -201,7 +201,7 @@ ColumnLayout {
         visible: root.compareItems.length === 2
         Layout.fillWidth: true
         spacing: Ui.Metrics.xs
-        NodeButton { objectName: "gallery-close-compare"; text: "Close comparison"; accessibleName: "Close comparison"; variant: NodeButton.Flat; onClicked: root.closeCompare() }
+        Ui.EditorButton { objectName: "gallery-close-compare"; text: "Close comparison"; accessibleName: "Close comparison"; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.closeCompare() }
         Loader {
             Layout.fillWidth: true
             active: root.compareItems.length === 2
@@ -292,9 +292,9 @@ ColumnLayout {
                     anchors.bottom: parent.bottom
                     anchors.margins: Ui.Metrics.xs
                     spacing: Ui.Metrics.xs
-                    NodeButton { objectName: "gallery-tile-copy"; iconName: "copy"; accessibleName: "Copy image " + (tile.index + 1); onClicked: if (thumbnail.item) thumbnail.item.copyImage() }
-                    NodeButton { objectName: "gallery-tile-download"; iconName: "arrowDownward"; accessibleName: "Download image " + (tile.index + 1); onClicked: if (thumbnail.item) thumbnail.item.download() }
-                    NodeButton { objectName: "gallery-tile-open"; iconName: "openInNew"; accessibleName: "Open image " + (tile.index + 1) + " in viewer"; onClicked: root.activate(tile.index) }
+                    Ui.EditorButton { objectName: "gallery-tile-copy"; text: ""; display: Basic.AbstractButton.IconOnly; variant: Ui.EditorButton.Outlined; iconName: "copy"; accessibleName: "Copy image " + (tile.index + 1); onClicked: if (thumbnail.item) thumbnail.item.copyImage() }
+                    Ui.EditorButton { objectName: "gallery-tile-download"; text: ""; display: Basic.AbstractButton.IconOnly; variant: Ui.EditorButton.Outlined; iconName: "arrowDownward"; accessibleName: "Download image " + (tile.index + 1); onClicked: if (thumbnail.item) thumbnail.item.download() }
+                    Ui.EditorButton { objectName: "gallery-tile-open"; text: ""; display: Basic.AbstractButton.IconOnly; variant: Ui.EditorButton.Outlined; iconName: "openInNew"; accessibleName: "Open image " + (tile.index + 1) + " in viewer"; onClicked: root.activate(tile.index) }
                 }
                 Ui.CheckBox {
                     objectName: "gallery-tile-check"
