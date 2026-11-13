@@ -314,7 +314,41 @@ static comparisons still pass. WAV checks remain limited to header and length.
 
 A fresh C++/Wasm candidate build with the pinned Emscripten SDK and the
 four-fixture comparison pass on Windows Chrome 156.0.8078.80 with SwiftShader.
-The existing Linux CI command will run the expanded comparison. Its result
-remains pending. This does not qualify native/Wasm audio sample parity,
+The [standalone Linux realtime run at `fa52867580`](https://github.com/nodetool-ai/nodetool/actions/runs/43373047730)
+also passes the four-fixture browser comparison and benchmark guards, offline
+Release/ASan+UBSan and core Release/ASan+UBSan/TSan. This does not qualify native/Wasm audio sample parity,
 production asynchronous preparation, live/shared-device use or M0 hardware
 measurements. Broad checks were not rerun for this browser-fixture-only batch.
+
+## CLI fixture matrix
+
+The CLI checker now exports control-only, audio-only, render-only, composed
+mixed and damper plans twice through the executable's `live` command. It checks
+exact output inventories, manifest counts, WAV format and samples, PNG pixels
+and complete repeat bytes. Mixed audio must equal the audio-only track.
+Negative controls reject empty artifacts, an incorrect damper frame and a
+corrupted PCM sample. Unicode paths and existing argument/slot checks remain.
+
+The expanded checker passes with Windows MSVC Release and ASan standalone
+executables. Both existing CI entry points invoke it: the standalone offline
+harness and the full graph-runner command-dispatch job. Linux and full-host
+qualification of these new CLI cases remains pending CI. Broad checks were
+not rerun for this CLI-check-only batch.
+
+## Gate wording to reconcile
+
+The [M1 milestone gate](../../docs/plans/graph-runner-realtime-issues.md#milestones)
+refers to section 15 with three exceptions. Two remaining section 15 requirements
+depend on work assigned to later phases:
+
+| Requirement | Plan dependency and current evidence |
+|---|---|
+| Graph-to-IR snapshots | The compiler belongs to [WP16](https://github.com/nodetool-ai/nodetool/issues/7407). This branch tests stored IR loading, not graph compilation |
+| Synchronized parameter changes | Parameter handoffs belong to [WP13](https://github.com/nodetool-ai/nodetool/issues/7404). The damper and `audioControl` fixtures test offline endpoint conventions, not synchronized parameter changes |
+
+[WP09's exit list](https://github.com/nodetool-ai/nodetool/issues/7400) names IR
+loading, repeat, frame goldens, realtime rules, stateful control and retention.
+It does not name these two later-phase requirements. This discrepancy remains
+unresolved. No milestone-wide acceptance or waiver is claimed, and this branch
+does not start WP13 or WP16. The M0 dependencies and driver-allocation gaps above
+also remain open.

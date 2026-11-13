@@ -158,7 +158,8 @@ It does not supply a production browser loop or asynchronous preparation.
 
 A fresh pinned candidate build and all four fixture comparisons pass on Windows
 Chrome 156.0.8078.80 with SwiftShader. Linux CI runs the same verification
-command. The expanded comparison's Linux result remains pending.
+command, and the [four-fixture run at `fa52867580`](https://github.com/nodetool-ai/nodetool/actions/runs/43373047730/job/131713064122)
+passes alongside the benchmark guards.
 
 ## 64-pass measurements
 
