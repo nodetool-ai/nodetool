@@ -95,6 +95,15 @@ describe("CostCalculator.calculate – token pricing via genai-prices (USD)", ()
     expect(cost).toBeGreaterThan(0);
   });
 
+  it("prices Z.ai GLM models (provider id maps to genai-prices 'zai')", () => {
+    const cost = CostCalculator.calculate(
+      "glm-5.3",
+      { inputTokens: 1_000_000, outputTokens: 1_000_000 },
+      "zai"
+    );
+    expect(cost).toBeGreaterThan(0);
+  });
+
   it("prices embeddings", () => {
     const cost = CostCalculator.calculate(
       "text-embedding-3-small",

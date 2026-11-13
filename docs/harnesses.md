@@ -94,7 +94,7 @@ npm run dev:chat -- --url ws://localhost:7777/ws
 Chat flags:
 ```
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
-                         moonshot, minimax, cerebras, meta, alibaba, together,
+                         moonshot, minimax, zai, cerebras, meta, alibaba, together,
                          openrouter, requesty, opper, cheaperinference, api_route,
                          runcrate, standardcompute, uberllm, huggingface, replicate,
                          kie, aki, ollama, lmstudio, claude_agent_sdk, codex, gmi,
