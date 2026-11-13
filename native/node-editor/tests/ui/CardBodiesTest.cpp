@@ -228,6 +228,11 @@ QJsonArray partThreeMetadata() {
         metadataFor("nodetool.image.Resize", "Resize", {image(), dimension("width"), dimension("height")}),
         metadataFor("nodetool.image.Fit", "Fit", {image(), dimension("width"), dimension("height")}),
         metadataFor("nodetool.image.Paste", "Paste", {image(), image("paste"), slider("left", 0, 4096, 0, "int"), slider("top", 0, 4096, 0, "int")}),
+        metadataFor("nodetool.image.CanvasResize", "Canvas Resize",
+                    {image(), property("mode", "str", {{"values", QJsonArray{"fixed", "scale", "padding"}}, {"default", "padding"}}),
+                     dimension("width"), dimension("height"), slider("scale", 0.01, 4, 1.25),
+                     property("padding_unit", "str", {{"values", QJsonArray{"px", "percent"}}, {"default", "px"}}),
+                     slider("top", 0, 4096, 0), slider("bottom", 0, 4096, 0), slider("left", 0, 4096, 0), slider("right", 0, 4096, 0)}),
         fal, kie, replicate,
     };
 }
@@ -1684,6 +1689,51 @@ private slots:
         QVERIFY(!host.data("paste").contains("top"));
         QCOMPARE(host.undoCount(), undo + 1);
         QCOMPARE(host.window.document()->node("paste")["future_field"].toInt(), 7);
+    }
+
+    // CanvasResizeBody.tsx: Padding by default with a px or % unit and four
+    // edges; Fixed shows width and height; Scale shows a 0.01 to 4 slider.
+    void canvasResizeSwitchesModes() {
+        Host host(withNodes({partTwoNode("canvas", "nodetool.image.CanvasResize", QPointF(0, 700))}), allMetadata());
+        QCOMPARE(host.model().layout(host.id("canvas")).body, CardBody::CanvasResize);
+        QCOMPARE(host.model().nodeData(host.id("canvas"), QtNodes::NodeRole::InPortCount).toUInt(), 1u);
+        const auto *modes = host.row("canvas", NodeRowKind::Segmented, "mode");
+        QVERIFY(modes);
+        QCOMPARE(modes->selected, 2);
+        QCOMPARE(modes->options, (QStringList{QStringLiteral("Fixed"), QStringLiteral("Scale"), QStringLiteral("Padding")}));
+        // fullWidth: three equal options across the column.
+        QCOMPARE(modes->parts[0].width(), modes->parts[2].width());
+        const auto *unit = host.row("canvas", NodeRowKind::Segmented, "padding_unit");
+        QVERIFY(unit);
+        QCOMPARE(unit->selected, 0);
+        for (const auto *edge : {"top", "bottom", "left", "right"}) {
+            QVERIFY2(host.row("canvas", NodeRowKind::Field, QString::fromLatin1(edge)), edge);
+        }
+        const auto *top = host.row("canvas", NodeRowKind::Field, "top");
+        const auto *right = host.row("canvas", NodeRowKind::Field, "right");
+        QCOMPARE(top->rect.y(), right->rect.y());
+        QVERIFY(right->rect.right() <= modes->rect.right() + 0.5);
+        auto undo = host.undoCount();
+        host.click("canvas", unit->parts[1].center());
+        QTRY_COMPARE(host.data("canvas")["padding_unit"].toString(), QStringLiteral("percent"));
+        QCOMPARE(host.undoCount(), ++undo);
+        const auto paddingHeight = host.model().layout(host.id("canvas")).size.height();
+        host.click("canvas", host.row("canvas", NodeRowKind::Segmented, "mode")->parts[0].center());
+        QTRY_COMPARE(host.data("canvas")["mode"].toString(), QStringLiteral("fixed"));
+        QVERIFY(!host.row("canvas", NodeRowKind::Segmented, "padding_unit"));
+        QVERIFY(!host.row("canvas", NodeRowKind::Field, "top"));
+        QVERIFY(host.row("canvas", NodeRowKind::Field, "width"));
+        QVERIFY(host.row("canvas", NodeRowKind::Field, "height"));
+        QVERIFY(!host.row("canvas", NodeRowKind::Lock));
+        QVERIFY(host.model().layout(host.id("canvas")).size.height() < paddingHeight);
+        host.click("canvas", host.row("canvas", NodeRowKind::Segmented, "mode")->parts[1].center());
+        QTRY_COMPARE(host.data("canvas")["mode"].toString(), QStringLiteral("scale"));
+        const auto *scale = host.row("canvas", NodeRowKind::Slider, "scale");
+        QVERIFY(scale);
+        QCOMPARE(scale->minimum, 0.01);
+        QCOMPARE(scale->maximum, 4.0);
+        QCOMPARE(scale->number, 1.25);
+        QVERIFY(!host.row("canvas", NodeRowKind::Field, "width"));
     }
 
     // DynamicSchemaNodeShell.tsx: the model joins the title, a hint explains an

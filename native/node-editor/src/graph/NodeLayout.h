@@ -199,7 +199,7 @@ enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Previe
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
-                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste };
+                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.
