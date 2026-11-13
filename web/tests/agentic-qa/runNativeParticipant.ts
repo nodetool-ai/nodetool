@@ -55,7 +55,9 @@ const AppSchema = z.union([
     /** A workflow or timeline id the app opens at start. */
     document: z.string().optional(),
     /** Another build of the preset, such as a sanitizer build. */
-    binary: z.string().optional()
+    binary: z.string().optional(),
+    /** Added to the preset's environment, such as `LD_LIBRARY_PATH` for a Qt outside the system paths. */
+    env: z.record(z.string(), z.string()).default({})
   }),
   z.object({
     command: z.string().min(1),
@@ -156,7 +158,8 @@ function parseCli(): { packet: string; out: string; model: string; protocol: str
 
 async function resolveLaunch(app: Packet["app"]): Promise<AppLaunch> {
   if ("preset" in app) {
-    return resolveNativeApp(REPO_ROOT, app.preset, app);
+    const launch = await resolveNativeApp(REPO_ROOT, app.preset, app);
+    return { ...launch, env: { ...launch.env, ...app.env } };
   }
   return { command: app.command, args: app.args, env: app.env };
 }

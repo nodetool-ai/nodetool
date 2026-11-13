@@ -58,6 +58,10 @@ The node editor fetches its dependencies with CMake `FetchContent`. Where
 sqlite.org or GitHub archive downloads are blocked, point CMake at local copies:
 `-DFETCHCONTENT_SOURCE_DIR_SQLITE_AMALGAMATION=node_modules/better-sqlite3/deps/sqlite3`
 (the same SQLite release) and `-DFETCHCONTENT_SOURCE_DIR_STB=<a git clone of stb at the pinned commit>`.
+Build the node editor with Clang (`-DCMAKE_CXX_COMPILER=clang++`): GCC 13
+stops on the graph runner with an internal compiler error. A binary linked
+against conda-forge libraries needs `LD_LIBRARY_PATH=/opt/qt6/lib`, which the
+packet's `app.env` passes.
 
 The presets in `web/tests/agentic-qa/nativeApps.ts` expect these binaries and
 print the build command when one is missing:
@@ -80,8 +84,10 @@ npx tsx tests/agentic-qa/serveApp.ts --state working-run --no-web
 The states, the fake runtime, and its fixture artifacts are the ones in
 agentic-qa [runtime.md](../../agentic-qa/references/runtime.md#disposable-app).
 Pick the state each task needs. A chat question needs a connected provider
-(`working-run`), and a timeline task needs `timeline`, whose timeline id goes in
-the packet's `document`. Reset the backend between sessions with
+(`working-run`), and a timeline task needs `timeline`, whose timeline id
+(`tl-city-night`) goes in the packet's `document`. The timeline state's photos
+come from `npm run media:pull`. Without them the backend stops at start, and
+placeholder images put in their place show on screen as content. Reset the backend between sessions with
 `curl -X POST http://127.0.0.1:7790/api/test/reset`. The app keeps nothing
 between sessions, because each one gets a new home folder.
 
@@ -103,7 +109,8 @@ between sessions, because each one gets a new home folder.
 ```
 
 `app` is a preset with `server`, an optional `document` (a workflow or timeline
-id), and an optional `binary` for another build such as a sanitizer build. It
+id), an optional `binary` for another build such as a sanitizer build, and an
+optional `env` added to the app's environment. It
 can instead be `{ "command", "args", "env" }` for any X11 program. The
 participant sees none of it. `persona`, `goal`, `permittedActions`, `assets`,
 and `credentials` follow the web packet's rules: no product terms, feature
