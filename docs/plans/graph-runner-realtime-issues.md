@@ -108,7 +108,7 @@ Parallel tracks after M1:
 | Q5. Live descriptors on existing image nodes | WP17 |
 | Q6. First tap policy for live-to-batch loops | WP27 |
 | Q7. Browser render loop thread | WP25 |
-| Q8. Browser render executor | WP10 |
+| Q8. Browser render executor: C++/Wasm, selected from the [WP10 comparison](../../native/realtime/spike/browser/README.md) | WP10 |
 | Q9. Metered mode for user kernels | WP28 |
 | Q10. Editor control for the sync policy | WP20 |
 

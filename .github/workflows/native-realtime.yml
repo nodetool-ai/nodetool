@@ -27,7 +27,7 @@ jobs:
   offline:
     name: Offline exports / ${{ matrix.mode }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -72,6 +72,38 @@ jobs:
             -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
       - name: Verify offline exports and required test inventory
         run: env -u DISPLAY node native/realtime/scripts/check.mjs
+      - name: Cache pinned wasm32 SDK
+        if: matrix.mode == 'release'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: native/realtime/build/wp10/emsdk
+          key: rt-q8-emsdk-7.0.0-linux-v1
+      - name: Prepare pinned browser toolchain
+        if: matrix.mode == 'release'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk=native/realtime/build/wp10/emsdk
+          if [ ! -d "$sdk/.git" ]; then
+            git clone --depth 1 --branch 7.0.0 https://github.com/emscripten-core/emsdk.git "$sdk"
+          fi
+          test "$(git -C "$sdk" rev-parse HEAD)" = 1693ce7359fc9694f198694f902a2cc061239b86
+          python3 "$sdk/emsdk.py" install 7.0.0
+          python3 "$sdk/emsdk.py" activate 7.0.0
+          mkdir -p native/realtime/build/wp10/port
+          curl --fail --location --retry 3 https://github.com/google/dawn/releases/download/v20260423.175430/emdawnwebgpu_pkg-v20260423.175430.zip -o native/realtime/build/wp10/port.zip
+          echo '42784f70b67197c614322f9fabb0f1dc64228a0de10e88f99941fa9d29bee9ad6683f4651d4eefd5a7a9fbd1f976eb522b190b683219ed1793e9b531c602ffa6  native/realtime/build/wp10/port.zip' | sha512sum --check
+          unzip -q native/realtime/build/wp10/port.zip -d native/realtime/build/wp10/port
+          npx playwright install --with-deps chromium
+      - name: Verify wasm32 fixtures and benchmark guards
+        if: matrix.mode == 'release'
+        env:
+          SPIKE_BROWSER: chromium
+        run: |
+          python3 native/realtime/spike/browser/build_candidate.py --sdk native/realtime/build/wp10/emsdk --native-build native/realtime/build-gpu --port native/realtime/build/wp10/port/emdawnwebgpu_pkg/emdawnwebgpu.port.py --out native/realtime/build/wp10/candidate
+          node native/realtime/spike/browser/verify.mjs native/realtime/build/wp10/candidate native/realtime/build-gpu/nodetool-realtime
+          python3 native/realtime/spike/browser/build_candidate.py --sdk native/realtime/build/wp10/emsdk --native-build native/realtime/build-gpu --port native/realtime/build/wp10/port/emdawnwebgpu_pkg/emdawnwebgpu.port.py --out native/realtime/build/wp10/benchmark --benchmark
+          node native/realtime/spike/browser/benchmark.mjs native/realtime/build/wp10/benchmark native/realtime/build/wp10/ci-benchmark.json
   core:
     name: Core / ${{ matrix.preset }}
     runs-on: ubuntu-24.04

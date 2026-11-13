@@ -17,6 +17,8 @@ if (!candidateDirectory || !nativeExecutable || process.argv.length !== 4) {
 const render = JSON.parse(readFileSync(join(root, "tests/fixtures/offline-render.json"), "utf8"));
 const audio = JSON.parse(readFileSync(join(root, "tests/fixtures/offline-audio.json"), "utf8"));
 const mixed = structuredClone(render);
+const conversion = structuredClone(render);
+conversion.control.ops[0].values = [0.25, 0.125, 0.0625, 0.5];
 mixed.audio = audio.audio; mixed.params = audio.params;
 mixed.control.ops.push(...audio.control.ops); mixed.control.stateful = audio.control.stateful;
 const routes = new Map([["/", ["text/html", Buffer.from("<!doctype html><title>RT-Q8 offline comparison</title>")]]]);
@@ -39,7 +41,7 @@ try {
     args: ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader", "--enable-unsafe-swiftshader"] });
   const endpoint = server.address();
   assert.ok(endpoint && typeof endpoint !== "string");
-  for (const [name, plan] of [["render", render], ["mixed", mixed]]) {
+  for (const [name, plan] of [["render", render], ["mixed", mixed], ["conversion", conversion]]) {
     const input = join(directory, `${name}.json`), output = join(directory, name);
     writeFileSync(input, JSON.stringify(plan));
     const native = spawnSync(resolve(nativeExecutable), ["live", input, "--duration", "0.05", "--fps", "60", "--out", output], { encoding: "utf8", timeout: 60000 });
@@ -127,7 +129,7 @@ try {
       console.log(`${name}: existing TypeScript Executor pixels match all three native frames`);
     } finally { clearTimeout(watchdog); await page.close(); }
   }
-  console.log(`Browser: ${browser.version()}. Fixture comparisons pass; Q8 timing and size evidence remains open.`);
+  console.log(`Browser: ${browser.version()}. Fixture comparisons pass; production browser qualification remains open.`);
 } finally {
   await browser?.close();
   if (server.listening) { await new Promise((accept, reject) => server.close((error) => error ? reject(error) : accept())); }

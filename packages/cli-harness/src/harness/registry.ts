@@ -1384,6 +1384,14 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "realtime-browser-comparison",
+    title: "Realtime C++/Wasm and TypeScript browser comparison",
+    command: "node native/realtime/spike/browser/verify.mjs <candidate-directory> <native-executable>",
+    kind: "execution",
+    capabilities: ["browser", "no-db"],
+    docs: "native/realtime/spike/browser/README.md"
+  },
+  {
     id: "realtime-audio-worklet-spike",
     title: "Realtime native and AudioWorklet offline parity spike",
     command:
@@ -2595,6 +2603,15 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli-harness/tests/capability-coverage.test.ts",
       "scripts/sync-capability-coverage.mjs"
     ]
+  },
+  {
+    id: "realtime-browser-comparison",
+    title: "Realtime browser executor comparison and wasm32 preparation",
+    harnesses: ["realtime-browser-comparison"],
+    paths: ["native/realtime/spike/browser/"],
+    gap: "Build the native offline executable and the pinned Emscripten/Emdawn candidate first. " +
+      "The documented verification and benchmark commands need an installed Chrome or Chromium browser. " +
+      "The native realtime workflow runs these checks; the default gate lists them as manual work."
   },
   {
     id: "realtime-audio-worklet-spike",

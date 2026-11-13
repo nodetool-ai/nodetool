@@ -1208,7 +1208,7 @@ Rules:
 | Plan compiler | TypeScript in the QuickJS guest | TypeScript | Runs once for each edit. One implementation |
 | Session, clock, drivers | Native C++ | TypeScript and a worklet | Thread and device control |
 | Control executor | Native C++ | The same source as WebAssembly | One definition of each operation |
-| Render executor | Native C++ on wgpu-native | Open (Q8): the existing TypeScript `Executor`, or the C++ executor as WebAssembly | The GPU does the work. Section 14.5 compares the two |
+| Render executor | Native C++ on wgpu-native | C++ executor as WebAssembly (Q8) | Shared scheduling behavior. Section 14.5 records the comparison |
 | Shaders | WGSL | WGSL | N4 |
 | Audio executor, built-in kernels | Native C++ | The same source as one WebAssembly module in an AudioWorklet | N2. Native code is 2 to 8 times faster where SIMD applies |
 | User and pack kernels, phase P7 | WebAssembly in Wasmtime on a kernel worker thread | WebAssembly in a `Worker` | N3. Equal to native on recurrences, isolated from the deadline thread, one binary for both hosts |
@@ -1364,10 +1364,24 @@ The render executor has two candidates (Q8):
 | The existing TypeScript `Executor`, driven from the IR | It exists and runs the catalog in browsers today | A second implementation of the dirty, retention, swap and sync rules, with a parity test for each |
 | The C++ render executor as WebAssembly, on Emscripten's `webgpu.h` binding | One implementation of those rules for both hosts | A second header revision beside the pinned wgpu-native header, a call through JavaScript for each WebGPU call, a larger download |
 
-The choice is tested and not assumed (F43). At the end of P1 the C++ executor
-is built for `wasm32` and runs two fixtures in a browser. Three numbers decide:
-the count of lines that differ between the two header revisions, the frame
-cost of a plan with 64 passes, and the size of the module.
+Q8 selects C++/Wasm to share scheduling behavior between native and browser
+hosts. The [WP10 comparison](../../native/realtime/spike/browser/README.md)
+records the two Chrome/native fixtures, TypeScript pixel parity and a separate
+mid-range presentation-conversion regression.
+
+The pinned headers differ by 4,199 added/removed lines. In three Windows
+SwiftShader trials of 64 volatile 4x4 passes plus presentation, C++ CPU
+encode/submit medians were 0.95–1.31 ms versus 2.62–3.10 ms for TypeScript.
+With matching catalog inventories, complete experiment downloads total
+231,117 Brotli bytes for C++ versus 91,714 for TypeScript. The C++ candidate
+includes its loader/scheduler. The TypeScript candidate is a limited IR host.
+The larger download is accepted to avoid a second scheduling implementation.
+
+These measurements do not establish GPU throughput, hardware deadlines or
+production callback lifecycle safety. Browser asynchronous preparation and
+the render loop remain WP25 work. CI is configured to build the pinned wasm32
+toolchain and run fixture and benchmark guards. The private offline-device
+exception does not permit live/shared-device activation.
 
 ## 15. Offline rendering and tests
 
@@ -1527,8 +1541,8 @@ deliver phases P1 to P6 without the kernel contracts of section 10.6.
   when idle?
 - Q7. Does the browser render loop run on the main thread or on a worker with
   an `OffscreenCanvas`?
-- Q8. Is the browser render executor the TypeScript `Executor` or the C++
-  executor as WebAssembly? Section 14.5 gives the test and the three numbers.
+- Q8. **Decided: C++/Wasm.** Share the native scheduling implementation and
+  accept the larger download. Section 14.5 records the measurements and limits.
 - Q9. Do user kernels need a metered mode on the deadline thread, or is
   isolated mode with its latency enough?
 - Q10. Does the sync policy of a param need a control in the editor, or is the

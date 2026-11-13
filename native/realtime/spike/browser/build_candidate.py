@@ -16,6 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("sdk", "native-build", "port", "out"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--benchmark", action="store_true")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     sdk, native, port, output = (path.resolve() for path in
@@ -49,6 +50,12 @@ def main():
                str(output / "offline_gpu.cpp"), str(output / "offline.cpp"),
                "--preload-file", str(native / "gpu-catalog.json") + "@/gpu-catalog.json",
                "-o", str(output / "candidate.mjs")]
+    if args.benchmark:
+        # Retain the full catalog, matching the TypeScript public catalog bundle.
+        (output / "gpu-catalog.json").write_bytes((native / "gpu-catalog.json").read_bytes())
+        command = [arg for arg in command if not arg.endswith(".cpp")]
+        command.extend([str(root / "src" / name) for name in ("plan.cpp", "control.cpp", "math.cpp", "render.cpp")])
+        command.extend([str(output / "offline_gpu.cpp"), str(root / "spike/browser/benchmark.cpp")])
     with (output / "build.log").open("w", encoding="utf-8") as log:
         result = subprocess.run(command, env=dict(os.environ, EM_CONFIG=str(sdk / ".emscripten"), EMSDK_PYTHON=sys.executable),
                                 stdout=log, stderr=subprocess.STDOUT, timeout=900)

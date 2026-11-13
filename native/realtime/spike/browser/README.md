@@ -2,9 +2,13 @@
 
 WP10 is in progress. The adapted C++ candidate passes both Chrome frame
 comparisons. The existing TypeScript Executor also matches both fixtures' pixels.
-No browser executor has been selected. The 64-pass timings and complete
-candidate download-size measurements remain open in
+Q8 selects C++/Wasm. The measurements below support the decision in
 [design section 14.5](../../../../docs/plans/graph-runner-realtime.md#145-browser).
+
+The registry exposes `realtime-browser-comparison` as a manual harness. Prepare
+the pinned SDK, browser candidate and native executable using the commands
+below. The default gate reports these prerequisites rather than downloading a
+toolchain. Dedicated native realtime CI runs the verification and benchmark guards.
 
 ## Pinned inputs
 
@@ -128,18 +132,73 @@ so their three native frames are compared against one TypeScript evaluation.
 This adapter supports only the fixtures' 4x4 solid/invert render subset. It
 rejects unsupported shaders, render control operations and missing bindings,
 with negative checks in the browser. Audio is not executed by this adapter.
-The pool's encoded-sdr labels describe these shaders' channel operations. No
-transfer-function conversion is inserted for the fixture IR's linear label.
+The pool's encoded-sdr labels describe these shaders' channel operations.
+The host now matches the native linear-to-sRGB presentation pass. A third,
+mid-range color fixture fails against the previous adapter without that pass
+and passes with it. The original two fixtures used endpoint colors that did
+not expose the missing conversion.
 This comparison does not establish a general color-management or IR adapter.
 Each evaluation owns a private device, textures and readback buffer, destroyed
-on success or failure. No browser runtime is selected or shipped by this spike.
+on success or failure. This spike does not ship the production browser runtime.
 
-## Remaining comparison
+## 64-pass measurements
 
-Measure both candidates on the same 64-pass plan, adapter and browser. Compare artifacts
-with matching service scope. Record warm-up,
-sampling method, submit/encode versus completion timing, and complete compressed
-and uncompressed download sizes. Only then answer Q8 in the design and plan.
+```sh
+python native/realtime/spike/browser/build_candidate.py --sdk native/realtime/build/wp10/emsdk --native-build native/realtime/build-gpu --port native/realtime/build/wp10/port/emdawnwebgpu_pkg/emdawnwebgpu.port.py --out native/realtime/build/wp10/benchmark --benchmark
+node native/realtime/spike/browser/benchmark.mjs native/realtime/build/wp10/benchmark native/realtime/build/wp10/benchmark-result.json
+```
+
+The [raw Windows SwiftShader result](results/windows-swiftshader.json) records
+the plan, environment, source/artifact hashes, every sample and per-trial
+summaries. Both candidates run the same 64 volatile 4x4 passes plus presentation
+on private software devices in the same Chrome version. Each of three trials
+uses 30 warm-up frames and 120 measured frames. Candidate order alternates.
+Every trial checks the final pixels against the expected cyan result.
+
+| CPU encode/submit time | C++/Wasm median / p95 | TypeScript median / p95 |
+|---|---|---|
+| Trial 1 | 0.95 / 1.71 ms | 2.62 / 3.83 ms |
+| Trial 2 | 1.25 / 1.99 ms | 2.80 / 4.16 ms |
+| Trial 3 | 1.31 / 2.11 ms | 3.10 / 4.36 ms |
+
+The interval includes scheduling/encoding, presentation, copy and map request
+setup. It excludes preparation, readback completion, pixel conversion and
+reporting. Warm-up exercises lazy TypeScript pipeline creation. The 4x4 targets
+emphasize CPU dispatch overhead, not realistic image workloads or GPU throughput.
+C++ uses its existing texture reuse and cached bindings. The TypeScript host
+prepares one texture per pass and uses the existing Executor's binding behavior.
+
+Completion medians were 10.94–11.04 ms for C++ and 9.90–10.58 ms for TypeScript.
+Both include mapped-row copying and unmapping. They also include the C++
+host's cooperative polling sleep and the TypeScript map promise. They are
+end-to-end host readback observations, not comparable GPU
+timestamp measurements. Neither candidate establishes the hardware encode budget.
+
+The benchmark C++ build removes audio, PNG and WAV services. Both candidates
+retain the full 75-entry catalog. The harness verifies exact catalog-key equality
+and checks that the C++ preloaded data matches its recorded catalog bytes. A
+deliberately mismatched inventory fails the guard. Only two shaders execute.
+The C++ build retains its loader/scheduler, while the TypeScript host remains
+a limited fixture adapter.
+The resulting sizes are experiment downloads, not qualified production builds.
+Compression is measured per served file, then summed. The common plan is excluded.
+
+| Candidate files | Uncompressed | gzip level 9 | Brotli |
+|---|---|---|---|
+| C++ JS + Wasm + catalog data | 1,344,420 bytes | 315,705 bytes | 231,117 bytes |
+| Minified TypeScript bundle | 439,781 bytes | 109,546 bytes | 91,714 bytes |
+
+Together with the 4,199-line header difference and fixture parity, these results
+support the accepted Q8 choice of C++/Wasm to share scheduling behavior at a
+larger download cost. The design and implementation plan record this decision. Callback
+lifecycle qualification and production asynchronous preparation remain separate
+work. No benchmark result enables live/shared-device use.
+
+The Linux offline Release CI job installs the pinned Emscripten SDK, verifies
+the Emdawn archive checksum, builds both Wasm hosts and runs fixture comparisons
+and benchmark guards in Chromium. Its timing output is diagnostic and does not
+replace the recorded Chrome measurements. The new toolchain CI result remains
+pending until this revision runs.
 
 The [offline-only preparation exception and M0 hardware gaps](../../M1_STATUS.md)
 remain unchanged. This probe introduces no live/shared-device support.
