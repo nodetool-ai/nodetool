@@ -100,7 +100,7 @@ export const PATH_CHECKS = [
       { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
     ]
   },
-  { path: /^native\/(?:graph-runner|jobs|kernels|model-picker|node-editor|timeline)\//, steps: [NATIVE_CTEST] },
+  { path: /^native\/(?:gpu-preview|graph-runner|jobs|model-picker|node-editor|timeline)\//, steps: [NATIVE_CTEST] },
   {
     path: /^native\/chat\//,
     steps: [{ label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }]

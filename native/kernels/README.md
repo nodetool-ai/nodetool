@@ -12,6 +12,7 @@ The same sources build two ways:
 |---|---|---|
 | Graph runner | Static library `nodetool_kernels`, linked into `gr_kernel` | The `kernels` capability ([`src/host/kernels.cpp`](../graph-runner/src/host/kernels.cpp)) |
 | Node server and browser | One standalone WebAssembly module, embedded as base64 | [`@nodetool-ai/kernels`](../../packages/kernels/README.md) |
+| Native timeline | Static library `nodetool_kernels`, linked into `timeline_audio` | The mixer's filter and EQ inserts call `nt_biquad_design_webaudio` ([`Effects.cpp`](../timeline/src/audio/effects/Effects.cpp)) |
 
 [`include/nodetool/kernels.h`](include/nodetool/kernels.h) declares every
 function and its conventions. The library depends on the C++20 standard
