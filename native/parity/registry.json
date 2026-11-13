@@ -1963,7 +1963,13 @@
       "inventory": "F36"
     },
     "web/src/components/panels/ComfyTargetSelector.tsx": {
-      "missing": "Where Comfy workflows run. Not found natively."
+      "native": [
+        "native/node-editor/qml/Toolbar.qml",
+        "native/node-editor/src/ui/EditorComfy.cpp",
+        "native/node-editor/src/server/ComfyBackend.cpp"
+      ],
+      "status": "partial",
+      "note": "The toolbar control in a Comfy workflow opens Comfy Cloud, the running workers and the ComfyUI server, and a change reloads the target's nodes. The menu also shows the saved server's status. The server URL is typed in a dialog instead of a field inside the menu."
     },
     "web/src/components/panels/DocumentsTree.tsx": {
       "missing": "Native rail Documents opens the workflow browser, which lists workflows only.",

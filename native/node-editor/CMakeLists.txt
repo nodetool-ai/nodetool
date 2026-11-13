@@ -42,6 +42,7 @@ add_library(node_editor_interfaces STATIC
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
  src/graph/NodeFocus.h
  src/server/PackSetup.cpp src/server/PackSetup.h
+ src/server/ComfyBackend.cpp src/server/ComfyBackend.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
  src/graph/IconPaths.cpp src/graph/IconPaths.h
  src/graph/TypeStyle.cpp src/graph/TypeStyle.h
@@ -164,7 +165,7 @@ add_library(node_editor_core STATIC
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
- src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
 target_include_directories(node_editor_core PUBLIC src)
 target_link_libraries(node_editor_core PRIVATE nodetool_graph_runner)
 target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
@@ -694,6 +695,11 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_pack_setup_host_tests)
     add_test(NAME node_editor_pack_setup_host COMMAND node_editor_pack_setup_host_tests)
     set_tests_properties(node_editor_pack_setup_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(node_editor_comfy_backend_host_tests tests/ui/ComfyBackendHostTest.cpp)
+    target_link_libraries(node_editor_comfy_backend_host_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_comfy_backend_host_tests)
+    add_test(NAME node_editor_comfy_backend_host COMMAND node_editor_comfy_backend_host_tests)
+    set_tests_properties(node_editor_comfy_backend_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
 if(BUILD_TESTING)
