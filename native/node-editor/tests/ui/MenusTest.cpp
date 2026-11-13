@@ -11,6 +11,7 @@
 #include <QLineEdit>
 #include <QPainter>
 #include <QDialog>
+#include <QDockWidget>
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QFile>
@@ -581,17 +582,13 @@ private slots:
         window.findChild<QMenu *>("more-menu")->close();
     }
 
-    // Examples lists the bundled workflows by their first tag. Each entry opens its
-    // example in a tab of its own, with no file, so Save asks for a path.
+    // File > Open Example lists the bundled workflows by their first tag. Each entry
+    // opens its example in a tab of its own, with no file, so Save asks for a path.
     void examplesMenuOpensEachBundledExample() {
         EditorWindow window; window.show(); QTest::qWait(50);
         const auto resources = QDir(":/editor/examples").entryList({"*.json"}, QDir::Files);
         QVERIFY(resources.size() >= 2);
-        const auto openMenu = [&window] {
-            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-            window.action("Examples");
-            return window.findChild<QMenu *>("examples-menu");
-        };
+        const auto openMenu = [&window] { return window.findChild<QMenu *>("application-menu-examples"); };
         auto *menu = openMenu();
         QVERIFY(menu);
         QStringList sections, names;
@@ -619,6 +616,38 @@ private slots:
         }
         // The empty first tab takes the first example, and each other example gets a new tab.
         QCOMPARE(window.workflowTabs().size(), tabs + names.size() - 1);
+    }
+
+    // The Examples panel lists the bundled examples under Built in. Opening one
+    // closes the panel and opens the example in a tab, as the menu does.
+    void examplesPanelOpensABundledExampleInATab() {
+        EditorWindow window; window.show(); QTest::qWait(50);
+        QVERIFY(!window.examplesVisible());
+        window.action("Examples");
+        QTRY_VERIFY(window.examplesVisible());
+        QVERIFY(!window.catalogVisible());
+        auto *dock = window.findChild<QDockWidget *>("examples-dock");
+        QVERIFY(dock && !dock->isHidden());
+        auto *panel = qobject_cast<QQuickWidget *>(dock->widget());
+        QVERIFY(panel && panel->rootObject());
+        auto *gallery = panel->rootObject()->property("gallery").value<QObject *>();
+        QVERIFY(gallery);
+        const auto rows = gallery->property("rows").toList();
+        QCOMPARE(rows.size(), QDir(":/editor/examples").entryList({"*.json"}, QDir::Files).size());
+        QString key;
+        for (const auto &row : rows) {
+            if (row.toMap()["name"].toString() == "A Lo-Fi Drum Loop") { key = row.toMap()["key"].toString(); }
+        }
+        QVERIFY(!key.isEmpty());
+        QVERIFY(QMetaObject::invokeMethod(gallery, "open", Q_ARG(QString, key)));
+        QTRY_COMPARE(window.document()->snapshot()["name"].toString(), QString("A Lo-Fi Drum Loop"));
+        QVERIFY(window.localFilePath().isEmpty());
+        QVERIFY(!dock->isVisible());
+        // The panel toggle closes an open Examples panel.
+        window.action("Examples");
+        QTRY_VERIFY(window.examplesVisible());
+        window.action("Toggle panel");
+        QTRY_VERIFY(!window.examplesVisible());
     }
 
     // electron/src/menu.ts: the desktop app's menu, with the native entry for each item.

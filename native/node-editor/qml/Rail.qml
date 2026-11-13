@@ -92,7 +92,8 @@ Rectangle {
             objectName: "rail-examples"
             label: "Examples"
             glyph: "exploreOutlined"
-            onActivated: editor.action("Examples")
+            active: root.panels.examplesVisible
+            onActivated: root.panels.toggleExamples()
         }
         RailEntry {
             objectName: "rail-nodes"

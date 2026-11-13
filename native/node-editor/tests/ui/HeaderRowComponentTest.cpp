@@ -145,6 +145,7 @@ private slots:
         QSignalSpy browser(&panels, &PanelLayout::toggleBrowserRequested);
         QSignalSpy chat(&panels, &PanelLayout::toggleChatRequested);
         QSignalSpy library(&panels, &PanelLayout::toggleLibraryRequested);
+        QSignalSpy examples(&panels, &PanelLayout::toggleExamplesRequested);
         QSignalSpy catalog(&panels, &PanelLayout::toggleCatalogRequested);
         QSignalSpy panel(&panels, &PanelLayout::togglePanelRequested);
         QSignalSpy hints(&panels, &PanelLayout::toolTipRequested);
@@ -162,14 +163,16 @@ private slots:
         QTRY_COMPARE(chat.size(), 1);
         click(view, button("rail-library"));
         QTRY_COMPARE(library.size(), 1);
+        click(view, button("rail-examples"));
+        QTRY_COMPARE(examples.size(), 1);
         click(view, button("rail-nodes"));
         QTRY_COMPARE(catalog.size(), 1);
         click(view, button("rail-panel"));
         QTRY_COMPARE(panel.size(), 1);
 
         // A view with no native panel stays disabled, and its hover says why.
-        QVERIFY(!button("rail-examples")->isEnabled());
-        QTest::mouseMove(&view, centre(named(root, "rail-examples")));
+        QVERIFY(!button("rail-entities")->isEnabled());
+        QTest::mouseMove(&view, centre(named(root, "rail-entities")));
         const auto hinted = [&hints](const QString &text) {
             for (const auto &call : hints) {
                 if (call.first().toString() == text) {
@@ -178,8 +181,10 @@ private slots:
             }
             return false;
         };
-        QTRY_VERIFY(hinted("Examples has no native panel yet."));
+        QTRY_VERIFY(hinted("Entities has no native panel yet."));
 
+        panels.setPanels({.examples = true});
+        QTRY_VERIFY(button("rail-examples")->property("active").toBool());
         panels.setPanels({.catalog = true});
         QTRY_VERIFY(button("rail-nodes")->property("active").toBool());
         QVERIFY(!button("rail-library")->property("active").toBool());
