@@ -95,6 +95,32 @@ QVector<CompositorLayer> compositorLayers(const QJsonObject &node);
 QJsonArray compositorLayersJson(const QVector<CompositorLayer> &layers);
 const QVector<std::pair<QString, QString>> &compositorBlendModes();
 
+// The loader a composite node shows in place of a property, as
+// WorkflowLoader.tsx and AppLoader.tsx: a select over the server's workflows
+// or apps. The picked value is a reference {type, id, name} and the node
+// stores the id in property and a copy of the source in snapshotKey.
+struct ChildPicker {
+    QString property;
+    // The resource the select lists: "workflow" or "app".
+    QString kind;
+    QString label;
+    QString snapshotKey;
+};
+// The picker of a Workflow or App node, or an empty property for any other node.
+ChildPicker childPicker(const QString &type);
+// The stored pick as the select's value, or an empty map when nothing is picked.
+QVariantMap childPickerReference(const ChildPicker &picker, const QJsonObject &data);
+// A property a composite body stores without showing it, as AppNodeContent
+// hides app_json and SubgraphNodeContent hides graph.
+bool compositeHiddenProperty(const QString &type, const QString &name);
+
+// The schema-driven ComfyUI runners of DynamicComfySchemaNode.tsx: typed
+// inputs and outputs come from the loaded ComfyUI workflow, and the runner's
+// own properties stay in the inspector.
+bool comfySchemaNode(const QString &type);
+// COMFY_HEADER_COLOR.
+QColor comfyAccent();
+
 struct CardBodyInput {
     QJsonObject node;
     QJsonObject metadata;

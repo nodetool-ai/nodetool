@@ -1151,22 +1151,29 @@
     },
     "web/src/components/node/AppNode/AppLoader.tsx": {
       "native": [
-        "native/node-editor/src/document/ChildPorts.cpp"
+        "native/node-editor/src/ui/ChildSourceLoader.cpp",
+        "native/node-editor/src/document/ChildSources.cpp",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
       ],
       "status": "partial",
-      "note": "Derived ports and child tabs exist. F09 remains partial.",
+      "note": "Lists the apps, loads the picked app's operation and workflow, and stores the id and copy in one undo step. An app with several operations runs the stored or first one: there is no Operation select. Errors are notifications.",
       "inventory": "F09"
     },
     "web/src/components/node/AppNode/AppNode.tsx": {
       "native": [
-        "native/node-editor/src/document/ChildPorts.cpp"
+        "native/node-editor/src/document/ChildPorts.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
       ],
       "status": "partial",
-      "note": "Native draws the generic card body.",
+      "note": "The card leads with the app select. F09 remains partial.",
       "inventory": "F09"
     },
     "web/src/components/node/AppNode/AppNodeContent.tsx": {
-      "missing": "Native draws the generic card body.",
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "note": "The app select without a handle, the derived inputs as handles without fields, and the outputs. The app_json copy has no row or handle.",
       "inventory": "W4"
     },
     "web/src/components/node/ArrayView.tsx": {
@@ -1287,14 +1294,28 @@
       "inventory": "F17"
     },
     "web/src/components/node/DynamicComfySchemaNode/ComfyWorkflowLoader.tsx": {
-      "missing": "No native schema loader."
+      "native": [
+        "native/node-editor/qml/ComfyWorkflowDialog.qml",
+        "native/node-editor/src/properties/ComfyWorkflowLoader.cpp",
+        "native/node-editor/src/document/ChildSources.cpp"
+      ],
+      "status": "partial",
+      "note": "Paste, choose or drop a .json or .png, the summary, the parameters to expose, and Apply in one undo step that drops edges on removed slots. A workflow set without the loader, such as over the API, gets no slots until it is loaded here."
     },
     "web/src/components/node/DynamicComfySchemaNode/DynamicComfySchemaContent.tsx": {
-      "missing": "Comfy nodes use the generic card body.",
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "note": "The hint until the workflow gives the node slots, and only the derived inputs, without rename, remove or add controls. The runner's own properties stay in the inspector.",
       "inventory": "W4"
     },
     "web/src/components/node/DynamicComfySchemaNode/DynamicComfySchemaNode.tsx": {
-      "missing": "Comfy nodes use the generic card body.",
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "note": "The ComfyUI accent on the edge and selection, and the Load workflow button at the right of the header.",
       "inventory": "W4"
     },
     "web/src/components/node/DynamicFalSchemaNode/DynamicFalSchemaContent.tsx": {
@@ -1848,10 +1869,10 @@
     },
     "web/src/components/node/SubgraphNode/SubgraphNodeContent.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
       ],
-      "status": "partial",
-      "note": "Card footer exists. Specialized subgraph overlays are open.",
+      "note": "Open subgraph footer with the inner node count, editable dynamic inputs and Add output. The graph property has no row or handle.",
       "inventory": "F09"
     },
     "web/src/components/node/SubgraphNode/SubgraphSync.tsx": {
@@ -1886,21 +1907,30 @@
     },
     "web/src/components/node/WorkflowNode/WorkflowLoader.tsx": {
       "native": [
-        "native/node-editor/src/document/ChildPorts.cpp"
+        "native/node-editor/src/ui/ChildSourceLoader.cpp",
+        "native/node-editor/src/document/ChildSources.cpp",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
       ],
       "status": "partial",
+      "note": "Selects one of the first 200 workflows, stores its id and graph in one undo step and refuses a workflow that runs the host. The select has no clear button and does not leave out the host workflow, and a load error is a notification instead of a caption under the select.",
       "inventory": "F09"
     },
     "web/src/components/node/WorkflowNode/WorkflowNode.tsx": {
       "native": [
-        "native/node-editor/src/document/ChildPorts.cpp"
+        "native/node-editor/src/document/ChildPorts.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
       ],
       "status": "partial",
-      "note": "Native draws the generic card body.",
+      "note": "The card leads with the workflow select. F09 remains partial.",
       "inventory": "F09"
     },
     "web/src/components/node/WorkflowNode/WorkflowNodeContent.tsx": {
-      "missing": "Native draws the generic card body.",
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/graph/CardBodies.cpp"
+      ],
+      "status": "partial",
+      "note": "The workflow select, the derived inputs as handles without fields, Add input and Add output, and the outputs. The derived handles sit above the select, the web's workflow_id text field under the select is replaced by the select, and the empty caption strip under the outputs is not drawn.",
       "inventory": "W4"
     },
     "web/src/components/panels/AppPagesList.tsx": {
@@ -1944,15 +1974,29 @@
       "inventory": "F36"
     },
     "web/src/components/panels/generations/GenerationsPanel.tsx": {
-      "missing": "Status Generations is disabled natively.",
+      "native": [
+        "native/node-editor/qml/GenerationsPanel.qml",
+        "native/node-editor/src/interfaces/GenerationActivity.cpp"
+      ],
+      "status": "partial",
+      "note": "Lists workflow-run predictions and the generations.list history, not chat media turns or generate_media requests, which the native editor does not send.",
       "inventory": "C8"
     },
     "web/src/components/panels/generations/GenerationTile.tsx": {
-      "missing": "Status Generations is disabled natively.",
+      "native": [
+        "native/node-editor/qml/GenerationsPanel.qml"
+      ],
+      "status": "partial",
+      "note": "Video and audio tiles show their kind icon, not a frame or waveform. Stop is absent, as it is on the web for a workflow prediction.",
       "inventory": "C8"
     },
     "web/src/components/panels/generations/OpenAsWorkflowAction.tsx": {
-      "missing": "Status Generations is disabled natively.",
+      "native": [
+        "native/node-editor/src/run/GenerationWorkflow.cpp",
+        "native/node-editor/src/interfaces/GenerationActivity.cpp"
+      ],
+      "status": "partial",
+      "note": "Only the recorded-request path. A generation with presets and no recorded request needs the web preset catalog. History records carry no preset ids, so only live generations offer the action.",
       "inventory": "C8"
     },
     "web/src/components/panels/HidePanelOnAssetOpen.tsx": {
@@ -1964,7 +2008,7 @@
         "native/node-editor/src/server/AccountJobs.cpp"
       ],
       "status": "partial",
-      "note": "Error jobs have no Report control.",
+      "note": "Failed jobs offer Report. History rows show no output thumbnails, duration or short job id.",
       "inventory": "F24"
     },
     "web/src/components/panels/jobs/QueuePanel.tsx": {
@@ -1972,7 +2016,7 @@
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Opens only while jobs exist.",
+      "note": "Opens at any time with the Active and History sections, filters and day groups, as a canvas overlay rather than a bottom panel view.",
       "inventory": "C11"
     },
     "web/src/components/panels/LogPanel.tsx": {

@@ -4,10 +4,12 @@
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/SynthModules.h"
 #include "graph/WorkflowGraphModel.h"
+#include "properties/ComfyWorkflowLoader.h"
 #include "ui/EditorWindow.h"
 #include <QBuffer>
 #include <QClipboard>
 #include <QDragEnterEvent>
+#include <QDialog>
 #include <QDir>
 #include <QDropEvent>
 #include <QFile>
@@ -47,6 +49,12 @@ class Server final : public QTcpServer {
 public:
     QHash<QString, QJsonObject> assets;
     int uploads = 0;
+    // The workflows /api/workflows/<id> answers, the apps applications.get
+    // answers, and the /api/comfy/resolve-workflow answer.
+    QHash<QString, QJsonObject> workflows;
+    QHash<QString, QJsonObject> applications;
+    QJsonObject comfySchema;
+    QByteArray comfyRequest;
 
     Server() {
         listen(QHostAddress::LocalHost);
@@ -99,6 +107,25 @@ private:
             assets.insert(id, asset);
             send(socket, QJsonDocument(asset).toJson(QJsonDocument::Compact));
             return;
+        } else if (target.startsWith("/api/workflows/")) {
+            const auto workflow = workflows.value(QString::fromUtf8(target.mid(15)));
+            send(socket, QJsonDocument(workflow).toJson(QJsonDocument::Compact), workflow.isEmpty() ? 404 : 200);
+            return;
+        } else if (target == "/api/comfy/resolve-workflow") {
+            comfyRequest = bytes.mid(end + 4);
+            send(socket, QJsonDocument(comfySchema).toJson(QJsonDocument::Compact));
+            return;
+        } else if (target.startsWith("/trpc/applications.list")) {
+            QJsonArray rows;
+            for (const auto &application : applications) { rows.append(QJsonObject{{"id", application["id"]}, {"name", application["name"]}}); }
+            data = rows;
+        } else if (target.startsWith("/trpc/applications.get")) {
+            const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input").toUtf8()).object();
+            data = applications.value(input["id"].toString());
+        } else if (target.startsWith("/trpc/workflows.list")) {
+            QJsonArray rows;
+            for (const auto &workflow : workflows) { rows.append(QJsonObject{{"id", workflow["id"]}, {"name", workflow["name"]}}); }
+            data = QJsonObject{{"workflows", rows}, {"next", QJsonValue::Null}};
         } else if (target.startsWith("/trpc/assets.get")) {
             const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input").toUtf8()).object();
             data = assets.value(input["id"].toString());
@@ -106,8 +133,9 @@ private:
         send(socket, QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", data}}}}).toJson(QJsonDocument::Compact));
     }
 
-    static void send(QTcpSocket *socket, const QByteArray &body) {
-        socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: "
+    static void send(QTcpSocket *socket, const QByteArray &body, int status = 200) {
+        socket->write("HTTP/1.1 " + QByteArray::number(status) + (status == 200 ? " OK" : " Not Found")
+                      + "\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: "
                       + QByteArray::number(body.size()) + "\r\n\r\n" + body);
         socket->disconnectFromHost();
     }
@@ -259,6 +287,46 @@ QJsonArray partThreeMetadata() {
                      slider("bottom", 0, 4096, 512, "int")}),
         fal, kie, replicate,
     };
+}
+
+// Metadata of the composite nodes, as the server lists them.
+QJsonArray compositeMetadata() {
+    auto workflow = metadataFor("nodetool.workflows.workflow_node.Workflow", "Workflow",
+                                {property("workflow_id", "str", {{"default", ""}}), property("workflow_json", "dict", {{"default", QJsonObject{}}})},
+                                QStringLiteral("any"));
+    workflow["inline_fields"] = QJsonArray{"workflow_id"};
+    workflow["supports_dynamic_inputs"] = true;
+    workflow["supports_dynamic_outputs"] = true;
+    workflow["outputs"] = QJsonArray{};
+    auto app = metadataFor("nodetool.workflows.app_node.App", "App",
+                           {property("app_id", "str", {{"default", ""}, {"title", "App"}}),
+                            property("app_json", "dict", {{"default", QJsonObject{}}, {"title", "App Snapshot"}})}, QStringLiteral("any"));
+    app["inline_fields"] = QJsonArray{"app_id"};
+    app["supports_dynamic_inputs"] = true;
+    app["supports_dynamic_outputs"] = true;
+    app["outputs"] = QJsonArray{};
+    auto subgraph = metadataFor("nodetool.workflows.subgraph.Subgraph", "Subgraph",
+                                {property("graph", "dict", {{"default", QJsonObject{}}})}, QStringLiteral("any"));
+    subgraph["supports_dynamic_inputs"] = true;
+    subgraph["supports_dynamic_outputs"] = true;
+    subgraph["outputs"] = QJsonArray{};
+    auto comfy = metadataFor("lib.comfy.RunWorkflow", "Run ComfyUI Workflow",
+                             {property("endpoint", "str", {{"default", "127.0.0.1:8188"}}),
+                              property("api", "enum", {{"default", "native"}, {"values", QJsonArray{"native", "v2"}}}),
+                              property("workflow", "str", {{"default", ""}}), property("timeout", "int", {{"default", 600}})},
+                             QStringLiteral("dict"));
+    comfy["supports_dynamic_inputs"] = true;
+    comfy["supports_dynamic_outputs"] = true;
+    return {workflow, app, subgraph, comfy,
+            metadataFor("nodetool.input.StringInput", "String Input", {property("name", "str", {{"default", ""}}), property("value", "str", {{"default", ""}})},
+                        QStringLiteral("str"))};
+}
+
+// A saved workflow with one string input, as /api/workflows/<id> answers.
+QJsonObject savedWorkflow(const QString &id, const QString &name, const QJsonArray &extraNodes = {}) {
+    auto nodes = QJsonArray{QJsonObject{{"id", "in"}, {"type", "nodetool.input.StringInput"}, {"data", QJsonObject{{"name", "topic"}, {"value", ""}}}}};
+    for (const auto &node : extraNodes) { nodes.append(node); }
+    return {{"id", id}, {"name", name}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", QJsonArray{}}}}};
 }
 
 QJsonArray allMetadata() {
@@ -2425,6 +2493,256 @@ private slots:
         QVERIFY(labels(id("replicate")).contains(QStringLiteral("Run any model on replicate.com.")));
     }
 
+    // WorkflowNodeContent and AppNodeContent lead with their loader's select,
+    // and AppNodeContent and SubgraphNodeContent hide the copy they store.
+    void compositeCardsShowTheirSourceSelect() {
+        auto workflow = partTwoNode("workflow", "nodetool.workflows.workflow_node.Workflow", QPointF(0, 900),
+                                    {{"workflow_id", "wf1"}, {"workflow_json", savedWorkflow("wf1", "Caption images")}});
+        auto app = partTwoNode("app", "nodetool.workflows.app_node.App", QPointF(320, 900),
+                               {{"app_id", "app1"}, {"app_json", QJsonObject{{"name", "Poster maker"}}}});
+        auto emptyApp = partTwoNode("empty-app", "nodetool.workflows.app_node.App", QPointF(640, 900));
+        auto subgraph = partTwoNode("subgraph", "nodetool.workflows.subgraph.Subgraph", QPointF(960, 900),
+                                    {{"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}});
+        auto metadata = fixture()["metadata"].toArray();
+        for (const auto &entry : compositeMetadata()) { metadata.append(entry); }
+        WorkflowGraphModel model;
+        model.project(withNodes({workflow, app, emptyApp, subgraph}), metadata);
+        const auto id = [&model](const QString &resource) {
+            for (const auto node : model.allNodeIds()) {
+                if (model.resourceId(node) == resource) { return node; }
+            }
+            return QtNodes::InvalidNodeId;
+        };
+        const auto select = [&model, &id](const QString &resource, const QString &name) -> const NodeRow * {
+            for (const auto &row : model.layout(id(resource)).rows) {
+                if (row.propertyName == name && row.kind == NodeRowKind::Field) { return &row; }
+            }
+            return nullptr;
+        };
+        const auto *workflowSelect = select("workflow", "workflow_id");
+        QVERIFY(workflowSelect);
+        QVERIFY(workflowSelect->choice);
+        QCOMPARE(workflowSelect->label, QStringLiteral("Select workflow"));
+        QCOMPARE(workflowSelect->value, QStringLiteral("Caption images"));
+        QVERIFY(!workflowSelect->placeholder);
+        const auto descriptor = model.inlineDescriptor(id("workflow"), QStringLiteral("workflow_id"));
+        QCOMPARE(descriptor["kind"].toString(), QStringLiteral("workflow"));
+        // The input derived from the stored copy is a handle without a field.
+        bool topicHandle = false;
+        for (const auto &row : model.layout(id("workflow")).rows) {
+            if (row.port < 0 || model.ports(id("workflow"), QtNodes::PortType::In)[row.port].toObject()["name"] != "topic") { continue; }
+            QCOMPARE(row.kind, NodeRowKind::Handle);
+            topicHandle = true;
+        }
+        QVERIFY(topicHandle);
+        QCOMPARE(descriptor["value"].toMap()["id"].toString(), QStringLiteral("wf1"));
+        const auto *appSelect = select("app", "app_id");
+        QVERIFY(appSelect);
+        QCOMPARE(appSelect->label, QStringLiteral("Select app"));
+        QCOMPARE(appSelect->value, QStringLiteral("Poster maker"));
+        QCOMPARE(model.inlineDescriptor(id("app"), QStringLiteral("app_id"))["kind"].toString(), QStringLiteral("app"));
+        QVERIFY(select("empty-app", "app_id")->placeholder);
+        // AppNodeContent has no NodePropertyForm, and AppLoader's select has no handle.
+        for (const auto &row : model.layout(id("app")).rows) { QVERIFY(row.kind != NodeRowKind::Action); }
+        QVERIFY(!model.portVisible(id("app"), QtNodes::PortType::In, QtNodes::PortIndex(appSelect->port)));
+        // The stored copies have no row and no handle.
+        const auto hidden = [&model, &id](const QString &resource, const QString &name) {
+            for (const auto &row : model.layout(id(resource)).rows) {
+                if (row.port >= 0 && model.ports(id(resource), QtNodes::PortType::In)[int(row.port)].toObject()["name"].toString() == name) { return false; }
+            }
+            const auto count = unsigned(model.ports(id(resource), QtNodes::PortType::In).size());
+            for (unsigned i = 0; i < count; ++i) {
+                if (model.ports(id(resource), QtNodes::PortType::In)[int(i)].toObject()["name"].toString() == name && model.portVisible(id(resource), QtNodes::PortType::In, i)) { return false; }
+            }
+            return true;
+        };
+        QVERIFY(hidden("app", QStringLiteral("app_json")));
+        QVERIFY(hidden("subgraph", QStringLiteral("graph")));
+    }
+
+    // WorkflowLoader: picking a workflow stores its id and graph in one step,
+    // and a workflow that runs the host is refused.
+    void workflowSelectLoadsTheWorkflowInOneStep() {
+        Server server;
+        const auto host_id = fixture()["workflow"].toObject()["id"].toString();
+        QVERIFY(!host_id.isEmpty());
+        server.workflows.insert("wf1", savedWorkflow("wf1", "Caption images"));
+        server.workflows.insert("loop", savedWorkflow("loop", "Loop", {QJsonObject{{"id", "w"}, {"type", "nodetool.workflows.workflow_node.Workflow"},
+                                                                         {"data", QJsonObject{{"workflow_id", host_id}}}}}));
+        auto catalog = fixture()["metadata"].toArray();
+        for (const auto &entry : compositeMetadata()) { catalog.append(entry); }
+        Host host(withNodes({partTwoNode("workflow", "nodetool.workflows.workflow_node.Workflow", QPointF(0, 900))}), catalog);
+        emit host.window.session()->credentialsChanged(server.url(), QStringLiteral("card-token"), QStringLiteral("1"));
+        settle();
+        const auto *row = host.row("workflow", NodeRowKind::Field, "workflow_id");
+        QVERIFY(row);
+        QVERIFY(row->placeholder);
+        host.click("workflow", host.model().inlineFieldRect(host.id("workflow"), "workflow_id").center());
+        auto *overlay = host.overlay();
+        QVERIFY(overlay);
+        QQuickItem *chooser = nullptr;
+        QTRY_VERIFY((chooser = find(overlay->rootObject(), QStringLiteral("inline-resource-select"))) != nullptr);
+        QTRY_COMPARE(chooser->property("options").toList().size(), 2);
+        const auto undo = host.undoCount();
+        QMetaObject::invokeMethod(chooser, "valueCommitted", Q_ARG(QVariant, QStringLiteral("wf1")));
+        QTRY_COMPARE(host.data("workflow")["workflow_id"].toString(), QStringLiteral("wf1"));
+        QCOMPARE(host.data("workflow")["workflow_json"].toObject()["name"].toString(), QStringLiteral("Caption images"));
+        QCOMPARE(host.undoCount(), undo + 1);
+        // The node derives its input from the workflow's String Input.
+        QCOMPARE(host.window.document()->node("workflow")["dynamic_inputs"].toObject().keys(), QStringList{QStringLiteral("topic")});
+        QCOMPARE(host.row("workflow", NodeRowKind::Field, "workflow_id")->value, QStringLiteral("Caption images"));
+        // editableDynamicInputs={false}: the derived input is a handle without a field.
+        QVERIFY(host.row("workflow", NodeRowKind::Handle));
+        QVERIFY(!host.row("workflow", NodeRowKind::Multiline, "topic") && !host.row("workflow", NodeRowKind::Field, "topic"));
+        QVERIFY(host.window.selectNode("workflow"));
+        QVERIFY(host.window.commitProperty("workflow", QStringLiteral("workflow_id"), QVariantMap{{"type", "workflow"}, {"id", "loop"}}));
+        settle();
+        settle();
+        QCOMPARE(host.data("workflow")["workflow_id"].toString(), QStringLiteral("wf1"));
+        QCOMPARE(host.undoCount(), undo + 1);
+    }
+
+    // AppLoader: picking an app stores its id and its workflow's ports.
+    void appSelectListsAppsAndLoadsTheAppWorkflow() {
+        Server server;
+        server.workflows.insert("wf1", savedWorkflow("wf1", "Poster workflow"));
+        server.applications.insert("app1", QJsonObject{{"id", "app1"}, {"name", "Poster maker"},
+            {"document", QJsonObject{{"operations", QJsonArray{QJsonObject{{"id", "run"}, {"name", "Run"}, {"workflowId", "wf1"}}}}}}});
+        auto catalog = fixture()["metadata"].toArray();
+        for (const auto &entry : compositeMetadata()) { catalog.append(entry); }
+        Host host(withNodes({partTwoNode("app", "nodetool.workflows.app_node.App", QPointF(0, 900))}), catalog);
+        emit host.window.session()->credentialsChanged(server.url(), QStringLiteral("card-token"), QStringLiteral("1"));
+        settle();
+        const auto *row = host.row("app", NodeRowKind::Field, "app_id");
+        QVERIFY(row);
+        host.click("app", host.model().inlineFieldRect(host.id("app"), "app_id").center());
+        auto *overlay = host.overlay();
+        QVERIFY(overlay);
+        QQuickItem *chooser = nullptr;
+        QTRY_VERIFY((chooser = find(overlay->rootObject(), QStringLiteral("inline-resource-select"))) != nullptr);
+        QTRY_COMPARE(chooser->property("options").toList().size(), 1);
+        QCOMPARE(chooser->property("options").toList().first().toMap()["label"].toString(), QStringLiteral("Poster maker"));
+        const auto undo = host.undoCount();
+        QMetaObject::invokeMethod(chooser, "valueCommitted", Q_ARG(QVariant, QStringLiteral("app1")));
+        QTRY_COMPARE(host.data("app")["app_id"].toString(), QStringLiteral("app1"));
+        const auto snapshot = host.data("app")["app_json"].toObject();
+        QCOMPARE(snapshot["name"].toString(), QStringLiteral("Poster maker"));
+        QCOMPARE(snapshot["operation_id"].toString(), QStringLiteral("run"));
+        QCOMPARE(snapshot["workflow_id"].toString(), QStringLiteral("wf1"));
+        QVERIFY(!snapshot["graph"].toObject()["nodes"].toArray().isEmpty());
+        QCOMPARE(host.undoCount(), undo + 1);
+        QCOMPARE(host.row("app", NodeRowKind::Field, "app_id")->value, QStringLiteral("Poster maker"));
+    }
+
+    // DynamicComfySchemaNode: the ComfyUI accent, a header loader, the hint
+    // until the workflow gives the node slots, and only the derived inputs.
+    void comfyCardShowsItsLoaderAndDerivedInputsOnly() {
+        auto empty = partTwoNode("comfy", "lib.comfy.RunWorkflow", QPointF(0, 900));
+        auto loaded = partTwoNode("loaded", "lib.comfy.RunWorkflow", QPointF(320, 900), {{"workflow", "{}"}});
+        loaded["dynamic_inputs"] = QJsonObject{{"6:text", QJsonObject{{"type", QJsonObject{{"type", "str"}}}, {"description", "Prompt"}}}};
+        loaded["dynamic_properties"] = QJsonObject{{"6:text", "a cat"}};
+        loaded["dynamic_outputs"] = QJsonObject{{"9:images", QJsonObject{{"type", "image"}}}};
+        auto metadata = fixture()["metadata"].toArray();
+        for (const auto &entry : compositeMetadata()) { metadata.append(entry); }
+        WorkflowGraphModel model;
+        model.project(withNodes({empty, loaded}), metadata);
+        const auto id = [&model](const QString &resource) {
+            for (const auto node : model.allNodeIds()) {
+                if (model.resourceId(node) == resource) { return node; }
+            }
+            return QtNodes::InvalidNodeId;
+        };
+        const auto &card = model.layout(id("comfy"));
+        QCOMPARE(card.accent, QColor(QStringLiteral("#1F9E89")));
+        QCOMPARE(card.edge.alpha(), 0x40);
+        QCOMPARE(card.headerAction, QStringLiteral("loadComfyWorkflow"));
+        QVERIFY(card.headerActionRect().right() < card.size.width());
+        QStringList labels;
+        for (const auto &row : card.rows) {
+            if (row.kind == NodeRowKind::Label && !row.rect.isEmpty()) { labels.append(row.label); }
+        }
+        QCOMPARE(labels, (QStringList{QStringLiteral("Run a ComfyUI workflow on any ComfyUI server."),
+                                      QStringLiteral("Click the upload icon to load a workflow (paste API JSON or drop a .json/.png).")}));
+        // The runner's endpoint, API, workflow and timeout stay in the inspector.
+        for (const auto &row : card.rows) { QCOMPARE(row.port, -1); }
+        const auto count = unsigned(model.ports(id("comfy"), QtNodes::PortType::In).size());
+        for (unsigned i = 0; i < count; ++i) {
+            const auto name = model.ports(id("comfy"), QtNodes::PortType::In)[int(i)].toObject()["name"].toString();
+            QVERIFY2(name == "__control__" || !model.portVisible(id("comfy"), QtNodes::PortType::In, i), qPrintable(name));
+        }
+        const auto &filled = model.layout(id("loaded"));
+        QStringList ports;
+        for (const auto &row : filled.rows) {
+            if (row.port >= 0) { ports.append(model.ports(id("loaded"), QtNodes::PortType::In)[int(row.port)].toObject()["name"].toString()); }
+            QVERIFY(row.kind != NodeRowKind::Label || row.label != labels.first());
+        }
+        QCOMPARE(ports, QStringList{QStringLiteral("6:text")});
+        // The derived slots have no type chip, rename or remove control, and the card no add buttons.
+        for (const auto &row : filled.rows) {
+            QVERIFY(row.typeChipRect.isEmpty() && row.renameButtonRect.isEmpty() && row.removeButtonRect.isEmpty());
+            QVERIFY(row.kind != NodeRowKind::Action);
+        }
+    }
+
+    // ComfyWorkflowLoader: the header button opens the dialog, the server
+    // parses the pasted JSON, and Apply stores the prompt and slots once.
+    void comfyLoaderAppliesTheResolvedWorkflowInOneStep() {
+        Server server;
+        server.comfySchema = QJsonObject{
+            {"prompt", QJsonObject{{"6", QJsonObject{{"class_type", "CLIPTextEncode"}, {"inputs", QJsonObject{{"text", "a cat"}}}}},
+                                   {"3", QJsonObject{{"class_type", "KSampler"}, {"inputs", QJsonObject{{"seed", 1}}}}}}},
+            {"dynamic_inputs", QJsonObject{{"6:text", QJsonObject{{"type", QJsonObject{{"type", "str"}, {"optional", false}, {"type_args", QJsonArray{}}}},
+                                                                  {"description", "Prompt"}}}}},
+            {"dynamic_outputs", QJsonObject{{"9:images", QJsonObject{{"type", "image"}, {"optional", false}, {"type_args", QJsonArray{}}}}}},
+            {"dynamic_properties", QJsonObject{{"6:text", "a cat"}}},
+            {"available_params", QJsonArray{QJsonObject{{"handle", "3:seed"}, {"node_id", "3"}, {"field", "seed"}, {"class_type", "KSampler"},
+                                                        {"label", "KSampler seed"}, {"type", "int"}, {"default", 1}}}},
+            {"app_mode_inputs", false}};
+        auto stale = partTwoNode("comfy", "lib.comfy.RunWorkflow", QPointF(0, 900));
+        stale["dynamic_inputs"] = QJsonObject{{"old:text", QJsonObject{{"type", QJsonObject{{"type", "str"}}}}}};
+        stale["dynamic_properties"] = QJsonObject{{"old:text", ""}};
+        auto catalog = fixture()["metadata"].toArray();
+        for (const auto &entry : compositeMetadata()) { catalog.append(entry); }
+        auto workflow = withNodes({stale, partTwoNode("text", "nodetool.input.StringInput", QPointF(-320, 900), {{"name", "t"}})});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "stale-edge"}, {"source", "text"}, {"sourceHandle", "output"}, {"target", "comfy"}, {"targetHandle", "old:text"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, catalog);
+        emit host.window.session()->credentialsChanged(server.url(), QStringLiteral("card-token"), QStringLiteral("1"));
+        settle();
+        host.click("comfy", host.model().layout(host.id("comfy")).headerActionRect().center());
+        QDialog *dialog = nullptr;
+        QTRY_VERIFY((dialog = host.window.findChild<QDialog *>(QStringLiteral("comfy-workflow-dialog-host"))) != nullptr);
+        auto *quick = dialog->findChild<QQuickWidget *>();
+        QVERIFY(quick && quick->rootObject());
+        auto *loader = quick->findChild<node_editor::ComfyWorkflowLoader *>();
+        QVERIFY(loader);
+        loader->setText(QStringLiteral("{\"6\": {\"class_type\": \"CLIPTextEncode\", \"inputs\": {\"text\": \"a cat\"}}}"));
+        QTRY_VERIFY(loader->ready());
+        QVERIFY(server.comfyRequest.contains("CLIPTextEncode"));
+        QCOMPARE(loader->summary(), QStringLiteral("2 nodes · 1 typed input · 1 output"));
+        QCOMPARE(loader->parameters().size(), 1);
+        const auto undo = host.undoCount();
+        QMetaObject::invokeMethod(quick->rootObject(), "toggle", Q_ARG(QVariant, QStringLiteral("3:seed")));
+        QMetaObject::invokeMethod(quick->rootObject(), "apply");
+        settle();
+        const auto node = host.window.document()->node("comfy");
+        QCOMPARE(QJsonDocument::fromJson(node["data"].toObject()["workflow"].toString().toUtf8()).object(), server.comfySchema["prompt"].toObject());
+        auto inputs = node["dynamic_inputs"].toObject().keys();
+        inputs.sort();
+        QCOMPARE(inputs, (QStringList{QStringLiteral("3:seed"), QStringLiteral("6:text")}));
+        QCOMPARE(node["dynamic_properties"].toObject()["3:seed"].toInt(), 1);
+        QCOMPARE(node["dynamic_outputs"].toObject().keys(), QStringList{QStringLiteral("9:images")});
+        for (const auto &value : host.window.document()->snapshot()["graph"].toObject()["edges"].toArray()) {
+            QVERIFY(value.toObject()["id"] != "stale-edge");
+        }
+        QCOMPARE(host.undoCount(), undo + 1);
+        QTRY_VERIFY(!host.window.findChild<QDialog *>(QStringLiteral("comfy-workflow-dialog-host")) ||
+                    !host.window.findChild<QDialog *>(QStringLiteral("comfy-workflow-dialog-host"))->isVisible());
+    }
+
     // ModelProperty.tsx: a model constant shows its label and the model button.
     // An empty one reads as the type's placeholder, as ModelSelectButton does.
     void modelConstantsShowTheirModelChip() {
@@ -3011,6 +3329,33 @@ private slots:
             settle();
             for (const auto &name : {"osc", "adsr", "vcf", "compress", "out"}) {
                 QVERIFY(host.render(name).save(QStringLiteral("%1/synth-%2-%3.png").arg(directory, name, dark ? "dark" : "light")));
+            }
+        }
+    }
+
+    void captureCompositeCards() {
+        const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR");
+        if (directory.isEmpty()) {
+            QSKIP("Set NODETOOL_CARD_BODY_CAPTURE_DIR to write card captures.");
+        }
+        auto loaded = partTwoNode("comfy-loaded", "lib.comfy.RunWorkflow", QPointF(960, 900), {{"workflow", "{}"}});
+        loaded["dynamic_inputs"] = QJsonObject{{"6:text", QJsonObject{{"type", QJsonObject{{"type", "str"}}}, {"description", "Prompt"}}}};
+        loaded["dynamic_properties"] = QJsonObject{{"6:text", "a cat"}};
+        loaded["dynamic_outputs"] = QJsonObject{{"9:images", QJsonObject{{"type", "image"}}}};
+        auto workflow = partTwoNode("workflow", "nodetool.workflows.workflow_node.Workflow", QPointF(0, 900),
+                                    {{"workflow_id", "wf1"}, {"workflow_json", savedWorkflow("wf1", "Caption images")}});
+        auto catalog = fixture()["metadata"].toArray();
+        for (const auto &entry : compositeMetadata()) { catalog.append(entry); }
+        Host host(withNodes({workflow, partTwoNode("app", "nodetool.workflows.app_node.App", QPointF(320, 900)),
+                             partTwoNode("comfy", "lib.comfy.RunWorkflow", QPointF(640, 900)), loaded,
+                             partTwoNode("subgraph", "nodetool.workflows.subgraph.Subgraph", QPointF(1280, 900))}), catalog);
+        QDir().mkpath(directory);
+        for (const auto dark : {true, false}) {
+            host.window.setDarkTheme(dark);
+            settle();
+            const auto theme = dark ? QStringLiteral("dark") : QStringLiteral("light");
+            for (const auto *name : {"workflow", "app", "comfy", "comfy-loaded", "subgraph"}) {
+                QVERIFY(host.render(QString::fromLatin1(name)).save(QStringLiteral("%1/composite-%2-%3.png").arg(directory, QString::fromLatin1(name), theme)));
             }
         }
     }

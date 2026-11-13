@@ -433,8 +433,6 @@ private slots:
         auto *status = panel(window, QStringLiteral("StatusBar"));
         auto *root = status->rootObject();
         const QList<QPair<QString, QString>> reasons{
-            {"status-queue", "The queue opens while jobs are queued or running."},
-            {"status-generations", "Generations across workflows have no native panel. Select a node and open History in the inspector."},
             {"status-workers", "Workers has no native panel yet."},
         };
         for (const auto &reason : reasons) {
@@ -454,6 +452,23 @@ private slots:
         click(status, find(root, "status-versions"));
         QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("workflow-versions-dock")));
         QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("workflow-versions-dock"))->isVisible());
+        // Queue opens with no jobs, as the web QueuePanel does, and closes on a second click.
+        auto *overlay = panel(window, QStringLiteral("QueueOverlay"));
+        QVERIFY(overlay);
+        QVERIFY(!window.queueAvailable());
+        click(status, find(root, "status-queue"));
+        QTRY_VERIFY(overlay->rootObject()->property("presented").toBool());
+        QTRY_VERIFY(find(root, "status-queue")->property("active").toBool());
+        QVERIFY(find(overlay->rootObject(), "queue-active-empty")->isVisible());
+        click(status, find(root, "status-queue"));
+        QTRY_VERIFY(!find(root, "status-queue")->property("active").toBool());
+        // Generations opens its bottom panel and closes it again.
+        click(status, find(root, "status-generations"));
+        QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("generations-dock")));
+        QTRY_VERIFY(find(root, "status-generations")->property("active").toBool());
+        QVERIFY(panel(window, QStringLiteral("GenerationsPanel")));
+        click(status, find(root, "status-generations"));
+        QTRY_VERIFY(!find(root, "status-generations")->property("active").toBool());
     }
 
     void statusBarShowsServerStatsAndTheQueue() {
@@ -497,13 +512,12 @@ private slots:
         peer->sendBinaryMessage(node_editor::encodeMsgPack(QJsonObject{{"type", "system_stats"},
             {"stats", QJsonObject{{"cpu_percent", 7.0}, {"memory_percent", 63.0}}}}));
         QTRY_COMPARE(find(root, "status-memory-value")->property("text").toString(), QString("63%"));
-        // A started run makes the queue tab available, and the tab expands the queue panel.
+        // A started run shows the queue summary, and the tab expands the queue panel.
         auto *queue = find(root, "status-queue");
-        QVERIFY(!queue->property("unavailable").toString().isEmpty());
+        QCOMPARE(queue->property("unavailable").toString(), QString());
         window.action("Run");
         QTRY_VERIFY_WITH_TIMEOUT(!commands.isEmpty(), 2000);
         QTRY_VERIFY(window.queueAvailable());
-        QTRY_COMPARE(queue->property("unavailable").toString(), QString());
         auto *overlay = panel(window, QStringLiteral("QueueOverlay"));
         QVERIFY(overlay);
         QVERIFY(!overlay->rootObject()->property("expanded").toBool());

@@ -470,7 +470,9 @@ public:
     painter->setPen(zoomedOut ? theme.zoomedTitle : theme.textPrimary);
     painter->setFont(canvasFont(theme, nm::fontTitle, QFont::Normal));
     // The chip keeps its 6 px left margin (nodes.states.css .bypass-badge).
-    const QRectF title(inset + nm::titleOffset, inset, layout.size.width() - 2 * inset - nm::titleOffset - (disabled ? chip.width() + disabledChipMargin : 0), nm::headerHeight);
+    const bool headerButton = !layout.headerAction.isEmpty() && !layout.collapsed && !zoomedOut;
+    const QRectF title(inset + nm::titleOffset, inset, layout.size.width() - 2 * inset - nm::titleOffset - (disabled ? chip.width() + disabledChipMargin : 0)
+                       - (headerButton ? layout.headerActionRect().width() : 0), nm::headerHeight);
     {
       // nodes.states.css: a bypassed title is drawn at 0.8 inside the card's own 0.8.
       const auto cardOpacity = painter->opacity();
@@ -481,6 +483,17 @@ public:
     }
 
     if (disabled) { paintDisabledBadge(painter, chip, theme, chipFont, chipLabel); }
+    if (headerButton && !model.readOnly()) {
+        // ComfyWorkflowLoader's ToolbarIconButton: secondary ink, primary ink on an overlay when hovered.
+        const auto button = layout.headerActionRect();
+        const bool hovered = item.property("headerActionHovered").toBool();
+        if (hovered) {
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(theme.field);
+            painter->drawRoundedRect(button, 4, 4);
+        }
+        paintIcon(painter, QStringLiteral("uploadFile"), button.adjusted(4, 4, -4, -4), hovered ? theme.textPrimary : theme.textSecondary);
+    }
     CardBodyPaintState bodyState;
     bodyState.hasResult = model.hasRuntimeOutput(item.nodeId()) && !layout.sourceTab;
     bodyState.running = model.runtimeState(item.nodeId())["status"] == QStringLiteral("running");
@@ -1406,6 +1419,7 @@ bool EditorScene::beginReconnect(ConnectionId connection, PortType side) {
 void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
     footerPress_ = InvalidNodeId;
     outputFormPress_ = false;
+    headerActionPress_ = false;
     if (event->button() == Qt::LeftButton) {
         for (auto *item : items(event->scenePos(), Qt::IntersectsItemShape, Qt::DescendingOrder)) {
             auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
@@ -1419,6 +1433,13 @@ void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
             }
             if (layout.subgraph && layout.footerRect().adjusted(0, 0, -16, 0).contains(node->mapFromScene(event->scenePos()))) {
                 footerPress_ = node->nodeId();
+                event->accept();
+                return;
+            }
+            if (!layout.headerAction.isEmpty() && !layout.collapsed && !model_.readOnly()
+                && layout.headerActionRect().contains(node->mapFromScene(event->scenePos()))) {
+                footerPress_ = node->nodeId();
+                headerActionPress_ = true;
                 event->accept();
                 return;
             }
@@ -1938,6 +1959,7 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
     updateHandleHover(event->scenePos());
     if (auto *old = nodeGraphicsObject(footerHover_)) {
         old->setProperty("footerHovered", false);
+        old->setProperty("headerActionHovered", false);
         old->setToolTip({});
         old->update();
     }
@@ -1947,9 +1969,12 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
         if (!node) { continue; }
         const auto &layout = model_.layout(node->nodeId());
         const bool hovered = layout.subgraph && layout.footerRect().contains(node->mapFromScene(event->scenePos()));
-        footerHover_ = hovered ? node->nodeId() : InvalidNodeId;
+        const bool actionHovered = !layout.headerAction.isEmpty() && !layout.collapsed && !model_.readOnly()
+            && layout.headerActionRect().contains(node->mapFromScene(event->scenePos()));
+        footerHover_ = hovered || actionHovered ? node->nodeId() : InvalidNodeId;
         node->setProperty("footerHovered", hovered);
-        node->setToolTip(hovered ? tr("Open the subgraph in its own tab") : QString{});
+        node->setProperty("headerActionHovered", actionHovered);
+        node->setToolTip(hovered ? tr("Open the subgraph in its own tab") : actionHovered ? tr("Load workflow") : QString{});
         node->update();
         break;
     }
@@ -2021,12 +2046,16 @@ void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
         const auto id = footerPress_;
         footerPress_ = InvalidNodeId;
         auto *item = nodeGraphicsObject(id);
-        const auto rect = outputFormPress_ ? model_.layout(id).outputFormRect() : model_.layout(id).footerRect();
+        const auto &pressed = model_.layout(id);
+        const auto rect = outputFormPress_ ? pressed.outputFormRect() : headerActionPress_ ? pressed.headerActionRect() : pressed.footerRect();
+        const auto action = pressed.headerAction;
         if (event->button() == Qt::LeftButton && item && rect.contains(item->mapFromScene(event->scenePos()))) {
             if (outputFormPress_) { emit outputFormRequested(model_.resourceId(id)); }
+            else if (headerActionPress_) { emit headerActionRequested(model_.resourceId(id), action); }
             else { emit childOpenRequested(model_.resourceId(id)); }
         }
         outputFormPress_ = false;
+        headerActionPress_ = false;
         event->accept();
         return;
     }

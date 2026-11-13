@@ -145,6 +145,8 @@ public:
   // Static preflight of the stored workflow (POST /api/sdk/v1/preflight). done gets
   // the summary's cost object, or an error. Needs a server-bound workflow.
   void preflightCost(std::function<void(QJsonObject, QString)> done);
+  // The account's generations.list page, newest first.
+  void listGenerations(std::function<void(QJsonArray, QString)> done);
 signals:
   void workflowChanged();
   void generationsChanged();
@@ -158,6 +160,8 @@ signals:
   void runEvent(QString jobId, QJsonObject event);
   void runSubmitted(QString jobId);
   void systemStatsChanged();
+  // A `prediction` message: a provider call of any run on this socket.
+  void predictionReceived(QJsonObject message);
   // An automatic reconnect was queued as attempt number `attempt`, to start after `delayMs`.
   void reconnectScheduled(int attempt, int delayMs);
 

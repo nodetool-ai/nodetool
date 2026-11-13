@@ -200,6 +200,8 @@ signals:
     // The card's slot type chip asks for the type menu below sceneAnchor.
     void dynamicTypeMenuRequested(const QString &id, const QString &name, const QRectF &sceneAnchor);
     void childOpenRequested(const QString &id);
+    // A card's header button, such as the ComfyUI runner's workflow loader.
+    void headerActionRequested(const QString &id, const QString &action);
   void canvasContextMenuRequested(const QString &nodeId, const QPoint &screenPosition);
   void paneDoubleClicked(const QPointF &scenePosition);
   void dataEdgeContextMenuRequested(const QString &edgeId, const QPointF &scenePosition, const QPoint &screenPosition);
@@ -249,6 +251,7 @@ private:
   double phase_ = 0;
   bool reducedMotion_ = false;
     bool outputFormPress_ = false;
+    bool headerActionPress_ = false;
     QtNodes::NodeId footerPress_ = QtNodes::InvalidNodeId;
     QtNodes::NodeId footerHover_ = QtNodes::InvalidNodeId;
   bool inlinePress_ = false;

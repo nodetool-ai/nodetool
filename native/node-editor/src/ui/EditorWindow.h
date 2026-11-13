@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <optional>
 #include "interfaces/DocumentTabs.h"
+#include "interfaces/GenerationActivity.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInspector.h"
 #include "interfaces/Notifications.h"
@@ -89,6 +90,8 @@ public:
   bool emptyCanvas() const { return document_.nodes().isEmpty(); }
   node_editor::SetupController *setup() { return &setup_; }
     node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
+    // The Generations panel's list, shared by every tab and held by the root window.
+    node_editor::GenerationActivity *generationActivity() { return tabOwner_ ? &tabOwner_->generations_ : &generations_; }
     // The root window has no panels of its own, so it returns the active tab's.
     node_editor::NodeCatalog *nodeCatalog() { return activeEditor() == this ? &nodeCatalog_ : activeEditor()->nodeCatalog(); }
     node_editor::DocumentTabs *documentTabs() { return activeEditor() == this ? &documentTabs_ : activeEditor()->documentTabs(); }
@@ -131,6 +134,11 @@ public:
   void showLinkedWorkflows();
   void syncChild();
   void refreshChildReferences();
+  // WorkflowLoader and AppLoader: loads the picked workflow or app and stores
+  // its id and a copy of its graph on the node in one undo step.
+  void loadChildSource(const QString &nodeId, const QString &kind, const QString &sourceId);
+  // ComfyWorkflowLoader.tsx: the Run ComfyUI Workflow node's load dialog.
+  void showComfyWorkflowDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
   EditorWindow *activeEditor() const;
@@ -216,6 +224,15 @@ public:
     QVariantMap runProgress() const;
     bool traceVisible() const;
     bool versionsVisible() const;
+    // The queue overlay lists its jobs: opened from the status bar or expanded.
+    bool queueVisible() const;
+    bool generationsVisible() const;
+    // Loads the account's generations.list page into the Generations panel.
+    void refreshGenerations();
+    // Opens a workflow document ({name, graph}) in a new unsaved tab.
+    void openWorkflowDocument(const QJsonObject &workflow);
+    // Opens the Report issue for a failed job in the queue history.
+    void reportJob(const QString &jobId);
     // A status bar tab: opens its panel, or closes it when it is the open one (PanelBottom.tsx).
     void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;
@@ -400,6 +417,10 @@ private:
   void showWorkflowDetails(const QString &kind);
   void showServerSync();
   void showRunTrace();
+  void showGenerations();
+  // Loads a workflow document into this tab, with `file` as its file or none.
+  bool openDocument(const QByteArray &json, const QString &file);
+  void toggleQueue();
   void showCanvasDrops();
   QPointer<QDialog> canvasDropDialog_;
   bool canvasDropsPending_ = false;
@@ -458,7 +479,7 @@ private:
   void inspectNode(const QString &resourceId);
   // Each panelChanged() makes QML evaluate every panel binding again. All
   // changes in one event-loop pass share one deferred emit.
-  void schedulePanelChanged();
+  Q_SLOT void schedulePanelChanged();
   void flushPanelChanged();
   bool panelChangePending_ = false;
   // GenerationHistory copies the full document. Selection changes reuse it.
@@ -535,6 +556,10 @@ private:
   QPointer<QObject> viewAnimation_;
 
     node_editor::PackSetup packSetup_;
+    // The root window's generations, which every tab's Generations panel reads
+    // through generationActivity(). Owned by value, UI thread, destroyed with
+    // the root window after its tabs and their panels.
+    node_editor::GenerationActivity generations_;
     // What this tab's Catalog and NodeMenu panels read and do. Owned by value,
     // UI thread, destroyed with the tab after its panels (~EditorWindow deletes
     // them first).
