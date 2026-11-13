@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} otosta",
         "modelLabel": "Malli",
         "modelPlaceholder": "Käsikirjoitusmalli",
+        "noModels": "Kielimallia ei ole saatavilla. Lisää palveluntarjoajan avain asetuksissa kohdassa Mallit ja palveluntarjoajat.",
         "shotsLabel": "Otokset",
         "title": "Valitse lajityyppi",
         "description": "Sävy, rytmi ja rajaus seuraavat valintaasi. Voit muuttaa sitä myöhemmin.",

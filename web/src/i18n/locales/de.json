@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} Einstellungen",
         "modelLabel": "Modell",
         "modelPlaceholder": "Drehbuchmodell",
+        "noModels": "Kein Sprachmodell verfügbar. Füge in den Einstellungen unter Modelle & Anbieter einen Anbieterschlüssel hinzu.",
         "shotsLabel": "Einstellungen",
         "title": "Wähle dein Genre",
         "description": "Ton, Tempo und Bildgestaltung richten sich nach deiner Auswahl. Du kannst sie später ändern.",

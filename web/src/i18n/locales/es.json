@@ -3700,6 +3700,7 @@
         "shotCount_other": "{{count}} tiros",
         "modelLabel": "modelo",
         "modelPlaceholder": "Modelo de guión",
+        "noModels": "No hay ningún modelo de lenguaje disponible. Añade una clave de proveedor en Ajustes, en Modelos y proveedores.",
         "shotsLabel": "Disparos",
         "title": "Elige tu género",
         "description": "El tono, el ritmo y el encuadre dependen de su elección. Puedes cambiarlo más tarde.",

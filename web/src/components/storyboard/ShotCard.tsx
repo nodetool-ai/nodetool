@@ -180,7 +180,10 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     const job = state.shotJobs[shot.id];
     return job?.status === "failed" ? job : undefined;
   });
-  const renderError = failedJob?.errorMessage;
+  // The live job's reason first; after a reload only the shot still has it.
+  const renderError =
+    failedJob?.errorMessage ??
+    (shot.status === "failed" ? shot.failure_reason : undefined);
   // A scene clip renders as one job on its first shot. Every other shot in
   // its run shows the same generating state until the clip lands.
   const coveringJob = useStoryboardGenerationStore((state) =>

@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} 个镜头",
         "modelLabel": "模型",
         "modelPlaceholder": "剧本模型",
+        "noModels": "没有可用的语言模型。请在设置的“模型与提供商”中添加提供商密钥。",
         "shotsLabel": "镜头数",
         "title": "选择类型",
         "description": "基调、节奏和构图会根据你的选择调整。之后仍可更改。",
