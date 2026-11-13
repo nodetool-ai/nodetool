@@ -233,6 +233,10 @@ QJsonArray partThreeMetadata() {
                      dimension("width"), dimension("height"), slider("scale", 0.01, 4, 1.25),
                      property("padding_unit", "str", {{"values", QJsonArray{"px", "percent"}}, {"default", "px"}}),
                      slider("top", 0, 4096, 0), slider("bottom", 0, 4096, 0), slider("left", 0, 4096, 0), slider("right", 0, 4096, 0)}),
+        metadataFor("lib.image.color_grading.Curves", "Curves",
+                    {image(), slider("black_point", 0, 0.5, 0), slider("white_point", 0.5, 1, 1), slider("shadows", -0.5, 0.5, 0),
+                     slider("midtones", -0.5, 0.5, 0), slider("highlights", -0.5, 0.5, 0), slider("red_midtones", -0.5, 0.5, 0),
+                     slider("green_midtones", -0.5, 0.5, 0), slider("blue_midtones", -0.5, 0.5, 0)}),
         fal, kie, replicate,
     };
 }
@@ -1734,6 +1738,41 @@ private slots:
         QCOMPARE(scale->maximum, 4.0);
         QCOMPARE(scale->number, 1.25);
         QVERIFY(!host.row("canvas", NodeRowKind::Field, "width"));
+    }
+
+    // CurvesBody.tsx: five Tonal and three RGB midtone sliders under eyebrows,
+    // and a Reset that writes every default in one undo step.
+    void curvesResetRestoresEveryDefault() {
+        Host host(withNodes({partTwoNode("curves", "lib.image.color_grading.Curves", QPointF(0, 700),
+                                         {{"black_point", 0.2}, {"midtones", 0.3}, {"blue_midtones", -0.1}})}), allMetadata());
+        const auto &card = host.model().layout(host.id("curves"));
+        QCOMPARE(card.body, CardBody::Curves);
+        QStringList sliders;
+        QStringList eyebrows;
+        for (const auto &row : card.rows) {
+            if (row.kind == NodeRowKind::Slider) { sliders.append(row.propertyName); }
+            if (row.kind == NodeRowKind::Label) { eyebrows.append(row.label); }
+        }
+        QCOMPARE(sliders, (QStringList{"black_point", "white_point", "shadows", "midtones", "highlights", "red_midtones", "green_midtones",
+                                       "blue_midtones"}));
+        QCOMPARE(eyebrows, (QStringList{"TONAL", "RGB MIDTONES"}));
+        const auto *white = host.row("curves", NodeRowKind::Slider, "white_point");
+        QCOMPARE(white->minimum, 0.5);
+        QCOMPARE(white->number, 1.0);
+        QVERIFY(host.row("curves", NodeRowKind::Slider, "midtones")->bipolar);
+        QCOMPARE(host.row("curves", NodeRowKind::Slider, "midtones")->number, 0.3);
+        const NodeRow *reset = nullptr;
+        for (const auto &row : card.rows) {
+            if (row.action == QStringLiteral("resetSliders")) { reset = &row; }
+        }
+        QVERIFY(reset);
+        const auto undo = host.undoCount();
+        host.click("curves", reset->rect.center());
+        QTRY_COMPARE(host.data("curves")["black_point"].toDouble(), 0.0);
+        QCOMPARE(host.data("curves")["midtones"].toDouble(), 0.0);
+        QCOMPARE(host.data("curves")["blue_midtones"].toDouble(), 0.0);
+        QCOMPARE(host.data("curves")["white_point"].toDouble(), 1.0);
+        QCOMPARE(host.undoCount(), undo + 1);
     }
 
     // DynamicSchemaNodeShell.tsx: the model joins the title, a hint explains an

@@ -1099,6 +1099,41 @@ void layoutCanvasResize(NodeLayout &layout, const CardBodyInput &input) {
     }
     column.finish();
 }
+
+// CurvesBody.tsx: Tonal and RGB Midtones sections of AdjustmentSlider rows.
+// The Tonal header carries the Reset that returns every slider to its default.
+void layoutCurves(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    const auto section = [&](const QString &title, bool reset, const QVector<SliderSpec> &sliders) {
+        // .section-header pads 2 px by 4 px around the eyebrow and the reset button.
+        const auto top = column.y + nm::micro;
+        const auto height = reset ? double(nm::iconButtonSize) : double(nm::toggleHeight);
+        const auto label = title.toUpper();
+        layout.rows.append(labelRow(label, QRectF(column.x + nm::chipGap, top, captionWidth(label), height)));
+        if (reset) {
+            layout.rows.append(iconAction(QStringLiteral("resetSliders"), {}, QStringLiteral("restartAlt"), QObject::tr("Reset curves"),
+                                          QRectF(column.x + column.width - nm::chipGap - height, top, height, height)));
+        }
+        column.y = top + height + nm::micro + nm::micro;
+        auto grid = autoGrid(nm::micro, false, nm::adjustmentValueWidth);
+        for (const auto &spec : sliders) {
+            grid.slider(spec);
+        }
+        grid.place(column);
+        column.y += nm::micro;
+    };
+    section(QObject::tr("Tonal"), true,
+            {{QStringLiteral("black_point"), QObject::tr("Black point"), 0, 0.5, 0.01, 0, false},
+             {QStringLiteral("white_point"), QObject::tr("White point"), 0.5, 1, 0.01, 1, false},
+             {QStringLiteral("shadows"), QObject::tr("Shadows"), -0.5, 0.5, 0.01, 0, true},
+             {QStringLiteral("midtones"), QObject::tr("Midtones"), -0.5, 0.5, 0.01, 0, true},
+             {QStringLiteral("highlights"), QObject::tr("Highlights"), -0.5, 0.5, 0.01, 0, true}});
+    section(QObject::tr("RGB midtones"), false,
+            {{QStringLiteral("red_midtones"), QObject::tr("Red"), -0.5, 0.5, 0.01, 0, true},
+             {QStringLiteral("green_midtones"), QObject::tr("Green"), -0.5, 0.5, 0.01, 0, true},
+             {QStringLiteral("blue_midtones"), QObject::tr("Blue"), -0.5, 0.5, 0.01, 0, true}});
+    column.finish();
+}
 } // namespace
 
 CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
@@ -1143,7 +1178,7 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
         {"nodetool.compare.CompareImages", CardBody::CompareImages}, {"nodetool.constant.String", CardBody::ConstantString},
         {"nodetool.image.RotateAndFlip", CardBody::RotateFlip}, {"nodetool.image.Resize", CardBody::Resize},
         {"nodetool.image.Fit", CardBody::Fit}, {"nodetool.image.Paste", CardBody::Paste},
-        {"nodetool.image.CanvasResize", CardBody::CanvasResize}};
+        {"nodetool.image.CanvasResize", CardBody::CanvasResize}, {"lib.image.color_grading.Curves", CardBody::Curves}};
     if (bodies.contains(type)) {
         return bodies.value(type);
     }
@@ -1183,6 +1218,7 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
     case CardBody::Resize:
     case CardBody::Fit:
     case CardBody::CanvasResize:
+    case CardBody::Curves:
         return name == QStringLiteral("image");
     case CardBody::Paste:
         return name == QStringLiteral("image") || name == QStringLiteral("paste");
@@ -1344,6 +1380,9 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
         break;
     case CardBody::CanvasResize:
         layoutCanvasResize(layout, input);
+        break;
+    case CardBody::Curves:
+        layoutCurves(layout, input);
         break;
     default:
         break;

@@ -1677,6 +1677,15 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 model_.commit(model_.addDataframeColumnCommand(id, row.propertyName));
             } else if (row.action == QStringLiteral("toggleProperty")) {
                 model_.commit(model_.propertyCommand(id, row.propertyName, !row.checked));
+            } else if (row.action == QStringLiteral("resetSliders")) {
+                // CurvesBody's Reset writes every slider's default in one step.
+                QJsonArray commands;
+                for (const auto &slider : layout.rows) {
+                    if (slider.kind == NodeRowKind::Slider && slider.tracksDefault) {
+                        commands.append(model_.propertyCommand(id, slider.propertyName, slider.defaultNumber));
+                    }
+                }
+                model_.commit({{"op", "batch"}, {"commands", commands}});
             } else if (row.action == QStringLiteral("resetTransform")) {
                 // RotateAndFlipBody's Reset writes the angle and both flips together.
                 model_.commit({{"op", "batch"}, {"commands", QJsonArray{

@@ -837,7 +837,12 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CurvesBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Tonal and RGB Midtones sliders and Reset match. The Red, Green and Blue labels are not tinted, because the canvas theme has no error or info color.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/DropShadowBody.tsx": {
