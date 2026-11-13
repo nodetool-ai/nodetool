@@ -241,6 +241,7 @@ QJsonArray partThreeMetadata() {
                     {image(), slider("r_black", 0, 255, 0, "int"), slider("r_gamma", 0.01, 10, 1), slider("r_white", 0, 255, 255, "int"),
                      slider("g_black", 0, 255, 0, "int"), slider("g_gamma", 0.01, 10, 1), slider("g_white", 0, 255, 255, "int"),
                      slider("b_black", 0, 255, 0, "int"), slider("b_gamma", 0.01, 10, 1), slider("b_white", 0, 255, 255, "int")}),
+        metadataFor("nodetool.constant.Image", "Image", {image("value")}),
         fal, kie, replicate,
     };
 }
@@ -1742,6 +1743,67 @@ private slots:
         QCOMPARE(scale->maximum, 4.0);
         QCOMPARE(scale->number, 1.25);
         QVERIFY(!host.row("canvas", NodeRowKind::Field, "width"));
+    }
+
+    // CanvasResizeBody.tsx and PasteBody.tsx read the image arriving at their
+    // handles: the preview shows it before a run, a dashed rectangle marks where
+    // it lands, and Canvas Resize names the resulting canvas size.
+    void imageBodiesShowTheirSource() {
+        const auto png = [](int width, int height) {
+            QImage image(width, height, QImage::Format_RGB32);
+            image.fill(Qt::red);
+            QByteArray bytes;
+            QBuffer buffer(&bytes);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "PNG");
+            return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
+        };
+        const auto constant = [](const QString &id, const QString &uri, double y) {
+            return QJsonObject{{"id", id}, {"type", "nodetool.constant.Image"},
+                               {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", uri}}}}},
+                               {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", y}}}}}};
+        };
+        auto workflow = withNodes({constant("base", png(40, 20), 700), constant("patch", png(10, 5), 1000),
+                                   partTwoNode("canvas", "nodetool.image.CanvasResize", QPointF(0, 700), {{"mode", "fixed"}, {"width", 80}, {"height", 40}}),
+                                   partTwoNode("paste", "nodetool.image.Paste", QPointF(400, 700), {{"left", 10}, {"top", 5}})});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        const auto wire = [](const QString &id, const QString &source, const QString &target, const QString &handle) {
+            return QJsonObject{{"id", id}, {"source", source}, {"sourceHandle", "output"}, {"target", target}, {"targetHandle", handle}};
+        };
+        edges.append(wire("e-canvas", "base", "canvas", "image"));
+        edges.append(wire("e-base", "base", "paste", "image"));
+        edges.append(wire("e-patch", "patch", "paste", "paste"));
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        const auto overlay = [&host](const QString &node) -> const NodeRow * {
+            for (const auto &row : host.model().layout(host.id(node)).rows) {
+                if (row.kind == NodeRowKind::Overlay) { return &row; }
+            }
+            return nullptr;
+        };
+        QTRY_VERIFY(overlay("canvas"));
+        const auto &canvas = host.model().layout(host.id("canvas"));
+        const auto area = canvas.resultRect;
+        const auto *rect = overlay("canvas");
+        // A 40 x 20 image centered on an 80 x 40 canvas covers the middle half.
+        QCOMPARE(rect->rect, QRectF(area.x() + area.width() / 4, area.y() + area.height() / 4, area.width() / 2, area.height() / 2));
+        QCOMPARE(rect->value, QStringLiteral("80 × 40"));
+        const auto *preview = host.row("canvas", NodeRowKind::Preview);
+        QVERIFY(preview);
+        QCOMPARE(preview->media.size(), 1);
+        QCOMPARE(preview->media.first().image.size(), QSize(40, 20));
+        // Padding mode adds the edges to the source.
+        host.click("canvas", host.row("canvas", NodeRowKind::Segmented, "mode")->parts[2].center());
+        QTRY_COMPARE(host.data("canvas")["mode"].toString(), QStringLiteral("padding"));
+        QTRY_VERIFY(overlay("canvas"));
+        QCOMPARE(overlay("canvas")->value, QStringLiteral("40 × 20"));
+        QTRY_VERIFY(overlay("paste"));
+        const auto pasteArea = host.model().layout(host.id("paste")).resultRect;
+        QCOMPARE(overlay("paste")->rect, QRectF(pasteArea.x() + pasteArea.width() / 4, pasteArea.y() + pasteArea.height() / 4,
+                                                pasteArea.width() / 4, pasteArea.height() / 4));
+        QVERIFY(overlay("paste")->value.isEmpty());
     }
 
     // CurvesBody.tsx: five Tonal and three RGB midtone sliders under eyebrows,

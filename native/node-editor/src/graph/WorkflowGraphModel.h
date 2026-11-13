@@ -54,6 +54,9 @@ public:
   QImage runtimePreview(QtNodes::NodeId id) const;
   // A status alone changes no card size. The web shows no status text on a card.
   bool hasRuntimeOutput(QtNodes::NodeId id) const;
+  // The image value leaving a node's output handle: its run result, or the
+  // value an Image constant or Image input holds. Null when none is known.
+  QJsonValue upstreamImage(const QString &node, const QString &handle) const;
   // Whether the card shows its running ring. A change between running and idle
   // shows once it holds for runningDelayMs, so a burst of short preview runs
   // does not flicker the ring.
@@ -181,6 +184,8 @@ private:
   // How many input nodes carry each name, for InputNodeNameWarning.tsx.
   QHash<QString, int> inputNames_;
   CardMediaStore cardMedia_;
+  // Rebuilds the cards that show the image leaving this node.
+  void refreshSourceReaders(const QString &node);
   void refreshRuntimeNode(const QString &id);
   void trackRunning(const QString &id);
   void settleRunning();

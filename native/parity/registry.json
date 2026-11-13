@@ -789,8 +789,7 @@
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/CardBodyPainter.cpp"
       ],
-      "status": "partial",
-      "note": "Mode toggle, Fixed size boxes, Scale slider, padding unit and edge boxes match. The placement overlay and size badge need upstream image sizes the canvas does not read, as in PasteBody.",
+      "note": "Mode toggle, Fixed size boxes, Scale slider, padding unit and edge boxes match. The preview shows the incoming image before a run, with the dashed placement rectangle and the canvas size badge.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ChannelsBody.tsx": {
@@ -952,7 +951,7 @@
         "native/node-editor/src/graph/CardBodyPainter.cpp"
       ],
       "status": "partial",
-      "note": "Overlay rectangle and dimension badges need upstream image sizes the canvas does not read.",
+      "note": "The preview shows the base image before a run, with the dashed rectangle where the pasted image lands. The result size badge is missing because run results carry no size natively.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/promptComposer/AssetDropPlugin.tsx": {

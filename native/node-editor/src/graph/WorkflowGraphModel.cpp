@@ -253,6 +253,17 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
       updated.append(it.key());
     }
   }
+  // A body showing its source follows a change of the node that feeds it.
+  for (const auto id : QVector<NodeId>(updated)) {
+    for (const auto &value : incident.value(nodes.value(id)["id"].toString())) {
+      const auto edge = value.toObject();
+      const auto target = ids_.value(edge["target"].toString(), InvalidNodeId);
+      if (edge["target"] != edge["source"] && nodes.contains(target) && !updated.contains(target)
+          && readsBodySources(cardBodyFor(nodes.value(target)["type"].toString(), {}))) {
+        updated.append(target);
+      }
+    }
+  }
   for (const auto id : removed) { invalidateNode(id); }
   for (const auto id : created) { invalidateNode(id); }
   for (const auto id : updated) { invalidateNode(id); }
@@ -373,6 +384,7 @@ void WorkflowGraphModel::refreshRuntimeNode(const QString &id) {
   if (found == ids_.cend()) { return; }
   layouts_.remove(*found);
   emit nodeUpdated(*found);
+  refreshSourceReaders(id);
 }
 void WorkflowGraphModel::trackRunning(const QString &id) {
   const auto found = ids_.constFind(id);
@@ -429,6 +441,31 @@ bool WorkflowGraphModel::hasRuntimeOutput(NodeId id) const {
         }
     }
     return state["result"].isObject() || previews_.contains(resourceId(id));
+}
+QJsonValue WorkflowGraphModel::upstreamImage(const QString &node, const QString &handle) const {
+  const auto id = ids_.value(node, InvalidNodeId);
+  if (!nodes_.contains(id)) { return {}; }
+  const auto state = runtimeState(id);
+  for (const auto *key : {"result", "outputs"}) {
+    QJsonValue value = state[key].toObject().value(handle);
+    if (value.isArray() && !value.toArray().isEmpty()) { value = value.toArray().last(); }
+    if (value.isObject()) { return value; }
+  }
+  const auto type = nodes_.value(id)["type"].toString();
+  if (type == QStringLiteral("nodetool.constant.Image") || type == QStringLiteral("nodetool.input.ImageInput")) {
+    return nodes_.value(id)["data"].toObject()["value"];
+  }
+  return {};
+}
+void WorkflowGraphModel::refreshSourceReaders(const QString &node) {
+  for (const auto &value : incident_.value(node)) {
+    const auto edge = value.toObject();
+    if (edge["source"].toString() != node) { continue; }
+    const auto target = ids_.value(edge["target"].toString(), InvalidNodeId);
+    if (!nodes_.contains(target) || !readsBodySources(cardBodyFor(nodes_.value(target)["type"].toString(), metadata(target)))) { continue; }
+    layouts_.remove(target);
+    emit nodeUpdated(target);
+  }
 }
 void WorkflowGraphModel::setCardMedia(const QString &nodeId, const QString &property, int index, const CardMediaItem &item) {
   if (!ids_.contains(nodeId)) { return; }
@@ -712,8 +749,31 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
           position = nm::contentTop + nm::rowHeight / 2.0;
       }
       result.size.setWidth(width > 0 ? int(width) : nm::defaultWidth);
+      if (readsBodySources(result.body)) {
+          // useUpstreamValue: a wired handle shows its source's value, an unwired one the node's own.
+          for (const auto &value : meta["properties"].toArray()) {
+              const auto property = value.toObject();
+              const auto name = property["name"].toString();
+              if (typeOf(property) != QStringLiteral("image") || !bespokeHandle(result.body, meta, name)) { continue; }
+              QJsonValue image = node["data"].toObject().value(name);
+              for (const auto &entry : edges_) {
+                  const auto edge = entry.toObject();
+                  if (edge["target"] == node["id"] && edge["targetHandle"] == name) {
+                      image = upstreamImage(edge["source"].toString(), edge["sourceHandle"].toString());
+                      break;
+                  }
+              }
+              const auto locator = image.toObject().toVariantMap();
+              const auto identity = cardMediaIdentity(locator);
+              if (identity.isEmpty()) { continue; }
+              auto item = cardMedia_.item(resourceId(id), bodySourceKey(name), 0, identity);
+              item.locator = locator;
+              item.identity = identity;
+              result.sources.insert(name, item);
+          }
+      }
       layoutBespokeBody(result, {node, meta, inputs, int(outputs.size()), fields, dimensionLinks_.contains(resourceId(id)),
-                                 graphVariables_, previewTabs_.value(resourceId(id))});
+                                 graphVariables_, previewTabs_.value(resourceId(id)), result.sources});
       if (canvasMediaNodes_.contains(resourceId(id))) {
           result.size.rheight() += nm::playbackHeight + nm::rowHeight;
       } else if (result.resultRect.isEmpty() && hasRuntimeOutput(id)) {

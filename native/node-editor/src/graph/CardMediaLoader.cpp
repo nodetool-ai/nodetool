@@ -1,4 +1,5 @@
 #include "CardMediaLoader.h"
+#include "CardBodies.h"
 #include "WorkflowGraphModel.h"
 #include "media/MediaResolver.h"
 #include <QClipboard>
@@ -71,6 +72,18 @@ void CardMediaLoader::scan() {
     if (!model_.nodeExists(id) || model_.collapsed(id)) { continue; }
     const auto node = model_.resourceId(id);
     // A copy: marking an item loading rebuilds the layout these rows belong to.
+    const auto sources = model_.layout(id).sources;
+    for (auto it = sources.cbegin(); it != sources.cend(); ++it) {
+      auto item = it.value();
+      if (item.state != CardMediaState::Unrequested) { continue; }
+      const auto property = bodySourceKey(it.key());
+      const auto key = Prefix + CardMediaStore::key(node, property, 0);
+      requests_.insert(key, {node, property, 0, item.identity});
+      item.state = CardMediaState::Loading;
+      item.image = {};
+      model_.setCardMedia(node, property, 0, item);
+      resolver_.resolve(key, item.locator);
+    }
     const auto rows = model_.layout(id).rows;
     for (const auto &row : rows) {
       if (row.kind != NodeRowKind::DropZone || row.mediaKind != QLatin1String("image")) { continue; }

@@ -2,6 +2,7 @@
 #include <QColor>
 #include "IconPaths.h"
 #include "TypeStyle.h"
+#include <QHash>
 #include <QImage>
 #include <QSize>
 #include <QRectF>
@@ -193,7 +194,10 @@ inline constexpr int fontValue = 11;
 // Composer, Slider, Segmented, Lock, ModelChip, Action and DropZone rows belong
 // to the bespoke bodies. Their controls sit in NodeRow::rect.
 enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Preview,
-                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize };
+                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize,
+                         // A dashed placement rectangle over a preview (rect, may be empty)
+                         // and a size badge in the corner of parts[0] (value).
+                         Overlay };
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
@@ -315,6 +319,9 @@ struct NodeLayout {
     QString childCount;
     QRectF footerRect() const { return QRectF(0, size.height() - node_metrics::handleRowStep, size.width(), node_metrics::handleRowStep); }
   QVector<NodeRow> rows;
+  // The image arriving at each image handle of a body that reads its source,
+  // by handle name. CardMediaLoader loads their thumbnails.
+  QHash<QString, CardMediaItem> sources;
   QVector<double> inputY;
   QVector<double> outputY;
   // The card and its visible handles. The view asks for it on every move and

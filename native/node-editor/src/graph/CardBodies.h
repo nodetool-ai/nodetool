@@ -57,7 +57,15 @@ struct CardBodyInput {
     // The selected preview tab of a Before/After or Mask body, or the Levels
     // channel, empty for its default.
     QString previewTab;
+    // The image arriving at each image handle, for a body that reads its source.
+    QHash<QString, CardMediaItem> sources;
 };
+
+// Bodies that show or measure the image arriving at their image handles, as
+// useUpstreamValue in the web's CanvasResizeBody and PasteBody.
+bool readsBodySources(CardBody body);
+// The card media key of a body source, apart from the node's own property values.
+QString bodySourceKey(const QString &handle);
 
 // Lays out a bespoke body: its rows, port positions, result area and size. A
 // body whose web preview-area flexes grows it to fill an authored height or

@@ -1060,6 +1060,42 @@ void layoutRotateFlip(NodeLayout &layout, const CardBodyInput &input) {
     column.finish();
 }
 
+// The loaded image arriving at a body's handle, or null while it loads or when none arrives.
+const CardMediaItem *readySource(const CardBodyInput &input, const QString &handle) {
+    const auto found = input.sources.constFind(handle);
+    if (found == input.sources.cend() || found->state != CardMediaState::Ready || !found->natural.isValid()) {
+        return nullptr;
+    }
+    return &*found;
+}
+
+// ImagePreview shows the arriving image until the node has a result of its own.
+void showSource(NodeLayout &layout, const CardBodyInput &input, const QString &handle) {
+    const auto *source = readySource(input, handle);
+    if (!source) {
+        return;
+    }
+    for (auto &row : layout.rows) {
+        if (row.kind == NodeRowKind::Preview && row.rect == layout.resultRect) {
+            row.media = {*source};
+            row.mediaKind = QStringLiteral("image");
+        }
+    }
+}
+
+// The dashed placement rectangle, as percentages of the preview area, and the size badge.
+void placementOverlay(NodeLayout &layout, const QRectF &fraction, const QString &badge) {
+    const auto area = layout.resultRect;
+    auto row = controlRow(NodeRowKind::Overlay, {}, {}, {});
+    if (fraction.isValid()) {
+        row.rect = QRectF(area.x() + fraction.x() * area.width(), area.y() + fraction.y() * area.height(),
+                          fraction.width() * area.width(), fraction.height() * area.height());
+    }
+    row.parts = {area};
+    row.value = badge;
+    layout.rows.append(row);
+}
+
 // CanvasResizeBody.tsx: a Fixed, Scale and Padding toggle under the preview
 // picks the controls. Fixed edits the canvas size, Scale a 0.01 to 4 factor,
 // and Padding a px or percent unit and the four edges.
@@ -1098,6 +1134,43 @@ void layoutCanvasResize(NodeLayout &layout, const CardBodyInput &input) {
                                 {QObject::tr("Top"), QObject::tr("Bottom"), QObject::tr("Left"), QObject::tr("Right")});
     }
     column.finish();
+    showSource(layout, input, QStringLiteral("image"));
+    const auto *source = readySource(input, QStringLiteral("image"));
+    if (!source) {
+        return;
+    }
+    // computeLayout in CanvasResizeBody.tsx.
+    const double sourceWidth = source->natural.width(), sourceHeight = source->natural.height();
+    const auto number = [&input](const char *name, double fallback) {
+        const auto value = fieldValue(input.fields.value(QString::fromLatin1(name)));
+        return value.isValid() && value.canConvert<double>() ? value.toDouble() : fallback;
+    };
+    double canvasWidth = 0, canvasHeight = 0, offsetX = 0, offsetY = 0;
+    if (mode == QStringLiteral("fixed")) {
+        canvasWidth = std::max(1.0, std::floor(number("width", sourceWidth)));
+        canvasHeight = std::max(1.0, std::floor(number("height", sourceHeight)));
+        offsetX = std::floor((canvasWidth - sourceWidth) / 2);
+        offsetY = std::floor((canvasHeight - sourceHeight) / 2);
+    } else if (mode == QStringLiteral("scale")) {
+        const auto scale = number("scale", 0) > 0 ? number("scale", 1) : 1.0;
+        canvasWidth = std::max(1.0, std::round(sourceWidth * scale));
+        canvasHeight = std::max(1.0, std::round(sourceHeight * scale));
+        offsetX = std::floor((canvasWidth - sourceWidth) / 2);
+        offsetY = std::floor((canvasHeight - sourceHeight) / 2);
+    } else {
+        const auto percent = fieldValue(input.fields.value(QStringLiteral("padding_unit"))).toString() == QStringLiteral("percent");
+        const auto pixels = [percent](double value, double dimension) {
+            return percent ? std::max(0.0, std::round(dimension * value / 100)) : std::max(0.0, std::floor(value));
+        };
+        const auto left = pixels(number("left", 0), sourceWidth), right = pixels(number("right", 0), sourceWidth);
+        const auto top = pixels(number("top", 0), sourceHeight), bottom = pixels(number("bottom", 0), sourceHeight);
+        canvasWidth = std::max(1.0, sourceWidth + left + right);
+        canvasHeight = std::max(1.0, sourceHeight + top + bottom);
+        offsetX = left;
+        offsetY = top;
+    }
+    placementOverlay(layout, QRectF(offsetX / canvasWidth, offsetY / canvasHeight, sourceWidth / canvasWidth, sourceHeight / canvasHeight),
+                     QStringLiteral("%1 × %2").arg(canvasWidth).arg(canvasHeight));
 }
 
 // CurvesBody.tsx: Tonal and RGB Midtones sections of AdjustmentSlider rows.
@@ -1221,6 +1294,14 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
         return CardBody::Generator;
     }
     return metadata["body"] == QStringLiteral("content_card") ? CardBody::Content : CardBody::Generic;
+}
+
+bool readsBodySources(CardBody body) {
+    return body == CardBody::CanvasResize || body == CardBody::Paste;
+}
+
+QString bodySourceKey(const QString &handle) {
+    return QStringLiteral("@source:") + handle;
 }
 
 bool drawsOwnHandles(CardBody body) {
@@ -1407,10 +1488,22 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
         layoutFit(layout, input);
         growPreview(layout, input);
         break;
-    case CardBody::Paste:
+    case CardBody::Paste: {
         layoutPaste(layout, input);
         growPreview(layout, input);
+        showSource(layout, input, QStringLiteral("image"));
+        // PasteBody.tsx: the pasted image's placement as a share of the base image.
+        const auto *base = readySource(input, QStringLiteral("image"));
+        const auto *paste = readySource(input, QStringLiteral("paste"));
+        if (base && paste) {
+            const double width = base->natural.width(), height = base->natural.height();
+            const auto offset = [&input](const QString &name) { return fieldValue(input.fields.value(name)).toDouble(); };
+            const auto share = [](double value) { return std::clamp(value, 0.0, 1.0); };
+            placementOverlay(layout, QRectF(share(offset(QStringLiteral("left")) / width), share(offset(QStringLiteral("top")) / height),
+                                            share(paste->natural.width() / width), share(paste->natural.height() / height)), {});
+        }
         break;
+    }
     case CardBody::CanvasResize:
         layoutCanvasResize(layout, input);
         break;

@@ -435,12 +435,52 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
             return true;
         }
         const auto rect = row.rect.isEmpty() ? QRectF(inset, row.y, layout.size.width() - 2 * inset, row.height) : row.rect;
+        // ImagePreview shows the image arriving at the body before the node runs.
+        if (!row.media.isEmpty() && row.media.first().state == CardMediaState::Ready && !row.media.first().image.isNull()) {
+            fillField(painter, theme, rect);
+            const auto &image = row.media.first().image;
+            auto target = QRectF(QPointF(), QSizeF(image.size()).scaled(rect.size(), Qt::KeepAspectRatio));
+            target.moveCenter(rect.center());
+            painter->save();
+            QPainterPath clip;
+            clip.addRoundedRect(rect, nm::fieldRadius, nm::fieldRadius);
+            painter->setClipPath(clip, Qt::IntersectClip);
+            painter->setRenderHint(QPainter::SmoothPixmapTransform);
+            painter->drawImage(target, image);
+            painter->restore();
+            return true;
+        }
         auto area = rect;
         // A Preview body follows the card when it is resized.
         if (layout.body == CardBody::Preview) {
             area.setBottom(layout.size.height() - inset);
         }
         paintPlaceholder(painter, theme, area, row.icon.isEmpty() ? layout.icon : row.icon, row.value);
+        return true;
+    }
+    case NodeRowKind::Overlay: {
+        // CanvasResizeBody's and PasteBody's .overlay-rect: a 1 px dashed
+        // primary edge over 12% primary, and MediaLabel in the bottom right.
+        if (!row.rect.isEmpty()) {
+            auto fill = theme.primary;
+            fill.setAlphaF(0.12);
+            painter->setPen(QPen(theme.primary, nm::borderWidth, Qt::DashLine));
+            painter->setBrush(fill);
+            painter->drawRect(row.rect.adjusted(0.5, 0.5, -0.5, -0.5));
+        }
+        if (!row.value.isEmpty() && !row.parts.isEmpty()) {
+            const auto badgeFont = mono(theme, nm::fontValue - 1);
+            const auto width = QFontMetricsF(badgeFont).horizontalAdvance(row.value) + 2 * nm::padding;
+            const auto area = row.parts.first();
+            const QRectF badge(area.right() - nm::micro * 2 - width, area.bottom() - nm::micro * 2 - card_media::badgeHeight, width,
+                               card_media::badgeHeight);
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(theme.mediaScrim);
+            painter->drawRoundedRect(badge, nm::micro, nm::micro);
+            painter->setFont(badgeFont);
+            painter->setPen(theme.mediaScrimInk);
+            painter->drawText(badge, Qt::AlignCenter, row.value);
+        }
         return true;
     }
     case NodeRowKind::Composer:
