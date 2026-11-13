@@ -235,7 +235,7 @@ QJsonObject presentPart(QJsonObject part) {
   if (const auto items = normalizeSearchResults(result); !items.isEmpty()) {
     part["searchResults"] = items;
   }
-  if (const auto batch = generationBatch(part["liveBatch"], result); !batch.isEmpty()) {
+  if (const auto batch = generationBatch(part.value("liveBatch"), result); !batch.isEmpty()) {
     part["batch"] = batch;
   }
   part.remove("liveBatch");
@@ -1191,7 +1191,7 @@ void MessageModel::addPart(const QJsonObject &part) {
   const auto owner = callOwner(part["tool_call_id"].toString());
   if (part.contains("result") && owner >= 0) {
     auto result = part;
-    if (const auto live = m_results.value(part["tool_call_id"].toString())["liveBatch"]; live.isObject()) {
+    if (const auto live = m_results.value(part["tool_call_id"].toString()).value("liveBatch"); live.isObject()) {
       result["liveBatch"] = live;
     }
     result["result_created_at"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
