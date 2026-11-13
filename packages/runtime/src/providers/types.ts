@@ -716,6 +716,7 @@ export interface MusicTaskParams {
   trackRole?: MusicRole;
   /** WAV, 48 kHz stereo. Repaint and lego. */
   sourceAudio?: Uint8Array;
+  /** Seconds into `sourceAudio`. Repaint only: lego runs over the whole source. */
   regionStartSec?: number;
   regionEndSec?: number;
   /** Integer BPM. */

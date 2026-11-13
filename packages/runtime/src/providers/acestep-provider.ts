@@ -330,7 +330,11 @@ async function runTask(
   if (task === "lego") {
     synthFields.track = params.trackRole;
   }
-  if (task === "repaint" || task === "lego") {
+  // Lego runs over the whole context and the handler cuts the region. With a
+  // region, ace-server 07abf07 sets the latent bounds for repaint only
+  // (pipeline-synth-ops.cpp:605-618), so the mask and both splices keep the
+  // source everywhere and the result is the mix, sample for sample.
+  if (task === "repaint") {
     synthFields.repainting_start = params.regionStartSec ?? 0;
     synthFields.repainting_end = params.regionEndSec ?? -1;
   }

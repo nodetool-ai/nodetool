@@ -260,8 +260,6 @@ describe("acestep provider requests", () => {
       synth_model: ACESTEP_BASE_DIT,
       output_format: "wav32",
       track: "bass",
-      repainting_start: 0,
-      repainting_end: 16,
       duration: 16,
       lm_batch_size: 2
     };
@@ -277,10 +275,11 @@ describe("acestep provider requests", () => {
         track: "bass",
         synth_model: ACESTEP_BASE_DIT,
         output_format: "wav32",
-        repainting_start: 0,
-        repainting_end: 16,
         audio_codes: expect.any(String)
       });
+      // ace-server 07abf07 keeps the source everywhere when lego has a region.
+      expect(item).not.toHaveProperty("repainting_start");
+      expect(item).not.toHaveProperty("repainting_end");
     }
     expect(Buffer.from(synth[0]!.audio!).equals(Buffer.from(source))).toBe(true);
     expect(result.candidates.map((candidate) => candidate.seed)).toEqual([100, 101]);
