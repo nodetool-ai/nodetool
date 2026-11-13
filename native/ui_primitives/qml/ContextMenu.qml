@@ -73,10 +73,11 @@ Basic.Menu {
     onEntriesChanged: if (entriesBuilt || (entries && entries.length > 0)) rebuild()
     Component.onCompleted: if (entries && entries.length > 0) rebuild()
     function buildEntries(target, list) {
+        // removeItem and removeMenu destroy what they remove, so nothing is destroyed twice.
         while (target.count > 0) {
             const stale = target.itemAt(0)
-            target.removeItem(stale)
-            stale.destroy()
+            if (stale.subMenu) target.removeMenu(stale.subMenu)
+            else target.removeItem(stale)
         }
         if (target === root) {
             itemsById = ({})
