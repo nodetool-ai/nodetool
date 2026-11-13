@@ -1,0 +1,289 @@
+{
+  "version": 1,
+  "shortcuts": {
+    "copy": {
+      "native": "Copy"
+    },
+    "cut": {
+      "native": "Cut"
+    },
+    "paste": {
+      "native": "Paste"
+    },
+    "undo": {
+      "native": "Undo"
+    },
+    "redo": {
+      "native": "Redo"
+    },
+    "selectAll": {
+      "native": "Select all"
+    },
+    "align": {
+      "native": "Align"
+    },
+    "alignWithSpacing": {
+      "native": "Align with spacing"
+    },
+    "duplicate": {
+      "native": "Duplicate"
+    },
+    "duplicateVertical": {
+      "native": "Duplicate vertical"
+    },
+    "fitView": {
+      "native": "Fit"
+    },
+    "deleteNode": {
+      "native": "Delete"
+    },
+    "deleteNodeBackspace": {
+      "native": "Delete"
+    },
+    "resetDefault": {
+      "missing": "No native binding"
+    },
+    "groupSelected": {
+      "native": "Group selection"
+    },
+    "moveLeft": {
+      "native": "Move left"
+    },
+    "moveRight": {
+      "native": "Move right"
+    },
+    "moveUp": {
+      "native": "Move up"
+    },
+    "moveDown": {
+      "native": "Move down"
+    },
+    "bypassNode": {
+      "native": "Disable toggle"
+    },
+    "toggleNodeCollapsed": {
+      "native": "Toggle collapse"
+    },
+    "selectConnectedAll": {
+      "native": "Select all connected"
+    },
+    "selectConnectedInputs": {
+      "native": "Select inputs"
+    },
+    "selectConnectedOutputs": {
+      "native": "Select outputs"
+    },
+    "alignLeft": {
+      "native": "Align left"
+    },
+    "alignCenter": {
+      "native": "Align center"
+    },
+    "alignRight": {
+      "native": "Align right"
+    },
+    "alignTop": {
+      "native": "Align top"
+    },
+    "alignMiddle": {
+      "native": "Align middle"
+    },
+    "alignBottom": {
+      "native": "Align bottom"
+    },
+    "distributeHorizontal": {
+      "native": "Distribute horizontally"
+    },
+    "stackSelected": {
+      "native": "Stack selection"
+    },
+    "arrangeGrid": {
+      "native": "Arrange grid"
+    },
+    "addPromptNode": {
+      "missing": "No native binding"
+    },
+    "addTextToImageNode": {
+      "missing": "No native binding"
+    },
+    "addTextToVideoNode": {
+      "missing": "No native binding"
+    },
+    "addAgentNode": {
+      "missing": "No native binding"
+    },
+    "deleteSelected": {
+      "native": "Delete"
+    },
+    "nodeInfo": {
+      "missing": "No native binding"
+    },
+    "openNodeMenu": {
+      "native": "Add node"
+    },
+    "toggleWorkflows": {
+      "native": "Workflows"
+    },
+    "toggleAssets": {
+      "missing": "No native binding"
+    },
+    "toggleInspector": {
+      "native": "Toggle inspector"
+    },
+    "toggleWorkflowSettings": {
+      "missing": "No native binding"
+    },
+    "toggleOperator": {
+      "missing": "No native binding"
+    },
+    "newChat": {
+      "missing": "No native binding"
+    },
+    "focusChatComposer": {
+      "missing": "No native binding"
+    },
+    "runWorkflow": {
+      "native": "Run"
+    },
+    "saveWorkflow": {
+      "native": "Save"
+    },
+    "newWorkflow": {
+      "native": "newTab()"
+    },
+    "closeWorkflow": {
+      "native": "closeTab(activeTab()"
+    },
+    "prevTab": {
+      "native": "selectAdjacentTab(-1)"
+    },
+    "nextTab": {
+      "native": "selectAdjacentTab(1)"
+    },
+    "switchToTab1": {
+      "native": "activateTab(0)"
+    },
+    "switchToTab2": {
+      "native": "activateTab(1)"
+    },
+    "switchToTab3": {
+      "native": "activateTab(2)"
+    },
+    "switchToTab4": {
+      "native": "activateTab(3)"
+    },
+    "switchToTab5": {
+      "native": "activateTab(4)"
+    },
+    "switchToTab6": {
+      "native": "activateTab(5)"
+    },
+    "switchToTab7": {
+      "native": "activateTab(6)"
+    },
+    "switchToTab8": {
+      "native": "activateTab(7)"
+    },
+    "switchToTab9": {
+      "native": "activateTab(8)"
+    },
+    "renameAsset": {
+      "missing": "No native binding"
+    },
+    "assetSelectRange": {
+      "missing": "No native binding"
+    },
+    "assetToggleSelect": {
+      "missing": "No native binding"
+    },
+    "assetViewerPrevJump": {
+      "missing": "No native binding"
+    },
+    "assetViewerNextJump": {
+      "missing": "No native binding"
+    },
+    "clearAssetSearch": {
+      "missing": "No native binding"
+    },
+    "showKeyboardShortcuts": {
+      "native": "Keyboard shortcuts"
+    },
+    "openSettings": {
+      "missing": "No native binding"
+    },
+    "findInWorkflow": {
+      "native": "Find node"
+    },
+    "resetZoom": {
+      "native": "Reset zoom"
+    },
+    "zoomIn": {
+      "native": "Zoom in"
+    },
+    "zoomOut": {
+      "native": "Zoom out"
+    },
+    "zoom50": {
+      "missing": "No native binding"
+    },
+    "zoom100": {
+      "missing": "No native binding"
+    },
+    "zoom200": {
+      "missing": "No native binding"
+    },
+    "navigateNextNode": {
+      "missing": "No native binding"
+    },
+    "navigatePrevNode": {
+      "missing": "No native binding"
+    },
+    "selectFocusedNode": {
+      "missing": "No native binding"
+    },
+    "focusNodeUp": {
+      "missing": "No native binding"
+    },
+    "focusNodeDown": {
+      "missing": "No native binding"
+    },
+    "focusNodeLeft": {
+      "missing": "No native binding"
+    },
+    "focusNodeRight": {
+      "missing": "No native binding"
+    },
+    "goBack": {
+      "missing": "No native binding"
+    }
+  },
+  "propertyTypes": {
+    "enum": {
+      "native": "PropertyFields.h propertyOptions reads the enum values, and propertyKind returns choice"
+    },
+    "select": {
+      "native": "PropertyFields.h: a str with json_schema_extra.type select becomes a choice with options from the node"
+    },
+    "tool_name": {
+      "native": "PropertyFields.h: list[tool_name] becomes the tools kind"
+    },
+    "keyframe": {
+      "partial": "The web shows only the label and handle. Native marks the property unsupported and preserves its value."
+    },
+    "video_element": {
+      "partial": "The web shows only the label and handle. Native marks the property unsupported and preserves its value."
+    },
+    "shot": {
+      "partial": "The web shows only the label and handle. Native marks the property unsupported and preserves its value."
+    }
+  },
+  "components": {
+    "web/src/components/node_menu/NodeMenu.tsx": {
+      "native": [
+        "native/node-editor/qml/NodeMenu.qml"
+      ],
+      "status": "partial",
+      "note": "Scenario node-menu.search-add: search results, highlight and the add intent match. The home layout and result rows look different."
+    }
+  }
+}
