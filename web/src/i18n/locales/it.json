@@ -18480,6 +18480,8 @@
         "mediumDescription": "Bilancia velocità e profondità.",
         "high": "Alto",
         "highDescription": "Ragioni più lunghe. Più lento e costa di più.",
+        "xhigh": "Molto alto",
+        "xhighDescription": "Ragiona più a lungo di tutti. Il più lento e il più costoso.",
         "level": "Livello di ragionamento",
         "title": "Ragionamento",
         "titleWithLevel": "Ragionamento: {{level}}"

@@ -18176,6 +18176,8 @@
         "mediumDescription": "Balanserar hastighet och djup.",
         "high": "Hög",
         "highDescription": "Orsaker längst. Långsammare och kostar mer.",
+        "xhigh": "Mycket hög",
+        "xhighDescription": "Resonerar längst av alla. Långsammast och dyrast.",
         "level": "Resonemangsnivå",
         "title": "Resonemang",
         "titleWithLevel": "Resonemang: {{level}}"

@@ -18176,6 +18176,8 @@
         "mediumDescription": "平衡速度与深度。",
         "high": "高",
         "highDescription": "推理时间最长，速度较慢且成本更高。",
+        "xhigh": "超高",
+        "xhighDescription": "推理时间最长，速度最慢、成本最高。",
         "level": "推理级别",
         "title": "推理",
         "titleWithLevel": "推理：{{level}}"

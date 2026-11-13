@@ -18176,6 +18176,8 @@
         "mediumDescription": "Balanserer hastighet og dybde.",
         "high": "Høy",
         "highDescription": "Grunner lengst. Tregere og koster mer.",
+        "xhigh": "Svært høy",
+        "xhighDescription": "Resonnerer lengst av alle. Tregest og dyrest.",
         "level": "Resonnementnivå",
         "title": "Resonnement",
         "titleWithLevel": "Begrunnelse: {{level}}"

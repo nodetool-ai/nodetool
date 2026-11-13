@@ -99,7 +99,7 @@ import {
 import {
   isModelSelection,
   isReasoningEffort,
-  supportsReasoningEffort,
+  reasoningEffortLevels,
   PROVIDER_IDS,
   NO_MODEL_SELECTED_MESSAGE,
   noMediaModelSelectedMessage
@@ -1808,11 +1808,12 @@ export class ChatTurnHandler {
         ? data.permission_mode
         : "default";
 
-    // The composer's reasoning level. Only models that accept it receive it,
-    // so a stale pick from another model is dropped rather than sent.
+    // The composer's reasoning level. Only models that accept that level
+    // receive it, so a stale pick from another model is dropped rather than
+    // sent (an "xhigh" picked for Gemini 4 Hydrogen never reaches Claude).
     const reasoningEffort =
       isReasoningEffort(data.reasoning_effort) &&
-      supportsReasoningEffort(providerId, model)
+      reasoningEffortLevels(providerId, model).includes(data.reasoning_effort)
         ? data.reasoning_effort
         : undefined;
 
