@@ -113,6 +113,13 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_examples_panel_tests)
     add_test(NAME node_editor_examples_panel COMMAND node_editor_examples_panel_tests)
     set_tests_properties(node_editor_examples_panel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    # WorkflowBrowser.qml with a fixture browser, panel layout and status: no
+    # EditorWindow, graph runner, QtNodes or server.
+    qt_add_executable(node_editor_workflow_browser_component_tests tests/ui/WorkflowBrowserComponentTest.cpp)
+    target_link_libraries(node_editor_workflow_browser_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_workflow_browser_component_tests)
+    add_test(NAME node_editor_workflow_browser_component COMMAND node_editor_workflow_browser_component_tests)
+    set_tests_properties(node_editor_workflow_browser_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
     return()
@@ -484,13 +491,6 @@ target_link_libraries(node_editor_setup_guide_component_tests PRIVATE node_edito
 nodetool_use_ui_primitives(node_editor_setup_guide_component_tests)
 add_test(NAME node_editor_setup_guide_component COMMAND node_editor_setup_guide_component_tests)
 set_tests_properties(node_editor_setup_guide_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-# WorkflowBrowser.qml with a fixture browser, panel layout and status: no
-# EditorWindow, graph runner, QtNodes or server.
-qt_add_executable(node_editor_workflow_browser_component_tests tests/ui/WorkflowBrowserComponentTest.cpp)
-target_link_libraries(node_editor_workflow_browser_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
-nodetool_use_ui_primitives(node_editor_workflow_browser_component_tests)
-add_test(NAME node_editor_workflow_browser_component COMMAND node_editor_workflow_browser_component_tests)
-set_tests_properties(node_editor_workflow_browser_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 # The run output's TypeIcons and OutputStyle singletons and its interface
 # members: no EditorWindow, graph runner or QtNodes.
 qt_add_executable(node_editor_run_output_component_tests tests/ui/RunOutputComponentTest.cpp)
