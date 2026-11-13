@@ -53,6 +53,7 @@ import { MinimaxProvider } from "./minimax-provider.js";
 import { MistralProvider } from "./mistral-provider.js";
 import { MoonshotProvider } from "./moonshot-provider.js";
 import { ZaiProvider } from "./zai-provider.js";
+import { SarvamProvider } from "./sarvam-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { RequestyProvider } from "./requesty-provider.js";
 import { OpperProvider } from "./opper-provider.js";
@@ -62,6 +63,10 @@ import { RuncrateProvider } from "./runcrate-provider.js";
 import { StandardComputeProvider } from "./standardcompute-provider.js";
 import { UberLLMProvider } from "./uberllm-provider.js";
 import { TogetherProvider } from "./together-provider.js";
+import {
+  BYTEPLUS_DEFAULT_BASE_URL,
+  BytePlusProvider
+} from "./byteplus-provider.js";
 import {
   ALIBABA_DEFAULT_BASE_URL,
   AlibabaProvider
@@ -99,6 +104,7 @@ import { HiggsfieldProvider } from "./higgsfield-provider.js";
 import { UseapiProvider } from "./useapi-provider.js";
 import { VgenvProvider } from "./vgenv-provider.js";
 import { ToapisProvider } from "./toapis-provider.js";
+import { KlingProvider } from "./kling-provider.js";
 export { BaseProvider, estimatePromptTokens } from "./base-provider.js";
 export {
   FAL_PROVIDER_ID,
@@ -318,6 +324,7 @@ export { MinimaxProvider };
 export { MistralProvider };
 export { MoonshotProvider };
 export { ZaiProvider };
+export { SarvamProvider };
 export { OpenRouterProvider };
 export { RequestyProvider };
 export { OpperProvider };
@@ -328,6 +335,7 @@ export { StandardComputeProvider };
 export { UberLLMProvider };
 export { TogetherProvider };
 export { AlibabaProvider };
+export { BytePlusProvider };
 export { CerebrasProvider };
 export { EvolinkProvider };
 export { GMIProvider };
@@ -648,6 +656,9 @@ registerBuiltinProvider(PROVIDER_IDS.MISTRAL, MistralProvider, {
 registerBuiltinProvider(PROVIDER_IDS.MOONSHOT, MoonshotProvider, {
   KIMI_API_KEY: ""
 });
+registerBuiltinProvider(PROVIDER_IDS.SARVAM, SarvamProvider, {
+  SARVAM_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, {
   MINIMAX_API_KEY: ""
 });
@@ -708,6 +719,9 @@ registerBuiltinProvider(PROVIDER_IDS.VGENV, VgenvProvider, {
 registerBuiltinProvider(PROVIDER_IDS.TOAPIS, ToapisProvider, {
   TOAPIS_API_KEY: ""
 });
+registerBuiltinProvider(PROVIDER_IDS.KLING, KlingProvider, {
+  KLING_API_KEY: ""
+});
 registerBuiltinProvider(PROVIDER_IDS.AKI, AkiProvider, { AKI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, {
   MESHY_API_KEY: ""
@@ -747,6 +761,12 @@ registerBuiltinProvider(
   AlibabaProvider,
   { DASHSCOPE_API_KEY: "" },
   { DASHSCOPE_BASE_URL: ALIBABA_DEFAULT_BASE_URL }
+);
+registerBuiltinProvider(
+  PROVIDER_IDS.BYTEPLUS,
+  BytePlusProvider,
+  { BYTEPLUS_ARK_API_KEY: "" },
+  { BYTEPLUS_ARK_BASE_URL: BYTEPLUS_DEFAULT_BASE_URL }
 );
 registerBuiltinProvider(PROVIDER_IDS.CEREBRAS, CerebrasProvider, {
   CEREBRAS_API_KEY: ""

@@ -530,6 +530,24 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Task result URLs are screened; upload, create and poll use the fixed API host."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/alibaba-provider.ts",
+    "Alibaba Model Studio Wan, Qwen-Image and Qwen TTS result downloads",
+    "provider-response",
+    "video_url, image and audio URLs from DashScope replies are screened; create and poll use the operator's DashScope region host."
+  ),
+  guardedSafeFetch(
+    "packages/runtime/src/providers/kling-provider.ts",
+    "Kling AI video and image result downloads",
+    "provider-response",
+    "Task result URLs are screened; create and poll use the fixed API host."
+  ),
+  guardedSafeFetch(
+    "packages/runtime/src/providers/byteplus-provider.ts",
+    "BytePlus Seedance video result downloads",
+    "provider-response",
+    "content.video_url from a task body is screened; chat, image, create and poll use the configured Ark host."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",

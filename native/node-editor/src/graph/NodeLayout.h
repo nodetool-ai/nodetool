@@ -1,6 +1,7 @@
 #pragma once
 #include <QColor>
 #include "IconPaths.h"
+#include "TypeStyle.h"
 #include <QImage>
 #include <QSize>
 #include <QRectF>
@@ -309,9 +310,6 @@ struct NodeLayout {
   mutable std::optional<QRectF> bounds;
 };
 
-// Port colors from web/src/config/data_types.ts.
-QColor typeColor(const QString &type);
-QString typeIcon(const QString &type);
 // The web header icon key for a type name, as iconMap in web/src/config/IconForType.tsx.
 QString webTypeIcon(const QString &type);
 // The web data type SVG with its currentColor replaced, or empty when none exists.

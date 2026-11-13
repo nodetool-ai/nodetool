@@ -427,12 +427,22 @@ sec(
 sec(
   "DASHSCOPE_API_KEY",
   "Alibaba Cloud",
-  "Alibaba Cloud Model Studio (DashScope) API key for accessing Qwen models through the OpenAI-compatible endpoint. Get yours at https://modelstudio.console.alibabacloud.com/"
+  "Alibaba Cloud Model Studio (DashScope) API key for Qwen chat, Qwen-Image and Wan image generation, Wan video, and Qwen TTS. Get yours at https://modelstudio.console.alibabacloud.com/"
 );
 s(
   "DASHSCOPE_BASE_URL",
   "Alibaba Cloud",
-  "Base URL for Alibaba Cloud Model Studio's OpenAI-compatible endpoint. Model Studio keys are region-scoped; set this to your region's endpoint (default: https://dashscope-intl.aliyuncs.com/compatible-mode/v1, the international/Singapore region)"
+  "Base URL for Alibaba Cloud Model Studio's OpenAI-compatible endpoint. Model Studio keys are region-scoped; set this to your region's endpoint (default: https://dashscope-intl.aliyuncs.com/compatible-mode/v1, the international/Singapore region). Media generation uses the same host's native /api/v1 endpoint"
+);
+sec(
+  "BYTEPLUS_ARK_API_KEY",
+  "BytePlus",
+  "BytePlus ModelArk API key for Seed chat, Seedream image and Seedance video models. Create one on the API Key Management page of the ModelArk console at https://console.byteplus.com/ark"
+);
+s(
+  "BYTEPLUS_ARK_BASE_URL",
+  "BytePlus",
+  "Base URL for BytePlus ModelArk. Ark keys are region-scoped; set this to your key's region endpoint (default: https://ark.ap-southeast.bytepluses.com/api/v3, Asia-Pacific)"
 );
 sec(
   "CEREBRAS_API_KEY",
@@ -533,6 +543,11 @@ sec(
   "KIMI_API_KEY",
   "Kimi",
   "Kimi (Moonshot) API key for accessing Kimi models via the OpenAI-compatible endpoint. Get yours at https://platform.moonshot.ai/console/api-keys"
+);
+sec(
+  "SARVAM_API_KEY",
+  "Sarvam",
+  "Sarvam AI API subscription key for Token Factory chat, Bulbul text-to-speech, and Saaras speech-to-text in Indian languages. Get yours at https://dashboard.sarvam.ai/"
 );
 sec(
   "MINIMAX_API_KEY",
@@ -733,6 +748,7 @@ sec("USEAPI_API_TOKEN", "useapi.net", "API token for Google Flow and Dreamina th
 s("USEAPI_GOOGLE_FLOW_EMAIL", "useapi.net", "Google Flow account email for reference image uploads");
 s("USEAPI_DREAMINA_ACCOUNT", "useapi.net", "Dreamina account ID (region:email) for reference image uploads");
 sec("VGENV_API_KEY", "vgenv", "vgenv API key for MiniMax H3 video generation. Get yours at https://vgenv.com/api-keys");
+sec("KLING_API_KEY", "Kling AI", "Kling AI API key for Kling video and image generation. See https://kling.ai/document-api/api/get-started/authentication");
 sec("TOAPIS_API_KEY", "ToAPIs", "ToAPIs API key for GPT Image and Seedance 2 generation. Get yours at https://toapis.com/");
 sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation. Get yours at https://app.meshy.ai/settings/api-keys");
 sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation. Get yours at https://hyperhuman.deemos.com/");

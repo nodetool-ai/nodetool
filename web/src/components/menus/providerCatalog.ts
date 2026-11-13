@@ -330,6 +330,15 @@ export const PROVIDER_META: ProviderMeta[] = [
     mono: true
   },
   {
+    key: "SARVAM_API_KEY",
+    providerId: PROVIDER_IDS.SARVAM,
+    name: "Sarvam AI",
+    description:
+      "Indian-language chat, Bulbul text-to-speech, and Saaras speech-to-text.",
+    section: "language",
+    docsUrl: "https://docs.sarvam.ai/"
+  },
+  {
     key: "ZAI_API_KEY",
     providerId: PROVIDER_IDS.ZAI,
     name: "Z.ai",
@@ -351,10 +360,18 @@ export const PROVIDER_META: ProviderMeta[] = [
     key: "DASHSCOPE_API_KEY",
     providerId: PROVIDER_IDS.ALIBABA,
     name: "Alibaba Cloud",
-    description: "Qwen models via Alibaba Cloud Model Studio.",
+    description: "Qwen chat, Qwen-Image, Wan video, and Qwen TTS via Alibaba Cloud Model Studio.",
     section: "language",
     docsUrl: "https://www.alibabacloud.com/help/en/model-studio/",
     icon: alibabacloudColorIcon
+  },
+  {
+    key: "BYTEPLUS_ARK_API_KEY",
+    providerId: PROVIDER_IDS.BYTEPLUS,
+    name: "BytePlus",
+    description: "Seed chat, Seedream images, and Seedance video via BytePlus ModelArk.",
+    section: "language",
+    docsUrl: "https://docs.byteplus.com/en/docs/ModelArk/"
   },
   {
     key: "HF_TOKEN",
@@ -488,6 +505,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     description: "GPT Image generation and editing, and Seedance 2 video.",
     section: "media",
     docsUrl: "https://docs.toapis.com/"
+  },
+  {
+    key: "KLING_API_KEY",
+    providerId: PROVIDER_IDS.KLING,
+    name: "Kling AI",
+    description: "Kling 4.0, 3.0, O1, and 2.6 video, and Kling Image 3.0 and O1.",
+    section: "media",
+    docsUrl: "https://kling.ai/document-api/api/get-started/authentication"
   },
   {
     key: "REVE_API_KEY",

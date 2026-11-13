@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "intents": {
+    "NodeCatalog.addRequested": "addNode"
+  }
+}

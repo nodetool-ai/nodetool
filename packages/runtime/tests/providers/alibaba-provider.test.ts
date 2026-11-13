@@ -146,15 +146,16 @@ describe("AlibabaProvider", () => {
     expect(await provider.getAvailableLanguageModels()).toEqual([]);
   });
 
-  it("suppresses inherited OpenAI media and embedding models", async () => {
+  it("serves its own media catalog instead of OpenAI's", async () => {
     const provider = new AlibabaProvider(
       { DASHSCOPE_API_KEY: "k" },
       { client: {} as any }
     );
-    expect(await provider.getAvailableTTSModels()).toEqual([]);
+    const ids = (models: { id: string }[]) => models.map((m) => m.id);
+    expect(ids(await provider.getAvailableTTSModels())).toEqual(["qwen3-tts-flash"]);
+    expect(ids(await provider.getAvailableVideoModels())).toContain("wan2.7-t2v");
+    expect(ids(await provider.getAvailableImageModels())).toContain("qwen-image-3.0");
     expect(await provider.getAvailableASRModels()).toEqual([]);
-    expect(await provider.getAvailableVideoModels()).toEqual([]);
-    expect(await provider.getAvailableImageModels()).toEqual([]);
     expect(await provider.getAvailableEmbeddingModels()).toEqual([]);
   });
 

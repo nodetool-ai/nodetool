@@ -1,4 +1,5 @@
 #pragma once
+#include <QJsonArray>
 #include <QObject>
 #include <QStringList>
 #include <QVariantList>
@@ -45,6 +46,11 @@ public:
     QVariantList quickActions() const;
     bool readOnly() const { return readOnly_; }
     int windowHeight() const { return windowHeight_; }
+
+    // The listed nodes for a node metadata array, in its order: every node
+    // that is not hidden, as one map with the keys `nodes` documents. The
+    // editor and the parity host both fill the catalog through this.
+    static QVariantList entriesFromMetadata(const QJsonArray &metadata);
 
     void setNodes(const QVariantList &nodes);
     void setRecent(const QStringList &recent);

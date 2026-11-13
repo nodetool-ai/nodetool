@@ -14,6 +14,7 @@
  */
 
 import { resolveAlibabaBaseURL } from "./alibaba-provider.js";
+import { resolveBytePlusBaseURL } from "./byteplus-provider.js";
 
 /**
  * - `valid` — the provider accepted the credential.
@@ -128,6 +129,11 @@ const PROBES: Record<string, CredentialProbe> = {
     url: () => `${resolveAlibabaBaseURL()}/models`,
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
+  BYTEPLUS_ARK_API_KEY: {
+    label: "BytePlus",
+    url: () => `${resolveBytePlusBaseURL()}/models`,
+    headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
   CEREBRAS_API_KEY: {
     label: "Cerebras",
     url: () => "https://api.cerebras.ai/v1/models",
@@ -152,6 +158,11 @@ const PROBES: Record<string, CredentialProbe> = {
     label: "Hugging Face",
     url: () => "https://huggingface.co/api/whoami-v2",
     headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
+  SARVAM_API_KEY: {
+    label: "Sarvam AI",
+    url: () => "https://api.sarvam.ai/v2/models",
+    headers: (v) => ({ "api-subscription-key": v })
   },
   ELEVENLABS_API_KEY: {
     label: "ElevenLabs",

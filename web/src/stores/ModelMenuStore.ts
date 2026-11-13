@@ -132,6 +132,9 @@ export const requiredSecretForProvider = (
   if (p.includes("fal")) {
     return "FAL_API_KEY";
   }
+  if (p.includes(PROVIDER_IDS.SARVAM)) {
+    return "SARVAM_API_KEY";
+  }
   if (p.includes(PROVIDER_IDS.MOONSHOT) || p.includes("kimi")) {
     return "KIMI_API_KEY";
   }
@@ -143,6 +146,9 @@ export const requiredSecretForProvider = (
   }
   if (p.includes(PROVIDER_IDS.ALIBABA)) {
     return "DASHSCOPE_API_KEY";
+  }
+  if (p.includes(PROVIDER_IDS.BYTEPLUS)) {
+    return "BYTEPLUS_ARK_API_KEY";
   }
   if (p.includes(PROVIDER_IDS.TOGETHER)) {
     return "TOGETHER_API_KEY";
