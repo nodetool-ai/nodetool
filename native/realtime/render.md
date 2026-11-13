@@ -1,9 +1,9 @@
 # Render scheduling
 
 `RenderSchedule` manages scheduling and texture lifetimes. `OfflineGpu` adds a
-provisional private-device wgpu-native backend for WP08. Compilation and linking
-have been checked, but GPU execution, pixel references and sanitizers remain
-unverified. Neither class supplies live/shared-device support.
+provisional private-device wgpu-native backend for WP08. Software-adapter pixel
+references and native host sanitizers pass in the configurations recorded below.
+Neither class supplies live/shared-device support.
 
 ## Preparation and ownership
 
@@ -183,7 +183,9 @@ passes both cases. The underlying backend cause is not established. No pixel
 reference was relaxed.
 
 The Windows ASan offline harness also passes, including pending-map teardown.
-The prebuilt GPU library and driver are not instrumented. Linux lavapipe execution also passes. Linux GPU sanitizer qualification, driver
-allocation checks and live preparation remain pending. Live/shared-device support still requires
+The prebuilt GPU library and driver are not instrumented. Standalone Linux
+lavapipe Release and ASan/UBSan checks pass with leak detection enabled.
+Full-host sanitizer reruns, driver allocation checks and live preparation remain
+pending. Live/shared-device support still requires
 supported asynchronous compilation/error reporting outside the offline
 exception. See [verification details and M0 gaps](M1_STATUS.md).

@@ -419,6 +419,19 @@ describe("harness gate", () => {
       .toBe("node scripts/check-native-graph-runner.mjs");
   });
 
+  it("maps every browser comparison source to its manual harness", () => {
+    const directory = "native/realtime/spike/browser";
+    const files = readdirSync(join(repoRoot, directory))
+      .filter((name) => /\.(mjs|py|cpp)$/.test(name))
+      .map((name) => `${directory}/${name}`);
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+      const plan = planGate([file]);
+      expect(plan.unmappedFiles).toEqual([]);
+      expect(plan.manual.map((entry) => entry.harnessId)).toContain("realtime-browser-comparison");
+    }
+  });
+
   it.each([
     "native/realtime/src/offline.cpp",
     "native/realtime/scripts/check.mjs",

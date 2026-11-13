@@ -196,7 +196,8 @@ overflow. Source inspection corrected an earlier fixture's nonexistent
 `constant` kernel to an oscillator with an independent sine reference.
 These fixtures and the standalone CLI checks pass in the Windows Release and
 ASan offline harnesses and the Linux lavapipe job. Full graph-runner Release
-dispatch passes in CI. GPU sanitizer qualification on Linux remains pending.
+dispatch passes in CI. Standalone Linux GPU ASan/UBSan checks pass with lavapipe
+and leak detection enabled. Full-host sanitizer reruns remain pending.
 See [verification details](M1_STATUS.md#verification-of-the-offline-integration)
 for repository-wide check results.
 

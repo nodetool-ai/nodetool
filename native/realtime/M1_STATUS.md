@@ -22,7 +22,7 @@ merge ordering must preserve the M0 changes before retargeting M1 to main.
 R1, R2 and Q3 remain open. The shared-device strategy, buffering and rate
 choices remain provisional. No hardware-dependent issue receives a closing
 reference from this branch. Timing thresholds in the design remain targets,
-not measurements. Q8 requires the WP10 native/browser comparison.
+not measurements. Q8 selects C++/Wasm from the WP10 native/browser comparison.
 
 ## M1 work packages
 
@@ -33,7 +33,7 @@ not measurements. Q8 requires the WP10 native/browser comparison.
 | [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, linear/one-pole smoothing, events, built-in kernels and sink sanitation implemented. Windows Release/ASan and audio-scoped affected tests pass. See [audio contracts](audio.md) and verification below |
 | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and provisional private-device offline GPU backend implemented. Windows Release/ASan and Linux software-adapter references pass. Linux GPU sanitizer results, driver allocation audit and live-device exit evidence remain pending. See [render contracts](render.md) |
 | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | PNG/WAV export, local PCM/texture slots, shared CLI parsing and registered offline harness implemented. Windows Release/ASan and Linux offline checks pass. Full graph-runner Release dispatch passes in CI. Remaining qualification is listed below |
-| [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Pinned header inventory, wasm32 scheduler execution and isolated C++ Chrome frame comparisons prepared and run. The existing TypeScript Executor matches both fixtures' native pixels through a limited IR adapter. The 64-pass timings and matched candidate sizes remain pending. See [comparison preparation](spike/browser/README.md) |
+| [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Header inventory, C++/TypeScript Chrome frame comparisons, 64-pass timings and render-only candidate download sizes are recorded. A mid-range color regression verifies presentation conversion. Q8 selects C++/Wasm. Pinned toolchain CI is configured, with its first execution pending. See [comparison results](spike/browser/README.md) |
 
 M0's local build, typecheck, lint, native tests and harness checks pass. The
 latest aggregate affected test run stops at Windows browser-isolation tests.
@@ -175,11 +175,30 @@ The [full graph-runner Release job](https://github.com/nodetool-ai/nodetool/acti
 passes build, CTest and realtime command-dispatch checks. Its ASan/UBSan job
 fails LeakSanitizer in the two offline GPU tests, reporting 1,200 and 1,568 leaked
 bytes. Stacks reach Vulkan adapter enumeration with unidentified library frames.
-The cause is not established. The workflow now explicitly selects lavapipe and
-a standalone offline sanitizer job is prepared for a focused rerun. No leak is
-suppressed and no fix is claimed before that rerun. The full-host TSan job is
-still pending. Driver-internal allocation audits remain incomplete.
+The cause is not established. With lavapipe explicitly selected, the
+[standalone offline sanitizer job at `ff8dffdd6d`](https://github.com/nodetool-ai/nodetool/actions/runs/43352730471/job/131647522012)
+passes ASan/UBSan with leak detection enabled. The same run passes offline
+Release and all three core configurations. No leak suppression was added.
+This qualifies that configuration, not the cause of the earlier leak. Full-host
+sanitizer reruns are still pending. Driver-internal allocation audits remain incomplete.
 Earlier audio/control sanitizer evidence applies only to its recorded revision.
-WP08 and WP09 remain open. WP10 browser comparison/Q8, native/Wasm parity and
+WP08 and WP09 remain open. WP10 toolchain CI, broader native/Wasm parity and
 all M0 hardware measurements remain unfinished. No hardware-dependent issue
 receives a closing reference.
+
+## Q8 comparison verification
+
+The C++ and TypeScript browser hosts pass both WP09 fixture comparisons and a
+mid-range color regression. The prior TypeScript adapter fails that regression
+without the presentation conversion. Three benchmark trials per candidate pass
+pixel and catalog-inventory checks. The header and host-adaptation guards pass,
+as do the workflow contract tests. Typecheck and lint pass for this batch.
+The aggregate affected-test run fails a five-second pack-import ratchet test
+timeout. Its isolated rerun passes all 12 tests, without changing the failed
+aggregate result. The affected-native check against the pre-batch HEAD passes all seven selected
+core tests. It does not exercise the optional GPU backend. The full harness run
+passes all 21 selfchecks but exits nonzero because the browser scripts lack a
+surface mapping. A regression reproduces that gap. The new manual browser
+harness fixes the mapping, all 230 registry tests pass, and the gate dry run
+reports no unmapped code or mapping violations. The affected package builds and
+typechecks. The full gate is not rerun for this registry-only correction.
