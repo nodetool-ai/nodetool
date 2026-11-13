@@ -14,7 +14,7 @@ namespace: "nodetool.audio.synth"
 Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.
     audio, synthesis, oscillator, vco, modular
 
-    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it free-runs wall-clock paced until the run is stopped. Naive waveforms — saw/square alias at high frequencies.
+    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it follows the run transport until the render ends or the run is stopped. Naive waveforms — saw/square alias at high frequencies.
 
     Use cases:
     - Sound source for a modular synth voice
@@ -32,7 +32,6 @@ Voltage-controlled oscillator generating sine, saw, square, triangle or noise au
 | amplitude | `float` | Output amplitude (linear). | `0.8` |
 | pulse_width | `float` | Duty cycle for the square waveform. | `0.5` |
 | fm_amount | `float` | Depth of linear frequency modulation from the fm input. | `0` |
-| sample_rate | `int` | Free-run sample rate in Hz. | - |
 
 ## Outputs
 

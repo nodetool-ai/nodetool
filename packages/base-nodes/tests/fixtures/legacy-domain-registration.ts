@@ -87,6 +87,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -240,6 +241,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -353,6 +355,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -448,6 +451,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -538,6 +542,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -645,6 +650,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -750,6 +756,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -855,6 +862,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -949,6 +957,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -1043,6 +1052,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -1153,6 +1163,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -1247,6 +1258,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -1359,6 +1371,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -1439,6 +1452,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -1519,6 +1533,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -1613,6 +1628,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -1707,6 +1723,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -1792,6 +1809,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -1871,6 +1889,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -2009,6 +2028,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -2126,6 +2146,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -2261,6 +2282,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: true,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -2384,6 +2406,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: true,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -2472,6 +2495,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -2564,6 +2588,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -2705,6 +2730,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -2815,6 +2841,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -2975,6 +3002,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -3103,6 +3131,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -3219,6 +3248,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -3364,6 +3394,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -3454,6 +3485,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -3475,7 +3507,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Filter String',
-    description: 'Filters a stream of strings based on various criteria.\n    filter, strings, text, stream',
+    description: 'Filters a stream of strings based on various criteria.\n' +
+      '    filter, strings, text, stream',
     namespace: 'nodetool.text',
     node_type: 'nodetool.text.FilterString',
     layout: 'default',
@@ -3571,6 +3604,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -3674,6 +3708,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -3724,6 +3759,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -3807,6 +3843,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -3875,6 +3912,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -3948,6 +3986,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4021,6 +4060,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4095,6 +4135,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4169,6 +4210,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4243,6 +4285,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4327,6 +4370,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4413,6 +4457,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4507,6 +4552,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4587,6 +4633,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4667,6 +4714,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4749,6 +4797,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -4771,7 +4820,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Document',
-    description: 'Represents a document constant in the workflow.\n    document, pdf, word, docx',
+    description: 'Represents a document constant in the workflow.\n' +
+      '    document, pdf, word, docx',
     namespace: 'nodetool.constant',
     node_type: 'nodetool.constant.Document',
     layout: 'default',
@@ -4823,6 +4873,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5002,6 +5053,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -5080,6 +5132,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5158,6 +5211,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5236,6 +5290,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5316,6 +5371,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5390,6 +5446,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5473,6 +5530,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5554,6 +5612,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5638,6 +5697,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5724,6 +5784,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5810,6 +5871,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -5925,6 +5987,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6016,6 +6079,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6115,6 +6179,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6305,6 +6370,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6379,6 +6445,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6453,6 +6520,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6527,6 +6595,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6601,6 +6670,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6675,6 +6745,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6749,6 +6820,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6853,6 +6925,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -6973,6 +7046,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -7071,6 +7145,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -7200,6 +7275,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -7299,6 +7375,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -7428,6 +7505,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -7570,6 +7648,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -7713,6 +7792,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -7822,6 +7902,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -7923,6 +8004,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -8029,6 +8111,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -8131,6 +8214,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -8233,6 +8317,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -8339,6 +8424,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -8445,6 +8531,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -8551,6 +8638,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -8658,6 +8746,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -8763,6 +8852,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -8868,6 +8958,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -8974,6 +9065,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -9085,6 +9177,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -9190,6 +9283,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -9299,6 +9393,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -9408,6 +9503,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -9517,6 +9613,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -9626,6 +9723,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -9733,6 +9831,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -9838,6 +9937,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -9948,6 +10048,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -10058,6 +10159,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -10163,6 +10265,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -10264,6 +10367,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -10372,6 +10476,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -10493,6 +10598,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -10602,6 +10708,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -10740,6 +10847,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -10843,6 +10951,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -10913,6 +11022,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -11144,6 +11254,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -11303,6 +11414,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -11462,6 +11574,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -11673,6 +11786,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -11740,6 +11854,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -11862,6 +11977,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -11975,6 +12091,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -12070,6 +12187,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -12189,6 +12307,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -12344,6 +12463,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -12418,6 +12538,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -12513,6 +12634,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -12534,7 +12656,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Remove Silence',
-    description: 'Removes or shortens silence in an audio file with smooth transitions.\n    audio, edit, clean',
+    description: 'Removes or shortens silence in an audio file with smooth transitions.\n' +
+      '    audio, edit, clean',
     namespace: 'nodetool.audio',
     node_type: 'nodetool.audio.RemoveSilence',
     layout: 'default',
@@ -12661,6 +12784,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -12764,6 +12888,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -12837,6 +12962,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -12925,6 +13051,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -12998,6 +13125,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13019,7 +13147,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Fade In',
-    description: 'Applies a fade-in effect to the beginning of an audio file.\n    audio, edit, transition',
+    description: 'Applies a fade-in effect to the beginning of an audio file.\n' +
+      '    audio, edit, transition',
     namespace: 'nodetool.audio',
     node_type: 'nodetool.audio.FadeIn',
     layout: 'default',
@@ -13086,6 +13215,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13107,7 +13237,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Fade Out',
-    description: 'Applies a fade-out effect to the end of an audio file.\n    audio, edit, transition',
+    description: 'Applies a fade-out effect to the end of an audio file.\n' +
+      '    audio, edit, transition',
     namespace: 'nodetool.audio',
     node_type: 'nodetool.audio.FadeOut',
     layout: 'default',
@@ -13174,6 +13305,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13262,6 +13394,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13312,6 +13445,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13415,6 +13549,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13436,7 +13571,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Create Silence',
-    description: 'Creates a silent audio file with a specified duration.\n    audio, silence, empty',
+    description: 'Creates a silent audio file with a specified duration.\n' +
+      '    audio, silence, empty',
     namespace: 'nodetool.audio',
     node_type: 'nodetool.audio.CreateSilence',
     layout: 'default',
@@ -13495,6 +13631,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13545,6 +13682,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13566,7 +13704,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Concatenate Audio List',
-    description: 'Concatenates multiple audio files together in sequence.\n    audio, edit, join, multiple, +',
+    description: 'Concatenates multiple audio files together in sequence.\n' +
+      '    audio, edit, join, multiple, +',
     namespace: 'nodetool.audio',
     node_type: 'nodetool.audio.ConcatList',
     layout: 'default',
@@ -13617,6 +13756,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13695,6 +13835,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13797,6 +13938,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13897,6 +14039,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -13962,6 +14105,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -14099,6 +14243,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -14215,6 +14360,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -14354,6 +14500,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -14578,6 +14725,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -14703,6 +14851,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -14850,6 +14999,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -14864,6 +15014,1359 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'node',
       'workers',
       'edge'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming Bitcrush',
+    description: 'Processes audio chunks with persistent bitcrush state. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingBitcrush',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'bit_depth',
+        type: {
+          type: 'int',
+          type_args: []
+        },
+        required: false,
+        title: 'Bit Depth',
+        description: 'The bit depth to reduce the audio to. Lower values create more distortion.',
+        min: 1,
+        max: 16,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 8
+      },
+      {
+        name: 'sample_rate_reduction',
+        type: {
+          type: 'int',
+          type_args: []
+        },
+        required: false,
+        title: 'Sample Rate Reduction',
+        description: 'Factor by which to reduce the sample rate. Higher values create more aliasing.',
+        min: 1,
+        max: 100,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming Compress',
+    description: 'Processes audio chunks with persistent compress state. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingCompress',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'threshold',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Threshold',
+        description: 'Threshold in dB above which compression is applied.',
+        min: -60,
+        max: 0,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: -20
+      },
+      {
+        name: 'ratio',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Ratio',
+        description: 'Compression ratio. Higher values result in more compression.',
+        min: 1,
+        max: 20,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 4
+      },
+      {
+        name: 'attack',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Attack',
+        description: 'Attack time in milliseconds.',
+        min: 0.1,
+        max: 100,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 5
+      },
+      {
+        name: 'release',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Release',
+        description: 'Release time in milliseconds.',
+        min: 5,
+        max: 1000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 50
+      },
+      {
+        name: 'auto_gain',
+        type: {
+          type: 'bool',
+          type_args: []
+        },
+        required: false,
+        title: 'Auto Gain',
+        description: 'Apply automatic makeup gain to compensate for the level lost to compression, keeping the output roughly as loud as the input.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: true
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming Distortion',
+    description: 'Applies distortion to each audio chunk. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingDistortion',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'drive_db',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Drive Db',
+        description: 'Amount of distortion to apply in decibels.',
+        min: 0,
+        max: 100,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 25
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming Limiter',
+    description: 'Processes audio chunks with persistent limiter state. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingLimiter',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'threshold_db',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Threshold Db',
+        description: 'Threshold in dB above which the limiter is applied.',
+        min: -60,
+        max: 0,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: -2
+      },
+      {
+        name: 'release_ms',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Release Ms',
+        description: 'Release time in milliseconds.',
+        min: 1,
+        max: 1000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 250
+      },
+      {
+        name: 'auto_gain',
+        type: {
+          type: 'bool',
+          type_args: []
+        },
+        required: false,
+        title: 'Auto Gain',
+        description: 'Apply automatic makeup gain so the limited peaks reach 0 dBFS, turning the headroom below the ceiling into added loudness (maximizer behaviour).',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: true
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming Reverb',
+    description: 'Processes audio chunks with persistent reverb state. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingReverb',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'room_scale',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Room Scale',
+        description: 'Size of the simulated room. Higher values create larger spaces.',
+        min: 0,
+        max: 1,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.5
+      },
+      {
+        name: 'damping',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Damping',
+        description: 'Amount of high frequency absorption. Higher values create a duller sound.',
+        min: 0,
+        max: 1,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.5
+      },
+      {
+        name: 'wet_level',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Wet Level',
+        description: 'Level of the reverb effect in the output.',
+        min: 0,
+        max: 1,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.15
+      },
+      {
+        name: 'dry_level',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Dry Level',
+        description: 'Level of the original signal in the output.',
+        min: 0,
+        max: 1,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.5
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming Noise Gate',
+    description: 'Processes audio chunks with persistent noisegate state. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingNoiseGate',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'threshold_db',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Threshold Db',
+        description: 'Threshold in dB below which the gate is active.',
+        min: -90,
+        max: 0,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: -50
+      },
+      {
+        name: 'attack_ms',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Attack Ms',
+        description: 'Attack time in milliseconds.',
+        min: 0.1,
+        max: 100,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1
+      },
+      {
+        name: 'release_ms',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Release Ms',
+        description: 'Release time in milliseconds.',
+        min: 5,
+        max: 1000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 100
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming Phaser',
+    description: 'Processes audio chunks with persistent phaser state. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingPhaser',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'rate_hz',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Rate Hz',
+        description: 'Rate of the phaser effect in Hz.',
+        min: 0.1,
+        max: 10,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1
+      },
+      {
+        name: 'depth',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Depth',
+        description: 'Depth of the phaser effect.',
+        min: 0,
+        max: 1,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.5
+      },
+      {
+        name: 'centre_frequency_hz',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Centre Frequency Hz',
+        description: 'Centre frequency of the phaser in Hz.',
+        min: 100,
+        max: 5000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1300
+      },
+      {
+        name: 'feedback',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Feedback',
+        description: 'Feedback of the phaser effect. Negative values invert the phase.',
+        min: -1,
+        max: 1,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'mix',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Mix',
+        description: 'Mix between the dry (original) and wet (effected) signals.',
+        min: 0,
+        max: 1,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.5
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming Delay',
+    description: 'Processes audio chunks with persistent delay state. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingDelay',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'delay_seconds',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Delay Seconds',
+        description: 'Delay time in seconds.',
+        min: 0.01,
+        max: 2,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.5
+      },
+      {
+        name: 'feedback',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Feedback',
+        description: 'Amount of delayed signal fed back into the effect.',
+        min: 0,
+        max: 0.99,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.3
+      },
+      {
+        name: 'mix',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Mix',
+        description: 'Mix between the dry (original) and wet (delayed) signals.',
+        min: 0,
+        max: 1,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.5
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming High Shelf',
+    description: 'Processes audio chunks with persistent highshelffilter state. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingHighShelf',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'cutoff_frequency_hz',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Cutoff Frequency Hz',
+        description: 'The cutoff frequency of the shelf filter in Hz.',
+        min: 1000,
+        max: 20000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 5000
+      },
+      {
+        name: 'gain_db',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Gain Db',
+        description: 'The gain to apply to the frequencies above the cutoff, in dB.',
+        min: -24,
+        max: 24,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming Low Shelf',
+    description: 'Processes audio chunks with persistent lowshelffilter state. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingLowShelf',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'cutoff_frequency_hz',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Cutoff Frequency Hz',
+        description: 'The cutoff frequency of the shelf filter in Hz.',
+        min: 20,
+        max: 1000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 200
+      },
+      {
+        name: 'gain_db',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Gain Db',
+        description: 'The gain to apply to the frequencies below the cutoff, in dB.',
+        min: -24,
+        max: 24,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Streaming Peak',
+    description: 'Processes audio chunks with persistent peakfilter state. Properties apply at the next block.\n' +
+      '    audio, stream, effect, realtime',
+    namespace: 'nodetool.audio.realtime',
+    node_type: 'nodetool.audio.realtime.StreamingPeak',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'cutoff_frequency_hz',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Cutoff Frequency Hz',
+        description: 'The cutoff frequency of the band-pass filter in Hz.',
+        min: 20,
+        max: 20000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1000
+      },
+      {
+        name: 'q_factor',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Q Factor',
+        description: 'The Q factor, determining the width of the band. Higher values create narrower bands.',
+        min: 0.1,
+        max: 10,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1
+      },
+      {
+        name: 'gain_db',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Gain Db',
+        description: 'The gain to apply at the centre frequency, in dB. Positive values boost, negative values cut.',
+        min: -24,
+        max: 24,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        },
+        required: false,
+        title: 'Chunk',
+        description: 'Audio signal to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'chunk'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
     ],
     deprecated: undefined,
     hidden: undefined,
@@ -14891,7 +16394,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         },
         required: false,
         title: 'Audio',
-        description: 'The audio file to slice into chunks (must be WAV).',
+        description: 'The audio file to play as chunks.',
         min: undefined,
         max: undefined,
         values: undefined,
@@ -14918,6 +16421,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 0.25
+      },
+      {
+        name: 'loop',
+        type: {
+          type: 'bool',
+          type_args: []
+        },
+        required: false,
+        title: 'Loop',
+        description: 'Play the clip repeatedly until the run ends.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: false
       }
     ],
     outputs: [
@@ -14950,6 +16468,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -15034,6 +16553,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: true,
+    audio_sink: 'live',
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -15066,6 +16586,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     layout: 'default',
     body: 'default',
     properties: [
+      {
+        name: 'duration',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Duration',
+        description: 'Seconds to record. Zero records until the stream ends.',
+        min: 0,
+        max: 600,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
       {
         name: 'chunk',
         type: {
@@ -15116,6 +16651,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: 'render',
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -15149,6 +16685,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     body: 'default',
     properties: [
       {
+        name: 'gain_db',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Gain Db',
+        description: 'Gain to apply in decibels. Positive values increase volume, negative values decrease it.',
+        min: -60,
+        max: 24,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
         name: 'chunk',
         type: {
           type: 'chunk',
@@ -15172,21 +16723,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           done: false,
           thinking: false
         }
-      },
-      {
-        name: 'gain_db',
-        type: {
-          type: 'float',
-          type_args: []
-        },
-        required: false,
-        title: 'Gain Db',
-        description: 'Gain to apply in decibels. Positive values increase volume, negative values decrease it.',
-        min: -60,
-        max: 24,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: 0
       }
     ],
     outputs: [
@@ -15213,6 +16749,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -15246,6 +16783,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     body: 'default',
     properties: [
       {
+        name: 'cutoff_frequency_hz',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Cutoff Frequency Hz',
+        description: 'The cutoff frequency of the low-pass filter in Hz.',
+        min: 500,
+        max: 20000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 5000
+      },
+      {
         name: 'chunk',
         type: {
           type: 'chunk',
@@ -15269,21 +16821,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           done: false,
           thinking: false
         }
-      },
-      {
-        name: 'cutoff_frequency_hz',
-        type: {
-          type: 'float',
-          type_args: []
-        },
-        required: false,
-        title: 'Cutoff Frequency Hz',
-        description: 'The cutoff frequency of the low-pass filter in Hz.',
-        min: 500,
-        max: 20000,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: 5000
       },
       {
         name: 'q',
@@ -15325,6 +16862,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -15358,6 +16896,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     body: 'default',
     properties: [
       {
+        name: 'cutoff_frequency_hz',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Cutoff Frequency Hz',
+        description: 'The cutoff frequency of the high-pass filter in Hz.',
+        min: 20,
+        max: 5000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 80
+      },
+      {
         name: 'chunk',
         type: {
           type: 'chunk',
@@ -15381,21 +16934,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           done: false,
           thinking: false
         }
-      },
-      {
-        name: 'cutoff_frequency_hz',
-        type: {
-          type: 'float',
-          type_args: []
-        },
-        required: false,
-        title: 'Cutoff Frequency Hz',
-        description: 'The cutoff frequency of the high-pass filter in Hz.',
-        min: 20,
-        max: 5000,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: 80
       },
       {
         name: 'q',
@@ -15437,6 +16975,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -15460,7 +16999,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     description: 'Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.\n' +
       '    audio, synthesis, oscillator, vco, modular\n' +
       '\n' +
-      "    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it free-runs wall-clock paced until the run is stopped. Naive waveforms — saw/square alias at high frequencies.\n" +
+      "    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it follows the run transport until the render ends or the run is stopped. Naive waveforms — saw/square alias at high frequencies.\n" +
       '\n' +
       '    Use cases:\n' +
       '    - Sound source for a modular synth voice\n' +
@@ -15608,21 +17147,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 0
-      },
-      {
-        name: 'sample_rate',
-        type: {
-          type: 'int',
-          type_args: []
-        },
-        required: false,
-        title: 'Sample Rate',
-        description: 'Free-run sample rate in Hz.',
-        min: 8000,
-        max: 96000,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: 24000
       }
     ],
     outputs: [
@@ -15650,6 +17174,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -15673,7 +17198,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     description: 'Low-frequency oscillator emitting a control-voltage stream.\n' +
       '    cv, synthesis, lfo, modulation, modular\n' +
       '\n' +
-      '    Output is offset + depth * wave(phase). With a clock patched, emits one chunk per clock chunk (sample-aligned) and resets phase on each clock rising edge; otherwise free-runs wall-clock paced until the run is stopped.\n' +
+      '    Output is offset + depth * wave(phase). With a clock patched, emits one chunk per clock chunk (sample-aligned) and resets phase on each clock rising edge; otherwise free-runs paced by the run transport, or ending at the render duration.\n' +
       '\n' +
       '    Use cases:\n' +
       '    - Vibrato/tremolo via Oscillator fm or VCA cv\n' +
@@ -15779,21 +17304,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 0
-      },
-      {
-        name: 'sample_rate',
-        type: {
-          type: 'int',
-          type_args: []
-        },
-        required: false,
-        title: 'Sample Rate',
-        description: 'Free-run sample rate in Hz.',
-        min: 8000,
-        max: 96000,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: 24000
       }
     ],
     outputs: [
@@ -15820,6 +17330,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -15964,6 +17475,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -15987,7 +17499,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     description: "Generates a repeating on/off gate CV pattern — the patch's master clock.\n" +
       '    cv, synthesis, gate, trigger, clock, modular\n' +
       '\n' +
-      '    Emits `amplitude` for on_duration seconds, 0 for off_duration, cycling wall-clock paced until the run is stopped. Drive an ADSR with it; every node downstream is sample-aligned to it by construction and paced with it.\n' +
+      '    Emits `amplitude` for on_duration seconds, 0 for off_duration, cycling until the render ends or the run is stopped. Drive an ADSR with it; every node downstream is sample-aligned to it by construction and paced with it.\n' +
       '\n' +
       '    Use cases:\n' +
       '    - Trigger envelopes rhythmically\n' +
@@ -16042,21 +17554,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 1
-      },
-      {
-        name: 'sample_rate',
-        type: {
-          type: 'int',
-          type_args: []
-        },
-        required: false,
-        title: 'Sample Rate',
-        description: 'Output sample rate in Hz.',
-        min: 8000,
-        max: 96000,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: 24000
       }
     ],
     outputs: [
@@ -16081,6 +17578,120 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Trigger',
+    description: 'Fires one gate pulse for each change of its switch, with a pitch value: plays notes by hand while the patch runs.\n' +
+      '    cv, synthesis, trigger, gate, note, manual, keyboard, modular\n' +
+      '\n' +
+      '    Each change of trigger starts a gate pulse of length seconds at the next block. A change during a pulse starts the pulse again after one low sample, so the gate rises for every change. The pitch output carries note in octaves (note / 12, volts/octave). The gate stays low until the first change, so a render without a live change is silent.\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Play a Sampler voice with one click\n' +
+      '    - Start an ADSR envelope by hand\n' +
+      '    - Try a note at a chosen pitch',
+    namespace: 'nodetool.audio.synth',
+    node_type: 'nodetool.audio.synth.Trigger',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'trigger',
+        type: {
+          type: 'bool',
+          type_args: []
+        },
+        required: false,
+        title: 'Trigger',
+        description: 'Each change fires one gate pulse while the patch runs.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: false
+      },
+      {
+        name: 'note',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Note',
+        description: 'Pitch of the note in semitones. The pitch output carries note / 12.',
+        min: -48,
+        max: 48,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'length',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Length',
+        description: 'Gate-high time of one pulse in seconds.',
+        min: 0.001,
+        max: 60,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.1
+      }
+    ],
+    outputs: [
+      {
+        name: 'gate',
+        type: {
+          type: 'cv',
+          type_args: []
+        }
+      },
+      {
+        name: 'pitch',
+        type: {
+          type: 'cv',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [
+      'trigger',
+      'note'
+    ],
+    input_fields: [],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -16206,6 +17817,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -16383,6 +17995,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -16497,6 +18110,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -16607,6 +18221,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -16829,6 +18444,269 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [
+      'node',
+      'browser'
+    ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Sampler',
+    description: 'Plays an audio clip as a polyphonic instrument: each gate trigger starts a voice.\n' +
+      '    audio, synthesis, sampler, sample, drum, voice, polyphonic, modular\n' +
+      '\n' +
+      '    Each rising edge of the gate (≥ 0.5) starts a voice at the start of the region. The voice reads pitch_cv at that sample (volts/octave: rate = 2^(cv + tune / 12)) and keeps that rate, so voices at different pitches sound together. When all voices sound, a new trigger replaces the oldest voice. The gate drives chunk cadence (sample-aligned). With no gate patched, the gate is high from the first frame, so the clip plays one time. The output has the channels of the clip.\n' +
+      '\n' +
+      '    Use cases:\n' +
+      '    - Play drum hits from gate patterns\n' +
+      '    - Play a melody from one recorded note\n' +
+      '    - Loop or stutter a slice of a clip',
+    namespace: 'nodetool.audio.synth',
+    node_type: 'nodetool.audio.synth.Sampler',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The clip that the voices play.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
+        name: 'gate',
+        type: {
+          type: 'cv',
+          type_args: []
+        },
+        required: false,
+        title: 'Gate',
+        description: 'Gate CV stream. Each rising edge (≥ 0.5) starts a voice. When patched, drives the output chunk cadence.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      },
+      {
+        name: 'pitch_cv',
+        type: {
+          type: 'cv',
+          type_args: []
+        },
+        required: false,
+        title: 'Pitch CV',
+        description: 'Pitch control stream in octaves (volts/octave). A voice keeps the value of its trigger sample.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'chunk',
+          node_id: null,
+          thread_id: null,
+          workflow_id: null,
+          content_type: 'audio',
+          content: '',
+          content_metadata: {},
+          done: false,
+          thinking: false
+        }
+      },
+      {
+        name: 'mode',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            'one_shot',
+            'gated',
+            'loop'
+          ]
+        },
+        required: false,
+        title: 'Mode',
+        description: 'one_shot plays each voice to the end of the region. gated fades a voice out when the gate falls. loop also repeats the region.',
+        min: undefined,
+        max: undefined,
+        values: [
+          'one_shot',
+          'gated',
+          'loop'
+        ],
+        json_schema_extra: undefined,
+        default: 'one_shot'
+      },
+      {
+        name: 'voices',
+        type: {
+          type: 'int',
+          type_args: []
+        },
+        required: false,
+        title: 'Voices',
+        description: 'Voices that can sound together. A trigger beyond this number replaces the oldest voice.',
+        min: 1,
+        max: 32,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 8
+      },
+      {
+        name: 'tune',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Tune',
+        description: 'Pitch offset in semitones.',
+        min: -48,
+        max: 48,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'start',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Start',
+        description: 'Start of the played region in seconds.',
+        min: 0,
+        max: 600,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'length',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Length',
+        description: 'Length of the played region in seconds. Zero plays to the end of the clip. The region is at most 30 s.',
+        min: 0,
+        max: 30,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'attack',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Attack',
+        description: 'Fade-in time of each voice in seconds.',
+        min: 0,
+        max: 10,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
+        name: 'release',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Release',
+        description: 'Fade-out time in seconds after the gate falls, in the gated and loop modes.',
+        min: 0,
+        max: 10,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0.05
+      },
+      {
+        name: 'gain',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Gain',
+        description: 'Output level (linear).',
+        min: 0,
+        max: 4,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 1
+      }
+    ],
+    outputs: [
+      {
+        name: 'chunk',
+        type: {
+          type: 'chunk',
+          type_args: []
+        }
+      }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [
+      'audio',
+      'gate',
+      'pitch_cv'
+    ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: true,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -16930,6 +18808,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -17052,6 +18931,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: true,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -17218,6 +19098,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: true,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -17343,6 +19224,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: true,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -17554,6 +19436,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: true,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -17678,6 +19561,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -17767,6 +19651,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -17914,6 +19799,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -18018,6 +19904,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -18308,6 +20195,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -18440,6 +20328,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -18544,6 +20433,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -18662,6 +20552,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -18763,6 +20654,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -18875,6 +20767,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -19083,6 +20976,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -19178,6 +21072,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -19244,6 +21139,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -19397,6 +21293,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -19552,6 +21449,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -19650,6 +21548,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -19769,6 +21668,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -19788,7 +21688,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Get Metadata',
-    description: 'Get metadata about the input image.\n    metadata, properties, analysis, information',
+    description: 'Get metadata about the input image.\n' +
+      '    metadata, properties, analysis, information',
     namespace: 'nodetool.image',
     node_type: 'nodetool.image.GetMetadata',
     layout: 'default',
@@ -19868,6 +21769,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -19887,7 +21789,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Batch To List',
-    description: 'Convert an image batch to a list of image references.\n    batch, list, images, processing',
+    description: 'Convert an image batch to a list of image references.\n' +
+      '    batch, list, images, processing',
     namespace: 'nodetool.image',
     node_type: 'nodetool.image.BatchToList',
     layout: 'default',
@@ -19944,6 +21847,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -19965,7 +21869,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Images To List',
-    description: 'Convert all dynamic properties to a list of image references.\n    list, images, processing',
+    description: 'Convert all dynamic properties to a list of image references.\n' +
+      '    list, images, processing',
     namespace: 'nodetool.image',
     node_type: 'nodetool.image.ImagesToList',
     layout: 'default',
@@ -19998,6 +21903,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -20128,6 +22034,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -20321,6 +22228,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -20584,6 +22492,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -20717,6 +22626,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -20813,6 +22723,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -20911,6 +22822,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -21038,6 +22950,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -21134,6 +23047,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -21340,6 +23254,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -21424,6 +23339,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -21518,6 +23434,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -21613,6 +23530,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -21851,6 +23769,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -21899,7 +23818,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'end_image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'End Image',
         description: 'Optional frame the clip ends on. The run fails on a model that takes no last frame.',
@@ -22142,6 +24064,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -22435,6 +24358,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -22500,6 +24424,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -22639,6 +24564,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -22748,6 +24674,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -22866,6 +24793,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -22998,6 +24926,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -23017,7 +24946,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Fps',
-    description: 'Get the frames per second (FPS) of a video file.\n    video, analysis, frames, fps',
+    description: 'Get the frames per second (FPS) of a video file.\n' +
+      '    video, analysis, frames, fps',
     namespace: 'nodetool.video',
     node_type: 'nodetool.video.Fps',
     layout: 'default',
@@ -23071,6 +25001,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -23090,7 +25021,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Frame To Video',
-    description: 'Combine a sequence of frames into a single video file.\n    video, frames, combine, sequence',
+    description: 'Combine a sequence of frames into a single video file.\n' +
+      '    video, frames, combine, sequence',
     namespace: 'nodetool.video',
     node_type: 'nodetool.video.FrameToVideo',
     layout: 'default',
@@ -23164,6 +25096,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -23212,6 +25145,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -23231,7 +25165,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Trim',
-    description: 'Trim a video to a specific start and end time.\n    video, trim, cut, segment',
+    description: 'Trim a video to a specific start and end time.\n' +
+      '    video, trim, cut, segment',
     namespace: 'nodetool.video',
     node_type: 'nodetool.video.Trim',
     layout: 'default',
@@ -23330,6 +25265,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -23349,7 +25285,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Resize',
-    description: 'Resize a video to a specific width and height.\n    video, resize, scale, dimensions',
+    description: 'Resize a video to a specific width and height.\n' +
+      '    video, resize, scale, dimensions',
     namespace: 'nodetool.video',
     node_type: 'nodetool.video.Resize',
     layout: 'default',
@@ -23433,6 +25370,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -23452,7 +25390,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Rotate',
-    description: 'Rotate a video by a specified angle.\n    video, rotate, orientation, transform',
+    description: 'Rotate a video by a specified angle.\n' +
+      '    video, rotate, orientation, transform',
     namespace: 'nodetool.video',
     node_type: 'nodetool.video.Rotate',
     layout: 'default',
@@ -23521,6 +25460,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -23609,6 +25549,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -23824,6 +25765,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -23982,6 +25924,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -24001,7 +25944,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Color Balance',
-    description: 'Adjust the color balance of a video.\n    video, color, balance, adjustment',
+    description: 'Adjust the color balance of a video.\n' +
+      '    video, color, balance, adjustment',
     namespace: 'nodetool.video',
     node_type: 'nodetool.video.ColorBalance',
     layout: 'default',
@@ -24100,6 +26044,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -24188,6 +26133,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -24292,6 +26238,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -24395,6 +26342,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -24483,6 +26431,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -24502,7 +26451,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Saturation',
-    description: 'Adjust the color saturation of a video.\n    video, saturation, color, enhance',
+    description: 'Adjust the color saturation of a video.\n' +
+      '    video, saturation, color, enhance',
     namespace: 'nodetool.video',
     node_type: 'nodetool.video.Saturation',
     layout: 'default',
@@ -24571,6 +26521,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -24743,6 +26694,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -24816,6 +26768,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -25063,6 +27016,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -25211,6 +27165,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -25333,6 +27288,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -25407,6 +27363,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -25496,6 +27453,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -25612,6 +27570,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -25774,6 +27733,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -25879,7 +27839,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         max: undefined,
         values: undefined,
         json_schema_extra: undefined,
-        default: { type: 'image', uri: '' }
+        default: {
+          type: 'image',
+          uri: ''
+        }
       }
     ],
     outputs: [
@@ -25908,6 +27871,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -26122,6 +28086,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -26209,6 +28174,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -26332,6 +28298,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -26463,6 +28430,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -26608,6 +28576,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -26711,6 +28680,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -26808,6 +28778,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -26883,6 +28854,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -27011,6 +28983,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -27263,6 +29236,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -27396,6 +29370,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -27539,6 +29514,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -27686,6 +29662,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: true,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -27910,6 +29887,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -28083,6 +30061,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -28312,6 +30291,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -28556,6 +30536,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -28702,6 +30683,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -28997,6 +30979,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -29233,6 +31216,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -29319,6 +31303,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -29601,6 +31586,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -29912,6 +31898,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -30194,6 +32181,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -30953,6 +32941,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -31154,6 +33143,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -31328,6 +33318,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -31486,6 +33477,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: true,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -31619,6 +33611,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -31776,6 +33769,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -31952,6 +33946,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -32071,6 +34066,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: true,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -32178,6 +34174,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -32286,6 +34283,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -32438,6 +34436,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -32511,6 +34510,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -32668,6 +34668,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -32795,6 +34796,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -32898,6 +34900,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -32978,6 +34981,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -33208,6 +35212,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -33321,6 +35326,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -33456,6 +35462,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -33576,6 +35583,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -33671,6 +35679,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -33751,6 +35760,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -33951,6 +35961,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -34035,6 +36046,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -34165,6 +36177,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -34245,6 +36258,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -34438,6 +36452,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -34607,6 +36622,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -34846,6 +36862,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -35192,6 +37209,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -35619,6 +37637,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -36024,6 +38043,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -36204,6 +38224,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -36397,6 +38418,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -36516,6 +38538,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -36758,6 +38781,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -36919,6 +38943,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -37137,6 +39162,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -37383,6 +39409,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -37472,6 +39499,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -37637,6 +39665,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -37746,6 +39775,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -37861,6 +39891,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -38055,6 +40086,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -38219,6 +40251,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -38399,6 +40432,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -38539,6 +40573,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -38696,6 +40731,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -38801,6 +40837,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -38959,6 +40996,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -39145,6 +41183,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -39268,6 +41307,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -39406,6 +41446,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -39512,6 +41553,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -39605,6 +41647,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -39683,6 +41726,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -39761,6 +41805,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -39839,6 +41884,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -39947,6 +41993,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40054,6 +42101,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40131,6 +42179,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40208,6 +42257,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40285,6 +42335,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40392,6 +42443,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40469,6 +42521,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40546,6 +42599,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40638,6 +42692,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40715,6 +42770,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40807,6 +42863,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -40911,6 +42968,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -41043,6 +43101,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -41261,6 +43320,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -41383,6 +43443,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -41616,6 +43677,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -41725,6 +43787,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -41924,6 +43987,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -42093,6 +44157,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -42225,6 +44290,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -42385,6 +44451,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -42647,6 +44714,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -42759,6 +44827,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -42913,6 +44982,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -43037,6 +45107,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -43070,6 +45141,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     body: 'default',
     properties: [
       {
+        name: 'gain_db',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Gain Db',
+        description: 'Gain to apply in decibels. Positive values increase volume, negative values decrease it.',
+        min: -60,
+        max: 24,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 0
+      },
+      {
         name: 'audio',
         type: {
           type: 'audio',
@@ -43089,21 +45175,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           data: null,
           metadata: null
         }
-      },
-      {
-        name: 'gain_db',
-        type: {
-          type: 'float',
-          type_args: []
-        },
-        required: false,
-        title: 'Gain Db',
-        description: 'Gain to apply in decibels. Positive values increase volume, negative values decrease it.',
-        min: -60,
-        max: 24,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: 0
       }
     ],
     outputs: [
@@ -43130,6 +45201,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -43163,27 +45235,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     layout: 'default',
     body: 'default',
     properties: [
-      {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: 'The audio file to process.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
       {
         name: 'delay_seconds',
         type: {
@@ -43228,6 +45279,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 0.5
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
       }
     ],
     outputs: [
@@ -43254,6 +45326,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -43288,6 +45361,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     body: 'default',
     properties: [
       {
+        name: 'cutoff_frequency_hz',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Cutoff Frequency Hz',
+        description: 'The cutoff frequency of the high-pass filter in Hz.',
+        min: 20,
+        max: 5000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 80
+      },
+      {
         name: 'audio',
         type: {
           type: 'audio',
@@ -43307,21 +45395,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           data: null,
           metadata: null
         }
-      },
-      {
-        name: 'cutoff_frequency_hz',
-        type: {
-          type: 'float',
-          type_args: []
-        },
-        required: false,
-        title: 'Cutoff Frequency Hz',
-        description: 'The cutoff frequency of the high-pass filter in Hz.',
-        min: 20,
-        max: 5000,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: 80
       }
     ],
     outputs: [
@@ -43348,6 +45421,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -43382,6 +45456,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     body: 'default',
     properties: [
       {
+        name: 'cutoff_frequency_hz',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Cutoff Frequency Hz',
+        description: 'The cutoff frequency of the low-pass filter in Hz.',
+        min: 500,
+        max: 20000,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 5000
+      },
+      {
         name: 'audio',
         type: {
           type: 'audio',
@@ -43401,21 +45490,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           data: null,
           metadata: null
         }
-      },
-      {
-        name: 'cutoff_frequency_hz',
-        type: {
-          type: 'float',
-          type_args: []
-        },
-        required: false,
-        title: 'Cutoff Frequency Hz',
-        description: 'The cutoff frequency of the low-pass filter in Hz.',
-        min: 500,
-        max: 20000,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: 5000
       }
     ],
     outputs: [
@@ -43442,6 +45516,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -43476,27 +45551,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     body: 'default',
     properties: [
       {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: 'The audio file to process.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
-      {
         name: 'cutoff_frequency_hz',
         type: {
           type: 'float',
@@ -43525,6 +45579,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 0
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
       }
     ],
     outputs: [
@@ -43551,6 +45626,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -43585,27 +45661,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     body: 'default',
     properties: [
       {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: 'The audio file to process.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
-      {
         name: 'cutoff_frequency_hz',
         type: {
           type: 'float',
@@ -43634,6 +45689,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 0
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
       }
     ],
     outputs: [
@@ -43660,6 +45736,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -43693,27 +45770,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     layout: 'default',
     body: 'default',
     properties: [
-      {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: 'The audio file to process.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
       {
         name: 'cutoff_frequency_hz',
         type: {
@@ -43758,6 +45814,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 0
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
       }
     ],
     outputs: [
@@ -43784,6 +45861,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -43857,6 +45935,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -43959,6 +46038,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -44148,6 +46228,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -44180,27 +46261,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     body: 'default',
     properties: [
       {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: 'The audio file to process.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
-      {
         name: 'bit_depth',
         type: {
           type: 'int',
@@ -44229,6 +46289,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 1
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
       }
     ],
     outputs: [
@@ -44255,6 +46336,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -44288,27 +46370,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     layout: 'default',
     body: 'default',
     properties: [
-      {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: 'The audio file to process.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
       {
         name: 'threshold',
         type: {
@@ -44383,6 +46444,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: true
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
       }
     ],
     outputs: [
@@ -44409,6 +46491,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -44443,6 +46526,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     body: 'default',
     properties: [
       {
+        name: 'drive_db',
+        type: {
+          type: 'float',
+          type_args: []
+        },
+        required: false,
+        title: 'Drive Db',
+        description: 'Amount of distortion to apply in decibels.',
+        min: 0,
+        max: 100,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 25
+      },
+      {
         name: 'audio',
         type: {
           type: 'audio',
@@ -44462,21 +46560,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           data: null,
           metadata: null
         }
-      },
-      {
-        name: 'drive_db',
-        type: {
-          type: 'float',
-          type_args: []
-        },
-        required: false,
-        title: 'Drive Db',
-        description: 'Amount of distortion to apply in decibels.',
-        min: 0,
-        max: 100,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: 25
       }
     ],
     outputs: [
@@ -44503,6 +46586,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -44536,27 +46620,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     layout: 'default',
     body: 'default',
     properties: [
-      {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: 'The audio file to process.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
       {
         name: 'threshold_db',
         type: {
@@ -44601,6 +46664,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: true
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
       }
     ],
     outputs: [
@@ -44627,6 +46711,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -44660,27 +46745,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     layout: 'default',
     body: 'default',
     properties: [
-      {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: 'The audio file to process.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
       {
         name: 'room_scale',
         type: {
@@ -44740,6 +46804,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 0.5
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
       }
     ],
     outputs: [
@@ -44766,6 +46851,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -44799,27 +46885,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     layout: 'default',
     body: 'default',
     properties: [
-      {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: 'The audio file to process.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
       {
         name: 'threshold_db',
         type: {
@@ -44864,6 +46929,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 100
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
       }
     ],
     outputs: [
@@ -44890,6 +46976,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -44923,27 +47010,6 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     layout: 'default',
     body: 'default',
     properties: [
-      {
-        name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
-        required: false,
-        title: 'Audio',
-        description: 'The audio file to process.',
-        min: undefined,
-        max: undefined,
-        values: undefined,
-        json_schema_extra: undefined,
-        default: {
-          type: 'audio',
-          uri: '',
-          asset_id: null,
-          data: null,
-          metadata: null
-        }
-      },
       {
         name: 'rate_hz',
         type: {
@@ -45018,6 +47084,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 0.5
+      },
+      {
+        name: 'audio',
+        type: {
+          type: 'audio',
+          type_args: []
+        },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to process.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
       }
     ],
     outputs: [
@@ -45044,6 +47131,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -45138,6 +47226,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -45232,6 +47321,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -45336,6 +47426,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -45438,6 +47529,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -45560,6 +47652,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -45667,6 +47760,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -45686,7 +47780,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'PDF Page Screenshot',
-    description: 'Render PDF pages as PNG images.\n    pdf, screenshot, render, image, pages, png',
+    description: 'Render PDF pages as PNG images.\n' +
+      '    pdf, screenshot, render, image, pages, png',
     namespace: 'lib.pdf',
     node_type: 'lib.pdf.Screenshot',
     layout: 'default',
@@ -45788,6 +47883,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -45949,6 +48045,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -46083,6 +48180,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -46149,6 +48247,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -46242,6 +48341,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -46264,7 +48364,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Count Documents',
-    description: 'Count the number of documents in a collection.\n    vector, embedding, collection, RAG',
+    description: 'Count the number of documents in a collection.\n' +
+      '    vector, embedding, collection, RAG',
     namespace: 'vector',
     node_type: 'vector.Count',
     layout: 'default',
@@ -46313,6 +48414,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -46335,7 +48437,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Get Documents',
-    description: 'Get documents from a collection.\n    vector, embedding, collection, RAG, retrieve',
+    description: 'Get documents from a collection.\n' +
+      '    vector, embedding, collection, RAG, retrieve',
     namespace: 'vector',
     node_type: 'vector.GetDocuments',
     layout: 'default',
@@ -46443,6 +48546,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -46465,7 +48569,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Peek',
-    description: 'Peek at the documents in a collection.\n    vector, embedding, collection, RAG, preview',
+    description: 'Peek at the documents in a collection.\n' +
+      '    vector, embedding, collection, RAG, preview',
     namespace: 'vector',
     node_type: 'vector.Peek',
     layout: 'default',
@@ -46536,6 +48641,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -46671,6 +48777,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -46819,6 +48926,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -46841,7 +48949,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Index Text Chunk',
-    description: 'Index a single text chunk.\n    vector, embedding, collection, RAG, index, text, chunk',
+    description: 'Index a single text chunk.\n' +
+      '    vector, embedding, collection, RAG, index, text, chunk',
     namespace: 'vector',
     node_type: 'vector.IndexTextChunk',
     layout: 'default',
@@ -46931,6 +49040,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -47100,6 +49210,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -47213,6 +49324,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -47235,7 +49347,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Query Image',
-    description: 'Query the index for similar images.\n    vector, RAG, query, image, search, similarity',
+    description: 'Query the index for similar images.\n' +
+      '    vector, RAG, query, image, search, similarity',
     namespace: 'vector',
     node_type: 'vector.QueryImage',
     layout: 'default',
@@ -47364,6 +49477,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -47386,7 +49500,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Query Text',
-    description: 'Query the index for similar text.\n    vector, RAG, query, text, search, similarity',
+    description: 'Query the index for similar text.\n' +
+      '    vector, RAG, query, text, search, similarity',
     namespace: 'vector',
     node_type: 'vector.QueryText',
     layout: 'default',
@@ -47509,6 +49624,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -47605,6 +49721,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -47793,6 +49910,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -47833,7 +49951,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'query',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Query',
         description: 'The search query to execute',
@@ -47845,14 +49966,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Gemini model to use for search',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini'
+          ]
+        },
         default: {
           type: 'language_model',
           provider: 'gemini',
@@ -47864,21 +49992,44 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     outputs: [
       {
         name: 'results',
-        type: { type: 'list', type_args: [ { type: 'str', type_args: [] } ] }
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'str',
+              type_args: []
+            }
+          ]
+        }
       },
       {
         name: 'sources',
         type: {
           type: 'list',
-          type_args: [ { type: 'source', type_args: [] } ]
+          type_args: [
+            {
+              type: 'source',
+              type_args: []
+            }
+          ]
         }
       },
-      { name: 'text', type: { type: 'str', type_args: [] } }
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'query' ],
-    required_settings: [ 'GEMINI_API_KEY' ],
+    input_fields: [
+      'query'
+    ],
+    required_settings: [
+      'GEMINI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -47888,6 +50039,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -47898,7 +50050,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: 'text',
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -47923,7 +50079,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'input',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Input',
         description: 'The text to embed.',
@@ -47935,14 +50094,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'embedding_model', type_args: [] },
+        type: {
+          type: 'embedding_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The embedding model to use',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini'
+          ]
+        },
         default: {
           type: 'embedding_model',
           provider: 'gemini',
@@ -47951,11 +50117,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         }
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'list', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'list',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
-    inline_fields: [ 'input' ],
+    inline_fields: [
+      'input'
+    ],
     input_fields: [],
-    required_settings: [ 'GEMINI_API_KEY' ],
+    required_settings: [
+      'GEMINI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -47965,6 +50143,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -47975,7 +50154,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -47996,7 +50179,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The text prompt describing the image to generate.',
@@ -48008,14 +50194,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'image_model', type_args: [] },
+        type: {
+          type: 'image_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The image generation model to use',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini'
+          ]
+        },
         default: {
           type: 'image_model',
           provider: 'gemini',
@@ -48025,7 +50218,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'Image',
         description: 'The image to use as a base for the generation.',
@@ -48047,11 +50243,20 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'enum',
           type_args: [],
           values: [
-            '1:1',  '1:4',  '1:8',
-            '2:3',  '3:2',  '3:4',
-            '4:1',  '4:3',  '4:5',
-            '5:4',  '8:1',  '9:16',
-            '16:9', '21:9'
+            '1:1',
+            '1:4',
+            '1:8',
+            '2:3',
+            '3:2',
+            '3:4',
+            '4:1',
+            '4:3',
+            '4:5',
+            '5:4',
+            '8:1',
+            '9:16',
+            '16:9',
+            '21:9'
           ]
         },
         required: false,
@@ -48060,11 +50265,20 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         min: undefined,
         max: undefined,
         values: [
-          '1:1',  '1:4',  '1:8',
-          '2:3',  '3:2',  '3:4',
-          '4:1',  '4:3',  '4:5',
-          '5:4',  '8:1',  '9:16',
-          '16:9', '21:9'
+          '1:1',
+          '1:4',
+          '1:8',
+          '2:3',
+          '3:2',
+          '3:4',
+          '4:1',
+          '4:3',
+          '4:5',
+          '5:4',
+          '8:1',
+          '9:16',
+          '16:9',
+          '21:9'
         ],
         json_schema_extra: undefined,
         default: '1:1'
@@ -48074,23 +50288,46 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ '512px', '1K', '2K', '4K' ]
+          values: [
+            '512px',
+            '1K',
+            '2K',
+            '4K'
+          ]
         },
         required: false,
         title: 'Resolution',
         description: 'The output image resolution',
         min: undefined,
         max: undefined,
-        values: [ '512px', '1K', '2K', '4K' ],
+        values: [
+          '512px',
+          '1K',
+          '2K',
+          '4K'
+        ],
         json_schema_extra: undefined,
         default: '1K'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'image', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'image',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'image' ],
-    required_settings: [ 'GEMINI_API_KEY' ],
+    input_fields: [
+      'prompt',
+      'image'
+    ],
+    required_settings: [
+      'GEMINI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48100,6 +50337,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -48110,7 +50348,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48129,7 +50371,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The text prompt describing the video to generate',
@@ -48141,14 +50386,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'video_model', type_args: [] },
+        type: {
+          type: 'video_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Veo model to use for video generation',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini'
+          ]
+        },
         default: {
           type: 'video_model',
           provider: 'gemini',
@@ -48158,19 +50410,32 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'aspect_ratio',
-        type: { type: 'enum', type_args: [], values: [ '16:9', '9:16' ] },
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            '16:9',
+            '9:16'
+          ]
+        },
         required: false,
         title: 'Aspect Ratio',
         description: 'The aspect ratio of the generated video',
         min: undefined,
         max: undefined,
-        values: [ '16:9', '9:16' ],
+        values: [
+          '16:9',
+          '9:16'
+        ],
         json_schema_extra: undefined,
         default: '16:9'
       },
       {
         name: 'negative_prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Negative Prompt',
         description: 'Negative prompt to guide what to avoid in the video',
@@ -48185,23 +50450,43 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ '720p', '1080p', '4k' ]
+          values: [
+            '720p',
+            '1080p',
+            '4k'
+          ]
         },
         required: false,
         title: 'Resolution',
         description: 'The output video resolution',
         min: undefined,
         max: undefined,
-        values: [ '720p', '1080p', '4k' ],
+        values: [
+          '720p',
+          '1080p',
+          '4k'
+        ],
         json_schema_extra: undefined,
         default: '720p'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'video',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt' ],
-    required_settings: [ 'GEMINI_API_KEY' ],
+    input_fields: [
+      'prompt'
+    ],
+    required_settings: [
+      'GEMINI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48211,6 +50496,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -48221,7 +50507,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48240,7 +50530,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'Image',
         description: 'The image to animate into a video',
@@ -48258,7 +50551,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'end_image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'End Image',
         description: 'Optional frame the video ends on. Veo interpolates between the two frames in an 8-second clip.',
@@ -48276,7 +50572,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'Optional text prompt describing the desired animation',
@@ -48288,14 +50587,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'video_model', type_args: [] },
+        type: {
+          type: 'video_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Veo model to use for video generation',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini'
+          ]
+        },
         default: {
           type: 'video_model',
           provider: 'gemini',
@@ -48305,19 +50611,32 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'aspect_ratio',
-        type: { type: 'enum', type_args: [], values: [ '16:9', '9:16' ] },
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            '16:9',
+            '9:16'
+          ]
+        },
         required: false,
         title: 'Aspect Ratio',
         description: 'The aspect ratio of the generated video',
         min: undefined,
         max: undefined,
-        values: [ '16:9', '9:16' ],
+        values: [
+          '16:9',
+          '9:16'
+        ],
         json_schema_extra: undefined,
         default: '16:9'
       },
       {
         name: 'negative_prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Negative Prompt',
         description: 'Negative prompt to guide what to avoid in the video',
@@ -48332,23 +50651,45 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ '720p', '1080p', '4k' ]
+          values: [
+            '720p',
+            '1080p',
+            '4k'
+          ]
         },
         required: false,
         title: 'Resolution',
         description: 'The output video resolution',
         min: undefined,
         max: undefined,
-        values: [ '720p', '1080p', '4k' ],
+        values: [
+          '720p',
+          '1080p',
+          '4k'
+        ],
         json_schema_extra: undefined,
         default: '720p'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'video',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'image', 'end_image' ],
-    required_settings: [ 'GEMINI_API_KEY' ],
+    input_fields: [
+      'prompt',
+      'image',
+      'end_image'
+    ],
+    required_settings: [
+      'GEMINI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48358,6 +50699,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -48368,7 +50710,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48402,7 +50748,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'text',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Text',
         description: 'The text to convert to speech.',
@@ -48414,14 +50763,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'tts_model', type_args: [] },
+        type: {
+          type: 'tts_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The text-to-speech model to use',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini'
+          ]
+        },
         default: {
           type: 'tts_model',
           provider: 'gemini',
@@ -48435,16 +50791,36 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'enum',
           type_args: [],
           values: [
-            'achernar',     'achird',     'algenib',
-            'algieba',      'alnilam',    'aoede',
-            'autonoe',      'callirrhoe', 'charon',
-            'despina',      'enceladus',  'erinome',
-            'fenrir',       'gacrux',     'iapetus',
-            'kore',         'laomedeia',  'leda',
-            'orus',         'puck',       'pulcherrima',
-            'rasalgethi',   'sadachbia',  'sadaltager',
-            'schedar',      'sulafat',    'umbriel',
-            'vindemiatrix', 'zephyr',     'zubenelgenubi'
+            'achernar',
+            'achird',
+            'algenib',
+            'algieba',
+            'alnilam',
+            'aoede',
+            'autonoe',
+            'callirrhoe',
+            'charon',
+            'despina',
+            'enceladus',
+            'erinome',
+            'fenrir',
+            'gacrux',
+            'iapetus',
+            'kore',
+            'laomedeia',
+            'leda',
+            'orus',
+            'puck',
+            'pulcherrima',
+            'rasalgethi',
+            'sadachbia',
+            'sadaltager',
+            'schedar',
+            'sulafat',
+            'umbriel',
+            'vindemiatrix',
+            'zephyr',
+            'zubenelgenubi'
           ]
         },
         required: false,
@@ -48453,23 +50829,46 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         min: undefined,
         max: undefined,
         values: [
-          'achernar',     'achird',     'algenib',
-          'algieba',      'alnilam',    'aoede',
-          'autonoe',      'callirrhoe', 'charon',
-          'despina',      'enceladus',  'erinome',
-          'fenrir',       'gacrux',     'iapetus',
-          'kore',         'laomedeia',  'leda',
-          'orus',         'puck',       'pulcherrima',
-          'rasalgethi',   'sadachbia',  'sadaltager',
-          'schedar',      'sulafat',    'umbriel',
-          'vindemiatrix', 'zephyr',     'zubenelgenubi'
+          'achernar',
+          'achird',
+          'algenib',
+          'algieba',
+          'alnilam',
+          'aoede',
+          'autonoe',
+          'callirrhoe',
+          'charon',
+          'despina',
+          'enceladus',
+          'erinome',
+          'fenrir',
+          'gacrux',
+          'iapetus',
+          'kore',
+          'laomedeia',
+          'leda',
+          'orus',
+          'puck',
+          'pulcherrima',
+          'rasalgethi',
+          'sadachbia',
+          'sadaltager',
+          'schedar',
+          'sulafat',
+          'umbriel',
+          'vindemiatrix',
+          'zephyr',
+          'zubenelgenubi'
         ],
         json_schema_extra: undefined,
         default: 'kore'
       },
       {
         name: 'style_prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Style Prompt',
         description: "Optional style prompt to control speech characteristics (e.g., 'Say cheerfully', 'Speak with excitement')",
@@ -48480,11 +50879,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: ''
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'audio', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'audio',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'text' ],
-    required_settings: [ 'GEMINI_API_KEY' ],
+    input_fields: [
+      'text'
+    ],
+    required_settings: [
+      'GEMINI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48494,6 +50905,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -48504,7 +50916,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48530,7 +50946,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'audio',
-        type: { type: 'audio', type_args: [] },
+        type: {
+          type: 'audio',
+          type_args: []
+        },
         required: false,
         title: 'Audio',
         description: 'The audio file to transcribe.',
@@ -48548,14 +50967,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'asr_model', type_args: [] },
+        type: {
+          type: 'asr_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Gemini model to use for transcription',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini'
+          ]
+        },
         default: {
           type: 'asr_model',
           provider: 'gemini',
@@ -48565,7 +50991,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'Instructions for the transcription. You can customize this to request specific formatting or focus.',
@@ -48576,11 +51005,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 'Transcribe the following audio accurately. Return only the transcription text without any additional commentary.'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'audio', 'prompt' ],
-    required_settings: [ 'GEMINI_API_KEY' ],
+    input_fields: [
+      'audio',
+      'prompt'
+    ],
+    required_settings: [
+      'GEMINI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48590,6 +51032,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -48600,7 +51043,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48616,7 +51063,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'query',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Query',
         description: 'The search query to execute',
@@ -48628,14 +51078,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Gemini model that searches.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini_vertex'
+          ]
+        },
         default: {
           type: 'language_model',
           provider: 'gemini_vertex',
@@ -48647,21 +51104,44 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     outputs: [
       {
         name: 'results',
-        type: { type: 'list', type_args: [ { type: 'str', type_args: [] } ] }
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'str',
+              type_args: []
+            }
+          ]
+        }
       },
       {
         name: 'sources',
         type: {
           type: 'list',
-          type_args: [ { type: 'source', type_args: [] } ]
+          type_args: [
+            {
+              type: 'source',
+              type_args: []
+            }
+          ]
         }
       },
-      { name: 'text', type: { type: 'str', type_args: [] } }
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'query' ],
-    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    input_fields: [
+      'query'
+    ],
+    required_settings: [
+      'GOOGLE_CLOUD_PROJECT'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48671,6 +51151,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -48681,7 +51162,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: 'text',
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48697,7 +51182,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'input',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Input',
         description: 'The text to embed.',
@@ -48709,14 +51197,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'embedding_model', type_args: [] },
+        type: {
+          type: 'embedding_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The embedding model.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini_vertex'
+          ]
+        },
         default: {
           type: 'embedding_model',
           provider: 'gemini_vertex',
@@ -48725,11 +51220,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         }
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'list', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'list',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
-    inline_fields: [ 'input' ],
+    inline_fields: [
+      'input'
+    ],
     input_fields: [],
-    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    required_settings: [
+      'GOOGLE_CLOUD_PROJECT'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48739,6 +51246,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -48749,7 +51257,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48765,7 +51277,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The text prompt describing the image to generate.',
@@ -48777,14 +51292,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'image_model', type_args: [] },
+        type: {
+          type: 'image_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The image model.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini_vertex'
+          ]
+        },
         default: {
           type: 'image_model',
           provider: 'gemini_vertex',
@@ -48794,7 +51316,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'Image',
         description: 'The image to use as a base for the generation.',
@@ -48816,11 +51341,20 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'enum',
           type_args: [],
           values: [
-            '1:1',  '1:4',  '1:8',
-            '2:3',  '3:2',  '3:4',
-            '4:1',  '4:3',  '4:5',
-            '5:4',  '8:1',  '9:16',
-            '16:9', '21:9'
+            '1:1',
+            '1:4',
+            '1:8',
+            '2:3',
+            '3:2',
+            '3:4',
+            '4:1',
+            '4:3',
+            '4:5',
+            '5:4',
+            '8:1',
+            '9:16',
+            '16:9',
+            '21:9'
           ]
         },
         required: false,
@@ -48829,11 +51363,20 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         min: undefined,
         max: undefined,
         values: [
-          '1:1',  '1:4',  '1:8',
-          '2:3',  '3:2',  '3:4',
-          '4:1',  '4:3',  '4:5',
-          '5:4',  '8:1',  '9:16',
-          '16:9', '21:9'
+          '1:1',
+          '1:4',
+          '1:8',
+          '2:3',
+          '3:2',
+          '3:4',
+          '4:1',
+          '4:3',
+          '4:5',
+          '5:4',
+          '8:1',
+          '9:16',
+          '16:9',
+          '21:9'
         ],
         json_schema_extra: undefined,
         default: '1:1'
@@ -48843,23 +51386,46 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ '512px', '1K', '2K', '4K' ]
+          values: [
+            '512px',
+            '1K',
+            '2K',
+            '4K'
+          ]
         },
         required: false,
         title: 'Resolution',
         description: 'The output image resolution',
         min: undefined,
         max: undefined,
-        values: [ '512px', '1K', '2K', '4K' ],
+        values: [
+          '512px',
+          '1K',
+          '2K',
+          '4K'
+        ],
         json_schema_extra: undefined,
         default: '1K'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'image', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'image',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'image' ],
-    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    input_fields: [
+      'prompt',
+      'image'
+    ],
+    required_settings: [
+      'GOOGLE_CLOUD_PROJECT'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48869,6 +51435,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -48879,7 +51446,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48895,7 +51466,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The text prompt describing the video to generate',
@@ -48907,14 +51481,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'video_model', type_args: [] },
+        type: {
+          type: 'video_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Veo model.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini_vertex'
+          ]
+        },
         default: {
           type: 'video_model',
           provider: 'gemini_vertex',
@@ -48924,19 +51505,32 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'aspect_ratio',
-        type: { type: 'enum', type_args: [], values: [ '16:9', '9:16' ] },
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            '16:9',
+            '9:16'
+          ]
+        },
         required: false,
         title: 'Aspect Ratio',
         description: 'The aspect ratio of the generated video',
         min: undefined,
         max: undefined,
-        values: [ '16:9', '9:16' ],
+        values: [
+          '16:9',
+          '9:16'
+        ],
         json_schema_extra: undefined,
         default: '16:9'
       },
       {
         name: 'negative_prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Negative Prompt',
         description: 'Negative prompt to guide what to avoid in the video',
@@ -48951,23 +51545,43 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ '720p', '1080p', '4k' ]
+          values: [
+            '720p',
+            '1080p',
+            '4k'
+          ]
         },
         required: false,
         title: 'Resolution',
         description: 'The output video resolution',
         min: undefined,
         max: undefined,
-        values: [ '720p', '1080p', '4k' ],
+        values: [
+          '720p',
+          '1080p',
+          '4k'
+        ],
         json_schema_extra: undefined,
         default: '720p'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'video',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt' ],
-    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    input_fields: [
+      'prompt'
+    ],
+    required_settings: [
+      'GOOGLE_CLOUD_PROJECT'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48977,6 +51591,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -48987,7 +51602,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -49003,7 +51622,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'Image',
         description: 'The image to animate into a video',
@@ -49021,7 +51643,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'end_image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'End Image',
         description: 'Optional frame the video ends on. Veo interpolates between the two frames in an 8-second clip.',
@@ -49039,7 +51664,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'Optional text prompt describing the desired animation',
@@ -49051,14 +51679,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'video_model', type_args: [] },
+        type: {
+          type: 'video_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Veo model.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini_vertex'
+          ]
+        },
         default: {
           type: 'video_model',
           provider: 'gemini_vertex',
@@ -49068,19 +51703,32 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'aspect_ratio',
-        type: { type: 'enum', type_args: [], values: [ '16:9', '9:16' ] },
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            '16:9',
+            '9:16'
+          ]
+        },
         required: false,
         title: 'Aspect Ratio',
         description: 'The aspect ratio of the generated video',
         min: undefined,
         max: undefined,
-        values: [ '16:9', '9:16' ],
+        values: [
+          '16:9',
+          '9:16'
+        ],
         json_schema_extra: undefined,
         default: '16:9'
       },
       {
         name: 'negative_prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Negative Prompt',
         description: 'Negative prompt to guide what to avoid in the video',
@@ -49095,23 +51743,45 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ '720p', '1080p', '4k' ]
+          values: [
+            '720p',
+            '1080p',
+            '4k'
+          ]
         },
         required: false,
         title: 'Resolution',
         description: 'The output video resolution',
         min: undefined,
         max: undefined,
-        values: [ '720p', '1080p', '4k' ],
+        values: [
+          '720p',
+          '1080p',
+          '4k'
+        ],
         json_schema_extra: undefined,
         default: '720p'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'video',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'image', 'end_image' ],
-    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    input_fields: [
+      'prompt',
+      'image',
+      'end_image'
+    ],
+    required_settings: [
+      'GOOGLE_CLOUD_PROJECT'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -49121,6 +51791,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -49131,7 +51802,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -49147,7 +51822,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'text',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Text',
         description: 'The text to convert to speech.',
@@ -49159,14 +51837,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'tts_model', type_args: [] },
+        type: {
+          type: 'tts_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The text-to-speech model.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini_vertex'
+          ]
+        },
         default: {
           type: 'tts_model',
           provider: 'gemini_vertex',
@@ -49180,16 +51865,36 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'enum',
           type_args: [],
           values: [
-            'achernar',     'achird',     'algenib',
-            'algieba',      'alnilam',    'aoede',
-            'autonoe',      'callirrhoe', 'charon',
-            'despina',      'enceladus',  'erinome',
-            'fenrir',       'gacrux',     'iapetus',
-            'kore',         'laomedeia',  'leda',
-            'orus',         'puck',       'pulcherrima',
-            'rasalgethi',   'sadachbia',  'sadaltager',
-            'schedar',      'sulafat',    'umbriel',
-            'vindemiatrix', 'zephyr',     'zubenelgenubi'
+            'achernar',
+            'achird',
+            'algenib',
+            'algieba',
+            'alnilam',
+            'aoede',
+            'autonoe',
+            'callirrhoe',
+            'charon',
+            'despina',
+            'enceladus',
+            'erinome',
+            'fenrir',
+            'gacrux',
+            'iapetus',
+            'kore',
+            'laomedeia',
+            'leda',
+            'orus',
+            'puck',
+            'pulcherrima',
+            'rasalgethi',
+            'sadachbia',
+            'sadaltager',
+            'schedar',
+            'sulafat',
+            'umbriel',
+            'vindemiatrix',
+            'zephyr',
+            'zubenelgenubi'
           ]
         },
         required: false,
@@ -49198,23 +51903,46 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         min: undefined,
         max: undefined,
         values: [
-          'achernar',     'achird',     'algenib',
-          'algieba',      'alnilam',    'aoede',
-          'autonoe',      'callirrhoe', 'charon',
-          'despina',      'enceladus',  'erinome',
-          'fenrir',       'gacrux',     'iapetus',
-          'kore',         'laomedeia',  'leda',
-          'orus',         'puck',       'pulcherrima',
-          'rasalgethi',   'sadachbia',  'sadaltager',
-          'schedar',      'sulafat',    'umbriel',
-          'vindemiatrix', 'zephyr',     'zubenelgenubi'
+          'achernar',
+          'achird',
+          'algenib',
+          'algieba',
+          'alnilam',
+          'aoede',
+          'autonoe',
+          'callirrhoe',
+          'charon',
+          'despina',
+          'enceladus',
+          'erinome',
+          'fenrir',
+          'gacrux',
+          'iapetus',
+          'kore',
+          'laomedeia',
+          'leda',
+          'orus',
+          'puck',
+          'pulcherrima',
+          'rasalgethi',
+          'sadachbia',
+          'sadaltager',
+          'schedar',
+          'sulafat',
+          'umbriel',
+          'vindemiatrix',
+          'zephyr',
+          'zubenelgenubi'
         ],
         json_schema_extra: undefined,
         default: 'kore'
       },
       {
         name: 'style_prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Style Prompt',
         description: "Optional style prompt to control speech characteristics (e.g., 'Say cheerfully', 'Speak with excitement')",
@@ -49225,11 +51953,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: ''
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'audio', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'audio',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'text' ],
-    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    input_fields: [
+      'text'
+    ],
+    required_settings: [
+      'GOOGLE_CLOUD_PROJECT'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -49239,6 +51979,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -49249,7 +51990,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -49265,7 +52010,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'audio',
-        type: { type: 'audio', type_args: [] },
+        type: {
+          type: 'audio',
+          type_args: []
+        },
         required: false,
         title: 'Audio',
         description: 'The audio file to transcribe.',
@@ -49283,14 +52031,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'asr_model', type_args: [] },
+        type: {
+          type: 'asr_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Gemini model that transcribes.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'gemini_vertex'
+          ]
+        },
         default: {
           type: 'asr_model',
           provider: 'gemini_vertex',
@@ -49300,7 +52055,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'Instructions for the transcription. You can customize this to request specific formatting or focus.',
@@ -49311,11 +52069,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 'Transcribe the following audio accurately. Return only the transcription text without any additional commentary.'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'audio', 'prompt' ],
-    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    input_fields: [
+      'audio',
+      'prompt'
+    ],
+    required_settings: [
+      'GOOGLE_CLOUD_PROJECT'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -49325,6 +52096,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -49335,7 +52107,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -49453,6 +52229,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -49592,6 +52369,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -49704,6 +52482,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -49740,8 +52519,14 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
             {
               type: 'dict',
               type_args: [
-                { type: 'str', type_args: [] },
-                { type: 'any', type_args: [] }
+                {
+                  type: 'str',
+                  type_args: []
+                },
+                {
+                  type: 'any',
+                  type_args: []
+                }
               ]
             }
           ]
@@ -49763,8 +52548,14 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
             {
               type: 'dict',
               type_args: [
-                { type: 'str', type_args: [] },
-                { type: 'any', type_args: [] }
+                {
+                  type: 'str',
+                  type_args: []
+                },
+                {
+                  type: 'any',
+                  type_args: []
+                }
               ]
             }
           ]
@@ -49780,7 +52571,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'output_slots',
-        type: { type: 'list', type_args: [{ type: 'str', type_args: [] }] },
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'str',
+              type_args: []
+            }
+          ]
+        },
         required: false,
         title: 'Output Slots',
         description: 'The `<comfyNodeId>:<handle>` slots that workflow Output nodes read.',
@@ -49792,7 +52591,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'timeout',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Timeout',
         description: 'Maximum seconds to wait for the job to finish.',
@@ -49809,8 +52611,14 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'dict',
           type_args: [
-            { type: 'str', type_args: [] },
-            { type: 'any', type_args: [] }
+            {
+              type: 'str',
+              type_args: []
+            },
+            {
+              type: 'any',
+              type_args: []
+            }
           ]
         }
       }
@@ -49828,6 +52636,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: true,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -49838,7 +52647,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: true,
     replaced_by: undefined
@@ -50161,6 +52974,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -50196,7 +53010,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'server_url',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Server URL',
         description: 'MCP endpoint of a Wan2GP server, for example http://127.0.0.1:7866/mcp. Leave blank to use the WAN2GP_MCP_URL setting, then the Wan2GP installed in the Package Manager, then localhost.',
@@ -50208,7 +53025,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'timeout_seconds',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Timeout',
         description: 'How long to wait for one generation, in seconds. The job is cancelled on the server when it runs out.',
@@ -50220,7 +53040,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_media_bytes',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Max Media Bytes',
         description: 'Largest upload or download in bytes. Defaults to 512 MiB, at most 8 GiB.',
@@ -50232,7 +53055,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'seed',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Seed',
         description: 'Random seed. Use -1 to let Wan2GP pick a new seed for every run.',
@@ -50244,7 +53070,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'negative_prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Negative Prompt',
         description: 'What to keep out of the video. Leave empty to use the model default.',
@@ -50256,7 +53085,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'width',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Width',
         description: 'Output width in pixels. Must be a multiple of 16.',
@@ -50268,7 +53100,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'height',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Height',
         description: 'Output height in pixels. Must be a multiple of 16.',
@@ -50280,7 +53115,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'num_frames',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Frames',
         description: 'Number of frames. Wan2GP rounds this to the nearest count the model allows.',
@@ -50292,7 +53130,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'fps',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'FPS',
         description: 'Frames per second of the output video.',
@@ -50304,7 +53145,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'num_inference_steps',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Steps',
         description: 'Denoising steps. More steps give more detail and take longer.',
@@ -50316,7 +53160,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'loras',
-        type: { type: 'list', type_args: [ { type: 'str', type_args: [] } ] },
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'str',
+              type_args: []
+            }
+          ]
+        },
         required: false,
         title: 'LoRAs',
         description: 'LoRA identifiers to activate, as the server lists them.',
@@ -50328,7 +53180,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'lora_multipliers',
-        type: { type: 'list', type_args: [ { type: 'float', type_args: [] } ] },
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'float',
+              type_args: []
+            }
+          ]
+        },
         required: false,
         title: 'LoRA Multipliers',
         description: 'Weight for each LoRA, in the same order. Leave empty for a weight of 1 each.',
@@ -50340,7 +53200,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: true,
         title: 'Prompt',
         description: 'Description of the video to generate.',
@@ -50352,7 +53215,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model_type',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'Wan2GP model id, for example t2v_2_2. The List Models node shows the ids your server offers.',
@@ -50363,10 +53229,20 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 't2v_2_2'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'video',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt' ],
+    input_fields: [
+      'prompt'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -50377,6 +53253,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -50387,7 +53264,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -50408,7 +53289,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'server_url',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Server URL',
         description: 'MCP endpoint of a Wan2GP server, for example http://127.0.0.1:7866/mcp. Leave blank to use the WAN2GP_MCP_URL setting, then the Wan2GP installed in the Package Manager, then localhost.',
@@ -50420,7 +53304,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'timeout_seconds',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Timeout',
         description: 'How long to wait for one generation, in seconds. The job is cancelled on the server when it runs out.',
@@ -50432,7 +53319,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_media_bytes',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Max Media Bytes',
         description: 'Largest upload or download in bytes. Defaults to 512 MiB, at most 8 GiB.',
@@ -50444,7 +53334,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'seed',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Seed',
         description: 'Random seed. Use -1 to let Wan2GP pick a new seed for every run.',
@@ -50456,7 +53349,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'negative_prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Negative Prompt',
         description: 'What to keep out of the video. Leave empty to use the model default.',
@@ -50468,7 +53364,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'width',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Width',
         description: 'Output width in pixels. Must be a multiple of 16.',
@@ -50480,7 +53379,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'height',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Height',
         description: 'Output height in pixels. Must be a multiple of 16.',
@@ -50492,7 +53394,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'num_frames',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Frames',
         description: 'Number of frames. Wan2GP rounds this to the nearest count the model allows.',
@@ -50504,7 +53409,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'fps',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'FPS',
         description: 'Frames per second of the output video.',
@@ -50516,7 +53424,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'num_inference_steps',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Steps',
         description: 'Denoising steps. More steps give more detail and take longer.',
@@ -50528,7 +53439,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'loras',
-        type: { type: 'list', type_args: [ { type: 'str', type_args: [] } ] },
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'str',
+              type_args: []
+            }
+          ]
+        },
         required: false,
         title: 'LoRAs',
         description: 'LoRA identifiers to activate, as the server lists them.',
@@ -50540,7 +53459,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'lora_multipliers',
-        type: { type: 'list', type_args: [ { type: 'float', type_args: [] } ] },
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'float',
+              type_args: []
+            }
+          ]
+        },
         required: false,
         title: 'LoRA Multipliers',
         description: 'Weight for each LoRA, in the same order. Leave empty for a weight of 1 each.',
@@ -50552,7 +53479,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: true,
         title: 'Image',
         description: 'The first frame of the video.',
@@ -50564,7 +53494,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'How the image should move.',
@@ -50576,7 +53509,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model_type',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'Wan2GP model id, for example i2v_2_2. The List Models node shows the ids your server offers.',
@@ -50587,10 +53523,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 'i2v_2_2'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'video',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'image', 'prompt' ],
+    input_fields: [
+      'image',
+      'prompt'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -50601,6 +53548,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -50611,7 +53559,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -50635,7 +53587,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'server_url',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Server URL',
         description: 'MCP endpoint of a Wan2GP server, for example http://127.0.0.1:7866/mcp. Leave blank to use the WAN2GP_MCP_URL setting, then the Wan2GP installed in the Package Manager, then localhost.',
@@ -50647,7 +53602,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'timeout_seconds',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Timeout',
         description: 'How long to wait for one generation, in seconds. The job is cancelled on the server when it runs out.',
@@ -50659,7 +53617,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_media_bytes',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Max Media Bytes',
         description: 'Largest upload or download in bytes. Defaults to 512 MiB, at most 8 GiB.',
@@ -50671,7 +53632,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'seed',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Seed',
         description: 'Random seed. Use -1 to let Wan2GP pick a new seed for every run.',
@@ -50683,7 +53647,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model_type',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'Wan2GP model id. The List Models node shows the ids your server offers.',
@@ -50698,8 +53665,14 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'dict',
           type_args: [
-            { type: 'str', type_args: [] },
-            { type: 'any', type_args: [] }
+            {
+              type: 'str',
+              type_args: []
+            },
+            {
+              type: 'any',
+              type_args: []
+            }
           ]
         },
         required: false,
@@ -50713,7 +53686,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'Start Image',
         description: 'Sent as image_start.',
@@ -50725,7 +53701,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'image_end',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'End Image',
         description: 'Sent as image_end, for models that take a last frame.',
@@ -50737,7 +53716,15 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'reference_images',
-        type: { type: 'list', type_args: [ { type: 'image', type_args: [] } ] },
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'image',
+              type_args: []
+            }
+          ]
+        },
         required: false,
         title: 'Reference Images',
         description: 'Sent in order as image_refs, for models that take a subject, style or background reference.',
@@ -50749,7 +53736,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'video',
-        type: { type: 'video', type_args: [] },
+        type: {
+          type: 'video',
+          type_args: []
+        },
         required: false,
         title: 'Control Video',
         description: 'Sent as video_guide.',
@@ -50761,7 +53751,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'video_mask',
-        type: { type: 'video', type_args: [] },
+        type: {
+          type: 'video',
+          type_args: []
+        },
         required: false,
         title: 'Mask Video',
         description: 'Sent as video_mask. Needs a control video and a video_prompt_type with A.',
@@ -50773,7 +53766,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'source_video',
-        type: { type: 'video', type_args: [] },
+        type: {
+          type: 'video',
+          type_args: []
+        },
         required: false,
         title: 'Source Video',
         description: 'Sent as video_source, the video to continue from.',
@@ -50785,7 +53781,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'audio',
-        type: { type: 'audio', type_args: [] },
+        type: {
+          type: 'audio',
+          type_args: []
+        },
         required: false,
         title: 'Audio',
         description: 'Sent as audio_guide, such as speech for lip sync.',
@@ -50797,7 +53796,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'custom_file',
-        type: { type: 'asset', type_args: [] },
+        type: {
+          type: 'asset',
+          type_args: []
+        },
         required: false,
         title: 'Custom File',
         description: 'Sent as custom_guide: the extra input file some models require, such as a trajectory (.npy) for wanmove or a score (.abc) for yue2.',
@@ -50809,7 +53811,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'custom_file_name',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Custom File Name',
         description: "File name of the custom file with its extension, for example trajectory.npy. Leave blank to take it from the file's URI.",
@@ -50826,10 +53831,22 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'union',
           type_args: [
-            { type: 'image', type_args: [] },
-            { type: 'video', type_args: [] },
-            { type: 'audio', type_args: [] },
-            { type: 'model_3d', type_args: [] }
+            {
+              type: 'image',
+              type_args: []
+            },
+            {
+              type: 'video',
+              type_args: []
+            },
+            {
+              type: 'audio',
+              type_args: []
+            },
+            {
+              type: 'model_3d',
+              type_args: []
+            }
           ]
         }
       }
@@ -50856,6 +53873,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -50866,7 +53884,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -50889,7 +53911,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'server_url',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Server URL',
         description: 'MCP endpoint of a Wan2GP server. Leave blank to use the WAN2GP_MCP_URL setting, then the Wan2GP installed in the Package Manager, then http://127.0.0.1:7866/mcp.',
@@ -50901,7 +53926,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'query',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Query',
         description: "Text to look for in the model's name, id, family or description. Leave blank to list every model.",
@@ -50916,20 +53944,35 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ '', 'video', 'image', 'audio', '3d' ]
+          values: [
+            '',
+            'video',
+            'image',
+            'audio',
+            '3d'
+          ]
         },
         required: false,
         title: 'Main Output',
         description: 'Keep only models whose main output is this kind. Empty keeps every kind.',
         min: undefined,
         max: undefined,
-        values: [ '', 'video', 'image', 'audio', '3d' ],
+        values: [
+          '',
+          'video',
+          'image',
+          'audio',
+          '3d'
+        ],
         json_schema_extra: undefined,
         default: ''
       },
       {
         name: 'media_input',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Media Input',
         description: 'Keep only models that accept this input kind: image, video, audio, 3d or world.',
@@ -50941,7 +53984,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'capability',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Capability',
         description: 'Keep only models with this Wan2GP capability, for example image_to_video, reference_images or control_video.',
@@ -50953,7 +53999,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'limit',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Limit',
         description: 'Most models to return.',
@@ -50967,12 +54016,22 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     outputs: [
       {
         name: 'output',
-        type: { type: 'list', type_args: [ { type: 'dict', type_args: [] } ] }
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'dict',
+              type_args: []
+            }
+          ]
+        }
       }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'query' ],
+    input_fields: [
+      'query'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -50983,6 +54042,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -50993,7 +54053,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -51220,6 +54284,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -51517,6 +54582,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -51556,14 +54622,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Mistral model to use for generation',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'mistral' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'mistral'
+          ]
+        },
         default: {
           type: 'language_model',
           provider: 'mistral',
@@ -51573,7 +54646,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The prompt for text generation',
@@ -51585,7 +54661,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'system_prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'System Prompt',
         description: "Optional system prompt to guide the model's behavior",
@@ -51597,7 +54676,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'temperature',
-        type: { type: 'float', type_args: [] },
+        type: {
+          type: 'float',
+          type_args: []
+        },
         required: false,
         title: 'Temperature',
         description: 'Sampling temperature. Higher values make output more random.',
@@ -51609,7 +54691,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_tokens',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Max Tokens',
         description: 'Maximum number of tokens to generate',
@@ -51620,11 +54705,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 1024
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'system_prompt' ],
-    required_settings: [ 'MISTRAL_API_KEY' ],
+    input_fields: [
+      'prompt',
+      'system_prompt'
+    ],
+    required_settings: [
+      'MISTRAL_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -51634,6 +54732,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -51644,7 +54743,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -51755,6 +54858,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -51795,7 +54899,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'input',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Input',
         description: 'The text to embed',
@@ -51807,14 +54914,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'embedding_model', type_args: [] },
+        type: {
+          type: 'embedding_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The embedding model to use',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'mistral' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'mistral'
+          ]
+        },
         default: {
           type: 'embedding_model',
           provider: 'mistral',
@@ -51824,7 +54938,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'chunk_size',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Chunk Size',
         description: 'Size of text chunks for embedding',
@@ -51835,11 +54952,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 4096
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'list', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'list',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
-    inline_fields: [ 'input' ],
+    inline_fields: [
+      'input'
+    ],
     input_fields: [],
-    required_settings: [ 'MISTRAL_API_KEY' ],
+    required_settings: [
+      'MISTRAL_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -51849,6 +54978,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -51859,7 +54989,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -51886,7 +55020,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'Image',
         description: 'The image to analyze',
@@ -51904,7 +55041,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The prompt/question about the image',
@@ -51916,14 +55056,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Pixtral model to use for vision tasks',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'mistral' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'mistral'
+          ]
+        },
         default: {
           type: 'language_model',
           provider: 'mistral',
@@ -51933,7 +55080,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'temperature',
-        type: { type: 'float', type_args: [] },
+        type: {
+          type: 'float',
+          type_args: []
+        },
         required: false,
         title: 'Temperature',
         description: 'Sampling temperature for response generation',
@@ -51945,7 +55095,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_tokens',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Max Tokens',
         description: 'Maximum number of tokens to generate',
@@ -51956,11 +55109,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 1024
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'image' ],
-    required_settings: [ 'MISTRAL_API_KEY' ],
+    input_fields: [
+      'prompt',
+      'image'
+    ],
+    required_settings: [
+      'MISTRAL_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -51970,6 +55136,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -51980,7 +55147,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -52006,7 +55177,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'Image',
         description: 'The image to extract text from',
@@ -52024,14 +55198,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Pixtral model to use for OCR',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'mistral' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'mistral'
+          ]
+        },
         default: {
           type: 'language_model',
           provider: 'mistral',
@@ -52040,11 +55221,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         }
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'image' ],
-    required_settings: [ 'MISTRAL_API_KEY' ],
+    input_fields: [
+      'image'
+    ],
+    required_settings: [
+      'MISTRAL_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -52054,6 +55247,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -52064,7 +55258,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -52089,7 +55287,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'input',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Input',
         description: undefined,
@@ -52101,14 +55302,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'embedding_model', type_args: [] },
+        type: {
+          type: 'embedding_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The model to use.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'openai' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'openai'
+          ]
+        },
         default: {
           type: 'embedding_model',
           provider: 'openai',
@@ -52118,7 +55326,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'chunk_size',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Chunk Size',
         description: undefined,
@@ -52129,11 +55340,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 4096
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'list', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'list',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
-    inline_fields: [ 'input' ],
+    inline_fields: [
+      'input'
+    ],
     input_fields: [],
-    required_settings: [ 'OPENAI_API_KEY' ],
+    required_settings: [
+      'OPENAI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -52143,6 +55366,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -52153,7 +55377,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -52209,6 +55437,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -52347,6 +55576,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -52377,7 +55607,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The prompt to use.',
@@ -52389,14 +55622,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'image_model', type_args: [] },
+        type: {
+          type: 'image_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The model to use for image generation.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'openai' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'openai'
+          ]
+        },
         default: {
           type: 'image_model',
           provider: 'openai',
@@ -52409,14 +55649,22 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ '1024x1024', '1536x1024', '1024x1536' ]
+          values: [
+            '1024x1024',
+            '1536x1024',
+            '1024x1536'
+          ]
         },
         required: false,
         title: 'Size',
         description: 'The size of the image to generate.',
         min: undefined,
         max: undefined,
-        values: [ '1024x1024', '1536x1024', '1024x1536' ],
+        values: [
+          '1024x1024',
+          '1536x1024',
+          '1024x1536'
+        ],
         json_schema_extra: undefined,
         default: '1024x1024'
       },
@@ -52425,14 +55673,22 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ 'transparent', 'opaque', 'auto' ]
+          values: [
+            'transparent',
+            'opaque',
+            'auto'
+          ]
         },
         required: false,
         title: 'Background',
         description: 'The background of the image to generate.',
         min: undefined,
         max: undefined,
-        values: [ 'transparent', 'opaque', 'auto' ],
+        values: [
+          'transparent',
+          'opaque',
+          'auto'
+        ],
         json_schema_extra: undefined,
         default: 'auto'
       },
@@ -52441,23 +55697,43 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ 'high', 'medium', 'low' ]
+          values: [
+            'high',
+            'medium',
+            'low'
+          ]
         },
         required: false,
         title: 'Quality',
         description: 'The quality of the image to generate.',
         min: undefined,
         max: undefined,
-        values: [ 'high', 'medium', 'low' ],
+        values: [
+          'high',
+          'medium',
+          'low'
+        ],
         json_schema_extra: undefined,
         default: 'high'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'image', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'image',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt' ],
-    required_settings: [ 'OPENAI_API_KEY' ],
+    input_fields: [
+      'prompt'
+    ],
+    required_settings: [
+      'OPENAI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -52467,6 +55743,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -52477,7 +55754,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -52497,7 +55778,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'Image',
         description: 'The image to edit.',
@@ -52515,7 +55799,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'mask',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'Mask',
         description: 'Optional mask image. White areas will be edited, black areas preserved.',
@@ -52533,7 +55820,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The prompt describing the desired edit.',
@@ -52545,14 +55835,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'image_model', type_args: [] },
+        type: {
+          type: 'image_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The model to use for image editing.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'openai' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'openai'
+          ]
+        },
         default: {
           type: 'image_model',
           provider: 'openai',
@@ -52565,14 +55862,22 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ '1024x1024', '1536x1024', '1024x1536' ]
+          values: [
+            '1024x1024',
+            '1536x1024',
+            '1024x1536'
+          ]
         },
         required: false,
         title: 'Size',
         description: 'The size of the output image.',
         min: undefined,
         max: undefined,
-        values: [ '1024x1024', '1536x1024', '1024x1536' ],
+        values: [
+          '1024x1024',
+          '1536x1024',
+          '1024x1536'
+        ],
         json_schema_extra: undefined,
         default: '1024x1024'
       },
@@ -52581,23 +55886,45 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ 'high', 'medium', 'low' ]
+          values: [
+            'high',
+            'medium',
+            'low'
+          ]
         },
         required: false,
         title: 'Quality',
         description: 'The quality of the generated image.',
         min: undefined,
         max: undefined,
-        values: [ 'high', 'medium', 'low' ],
+        values: [
+          'high',
+          'medium',
+          'low'
+        ],
         json_schema_extra: undefined,
         default: 'high'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'image', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'image',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'image', 'mask' ],
-    required_settings: [ 'OPENAI_API_KEY' ],
+    input_fields: [
+      'prompt',
+      'image',
+      'mask'
+    ],
+    required_settings: [
+      'OPENAI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -52607,6 +55934,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -52617,7 +55945,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -52706,6 +56038,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -52736,14 +56069,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'model',
-        type: { type: 'tts_model', type_args: [] },
+        type: {
+          type: 'tts_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The model to use.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'openai' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'openai'
+          ]
+        },
         default: {
           type: 'tts_model',
           provider: 'openai',
@@ -52757,11 +56097,16 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'enum',
           type_args: [],
           values: [
-            'alloy',  'ash',
-            'ballad', 'coral',
-            'echo',   'fable',
-            'onyx',   'nova',
-            'sage',   'shimmer',
+            'alloy',
+            'ash',
+            'ballad',
+            'coral',
+            'echo',
+            'fable',
+            'onyx',
+            'nova',
+            'sage',
+            'shimmer',
             'verse'
           ]
         },
@@ -52771,11 +56116,16 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         min: undefined,
         max: undefined,
         values: [
-          'alloy',  'ash',
-          'ballad', 'coral',
-          'echo',   'fable',
-          'onyx',   'nova',
-          'sage',   'shimmer',
+          'alloy',
+          'ash',
+          'ballad',
+          'coral',
+          'echo',
+          'fable',
+          'onyx',
+          'nova',
+          'sage',
+          'shimmer',
           'verse'
         ],
         json_schema_extra: undefined,
@@ -52783,7 +56133,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'input',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Input',
         description: undefined,
@@ -52795,7 +56148,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'speed',
-        type: { type: 'float', type_args: [] },
+        type: {
+          type: 'float',
+          type_args: []
+        },
         required: false,
         title: 'Speed',
         description: undefined,
@@ -52807,7 +56163,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'instructions',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Instructions',
         description: "Steer the voice's tone, emotion, and delivery (gpt-4o-mini-tts only).",
@@ -52818,11 +56177,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: ''
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'audio', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'audio',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'input' ],
-    required_settings: [ 'OPENAI_API_KEY' ],
+    input_fields: [
+      'input'
+    ],
+    required_settings: [
+      'OPENAI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -52832,6 +56203,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -52842,7 +56214,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -52919,6 +56295,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -52949,14 +56326,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'model',
-        type: { type: 'asr_model', type_args: [] },
+        type: {
+          type: 'asr_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The model to use for transcription.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'openai' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'openai'
+          ]
+        },
         default: {
           type: 'asr_model',
           provider: 'openai',
@@ -52966,7 +56350,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'audio',
-        type: { type: 'audio', type_args: [] },
+        type: {
+          type: 'audio',
+          type_args: []
+        },
         required: false,
         title: 'Audio',
         description: 'The audio file to transcribe (max 25 MB).',
@@ -52988,22 +56375,68 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'enum',
           type_args: [],
           values: [
-            'auto_detect', 'af', 'ar', 'hy',
-            'az',          'be', 'bn', 'bs',
-            'bg',          'ca', 'hr', 'cs',
-            'da',          'nl', 'en', 'et',
-            'tl',          'fi', 'fr', 'gl',
-            'de',          'el', 'gu', 'he',
-            'hi',          'hu', 'is', 'id',
-            'it',          'ja', 'kn', 'kk',
-            'ko',          'lv', 'lt', 'mk',
-            'ms',          'zh', 'mi', 'mr',
-            'ne',          'no', 'fa', 'pl',
-            'pt',          'pa', 'ro', 'ru',
-            'sr',          'sk', 'sl', 'es',
-            'sw',          'sv', 'ta', 'te',
-            'th',          'tr', 'uk', 'ur',
-            'vi',          'cy'
+            'auto_detect',
+            'af',
+            'ar',
+            'hy',
+            'az',
+            'be',
+            'bn',
+            'bs',
+            'bg',
+            'ca',
+            'hr',
+            'cs',
+            'da',
+            'nl',
+            'en',
+            'et',
+            'tl',
+            'fi',
+            'fr',
+            'gl',
+            'de',
+            'el',
+            'gu',
+            'he',
+            'hi',
+            'hu',
+            'is',
+            'id',
+            'it',
+            'ja',
+            'kn',
+            'kk',
+            'ko',
+            'lv',
+            'lt',
+            'mk',
+            'ms',
+            'zh',
+            'mi',
+            'mr',
+            'ne',
+            'no',
+            'fa',
+            'pl',
+            'pt',
+            'pa',
+            'ro',
+            'ru',
+            'sr',
+            'sk',
+            'sl',
+            'es',
+            'sw',
+            'sv',
+            'ta',
+            'te',
+            'th',
+            'tr',
+            'uk',
+            'ur',
+            'vi',
+            'cy'
           ]
         },
         required: false,
@@ -53012,29 +56445,78 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         min: undefined,
         max: undefined,
         values: [
-          'auto_detect', 'af', 'ar', 'hy',
-          'az',          'be', 'bn', 'bs',
-          'bg',          'ca', 'hr', 'cs',
-          'da',          'nl', 'en', 'et',
-          'tl',          'fi', 'fr', 'gl',
-          'de',          'el', 'gu', 'he',
-          'hi',          'hu', 'is', 'id',
-          'it',          'ja', 'kn', 'kk',
-          'ko',          'lv', 'lt', 'mk',
-          'ms',          'zh', 'mi', 'mr',
-          'ne',          'no', 'fa', 'pl',
-          'pt',          'pa', 'ro', 'ru',
-          'sr',          'sk', 'sl', 'es',
-          'sw',          'sv', 'ta', 'te',
-          'th',          'tr', 'uk', 'ur',
-          'vi',          'cy'
+          'auto_detect',
+          'af',
+          'ar',
+          'hy',
+          'az',
+          'be',
+          'bn',
+          'bs',
+          'bg',
+          'ca',
+          'hr',
+          'cs',
+          'da',
+          'nl',
+          'en',
+          'et',
+          'tl',
+          'fi',
+          'fr',
+          'gl',
+          'de',
+          'el',
+          'gu',
+          'he',
+          'hi',
+          'hu',
+          'is',
+          'id',
+          'it',
+          'ja',
+          'kn',
+          'kk',
+          'ko',
+          'lv',
+          'lt',
+          'mk',
+          'ms',
+          'zh',
+          'mi',
+          'mr',
+          'ne',
+          'no',
+          'fa',
+          'pl',
+          'pt',
+          'pa',
+          'ro',
+          'ru',
+          'sr',
+          'sk',
+          'sl',
+          'es',
+          'sw',
+          'sv',
+          'ta',
+          'te',
+          'th',
+          'tr',
+          'uk',
+          'ur',
+          'vi',
+          'cy'
         ],
         json_schema_extra: undefined,
         default: 'auto_detect'
       },
       {
         name: 'timestamps',
-        type: { type: 'bool', type_args: [] },
+        type: {
+          type: 'bool',
+          type_args: []
+        },
         required: false,
         title: 'Timestamps',
         description: 'Whether to return timestamps for the generated text.',
@@ -53046,7 +56528,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: "Optional text to guide the model's style or continue a previous audio segment.",
@@ -53058,7 +56543,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'temperature',
-        type: { type: 'float', type_args: [] },
+        type: {
+          type: 'float',
+          type_args: []
+        },
         required: false,
         title: 'Temperature',
         description: 'The sampling temperature between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.',
@@ -53070,26 +56558,47 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     outputs: [
-      { name: 'text', type: { type: 'str', type_args: [] } },
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
       {
         name: 'words',
         type: {
           type: 'list',
-          type_args: [ { type: 'audio_chunk', type_args: [] } ]
+          type_args: [
+            {
+              type: 'audio_chunk',
+              type_args: []
+            }
+          ]
         }
       },
       {
         name: 'segments',
         type: {
           type: 'list',
-          type_args: [ { type: 'audio_chunk', type_args: [] } ]
+          type_args: [
+            {
+              type: 'audio_chunk',
+              type_args: []
+            }
+          ]
         }
       }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'audio', 'prompt' ],
-    required_settings: [ 'OPENAI_API_KEY' ],
+    input_fields: [
+      'audio',
+      'prompt'
+    ],
+    required_settings: [
+      'OPENAI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -53099,6 +56608,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -53109,7 +56619,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -53299,6 +56813,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: true,
@@ -53438,6 +56953,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -53682,6 +57198,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -53721,14 +57238,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Grok model.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'xai' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'xai'
+          ]
+        },
         default: {
           type: 'language_model',
           provider: 'xai',
@@ -53738,7 +57262,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The prompt for text generation',
@@ -53750,7 +57277,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'system_prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'System Prompt',
         description: "Optional system prompt to guide the model's behavior",
@@ -53762,7 +57292,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'temperature',
-        type: { type: 'float', type_args: [] },
+        type: {
+          type: 'float',
+          type_args: []
+        },
         required: false,
         title: 'Temperature',
         description: 'Sampling temperature. Higher values make output more random.',
@@ -53774,7 +57307,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_tokens',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Max Tokens',
         description: 'Maximum number of tokens to generate',
@@ -53785,11 +57321,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 1024
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'system_prompt' ],
-    required_settings: [ 'XAI_API_KEY' ],
+    input_fields: [
+      'prompt',
+      'system_prompt'
+    ],
+    required_settings: [
+      'XAI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -53799,6 +57348,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -53809,7 +57359,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -53834,14 +57388,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Grok model to use for the search query.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'xai' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'xai'
+          ]
+        },
         default: {
           type: 'language_model',
           provider: 'xai',
@@ -53851,7 +57412,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'query',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Query',
         description: 'The question to research using live web/X search.',
@@ -53863,19 +57427,34 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'search_mode',
-        type: { type: 'enum', type_args: [], values: [ 'auto', 'on', 'off' ] },
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            'auto',
+            'on',
+            'off'
+          ]
+        },
         required: false,
         title: 'Search Mode',
         description: 'auto lets Grok decide when to search, on forces search, off disables it.',
         min: undefined,
         max: undefined,
-        values: [ 'auto', 'on', 'off' ],
+        values: [
+          'auto',
+          'on',
+          'off'
+        ],
         json_schema_extra: undefined,
         default: 'auto'
       },
       {
         name: 'max_results',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Max Results',
         description: 'Maximum number of search results to consider.',
@@ -53887,16 +57466,34 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     outputs: [
-      { name: 'output', type: { type: 'str', type_args: [] } },
+      {
+        name: 'output',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
       {
         name: 'citations',
-        type: { type: 'list', type_args: [ { type: 'str', type_args: [] } ] }
+        type: {
+          type: 'list',
+          type_args: [
+            {
+              type: 'str',
+              type_args: []
+            }
+          ]
+        }
       }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'query' ],
-    required_settings: [ 'XAI_API_KEY' ],
+    input_fields: [
+      'query'
+    ],
+    required_settings: [
+      'XAI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -53906,6 +57503,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -53916,7 +57514,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -53942,7 +57544,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: { type: 'image', type_args: [] },
+        type: {
+          type: 'image',
+          type_args: []
+        },
         required: false,
         title: 'Image',
         description: 'The image to analyze',
@@ -53960,7 +57565,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The prompt/question about the image',
@@ -53972,14 +57580,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Grok vision model to use (e.g. grok-2-vision-1212, grok-4).',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'xai' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'xai'
+          ]
+        },
         default: {
           type: 'language_model',
           provider: 'xai',
@@ -53989,7 +57604,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'temperature',
-        type: { type: 'float', type_args: [] },
+        type: {
+          type: 'float',
+          type_args: []
+        },
         required: false,
         title: 'Temperature',
         description: 'Sampling temperature for response generation',
@@ -54001,7 +57619,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_tokens',
-        type: { type: 'int', type_args: [] },
+        type: {
+          type: 'int',
+          type_args: []
+        },
         required: false,
         title: 'Max Tokens',
         description: 'Maximum number of tokens to generate',
@@ -54012,11 +57633,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 1024
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt', 'image' ],
-    required_settings: [ 'XAI_API_KEY' ],
+    input_fields: [
+      'prompt',
+      'image'
+    ],
+    required_settings: [
+      'XAI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -54026,6 +57660,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -54036,7 +57671,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -54056,7 +57695,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'The prompt describing the image to generate.',
@@ -54068,14 +57710,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'image_model', type_args: [] },
+        type: {
+          type: 'image_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Grok image model to use (e.g. grok-2-image, grok-imagine-image).',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'xai' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'xai'
+          ]
+        },
         default: {
           type: 'image_model',
           provider: 'xai',
@@ -54085,13 +57734,29 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     outputs: [
-      { name: 'output', type: { type: 'image', type_args: [] } },
-      { name: 'revised_prompt', type: { type: 'str', type_args: [] } }
+      {
+        name: 'output',
+        type: {
+          type: 'image',
+          type_args: []
+        }
+      },
+      {
+        name: 'revised_prompt',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt' ],
-    required_settings: [ 'XAI_API_KEY' ],
+    input_fields: [
+      'prompt'
+    ],
+    required_settings: [
+      'XAI_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -54101,6 +57766,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -54111,7 +57777,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -54127,7 +57797,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'query',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Query',
         description: 'The question to research on the web.',
@@ -54139,24 +57812,50 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Codex model that searches. Leave empty for the first model your ChatGPT plan offers.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'codex' ] },
-        default: { type: 'language_model', provider: 'codex', id: '', name: '' }
+        json_schema_extra: {
+          allowed_providers: [
+            'codex'
+          ]
+        },
+        default: {
+          type: 'language_model',
+          provider: 'codex',
+          id: '',
+          name: ''
+        }
       }
     ],
     outputs: [
-      { name: 'text', type: { type: 'str', type_args: [] } },
-      { name: 'sources', type: { type: 'list', type_args: [] } }
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'sources',
+        type: {
+          type: 'list',
+          type_args: []
+        }
+      }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'query' ],
+    input_fields: [
+      'query'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -54167,6 +57866,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -54177,7 +57877,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: 'text',
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -54193,7 +57897,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Prompt',
         description: 'What the image should show.',
@@ -54205,14 +57912,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'image_model', type_args: [] },
+        type: {
+          type: 'image_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The image model.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'codex' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'codex'
+          ]
+        },
         default: {
           type: 'image_model',
           provider: 'codex',
@@ -54225,14 +57939,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ 'auto', '1024x1024', '1536x1024', '1024x1536' ]
+          values: [
+            'auto',
+            '1024x1024',
+            '1536x1024',
+            '1024x1536'
+          ]
         },
         required: false,
         title: 'Size',
         description: 'The image size in pixels, or auto.',
         min: undefined,
         max: undefined,
-        values: [ 'auto', '1024x1024', '1536x1024', '1024x1536' ],
+        values: [
+          'auto',
+          '1024x1024',
+          '1536x1024',
+          '1024x1536'
+        ],
         json_schema_extra: undefined,
         default: 'auto'
       },
@@ -54241,22 +57965,42 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [ 'auto', 'low', 'medium', 'high' ]
+          values: [
+            'auto',
+            'low',
+            'medium',
+            'high'
+          ]
         },
         required: false,
         title: 'Quality',
         description: 'Rendering quality. Higher quality takes longer and uses more of your plan.',
         min: undefined,
         max: undefined,
-        values: [ 'auto', 'low', 'medium', 'high' ],
+        values: [
+          'auto',
+          'low',
+          'medium',
+          'high'
+        ],
         json_schema_extra: undefined,
         default: 'auto'
       }
     ],
-    outputs: [ { name: 'output', type: { type: 'image', type_args: [] } } ],
+    outputs: [
+      {
+        name: 'output',
+        type: {
+          type: 'image',
+          type_args: []
+        }
+      }
+    ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'prompt' ],
+    input_fields: [
+      'prompt'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -54267,6 +58011,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -54277,7 +58022,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -54293,7 +58042,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'query',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Query',
         description: 'The question to research on the web.',
@@ -54305,14 +58057,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Claude model that searches and writes the answer.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'anthropic' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'anthropic'
+          ]
+        },
         default: {
           type: 'language_model',
           provider: 'anthropic',
@@ -54322,13 +58081,29 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     outputs: [
-      { name: 'text', type: { type: 'str', type_args: [] } },
-      { name: 'sources', type: { type: 'list', type_args: [] } }
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'sources',
+        type: {
+          type: 'list',
+          type_args: []
+        }
+      }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'query' ],
-    required_settings: [ 'ANTHROPIC_API_KEY' ],
+    input_fields: [
+      'query'
+    ],
+    required_settings: [
+      'ANTHROPIC_API_KEY'
+    ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -54338,6 +58113,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -54348,7 +58124,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: 'text',
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -54364,7 +58144,10 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'query',
-        type: { type: 'str', type_args: [] },
+        type: {
+          type: 'str',
+          type_args: []
+        },
         required: false,
         title: 'Query',
         description: 'The question to research on the web.',
@@ -54376,14 +58159,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: { type: 'language_model', type_args: [] },
+        type: {
+          type: 'language_model',
+          type_args: []
+        },
         required: false,
         title: 'Model',
         description: 'The Claude model that searches and writes the answer.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: { allowed_providers: [ 'claude_agent_sdk' ] },
+        json_schema_extra: {
+          allowed_providers: [
+            'claude_agent_sdk'
+          ]
+        },
         default: {
           type: 'language_model',
           provider: 'claude_agent_sdk',
@@ -54393,12 +58183,26 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     outputs: [
-      { name: 'text', type: { type: 'str', type_args: [] } },
-      { name: 'sources', type: { type: 'list', type_args: [] } }
+      {
+        name: 'text',
+        type: {
+          type: 'str',
+          type_args: []
+        }
+      },
+      {
+        name: 'sources',
+        type: {
+          type: 'list',
+          type_args: []
+        }
+      }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [ 'query' ],
+    input_fields: [
+      'query'
+    ],
     required_settings: [],
     required_runtimes: [],
     is_streaming_input: false,
@@ -54409,6 +58213,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -54419,7 +58224,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: 'text',
     model_packs: undefined,
-    platforms: [ 'node', 'workers', 'edge' ],
+    platforms: [
+      'node',
+      'workers',
+      'edge'
+    ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -54512,6 +58321,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -54633,6 +58443,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -54784,6 +58595,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -54917,6 +58729,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -55027,6 +58840,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -55163,6 +58977,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -55281,6 +59096,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -55391,6 +59207,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -55496,6 +59313,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -55516,7 +59334,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Invert Mask',
-    description: 'Invert mask alpha (coverage → 1 − coverage).\n    image, mask, invert, alpha',
+    description: 'Invert mask alpha (coverage → 1 − coverage).\n' +
+      '    image, mask, invert, alpha',
     namespace: 'lib.image.mask',
     node_type: 'lib.image.mask.Invert',
     layout: 'default',
@@ -55568,6 +59387,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -55701,6 +59521,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -55811,6 +59632,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -55929,6 +59751,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -56080,6 +59903,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -56100,7 +59924,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Tile',
-    description: 'Tile the source N × M times across the same-sized canvas.\n    image, tile, repeat, pattern',
+    description: 'Tile the source N × M times across the same-sized canvas.\n' +
+      '    image, tile, repeat, pattern',
     namespace: 'lib.image.warp',
     node_type: 'lib.image.warp.Tile',
     layout: 'default',
@@ -56197,6 +60022,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -56390,6 +60216,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -56583,6 +60410,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -56671,6 +60499,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -56796,6 +60625,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -56884,6 +60714,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -56904,7 +60735,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Linear Gradient',
-    description: 'Two-stop linear gradient with angle and midpoint.\n    image, gradient, linear, draw',
+    description: 'Two-stop linear gradient with angle and midpoint.\n' +
+      '    image, gradient, linear, draw',
     namespace: 'lib.image.draw',
     node_type: 'lib.image.draw.LinearGradient',
     layout: 'default',
@@ -57029,6 +60861,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -57049,7 +60882,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Radial Gradient',
-    description: 'Inner-to-outer radial gradient centred on the canvas.\n    image, gradient, radial, draw',
+    description: 'Inner-to-outer radial gradient centred on the canvas.\n' +
+      '    image, gradient, radial, draw',
     namespace: 'lib.image.draw',
     node_type: 'lib.image.draw.RadialGradient',
     layout: 'default',
@@ -57159,6 +60993,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -57179,7 +61014,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Angular Gradient',
-    description: 'Sweep gradient around the canvas centre.\n    image, gradient, angular, conic, draw',
+    description: 'Sweep gradient around the canvas centre.\n' +
+      '    image, gradient, angular, conic, draw',
     namespace: 'lib.image.draw',
     node_type: 'lib.image.draw.AngularGradient',
     layout: 'default',
@@ -57289,6 +61125,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -57309,7 +61146,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Diamond Gradient',
-    description: 'Inner-to-outer diamond / square gradient.\n    image, gradient, diamond, draw',
+    description: 'Inner-to-outer diamond / square gradient.\n' +
+      '    image, gradient, diamond, draw',
     namespace: 'lib.image.draw',
     node_type: 'lib.image.draw.DiamondGradient',
     layout: 'default',
@@ -57419,6 +61257,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -57439,7 +61278,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Checkerboard',
-    description: 'Two-color checkerboard with configurable cell size.\n    image, checkerboard, pattern, draw',
+    description: 'Two-color checkerboard with configurable cell size.\n' +
+      '    image, checkerboard, pattern, draw',
     namespace: 'lib.image.draw',
     node_type: 'lib.image.draw.Checkerboard',
     layout: 'default',
@@ -57549,6 +61389,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -57652,6 +61493,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -57672,7 +61514,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Pixelate',
-    description: 'Average each N×N block to a single colour.\n    image, pixelate, mosaic, filter',
+    description: 'Average each N×N block to a single colour.\n' +
+      '    image, pixelate, mosaic, filter',
     namespace: 'lib.image.filter',
     node_type: 'lib.image.filter.Pixelate',
     layout: 'default',
@@ -57761,6 +61604,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -57864,6 +61708,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -57989,6 +61834,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -58129,6 +61975,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -58239,6 +62086,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -58364,6 +62212,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -58504,6 +62353,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -58524,7 +62374,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Exposure',
-    description: 'Adjust exposure in stops (rgb *= 2^stops).\n    image, color, exposure, stops, ev',
+    description: 'Adjust exposure in stops (rgb *= 2^stops).\n' +
+      '    image, color, exposure, stops, ev',
     namespace: 'lib.image.color',
     node_type: 'lib.image.color.Exposure',
     layout: 'default',
@@ -58613,6 +62464,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -58633,7 +62485,8 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'Posterize',
-    description: 'Quantize each channel to N levels.\n    image, color, posterize, quantize, levels',
+    description: 'Quantize each channel to N levels.\n' +
+      '    image, color, posterize, quantize, levels',
     namespace: 'lib.image.color',
     node_type: 'lib.image.color.Posterize',
     layout: 'default',
@@ -58722,6 +62575,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -58915,6 +62769,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,
@@ -59003,6 +62858,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     is_join_node: undefined,
     is_trigger: undefined,
     always_emit_output_updates: undefined,
+    audio_sink: undefined,
     supports_dynamic_inputs: false,
     allowed_dynamic_slot_types: undefined,
     supports_dynamic_outputs: undefined,

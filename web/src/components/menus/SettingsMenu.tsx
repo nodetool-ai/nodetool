@@ -33,6 +33,7 @@ import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
 import FoldersSettings from "./FoldersSettingsMenu";
 import AboutMenu from "./AboutMenu";
 import PrivacyMenu from "./PrivacyMenu";
+import MarketingEmailSettings from "../settings/MarketingEmailSettings";
 import {
   APIKeysTabContent,
   APIKeysRightSidebar,
@@ -170,10 +171,14 @@ const SearchItem = React.memo(function SearchItem({
 
 function SettingsPage() {
   const { t } = useTranslation();
+  const session = useAuth((state) => state.session);
   const privacySidebarSections = [
     {
       category: t("screens4_6.settings.sidebar.categories.privacy"),
       items: [
+        ...(session
+          ? [{ id: "marketing-emails", label: t("marketingEmails.title") }]
+          : []),
         { id: "product-analytics", label: t("screens4_6.settings.sidebar.items.productAnalytics") },
         { id: "what-is-collected", label: t("screens4_6.settings.sidebar.items.whatIsCollected") },
         { id: "diagnostics", label: t("screens4_6.settings.sidebar.items.diagnostics") },
@@ -212,7 +217,6 @@ function SettingsPage() {
   ] as const;
   const section = useSettingsPageStore((state) => state.section);
   const setSection = useSettingsPageStore((state) => state.setSection);
-  const session = useAuth((state) => state.session);
 
   const setSnapToGrid = useSettingsStore((state) => state.setSnapToGrid);
   const setGridSnap = useSettingsStore((state) => state.setGridSnap);
@@ -1328,6 +1332,7 @@ function SettingsPage() {
                 </TabPanel>
 
                 <TabPanel section="privacy" current={section}>
+                  <MarketingEmailSettings />
                   <PrivacyMenu />
                 </TabPanel>
 

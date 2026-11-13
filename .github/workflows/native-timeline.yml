@@ -8,7 +8,7 @@
 # null backend. Hosted runners have no hardware video decoder, so the
 # hardware decode tests are skipped (NT_NO_HW_DECODE=1); the benches and the
 # window checks (scripts/window-checks.sh) need a reference machine.
-# Packaging the app runs only in native-timeline-release.yml, on release tags.
+# Packaging the app runs only in native-timeline-release.yml, which release.yaml calls.
 name: Native timeline
 
 # Pull requests and main pushes run only when native code or this workflow

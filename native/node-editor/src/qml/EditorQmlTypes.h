@@ -3,6 +3,7 @@
 #include <QtQml/qqmlregistration.h>
 
 #include "interfaces/DocumentTabs.h"
+#include "interfaces/GenerationActivity.h"
 #include "interfaces/GenerationReplay.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInspector.h"
@@ -53,6 +54,13 @@ struct PropertyHostForeign {
     QML_FOREIGN(nodetool::node_editor::PropertyHost)
     QML_NAMED_ELEMENT(PropertyHost)
     QML_UNCREATABLE("A PropertyHost comes from its owner.")
+};
+
+struct GenerationActivityForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::GenerationActivity)
+    QML_NAMED_ELEMENT(GenerationActivity)
+    QML_UNCREATABLE("A GenerationActivity comes from its owner.")
 };
 
 struct GenerationReplayForeign {

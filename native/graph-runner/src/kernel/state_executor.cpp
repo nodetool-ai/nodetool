@@ -22,6 +22,7 @@ public:
   Task<void> preProcess() override { co_await inner_->preProcess(); }
   Task<void> finalize() override { co_await inner_->finalize(); }
   bool hasRun() const override { return inner_->hasRun(); }
+  bool applyProperties(const Json& properties) override { return inner_->applyProperties(properties); }
   // This method becomes virtual through the shared executor wiring patch.
   void beginInvocation(const std::string& key) override {
     invocationKey_ = key;

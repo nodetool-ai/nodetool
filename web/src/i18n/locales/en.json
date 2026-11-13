@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Cloud is in alpha. For production work, use",
       "ssoTitle": "Sign in to NodeTool",
       "ssoSignIn": "Sign in with {{provider}}",
-      "ssoFailed": "Sign-in failed ({{reason}}). Try again, or ask your administrator for access."
+      "ssoFailed": "Sign-in failed ({{reason}}). Try again, or ask your administrator for access.",
+      "marketingOptIn": "Email me about new launches and free offers. Unsubscribe any time."
     },
     "inspector": {
       "params": "Params",
@@ -20001,5 +20002,11 @@
     "missingKeysDetail": "This workflow needs {{keys}}. Add it in Settings before you run it.",
     "costPerRun": "≈ {{cost}} per run",
     "costUnknown": "Cost unknown"
+  },
+  "marketingEmails": {
+    "title": "Product emails",
+    "label": "Email me about launches and free offers",
+    "description": "Hear about new features, models and free offers. Every email has an unsubscribe link, and you can turn this off here any time.",
+    "saveFailed": "Your email preference was not saved. Try again."
   }
 }

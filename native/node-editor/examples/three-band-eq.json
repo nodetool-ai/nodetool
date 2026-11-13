@@ -1,0 +1,286 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-11-12T00:00:00.000Z",
+  "updated_at": "2026-11-12T00:00:00.000Z",
+  "name": "Shape a Mix with a Three-Band EQ",
+  "tool_name": null,
+  "description": "Synthesizes a bass line over noise, removes the rumble, then boosts the lows, cuts the harsh mids and adds air before a limiter. Runs locally with no file, model or key.",
+  "tags": [
+    "audio",
+    "dsp",
+    "mixing",
+    "example",
+    "local"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Shape a Mix with a Three-Band EQ\n\nSynthesizes a bass line under a noise bed and shapes it with the four biquad filters. Every step runs in the editor process, with no file, model or key.\n\n**How it works:** \"1 Source\" is a Code node that writes a bass line and soft noise. \"2 Rumble\" is a high-pass at 40 Hz. \"3 Lows\" boosts below 120 Hz, \"4 Mids\" cuts 2.5 kHz and \"5 Air\" lifts above 8 kHz. \"6 Limit\" keeps the boosted signal under -1 dB. \"Dry level\" passes the source to \"Before\" at 0 dB. Compare \"Before\" with \"After\".\n\n**Try this:** Set Gain dB on \"4 Mids\" to +6 to hear the harsh band, or move its frequency."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "zIndex": 0,
+          "width": 640,
+          "selectable": true,
+          "height": 300
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "src",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "// Four seconds of a bass line (root, fifth, octave) over soft white noise.\nconst rate = 44100, seconds = 4;\nconst line = [55, 82.41, 110, 82.41];\nconst samples = new Float32Array(rate * seconds);\nlet seed = 11;\nconst noise = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 2147483648 - 1; };\nfor (let i = 0; i < samples.length; i++) {\n  const t = i / rate;\n  const beat = Math.floor(t * 2);\n  const u = t - beat / 2;\n  const freq = line[beat % line.length];\n  const bass = Math.sin(2 * Math.PI * freq * t) * Math.exp(-3 * u);\n  samples[i] = 0.4 * bass + 0.08 * noise();\n}\n\n// 16-bit PCM WAV bytes from interleaved samples in [-1, 1].\nfunction wav(samples, rate, channels) {\n  const bytes = new Uint8Array(44 + samples.length * 2);\n  const view = new DataView(bytes.buffer);\n  const tag = (at, text) => { for (let i = 0; i < 4; i++) bytes[at + i] = text.charCodeAt(i); };\n  tag(0, \"RIFF\"); view.setUint32(4, 36 + samples.length * 2, true); tag(8, \"WAVE\");\n  tag(12, \"fmt \"); view.setUint32(16, 16, true); view.setUint16(20, 1, true);\n  view.setUint16(22, channels, true); view.setUint32(24, rate, true);\n  view.setUint32(28, rate * channels * 2, true); view.setUint16(32, channels * 2, true);\n  view.setUint16(34, 16, true); tag(36, \"data\"); view.setUint32(40, samples.length * 2, true);\n  samples.forEach((s, i) => view.setInt16(44 + i * 2, Math.round(Math.max(-1, Math.min(1, s)) * 32767), true));\n  return bytes;\n}\n\nawait output(\"audio\", await media.toAudio(wav(samples, rate, 1), { mimeType: \"audio/wav\", filename: \"source.wav\" }));\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Source"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "audio": {
+            "type": "audio",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "hp",
+        "type": "lib.audio.HighPassFilter",
+        "data": {
+          "cutoff_frequency_hz": 40
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Rumble"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ls",
+        "type": "lib.audio.LowShelfFilter",
+        "data": {
+          "cutoff_frequency_hz": 120,
+          "gain_db": 6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Lows"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "pk",
+        "type": "lib.audio.PeakFilter",
+        "data": {
+          "cutoff_frequency_hz": 2500,
+          "q_factor": 1.5,
+          "gain_db": -6
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Mids"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hs",
+        "type": "lib.audio.HighShelfFilter",
+        "data": {
+          "cutoff_frequency_hz": 8000,
+          "gain_db": 4
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1320,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Air"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "lim",
+        "type": "lib.audio.Limiter",
+        "data": {
+          "threshold_db": -1,
+          "release_ms": 200,
+          "auto_gain": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1650,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "6  Limit"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dry-level",
+        "type": "lib.audio.Gain",
+        "data": {
+          "gain_db": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 640
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Dry level"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "before",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "before"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 640
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Before"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "after",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "after"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1980,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "After"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "src",
+        "sourceHandle": "audio",
+        "target": "hp",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e2",
+        "source": "hp",
+        "sourceHandle": "output",
+        "target": "ls",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "ls",
+        "sourceHandle": "output",
+        "target": "pk",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e4",
+        "source": "pk",
+        "sourceHandle": "output",
+        "target": "hs",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e5",
+        "source": "hs",
+        "sourceHandle": "output",
+        "target": "lim",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e-after",
+        "source": "lim",
+        "sourceHandle": "output",
+        "target": "after",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e-dry1",
+        "source": "src",
+        "sourceHandle": "audio",
+        "target": "dry-level",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e-dry2",
+        "source": "dry-level",
+        "sourceHandle": "output",
+        "target": "before",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "run_mode": null
+}

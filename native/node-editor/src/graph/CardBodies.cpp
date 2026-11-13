@@ -1,6 +1,7 @@
 #include "CardBodies.h"
 #include "CardMedia.h"
 #include "ModelLabels.h"
+#include "SynthModules.h"
 #include <QFont>
 #include <QFontMetricsF>
 #include <QTextLayout>
@@ -1363,6 +1364,13 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
     if (bodies.contains(type)) {
         return bodies.value(type);
     }
+    // bespokeRegistry.ts routes SYNTH_NODE_TYPES and AUDIO_EFFECT_NODE_TYPES to SynthModuleBody.
+    if (type == QLatin1String(audioOutType)) {
+        return CardBody::AudioOut;
+    }
+    if (!synthModule(type).isEmpty()) {
+        return CardBody::SynthModule;
+    }
     if (adjustments.contains(type)) {
         return CardBody::Adjustment;
     }
@@ -1430,6 +1438,10 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
         return name == QStringLiteral("trigger");
     case CardBody::ExtractVideoFrame:
         return name == QStringLiteral("video");
+    case CardBody::SynthModule:
+        return synthModule(metadata["node_type"].toString())["inputs"].toArray().contains(name);
+    case CardBody::AudioOut:
+        return name == QStringLiteral("chunk");
     default:
         return metadata["input_fields"].toArray().contains(name);
     }
@@ -1578,6 +1590,12 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
     case CardBody::Collection:
         layoutCollection(layout, input);
         break;
+    case CardBody::SynthModule:
+        layoutSynthModule(layout, input);
+        break;
+    case CardBody::AudioOut:
+        layoutAudioOut(layout, input);
+        break;
     default:
         break;
     }
@@ -1637,6 +1655,50 @@ QString schemaFooter(const SchemaProvider &provider, const QJsonObject &ui) {
     const auto model = ui[provider.detailKey].toString();
     return model.isEmpty() ? provider.label : QStringLiteral("%1 · %2").arg(provider.label, model);
 }
+
+ChildPicker childPicker(const QString &type) {
+    // The i18n-next37 workflowLoader and appLoader select labels.
+    if (type == QStringLiteral("nodetool.workflows.workflow_node.Workflow")) {
+        return {QStringLiteral("workflow_id"), QStringLiteral("workflow"), QObject::tr("Select workflow"), QStringLiteral("workflow_json")};
+    }
+    if (type == QStringLiteral("nodetool.workflows.app_node.App")) {
+        return {QStringLiteral("app_id"), QStringLiteral("app"), QObject::tr("Select app"), QStringLiteral("app_json")};
+    }
+    return {};
+}
+
+QVariantMap childPickerReference(const ChildPicker &picker, const QJsonObject &data) {
+    if (picker.property.isEmpty()) {
+        return {};
+    }
+    const auto snapshot = data[picker.snapshotKey].toObject();
+    // WorkflowLoader reads workflow_id, then the stored copy's id.
+    auto id = data[picker.property].toString();
+    if (id.isEmpty() && picker.kind == QStringLiteral("workflow")) {
+        id = snapshot["id"].toString();
+    }
+    if (id.isEmpty()) {
+        return {};
+    }
+    // The select shows the listed name. The card has no list, so it shows the
+    // name stored with the copy, or the id before a copy exists.
+    const auto name = snapshot["name"].toString();
+    return {{QStringLiteral("type"), picker.kind}, {QStringLiteral("id"), id}, {QStringLiteral("name"), name.isEmpty() ? id : name}};
+}
+
+bool compositeHiddenProperty(const QString &type, const QString &name) {
+    if (type == QStringLiteral("nodetool.workflows.app_node.App")) {
+        return name == QStringLiteral("app_json");
+    }
+    return type == QStringLiteral("nodetool.workflows.subgraph.Subgraph") && name == QStringLiteral("graph");
+}
+
+bool comfySchemaNode(const QString &type) {
+    // DYNAMIC_COMFY_NODE_TYPES in web/src/constants/nodeTypes.ts.
+    return type == QStringLiteral("lib.comfy.RunWorkflow") || type == QStringLiteral("lib.comfy.RunWorkflowOnCloud");
+}
+
+QColor comfyAccent() { return QColor(0x1F, 0x9E, 0x89); }
 
 bool readsGraphVariables(CardBody body) {
     return body == CardBody::Prompt || body == CardBody::GetVariable;

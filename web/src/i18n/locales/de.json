@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Cloud befindet sich in der Alpha-Phase. Für den produktiven Einsatz verwende",
       "ssoTitle": "Bei NodeTool anmelden",
       "ssoSignIn": "Mit {{provider}} anmelden",
-      "ssoFailed": "Anmeldung fehlgeschlagen ({{reason}}). Versuche es erneut oder bitte deine Administration um Zugriff."
+      "ssoFailed": "Anmeldung fehlgeschlagen ({{reason}}). Versuche es erneut oder bitte deine Administration um Zugriff.",
+      "marketingOptIn": "Schick mir E-Mails zu neuen Launches und kostenlosen Angeboten. Abmelden jederzeit möglich."
     },
     "inspector": {
       "params": "Parameter",
@@ -20001,5 +20002,11 @@
     "missingKeysDetail": "Dieser Workflow braucht {{keys}}. Füge ihn vor dem Ausführen in den Einstellungen hinzu.",
     "costPerRun": "≈ {{cost}} pro Lauf",
     "costUnknown": "Kosten unbekannt"
+  },
+  "marketingEmails": {
+    "title": "Produkt-E-Mails",
+    "label": "Schick mir E-Mails zu Launches und kostenlosen Angeboten",
+    "description": "Erfahre von neuen Funktionen, Modellen und kostenlosen Angeboten. Jede E-Mail enthält einen Abmeldelink, und du kannst das hier jederzeit ausschalten.",
+    "saveFailed": "Deine E-Mail-Einstellung wurde nicht gespeichert. Versuch es noch einmal."
   }
 }

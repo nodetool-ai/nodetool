@@ -12,6 +12,9 @@ const generationRecord = z.object({
   thread_id: z.string().nullable(),
   /** The `generate_media` request id the client correlates on. */
   request_id: z.string().nullable(),
+  /** The workflow run that made it, when a workflow node made it. */
+  workflow_id: z.string().nullable(),
+  job_id: z.string().nullable(),
   status: z.string(),
   provider: z.string(),
   model: z.string(),
@@ -52,6 +55,8 @@ function toRecord(row: Prediction): z.infer<typeof generationRecord> {
     project_id: row.project_id,
     thread_id: row.thread_id,
     request_id: row.request_id,
+    workflow_id: row.workflow_id,
+    job_id: row.job_id,
     status: row.status === "interrupted" ? "interrupted" :
       row.lifecycle_owner === "durable" ? deriveGenerationStatus(row) : row.status,
     provider: row.provider,
