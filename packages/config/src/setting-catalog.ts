@@ -545,6 +545,11 @@ sec(
   "Kimi (Moonshot) API key for accessing Kimi models via the OpenAI-compatible endpoint. Get yours at https://platform.moonshot.ai/console/api-keys"
 );
 sec(
+  "SARVAM_API_KEY",
+  "Sarvam",
+  "Sarvam AI API subscription key for Token Factory chat, Bulbul text-to-speech, and Saaras speech-to-text in Indian languages. Get yours at https://dashboard.sarvam.ai/"
+);
+sec(
   "MINIMAX_API_KEY",
   "MiniMax",
   "MiniMax API key for accessing MiniMax AI models. Get yours at https://platform.minimax.chat/user-center/basic-information/interface-key"

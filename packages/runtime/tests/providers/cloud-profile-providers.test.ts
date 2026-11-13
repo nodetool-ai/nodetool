@@ -33,6 +33,7 @@ const CLOUD = [
   "moonshot",
   "zai",
   "byteplus",
+  "sarvam",
   "elevenlabs",
   "meshy",
   "rodin",

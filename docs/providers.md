@@ -41,6 +41,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | UberLLM | ✅ | ✅ | | | | | |
 | Together AI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Moonshot (Kimi) | ✅ | | | | | | |
+| Sarvam AI | ✅ | | | ✅ | ✅ | | |
 | Meta AI | ✅ | ✅ | | | ✅ | | |
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
 | Z.ai | ✅ | ✅ | ✅ | | ✅ | | |
@@ -209,6 +210,16 @@ Together AI is one of the broadest providers in NodeTool: chat, manifest-driven 
 ## Moonshot (Kimi)
 
 Moonshot runs Kimi chat models over its OpenAI-compatible endpoint (`https://api.moonshot.ai/v1`). Text only. Cloud only, keyed by `KIMI_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
+## Sarvam AI
+
+Sarvam AI is an Indian provider for chat, text-to-speech, and speech-to-text in Indian languages. Cloud only, keyed by `SARVAM_API_KEY`, which every request sends in the `api-subscription-key` header.
+
+- **Chat** runs Token Factory models (Sarvam 105B, GLM, Gemma, DeepSeek, and others) over the OpenAI-compatible endpoint `https://api.sarvam.ai/v2`. The model list comes from `GET /v2/models`, so Provisioned Throughput models appear only for organizations that have them.
+- **Text-to-speech** runs the Bulbul models `bulbul:v4-flash`, `bulbul:v3`, and `bulbul:v2` in 11 languages (`hi-IN`, `en-IN`, `bn-IN`, `ta-IN`, `te-IN`, `kn-IN`, `ml-IN`, `mr-IN`, `gu-IN`, `pa-IN`, `od-IN`). Each model lists its own speakers, and v4-flash personas are named `<name>_<language>_<style>`, such as `ritu_hi_kids`. With no language set, the provider picks one from the text's script, then from a v4-flash speaker's language, then falls back to `en-IN`. Output is WAV by default, or MP3, FLAC, or AAC when requested. Each request takes up to 2,500 characters on v3 and v4-flash and 1,500 on v2.
+- **Speech-to-text** runs `saaras:v4` and `saaras:v3` through the REST endpoint, which takes clips under 30 seconds in 22 Indian languages plus English. Leave the language empty to auto-detect it. Timestamps come back per sentence or phrase, not per word.
+
+Sarvam's translation, transliteration, and batch speech-to-text APIs are not wired into NodeTool.
 
 ## MiniMax
 

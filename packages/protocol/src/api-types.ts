@@ -1190,6 +1190,8 @@ export const PROVIDER_IDS = {
   GROQ: "groq",
   MISTRAL: "mistral",
   MOONSHOT: "moonshot",
+  // Sarvam AI (India): Token Factory chat, Bulbul TTS, Saaras speech-to-text.
+  SARVAM: "sarvam",
   MINIMAX: "minimax",
   // Z.ai (Zhipu) GLM chat, GLM-Image and CogVideoX.
   ZAI: "zai",

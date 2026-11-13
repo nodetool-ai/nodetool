@@ -330,6 +330,15 @@ export const PROVIDER_META: ProviderMeta[] = [
     mono: true
   },
   {
+    key: "SARVAM_API_KEY",
+    providerId: PROVIDER_IDS.SARVAM,
+    name: "Sarvam AI",
+    description:
+      "Indian-language chat, Bulbul text-to-speech, and Saaras speech-to-text.",
+    section: "language",
+    docsUrl: "https://docs.sarvam.ai/"
+  },
+  {
     key: "ZAI_API_KEY",
     providerId: PROVIDER_IDS.ZAI,
     name: "Z.ai",

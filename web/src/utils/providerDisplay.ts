@@ -172,6 +172,9 @@ export const formatGenericProviderName = (provider?: string): string => {
   if (providerLower === "moonshot" || providerLower === "kimi") {
     return "Moonshot AI";
   }
+  if (providerLower === "sarvam") {
+    return "Sarvam AI";
+  }
   if (providerLower === "minimax") {
     return "MiniMax";
   }
@@ -355,6 +358,9 @@ export const getProviderUrl = (provider?: string): string | null => {
   }
   if (providerLower.includes("moonshot") || providerLower.includes("kimi")) {
     return "https://platform.moonshot.ai";
+  }
+  if (providerLower === "sarvam") {
+    return "https://www.sarvam.ai";
   }
   if (providerLower.includes("minimax")) {
     return "https://platform.minimax.io";

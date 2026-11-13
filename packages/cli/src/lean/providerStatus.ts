@@ -22,6 +22,7 @@ export const KEYED_PROVIDERS: readonly ProviderCredential[] = [
   { id: "groq", name: "Groq", credentials: ["GROQ_API_KEY"] },
   { id: "mistral", name: "Mistral", credentials: ["MISTRAL_API_KEY"] },
   { id: "moonshot", name: "Moonshot", credentials: ["KIMI_API_KEY"] },
+  { id: "sarvam", name: "Sarvam AI", credentials: ["SARVAM_API_KEY"] },
   { id: "minimax", name: "MiniMax", credentials: ["MINIMAX_API_KEY"] },
   { id: "zai", name: "Z.ai", credentials: ["ZAI_API_KEY"] },
   { id: "replicate", name: "Replicate", credentials: ["REPLICATE_API_TOKEN"] },

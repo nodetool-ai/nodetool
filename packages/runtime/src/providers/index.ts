@@ -53,6 +53,7 @@ import { MinimaxProvider } from "./minimax-provider.js";
 import { MistralProvider } from "./mistral-provider.js";
 import { MoonshotProvider } from "./moonshot-provider.js";
 import { ZaiProvider } from "./zai-provider.js";
+import { SarvamProvider } from "./sarvam-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { RequestyProvider } from "./requesty-provider.js";
 import { OpperProvider } from "./opper-provider.js";
@@ -323,6 +324,7 @@ export { MinimaxProvider };
 export { MistralProvider };
 export { MoonshotProvider };
 export { ZaiProvider };
+export { SarvamProvider };
 export { OpenRouterProvider };
 export { RequestyProvider };
 export { OpperProvider };
@@ -653,6 +655,9 @@ registerBuiltinProvider(PROVIDER_IDS.MISTRAL, MistralProvider, {
 });
 registerBuiltinProvider(PROVIDER_IDS.MOONSHOT, MoonshotProvider, {
   KIMI_API_KEY: ""
+});
+registerBuiltinProvider(PROVIDER_IDS.SARVAM, SarvamProvider, {
+  SARVAM_API_KEY: ""
 });
 registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, {
   MINIMAX_API_KEY: ""

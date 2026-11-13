@@ -159,6 +159,11 @@ const PROBES: Record<string, CredentialProbe> = {
     url: () => "https://huggingface.co/api/whoami-v2",
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
+  SARVAM_API_KEY: {
+    label: "Sarvam AI",
+    url: () => "https://api.sarvam.ai/v2/models",
+    headers: (v) => ({ "api-subscription-key": v })
+  },
   ELEVENLABS_API_KEY: {
     label: "ElevenLabs",
     url: () => "https://api.elevenlabs.io/v1/user",
