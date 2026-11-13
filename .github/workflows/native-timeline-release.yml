@@ -1,15 +1,22 @@
 name: Native timeline release
 
+# Called by release.yaml for every NodeTool release (v* tags and nightlies).
+# Its assets join that release: release.yaml's publish job downloads every
+# workflow artifact of the run, including timeline-<platform>.
 on:
-  push:
-    tags: ['timeline-v*']
+  workflow_call:
+    inputs:
+      version:
+        description: NodeTool release version without the leading v. It names the downloads.
+        required: true
+        type: string
+      ref:
+        description: Commit to build.
+        required: true
+        type: string
 
 permissions:
   contents: read
-
-concurrency:
-  group: timeline-release-${{ github.ref_name }}
-  cancel-in-progress: false
 
 env:
   QT_VERSION: '6.12.0'
@@ -19,21 +26,17 @@ jobs:
   version:
     runs-on: ubuntu-24.04
     outputs:
-      tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
       app_version: ${{ steps.version.outputs.app_version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
       - id: version
         env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          [[ "$TAG" =~ ^timeline-v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
-          python3 native/timeline/scripts/release-version.py "$TAG" >> "$GITHUB_OUTPUT"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: python3 native/timeline/scripts/release-version.py "$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
 
   package:
     needs: version
@@ -60,6 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
@@ -179,52 +183,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: timeline-${{ matrix.platform }}
+          retention-days: 7
           path: release-assets/*
           if-no-files-found: error
 
-  publish:
-    needs: [version, package]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          pattern: timeline-*
-          merge-multiple: true
-          path: release-assets
-      - name: Check assets and write checksums
-        env:
-          VERSION: ${{ needs.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          cd release-assets
-          files=()
-          for platform in macos-arm64 windows-x64; do
-            files+=("nodetool-timeline-$VERSION-$platform.zip" "nodetool-timeline-with-server-$VERSION-$platform.zip")
-          done
-          files+=("nodetool-timeline-$VERSION-linux-x64.AppImage" "nodetool-timeline-with-server-$VERSION-linux-x64.AppImage")
-          for file in "${files[@]}"; do test -s "$file"; done
-          sha256sum "${files[@]}" > SHA256SUMS.txt
-      - name: Create draft prerelease
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          TAG: ${{ needs.version.outputs.tag }}
-        run: |
-          set -euo pipefail
-          # Fail if a release already exists. Never modify a published release.
-          gh release create "$TAG" --verify-tag --draft --prerelease \
-            --title "NodeTool Timeline $TAG" \
-            --notes 'The macOS builds are signed with a Developer ID and notarized. The Windows and Linux builds are unsigned. A person must review and publish this draft.
-
-          Every platform has a "with server" download. It holds a NodeTool server that the app starts when it opens without a file, so it needs no other NodeTool install. The other download connects to a NodeTool server you run yourself.
-
-          macOS: extract the ZIP and open NodeTool Timeline.app or NodeTool Timeline (with server).app.
-
-          Windows: extract the ZIP and run nodetool-timeline.exe. In SmartScreen choose More info, then Run anyway.
-
-          Linux: run chmod +x on the AppImage, then launch it. A FUSE installation may be needed, or use --appimage-extract-and-run.
-
-          Verify the download against SHA256SUMS.txt before opening it.' \
-            release-assets/*

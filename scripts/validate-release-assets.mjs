@@ -42,12 +42,19 @@ const checks = [
     "macOS zip",
     (f) => f.endsWith(".zip") && f.includes("Nodetool-") && !/win-unpacked/i.test(f),
   ],
-  ["Linux AppImage", (f) => f.endsWith(".AppImage")],
+  ["Linux AppImage", (f) => f.startsWith("Nodetool-") && f.endsWith(".AppImage")],
   ["Linux Flatpak", (f) => f.endsWith(".flatpak")],
   ["blockmap", (f) => f.endsWith(".blockmap")],
   ["web archive", (f) => /^nodetool-web-.+\.zip$/.test(f)],
   ["MCP bundle", (f) => f.endsWith(".mcpb")],
 ];
+// The native timeline (native-timeline-release.yml): plain and with server.
+for (const variant of ["", "with-server-"]) {
+  for (const [platform, ext] of [["macos-arm64", "zip"], ["windows-x64", "zip"], ["linux-x64", "AppImage"]]) {
+    const pattern = new RegExp(`^nodetool-timeline-${variant}\\d.*-${platform}\\.${ext}$`);
+    checks.push([`native timeline ${variant}${platform}`, (f) => pattern.test(f)]);
+  }
+}
 const missingArtifacts = [];
 for (const [label, predicate] of checks) {
   if (!has(predicate)) {
