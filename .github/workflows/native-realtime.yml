@@ -25,9 +25,16 @@ concurrency:
 
 jobs:
   offline:
-    name: Offline exports / software adapter
+    name: Offline exports / ${{ matrix.mode }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, sanitize]
+    env:
+      ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -44,6 +51,10 @@ jobs:
         run: |
           npm run build --workspace=packages/protocol
           npm run build --workspace=packages/gpu
+      - name: Check browser comparison guards
+        run: |
+          node --test native/realtime/spike/browser/headers.test.mjs
+          python3 -m unittest discover -s native/realtime/spike/browser -p 'test_*.py'
       - name: Select lavapipe
         shell: bash
         run: |
@@ -52,6 +63,13 @@ jobs:
           test -n "$driver"
           echo "VK_ICD_FILENAMES=$driver" >> "$GITHUB_ENV"
           echo "VK_DRIVER_FILES=$driver" >> "$GITHUB_ENV"
+      - name: Configure offline sanitizers
+        if: matrix.mode == 'sanitize'
+        run: |
+          cmake -S native/realtime -B native/realtime/build-gpu \
+            -DCMAKE_BUILD_TYPE=Release -DNT_REALTIME_BUILD_SPIKES=OFF -DNT_REALTIME_OFFLINE_GPU=ON \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined" \
+            -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
       - name: Verify offline exports and required test inventory
         run: env -u DISPLAY node native/realtime/scripts/check.mjs
   core:

@@ -180,8 +180,16 @@ jobs:
           node guest/host/gpu-catalog.mjs build/gpu-catalog.json
           ./build/nodetool-graph-runner compile --bundle build/guest.js --out build/guest.bin
 
+      - name: Select software Vulkan adapter
+        run: |
+          set -euo pipefail
+          driver=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)
+          test -n "$driver"
+          echo "VK_ICD_FILENAMES=$driver" >> "$GITHUB_ENV"
+          echo "VK_DRIVER_FILES=$driver" >> "$GITHUB_ENV"
+
       - name: Test
         working-directory: native/graph-runner
-        run: ctest --test-dir build --output-on-failure --timeout 900
+        run: env -u DISPLAY ctest --test-dir build --output-on-failure --timeout 900
       - name: Verify realtime command dispatch
         run: node native/realtime/scripts/cli-check.mjs native/graph-runner/build/nodetool-graph-runner

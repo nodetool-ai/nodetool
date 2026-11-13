@@ -31,9 +31,9 @@ not measurements. Q8 requires the WP10 native/browser comparison.
 | [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Linux Release, ASan/UBSan and TSan CI pass. Local instruction-alias verification remains blocked as described below |
 | [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Windows Release/ASan and Linux Release/ASan+UBSan/TSan pass. Aggregate verification remains incomplete as described below. See [operation contracts](control.md) |
 | [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, linear/one-pole smoothing, events, built-in kernels and sink sanitation implemented. Windows Release/ASan and audio-scoped affected tests pass. See [audio contracts](audio.md) and verification below |
-| [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and provisional private-device offline GPU backend implemented. Windows software-adapter references pass. Sanitizers, driver allocation audit and live-device exit evidence remain pending. See [render contracts](render.md) |
-| [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | PNG/WAV export, local PCM/texture slots, shared CLI parsing and registered offline harness implemented. Windows offline checks pass. Full graph-runner dispatch and Linux qualification await CI |
-| [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Not implemented |
+| [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and provisional private-device offline GPU backend implemented. Windows Release/ASan and Linux software-adapter references pass. Linux GPU sanitizer results, driver allocation audit and live-device exit evidence remain pending. See [render contracts](render.md) |
+| [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | PNG/WAV export, local PCM/texture slots, shared CLI parsing and registered offline harness implemented. Windows Release/ASan and Linux offline checks pass. Full graph-runner Release dispatch passes in CI. Remaining qualification is listed below |
+| [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Pinned header inventory, wasm32 scheduler execution and isolated C++ Chrome frame comparisons prepared and run. TypeScript comparison, 64-pass timings and matched candidate sizes remain pending. See [comparison preparation](spike/browser/README.md) |
 
 M0's local build, typecheck, lint, native tests and harness checks pass. The
 latest aggregate affected test run stops at Windows browser-isolation tests.
@@ -134,8 +134,8 @@ resampling. Control/event/latched slot inputs remain unsupported. See the
 
 The standalone CLI and optional `NODETOOL_GRAPH_RUNNER_REALTIME=ON` host command
 share their parser. Windows standalone arguments preserve Unicode paths.
-The full graph-runner dispatch is wired into Linux CI but has not been built or
-executed locally. The `realtime-offline` registry entry invokes the native build,
+The full graph-runner Release build and dispatch checks pass in Linux CI.
+They have not been built or executed locally. The `realtime-offline` registry entry invokes the native build,
 checks required CTest inventory, runs adapter-backed tests and exercises the CLI.
 Its expensive classification keeps it outside the default cheap gate, so it was
 run explicitly. A dedicated Linux lavapipe job runs the same script without skips.
@@ -164,13 +164,21 @@ exceeded their process or test budgets. The later gate passes its script suite,
 but does not change the earlier affected command's failed exit status.
 The affected-native command against the M0 base passes all nine realtime tests
 but exits with failure because the full graph-runner build is not configured on
-this host. That integration remains a CI verification requirement.
+this host. The corresponding Release integration subsequently passed in CI.
 
 The same offline harness passes with Windows MSVC AddressSanitizer, including
 all nine CTest entries and CLI checks. This instruments the C++ host code, not
-the prebuilt wgpu-native library or graphics driver. Linux ASan/UBSan/TSan
-qualification of this increment, driver-internal allocation audits, Linux
-software-adapter results and full graph-runner dispatch remain pending.
+the prebuilt wgpu-native library or graphics driver. The [Linux realtime run for `b911a367dc`](https://github.com/nodetool-ai/nodetool/actions/runs/43344491452)
+passes core Release, ASan/UBSan and TSan, plus the separate lavapipe offline
+export job. The core sanitizer jobs exclude the optional GPU backend.
+The [full graph-runner Release job](https://github.com/nodetool-ai/nodetool/actions/runs/43344491439/job/131620414613)
+passes build, CTest and realtime command-dispatch checks. Its ASan/UBSan job
+fails LeakSanitizer in the two offline GPU tests, reporting 1,200 and 1,568 leaked
+bytes. Stacks reach Vulkan adapter enumeration with unidentified library frames.
+The cause is not established. The workflow now explicitly selects lavapipe and
+a standalone offline sanitizer job is prepared for a focused rerun. No leak is
+suppressed and no fix is claimed before that rerun. The full-host TSan job is
+still pending. Driver-internal allocation audits remain incomplete.
 Earlier audio/control sanitizer evidence applies only to its recorded revision.
 WP08 and WP09 remain open. WP10 browser comparison/Q8, native/Wasm parity and
 all M0 hardware measurements remain unfinished. No hardware-dependent issue
