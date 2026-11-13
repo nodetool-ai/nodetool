@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Moln är i alfa. För produktionsarbete, använd",
       "ssoTitle": "Logga in på NodeTool",
       "ssoSignIn": "Logga in med {{provider}}",
-      "ssoFailed": "Inloggningen misslyckades ({{reason}}). Försök igen eller be administratören om åtkomst."
+      "ssoFailed": "Inloggningen misslyckades ({{reason}}). Försök igen eller be administratören om åtkomst.",
+      "marketingOptIn": "Skicka mejl till mig om nya lanseringar och gratiserbjudanden. Avsluta prenumerationen när som helst."
     },
     "inspector": {
       "params": "Params",
@@ -6396,6 +6397,16 @@
           "image": "Bild",
           "video": "Video",
           "audio": "Ljud"
+        },
+        "attachedFileActions": {
+          "label": "Börja med dina filer",
+          "hint": "Filer bifogade. Beskriv vad du vill skapa, eller utgå från dem:",
+          "animate": "Animera till en video",
+          "image": "Skapa nya bilder",
+          "retake": "Redigera videon",
+          "script": "Gör om till manus",
+          "ask": "Fråga om dem",
+          "askPrompt": "Titta på de bifogade filerna och föreslå vad jag kan göra av dem."
         }
       }
     }
@@ -19963,5 +19974,39 @@
         "public": "Offentlig"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "Leverantören",
+    "title": {
+      "billing": "{{target}} kan inte köras: kontot har ingen kredit eller fakturering.",
+      "quota": "{{target}} kan inte köras: den här nyckeln har ingen kvot kvar för den.",
+      "auth": "{{target}} avvisade din API-nyckel.",
+      "model_unavailable": "{{target}} är inte tillgänglig för din nyckel.",
+      "rate_limit": "{{target}} får för många förfrågningar."
+    },
+    "hint": {
+      "billing": "Fyll på kredit hos leverantören, eller byt till en annan modell.",
+      "quota": "Gratisnycklar har ofta ingen kvot för den här modellen. Aktivera fakturering hos leverantören, eller byt till en annan modell.",
+      "auth": "Kontrollera nyckeln i Inställningar, eller byt till en modell från en annan leverantör.",
+      "model_unavailable": "Den har tagits bort från dina modellistor. Välj en annan modell.",
+      "rate_limit": "Vänta en stund och försök sedan igen."
+    },
+    "repeated": "Det misslyckades på samma sätt igen, så ett nytt försök hjälper inte. Byt till en annan modell.",
+    "switchTo": "Använd {{model}}",
+    "openKeys": "Öppna API-nycklar",
+    "addCredit": "Fyll på kredit",
+    "enableBilling": "Aktivera fakturering"
+  },
+  "runReadiness": {
+    "addKey": "Lägg till API-nyckel",
+    "missingKeysDetail": "Det här arbetsflödet behöver {{keys}}. Lägg till den i Inställningar innan du kör det.",
+    "costPerRun": "≈ {{cost}} per körning",
+    "costUnknown": "Okänd kostnad"
+  },
+  "marketingEmails": {
+    "title": "Produktmejl",
+    "label": "Skicka mejl om lanseringar och gratiserbjudanden",
+    "description": "Få veta om nya funktioner, modeller och gratiserbjudanden. Varje mejl har en avregistreringslänk, och du kan stänga av detta här när som helst.",
+    "saveFailed": "Mejlinställningen sparades inte. Försök igen."
   }
 }

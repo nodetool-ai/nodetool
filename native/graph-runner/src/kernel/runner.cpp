@@ -413,6 +413,11 @@ void Runner::cancel() {
   notifyCancelListeners();
 }
 
+bool Runner::updateNodeProperties(const std::string& nodeId, const Json& properties) {
+  const auto it = executors_.find(nodeId);
+  return it != executors_.end() && it->second->applyProperties(properties);
+}
+
 void Runner::validateNodes() {
   std::map<std::string, std::vector<std::string>> connected;
   for (const auto& e : graph_.edges()) {

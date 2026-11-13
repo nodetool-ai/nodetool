@@ -103,6 +103,12 @@ public:
   // inbox so waiting actors finish, and stops producers at their next frame.
   // Call it on the loop's thread.
   void cancel();
+  // A live property change of a running node, like
+  // WorkflowRunner.updateNodeProperties(). False when the node has no
+  // executor or its executor takes no live change, which is not an error:
+  // the caller's graph holds the value for the next run. Call it on the
+  // loop's thread.
+  bool updateNodeProperties(const std::string& nodeId, const Json& properties);
   size_t onCancel(std::function<void()> callback);
   void removeCancelListener(size_t token);
 

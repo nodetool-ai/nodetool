@@ -83,23 +83,14 @@ Rectangle {
             accessibleName: "Panels"
             tabs: [
                 { objectName: "status-logs", value: "logs", label: "Logs", iconName: "article", active: root.panels.outputVisible },
-                {
-                    objectName: "status-queue", value: "queue", label: "Queue", iconName: "playlistPlay", active: false,
-                    count: root.status.queuedCount,
-                    disabledReason: root.status.queueAvailable ? "" : qsTr("The queue opens while jobs are queued or running.")
-                },
-                {
-                    objectName: "status-generations", value: "generations", label: "Generations", iconName: "autoAwesomeOutlined", active: false,
-                    disabledReason: qsTr("Generations across workflows have no native panel. Select a node and open History in the inspector.")
-                },
+                { objectName: "status-queue", value: "queue", label: "Queue", iconName: "playlistPlay", active: root.panels.queueVisible, count: root.status.queuedCount },
+                { objectName: "status-generations", value: "generations", label: "Generations", iconName: "autoAwesomeOutlined", active: root.panels.generationsVisible, count: root.status.generatingCount },
                 { objectName: "status-workers", value: "workers", label: "Workers", iconName: "memory", active: false, disabledReason: qsTr("Workers has no native panel yet.") },
                 { objectName: "status-versions", value: "versions", label: "Versions", iconName: "history", active: root.panels.versionsVisible },
                 { objectName: "status-trace", value: "trace", label: "Trace", iconName: "timeline", active: root.panels.traceVisible }
             ]
             onValueCommitted: value => {
-                if (value === "logs") {
-                    root.panels.toggleStatusView("logs")
-                } else if (value === "queue") {
+                if (value === "queue") {
                     root.status.openQueue()
                 } else {
                     root.panels.toggleStatusView(value)

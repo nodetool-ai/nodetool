@@ -20,6 +20,11 @@ ColumnLayout {
     // A connected or preserved value explains itself in the hint below the label.
     readonly property string error: descriptor.editable === false || (descriptor.connected && !descriptor.appendStatic) ? "" : (descriptor.error || "")
     spacing: Ui.Metrics.xs
+    // ListProperty.tsx and DictProperty.tsx show a table on the constant nodes only;
+    // DataframeProperty.tsx shows one for every dataframe.
+    readonly property bool tableKind: descriptor.kind === "dataframe"
+        || (descriptor.kind === "list" && descriptor.nodeType === "nodetool.constant.List")
+        || (descriptor.kind === "dict" && descriptor.nodeType === "nodetool.constant.Dict")
     function begin() { editNodeId = nodeId }
     function commit(value) {
         if (!writable || editNodeId !== nodeId || host.selection !== editNodeId) return
@@ -127,7 +132,9 @@ ColumnLayout {
             : root.descriptor.kind.startsWith("media_") && !["media_list"].includes(root.descriptor.kind) ? mediaParameterField
             : root.descriptor.kind === "document" ? (["nodetool.constant.Document", "nodetool.input.DocumentInput"].includes(root.descriptor.nodeType) ? documentAssetField : documentIdField)
             : root.descriptor.kind === "file" ? fileField
-            : ["list", "dict", "json", "record_type"].includes(root.descriptor.kind) ? structuredField : preservedField
+            : root.tableKind ? tableField
+            : root.descriptor.kind === "record_type" ? recordTypeField
+            : ["list", "dict", "json"].includes(root.descriptor.kind) ? structuredField : preservedField
     }
     Component {
         id: codeField
@@ -217,6 +224,26 @@ ColumnLayout {
             valid: true
             errorText: root.error
             onValueCommitted: value => root.immediate(value)
+        }
+    }
+    Component {
+        id: tableField
+        DataTableEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            onEditStarted: root.begin()
+            onValueCommitted: value => root.commit(value)
+        }
+    }
+    Component {
+        id: recordTypeField
+        RecordTypeEditor {
+            descriptor: root.descriptor
+            value: root.effectiveValue
+            writable: root.writable
+            onEditStarted: root.begin()
+            onValueCommitted: value => root.commit(value)
         }
     }
     Component {

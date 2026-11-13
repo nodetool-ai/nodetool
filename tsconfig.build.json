@@ -3,6 +3,7 @@
   "references": [
     { "path": "packages/gpu" },
     { "path": "packages/kernels" },
+    { "path": "packages/kernels" },
     { "path": "packages/protocol" },
     { "path": "packages/analytics" },
     { "path": "packages/timeline" },

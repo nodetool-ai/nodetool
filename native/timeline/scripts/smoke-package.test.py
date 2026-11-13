@@ -30,12 +30,16 @@ class SmokeTest(unittest.TestCase):
                 self.assertIn(message, result.stderr)
                 print(result.stderr.strip())
 
-    def test_version_mismatch(self):
-        result = subprocess.run(['python3', str(SCRIPT.with_name('release-version.py')), 'timeline-v999.0.0'],
-                                capture_output=True, text=True)
+    def test_release_version(self):
+        script = str(SCRIPT.with_name('release-version.py'))
+        result = subprocess.run(['python3', script, 'timeline-v1.0.0'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 1)
-        self.assertIn('matching CMake PROJECT_VERSION', result.stderr)
-
+        self.assertIn('Expected a release version', result.stderr)
+        result = subprocess.run(['python3', script, 'v1.2.3-nightly.20261113.7'],
+                                capture_output=True, text=True, check=True)
+        lines = result.stdout.splitlines()
+        self.assertEqual(lines[0], 'version=1.2.3-nightly.20261113.7')
+        self.assertRegex(lines[1], r'^app_version=\d+\.\d+\.\d+$')
 
 if __name__ == '__main__':
     unittest.main()

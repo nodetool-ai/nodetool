@@ -17,6 +17,7 @@ import {
   type RendererToolCallMessage
 } from "@nodetool-ai/protocol";
 import { recordProviderCallFailure } from "../../stores/ProviderCallFailureStore";
+import { markModelUnavailable } from "../../stores/UnavailableModelStore";
 
 /**
  * Base shape of every message routed through the WebSocket.
@@ -356,6 +357,10 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     // no routing key, so a per-key subscriber would never see it.
     if (isProviderCallFailed(message)) {
       recordProviderCallFailure(message);
+      // A model the provider does not serve to this key leaves the pickers.
+      if (message.kind === "not_found" && message.model) {
+        markModelUnavailable(message.provider, message.model);
+      }
     }
 
     const routingKeys = new Set<string>();

@@ -10,6 +10,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QDir>
+#include <QMenuBar>
 #include <QtTest>
 #include <QTimer>
 #include <QSettings>
@@ -447,6 +448,9 @@ private slots:
         auto *chat = window.chatSession();
         chat->connectToServer(server.url());
         QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
+        // The Output panel takes most of an 800 px canvas. Where the menu bar draws in the
+        // window, it takes its height too, and the chat would no longer fit its controls.
+        if (!window.menuBar()->isNativeMenuBar()) { window.resize(1280, 800 + window.menuBar()->height()); }
         window.runOutput()->beginRun("run-fixture");
         window.action("Output");
         QTest::qWait(100);

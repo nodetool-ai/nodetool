@@ -2301,7 +2301,8 @@
       "cloudAlphaNotice": "Cloud è in alfa. Per lavori di produzione, utilizzare",
       "ssoTitle": "Accedi a NodeTool",
       "ssoSignIn": "Accedi con {{provider}}",
-      "ssoFailed": "Accesso non riuscito ({{reason}}). Riprova o chiedi l'accesso al tuo amministratore."
+      "ssoFailed": "Accesso non riuscito ({{reason}}). Riprova o chiedi l'accesso al tuo amministratore.",
+      "marketingOptIn": "Inviami email su nuovi lanci e offerte gratuite. Puoi annullare l'iscrizione in qualsiasi momento."
     },
     "inspector": {
       "params": "Param",
@@ -6482,6 +6483,16 @@
           "image": "Immagine",
           "video": "Video",
           "audio": "Audio"
+        },
+        "attachedFileActions": {
+          "label": "Inizia dai tuoi file",
+          "hint": "File allegati. Descrivi cosa creare oppure parti da questi:",
+          "animate": "Anima in un video",
+          "image": "Crea nuove immagini",
+          "retake": "Modifica il video",
+          "script": "Trasforma in sceneggiatura",
+          "ask": "Chiedi informazioni",
+          "askPrompt": "Guarda i file allegati e suggerisci cosa potrei crearne."
         }
       }
     }
@@ -20274,5 +20285,39 @@
         "public": "Pubblico"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "Il provider",
+    "title": {
+      "billing": "{{target}} non può essere eseguito: l'account non ha credito né fatturazione.",
+      "quota": "{{target}} non può essere eseguito: questa chiave non ha più quota per lui.",
+      "auth": "{{target}} ha rifiutato la tua chiave API.",
+      "model_unavailable": "{{target}} non è disponibile per la tua chiave.",
+      "rate_limit": "{{target}} sta ricevendo troppe richieste."
+    },
+    "hint": {
+      "billing": "Aggiungi credito presso il provider o passa a un altro modello.",
+      "quota": "Le chiavi gratuite spesso non hanno quota per questo modello. Attiva la fatturazione presso il provider o passa a un altro modello.",
+      "auth": "Controlla la chiave nelle Impostazioni o passa a un modello di un altro provider.",
+      "model_unavailable": "È stato rimosso dai tuoi elenchi di modelli. Scegli un altro modello.",
+      "rate_limit": "Attendi un momento, poi riprova."
+    },
+    "repeated": "Non è riuscito di nuovo nello stesso modo, quindi riprovare non servirà. Passa a un altro modello.",
+    "switchTo": "Usa {{model}}",
+    "openKeys": "Apri chiavi API",
+    "addCredit": "Aggiungi credito",
+    "enableBilling": "Attiva fatturazione"
+  },
+  "runReadiness": {
+    "addKey": "Aggiungi chiave API",
+    "missingKeysDetail": "Questo workflow richiede {{keys}}. Aggiungila nelle Impostazioni prima di eseguirlo.",
+    "costPerRun": "≈ {{cost}} per esecuzione",
+    "costUnknown": "Costo sconosciuto"
+  },
+  "marketingEmails": {
+    "title": "Email sul prodotto",
+    "label": "Inviami email su lanci e offerte gratuite",
+    "description": "Ricevi notizie su nuove funzioni, modelli e offerte gratuite. Ogni email contiene un link per annullare l'iscrizione, e puoi disattivare questa opzione qui in qualsiasi momento.",
+    "saveFailed": "La preferenza email non è stata salvata. Riprova."
   }
 }

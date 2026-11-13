@@ -673,19 +673,12 @@ void EditorWindow::installTabShortcuts() {
         shortcut->setContext(Qt::WindowShortcut);
         connect(shortcut, &QShortcut::activated, this, work);
     };
-    // web/src/config/shortcuts.ts: prevTab, nextTab, switchToTab1-9,
-    // newWorkflow and closeWorkflow.
-    for (const auto &keys : {"Ctrl+PgUp", "Ctrl+Shift+[", "Ctrl+Alt+Left"}) {
-        bind(QString::fromLatin1(keys), [this] { selectAdjacentTab(-1); });
-    }
-    for (const auto &keys : {"Ctrl+PgDown", "Ctrl+Shift+]", "Ctrl+Alt+Right"}) {
-        bind(QString::fromLatin1(keys), [this] { selectAdjacentTab(1); });
-    }
+    // web/src/config/shortcuts.ts: switchToTab1-9. The application menu holds
+    // prevTab, nextTab, newWorkflow and closeWorkflow, because a second binding of
+    // the same keys would make both ambiguous.
     for (int n = 1; n <= 9; ++n) {
         bind(QString("Ctrl+%1").arg(n), [this, n] { activateTab(n - 1); });
     }
-    bind("Ctrl+T", [this] { newTab(); });
-    bind("Ctrl+W", [this] { closeTab(activeTab()); });
 }
 void EditorWindow::harvestProjects(const QJsonArray &projects) {
     QJsonArray named;

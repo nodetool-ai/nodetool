@@ -7,11 +7,15 @@ Ui.Surface {
     variant: Ui.Surface.Overlay
     elevated: true
     property bool expanded: false
+    // Set by the owner when the status bar opens the queue. An opened queue
+    // shows with no active jobs, as the web QueuePanel does.
+    property bool opened: false
+    property string historyFilter: "all"
     property var retained: []
     property var localStarts: ({})
     property double now: Date.now()
     // The debounced queue, the open workflow, the run output's selected run and
-    // the cancel and select requests.
+    // the cancel, select and report requests.
     required property RunState runs
     readonly property var source: runs.queue
     readonly property var live: source.map((job, index) => Object.assign({}, job, {
@@ -19,19 +23,32 @@ Ui.Surface {
         }))
     readonly property int runningCount: live.filter(job => job.status === "running").length
     readonly property bool hasJobs: live.some(job => ["running", "queued", "scheduled", "starting"].includes(job.status))
-    readonly property bool presented: hasJobs || exitDelay.running
+    readonly property bool shown: hasJobs || opened
+    readonly property bool presented: shown || exitDelay.running
+    // Without active jobs there is nothing to summarize, so the opened queue lists everything.
+    readonly property bool showList: expanded || (opened && !hasJobs)
     readonly property bool clockRunning: clock.running
-    readonly property var rows: hasJobs ? live : retained
+    readonly property var rows: shown ? live : retained
     readonly property var running: rows.filter(job => job.status === "running")
     readonly property var queued: rows.filter(job => ["queued", "scheduled", "starting"].includes(job.status))
-    readonly property var cancelled: rows.filter(job => job.status === "cancelled")
-    readonly property real contentHeight: expanded ? sections.implicitHeight + header.height + Ui.Metrics.xl * 2 : summary.implicitHeight + Ui.Metrics.lg * 2
+    // Finished jobs, newest first: QueuePanel.tsx's history.
+    readonly property var history: rows.filter(job => !["running", "queued", "scheduled", "starting"].includes(job.status)).sort((a, b) => jobTime(b) - jobTime(a))
+    readonly property var historyCounts: ({
+            all: history.length,
+            failed: history.filter(job => historyBucket(job) === "failed").length,
+            completed: history.filter(job => historyBucket(job) === "completed").length,
+            cancelled: history.filter(job => historyBucket(job) === "cancelled").length
+        })
+    // A filter whose last job left the list falls back to everything.
+    readonly property string activeHistoryFilter: historyCounts[historyFilter] > 0 ? historyFilter : "all"
+    readonly property var historyGroups: groupByDay(activeHistoryFilter === "all" ? history : history.filter(job => historyBucket(job) === activeHistoryFilter))
+    readonly property real contentHeight: showList ? sections.implicitHeight + header.height + Ui.Metrics.xl * 2 : summary.implicitHeight + Ui.Metrics.lg * 2
     color: Ui.Theme.surfaceCanvas
-    opacity: hasJobs ? 1 : 0
-    scale: hasJobs || Ui.Theme.reducedMotion ? 1 : 0.98
+    opacity: shown ? 1 : 0
+    scale: shown || Ui.Theme.reducedMotion ? 1 : 0.98
     transformOrigin: Item.TopLeft
     transform: Translate {
-        y: root.hasJobs || Ui.Theme.reducedMotion ? 0 : -Ui.Metrics.sm
+        y: root.shown || Ui.Theme.reducedMotion ? 0 : -Ui.Metrics.sm
         Behavior on y {
             NumberAnimation {
                 duration: Ui.Theme.reducedMotion ? 0 : Ui.Metrics.motionNormal
@@ -49,7 +66,7 @@ Ui.Surface {
         }
     }
     onLiveChanged: {
-        if (hasJobs) {
+        if (shown) {
             retained = live;
         }
         const starts = Object.assign({}, localStarts);
@@ -60,8 +77,9 @@ Ui.Surface {
         }
         localStarts = starts;
     }
-    onHasJobsChanged: {
-        if (hasJobs) {
+    onShownChanged: {
+        if (shown) {
+            retained = live;
             exitDelay.stop();
         } else if (!Ui.Theme.reducedMotion) {
             exitDelay.restart();
@@ -78,6 +96,57 @@ Ui.Surface {
         running: root.runningCount > 0
         onTriggered: root.now = Date.now()
     }
+    // isFailed and historyBucket in QueuePanel.tsx.
+    function historyBucket(job) {
+        if (job.status === "cancelled") {
+            return "cancelled";
+        }
+        return job.status === "failed" || job.status === "timed_out" || !!job.error ? "failed" : "completed";
+    }
+    function jobTime(job) {
+        const parsed = Date.parse(job.finished_at || job.started_at || "");
+        return isNaN(parsed) ? 0 : parsed;
+    }
+    // groupByDate in web/src/utils/groupByDate.ts, by calendar day.
+    function dayLabel(time) {
+        if (!time) {
+            return "Earlier";
+        }
+        const today = new Date(now);
+        const day = new Date(time);
+        const days = Math.round((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(day.getFullYear(), day.getMonth(), day.getDate())) / 86400000);
+        return days <= 0 ? "Today" : days === 1 ? "Yesterday" : days < 7 ? days + " days ago" : Qt.formatDate(day, Qt.locale().dateFormat(Locale.ShortFormat));
+    }
+    function groupByDay(jobs) {
+        const groups = [];
+        for (const job of jobs) {
+            const label = dayLabel(jobTime(job));
+            const last = groups[groups.length - 1];
+            if (last && last.label === label) {
+                last.jobs.push(job);
+            } else {
+                groups.push({
+                    label: label,
+                    jobs: [job]
+                });
+            }
+        }
+        return groups;
+    }
+    // metaText in JobItem.tsx for a finished job.
+    function historyMeta(job) {
+        const bucket = historyBucket(job);
+        if (bucket === "failed") {
+            return job.error || "Failed";
+        }
+        const time = jobTime(job);
+        const clockLabel = time ? Qt.formatTime(new Date(time), Qt.locale().timeFormat(Locale.ShortFormat)) : "";
+        return [bucket === "cancelled" ? "Cancelled" : "Completed", clockLabel].filter(part => !!part).join(" · ");
+    }
+    function close() {
+        expanded = false;
+        opened = false;
+    }
     function name(job) {
         return job.name || job.workflow_name || "Untitled";
     }
@@ -89,7 +158,7 @@ Ui.Surface {
     }
     ColumnLayout {
         id: summary
-        visible: !root.expanded
+        visible: !root.showList
         anchors.fill: parent
         anchors.margins: Ui.Metrics.lg
         spacing: Ui.Metrics.md
@@ -144,7 +213,7 @@ Ui.Surface {
         }
     }
     ColumnLayout {
-        visible: root.expanded
+        visible: root.showList
         anchors.fill: parent
         anchors.margins: Ui.Metrics.lg
         spacing: Ui.Metrics.none
@@ -188,9 +257,15 @@ Ui.Surface {
                 Ui.ToolbarIconButton {
                     objectName: "queue-collapse"
                     iconName: "remove"
-                    accessibleName: "Collapse queue"
+                    accessibleName: root.hasJobs ? "Collapse queue" : "Close queue"
                     description: accessibleName
-                    onClicked: root.expanded = false
+                    onClicked: {
+                        if (root.hasJobs) {
+                            root.expanded = false;
+                        } else {
+                            root.close();
+                        }
+                    }
                 }
             }
         }
@@ -202,6 +277,43 @@ Ui.Surface {
                 id: sections
                 width: queueScroll.availableWidth
                 spacing: Ui.Metrics.md
+                // QueuePanel.tsx's Active section: running and queued jobs, or its empty state.
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.topMargin: Ui.Metrics.lg
+                    Ui.Text {
+                        objectName: "queue-section-Active"
+                        text: "Active"
+                        role: Ui.Typography.SansCaption
+                        tone: Ui.Text.Secondary
+                        Layout.fillWidth: true
+                    }
+                    Ui.Text {
+                        objectName: "queue-active-summary"
+                        text: [root.running.length > 0 ? root.running.length + " running" : "", root.queued.length > 0 ? root.queued.length + " queued" : ""].filter(part => !!part).join(" · ")
+                        role: Ui.Typography.SansCaption
+                        tone: Ui.Text.Secondary
+                    }
+                }
+                ColumnLayout {
+                    objectName: "queue-active-empty"
+                    visible: root.running.length + root.queued.length === 0
+                    Layout.fillWidth: true
+                    spacing: Ui.Metrics.xs
+                    Ui.Text {
+                        Layout.fillWidth: true
+                        text: "Nothing running or queued"
+                        role: Ui.Typography.SansLabel
+                        wrapMode: Text.Wrap
+                    }
+                    Ui.Text {
+                        Layout.fillWidth: true
+                        text: "Runs show up here while they work."
+                        role: Ui.Typography.SansCaption
+                        tone: Ui.Text.Secondary
+                        wrapMode: Text.Wrap
+                    }
+                }
                 Repeater {
                     model: [
                         {
@@ -211,10 +323,6 @@ Ui.Surface {
                         {
                             title: "Enqueued",
                             jobs: root.queued
-                        },
-                        {
-                            title: "Cancelled",
-                            jobs: root.cancelled
                         }
                     ]
                     delegate: ColumnLayout {
@@ -243,7 +351,6 @@ Ui.Surface {
                                 objectName: "queue-focus-" + modelData.queueIndex
                                 Layout.fillWidth: true
                                 implicitHeight: cardContent.implicitHeight + Ui.Metrics.md * 2
-                                opacity: modelData.status === "cancelled" ? 0.55 : 1
                                 color: hover.hovered && focusable ? Ui.Theme.actionHover : Ui.Theme.surfaceOverlay
                                 border.color: focused || activeFocus || (hover.hovered && focusable) ? Ui.Theme.borderFocus : Ui.Theme.borderSubtle
                                 focus: false
@@ -309,14 +416,13 @@ Ui.Surface {
                                             size: Ui.Metrics.iconXs
                                         }
                                         Ui.Text {
-                                            text: card.focused ? "On canvas" : card.isRunning ? root.clockText(card.modelData) : "Cancelled"
-                                            visible: card.isRunning || section.modelData.title === "Cancelled"
+                                            text: card.focused ? "On canvas" : root.clockText(card.modelData)
+                                            visible: card.isRunning
                                             role: Ui.Typography.MonoCaption
                                             tone: Ui.Text.Secondary
                                         }
                                         Ui.CloseButton {
                                             objectName: "queue-stop-" + card.modelData.queueIndex
-                                            visible: section.modelData.title !== "Cancelled"
                                             accessibleName: card.isRunning ? "Stop run" : "Remove from queue"
                                             description: accessibleName
                                             enabled: root.runs.connected && !card.modelData.stopping
@@ -329,6 +435,127 @@ Ui.Surface {
                                         implicitHeight: Ui.Metrics.xs
                                         indeterminate: true
                                         accessibleName: "Running"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                // QueuePanel.tsx's History section: finished jobs by day, with filters.
+                Ui.Text {
+                    objectName: "queue-section-History"
+                    text: "History"
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Secondary
+                    Layout.topMargin: Ui.Metrics.lg
+                }
+                Flow {
+                    objectName: "queue-history-filters"
+                    visible: root.historyCounts.all > 0
+                    Layout.fillWidth: true
+                    spacing: Ui.Metrics.xs
+                    Accessible.role: Accessible.Grouping
+                    Accessible.name: "Filter history"
+                    Repeater {
+                        model: [{key: "all", label: "All"}, {key: "failed", label: "Failed"}, {key: "completed", label: "Completed"}, {key: "cancelled", label: "Cancelled"}]
+                        Ui.EditorButton {
+                            id: chip
+                            required property var modelData
+                            objectName: "queue-filter-" + chip.modelData.key
+                            visible: chip.modelData.key === "all" || root.historyCounts[chip.modelData.key] > 0
+                            text: chip.modelData.label + " " + root.historyCounts[chip.modelData.key]
+                            density: Ui.EditorButton.Compact
+                            variant: Ui.EditorButton.Flat
+                            textTone: chip.modelData.key === "failed" ? Ui.Text.Error : Ui.Text.Primary
+                            active: root.activeHistoryFilter === chip.modelData.key
+                            onClicked: root.historyFilter = chip.modelData.key
+                        }
+                    }
+                }
+                ColumnLayout {
+                    objectName: "queue-history-empty"
+                    visible: root.historyGroups.length === 0
+                    Layout.fillWidth: true
+                    spacing: Ui.Metrics.xs
+                    Ui.Text {
+                        Layout.fillWidth: true
+                        text: "No finished runs yet"
+                        role: Ui.Typography.SansLabel
+                        wrapMode: Text.Wrap
+                    }
+                    Ui.Text {
+                        Layout.fillWidth: true
+                        text: "Completed, failed and cancelled runs are listed here."
+                        role: Ui.Typography.SansCaption
+                        tone: Ui.Text.Secondary
+                        wrapMode: Text.Wrap
+                    }
+                }
+                Repeater {
+                    model: root.historyGroups
+                    delegate: ColumnLayout {
+                        id: group
+                        required property var modelData
+                        Layout.fillWidth: true
+                        spacing: Ui.Metrics.xs
+                        Ui.Text {
+                            objectName: "queue-day-" + group.modelData.label
+                            text: group.modelData.label
+                            role: Ui.Typography.SansCaption
+                            tone: Ui.Text.Secondary
+                        }
+                        Repeater {
+                            model: group.modelData.jobs
+                            delegate: Ui.Surface {
+                                id: historyRow
+                                required property var modelData
+                                readonly property bool failed: root.historyBucket(modelData) === "failed"
+                                readonly property string jobId: modelData.jobId || modelData.id || ""
+                                objectName: "queue-history-" + jobId
+                                Layout.fillWidth: true
+                                implicitHeight: historyContent.implicitHeight + Ui.Metrics.md * 2
+                                // Failed runs keep a faint error wash so they stand out in history.
+                                color: failed ? Ui.Theme.statusErrorSurface : Ui.Theme.surfaceOverlay
+                                border.color: failed ? Ui.Theme.borderError : Ui.Theme.borderSubtle
+                                opacity: modelData.status === "cancelled" ? 0.55 : 1
+                                RowLayout {
+                                    id: historyContent
+                                    anchors.fill: parent
+                                    anchors.margins: Ui.Metrics.md
+                                    spacing: Ui.Metrics.md
+                                    Ui.Icon {
+                                        name: historyRow.failed ? "error" : historyRow.modelData.status === "cancelled" ? "block" : "check"
+                                        tone: historyRow.failed ? Ui.Text.Error : historyRow.modelData.status === "cancelled" ? Ui.Text.Secondary : Ui.Text.Success
+                                        size: Ui.Metrics.iconXs
+                                    }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: Ui.Metrics.none
+                                        Ui.Text {
+                                            Layout.fillWidth: true
+                                            text: root.name(historyRow.modelData)
+                                            role: Ui.Typography.SansLabel
+                                            elide: Text.ElideRight
+                                        }
+                                        Ui.Text {
+                                            objectName: "queue-history-meta-" + historyRow.jobId
+                                            Layout.fillWidth: true
+                                            text: root.historyMeta(historyRow.modelData)
+                                            textFormat: Text.PlainText
+                                            role: Ui.Typography.SansCaption
+                                            tone: historyRow.failed ? Ui.Text.Error : Ui.Text.Secondary
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+                                    // ReportBugButton on a failed JobItem.
+                                    Ui.EditorButton {
+                                        objectName: "queue-report-" + historyRow.jobId
+                                        visible: historyRow.failed
+                                        density: Ui.EditorButton.Compact
+                                        variant: Ui.EditorButton.Flat
+                                        text: qsTr("Report")
+                                        accessibleName: qsTr("Report this job failure")
+                                        onClicked: root.runs.reportJob(historyRow.jobId)
                                     }
                                 }
                             }

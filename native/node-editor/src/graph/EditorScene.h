@@ -192,6 +192,8 @@ signals:
     // The card's slot type chip asks for the type menu below sceneAnchor.
     void dynamicTypeMenuRequested(const QString &id, const QString &name, const QRectF &sceneAnchor);
     void childOpenRequested(const QString &id);
+    // A card's header button, such as the ComfyUI runner's workflow loader.
+    void headerActionRequested(const QString &id, const QString &action);
   void canvasContextMenuRequested(const QString &nodeId, const QPoint &screenPosition);
   void paneDoubleClicked(const QPointF &scenePosition);
   void dataEdgeContextMenuRequested(const QString &edgeId, const QPointF &scenePosition, const QPoint &screenPosition);
@@ -239,6 +241,7 @@ private:
   double phase_ = 0;
   bool reducedMotion_ = false;
     bool outputFormPress_ = false;
+    bool headerActionPress_ = false;
     QtNodes::NodeId footerPress_ = QtNodes::InvalidNodeId;
     QtNodes::NodeId footerHover_ = QtNodes::InvalidNodeId;
   bool inlinePress_ = false;
@@ -246,9 +249,15 @@ private:
   QString sliderProperty_;
   double sliderValue_ = 0;
   double sliderOrigin_ = 0;
+  // A synth knob drag: vertical, from the press's card-local y, a tenth as fast with Shift.
+  bool knobDrag_ = false;
+  double knobStartY_ = 0;
+  bool knobFine_ = false;
   // Mode switches, the dimension lock, add buttons and sliders on a card body.
   bool pressCardControl(QtNodes::NodeId id, const QPointF &local);
   void moveSlider(const QPointF &scenePosition);
+  // Resets the synth knob under a double-click. Returns false when there is none.
+  bool resetKnob(const QPointF &scenePosition);
   void finishSlider(bool commit);
   bool wireReconnect_ = false;
   QJsonObject reconnectEdge_;

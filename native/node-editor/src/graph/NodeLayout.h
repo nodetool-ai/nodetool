@@ -212,13 +212,15 @@ inline constexpr double dropZoneLine = 12;
 // Composer, Slider, Segmented, Lock, ModelChip, Action and DropZone rows belong
 // to the bespoke bodies. Their controls sit in NodeRow::rect.
 enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Preview,
-                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize };
+                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize,
+                         Knob, Waveform, Envelope, Caption };
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
-                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste };
+                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste,
+                      SynthModule, AudioOut };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.
@@ -280,6 +282,11 @@ struct NodeRow {
   int textSize = 0;
   // A bipolar slider fills from zero and signs positive values.
   bool bipolar = false;
+  // A synth knob sweeps its range on a log scale and formats its value in unit
+  // ("hz", "s", "ms", "db", "x" or none). accent names the module's palette key.
+  bool logScale = false;
+  QString unit;
+  QString accent;
   // A card warning band (ApiKeyValidation.tsx, InputNodeNameWarning.tsx): a
   // centered uppercase caption in warning ink on a faint warning fill. An
   // Action row with it draws the filled warning button.
@@ -323,6 +330,15 @@ struct NodeLayout {
     // A header-only strip: every handle sits on its midline and no body draws.
     bool collapsed = false;
     bool subgraph = false;
+    // A header button at the right of the title, such as the ComfyUI runner's
+    // workflow loader. Empty for a card without one.
+    QString headerAction;
+    QRectF headerActionRect() const {
+        // A 16 px icon in 4 px padding, 4 px from the card's right edge, centered on the header.
+        const double side = node_metrics::iconSize + 8;
+        const double top = node_metrics::borderWidth + node_metrics::padding + (node_metrics::headerHeight - side) / 2.0;
+        return QRectF(size.width() - node_metrics::borderWidth - 4 - side, top, side, side);
+    }
     bool addOutput = false;
     bool runningProgress = false;
     // A running card other than a subgraph with a known total shows a progress band.

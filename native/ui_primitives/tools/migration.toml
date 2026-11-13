@@ -2943,6 +2943,26 @@ qml_callers = ["native/node-editor/qml/PropertyField.qml"]
 replacement = "unreviewed"
 
 [[file]]
+path = "native/node-editor/qml/ColumnsEditor.qml"
+category = "pending"
+controls = ["ColumnLayout", "RowLayout", "Ui.Text", "Repeater", "Ui.TextField", "Ui.Select", "Ui.EditorButton"]
+signals = ["editStarted", "columnsCommitted", "columnDeleted"]
+test_host = "native/node-editor/tests/ui/DataTableEditorTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/DataTableEditor.qml", "native/node-editor/qml/RecordTypeEditor.qml"]
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/ComfyWorkflowDialog.qml"
+category = "pending"
+controls = ["Rectangle", "Connections", "ColumnLayout", "Ui.Text", "Ui.TextArea", "DropArea", "RowLayout", "Ui.ToolbarIconButton", "ListView", "Ui.EditorButton", "FileDialog"]
+signals = ["completed"]
+test_host = "native/node-editor/tests/ui/ChromeParityTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
 path = "native/node-editor/qml/CompatibleNodePicker.qml"
 category = "pending"
 controls = ["Rectangle", "Connections", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.TextField", "Column", "Repeater", "Ui.Separator", "ListView", "Ui.ScrollBar"]
@@ -2961,6 +2981,16 @@ test_host = "native/node-editor/tests/ui/EditorTest.cpp"
 test_scope = "build/import"
 qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.ContextMenu"
+
+[[file]]
+path = "native/node-editor/qml/DataTableEditor.qml"
+category = "pending"
+controls = ["ColumnLayout", "TextEdit", "RowLayout", "Ui.Text", "Ui.Select", "Ui.EditorButton", "ColumnsEditor", "Flow", "Ui.TextField", "Flickable", "Rectangle", "Row", "Item", "Ui.CheckBox", "Repeater", "MouseArea", "ListView"]
+signals = ["editStarted", "valueCommitted"]
+test_host = "native/node-editor/tests/ui/DataTableEditorTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/InlinePropertyEditor.qml", "native/node-editor/qml/PropertyField.qml"]
+replacement = "unreviewed"
 
 [[file]]
 path = "native/node-editor/qml/DataframeOutput.qml"
@@ -3051,6 +3081,16 @@ test_host = "native/node-editor/tests/ui/GenerationHistoryUiTest.cpp"
 test_scope = "build/import"
 qml_callers = ["native/node-editor/qml/Inspector.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text"
+
+[[file]]
+path = "native/node-editor/qml/GenerationsPanel.qml"
+category = "pending"
+controls = ["Rectangle", "Timer", "ColumnLayout", "RowLayout", "Ui.Text", "Item", "Ui.ToolbarIconButton", "Ui.CloseButton", "Ui.Status", "Ui.EmptyState", "Repeater", "Ui.EditorButton", "GridView", "HoverHandler", "MouseArea", "Ui.Surface", "Loader", "MediaPreview", "Ui.Icon", "Ui.Progress"]
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/GenerationsPanelTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
 
 [[file]]
 path = "native/node-editor/qml/HeaderRow.qml"
@@ -3291,6 +3331,16 @@ test_host = "native/node-editor/tests/ui/AuthoringUiTest.cpp"
 test_scope = "build/import"
 qml_callers = []
 replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Separator"
+
+[[file]]
+path = "native/node-editor/qml/RecordTypeEditor.qml"
+category = "pending"
+controls = ["ColumnLayout", "Ui.EditorButton", "ColumnsEditor", "Ui.Text"]
+signals = ["editStarted", "valueCommitted"]
+test_host = "native/node-editor/tests/ui/DataTableEditorTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/InlinePropertyEditor.qml", "native/node-editor/qml/PropertyField.qml"]
+replacement = "unreviewed"
 
 [[file]]
 path = "native/node-editor/qml/RemainingResourcePropertyEditor.qml"

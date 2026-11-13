@@ -11,8 +11,10 @@ Item {
     readonly property int token: activationToken
     readonly property var value: descriptor.hasValue ? descriptor.value : descriptor.hasDefault ? descriptor.defaultValue : null
     readonly property string kind: descriptor.kind || ""
-    readonly property bool structured: ["list", "dict", "json", "record_type"].includes(kind)
-    readonly property bool resource: ["workflow", "workflow_list", "collection"].includes(kind)
+    readonly property bool structured: ["list", "dict", "json", "record_type"].includes(kind) || table
+    // The constant List and Dict cards edit through the web's table, as the inspector does.
+    readonly property bool table: (kind === "list" && descriptor.nodeType === "nodetool.constant.List") || (kind === "dict" && descriptor.nodeType === "nodetool.constant.Dict")
+    readonly property bool resource: ["workflow", "workflow_list", "collection", "app"].includes(kind)
     readonly property bool imageSize: kind === "image_size"
     function commit(value) { presenter.commit(value, token) }
     function cancel() { presenter.cancel() }
@@ -154,7 +156,7 @@ Item {
         Rectangle {
             id: panel
             objectName: "inline-structured"
-            readonly property real wanted: Math.min(editor.implicitHeight + Ui.Metrics.md * 2, Ui.Metrics.touch * 10)
+            readonly property real wanted: Math.min(editor.implicitContent + Ui.Metrics.md * 2, Ui.Metrics.touch * 10)
             color: Ui.Theme.surfaceOverlay
             radius: Ui.Metrics.radiusOverlay
             border.width: Ui.Metrics.border
@@ -171,15 +173,40 @@ Item {
                 anchors.margins: Ui.Metrics.md
                 clip: true
                 contentWidth: width
-                contentHeight: editor.implicitHeight
+                contentHeight: editor.implicitContent
                 boundsBehavior: Flickable.StopAtBounds
-                StructuredPropertyEditor {
+                Loader {
                     id: editor
                     width: parent.width
-                    descriptor: root.descriptor
-                    value: root.value
-                    writable: true
-                    onValueCommitted: value => root.presenter.apply(value, root.token)
+                    readonly property real implicitContent: item ? item.implicitHeight : 0
+                    sourceComponent: root.table ? tableBody : root.kind === "record_type" ? recordTypeBody : structuredBody
+                }
+                Component {
+                    id: structuredBody
+                    StructuredPropertyEditor {
+                        descriptor: root.descriptor
+                        value: root.value
+                        writable: true
+                        onValueCommitted: value => root.presenter.apply(value, root.token)
+                    }
+                }
+                Component {
+                    id: tableBody
+                    DataTableEditor {
+                        descriptor: root.descriptor
+                        value: root.value
+                        writable: true
+                        onValueCommitted: value => root.presenter.apply(value, root.token)
+                    }
+                }
+                Component {
+                    id: recordTypeBody
+                    RecordTypeEditor {
+                        descriptor: root.descriptor
+                        value: root.value
+                        writable: true
+                        onValueCommitted: value => root.presenter.apply(value, root.token)
+                    }
                 }
             }
         }
@@ -235,13 +262,15 @@ Item {
     }
     Component {
         id: resourceEditor
-        // WorkflowProperty, WorkflowListProperty and CollectionProperty selects.
+        // WorkflowProperty, WorkflowListProperty and CollectionProperty selects,
+        // and the App node's app select (AppLoader.tsx).
         // A list choice toggles one workflow and the select stays open.
         Ui.Select {
             id: chooser
             objectName: "inline-resource-select"
             readonly property bool listMode: root.kind === "workflow_list"
             readonly property bool collectionMode: root.kind === "collection"
+            readonly property bool appMode: root.kind === "app"
             readonly property var controller: root.host.resourcePicker
             readonly property string requestKey: "inline-resource-" + root.token
             readonly property var reference: root.value && typeof root.value === "object" && root.value.length === undefined ? root.value : ({})
@@ -254,7 +283,7 @@ Item {
             options: rows.map(row => collectionMode ? ({label: row.name, value: row.name})
                 : ({label: (listMode && selectedIds.has(row.id) ? "\u2713 " : "") + row.name, value: row.id}))
             value: listMode ? chosen : collectionMode ? (reference.name || "") : (reference.id || "")
-            displayText: error !== "" ? error : !controller ? (collectionMode ? "Connect to a server to choose a collection." : "Connect to a server to choose a workflow.")
+            displayText: error !== "" ? error : !controller ? (collectionMode ? "Connect to a server to choose a collection." : appMode ? "Connect to a server to choose an app." : "Connect to a server to choose a workflow.")
                 : listMode ? selected.map(item => item && item.id ? names.get(item.id) || item.id : "").filter(Boolean).join(", ")
                 : currentIndex >= 0 ? currentText : names.get(value) || value
             accessibleName: root.descriptor.label || root.descriptor.name || ""
@@ -265,6 +294,7 @@ Item {
                 if (!controller) return
                 error = ""
                 if (collectionMode) controller.collections(requestKey)
+                else if (appMode) controller.applications(requestKey)
                 else controller.workflows(requestKey, cursor)
             }
             function openPicker() { rows = []; load("") }
@@ -274,7 +304,7 @@ Item {
             function finishEdit() { root.presenter.close(root.token) }
             onValueCommitted: value => {
                 if (collectionMode) root.commit(Object.assign({}, reference, {type: "collection", name: value}))
-                else if (!listMode) root.commit(Object.assign({}, reference, {type: "workflow", id: value}))
+                else if (!listMode) root.commit(Object.assign({}, reference, {type: appMode ? "app" : "workflow", id: value}))
                 else {
                     chosen = value
                     root.presenter.apply(selectedIds.has(value) ? selected.filter(item => !item || item.id !== value)

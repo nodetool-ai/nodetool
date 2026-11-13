@@ -8,7 +8,9 @@ import {
   parseFalModelsPage,
   parseGeminiImageModels,
   parseGeminiShippedIds,
-  parseReplicateCollection
+  parseGeminiVideoIds,
+  parseReplicateCollection,
+  staleServedModels
 } from "../provider-gaps/gaps.mjs";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -125,5 +127,32 @@ describe("provider model gaps", () => {
         ]
       })
     ).toEqual(["gemini-nano-banana-2.1", "gemini-3-pro-image"]);
+  });
+
+  it("reads the Veo ids the Gemini provider offers from its own file", () => {
+    const ids = parseGeminiVideoIds(
+      read("../../packages/runtime/src/providers/gemini-provider.ts")
+    );
+    expect(ids.length).toBeGreaterThan(0);
+    expect(ids.every((id) => id.startsWith("veo-"))).toBe(true);
+  });
+
+  it("reports only the offered ids the provider refused", () => {
+    expect(
+      staleServedModels([
+        { id: "veo-3.1-generate-preview", ok: false, status: 404 },
+        { id: "gemini-2.5-flash-lite", ok: true, status: 200 },
+        { id: "gemini-2.5-pro", ok: false, status: 404 }
+      ])
+    ).toEqual([
+      { id: "gemini-2.5-pro", status: 404 },
+      { id: "veo-3.1-generate-preview", status: 404 }
+    ]);
+  });
+
+  it("watches the model ids users got 404 for", () => {
+    const served = JSON.parse(read("../provider-gaps/served.json"));
+    const generate = Object.values(served.gemini.generate).flat();
+    expect(generate).toContain("gemini-2.5-pro");
   });
 });

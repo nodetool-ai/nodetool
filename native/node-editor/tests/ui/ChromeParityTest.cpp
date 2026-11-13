@@ -14,6 +14,7 @@
 #include <QToolTip>
 #include <QWebSocket>
 #include <QWebSocketServer>
+#include <QMenu>
 #include <QtTest>
 
 using namespace nodetool;
@@ -348,7 +349,7 @@ private slots:
             {"rail-projects", "Projects has no native surface yet. Switch projects from the project menu in the tab strip."},
             {"rail-library", "Library"},
             {"rail-entities", "Entities has no native panel yet."},
-            {"rail-examples", "Examples has no native panel yet."},
+            {"rail-examples", "Examples"},
             {"rail-more", "The More panel has no native equivalent. Native commands are in the toolbar More menu."},
         };
         for (const auto &tip : tips) {
@@ -383,8 +384,13 @@ private slots:
         QTRY_VERIFY(window.chatVisible());
         click(rail, entry("rail-chats"));
         QTRY_VERIFY(!window.chatVisible());
+        // Examples opens the menu of bundled examples.
+        click(rail, entry("rail-examples"));
+        QTRY_VERIFY(window.findChild<QMenu *>("examples-menu"));
+        window.findChild<QMenu *>("examples-menu")->close();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         // A disabled entry changes nothing.
-        for (const auto *name : {"rail-projects", "rail-library", "rail-entities", "rail-examples", "rail-more"}) {
+        for (const auto *name : {"rail-projects", "rail-library", "rail-entities", "rail-more"}) {
             click(rail, entry(name));
             QTest::qWait(30);
             QVERIFY2(!window.catalogVisible() && !window.browserVisible() && !window.chatVisible(), name);
@@ -443,8 +449,6 @@ private slots:
         auto *status = panel(window, QStringLiteral("StatusBar"));
         auto *root = status->rootObject();
         const QList<QPair<QString, QString>> reasons{
-            {"status-queue", "The queue opens while jobs are queued or running."},
-            {"status-generations", "Generations across workflows have no native panel. Select a node and open History in the inspector."},
             {"status-workers", "Workers has no native panel yet."},
         };
         for (const auto &reason : reasons) {
@@ -464,6 +468,23 @@ private slots:
         click(status, find(root, "status-versions"));
         QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("workflow-versions-dock")));
         QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("workflow-versions-dock"))->isVisible());
+        // Queue opens with no jobs, as the web QueuePanel does, and closes on a second click.
+        auto *overlay = panel(window, QStringLiteral("QueueOverlay"));
+        QVERIFY(overlay);
+        QVERIFY(!window.queueAvailable());
+        click(status, find(root, "status-queue"));
+        QTRY_VERIFY(overlay->rootObject()->property("presented").toBool());
+        QTRY_VERIFY(find(root, "status-queue")->property("active").toBool());
+        QVERIFY(find(overlay->rootObject(), "queue-active-empty")->isVisible());
+        click(status, find(root, "status-queue"));
+        QTRY_VERIFY(!find(root, "status-queue")->property("active").toBool());
+        // Generations opens its bottom panel and closes it again.
+        click(status, find(root, "status-generations"));
+        QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("generations-dock")));
+        QTRY_VERIFY(find(root, "status-generations")->property("active").toBool());
+        QVERIFY(panel(window, QStringLiteral("GenerationsPanel")));
+        click(status, find(root, "status-generations"));
+        QTRY_VERIFY(!find(root, "status-generations")->property("active").toBool());
     }
 
     void statusBarShowsServerStatsAndTheQueue() {
@@ -507,13 +528,12 @@ private slots:
         peer->sendBinaryMessage(node_editor::encodeMsgPack(QJsonObject{{"type", "system_stats"},
             {"stats", QJsonObject{{"cpu_percent", 7.0}, {"memory_percent", 63.0}}}}));
         QTRY_COMPARE(find(root, "status-memory-value")->property("text").toString(), QString("63%"));
-        // A started run makes the queue tab available, and the tab expands the queue panel.
+        // A started run shows the queue summary, and the tab expands the queue panel.
         auto *queue = find(root, "status-queue");
-        QVERIFY(!queue->property("disabledReason").toString().isEmpty());
+        QCOMPARE(queue->property("disabledReason").toString(), QString());
         window.action("Run");
         QTRY_VERIFY_WITH_TIMEOUT(!commands.isEmpty(), 2000);
         QTRY_VERIFY(window.queueAvailable());
-        QTRY_COMPARE(queue->property("disabledReason").toString(), QString());
         auto *overlay = panel(window, QStringLiteral("QueueOverlay"));
         QVERIFY(overlay);
         QVERIFY(!overlay->rootObject()->property("expanded").toBool());

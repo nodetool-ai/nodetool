@@ -3,6 +3,7 @@
 #include "WorkflowGraphModel.h"
 #include "CardBodyPainter.h"
 #include "CardBodies.h"
+#include "SynthModules.h"
 #include "document/ConnectionTypes.h"
 #include <QClipboard>
 #include <QGuiApplication>
@@ -448,7 +449,9 @@ public:
     painter->setPen(zoomedOut ? theme.zoomedTitle : theme.textPrimary);
     painter->setFont(canvasFont(theme, nm::fontTitle, QFont::Normal));
     // The chip keeps its 6 px left margin (nodes.states.css .bypass-badge).
-    const QRectF title(inset + nm::titleOffset, inset, layout.size.width() - 2 * inset - nm::titleOffset - (disabled ? chip.width() + disabledChipMargin : 0), nm::headerHeight);
+    const bool headerButton = !layout.headerAction.isEmpty() && !layout.collapsed && !zoomedOut;
+    const QRectF title(inset + nm::titleOffset, inset, layout.size.width() - 2 * inset - nm::titleOffset - (disabled ? chip.width() + disabledChipMargin : 0)
+                       - (headerButton ? layout.headerActionRect().width() : 0), nm::headerHeight);
     {
       // nodes.states.css: a bypassed title is drawn at 0.8 inside the card's own 0.8.
       const auto cardOpacity = painter->opacity();
@@ -459,6 +462,17 @@ public:
     }
 
     if (disabled) { paintDisabledBadge(painter, chip, theme, chipFont, chipLabel); }
+    if (headerButton && !model.readOnly()) {
+        // ComfyWorkflowLoader's ToolbarIconButton: secondary ink, primary ink on an overlay when hovered.
+        const auto button = layout.headerActionRect();
+        const bool hovered = item.property("headerActionHovered").toBool();
+        if (hovered) {
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(theme.field);
+            painter->drawRoundedRect(button, 4, 4);
+        }
+        paintIcon(painter, QStringLiteral("uploadFile"), button.adjusted(4, 4, -4, -4), hovered ? theme.textPrimary : theme.textSecondary);
+    }
     CardBodyPaintState bodyState;
     bodyState.hasResult = model.hasRuntimeOutput(item.nodeId());
     bodyState.hovered = item.nodeState().hovered();
@@ -1244,6 +1258,10 @@ void EditorScene::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
   emit canvasContextMenuRequested({}, event->screenPos()); event->accept();
 }
 void EditorScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) {
+  if (!model_.readOnly() && event->button() == Qt::LeftButton && resetKnob(event->scenePos())) {
+    event->accept();
+    return;
+  }
   if (!model_.readOnly() && event->button() == Qt::LeftButton) {
     for (auto *item:items(event->scenePos(),Qt::IntersectsItemShape,Qt::DescendingOrder)) {
       auto *node=qgraphicsitem_cast<NodeGraphicsObject *>(item);
@@ -1373,6 +1391,7 @@ bool EditorScene::beginReconnect(ConnectionId connection, PortType side) {
 void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
     footerPress_ = InvalidNodeId;
     outputFormPress_ = false;
+    headerActionPress_ = false;
     if (event->button() == Qt::LeftButton) {
         for (auto *item : items(event->scenePos(), Qt::IntersectsItemShape, Qt::DescendingOrder)) {
             auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
@@ -1386,6 +1405,13 @@ void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
             }
             if (layout.subgraph && layout.footerRect().adjusted(0, 0, -16, 0).contains(node->mapFromScene(event->scenePos()))) {
                 footerPress_ = node->nodeId();
+                event->accept();
+                return;
+            }
+            if (!layout.headerAction.isEmpty() && !layout.collapsed && !model_.readOnly()
+                && layout.headerActionRect().contains(node->mapFromScene(event->scenePos()))) {
+                footerPress_ = node->nodeId();
+                headerActionPress_ = true;
                 event->accept();
                 return;
             }
@@ -1569,7 +1595,13 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             }
             emit nodeSelected(id);
         };
-        if (row.kind == NodeRowKind::Segmented) {
+        if (row.kind == NodeRowKind::Segmented && row.action == QStringLiteral("toggleBool")) {
+            // A synth faceplate's on/off toggle flips its boolean.
+            select();
+            if (!row.checked && model_.commit) { model_.commit(model_.propertyCommand(id, row.propertyName, row.selected < 0)); }
+            return true;
+        }
+        if (row.kind == NodeRowKind::Segmented || row.kind == NodeRowKind::Waveform) {
             select();
             for (int i = 0; i < row.parts.size() && i < row.optionValues.size(); ++i) {
                 if (!row.parts[i].contains(local) || i == row.selected) { continue; }
@@ -1665,6 +1697,18 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             }
             return true;
         }
+        if (row.kind == NodeRowKind::Knob) {
+            if (!knobFace(row).contains(local)) { continue; }
+            select();
+            if (row.checked) { return true; }
+            sliderNode_ = id;
+            sliderProperty_ = row.propertyName;
+            sliderOrigin_ = row.number;
+            sliderValue_ = row.number;
+            knobDrag_ = true;
+            knobStartY_ = local.y();
+            return true;
+        }
         if (row.kind == NodeRowKind::Slider) {
             select();
             if (row.checked) { return true; }
@@ -1679,11 +1723,37 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
     }
     return false;
 }
+bool EditorScene::resetKnob(const QPointF &scenePosition) {
+    // SynthKnob's double-click puts the knob back to its default in one step.
+    for (auto *item : items(scenePosition, Qt::IntersectsItemShape, Qt::DescendingOrder)) {
+        auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
+        if (!node) { continue; }
+        const auto id = node->nodeId();
+        const auto local = node->mapFromScene(scenePosition);
+        for (const auto &row : model_.layout(id).rows) {
+            if (row.kind != NodeRowKind::Knob || row.checked || !knobFace(row).contains(local)) { continue; }
+            if (row.number != row.defaultNumber && model_.commit) {
+                model_.commit(model_.propertyCommand(id, row.propertyName, row.defaultNumber));
+            }
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
 void EditorScene::moveSlider(const QPointF &scenePosition) {
     auto *item = nodeGraphicsObject(sliderNode_);
     if (!item) { finishSlider(false); return; }
     for (const auto &row : model_.layout(sliderNode_).rows) {
-        if (row.kind == NodeRowKind::Slider && row.propertyName == sliderProperty_) {
+        if (knobDrag_ && row.kind == NodeRowKind::Knob && row.propertyName == sliderProperty_) {
+            const auto value = knobDragValue(row, sliderOrigin_, knobStartY_, item->mapFromScene(scenePosition).y(), knobFine_);
+            if (value == sliderValue_) { return; }
+            sliderValue_ = value;
+            item->update();
+            emit sliderDraftChanged(sliderNode_, sliderProperty_, value);
+            return;
+        }
+        if (!knobDrag_ && row.kind == NodeRowKind::Slider && row.propertyName == sliderProperty_) {
             const auto value = sliderValueAt(row, item->mapFromScene(scenePosition).x());
             if (value == sliderValue_) { return; }
             sliderValue_ = value;
@@ -1699,6 +1769,7 @@ void EditorScene::finishSlider(bool commit) {
     const auto value = sliderValue_;
     sliderNode_ = InvalidNodeId;
     sliderProperty_.clear();
+    knobDrag_ = false;
     if (auto *item = nodeGraphicsObject(id)) { item->update(); }
     // One drag commits one value, so a single undo step reverts it.
     if (commit && model_.nodeExists(id) && value != sliderOrigin_ && model_.commit) {
@@ -1720,6 +1791,7 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
         repaintCards();
     }
     if (sliderNode_ != InvalidNodeId) {
+        knobFine_ = event->modifiers().testFlag(Qt::ShiftModifier);
         moveSlider(event->scenePos());
         event->accept();
         return;
@@ -1727,6 +1799,7 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
     updateHandleHover(event->scenePos());
     if (auto *old = nodeGraphicsObject(footerHover_)) {
         old->setProperty("footerHovered", false);
+        old->setProperty("headerActionHovered", false);
         old->setToolTip({});
         old->update();
     }
@@ -1736,9 +1809,12 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
         if (!node) { continue; }
         const auto &layout = model_.layout(node->nodeId());
         const bool hovered = layout.subgraph && layout.footerRect().contains(node->mapFromScene(event->scenePos()));
-        footerHover_ = hovered ? node->nodeId() : InvalidNodeId;
+        const bool actionHovered = !layout.headerAction.isEmpty() && !layout.collapsed && !model_.readOnly()
+            && layout.headerActionRect().contains(node->mapFromScene(event->scenePos()));
+        footerHover_ = hovered || actionHovered ? node->nodeId() : InvalidNodeId;
         node->setProperty("footerHovered", hovered);
-        node->setToolTip(hovered ? tr("Open the subgraph in its own tab") : QString{});
+        node->setProperty("headerActionHovered", actionHovered);
+        node->setToolTip(hovered ? tr("Open the subgraph in its own tab") : actionHovered ? tr("Load workflow") : QString{});
         node->update();
         break;
     }
@@ -1785,6 +1861,7 @@ void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
         repaintCards();
     }
     if (sliderNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
+        knobFine_ = event->modifiers().testFlag(Qt::ShiftModifier);
         moveSlider(event->scenePos());
         finishSlider(true);
         inlinePress_ = false;
@@ -1795,12 +1872,16 @@ void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
         const auto id = footerPress_;
         footerPress_ = InvalidNodeId;
         auto *item = nodeGraphicsObject(id);
-        const auto rect = outputFormPress_ ? model_.layout(id).outputFormRect() : model_.layout(id).footerRect();
+        const auto &pressed = model_.layout(id);
+        const auto rect = outputFormPress_ ? pressed.outputFormRect() : headerActionPress_ ? pressed.headerActionRect() : pressed.footerRect();
+        const auto action = pressed.headerAction;
         if (event->button() == Qt::LeftButton && item && rect.contains(item->mapFromScene(event->scenePos()))) {
             if (outputFormPress_) { emit outputFormRequested(model_.resourceId(id)); }
+            else if (headerActionPress_) { emit headerActionRequested(model_.resourceId(id), action); }
             else { emit childOpenRequested(model_.resourceId(id)); }
         }
         outputFormPress_ = false;
+        headerActionPress_ = false;
         event->accept();
         return;
     }

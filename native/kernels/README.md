@@ -26,8 +26,11 @@ Streaming kernels keep their state in a caller-owned array of doubles.
 |---|---|---|
 | Image enhance | `nt_image_auto_contrast`, `_equalize`, `_adaptive_contrast`, `_rank_filter` | `lib.image.enhance.*` |
 | Audio effects | `nt_audio_bitcrush`, `_compress`, `_distortion`, `_limiter`, `_reverb`, `_noise_gate`, `_phaser`, `_delay` | `lib.audio.*` |
+| Stateful audio | `nt_audio_<effect>_state_len`, `_init`, `_block` for bitcrush, compress, limiter, noise gate, phaser, reverb and delay | Clip effects and `nodetool.audio.realtime.Streaming*` |
+| Resampling | `nt_resample_output_frames`, `nt_resample` | Audio To Chunks |
 | Biquad filters | `nt_biquad_design_rbj`, `nt_biquad_design_webaudio`, `nt_biquad_process`, `nt_vcf_process` | `lib.audio` filters, streaming filters, the VCF |
 | Synthesis | `nt_osc_process`, `nt_lfo_process`, `nt_adsr_process`, `nt_gate_process`, `nt_vca_process`, `nt_sample_hold_process` | `nodetool.audio.synth.*` |
+| Sampler | `nt_sampler_state_len`, `nt_sampler_process` | `nodetool.audio.synth.Sampler` |
 | Signal utilities | `nt_signal_scale_offset`, `nt_signal_mix_add`, `nt_signal_extract_channel` | Gain, Mixer, channel splits |
 
 ## Output parity

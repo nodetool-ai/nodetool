@@ -8,7 +8,7 @@
 #include <QDir>
 #include <QDragEnterEvent>
 #include <QGraphicsView>
-#include "EntryMenuSupport.h"
+#include <QMenu>
 #include <QMimeData>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -171,9 +171,13 @@ private slots:
   window.setCatalog(compactCatalog());
   const auto original = workflow();
   QVERIFY(window.document()->load(original)); window.show(); QTest::qWait(100);
-  window.action("More");
-  auto menu = entry_menu::host(window, "more"); QVERIFY(menu);
-  QVERIFY(entry_menu::click(menu, "Auto layout"));
+  auto menu = window.findChild<QMenu *>("application-menu-node"); QVERIFY(menu);
+  QAction *layout = nullptr;
+  for (auto action : menu->actions()) { if (action->text() == "Auto Layout") { layout = action; } }
+  QVERIFY(layout);
+  emit menu->aboutToShow();
+  QVERIFY(layout->isEnabled());
+  layout->trigger();
   QTRY_COMPARE(window.document()->undoStack()->count(), 1);
   QTRY_VERIFY(position(window.document()->node("n0")) != QPointF(450, 400));
     // Document commands precede the coalesced canvas projection.

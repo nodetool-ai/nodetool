@@ -987,6 +987,117 @@ describe("NewProjectSurface", () => {
     );
   });
 
+  // Files with no prompt leave the chat send off. The composer says so and
+  // offers a one-click start for what was attached instead of a faded button.
+  describe("next step for attached files", () => {
+    const attach = async (...files: File[]): Promise<HTMLElement> => {
+      createAsset.mockImplementation(async (file: File) => ({
+        id: `${file.name}-asset`,
+        name: file.name,
+        content_type: file.type
+      }));
+      renderSurface();
+      await userEvent.upload(screen.getByLabelText("Attach files"), files);
+      return screen.findByRole("group", { name: "Start from your files" });
+    };
+    const actionNames = (group: HTMLElement): string[] =>
+      within(group)
+        .getAllByRole("button")
+        .map((button) => button.textContent ?? "");
+
+    it("animates attached pictures, and hides once the prompt has words", async () => {
+      const actions = await attach(
+        new File(["image bytes"], "shot-10.jpg", { type: "image/jpeg" })
+      );
+      expect(
+        within(actions).getByText(/Files attached\. Describe what to make/)
+      ).toBeInTheDocument();
+      expect(actionNames(actions)).toEqual([
+        "Animate into a video",
+        "Make new images",
+        "Ask about them"
+      ]);
+
+      await userEvent.type(screen.getByLabelText("Chat prompt"), "a fox");
+      expect(
+        screen.queryByRole("group", { name: "Start from your files" })
+      ).not.toBeInTheDocument();
+      await userEvent.clear(screen.getByLabelText("Chat prompt"));
+
+      await userEvent.click(
+        within(
+          screen.getByRole("group", { name: "Start from your files" })
+        ).getByRole("button", { name: "Animate into a video" })
+      );
+      await waitFor(() => expect(openCreateSession).toHaveBeenCalled());
+      expect(openCreateSession).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          mode: "image_to_video",
+          references: [expect.objectContaining({ assetId: "shot-10.jpg-asset" })]
+        })
+      );
+    });
+
+    it("opens an attached clip as a retake of that clip", async () => {
+      const actions = await attach(
+        new File(["video bytes"], "take-3.mp4", { type: "video/mp4" })
+      );
+      expect(actionNames(actions)).toEqual(["Edit the video", "Ask about them"]);
+
+      await userEvent.click(
+        within(actions).getByRole("button", { name: "Edit the video" })
+      );
+      await waitFor(() => expect(openCreateSession).toHaveBeenCalled());
+      expect(openCreateSession).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          mode: "retake",
+          references: [
+            expect.objectContaining({
+              assetId: "take-3.mp4-asset",
+              contentType: "video/mp4"
+            })
+          ]
+        })
+      );
+    });
+
+    it("turns an attached document into a script that carries it", async () => {
+      const actions = await attach(
+        new File(["scene one"], "pilot.docx", {
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        })
+      );
+      expect(actionNames(actions)).toEqual(["Turn into a script", "Ask about them"]);
+
+      await userEvent.click(
+        within(actions).getByRole("button", { name: "Turn into a script" })
+      );
+      await waitFor(() => expect(createScript).toHaveBeenCalled());
+      expect(JSON.stringify(createScript.mock.calls[0])).toContain(
+        "pilot.docx-asset"
+      );
+    });
+
+    it("writes a question about an archive into the prompt and enables send", async () => {
+      const actions = await attach(
+        new File(["zip bytes"], "assets.zip", { type: "application/zip" })
+      );
+      expect(actionNames(actions)).toEqual(["Ask about them"]);
+
+      await userEvent.click(
+        within(actions).getByRole("button", { name: "Ask about them" })
+      );
+      const promptBox = screen.getByLabelText("Chat prompt");
+      expect(promptBox).toHaveValue(
+        "Look at the attached files and suggest what I could make from them."
+      );
+      expect(promptBox).toHaveFocus();
+      expect(screen.getByRole("button", { name: "Send to chat" })).toBeEnabled();
+    });
+  });
+
   // A card started mid-upload would take only the images already uploaded,
   // and say it took them all.
   it("holds the entry cards while reference images upload", async () => {

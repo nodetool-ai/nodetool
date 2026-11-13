@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Cloud bevindt zich in alfa. Gebruik voor productiewerk",
       "ssoTitle": "Aanmelden bij NodeTool",
       "ssoSignIn": "Aanmelden met {{provider}}",
-      "ssoFailed": "Aanmelden mislukt ({{reason}}). Probeer het opnieuw of vraag je beheerder om toegang."
+      "ssoFailed": "Aanmelden mislukt ({{reason}}). Probeer het opnieuw of vraag je beheerder om toegang.",
+      "marketingOptIn": "Stuur me e-mails over nieuwe lanceringen en gratis aanbiedingen. Je kunt je altijd afmelden."
     },
     "inspector": {
       "params": "Params",
@@ -6396,6 +6397,16 @@
           "image": "Afbeelding",
           "video": "Video",
           "audio": "Audio"
+        },
+        "attachedFileActions": {
+          "label": "Begin met je bestanden",
+          "hint": "Bestanden bijgevoegd. Beschrijf wat je wilt maken, of begin ermee:",
+          "animate": "Animeren tot video",
+          "image": "Nieuwe afbeeldingen maken",
+          "retake": "Video bewerken",
+          "script": "Omzetten naar script",
+          "ask": "Vragen erover stellen",
+          "askPrompt": "Bekijk de bijgevoegde bestanden en stel voor wat ik ermee kan maken."
         }
       }
     }
@@ -19963,5 +19974,39 @@
         "public": "Openbaar"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "De provider",
+    "title": {
+      "billing": "{{target}} kan niet draaien: het account heeft geen tegoed of facturering.",
+      "quota": "{{target}} kan niet draaien: deze sleutel heeft er geen quotum meer voor.",
+      "auth": "{{target}} heeft je API-sleutel geweigerd.",
+      "model_unavailable": "{{target}} is niet beschikbaar voor je sleutel.",
+      "rate_limit": "{{target}} krijgt te veel verzoeken."
+    },
+    "hint": {
+      "billing": "Voeg tegoed toe bij de provider, of stap over op een ander model.",
+      "quota": "Gratis sleutels hebben vaak geen quotum voor dit model. Zet facturering aan bij de provider, of stap over op een ander model.",
+      "auth": "Controleer de sleutel in Instellingen, of stap over op een model van een andere provider.",
+      "model_unavailable": "Het is uit je modellijsten gehaald. Kies een ander model.",
+      "rate_limit": "Wacht even en probeer het dan opnieuw."
+    },
+    "repeated": "Dit mislukte opnieuw op dezelfde manier, dus opnieuw proberen helpt niet. Stap over op een ander model.",
+    "switchTo": "{{model}} gebruiken",
+    "openKeys": "API-sleutels openen",
+    "addCredit": "Tegoed toevoegen",
+    "enableBilling": "Facturering aanzetten"
+  },
+  "runReadiness": {
+    "addKey": "API-sleutel toevoegen",
+    "missingKeysDetail": "Deze workflow heeft {{keys}} nodig. Voeg die toe in Instellingen voordat je hem uitvoert.",
+    "costPerRun": "≈ {{cost}} per run",
+    "costUnknown": "Kosten onbekend"
+  },
+  "marketingEmails": {
+    "title": "Product-e-mails",
+    "label": "Stuur me e-mails over lanceringen en gratis aanbiedingen",
+    "description": "Hoor als eerste over nieuwe functies, modellen en gratis aanbiedingen. Elke e-mail bevat een afmeldlink, en je kunt dit hier altijd uitzetten.",
+    "saveFailed": "Je e-mailvoorkeur is niet opgeslagen. Probeer het opnieuw."
   }
 }

@@ -154,9 +154,11 @@ private slots:
                          - count->mapToScene({0, count->height() / 2}).y()) < 1);
         }
         for (const auto &title :
-             {QString("Running"), QString("Enqueued"), QString("Cancelled")}) {
+             {QString("Active"), QString("Running"), QString("Enqueued"), QString("History")}) {
             QVERIFY(find(root, "queue-section-" + title));
         }
+        // The cancelled job moved to the history.
+        QVERIFY(find(root, "queue-history-x"));
         auto card = find(root, "queue-focus-0");
         QVERIFY(card);
         QTRY_VERIFY(card->width() > 250);

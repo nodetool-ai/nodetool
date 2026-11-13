@@ -5,7 +5,7 @@
 #include <QContextMenuEvent>
 #include <QGraphicsView>
 #include <QJsonDocument>
-#include "EntryMenuSupport.h"
+#include <QMenu>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QQuickWindow>
@@ -73,6 +73,13 @@ class SubgraphCardTest : public QObject {
         QVariant result;
         QMetaObject::invokeMethod(menu->rootObject(), "itemFor", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, QString("group-into-subgraph")));
         return qobject_cast<QQuickItem *>(result.value<QObject *>());
+    }
+    static QAction *groupAction(QMenu *menu) {
+        if (!menu) { return nullptr; }
+        for (auto action : menu->actions()) {
+            if (action->text() == "Group into Subgraph") { return action; }
+        }
+        return nullptr;
     }
     static QQuickItem *find(QQuickItem *item, const QString &name) {
         if (item->objectName() == name) { return item; }
@@ -187,13 +194,12 @@ private slots:
         QTest::keyClick(contextMenu, Qt::Key_Escape);
         w.setCatalog(catalog());
         w.scene()->clearSelection();
-        QVERIFY(clickQuick(w, "toolbar-more"));
-        QCoreApplication::processEvents();
-        auto menu = entry_menu::host(*w.activeEditor(), "more");
-        QVERIFY(menu);
-        QVERIFY(entry_menu::entry(menu, "Group into subgraph").contains("enabled"));
-        QVERIFY(!entry_menu::entry(menu, "Group into subgraph")["enabled"].toBool());
-        QTest::keyClick(menu, Qt::Key_Escape);
+        auto menu = w.findChild<QMenu *>("application-menu-node");
+        auto action = groupAction(menu);
+        QVERIFY(action);
+        emit menu->aboutToShow();
+        QVERIFY(!action->isEnabled());
+        emit menu->aboutToHide();
     }
     void boundaryGrouping() {
         EditorWindow w;

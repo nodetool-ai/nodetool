@@ -186,7 +186,7 @@ private slots:
                           .nodeCount = 1,
                           .edgeCount = 3,
                           .queuedCount = 2,
-                          .queueAvailable = true,
+                          .generatingCount = 3,
                           .systemStats = {{"cpu_percent", 41.6}, {"memory_used_gb", 7.25}}});
         PanelLayout panels;
         panels.setPanels({.trace = true});
@@ -208,6 +208,7 @@ private slots:
         QCOMPARE(named(root, "status-edges-key")->property("text").toString(), QString("edges"));
         QCOMPARE(named(root, "status-cpu-value")->property("text").toString(), QString("42%"));
         QCOMPARE(named(root, "status-queue-count")->property("text").toString(), QString("2"));
+        QCOMPARE(named(root, "status-generations-count")->property("text").toString(), QString("3"));
         QVERIFY(named(root, "status-trace")->property("active").toBool());
         QVERIFY(!named(root, "status-logs")->property("active").toBool());
 
@@ -216,23 +217,27 @@ private slots:
         QCOMPARE(connected.size(), 0);
         click(view, named(root, "status-queue"));
         QTRY_COMPARE(queue.size(), 1);
-        for (const auto *tab : {"status-logs", "status-versions", "status-trace"}) {
+        for (const auto *tab : {"status-logs", "status-generations", "status-versions", "status-trace"}) {
             click(view, named(root, tab));
         }
-        QTRY_COMPARE(views.size(), 3);
+        QTRY_COMPARE(views.size(), 4);
         QCOMPARE(views.at(0).first().toString(), QString("logs"));
-        QCOMPARE(views.at(1).first().toString(), QString("versions"));
-        QCOMPARE(views.at(2).first().toString(), QString("trace"));
+        QCOMPARE(views.at(1).first().toString(), QString("generations"));
+        QCOMPARE(views.at(2).first().toString(), QString("versions"));
+        QCOMPARE(views.at(3).first().toString(), QString("trace"));
 
-        // An idle connection offers Connect, and an empty queue cannot open.
+        // An idle connection offers Connect, and an empty queue still opens, as on the web.
         auto next = StatusModel::Status{.connectionStatus = "idle"};
         status.setStatus(next);
         QTRY_COMPARE(named(root, "status-reconnect")->property("text").toString(), QString("Connect"));
         click(view, named(root, "status-reconnect"));
         QTRY_COMPARE(connected.size(), 1);
         click(view, named(root, "status-queue"));
-        QTest::qWait(20);
-        QCOMPARE(queue.size(), 1);
+        QTRY_COMPARE(queue.size(), 2);
+        // The open views show on their tabs.
+        panels.setPanels({.queue = true, .generations = true});
+        QTRY_VERIFY(named(root, "status-queue")->property("active").toBool());
+        QVERIFY(named(root, "status-generations")->property("active").toBool());
     }
 };
 

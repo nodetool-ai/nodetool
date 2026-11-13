@@ -525,14 +525,14 @@ captures are described below.
 | 4 | The editor follows undo and agent writes while unfocused (`JSONProperty.tsx` 104-110) | Implemented | Implemented |
 | 5 | Open in a larger editor and copy buttons (`JSONProperty.tsx` 203-215) | Missing | Missing |
 | 6 | Dict rows add, remove and rename. A rename onto an existing key is refused (`DictTable.tsx` 84-100) | Implemented | Implemented |
-| 7 | A value type select of int, string, datetime and float (`DictProperty.tsx` 12-60, `ListProperty.tsx` 11-36) | Partial. The declared entry type decides the editor | Partial |
+| 7 | A value type select of int, string, datetime and float (`DictProperty.tsx` 12-60, `ListProperty.tsx` 11-36) | Partial. The declared entry type decides the editor | Implemented in `DataTableEditor.qml` for the constant List and Dict nodes, read from the first value |
 | 8 | List rows add, remove and reorder (`ListProperty.tsx`, `ListTable.tsx`) | Implemented | Implemented |
 | 9 | Nested lists and dictionaries as values | Missing. They showed as read-only text | Implemented. Each is a JSON editor that checks the declared container and leaves the document alone on invalid text |
 | 10 | A new record column takes the first free "Column N" name (`RecordTypeProperty.tsx` 70-89) | Implemented | Implemented |
-| 11 | A record column renames, retypes and describes. A duplicate name is refused (`ColumnsManager.tsx`) | Implemented | Implemented |
+| 11 | A record column renames and retypes. A duplicate name is refused (`ColumnsManager.tsx`) | Implemented | Implemented in `ColumnsEditor.qml`, which drops the description field the web does not show |
 | 12 | Rows and unknown fields of a record survive a column edit (`RecordTypeProperty.tsx` 62-69) | Implemented | Implemented |
 | 13 | Each committed edit is one undo step, and the document schema rejects wrong shapes | Implemented at the API level only | Implemented and driven by real clicks and keys |
-| 14 | String list and dataframe editors (`StringListProperty.tsx`, `DataframeProperty.tsx`) | Missing | Missing. Outside this slice |
+| 14 | String list and dataframe editors (`StringListProperty.tsx`, `DataframeProperty.tsx`) | Missing | The dataframe edits columns and cells in the inspector (`DataTableEditor.qml`). The string list editor and editing on the dataframe card are missing |
 
 Evidence: `PropertyBehaviorTest` clicks Add, Remove and reorder buttons,
 types into the nested, JSON, key and record editors with real key events, and
@@ -3122,7 +3122,7 @@ is visible only on inspection.
 | W21 | Inspector media fields | One drop zone per media list, at least 80 px tall, reading "Click or drop images here" in capitals, which opens the file picker on click (`ImageListProperty.tsx`, `AudioListProperty.tsx`, `VideoListProperty.tsx`). | A media list shows its items and one drop zone with the web prompt and tooltip. A click or Enter opens the file picker, and dropped files upload. The search field, Browse and Upload buttons, the asset select and the drop line are gone from lists. Single media fields keep them. Items keep Up, Down and Remove buttons where the web shows a thumbnail grid with a remove button. | Medium | Fixed in `AssetPropertyEditor.qml` (`dropZoneOnly`) and `MediaListPropertyEditor.qml`. Asserted by `ChromeParityTest::inspectorMediaListHasOneDropZone`. Open: the thumbnail grid. Acceptance pending. |
 | W22 | Inspector width | 350 px when it first opens (`stores/RightPanelStore.ts` `sizes.initial`). The comparison captures showed 380 px because the capture script seeded that width. | 350 px. | Low | Matches. The capture script now seeds 350 px. Asserted by `ChromeParityTest::inspectorOpensAtTheWebWidth`, which passed before any change. Acceptance pending. |
 | W23 | Output panel | The bottom panel takes the status bar as its tab strip, so an open panel puts the bar above its body. The Logs view shows a run picker, which reads "No recent runs" without runs, the "No recorded runs" empty state, and 32 px rows (`PanelBottom.tsx`, `TracePanel.tsx`). | While the Output panel is open, the status bar moves to its top and the body follows below it. The body has no title row or close button, and the Logs tab closes it. The run picker is always shown and reads "No recent runs" when there are none. The empty state uses the web title and description. Rows without content are one 32 px line. The native body lists the session's run events and outputs, where the web Logs view lists stored log events of the run. Versions and Trace open their own bottom panels, which keep the status bar below them. | Medium | Fixed in `RunOutput.qml` and `EditorWindow.cpp` (`placeStatusBar`). Asserted by `ChromeParityTest` (`outputPanelUsesTheStatusBarAsItsTabStrip`, `outputPanelShowsARunPickerAndAnEmptyState`, `outputRowsAreCompact`). `EditorTest::outputDockKeepsDocumentHistory` changed its empty-state text. Open: the stored-log list and the status bar above the Versions and Trace panels. Acceptance pending. |
-| W24 | Status bar | Connection, panel tabs from Logs to Trace, counts, CPU and memory. A tab shows whether its panel is open, and the open view's tab closes the panel. The bar has no message text. | Connection (Connected, Offline or Idle), Logs, Queue, Generations, Workers, Versions and Trace tabs, node and edge counts, and CPU and memory from the server's `system_stats`. Logs, Versions and Trace show the open state and close their panel when clicked again. Queue expands the queue panel while jobs exist. Generations and Workers stay disabled with a reason. The run message left the bar. It stays in the inspector and errors reach the tab bar notifications. The Connect button for an offline session is native. | Medium | Fixed in `StatusBar.qml` and `EditorPanels.cpp` (`toggleStatusView`). Asserted by `statusBarHasTheWebItemsInOrder`, `statusBarTabsOpenNativePanelsOrExplainWhyNot`, `statusBarShowsServerStatsAndTheQueue` and `statusBarTabsShowAndToggleTheirPanels`. The remaining gaps are C8, C9, C11, C12 and C13 below, the Generations count and the L and Ctrl+Shift+T shortcuts. Acceptance pending. |
+| W24 | Status bar | Connection, panel tabs from Logs to Trace, counts, CPU and memory. A tab shows whether its panel is open, and the open view's tab closes the panel. The bar has no message text. | Connection (Connected, Offline or Idle), Logs, Queue, Generations, Workers, Versions and Trace tabs, node and edge counts, and CPU and memory from the server's `system_stats`. Logs, Versions and Trace show the open state and close their panel when clicked again. Queue opens the queue panel at any time and Generations opens the generations panel. Workers stays disabled with a reason. The run message left the bar. It stays in the inspector and errors reach the tab bar notifications. The Connect button for an offline session is native. | Medium | Fixed in `StatusBar.qml` and `EditorPanels.cpp` (`toggleStatusView`). Asserted by `statusBarHasTheWebItemsInOrder`, `statusBarTabsOpenNativePanelsOrExplainWhyNot`, `statusBarShowsServerStatsAndTheQueue` and `statusBarTabsShowAndToggleTheirPanels`. The remaining gaps are C9, C12 and C13 below and the L and Ctrl+Shift+T shortcuts. C8 and C11 are partial. Acceptance pending. |
 | W25 | Rail | Logo menu, Projects, Documents, Chats, Library, Entities, Examples, Nodes and More, then a theme toggle and a panel toggle. Each has a tooltip. | The same entries in the same order and icons, with the same tooltips. Documents opens the workflow browser, Chats the native conversation, and Nodes the catalog. Projects, Library, Entities, Examples and More are disabled with a reason. The logo has no menu. The native Inspector and Output entries left the rail. | Low | Partly fixed in `Rail.qml` (`PanelLeft.tsx`, `QuickAccessSidebar.tsx`, `ThemeToggle.tsx`). Asserted by `railHasTheWebEntriesInOrder`, `railTooltipsNameEntriesAndExplainDisabledOnes` and `railEntriesOpenTheirNativePanels`. The gaps are in the table below. Not accepted. |
 | W26 | Elevations | The toolbar, viewport control, side panels, bottom panel and Preview and Output cards cast shadows. | Flat, as the [native design](../../ui_primitives/DESIGN.md#appearance) requires for persistent chrome. | Medium | Scope change [SC4](parity-inventory.md#user-approved-scope-changes): the user decided to keep persistent chrome flat. |
 | W27 | Mini-map | Hidden by default behind a header toggle. The choice is stored. Its light-theme surface is `grey[100]`, which is dark. | Hidden by default. `editor.setMiniMapVisible` and the Command menu action "Toggle mini-map" change it for every tab and store it under `minimap/visible`. A new window starts as the user left it. Colors follow the web source, including the dark light-theme surface. | Medium | Fixed in `EditorWindow.cpp` (`web/src/stores/MiniMapStore.ts`). Asserted by `miniMapIsHiddenByDefaultAndTheChoiceIsRemembered`. The color mode and legend are asserted by `ViewportNavigatorTest::miniMapColorsFollowTheColorMode` and `miniMapPaletteMenuAndLegend`. The header toggle is in `HeaderRow.qml`, and `HeaderRowTest::togglesOpenPanels` clicks it. Not accepted. |
@@ -3293,10 +3293,37 @@ Bodies native still draws with the generic or content card body:
 2. Image editing bodies: Canvas Resize, Compositor, Crop, Curves, Levels,
    Masks Extractor and Painter.
 3. Other bodies: Collection, Constant Sketch, Constant Timeline, Extract Video
-   Frame, List Generator, the synth modules, the audio effects and Audio Output.
+   Frame and List Generator.
 4. The Code body (`CodeBody.tsx`), which native shows as a code row.
 5. The inline color popover and the upstream images in the Before and Mask
    preview tabs, listed under the part 2 differences above.
+
+### Synth module bodies
+
+`SynthModules.cpp` draws `SynthModuleBody.tsx` for the synth modules and the
+audio effects, and `AudioOutBody.tsx` for Audio Output. The faceplate configs
+come from `synthModules.ts` and `audioEffectModules.ts` through
+`resources/synth/modules.json`, which
+`node native/node-editor/scripts/generate-synth-modules.mjs` writes and checks
+with `--check`. A card has its input jacks with their labels, the module
+label, the waveform selector, the mode and on/off toggles, the ADSR envelope
+sketch and a centered grid of knobs, at the web default height. A knob drag
+moves 1/160 of the range per pixel, a tenth as fast with Shift, and commits
+once on release. A double-click restores the default. `CardBodiesTest` covers
+the layout, the knob math, the drag and reset, and the selector and toggle
+edits.
+
+Differences in these bodies:
+
+1. Knobs take no keyboard focus, so the arrow, Home and End keys do nothing.
+2. A knob drag schedules the instant rerun, as a slider drag does. The web
+   pushes the value into the running job.
+3. The waveform buttons have no hover fill or tooltip.
+4. Audio Output plays through the shared canvas audio playback, not the web
+   transport and visualizer on the faceplate.
+5. `CanvasTheme` has no info or error role, so modules with those accents,
+   such as LFO and Gate, use the web dark palette's `info.main` and
+   `error.main` in both themes.
 
 ### Media values on cards
 
@@ -3387,10 +3414,10 @@ panels is outside the chrome work.
 | C5 | Rail More | Favorite nodes, recent nodes, workflow settings, skills and workspace files (`MorePanel.tsx`). | Disabled. Native commands are in the toolbar More menu. | Open. |
 | C6 | Rail logo | Opens the app menu with Settings, Help and Downloads (`RailAppMenu.tsx`). | A static logo. | Open. |
 | C7 | Rail Documents | Tree of every document in the project. | Opens the workflow browser, which lists workflows only. | Open. |
-| C8 | Status Generations | Panel of generations across workflows, with a count of those running. | Disabled. The inspector History tab shows one node. | Open. |
+| C8 | Status Generations | Panel of generations across workflows, with a count of those running. | `GenerationsPanel.qml` in a bottom dock, fed by every tab's `prediction` messages and the server's `generations.list` (`GenerationActivity`). Tiles open their workflow, preset generations open as a workflow, and the tab counts running generations. Chat media turns are not listed. | Partial. Asserted by `GenerationsPanelTest` and `statusBarTabsOpenNativePanelsOrExplainWhyNot`. |
 | C9 | Status Workers | Remote runners the server provisions. | Disabled. | Open. |
 | C10 | Status Trace | Run trace spans. | Opens the native trace/log dock. | Partial. See [run trace evidence](#run-trace-evidence). |
-| C11 | Status Queue | Panel that opens at any time and shows an empty state. | Opens the queue panel only while jobs exist, and disabled otherwise. | Open. |
+| C11 | Status Queue | Panel that opens at any time and shows an empty state. | Opens the queue overlay at any time with the Active section or its empty state, and the History section with filters, day groups and Report on failed jobs. The overlay floats on the canvas instead of filling the bottom panel. | Partial. Asserted by `queueOpensWithoutJobsAndReportsFailures`. |
 | C12 | Status connection | Connected, Connecting, Offline or Idle, with a worker label for a remote server and a worker status indicator. | Connected, Offline or Idle. No Connecting state, worker label or indicator. | Open. |
 | C13 | Status tab strip | Scroll arrows when the tabs overflow. | No arrows. | Open. |
 

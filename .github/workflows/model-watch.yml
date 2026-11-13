@@ -109,6 +109,23 @@ jobs:
             }
 
             for (const p of report.providers || []) {
+              if (p.staleError) core.warning(`${p.provider} served check: ${p.staleError}`);
+              if ((p.stale || []).length > 0) {
+                const staleTitle = `provider-drift: ${p.stale.length} ${p.provider} model(s) no longer served`;
+                const open = await github.rest.search.issuesAndPullRequests({
+                  q: `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open label:${LABEL} in:title "${p.provider} model(s) no longer served"`,
+                });
+                if (open.data.total_count === 0) {
+                  const staleBody =
+                    `The weekly served-model check asked ${p.provider} for model ids NodeTool offers, ` +
+                    `and these answered with an error. Users who pick one get a 404.\n\n` +
+                    p.stale.map((m) => `- \`${m.id}\` (${m.status})`).join("\n") +
+                    `\n\nReplace or remove each id where NodeTool offers it, or drop it from ` +
+                    `\`scripts/provider-gaps/served.json\` when it was listed only to watch it.`;
+                  await github.rest.issues.create({ ...context.repo, title: staleTitle, body: staleBody, labels: [LABEL] });
+                  core.info(`Opened drift issue for ${p.provider} (${p.stale.length}).`);
+                }
+              }
               if (!p.ok) {
                 core.warning(`${p.provider}: ${p.error}`);
                 continue;

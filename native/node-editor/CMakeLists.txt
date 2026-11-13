@@ -22,6 +22,8 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/NodeInspector.cpp src/interfaces/NodeInspector.h
  src/interfaces/PropertyHost.cpp src/interfaces/PropertyHost.h
  src/interfaces/GenerationReplay.cpp src/interfaces/GenerationReplay.h
+ src/interfaces/GenerationActivity.cpp src/interfaces/GenerationActivity.h
+ src/run/GenerationWorkflow.cpp src/run/GenerationWorkflow.h
  src/interfaces/DocumentTabs.cpp src/interfaces/DocumentTabs.h
  src/interfaces/Notifications.cpp src/interfaces/Notifications.h
  src/interfaces/WorkflowHeader.cpp src/interfaces/WorkflowHeader.h
@@ -67,6 +69,35 @@ target_link_libraries(node_editor_qml PUBLIC node_editor_interfaces nodetool_ui_
 if(NODETOOL_PARITY_HOST)
     add_subdirectory(../parity/host parity-host)
 endif()
+# The table editors through the QML module alone, so they build in the
+# components-only configuration too.
+if(BUILD_TESTING)
+    # PropertyField loads every field type, so the test builds the editor's media
+    # QML types and links the model picker, as node_editor_inspector_component_tests does.
+    qt_add_executable(node_editor_data_table_tests tests/ui/DataTableEditorTest.cpp
+     src/media/MediaResolver.cpp src/media/MediaResolver.h
+     src/media/AudioWaveform.cpp src/media/AudioWaveform.h
+     src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+     src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
+     src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
+     src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
+    target_link_libraries(node_editor_data_table_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin nodetool_model_picker nodetool_model_pickerplugin Qt6::Quick Qt6::Multimedia Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_data_table_tests)
+    add_test(NAME node_editor_data_table COMMAND node_editor_data_table_tests)
+    set_tests_properties(node_editor_data_table PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    # The Generations panel and the queue history, with the same media QML types.
+    qt_add_executable(node_editor_generations_panel_tests tests/ui/GenerationsPanelTest.cpp
+     src/media/MediaResolver.cpp src/media/MediaResolver.h
+     src/media/AudioWaveform.cpp src/media/AudioWaveform.h
+     src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+     src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
+     src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
+     src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
+    target_link_libraries(node_editor_generations_panel_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin nodetool_model_picker nodetool_model_pickerplugin Qt6::Quick Qt6::Multimedia Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_generations_panel_tests)
+    add_test(NAME node_editor_generations_panel COMMAND node_editor_generations_panel_tests)
+    set_tests_properties(node_editor_generations_panel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
 if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
     return()
 endif()
@@ -87,8 +118,8 @@ add_library(node_editor_core STATIC
  src/properties/AssetPickerController.cpp src/properties/AssetPickerController.h
  src/properties/ModelPickerController.cpp src/properties/ModelPickerController.h
  src/properties/CodeHighlighter.cpp src/properties/CodeHighlighter.h
- src/properties/CodeInference.cpp src/properties/CodeInference.h src/document/ChildPorts.cpp src/document/ChildPorts.h
- src/properties/DynamicPortsController.cpp src/properties/DynamicPortsController.h
+ src/properties/CodeInference.cpp src/properties/CodeInference.h src/document/ChildPorts.cpp src/document/ChildPorts.h src/document/ChildSources.cpp src/document/ChildSources.h
+ src/properties/DynamicPortsController.cpp src/properties/DynamicPortsController.h src/properties/ComfyWorkflowLoader.cpp src/properties/ComfyWorkflowLoader.h
  src/server/MsgPack.cpp src/server/WorkflowSession.cpp src/server/WorkflowSession.h
  src/server/BundledServer.cpp src/server/BundledServer.h
  src/graph/WorkflowGraphModel.cpp src/graph/WorkflowGraphModel.h
@@ -96,6 +127,7 @@ add_library(node_editor_core STATIC
  src/graph/CardBodies.cpp src/graph/CardBodies.h src/graph/ImageSizePresets.h
  src/graph/CardBodyPainter.cpp src/graph/CardBodyPainter.h
  src/graph/CardControls.cpp src/graph/CardControls.h
+ src/graph/SynthModules.cpp src/graph/SynthModules.h
  src/graph/EditorScene.cpp src/graph/EditorScene.h
  src/graph/LineageLayer.cpp src/graph/LineageLayer.h
  src/graph/InlinePropertyPresenter.cpp src/graph/InlinePropertyPresenter.h
@@ -123,7 +155,7 @@ add_library(node_editor_core STATIC
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
- src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
 target_include_directories(node_editor_core PUBLIC src)
 target_link_libraries(node_editor_core PRIVATE nodetool_graph_runner)
 target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
@@ -137,6 +169,22 @@ nodetool_use_ui_primitives(nodetool-node-editor)
 include(cmake/WindowsRuntime.cmake)
 target_link_libraries(node_editor_core PUBLIC node_editor_interfaces node_editor_qml node_editor_qmlplugin)
 qt_add_resources(node_editor_core editor_assets PREFIX /editor/resources BASE resources FILES resources/nodetool_48px.png)
+# The workflows the Examples menu opens. Each one runs in process on the local runner.
+qt_add_resources(node_editor_core editor_examples PREFIX /editor/examples BASE examples FILES
+    examples/live-synth.json
+    examples/render-synth.json
+    examples/live-clip-phaser.json
+    examples/fix-a-flat-image.json
+    examples/gate-the-hiss.json
+    examples/lo-fi-drum-loop.json
+    examples/phaser-and-echo-on-a-pad.json
+    examples/plucked-chord-in-a-room.json
+    examples/remove-grain-with-a-median-filter.json
+    examples/sampler-arpeggio.json
+    examples/sampler-drum-kit.json
+    examples/sampler-pad.json
+    examples/sampler-trigger.json
+    examples/three-band-eq.json)
 # The web data type icons from web/src/icons/data_types/nodetool, drawn in card headers.
 qt_add_resources(node_editor_core editor_type_icons PREFIX /editor/data_types BASE resources/data_types FILES resources/data_types/any.svg resources/data_types/asset.svg resources/data_types/assistant.svg resources/data_types/audio.svg resources/data_types/bool.svg resources/data_types/chunk.svg resources/data_types/database.svg resources/data_types/dataframe.svg resources/data_types/date.svg resources/data_types/datetime.svg resources/data_types/dict.svg resources/data_types/document.svg resources/data_types/enum.svg resources/data_types/file.svg resources/data_types/float.svg resources/data_types/flow.svg resources/data_types/folder.svg resources/data_types/help.svg resources/data_types/image_model.svg resources/data_types/image.svg resources/data_types/int.svg resources/data_types/language_model.svg resources/data_types/list.svg resources/data_types/model_3d.svg resources/data_types/model.svg resources/data_types/notype.svg resources/data_types/np_array.svg resources/data_types/preview.svg resources/data_types/star.svg resources/data_types/string.svg resources/data_types/str.svg resources/data_types/task.svg resources/data_types/tensor.svg resources/data_types/text.svg resources/data_types/thread_message.svg resources/data_types/thread.svg resources/data_types/union.svg resources/data_types/video.svg)
 if(BUILD_TESTING)
@@ -468,6 +516,7 @@ if(BUILD_TESTING)
 endif()
 if(BUILD_TESTING)
  qt_add_executable(node_editor_canvas_media_host_tests tests/ui/CanvasMediaHostTest.cpp)
+ target_compile_definitions(node_editor_canvas_media_host_tests PRIVATE GUEST_BUNDLE="${NODETOOL_GUEST_BUNDLE}")
  target_link_libraries(node_editor_canvas_media_host_tests PRIVATE node_editor_core Qt6::Test)
  target_compile_definitions(node_editor_canvas_media_host_tests PRIVATE MEDIA_VIDEO_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/../timeline/src/preview/effects/fixtures/source-noise.mp4")
  nodetool_use_ui_primitives(node_editor_canvas_media_host_tests)
@@ -560,6 +609,7 @@ endif()
 
 qt_add_resources(node_editor_core code_parser PREFIX /editor/code BASE resources/code FILES resources/code/acorn.js resources/code/inference.js resources/code/snippets.json)
 qt_add_resources(node_editor_core chat_tool_manifest PREFIX /editor/chat BASE resources/chat FILES resources/chat/tool-manifest.json)
+qt_add_resources(node_editor_core synth_modules PREFIX /editor/synth BASE resources/synth FILES resources/synth/modules.json)
 
 if(BUILD_TESTING)
  qt_add_executable(node_editor_versions_tests tests/server/WorkflowVersionsTests.cpp)

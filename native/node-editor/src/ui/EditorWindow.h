@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <optional>
 #include "interfaces/DocumentTabs.h"
+#include "interfaces/GenerationActivity.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInspector.h"
 #include "interfaces/Notifications.h"
@@ -91,6 +92,8 @@ public:
   bool emptyCanvas() const { return document_.nodes().isEmpty(); }
   node_editor::SetupController *setup() { return &setup_; }
     node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
+    // The Generations panel's list, shared by every tab and held by the root window.
+    node_editor::GenerationActivity *generationActivity() { return tabOwner_ ? &tabOwner_->generations_ : &generations_; }
     // The root window has no panels of its own, so it returns the active tab's.
     node_editor::NodeCatalog *nodeCatalog() { return activeEditor() == this ? &nodeCatalog_ : activeEditor()->nodeCatalog(); }
     node_editor::DocumentTabs *documentTabs() { return activeEditor() == this ? &documentTabs_ : activeEditor()->documentTabs(); }
@@ -133,6 +136,11 @@ public:
   void showLinkedWorkflows();
   void syncChild();
   void refreshChildReferences();
+  // WorkflowLoader and AppLoader: loads the picked workflow or app and stores
+  // its id and a copy of its graph on the node in one undo step.
+  void loadChildSource(const QString &nodeId, const QString &kind, const QString &sourceId);
+  // ComfyWorkflowLoader.tsx: the Run ComfyUI Workflow node's load dialog.
+  void showComfyWorkflowDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
   EditorWindow *activeEditor() const;
@@ -218,6 +226,15 @@ public:
     QVariantMap runProgress() const;
     bool traceVisible() const;
     bool versionsVisible() const;
+    // The queue overlay lists its jobs: opened from the status bar or expanded.
+    bool queueVisible() const;
+    bool generationsVisible() const;
+    // Loads the account's generations.list page into the Generations panel.
+    void refreshGenerations();
+    // Opens a workflow document ({name, graph}) in a new unsaved tab.
+    void openWorkflowDocument(const QJsonObject &workflow);
+    // Opens the Report issue for a failed job in the queue history.
+    void reportJob(const QString &jobId);
     // A status bar tab: opens its panel, or closes it when it is the open one (PanelBottom.tsx).
     void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;
@@ -261,6 +278,9 @@ public:
   bool openFile(const QString &path);
   // Opens a workflow file in its own tab, or switches to the tab that has it.
   void openFileInTab(const QString &path);
+  // Opens a bundled example (a file under :/editor/examples) in its own tab, as an
+  // unsaved workflow, so Save asks for a path.
+  void openExample(const QString &resource);
   bool saveFile(const QString &path);
   void addNode(const QString &type);
   void dragNode(const QString &type);
@@ -339,6 +359,15 @@ private:
   // live slider bodies do (web hooks/nodes/useLiveSliderWriter.ts).
   void scheduleInstantRerun(const QString &node, const QJsonObject &draft, bool cardBody, bool immediate);
   void previewCardEdit(const QJsonArray &commands);
+  // Live property changes: a property edit made while a run is in progress
+  // goes to that run, so a node that reads its properties while it runs,
+  // such as a synthesis node, follows the edit at once.
+  // Starts to track run `id` with the document's saved properties.
+  void trackLiveRun(const QString &id);
+  // Sends the saved properties that differ from what the tracked run has.
+  void sendLiveEdits();
+  // Sends one value that is not in the document yet, such as a slider draft.
+  void sendLiveDraft(const QString &node, const QString &name, const QJsonValue &value);
   void setScrubbing(bool scrubbing);
   void showDynamicPortDialog(const QString &id, bool output, const QString &name, const QRectF &sceneAnchor);
   void clearDynamicPortDialogs();
@@ -391,6 +420,10 @@ private:
   void showWorkflowDetails(const QString &kind);
   void showServerSync();
   void showRunTrace();
+  void showGenerations();
+  // Loads a workflow document into this tab, with `file` as its file or none.
+  bool openDocument(const QByteArray &json, const QString &file);
+  void toggleQueue();
   void showCanvasDrops();
   QPointer<QDialog> canvasDropDialog_;
   bool canvasDropsPending_ = false;
@@ -419,6 +452,14 @@ private:
   void refresh();
   void showBrowser(bool visible);
   void loadBrowser();
+  // Lists the bundled examples by their first tag, as a popup menu at the cursor.
+  void showExamplesMenu();
+  // Adds an entry per bundled example to the menu, grouped by first tag. An entry opens
+  // its example on this window, which passes it to the active tab.
+  void addExampleActions(QMenu *menu);
+  // The menu bar of the window that owns the tabs (EditorAppMenu.cpp).
+  void installApplicationMenu();
+  void showSystemInformation();
   void syncRuntimePreviews();
   void syncSourcePreviews();
   QStringList selectedIds() const;
@@ -441,7 +482,7 @@ private:
   void inspectNode(const QString &resourceId);
   // Each panelChanged() makes QML evaluate every panel binding again. All
   // changes in one event-loop pass share one deferred emit.
-  void schedulePanelChanged();
+  Q_SLOT void schedulePanelChanged();
   void flushPanelChanged();
   bool panelChangePending_ = false;
   // GenerationHistory copies the full document. Selection changes reuse it.
@@ -517,6 +558,10 @@ private:
   QPointer<QObject> viewAnimation_;
 
     node_editor::PackSetup packSetup_;
+    // The root window's generations, which every tab's Generations panel reads
+    // through generationActivity(). Owned by value, UI thread, destroyed with
+    // the root window after its tabs and their panels.
+    node_editor::GenerationActivity generations_;
     // What this tab's Catalog and NodeMenu panels read and do. Owned by value,
     // UI thread, destroyed with the tab after its panels (~EditorWindow deletes
     // them first).
@@ -608,6 +653,14 @@ private:
   // The latest edit made while an in-process run was active. It reruns when
   // that run settles, so the result follows the last edit.
   std::optional<InstantEdit> instantPending_;
+  // The run that takes live property changes, or empty.
+  QString liveRun_;
+  // The saved properties of each node as liveRun_ has them: the document's
+  // values when the run was submitted, then each value sent to it. A node
+  // added after the submit is absent, because the run does not have it.
+  QHash<QString, QJsonObject> liveProperties_;
+  // Whether liveRun_ plays live audio until it is stopped.
+  bool liveRunPlays_ = false;
   // True from a card slider preview until its last rerun settles. Running
   // animations stay still meanwhile, as the web's live-scrubbing class does.
   bool scrubbing_ = false;

@@ -74,6 +74,19 @@ void ResourcePickerController::collections(const QString& key) {
   emit collectionsListed(key, rows);
  });
 }
+void ResourcePickerController::applications(const QString& key) {
+ query(key, "applications.list", {}, [this, key](QJsonObject data, int status) {
+  // query() wraps an array result as {"models": [...]}.
+  if (status != 200 || !data.value("models").isArray()) { emit failed(key, tr("Server returned an invalid app list")); return; }
+  QVariantList rows;
+  for (const auto& entry : data.value("models").toArray()) {
+   const auto row = entry.toObject();
+   if (row.value("id").toString().isEmpty() || !row.value("name").isString()) { emit failed(key, tr("Server returned an invalid app row")); return; }
+   rows.append(QVariantMap{{"id", row.value("id").toString()}, {"name", row.value("name").toString()}});
+  }
+  emit listed(key, rows, QString{});
+ });
+}
 void ResourcePickerController::verifyWorkflow(const QString& key, const QString& id) {
  if (id.isEmpty()) { cancel(key); emit verified(key, id, false); return; }
  query(key, "workflows.get", {{"id", id}}, [this, key, id](QJsonObject data, int status) {

@@ -29,8 +29,8 @@ class StatusModel : public QObject {
     Q_PROPERTY(int nodeCount READ nodeCount NOTIFY statusChanged)
     Q_PROPERTY(int edgeCount READ edgeCount NOTIFY statusChanged)
     Q_PROPERTY(int queuedCount READ queuedCount NOTIFY statusChanged)
-    // Whether the queue view can open: jobs are queued or running.
-    Q_PROPERTY(bool queueAvailable READ queueAvailable NOTIFY statusChanged)
+    // Image, video and audio generations still running, for the Generations tab.
+    Q_PROPERTY(int generatingCount READ generatingCount NOTIFY statusChanged)
     // The server's system stats: cpu_percent, memory_used_gb or memory_percent, and the GPU fields.
     Q_PROPERTY(QVariantMap systemStats READ systemStats NOTIFY statusChanged)
 public:
@@ -43,7 +43,7 @@ public:
         int nodeCount = 0;
         int edgeCount = 0;
         int queuedCount = 0;
-        bool queueAvailable = false;
+        int generatingCount = 0;
         QVariantMap systemStats;
         bool operator==(const Status &) const = default;
     };
@@ -58,7 +58,7 @@ public:
     int nodeCount() const { return status_.nodeCount; }
     int edgeCount() const { return status_.edgeCount; }
     int queuedCount() const { return status_.queuedCount; }
-    bool queueAvailable() const { return status_.queueAvailable; }
+    int generatingCount() const { return status_.generatingCount; }
     QVariantMap systemStats() const { return status_.systemStats; }
 
     void setStatus(const Status &status);
