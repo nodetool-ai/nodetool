@@ -43,23 +43,23 @@ Item {
     property string downloadStatus: ""
     function setZoom(value) { zoom = Math.max(1, Math.min(100, value)); waveScroll = 0 }
     function download() {
-        if (!mediaResolver || !resolvedSource.toString().length) return
+        if (!root.resolver || !resolvedSource.toString().length) return
         downloadStatus = ""
-        const suggested = mediaResolver.suggestedFilename(resolverKey, filename, mediaKind)
+        const suggested = root.resolver.suggestedFilename(resolverKey, filename, mediaKind)
         // A bare name typed into the dialog keeps the media's extension.
         downloadDialog.defaultSuffix = suggested.lastIndexOf(".") > 0 ? suggested.slice(suggested.lastIndexOf(".") + 1) : ""
         downloadDialog.selectedFile = downloadDialog.currentFolder.toString() + "/" + suggested
         downloadDialog.open()
     }
     function saveToAssets() {
-        if (!mediaResolver || !resolvedSource.toString().length || savingToAssets) return
+        if (!root.resolver || !resolvedSource.toString().length || savingToAssets) return
         downloadStatus = ""
         savingToAssets = true
-        if (!mediaResolver.saveToAssets(resolverKey, filename, mediaKind)) savingToAssets = false
+        if (!root.resolver.saveToAssets(resolverKey, filename, mediaKind)) savingToAssets = false
     }
     function copyImage() {
-        if (!mediaResolver || mediaKind !== "image" || !resolvedSource.toString().length) return
-        downloadStatus = clipboard.copyImage(mediaResolver.resolvedBytes(resolverKey)) ? "Copied!" : "Could not copy the image"
+        if (!root.resolver || mediaKind !== "image" || !resolvedSource.toString().length) return
+        downloadStatus = clipboard.copyImage(root.resolver.resolvedBytes(resolverKey)) ? "Copied!" : "Could not copy the image"
     }
     function toggleFullscreen() {
         if (mediaKind !== "video" || !resolvedSource.toString().length) return
@@ -70,6 +70,8 @@ Item {
     function exitFullscreen() { if (fullscreen) { fullscreen = false; fullscreenWindow.hide(); fullscreenButton.forceActiveFocus() } }
     required property string mediaKind
     required property var locator
+    // The tab's MediaResolver. A preview without one shows nothing.
+    property var resolver: null
     property string requestKey: "preview-" + String(root)
     property string resolverKey: ""
     property url resolvedSource: ""
@@ -85,19 +87,19 @@ Item {
         const previousKey = resolverKey
         resolverKey = ""
         fitImage(); downloadDialog.close(); downloadStatus = ""; savingToAssets = false; zoom = 1; waveScroll = 0; exitFullscreen()
-        if (mediaResolver && previousKey) mediaResolver.cancel(previousKey)
+        if (root.resolver && previousKey) root.resolver.cancel(previousKey)
         player.stop(); player.source = ""; video.clearFrame(); resolvedSource = ""
-        if (mediaResolver && previousKey) mediaResolver.release(previousKey)
+        if (root.resolver && previousKey) root.resolver.release(previousKey)
         failure = ""; resolving = false
     }
     function resolve() {
         const held = mediaKind === "image" && image.status === Image.Ready ? image.source : ""
         reset()
         heldImage.source = held
-        if (!locator || !mediaResolver) return
+        if (!locator || !root.resolver) return
         resolverKey = requestKey
         resolving = true
-        mediaResolver.resolve(resolverKey, locator)
+        root.resolver.resolve(resolverKey, locator)
     }
     function time(ms) {
         const s = Math.max(0, Math.floor(ms / 1000))
@@ -121,7 +123,7 @@ Item {
     Component.onCompleted: { completed = true; resolve() }
     Component.onDestruction: reset()
     Connections {
-        target: mediaResolver
+        target: root.resolver
         function onResolved(key, url) {
             if (key !== root.resolverKey) return
             root.resolving = false
@@ -168,7 +170,7 @@ Item {
         title: "Save media"
         fileMode: FileDialog.SaveFile
         currentFolder: StandardPaths.writableLocation(StandardPaths.DownloadLocation)
-        onAccepted: { if (mediaResolver) mediaResolver.saveResolved(root.resolverKey, selectedFile) }
+        onAccepted: { if (root.resolver) root.resolver.saveResolved(root.resolverKey, selectedFile) }
     }
     Window {
         id: fullscreenWindow

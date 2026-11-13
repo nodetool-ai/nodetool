@@ -14,6 +14,8 @@ Item {
     property var geometry: []
     required property string requestKey
     required property string playerKey
+    // The tab's MediaResolver, which reads each player's file.
+    required property var resolver
     property real logicalWidth: 1
     property real logicalHeight: 1
     property real zoom: 1
@@ -55,16 +57,16 @@ Item {
                 height: bounds.height
                 function resolve() {
                     failure = ""
-                    if (mediaResolver && modelData.locator) mediaResolver.resolve(resolverKey, modelData.locator)
+                    if (root.resolver && modelData.locator) root.resolver.resolve(resolverKey, modelData.locator)
                 }
                 function toggle() { if (playing) player.pause(); else player.play() }
                 Component.onCompleted: resolve()
                 Component.onDestruction: {
                     player.stop()
-                    if (mediaResolver) { mediaResolver.cancel(resolverKey); mediaResolver.release(resolverKey) }
+                    if (root.resolver) { root.resolver.cancel(resolverKey); root.resolver.release(resolverKey) }
                 }
                 Connections {
-                    target: mediaResolver
+                    target: root.resolver
                     function onResolved(key, url) {
                         if (key !== tile.resolverKey) return
                         player.source = url

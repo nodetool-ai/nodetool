@@ -6,7 +6,6 @@
 #include <QTcpSocket>
 #include <QQmlEngine>
 #include <QQmlComponent>
-#include <QQmlContext>
 #include <QJsonDocument>
 #include <QJSValue>
 #include <memory>
@@ -49,12 +48,12 @@ private slots:
   QVERIFY(!verified.first().at(2).toBool());
   for (const auto& request : requests) { QVERIFY(request.contains("Authorization: Bearer secret")); QVERIFY(request.toLower().contains("x-user-id: scope-user")); }
   QQmlEngine engine;
-  engine.rootContext()->setContextProperty("resourcePickerController", &controller);
   QQmlComponent component(&engine, QUrl("qrc:/editor/WorkflowPropertyEditor.qml"));
   QTRY_VERIFY(component.status() != QQmlComponent::Loading);
   QVERIFY2(component.isReady(), qPrintable(component.errorString()));
   const QVariantMap descriptor{{"name", "workflow"}, {"kind", "workflow"}, {"dataType", QVariantMap{{"type", "workflow"}}}};
-  std::unique_ptr<QObject> item(component.createWithInitialProperties({{"descriptor", descriptor}, {"value", QVariantMap{{"type", "workflow"}, {"id", "missing"}, {"future", 7}}}, {"writable", true}, {"nodeId", "a"}}));
+  std::unique_ptr<QObject> item(component.createWithInitialProperties({{"descriptor", descriptor}, {"value", QVariantMap{{"type", "workflow"}, {"id", "missing"}, {"future", 7}}}, {"writable", true}, {"nodeId", "a"},
+                                                                       {"controller", QVariant::fromValue<QObject*>(&controller)}}));
   QVERIFY2(item, qPrintable(component.errorString()));
   QTRY_COMPARE(verified.count(), 2);
   const auto statusValue = item->property("statuses");
@@ -112,10 +111,11 @@ private slots:
   ResourcePickerController controller;
   controller.configure(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), "secret", "collection-owner");
   QSignalSpy listed(&controller, &ResourcePickerController::collectionsListed);
-  QQmlEngine engine; engine.rootContext()->setContextProperty("resourcePickerController", &controller);
+  QQmlEngine engine;
   QQmlComponent component(&engine, QUrl("qrc:/editor/CollectionPropertyEditor.qml"));
   QTRY_VERIFY(component.status() != QQmlComponent::Loading); QVERIFY2(component.isReady(), qPrintable(component.errorString()));
-  std::unique_ptr<QObject> item(component.createWithInitialProperties({{"descriptor", QVariantMap{{"name", "collection"}}}, {"value", QVariantMap{{"type", "collection"}, {"name", "deleted"}, {"future", 7}}}, {"nodeId", "n"}, {"writable", true}}));
+  std::unique_ptr<QObject> item(component.createWithInitialProperties({{"descriptor", QVariantMap{{"name", "collection"}}}, {"value", QVariantMap{{"type", "collection"}, {"name", "deleted"}, {"future", 7}}}, {"nodeId", "n"}, {"writable", true},
+                                                                       {"controller", QVariant::fromValue<QObject*>(&controller)}}));
   QVERIFY2(item, qPrintable(component.errorString()));
   QTRY_COMPARE(listed.count(), 1);
   QVERIFY(requests.first().startsWith("GET /trpc/collections.list?"));

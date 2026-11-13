@@ -52,6 +52,9 @@ its drag and resize.
 The queue overlay takes `RunState`, which also carries the run output's runs
 and models, and the asset library takes
 [`LibraryBrowser`](src/library/LibraryBrowser.h).
+The property editors take the media resolver and the pickers from
+[`PropertyHost`](src/interfaces/PropertyHost.h), and the media and output views
+take the resolver from their parent.
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
 read a root context property.
 

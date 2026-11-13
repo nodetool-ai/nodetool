@@ -7,6 +7,8 @@ import NodeTool.NodeEditor.Media 1.0
 ColumnLayout {
     id: richOutput
     required property var modelData
+    // The tab's MediaResolver, for text and image outputs held as media.
+    property var resolver: null
     spacing: Ui.Metrics.xs
     ColumnLayout {
         id: pcmOutput
@@ -65,7 +67,7 @@ Loader {
     Layout.fillWidth: true
     active: modelData.renderer === "image_comparison"
     visible: active
-    sourceComponent: Component { ImageComparisonOutput { comparison: modelData.comparison } }
+    sourceComponent: Component { ImageComparisonOutput { comparison: modelData.comparison; resolver: richOutput.resolver } }
 }
 Loader {
     Layout.fillWidth: true
@@ -84,19 +86,21 @@ ObjectOutput {
     visible: modelData.renderer === "object"
     Layout.fillWidth: true
     fields: modelData.fields || []
+    resolver: richOutput.resolver
 }
 Repeater {
     model: modelData.renderer === "sequence" ? modelData.children : []
     Loader {
         required property var modelData
         Layout.fillWidth: true
-        Component.onCompleted: setSource("RichOutput.qml", {modelData: modelData})
+        Component.onCompleted: setSource("RichOutput.qml", {modelData: modelData, resolver: richOutput.resolver})
     }
 }
 TextOutput {
     visible: modelData.renderer === "text"
     Layout.fillWidth: true
     output: modelData
+    resolver: richOutput.resolver
 }
 Ui.TextArea {
     objectName: "run-output-text"

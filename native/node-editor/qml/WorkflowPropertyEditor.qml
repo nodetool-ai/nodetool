@@ -9,7 +9,8 @@ ColumnLayout {
     required property var value
     required property bool writable
     required property string nodeId
-    property var controller: typeof resourcePickerController === "undefined" ? null : resourcePickerController
+    // The tab's ResourcePickerController, from the property host.
+    property var controller: null
     property string requestKey: "workflow-property-" + String(root)
     property int generation: 0
     readonly property string listKey: requestKey + "-list-" + generation

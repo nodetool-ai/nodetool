@@ -10,6 +10,8 @@ Item {
     required property string mediaKind
     required property var locator
     required property string requestKey
+    // The tab's MediaResolver, which reads the media and saves the actions.
+    required property var resolver
     property var richEntry: ({})
     property string filename: ""
     property var items: []
@@ -52,6 +54,7 @@ Item {
                     notice: root.notice
                     compact: true
                     previewCard: root.previewActions
+                    resolver: root.resolver
                 }
             }
         }
@@ -83,6 +86,7 @@ Item {
                             y: Ui.Metrics.sm
                             width: parent.width - Ui.Metrics.sm * 2
                             modelData: root.richEntry
+                            resolver: root.resolver
                         }
                     }
                 }
@@ -100,7 +104,7 @@ Item {
             NodeButton { objectName: "preview-download"; text: "Download"; accessibleName: "Download preview output"; variant: NodeButton.Flat; enabled: root.actionText.length > 0
                 onClicked: { root.actionStatus = ""; downloadDialog.selectedFile = downloadDialog.currentFolder.toString() + "/" + root.actionName(); downloadDialog.open() } }
             NodeButton { objectName: "preview-add-assets"; text: "Add to assets"; accessibleName: "Add preview output to assets"; variant: NodeButton.Flat; enabled: root.actionText.length > 0
-                onClicked: { root.actionStatus = ""; if (mediaResolver) mediaResolver.saveTextToAssets(root.requestKey, root.actionText, root.actionName(), root.jsonOutput ? "application/json" : "text/plain") } }
+                onClicked: { root.actionStatus = ""; if (root.resolver) root.resolver.saveTextToAssets(root.requestKey, root.actionText, root.actionName(), root.jsonOutput ? "application/json" : "text/plain") } }
             NodeButton { objectName: "preview-copy"; text: "Copy"; accessibleName: "Copy preview output"; variant: NodeButton.Flat; enabled: root.actionText.length > 0
                 onClicked: root.actionStatus = clipboard.copyText(root.actionText) ? "Copied!" : "Could not copy the output" }
         }
@@ -110,10 +114,10 @@ Item {
     FileDialog {
         id: downloadDialog
         fileMode: FileDialog.SaveFile
-        onAccepted: if (mediaResolver) mediaResolver.saveText(root.requestKey, root.actionText, selectedFile)
+        onAccepted: if (root.resolver) root.resolver.saveText(root.requestKey, root.actionText, selectedFile)
     }
     Connections {
-        target: mediaResolver
+        target: root.resolver
         function onSaved(key) { if (key === root.requestKey) root.actionStatus = "Saved" }
         function onSaveFailed(key, message) { if (key === root.requestKey) root.actionStatus = message }
         function onAssetSaved(key) { if (key === root.requestKey) root.actionStatus = "Added to assets" }

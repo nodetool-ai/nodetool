@@ -66,10 +66,9 @@ private slots:
         resources.configure(origin, "secret", "owner");
         assets.configure(origin, "secret", "owner");
         QQuickView view;
-        view.engine()->rootContext()->setContextProperty("resourcePickerController", &resources);
-        view.engine()->rootContext()->setContextProperty("assetPickerController", &assets);
         const QJsonObject old{{"type", "document"}, {"asset_id", "deleted"}, {"uri", "asset://deleted"}, {"future", 7}};
-        view.setInitialProperties({{"descriptor", QVariantMap{{"name", "value"}, {"kind", "document"}, {"mediaType", "document"}}}, {"value", old.toVariantMap()}, {"writable", true}, {"nodeId", "n"}});
+        view.setInitialProperties({{"descriptor", QVariantMap{{"name", "value"}, {"kind", "document"}, {"mediaType", "document"}}}, {"value", old.toVariantMap()}, {"writable", true}, {"nodeId", "n"},
+                                  {"controller", QVariant::fromValue<QObject *>(&assets)}, {"resourceController", QVariant::fromValue<QObject *>(&resources)}});
         view.setSource(QUrl("qrc:/editor/AssetPropertyEditor.qml"));
         QVERIFY2(view.status() == QQuickView::Ready, qPrintable(view.errors().isEmpty() ? QString{} : view.errors().first().toString()));
         view.setResizeMode(QQuickView::SizeRootObjectToView);
@@ -151,14 +150,14 @@ private slots:
         const auto origin = QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort()));
         controller.configure(origin, "secret", "owner");
         QQuickView view;
-        view.engine()->rootContext()->setContextProperty("resourcePickerController", &controller);
         const QJsonObject type = kind == "entity_list" ? QJsonObject{{"type", "list"}, {"type_args", QJsonArray{QJsonObject{{"type", "entity"}}}}} : QJsonObject{{"type", kind}};
         WorkflowDocument document;
         document.setNodeMetadata({QJsonObject{{"node_type", "fixture"}, {"properties", QJsonArray{QJsonObject{{"name", "value"}, {"type", type}}}}}});
         const QJsonObject old{{"type", kind == "entity_list" ? "entity" : kind}, {kind == "font" ? "name" : kind == "folder" ? "asset_id" : "id", "deleted"}, {"future", 7}};
         const QJsonValue initial = kind == "entity_list" ? QJsonValue(QJsonArray{old}) : QJsonValue(old);
         QVERIFY(document.load({{"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "n"}, {"type", "fixture"}, {"data", QJsonObject{{"value", initial}}}}}}, {"edges", QJsonArray{}}}}}));
-        view.setInitialProperties({{"descriptor", QVariantMap{{"name", "value"}, {"kind", kind}}}, {"value", initial.toVariant()}, {"writable", true}, {"nodeId", "n"}});
+        view.setInitialProperties({{"descriptor", QVariantMap{{"name", "value"}, {"kind", kind}}}, {"value", initial.toVariant()}, {"writable", true}, {"nodeId", "n"},
+                                  {"controller", QVariant::fromValue<QObject *>(&controller)}});
         view.setSource(QUrl("qrc:/editor/RemainingResourcePropertyEditor.qml"));
         QVERIFY2(view.status() == QQuickView::Ready, qPrintable(view.errors().isEmpty() ? QString{} : view.errors().first().toString()));
         view.setResizeMode(QQuickView::SizeRootObjectToView);

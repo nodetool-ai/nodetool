@@ -10,7 +10,8 @@ ColumnLayout {
     required property string nodeId
     // A card's own open button stands beside the select, so its overlay hides this one.
     property bool showOpen: true
-    property var controller: typeof documentPickerController === "undefined" ? null : documentPickerController
+    // The tab's DocumentPickerController, from the property host.
+    property var controller: null
     readonly property string kind: descriptor.dataType.type
     readonly property string selectedId: value && value.id ? value.id : ""
     property string requestKey: "document-property-" + String(root)

@@ -2,6 +2,8 @@
 #include "document/WorkflowDocument.h"
 #include "ui/EditorWindow.h"
 #include "properties/AssetPickerController.h"
+#include "interfaces/NodeInspector.h"
+#include "interfaces/PropertyHost.h"
 #include <QQuickWidget>
 #include <QDropEvent>
 #include <QDragEnterEvent>
@@ -13,7 +15,6 @@
 #include <QTcpSocket>
 #include <QQmlEngine>
 #include <QQmlComponent>
-#include <QQmlContext>
 #include <QQuickWindow>
 #include <QQuickItem>
 #include <QJSValue>
@@ -142,7 +143,7 @@ private slots:
             return true;
         };
         QTRY_VERIFY(control("model3d-toggle-url"));
-        auto* assets = qobject_cast<AssetPickerController*>(panel->engine()->rootContext()->contextProperty("assetPickerController").value<QObject*>());
+        auto* assets = qobject_cast<AssetPickerController*>(window.nodeInspector()->fields()->assetPicker());
         QVERIFY(assets);
         assets->configure(origin, {}, "owner");
         QVERIFY(click("model3d-toggle-url"));
@@ -216,11 +217,13 @@ private slots:
         QVERIFY(load("sketch"));
         QVERIFY(window.selectNode("n"));
         QTRY_VERIFY(control("document-select"));
-        auto* documents = qobject_cast<DocumentPickerController*>(panel->engine()->rootContext()->contextProperty("documentPickerController").value<QObject*>());
+        // The catalog change also shows the field in the first tab, so read the
+        // picker from the field that control() found.
+        auto* docField = control("document-select")->parentItem()->parentItem();
+        auto* documents = qobject_cast<DocumentPickerController*>(docField->property("controller").value<QObject*>());
         QVERIFY(documents);
         documents->configure(origin, {}, "owner");
         delay = true;
-        auto* docField = control("document-select")->parentItem()->parentItem();
         QVERIFY(QMetaObject::invokeMethod(docField, "refresh"));
         QTRY_VERIFY(!pending.isEmpty());
         const auto loadingOptions = unwrap(control("document-select")->property("options")).toList();
@@ -290,12 +293,12 @@ private slots:
         DocumentPickerController controller;
         controller.configure(origin, "secret", "owner");
         QQmlEngine engine;
-        engine.rootContext()->setContextProperty("documentPickerController", &controller);
         QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/DocumentPropertyEditor.qml"));
         QTRY_VERIFY(component.status() != QQmlComponent::Loading);
         QVERIFY2(component.isReady(), qPrintable(component.errorString()));
         const QVariantMap descriptor{{"name", "document"}, {"dataType", QVariantMap{{"type", kind}}}};
-        std::unique_ptr<QObject> object(component.createWithInitialProperties({{"descriptor", descriptor}, {"value", QVariantMap{}}, {"writable", true}, {"nodeId", "n"}}));
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({{"descriptor", descriptor}, {"value", QVariantMap{}}, {"writable", true}, {"nodeId", "n"},
+                                                                                 {"controller", QVariant::fromValue<QObject *>(&controller)}}));
         QVERIFY2(object, qPrintable(component.errorString()));
         auto* item = qobject_cast<QQuickItem*>(object.get());
         QVERIFY(item);
@@ -391,7 +394,7 @@ private slots:
                 }
                 return false;
             })());
-            auto* picker = qobject_cast<DocumentPickerController*>(inspector->engine()->rootContext()->contextProperty("documentPickerController").value<QObject*>());
+            auto* picker = qobject_cast<DocumentPickerController*>(host.nodeInspector()->fields()->documentPicker());
             QVERIFY(picker);
             picker->configure(origin, "secret", "owner");
             auto* hostSelect = find(inspector->rootObject(), "document-select");

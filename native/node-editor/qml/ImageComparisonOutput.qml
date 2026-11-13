@@ -8,6 +8,8 @@ ColumnLayout {
     id: root
     objectName: "output-comparison"
     required property var comparison
+    // The tab's MediaResolver, which reads both images.
+    property var resolver: null
     property string mode: "horizontal"
     property real position: 0.5
     readonly property bool horizontal: mode === "horizontal"
@@ -43,6 +45,7 @@ ColumnLayout {
         required property var locator
         required property string side
         required property string requestKey
+        property var resolver: null
         property bool active: true
         property string resolverKey: ""
         property url resolvedSource: ""
@@ -56,24 +59,24 @@ ColumnLayout {
         function reset() {
             const previousKey = resolverKey
             resolverKey = ""
-            if (mediaResolver && previousKey) mediaResolver.cancel(previousKey)
+            if (resolver && previousKey) resolver.cancel(previousKey)
             resolvedSource = ""
-            if (mediaResolver && previousKey) mediaResolver.release(previousKey)
+            if (resolver && previousKey) resolver.release(previousKey)
             failure = ""; resolving = false
         }
         function resolve() {
             reset()
-            if (!active || !mediaResolver || !locator) return
+            if (!active || !resolver || !locator) return
             resolverKey = requestKey
             resolving = true
-            mediaResolver.resolve(resolverKey, locator)
+            resolver.resolve(resolverKey, locator)
         }
         onLocatorChanged: if (completed) resolve()
         onActiveChanged: if (completed) resolve()
         Component.onCompleted: { completed = true; resolve() }
         Component.onDestruction: reset()
         Connections {
-            target: mediaResolver
+            target: layer.resolver
             function onResolved(key, url) {
                 if (key !== layer.resolverKey) return
                 layer.resolving = false
@@ -154,6 +157,7 @@ ColumnLayout {
         }
         ComparisonLayer {
             id: layerB
+            resolver: root.resolver
             anchors.fill: parent
             side: "B"
             active: !root.missing
@@ -169,6 +173,7 @@ ColumnLayout {
             clip: true
             ComparisonLayer {
                 id: layerA
+                resolver: root.resolver
                 width: viewport.width; height: viewport.height
                 side: "A"
                 active: !root.missing

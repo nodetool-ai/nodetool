@@ -8,7 +8,8 @@ ColumnLayout {
     required property var value
     required property bool writable
     required property string nodeId
-    property var controller: typeof assetPickerController === "undefined" ? null : assetPickerController
+    // The tab's AssetPickerController, from the property host.
+    property var controller: null
     property string requestKey: "model3d-" + String(root)
     property int generation: 0
     readonly property string uploadKey: requestKey + "-upload-" + generation

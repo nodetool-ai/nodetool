@@ -11,10 +11,13 @@ class QGraphicsView;
 class QQmlEngine;
 class QQuickWidget;
 namespace nodetool {
+namespace node_editor { class PropertyHost; }
 class WorkflowGraphModel;
 class EditorScene;
 // One lazily opened Quick editor overlays the active painted property. The
 // viewport remains a Graphics View and uses no Quick graphics proxy widgets.
+// The property host is borrowed for its pickers: its owner, EditorWindow,
+// outlives this presenter.
 class InlinePropertyPresenter final : public QObject {
   Q_OBJECT
   Q_PROPERTY(QVariantMap descriptor READ descriptor NOTIFY changed)
@@ -25,7 +28,7 @@ class InlinePropertyPresenter final : public QObject {
 public:
   InlinePropertyPresenter(WorkflowGraphModel &model, EditorScene &scene,
                           QGraphicsView &view, QQmlEngine *engine,
-                          QObject *parent = nullptr);
+                          node_editor::PropertyHost &host, QObject *parent = nullptr);
   ~InlinePropertyPresenter() override;
   QVariantMap descriptor() const { return descriptor_; }
   QRectF editorRect() const { return editorRect_; }
@@ -64,6 +67,7 @@ private:
   EditorScene &scene_;
   QGraphicsView &view_;
   QPointer<QQmlEngine> engine_;
+  node_editor::PropertyHost &host_;
   QPointer<QQuickWidget> widget_;
   QVector<QPointer<QQuickWidget>> retiredWidgets_;
   QtNodes::NodeId node_ = QtNodes::InvalidNodeId;

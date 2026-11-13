@@ -5,6 +5,8 @@ Item {
     id: root
     required property var presenter
     required property int activationToken
+    // The pickers the card's model, document and resource selects use.
+    required property PropertyHost host
     readonly property var descriptor: presenter.descriptor
     readonly property int token: activationToken
     readonly property var value: descriptor.hasValue ? descriptor.value : descriptor.hasDefault ? descriptor.defaultValue : null
@@ -143,6 +145,7 @@ Item {
         // The card's model chip opens the shared picker that the inspector uses.
         ModelPropertyEditor {
             objectName: "inline-model"
+            controller: root.host.modelPicker
             descriptor: root.descriptor
             value: root.value
             writable: true
@@ -193,6 +196,7 @@ Item {
         // The card's document select opens the shared picker that the inspector uses.
         DocumentPropertyEditor {
             objectName: "inline-document"
+            controller: root.host.documentPicker
             descriptor: root.descriptor
             value: root.value
             writable: true
@@ -245,7 +249,7 @@ Item {
             objectName: "inline-resource-select"
             readonly property bool listMode: root.kind === "workflow_list"
             readonly property bool collectionMode: root.kind === "collection"
-            readonly property var controller: typeof resourcePickerController === "undefined" ? null : resourcePickerController
+            readonly property var controller: root.host.resourcePicker
             readonly property string requestKey: "inline-resource-" + root.token
             readonly property var reference: root.value && typeof root.value === "object" && root.value.length === undefined ? root.value : ({})
             readonly property var selected: listMode && root.value && typeof root.value.length === "number" && typeof root.value !== "string" ? Array.from(root.value) : []
