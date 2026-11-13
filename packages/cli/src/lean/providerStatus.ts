@@ -48,6 +48,7 @@ export const KEYED_PROVIDERS: readonly ProviderCredential[] = [
   { id: "uberllm", name: "UberLLM", credentials: ["UBERLLM_API_KEY"] },
   { id: "together", name: "Together", credentials: ["TOGETHER_API_KEY"] },
   { id: "alibaba", name: "Alibaba", credentials: ["DASHSCOPE_API_KEY"] },
+  { id: "byteplus", name: "BytePlus", credentials: ["BYTEPLUS_ARK_API_KEY"] },
   { id: "cerebras", name: "Cerebras", credentials: ["CEREBRAS_API_KEY"] },
   { id: "evolink", name: "EvoLink", credentials: ["EVOLINK_API_KEY"] },
   { id: "gmi", name: "GMI Cloud", credentials: ["GMI_API_KEY"] },

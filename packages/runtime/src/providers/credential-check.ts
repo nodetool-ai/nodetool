@@ -14,6 +14,7 @@
  */
 
 import { resolveAlibabaBaseURL } from "./alibaba-provider.js";
+import { resolveBytePlusBaseURL } from "./byteplus-provider.js";
 
 /**
  * - `valid` — the provider accepted the credential.
@@ -126,6 +127,11 @@ const PROBES: Record<string, CredentialProbe> = {
   DASHSCOPE_API_KEY: {
     label: "Alibaba Cloud",
     url: () => `${resolveAlibabaBaseURL()}/models`,
+    headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
+  BYTEPLUS_ARK_API_KEY: {
+    label: "BytePlus",
+    url: () => `${resolveBytePlusBaseURL()}/models`,
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
   CEREBRAS_API_KEY: {

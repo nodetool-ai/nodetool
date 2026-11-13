@@ -29,6 +29,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Mistral | ✅ | | | | | ✅ | |
 | Cerebras | ✅ | | | | | | |
 | Alibaba Cloud | ✅ | | | | | | |
+| BytePlus | ✅ | ✅ | ✅ | | | | |
 | GMI Cloud | ✅ | | | | | | |
 | OpenRouter | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Requesty | ✅ | | | | | | |
@@ -144,6 +145,16 @@ Cerebras runs chat models on its high-throughput inference hardware. Text only. 
 ## Alibaba Cloud
 
 Alibaba Cloud Model Studio serves the Qwen chat models — qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line — with streaming and tool calling. Text only. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint (default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, the international/Singapore region); models are fetched live from its `/models` endpoint. Model Studio keys are region-scoped — set `DASHSCOPE_BASE_URL` to your region's `/compatible-mode/v1` endpoint when the key was created outside Singapore. Tool calling is gated per model family: Qwen-Math, QVQ, OCR, translation, and audio models are outside Alibaba's function-calling list and are not sent tools. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
+## BytePlus
+
+BytePlus ModelArk is ByteDance's international model platform. One key covers Seed chat models, Seedream image generation and editing, and Seedance text-to-video and image-to-video. Cloud only, keyed by `BYTEPLUS_ARK_API_KEY`.
+
+- **Chat.** Requests go to Ark's OpenAI-compatible `/chat/completions` with streaming and tool calling. The picker reads `GET /models` and keeps rows whose output modalities include text. When the listing fails or comes back empty, it falls back to a short built-in list of Seed models.
+- **Images.** Seedream 5.0 Pro, 5.0, 5.0 Lite, 4.5, and 4.0 run on `/images/generations`. Image-to-image sends up to 10 reference images to 5.0 Pro and up to 14 to the others. An aspect ratio becomes a pixel size at the chosen resolution tier, kept inside the model's documented pixel range. Output has no watermark.
+- **Video.** Seedance 2.5, 2.0, 2.0 Fast, 2.0 Mini, 1.5 Pro, 1.0 Pro, and 1.0 Pro Fast run as tasks: NodeTool creates one on `/contents/generations/tasks` and polls it until it succeeds, fails, or expires. Image-to-video takes a first frame and, on every model except 1.0 Pro Fast, an optional last frame.
+
+The default endpoint is `https://ark.ap-southeast.bytepluses.com/api/v3`. Ark keys work in one region only, so set `BYTEPLUS_ARK_BASE_URL` to your region's `/api/v3` endpoint when the key belongs to another region. Seed speech and transcription need a separate voice key and are not wired. Get a key in the [ModelArk console](https://console.byteplus.com/ark). See the [ModelArk docs](https://docs.byteplus.com/en/docs/ModelArk/).
 
 ## GMI Cloud
 

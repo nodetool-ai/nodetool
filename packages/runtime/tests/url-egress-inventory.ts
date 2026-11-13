@@ -530,6 +530,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Task result URLs are screened; upload, create and poll use the fixed API host."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/byteplus-provider.ts",
+    "BytePlus Seedance video result downloads",
+    "provider-response",
+    "content.video_url from a task body is screened; chat, image, create and poll use the configured Ark host."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",
