@@ -20,15 +20,6 @@ ColumnLayout {
     // A connected or preserved value explains itself in the hint below the label.
     readonly property string error: descriptor.editable === false || (descriptor.connected && !descriptor.appendStatic) ? "" : (descriptor.error || "")
     spacing: Ui.Metrics.xs
-    EditorRoles { id: roles }
-    // The web inspector field: a quiet translucent fill with no idle border.
-    component FieldFrame: Rectangle {
-        required property Item control
-        color: !control.enabled ? roles.fieldDisabled : control.activeFocus ? roles.fieldFocus : roles.field
-        radius: Ui.Metrics.radiusControl
-        border.width: control.activeFocus ? Ui.Metrics.focus : Ui.Metrics.border
-        border.color: control.valid === false ? Ui.Theme.borderError : control.activeFocus ? Ui.Theme.borderFocus : "transparent"
-    }
     function begin() { editNodeId = nodeId }
     function commit(value) {
         if (!writable || editNodeId !== nodeId || host.selection !== editNodeId) return
@@ -159,10 +150,10 @@ ColumnLayout {
             valid: true
             errorText: root.error
             topPadding: Ui.Metrics.sm; bottomPadding: Ui.Metrics.sm
-            leftPadding: 10; rightPadding: 10
-            implicitHeight: 34
+            leftPadding: Ui.Metrics.nodeFieldPadding; rightPadding: Ui.Metrics.nodeFieldPadding
+            implicitHeight: Ui.Metrics.nodeFieldHeight
             font.weight: Font.Normal
-            background: FieldFrame { control: parent }
+            variant: Ui.TextField.Node
             onEditStarted: root.begin()
             onValueCommitted: value => root.commit(value)
         }
@@ -176,7 +167,7 @@ ColumnLayout {
             implicitHeight: Math.max(contentHeight + Ui.Metrics.xl, Ui.Metrics.touch * 2)
             role: Ui.Typography.SansLabel
             font.weight: Font.Normal
-            background: FieldFrame { control: parent }
+            variant: Ui.TextArea.Node
             accessibleName: root.title
             enabled: root.writable
             valid: true
@@ -199,7 +190,7 @@ ColumnLayout {
             enabled: root.writable
             valid: (root.descriptor.kind !== "integer" || text.trim() === "" || Number.isInteger(Number(text)))
             errorText: root.error || "Enter a valid " + root.descriptor.kind + " within the allowed range."
-            background: FieldFrame { control: parent }
+            variant: Ui.NumberField.Node
             onEditStarted: root.begin()
             onValueCommitted: value => root.commit(value)
         }

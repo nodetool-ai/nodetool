@@ -75,8 +75,8 @@ reason?, objectName?}`, `value`, `accessibleName`, `density`, and `variant`
 choose the previous or next enabled option. A disabled option shows `reason` as a
 tooltip. It emits `valueCommitted(value)` only for a user choice.
 
-`Ui.TextArea.variant` is `Ui.TextArea.Field`, `Plain`, `Bubble`, `Code`, or `Quiet`.
-Quiet is transparent until hovered or focused. The role and inherited
+`Ui.TextArea.variant` is `Ui.TextArea.Field`, `Plain`, `Bubble`, `Code`, `Quiet`,
+`Node`, or `NodeEditing`. Quiet is transparent until hovered or focused. The role and inherited
 `textFormat` choose type and rich text behavior.
 
 Presentation types:
@@ -131,6 +131,15 @@ also accept `accessibleName`, `readOnly`, `enabled`, `valid`, `errorText`, and
 typed drafts until commit while retaining arrow-key previews.
 Enter in `TextField` and `NumberField` commits a valid draft, then emits
 `accepted()` for the host's default action.
+`Ui.TextField.variant` and `Ui.NumberField.variant` are `Field`, `Node`, or
+`NodeEditing`, and `Ui.TextArea` takes the same two node values. `Node` is the
+node editor field: a `Theme.fieldSurface` fill (`fieldSurfaceFocus` when focused,
+`fieldSurfaceDisabled` when disabled) with a transparent idle border, a focus
+border, and an error border when `valid` is false. `NodeEditing` is the editor
+overlaid on a field painted on a node card. It keeps `surfaceInput` and always
+shows the focus border, and on `NumberField` it also shows the error border for
+an unparsable draft. Neither variant changes padding or height. Use
+`Metrics.nodeFieldPadding` and `Metrics.nodeFieldHeight` for the inspector row.
 `cancelEdit()` discards the draft. Invalid focus loss cancels and restores the
 latest authoritative value. Hosts roll back previewed document changes.
 
