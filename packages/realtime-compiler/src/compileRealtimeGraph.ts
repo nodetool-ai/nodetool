@@ -1,5 +1,7 @@
 import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
 import { PLAN_SCHEMA } from "./generated/PlanSchema.js";
+import { compareNames, CompileFailure, fail, identity, integer, literalValues, parameterAllocator, prepareGraph, stateKey, values } from "./CompilerSupport.js";
+import { compileAudioGraph } from "./compileAudioGraph.js";
 import type { AnalyticOperation, BatchBoundary, CompileInput, CompileResult, ControlExpression, ControlInstruction, Diagnostic, ExpressionBinding, LiveDescriptor, RenderPass, RenderPlan, TextureContract, ValueBinding } from "./Types.js";
 
 const ARITIES: ReadonlyMap<string, number> = new Map([
@@ -9,14 +11,6 @@ const ARITIES: ReadonlyMap<string, number> = new Map([
   ["damp", 2], ["envelope", 3], ["oscillator", 1], ["sample_hold", 1], ["integrator", 1], ["counter", 2]
 ]);
 const STATEFUL = new Set(["damp", "envelope", "oscillator", "sample_hold", "integrator", "counter"]);
-function compareNames(a: string, b: string): number { return a < b ? -1 : a > b ? 1 : 0; }
-class CompileFailure extends Error {
-  constructor(readonly diagnostic: Diagnostic) { super(diagnostic.detail); }
-}
-function fail(node: string, reason: string, detail: string): never { throw new CompileFailure({ node, reason, detail }); }
-function integer(value: number, min: number, max: number, node: string): void {
-  if (!Number.isSafeInteger(value) || value < min || value > max) { fail(node, "range", `Expected integer in [${min}, ${max}]`); }
-}
 function copyTexture(texture: TextureContract, node: string): TextureContract {
   if (!PLAN_SCHEMA.properties.render.properties.passes.items.properties.output.properties.format.enum.some((value) => value === texture.format) ||
       !PLAN_SCHEMA.properties.render.properties.present.properties.colorSpace.enum.some((value) => value === texture.colorSpace) ||
@@ -31,24 +25,6 @@ function copyTexture(texture: TextureContract, node: string): TextureContract {
     : { kind: "input", input: texture.size.input, scale: texture.size.scale };
   return { format: texture.format, alpha: texture.alpha, colorSpace: texture.colorSpace, size };
 }
-function values(node: NodeDescriptor, binding: ValueBinding): number[] {
-  const value: unknown = node.properties && Object.hasOwn(node.properties, binding.property) ? node.properties[binding.property] : binding.default;
-  return literalValues(value, node.id, binding.property);
-}
-function literalValues(value: unknown, node: string, field: string): number[] {
-  if (typeof value === "boolean") { return [Number(value)]; }
-  if (typeof value === "number" && Number.isFinite(value)) { return [value]; }
-  if (Array.isArray(value) && value.length >= 1 && value.length <= 4) {
-    const lanes: number[] = [];
-    for (const lane of value) {
-      if (typeof lane !== "number" || !Number.isFinite(lane)) { fail(node, "control_value", field); }
-      lanes.push(lane);
-    }
-    return lanes;
-  }
-  return fail(node, "control_value", `Expected finite scalar or vector: ${field}`);
-}
-function identity(source: string, output: string): string { return JSON.stringify([source, output]); }
 function operationWidth(op: string, args: readonly { width: number }[], node: string): number {
   if (ARITIES.get(op) !== args.length) { fail(node, "control_arity", op); }
   const width = Math.max(1, ...args.map((arg) => arg.width));
@@ -91,36 +67,21 @@ function fold(op: AnalyticOperation, args: readonly number[][], width: number): 
   return result;
 }
 
-/** Compile one render region without host I/O. Unsupported live forms reject with graph-node diagnostics. */
+/** Compile one audio or render region without host I/O. Unsupported forms reject with graph-node diagnostics. */
 export function compileRealtimeGraph(input: CompileInput): CompileResult {
-  try { return compile(input); }
+  try {
+    const root = input.graph.nodes.find((node) => node.id === input.outputs[0]);
+    return root && input.descriptors.get(root.type)?.kind === "audio-output" ? compileAudioGraph(input) : compile(input);
+  }
   catch (error) {
     if (error instanceof CompileFailure) { return { status: "error", diagnostics: [error.diagnostic] }; }
     throw error;
   }
 }
 function compile(input: CompileInput): CompileResult {
-  const { graph, descriptors, session } = input;
-  integer(input.revision, 0, PLAN_SCHEMA.properties.revision.maximum, "$plan");
-  integer(session.width, 1, 16384, "$session"); integer(session.height, 1, 16384, "$session");
-  integer(session.seed, 0, 4294967295, "$session");
-  if ((session.sampleRate !== 44100 && session.sampleRate !== 48000) || session.quantum !== 128 ||
-      (session.channels !== "mono" && session.channels !== "stereo")) { fail("$session", "session", "Unsupported session layout"); }
-  if (graph.nodes.length > 100000 || graph.edges.length > 100000) { fail("$graph", "limit", "Graph exceeds v1 compiler limits"); }
-  if (input.outputs.length !== 1) { fail("$graph", "outputs", "This slice requires exactly one render output"); }
-  const nodes = new Map<string, NodeDescriptor>();
-  const incoming = new Map<string, Map<string, Edge>>();
-  for (const node of graph.nodes) {
-    if (!node.id || nodes.has(node.id)) { fail(node.id, "duplicate_node", "Node identity is empty or duplicated"); }
-    nodes.set(node.id, node); incoming.set(node.id, new Map());
-  }
-  for (const edge of graph.edges) {
-    if (!edge.sourceHandle || !edge.targetHandle) { fail(edge.target, "port", "Edge handles must be nonempty"); }
-    const inputs = incoming.get(edge.target);
-    if (!nodes.has(edge.source) || !inputs) { fail(edge.target, "missing_node", "Edge endpoint is missing"); }
-    if (inputs.has(edge.targetHandle)) { fail(edge.target, "multiple_inputs", edge.targetHandle); }
-    inputs.set(edge.targetHandle, edge);
-  }
+  const { descriptors, session } = input;
+  const { nodes, incoming } = prepareGraph(input);
+  const allocation = parameterAllocator(input.allocation);
   const sink = nodes.get(input.outputs[0]);
   const sinkDescriptor = sink && descriptors.get(sink.type);
   if (!sink || sinkDescriptor?.kind !== "render-output") { fail(input.outputs[0], "outputs", "Expected a render-output descriptor"); }
@@ -175,6 +136,7 @@ function compile(input: CompileInput): CompileResult {
     if (!node) { fail(id, "missing_node", id); }
     const descriptor = descriptors.get(node.type);
     if (!descriptor) { continue; }
+    if (descriptor.kind === "dsp" || descriptor.kind === "audio-output") { fail(id, "unsupported", "Mixed audio/render graphs are deferred"); }
     live.add(id);
     const allowed = descriptor.kind === "shader" ? shaderInputs(descriptor, id) :
       descriptor.kind === "render-output" ? [descriptor.input] : descriptor.op === "constant" ? [] : descriptor.inputs.map((field) => field.property);
@@ -320,7 +282,7 @@ function compile(input: CompileInput): CompileResult {
         integer(descriptor.stateVersion, 1, 4294967295, id); stateful.push({ ...instruction, stateVersion: descriptor.stateVersion });
       } else { ops.push(instruction); }
       registers.set(identity(id, descriptor.output), { index: output, width });
-    } else {
+    } else if (descriptor.kind === "shader") {
       if (!descriptor.module || descriptor.texture.alpha !== "premultiplied" || !["retained", "volatile"].includes(descriptor.retention)) { fail(id, "descriptor", "Invalid shader descriptor"); }
       const output = copyTexture(descriptor.texture, id); const inputs = new Map<string, string>();
       for (const [port, contract] of Object.entries(descriptor.textureInputs).sort(([a], [b]) => compareNames(a, b))) {
@@ -343,7 +305,7 @@ function compile(input: CompileInput): CompileResult {
         ("expression" in field ? expressionBinding(node, field) : binding(node, field)).index);
       passes.push({ node: id, module: descriptor.module, inputs: Object.fromEntries(inputs), uniforms, retention: descriptor.retention, output });
       textures.set(identity(id, descriptor.output), { id, contract: output, retained: descriptor.retention === "retained" });
-    }
+    } else { fail(id, "unsupported", "Mixed audio/render graphs are deferred"); }
   }
   if (registerCount > PLAN_SCHEMA.properties.control.properties.registers.maximum) { fail("$control", "limit", "Too many control registers"); }
   const presented = texture(sinkEdge);
@@ -351,5 +313,6 @@ function compile(input: CompileInput): CompileResult {
     session: { sampleRate: session.sampleRate, quantum: session.quantum, channels: session.channels, width: session.width, height: session.height, seed: session.seed }, params: [],
     slots: slots.sort((a, b) => compareNames(a.id, b.id)), control: { registers: registerCount, ops, stateful },
     render: { passes, present: { source: presented.id, colorSpace: sinkDescriptor.colorSpace } }, audio: { buffers: [], nodes: [], sinks: [] } };
-  return { status: "ok", plan, boundaries: boundaries.sort((a, b) => compareNames(a.slot, b.slot)), warnings };
+  const stateKeys = stateful.map((op) => ({ node: op.node, kind: "control" as const, key: stateKey(op.node, op.op, op.stateVersion, session) }));
+  return { status: "ok", plan, boundaries: boundaries.sort((a, b) => compareNames(a.slot, b.slot)), warnings, allocation: allocation.snapshot(), stateKeys };
 }

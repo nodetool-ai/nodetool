@@ -1,9 +1,11 @@
 # Realtime compiler
 
 Pure WP16 preparation against the [canonical plan schema](../../native/realtime/schema/README.md).
-The initial slice compiles one render sink, registered shader/control descriptors,
-property/expression uniforms, render-domain state and explicit batch texture boundaries.
-It returns plan data, boundary reports and graph-node diagnostics without I/O.
+The compiler handles one render sink or one audio sink. Render graphs support
+registered shader/control descriptors, property/expression uniforms, render-domain
+state and explicit batch texture boundaries. Audio graphs support built-in DSP
+DAGs with property parameters. Results contain plan data, boundary reports,
+parameter allocation and state keys, or graph-node diagnostics, without I/O.
 
 ```ts
 import { compileRealtimeGraph } from "@nodetool-ai/realtime-compiler";
@@ -33,16 +35,39 @@ Time and output-dimension sources also stay in the plan. Nonfinite fold results
 remain runtime operations. Cyclic expressions, wrong arity, incompatible vector
 widths and expressions beyond the compiler's size limit reject.
 
+Audio descriptors specify an ABI 1 kernel, ordered input ports and parameters,
+one output, a state version and an optional channel restriction. The compiler
+validates the supported [built-in contracts](../../native/realtime/audio.md#built-in-kernels).
+Each port uses the session layout. Parameter values are finite float32 scalars
+with `none`, `ramp` or `onePole` smoothing and audio sync. Delay size is a
+compile-time property. The delay kernel does not authorize graph feedback.
+Pass ordering and buffer liveness are computed iteratively. Inputs remain live
+through their last consumer, and outputs never overwrite inputs in the same node.
+
+Pass the successful result's `allocation` back on the next call to preserve
+parameter slots. This detached session ledger reserves removed `(node, field)`
+identities, so removing/reintroducing a node cannot reuse another parameter's
+slot. Discard the ledger when its session ends. The ledger is bounded, and
+exhaustion rejects the candidate. It is not a cross-thread parameter table.
+
+`stateKeys` contains SHA-256 identities for audio nodes and stateful controls,
+using the design's graph identity, operation/version and session fields. Audio
+keys also include structural delay size and channel layout. Nonstructural
+parameter edits preserve those keys. Audio sink hashes include the logical
+upstream edges, state keys, seed, initial parameter values and smoothing. They
+exclude physical buffer IDs, parameter slot IDs and display dimensions.
+These are compiler metadata. State transfer and sink-ramp behavior remain WP18.
+
 Build and test with `npm run build --workspace=packages/realtime-compiler` and
 `npm run test --workspace=packages/realtime-compiler`. Both prepare the schema
 asset from its canonical native source. The generated module is bundled for
 browser/QuickJS hosts and ships in the package, with no runtime filesystem import.
 Run `npm run test:native --workspace=packages/realtime-compiler -- <executable>`
-for snapshot-to-native-loader/render checks with a configured software GPU.
+for snapshot-to-native-loader/render and WAV checks with a configured software GPU.
 
-WP16 remains open. DSP/audio lowering, param-slot and structural state-key
-allocation, the full descriptor expression vocabulary, reverse/floating-point
-alpha conversion, delayed feedback,
+WP16 remains open. Mixed audio/render graphs, connected audio controls, render
+parameter slots, PCM/sample-player boundaries, multiple sinks, the full descriptor
+expression vocabulary, reverse/floating-point alpha conversion, delayed feedback,
 batch graph rewriting and cross-domain stateful handoffs remain unimplemented.
 This package does not register product node descriptors or integrate the runner,
 editor or live devices. See the [deferral ledger](../../native/realtime/M1_STATUS.md#deferred-acceptance-work).

@@ -31,6 +31,12 @@
     "vitest": "^5.0.1"
   },
   "exports": {
+    "./sha256": {
+      "nodetool-dev": "./src/sha256.ts",
+      "types": "./dist/sha256.d.ts",
+      "import": "./dist/sha256.js",
+      "default": "./dist/sha256.js"
+    },
     "./run-trace": {
       "nodetool-dev": "./src/run-trace.ts",
       "types": "./dist/run-trace.d.ts",
