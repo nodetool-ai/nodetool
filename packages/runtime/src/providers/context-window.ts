@@ -49,6 +49,7 @@ const MODELS_DEV_PROVIDER: Readonly<Record<string, string>> = {
   [PROVIDER_IDS.MISTRAL]: "mistral",
   [PROVIDER_IDS.MOONSHOT]: "moonshotai",
   [PROVIDER_IDS.MINIMAX]: "minimax",
+  [PROVIDER_IDS.ZAI]: "zai",
   [PROVIDER_IDS.DEEPSEEK]: "deepseek",
   [PROVIDER_IDS.XAI]: "xai",
   [PROVIDER_IDS.COHERE]: "cohere",

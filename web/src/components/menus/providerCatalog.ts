@@ -339,11 +339,12 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://docs.sarvam.ai/"
   },
   {
-    key: "ZHIPU_API_KEY",
-    name: "Z.AI",
-    description: "GLM models via Z.AI's OpenAI-compatible API.",
+    key: "ZAI_API_KEY",
+    providerId: PROVIDER_IDS.ZAI,
+    name: "Z.ai",
+    description: "GLM chat, GLM-Image, CogVideoX video and GLM-ASR.",
     section: "language",
-    docsUrl: "https://open.bigmodel.cn/",
+    docsUrl: "https://docs.z.ai/",
     icon: zhipuColorIcon
   },
   {
@@ -359,7 +360,7 @@ export const PROVIDER_META: ProviderMeta[] = [
     key: "DASHSCOPE_API_KEY",
     providerId: PROVIDER_IDS.ALIBABA,
     name: "Alibaba Cloud",
-    description: "Qwen models via Alibaba Cloud Model Studio.",
+    description: "Qwen chat, Qwen-Image, Wan video, and Qwen TTS via Alibaba Cloud Model Studio.",
     section: "language",
     docsUrl: "https://www.alibabacloud.com/help/en/model-studio/",
     icon: alibabacloudColorIcon
@@ -496,6 +497,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     description: "GPT Image generation and editing, and Seedance 2 video.",
     section: "media",
     docsUrl: "https://docs.toapis.com/"
+  },
+  {
+    key: "KLING_API_KEY",
+    providerId: PROVIDER_IDS.KLING,
+    name: "Kling AI",
+    description: "Kling 4.0, 3.0, O1, and 2.6 video, and Kling Image 3.0 and O1.",
+    section: "media",
+    docsUrl: "https://kling.ai/document-api/api/get-started/authentication"
   },
   {
     key: "REVE_API_KEY",

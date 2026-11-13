@@ -78,7 +78,7 @@ const PROVIDERS: Provider[] = [
   },
   {
     name: "Alibaba Cloud",
-    description: "Qwen models via Alibaba Cloud Model Studio's OpenAI-compatible API.",
+    description: "Qwen chat, Qwen-Image, Wan video, and Qwen TTS via Alibaba Cloud Model Studio.",
     signupUrl: "https://modelstudio.console.alibabacloud.com/",
     capabilities: ["Chat", "Text Generation", "Reasoning"],
   },

@@ -1193,6 +1193,8 @@ export const PROVIDER_IDS = {
   // Sarvam AI (India): Token Factory chat, Bulbul TTS, Saaras speech-to-text.
   SARVAM: "sarvam",
   MINIMAX: "minimax",
+  // Z.ai (Zhipu) GLM chat, GLM-Image and CogVideoX.
+  ZAI: "zai",
   DEEPSEEK: "deepseek",
   XAI: "xai",
   COHERE: "cohere",
@@ -1233,6 +1235,7 @@ export const PROVIDER_IDS = {
   USEAPI: "useapi",
   VGENV: "vgenv",
   TOAPIS: "toapis",
+  KLING: "kling",
   AKI: "aki",
   MESHY: "meshy",
   RODIN: "rodin",

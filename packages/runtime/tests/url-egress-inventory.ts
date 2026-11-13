@@ -530,6 +530,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "Task result URLs are screened; upload, create and poll use the fixed API host."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/alibaba-provider.ts",
+    "Alibaba Model Studio Wan, Qwen-Image and Qwen TTS result downloads",
+    "provider-response",
+    "video_url, image and audio URLs from DashScope replies are screened; create and poll use the operator's DashScope region host."
+  ),
+  guardedSafeFetch(
+    "packages/runtime/src/providers/kling-provider.ts",
+    "Kling AI video and image result downloads",
+    "provider-response",
+    "Task result URLs are screened; create and poll use the fixed API host."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",
@@ -546,6 +558,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "MiniMax provider downloads",
     "provider-response",
     "download_url, image_urls and hosted-audio URLs, for the provider's own calls and through downloadMedia for minimax-nodes, fetched with the provider's injected fetch under the same screening."
+  ),
+  guardedSafeFetch(
+    "packages/runtime/src/providers/zai-provider.ts",
+    "Z.ai GLM-Image and CogVideoX result downloads",
+    "provider-response",
+    "Image data[].url and video_result[].url are screened; chat, create, poll and transcription use the fixed API host picked by ZAI_REGION."
   ),
   guardedSafeFetch(
     "packages/runtime/src/providers/evolink-provider.ts",

@@ -361,6 +361,12 @@ s(
   ["serpapi", "dataforseo", "brave", "apify", "openai", "gemini"]
 );
 s(
+  "ZAI_REGION",
+  "ZAI",
+  "Z.ai API host: international (api.z.ai, the default) or china (open.bigmodel.cn). Keys are not shared between the two",
+  ["international", "china"]
+);
+s(
   "ZAI_USE_CODING_PLAN",
   "ZAI",
   "Use Z.AI coding plan endpoint instead of normal endpoint",
@@ -421,12 +427,12 @@ sec(
 sec(
   "DASHSCOPE_API_KEY",
   "Alibaba Cloud",
-  "Alibaba Cloud Model Studio (DashScope) API key for accessing Qwen models through the OpenAI-compatible endpoint. Get yours at https://modelstudio.console.alibabacloud.com/"
+  "Alibaba Cloud Model Studio (DashScope) API key for Qwen chat, Qwen-Image and Wan image generation, Wan video, and Qwen TTS. Get yours at https://modelstudio.console.alibabacloud.com/"
 );
 s(
   "DASHSCOPE_BASE_URL",
   "Alibaba Cloud",
-  "Base URL for Alibaba Cloud Model Studio's OpenAI-compatible endpoint. Model Studio keys are region-scoped; set this to your region's endpoint (default: https://dashscope-intl.aliyuncs.com/compatible-mode/v1, the international/Singapore region)"
+  "Base URL for Alibaba Cloud Model Studio's OpenAI-compatible endpoint. Model Studio keys are region-scoped; set this to your region's endpoint (default: https://dashscope-intl.aliyuncs.com/compatible-mode/v1, the international/Singapore region). Media generation uses the same host's native /api/v1 endpoint"
 );
 sec(
   "CEREBRAS_API_KEY",
@@ -514,9 +520,9 @@ sec(
   "Groq API key for accessing ultra-fast LLM inference on Groq's LPU hardware. Get yours at https://console.groq.com/keys"
 );
 sec(
-  "ZHIPU_API_KEY",
+  "ZAI_API_KEY",
   "ZAI",
-  "Z.AI API key for accessing GLM models through Z.AI's OpenAI-compatible API. Get yours at https://open.bigmodel.cn/usercenter/apikeys"
+  "Z.ai API key for GLM chat, GLM-Image, CogVideoX and GLM-ASR. Get yours at https://z.ai/manage-apikey/apikey-list"
 );
 sec(
   "MISTRAL_API_KEY",
@@ -732,6 +738,7 @@ sec("USEAPI_API_TOKEN", "useapi.net", "API token for Google Flow and Dreamina th
 s("USEAPI_GOOGLE_FLOW_EMAIL", "useapi.net", "Google Flow account email for reference image uploads");
 s("USEAPI_DREAMINA_ACCOUNT", "useapi.net", "Dreamina account ID (region:email) for reference image uploads");
 sec("VGENV_API_KEY", "vgenv", "vgenv API key for MiniMax H3 video generation. Get yours at https://vgenv.com/api-keys");
+sec("KLING_API_KEY", "Kling AI", "Kling AI API key for Kling video and image generation. See https://kling.ai/document-api/api/get-started/authentication");
 sec("TOAPIS_API_KEY", "ToAPIs", "ToAPIs API key for GPT Image and Seedance 2 generation. Get yours at https://toapis.com/");
 sec("MESHY_API_KEY", "Meshy", "Meshy AI API key for 3D model generation. Get yours at https://app.meshy.ai/settings/api-keys");
 sec("RODIN_API_KEY", "Rodin", "Rodin AI API key for 3D model generation. Get yours at https://hyperhuman.deemos.com/");
