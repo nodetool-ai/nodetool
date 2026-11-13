@@ -133,6 +133,59 @@ The adapter uses its `AbstractGraphModel`, `BasicGraphicsScene`,
 `-DFETCHCONTENT_SOURCE_DIR_QTNODES=/path/to/nodeeditor` for offline builds.
 QtNodes supports Qt 5/6. This host requires Qt 6.12 to match the primitives.
 
+## Application menu
+
+[`EditorAppMenu.cpp`](src/ui/EditorAppMenu.cpp) builds the menu bar of the
+desktop app ([`electron/src/menu.ts`](../../electron/src/menu.ts)): File,
+Edit, View, Tools, Window and Help. It adds a Node menu for the node, layout
+and group commands, and a Workflow menu for the run and server commands.
+These two menus bind no keys, so the canvas keeps Ctrl+F and Ctrl+Return. On macOS it is the global menu bar, and
+Qt moves About, Settings and Quit into the application menu. On other
+platforms it draws above the tab strip in the theme colors. An entry that
+names an editor command runs on the active tab. An
+open menu disables the commands the active tab cannot run. A closed menu
+leaves them enabled, so each shortcut reaches its command, which checks its
+own state.
+
+The menu owns the shortcuts with a modifier: Save, Open, New Workflow, Close
+Tab, the edit commands, zoom and the tab switch keys. A second binding of one
+of these keys makes both ambiguous, and Qt then runs neither. Ctrl+1 to
+Ctrl+9 stay window shortcuts, and keys without a modifier stay canvas keys.
+The Tools menu has the native panels only. The desktop app's Performance
+Monitor, Model Manager, Downloads and Vaults have no native surface yet.
+
+## Examples
+
+The audio signal examples cover [live synthesis](examples/live-synth.json),
+[offline rendering](examples/render-synth.json) and
+[a clip through a live phaser](examples/live-clip-phaser.json). The Sampler
+examples cover [a live drum kit](examples/sampler-drum-kit.json),
+[a live arpeggio from one note](examples/sampler-arpeggio.json),
+[a rendered pad from a looped region](examples/sampler-pad.json) and
+[notes that a switch plays by hand](examples/sampler-trigger.json).
+
+A property edit during a run goes to that run as a live property change, in
+process and on the server. A node that reads its properties while it runs,
+such as a synthesis node, uses the value from its next block. Inspector
+edits, card edits, slider drags, undo and redo all go to the run.
+
+The Examples entry of the rail, the File menu and the command menu list the workflows in [`examples/`](examples). The files are canonical
+NodeTool JSON, compiled into the editor as Qt resources. The menu groups them
+by their first tag. An example opens in a tab of its own with no file, so Save
+asks for a path.
+
+Each example runs in process with no server, file, model or key. Its sources
+are draw nodes or Code nodes that synthesize WAV bytes, and its results go to
+Preview nodes. A Code node's audio stays in the run's temporary store, so a
+dry preview takes it through a 0 dB Gain node first. The
+`runsEveryBundledExampleInProcess` case of `node_editor_local_run` runs every
+file and fails when a node of an example leaves the local runner's admission
+list. A new example needs an entry in the `editor_examples` resource list in
+`CMakeLists.txt`.
+
+Local clips use at most 128 MiB in the shared store. Adding a clip above the
+remaining capacity evicts the oldest runs until it fits.
+
 ## Local runs
 
 The editor links [`native/graph-runner`](../graph-runner/README.md) and loads
@@ -311,8 +364,9 @@ Mouse, the default, where the wheel zooms and a left drag pans, or Trackpad, whi
 the macOS scheme. A pinch, the corner readout, and a middle-button drag always work. Fit shows every
 node above the floating toolbar, up to 100%, and refits when panels open or close
 until you pan, zoom, or move a node. After that, selecting a node keeps the zoom
-and scrolls the node into the free canvas area. The toolbar's More menu holds server, clipboard, and fit
-actions. Below 1000 logical pixels, the inspector replaces the catalog until it
+and scrolls the node into the free canvas area. The More menu of the toolbar and the header holds the
+document's settings and views: Instant Update, Save, version history, sharing,
+metadata, server sync, canvas uploads and the command menu. Below 1000 logical pixels, the inspector replaces the catalog until it
 closes or the window widens. Canvas shortcuts
 include Ctrl/Cmd+C/V/Z, platform Redo, Delete, F, Space for Add node, Ctrl+D,
 and Ctrl/Cmd+O/S. These accelerators only intercept canvas events, leaving Quick

@@ -270,9 +270,15 @@ private:
   QPointF paintLast_;
   void movePaint(const QPointF &scenePosition);
   void finishPaint(bool commit);
+  // A synth knob drag: vertical, from the press's card-local y, a tenth as fast with Shift.
+  bool knobDrag_ = false;
+  double knobStartY_ = 0;
+  bool knobFine_ = false;
   // Mode switches, the dimension lock, add buttons and sliders on a card body.
   bool pressCardControl(QtNodes::NodeId id, const QPointF &local);
   void moveSlider(const QPointF &scenePosition);
+  // Resets the synth knob under a double-click. Returns false when there is none.
+  bool resetKnob(const QPointF &scenePosition);
   void finishSlider(bool commit);
   bool wireReconnect_ = false;
   QJsonObject reconnectEdge_;

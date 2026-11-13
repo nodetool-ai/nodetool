@@ -77,7 +77,7 @@ class SubgraphCardTest : public QObject {
     static QAction *groupAction(QMenu *menu) {
         if (!menu) { return nullptr; }
         for (auto action : menu->actions()) {
-            if (action->text() == "Group into subgraph") { return action; }
+            if (action->text() == "Group into Subgraph") { return action; }
         }
         return nullptr;
     }
@@ -194,13 +194,12 @@ private slots:
         QTest::keyClick(contextMenu, Qt::Key_Escape);
         w.setCatalog(catalog());
         w.scene()->clearSelection();
-        QVERIFY(clickQuick(w, "toolbar-more"));
-        QCoreApplication::processEvents();
-        auto menu = w.activeEditor()->findChild<QMenu *>("more-menu");
+        auto menu = w.findChild<QMenu *>("application-menu-node");
         auto action = groupAction(menu);
         QVERIFY(action);
+        emit menu->aboutToShow();
         QVERIFY(!action->isEnabled());
-        menu->close();
+        emit menu->aboutToHide();
     }
     void boundaryGrouping() {
         EditorWindow w;

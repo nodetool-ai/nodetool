@@ -259,6 +259,9 @@ public:
   bool openFile(const QString &path);
   // Opens a workflow file in its own tab, or switches to the tab that has it.
   void openFileInTab(const QString &path);
+  // Opens a bundled example (a file under :/editor/examples) in its own tab, as an
+  // unsaved workflow, so Save asks for a path.
+  void openExample(const QString &resource);
   bool saveFile(const QString &path);
   void addNode(const QString &type);
   void dragNode(const QString &type);
@@ -337,6 +340,15 @@ private:
   // live slider bodies do (web hooks/nodes/useLiveSliderWriter.ts).
   void scheduleInstantRerun(const QString &node, const QJsonObject &draft, bool cardBody, bool immediate);
   void previewCardEdit(const QJsonArray &commands);
+  // Live property changes: a property edit made while a run is in progress
+  // goes to that run, so a node that reads its properties while it runs,
+  // such as a synthesis node, follows the edit at once.
+  // Starts to track run `id` with the document's saved properties.
+  void trackLiveRun(const QString &id);
+  // Sends the saved properties that differ from what the tracked run has.
+  void sendLiveEdits();
+  // Sends one value that is not in the document yet, such as a slider draft.
+  void sendLiveDraft(const QString &node, const QString &name, const QJsonValue &value);
   void setScrubbing(bool scrubbing);
   void showDynamicPortDialog(const QString &id, bool output, const QString &name, const QRectF &sceneAnchor);
   void clearDynamicPortDialogs();
@@ -416,6 +428,14 @@ private:
   void refresh();
   void showBrowser(bool visible);
   void loadBrowser();
+  // Lists the bundled examples by their first tag, as a popup menu at the cursor.
+  void showExamplesMenu();
+  // Adds an entry per bundled example to the menu, grouped by first tag. An entry opens
+  // its example on this window, which passes it to the active tab.
+  void addExampleActions(QMenu *menu);
+  // The menu bar of the window that owns the tabs (EditorAppMenu.cpp).
+  void installApplicationMenu();
+  void showSystemInformation();
   void syncRuntimePreviews();
   void syncSourcePreviews();
   QStringList selectedIds() const;
@@ -606,6 +626,14 @@ private:
   // The latest edit made while an in-process run was active. It reruns when
   // that run settles, so the result follows the last edit.
   std::optional<InstantEdit> instantPending_;
+  // The run that takes live property changes, or empty.
+  QString liveRun_;
+  // The saved properties of each node as liveRun_ has them: the document's
+  // values when the run was submitted, then each value sent to it. A node
+  // added after the submit is absent, because the run does not have it.
+  QHash<QString, QJsonObject> liveProperties_;
+  // Whether liveRun_ plays live audio until it is stopped.
+  bool liveRunPlays_ = false;
   // True from a card slider preview until its last rerun settles. Running
   // animations stay still meanwhile, as the web's live-scrubbing class does.
   bool scrubbing_ = false;

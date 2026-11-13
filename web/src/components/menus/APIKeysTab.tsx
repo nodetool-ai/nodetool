@@ -13,7 +13,7 @@ import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
 import ShieldIcon from "@mui/icons-material/Shield";
 
 import useSecretsStore from "../../stores/SecretsStore";
-import type { SecretValidation } from "../../stores/SecretsStore";
+import { accountWarning, type SecretValidation } from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
 import { OAuthCallbackAddress } from "../oauth/OAuthCallbackAddress";
@@ -349,7 +349,9 @@ const ApiKeyProviderCard = memo(function ApiKeyProviderCard({
             <Caption
               size="smaller"
               color={
-                testResult.status === "valid"
+                accountWarning(testResult)
+                  ? "warning"
+                  : testResult.status === "valid"
                   ? "success"
                   : testResult.status === "invalid"
                     ? "error"
@@ -712,6 +714,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     const meta = getParentProviderMeta(editingSecret.key);
 
     setSavingSecret(true);
+    let accountNote: string | null = null;
     try {
       if (meta?.fields) {
         // Multi-field provider: update all fields
@@ -751,13 +754,18 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
             setFormError(t("i18n-next33.provider.keyRejected"));
             return;
           }
+          accountNote = accountWarning(validation);
         }
         await updateSecret(editingSecret.key, trimmed);
       }
 
+      // A key that works on an empty account is saved, and the user hears
+      // now that the first call would fail, not from a failed run.
       addNotification({
-        type: "success",
-        content: t("i18n-cont-settings-01.apiKeys.apiKeyUpdated", { provider: meta?.name || editingSecret.key }),
+        type: accountNote ? "warning" : "success",
+        content:
+          accountNote ??
+          t("i18n-cont-settings-01.apiKeys.apiKeyUpdated", { provider: meta?.name || editingSecret.key }),
         alert: true
       });
       setDialogOpen(false);

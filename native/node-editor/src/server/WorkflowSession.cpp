@@ -23,7 +23,28 @@
 #include <QUuid>
 namespace nodetool::node_editor {
 namespace {
-// A local-media:// image the store no longer holds, because its run was dropped.
+// UI thread only. Store encoded clip bytes before bounded output previews see them.
+QJsonValue storeLocalClips(const QJsonValue &value, const QString &run) {
+  if (value.isArray()) {
+    QJsonArray items;
+    for (const auto &item : value.toArray()) { items.append(storeLocalClips(item, run)); }
+    return items;
+  }
+  if (!value.isObject()) { return value; }
+  auto object = value.toObject();
+  if (object.value("type") == "audio" && object.value("data").isString()) {
+    const auto bytes = QByteArray::fromBase64(object.value("data").toString().toLatin1(), QByteArray::AbortOnBase64DecodingErrors);
+    if (!bytes.isEmpty()) {
+      object["uri"] = LocalMediaStore::instance().addClip(run, bytes, object.value("content_type").toString(object.value("mime_type").toString()));
+      object.remove("data");
+      object.remove("asset_id");
+      return object;
+    }
+  }
+  for (auto it = object.begin(); it != object.end(); ++it) { it.value() = storeLocalClips(it.value(), run); }
+  return object;
+}
+// A local-media:// entry the store no longer holds because its run was dropped.
 bool holdsReleasedLocalMedia(const QJsonValue &value) {
   if (value.isArray()) {
     for (const auto &item : value.toArray()) { if (holdsReleasedLocalMedia(item)) { return true; } }
@@ -32,12 +53,12 @@ bool holdsReleasedLocalMedia(const QJsonValue &value) {
   if (!value.isObject()) { return false; }
   const auto object = value.toObject();
   const auto uri = object["uri"].toString();
-  if (LocalMediaStore::isLocalMedia(uri)) { return LocalMediaStore::instance().image(uri).isNull(); }
+  if (LocalMediaStore::isLocalMedia(uri)) { return !LocalMediaStore::instance().contains(uri); }
   for (const auto &item : object) { if (holdsReleasedLocalMedia(item)) { return true; } }
   return false;
 }
-// The runner cannot read local-media:// images, so a cached one goes into the
-// run graph as PNG data, the form the runner emits without an image store.
+// The runner reads inline bytes rather than process-local locators. Images
+// encode as PNG. Clips keep their original encoded bytes.
 QJsonValue inlineLocalMedia(const QJsonValue &value) {
   if (value.isArray()) {
     QJsonArray items;
@@ -48,6 +69,13 @@ QJsonValue inlineLocalMedia(const QJsonValue &value) {
   auto object = value.toObject();
   const auto uri = object.value("uri").toString();
   if (LocalMediaStore::isLocalMedia(uri)) {
+    const auto clip = LocalMediaStore::instance().clip(uri);
+    if (!clip.isNull()) {
+      object.remove("uri");
+      object["data"] = QString::fromLatin1(clip.bytes.toBase64());
+      object["content_type"] = clip.contentType;
+      return object;
+    }
     const auto image = LocalMediaStore::instance().image(uri);
     if (image.isNull()) { return value; }
     const QImage pixels(image.rgba->data(), int(image.width), int(image.height), int(image.width) * 4, QImage::Format_RGBA8888);
@@ -134,9 +162,8 @@ std::shared_ptr<gr::GraphRunner> sharedLocalRunner() {
   options.gpu.enabled = true;
   // Image outputs stay in this process as pixels. Run messages carry a
   // local-media:// URI, so nothing encodes, copies or bounds them as data.
-  options.gpu.outputImages = [](gr::OutputImage output) {
-    return LocalMediaStore::instance()
-        .add(QString::fromStdString(output.run), output.width, output.height, std::move(output.rgba))
+  options.gpu.outputImages = [store = LocalMediaStore::shared()](gr::OutputImage output) {
+    return store->add(QString::fromStdString(output.run), output.width, output.height, std::move(output.rgba))
         .toStdString();
   };
   options.allowMedia = true;
@@ -1229,6 +1256,19 @@ void WorkflowSession::stop(const QString &id) {
     }
     send("cancel_job", {{"job_id", id}, {"workflow_id", m_runs[id]["workflow_id"]}});
 }
+bool WorkflowSession::updateNodeProperties(const QString &id, const QString &nodeId, const QJsonObject &properties) {
+    if (nodeId.isEmpty() || properties.isEmpty() || !m_runs.contains(id) || m_runs[id]["terminal"].toBool()) {
+        return false;
+    }
+    if (m_inProcessRuns.contains(id)) {
+        return m_localRunner->updateNodeProperties(id.toStdString(), nodeId.toStdString(),
+                                                   QJsonDocument(properties).toJson(QJsonDocument::Compact).toStdString());
+    }
+    // A change that cannot reach the server stays in the document for the next run.
+    if (!m_connected) { return false; }
+    return send("update_node_properties", {{"job_id", id}, {"workflow_id", m_runs[id]["workflow_id"]},
+                                           {"node_id", nodeId}, {"properties", properties}});
+}
 void WorkflowSession::cancelJob(const QString &id) {
     if (!m_accountJobs || id.isEmpty()) {
         emit errorOccurred("Connect before cancelling a job");
@@ -1297,7 +1337,7 @@ void WorkflowSession::receiveLocal(const QString &jobId, const QString &workflow
   // stream carries them only on job and edge updates.
   if (!event.contains("job_id")) { event["job_id"] = jobId; }
   if (!event.contains("workflow_id")) { event["workflow_id"] = workflowId; }
-  ingestRunEvent(event);
+  ingestRunEvent(storeLocalClips(event, jobId).toObject());
 }
 void WorkflowSession::ingestRunEvent(QJsonObject event) {
   if (event.value("type") == "error" && event.value("node_id").toString().isEmpty() && !event.value("job_id").toString().isEmpty()) {

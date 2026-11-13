@@ -94,6 +94,14 @@ npx tsx tests/agentic-qa/runParticipant.ts \
 is not this skill's [participant.md](references/participant.md) is not part
 of the study.
 
+A study of a native Qt app (the chat app, the node editor, or the timeline
+editor) runs each participant on a disposable Linux desktop instead, with
+`runNativeParticipant.ts`, this skill's
+[desktop protocol](references/participant-desktop.md), and a backend started
+with `serveApp.ts --no-web`. [native-apps.md](references/native-apps.md) covers
+the host setup, the app presets, the packet, and the output. Everything else
+on this page applies unchanged.
+
 Do not intervene while a session runs. If a participant is stuck past its
 recovery limit, the session ends there. That end is data.
 

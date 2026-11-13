@@ -99,7 +99,19 @@ export const secretValidateOutput = z.object({
   status: z.enum(["valid", "invalid", "unverifiable"]),
   /** True only for `valid` — kept so callers can branch without the enum. */
   valid: z.boolean(),
-  message: z.string()
+  message: z.string(),
+  /**
+   * What a valid key can pay for, when a cheap request could tell: `ok`,
+   * `no_credit` (empty account or no billing), `no_quota` (no quota left, as
+   * on many free-tier keys) or `free_tier` (works, with tight limits). Absent
+   * when nothing was learned.
+   */
+  account: z
+    .object({
+      state: z.enum(["ok", "no_credit", "no_quota", "free_tier"]),
+      message: z.string()
+    })
+    .optional()
 });
 export type SecretValidateOutput = z.infer<typeof secretValidateOutput>;
 

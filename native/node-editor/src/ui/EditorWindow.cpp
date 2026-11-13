@@ -41,6 +41,7 @@
 #include <QDialog>
 #include <QFile>
 #include <QFileDialog>
+#include <QDir>
 #include <QFileInfo>
 #include <QCursor>
 #include <optional>
@@ -53,6 +54,7 @@
 #include <QJsonDocument>
 #include <QKeyEvent>
 #include <QMenu>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -140,6 +142,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     setCentralWidget(tabStack_);
     newTab();
     installTabShortcuts();
+    installApplicationMenu();
     return;
   }
   setWindowTitle(tr("NodeTool Workflow[*]"));
@@ -147,6 +150,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   node_editor::registerMediaTypes();
   node_editor::registerCodeHighlighter();
   connect(&document_, &node_editor::WorkflowDocument::replaced, this, [this] {
+    // A loaded workflow has other nodes than the run in progress.
+    trackLiveRun({});
     model_.resetOnNextProjection();
     documentReplaced_ = true;
     ++documentEpoch_;
@@ -589,6 +594,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(scene_, &EditorScene::sliderDraftChanged, this, [this](QtNodes::NodeId id, const QString &name, double value) {
     // A card control such as the Painter's brush size is no property to rerun with.
     if (readOnly() || !model_.nodeExists(id) || isCardControl(name)) { return; }
+    sendLiveDraft(model_.resourceId(id), name, value);
     scheduleInstantRerun(model_.resourceId(id), {{"name", name}, {"value", value}}, true, true);
   });
   connect(scene_, &EditorScene::reconnectRequested, this, [this](const QString &id, const QJsonObject &connection) {
@@ -868,6 +874,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
         return document_.applyCommand({{"op", "replaceGraph"}, {"graph", graph}}, tr("Merge server changes")).ok;
     });
     connect(&document_, &node_editor::WorkflowDocument::changed, this, [this] {
+        sendLiveEdits();
         // GenerationHistory copies the document on the next inspector sync.
         historyWorkflowStale_ = true;
         const bool replaced = std::exchange(documentReplaced_, false);
@@ -954,6 +961,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
             schedulePanelChanged();
             runtime_.beginRun(id);
             runOutput_.beginRun(id);
+            trackLiveRun(id);
           });
   connect(&session_, &node_editor::WorkflowSession::runEvent, this,
           [this](const QString &id, const QJsonObject &event) {
@@ -969,6 +977,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
                 (status == "completed" || status == "finished" || status == "failed" || status == "cancelled");
             const bool silent = previewRuns_.contains(id) && event["error"].toString().isEmpty() && status != "failed";
             if (terminal) { previewRuns_.remove(id); }
+            if (terminal && id == liveRun_) { trackLiveRun({}); }
             if (id == run_ && status == "running" && !silent) {
                 message_ = session_.runsInProcess(id) ? tr("Run running (local)") : tr("Run running");
                 schedulePanelChanged();
@@ -1363,14 +1372,37 @@ void EditorWindow::syncRuntimePreviews() {
     if (type == "nodetool.workflows.base_node.Preview") { previews.insert(node["id"].toString()); }
     if (type.startsWith("nodetool.constant.")) { ownContent.insert(node["id"].toString()); }
   }
+  // The kernel sends output_update only for an output with no outgoing wire. A
+  // node inside a chain reports its result in node_update, so its audio or
+  // video plays on the card from there. Its images take the preview path below.
+  QVariantList chainMedia;
   for (const auto &value : runOutput_.entries()) {
     const auto entry = value.toMap();
-    const auto primary = primaryOutputs.constFind(entry["nodeId"].toString());
+    const auto id = entry["nodeId"].toString();
+    const auto primary = primaryOutputs.constFind(id);
     const auto items = entry["items"].toList();
-    if (ownContent.contains(entry["nodeId"].toString())) { continue; }
-    if (entry["kind"] != "output" || primary == primaryOutputs.cend() || *primary != entry["outputName"].toString()) { continue; }
-    canvasCollections.append(QVariantMap{{"nodeId", entry["nodeId"]}, {"runId", runOutput_.selectedRunId()}, {"outputName", entry["outputName"]}, {"items", items}, {"notice", entry["previewNotice"]}, {"richEntry", entry}, {"previewActions", previews.contains(entry["nodeId"].toString())}});
+    if (ownContent.contains(id) || primary == primaryOutputs.cend()) { continue; }
+    if (entry["kind"] == "status") {
+      const auto path = "$/" + *primary;
+      QVariantList played;
+      for (const auto &item : items) {
+        const auto media = item.toMap();
+        const auto at = media["path"].toString();
+        if ((media["kind"] == "audio" || media["kind"] == "video") && (at == path || at.startsWith(path + '/'))) { played.append(media); }
+      }
+      if (played.isEmpty()) { continue; }
+      auto rich = entry;
+      rich["renderer"] = QStringLiteral("generic");
+      rich["items"] = played;
+      chainMedia.append(QVariantMap{{"nodeId", id}, {"runId", runOutput_.selectedRunId()}, {"outputName", *primary}, {"items", played}, {"notice", entry["previewNotice"]}, {"richEntry", rich}, {"previewActions", previews.contains(id)}});
+      continue;
+    }
+    // A Preview with a name reports its one output under that name (clientFacingOutputName in runner.ts).
+    if (entry["kind"] != "output" || (*primary != entry["outputName"].toString() && !previews.contains(id))) { continue; }
+    canvasCollections.append(QVariantMap{{"nodeId", entry["nodeId"]}, {"runId", runOutput_.selectedRunId()}, {"outputName", entry["outputName"]}, {"items", items}, {"notice", entry["previewNotice"]}, {"richEntry", entry}, {"previewActions", previews.contains(id)}});
   }
+  // setCollections keeps the first collection of a node, so an output_update wins.
+  canvasCollections += chainMedia;
   syncSourcePreviews();
   for (const auto &value : sourcePreviews_.entries()) {
     const auto entry = value.toMap();
@@ -2634,8 +2666,9 @@ void EditorWindow::scheduleInstantRerun(const QString &node, const QJsonObject &
     if (runActive()) {
         // An in-process run settles in milliseconds, so the latest edit reruns
         // after it, as the web's live sliders coalesce. A server run keeps the
-        // edit for the next run.
-        if (session_.runsInProcess(run_)) {
+        // edit for the next run. A run that plays live audio took the edit as
+        // a live property change, and a rerun after it would play again.
+        if (session_.runsInProcess(run_) && !liveRunPlays_) {
             instantPending_ = edit;
             ++instantUpdateGeneration_;
         }
@@ -2724,6 +2757,41 @@ void EditorWindow::instantRerun(const InstantEdit &edit) {
       id = session_.runPreview(snapshot, targets, metadata_, edit.localOnly);
     }
     if (!id.isEmpty() && edit.localOnly) { setScrubbing(true); }
+}
+void EditorWindow::trackLiveRun(const QString &id) {
+    liveRun_ = id;
+    liveProperties_.clear();
+    liveRunPlays_ = false;
+    if (id.isEmpty()) { return; }
+    for (const auto &value : document_.nodes()) {
+        const auto node = value.toObject();
+        liveProperties_.insert(node["id"].toString(), node["data"].toObject());
+        if (node["type"] == "nodetool.audio.realtime.AudioOutput") { liveRunPlays_ = true; }
+    }
+}
+void EditorWindow::sendLiveEdits() {
+    if (liveRun_.isEmpty()) { return; }
+    for (auto known = liveProperties_.begin(); known != liveProperties_.end(); ++known) {
+        const auto node = document_.node(known.key());
+        // A removed node keeps its values in the run.
+        if (node.isEmpty()) { continue; }
+        const auto data = node["data"].toObject();
+        if (data == *known) { continue; }
+        QJsonObject changed;
+        for (auto it = data.begin(); it != data.end(); ++it) {
+            if (known->value(it.key()) != it.value()) { changed.insert(it.key(), it.value()); }
+        }
+        *known = data;
+        if (!changed.isEmpty()) { session_.updateNodeProperties(liveRun_, known.key(), changed); }
+    }
+}
+void EditorWindow::sendLiveDraft(const QString &node, const QString &name, const QJsonValue &value) {
+    const auto known = liveProperties_.find(node);
+    if (liveRun_.isEmpty() || known == liveProperties_.end()) { return; }
+    // The run now has the draft. The next document change sends the saved
+    // value again when the draft was not committed.
+    known->insert(name, value);
+    session_.updateNodeProperties(liveRun_, node, {{name, value}});
 }
 void EditorWindow::previewCardEdit(const QJsonArray &commands) {
     // Card body controls edit one node's properties. Such an edit previews
@@ -2919,6 +2987,52 @@ void EditorWindow::openFileInTab(const QString &path) {
     }
     if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound()) owner->newTab();
     owner->activeEditor_->openFile(path);
+}
+void EditorWindow::openExample(const QString &resource) {
+    if (!tabOwner_) { activeEditor_->openExample(resource); return; }
+    auto owner = tabOwner_;
+    if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound()) owner->newTab();
+    auto *editor = owner->activeEditor_;
+    // The resource path is read-only, so the tab keeps no file and Save asks for one.
+    if (editor->openFile(resource)) {
+        editor->file_.clear();
+        editor->refresh();
+    }
+}
+void EditorWindow::showExamplesMenu() {
+    if (!tabOwner_) { activeEditor_->showExamplesMenu(); return; }
+    // Parented to this window and deleted when it closes.
+    auto *menu = new QMenu(this);
+    menu->setObjectName(QStringLiteral("examples-menu"));
+    menu->setAttribute(Qt::WA_DeleteOnClose);
+    connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
+    addExampleActions(menu);
+    menu->popup(QCursor::pos());
+}
+void EditorWindow::addExampleActions(QMenu *menu) {
+    struct Example { QString section, name, description, resource; };
+    QList<Example> examples;
+    for (const auto &entry : QDir(QStringLiteral(":/editor/examples")).entryInfoList({QStringLiteral("*.json")}, QDir::Files)) {
+        QFile file(entry.filePath());
+        if (!file.open(QIODevice::ReadOnly)) { continue; }
+        const auto workflow = QJsonDocument::fromJson(file.readAll()).object();
+        auto section = workflow["tags"].toArray().at(0).toString(tr("Other"));
+        if (!section.isEmpty()) { section[0] = section[0].toUpper(); }
+        examples.append({section, workflow["name"].toString(entry.baseName()), workflow["description"].toString(), entry.filePath()});
+    }
+    std::ranges::sort(examples, [](const Example &a, const Example &b) {
+        return a.section != b.section ? a.section < b.section : a.name.localeAwareCompare(b.name) < 0;
+    });
+    menu->setToolTipsVisible(true);
+    QString section;
+    for (const auto &example : examples) {
+        if (example.section != section) {
+            section = example.section;
+            menu->addSection(section);
+        }
+        auto *item = menu->addAction(example.name, this, [this, resource = example.resource] { openExample(resource); });
+        item->setToolTip(example.description);
+    }
 }
 bool EditorWindow::openFile(const QString &path) {
   if (!tabOwner_) { return activeEditor_->openFile(path); }
@@ -3378,6 +3492,10 @@ void EditorWindow::action(const QString &name) {
     scheduleViewportSettle();
     return;
   }
+  if (name == "Examples") {
+    showExamplesMenu();
+    return;
+  }
   if (name == "Server Open" || name == "Open" || name == "Workflows") {
     showBrowser(name == "Workflows" ? !browserVisible() : true);
     return;
@@ -3762,6 +3880,15 @@ void EditorWindow::presentation(const QVariantMap &roles) {
                                "QMenu::separator { height: 1px; background: %3; margin: 4px 0; }"
                                "QToolTip { background: %1; color: %2; border: 1px solid %3; font-family: \"%4\"; font-size: 11px; padding: 4px 8px; }")
                     .arg(css(color("overlay")), css(color("text")), css(color("border")), roles.value("sans").toString(), css(color("field")), css(color("secondary"))));
+  // The application menu bar belongs to the window that owns the tabs. Where the
+  // platform has no global menu bar, it draws above the tab strip in these colors.
+  if (tabOwner_) {
+    tabOwner_->menuBar()->setStyleSheet(styleSheet() + QStringLiteral(
+        "QMenuBar { background: %1; color: %2; font-family: \"%3\"; font-size: 13px; border-bottom: 1px solid %4; }"
+        "QMenuBar::item { padding: 4px 10px; background: transparent; border-radius: 6px; }"
+        "QMenuBar::item:selected { background: %5; }")
+        .arg(css(color("panel")), css(color("text")), roles.value("sans").toString(), css(color("border")), css(color("field"))));
+  }
   CanvasTheme theme;
   theme.canvas = color("canvas");
   theme.grid = color("grid");

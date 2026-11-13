@@ -525,14 +525,14 @@ captures are described below.
 | 4 | The editor follows undo and agent writes while unfocused (`JSONProperty.tsx` 104-110) | Implemented | Implemented |
 | 5 | Open in a larger editor and copy buttons (`JSONProperty.tsx` 203-215) | Missing | Missing |
 | 6 | Dict rows add, remove and rename. A rename onto an existing key is refused (`DictTable.tsx` 84-100) | Implemented | Implemented |
-| 7 | A value type select of int, string, datetime and float (`DictProperty.tsx` 12-60, `ListProperty.tsx` 11-36) | Partial. The declared entry type decides the editor | Partial |
+| 7 | A value type select of int, string, datetime and float (`DictProperty.tsx` 12-60, `ListProperty.tsx` 11-36) | Partial. The declared entry type decides the editor | Implemented in `DataTableEditor.qml` for the constant List and Dict nodes, read from the first value |
 | 8 | List rows add, remove and reorder (`ListProperty.tsx`, `ListTable.tsx`) | Implemented | Implemented |
 | 9 | Nested lists and dictionaries as values | Missing. They showed as read-only text | Implemented. Each is a JSON editor that checks the declared container and leaves the document alone on invalid text |
 | 10 | A new record column takes the first free "Column N" name (`RecordTypeProperty.tsx` 70-89) | Implemented | Implemented |
-| 11 | A record column renames, retypes and describes. A duplicate name is refused (`ColumnsManager.tsx`) | Implemented | Implemented |
+| 11 | A record column renames and retypes. A duplicate name is refused (`ColumnsManager.tsx`) | Implemented | Implemented in `ColumnsEditor.qml`, which drops the description field the web does not show |
 | 12 | Rows and unknown fields of a record survive a column edit (`RecordTypeProperty.tsx` 62-69) | Implemented | Implemented |
 | 13 | Each committed edit is one undo step, and the document schema rejects wrong shapes | Implemented at the API level only | Implemented and driven by real clicks and keys |
-| 14 | String list and dataframe editors (`StringListProperty.tsx`, `DataframeProperty.tsx`) | Missing | Missing. Outside this slice |
+| 14 | String list and dataframe editors (`StringListProperty.tsx`, `DataframeProperty.tsx`) | Missing | The dataframe edits columns and cells in the inspector (`DataTableEditor.qml`). The string list editor and editing on the dataframe card are missing |
 
 Evidence: `PropertyBehaviorTest` clicks Add, Remove and reorder buttons,
 types into the nested, JSON, key and record editors with real key events, and
@@ -3293,10 +3293,37 @@ Bodies native still draws with the generic or content card body:
 2. Image editing bodies: Canvas Resize, Compositor, Crop, Curves, Levels,
    Masks Extractor and Painter.
 3. Other bodies: Collection, Constant Sketch, Constant Timeline, Extract Video
-   Frame, List Generator, the synth modules, the audio effects and Audio Output.
+   Frame and List Generator.
 4. The Code body (`CodeBody.tsx`), which native shows as a code row.
 5. The inline color popover and the upstream images in the Before and Mask
    preview tabs, listed under the part 2 differences above.
+
+### Synth module bodies
+
+`SynthModules.cpp` draws `SynthModuleBody.tsx` for the synth modules and the
+audio effects, and `AudioOutBody.tsx` for Audio Output. The faceplate configs
+come from `synthModules.ts` and `audioEffectModules.ts` through
+`resources/synth/modules.json`, which
+`node native/node-editor/scripts/generate-synth-modules.mjs` writes and checks
+with `--check`. A card has its input jacks with their labels, the module
+label, the waveform selector, the mode and on/off toggles, the ADSR envelope
+sketch and a centered grid of knobs, at the web default height. A knob drag
+moves 1/160 of the range per pixel, a tenth as fast with Shift, and commits
+once on release. A double-click restores the default. `CardBodiesTest` covers
+the layout, the knob math, the drag and reset, and the selector and toggle
+edits.
+
+Differences in these bodies:
+
+1. Knobs take no keyboard focus, so the arrow, Home and End keys do nothing.
+2. A knob drag schedules the instant rerun, as a slider drag does. The web
+   pushes the value into the running job.
+3. The waveform buttons have no hover fill or tooltip.
+4. Audio Output plays through the shared canvas audio playback, not the web
+   transport and visualizer on the faceplate.
+5. `CanvasTheme` has no info or error role, so modules with those accents,
+   such as LFO and Gate, use the web dark palette's `info.main` and
+   `error.main` in both themes.
 
 ### Media values on cards
 

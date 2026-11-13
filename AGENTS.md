@@ -462,7 +462,10 @@ verification requirements.
   and Gemini image models are listed by hand. `npm run check:provider-gaps`
   (needs provider keys) lists upstream models with no node. It runs weekly in
   `model-watch.yml` and opens a `provider-gap` issue. Skip a model on purpose in
-  `scripts/provider-gaps/ignore.json`, with the reason.
+  `scripts/provider-gaps/ignore.json`, with the reason. The same run asks Gemini
+  for the Veo ids NodeTool offers and the ids in
+  `scripts/provider-gaps/served.json`, and opens a `provider-drift` issue for
+  any it no longer serves.
 - Anti-slop override blocks are generated. Do not hand-edit them. The backlog
   config is report-only (`npm run lint:anti-slop`), while enforced rules run
   inside `npm run lint`. Use `lint:anti-slop:count`, `:targets`, `:write`, and

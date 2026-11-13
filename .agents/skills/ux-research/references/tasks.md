@@ -26,6 +26,12 @@ never put it in a packet.
 
 ## Tasks
 
+A task names a goal, not a surface, so most tasks also fit a native app that
+has the part of the UI they study, such as `ask-question` and `continue-chat`
+for the chat app. Use `come-back` only for a native app, whose window the
+participant can close and open again. The setup is in
+[native-apps.md](native-apps.md).
+
 | ID | Text given to the participant | State | Budget | Research topic |
 |---|---|---|---|---|
 | `first-glance` | Look around without changing anything. Then say what you think this app is for, and what you would do first. | empty | 5 | First impression and the main entry point |
@@ -95,6 +101,7 @@ never put it in a packet.
 | `fix-question` | Ask the app how long to boil a hen's egg. Then you realise you meant a duck egg. Change the question you already sent so that it asks about a duck egg, until you see an answer to the changed question. | empty | 25 | Editing a sent message |
 | `rename-chat` | Someone on this computer once asked the app for meal ideas without meat. Give that conversation a name that tells you it was for your sister's visit. | seeded-demo | 15 | Renaming a conversation |
 | `remove-chat` | You no longer need the conversation about a story of space explorers. Remove it so it no longer shows up anywhere in this app. | seeded-demo | 15 | Deleting a conversation |
+| `come-back` | You asked the program something earlier and want to come back to it later. Close the program, open it again, and find what you asked. | working-run | 10 | Whether a native app keeps work across a restart |
 
 `add-key`, `read-aloud`, `make-tool`, `make-game`, `keep-answer`, `same-character`, `photo-variant`, `compare-answers`, `own-version`, `ad-from-photo` and `own-app` need a test key in
 `credentials`. `add-photo`, `change-photo`, `photo-variant` and `ad-from-photo` need an image in `assets`, `photo-video` two
@@ -172,6 +179,7 @@ studies the choice and not the setup.
 | `last-first` | The tunnel clip starts at 0, then the wet street, then the motorbike, with no overlap or gap that hides a picture, played from 0. | Whether a drag overwrote a clip, and whether it reordered by dragging, by Insert mode or by typing Start times. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
 | `quieter-music` | The music clip's or track's volume is below 0 dB and the clip is still there. | Whether it used the clip's Volume, the mixer, or the track's mute. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
 | `add-photo-end` | A clip of the new photo starts at the tunnel's end (16 s) with no gap, no clip is cut, and the participant played the end. | Where the drop landed, and whether the open Library left room to aim it. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
+| `come-back` | The participant's earlier question is on screen in the reopened app. | Whether it expected the conversation to reopen by itself, and which list it searched. | [chat](../../agentic-qa/references/protocols/chat.md#chat) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without

@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Cloud 尚处于测试阶段。生产工作请使用",
       "ssoTitle": "登录 NodeTool",
       "ssoSignIn": "使用 {{provider}} 登录",
-      "ssoFailed": "登录失败（{{reason}}）。请重试，或向管理员申请访问权限。"
+      "ssoFailed": "登录失败（{{reason}}）。请重试，或向管理员申请访问权限。",
+      "marketingOptIn": "通过邮件通知我新发布和免费优惠。可随时退订。"
     },
     "inspector": {
       "params": "参数",
@@ -6396,6 +6397,16 @@
           "image": "图像",
           "video": "视频",
           "audio": "音频"
+        },
+        "attachedFileActions": {
+          "label": "从你的文件开始",
+          "hint": "已附加文件。描述你想创作的内容，或直接从文件开始：",
+          "animate": "制作成视频",
+          "image": "生成新图片",
+          "retake": "编辑视频",
+          "script": "转为剧本",
+          "ask": "询问这些文件",
+          "askPrompt": "查看附加的文件，并建议我可以用它们做什么。"
         }
       }
     }
@@ -19963,5 +19974,39 @@
         "public": "公开"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "提供商",
+    "title": {
+      "billing": "{{target}} 无法运行：账户没有余额或未开通计费。",
+      "quota": "{{target}} 无法运行：此密钥已没有剩余配额。",
+      "auth": "{{target}} 拒绝了你的 API 密钥。",
+      "model_unavailable": "{{target}} 对你的密钥不可用。",
+      "rate_limit": "{{target}} 收到的请求过多。"
+    },
+    "hint": {
+      "billing": "请在提供商处充值，或切换到其他模型。",
+      "quota": "免费密钥通常没有此模型的配额。请在提供商处开通计费，或切换到其他模型。",
+      "auth": "请在设置中检查密钥，或切换到其他提供商的模型。",
+      "model_unavailable": "它已从你的模型列表中移除。请选择其他模型。",
+      "rate_limit": "请稍等片刻再试。"
+    },
+    "repeated": "同样的错误再次出现，重试不会有帮助。请切换到其他模型。",
+    "switchTo": "使用 {{model}}",
+    "openKeys": "打开 API 密钥",
+    "addCredit": "充值",
+    "enableBilling": "开通计费"
+  },
+  "runReadiness": {
+    "addKey": "添加 API 密钥",
+    "missingKeysDetail": "此工作流需要 {{keys}}。请在运行前到设置中添加。",
+    "costPerRun": "每次运行约 {{cost}}",
+    "costUnknown": "费用未知"
+  },
+  "marketingEmails": {
+    "title": "产品邮件",
+    "label": "通过邮件通知我新发布和免费优惠",
+    "description": "了解新功能、新模型和免费优惠。每封邮件都附有退订链接，你也可以随时在这里关闭。",
+    "saveFailed": "邮件偏好未保存。请重试。"
   }
 }

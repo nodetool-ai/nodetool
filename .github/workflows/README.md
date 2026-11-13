@@ -63,8 +63,11 @@ write with `NATIVE_CACHE_R2_WRITE_KEY_ID` and `NATIVE_CACHE_R2_WRITE_SECRET`.
 Pull requests, the nightly run and dispatches read with
 `NATIVE_CACHE_R2_READ_KEY_ID` and `NATIVE_CACHE_R2_READ_SECRET`, an R2 token
 with object read permission only, so a pull request cannot change objects
-that `main` builds use. Without these secrets, as in fork pull requests, the
-jobs fall back to ccache with the Actions cache.
+that `main` builds use. On Linux and macOS a local disk level sits in front
+of R2 so that sccache can skip the preprocessor on a hit. Its `preprocessor/`
+directory, which records the headers each file included, is saved to the
+Actions cache by pushes and restored by every run. Without these secrets, as
+in fork pull requests, the jobs fall back to ccache with the Actions cache.
 
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|

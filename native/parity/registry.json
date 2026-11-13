@@ -1088,23 +1088,43 @@
       "missing": "Code node Save to My Nodes. Not found in native sources."
     },
     "web/src/components/node_types/synth/AdsrPreview.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp"
+      ],
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/AudioOutBody.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp"
+      ],
+      "status": "partial",
+      "note": "Label strip, chunk jack and idle hint match. The live player is the shared canvas audio playback, not the web transport and visualizer on the faceplate.",
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/SynthKnob.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Drag, Shift fine drag and double-click reset match. Knobs take no keyboard focus, so arrow, Home and End keys do nothing.",
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/SynthModuleBody.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp",
+        "native/node-editor/resources/synth/modules.json"
+      ],
+      "status": "partial",
+      "note": "Faceplate, jacks, toggles and knobs match. A knob drag schedules the instant rerun instead of pushing values into the running job.",
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/WaveformSelector.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp"
+      ],
+      "status": "partial",
+      "note": "Glyphs and selection match. The buttons show no hover fill or tooltip.",
       "inventory": "W4"
     },
     "web/src/components/node/AddDynamicOutputButton.tsx": {
@@ -1189,16 +1209,14 @@
     },
     "web/src/components/node/Column.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/ColumnsEditor.qml"
       ],
       "inventory": "F17"
     },
     "web/src/components/node/ColumnsManager.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/ColumnsEditor.qml"
       ],
-      "status": "partial",
-      "note": "Record columns edit through the shared row editor, which differs in layout.",
       "inventory": "F17"
     },
     "web/src/components/node/CommentNode.tsx": {
@@ -1228,43 +1246,44 @@
     },
     "web/src/components/node/DataTable/DataTable.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml",
-        "native/node-editor/qml/InlinePropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml",
+        "native/node-editor/qml/DataTable.js"
       ],
       "status": "partial",
-      "note": "Constant List and Dict tables edit through the shared row editor, which differs in layout from the web tables.",
+      "note": "Columns do not resize, and rows move with Alt+Up and Alt+Down instead of dragging. A dataframe card shows a summary, and its cells edit in the inspector.",
       "inventory": "F17"
     },
     "web/src/components/node/DataTable/DataTableEditors.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml"
       ],
       "status": "partial",
-      "note": "See DataTable.",
+      "note": "Integer, float and date cells are text fields that validate on commit. Dates have no picker.",
       "inventory": "F17"
     },
     "web/src/components/node/DataTable/DictTable.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml",
+        "native/node-editor/qml/DataTable.js"
       ],
-      "status": "partial",
-      "note": "See DataTable.",
       "inventory": "F17"
     },
     "web/src/components/node/DataTable/ListTable.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml",
+        "native/node-editor/qml/DataTable.js"
       ],
       "status": "partial",
-      "note": "See DataTable.",
+      "note": "Rows move with Alt+Up and Alt+Down instead of dragging.",
       "inventory": "F17"
     },
     "web/src/components/node/DataTable/TableActions.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml",
+        "native/node-editor/qml/DataTable.js"
       ],
       "status": "partial",
-      "note": "The value type select and the JSON copy and expand buttons are missing.",
+      "note": "Export copies the CSV to the clipboard instead of downloading a file. The table has no undo and redo buttons of its own.",
       "inventory": "F17"
     },
     "web/src/components/node/DynamicComfySchemaNode/ComfyWorkflowLoader.tsx": {
@@ -2123,20 +2142,25 @@
       "inventory": "F20"
     },
     "web/src/components/properties/DataframeEditorModal.tsx": {
-      "missing": "The dataframe editor is outside the native structured slice.",
+      "native": [
+        "native/node-editor/qml/DataTableEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Expand adds the dialog's search, duplicate, paste and CSV actions in place. It opens no separate resizable window.",
       "inventory": "F17"
     },
     "web/src/components/properties/DataframeProperty.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml",
+        "native/node-editor/qml/ColumnsEditor.qml"
       ],
       "status": "partial",
-      "note": "Dataframe editing is outside the native structured slice. Cards show Add column and a drop zone.",
+      "note": "The inspector edits columns and cells. The card keeps Add column, the drop zone and a summary of the table.",
       "inventory": "F17"
     },
     "web/src/components/properties/DictProperty.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml"
       ],
       "inventory": "F17"
     },
@@ -2282,10 +2306,8 @@
     },
     "web/src/components/properties/ListProperty.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/DataTableEditor.qml"
       ],
-      "status": "partial",
-      "note": "The value type select is missing.",
       "inventory": "F17"
     },
     "web/src/components/properties/LlamaModelSelect.tsx": {
@@ -2362,7 +2384,8 @@
     },
     "web/src/components/properties/RecordTypeProperty.tsx": {
       "native": [
-        "native/node-editor/qml/StructuredPropertyEditor.qml"
+        "native/node-editor/qml/RecordTypeEditor.qml",
+        "native/node-editor/qml/ColumnsEditor.qml"
       ],
       "inventory": "F17"
     },

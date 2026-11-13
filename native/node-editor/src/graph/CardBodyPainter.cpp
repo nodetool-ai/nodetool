@@ -1,6 +1,7 @@
 #include "CardBodyPainter.h"
 #include "CardBodies.h"
 #include "CardMedia.h"
+#include "SynthModules.h"
 #include <QPainter>
 #include <QPainterPath>
 #include <QSvgRenderer>
@@ -696,7 +697,7 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         paintField(painter, theme, layout, row);
         return true;
     default:
-        return false;
+        return paintSynthRow(painter, theme, layout, row, state);
     }
 }
 } // namespace nodetool

@@ -28,7 +28,7 @@ import { useOAuthConnection } from "../../hooks/useOAuthConnection";
 import { OAuthCallbackAddress } from "../oauth/OAuthCallbackAddress";
 import { OAuthManualCompletionDialog } from "../oauth/OAuthManualCompletionDialog";
 import useSecretsStore from "../../stores/SecretsStore";
-import type { SecretValidation } from "../../stores/SecretsStore";
+import { accountWarning, type SecretValidation } from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import type { OnboardingProvider } from "./providerOnboardingCatalog";
 
@@ -129,19 +129,22 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
     async (
       value: string,
       status: StoredCredentialStatus,
-      notificationDetail: string | null
+      notificationDetail: string | null,
+      /** The server's note on credit or quota for a key that works. */
+      accountNote: string | null = null
     ) => {
       await updateSecret(provider.secretKey, value);
       setKeyValue("");
       setRejected(null);
-      setStatusDetail(notificationDetail);
+      setStatusDetail(accountNote ?? notificationDetail);
       setStoredCredentialStatus(status);
       setReplacing(false);
       setExpanded(false);
       addNotification({
-        type: status === "verified" ? "success" : "warning",
-        content:
-          status === "verified"
+        type: status === "verified" && !accountNote ? "success" : "warning",
+        content: accountNote
+          ? accountNote
+          : status === "verified"
             ? t("i18n-next33.provider.connected", { provider: provider.name })
             : t("i18n-next33.provider.keySaved", { provider: provider.name, status: t(`i18n-next33.provider.status.${statusTranslationKey[status]}`) }),
         alert: true
@@ -174,7 +177,8 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
         statusFromValidation(result),
         result.status === "unverifiable"
           ? t("i18n-next33.provider.keyUnverified")
-          : null
+          : null,
+        accountWarning(result)
       );
     } catch {
       setSaveError(t("i18n-next33.provider.saveError"));
@@ -214,7 +218,7 @@ const ProviderOnboardingCard: React.FC<ProviderOnboardingCardProps> = ({
           ? t("i18n-next33.provider.storedKeyRejected")
           : result.status === "unverifiable"
             ? t("i18n-next33.provider.storedKeyUnverified")
-            : null
+            : accountWarning(result)
       );
     } catch {
       setSaveError(t("i18n-next33.provider.recheckError"));

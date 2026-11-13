@@ -454,6 +454,164 @@ double sampleHoldProcess(KernelCall& c) {
   return 0;
 }
 
+double audioBitcrushStateLen(KernelCall& c) {
+  c.arity(3);
+  return static_cast<double>(nt_audio_bitcrush_state_len(c.u32(0), c.number(1), c.number(2)));
+}
+double audioBitcrushInit(KernelCall& c) {
+  c.arity(4);
+  const uint32_t channels = c.u32(1);
+  const double rate = c.number(2), seconds = c.number(3);
+  return nt_audio_bitcrush_init(c.out<double>(0, nt_audio_bitcrush_state_len(channels, rate, seconds)), channels, rate, seconds);
+}
+double audioBitcrushBlock(KernelCall& c) {
+  c.arity(7);
+  const size_t frames = c.count(3);
+  const uint32_t channels = c.u32(4);
+  const size_t n = product(frames, channels);
+  return nt_audio_bitcrush_block(c.inout<double>(0, nt_audio_bitcrush_state_len(channels, 44100, 0)),
+    c.in<float>(1, n), c.out<float>(2, n), frames, channels, c.number(5), c.u32(6));
+}
+double audioCompressStateLen(KernelCall& c) {
+  c.arity(3);
+  return static_cast<double>(nt_audio_compress_state_len(c.u32(0), c.number(1), c.number(2)));
+}
+double audioCompressInit(KernelCall& c) {
+  c.arity(4);
+  const uint32_t channels = c.u32(1);
+  const double rate = c.number(2), seconds = c.number(3);
+  return nt_audio_compress_init(c.out<double>(0, nt_audio_compress_state_len(channels, rate, seconds)), channels, rate, seconds);
+}
+double audioCompressBlock(KernelCall& c) {
+  c.arity(11);
+  const size_t frames = c.count(3);
+  const uint32_t channels = c.u32(4);
+  const size_t n = product(frames, channels);
+  return nt_audio_compress_block(c.inout<double>(0, nt_audio_compress_state_len(channels, c.number(5), 0)),
+    c.in<float>(1, n), c.out<float>(2, n), frames, channels, c.number(5), c.number(6), c.number(7), c.number(8), c.number(9), c.i32(10));
+}
+double audioLimiterStateLen(KernelCall& c) {
+  c.arity(3);
+  return static_cast<double>(nt_audio_limiter_state_len(c.u32(0), c.number(1), c.number(2)));
+}
+double audioLimiterInit(KernelCall& c) {
+  c.arity(4);
+  const uint32_t channels = c.u32(1);
+  const double rate = c.number(2), seconds = c.number(3);
+  return nt_audio_limiter_init(c.out<double>(0, nt_audio_limiter_state_len(channels, rate, seconds)), channels, rate, seconds);
+}
+double audioLimiterBlock(KernelCall& c) {
+  c.arity(9);
+  const size_t frames = c.count(3);
+  const uint32_t channels = c.u32(4);
+  const size_t n = product(frames, channels);
+  return nt_audio_limiter_block(c.inout<double>(0, nt_audio_limiter_state_len(channels, c.number(5), 0)),
+    c.in<float>(1, n), c.out<float>(2, n), frames, channels, c.number(5), c.number(6), c.number(7), c.i32(8));
+}
+double audioNoiseGateStateLen(KernelCall& c) {
+  c.arity(3);
+  return static_cast<double>(nt_audio_noise_gate_state_len(c.u32(0), c.number(1), c.number(2)));
+}
+double audioNoiseGateInit(KernelCall& c) {
+  c.arity(4);
+  const uint32_t channels = c.u32(1);
+  const double rate = c.number(2), seconds = c.number(3);
+  return nt_audio_noise_gate_init(c.out<double>(0, nt_audio_noise_gate_state_len(channels, rate, seconds)), channels, rate, seconds);
+}
+double audioNoiseGateBlock(KernelCall& c) {
+  c.arity(9);
+  const size_t frames = c.count(3);
+  const uint32_t channels = c.u32(4);
+  const size_t n = product(frames, channels);
+  return nt_audio_noise_gate_block(c.inout<double>(0, nt_audio_noise_gate_state_len(channels, c.number(5), 0)),
+    c.in<float>(1, n), c.out<float>(2, n), frames, channels, c.number(5), c.number(6), c.number(7), c.number(8));
+}
+double audioPhaserStateLen(KernelCall& c) {
+  c.arity(3);
+  return static_cast<double>(nt_audio_phaser_state_len(c.u32(0), c.number(1), c.number(2)));
+}
+double audioPhaserInit(KernelCall& c) {
+  c.arity(4);
+  const uint32_t channels = c.u32(1);
+  const double rate = c.number(2), seconds = c.number(3);
+  return nt_audio_phaser_init(c.out<double>(0, nt_audio_phaser_state_len(channels, rate, seconds)), channels, rate, seconds);
+}
+double audioPhaserBlock(KernelCall& c) {
+  c.arity(11);
+  const size_t frames = c.count(3);
+  const uint32_t channels = c.u32(4);
+  const size_t n = product(frames, channels);
+  return nt_audio_phaser_block(c.inout<double>(0, nt_audio_phaser_state_len(channels, c.number(5), 0)),
+    c.in<float>(1, n), c.out<float>(2, n), frames, channels, c.number(5), c.number(6), c.number(7), c.number(8), c.number(9), c.number(10));
+}
+double audioReverbStateLen(KernelCall& c) {
+  c.arity(3);
+  return static_cast<double>(nt_audio_reverb_state_len(c.u32(0), c.number(1), c.number(2)));
+}
+double audioReverbInit(KernelCall& c) {
+  c.arity(4);
+  const uint32_t channels = c.u32(1);
+  const double rate = c.number(2), seconds = c.number(3);
+  return nt_audio_reverb_init(c.out<double>(0, nt_audio_reverb_state_len(channels, rate, seconds)), channels, rate, seconds);
+}
+double audioReverbBlock(KernelCall& c) {
+  c.arity(10);
+  const size_t frames = c.count(3);
+  const uint32_t channels = c.u32(4);
+  const size_t n = product(frames, channels);
+  return nt_audio_reverb_block(c.inout<double>(0, nt_audio_reverb_state_len(channels, c.number(5), 0)),
+    c.in<float>(1, n), c.out<float>(2, n), frames, channels, c.number(5), c.number(6), c.number(7), c.number(8), c.number(9));
+}
+double audioDelayStateLen(KernelCall& c) {
+  c.arity(3);
+  return static_cast<double>(nt_audio_delay_state_len(c.u32(0), c.number(1), c.number(2)));
+}
+double audioDelayInit(KernelCall& c) {
+  c.arity(4);
+  const uint32_t channels = c.u32(1);
+  const double rate = c.number(2), seconds = c.number(3);
+  return nt_audio_delay_init(c.out<double>(0, nt_audio_delay_state_len(channels, rate, seconds)), channels, rate, seconds);
+}
+double audioDelayBlock(KernelCall& c) {
+  c.arity(9);
+  const size_t frames = c.count(3);
+  const uint32_t channels = c.u32(4);
+  const size_t n = product(frames, channels);
+  return nt_audio_delay_block(c.inout<double>(0, nt_audio_delay_state_len(channels, c.number(5), c.number(6))),
+    c.in<float>(1, n), c.out<float>(2, n), frames, channels, c.number(5), c.number(6), c.number(7), c.number(8));
+}
+
+double resampleOutputFrames(KernelCall& c) {
+  c.arity(3);
+  return static_cast<double>(nt_resample_output_frames(c.count(0), c.number(1), c.number(2)));
+}
+double resample(KernelCall& c) {
+  c.arity(6);
+  const size_t frames = c.count(2);
+  const uint32_t channels = c.u32(3);
+  const double inRate = c.number(4), outRate = c.number(5);
+  return nt_resample(c.in<float>(0, product(frames, channels)),
+    c.out<float>(1, product(nt_resample_output_frames(frames, inRate, outRate), channels)), frames, channels, inRate, outRate);
+}
+
+double samplerStateLen(KernelCall& c) {
+  c.arity(2);
+  return static_cast<double>(nt_sampler_state_len(c.u32(0), c.u32(1)));
+}
+
+double samplerProcess(KernelCall& c) {
+  c.arity(14);
+  const uint32_t voices = c.u32(1);
+  const size_t sampleFrames = c.count(3);
+  const uint32_t channels = c.u32(4);
+  const size_t frames = c.count(8);
+  return nt_sampler_process(c.inout<double>(0, nt_sampler_state_len(voices, channels)), voices,
+                            c.in<float>(2, product(sampleFrames, channels)), sampleFrames, channels,
+                            c.optionalIn<float>(5, frames), c.optionalIn<float>(6, frames),
+                            c.out<float>(7, product(frames, channels)), frames, c.i32(9), c.number(10),
+                            c.number(11), c.number(12), c.number(13));
+}
+
 // Every function of kernels.h. Immutable after its first use.
 const std::unordered_map<std::string_view, Adapter>& adapters() {
   static const std::unordered_map<std::string_view, Adapter> table = {
@@ -467,6 +625,29 @@ const std::unordered_map<std::string_view, Adapter>& adapters() {
       {"nt_pcm_sample_bytes", pcmSampleBytes},
       {"nt_pcm_decode", pcmDecode},
       {"nt_pcm16_encode", pcm16Encode},
+      {"nt_audio_bitcrush_state_len", audioBitcrushStateLen},
+      {"nt_audio_bitcrush_init", audioBitcrushInit},
+      {"nt_audio_bitcrush_block", audioBitcrushBlock},
+      {"nt_audio_compress_state_len", audioCompressStateLen},
+      {"nt_audio_compress_init", audioCompressInit},
+      {"nt_audio_compress_block", audioCompressBlock},
+      {"nt_audio_limiter_state_len", audioLimiterStateLen},
+      {"nt_audio_limiter_init", audioLimiterInit},
+      {"nt_audio_limiter_block", audioLimiterBlock},
+      {"nt_audio_noise_gate_state_len", audioNoiseGateStateLen},
+      {"nt_audio_noise_gate_init", audioNoiseGateInit},
+      {"nt_audio_noise_gate_block", audioNoiseGateBlock},
+      {"nt_audio_phaser_state_len", audioPhaserStateLen},
+      {"nt_audio_phaser_init", audioPhaserInit},
+      {"nt_audio_phaser_block", audioPhaserBlock},
+      {"nt_audio_reverb_state_len", audioReverbStateLen},
+      {"nt_audio_reverb_init", audioReverbInit},
+      {"nt_audio_reverb_block", audioReverbBlock},
+      {"nt_audio_delay_state_len", audioDelayStateLen},
+      {"nt_audio_delay_init", audioDelayInit},
+      {"nt_audio_delay_block", audioDelayBlock},
+      {"nt_resample_output_frames", resampleOutputFrames},
+      {"nt_resample", resample},
       {"nt_audio_bitcrush", audioBitcrush},
       {"nt_audio_compress", audioCompress},
       {"nt_audio_distortion", audioDistortion},
@@ -486,6 +667,8 @@ const std::unordered_map<std::string_view, Adapter>& adapters() {
       {"nt_gate_process", gateProcess},
       {"nt_vca_process", vcaProcess},
       {"nt_sample_hold_process", sampleHoldProcess},
+      {"nt_sampler_state_len", samplerStateLen},
+      {"nt_sampler_process", samplerProcess},
   };
   return table;
 }

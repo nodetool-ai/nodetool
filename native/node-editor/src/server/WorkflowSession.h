@@ -120,6 +120,11 @@ public:
   GenerationHistory *generationHistory() { return &m_history; }
   PartialRunPlan lastPartialPlan() const { return m_lastPlan; }
   Q_INVOKABLE void stop(const QString &jobId);
+  // Sends a live property change of a node to a run in progress, as the
+  // web's update_node_properties command does: a node that reads its
+  // properties while it runs uses the values from its next block. Returns
+  // false when the run is unknown or finished, or the change was not sent.
+  bool updateNodeProperties(const QString &jobId, const QString &nodeId, const QJsonObject &properties);
   Q_INVOKABLE void cancelJob(const QString &jobId);
   Q_INVOKABLE void reconnectRuns();
   // Retries the socket now, like the web's retryNow: a pending wait is cancelled, the attempt count

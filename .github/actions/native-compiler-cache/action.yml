@@ -2,7 +2,9 @@ name: Select native compiler cache
 description: >
   Use sccache on the shared Cloudflare R2 bucket when the job has R2
   credentials, and ccache with the Actions cache otherwise. Writes
-  NT_COMPILER_LAUNCHER (sccache or ccache) to the job environment.
+  NT_COMPILER_LAUNCHER (sccache or ccache) to the job environment. With
+  GCC or Clang, sccache also restores its preprocessor cache from the
+  Actions cache; the caller saves it with the `preprocessor-key` output.
 inputs:
   r2:
     description: "'true' when the caller has R2 credentials for its compile steps"
@@ -10,6 +12,13 @@ inputs:
   key-prefix:
     description: Object key prefix inside the bucket, one per platform and build flavour
     required: true
+outputs:
+  preprocessor-key:
+    description: >-
+      The Actions cache key to save `$SCCACHE_DIR/preprocessor` under after
+      the build, empty when no preprocessor cache is in use or the restore
+      found this exact key
+    value: ${{ steps.preprocessor.outputs.cache-hit != 'true' && steps.select.outputs.preprocessor-key || '' }}
 runs:
   using: composite
   # The github-env ignore below: native-timeline.yml calls this action on
@@ -20,6 +29,7 @@ runs:
   # (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY), where sccache reads them.
   steps:
     - name: Select compiler cache
+      id: select
       shell: bash
       env:
         R2: ${{ inputs.r2 }}
@@ -62,3 +72,29 @@ runs:
           echo "SCCACHE_IDLE_TIMEOUT=0"
         } >> "$GITHUB_ENV"
         echo "sccache on R2, prefix $KEY_PREFIX"
+        # A hit on R2 alone still runs the preprocessor on every file, which
+        # was most of a cached build: about 0.4 s per file on Linux against
+        # 0.05 s for the download. sccache skips the preprocessor (its
+        # preprocessor cache mode, like ccache's direct mode) only with a
+        # local disk cache, so a disk level sits in front of R2. Its
+        # preprocessor/ directory maps each source file and the contents of
+        # every header it included to the R2 object, and travels between
+        # runs in the Actions cache. MSVC has no preprocessor cache mode.
+        if [[ "$RUNNER_OS" != Windows ]]; then
+          {
+            echo "SCCACHE_MULTILEVEL_CHAIN=disk,s3"
+            echo "SCCACHE_DIR=$RUNNER_TEMP/sccache"
+            echo "SCCACHE_CACHE_SIZE=4G"
+          } >> "$GITHUB_ENV"
+          echo "preprocessor-key=native-sccache-preprocessor-$KEY_PREFIX-$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+          echo "preprocessor-restore-key=native-sccache-preprocessor-$KEY_PREFIX-" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Restore sccache preprocessor cache
+      id: preprocessor
+      if: steps.select.outputs.preprocessor-key != ''
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/sccache/preprocessor
+        key: ${{ steps.select.outputs.preprocessor-key }}
+        restore-keys: ${{ steps.select.outputs.preprocessor-restore-key }}

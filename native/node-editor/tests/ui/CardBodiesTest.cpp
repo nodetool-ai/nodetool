@@ -2,6 +2,7 @@
 #include "graph/CardBodies.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
+#include "graph/SynthModules.h"
 #include "graph/WorkflowGraphModel.h"
 #include "ui/EditorWindow.h"
 #include <QBuffer>
@@ -301,6 +302,48 @@ QJsonArray constantsCatalog() {
 
 QJsonObject constantNode(const QString &name, const QJsonObject &data = {}, const QPointF &position = {}) {
     return partTwoNode(name.toLower(), QStringLiteral("nodetool.constant.") + name, position, data);
+}
+
+// Metadata for the synth module and audio effect bodies, with the property
+// names synthModules.ts and audioEffectModules.ts read.
+QJsonArray synthMetadata() {
+    const auto number = [](const QString &name, double fallback) { return property(name, "float", {{"default", fallback}}); };
+    const auto waves = QJsonArray{"sine", "saw", "square", "triangle", "noise"};
+    return {
+        outputsFor(metadataFor("nodetool.audio.synth.Oscillator", "Oscillator",
+                               {property("waveform", "enum", {{"values", waves}, {"default", "sine"}}), number("frequency", 220),
+                                number("amplitude", 0.8), number("pulse_width", 0.5), number("fm_amount", 0), number("fm", 0),
+                                number("pitch_cv", 0)}),
+                   {output("output", "chunk")}),
+        outputsFor(metadataFor("nodetool.audio.synth.ADSR", "ADSR",
+                               {number("gate", 0), number("attack", 0.01), number("decay", 0.1), number("sustain", 0.7), number("release", 0.3)}),
+                   {output("output", "chunk")}),
+        outputsFor(metadataFor("nodetool.audio.synth.VCF", "VCF",
+                               {property("audio", "chunk"), number("cutoff_cv", 0), number("cutoff_hz", 1000), number("q", 0.707),
+                                number("cv_amount", 1), property("mode", "enum", {{"values", QJsonArray{"lowpass", "highpass"}}, {"default", "lowpass"}})}),
+                   {output("output", "chunk")}),
+        outputsFor(metadataFor("lib.audio.Compress", "Compress",
+                               {property("audio", "audio"), number("threshold", -20), number("ratio", 4), number("attack", 5),
+                                number("release", 100), property("auto_gain", "bool", {{"default", true}})}),
+                   {output("output", "audio")}),
+        outputsFor(metadataFor("nodetool.audio.realtime.AudioOutput", "Audio Output", {property("chunk", "chunk")}), {output("output", "chunk")}),
+    };
+}
+
+QJsonArray synthCatalog() {
+    auto metadata = fixture()["metadata"].toArray();
+    for (const auto &entry : synthMetadata()) {
+        metadata.append(entry);
+    }
+    return metadata;
+}
+
+QJsonArray synthNodes() {
+    return {partTwoNode("osc", "nodetool.audio.synth.Oscillator", QPointF(0, 700)),
+            partTwoNode("adsr", "nodetool.audio.synth.ADSR", QPointF(300, 700)),
+            partTwoNode("vcf", "nodetool.audio.synth.VCF", QPointF(600, 700)),
+            partTwoNode("compress", "lib.audio.Compress", QPointF(900, 700)),
+            partTwoNode("out", "nodetool.audio.realtime.AudioOutput", QPointF(1200, 700))};
 }
 } // namespace
 
@@ -2761,6 +2804,217 @@ private slots:
     }
 
     // Writes every constant card in both themes for visual review, kept outside the repository.
+    // SynthModuleBody.tsx: jacks with their labels, the module label, the
+    // waveform selector and a centered grid of knobs, at the web default height.
+    void synthModuleBodyLaysOutItsFaceplate() {
+        Host host(withNodes(synthNodes()), synthCatalog());
+        const auto &card = host.model().layout(host.id("osc"));
+        QCOMPARE(card.body, CardBody::SynthModule);
+        // bespokeNodeSizes.ts: 96 + 26 for the waveform row + two rows of three knobs at 84 px.
+        QCOMPARE(card.size.height(), 290);
+        // The jacks are the only input ports, in metadata order 28 px apart: fm, then pitch_cv.
+        QCOMPARE(host.model().nodeData(host.id("osc"), QtNodes::NodeRole::InPortCount).toUInt(), 2u);
+        QCOMPARE(card.inputY, (QVector<double>{46, 74}));
+        QStringList labels;
+        QString module;
+        for (const auto &row : card.rows) {
+            if (row.kind == NodeRowKind::Label && row.bare) {
+                labels.append(row.label);
+            }
+            if (row.kind == NodeRowKind::Caption && row.bare) {
+                module = row.label;
+            }
+        }
+        QCOMPARE(labels, (QStringList{"FM", "PITCH CV"}));
+        QCOMPARE(module, QStringLiteral("VCO"));
+        const auto *wave = host.row("osc", NodeRowKind::Waveform, "waveform");
+        QVERIFY(wave);
+        QCOMPARE(wave->parts.size(), 5);
+        QCOMPARE(wave->selected, 0);
+        QCOMPARE(wave->rect.center().x(), 140.0);
+        QStringList knobs;
+        for (const auto &row : card.rows) {
+            if (row.kind == NodeRowKind::Knob) {
+                knobs.append(row.propertyName);
+                QCOMPARE(row.rect.size(), QSizeF(synth_metrics::knobWidth, synth_metrics::knobHeight));
+                QCOMPARE(row.accent, QStringLiteral("warning"));
+            }
+        }
+        QCOMPARE(knobs, (QStringList{"frequency", "amplitude", "pulse_width", "fm_amount"}));
+        const auto *frequency = host.row("osc", NodeRowKind::Knob, "frequency");
+        QVERIFY(frequency->logScale);
+        QCOMPARE(frequency->number, 220.0);
+        QCOMPARE(knobText(*frequency, frequency->number), QStringLiteral("220 Hz"));
+        // The four knobs fit one row on a 280 px card and sit centered in the room below the waveforms.
+        const auto *last = host.row("osc", NodeRowKind::Knob, "fm_amount");
+        QCOMPARE(last->rect.y(), frequency->rect.y());
+        QCOMPARE((frequency->rect.left() + last->rect.right()) / 2.0, 140.0);
+        QVERIFY(frequency->rect.top() > wave->rect.bottom());
+        QVERIFY(last->rect.bottom() < card.size.height() - node_metrics::padding);
+        // ADSR draws its envelope above the knobs, from the knob values.
+        const auto *envelope = host.row("adsr", NodeRowKind::Envelope);
+        QVERIFY(envelope);
+        QCOMPARE(envelope->optionValues, (QVariantList{0.01, 0.1, 0.7, 0.3}));
+        QVERIFY(host.row("adsr", NodeRowKind::Knob, "attack")->rect.top() > envelope->rect.bottom());
+        QCOMPARE(host.model().layout(host.id("adsr")).size.height(), 96 + 42 + 2 * 84);
+        // Only configured jacks keep a handle: gate on ADSR, nothing for a knob property.
+        QVERIFY(bespokeHandle(CardBody::SynthModule, host.model().metadata(host.id("adsr")), QStringLiteral("gate")));
+        QVERIFY(!bespokeHandle(CardBody::SynthModule, host.model().metadata(host.id("adsr")), QStringLiteral("attack")));
+    }
+
+    // SynthKnob.tsx: a vertical drag sweeps the knob and commits once on release,
+    // Shift drags a tenth as fast, and a double-click restores the default.
+    void synthKnobDragsAndResets() {
+        Host host(withNodes(synthNodes()), synthCatalog());
+        const auto *amplitude = host.row("osc", NodeRowKind::Knob, "amplitude");
+        QVERIFY(amplitude);
+        const auto face = knobFace(*amplitude);
+        const auto drag = [&](double up, Qt::KeyboardModifiers modifiers) {
+            const auto start = host.point("osc", face.center());
+            const auto end = host.point("osc", face.center() - QPointF(0, up));
+            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, modifiers);
+            QApplication::sendEvent(host.view->viewport(), &move);
+            QCOMPARE(host.window.scene()->sliderDraftProperty(), QStringLiteral("amplitude"));
+            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, modifiers, end);
+            settle();
+        };
+        auto undo = host.undoCount();
+        drag(16, Qt::NoModifier);
+        // 16 px of a 160 px sweep moves the 0 to 1 knob by about 0.1.
+        auto value = host.data("osc")["amplitude"].toDouble();
+        QVERIFY2(std::abs(value - 0.9) < 0.02, qPrintable(QString::number(value)));
+        QCOMPARE(host.undoCount(), ++undo);
+        // With Shift the same drag moves it a tenth as far.
+        drag(16, Qt::ShiftModifier);
+        const auto fine = host.data("osc")["amplitude"].toDouble();
+        QVERIFY2(fine > value && fine - value < 0.02, qPrintable(QString::number(fine)));
+        QCOMPARE(host.undoCount(), ++undo);
+        QTest::mouseDClick(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, host.point("osc", face.center()));
+        settle();
+        QTRY_COMPARE(host.data("osc")["amplitude"].toDouble(), 0.8);
+        host.window.document()->undo();
+        QCOMPARE(host.data("osc")["amplitude"].toDouble(), fine);
+    }
+
+    // knobNorm, formatKnobValue and roundForSpec in synthModules.ts and SynthKnob.tsx.
+    void synthKnobValueMath() {
+        NodeRow frequency;
+        frequency.kind = NodeRowKind::Knob;
+        frequency.minimum = 20;
+        frequency.maximum = 20000;
+        frequency.logScale = true;
+        // A step of 0 marks a continuous knob, 1 an integer one.
+        frequency.step = 0;
+        frequency.unit = QStringLiteral("hz");
+        QCOMPARE(knobNorm(frequency, 20), 0.0);
+        QCOMPARE(knobNorm(frequency, 20000), 1.0);
+        QVERIFY(std::abs(knobNorm(frequency, 632.456) - 0.5) < 1e-4);
+        QVERIFY(std::abs(knobDenorm(frequency, 0.5) - 632.456) < 1e-2);
+        QCOMPARE(knobRound(frequency, 632.4555), 632.5);
+        QCOMPARE(knobText(frequency, 440), QStringLiteral("440 Hz"));
+        QCOMPARE(knobText(frequency, 1500), QStringLiteral("1.50 kHz"));
+        QCOMPARE(knobText(frequency, 12000), QStringLiteral("12.0 kHz"));
+        QCOMPARE(knobText(frequency, 2.5), QStringLiteral("2.50 Hz"));
+        NodeRow time = frequency;
+        time.unit = QStringLiteral("s");
+        QCOMPARE(knobText(time, 0.25), QStringLiteral("250 ms"));
+        QCOMPARE(knobText(time, 1.5), QStringLiteral("1.50 s"));
+        NodeRow gain;
+        gain.minimum = -60;
+        gain.maximum = 24;
+        gain.bipolar = true;
+        gain.step = 0;
+        gain.unit = QStringLiteral("db");
+        QCOMPARE(knobText(gain, 3), QStringLiteral("+3.0 dB"));
+        QCOMPARE(knobText(gain, -6), QStringLiteral("-6.0 dB"));
+        NodeRow offset;
+        offset.minimum = -10;
+        offset.maximum = 10;
+        offset.bipolar = true;
+        offset.step = 0;
+        QCOMPARE(knobNorm(offset, 0), 0.5);
+        QCOMPARE(knobText(offset, 1.234), QStringLiteral("+1.23"));
+        QCOMPARE(knobRound(offset, 1.234), 1.23);
+        NodeRow bits;
+        bits.minimum = 1;
+        bits.maximum = 16;
+        bits.step = 1;
+        QCOMPARE(knobRound(bits, 7.6), 8.0);
+        QCOMPARE(knobText(bits, 7.6), QStringLiteral("8"));
+        // A drag past either end stops at the range.
+        QCOMPARE(knobDragValue(offset, 0, 100, -1000, false), 10.0);
+        QCOMPARE(knobDragValue(offset, 0, 100, 116, false), -2.0);
+        QCOMPARE(knobDragValue(offset, 0, 100, 116, true), -0.2);
+    }
+
+    // The waveform selector, the VCF mode toggle and the compressor's auto gain
+    // write their properties with one undo step each.
+    void synthSelectorsAndTogglesEditProperties() {
+        Host host(withNodes(synthNodes()), synthCatalog());
+        auto undo = host.undoCount();
+        const auto *wave = host.row("osc", NodeRowKind::Waveform, "waveform");
+        QVERIFY(wave);
+        host.click("osc", wave->parts[2].center());
+        QTRY_COMPARE(host.data("osc")["waveform"].toString(), QStringLiteral("square"));
+        QCOMPARE(host.undoCount(), ++undo);
+        QCOMPARE(host.row("osc", NodeRowKind::Waveform, "waveform")->selected, 2);
+        const auto *mode = host.row("vcf", NodeRowKind::Segmented, "mode");
+        QVERIFY(mode);
+        QCOMPARE(mode->options, (QStringList{"LP", "HP"}));
+        QCOMPARE(mode->selected, 0);
+        host.click("vcf", mode->parts[1].center());
+        QTRY_COMPARE(host.data("vcf")["mode"].toString(), QStringLiteral("highpass"));
+        QCOMPARE(host.undoCount(), ++undo);
+        const auto *autoGain = host.row("compress", NodeRowKind::Segmented, "auto_gain");
+        QVERIFY(autoGain);
+        QCOMPARE(autoGain->options, (QStringList{"Auto gain"}));
+        QCOMPARE(autoGain->selected, 0);
+        host.click("compress", autoGain->parts[0].center());
+        QTRY_COMPARE(host.data("compress")["auto_gain"].toBool(), false);
+        QCOMPARE(host.undoCount(), ++undo);
+        QCOMPARE(host.row("compress", NodeRowKind::Segmented, "auto_gain")->selected, -1);
+        host.click("compress", host.row("compress", NodeRowKind::Segmented, "auto_gain")->parts[0].center());
+        QTRY_COMPARE(host.data("compress")["auto_gain"].toBool(), true);
+    }
+
+    // AudioOutBody.tsx: the chunk jack, the Out label and the idle hint filling the card.
+    void audioOutBodyShowsItsIdleHint() {
+        Host host(withNodes(synthNodes()), synthCatalog());
+        const auto &card = host.model().layout(host.id("out"));
+        QCOMPARE(card.body, CardBody::AudioOut);
+        QCOMPARE(card.size.height(), 220);
+        QCOMPARE(card.inputY.value(0), 46.0);
+        QVERIFY(bespokeHandle(CardBody::AudioOut, host.model().metadata(host.id("out")), QStringLiteral("chunk")));
+        QStringList captions;
+        for (const auto &row : card.rows) {
+            if (row.kind == NodeRowKind::Caption) {
+                captions.append(row.label);
+                if (!row.bare) {
+                    QCOMPARE(row.rect, card.resultRect);
+                }
+            }
+        }
+        QCOMPARE(captions, (QStringList{"Out", "Run the patch to hear it"}));
+        QVERIFY(card.resultRect.bottom() < card.size.height());
+    }
+
+    void captureSynthCards() {
+        const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR");
+        if (directory.isEmpty()) {
+            QSKIP("Set NODETOOL_CARD_BODY_CAPTURE_DIR to write card captures.");
+        }
+        Host host(withNodes(synthNodes()), synthCatalog());
+        QDir().mkpath(directory);
+        for (const auto dark : {true, false}) {
+            host.window.setDarkTheme(dark);
+            settle();
+            for (const auto &name : {"osc", "adsr", "vcf", "compress", "out"}) {
+                QVERIFY(host.render(name).save(QStringLiteral("%1/synth-%2-%3.png").arg(directory, name, dark ? "dark" : "light")));
+            }
+        }
+    }
+
     void captureConstantCards() {
         const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR");
         if (directory.isEmpty()) {

@@ -4,6 +4,7 @@
 #include "nodetool/kernels.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -246,6 +247,407 @@ void testHostileDoubles() {
         "NaN image parameters are defined");
 }
 
+
+void testStreamingHostileDoubles() {
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+  const double inf = std::numeric_limits<double>::infinity();
+  const std::array<double, 7> hostile{nan, inf, -inf, -1e300, 1e300, 0, -1};
+  std::vector<float> input(8, 0.5f), out(8);
+  for (double bad : hostile) {
+    const size_t length = nt_audio_bitcrush_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, bad);
+    check(nt_audio_bitcrush_block(state.data(), input.data(), out.data(), 4, 2, bad, 1) == NT_OK, "bitcrush hostile state and controls are defined");
+    check(nt_audio_bitcrush_state_len(2, bad, 0.01) == 0 || (bad > 0 && bad <= NT_MAX_SAMPLE_RATE), "bitcrush hostile state rate");
+    check(nt_audio_bitcrush_init(state.data(), 0, bad, bad) == NT_ERR_ARGS, "bitcrush rejects invalid dimensions");
+  }
+  for (double bad : hostile) {
+    const size_t length = nt_audio_compress_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, bad);
+    const int status = nt_audio_compress_block(state.data(), input.data(), out.data(), 4, 2, 44100, bad, bad, bad, bad, 1);
+    check(status == NT_OK || status == NT_ERR_ARGS, "compress hostile controls safely accept or reject");
+    check(nt_audio_compress_state_len(2, bad, 0.01) == 0 || (bad > 0 && bad <= NT_MAX_SAMPLE_RATE), "compress hostile state rate");
+    check(nt_audio_compress_init(state.data(), 0, bad, bad) == NT_ERR_ARGS, "compress rejects invalid dimensions");
+  }
+  for (double bad : hostile) {
+    const size_t length = nt_audio_limiter_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, bad);
+    check(nt_audio_limiter_block(state.data(), input.data(), out.data(), 4, 2, 44100, bad, bad, 1) == NT_OK, "limiter hostile state and controls are defined");
+    check(nt_audio_limiter_state_len(2, bad, 0.01) == 0 || (bad > 0 && bad <= NT_MAX_SAMPLE_RATE), "limiter hostile state rate");
+    check(nt_audio_limiter_init(state.data(), 0, bad, bad) == NT_ERR_ARGS, "limiter rejects invalid dimensions");
+  }
+  for (double bad : hostile) {
+    const size_t length = nt_audio_noise_gate_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, bad);
+    check(nt_audio_noise_gate_block(state.data(), input.data(), out.data(), 4, 2, 44100, bad, bad, bad) == NT_OK, "noise_gate hostile state and controls are defined");
+    check(nt_audio_noise_gate_state_len(2, bad, 0.01) == 0 || (bad > 0 && bad <= NT_MAX_SAMPLE_RATE), "noise_gate hostile state rate");
+    check(nt_audio_noise_gate_init(state.data(), 0, bad, bad) == NT_ERR_ARGS, "noise_gate rejects invalid dimensions");
+  }
+  for (double bad : hostile) {
+    const size_t length = nt_audio_phaser_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, bad);
+    check(nt_audio_phaser_block(state.data(), input.data(), out.data(), 4, 2, 44100, bad, bad, bad, bad, bad) == NT_OK, "phaser hostile state and controls are defined");
+    check(nt_audio_phaser_state_len(2, bad, 0.01) == 0 || (bad > 0 && bad <= NT_MAX_SAMPLE_RATE), "phaser hostile state rate");
+    check(nt_audio_phaser_init(state.data(), 0, bad, bad) == NT_ERR_ARGS, "phaser rejects invalid dimensions");
+  }
+  for (double bad : hostile) {
+    const size_t length = nt_audio_reverb_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, bad);
+    check(nt_audio_reverb_block(state.data(), input.data(), out.data(), 4, 2, 44100, bad, bad, bad, bad) == NT_OK, "reverb hostile state and controls are defined");
+    check(nt_audio_reverb_state_len(2, bad, 0.01) == 0 || (bad > 0 && bad <= NT_MAX_SAMPLE_RATE), "reverb hostile state rate");
+    check(nt_audio_reverb_init(state.data(), 0, bad, bad) == NT_ERR_ARGS, "reverb rejects invalid dimensions");
+  }
+  for (double bad : hostile) {
+    const size_t length = nt_audio_delay_state_len(2, 44100, 0.01);
+    std::vector<double> state(length, bad);
+    check(nt_audio_delay_block(state.data(), input.data(), out.data(), 4, 2, 44100, 0.01, bad, bad) == NT_OK, "delay hostile state and controls are defined");
+    check(nt_audio_delay_state_len(2, bad, 0.01) == 0 || (bad > 0 && bad <= NT_MAX_SAMPLE_RATE), "delay hostile state rate");
+    check(nt_audio_delay_init(state.data(), 0, bad, bad) == NT_ERR_ARGS, "delay rejects invalid dimensions");
+  }
+  for (double bad : hostile) {
+    const auto length = nt_audio_delay_state_len(2, 44100, bad);
+    std::vector<double> state(std::max<size_t>(length, 2));
+    const int init = nt_audio_delay_init(state.data(), 2, 44100, bad);
+    check(init == NT_OK || init == NT_ERR_ARGS, "hostile structural delay initialization");
+    const int block = nt_audio_delay_block(state.data(), input.data(), out.data(), 4, 2, 44100, bad, 0.5, 0.5);
+    check(block == NT_OK || block == NT_ERR_ARGS, "hostile structural delay block");
+  }
+}
+void testResample() {
+  check(nt_resample(nullptr, nullptr, 0, 1, 48000, 44100) == NT_OK, "empty resample");
+  std::vector<float> input(48000), output(44100);
+  for (size_t i = 0; i < input.size(); i++) input[i] = static_cast<float>(std::sin(2 * 3.141592653589793 * 1000 * i / 48000));
+  check(nt_resample_output_frames(input.size(), 48000, 44100) == output.size(), "resample frame count");
+  check(nt_resample(input.data(), output.data(), input.size(), 1, 48000, 44100) == NT_OK, "resample sine");
+  double power = 0, error = 0;
+  for (size_t i = 128; i < output.size() - 128; i++) {
+    const double expected = std::sin(2 * 3.141592653589793 * 1000 * i / 44100);
+    power += expected * expected;
+    error += (output[i] - expected) * (output[i] - expected);
+  }
+  check(10 * std::log10(power / error) > 60, "resample SNR exceeds 60 dB");
+}
+
+// One block of a mono or stereo sampler with a level of 1.
+int sample(std::vector<double>& state, uint32_t voices, const std::vector<float>& clip, uint32_t channels,
+           const float* gate, const float* pitch, float* out, size_t frames, int mode, double rate = 1,
+           double attack = 0, double release = 0) {
+  return nt_sampler_process(state.data(), voices, clip.data(), clip.size() / channels, channels, gate, pitch,
+                            out, frames, mode, rate, attack, release, 1);
+}
+
+void testSampler() {
+  constexpr size_t length = 300;
+  constexpr size_t count = 1024;
+  std::vector<float> clip = randomSignal(length, 7);
+  // The clip ends at zero, so a voice that reaches the end leaves no decay.
+  clip.back() = 0;
+  std::vector<float> out(count);
+
+  // A NULL gate is high from the first frame: one voice, at the clip's rate.
+  std::vector<double> state(nt_sampler_state_len(4, 1));
+  int sounding = sample(state, 4, clip, 1, nullptr, nullptr, out.data(), count, NT_SAMPLER_ONE_SHOT);
+  check(std::equal(clip.begin(), clip.end(), out.begin()), "a sampler voice at rate 1 copies the clip");
+  check(std::all_of(out.begin() + length, out.end(), [](float s) { return s == 0; }),
+        "a sampler is silent after a one-shot clip");
+  check(sounding == 0, "no voice sounds after a one-shot clip");
+
+  // Two triggers 100 frames apart sound together.
+  std::vector<float> gate(count, 0.0f);
+  std::fill_n(gate.begin(), 10, 1.0f);
+  std::fill_n(gate.begin() + 100, 10, 1.0f);
+  std::fill(state.begin(), state.end(), 0.0);
+  sample(state, 4, clip, 1, gate.data(), nullptr, out.data(), count, NT_SAMPLER_ONE_SHOT);
+  bool overlap = true;
+  for (size_t i = 0; i < length + 100; i++) {
+    const float first = i < length ? clip[i] : 0;
+    const float second = i >= 100 ? clip[i - 100] : 0;
+    overlap = overlap && std::abs(out[i] - (first + second)) < 1e-6f;
+  }
+  check(overlap, "two sampler voices sound together");
+
+  // With one voice, the second trigger replaces the first. The replaced
+  // level decays instead of a jump to zero.
+  std::vector<double> mono(nt_sampler_state_len(1, 1));
+  sample(mono, 1, clip, 1, gate.data(), nullptr, out.data(), count, NT_SAMPLER_ONE_SHOT);
+  check(std::abs(out[100] - (clip[0] + clip[100])) < 1e-6f, "a replaced voice keeps its level for one frame");
+  check(std::abs(out[101] - (clip[1] + clip[100] * (1 - 1.0f / 128))) < 1e-6f, "a replaced voice decays");
+  // After frame 400 only the decay is left. It falls by 1/128 for each frame
+  // and ends below -100 dB.
+  check(out[450] != 0 && std::abs(out[900]) < std::abs(out[450]) * 0.05f, "the decay of a replaced voice falls");
+  std::vector<float> low(2048, 0.0f), rest(2048);
+  check(sample(mono, 1, clip, 1, low.data(), nullptr, rest.data(), rest.size(), NT_SAMPLER_ONE_SHOT) == 0 &&
+            rest.back() == 0,
+        "the decay of a replaced voice ends");
+
+  // The pitch at the trigger sets the rate of that voice: one octave up
+  // reads every second frame.
+  std::vector<float> pitch(count, 1.0f);
+  std::fill(state.begin(), state.end(), 0.0);
+  sample(state, 4, clip, 1, gate.data(), pitch.data(), out.data(), 50, NT_SAMPLER_ONE_SHOT);
+  bool octave = true;
+  for (size_t i = 0; i < 50; i++) octave = octave && out[i] == clip[i * 2];
+  check(octave, "a pitch of 1 plays a sampler voice one octave up");
+
+  // A rate between frames interpolates: a ramp stays a ramp.
+  std::vector<float> ramp(64);
+  for (size_t i = 0; i < ramp.size(); i++) ramp[i] = static_cast<float>(i) / 64;
+  std::vector<double> rampState(nt_sampler_state_len(1, 1));
+  sample(rampState, 1, ramp, 1, nullptr, nullptr, out.data(), 100, NT_SAMPLER_ONE_SHOT, 0.5);
+  bool linear = true;
+  for (size_t i = 2; i < 100; i++) linear = linear && std::abs(out[i] - static_cast<float>(i) / 128) < 1e-6f;
+  check(linear, "a sampler voice interpolates between frames");
+
+  // A gated voice fades out after the gate falls and then stops.
+  std::vector<float> ones(length, 1.0f);
+  std::vector<float> held(count, 0.0f);
+  std::fill_n(held.begin(), 50, 1.0f);
+  std::fill(state.begin(), state.end(), 0.0);
+  sounding = sample(state, 4, ones, 1, held.data(), nullptr, out.data(), 200, NT_SAMPLER_GATED, 1, 0, 20);
+  check(out[49] == 1.0f && out[50] == 1.0f, "a gated voice holds its level to the falling edge");
+  check(std::abs(out[60] - 0.5f) < 1e-6f, "a gated voice fades out over the release");
+  check(out[75] == 0.0f && sounding == 0, "a gated voice stops after the release");
+  std::fill(state.begin(), state.end(), 0.0);
+  sample(state, 4, ones, 1, held.data(), nullptr, out.data(), 200, NT_SAMPLER_ONE_SHOT, 1, 0, 20);
+  check(out[100] == 1.0f, "a one-shot voice ignores the falling edge");
+  std::fill(state.begin(), state.end(), 0.0);
+  sample(state, 4, ones, 1, held.data(), nullptr, out.data(), 200, NT_SAMPLER_GATED, 1, 10, 20);
+  check(out[0] == 0.0f && std::abs(out[5] - 0.5f) < 1e-6f && out[10] == 1.0f, "a voice fades in over the attack");
+
+  // A loop repeats the clip while the gate is high.
+  const std::vector<float> four{0.1f, 0.2f, 0.3f, 0.4f};
+  std::vector<double> loopState(nt_sampler_state_len(2, 1));
+  sounding = sample(loopState, 2, four, 1, nullptr, nullptr, out.data(), 12, NT_SAMPLER_LOOP);
+  bool repeats = true;
+  for (size_t i = 0; i < 12; i++) repeats = repeats && out[i] == four[i % 4];
+  check(repeats && sounding == 1, "a looped voice repeats the clip");
+
+  // A stereo clip keeps its channels apart.
+  const std::vector<float> stereo{0.1f, -0.1f, 0.2f, -0.2f, 0.0f, 0.0f};
+  std::vector<double> stereoState(nt_sampler_state_len(2, 2));
+  sample(stereoState, 2, stereo, 2, nullptr, nullptr, out.data(), 4, NT_SAMPLER_ONE_SHOT);
+  check(std::equal(stereo.begin(), stereo.end(), out.begin()) && out[6] == 0 && out[7] == 0,
+        "a stereo sampler voice keeps its channels");
+
+  // Triggers, pitches, releases and a replaced voice: the chunked stream
+  // equals one pass.
+  std::vector<float> busyGate(count), busyPitch(count);
+  for (size_t i = 0; i < count; i++) {
+    busyGate[i] = i % 97 < 31 ? 1.0f : 0.0f;
+    busyPitch[i] = static_cast<float>(static_cast<int>(i / 97) % 5 - 2) * 0.37f;
+  }
+  for (int mode : {NT_SAMPLER_ONE_SHOT, NT_SAMPLER_GATED, NT_SAMPLER_LOOP}) {
+    std::vector<float> whole(count * 2), chunked(count * 2);
+    std::vector<float> stereoClip = randomSignal(2 * 211, 11);
+    std::vector<double> wholeState(nt_sampler_state_len(3, 2)), chunkState(wholeState.size());
+    const int wholeSounding = sample(wholeState, 3, stereoClip, 2, busyGate.data(), busyPitch.data(),
+                                     whole.data(), count, mode, 0.75, 12, 40);
+    int chunkSounding = 0;
+    for (size_t start = 0; start < count;) {
+      const size_t frames = std::min<size_t>(1 + start % 61, count - start);
+      chunkSounding = sample(chunkState, 3, stereoClip, 2, busyGate.data() + start, busyPitch.data() + start,
+                             chunked.data() + start * 2, frames, mode, 0.75, 12, 40);
+      start += frames;
+    }
+    check(whole == chunked && wholeState == chunkState && wholeSounding == chunkSounding,
+          "a chunked sampler stream equals one pass");
+    check(std::any_of(whole.begin(), whole.end(), [](float s) { return s != 0; }), "the sampler stream has sound");
+  }
+
+  check(nt_sampler_state_len(0, 1) == 0 && nt_sampler_state_len(NT_SAMPLER_MAX_VOICES + 1, 1) == 0 &&
+            nt_sampler_state_len(1, 0) == 0 && nt_sampler_state_len(1, NT_SAMPLER_MAX_CHANNELS + 1) == 0,
+        "sampler state rejects invalid dimensions");
+  check(nt_sampler_process(state.data(), 0, clip.data(), length, 1, nullptr, nullptr, out.data(), 4,
+                           NT_SAMPLER_ONE_SHOT, 1, 0, 0, 1) == NT_ERR_ARGS &&
+            nt_sampler_process(state.data(), 4, clip.data(), length, 1, nullptr, nullptr, out.data(), 4, 3, 1, 0,
+                               0, 1) == NT_ERR_ARGS &&
+            nt_sampler_process(state.data(), 4, nullptr, length, 1, nullptr, nullptr, out.data(), 4,
+                               NT_SAMPLER_ONE_SHOT, 1, 0, 0, 1) == NT_ERR_ARGS,
+        "the sampler rejects invalid arguments");
+  std::fill(state.begin(), state.end(), 0.0);
+  check(nt_sampler_process(state.data(), 4, nullptr, 0, 1, nullptr, nullptr, out.data(), 4, NT_SAMPLER_LOOP, 1,
+                           0, 0, 1) == 0 &&
+            std::all_of(out.begin(), out.begin() + 4, [](float s) { return s == 0; }),
+        "a sampler without a clip is silent");
+}
+
+void testSamplerHostileDoubles() {
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+  const double inf = std::numeric_limits<double>::infinity();
+  const float fnan = std::numeric_limits<float>::quiet_NaN();
+  const float finf = std::numeric_limits<float>::infinity();
+  const std::vector<float> clip = randomSignal(2 * 16, 3);
+  const std::vector<float> gate{0, 1, 0, 1, fnan, 1, finf, 0};
+  const std::vector<float> pitch{fnan, finf, -finf, 1e30f, -1e30f, 0, 1, -1};
+  std::vector<float> out(2 * gate.size());
+  for (double bad : {nan, inf, -inf, -1e300, 1e300, 0.0, -1.0, 1.0, 2.0, 7.5}) {
+    for (int mode : {NT_SAMPLER_ONE_SHOT, NT_SAMPLER_GATED, NT_SAMPLER_LOOP}) {
+      std::vector<double> state(nt_sampler_state_len(3, 2), bad);
+      const int status = nt_sampler_process(state.data(), 3, clip.data(), 16, 2, gate.data(), pitch.data(),
+                                            out.data(), gate.size(), mode, bad, bad, bad, 1);
+      check(status >= 0 && status <= 4, "a sampler with hostile state and controls counts its voices");
+      // A huge declick level in the state gives infinite samples, never NaN.
+      check(std::none_of(out.begin(), out.end(), [](float s) { return std::isnan(s); }),
+            "a sampler with hostile state and controls gives numbers");
+    }
+  }
+}
+
+void testStatefulEffects() {
+  constexpr size_t frames = 4097;
+  constexpr uint32_t channels = 2;
+  constexpr double rate = 44100;
+  std::vector<float> input(frames * channels), expected(input.size()), actual(input.size());
+  for (size_t i = 0; i < input.size(); i++) input[i] = static_cast<float>(std::sin(i * 0.19) * 0.8);
+  {
+    std::vector<double> state(nt_audio_bitcrush_state_len(channels, rate, 0));
+    nt_audio_bitcrush_init(state.data(), channels, rate, 0);
+    check(nt_audio_bitcrush_block(state.data(), input.data(), expected.data(), frames, channels, 8, 7) == NT_OK, "bitcrush full block");
+    for (size_t split : {1, 127, 128, 1024, 193, 0}) {
+      nt_audio_bitcrush_init(state.data(), channels, rate, 0);
+      uint32_t seed = 17;
+      for (size_t offset = 0; offset < frames;) {
+        seed = seed * 1664525u + 1013904223u;
+        const size_t count = std::min(split ? split : size_t{1 + seed % 2048}, frames - offset);
+        check(nt_audio_bitcrush_block(state.data(), input.data() + offset * channels,
+          actual.data() + offset * channels, count, channels, 8, 7) == NT_OK, "bitcrush split block");
+        offset += count;
+      }
+      check(expected == actual, "bitcrush chunk invariance");
+    }
+    std::vector<float> clip(input.size());
+    nt_audio_bitcrush(input.data(), clip.data(), frames, channels, 8, 7);
+    check(expected == clip, "bitcrush clip parity");
+  }
+  {
+    std::vector<double> state(nt_audio_compress_state_len(channels, rate, 0));
+    nt_audio_compress_init(state.data(), channels, rate, 0);
+    check(nt_audio_compress_block(state.data(), input.data(), expected.data(), frames, channels, rate, -18, 4, 10, 100, 1) == NT_OK, "compress full block");
+    for (size_t split : {1, 127, 128, 1024, 193, 0}) {
+      nt_audio_compress_init(state.data(), channels, rate, 0);
+      uint32_t seed = 17;
+      for (size_t offset = 0; offset < frames;) {
+        seed = seed * 1664525u + 1013904223u;
+        const size_t count = std::min(split ? split : size_t{1 + seed % 2048}, frames - offset);
+        check(nt_audio_compress_block(state.data(), input.data() + offset * channels,
+          actual.data() + offset * channels, count, channels, rate, -18, 4, 10, 100, 1) == NT_OK, "compress split block");
+        offset += count;
+      }
+      check(expected == actual, "compress chunk invariance");
+    }
+    std::vector<float> clip(input.size());
+    nt_audio_compress(input.data(), clip.data(), frames, channels, rate, -18, 4, 10, 100, 1);
+    check(expected == clip, "compress clip parity");
+  }
+  {
+    std::vector<double> state(nt_audio_limiter_state_len(channels, rate, 0));
+    nt_audio_limiter_init(state.data(), channels, rate, 0);
+    check(nt_audio_limiter_block(state.data(), input.data(), expected.data(), frames, channels, rate, -3, 50, 0) == NT_OK, "limiter full block");
+    for (size_t split : {1, 127, 128, 1024, 193, 0}) {
+      nt_audio_limiter_init(state.data(), channels, rate, 0);
+      uint32_t seed = 17;
+      for (size_t offset = 0; offset < frames;) {
+        seed = seed * 1664525u + 1013904223u;
+        const size_t count = std::min(split ? split : size_t{1 + seed % 2048}, frames - offset);
+        check(nt_audio_limiter_block(state.data(), input.data() + offset * channels,
+          actual.data() + offset * channels, count, channels, rate, -3, 50, 0) == NT_OK, "limiter split block");
+        offset += count;
+      }
+      check(expected == actual, "limiter chunk invariance");
+    }
+    std::vector<float> clip(input.size());
+    nt_audio_limiter(input.data(), clip.data(), frames, channels, rate, -3, 50, 0);
+    check(expected == clip, "limiter clip parity");
+  }
+  {
+    std::vector<double> state(nt_audio_noise_gate_state_len(channels, rate, 0));
+    nt_audio_noise_gate_init(state.data(), channels, rate, 0);
+    check(nt_audio_noise_gate_block(state.data(), input.data(), expected.data(), frames, channels, rate, -20, 1, 50) == NT_OK, "noise_gate full block");
+    for (size_t split : {1, 127, 128, 1024, 193, 0}) {
+      nt_audio_noise_gate_init(state.data(), channels, rate, 0);
+      uint32_t seed = 17;
+      for (size_t offset = 0; offset < frames;) {
+        seed = seed * 1664525u + 1013904223u;
+        const size_t count = std::min(split ? split : size_t{1 + seed % 2048}, frames - offset);
+        check(nt_audio_noise_gate_block(state.data(), input.data() + offset * channels,
+          actual.data() + offset * channels, count, channels, rate, -20, 1, 50) == NT_OK, "noise_gate split block");
+        offset += count;
+      }
+      check(expected == actual, "noise_gate chunk invariance");
+    }
+    std::vector<float> clip(input.size());
+    nt_audio_noise_gate(input.data(), clip.data(), frames, channels, rate, -20, 1, 50);
+    check(expected == clip, "noise_gate clip parity");
+  }
+  {
+    std::vector<double> state(nt_audio_phaser_state_len(channels, rate, 0));
+    nt_audio_phaser_init(state.data(), channels, rate, 0);
+    check(nt_audio_phaser_block(state.data(), input.data(), expected.data(), frames, channels, rate, 0.5, 0.7, 1000, 0.3, 0.5) == NT_OK, "phaser full block");
+    for (size_t split : {1, 127, 128, 1024, 193, 0}) {
+      nt_audio_phaser_init(state.data(), channels, rate, 0);
+      uint32_t seed = 17;
+      for (size_t offset = 0; offset < frames;) {
+        seed = seed * 1664525u + 1013904223u;
+        const size_t count = std::min(split ? split : size_t{1 + seed % 2048}, frames - offset);
+        check(nt_audio_phaser_block(state.data(), input.data() + offset * channels,
+          actual.data() + offset * channels, count, channels, rate, 0.5, 0.7, 1000, 0.3, 0.5) == NT_OK, "phaser split block");
+        offset += count;
+      }
+      check(expected == actual, "phaser chunk invariance");
+    }
+    std::vector<float> clip(input.size());
+    nt_audio_phaser(input.data(), clip.data(), frames, channels, rate, 0.5, 0.7, 1000, 0.3, 0.5);
+    check(expected == clip, "phaser clip parity");
+  }
+  {
+    std::vector<double> state(nt_audio_reverb_state_len(channels, rate, 0));
+    nt_audio_reverb_init(state.data(), channels, rate, 0);
+    check(nt_audio_reverb_block(state.data(), input.data(), expected.data(), frames, channels, rate, 0.5, 0.5, 0.3, 0.7) == NT_OK, "reverb full block");
+    for (size_t split : {1, 127, 128, 1024, 193, 0}) {
+      nt_audio_reverb_init(state.data(), channels, rate, 0);
+      uint32_t seed = 17;
+      for (size_t offset = 0; offset < frames;) {
+        seed = seed * 1664525u + 1013904223u;
+        const size_t count = std::min(split ? split : size_t{1 + seed % 2048}, frames - offset);
+        check(nt_audio_reverb_block(state.data(), input.data() + offset * channels,
+          actual.data() + offset * channels, count, channels, rate, 0.5, 0.5, 0.3, 0.7) == NT_OK, "reverb split block");
+        offset += count;
+      }
+      check(expected == actual, "reverb chunk invariance");
+    }
+    std::vector<float> clip(input.size());
+    nt_audio_reverb(input.data(), clip.data(), frames, channels, rate, 0.5, 0.5, 0.3, 0.7);
+    check(expected == clip, "reverb clip parity");
+  }
+  {
+    std::vector<double> state(nt_audio_delay_state_len(channels, rate, 0.013));
+    nt_audio_delay_init(state.data(), channels, rate, 0.013);
+    check(nt_audio_delay_block(state.data(), input.data(), expected.data(), frames, channels, rate, 0.013, 0.5, 0.5) == NT_OK, "delay full block");
+    for (size_t split : {1, 127, 128, 1024, 193, 0}) {
+      nt_audio_delay_init(state.data(), channels, rate, 0.013);
+      uint32_t seed = 17;
+      for (size_t offset = 0; offset < frames;) {
+        seed = seed * 1664525u + 1013904223u;
+        const size_t count = std::min(split ? split : size_t{1 + seed % 2048}, frames - offset);
+        check(nt_audio_delay_block(state.data(), input.data() + offset * channels,
+          actual.data() + offset * channels, count, channels, rate, 0.013, 0.5, 0.5) == NT_OK, "delay split block");
+        offset += count;
+      }
+      check(expected == actual, "delay chunk invariance");
+    }
+    const size_t outputFrames = nt_audio_delay_output_frames(frames, rate, 0.013);
+    std::vector<float> clip(outputFrames * channels), streamed(outputFrames * channels);
+    nt_audio_delay(input.data(), clip.data(), frames, channels, rate, 0.013, 0.5, 0.5);
+    nt_audio_delay_init(state.data(), channels, rate, 0.013);
+    nt_audio_delay_block(state.data(), input.data(), streamed.data(), frames, channels, rate, 0.013, 0.5, 0.5);
+    std::vector<float> silence((outputFrames - frames) * channels);
+    nt_audio_delay_block(state.data(), silence.data(), streamed.data() + frames * channels, outputFrames - frames, channels, rate, 0.013, 0.5, 0.5);
+    check(streamed == clip, "delay block plus tail matches clip");
+    check(nt_audio_delay_state_len(channels, rate, 2.01) == 0, "delay state rejects 2.01 seconds");
+    check(nt_audio_delay_init(state.data(), channels, rate, 2.01) == NT_ERR_ARGS, "delay init rejects 2.01 seconds");
+    check(nt_audio_delay_block(state.data(), input.data(), actual.data(), frames, channels, rate, 2.01, 0.5, 0.5) == NT_ERR_ARGS, "delay block rejects 2.01 seconds");
+  }
+}
+
 }  // namespace
 
 void testPcm() {
@@ -305,6 +707,11 @@ int main() {
   testBiquad();
   testSynth();
   testEffects();
+  testStatefulEffects();
+  testStreamingHostileDoubles();
+  testResample();
+  testSampler();
+  testSamplerHostileDoubles();
   testHostileDoubles();
   testPcm();
   if (failures) {

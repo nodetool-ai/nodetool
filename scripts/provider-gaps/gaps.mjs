@@ -77,3 +77,26 @@ export function parseGeminiImageModels(page) {
     .map((model) => String(model.name ?? "").replace(/^models\//, ""))
     .filter((id) => /image|nano-banana/i.test(id));
 }
+
+/**
+ * Video model ids in `GEMINI_VIDEO_MODELS`. These are offered from the file
+ * itself, so nothing else notices when Google retires one.
+ */
+export function parseGeminiVideoIds(source) {
+  const start = source.indexOf("const GEMINI_VIDEO_MODELS");
+  if (start === -1) return [];
+  const end = source.indexOf("];", start);
+  const body = source.slice(start, end === -1 ? undefined : end);
+  return [...body.matchAll(/\bid:\s*"(veo-[^"]+)"/g)].map((m) => m[1]);
+}
+
+/**
+ * The served-model drift report: every checked id the provider no longer
+ * serves, with the status it answered, sorted by id.
+ */
+export function staleServedModels(results) {
+  return results
+    .filter((result) => !result.ok)
+    .map(({ id, status }) => ({ id, status }))
+    .sort((a, b) => a.id.localeCompare(b.id));
+}

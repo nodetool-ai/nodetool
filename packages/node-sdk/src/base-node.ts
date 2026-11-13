@@ -179,6 +179,7 @@ export type NodeClass = {
   }) => DerivedDynamicSlots | undefined;
   isTrigger: boolean;
   alwaysEmitOutputUpdates?: boolean;
+  readonly audioSink?: "live" | "render";
   inputMode?: InputMode;
   outputCorrelation?: Record<string, OutputCorrelation>;
   supportsDynamicInputs: boolean;
@@ -370,6 +371,7 @@ export abstract class BaseNode {
    * (e.g. the realtime audio monitor) opt in.
    */
   static readonly alwaysEmitOutputUpdates: boolean = false;
+  static readonly audioSink?: "live" | "render";
   static readonly inputMode: InputMode | undefined = undefined;
   static readonly outputCorrelation:
     | Record<string, OutputCorrelation>

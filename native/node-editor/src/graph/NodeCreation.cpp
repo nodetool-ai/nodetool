@@ -48,6 +48,7 @@ int bespokeHeight(const QString &type) {
     {"nodetool.audio.synth.VCA",180},{"nodetool.audio.synth.VCF",208},
     {"nodetool.audio.synth.Attenuverter",180},{"nodetool.audio.synth.SampleHold",96},
     {"nodetool.audio.synth.Mixer",264},{"nodetool.audio.realtime.StreamingGain",180},
+    {"nodetool.audio.realtime.StreamingLowShelf",220},{"nodetool.audio.realtime.StreamingHighShelf",220},{"nodetool.audio.realtime.StreamingPeak",220},{"nodetool.audio.realtime.StreamingBitcrush",240},{"nodetool.audio.realtime.StreamingCompress",240},{"nodetool.audio.realtime.StreamingDistortion",180},{"nodetool.audio.realtime.StreamingLimiter",220},{"nodetool.audio.realtime.StreamingNoiseGate",220},{"nodetool.audio.realtime.StreamingReverb",240},{"nodetool.audio.realtime.StreamingPhaser",264},{"nodetool.audio.realtime.StreamingDelay",220},
     {"nodetool.audio.realtime.StreamingLowPass",180},{"nodetool.audio.realtime.StreamingHighPass",180},
     {"lib.audio.Gain",180},{"lib.audio.Delay",180},{"lib.audio.HighPassFilter",180},
     {"lib.audio.LowPassFilter",180},{"lib.audio.HighShelfFilter",180},{"lib.audio.LowShelfFilter",180},
