@@ -2,6 +2,7 @@
 #include "nodetool/realtime/audio.h"
 #include "nodetool/realtime/control.h"
 #include "nodetool/realtime/offline_clock.h"
+#include "offline_slots.h"
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -77,16 +78,14 @@ OfflineResult runOffline(std::string_view json, const OfflineOptions& options) {
         auto loaded = loadPlan(json, registry);
         if (!loaded.plan) { return {loaded.error, 0, 0}; }
         const auto& plan = *loaded.plan;
-        if (!plan["slots"].empty()) {
-            return failure("unsupported", "Offline driver does not yet load external slots");
-        }
         const auto rate = plan["session"]["sampleRate"].get<unsigned>();
         const auto channels = plan["session"]["channels"] == "mono" ? 1u : 2u;
         const auto width = plan["session"]["width"].get<unsigned>();
         const auto height = plan["session"]["height"].get<unsigned>();
         const auto clock = OfflineClock::prepare(options.duration, options.fps, rate);
         if (!clock) { return failure("clock", "Expected positive duration <= 600 and fps <= 240, as integer, decimal or fraction"); }
-        auto audio = AudioExecutor::prepare(plan);
+        auto slots = loadOfflineSlots(plan, options.slots);
+        auto audio = AudioExecutor::prepare(plan, std::move(slots.audio));
         if (!audio.executor) { return {audio.error, 0, 0}; }
         auto audioControl = ControlExecutor::prepare(plan, ControlDomain::audio);
         if (!audioControl.executor) { return {audioControl.error, 0, 0}; }
@@ -96,6 +95,7 @@ OfflineResult runOffline(std::string_view json, const OfflineOptions& options) {
 #ifdef NT_OFFLINE_GPU
         std::unique_ptr<OfflineGpu> gpu;
         std::vector<std::byte> pixels;
+        std::vector<std::uint64_t> slotVersions;
         if (wantsRender) {
             if (!plan["render"].contains("present") || plan["render"]["present"]["colorSpace"] != "srgb") {
                 return failure("presentation", "PNG export requires a present output with srgb color space");
@@ -103,6 +103,17 @@ OfflineResult runOffline(std::string_view json, const OfflineOptions& options) {
             auto prepared = OfflineGpu::prepare(plan, registry, catalog);
             if (!prepared.gpu) { return {prepared.error, 0, 0}; }
             gpu = std::move(prepared.gpu);
+            slotVersions.resize(gpu->slots().size());
+            for (unsigned i = 0; i < gpu->slots().size(); ++i) {
+                const auto& slot = gpu->slots()[i];
+                const auto input = slots.textures.find(slot.id);
+                if (input == slots.textures.end()) { continue; }
+                if (input->second.size() != slot.texture.bytes() || !gpu->uploadSlot(i, input->second)) {
+                    return {Diagnostic{slot.id, "texture_slot", "Raw texture size or upload does not match the prepared slot"}, 0, 0};
+                }
+                slotVersions[i] = 1;
+            }
+            slots.textures.clear();
             pixels.resize(gpu->readbackBytes());
         }
 #endif
@@ -178,7 +189,7 @@ OfflineResult runOffline(std::string_view json, const OfflineOptions& options) {
             lastRenderTime = time.seconds;
 #ifdef NT_OFFLINE_GPU
             if (gpu) {
-                if (!gpu->render({renderControl.executor->registers(), {}, true, false}, true).readbackQueued) {
+                if (!gpu->render({renderControl.executor->registers(), slotVersions, true, false}, true).readbackQueued) {
                     throw std::runtime_error("GPU frame submission rejected");
                 }
                 const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);

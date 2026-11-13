@@ -87,12 +87,12 @@ Buffer buffer(WGPUDevice device, std::size_t size, WGPUBufferUsage usage) {
     WGPUBufferDescriptor descriptor = WGPU_BUFFER_DESCRIPTOR_INIT; descriptor.size = size; descriptor.usage = usage;
     return Buffer(wgpuDeviceCreateBuffer(device, &descriptor));
 }
-void renderPass(WGPUCommandEncoder encoder, WGPURenderPipeline pipeline, WGPUBindGroup group, WGPUTextureView target) {
+void renderPass(WGPUCommandEncoder encoder, WGPURenderPipeline pipeline, WGPUBindGroup group, WGPUTextureView target, const std::uint32_t* offset = nullptr) {
     WGPURenderPassColorAttachment color = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
     color.view = target; color.loadOp = WGPULoadOp_Clear; color.storeOp = WGPUStoreOp_Store;
     WGPURenderPassDescriptor descriptor = WGPU_RENDER_PASS_DESCRIPTOR_INIT; descriptor.colorAttachmentCount = 1; descriptor.colorAttachments = &color;
     RenderPass pass(wgpuCommandEncoderBeginRenderPass(encoder, &descriptor));
-    wgpuRenderPassEncoderSetPipeline(pass.get(), pipeline); wgpuRenderPassEncoderSetBindGroup(pass.get(), 0, group, 0, nullptr);
+    wgpuRenderPassEncoderSetPipeline(pass.get(), pipeline); wgpuRenderPassEncoderSetBindGroup(pass.get(), 0, group, offset ? 1 : 0, offset);
     wgpuRenderPassEncoderDraw(pass.get(), 3, 1, 0, 0); wgpuRenderPassEncoderEnd(pass.get());
 }
 RenderPipeline pipeline(WGPUDevice device, WGPUBindGroupLayout layout, WGPUShaderModule module,
@@ -145,6 +145,7 @@ OfflineGpu::OfflineGpu(std::unique_ptr<Storage> storage) : storage_(std::move(st
 OfflineGpu::~OfflineGpu() = default;
 bool OfflineGpu::healthy() const noexcept { return !storage_->status.failed.load(std::memory_order_acquire); }
 std::size_t OfflineGpu::readbackBytes() const noexcept { return static_cast<std::size_t>(storage_->width) * storage_->height * 4; }
+std::span<const RenderSlotSpec> OfflineGpu::slots() const noexcept { return storage_->schedule->slots(); }
 bool OfflineGpu::poll() noexcept {
     wgpuDevicePoll(storage_->device.get(), false, nullptr); wgpuInstanceProcessEvents(storage_->instance.get());
     return healthy();
@@ -225,12 +226,13 @@ OfflineFrameResult OfflineGpu::render(const RenderFrameInput& input, bool readba
             });
         if (variant == pass.variants.end() || variant->textures.back() != command.output ||
             !std::equal(command.inputs.begin(), command.inputs.end(), variant->textures.begin())) { return reject(); }
-        if (pass.render) { renderPass(encoder.get(), pass.render.get(), variant->group.get(), data.views[command.output].get()); }
+        const auto offset = static_cast<std::uint32_t>(pass.offset);
+        if (pass.render) { renderPass(encoder.get(), pass.render.get(), variant->group.get(), data.views[command.output].get(), pass.size ? &offset : nullptr); }
         else {
             WGPUComputePassDescriptor pd = WGPU_COMPUTE_PASS_DESCRIPTOR_INIT;
             ComputePass encoded(wgpuCommandEncoderBeginComputePass(encoder.get(), &pd));
             wgpuComputePassEncoderSetPipeline(encoded.get(), pass.compute.get());
-            wgpuComputePassEncoderSetBindGroup(encoded.get(), 0, variant->group.get(), 0, nullptr);
+            wgpuComputePassEncoderSetBindGroup(encoded.get(), 0, variant->group.get(), pass.size ? 1 : 0, pass.size ? &offset : nullptr);
             wgpuComputePassEncoderDispatchWorkgroups(encoded.get(), 1 + (pass.output.width - 1) / pass.workgroup[0],
                 1 + (pass.output.height - 1) / pass.workgroup[1], 1);
             wgpuComputePassEncoderEnd(encoded.get());
@@ -381,10 +383,19 @@ OfflineGpu::Prepared OfflineGpu::prepare(const Plan& plan, const Registry& regis
                 require(premultiplied == (contracts[name].value("alpha", "premultiplied") != "straight"), "Catalog input requires explicit alpha conversion");
             }
             std::vector<WGPUBindGroupLayoutEntry> entries;
+            unsigned uniformBindings = 0;
             for (const auto& entry : module.at("layout")) {
                 WGPUBindGroupLayoutEntry value = WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT;
                 value.binding = entry.at("binding"); value.visibility = entry.at("visibility");
-                if (entry.contains("buffer")) { require(entry["buffer"].value("type", "uniform") == "uniform", "Only uniform buffer bindings supported"); value.buffer.type = WGPUBufferBindingType_Uniform; }
+                if (entry.contains("buffer")) {
+                    require(entry["buffer"].value("type", "uniform") == "uniform", "Only uniform buffer bindings supported");
+                    ++uniformBindings;
+                    value.buffer.type = WGPUBufferBindingType_Uniform;
+                    value.buffer.minBindingSize = pass.size;
+                    // Select the prepared pass range at encoding. Static ranges produced
+                    // wrong per-pass values in the pinned Windows D3D12 regression.
+                    value.buffer.hasDynamicOffset = true;
+                }
                 else if (entry.contains("texture")) {
                     require(entry["texture"].value("viewDimension", "2d") == "2d" && !entry["texture"].value("multisampled", false), "Only single-sample 2D textures supported");
                     const auto sample = entry["texture"].value("sampleType", "float"); require(sample == "float" || sample == "unfilterable-float", "Unsupported sample type");
@@ -399,6 +410,7 @@ OfflineGpu::Prepared OfflineGpu::prepare(const Plan& plan, const Registry& regis
                 } else { throw std::runtime_error("Unsupported bind layout entry"); }
                 entries.push_back(value);
             }
+            require(uniformBindings == (pass.size ? 1u : 0u), "Catalog must use one binding for its uniform block");
             WGPUBindGroupLayoutDescriptor ld = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT; ld.entryCount = entries.size(); ld.entries = entries.data();
             pass.layout.reset(wgpuDeviceCreateBindGroupLayout(data->device.get(), &ld));
             checkpoint();
@@ -454,7 +466,7 @@ OfflineGpu::Prepared OfflineGpu::prepare(const Plan& plan, const Registry& regis
                 for (const auto& binding : module.at("bindings")) {
                     WGPUBindGroupEntry entry = WGPU_BIND_GROUP_ENTRY_INIT; entry.binding = binding.at("binding");
                     const auto kind = binding.at("kind").get<std::string>(), name = binding.at("name").get<std::string>();
-                    if (kind == "uniform") { require(pass.size > 0, "Uniform binding without block"); entry.buffer = data->uniforms.get(); entry.offset = pass.offset; entry.size = pass.size; }
+                    if (kind == "uniform") { require(pass.size > 0, "Uniform binding without block"); entry.buffer = data->uniforms.get(); entry.offset = 0; entry.size = pass.size; }
                     else if (kind == "texture") {
                         const auto found = std::find(spec.inputs.begin(), spec.inputs.end(), name);
                         if (found == spec.inputs.end()) { require(contracts.contains(name) && contracts[name].value("optional", false), "Missing declared texture input"); entry.textureView = data->whiteView.get(); }

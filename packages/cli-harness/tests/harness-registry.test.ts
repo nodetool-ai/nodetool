@@ -420,6 +420,17 @@ describe("harness gate", () => {
   });
 
   it.each([
+    "native/realtime/src/offline.cpp",
+    "native/realtime/scripts/check.mjs",
+    "native/realtime/budgets/offline.json",
+    "native/graph-runner/src/main.cpp"
+  ])("selects the offline realtime check for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.checks.find((entry) => entry.harnessId === "realtime-offline"))
+      .toMatchObject({ command: "node native/realtime/scripts/check.mjs", cost: "expensive" });
+  });
+
+  it.each([
     "native/node-editor/CMakeLists.txt",
     "native/node-editor/src/graph/WorkflowGraphModel.cpp",
     "native/node-editor/qml/Inspector.qml",

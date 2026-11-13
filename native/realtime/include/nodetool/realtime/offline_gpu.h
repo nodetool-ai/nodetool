@@ -38,6 +38,7 @@ public:
     // Returns false for no ready result, insufficient space or failed GPU state.
     bool takeReadback(std::span<std::byte> bytes, std::uint64_t& frame) noexcept;
     std::size_t readbackBytes() const noexcept;
+    std::span<const RenderSlotSpec> slots() const noexcept;
     bool healthy() const noexcept;
 private:
     std::unique_ptr<Storage> storage_;

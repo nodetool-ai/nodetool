@@ -9,8 +9,9 @@ Provisional M1 development adds the [plan IR and loader](schema/README.md),
 [render scheduling core and offline GPU backend](render.md) are in progress.
 GPU execution verification and live/shared-device support remain unfinished.
 WP09 includes an [exact offline clock and control/audio export command](offline.md).
-GPU-enabled builds also prepare PNG export. Runtime verification and graph-runner
-CLI integration remain pending.
+GPU-enabled builds also prepare PNG export. The same offline command can be
+enabled in graph-runner. See the offline guide for local slot bindings and the
+registered verification entry point.
 
 ## Build and test
 

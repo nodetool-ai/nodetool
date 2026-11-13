@@ -1,15 +1,15 @@
 # Offline execution preparation
 
 WP09 is in progress. The standalone driver exports float WAV tracks and,
-in GPU-enabled builds, PNG frames from the private-device backend. External
-slots, the graph-runner command and registry gate remain pending. Broad test
-runs are deferred until the larger offline-driver task is ready. Runtime GPU
-export and its pixel references have not been exercised locally.
+in GPU-enabled builds, PNG frames from the private-device backend. Local slot
+files, graph-runner command dispatch and the registered verification script
+are implemented. Verification status and hardware gaps are recorded in
+[M1_STATUS.md](M1_STATUS.md).
 
 ## Prepared audio command
 
 Build the default core targets using the [build instructions](README.md#build-and-test).
-The command below prepares a one-second oscillator export when testing resumes:
+The command below creates a one-second oscillator export:
 
 ```sh
 native/realtime/build/nodetool-realtime live native/realtime/tests/fixtures/offline-audio.json --duration 1 --fps 30000/1001 --out tone-export --null-audio
@@ -75,8 +75,76 @@ The render export fixture prepares render-only and mixed audio/render runs,
 checks decoded PNG pixels against a translucent red reference and compares
 repeat PNG/WAV/manifest bytes. A `time.dt` reference checks video-frame duration
 independently of intervening audio quanta. Its first video frame has zero dt.
-These fixtures compile but have not run. The default core CI build excludes
-the optional GPU backend and cannot qualify these exports.
+The default core CI build excludes the optional GPU backend. A separate
+software-adapter job runs the export checks with lavapipe. Neither job supplies
+M0's hardware measurements.
+
+## Local slot files
+
+Bind each consumed external input explicitly with `--slot ID=FILE`. Bindings
+resolve against the command's working directory and do not reinterpret the
+plan's opaque `source` field. The offline host does not fetch asset URIs or
+network URLs. CLI slot IDs cannot contain `=`. The C++ API accepts slot IDs
+and paths separately through `OfflineOptions::slots`.
+
+Buffer files contain finite IEEE float32 little-endian samples in planar
+channel order: the complete first channel, then the second for stereo. They
+must already match the session sample rate and declared layout. The driver
+does no decoding, resampling or channel conversion. The sample-player kernel
+reads these immutable samples and produces silence after their end.
+
+Texture files contain tightly packed RGBA8 or IEEE half RGBA bytes according
+to the slot's prepared format and dimensions. Pixels must already match the
+declared color-space and alpha convention. Texture uploads happen once during
+preparation and have a fixed version during the export.
+
+Consumed files must be regular, nonempty files with a combined payload of at
+most 256 MiB. PCM payloads transfer to the audio executor. Host texture bytes
+are released after synchronous uploads to the private GPU. Executors and
+streams remain owned by the offline host thread until return.
+
+Missing, duplicate and unknown bindings fail before output creation. Bindings
+for unused inputs are rejected. Unused buffer and texture declarations need
+no binding and cause no file read. Control, event and latched external slots
+are not yet supported. No live file is reread during an export.
+
+## Graph-runner integration
+
+The full graph runner can expose the same command by configuring its existing
+build with `-DNODETOOL_GRAPH_RUNNER_REALTIME=ON`. The option defaults off, so
+ordinary graph execution and embedding do not acquire this dependency.
+
+```sh
+nodetool-graph-runner live plan.json --duration 1 --fps 60 --out new-export --slot pcm=audio.f32
+```
+
+The dispatch runs before guest-host initialization and calls the same
+`offlineMain` implementation as the standalone CLI. It needs no guest bundle.
+The graph-runner CI configuration enables the option and checks actual command
+dispatch. The standalone CLI retains Windows wide-argument handling. Full
+graph-runner portability remains subject to that host's existing platform
+requirements.
+
+## Verification entry point
+
+```sh
+node native/realtime/scripts/check.mjs
+```
+
+The `realtime-offline` registry entry selects this check for core, driver,
+schema, fixture and command-dispatch changes. It is an expensive selfcheck
+because a fresh run configures and builds native dependencies. Include
+`--expensive` when asking the root harness gate to execute it.
+
+Set `NODETOOL_REALTIME_BUILD_DIR` to reuse another build directory. Build the
+protocol and GPU packages first, and put CMake and CTest on `PATH`. Linux needs
+a software adapter such as lavapipe. The check fails on a missing adapter and
+does not skip GPU coverage. It verifies the required CTest inventory before
+running tests, then checks the real CLI with Unicode paths and planar PCM.
+Negative controls prove missing inventory and invalid arguments are rejected.
+
+[offline.json](budgets/offline.json) records command/test timeouts and required
+test names. These are verification limits, not realtime deadline claims.
 
 ## Clock contract
 
@@ -116,7 +184,7 @@ are no worker threads or asynchronous callbacks in the driver.
 Prepared clock fixtures cover fractional rates, exact quantum boundaries,
 partial final quanta, a maximum-duration schedule, equivalent decimal/fraction
 inputs, large integer products and rejected inputs. They are registered as
-`realtime-offline-clock` in CTest and have not been executed locally.
+`realtime-offline-clock` in CTest. The Windows offline harness passes them.
 
 The driver and its fixture executable compile and link with MSVC Release.
 Prepared `realtime-offline-driver` cases cover WAV chunks and sample values,
@@ -126,8 +194,11 @@ preservation. Binding cases cover sparse IDs, stateful endpoint samples,
 cadence independence, wrong-domain/missing producers, vector values and float
 overflow. Source inspection corrected an earlier fixture's nonexistent
 `constant` kernel to an oscillator with an independent sine reference.
-These fixtures remain unrun. CLI runtime behavior, sanitizer
-checks and aggregate checks are also unverified.
+These fixtures and the standalone CLI checks pass in the Windows Release and
+ASan offline harnesses. Linux sanitizer qualification and full graph-runner
+dispatch remain pending.
+See [verification details](M1_STATUS.md#verification-of-the-offline-integration)
+for repository-wide check results.
 
 The [private-device GPU exception](render.md#native-pipeline-api-limitation)
 and [milestone verification gaps](M1_STATUS.md) still apply. This clock does not

@@ -19,6 +19,7 @@ on:
       - "native/node-editor/**"
       - "packages/audio-nodes/**"
       - "packages/kernels/**"
+      - "native/realtime/**"
       - ".github/workflows/native-graph-runner.yml"
       - "docker/ci-native/**"
   push:
@@ -30,6 +31,7 @@ on:
       - "native/node-editor/**"
       - "packages/audio-nodes/**"
       - "packages/kernels/**"
+      - "native/realtime/**"
       - ".github/workflows/native-graph-runner.yml"
 
 permissions:
@@ -200,7 +202,8 @@ jobs:
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_C_FLAGS="$SAN_FLAGS" -DCMAKE_CXX_FLAGS="$SAN_FLAGS" \
             -DCMAKE_EXE_LINKER_FLAGS="$SAN_FLAGS" -DCMAKE_SHARED_LINKER_FLAGS="$SAN_FLAGS" \
-            -DGR_TEST_TESSDATA=/usr/share/tesseract-ocr/5/tessdata
+            -DGR_TEST_TESSDATA=/usr/share/tesseract-ocr/5/tessdata \
+            -DNODETOOL_GRAPH_RUNNER_REALTIME=ON
 
       - name: Build
         id: native_build
@@ -267,6 +270,9 @@ jobs:
           sel=()
           if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
           ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"
+
+      - name: Verify realtime command dispatch
+        run: node native/realtime/scripts/cli-check.mjs native/graph-runner/build/nodetool-graph-runner
 
       - name: Install Qt for the node editor
         id: editor_qt
