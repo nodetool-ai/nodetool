@@ -6569,11 +6569,15 @@
           "video": "Wideo",
           "audio": "Dźwięk"
         },
-        "attachedImageActions": {
-          "label": "Obrazy na start",
-          "hint": "Obrazy dołączone. Opisz, co chcesz stworzyć, albo zacznij od nich:",
-          "video": "Animuj jako wideo",
-          "image": "Utwórz nowe obrazy"
+        "attachedFileActions": {
+          "label": "Zacznij od swoich plików",
+          "hint": "Pliki dołączone. Opisz, co chcesz stworzyć, albo zacznij od nich:",
+          "animate": "Animuj jako wideo",
+          "image": "Utwórz nowe obrazy",
+          "retake": "Edytuj wideo",
+          "script": "Zamień w scenariusz",
+          "ask": "Zapytaj o nie",
+          "askPrompt": "Przejrzyj dołączone pliki i zaproponuj, co mogę z nich zrobić."
         }
       }
     }

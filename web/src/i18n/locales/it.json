@@ -6483,11 +6483,15 @@
           "video": "Video",
           "audio": "Audio"
         },
-        "attachedImageActions": {
-          "label": "Immagini di partenza",
-          "hint": "Immagini allegate. Descrivi cosa creare oppure parti da queste:",
-          "video": "Anima in un video",
-          "image": "Crea nuove immagini"
+        "attachedFileActions": {
+          "label": "Inizia dai tuoi file",
+          "hint": "File allegati. Descrivi cosa creare oppure parti da questi:",
+          "animate": "Anima in un video",
+          "image": "Crea nuove immagini",
+          "retake": "Modifica il video",
+          "script": "Trasforma in sceneggiatura",
+          "ask": "Chiedi informazioni",
+          "askPrompt": "Guarda i file allegati e suggerisci cosa potrei crearne."
         }
       }
     }

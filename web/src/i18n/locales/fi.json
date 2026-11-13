@@ -6397,11 +6397,15 @@
           "video": "Video",
           "audio": "Ääni"
         },
-        "attachedImageActions": {
-          "label": "Kuvat lähtökohtana",
-          "hint": "Kuvat liitetty. Kuvaile, mitä haluat tehdä, tai aloita niistä:",
-          "video": "Animoi videoksi",
-          "image": "Luo uusia kuvia"
+        "attachedFileActions": {
+          "label": "Aloita tiedostoistasi",
+          "hint": "Tiedostot liitetty. Kuvaile, mitä haluat tehdä, tai aloita niistä:",
+          "animate": "Animoi videoksi",
+          "image": "Luo uusia kuvia",
+          "retake": "Muokkaa videota",
+          "script": "Tee käsikirjoitukseksi",
+          "ask": "Kysy niistä",
+          "askPrompt": "Katso liitetyt tiedostot ja ehdota, mitä voisin tehdä niistä."
         }
       }
     }
