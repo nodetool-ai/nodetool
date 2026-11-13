@@ -307,7 +307,7 @@ const PC = { C:0, "C#":1, D:2, "D#":3, E:4, F:5, "F#":6, G:7, "G#":8, A:9, "A#":
 
 // ---------- utils ----------
 const $ = s => document.querySelector(s);
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const rng = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
 const hash = s => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const randSeed = () => Math.floor(Math.random() * 90000) + 10000;
@@ -844,7 +844,7 @@ tlInner.addEventListener("click", e => {
 panel.addEventListener("click", e => {
   const t = e.target.closest("button, .info"); if (!t) return;
   const d = t.dataset;
-  if (d.op) { view.op = d.op; view.model = null; render(); }
+  if (d.op) { view.op = Object.keys(OP_NAME).find(o => o === d.op) || null; view.model = null; render(); }
   else if (d.hist) { view.prompt = doc.promptHistory[+d.hist]; render(); }
   else if (d.cand) { view.cands = Math.max(1, Math.min(4, view.cands + +d.cand)); render(); }
   else if (t.id === "goBtn") submit();
@@ -861,7 +861,7 @@ panel.addEventListener("input", e => {
 });
 panel.addEventListener("change", e => {
   if (e.target.id === "seedMode") { view.seedMode = e.target.value; render(); }
-  if (e.target.id === "modelSel") { view.model = e.target.value; render(); }
+  if (e.target.id === "modelSel") { view.model = [TURBO, BASE].find(m => m === e.target.value) || null; render(); }
   if (e.target.id === "failNext") view.failNext = e.target.checked;
 });
 panel.addEventListener("keydown", e => { if (e.target.id === "prompt" && e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(); } });
