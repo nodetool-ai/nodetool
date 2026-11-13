@@ -195,7 +195,9 @@ void semantics(const Json& plan, const Registry& registry, const Plan* previous,
         const auto& pass = passes[i]; const auto& name = passNames[i];
         const auto module = registry.modules.find(pass["module"].get<std::string>());
         if (module == registry.modules.end()) { reject(name, "unknown_module", pass["module"]); }
-        if (pass["inputs"].size() != module->second.inputs.size()) { reject(name, "port", "Module input count differs"); }
+        for (const auto& [input, contract] : module->second.inputs) {
+            if (!contract.optional && !pass["inputs"].contains(input)) { reject(name, "port", "Missing required module input: " + input); }
+        }
         if (pass["uniforms"].size() != module->second.uniforms) { reject(name, "uniform", "Module uniform count differs"); }
         for (const auto& reg : pass["uniforms"]) {
             if (!registers.contains("render:" + std::to_string(reg.get<unsigned>()))) { reject(name, "register", "Uniform has no render-domain producer"); }

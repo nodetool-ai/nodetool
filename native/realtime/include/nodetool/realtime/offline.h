@@ -8,6 +8,7 @@ struct OfflineOptions {
     std::string duration = "1";
     std::string fps = "60";
     std::filesystem::path output;
+    std::filesystem::path catalog;
 };
 struct OfflineResult {
     std::optional<Diagnostic> error;
@@ -17,6 +18,7 @@ struct OfflineResult {
 // Synchronous offline host-thread entry point. Owns executors and output streams
 // until return. File I/O is outside executor calls. Creates a new output directory
 // and leaves partial files on failure, without a success manifest.
-// Current scope: control/audio graphs without slots or render passes.
+// Render export requires the optional private-device GPU build. External slots
+// remain unsupported. Catalog defaults to the build's generated shader catalog.
 OfflineResult runOffline(std::string_view json, const OfflineOptions& options);
 }

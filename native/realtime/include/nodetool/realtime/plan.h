@@ -14,6 +14,7 @@ struct TextureInput {
     std::string colorSpace;
     std::string alpha;
     std::optional<std::string> format;
+    bool optional = false;
 };
 struct ModuleDefinition {
     std::unordered_map<std::string, TextureInput> inputs;

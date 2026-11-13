@@ -174,7 +174,17 @@ endpoints instead of video frames, with an unrun regression for frame-rate
 independence and the final drain. Bound ramp fixtures preserve the initial
 parameter value and interpolate to each quantum's target.
 
-External slots, catalog registry
-construction, render/PNG export, graph-runner CLI integration, image goldens
-and the registry gate remain pending. WP09 stays open. This increment does not
-change the M0 hardware gaps or the live/shared-device block.
+GPU-enabled driver builds now derive module contracts from the shader catalog,
+prepare the private software-adapter device, read back frames and write
+straight-alpha PNGs. Optional catalog inputs retain their default behavior.
+The host waits outside executor calls and requires an sRGB present target.
+Render-only and mixed export fixtures prepare pixel references and repeated
+PNG/WAV/manifest comparisons. Source review corrected render `time.dt` to use
+video-frame intervals instead of the last intermediate quantum interval.
+
+The GPU-enabled CLI and export fixture compile and link with MSVC Release.
+Runtime GPU export, pixel references, repeatability, sanitizers and broader
+checks remain unverified. Broad test runs are deferred until the larger task
+is ready. External slots, graph-runner CLI integration and the registry gate
+remain pending. WP09 stays open. The M0 hardware gaps and live/shared-device
+block remain unchanged.

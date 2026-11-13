@@ -12,7 +12,7 @@ std::filesystem::path pathFromUtf8(const std::string& value) {
 int run(int argc, const std::vector<std::string>& argv) {
     try {
         if (argc < 3 || std::string_view(argv[1]) != "live") {
-            std::cerr << "Usage: nodetool-realtime live plan.json --duration SECONDS --fps RATE --out NEW_DIRECTORY [--null-audio]\n";
+            std::cerr << "Usage: nodetool-realtime live plan.json --duration SECONDS --fps RATE --out NEW_DIRECTORY [--null-audio] [--catalog FILE]\n";
             return 2;
         }
         nt::realtime::OfflineOptions options;
@@ -21,13 +21,14 @@ int run(int argc, const std::vector<std::string>& argv) {
             const std::string_view flag(argv[i]);
             if (!seen.insert(flag).second) { throw std::runtime_error("Repeated argument: " + std::string(flag)); }
             if (flag == "--null-audio") { continue; }
-            if (flag != "--duration" && flag != "--fps" && flag != "--out") {
+            if (flag != "--duration" && flag != "--fps" && flag != "--out" && flag != "--catalog") {
                 throw std::runtime_error("Unknown argument: " + std::string(flag));
             }
             if (++i >= argc) { throw std::runtime_error("Missing value: " + std::string(flag)); }
             if (flag == "--duration") { options.duration = argv[i]; }
             if (flag == "--fps") { options.fps = argv[i]; }
             if (flag == "--out") { options.output = pathFromUtf8(argv[i]); }
+            if (flag == "--catalog") { options.catalog = pathFromUtf8(argv[i]); }
         }
         if (options.output.empty()) { throw std::runtime_error("--out is required"); }
         const auto path = pathFromUtf8(argv[2]);

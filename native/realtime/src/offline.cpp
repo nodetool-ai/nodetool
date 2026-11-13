@@ -9,6 +9,12 @@
 #include <fstream>
 #include <limits>
 #include <stdexcept>
+#ifdef NT_OFFLINE_GPU
+#include "nodetool/realtime/offline_gpu.h"
+#include "offline_image.h"
+#include <chrono>
+#include <thread>
+#endif
 
 namespace nt::realtime {
 namespace {
@@ -59,11 +65,20 @@ OfflineResult runOffline(std::string_view json, const OfflineOptions& options) {
     try {
         Registry registry;
         registerControlOperations(registry); registerAudioKernels(registry);
+        if (json.size() > 64ull * 1024 * 1024) { return failure("structure", "Plan exceeds 64 MiB"); }
+        const auto description = Plan::parse(json);
+        const bool wantsRender = description.contains("render") && description["render"].is_object() &&
+            (description["render"].contains("present") || !description["render"].value("passes", Plan::array()).empty());
+#ifdef NT_OFFLINE_GPU
+        const auto catalog = wantsRender ? loadOfflineCatalog(options.catalog, registry) : std::string{};
+#else
+        if (wantsRender) { return failure("unsupported", "Render export requires NT_REALTIME_OFFLINE_GPU=ON"); }
+#endif
         auto loaded = loadPlan(json, registry);
         if (!loaded.plan) { return {loaded.error, 0, 0}; }
         const auto& plan = *loaded.plan;
-        if (!plan["render"]["passes"].empty() || plan["render"].contains("present") || !plan["slots"].empty()) {
-            return failure("unsupported", "Offline driver currently accepts control/audio graphs without render output or slots");
+        if (!plan["slots"].empty()) {
+            return failure("unsupported", "Offline driver does not yet load external slots");
         }
         const auto rate = plan["session"]["sampleRate"].get<unsigned>();
         const auto channels = plan["session"]["channels"] == "mono" ? 1u : 2u;
@@ -77,6 +92,20 @@ OfflineResult runOffline(std::string_view json, const OfflineOptions& options) {
         if (!audioControl.executor) { return {audioControl.error, 0, 0}; }
         auto renderControl = ControlExecutor::prepare(plan, ControlDomain::render);
         if (!renderControl.executor) { return {renderControl.error, 0, 0}; }
+        std::uint64_t imageFrames = 0;
+#ifdef NT_OFFLINE_GPU
+        std::unique_ptr<OfflineGpu> gpu;
+        std::vector<std::byte> pixels;
+        if (wantsRender) {
+            if (!plan["render"].contains("present") || plan["render"]["present"]["colorSpace"] != "srgb") {
+                return failure("presentation", "PNG export requires a present output with srgb color space");
+            }
+            auto prepared = OfflineGpu::prepare(plan, registry, catalog);
+            if (!prepared.gpu) { return {prepared.error, 0, 0}; }
+            gpu = std::move(prepared.gpu);
+            pixels.resize(gpu->readbackBytes());
+        }
+#endif
         // Host-thread values. Indices borrow the prepared executor's fixed register
         // layout, while parameter pointers are used only during preparation.
         struct Binding { unsigned parameter; unsigned control; std::string node; };
@@ -116,6 +145,7 @@ OfflineResult runOffline(std::string_view json, const OfflineOptions& options) {
         std::uint64_t quantum = 0;
         std::uint64_t sanitized = 0;
         double lastRenderTime = 0;
+        double lastFrameTime = 0;
         const double dt = 128.0 / rate;
         const auto advance = [&](std::uint64_t end, std::uint64_t frame) {
             while (quantum < end) {
@@ -143,14 +173,35 @@ OfflineResult runOffline(std::string_view json, const OfflineOptions& options) {
         for (std::uint64_t frame = 0; frame < clock->frameCount(); ++frame) {
             const auto time = *clock->frame(frame);
             advance(time.completedQuanta, frame);
-            tick(*renderControl.executor, time.seconds, time.seconds - lastRenderTime, frame, width, height);
+            tick(*renderControl.executor, time.seconds, time.seconds - lastFrameTime, frame, width, height);
+            lastFrameTime = time.seconds;
             lastRenderTime = time.seconds;
+#ifdef NT_OFFLINE_GPU
+            if (gpu) {
+                if (!gpu->render({renderControl.executor->registers(), {}, true, false}, true).readbackQueued) {
+                    throw std::runtime_error("GPU frame submission rejected");
+                }
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(60);
+                std::uint64_t captured = 0;
+                while (true) {
+                    if (!gpu->poll()) { throw std::runtime_error("GPU readback failed"); }
+                    if (gpu->takeReadback(pixels, captured)) { break; }
+                    if (std::chrono::steady_clock::now() >= deadline) { throw std::runtime_error("GPU readback timed out"); }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+                if (captured != frame) { throw std::runtime_error("GPU readback order changed"); }
+                const auto number = std::to_string(frame);
+                const auto name = "frame-" + std::string(6 - number.size(), '0') + number + ".png";
+                writeOfflinePng(options.output / name, pixels, width, height);
+                ++imageFrames;
+            }
+#endif
         }
         advance(clock->quantumCount(), clock->frameCount());
         for (auto& wave : waves) { wave->close(); }
-        const Plan manifest = {{"schemaVersion", 1}, {"mode", "offline-audio"},
+        const Plan manifest = {{"schemaVersion", 1}, {"mode", imageFrames ? "offline-render" : "offline-audio"},
             {"duration", options.duration}, {"fps", options.fps}, {"sampleRate", rate}, {"channels", channels},
-            {"samples", clock->sampleCount()}, {"controlFrames", clock->frameCount()}, {"imageFrames", 0},
+            {"samples", clock->sampleCount()}, {"controlFrames", clock->frameCount()}, {"imageFrames", imageFrames},
             {"quanta", quantum}, {"sanitizedSamples", sanitized}, {"audioFiles", files}};
         std::ofstream stream;
         stream.exceptions(std::ios::failbit | std::ios::badbit);

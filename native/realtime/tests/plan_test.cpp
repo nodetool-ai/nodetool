@@ -39,6 +39,16 @@ int main() {
     try {
         const auto base = fixture("mixed");
         accepted(base);
+        auto optionalRegistry = registry();
+        optionalRegistry.modules.at("filters/blur@1").inputs.emplace("mask", TextureInput{"encoded-sdr", "premultiplied", {}, true});
+        require(loadPlan(base.dump(), optionalRegistry).plan != nullptr, "Omitted optional input rejected");
+        auto optionalPlan = base;
+        optionalPlan["render"]["passes"][0]["inputs"]["mask"] = "t0";
+        require(loadPlan(optionalPlan.dump(), optionalRegistry).plan != nullptr, "Bound optional input rejected");
+        optionalPlan["render"]["passes"][0]["inputs"].erase("src");
+        require(!loadPlan(optionalPlan.dump(), optionalRegistry).plan, "Missing required input accepted");
+        optionalPlan = base; optionalPlan["render"]["passes"][0]["inputs"]["extra"] = "t0";
+        require(!loadPlan(optionalPlan.dump(), optionalRegistry).plan, "Unknown input accepted");
         auto binding = base;
         binding["params"][0]["audioControl"] = 0;
         rejected(binding, "gain", "register");
