@@ -920,12 +920,16 @@
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/CardBodyPainter.cpp"
       ],
-      "status": "partial",
-      "note": "Upstream images in the Before and Mask preview tabs are missing.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/MasksExtractorBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Image and Mask tabs, the incoming image and Recalculate mask match. The running button shows a darker fill without the web's spinner.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/OffsetBody.tsx": {

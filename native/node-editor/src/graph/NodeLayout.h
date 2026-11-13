@@ -153,6 +153,10 @@ inline constexpr int schemaFooterPadding = 2;
 inline constexpr int dropZoneGap = 5;
 inline constexpr int dropZoneHeight = 46;
 inline constexpr int iconSize = 16;
+// RunModelButton: 4 px by 16 px padding, a 16 px icon and a 6 px gap in a 24 px button.
+inline constexpr int runButtonPadding = 16;
+inline constexpr int runButtonGap = 6;
+inline constexpr int runButtonHeight = 24;
 inline constexpr int fieldRadius = 6;
 inline constexpr double handleDiameter = 12;
 inline constexpr double handleRing = 2;
@@ -207,7 +211,8 @@ enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Previe
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
-                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves, Levels, Crop };
+                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves, Levels, Crop,
+                      MasksExtractor };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.
@@ -293,6 +298,8 @@ struct NodeRow {
 
 struct NodeLayout {
   QSize size{node_metrics::defaultWidth, 72};
+  // The selected body tab shows an input's image, so the run result is hidden.
+  bool sourceTab = false;
   QSize minimumSize{150, 40};
   QString title;
   // A shared Material path name for the inspector and catalog.

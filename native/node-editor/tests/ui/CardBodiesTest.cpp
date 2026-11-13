@@ -168,6 +168,7 @@ QJsonArray partTwoMetadata() {
         metadataFor("nodetool.image.Channels", "Channels",
                     {image(), property("channel", "str", {{"values", QJsonArray{"red", "green", "blue", "alpha", "luminance"}}, {"default", "luminance"}})}),
         metadataFor("lib.image.Mask", "Mask", {image("image1"), image("image2"), image("mask")}),
+        metadataFor("replicate.image.background.Bria_RemoveBackground", "Bria Remove Background", {image()}),
         metadataFor("lib.image.color_grading.HSLAdjust", "HSL Adjust",
                     {image(), property("color_range", "str", {{"values", ranges}, {"default", "all"}}), slider("hue_shift", -1, 1, 0),
                      slider("saturation", -1, 1, 0), slider("luminance", -1, 1, 0)}),
@@ -1817,6 +1818,68 @@ private slots:
         QCOMPARE(cropDragged("nw", full, QPointF(-30, 250), bounds), QRectF(QPointF(0, 99), QPointF(200, 100)));
         QCOMPARE(cropDragged("e", QRectF(10, 10, 50, 50), QPointF(-80, 0), bounds), QRectF(QPointF(10, 10), QPointF(11, 60)));
         QCOMPARE(cropDragged("move", QRectF(10, 10, 50, 50), QPointF(500, -500), bounds), QRectF(150, 0, 50, 50));
+    }
+
+    // MasksExtractorBody.tsx: the Image tab shows the incoming image in place
+    // of the run result and Mask shows the result. Recalculate mask selects the
+    // card and runs it alone. SimpleFilterBody's Before tab shows its source too.
+    void masksExtractorTabsAndRun() {
+        QImage source(40, 20, QImage::Format_RGB32);
+        source.fill(Qt::green);
+        QByteArray bytes;
+        QBuffer buffer(&bytes);
+        buffer.open(QIODevice::WriteOnly);
+        source.save(&buffer, "PNG");
+        const QJsonObject constant{{"id", "photo"}, {"type", "nodetool.constant.Image"},
+                                   {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", QStringLiteral("data:image/png;base64,")
+                                       + QString::fromLatin1(bytes.toBase64())}}}}},
+                                   {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", 700}}}}}};
+        auto workflow = withNodes({constant, partTwoNode("cutout", "replicate.image.background.Bria_RemoveBackground", QPointF(0, 700)),
+                                   partTwoNode("invert", "lib.image.filter.Invert", QPointF(400, 700))});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "e-cut"}, {"source", "photo"}, {"sourceHandle", "output"}, {"target", "cutout"}, {"targetHandle", "image"}});
+        edges.append(QJsonObject{{"id", "e-inv"}, {"source", "photo"}, {"sourceHandle", "output"}, {"target", "invert"}, {"targetHandle", "image"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        const auto cutout = host.id("cutout");
+        QCOMPARE(host.model().layout(cutout).body, CardBody::MasksExtractor);
+        QVERIFY(host.model().layout(cutout).sourceTab);
+        QVERIFY(host.model().canvasResultRect(cutout).isEmpty());
+        const auto *tabs = host.row("cutout", NodeRowKind::Segmented);
+        QVERIFY(tabs);
+        QCOMPARE(tabs->options, QStringList({"Image", "Mask"}));
+        QCOMPARE(tabs->selected, 0);
+        QTRY_COMPARE(host.row("cutout", NodeRowKind::Preview)->media.size(), 1);
+        QCOMPARE(host.row("cutout", NodeRowKind::Preview)->media.first().image.size(), QSize(40, 20));
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("cutout")).save(directory + QStringLiteral("/MasksExtractor-dark.png")));
+        }
+        // The Mask tab shows the run result again.
+        host.click("cutout", tabs->parts.value(1).center());
+        QTRY_VERIFY(!host.model().layout(cutout).sourceTab);
+        QVERIFY(host.row("cutout", NodeRowKind::Preview)->media.isEmpty());
+        QVERIFY(!host.model().canvasResultRect(cutout).isEmpty());
+        // Recalculate mask selects only this card and asks to run it, with no document change.
+        QSignalSpy runs(host.window.scene(), &EditorScene::nodeRunRequested);
+        host.window.scene()->clearSelection();
+        const auto undo = host.undoCount();
+        const auto *run = host.row("cutout", NodeRowKind::Action, "runNode");
+        QVERIFY(run);
+        QCOMPARE(run->label, QStringLiteral("Recalculate mask"));
+        QVERIFY(run->rect.right() <= 280 - 11 + 0.5);
+        host.click("cutout", run->rect.center());
+        QCOMPARE(runs.size(), 1);
+        QCOMPARE(runs.first().first().toString(), QStringLiteral("cutout"));
+        QCOMPARE(host.window.scene()->selectedItems().size(), 1);
+        QCOMPARE(host.undoCount(), undo);
+        // Before shows the incoming image, and After, the default, the result.
+        QVERIFY(!host.model().layout(host.id("invert")).sourceTab);
+        host.model().setPreviewTab(host.id("invert"), QStringLiteral("before"));
+        QTRY_VERIFY(host.model().layout(host.id("invert")).sourceTab);
+        QTRY_COMPARE(host.row("invert", NodeRowKind::Preview)->media.size(), 1);
     }
 
     // CropBody.tsx: the aspect select fits the crop's height to its width, the

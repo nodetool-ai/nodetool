@@ -209,6 +209,8 @@ signals:
   void providerConnectRequested(const QString &secretKey);
   // Report on a failed card, naming the node's resource id.
   void errorReportRequested(const QString &nodeId);
+  // A card's Run button asks to run that node alone. The node is selected first.
+  void nodeRunRequested(const QString &nodeId);
   // Opens the property's inline editor expanded, as Constant String's Open editor.
   void inlineExpandRequested(QtNodes::NodeId id, const QString &name);
   // A card slider drag moved to a value it has not committed yet.

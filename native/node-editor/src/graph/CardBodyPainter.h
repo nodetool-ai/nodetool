@@ -9,6 +9,8 @@ namespace nodetool {
 struct CardBodyPaintState {
     // A run result replaces the body's empty state.
     bool hasResult = false;
+    // The node is running, so its Run button shows the running state.
+    bool running = false;
     // The slider value under an active drag, before it is committed.
     QString draftProperty;
     double draftValue = 0;

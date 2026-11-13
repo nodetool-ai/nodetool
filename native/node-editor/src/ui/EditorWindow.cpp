@@ -480,6 +480,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(scene_, &EditorScene::documentOpenRequested, this, [this](const QString &kind, const QString &id) { documentPicker_.open(kind, id); });
   // The web opens provider onboarding at the key. Native opens the server's provider settings.
   connect(scene_, &EditorScene::providerConnectRequested, this, [this] { packSetup()->openProviderSettings(); });
+  // The scene selects the card before it asks, so Run selected runs that node.
+  connect(scene_, &EditorScene::nodeRunRequested, this, [this](const QString &) { action(QStringLiteral("Run selected")); });
   connect(scene_, &EditorScene::errorReportRequested, this, [this](const QString &resource) {
     node_editor::BugReportContext context{.source = QStringLiteral("Node error")};
     for (const auto id : model_.allNodeIds()) {

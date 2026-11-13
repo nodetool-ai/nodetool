@@ -481,7 +481,8 @@ public:
 
     if (disabled) { paintDisabledBadge(painter, chip, theme, chipFont, chipLabel); }
     CardBodyPaintState bodyState;
-    bodyState.hasResult = model.hasRuntimeOutput(item.nodeId());
+    bodyState.hasResult = model.hasRuntimeOutput(item.nodeId()) && !layout.sourceTab;
+    bodyState.running = model.runtimeState(item.nodeId())["status"] == QStringLiteral("running");
     bodyState.hovered = item.nodeState().hovered();
     if (scene_.sliderDraftNode() == item.nodeId()) {
         bodyState.draftProperty = scene_.sliderDraftProperty();
@@ -1673,6 +1674,13 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 model_.commit({{"op", "batch"}, {"commands", QJsonArray{
                     model_.propertyCommand(id, QStringLiteral("width"), row.number),
                     model_.propertyCommand(id, QStringLiteral("height"), row.number)}}});
+            } else if (row.action == QStringLiteral("runNode")) {
+                // RunModelButton runs this node on its own, as Run node does.
+                if (auto *item = nodeGraphicsObject(id)) {
+                    if (!item->isSelected() || selectedItems().size() != 1) { clearSelection(); item->setSelected(true); }
+                }
+                emit nodeSelected(id);
+                emit nodeRunRequested(model_.resourceId(id));
             } else if (row.action == QStringLiteral("insertVariable")) {
                 const auto prompt = node["data"].toObject()["prompt"].toString();
                 model_.commit(model_.propertyCommand(id, QStringLiteral("prompt"), prompt + QStringLiteral("{{ %1 }}").arg(row.value)));

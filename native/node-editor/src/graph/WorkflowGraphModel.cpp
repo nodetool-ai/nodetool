@@ -533,6 +533,7 @@ QRectF WorkflowGraphModel::canvasResultRect(NodeId id) const {
   if (!playback.isEmpty()) { return playback; }
   const auto &card = layout(id);
   constexpr auto inset = node_metrics::padding + node_metrics::borderWidth;
+  if (card.sourceTab) { return {}; }
   if (!card.resultRect.isEmpty()) {
     return card.resultRect.adjusted(node_metrics::padding, node_metrics::padding,
                                    -node_metrics::padding, -node_metrics::padding);

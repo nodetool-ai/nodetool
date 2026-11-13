@@ -154,6 +154,23 @@ void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow 
     painter->restore();
 }
 
+// RunModelButton: dark ink on the primary fill with a play icon, and a darker
+// fill with light ink while the node runs.
+void paintRunButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, bool running) {
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(running ? theme.primary.darker(130) : theme.primary);
+    painter->drawRoundedRect(row.rect, nm::chipRadius, nm::chipRadius);
+    const auto ink = running ? theme.textPrimary : QColor(Qt::black);
+    painter->setFont(sans(theme, nm::fontValue, QFont::Medium));
+    const auto labelWidth = painter->fontMetrics().horizontalAdvance(row.label);
+    const auto content = std::min(row.rect.width() - 2 * nm::runButtonPadding, nm::iconSize + nm::runButtonGap + double(labelWidth));
+    const auto left = row.rect.center().x() - content / 2;
+    paintMaterialIcon(painter, QStringLiteral("playArrow"), QRectF(left, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), ink);
+    painter->setPen(ink);
+    const QRectF text(left + nm::iconSize + nm::runButtonGap, row.rect.y(), content - nm::iconSize - nm::runButtonGap, row.rect.height());
+    painter->drawText(text, Qt::AlignLeft | Qt::AlignVCenter, painter->fontMetrics().elidedText(row.label, Qt::ElideRight, int(text.width())));
+}
+
 void paintAction(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
     if (row.warning) {
         // The Connect provider button: dark ink on the warning fill.
@@ -535,7 +552,11 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         paintComposer(painter, theme, row);
         return true;
     case NodeRowKind::Action:
-        paintAction(painter, theme, row);
+        if (row.action == QStringLiteral("runNode")) {
+            paintRunButton(painter, theme, row, state.running);
+        } else {
+            paintAction(painter, theme, row);
+        }
         return true;
     case NodeRowKind::Segmented:
         paintSegmented(painter, theme, row);

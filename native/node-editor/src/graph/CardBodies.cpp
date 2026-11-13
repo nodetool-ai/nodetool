@@ -708,14 +708,43 @@ void layoutAdjustment(NodeLayout &layout, const CardBodyInput &input) {
                   : type == QStringLiteral("lib.image.color_grading.SplitToning") ? nm::splitToningHeight : 0);
 }
 
-// SimpleFilterBody.tsx and MaskBody.tsx: a preview whose tab bar picks which image it shows.
-void layoutTabbedPreview(NodeLayout &layout, const CardBodyInput &input, const QStringList &handles, const QStringList &labels,
-                         const QStringList &tabs, const QStringList &messages, const QString &fallbackTab, double padTop) {
+const CardMediaItem *readySource(const CardBodyInput &input, const QString &handle) {
+    const auto found = input.sources.constFind(handle);
+    if (found == input.sources.cend() || found->state != CardMediaState::Ready || !found->natural.isValid()) {
+        return nullptr;
+    }
+    return &*found;
+}
+
+// ImagePreview shows the arriving image until the node has a result of its own.
+void showSource(NodeLayout &layout, const CardBodyInput &input, const QString &handle) {
+    const auto *source = readySource(input, handle);
+    if (!source) {
+        return;
+    }
+    for (auto &row : layout.rows) {
+        if (row.kind == NodeRowKind::Preview && row.rect == layout.resultRect) {
+            row.media = {*source};
+            row.mediaKind = QStringLiteral("image");
+        }
+    }
+}
+
+// SimpleFilterBody.tsx, MaskBody.tsx and MasksExtractorBody.tsx: a preview
+// whose tab bar picks which image it shows. A tab named in sources shows the
+// image arriving at that handle in place of the run result.
+Column tabbedPreview(NodeLayout &layout, const CardBodyInput &input, const QStringList &handles, const QStringList &labels,
+                     const QStringList &tabs, const QStringList &messages, const QString &fallbackTab, double padTop,
+                     const QHash<QString, QString> &sources) {
     Column column(layout, input);
     column.handles(handles);
     const auto tab = tabs.contains(input.previewTab) ? input.previewTab : fallbackTab;
     const auto index = int(tabs.indexOf(tab));
     column.preview(messages.value(index));
+    if (sources.contains(tab)) {
+        layout.sourceTab = true;
+        showSource(layout, input, sources.value(tab));
+    }
     column.y += nm::bodyGap + padTop;
     QVariantList values;
     for (const auto &value : tabs) {
@@ -725,13 +754,20 @@ void layoutTabbedPreview(NodeLayout &layout, const CardBodyInput &input, const Q
     row.action = QStringLiteral("previewTab");
     layout.rows.append(row);
     column.y += nm::toggleHeight;
-    column.finish();
+    return column;
+}
+
+void layoutTabbedPreview(NodeLayout &layout, const CardBodyInput &input, const QStringList &handles, const QStringList &labels,
+                         const QStringList &tabs, const QStringList &messages, const QString &fallbackTab, double padTop,
+                         const QHash<QString, QString> &sources) {
+    tabbedPreview(layout, input, handles, labels, tabs, messages, fallbackTab, padTop, sources).finish();
 }
 
 void layoutSimpleFilter(NodeLayout &layout, const CardBodyInput &input) {
     layoutTabbedPreview(layout, input, {QStringLiteral("image")}, {QObject::tr("Before"), QObject::tr("After")},
                         {QStringLiteral("before"), QStringLiteral("after")},
-                        {QObject::tr("Connect an image"), QObject::tr("Run the node to see the result")}, QStringLiteral("after"), 0);
+                        {QObject::tr("Connect an image"), QObject::tr("Run the node to see the result")}, QStringLiteral("after"), 0,
+                        {{QStringLiteral("before"), QStringLiteral("image")}});
 }
 
 void layoutMask(NodeLayout &layout, const CardBodyInput &input) {
@@ -739,7 +775,27 @@ void layoutMask(NodeLayout &layout, const CardBodyInput &input) {
                         {QObject::tr("Img 1"), QObject::tr("Img 2"), QObject::tr("Mask"), QObject::tr("Result")},
                         {QStringLiteral("image1"), QStringLiteral("image2"), QStringLiteral("mask"), QStringLiteral("result")},
                         {QObject::tr("Connect image 1"), QObject::tr("Connect image 2"), QObject::tr("Connect a mask"), QObject::tr("Run the node to composite")},
-                        QStringLiteral("result"), 0);
+                        QStringLiteral("result"), 0,
+                        {{QStringLiteral("image1"), QStringLiteral("image1")}, {QStringLiteral("image2"), QStringLiteral("image2")},
+                         {QStringLiteral("mask"), QStringLiteral("mask")}});
+}
+
+// MasksExtractorBody.tsx: Image and Mask tabs over the preview, then the
+// Recalculate mask button that runs this node alone.
+void layoutMasksExtractor(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = tabbedPreview(layout, input, {QStringLiteral("image")}, {QObject::tr("Image"), QObject::tr("Mask")},
+                                {QStringLiteral("image"), QStringLiteral("mask")},
+                                {QObject::tr("Connect an image"), QObject::tr("Run the node to extract a mask")}, QStringLiteral("image"), 0,
+                                {{QStringLiteral("image"), QStringLiteral("image")}});
+    // .action-row: 2 px above, aligned right. RunModelButton pads 4 px by 16 px around a 16 px icon and a 6 px gap.
+    column.y += nm::micro + nm::micro;
+    const auto label = QObject::tr("Recalculate mask");
+    const auto width = std::min(column.width, std::ceil(captionWidth(label, true)) + nm::iconSize + nm::runButtonGap + 2 * nm::runButtonPadding);
+    auto run = controlRow(NodeRowKind::Action, {}, label, QRectF(column.x + column.width - width, column.y, width, nm::runButtonHeight));
+    run.action = QStringLiteral("runNode");
+    layout.rows.append(run);
+    column.y += nm::runButtonHeight;
+    column.finish();
 }
 
 // The image column shared by the fixed-control bodies: handle, preview and gap.
@@ -1062,28 +1118,6 @@ void layoutRotateFlip(NodeLayout &layout, const CardBodyInput &input) {
 }
 
 // The loaded image arriving at a body's handle, or null while it loads or when none arrives.
-const CardMediaItem *readySource(const CardBodyInput &input, const QString &handle) {
-    const auto found = input.sources.constFind(handle);
-    if (found == input.sources.cend() || found->state != CardMediaState::Ready || !found->natural.isValid()) {
-        return nullptr;
-    }
-    return &*found;
-}
-
-// ImagePreview shows the arriving image until the node has a result of its own.
-void showSource(NodeLayout &layout, const CardBodyInput &input, const QString &handle) {
-    const auto *source = readySource(input, handle);
-    if (!source) {
-        return;
-    }
-    for (auto &row : layout.rows) {
-        if (row.kind == NodeRowKind::Preview && row.rect == layout.resultRect) {
-            row.media = {*source};
-            row.mediaKind = QStringLiteral("image");
-        }
-    }
-}
-
 // The dashed placement rectangle, as percentages of the preview area, and the size badge.
 void placementOverlay(NodeLayout &layout, const QRectF &fraction, const QString &badge) {
     const auto area = layout.resultRect;
@@ -1354,7 +1388,13 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
         {"nodetool.image.RotateAndFlip", CardBody::RotateFlip}, {"nodetool.image.Resize", CardBody::Resize},
         {"nodetool.image.Fit", CardBody::Fit}, {"nodetool.image.Paste", CardBody::Paste},
         {"nodetool.image.CanvasResize", CardBody::CanvasResize}, {"lib.image.color_grading.Curves", CardBody::Curves},
-        {"nodetool.image.Levels", CardBody::Levels}, {"nodetool.image.Crop", CardBody::Crop}};
+        {"nodetool.image.Levels", CardBody::Levels}, {"nodetool.image.Crop", CardBody::Crop},
+        // MASKS_EXTRACTOR_NODE_TYPES in MasksExtractorBody.tsx.
+        {"replicate.image.background.Bria_RemoveBackground", CardBody::MasksExtractor},
+        {"replicate.image.background.BackgroundRemover_851", CardBody::MasksExtractor},
+        {"replicate.image.background.BackgroundRemover_Codeplug", CardBody::MasksExtractor},
+        {"replicate.image.process.RemoveBackground", CardBody::MasksExtractor},
+        {"fal.image_to_image.BriaBackgroundRemove", CardBody::MasksExtractor}};
     if (bodies.contains(type)) {
         return bodies.value(type);
     }
@@ -1368,7 +1408,8 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
 }
 
 bool readsBodySources(CardBody body) {
-    return body == CardBody::CanvasResize || body == CardBody::Paste || body == CardBody::Crop;
+    return body == CardBody::CanvasResize || body == CardBody::Paste || body == CardBody::Crop || body == CardBody::SimpleFilter
+           || body == CardBody::Mask || body == CardBody::MasksExtractor;
 }
 
 QString bodySourceKey(const QString &handle) {
@@ -1513,6 +1554,7 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
     case CardBody::Blur:
     case CardBody::ResizeImage:
     case CardBody::SimpleFilter:
+    case CardBody::MasksExtractor:
     case CardBody::Scale:
     case CardBody::Offset:
     case CardBody::Pad:
@@ -1619,6 +1661,9 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
         break;
     case CardBody::Mask:
         layoutMask(layout, input);
+        break;
+    case CardBody::MasksExtractor:
+        layoutMasksExtractor(layout, input);
         break;
     case CardBody::Scale:
         layoutScale(layout, input);
