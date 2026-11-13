@@ -960,6 +960,47 @@ describe("DurableGenerationRecoveryWorker", () => {
       );
     });
 
+    it("fails a request the provider rejected instead of retrying it", async () => {
+      const attempt = {
+        ...unboundAttempt("2026-10-31T11:00:00.000Z"),
+        provider_request_id: "request-1",
+        submission_status: "submitted"
+      };
+      models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
+      models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
+      const rejection = Object.assign(
+        new Error(
+          "FAL queue request failed (HTTP 422): prompt: The content could not be processed because it contained material flagged by a content checker."
+        ),
+        { status: 422 }
+      );
+      const queue = {
+        bind: vi.fn().mockResolvedValue({ bound: true }),
+        wait: vi.fn().mockRejectedValue(rejection)
+      };
+
+      await new DurableGenerationRecoveryWorker({
+        provider: { queueFor: vi.fn().mockResolvedValue(queue) },
+        now: () => now
+      }).runOnce();
+
+      expect(models.Prediction.transitionDurable).toHaveBeenCalledWith(
+        "generation-1",
+        expect.any(String),
+        7,
+        expect.objectContaining({
+          status: "failed",
+          error: expect.stringContaining("flagged by a content checker")
+        })
+      );
+      expect(models.Prediction.transitionDurable).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ status: "needs_attention" })
+      );
+    });
+
     it("does not count a request still running at the provider", async () => {
       const attempt = {
         ...unboundAttempt("2026-09-18T08:00:00.000Z", 30),
