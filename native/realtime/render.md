@@ -183,8 +183,7 @@ passes both cases. The underlying backend cause is not established. No pixel
 reference was relaxed.
 
 The Windows ASan offline harness also passes, including pending-map teardown.
-The prebuilt GPU library and driver are not instrumented. Linux sanitizer
-qualification, driver allocation checks, Linux adapter execution and live
-preparation remain pending. Live/shared-device support still requires
+The prebuilt GPU library and driver are not instrumented. Linux lavapipe execution also passes. Linux GPU sanitizer qualification, driver
+allocation checks and live preparation remain pending. Live/shared-device support still requires
 supported asynchronous compilation/error reporting outside the offline
 exception. See [verification details and M0 gaps](M1_STATUS.md).
