@@ -50,12 +50,11 @@ const checks = [
   ["web archive", (f) => /^nodetool-web-.+\.zip$/.test(f)],
   ["MCP bundle", (f) => f.endsWith(".mcpb")],
 ];
-// The native timeline (native-timeline-release.yml): plain and with server.
-for (const variant of withTimeline ? ["", "with-server-"] : []) {
-  for (const [platform, ext] of [["macos-arm64", "zip"], ["windows-x64", "zip"], ["linux-x64", "AppImage"]]) {
-    const pattern = new RegExp(`^nodetool-timeline-${variant}\\d.*-${platform}\\.${ext}$`);
-    checks.push([`native timeline ${variant}${platform}`, (f) => pattern.test(f)]);
-  }
+// The native timeline with its server (native-timeline-release.yml).
+const timelinePlatforms = [["macos-arm64", "zip"], ["windows-x64", "zip"], ["linux-x64", "AppImage"]];
+for (const [platform, ext] of withTimeline ? timelinePlatforms : []) {
+  const pattern = new RegExp(`^nodetool-timeline-\\d.*-${platform}\\.${ext}$`);
+  checks.push([`native timeline ${platform}`, (f) => pattern.test(f)]);
 }
 const missingArtifacts = [];
 for (const [label, predicate] of checks) {

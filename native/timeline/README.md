@@ -1259,18 +1259,17 @@ timeline. The NodeTool release
 version names the downloads. `--version` reports `PROJECT_VERSION` from
 `CMakeLists.txt`.
 
-Each platform has two downloads:
-`nodetool-timeline-<version>-<platform>` connects to a NodeTool server the
-user runs, and `nodetool-timeline-with-server-<version>-<platform>` holds
-its own server. The platforms are `macos-arm64` and `windows-x64` (ZIP) and
-`linux-x64` (AppImage).
+Each platform has one download, `nodetool-timeline-<version>-<platform>`,
+with its own NodeTool server inside. The platforms are `macos-arm64` and
+`windows-x64` (ZIP) and `linux-x64` (AppImage). With `NODETOOL_SERVER_URL`
+set, the app uses that server and does not start its own.
 
-The macOS builds are signed and notarized by
+The macOS build is signed and notarized by
 [scripts/sign-macos.sh](scripts/sign-macos.sh), with the Developer ID
 certificate and notarization login of the Electron release. The Windows and
 Linux builds are unsigned.
 
-The "with server" builds come from
+The release packages come from
 [scripts/package-macos-with-server.sh](scripts/package-macos-with-server.sh),
 [scripts/package-windows-with-server.sh](scripts/package-windows-with-server.sh)
 and [scripts/package-linux-with-server.sh](scripts/package-linux-with-server.sh).
@@ -1289,8 +1288,9 @@ data folder.
 
 The workflow builds only the app, checks the extracted packages with
 [scripts/smoke-package.py](scripts/smoke-package.py), and retains the existing
-macOS bundle audit. Windows and Linux release packaging still need a tagged
-CI run to establish platform verification.
+macOS bundle audit on the app before the backend is added. Windows and Linux
+release packaging still need a release run to establish platform
+verification.
 
 Hardware decode sits behind one compile-time seam,
 `src/preview/hw/HwInterop.h`: VideoToolbox on macOS, D3D11VA on Windows
