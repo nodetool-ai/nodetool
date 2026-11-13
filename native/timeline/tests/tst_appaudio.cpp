@@ -119,6 +119,49 @@ private slots:
         QCOMPARE(audio.systemRate(), 0);
     }
 
+    // Backlog M15: a music project opens the system device at 48 kHz at
+    // launch. A device that refuses that rate falls back to its own rate, as
+    // setSystemRate does, instead of failing start() and exiting the app.
+    void startFallsBackWhenTheDeviceRefusesTheMusicRate() {
+        nt::Timeline music;
+        music.raw.insert(QStringLiteral("music"), QJsonObject{{QStringLiteral("key"), QStringLiteral("C major")}});
+        TimelineModel model;
+        model.setTimeline(music);
+        PlaybackClock clock;
+        RefusingDevice device;
+        device.refuse = {kMusicEngineRate};
+        AppAudio audio;
+        audio.setFollowDocumentRate(true);
+        device.install(audio);
+        QString error;
+        QVERIFY2(audio.start(QStringLiteral("system"), 0, model, clock, &error), qPrintable(error));
+        QCOMPARE(device.opened, (std::vector<int>{kMusicEngineRate, 0}));
+        QVERIFY(audio.engine() && audio.engine()->running());
+        QCOMPARE(audio.systemRate(), 0);
+        // The next music document asks for 48 kHz again, and the device takes it now.
+        model.setTimeline(music);
+        QCOMPARE(audio.systemRate(), kMusicEngineRate);
+        QCOMPARE(audio.engine()->stats().sampleRate, 48000.0);
+    }
+
+    // A device that opens at no rate still fails start().
+    void startFailsWhenNoRateOpens() {
+        nt::Timeline music;
+        music.raw.insert(QStringLiteral("music"), QJsonObject{{QStringLiteral("key"), QStringLiteral("C major")}});
+        TimelineModel model;
+        model.setTimeline(music);
+        PlaybackClock clock;
+        RefusingDevice device;
+        device.refuse = {kMusicEngineRate, 0};
+        AppAudio audio;
+        audio.setFollowDocumentRate(true);
+        device.install(audio);
+        QString error;
+        QVERIFY(!audio.start(QStringLiteral("system"), 0, model, clock, &error));
+        QVERIFY(!error.isEmpty());
+        QCOMPARE(audio.engine(), nullptr);
+    }
+
     // When no rate opens, the engine is gone until the next call, which
     // opens it again: here the next document the window loads.
     void reopensAfterEveryRateFailed() {

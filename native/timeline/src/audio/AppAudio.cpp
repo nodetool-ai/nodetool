@@ -41,7 +41,21 @@ bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model
             }
         });
     }
-    if (openEngine(error)) return true;
+    QString why;
+    if (openEngine(&why)) return true;
+    // A music project asks for 48 kHz. A device that refuses it plays at its
+    // own rate, as setSystemRate falls back, instead of failing the launch.
+    if (mode == u"system" && m_systemRate > 0) {
+        const int refused = m_systemRate;
+        m_systemRate = 0;
+        if (openEngine(nullptr)) {
+            std::fprintf(stderr, "warning: audio: cannot open the device at %d Hz (%s), playing at its own rate\n",
+                         refused, qPrintable(why));
+            return true;
+        }
+        m_systemRate = refused;
+    }
+    if (error) *error = why;
     QObject::disconnect(m_documentConnection);
     return false;
 }

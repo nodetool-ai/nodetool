@@ -54,7 +54,9 @@ public:
     AppAudio& operator=(const AppAudio&) = delete;
 
     // Returns false with `error` set for a bad mode or a device that fails to
-    // open. `latencyMs` sets the null device's reported output latency.
+    // open. A system device that refuses the set rate opens at its own rate
+    // instead, with a warning on stderr. `latencyMs` sets the null device's
+    // reported output latency.
     bool start(const QString& mode, double latencyMs, TimelineModel& model, PlaybackClock& clock, QString* error);
     void setReportPath(const QString& path) { m_reportPath = path; }
     // Whether the engine fills the window's loudness meter (audio/loudness/AppReadout.h). Set it before
