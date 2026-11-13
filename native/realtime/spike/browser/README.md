@@ -141,6 +141,25 @@ This comparison does not establish a general color-management or IR adapter.
 Each evaluation owns a private device, textures and readback buffer, destroyed
 on success or failure. This spike does not ship the production browser runtime.
 
+## Stateful C++/Wasm fixture
+
+The verification command also runs the [damper fixture](../../tests/fixtures/offline-damper.json)
+through the native and C++/Wasm offline hosts. All three PNG frames and the
+manifest must match native bytes. Each browser frame is decoded and checked
+against the closed-form exponential at its completed-quantum timestamp, within
+one byte per channel. Corrupted PNG bytes, corrupted decoded pixels and an empty
+artifact set must fail their respective comparisons.
+
+The TypeScript fixture adapter must reject this IR with its unsupported-control
+diagnostic. Its static render, mixed and presentation-conversion comparisons
+still run. The damper's WAV comparison checks only header and length, so this
+adds stateful render evidence without claiming native/Wasm audio sample parity.
+It does not supply a production browser loop or asynchronous preparation.
+
+A fresh pinned candidate build and all four fixture comparisons pass on Windows
+Chrome 156.0.8078.80 with SwiftShader. Linux CI runs the same verification
+command. The expanded comparison's Linux result remains pending.
+
 ## 64-pass measurements
 
 ```sh
