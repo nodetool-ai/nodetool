@@ -1246,40 +1246,51 @@ scripts/check-portable.sh         # the non-Apple code, as far as macOS can buil
 scripts/build-ffmpeg-lgpl.sh      # FFmpeg 8.0 as LGPL shared libraries
 ```
 
-### Standalone releases
+### Releases
 
-The [release workflow](../../.github/workflows/native-timeline-release.yml)
-creates a draft prerelease, separate from Electron. Set `PROJECT_VERSION` in
-`CMakeLists.txt`, commit the workflow and app changes, then push an existing
-commit as `timeline-vX.Y.Z` (or `timeline-vX.Y.Z-test.1`). The numeric tag
-version must match CMake. `--version` reports that numeric version. The full
-tag version, including its suffix, names the downloads. Manual dispatch takes
-an existing tag and builds that tagged commit.
+Every NodeTool release ships the native timeline. The
+[NodeTool release workflow](../../.github/workflows/release.yaml), on a `v*`
+tag or a nightly, calls the
+[timeline release workflow](../../.github/workflows/native-timeline-release.yml),
+and its downloads join that GitHub release. The release publishes only when
+the timeline packages build and pass their smoke checks. A desktop recovery
+run with `source_tag` builds another commit than its own and skips the
+timeline. The NodeTool release
+version names the downloads. `--version` reports `PROJECT_VERSION` from
+`CMakeLists.txt`.
 
-Downloads are `nodetool-timeline-<version>-macos-arm64.zip`,
-`nodetool-timeline-with-server-<version>-macos-arm64.zip`,
-`nodetool-timeline-<version>-windows-x64.zip`, and
-`nodetool-timeline-<version>-linux-x64.AppImage`, plus `SHA256SUMS.txt`.
+Each platform has one download, `nodetool-timeline-<version>-<platform>`,
+with its own NodeTool server inside. The platforms are `macos-arm64` and
+`windows-x64` (ZIP) and `linux-x64` (AppImage). With `NODETOOL_SERVER_URL`
+set, the app uses that server and does not start its own.
 
-The macOS builds are signed and notarized by
+The macOS build is signed and notarized by
 [scripts/sign-macos.sh](scripts/sign-macos.sh), with the Developer ID
 certificate and notarization login of the Electron release. The Windows and
-Linux builds are unsigned. The draft notes explain SmartScreen and Linux
-executable permissions.
+Linux builds are unsigned.
 
-The "with server" build comes from
-[scripts/package-macos-with-server.sh](scripts/package-macos-with-server.sh).
-It holds the bundled backend and Node runtime in `Contents/Resources/backend`.
+The release packages come from
+[scripts/package-macos-with-server.sh](scripts/package-macos-with-server.sh),
+[scripts/package-windows-with-server.sh](scripts/package-windows-with-server.sh)
+and [scripts/package-linux-with-server.sh](scripts/package-linux-with-server.sh).
+Each runs [scripts/stage-server.sh](scripts/stage-server.sh), which stages
+the backend bundle (`scripts/bundle-backend.mjs --profile timeline`) and the
+Node runtime that Electron ships. The backend sits in
+`Contents/Resources/backend` on macOS, in `backend` next to
+`nodetool-timeline.exe` on Windows, and in
+`usr/share/nodetool-timeline/backend` in the AppImage. The release boots
+each extracted backend with
+[scripts/smoke-backend-bundle.mjs](../../scripts/smoke-backend-bundle.mjs).
 Opened without a file, the app starts that server on a free loopback port and
 lists its timelines ([src/server/BundledServer.h](src/server/BundledServer.h)).
 The server stops when the app quits and logs to `server.log` in the app's
-data folder. Review the package smoke logs and checksums before
-publishing the draft manually.
+data folder.
 
 The workflow builds only the app, checks the extracted packages with
 [scripts/smoke-package.py](scripts/smoke-package.py), and retains the existing
-macOS bundle audit. Windows and Linux release packaging still need a tagged
-CI run to establish platform verification.
+macOS bundle audit on the app before the backend is added. Windows and Linux
+release packaging still need a release run to establish platform
+verification.
 
 Hardware decode sits behind one compile-time seam,
 `src/preview/hw/HwInterop.h`: VideoToolbox on macOS, D3D11VA on Windows

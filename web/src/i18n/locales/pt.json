@@ -2301,7 +2301,8 @@
       "cloudAlphaNotice": "A nuvem está em alfa. Para trabalho de produção, use",
       "ssoTitle": "Entrar no NodeTool",
       "ssoSignIn": "Entrar com {{provider}}",
-      "ssoFailed": "Falha ao entrar ({{reason}}). Tente novamente ou peça acesso ao seu administrador."
+      "ssoFailed": "Falha ao entrar ({{reason}}). Tente novamente ou peça acesso ao seu administrador.",
+      "marketingOptIn": "Envie-me e-mails sobre novos lançamentos e ofertas gratuitas. Cancele quando quiser."
     },
     "inspector": {
       "params": "Parâmetros",
@@ -3699,6 +3700,7 @@
         "shotCount_other": "{{count}} tiros",
         "modelLabel": "Modelo",
         "modelPlaceholder": "Modelo de roteiro",
+        "noModels": "Nenhum modelo de linguagem disponível. Adicione uma chave de provedor em Configurações, em Modelos e provedores.",
         "shotsLabel": "Tiros",
         "title": "Escolha seu gênero",
         "description": "Tom, ritmo e enquadramento seguem sua escolha. Você pode alterá-lo mais tarde.",
@@ -20312,5 +20314,11 @@
     "missingKeysDetail": "Este workflow precisa de {{keys}}. Adicione-a nas Configurações antes de executá-lo.",
     "costPerRun": "≈ {{cost}} por execução",
     "costUnknown": "Custo desconhecido"
+  },
+  "marketingEmails": {
+    "title": "E-mails do produto",
+    "label": "Envie-me e-mails sobre lançamentos e ofertas gratuitas",
+    "description": "Saiba de novos recursos, modelos e ofertas gratuitas. Todo e-mail tem um link para cancelar, e você pode desativar isto aqui quando quiser.",
+    "saveFailed": "Sua preferência de e-mail não foi salva. Tente novamente."
   }
 }

@@ -6,6 +6,7 @@
 #include "document/GroupIntoSubgraph.h"
 #include "MiniMap.h"
 #include "InspectorClearance.h"
+#include <QDateTime>
 #include <QAbstractAnimation>
 #include <QEasingCurve>
 #include <QVariantAnimation>
@@ -142,6 +143,16 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     newTab();
     installTabShortcuts();
     installApplicationMenu();
+    // The shared Generations list asks the active tab, which holds the session.
+    connect(&generations_, &node_editor::GenerationActivity::refreshRequested, this, [this] { activeEditor_->refreshGenerations(); });
+    connect(&generations_, &node_editor::GenerationActivity::openSourceRequested, this, &EditorWindow::openWorkflow);
+    connect(&generations_, &node_editor::GenerationActivity::openAsWorkflowRequested, this,
+            [this](const QJsonObject &workflow) { activeEditor_->openWorkflowDocument(workflow); });
+    connect(&generations_, &node_editor::GenerationActivity::errorOccurred, this, [this](const QString &message) { notify("error", message); });
+    // Every tab's status bar counts the running generations.
+    connect(&generations_, &node_editor::GenerationActivity::rowsChanged, this, [this] {
+      for (auto *tab : tabs_) { tab->schedulePanelChanged(); }
+    });
     return;
   }
   setWindowTitle(tr("NodeTool Workflow[*]"));
@@ -166,6 +177,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     QTimer::singleShot(0, this, &EditorWindow::refreshChildReferences);
   });
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &setup_, &node_editor::SetupController::configure);
+  // Every prediction a run on this socket reports reaches the shared Generations list.
+  connect(&session_, &node_editor::WorkflowSession::predictionReceived, this, [this](const QJsonObject &message) {
+    generationActivity()->ingestPrediction(message, QDateTime::currentMSecsSinceEpoch());
+  });
     connect(&session_, &node_editor::WorkflowSession::credentialsChanged, this,
             [this](const QUrl &origin, const QString &token, const QString &user) {
         packOrigin_ = origin;
@@ -217,6 +232,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(this, &EditorWindow::credentialsEpochChanged, this, [this] { nodeInspector_.fields()->setCredentialsEpoch(credentialsEpoch()); });
   connect(&nodeInspector_, &node_editor::NodeInspector::clearSelectionRequested, this, [this] { action("Clear selection"); });
   connect(&nodeInspector_, &node_editor::NodeInspector::focusNodeRequested, this, [this] { userAction("Focus node"); });
+  // The node info panel: panelChanged covers document, title and run error changes.
+  connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncNodeInfo);
+  connect(this, &EditorWindow::documentEpochChanged, this, &EditorWindow::closeNodeInfo);
+  connect(&nodeInfo_, &node_editor::NodeInfo::closeRequested, this, &EditorWindow::closeNodeInfo);
+  connect(&nodeInfo_, &node_editor::NodeInfo::focusRequested, this, [this] { focusNode(nodeInfo_.nodeId()); });
+  connect(&nodeInfo_, &node_editor::NodeInfo::namespaceRequested, this,
+          [this](const QString &nodeNamespace) { openNodeMenuAt(nodeNamespace.split('.', Qt::SkipEmptyParts), {}); });
+  connect(&nodeInfo_, &node_editor::NodeInfo::tagSearchRequested, this, [this](const QString &tag) { openNodeMenuAt({}, tag); });
   connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
   connect(&nodeInspector_, &node_editor::NodeInspector::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitProperty);
@@ -368,6 +391,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&runState_, &node_editor::RunState::selectRunRequested, &runOutput_, &node_editor::RunOutputModel::selectRun);
   connect(&runState_, &node_editor::RunState::clearOutputRequested, &runOutput_, &node_editor::RunOutputModel::clear);
   connect(&runState_, &node_editor::RunState::cancelRequested, &session_, &node_editor::WorkflowSession::cancelJob);
+  connect(&runState_, &node_editor::RunState::reportJobRequested, this, &EditorWindow::reportJob);
   connect(&mediaResolver_, &node_editor::MediaResolver::resolved, this, [this](const QString &key, const QUrl &url) {
     if (!key.startsWith("node-image:")) { return; }
     const auto id = key.mid(11);
@@ -442,6 +466,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     });
     connect(scene_, &EditorScene::dynamicPortFormRequested, this, &EditorWindow::showDynamicPortDialog);
     connect(scene_, &EditorScene::dynamicTypeMenuRequested, this, &EditorWindow::showDynamicTypeMenu);
+    connect(scene_, &EditorScene::headerActionRequested, this, [this](const QString &id, const QString &action) {
+        if (action == QStringLiteral("loadComfyWorkflow")) { showComfyWorkflowDialog(id); }
+    });
     connect(scene_, &EditorScene::childOpenRequested, this, [this](const QString &id) {
         if (selectNode(id)) { openChild(); }
     });
@@ -767,6 +794,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   queueOverlay_->setParent(centralWidget());
   queueOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
   connect(queueOverlay_->rootObject(), SIGNAL(expandedChanged()), this, SLOT(layoutOverlays()));
+  // The status bar Queue tab shows whether the queue lists its jobs.
+  connect(queueOverlay_->rootObject(), SIGNAL(showListChanged()), this, SLOT(schedulePanelChanged()));
   connect(queueOverlay_->rootObject(), SIGNAL(presentedChanged()), this, SLOT(layoutOverlays()));
   connect(queueOverlay_->rootObject(), SIGNAL(contentHeightChanged()), this, SLOT(layoutOverlays()));
   connect(&session_, &node_editor::WorkflowSession::stateChanged, this, [this] { layoutOverlays(); });
@@ -815,6 +844,16 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, followCard);
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followCard);
   connect(scene_, &EditorScene::nodeDragChanged, this, followCard);
+  // The node info panel follows its node the same way.
+  nodeInfoOverlay_ = overlay("NodeInfoPanel", {{"info", QVariant::fromValue(&nodeInfo_)}});
+  nodeInfoOverlay_->setObjectName("node-info-overlay");
+  nodeInfoOverlay_->hide();
+  const auto followInfo = [this] { positionNodeInfo(); };
+  connect(view_->horizontalScrollBar(), &QScrollBar::valueChanged, this, followInfo);
+  connect(view_->verticalScrollBar(), &QScrollBar::valueChanged, this, followInfo);
+  connect(this, &EditorWindow::zoomChanged, this, followInfo);
+  connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followInfo);
+  connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &EditorWindow::syncNodeInfo);
   connect(inspectorDock_, &QDockWidget::visibilityChanged, this, [this] { schedulePanelChanged(); });
   connect(outputDock_, &QDockWidget::visibilityChanged, this,
           [this] { placeStatusBar(); schedulePanelChanged(); });
@@ -2455,6 +2494,8 @@ void EditorWindow::syncChrome() {
                           .inspector = inspectorVisible(),
                           .miniMap = miniMapVisible(),
                           .output = outputVisible(),
+                          .queue = queueVisible(),
+                          .generations = generationsVisible(),
                           .trace = traceVisible(),
                           .versions = versionsVisible()});
   statusModel_.setStatus({.connectionStatus = connectionStatus(),
@@ -2464,7 +2505,7 @@ void EditorWindow::syncChrome() {
                           .nodeCount = nodeCount(),
                           .edgeCount = edgeCount(),
                           .queuedCount = queuedCount(),
-                          .queueAvailable = queueAvailable(),
+                          .generatingCount = generationActivity()->counts().value("generating").toInt(),
                           .systemStats = systemStats()});
   firstWorkflowGuide_.setState(guideVisible(), guideStarted(), guideReadiness());
   editorCommands_.setReadOnly(readOnly());
@@ -2643,6 +2684,16 @@ bool EditorWindow::commitProperty(const QString &nodeId, const QString &name, co
   if (!tabOwner_) { return activeEditor_->commitProperty(nodeId, name, value); }
   if (nodeId.isEmpty() || nodeId != selected_) { return false; }
   if ((value.metaType().id() == QMetaType::Double || value.metaType().id() == QMetaType::Float) && !std::isfinite(value.toDouble())) { return false; }
+  // A Workflow or App node's select commits a reference. The node stores the
+  // id once the source and its graph have loaded.
+  const auto picker = childPicker(document_.node(nodeId)["type"].toString());
+  if (!picker.property.isEmpty() && name == picker.property && value.metaType().id() == QMetaType::QVariantMap) {
+    const auto reference = value.toMap();
+    const auto data = document_.node(nodeId)["data"].toObject();
+    if (reference.value("id").toString() == data[picker.property].toString() && !data[picker.snapshotKey].toObject()["graph"].toObject().isEmpty()) { return false; }
+    loadChildSource(nodeId, picker.kind, reference.value("id").toString());
+    return true;
+  }
   const bool changed = apply({{"op", "setProperty"}, {"id", nodeId}, {"name", name}, {"value", QJsonValue::fromVariant(value)}});
   if (changed) {
     const bool numeric = value.metaType().id() == QMetaType::Double
@@ -3040,8 +3091,11 @@ bool EditorWindow::openFile(const QString &path) {
     schedulePanelChanged();
     return false;
   }
+  return openDocument(f.readAll(), path);
+}
+bool EditorWindow::openDocument(const QByteArray &json, const QString &file) {
   node_editor::WorkflowDocument candidate;
-  auto r = candidate.loadJson(f.readAll());
+  auto r = candidate.loadJson(json);
   if (!r) {
     message_ = r.error;
     schedulePanelChanged();
@@ -3061,7 +3115,7 @@ bool EditorWindow::openFile(const QString &path) {
   session_.clearGenerations();
   runOutput_.reset();
   dynamicPorts_.setSelectedNode({});
-  file_ = path;
+  file_ = file;
   refresh();
   QTimer::singleShot(0, this, &EditorWindow::fit);
   return true;
@@ -3236,6 +3290,7 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Find node") { showFindPanel(); return; }
+  if (name == "Node info") { toggleNodeInfo(); return; }
   if (name == "Group selection" || name == "Ungroup" || name == "Remove from group") {
     const auto ids = selectedIds();
     if (ids.isEmpty()) { message_ = tr("Select nodes first."); schedulePanelChanged(); return; }
@@ -3338,11 +3393,7 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Queue") {
-    if (queueAvailable() && queueOverlay_ && queueOverlay_->rootObject()) {
-      auto *queue = queueOverlay_->rootObject();
-      queue->setProperty("expanded", !queue->property("expanded").toBool());
-      layoutOverlays();
-    }
+    toggleQueue();
     return;
   }
   if (name == "Toggle nodes") {

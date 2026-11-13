@@ -2321,7 +2321,8 @@
       "cloudAlphaNotice": "Chmura jest w fazie alfa. Do prac produkcyjnych użyj",
       "ssoTitle": "Zaloguj się do NodeTool",
       "ssoSignIn": "Zaloguj się przez {{provider}}",
-      "ssoFailed": "Logowanie nie powiodło się ({{reason}}). Spróbuj ponownie lub poproś administratora o dostęp."
+      "ssoFailed": "Logowanie nie powiodło się ({{reason}}). Spróbuj ponownie lub poproś administratora o dostęp.",
+      "marketingOptIn": "Wysyłaj mi e-maile o nowych premierach i darmowych ofertach. Możesz zrezygnować w każdej chwili."
     },
     "inspector": {
       "params": "Parametry",
@@ -3730,6 +3731,7 @@
         "shotCount_other": "{{count}} strzału",
         "modelLabel": "Modelka",
         "modelPlaceholder": "Model scenariusza",
+        "noModels": "Brak dostępnego modelu językowego. Dodaj klucz dostawcy w Ustawieniach, w sekcji Modele i dostawcy.",
         "shotsLabel": "Strzały",
         "title": "Wybierz swój gatunek",
         "description": "Ton, tempo i kadrowanie zależą od Twojego wyboru. Możesz to zmienić później.",
@@ -20623,5 +20625,11 @@
     "missingKeysDetail": "Ten workflow wymaga: {{keys}}. Dodaj go w Ustawieniach przed uruchomieniem.",
     "costPerRun": "≈ {{cost}} za uruchomienie",
     "costUnknown": "Koszt nieznany"
+  },
+  "marketingEmails": {
+    "title": "E-maile o produkcie",
+    "label": "Wysyłaj mi e-maile o premierach i darmowych ofertach",
+    "description": "Dowiaduj się o nowych funkcjach, modelach i darmowych ofertach. Każdy e-mail zawiera link do rezygnacji, a tutaj możesz to wyłączyć w każdej chwili.",
+    "saveFailed": "Nie zapisano ustawienia e-maili. Spróbuj ponownie."
   }
 }

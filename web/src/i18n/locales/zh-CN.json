@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Cloud 尚处于测试阶段。生产工作请使用",
       "ssoTitle": "登录 NodeTool",
       "ssoSignIn": "使用 {{provider}} 登录",
-      "ssoFailed": "登录失败（{{reason}}）。请重试，或向管理员申请访问权限。"
+      "ssoFailed": "登录失败（{{reason}}）。请重试，或向管理员申请访问权限。",
+      "marketingOptIn": "通过邮件通知我新发布和免费优惠。可随时退订。"
     },
     "inspector": {
       "params": "参数",
@@ -3668,6 +3669,7 @@
         "shotCount_other": "{{count}} 个镜头",
         "modelLabel": "模型",
         "modelPlaceholder": "剧本模型",
+        "noModels": "没有可用的语言模型。请在设置的“模型与提供商”中添加提供商密钥。",
         "shotsLabel": "镜头数",
         "title": "选择类型",
         "description": "基调、节奏和构图会根据你的选择调整。之后仍可更改。",
@@ -20001,5 +20003,11 @@
     "missingKeysDetail": "此工作流需要 {{keys}}。请在运行前到设置中添加。",
     "costPerRun": "每次运行约 {{cost}}",
     "costUnknown": "费用未知"
+  },
+  "marketingEmails": {
+    "title": "产品邮件",
+    "label": "通过邮件通知我新发布和免费优惠",
+    "description": "了解新功能、新模型和免费优惠。每封邮件都附有退订链接，你也可以随时在这里关闭。",
+    "saveFailed": "邮件偏好未保存。请重试。"
   }
 }

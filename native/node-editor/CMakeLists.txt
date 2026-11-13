@@ -20,8 +20,12 @@ add_subdirectory(../media media)
 add_library(node_editor_interfaces STATIC
  src/interfaces/NodeCatalog.cpp src/interfaces/NodeCatalog.h
  src/interfaces/NodeInspector.cpp src/interfaces/NodeInspector.h
+ src/interfaces/NodeInfo.cpp src/interfaces/NodeInfo.h
+ src/graph/NodeDocumentation.cpp src/graph/NodeDocumentation.h
  src/interfaces/PropertyHost.cpp src/interfaces/PropertyHost.h
  src/interfaces/GenerationReplay.cpp src/interfaces/GenerationReplay.h
+ src/interfaces/GenerationActivity.cpp src/interfaces/GenerationActivity.h
+ src/run/GenerationWorkflow.cpp src/run/GenerationWorkflow.h
  src/interfaces/DocumentTabs.cpp src/interfaces/DocumentTabs.h
  src/interfaces/Notifications.cpp src/interfaces/Notifications.h
  src/interfaces/WorkflowHeader.cpp src/interfaces/WorkflowHeader.h
@@ -83,6 +87,18 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_data_table_tests)
     add_test(NAME node_editor_data_table COMMAND node_editor_data_table_tests)
     set_tests_properties(node_editor_data_table PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    # The Generations panel and the queue history, with the same media QML types.
+    qt_add_executable(node_editor_generations_panel_tests tests/ui/GenerationsPanelTest.cpp
+     src/media/MediaResolver.cpp src/media/MediaResolver.h
+     src/media/AudioWaveform.cpp src/media/AudioWaveform.h
+     src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+     src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
+     src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
+     src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
+    target_link_libraries(node_editor_generations_panel_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin nodetool_model_picker nodetool_model_pickerplugin Qt6::Quick Qt6::Multimedia Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_generations_panel_tests)
+    add_test(NAME node_editor_generations_panel COMMAND node_editor_generations_panel_tests)
+    set_tests_properties(node_editor_generations_panel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
     return()
@@ -104,8 +120,8 @@ add_library(node_editor_core STATIC
  src/properties/AssetPickerController.cpp src/properties/AssetPickerController.h
  src/properties/ModelPickerController.cpp src/properties/ModelPickerController.h
  src/properties/CodeHighlighter.cpp src/properties/CodeHighlighter.h
- src/properties/CodeInference.cpp src/properties/CodeInference.h src/document/ChildPorts.cpp src/document/ChildPorts.h
- src/properties/DynamicPortsController.cpp src/properties/DynamicPortsController.h
+ src/properties/CodeInference.cpp src/properties/CodeInference.h src/document/ChildPorts.cpp src/document/ChildPorts.h src/document/ChildSources.cpp src/document/ChildSources.h
+ src/properties/DynamicPortsController.cpp src/properties/DynamicPortsController.h src/properties/ComfyWorkflowLoader.cpp src/properties/ComfyWorkflowLoader.h
  src/server/MsgPack.cpp src/server/WorkflowSession.cpp src/server/WorkflowSession.h
  src/server/BundledServer.cpp src/server/BundledServer.h
  src/graph/WorkflowGraphModel.cpp src/graph/WorkflowGraphModel.h
@@ -140,7 +156,7 @@ add_library(node_editor_core STATIC
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
- src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
 target_include_directories(node_editor_core PUBLIC src)
 target_link_libraries(node_editor_core PRIVATE nodetool_graph_runner)
 target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
@@ -422,6 +438,13 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_header_row_component_tests)
  add_test(NAME node_editor_header_row_component COMMAND node_editor_header_row_component_tests)
  set_tests_properties(node_editor_header_row_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# NodeInfoPanel.qml with a fixture NodeInfo, and the documentation split it
+# shows: no EditorWindow, graph runner or QtNodes.
+qt_add_executable(node_editor_node_info_component_tests tests/ui/NodeInfoComponentTest.cpp)
+target_link_libraries(node_editor_node_info_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+nodetool_use_ui_primitives(node_editor_node_info_component_tests)
+add_test(NAME node_editor_node_info_component COMMAND node_editor_node_info_component_tests)
+set_tests_properties(node_editor_node_info_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 # Toolbar.qml, SelectionToolbar.qml and AuthoredControls.qml with fixture
 # commands, selection and run state: no EditorWindow, graph runner or QtNodes.
 qt_add_executable(node_editor_toolbar_component_tests tests/ui/ToolbarComponentTest.cpp)

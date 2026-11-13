@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Cloud er i alfa. For produksjonsarbeid, bruk",
       "ssoTitle": "Logg inn på NodeTool",
       "ssoSignIn": "Logg inn med {{provider}}",
-      "ssoFailed": "Innlogging mislyktes ({{reason}}). Prøv igjen, eller be administratoren om tilgang."
+      "ssoFailed": "Innlogging mislyktes ({{reason}}). Prøv igjen, eller be administratoren om tilgang.",
+      "marketingOptIn": "Send meg e-post om nye lanseringer og gratistilbud. Du kan melde deg av når som helst."
     },
     "inspector": {
       "params": "Params",
@@ -3668,6 +3669,7 @@
         "shotCount_other": "{{count}} skudd",
         "modelLabel": "Modell",
         "modelPlaceholder": "Manusmodell",
+        "noModels": "Ingen språkmodell er tilgjengelig. Legg til en leverandørnøkkel i Innstillinger, under Modeller og leverandører.",
         "shotsLabel": "Skudd",
         "title": "Velg sjangeren din",
         "description": "Tone, pacing og innramming følger ditt valg. Du kan endre det senere.",
@@ -20001,5 +20003,11 @@
     "missingKeysDetail": "Denne arbeidsflyten trenger {{keys}}. Legg den til i Innstillinger før du kjører den.",
     "costPerRun": "≈ {{cost}} per kjøring",
     "costUnknown": "Ukjent kostnad"
+  },
+  "marketingEmails": {
+    "title": "Produkt-e-post",
+    "label": "Send meg e-post om lanseringer og gratistilbud",
+    "description": "Få høre om nye funksjoner, modeller og gratistilbud. Hver e-post har en avmeldingslenke, og du kan slå dette av her når som helst.",
+    "saveFailed": "E-postinnstillingen ble ikke lagret. Prøv igjen."
   }
 }

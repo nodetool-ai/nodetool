@@ -2301,7 +2301,8 @@
       "cloudAlphaNotice": "La nube está en alfa. Para trabajos de producción, utilice",
       "ssoTitle": "Inicia sesión en NodeTool",
       "ssoSignIn": "Iniciar sesión con {{provider}}",
-      "ssoFailed": "No se pudo iniciar sesión ({{reason}}). Inténtalo de nuevo o pide acceso a tu administrador."
+      "ssoFailed": "No se pudo iniciar sesión ({{reason}}). Inténtalo de nuevo o pide acceso a tu administrador.",
+      "marketingOptIn": "Envíame correos sobre nuevos lanzamientos y ofertas gratuitas. Puedes darte de baja cuando quieras."
     },
     "inspector": {
       "params": "parámetros",
@@ -3699,6 +3700,7 @@
         "shotCount_other": "{{count}} tiros",
         "modelLabel": "modelo",
         "modelPlaceholder": "Modelo de guión",
+        "noModels": "No hay ningún modelo de lenguaje disponible. Añade una clave de proveedor en Ajustes, en Modelos y proveedores.",
         "shotsLabel": "Disparos",
         "title": "Elige tu género",
         "description": "El tono, el ritmo y el encuadre dependen de su elección. Puedes cambiarlo más tarde.",
@@ -20312,5 +20314,11 @@
     "missingKeysDetail": "Este flujo de trabajo necesita {{keys}}. Añádela en Ajustes antes de ejecutarlo.",
     "costPerRun": "≈ {{cost}} por ejecución",
     "costUnknown": "Coste desconocido"
+  },
+  "marketingEmails": {
+    "title": "Correos del producto",
+    "label": "Envíame correos sobre lanzamientos y ofertas gratuitas",
+    "description": "Entérate de nuevas funciones, modelos y ofertas gratuitas. Cada correo incluye un enlace para darte de baja, y puedes desactivarlo aquí cuando quieras.",
+    "saveFailed": "No se guardó tu preferencia de correo. Inténtalo de nuevo."
   }
 }
