@@ -329,6 +329,13 @@ void EditorWindow::reportJob(const QString &jobId) {
   }
 }
 
+void EditorWindow::openJobOutput(const QString &url) {
+  // AssetThumb in JobItem.tsx opens the asset's get_url in a new browser tab.
+  const auto target = session_.serverUrl().resolved(QUrl(url));
+  if (url.isEmpty() || (target.scheme() != QLatin1String("http") && target.scheme() != QLatin1String("https"))) { return; }
+  QDesktopServices::openUrl(target);
+}
+
 void EditorWindow::toggleStatusView(const QString &view) {
   if (!tabOwner_) { activeEditor_->toggleStatusView(view); return; }
   if (view == "logs") {
