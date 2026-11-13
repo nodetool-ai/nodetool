@@ -129,9 +129,14 @@ jobs:
           cmake --build native/gpu-preview/build --parallel 4
 
       # The tests must share textures: a build that fell back to "none"
-      # would pass the refusal cases and prove nothing.
+      # would pass the refusal cases and prove nothing. The sanitizer options
+      # are the ones ctest gives this test (native/gpu-preview/tests/CMakeLists.txt):
+      # the graph runner's TSan suppressions ignore races among lavapipe's own
+      # threads, which the TSan leg reports in the CI image.
       - name: Check the sharing backend
         run: |
+          supp="$GITHUB_WORKSPACE/native/graph-runner/tools"
+          TSAN_OPTIONS="suppressions=$supp/tsan.supp" LSAN_OPTIONS="suppressions=$supp/lsan.supp:print_suppressions=0" \
           VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json \
             native/gpu-preview/build/tests/gr_gpu_share_tests --require-sharing | tee "$RUNNER_TEMP/share.log"
           grep -q "^sharing: Vulkan" "$RUNNER_TEMP/share.log"
