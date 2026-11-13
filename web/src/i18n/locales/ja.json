@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "現場の照明の様子",
           "shotHeader": "ショット {{count}}",
           "shotAction": "ショット {{count}} · アクション",
-          "shotDialogue": "ショット {{count}} · ダイアログ",
-          "dialoguePlaceholder": "対話",
-          "addDialogue": "ダイアログを追加",
+          "dialogue": "対話",
           "seconds": "秒",
+          "shotLength": "{{seconds}}秒",
           "sceneHeader": "シーン {{count}}"
         },
         "fallback": {

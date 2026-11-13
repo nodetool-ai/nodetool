@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "场景的灯光效果",
           "shotHeader": "镜头 {{count}}",
           "shotAction": "镜头 {{count}} · 动作",
-          "shotDialogue": "镜头 {{count}} · 台词",
-          "dialoguePlaceholder": "台词",
-          "addDialogue": "添加台词",
+          "dialogue": "台词",
           "seconds": "秒数",
+          "shotLength": "{{seconds}}秒",
           "sceneHeader": "场景 {{count}}"
         },
         "fallback": {
