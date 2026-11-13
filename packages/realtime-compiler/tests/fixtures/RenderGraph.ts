@@ -25,3 +25,19 @@ export function fixture(): CompileInput {
   };
   return { graph, descriptors, outputs: ["out"], revision: 1, session: { sampleRate: 48000, quantum: 128, channels: "stereo", width: 4, height: 4, seed: 17 } };
 }
+
+export function expressionFixture(): CompileInput {
+  const input = fixture(); const descriptors = new Map(input.descriptors);
+  const solid = descriptors.get("solid");
+  if (solid?.kind !== "shader") { throw new Error("Missing solid fixture"); }
+  descriptors.set("solid", { ...solid, uniforms: [{ field: "color", expression: {
+    kind: "operation", op: "vec4", inputs: [
+      { kind: "operation", op: "multiply", inputs: [{ kind: "property", property: "red", default: 0.75 }, { kind: "literal", value: 0.5 }] },
+      { kind: "operation", op: "add", inputs: [{ kind: "literal", value: 10 }, { kind: "literal", value: -10 }] },
+      { kind: "literal", value: 0 }, { kind: "literal", value: 1 }
+    ]
+  } }] });
+  const graph = { ...input.graph, edges: input.graph.edges.filter((edge) => edge.target !== "solid") };
+  graph.edges.push({ source: "damp", sourceHandle: "value", target: "solid", targetHandle: "red" });
+  return { ...input, graph, descriptors };
+}

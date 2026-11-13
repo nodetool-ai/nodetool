@@ -16,6 +16,11 @@ export interface TextureInput {
 }
 export type ControlValue = number | boolean | readonly number[];
 export interface ValueBinding { readonly property: string; readonly default: ControlValue; }
+export type ControlExpression =
+  { readonly kind: "literal"; readonly value: ControlValue } |
+  { readonly kind: "property"; readonly property: string; readonly default: ControlValue } |
+  { readonly kind: "operation"; readonly op: AnalyticOperation; readonly inputs: readonly ControlExpression[] };
+export interface ExpressionBinding { readonly field: string; readonly expression: ControlExpression; }
 export type AnalyticOperation = "time.seconds" | "time.beats" | "time.dt" | "time.frame" | "output.width" | "output.height" |
   "add" | "subtract" | "multiply" | "divide" | "min" | "max" | "less" | "equal" | "remap" | "vec2" | "vec3" | "vec4" | "pow" | "tanh";
 export type StatefulOperation = "damp" | "envelope" | "oscillator" | "sample_hold" | "integrator" | "counter";
@@ -29,7 +34,7 @@ export interface ShaderDescriptor {
   readonly module: string;
   readonly output: string;
   readonly textureInputs: Readonly<Record<string, TextureInput>>;
-  readonly uniforms: readonly ValueBinding[];
+  readonly uniforms: readonly (ValueBinding | ExpressionBinding)[];
   readonly texture: TextureContract;
   readonly retention: "retained" | "volatile";
 }

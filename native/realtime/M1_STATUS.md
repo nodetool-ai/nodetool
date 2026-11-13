@@ -380,16 +380,40 @@ input ownership and a large iterative traversal. The compiled fixture loads and
 renders through Windows Release and ASan executables against independent pixel values.
 Invalid register IR rejects before output. Registry coverage selects these checks
 for compiler and canonical-schema changes. CI runs the compiler tests and native
-fixture in the offline Release and sanitizer jobs. Those new CI results remain
-pending until this revision runs.
+fixture in the offline Release and sanitizer jobs. The
+[standalone Linux run at `62640424d1`](https://github.com/nodetool-ai/nodetool/actions/runs/43378752869)
+passes the compiler tests and native fixture in Release and ASan/UBSan, alongside
+the existing core Release, ASan/UBSan, TSan and Wasm/browser checks.
+Full graph-runner checks for that revision remain
+pending and do not receive a passing claim from the standalone run.
 
 The compiler tests and selected harness-registry tests pass. Package builds,
 compiler typechecking, scoped lint, packed imports, browser bundling and the gate
 dry run pass. Broad local checks were deferred under the targeted-check policy.
 
 WP16 remains open. DSP/audio lowering, parameter slots, structural state keys,
-expression folding, conversion insertion, delayed feedback, batch graph rewriting
+the full descriptor expression vocabulary, conversion insertion, delayed feedback, batch graph rewriting
 and cross-domain stateful handoffs remain unimplemented. Product descriptors,
 runner/editor integration and live-device behavior also remain outside this slice.
 The dependency-order deferral above still applies while WP09 remains open. M1
 and unfinished issues remain open.
+
+## WP16 uniform expressions
+
+Shader descriptors now accept data-only literal/property/operation trees for
+uniform fields. Connected properties read control registers. Constant arithmetic,
+comparisons, remap and vector packing fold. Project transcendental math and
+tick-context sources stay in runtime IR. Nonfinite arithmetic results also stay
+at runtime rather than becoming invalid JSON literals. Expression traversal is
+iterative, detects cycles and enforces a size limit.
+
+A second stored snapshot combines folded constants with a changing damper input.
+Its native PNG checks use an independent scaled exponential reference. The
+compiler tests cover executor arithmetic semantics, live property overrides,
+vector widths, invalid trees, input-order invariance and deep shared trees.
+Both compiler/native fixtures pass on Windows Release and ASan. Compiler tests,
+package build/typechecking and scoped lint pass. Broad local checks remain
+deferred under the targeted-check policy. Linux CI qualification of the expression
+fixture is pending its first run.
+The full descriptor expression vocabulary and the remaining WP16 requirements
+above stay open. This adds no product descriptors or live-device integration.

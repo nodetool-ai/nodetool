@@ -1,6 +1,6 @@
 import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
 import { PLAN_SCHEMA } from "./generated/PlanSchema.js";
-import type { BatchBoundary, CompileInput, CompileResult, ControlInstruction, Diagnostic, LiveDescriptor, RenderPass, RenderPlan, TextureContract, ValueBinding } from "./Types.js";
+import type { AnalyticOperation, BatchBoundary, CompileInput, CompileResult, ControlExpression, ControlInstruction, Diagnostic, ExpressionBinding, LiveDescriptor, RenderPass, RenderPlan, TextureContract, ValueBinding } from "./Types.js";
 
 const ARITIES: ReadonlyMap<string, number> = new Map([
   ["time.seconds", 0], ["time.beats", 0], ["time.dt", 0], ["time.frame", 0], ["output.width", 0], ["output.height", 0],
@@ -33,19 +33,63 @@ function copyTexture(texture: TextureContract, node: string): TextureContract {
 }
 function values(node: NodeDescriptor, binding: ValueBinding): number[] {
   const value: unknown = node.properties && Object.hasOwn(node.properties, binding.property) ? node.properties[binding.property] : binding.default;
+  return literalValues(value, node.id, binding.property);
+}
+function literalValues(value: unknown, node: string, field: string): number[] {
   if (typeof value === "boolean") { return [Number(value)]; }
   if (typeof value === "number" && Number.isFinite(value)) { return [value]; }
   if (Array.isArray(value) && value.length >= 1 && value.length <= 4) {
     const lanes: number[] = [];
     for (const lane of value) {
-      if (typeof lane !== "number" || !Number.isFinite(lane)) { fail(node.id, "control_value", binding.property); }
+      if (typeof lane !== "number" || !Number.isFinite(lane)) { fail(node, "control_value", field); }
       lanes.push(lane);
     }
     return lanes;
   }
-  return fail(node.id, "control_value", `Expected finite scalar or vector: ${binding.property}`);
+  return fail(node, "control_value", `Expected finite scalar or vector: ${field}`);
 }
 function identity(source: string, output: string): string { return JSON.stringify([source, output]); }
+function operationWidth(op: string, args: readonly { width: number }[], node: string): number {
+  if (ARITIES.get(op) !== args.length) { fail(node, "control_arity", op); }
+  const width = Math.max(1, ...args.map((arg) => arg.width));
+  if (args.some((arg) => arg.width !== 1 && arg.width !== width)) { fail(node, "control_width", "Incompatible vector widths"); }
+  if (op === "vec2" || op === "vec3" || op === "vec4") {
+    if (width !== 1) { fail(node, "control_width", "Vector packing requires scalars"); }
+    return args.length;
+  }
+  if (["oscillator", "sample_hold", "counter"].includes(op) && width !== 1) { fail(node, "control_width", "Operation requires scalars"); }
+  return width;
+}
+
+// RT-D3: only fold operations whose double arithmetic matches the executor.
+// Project transcendental math and tick-context sources remain native instructions.
+function fold(op: AnalyticOperation, args: readonly number[][], width: number): number[] | undefined {
+  const result: number[] = [];
+  for (let lane = 0; lane < width; lane++) {
+    const input = (port: number) => args[port][args[port].length === 1 ? 0 : lane];
+    let value: number;
+    switch (op) {
+      case "add": value = input(0) + input(1); break;
+      case "subtract": value = input(0) - input(1); break;
+      case "multiply": value = input(0) * input(1); break;
+      case "divide": value = input(1) === 0 ? 0 : input(0) / input(1); break;
+      case "min": value = input(1) < input(0) ? input(1) : input(0); break;
+      case "max": value = input(0) < input(1) ? input(1) : input(0); break;
+      case "less": value = Number(input(0) < input(1)); break;
+      case "equal": value = Number(input(0) === input(1)); break;
+      case "remap": {
+        const range = input(2) - input(1);
+        value = range === 0 ? input(3) : input(3) + (input(0) - input(1)) / range * (input(4) - input(3));
+        break;
+      }
+      case "vec2": case "vec3": case "vec4": value = args[lane][0]; break;
+      default: return undefined;
+    }
+    if (!Number.isFinite(value)) { return undefined; }
+    result.push(value);
+  }
+  return result;
+}
 
 /** Compile one render region without host I/O. Unsupported live forms reject with graph-node diagnostics. */
 export function compileRealtimeGraph(input: CompileInput): CompileResult {
@@ -84,6 +128,45 @@ function compile(input: CompileInput): CompileResult {
   const sinkEdge = incoming.get(sink.id)?.get(sinkDescriptor.input);
   if (!sinkEdge) { fail(sink.id, "missing_input", sinkDescriptor.input); }
   const live = new Set<string>();
+  const expressionOrders = new Map<ControlExpression, readonly ControlExpression[]>();
+  function expressionOrder(root: ControlExpression, node: string): readonly ControlExpression[] {
+    const cached = expressionOrders.get(root);
+    if (cached) { return cached; }
+    const ordered: ControlExpression[] = [];
+    const active = new Set<ControlExpression>(); const done = new Set<ControlExpression>();
+    const stack = [{ expression: root, finish: false }];
+    let visits = 0;
+    while (stack.length) {
+      const current = stack.pop(); if (!current) { continue; }
+      const { expression, finish } = current;
+      if (done.has(expression)) { continue; }
+      if (finish) { active.delete(expression); done.add(expression); ordered.push(expression); continue; }
+      if (active.has(expression)) { fail(node, "expression_cycle", "Uniform expression contains a cycle"); }
+      if (++visits > 10000) { fail(node, "expression_limit", "Uniform expression exceeds compiler limits"); }
+      active.add(expression); stack.push({ expression, finish: true });
+      if (expression.kind === "operation") {
+        if (ARITIES.get(expression.op) !== expression.inputs.length) { fail(node, "control_arity", expression.op); }
+        for (let index = expression.inputs.length - 1; index >= 0; index--) {
+          stack.push({ expression: expression.inputs[index], finish: false });
+        }
+      }
+    }
+    expressionOrders.set(root, ordered); return ordered;
+  }
+  function shaderInputs(descriptor: Extract<LiveDescriptor, { kind: "shader" }>, node: string): string[] {
+    const fields = new Set<string>(); const properties = new Set<string>();
+    for (const uniform of descriptor.uniforms) {
+      const field = "expression" in uniform ? uniform.field : uniform.property;
+      if (!field || fields.has(field)) { fail(node, "descriptor", "Uniform fields must be nonempty and unique"); }
+      fields.add(field);
+      if ("expression" in uniform) {
+        for (const expression of expressionOrder(uniform.expression, node)) {
+          if (expression.kind === "property") { properties.add(expression.property); }
+        }
+      } else { properties.add(uniform.property); }
+    }
+    return [...Object.keys(descriptor.textureInputs), ...properties];
+  }
   const pending = [sink.id];
   while (pending.length) {
     const id = pending.pop();
@@ -93,7 +176,7 @@ function compile(input: CompileInput): CompileResult {
     const descriptor = descriptors.get(node.type);
     if (!descriptor) { continue; }
     live.add(id);
-    const allowed = descriptor.kind === "shader" ? [...Object.keys(descriptor.textureInputs), ...descriptor.uniforms.map((field) => field.property)] :
+    const allowed = descriptor.kind === "shader" ? shaderInputs(descriptor, id) :
       descriptor.kind === "render-output" ? [descriptor.input] : descriptor.op === "constant" ? [] : descriptor.inputs.map((field) => field.property);
     const names = new Set(allowed);
     if (names.size !== allowed.length) { fail(id, "descriptor", "Descriptor input names overlap"); }
@@ -148,6 +231,47 @@ function compile(input: CompileInput): CompileResult {
     ops.push({ node: synthetic("uniform", node.id, field.property), op: "constant", domain: "render", out: result.index, in: [], values: literal });
     return result;
   }
+  function expressionBinding(node: NodeDescriptor, field: ExpressionBinding): { index: number; width: number } {
+    type Value = { kind: "literal"; values: number[]; width: number } | { kind: "register"; index: number; width: number };
+    const lowered = new Map<ControlExpression, Value>();
+    const order = expressionOrder(field.expression, node.id);
+    function materialize(expression: ControlExpression, value: Value, index: number): { index: number; width: number } {
+      if (value.kind === "register") { return value; }
+      const result = { kind: "register" as const, index: registerCount++, width: value.width };
+      const name = expression === field.expression ? synthetic("uniform", node.id, field.field) : synthetic("expression", node.id, JSON.stringify([field.field, index]));
+      ops.push({ node: name, op: "constant", domain: "render", out: result.index, in: [], values: value.values });
+      lowered.set(expression, result); return result;
+    }
+    const positions = new Map(order.map((expression, index) => [expression, index]));
+    for (let index = 0; index < order.length; index++) {
+      const expression = order[index];
+      if (expression.kind === "property" && incoming.get(node.id)?.has(expression.property)) {
+        lowered.set(expression, { kind: "register", ...binding(node, expression) });
+      } else if (expression.kind !== "operation") {
+        const literal = expression.kind === "property" ? values(node, expression) : literalValues(expression.value, node.id, field.field);
+        lowered.set(expression, { kind: "literal", values: literal, width: literal.length });
+      } else {
+        const args = expression.inputs.map((argument) => {
+          const result = lowered.get(argument); if (!result) { return fail(node.id, "expression", "Missing expression input"); } return result;
+        });
+        const width = operationWidth(expression.op, args, node.id);
+        const literals = args.flatMap((arg) => arg.kind === "literal" ? [arg.values] : []);
+        const folded = literals.length === args.length ? fold(expression.op, literals, width) : undefined;
+        if (folded) { lowered.set(expression, { kind: "literal", values: folded, width }); continue; }
+        const inputs = expression.inputs.map((argument) => {
+          const value = lowered.get(argument); const position = positions.get(argument);
+          if (!value || position === undefined) { return fail(node.id, "expression", "Missing expression input"); }
+          return materialize(argument, value, position).index;
+        });
+        const out = registerCount++;
+        ops.push({ node: synthetic("expression", node.id, JSON.stringify([field.field, index])), op: expression.op, domain: "render", out, in: inputs, values: [] });
+        lowered.set(expression, { kind: "register", index: out, width });
+      }
+    }
+    const result = lowered.get(field.expression);
+    if (!result) { return fail(node.id, "expression", "Missing uniform expression"); }
+    return materialize(field.expression, result, order.length - 1);
+  }
   function texture(edge: Edge): { id: string; contract: TextureContract; retained: boolean } {
     const key = identity(edge.source, edge.sourceHandle); const existing = textures.get(key);
     if (existing) { return existing; }
@@ -172,16 +296,12 @@ function compile(input: CompileInput): CompileResult {
     }
     if (descriptor.kind === "control") {
       if (STATEFUL.has(descriptor.op) !== ("stateVersion" in descriptor)) { fail(id, "state_version", "State version must match the operation class"); }
-      let args: { index: number; width: number }[] = []; let literal: number[] = []; let width = 1;
+      let args: { index: number; width: number }[] = []; let literal: number[] = []; let width: number;
       if (descriptor.op === "constant") { literal = values(node, descriptor.value); width = literal.length; }
       else {
         if (ARITIES.get(descriptor.op) !== descriptor.inputs.length) { fail(id, "control_arity", descriptor.op); }
         args = descriptor.inputs.map((field) => binding(node, field));
-        width = Math.max(1, ...args.map((arg) => arg.width));
-        if (args.some((arg) => arg.width !== 1 && arg.width !== width)) { fail(id, "control_width", "Incompatible vector widths"); }
-        if (descriptor.op === "vec2" || descriptor.op === "vec3" || descriptor.op === "vec4") {
-          if (width !== 1) { fail(id, "control_width", "Vector packing requires scalars"); } width = args.length;
-        } else if (["oscillator", "sample_hold", "counter"].includes(descriptor.op) && width !== 1) { fail(id, "control_width", "Operation requires scalars"); }
+        width = operationWidth(descriptor.op, args, id);
       }
       const output = registerCount++;
       const instruction: ControlInstruction = { node: id, op: descriptor.op, domain: "render", out: output, in: args.map((arg) => arg.index), values: literal };
@@ -203,7 +323,9 @@ function compile(input: CompileInput): CompileResult {
         inputs.set(port, source.id);
       }
       if (output.size.kind === "input" && !inputs.has(output.size.input)) { fail(id, "size", output.size.input); }
-      passes.push({ node: id, module: descriptor.module, inputs: Object.fromEntries(inputs), uniforms: descriptor.uniforms.map((field) => binding(node, field).index), retention: descriptor.retention, output });
+      const uniforms = descriptor.uniforms.map((field) =>
+        ("expression" in field ? expressionBinding(node, field) : binding(node, field)).index);
+      passes.push({ node: id, module: descriptor.module, inputs: Object.fromEntries(inputs), uniforms, retention: descriptor.retention, output });
       textures.set(identity(id, descriptor.output), { id, contract: output, retained: descriptor.retention === "retained" });
     }
   }
