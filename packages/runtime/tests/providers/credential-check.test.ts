@@ -110,6 +110,20 @@ describe("checkCredential", () => {
     });
   });
 
+  it("probes Sarvam's model listing with the subscription-key header", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(respond(200));
+    const result = await checkCredential("SARVAM_API_KEY", "sv-key", {
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    });
+
+    expect(result.status).toBe("valid");
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api.sarvam.ai/v2/models");
+    expect((init as RequestInit).headers).toEqual({
+      "api-subscription-key": "sv-key"
+    });
+  });
+
   it("keys a URL-authenticated provider on the value instead of a header", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(respond(200));
     await checkCredential("GEMINI_API_KEY", "abc/123", {
