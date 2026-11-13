@@ -11,7 +11,7 @@ Basic.Button {
     // the hover, selected, pressed, and focus background, and its children position against its size.
     implicitHeight: flat ? 0 : Math.max(Metrics.standard, content.implicitHeight + Metrics.md)
     leftPadding: flat ? 0 : Metrics.md; rightPadding: flat ? 0 : Metrics.md
-    topPadding: 0; bottomPadding: 0
+    topPadding: flat ? 0 : padding; bottomPadding: flat ? 0 : padding
     // A pointer handler declared in the row lands in the content item, where a press no
     // longer reaches the button. Move each one onto the row itself.
     Component.onCompleted: {
