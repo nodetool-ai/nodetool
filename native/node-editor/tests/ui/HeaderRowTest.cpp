@@ -160,32 +160,27 @@ private slots:
         QCOMPARE(header->mapTo(&window, QPoint()).y(), tabs->mapTo(&window, QPoint(0, tabs->height())).y());
         QCOMPARE(header->mapTo(&window, QPoint()).x(), 50);
         QVERIFY(header->mapTo(&window, QPoint(0, header->height())).y() <= view->mapTo(&window, QPoint()).y());
-        const auto title = bounds(item(header, QStringLiteral("header-title")));
-        QVERIFY2(near(title.left(), 8), qPrintable(describe(title.left(), 8)));
-        QVERIFY2(near(title.center().y(), 19.5), qPrintable(describe(title.center().y(), 19.5)));
         const auto undo = bounds(item(header, QStringLiteral("header-undo")));
         const auto redo = bounds(item(header, QStringLiteral("header-redo")));
         QCOMPARE(undo.size(), QSizeF(28, 28));
         QVERIFY2(near(redo.left() - undo.left(), 32), qPrintable(describe(redo.left() - undo.left(), 32)));
-        const auto mode = bounds(item(header, QStringLiteral("header-mode")));
-        QCOMPARE(mode.height(), 28.0);
-        QVERIFY2(near(mode.top(), 5.5, 0.5), qPrintable(describe(mode.top(), 5.5)));
-        // Web Graph and Chain: 71 and 69 wide, 140 together. Text widths differ by font hinting.
-        QVERIFY2(near(mode.width(), 140, 8), qPrintable(describe(mode.width(), 140)));
-        // Undo to the mode switch: 28 + 4 + 28, then 8, a 1 px rule and 8.
-        QVERIFY2(near(mode.left() - undo.left(), 77), qPrintable(describe(mode.left() - undo.left(), 77)));
         const auto chat = bounds(item(header, QStringLiteral("header-chat")));
         const auto map = bounds(item(header, QStringLiteral("header-mini-map")));
         const auto inspector = bounds(item(header, QStringLiteral("header-inspector")));
-        QVERIFY2(near(chat.left() - mode.right(), 17), qPrintable(describe(chat.left() - mode.right(), 17)));
+        // Redo to chat: 8, a 1 px rule and 8.
+        QVERIFY2(near(chat.left() - redo.right(), 17), qPrintable(describe(chat.left() - redo.right(), 17)));
         QCOMPARE(map.left() - chat.left(), 32.0);
         QCOMPARE(inspector.left() - map.left(), 32.0);
-        const auto more = bounds(item(header, QStringLiteral("header-more")));
-        QVERIFY2(near(header->width() - more.right(), 8), qPrintable(describe(header->width() - more.right(), 8)));
-        // The web save dot is 8 px and sits 8 px after the title.
+        // The document commands end the bar, 8 px from its right edge.
+        const auto commands = bounds(item(header, QStringLiteral("header-command-menu")));
+        QVERIFY2(near(header->width() - commands.right(), 8), qPrintable(describe(header->width() - commands.right(), 8)));
+        QVERIFY(!item(header, QStringLiteral("header-more")));
+        // The web save dot is 8 px.
         const auto dot = bounds(item(header, QStringLiteral("header-save-dot")));
         QCOMPARE(dot.size(), QSizeF(8, 8));
-        QVERIFY2(near(dot.left() - title.right(), 8), qPrintable(describe(dot.left() - title.right(), 8)));
+        // The tab shows the name, so the bar starts with the save dot.
+        QVERIFY2(near(dot.left(), 8), qPrintable(describe(dot.left(), 8)));
+        QVERIFY(!item(header, QStringLiteral("header-title")));
 
         auto *toolbar = panel(window, QStringLiteral("Toolbar.qml"));
         QVERIFY(toolbar);
@@ -206,42 +201,6 @@ private slots:
         for (const auto *name : {"toolbar-undo", "toolbar-redo", "toolbar-open", "toolbar-save", "toggleEditorChat"}) {
             QVERIFY2(!item(toolbar, QString::fromLatin1(name)), name);
         }
-    }
-
-    void renamesInline() {
-        EditorWindow window;
-        open(window);
-        auto *header = panel(window, QStringLiteral("HeaderRow.qml"));
-        QVERIFY(header);
-        QCOMPARE(item(header, QStringLiteral("header-title"))->property("text").toString(), QStringLiteral("Window parity fixture"));
-        QTRY_COMPARE(hover(header, QStringLiteral("header-title")), QStringLiteral("Double-click to rename"));
-        QTest::mouseDClick(header, Qt::LeftButton, Qt::NoModifier, center(item(header, QStringLiteral("header-title"))));
-        settle();
-        auto *field = item(header, QStringLiteral("header-rename"));
-        QVERIFY(field);
-        QTRY_VERIFY(field->isVisible());
-        QVERIFY(!item(header, QStringLiteral("header-title"))->isVisible());
-        // Escape keeps the name.
-        QTest::keyClicks(header, QStringLiteral("Discarded"));
-        QTest::keyClick(header, Qt::Key_Escape);
-        settle();
-        QTRY_VERIFY(!field->isVisible());
-        QCOMPARE(window.workflowName(), QStringLiteral("Window parity fixture"));
-        QTest::mouseDClick(header, Qt::LeftButton, Qt::NoModifier, center(item(header, QStringLiteral("header-title"))));
-        settle();
-        QTRY_VERIFY(field->isVisible());
-        QTest::keyClick(header, Qt::Key_A, Qt::ControlModifier);
-        QTest::keyClicks(header, QStringLiteral("Renamed flow"));
-        QTest::keyClick(header, Qt::Key_Return);
-        settle();
-        QTRY_COMPARE(window.workflowName(), QStringLiteral("Renamed flow"));
-        QTRY_COMPARE(item(header, QStringLiteral("header-title"))->property("text").toString(), QStringLiteral("Renamed flow"));
-        QVERIFY(!field->isVisible());
-        // The tab shows the same name.
-        QTRY_COMPARE(window.workflowTabs().value(window.activeTab()).toMap()["title"].toString(), QStringLiteral("Renamed flow"));
-        // After a double-click the offscreen platform delivers no hover to the
-        // next window until another click, so end with one on the bar's edge.
-        QTest::mouseClick(header, Qt::LeftButton, Qt::NoModifier, QPoint(header->width() - 1, header->height() - 1));
     }
 
     void undoRedoFollowHistory() {
@@ -377,36 +336,20 @@ private slots:
         click(header, QStringLiteral("header-mini-map"));
         QTRY_VERIFY(!miniMap->isVisible());
 
-        // Graph is the only view. Chain says why it is off and ignores the click.
-        auto *graph = item(header, QStringLiteral("header-mode-graph"));
-        auto *chain = item(header, QStringLiteral("header-mode-chain"));
-        QVERIFY(graph->property("selected").toBool());
-        QVERIFY(!chain->property("available").toBool());
-        QVERIFY(!item(header, QStringLiteral("header-mode-chain-button"))->isEnabled());
-        QTRY_COMPARE(hover(header, QStringLiteral("header-mode-chain")),
-                 QStringLiteral("The chain view is not available in the native editor yet."));
-        click(header, QStringLiteral("header-mode-chain"));
-        QVERIFY(graph->property("selected").toBool());
     }
 
-    void moreOpensTheDocumentMenu() {
+    void commandButtonsRunTheDocumentCommands() {
         EditorWindow window;
         open(window);
         auto *header = panel(window, QStringLiteral("HeaderRow.qml"));
         QVERIFY(header);
-        QTRY_COMPARE(hover(header, QStringLiteral("header-more")), QStringLiteral("More actions"));
-        click(header, QStringLiteral("header-more"));
-        QTRY_VERIFY(window.activeEditor()->findChild<QMenu *>(QStringLiteral("more-menu")));
-        auto *menu = window.activeEditor()->findChild<QMenu *>(QStringLiteral("more-menu"));
-        QTRY_VERIFY(menu->isVisible());
-        QStringList labels;
-        for (auto *entry : menu->actions()) {
-            labels << entry->text();
-        }
-        menu->close();
-        QVERIFY2(labels.contains(QStringLiteral("Version history")), qPrintable(labels.join(", ")));
-        // The toolbar no longer has Save, so the menu keeps the local file save.
-        QVERIFY2(labels.contains(QStringLiteral("Save")), qPrintable(labels.join(", ")));
+        QTRY_COMPARE(hover(header, QStringLiteral("header-versions")), QStringLiteral("Version history"));
+        QTRY_VERIFY(item(header, QStringLiteral("header-save"))->isEnabled());
+        const bool before = item(header, QStringLiteral("header-instant-update"))->property("active").toBool();
+        click(header, QStringLiteral("header-instant-update"));
+        QTRY_COMPARE(item(header, QStringLiteral("header-instant-update"))->property("active").toBool(), !before);
+        click(header, QStringLiteral("header-instant-update"));
+        QTRY_COMPARE(item(header, QStringLiteral("header-instant-update"))->property("active").toBool(), before);
     }
 
     void toolbarStopsAndTimesASubmittedRun() {

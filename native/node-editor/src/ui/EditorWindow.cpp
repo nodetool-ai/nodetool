@@ -281,7 +281,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&workflowHeader_, &node_editor::WorkflowHeader::redoRequested, this, [this] { action("Redo"); });
   connect(&workflowHeader_, &node_editor::WorkflowHeader::saveToServerRequested, this, [this] { action("Server Save"); });
   connect(&workflowHeader_, &node_editor::WorkflowHeader::serverSyncRequested, this, [this] { action("Server sync"); });
-  connect(&workflowHeader_, &node_editor::WorkflowHeader::moreRequested, this, [this] { action("More"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::actionRequested, this, [this](const QString &name) {
+    if (menuActionEnabled(name)) { userAction(name); }
+  });
   connect(&workflowHeader_, &node_editor::WorkflowHeader::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(&panelLayout_, &node_editor::PanelLayout::toggleBrowserRequested, this, [this] { action("Workflows"); });
   connect(&panelLayout_, &node_editor::PanelLayout::toggleChatRequested, this, &EditorWindow::toggleChat);
@@ -2513,6 +2515,14 @@ void EditorWindow::syncChrome() {
   workflowHeader_.setSaveStatus(documentSaveStatus());
   workflowHeader_.setHistory(canUndo(), canRedo());
   browser_.setCurrentId(document_.snapshot()["id"].toString());
+  // The outer window shows the active tab's commands.
+  const auto *source = tabOwner_ || !activeEditor_ ? this : activeEditor_;
+  QStringList enabled;
+  for (const auto *name : {"Save", "Version history", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu",
+                           "Instant Update: On", "Canvas navigation: Mouse"}) {
+    if (source->menuActionEnabled(QString::fromLatin1(name))) { enabled << QString::fromLatin1(name); }
+  }
+  workflowHeader_.setActions(enabled, source->instantUpdate_, mouseNavigation());
   panelLayout_.setPanels({.browser = browserVisible(),
                           .chat = chatVisible(),
                           .library = libraryVisible(),
@@ -3229,8 +3239,8 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "Settings") { openSettings(); return; }
   if (name == "Cut") { if (menuActionEnabled(name)) { action("Copy"); action("Delete"); } return; }
-  if (name == "Version history" || name == "Share workflow" || name == "Workflow metadata") {
-    showWorkflowDetails(name == "Version history" ? "versions" : name == "Share workflow" ? "sharing" : "metadata"); return;
+  if (name == "Version history" || name == "Workflow metadata") {
+    showWorkflowDetails(name == "Version history" ? "versions" : "metadata"); return;
   }
     if (name == "Save" && inlineChild_ && childParent_) {
         flushChild();
@@ -3990,6 +4000,9 @@ void EditorWindow::presentation(const QVariantMap &roles) {
   }
   if (color("success").isValid()) {
       theme.success = color("success");
+  }
+  if (color("info").isValid()) {
+      theme.info = color("info");
   }
   theme.selectionShadow = color("shadow");
   for (const auto &[name, target] : {std::pair{"mediaScrim", &theme.mediaScrim}, std::pair{"mediaScrimInk", &theme.mediaScrimInk},

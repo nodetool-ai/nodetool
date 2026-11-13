@@ -194,7 +194,6 @@ void EditorWindow::installApplicationMenu() {
     command(workflow, tr("Reconnect"), QStringLiteral("Reconnect"));
     workflow->addSeparator();
     command(workflow, tr("Linked Workflows…"), QStringLiteral("Linked workflows"));
-    command(workflow, tr("Share…"), QStringLiteral("Share workflow"));
     command(workflow, tr("Metadata…"), QStringLiteral("Workflow metadata"));
     command(workflow, tr("Canvas Uploads…"), QStringLiteral("Canvas uploads"));
     track(workflow);

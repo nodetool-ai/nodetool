@@ -52,7 +52,7 @@ Item {
         Loader {
             id: loader
             width: parent.width
-            height: parent.height - (root.kind === "text" || root.kind === "multiline" ? Ui.Metrics.small : 0)
+            height: parent.height - (root.descriptor.name !== "code" && (root.kind === "text" || root.kind === "multiline") ? Ui.Metrics.small : 0)
             sourceComponent: root.descriptor.name === "code" ? codeEditor : root.kind === "boolean" ? booleanEditor : root.kind === "choice" ? choiceEditor
                 : root.kind === "model" ? modelEditor
                 : root.structured ? structuredEditor
@@ -65,7 +65,7 @@ Item {
         }
         Ui.EditorButton {
             objectName: "inline-expand"
-            visible: root.kind === "text" || root.kind === "multiline"
+            visible: root.descriptor.name !== "code" && (root.kind === "text" || root.kind === "multiline")
             x: parent.width - width
             y: loader.height
             implicitHeight: Ui.Metrics.small
@@ -85,6 +85,7 @@ Item {
     Component {
         id: codeEditor
         CodePropertyEditor {
+            canvas: true
             value: typeof root.value === "string" ? root.value : ""
             nodeType: root.descriptor.nodeType || ""
             writable: true

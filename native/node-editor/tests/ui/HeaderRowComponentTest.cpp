@@ -70,10 +70,9 @@ private slots:
         panels.setPanels({.inspector = true});
         QSignalSpy undo(&header, &WorkflowHeader::undoRequested);
         QSignalSpy redo(&header, &WorkflowHeader::redoRequested);
-        QSignalSpy renamed(&header, &WorkflowHeader::renameRequested);
         QSignalSpy saved(&header, &WorkflowHeader::saveToServerRequested);
         QSignalSpy synced(&header, &WorkflowHeader::serverSyncRequested);
-        QSignalSpy more(&header, &WorkflowHeader::moreRequested);
+        QSignalSpy commands(&header, &WorkflowHeader::actionRequested);
         QSignalSpy chat(&panels, &PanelLayout::toggleChatRequested);
         QSignalSpy miniMap(&panels, &PanelLayout::miniMapRequested);
         QSignalSpy inspector(&panels, &PanelLayout::toggleInspectorRequested);
@@ -83,7 +82,7 @@ private slots:
              "HeaderRow.qml", {1100, 44});
         auto *root = view.rootObject();
 
-        QCOMPARE(named(root, "header-title")->property("text").toString(), QString("Poster"));
+        QVERIFY(!named(root, "header-title"));
         QCOMPARE(named(root, "header-save-label")->property("text").toString(), QString("Unsaved changes"));
         QVERIFY(!named(root, "header-save-action")->isVisible());
         QVERIFY(named(root, "header-undo")->isEnabled());
@@ -103,8 +102,20 @@ private slots:
         QCOMPARE(miniMap.first().first().toBool(), true);
         click(view, named(root, "header-inspector"));
         QTRY_COMPARE(inspector.size(), 1);
-        click(view, named(root, "header-more"));
-        QTRY_COMPARE(more.size(), 1);
+        QVERIFY(!named(root, "header-more"));
+        // A disabled command sends nothing. An enabled one sends its menu name.
+        click(view, named(root, "header-versions"));
+        QTest::qWait(20);
+        QCOMPARE(commands.size(), 0);
+        header.setActions({"Version history", "Instant Update: On"}, true, false);
+        QTRY_VERIFY(named(root, "header-versions")->isEnabled());
+        click(view, named(root, "header-versions"));
+        QTRY_COMPARE(commands.size(), 1);
+        QCOMPARE(commands.first().first().toString(), QString("Version history"));
+        QVERIFY(named(root, "header-instant-update")->property("active").toBool());
+        click(view, named(root, "header-instant-update"));
+        QTRY_COMPARE(commands.size(), 2);
+        QCOMPARE(commands.last().first().toString(), QString("Instant Update: On"));
 
         // A failed save offers Retry, which saves again; a conflict offers Review.
         header.setSaveStatus("error");
@@ -117,26 +128,6 @@ private slots:
         QTRY_COMPARE(synced.size(), 1);
         QCOMPARE(saved.size(), 1);
 
-        // A double-click on the name edits it, and the typed name goes up. The
-        // wait keeps the last click from pairing with this one.
-        QTest::qWait(QGuiApplication::styleHints()->mouseDoubleClickInterval() + 50);
-        QTest::mouseDClick(&view, Qt::LeftButton, Qt::NoModifier, centre(named(root, "header-title")));
-        auto *field = named(root, "header-rename");
-        QTRY_VERIFY(field->isVisible());
-        QTest::keyClick(&view, Qt::Key_A, Qt::ControlModifier);
-        for (const char key : QByteArray("Flyer")) {
-            QTest::keyClick(&view, key);
-        }
-        QTest::keyClick(&view, Qt::Key_Return);
-        QTRY_COMPARE(renamed.size(), 1);
-        QCOMPARE(renamed.first().first().toString(), QString("Flyer"));
-        QTRY_VERIFY(!field->isVisible());
-
-        // A document that cannot be renamed ignores the double-click.
-        header.setRenamable(false);
-        QTest::mouseDClick(&view, Qt::LeftButton, Qt::NoModifier, centre(named(root, "header-title")));
-        QTest::qWait(20);
-        QVERIFY(!field->isVisible());
     }
 
     void railRequestsGoUp() {

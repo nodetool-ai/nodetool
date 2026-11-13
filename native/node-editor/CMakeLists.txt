@@ -25,6 +25,7 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/PropertyHost.cpp src/interfaces/PropertyHost.h
  src/interfaces/GenerationReplay.cpp src/interfaces/GenerationReplay.h
  src/interfaces/GenerationActivity.cpp src/interfaces/GenerationActivity.h
+ src/interfaces/GenerationRowsModel.cpp src/interfaces/GenerationRowsModel.h
  src/run/GenerationWorkflow.cpp src/run/GenerationWorkflow.h
  src/interfaces/DocumentTabs.cpp src/interfaces/DocumentTabs.h
  src/interfaces/Notifications.cpp src/interfaces/Notifications.h

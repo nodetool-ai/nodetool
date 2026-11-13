@@ -797,7 +797,7 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         return true;
     }
     case NodeRowKind::Multiline:
-        if (row.rect.isEmpty()) {
+        if (row.rect.isEmpty() || row.code) {
             return false;
         }
         paintTextArea(painter, theme, row);

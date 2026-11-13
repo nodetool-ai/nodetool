@@ -25,4 +25,10 @@ void WorkflowHeader::setHistory(bool canUndo, bool canRedo) {
     if (assign(canUndo_, canUndo) | assign(canRedo_, canRedo)) { emit historyChanged(); }
 }
 
+void WorkflowHeader::setActions(const QStringList &enabled, bool instantUpdate, bool mouseNavigation) {
+    if (assign(enabledActions_, enabled) | assign(instantUpdate_, instantUpdate) | assign(mouseNavigation_, mouseNavigation)) {
+        emit actionsChanged();
+    }
+}
+
 }  // namespace nodetool::node_editor
