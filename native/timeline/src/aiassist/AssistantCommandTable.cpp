@@ -115,6 +115,7 @@ QList<Command> buildAllowed() {
     actions({"markIn", "markOut"}, seek);
     actions({"markClip", "markSelection"}, clips);
     actions({"goToIn", "goToOut", "clearIn", "clearOut", "clearRange"});
+    actions({"goToSequenceStart", "goToSequenceEnd"});
     // Markers.
     actions({"addMarker", "addRangeMarker", "clearMarker"}, seek);
     action("addMarkerInOut", range);
@@ -125,6 +126,7 @@ QList<Command> buildAllowed() {
     const P contextTrack{"track_id", ParamKind::ContextTrack, true, "The track.", {}, "trackId"};
     const P contextTime{"timeMs", ParamKind::ContextTime, true, "The time on the track, in timeline ms.", {}, "timeMs", 0};
     actions({"closeGapAt", "addText"}, {contextTrack, contextTime});
+    action("addTextAtPlayhead", seek);
     // Takes that exist already. Generating a take goes through its own review step.
     actions(numbered("takeSwitch", 9), clips);
     actions(numbered("takeCut", 9), clipsAtTime);
@@ -208,6 +210,8 @@ QList<Command> buildAllowed() {
     const P trackName{"name", ParamKind::Text, false, "Its name."};
     edit("addTrack", "Add a track at the end", {trackType, trackName});
     edit("insertTrack", "Insert a track", {trackType, trackName, P{"atIndex", ParamKind::Number, true, "Where it goes among the tracks, from 0.", {}, {}, 0}});
+    edit("addTextOnTop", "Add a title over every picture", {P{"atMs", ParamKind::Number, true, "Where it starts, in timeline ms.", {}, {}, 0, MAX_LENGTH_MS},
+        P{"text", ParamKind::Text, false, "The words. Defaults to Text."}, P{"durationMs", ParamKind::Number, false, "How long it shows, in ms. Defaults to 3000.", {}, {}, 1, MAX_LENGTH_MS}});
     edit("duplicateTrack", "Duplicate a track", {track});
     edit("removeTrack", "Remove a track and its clips", {track});
     edit("reorderTracks", "Reorder tracks", {P{"track_ids", ParamKind::TrackIds, true, "Every track id, in the new order.", {}, "orderedIds"}});
@@ -313,7 +317,7 @@ QHash<QString, QString> buildDenied() {
         "it is the Effects panel's add for several clips. Use patchClip or addClipAudioEffect for one clip");
     deny({"updateTrackEffect", "updateMasterEffect", "patchClipAudioEffect"},
          "only the panels know each value's range, and a very large one can exhaust memory. Add or remove the effect instead");
-    deny({"deleteMarker", "altDragCopy", "duplicateSelected", "moveSelectedClips", "nudge", "pasteClipAttributes", "removeRange", "resolveDropAction", "splitSelectedAtPlayhead",
+    deny({"deleteMarker", "altDragCopy", "duplicateSelected", "moveSelectedClips", "moveSelectedClipsAndDrop", "nudge", "pasteClipAttributes", "removeRange", "resolveDropAction", "splitSelectedAtPlayhead",
           "changeAudioTrackHeights", "setClipFadeGrip", "setClipTimeRemap", "setClipsAudioRole", "setClipsVolumeDb", "applyDucking", "moveClipAudioEffect", "moveTrackEffect",
           "setTrackAutomation", "addClipReframeKeyframe", "setClipReframeSubject", "source.place", "clip.remix", "clip.remix.revert", "sceneEdit.cut", "sceneEdit.markers",
           "assets.dropAsset", "acceptExternalUnit", "restoreDocument",
