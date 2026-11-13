@@ -140,6 +140,31 @@ Item {
                     tooltip: "Stop workflow (Esc)"
                     enabled: root.runLabel !== "Stopping"
                 }
+                // ComfyTargetSelector: where this Comfy workflow runs. The menu is the window's.
+                PanelRow {
+                    id: comfyTarget
+                    objectName: "toolbar-comfy-target"
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: root.commands.comfyTarget !== ""
+                    text: root.commands.comfyTarget
+                    accessibleName: "Where this Comfy workflow runs: " + text
+                    implicitHeight: Ui.Metrics.compact
+                    implicitWidth: comfyTargetLabel.implicitWidth + Ui.Metrics.md * 2
+                    onClicked: root.commands.run("Comfy target")
+                    HoverHandler {
+                        onHoveredChanged: {
+                            root.commands.showToolTip(hovered ? "Where this Comfy workflow runs" : "")
+                        }
+                    }
+                    Ui.Text {
+                        id: comfyTargetLabel
+                        anchors.centerIn: parent
+                        text: comfyTarget.text
+                        role: Ui.Typography.SansLabel
+                        tone: Ui.Text.Secondary
+                        lineHeight: 1
+                    }
+                }
                 PanelRow {
                     id: runButton
                     objectName: "run-workflow"

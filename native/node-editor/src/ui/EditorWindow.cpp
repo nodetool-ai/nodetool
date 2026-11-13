@@ -154,6 +154,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     connect(&generations_, &node_editor::GenerationActivity::rowsChanged, this, [this] {
       for (auto *tab : tabs_) { tab->schedulePanelChanged(); }
     });
+    installComfy();
     return;
   }
   setWindowTitle(tr("NodeTool Workflow[*]"));
@@ -177,6 +178,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     emit documentEpochChanged();
     QTimer::singleShot(0, this, &EditorWindow::refreshChildReferences);
   });
+  installComfy();
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &setup_, &node_editor::SetupController::configure);
   // Every prediction a run on this socket reports reaches the shared Generations list.
   connect(&session_, &node_editor::WorkflowSession::predictionReceived, this, [this](const QJsonObject &message) {
@@ -2208,13 +2210,15 @@ bool EditorWindow::apply(const QJsonObject &c) {
 }
 void EditorWindow::setCatalog(const QJsonArray &source) {
   if (codeSnippets_.isEmpty()) { codeSnippets_ = loadCodeSnippets(); }
-  const auto metadata = withCodeSnippets(source, codeSnippets_);
+  // A Comfy workflow's tab adds its target's ComfyUI node classes to the catalog.
+  baseCatalog_ = source;
+  const auto metadata = withCodeSnippets(node_editor::mergeComfyCatalog(source, comfyRecords_), codeSnippets_);
   if (!tabOwner_) { metadata_ = metadata; for (auto tab : tabs_) tab->setCatalog(metadata); emit catalogChanged(); return; }
   metadata_ = metadata;
   // Panels can bind to the tab or to the window that owns the tabs.
   emit catalogChanged();
   emit tabOwner_->catalogChanged();
-  compatiblePicker_->setCatalog(metadata);
+  compatiblePicker_->setCatalog(node_editor::comfyMenuMetadata(metadata, comfyWorkflow_));
   canvasDrops_->setCatalog(metadata);
   session_.setNodeMetadata(metadata);
   document_.setNodeMetadata(metadata_);
@@ -2288,7 +2292,7 @@ void EditorWindow::syncLineage() {
 }
 QVariantList EditorWindow::catalog() const {
   if (!tabOwner_) { return activeEditor_->catalog(); }
-  return node_editor::NodeCatalog::entriesFromMetadata(metadata_);
+  return node_editor::NodeCatalog::entriesFromMetadata(node_editor::comfyMenuMetadata(metadata_, comfyWorkflow_));
 }
 bool EditorWindow::miniMapVisible() const {
     if (!tabOwner_) { return activeEditor_->miniMapVisible(); }
@@ -3439,6 +3443,10 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "More") {
     showMoreMenu();
+    return;
+  }
+  if (name == "Comfy target") {
+    showComfyTargetMenu();
     return;
   }
   if (name == "Zoom in" || name == "Zoom out") {
