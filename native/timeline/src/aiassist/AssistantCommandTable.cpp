@@ -224,6 +224,12 @@ QList<Command> buildAllowed() {
     edit("music.setTrackRole", "Set a track's music role",
          {track, P{"role", ParamKind::Choice, true, "The instrument the track holds in a music project. Add instrument generates this stem.",
                    {"vocals", "backing_vocals", "drums", "bass", "guitar", "keyboard", "percussion", "strings", "synth", "fx", "brass", "woodwinds"}}});
+    edit("music.setKey", "Set a music project's key",
+         {P{"tonic", ParamKind::Choice, false, "The key's tonic. Leave it out to clear the key.",
+            {"C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"}},
+          P{"mode", ParamKind::Choice, false, "Needed with a tonic.", {"major", "minor"}}});
+    edit("music.selectTake", "Make one of a music clip's takes the one it plays",
+         {clip, P{"take_id", ParamKind::Text, true, "The take's id from the clip's versions.", {}, "takeId"}});
     // Effects by name, with their default values.
     const P effect{"effect", ParamKind::Text, true, "The effect's name, such as eq3."};
     const P effectId{"effect_id", ParamKind::EffectId, true, "The effect's id from the document.", {}, "effectId"};
@@ -324,6 +330,10 @@ QHash<QString, QString> buildDenied() {
          internal);
     deny({"ai.insertGeneration", "ai.insertImageVideo", "assistant.commitBeatGeneration", "assistant.generateClip"}, "it places generated media, which stays behind its review step. Use ui_timeline_generate_clip");
     deny({"music.insertPlaceholder", "music.applyResult"}, "it is a step of a music job, which the music panel submits and places");
+    deny({"music.recordPrompt"}, "it records the prompt of a music job, which the music panel submits");
+    deny({"music.deleteTake"}, "it drops a take from a music clip, which a person decides in the take list");
+    deny({"loopMusicRange"}, playback);
+    deny({"previousMusicTake", "nextMusicTake"}, "it steps through the takes under the music range, which a person sets. Use music.selectTake");
     deny({"musicCleanUpTakes", "music.removeTakes"}, "it leads to deleting take audio on the server, which a person confirms in the clean-up dialog");
     deny({"assistant.foldedCommand"}, internal);
     deny({"assistant.ui_timeline_delete_clip", "assistant.ui_timeline_move_clip", "assistant.ui_timeline_plan_beats", "assistant.ui_timeline_remove_beat",
