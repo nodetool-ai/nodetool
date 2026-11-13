@@ -169,7 +169,8 @@ ColumnLayout {
                     id: markdownText
                     readonly property color linkColour: Ui.Theme.statusInfo
                     function updateLinkColour() {
-                        if (paged.chatSession && textFormat === TextEdit.MarkdownText) {
+                        // Qt.callLater can run after the delegate is released.
+                        if (paged && paged.chatSession && textFormat === TextEdit.MarkdownText) {
                             paged.chatSession.styleMarkdownLinks(textDocument, linkColour)
                         }
                     }

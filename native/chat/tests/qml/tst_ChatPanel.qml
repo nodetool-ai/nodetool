@@ -574,8 +574,9 @@ TestCase {
 
         testDriver.resetSession()
         testDriver.replay("media-resources")
-        tryVerify(() => findVisible(panel, "loadMediaPlayer") !== null)
-        compare(testSession.embeddedMedia, true)
+        // The player needs Qt Multimedia, which the build may leave out.
+        tryVerify(() => findText(panel, "Open media") !== null)
+        compare(findVisible(panel, "loadMediaPlayer") !== null, testSession.embeddedMedia)
     }
     function test_persistedToolsAndScreenshot() {
         testDriver.persistedTools()
