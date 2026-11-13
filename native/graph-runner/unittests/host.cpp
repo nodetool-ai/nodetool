@@ -723,6 +723,21 @@ void kernelsMatchTheCFunctions() {
                 "4, 1, null, null, new Float32Array(3), 3, 0, 1, 0, 0, 1], 'xninnzzonnnnnn', o); "
                 "return r + ':' + o.length + ':' + Array.from(new Float32Array(o[1].buffer)).join(','); })()") ==
         "1:2:0.5,0.25,0.125");
+
+  // PCM: 16-bit decode, encode, and the input size that each format needs.
+  CHECK(run(*e, "(() => { const o = []; __host.kernels.call('nt_pcm_decode', "
+                "[new Uint8Array([0xff, 0x7f, 0x01, 0x80]), new Float32Array(2), 2, " +
+                    std::to_string(NT_PCM_S16) + "], 'ionn', o); "
+                "return Array.from(new Float32Array(o[0].buffer)).join(','); })()") == "1,-1");
+  CHECK(run(*e, "(() => { const o = []; __host.kernels.call('nt_pcm16_encode', "
+                "[new Float32Array([1, -2, NaN]), new Uint8Array(6), 3], 'ion', o); "
+                "return Array.from(o[0]).join(','); })()") == "255,127,1,128,0,0");
+  CHECK(startsWith(run(*e, "__host.kernels.call('nt_pcm_decode', [new Uint8Array(5), new Float32Array(2), 2, " +
+                               std::to_string(NT_PCM_S24) + "], 'ionn', [])"),
+                   "error: kernels.call: argument 0 of nt_pcm_decode holds 5 bytes, 6 required"));
+  CHECK(run(*e, "__host.kernels.call('nt_pcm_decode', [new Uint8Array(4), new Float32Array(2), 2, 99], 'ionn', [])") ==
+        std::to_string(NT_ERR_ARGS));
+  CHECK(run(*e, "__host.kernels.call('nt_pcm_sample_bytes', [3], 'n', [])") == "3");
 }
 
 // Exercise each streaming adapter through the guest trust boundary, including buffer modes.

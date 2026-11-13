@@ -15,6 +15,7 @@
 #include "interfaces/FirstWorkflowGuide.h"
 #include "interfaces/ChatWindow.h"
 #include "server/WorkflowBrowser.h"
+#include "library/LibraryBrowser.h"
 #include "interfaces/WorkflowHeader.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PropertyHost.h"
@@ -144,6 +145,13 @@ struct WorkflowBrowserForeign {
     QML_FOREIGN(nodetool::node_editor::WorkflowBrowser)
     QML_NAMED_ELEMENT(WorkflowBrowserModel)
     QML_UNCREATABLE("A WorkflowBrowserModel comes from its owner.")
+};
+
+struct LibraryBrowserForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::LibraryBrowser)
+    QML_NAMED_ELEMENT(LibraryBrowser)
+    QML_UNCREATABLE("A LibraryBrowser comes from its owner.")
 };
 
 }  // namespace nodetool::node_editor::qml

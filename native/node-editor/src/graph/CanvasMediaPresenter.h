@@ -14,15 +14,17 @@ class QQmlEngine;
 class QQuickWidget;
 class QQuickWindow;
 namespace nodetool {
+namespace node_editor { class MediaResolver; }
 class WorkflowGraphModel;
 class EditorScene;
 // Interactive media lives in viewport Quick widgets, never graphics proxies.
+// The resolver is borrowed: its owner, EditorWindow, outlives this presenter.
 class CanvasMediaPresenter final : public QObject {
   Q_OBJECT
 public:
   CanvasMediaPresenter(WorkflowGraphModel &model, EditorScene &scene,
                        QGraphicsView &view, QQmlEngine *engine,
-                       QObject *parent = nullptr);
+                       node_editor::MediaResolver &resolver, QObject *parent = nullptr);
   ~CanvasMediaPresenter() override;
   QList<QQuickWidget *> activeWidgets() const;
   bool canViewImage(const QString &nodeId) const;
@@ -47,6 +49,7 @@ private:
   EditorScene &scene_;
   QGraphicsView &view_;
   QPointer<QQmlEngine> engine_;
+  node_editor::MediaResolver &resolver_;
   QHash<QString, QVariantMap> sources_;
   QHash<QString, Entry> active_;
   // Players of the video and audio values cards show, by node and property.

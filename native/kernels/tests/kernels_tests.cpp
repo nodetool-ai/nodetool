@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <limits>
 #include <random>
 #include <string>
@@ -649,6 +650,57 @@ void testStatefulEffects() {
 
 }  // namespace
 
+void testPcm() {
+  // Every 16-bit value decodes to v / 32767 and encodes back to itself,
+  // except -32768, which clips to -32767.
+  std::vector<uint8_t> bytes(65536 * 2);
+  for (int v = -32768; v <= 32767; v++) {
+    const size_t i = static_cast<size_t>(v + 32768);
+    bytes[2 * i] = static_cast<uint8_t>(v & 0xff);
+    bytes[2 * i + 1] = static_cast<uint8_t>((v >> 8) & 0xff);
+  }
+  std::vector<float> samples(65536);
+  check(nt_pcm_decode(bytes.data(), samples.data(), samples.size(), NT_PCM_S16) == NT_OK, "pcm16 decodes");
+  check(samples[0] == static_cast<float>(-32768 / 32767.0) && samples[65535] == 1.0f, "pcm16 full scale");
+  std::vector<uint8_t> back(bytes.size());
+  nt_pcm16_encode(samples.data(), back.data(), samples.size());
+  check(back[0] == 0x01 && back[1] == 0x80, "pcm16 encode clips -32768 to -32767");
+  check(std::equal(back.begin() + 2, back.end(), bytes.begin() + 2), "pcm16 round-trips");
+
+  // Clipping, NaN, -0 and halves toward +infinity.
+  const float edge[] = {2.0f, -2.0f, std::numeric_limits<float>::quiet_NaN(),
+                        std::numeric_limits<float>::infinity(), -0.0f, 0.5f, -0.5f};
+  uint8_t out[14];
+  nt_pcm16_encode(edge, out, 7);
+  // 0.5 * 32767 = 16383.5 rounds up, and -16383.5 rounds up to -16383.
+  const int16_t expected[] = {32767, -32767, 0, 32767, 0, 16384, -16383};
+  bool edges = true;
+  for (int i = 0; i < 7; i++) edges &= static_cast<int16_t>(out[2 * i] | (out[2 * i + 1] << 8)) == expected[i];
+  check(edges, "pcm16 encode edge values");
+
+  const uint8_t s24[] = {0xff, 0xff, 0x7f, 0x00, 0x00, 0x80};
+  float s24out[2];
+  check(nt_pcm_decode(s24, s24out, 2, NT_PCM_S24) == NT_OK && s24out[0] == 1.0f &&
+            s24out[1] == static_cast<float>(-8388608 / 8388607.0),
+        "pcm24 decodes with sign extension");
+  const uint8_t u8[] = {0, 128, 255};
+  float u8out[3];
+  check(nt_pcm_decode(u8, u8out, 3, NT_PCM_U8) == NT_OK && u8out[0] == -1.0f && u8out[1] == 0.0f &&
+            u8out[2] == 127 / 128.0f,
+        "pcm8 decodes");
+  const float f = 0.25f;
+  uint8_t f32[4];
+  std::memcpy(f32, &f, 4);
+  float f32out = 0;
+  check(nt_pcm_decode(f32, &f32out, 1, NT_PCM_F32) == NT_OK && f32out == f, "float32 copies");
+  const uint8_t snan[] = {0x01, 0x00, 0x80, 0x7f};
+  uint32_t quiet = 0;
+  check(nt_pcm_decode(snan, &f32out, 1, NT_PCM_F32) == NT_OK && (std::memcpy(&quiet, &f32out, 4), quiet == 0x7fc00001u),
+        "float32 quiets a signaling NaN as DataView does");
+  check(nt_pcm_decode(u8, u8out, 1, 99) == NT_ERR_ARGS && nt_pcm_sample_bytes(99) == 0,
+        "unknown pcm format is refused");
+}
+
 int main() {
   testRankFilter();
   testHistogramKernels();
@@ -661,6 +713,7 @@ int main() {
   testSampler();
   testSamplerHostileDoubles();
   testHostileDoubles();
+  testPcm();
   if (failures) {
     std::fprintf(stderr, "%d failure(s)\n", failures);
     return EXIT_FAILURE;

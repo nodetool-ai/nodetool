@@ -47,6 +47,8 @@ int main() {
   std::vector<float> pcm(kFrames * kChannels);
   for (size_t i = 0; i < pcm.size(); i++) pcm[i] = static_cast<float>(std::sin(static_cast<double>(i) * 0.013) * 0.8);
   std::vector<float> out(pcm.size());
+  std::vector<uint8_t> wav16(pcm.size() * 2);
+  nt_pcm16_encode(pcm.data(), wav16.data(), pcm.size());
   double coeffs[NT_BIQUAD_COEFFS_LEN];
   nt_biquad_design_rbj(NT_BIQUAD_LOWPASS, kRate, 1000, std::sqrt(0.5), 0, coeffs);
 
@@ -84,6 +86,8 @@ int main() {
       {"Reverb", "10 s stereo", timeMs([&] { nt_audio_reverb(pcm.data(), out.data(), kFrames, kChannels, kRate, 0.5, 0.5, 0.33, 0.4); })},
       {"Compress", "10 s stereo", timeMs([&] { nt_audio_compress(pcm.data(), out.data(), kFrames, kChannels, kRate, -20, 4, 5, 50, 1); })},
       {"Phaser", "10 s stereo", timeMs([&] { nt_audio_phaser(pcm.data(), out.data(), kFrames, kChannels, kRate, 1, 0.5, 1300, -0.5, 0.5); })},
+      {"PCM16 decode", "10 s stereo", timeMs([&] { nt_pcm_decode(wav16.data(), out.data(), pcm.size(), NT_PCM_S16); })},
+      {"PCM16 encode", "10 s stereo", timeMs([&] { nt_pcm16_encode(pcm.data(), wav16.data(), pcm.size()); })},
       {"Biquad", "10 s stereo", timeMs([&] {
          double state[NT_BIQUAD_STATE_LEN * kChannels] = {};
          nt_biquad_process(coeffs, state, pcm.data(), out.data(), kFrames, kChannels);

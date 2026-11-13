@@ -276,6 +276,27 @@ double signalExtractChannel(KernelCall& c) {
                                    frames, channels, c.u32(4));
 }
 
+double pcmSampleBytes(KernelCall& c) {
+  c.arity(1);
+  return static_cast<double>(nt_pcm_sample_bytes(c.i32(0)));
+}
+
+double pcmDecode(KernelCall& c) {
+  c.arity(4);
+  const size_t n = c.count(2);
+  const int format = c.i32(3);
+  // An unknown format has 0 bytes a sample; the kernel then refuses it.
+  return nt_pcm_decode(c.in<uint8_t>(0, product(n, nt_pcm_sample_bytes(format))), c.out<float>(1, n), n,
+                       format);
+}
+
+double pcm16Encode(KernelCall& c) {
+  c.arity(3);
+  const size_t n = c.count(2);
+  nt_pcm16_encode(c.in<float>(0, n), c.out<uint8_t>(1, product(n, 2)), n);
+  return 0;
+}
+
 // The interleaved input and output of an effect: arguments 0 and 1, with
 // frames and channels at 2 and 3.
 struct Effect {
@@ -601,6 +622,9 @@ const std::unordered_map<std::string_view, Adapter>& adapters() {
       {"nt_signal_scale_offset", signalScaleOffset},
       {"nt_signal_mix_add", signalMixAdd},
       {"nt_signal_extract_channel", signalExtractChannel},
+      {"nt_pcm_sample_bytes", pcmSampleBytes},
+      {"nt_pcm_decode", pcmDecode},
+      {"nt_pcm16_encode", pcm16Encode},
       {"nt_audio_bitcrush_state_len", audioBitcrushStateLen},
       {"nt_audio_bitcrush_init", audioBitcrushInit},
       {"nt_audio_bitcrush_block", audioBitcrushBlock},

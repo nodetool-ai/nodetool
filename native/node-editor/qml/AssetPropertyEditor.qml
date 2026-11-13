@@ -13,14 +13,16 @@ ColumnLayout {
     required property string nodeId
     // Hover text for the window's tool tip; empty hides it.
     signal toolTipRequested(string text)
-    property var controller: typeof assetPickerController === "undefined" ? null : assetPickerController
+    // The tab's AssetPickerController, MediaResolver and ResourcePickerController,
+    // from the property host. A field without them only shows its value.
+    property var controller: null
     property var dialogProvider: null
-    property var resolver: typeof mediaResolver === "undefined" ? null : mediaResolver
+    property var resolver: null
     readonly property string documentKey: requestKey + "-document-" + generation
     property var documentAsset: ({})
     property url documentUrl: ""
     property string documentText: ""
-    property var resourceController: typeof resourcePickerController === "undefined" ? null : resourcePickerController
+    property var resourceController: null
     readonly property string verifyKey: requestKey + "-verify-" + generation
     property string documentStatus: ""
     property string requestKey: "property-asset-" + String(root)
@@ -238,6 +240,7 @@ ColumnLayout {
                 mediaKind: root.mediaKind
                 locator: root.value
                 requestKey: root.requestKey + "-preview"
+                resolver: root.resolver
             }
         }
     }

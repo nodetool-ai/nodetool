@@ -280,15 +280,13 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&firstWorkflowGuide_, &node_editor::FirstWorkflowGuide::actionRequested, this, &EditorWindow::setupAction);
   connect(&nodeCatalog_, &node_editor::NodeCatalog::runtimesRequested, this, [this] { setupAction("dependencies"); });
   engine_ = new QQmlEngine(this);
-  engine_->rootContext()->setContextProperty("editor", this);
-  engine_->rootContext()->setContextProperty("libraryBrowser", &library_);
-  engine_->rootContext()->setContextProperty("runOutput", &runOutput_);
-  engine_->rootContext()->setContextProperty("workflowSession", &session_);
-  engine_->rootContext()->setContextProperty("mediaResolver", &mediaResolver_);
-  engine_->rootContext()->setContextProperty("modelPickerController", &modelPicker_);
-  engine_->rootContext()->setContextProperty("assetPickerController", &assetPicker_);
-  engine_->rootContext()->setContextProperty("resourcePickerController", &resourcePicker_);
-    engine_->rootContext()->setContextProperty("documentPickerController", &documentPicker_);
+  // The property editors, the inspector's history and the card editors reach
+  // the resolver and the pickers through the property host.
+  nodeInspector_.fields()->setServices({.media = &mediaResolver_,
+                                        .modelPicker = &modelPicker_,
+                                        .assetPicker = &assetPicker_,
+                                        .resourcePicker = &resourcePicker_,
+                                        .documentPicker = &documentPicker_});
   model_.setRuntimeModel(&runtime_);
   connect(&session_, &node_editor::WorkflowSession::generationsChanged, this, &EditorWindow::schedulePanelChanged);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, this, [this](const QUrl &origin, const QString &token, const QString &userId) {
@@ -359,6 +357,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     syncRuntimePreviews();
     if (!runPanelTimer_->isActive()) { runPanelTimer_->start(); }
   });
+  // After the lambda above, so the run output reads the run the runtime selected.
+  runState_.setOutputModels(runOutput_.collections(), runOutput_.richEntries());
+  const auto syncRunOutput = [this] { runState_.setOutput(runOutput_.runs(), runOutput_.selectedRunId()); };
+  syncRunOutput();
+  connect(&runOutput_, &node_editor::RunOutputModel::changed, this, syncRunOutput);
+  connect(&runState_, &node_editor::RunState::selectRunRequested, &runOutput_, &node_editor::RunOutputModel::selectRun);
+  connect(&runState_, &node_editor::RunState::clearOutputRequested, &runOutput_, &node_editor::RunOutputModel::clear);
+  connect(&runState_, &node_editor::RunState::cancelRequested, &session_, &node_editor::WorkflowSession::cancelJob);
   connect(&mediaResolver_, &node_editor::MediaResolver::resolved, this, [this](const QString &key, const QUrl &url) {
     if (!key.startsWith("node-image:")) { return; }
     const auto id = key.mid(11);
@@ -461,7 +467,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   view_->setSceneRect(-32767, -32767, 65534, 65534);
   view_->installEventFilter(this);
   view_->viewport()->installEventFilter(this);
-  inlinePresenter_ = new InlinePropertyPresenter(model_, *scene_, *view_, engine_, this);
+  inlinePresenter_ = new InlinePropertyPresenter(model_, *scene_, *view_, engine_, *nodeInspector_.fields(), this);
   inlinePresenter_->commitProperty = [this](const QString &id, const QString &name, const QVariant &value) {
     return commitProperty(id, name, value);
   };
@@ -511,7 +517,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(this, &EditorWindow::documentEpochChanged, inlineTitle_, &InlineTitlePresenter::cancel);
   connect(inlineTitle_, &InlineTitlePresenter::activated, inlinePresenter_, &InlinePropertyPresenter::cancel);
   connect(scene_, &EditorScene::inlineEditRequested, inlineTitle_, &InlineTitlePresenter::cancel);
-  canvasMedia_ = new CanvasMediaPresenter(model_, *scene_, *view_, engine_, this);
+  canvasMedia_ = new CanvasMediaPresenter(model_, *scene_, *view_, engine_, mediaResolver_, this);
   cardMediaLoader_ = new CardMediaLoader(model_, mediaResolver_, this);
   connect(this, &EditorWindow::zoomChanged, canvasMedia_, &CanvasMediaPresenter::refresh);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, canvasMedia_, &CanvasMediaPresenter::clear);
@@ -660,7 +666,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   browserDock_ = dock(tr("Workflows"), "WorkflowBrowser", Qt::LeftDockWidgetArea, browserProperties);
   browserDock_->setObjectName("workflow-browser-dock");
   browserDock_->hide();
-  libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea, chromeProperties);
+  auto libraryProperties = chromeProperties;
+  libraryProperties.insert("library", QVariant::fromValue(&library_));
+  libraryProperties.insert("assets", QVariant::fromValue<QObject *>(&assetPicker_));
+  libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea, libraryProperties);
   libraryDock_->setObjectName("library-dock");
   libraryDock_->hide();
   // The panel's first bindings read the state the window has at this point.
@@ -674,7 +683,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   outputDock_ = dock(tr("Output"), "RunOutput", Qt::BottomDockWidgetArea,
                      {{"panels", QVariant::fromValue(&panelLayout_)},
                       {"status", QVariant::fromValue(&statusModel_)},
-                      {"runs", QVariant::fromValue(&runState_)}});
+                      {"runs", QVariant::fromValue(&runState_)},
+                      {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
   {
     // placeStatusBar() moves the status bar above the output while the panel is open.
     auto *body = new QWidget(outputDock_);
@@ -738,7 +748,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   toolbarOverlay_ = overlay("Toolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
                                         {"runs", QVariant::fromValue(&runState_)}});
     initializeChat();
-  queueOverlay_ = overlay("QueueOverlay");
+  queueOverlay_ = overlay("QueueOverlay", {{"runs", QVariant::fromValue(&runState_)}});
   queueOverlay_->setParent(centralWidget());
   queueOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
   connect(queueOverlay_->rootObject(), SIGNAL(expandedChanged()), this, SLOT(layoutOverlays()));

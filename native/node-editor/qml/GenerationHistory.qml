@@ -7,6 +7,8 @@ import NodeTool.NodeEditor
 ColumnLayout {
     id: root
     required property GenerationReplay generations
+    // The tab's MediaResolver, which previews each generation's media.
+    property var resolver: null
     readonly property var history: generations.generationHistory
     readonly property var rows: history ? history.rows : []
     readonly property string pinned: generations.pinnedGeneration
@@ -77,6 +79,7 @@ ColumnLayout {
                     mediaKind: modelData.kind
                     locator: modelData.locator
                     requestKey: "generation-" + root.generations.selection + "-" + row.modelData.id + "-" + index
+                    resolver: root.resolver
                 }
             }
         }

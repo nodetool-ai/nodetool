@@ -5,7 +5,7 @@
  *
  *   npx tsx packages/kernels/bench/kernels.bench.ts
  */
-import { loadWasmKernels } from "../src/index.js";
+import { PCM_FORMATS, loadWasmKernels } from "../src/index.js";
 import * as ref from "../tests/reference.js";
 
 const W = 1000;
@@ -65,6 +65,10 @@ const coeffs = k.biquadDesign("rbj", "lowpass", RATE, 1000, Math.SQRT1_2);
 const refCoeffs = ref.biquadCoeffs("lowpass", RATE, 1000, Math.SQRT1_2);
 add("Biquad", "10 s stereo", () => ref.perChannel(pcm, CHANNELS, RATE, (ch) => ref.processBiquad(refCoeffs, [0, 0, 0, 0], ch)),
   () => k.biquadProcess(coeffs, k.createBiquadState(CHANNELS), pcm, CHANNELS));
+
+const wav16 = ref.pcm16Encode(pcm);
+add("PCM16 decode", "10 s stereo", () => ref.pcmDecode(wav16, 16, false), () => k.pcmDecode(wav16, PCM_FORMATS.s16));
+add("PCM16 encode", "10 s stereo", () => ref.pcm16Encode(pcm), () => k.pcm16Encode(pcm));
 
 console.log("| Kernel | Input | TypeScript on V8 (ms) | WebAssembly on V8 (ms) |");
 console.log("|---|---|---:|---:|");

@@ -127,17 +127,30 @@ export function makeDoneSignalChunk(
   return makeSignalChunk(new Float32Array(0), sampleRate, channels, true, encoding);
 }
 
-/** Decode little-endian float32 bytes (explicit DataView for endianness safety). */
+/**
+ * True on a little-endian host, where float32 bytes and a Float32Array
+ * share one layout. Every supported host is little-endian; the DataView
+ * loops below are for any other.
+ */
+const LITTLE_ENDIAN = new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+
+/**
+ * Decode little-endian float32 bytes. On a little-endian host this is one
+ * byte copy, which QuickJS and V8 run natively. It differs from the DataView
+ * loop only for a signaling NaN, which the loop quiets.
+ */
 export function f32leToFloat32(bytes: Uint8Array): Float32Array {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const count = Math.floor(bytes.length / 4);
+  if (LITTLE_ENDIAN) return new Float32Array(bytes.slice(0, count * 4).buffer);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const out = new Float32Array(count);
   for (let i = 0; i < count; i++) out[i] = view.getFloat32(i * 4, true);
   return out;
 }
 
-/** Encode samples as little-endian float32 bytes. */
+/** Encode samples as little-endian float32 bytes, as f32leToFloat32 decodes. */
 export function float32ToF32le(samples: Float32Array): Uint8Array {
+  if (LITTLE_ENDIAN) return new Uint8Array(samples.slice().buffer);
   const out = new Uint8Array(samples.length * 4);
   const view = new DataView(out.buffer);
   for (let i = 0; i < samples.length; i++) {

@@ -200,7 +200,7 @@ Rectangle {
             active: visible
             Layout.fillWidth: true
             Layout.fillHeight: true
-            sourceComponent: Component { GenerationHistory { generations: root.inspector.history } }
+            sourceComponent: Component { GenerationHistory { generations: root.inspector.history; resolver: root.inspector.fields.media } }
         }
         Item { visible: !root.hasSelection; Layout.fillHeight: true }
         Ui.Text {

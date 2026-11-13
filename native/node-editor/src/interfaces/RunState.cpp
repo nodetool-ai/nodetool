@@ -20,4 +20,16 @@ void RunState::setWorkflowId(const QString &id) {
     if (assign(workflowId_, id)) { emit workflowIdChanged(); }
 }
 
+void RunState::setOutput(const QVariantList &runs, const QString &selectedRunId) {
+    // Bitwise or, so both fields are assigned.
+    if (assign(outputRuns_, runs) | assign(selectedRunId_, selectedRunId)) { emit outputChanged(); }
+}
+
+void RunState::setOutputModels(QAbstractItemModel *collections, QAbstractItemModel *richEntries) {
+    if (collections_ == collections && richEntries_ == richEntries) { return; }
+    collections_ = collections;
+    richEntries_ = richEntries;
+    emit outputModelsChanged();
+}
+
 }  // namespace nodetool::node_editor

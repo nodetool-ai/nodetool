@@ -47,7 +47,7 @@ struct Host {
     std::unique_ptr<QObject> object;
     QString error;
     explicit Host(const QVariantMap &comparison = pair(), MediaResolver *shared = nullptr, bool scroll = false) {
-        engine.rootContext()->setContextProperty("mediaResolver", shared ? shared : &ownResolver);
+        QObject *resolver = shared ? shared : &ownResolver;
         engine.rootContext()->setContextProperty("fixtureComparison", comparison);
         QQmlComponent component(&engine);
         if (scroll) {
@@ -55,19 +55,22 @@ struct Host {
                 import QtQuick
                 import NodeTool.NodeEditor as Editor
                 Flickable {
+                    id: fixture
                     objectName: "comparison-scroll"
+                    required property var resolver
                     contentWidth: width; contentHeight: 1000
                     boundsBehavior: Flickable.StopAtBounds
                     Editor.ImageComparisonOutput {
                         width: parent.width
                         comparison: fixtureComparison
+                        resolver: fixture.resolver
                     }
                 }
             )", QUrl("qrc:/comparison-fixture.qml"));
-            object.reset(component.create());
+            object.reset(component.createWithInitialProperties({{"resolver", QVariant::fromValue(resolver)}}));
         } else {
             component.loadUrl(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ImageComparisonOutput.qml"));
-            object.reset(component.createWithInitialProperties({{"comparison", comparison}}));
+            object.reset(component.createWithInitialProperties({{"comparison", comparison}, {"resolver", QVariant::fromValue(resolver)}}));
         }
         error = component.errorString();
         if (!root()) { return; }

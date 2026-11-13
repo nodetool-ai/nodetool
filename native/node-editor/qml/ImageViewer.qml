@@ -15,6 +15,8 @@ Window {
     property var items: []
     property int currentIndex: 0
     property string scopeKey: ""
+    // The tab's MediaResolver, which reads every shown image.
+    property var resolver: null
     property Item returnFocusTo: null
     property var selected: ({})
     readonly property string identity: JSON.stringify([selected.itemKey, selected.locator])
@@ -69,7 +71,7 @@ Window {
     onActiveChanged: if (active) Qt.callLater(() => { if (root.visible && root.active) content.forceActiveFocus(Qt.PopupFocusReason) })
     onClosing: event => { event.accepted = false; dismiss() }
     Connections {
-        target: mediaResolver
+        target: root.resolver
         function onCleared() { root.dismiss() }
     }
     Ui.Surface {
@@ -115,6 +117,7 @@ Window {
                 visible: active
                 sourceComponent: Component {
                     ImageComparisonOutput {
+                        resolver: root.resolver
                         comparison: ({
                             image_a: root.asImage(root.compareA), image_b: root.asImage(root.compareB),
                             label_a: root.compareA.filename || "A", label_b: root.compareB.filename || "B"
@@ -132,6 +135,7 @@ Window {
                 sourceComponent: Component {
                     MediaPreview {
                         objectName: "image-viewer-preview"
+                        resolver: root.resolver
                         mediaKind: "image"
                         locator: root.selected.locator || ""
                         filename: root.selected.filename || ""

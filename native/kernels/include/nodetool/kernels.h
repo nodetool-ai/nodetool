@@ -88,6 +88,26 @@ NT_KERNEL_API int nt_signal_extract_channel(const float* in, float* out,
                                             size_t frames, uint32_t channels,
                                             uint32_t index);
 
+/* ── PCM sample codecs (WAV data chunks) ───────────────────────────────── */
+
+#define NT_PCM_U8 1  /* unsigned 8-bit, (v - 128) / 128 */
+#define NT_PCM_S16 2 /* signed 16-bit, v / 32767 */
+#define NT_PCM_S24 3 /* signed 24-bit, v / 8388607 */
+#define NT_PCM_S32 4 /* signed 32-bit, v / 2147483647 */
+#define NT_PCM_F32 5 /* IEEE float32, copied */
+
+/* Bytes of one sample of `format`, or 0 for an unknown format. */
+NT_KERNEL_API size_t nt_pcm_sample_bytes(int format);
+
+/* Decodes `count` little-endian samples of `format` from `in` (count *
+ * nt_pcm_sample_bytes(format) bytes) into float32. */
+NT_KERNEL_API int nt_pcm_decode(const uint8_t* in, float* out, size_t count,
+                                int format);
+
+/* Encodes `count` samples as little-endian signed 16-bit PCM (count * 2
+ * bytes): round(clamp(x, -1, 1) * 32767), halves toward +infinity, NaN as 0. */
+NT_KERNEL_API void nt_pcm16_encode(const float* in, uint8_t* out, size_t count);
+
 /* ── Audio effects (lib.audio.*) ─────────────────────────────────────── */
 
 /* Quantizes to 2^bit_depth - 1 levels and holds every `reduction`-th frame. */

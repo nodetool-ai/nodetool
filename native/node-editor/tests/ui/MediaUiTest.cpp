@@ -65,7 +65,6 @@ private:
   void exercise(const QString &kind, const QByteArray &bytes, const QString &mime) {
     MediaResolver resolver;
     QQmlEngine engine;
-    engine.rootContext()->setContextProperty("mediaResolver", &resolver);
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaPreview.qml"));
     QTRY_VERIFY_WITH_TIMEOUT(component.status() != QQmlComponent::Loading, 5000);
     QVERIFY2(component.isReady(), qPrintable(component.errorString()));
@@ -78,7 +77,7 @@ private:
     const auto locator = "data:" + mime + ";base64," + QString::fromLatin1(bytes.toBase64());
     QQuickWindow surface;
     surface.resize(1000, 400);
-    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", kind}, {"locator", locator}}));
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"mediaKind", kind}, {"locator", locator}}));
     QVERIFY2(preview, qPrintable(component.errorString()));
     auto previewItem = qobject_cast<QQuickItem *>(preview.get());
     QVERIFY(previewItem);
@@ -222,12 +221,11 @@ private slots:
     const auto source = "data:audio/wav;base64," + QString::fromLatin1(bytes.toBase64());
     MediaResolver resolver;
     QQmlEngine engine;
-    engine.rootContext()->setContextProperty("mediaResolver", &resolver);
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaPreview.qml"));
     QTRY_VERIFY2(component.isReady(), qPrintable(component.errorString()));
     QQuickWindow surface;
     surface.resize(400, 400);
-    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "audio"}, {"locator", QVariantMap{{"uri", source}, {"name", "Room tone"}}}}));
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"mediaKind", "audio"}, {"locator", QVariantMap{{"uri", source}, {"name", "Room tone"}}}}));
     QVERIFY2(preview, qPrintable(component.errorString()));
     auto item = qobject_cast<QQuickItem *>(preview.get());
     QVERIFY(item);
@@ -444,10 +442,9 @@ private slots:
     QVERIFY(server.listen(QHostAddress::LocalHost));
     MediaResolver resolver;
     QQmlEngine engine;
-    engine.rootContext()->setContextProperty("mediaResolver", &resolver);
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaPreview.qml"));
     QTRY_VERIFY(component.isReady());
-    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "image"}, {"locator", QString("http://127.0.0.1:%1/image.png").arg(server.serverPort())}}));
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"mediaKind", "image"}, {"locator", QString("http://127.0.0.1:%1/image.png").arg(server.serverPort())}}));
     QVERIFY(preview);
     QTRY_VERIFY(server.hasPendingConnections());
     auto socket = server.nextPendingConnection();
@@ -471,7 +468,6 @@ private slots:
     QBuffer buffer(&bytes); QVERIFY(buffer.open(QIODevice::WriteOnly)); QVERIFY(image.save(&buffer, "PNG"));
     MediaResolver resolver;
     QQmlEngine engine;
-    engine.rootContext()->setContextProperty("mediaResolver", &resolver);
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaPreview.qml"));
     QTRY_VERIFY(component.isReady());
     QList<QByteArray> requests;
@@ -493,7 +489,7 @@ private slots:
     const QVariant source = asset
       ? QVariant(QVariantMap{{"type", "image"}, {"asset_id", "0123456789abcdef0123456789abcdef"}})
       : QVariant("data:image/png;base64," + QString::fromLatin1(bytes.toBase64()));
-    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "image"}, {"locator", source}, {"showDownload", true}}));
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"mediaKind", "image"}, {"locator", source}, {"showDownload", true}}));
     QVERIFY(preview);
     QQuickWindow surface;
     surface.resize(400, 300);
@@ -560,10 +556,9 @@ private slots:
     };
     MediaResolver resolver;
     QQmlEngine engine;
-    engine.rootContext()->setContextProperty("mediaResolver", &resolver);
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaPreview.qml"));
     QTRY_VERIFY(component.isReady());
-    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "image"}, {"locator", png(Qt::blue)}}));
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"mediaKind", "image"}, {"locator", png(Qt::blue)}}));
     QVERIFY(preview);
     QQuickWindow surface;
     surface.resize(400, 300);
@@ -593,10 +588,10 @@ private slots:
     const QVariantMap last{{"kind", "image"}, {"locator", locator}, {"itemKey", "last"}};
     const QVariantMap text{{"kind", "text"}, {"text", "Not an image"}, {"itemKey", "caption"}};
     MediaResolver resolver;
-    QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlEngine engine;
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaGallery.qml"));
     QVERIFY2(component.isReady(), qPrintable(component.errorString()));
-    std::unique_ptr<QObject> gallery(component.createWithInitialProperties({{"items", QVariantList{first, text, repeat, last}}, {"scopeKey", "workflow:run:output"}}));
+    std::unique_ptr<QObject> gallery(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"items", QVariantList{first, text, repeat, last}}, {"scopeKey", "workflow:run:output"}}));
     QVERIFY2(gallery, qPrintable(component.errorString()));
     QQuickWindow surface; surface.resize(500, 500);
     auto item = qobject_cast<QQuickItem *>(gallery.get()); QVERIFY(item);
@@ -730,12 +725,12 @@ private slots:
     });
     MediaResolver resolver;
     QSignalSpy resolved(&resolver, &MediaResolver::resolved);
-    QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlEngine engine;
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ImageViewer.qml"));
     QVERIFY2(component.isReady(), qPrintable(component.errorString()));
     const QVariantMap image{{"kind", "image"}, {"itemKey", "pending"},
       {"locator", QString("http://127.0.0.1:%1/delayed.png").arg(server.serverPort())}};
-    std::unique_ptr<QObject> owner(component.createWithInitialProperties({{"items", QVariantList{image}}, {"selected", image}, {"scopeKey", "pending-scope"}}));
+    std::unique_ptr<QObject> owner(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"items", QVariantList{image}}, {"selected", image}, {"scopeKey", "pending-scope"}}));
     auto viewer = qobject_cast<QQuickWindow *>(owner.get()); QVERIFY2(viewer, qPrintable(component.errorString()));
     viewer->show(); viewer->requestActivate();
     QTRY_VERIFY(!sockets.isEmpty());
@@ -764,10 +759,9 @@ private slots:
     const QVariantMap second{{"kind", "image"}, {"locator", locator}, {"itemKey", "second"}};
     MediaResolver resolver;
     QQmlEngine engine;
-    engine.rootContext()->setContextProperty("mediaResolver", &resolver);
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaGallery.qml"));
     QTRY_VERIFY2(component.isReady(), qPrintable(component.errorString()));
-    std::unique_ptr<QObject> gallery(component.createWithInitialProperties({{"items", QVariantList{first}}}));
+    std::unique_ptr<QObject> gallery(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"items", QVariantList{first}}}));
     QVERIFY2(gallery, qPrintable(component.errorString()));
     QQuickWindow surface;
     surface.resize(400, 400);
@@ -812,11 +806,11 @@ private slots:
       connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
     });
     MediaResolver resolver; resolver.configure(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), "save-account");
-    QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    QQmlEngine engine;
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaPreview.qml"));
     QTRY_VERIFY2(component.isReady(), qPrintable(component.errorString()));
     QQuickWindow surface; surface.resize(900, 400);
-    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "video"}, {"locator", QVariantMap{{"uri", source}, {"name", "Take one"}}}}));
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"mediaKind", "video"}, {"locator", QVariantMap{{"uri", source}, {"name", "Take one"}}}}));
     QVERIFY2(preview, qPrintable(component.errorString()));
     auto item = qobject_cast<QQuickItem *>(preview.get()); QVERIFY(item);
     item->setParentItem(surface.contentItem()); item->setSize(surface.size()); surface.show();
@@ -846,11 +840,11 @@ private slots:
   void imageCopyActionPutsPixelsOnTheClipboard() {
     QImage image(80, 40, QImage::Format_RGB32); image.fill(Qt::blue);
     QByteArray bytes; QBuffer buffer(&bytes); QVERIFY(buffer.open(QIODevice::WriteOnly)); QVERIFY(image.save(&buffer, "PNG"));
-    MediaResolver resolver; QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    MediaResolver resolver; QQmlEngine engine;
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaPreview.qml"));
     QTRY_VERIFY2(component.isReady(), qPrintable(component.errorString()));
     QQuickWindow surface; surface.resize(400, 300);
-    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "image"}, {"locator", "data:image/png;base64," + QString::fromLatin1(bytes.toBase64())}, {"showDownload", true}}));
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"mediaKind", "image"}, {"locator", "data:image/png;base64," + QString::fromLatin1(bytes.toBase64())}, {"showDownload", true}}));
     QVERIFY2(preview, qPrintable(component.errorString()));
     auto item = qobject_cast<QQuickItem *>(preview.get()); QVERIFY(item);
     item->setParentItem(surface.contentItem()); item->setSize(surface.size()); surface.show();
@@ -875,10 +869,10 @@ private slots:
   void downloadDialogKeepsTheMediaExtension() {
     QImage image(80, 40, QImage::Format_RGB32); image.fill(Qt::blue);
     QByteArray bytes; QBuffer buffer(&bytes); QVERIFY(buffer.open(QIODevice::WriteOnly)); QVERIFY(image.save(&buffer, "PNG"));
-    MediaResolver resolver; QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    MediaResolver resolver; QQmlEngine engine;
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/MediaPreview.qml"));
     QTRY_VERIFY2(component.isReady(), qPrintable(component.errorString()));
-    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"mediaKind", "image"}, {"locator", "data:image/png;base64," + QString::fromLatin1(bytes.toBase64())}, {"showDownload", true}}));
+    std::unique_ptr<QObject> preview(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"mediaKind", "image"}, {"locator", "data:image/png;base64," + QString::fromLatin1(bytes.toBase64())}, {"showDownload", true}}));
     QVERIFY2(preview, qPrintable(component.errorString()));
     QQuickWindow surface; surface.resize(400, 300);
     auto item = qobject_cast<QQuickItem *>(preview.get()); QVERIFY(item);
@@ -901,10 +895,10 @@ private slots:
     const QVariantList items{QVariantMap{{"kind", "image"}, {"locator", uri(Qt::red)}, {"itemKey", "red"}, {"filename", "red.png"}},
                              QVariantMap{{"kind", "image"}, {"locator", uri(Qt::green)}, {"itemKey", "green"}, {"filename", "green.png"}},
                              QVariantMap{{"kind", "image"}, {"locator", uri(Qt::blue)}, {"itemKey", "blue"}, {"filename", "blue.png"}}};
-    MediaResolver resolver; QQmlEngine engine; engine.rootContext()->setContextProperty("mediaResolver", &resolver);
+    MediaResolver resolver; QQmlEngine engine;
     QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ImageViewer.qml"));
     QVERIFY2(component.isReady(), qPrintable(component.errorString()));
-    std::unique_ptr<QObject> object(component.createWithInitialProperties({{"scopeKey", "compare"}}));
+    std::unique_ptr<QObject> object(component.createWithInitialProperties({{"resolver", QVariant::fromValue<QObject *>(&resolver)}, {"scopeKey", "compare"}}));
     auto viewer = qobject_cast<QQuickWindow *>(object.get()); QVERIFY2(viewer, qPrintable(component.errorString()));
     QVERIFY(QMetaObject::invokeMethod(viewer, "openAt", Q_ARG(QVariant, items), Q_ARG(QVariant, 0), Q_ARG(QVariant, QVariant::fromValue<QObject *>(nullptr))));
     QTRY_VERIFY(viewer->isVisible());

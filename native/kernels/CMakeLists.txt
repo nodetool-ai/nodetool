@@ -15,6 +15,7 @@ add_library(nodetool_kernels STATIC
   src/audio.cpp
   src/biquad.cpp
   src/image.cpp
+  src/pcm.cpp
   src/sampler.cpp
   src/synth.cpp)
 target_include_directories(nodetool_kernels PUBLIC include)

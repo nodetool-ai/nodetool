@@ -25,10 +25,9 @@ more than 1024 logical pixels therefore bends less than React Flow's.
 `NodeButton` and `PanelRow` are editor controls for the web's button and row
 styles. Other native apps keep the [native design](../ui_primitives/DESIGN.md).
 
-The panels form the `NodeTool.NodeEditor` QML module. A panel that has moved off
-the `editor` context property takes small interface objects as required
-properties instead, such as [`NodeCatalog`](src/interfaces/NodeCatalog.h) for
-the node library and the node menu, and
+The panels form the `NodeTool.NodeEditor` QML module. No panel reads the editor
+window. The panels take small interface objects as required properties, such
+as [`NodeCatalog`](src/interfaces/NodeCatalog.h) for the node library and the node menu, and
 [`NodeInspector`](src/interfaces/NodeInspector.h) for the inspector, its
 property fields and its History tab. The tab bar and the subgraph strips take
 [`DocumentTabs`](src/interfaces/DocumentTabs.h), and the tab bar's bell and the
@@ -50,8 +49,14 @@ take `PanelLayout` and `StatusModel`. The run output takes `PanelLayout`,
 `TypeIcons` and `OutputStyle` singletons.
 The canvas chat window takes [`ChatWindow`](src/interfaces/ChatWindow.h) for
 its drag and resize.
+The queue overlay takes `RunState`, which also carries the run output's runs
+and models, and the asset library takes
+[`LibraryBrowser`](src/library/LibraryBrowser.h).
+The property editors take the media resolver and the pickers from
+[`PropertyHost`](src/interfaces/PropertyHost.h), and the media and output views
+take the resolver from their parent.
 [Component interfaces](docs/component-interfaces.md) tracks which panels still
-read `EditorWindow`.
+read a root context property.
 
 ## Build and run
 
