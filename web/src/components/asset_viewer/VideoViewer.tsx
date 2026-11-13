@@ -1,45 +1,38 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
 import React, { memo } from "react";
-import { Asset } from "../../stores/ApiTypes";
-import { Text, Box, VideoPlayer } from "../ui_primitives";
 import { useTranslation } from "react-i18next";
+
+import { Asset } from "../../stores/ApiTypes";
+import { FlexColumn, SPACING, VideoPlayer } from "../ui_primitives";
+
 interface VideoViewerProps {
   asset?: Asset;
   url?: string;
 }
 
-const styles = () =>
-  css({
-    "&": {
-      display: "flex",
-      flexDirection: "column",
-      justifyContent: "center",
-      alignItems: "center",
-      width: "100%",
-      height: "80%",
-      marginTop: "4em"
-    },
-    ".video-viewer-player": {
-      width: "60%",
-      maxHeight: "90%"
-    }
-  });
-
+/**
+ * Full-size player for a video asset or a workspace video file. The document
+ * bar above it carries the name.
+ */
 const VideoViewer: React.FC<VideoViewerProps> = memo(function VideoViewer({ asset, url }) {
   const { t } = useTranslation();
   return (
-    <Box className="video-viewer" css={styles()}>
+    <FlexColumn
+      className="video-viewer"
+      align="center"
+      justify="center"
+      fullWidth
+      sx={{
+        height: "80%",
+        mt: SPACING.xxxl,
+        "& .video-viewer-player": { width: "60%", maxHeight: "90%" }
+      }}
+    >
       <VideoPlayer
         className="video-viewer-player"
         locator={asset?.get_url || url || ""}
         label={asset?.name || t("screen_assets.viewer.video")}
       />
-      <Text size="big" color="secondary">
-        {asset?.name}
-      </Text>
-    </Box>
+    </FlexColumn>
   );
 });
 

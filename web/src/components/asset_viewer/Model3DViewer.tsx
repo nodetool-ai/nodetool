@@ -154,10 +154,6 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       zIndex: Z_INDEX.dropdown,
       pointerEvents: "none"
     },
-    ".model-info": {
-      marginTop: getSpacingPx(SPACING.xl),
-      textAlign: "center"
-    },
     ".controls-toolbar": {
       position: "absolute",
       bottom: "1em",
@@ -856,13 +852,6 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
         )}
       </FlexColumn>
 
-      {!compact && asset?.name && (
-        <div className="model-info">
-          <Text size="normal" weight={600} color="secondary">
-            {asset.name}
-          </Text>
-        </div>
-      )}
     </FlexColumn>
   );
 };
