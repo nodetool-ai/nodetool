@@ -159,6 +159,8 @@ inline constexpr int runButtonGap = 6;
 inline constexpr int runButtonHeight = 24;
 // LevelsBody's HIST_HEIGHT.
 inline constexpr int histogramHeight = 56;
+// The width the inline color editor takes over a small swatch.
+inline constexpr int colorEditorWidth = 240;
 inline constexpr int fieldRadius = 6;
 inline constexpr double handleDiameter = 12;
 inline constexpr double handleRing = 2;
@@ -211,14 +213,20 @@ enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Previe
                          // LevelsBody's histogram: parts[0] the area, rect the bars,
                          // optionValues 256 bar heights from 0 to 1, value the view
                          // ("r", "g", "b" or "luminance") that picks the color.
-                         Histogram };
+                         Histogram,
+                         // PainterBody's canvas: parts[0] the area, rect the canvas,
+                         // minimum and maximum its size in pixels, media[0] the mask and
+                         // media[1] the source, number the background opacity, step the
+                         // brush size, value the color, checked the eraser and
+                         // optionValues[0] the brush opacity.
+                         Paint };
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
                       CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves, Levels, Crop,
-                      MasksExtractor };
+                      MasksExtractor, Painter };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.

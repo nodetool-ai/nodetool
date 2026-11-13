@@ -491,6 +491,9 @@ public:
     if (scene_.cropDraftNode() == item.nodeId()) {
         bodyState.cropDraft = scene_.cropDraft();
     }
+    if (scene_.paintDraftNode() == item.nodeId()) {
+        bodyState.paintDraft = &scene_.paintDraft();
+    }
     for (const auto &row : layout.rows) {
         if (!paintCardBodyRow(painter, theme, layout, row, bodyState)) {
             // nodes.zoomed.css hides property rows and their labels at overview zoom.
@@ -1674,6 +1677,8 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 model_.commit({{"op", "batch"}, {"commands", QJsonArray{
                     model_.propertyCommand(id, QStringLiteral("width"), row.number),
                     model_.propertyCommand(id, QStringLiteral("height"), row.number)}}});
+            } else if (row.action.startsWith(QStringLiteral("painter"))) {
+                model_.painterAction(id, row.action, row.value);
             } else if (row.action == QStringLiteral("runNode")) {
                 // RunModelButton runs this node on its own, as Run node does.
                 if (auto *item = nodeGraphicsObject(id)) {
@@ -1719,6 +1724,22 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                     model_.propertyCommand(id, QStringLiteral("flip_horizontal"), false),
                     model_.propertyCommand(id, QStringLiteral("flip_vertical"), false)}}});
             }
+            return true;
+        }
+        if (row.kind == NodeRowKind::Paint) {
+            if (!row.rect.contains(local) || model_.readOnly() || row.minimum <= 0 || row.maximum <= 0) { continue; }
+            select();
+            paintNode_ = id;
+            paintStroke_ = QImage(QSize(int(row.minimum), int(row.maximum)), QImage::Format_ARGB32_Premultiplied);
+            paintStroke_.fill(Qt::transparent);
+            // A press paints a dot, as drawStrokeTo from the same point.
+            paintLast_ = QPointF((local.x() - row.rect.x()) * row.minimum / row.rect.width(),
+                                 (local.y() - row.rect.y()) * row.maximum / row.rect.height());
+            QPainter stroke(&paintStroke_);
+            stroke.setRenderHint(QPainter::Antialiasing);
+            stroke.setPen(QPen(QColor(row.value), row.step, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            stroke.drawPoint(paintLast_);
+            if (auto *item = nodeGraphicsObject(id)) { item->update(); }
             return true;
         }
         if (row.kind == NodeRowKind::Crop) {
@@ -1777,6 +1798,32 @@ void EditorScene::moveCrop(const QPointF &scenePosition) {
         return;
     }
 }
+void EditorScene::movePaint(const QPointF &scenePosition) {
+    auto *item = nodeGraphicsObject(paintNode_);
+    if (!item) { finishPaint(false); return; }
+    for (const auto &row : model_.layout(paintNode_).rows) {
+        if (row.kind != NodeRowKind::Paint || row.rect.isEmpty()) { continue; }
+        const auto local = item->mapFromScene(scenePosition);
+        const QPointF point((local.x() - row.rect.x()) * row.minimum / row.rect.width(),
+                            (local.y() - row.rect.y()) * row.maximum / row.rect.height());
+        if (point == paintLast_) { return; }
+        QPainter stroke(&paintStroke_);
+        stroke.setRenderHint(QPainter::Antialiasing);
+        stroke.setPen(QPen(QColor(row.value), row.step, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        stroke.drawLine(paintLast_, point);
+        paintLast_ = point;
+        item->update();
+        return;
+    }
+}
+void EditorScene::finishPaint(bool commit) {
+    const auto id = paintNode_;
+    const auto stroke = std::exchange(paintStroke_, QImage());
+    paintNode_ = InvalidNodeId;
+    if (auto *item = nodeGraphicsObject(id)) { item->update(); }
+    // finishStroke lays the whole stroke at once, so one undo step reverts it.
+    if (commit && model_.nodeExists(id)) { model_.finishPaintStroke(id, stroke); }
+}
 void EditorScene::finishCrop(bool commit) {
     const auto id = cropNode_;
     const auto value = cropValue_;
@@ -1800,7 +1847,9 @@ void EditorScene::finishSlider(bool commit) {
     sliderProperty_.clear();
     if (auto *item = nodeGraphicsObject(id)) { item->update(); }
     // One drag commits one value, so a single undo step reverts it.
-    if (commit && model_.nodeExists(id) && value != sliderOrigin_ && model_.commit) {
+    if (commit && model_.nodeExists(id) && value != sliderOrigin_ && isCardControl(name)) {
+        model_.setCardControl(id, name, value);
+    } else if (commit && model_.nodeExists(id) && value != sliderOrigin_ && model_.commit) {
         model_.commit(model_.propertyCommand(id, name, value));
     }
 }
@@ -1825,6 +1874,11 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
     }
     if (cropNode_ != InvalidNodeId) {
         moveCrop(event->scenePos());
+        event->accept();
+        return;
+    }
+    if (paintNode_ != InvalidNodeId) {
+        movePaint(event->scenePos());
         event->accept();
         return;
     }
@@ -1898,6 +1952,13 @@ void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
     if (cropNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
         moveCrop(event->scenePos());
         finishCrop(true);
+        inlinePress_ = false;
+        event->accept();
+        return;
+    }
+    if (paintNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
+        movePaint(event->scenePos());
+        finishPaint(true);
         inlinePress_ = false;
         event->accept();
         return;
@@ -2125,6 +2186,11 @@ void EditorScene::keyPressEvent(QKeyEvent *event) {
     }
     if (event->key() == Qt::Key_Escape && cropNode_ != InvalidNodeId) {
         finishCrop(false);
+        event->accept();
+        return;
+    }
+    if (event->key() == Qt::Key_Escape && paintNode_ != InvalidNodeId) {
+        finishPaint(false);
         event->accept();
         return;
     }

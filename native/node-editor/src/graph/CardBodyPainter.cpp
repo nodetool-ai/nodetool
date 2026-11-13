@@ -140,7 +140,8 @@ void paintComposer(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
 // A small icon button. An active toggle tints its icon and a round fill with
 // the primary color, as StateIconButton's isActive.
 void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
-    const auto ink = row.checked ? theme.primary : theme.textSecondary;
+    // A placeholder button is disabled, as the Painter's Undo with no history.
+    const auto ink = row.checked ? theme.primary : row.placeholder ? faded(theme.textSecondary, 0.4) : theme.textSecondary;
     if (row.checked) {
         painter->setPen(Qt::NoPen);
         painter->setBrush(faded(theme.primary, 0.1));
@@ -151,6 +152,45 @@ void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow 
     painter->translate(row.rect.center());
     painter->rotate(row.number);
     paintMaterialIcon(painter, row.icon, QRectF(-icon / 2, -icon / 2, icon, icon), ink);
+    painter->restore();
+}
+
+// PainterBody's canvas: the paper letterbox, a checker under the canvas, the
+// source at the background opacity, the saved mask and the stroke in flight
+// at the brush opacity.
+void paintPaintCanvas(QPainter *painter, const CanvasTheme &theme, const NodeRow &row, const QImage *draft) {
+    const auto area = row.parts.value(0, row.rect);
+    painter->save();
+    QPainterPath clip;
+    clip.addRoundedRect(area, nm::chipRadius, nm::chipRadius);
+    painter->setClipPath(clip, Qt::IntersectClip);
+    painter->fillRect(area, theme.node);
+    const auto cell = double(nm::chipGap) * 2;
+    painter->fillRect(row.rect, theme.alphaBase);
+    painter->save();
+    painter->setClipRect(row.rect, Qt::IntersectClip);
+    for (double y = row.rect.top(); y < row.rect.bottom(); y += cell) {
+        for (double x = row.rect.left() + (int((y - row.rect.top()) / cell) % 2) * cell; x < row.rect.right(); x += 2 * cell) {
+            painter->fillRect(QRectF(x, y, cell, cell), theme.alphaChecker);
+        }
+    }
+    painter->restore();
+    painter->setRenderHint(QPainter::SmoothPixmapTransform);
+    if (row.media.size() > 1 && !row.media[1].image.isNull()) {
+        painter->setOpacity(painter->opacity() * std::clamp(row.number, 0.0, 1.0));
+        painter->drawImage(row.rect, row.media[1].image);
+        painter->setOpacity(1);
+    }
+    // The mask keeps its own size from the canvas's top left.
+    const auto scale = row.minimum > 0 ? row.rect.width() / row.minimum : 1.0;
+    if (!row.media.isEmpty() && !row.media[0].image.isNull()) {
+        const auto &mask = row.media[0].image;
+        painter->drawImage(QRectF(row.rect.topLeft(), QSizeF(mask.size()) * scale), mask);
+    }
+    if (draft && !draft->isNull()) {
+        painter->setOpacity(std::clamp(row.optionValues.value(0, 1).toDouble(), 0.0, 1.0));
+        painter->drawImage(QRectF(row.rect.topLeft(), QSizeF(draft->size()) * scale), *draft);
+    }
     painter->restore();
 }
 
@@ -580,6 +620,9 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         } else {
             paintAction(painter, theme, row);
         }
+        return true;
+    case NodeRowKind::Paint:
+        paintPaintCanvas(painter, theme, row, state.paintDraft);
         return true;
     case NodeRowKind::Histogram:
         paintHistogram(painter, theme, row);

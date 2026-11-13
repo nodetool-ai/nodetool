@@ -4,6 +4,7 @@
 #include <QTextLayout>
 #include <QLineF>
 #include <QObject>
+#include <QPainter>
 #include <QRegularExpression>
 #include <QSet>
 #include <algorithm>
@@ -1309,6 +1310,86 @@ void layoutLevels(NodeLayout &layout, const CardBodyInput &input) {
     column.finish();
 }
 
+// PainterBody.tsx: the canvas over the incoming image, then the brush and
+// eraser, the color, Undo, Redo and Clear, the brush size and opacity, the
+// canvas size and the background opacity. The tools are view state.
+void layoutPainter(NodeLayout &layout, const CardBodyInput &input) {
+    Column column(layout, input);
+    column.handles({QStringLiteral("image")});
+    column.preview({});
+    // The canvas replaces the run result, as the web body shows no result.
+    layout.sourceTab = true;
+    column.y += nm::bodyGap + nm::micro;
+    const auto &view = input.painter;
+    const auto size = double(nm::controlHeight);
+    auto x = column.x;
+    for (const auto &[tool, icon, label] : {std::tuple{false, "brush", QObject::tr("Brush")}, std::tuple{true, "eraser", QObject::tr("Eraser")}}) {
+        auto row = iconAction(QStringLiteral("painterTool"), {}, QLatin1String(icon), label, QRectF(x, column.y, size, size));
+        row.value = tool ? QStringLiteral("eraser") : QStringLiteral("brush");
+        row.checked = view.eraser == tool;
+        layout.rows.append(row);
+        x += size + nm::micro;
+    }
+    auto swatch = controlRow(NodeRowKind::Swatch, QLatin1String(painterColorControl), QObject::tr("Brush color"),
+                             QRectF(x + nm::chipGap, column.y, size, size));
+    swatch.value = view.color;
+    layout.rows.append(swatch);
+    auto right = column.x + column.width;
+    for (const auto &[action, icon, label, enabled] :
+         {std::tuple{"painterClear", "restartAlt", QObject::tr("Clear mask"), true},
+          std::tuple{"painterRedo", "redo", QObject::tr("Redo"), !view.redo.isEmpty()},
+          std::tuple{"painterUndo", "undo", QObject::tr("Undo"), !view.undo.isEmpty()}}) {
+        right -= size;
+        auto row = iconAction(QLatin1String(action), {}, QLatin1String(icon), label, QRectF(right, column.y, size, size));
+        row.placeholder = !enabled;
+        layout.rows.append(row);
+        right -= nm::micro;
+    }
+    column.y += size + nm::micro;
+    // Size and opacity share a row, each half wide.
+    const auto half = (column.width - nm::micro) / 2;
+    // Each slider's label takes its own width, as NumberInput's inline label.
+    const auto labelled = [](NodeRow row) {
+        row.labelWidth = captionWidth(row.label);
+        row.valueWidth = nm::sliderValueWidth;
+        row.columnGap = nm::chipGap;
+        return row;
+    };
+    layout.rows.append(labelled(sliderRow({{QStringLiteral("value"), view.size}}, QLatin1String(painterSizeControl), QObject::tr("Size"),
+                                 QRectF(column.x, column.y, half, nm::controlHeight), 1, 256, 1, QStringLiteral("%1"))));
+    layout.rows.append(labelled(sliderRow({{QStringLiteral("value"), view.opacity}}, QLatin1String(painterOpacityControl), QObject::tr("Opacity"),
+                                 QRectF(column.x + half + nm::micro, column.y, half, nm::controlHeight), 0, 1, 0.01, QStringLiteral("%1"))));
+    column.y += nm::controlHeight + nm::micro;
+    column.y = dimensionRow(layout, input, column.y, false, {QStringLiteral("canvas_width"), QStringLiteral("canvas_height")},
+                            {QObject::tr("Canvas width"), QObject::tr("Canvas height")}) + nm::micro;
+    layout.rows.append(labelled(sliderRow({{QStringLiteral("value"), view.fade}}, QLatin1String(painterFadeControl), QObject::tr("Background opacity"),
+                                 QRectF(column.x, column.y, column.width, nm::controlHeight), 0, 1, 0.01, QStringLiteral("%1"))));
+    column.y += nm::controlHeight;
+    column.finish();
+    // The canvas keeps its own aspect inside the area, as paintStageStyle.
+    const auto canvas = QSizeF(painterCanvasSize(input));
+    auto stage = QRectF(QPointF(), canvas.scaled(layout.resultRect.size(), Qt::KeepAspectRatio));
+    stage.moveCenter(layout.resultRect.center());
+    auto paint = controlRow(NodeRowKind::Paint, {}, QObject::tr("Paint"), stage);
+    paint.parts = {layout.resultRect};
+    paint.minimum = canvas.width();
+    paint.maximum = canvas.height();
+    paint.number = view.fade;
+    paint.step = view.size;
+    paint.value = view.color;
+    paint.checked = view.eraser;
+    paint.optionValues = {view.opacity};
+    CardMediaItem mask;
+    mask.state = input.paintMask.isNull() ? CardMediaState::Unrequested : CardMediaState::Ready;
+    mask.image = input.paintMask;
+    mask.natural = input.paintMask.size();
+    paint.media = {mask};
+    if (const auto *source = readySource(input, QStringLiteral("image"))) {
+        paint.media.append(*source);
+    }
+    layout.rows.append(paint);
+}
+
 // CropBody.tsx: the source with its crop rectangle and size badge, then the
 // aspect select, the width and height boxes and Reset. The aspect is view
 // state, kept as the body tab, and the boxes edit the crop's edges.
@@ -1429,7 +1510,8 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
         {"replicate.image.background.BackgroundRemover_851", CardBody::MasksExtractor},
         {"replicate.image.background.BackgroundRemover_Codeplug", CardBody::MasksExtractor},
         {"replicate.image.process.RemoveBackground", CardBody::MasksExtractor},
-        {"fal.image_to_image.BriaBackgroundRemove", CardBody::MasksExtractor}};
+        {"fal.image_to_image.BriaBackgroundRemove", CardBody::MasksExtractor},
+        {"nodetool.image.Painter", CardBody::Painter}};
     if (bodies.contains(type)) {
         return bodies.value(type);
     }
@@ -1444,7 +1526,7 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
 
 bool readsBodySources(CardBody body) {
     return body == CardBody::CanvasResize || body == CardBody::Paste || body == CardBody::Crop || body == CardBody::SimpleFilter
-           || body == CardBody::Mask || body == CardBody::MasksExtractor;
+           || body == CardBody::Mask || body == CardBody::MasksExtractor || body == CardBody::Painter;
 }
 
 ImageHistogram imageHistogram(const QImage &image) {
@@ -1562,6 +1644,41 @@ double cropAspectRatio(const QString &key) {
     return a > 0 && b > 0 ? a / b : 0;
 }
 
+bool isPainterControl(const QString &name) {
+    return name == QLatin1String(painterSizeControl) || name == QLatin1String(painterOpacityControl)
+           || name == QLatin1String(painterFadeControl) || name == QLatin1String(painterColorControl);
+}
+
+bool isCardControl(const QString &name) {
+    return isCropControl(name) || isPainterControl(name);
+}
+
+QSize painterCanvasSize(const CardBodyInput &input) {
+    const auto found = input.sources.constFind(QStringLiteral("image"));
+    if (found != input.sources.cend() && found->state == CardMediaState::Ready && found->natural.isValid()) {
+        return found->natural;
+    }
+    const auto data = input.node["data"].toObject();
+    const auto side = [&data](const char *name) {
+        const auto value = data.value(QLatin1String(name)).toDouble();
+        return value > 0 ? int(value) : 512;
+    };
+    return {side("canvas_width"), side("canvas_height")};
+}
+
+QImage paintedMask(const QImage &mask, const QImage &stroke, const QSize &canvas, double opacity, bool eraser) {
+    QImage result(canvas, QImage::Format_ARGB32_Premultiplied);
+    result.fill(Qt::transparent);
+    QPainter painter(&result);
+    // The saved mask keeps its own size at the top left, as loadDataUrlIntoCanvas.
+    if (!mask.isNull()) { painter.drawImage(0, 0, mask); }
+    painter.setOpacity(std::clamp(opacity, 0.0, 1.0));
+    painter.setCompositionMode(eraser ? QPainter::CompositionMode_DestinationOut : QPainter::CompositionMode_SourceOver);
+    painter.drawImage(0, 0, stroke);
+    painter.end();
+    return result;
+}
+
 bool isCropControl(const QString &name) {
     return name == QLatin1String(cropAspectControl) || name == QLatin1String(cropWidthControl) || name == QLatin1String(cropHeightControl);
 }
@@ -1607,6 +1724,7 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
     case CardBody::ResizeImage:
     case CardBody::SimpleFilter:
     case CardBody::MasksExtractor:
+    case CardBody::Painter:
     case CardBody::Scale:
     case CardBody::Offset:
     case CardBody::Pad:
@@ -1716,6 +1834,9 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
         break;
     case CardBody::MasksExtractor:
         layoutMasksExtractor(layout, input);
+        break;
+    case CardBody::Painter:
+        layoutPainter(layout, input);
         break;
     case CardBody::Scale:
         layoutScale(layout, input);

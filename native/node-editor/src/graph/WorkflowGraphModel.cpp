@@ -2,6 +2,8 @@
 #include "WorkflowGraphModel.h"
 #include <utility>
 #include "CardBodies.h"
+#include <QColor>
+#include <QBuffer>
 #include "CardMedia.h"
 #include "CatalogCategories.h"
 #include "document/ChildPorts.h"
@@ -781,7 +783,9 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       }
       layoutBespokeBody(result, {node, meta, inputs, int(outputs.size()), fields, dimensionLinks_.contains(resourceId(id)),
                                  graphVariables_, previewTabs_.value(resourceId(id)), result.sources,
-                                 histograms_.contains(resourceId(id)) ? std::optional(histograms_.value(resourceId(id))) : std::nullopt});
+                                 histograms_.contains(resourceId(id)) ? std::optional(histograms_.value(resourceId(id))) : std::nullopt,
+                                 painters_.value(resourceId(id)),
+                                 result.body == CardBody::Painter ? paintMask(resourceId(id), node["data"].toObject()) : QImage{}});
       if (canvasMediaNodes_.contains(resourceId(id))) {
           result.size.rheight() += nm::playbackHeight + nm::rowHeight;
       } else if (result.resultRect.isEmpty() && hasRuntimeOutput(id)) {
@@ -1525,6 +1529,12 @@ bool WorkflowGraphModel::isComment(NodeId id) const {
 }
 QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name) const {
   if (readOnly_ || !nodeExists(id) || inlineFieldRect(id, name).isEmpty()) { return {}; }
+  if (name == QLatin1String(painterColorControl)) {
+    // The Painter's color is a card value. The color editor needs room for its presets.
+    return {{"name", name}, {"label", QObject::tr("Brush color")}, {"kind", QStringLiteral("color")},
+            {"value", QVariantMap{{"type", QStringLiteral("color")}, {"value", painterView(id).color}}}, {"hasValue", true},
+            {"editable", true}, {"connected", false}, {"minimumWidth", node_metrics::colorEditorWidth}};
+  }
   if (isCropControl(name)) {
     // The Crop body's aspect select and size boxes edit card values, not properties.
     for (const auto &row : layout(id).rows) {
@@ -1629,8 +1639,80 @@ QJsonObject WorkflowGraphModel::cropControlCommand(NodeId id, const QString &nam
     }
     return {};
 }
-void WorkflowGraphModel::setCropControl(NodeId id, const QString &name, const QVariant &value) {
-    if (readOnly_ || !nodeExists(id) || !isCropControl(name)) { return; }
+QImage WorkflowGraphModel::paintMask(const QString &resource, const QJsonObject &data) const {
+    const auto mask = data.value(QStringLiteral("mask_data")).toString();
+    const auto cached = paintMasks_.constFind(resource);
+    if (cached != paintMasks_.cend() && cached->first == mask) { return cached->second; }
+    QImage image;
+    if (!mask.isEmpty()) { image.loadFromData(QByteArray::fromBase64(mask.toLatin1()), "PNG"); }
+    paintMasks_.insert(resource, {mask, image});
+    return image;
+}
+PainterView WorkflowGraphModel::painterView(NodeId id) const { return painters_.value(resourceId(id)); }
+void WorkflowGraphModel::writePaintMask(NodeId id, const QString &mask, const QImage &image) {
+    const auto resource = resourceId(id);
+    paintMasks_.insert(resource, {mask, image});
+    if (commit) { commit(propertyCommand(id, QStringLiteral("mask_data"), mask)); }
+}
+void WorkflowGraphModel::painterAction(NodeId id, const QString &action, const QString &value) {
+    if (readOnly_ || !nodeExists(id)) { return; }
+    const auto resource = resourceId(id);
+    auto &view = painters_[resource];
+    const auto current = nodes_.value(id)["data"].toObject().value(QStringLiteral("mask_data")).toString();
+    const auto push = [](QStringList &stack, const QString &mask) {
+        stack.append(mask);
+        while (stack.size() > painterHistory) { stack.removeFirst(); }
+    };
+    if (action == QStringLiteral("painterTool")) {
+        view.eraser = value == QStringLiteral("eraser");
+        refreshRuntimeNode(resource);
+    } else if (action == QStringLiteral("painterUndo") || action == QStringLiteral("painterRedo")) {
+        const bool undo = action == QStringLiteral("painterUndo");
+        auto &from = undo ? view.undo : view.redo;
+        if (from.isEmpty()) { return; }
+        const auto previous = from.takeLast();
+        push(undo ? view.redo : view.undo, current);
+        QImage image;
+        if (!previous.isEmpty()) { image.loadFromData(QByteArray::fromBase64(previous.toLatin1()), "PNG"); }
+        writePaintMask(id, previous, image);
+    } else if (action == QStringLiteral("painterClear")) {
+        push(view.undo, current);
+        view.redo.clear();
+        writePaintMask(id, {}, {});
+    }
+}
+void WorkflowGraphModel::finishPaintStroke(NodeId id, const QImage &stroke) {
+    if (readOnly_ || !nodeExists(id) || stroke.isNull()) { return; }
+    const auto resource = resourceId(id);
+    auto &view = painters_[resource];
+    const auto data = nodes_.value(id)["data"].toObject();
+    const auto current = data.value(QStringLiteral("mask_data")).toString();
+    const auto image = paintedMask(paintMask(resource, data), stroke, stroke.size(), view.opacity, view.eraser);
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::WriteOnly);
+    image.save(&buffer, "PNG");
+    view.undo.append(current);
+    while (view.undo.size() > painterHistory) { view.undo.removeFirst(); }
+    view.redo.clear();
+    writePaintMask(id, QString::fromLatin1(bytes.toBase64()), image);
+}
+void WorkflowGraphModel::setCardControl(NodeId id, const QString &name, const QVariant &value) {
+    if (readOnly_ || !nodeExists(id)) { return; }
+    if (isPainterControl(name)) {
+        auto &view = painters_[resourceId(id)];
+        if (name == QLatin1String(painterSizeControl)) { view.size = std::clamp(std::round(value.toDouble()), 1.0, 256.0); }
+        else if (name == QLatin1String(painterOpacityControl)) { view.opacity = std::clamp(value.toDouble(), 0.0, 1.0); }
+        else if (name == QLatin1String(painterFadeControl)) { view.fade = std::clamp(value.toDouble(), 0.0, 1.0); }
+        else {
+            // ColorPropertyEditor commits a {type: "color", value} object.
+            const auto color = value.typeId() == QMetaType::QVariantMap ? value.toMap().value(QStringLiteral("value")).toString() : value.toString();
+            if (QColor::isValidColorName(color)) { view.color = color; }
+        }
+        refreshRuntimeNode(resourceId(id));
+        return;
+    }
+    if (!isCropControl(name)) { return; }
     // handleAspectChange sets the aspect, then fits the crop to it.
     const auto command = cropControlCommand(id, name, value);
     if (name == QLatin1String(cropAspectControl)) { setPreviewTab(id, value.toString()); }

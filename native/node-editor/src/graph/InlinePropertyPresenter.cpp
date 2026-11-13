@@ -135,10 +135,10 @@ void InlinePropertyPresenter::flushCommit() {
   const auto id = model_.resourceId(node_);
   const auto name = name_;
   const auto value = pendingValue_;
-  if (isCropControl(name)) {
+  if (isCardControl(name)) {
     const auto node = node_;
     cancel();
-    model_.setCropControl(node, name, value);
+    model_.setCardControl(node, name, value);
     view_.setFocus(Qt::OtherFocusReason);
     return;
   }
@@ -223,6 +223,8 @@ void InlinePropertyPresenter::reposition() {
   auto local = model_.inlineFieldRect(node_, name_);
   if (contentHeight_ > 0) { local.setHeight(std::max(local.height(), contentHeight_)); }
   const auto kind = descriptor_["kind"].toString();
+  // A small control, such as the Painter's swatch, opens a wider editor to its right.
+  if (const auto minimum = descriptor_.value(QStringLiteral("minimumWidth")).toDouble(); minimum > local.width()) { local.setWidth(minimum); }
   if (name_ == "code") { local.setHeight(std::max(280.0, local.height())); }
   if (kind == "text" || kind == "multiline") {
     if (expanded_) { local.setHeight(std::max(180.0, local.height())); }

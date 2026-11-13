@@ -954,7 +954,15 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/PainterBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Canvas over the incoming image, brush and eraser strokes into mask_data, color, Undo, Redo, Clear, size, opacity, canvas size and background opacity match. The brush cursor circle and dropping an image on the canvas are missing.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/PasteBody.tsx": {

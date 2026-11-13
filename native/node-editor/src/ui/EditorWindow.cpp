@@ -587,7 +587,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     return true;
   };
   connect(scene_, &EditorScene::sliderDraftChanged, this, [this](QtNodes::NodeId id, const QString &name, double value) {
-    if (readOnly() || !model_.nodeExists(id)) { return; }
+    // A card control such as the Painter's brush size is no property to rerun with.
+    if (readOnly() || !model_.nodeExists(id) || isCardControl(name)) { return; }
     scheduleInstantRerun(model_.resourceId(id), {{"name", name}, {"value", value}}, true, true);
   });
   connect(scene_, &EditorScene::reconnectRequested, this, [this](const QString &id, const QJsonObject &connection) {

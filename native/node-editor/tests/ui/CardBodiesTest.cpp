@@ -169,6 +169,9 @@ QJsonArray partTwoMetadata() {
                     {image(), property("channel", "str", {{"values", QJsonArray{"red", "green", "blue", "alpha", "luminance"}}, {"default", "luminance"}})}),
         metadataFor("lib.image.Mask", "Mask", {image("image1"), image("image2"), image("mask")}),
         metadataFor("replicate.image.background.Bria_RemoveBackground", "Bria Remove Background", {image()}),
+        metadataFor("nodetool.image.Painter", "Painter", {image(), property("mask_data", "str", {{"default", ""}}),
+                                                          property("canvas_width", "int", {{"default", 512}}),
+                                                          property("canvas_height", "int", {{"default", 512}})}),
         metadataFor("lib.image.color_grading.HSLAdjust", "HSL Adjust",
                     {image(), property("color_range", "str", {{"values", ranges}, {"default", "all"}}), slider("hue_shift", -1, 1, 0),
                      slider("saturation", -1, 1, 0), slider("luminance", -1, 1, 0)}),
@@ -1820,6 +1823,81 @@ private slots:
         QCOMPARE(cropDragged("move", QRectF(10, 10, 50, 50), QPointF(500, -500), bounds), QRectF(150, 0, 50, 50));
     }
 
+    // PainterBody.tsx: a drag paints one stroke into mask_data as one undo
+    // step, the eraser cuts it out, the tools are view state, and Undo, Redo
+    // and Clear step through the body's own history.
+    void painterStrokesWriteTheMask() {
+        Host host(withNodes({partTwoNode("paint", "nodetool.image.Painter", QPointF(0, 700), {{"canvas_width", 200}, {"canvas_height", 100}})}),
+                  allMetadata());
+        const auto id = host.id("paint");
+        QCOMPARE(host.model().layout(id).body, CardBody::Painter);
+        QVERIFY(host.model().layout(id).sourceTab);
+        const auto *canvas = host.row("paint", NodeRowKind::Paint);
+        QVERIFY(canvas);
+        QCOMPARE(canvas->minimum, 200.0);
+        QCOMPARE(canvas->maximum, 100.0);
+        QCOMPARE(canvas->rect.width() / canvas->rect.height(), 2.0);
+        QVERIFY(host.row("paint", NodeRowKind::Action, "painterUndo")->placeholder);
+        auto undo = host.undoCount();
+        const auto drag = [&host](const QPointF &from, const QPointF &to) {
+            const auto start = host.point("paint", from);
+            const auto end = host.point("paint", to);
+            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(host.view->viewport(), &move);
+            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+            settle();
+        };
+        const auto rect = canvas->rect;
+        const auto at = [&rect](double x, double y) { return QPointF(rect.x() + rect.width() * x / 200, rect.y() + rect.height() * y / 100); };
+        const auto mask = [&host] {
+            QImage image;
+            image.loadFromData(QByteArray::fromBase64(host.data("paint")["mask_data"].toString().toLatin1()), "PNG");
+            return image;
+        };
+        drag(at(20, 50), at(180, 50));
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        ++undo;
+        QCOMPARE(mask().size(), QSize(200, 100));
+        QCOMPARE(mask().pixelColor(100, 50), QColor(Qt::white));
+        QCOMPARE(mask().pixelColor(100, 5).alpha(), 0);
+        QVERIFY(!host.row("paint", NodeRowKind::Action, "painterUndo")->placeholder);
+        // The size slider and the eraser are view state, not document edits.
+        host.model().setCardControl(id, painterSizeControl, 60);
+        for (const auto &row : host.model().layout(id).rows) {
+            if (row.action == QStringLiteral("painterTool") && row.value == QStringLiteral("eraser")) { host.click("paint", row.rect.center()); break; }
+        }
+        QTRY_VERIFY(host.model().painterView(id).eraser);
+        QCOMPARE(host.model().painterView(id).size, 60.0);
+        QCOMPARE(host.undoCount(), undo);
+        drag(at(100, 50), at(100, 50));
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        ++undo;
+        QCOMPARE(mask().pixelColor(100, 50).alpha(), 0);
+        QCOMPARE(mask().pixelColor(20, 50), QColor(Qt::white));
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("paint")).save(directory + QStringLiteral("/Painter-dark.png")));
+        }
+        // Undo brings the erased dot back, Redo erases it again, Clear empties the mask.
+        host.click("paint", host.row("paint", NodeRowKind::Action, "painterUndo")->rect.center());
+        QTRY_COMPARE(mask().pixelColor(100, 50), QColor(Qt::white));
+        QVERIFY(!host.row("paint", NodeRowKind::Action, "painterRedo")->placeholder);
+        host.click("paint", host.row("paint", NodeRowKind::Action, "painterRedo")->rect.center());
+        QTRY_COMPARE(mask().pixelColor(100, 50).alpha(), 0);
+        host.click("paint", host.row("paint", NodeRowKind::Action, "painterClear")->rect.center());
+        QTRY_VERIFY(host.data("paint")["mask_data"].toString().isEmpty());
+        // The swatch opens the inline color editor, and a color becomes the brush color.
+        auto *presenter = host.window.findChild<InlinePropertyPresenter *>();
+        QVERIFY(presenter);
+        host.click("paint", host.row("paint", NodeRowKind::Swatch, painterColorControl)->rect.center());
+        QTRY_VERIFY(presenter->active());
+        QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("color"));
+        presenter->cancel();
+        host.model().setCardControl(id, painterColorControl, QVariantMap{{"type", "color"}, {"value", "#ff0000"}});
+        QCOMPARE(host.row("paint", NodeRowKind::Swatch, painterColorControl)->value, QStringLiteral("#ff0000"));
+    }
+
     // MasksExtractorBody.tsx: the Image tab shows the incoming image in place
     // of the run result and Mask shows the result. Recalculate mask selects the
     // card and runs it alone. SimpleFilterBody's Before tab shows its source too.
@@ -2007,21 +2085,21 @@ private slots:
         QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("choice"));
         QCOMPARE(presenter->descriptor()["options"].toList().size(), 8);
         presenter->cancel();
-        host.model().setCropControl(host.id("crop"), cropWidthControl, 80);
+        host.model().setCardControl(host.id("crop"), cropWidthControl, 80);
         QTRY_COMPARE(host.data("crop")["right"].toDouble(), 80.0);
         QCOMPARE(host.undoCount(), ++undo);
-        host.model().setCropControl(host.id("crop"), cropAspectControl, "1:1");
+        host.model().setCardControl(host.id("crop"), cropAspectControl, "1:1");
         QTRY_COMPARE(host.data("crop")["bottom"].toDouble(), 80.0);
         QCOMPARE(host.undoCount(), ++undo);
         QCOMPARE(host.row("crop", NodeRowKind::Field, cropAspectControl)->value, QStringLiteral("1:1 Square"));
         QCOMPARE(host.row("crop", NodeRowKind::Crop)->step, 1.0);
         // With the aspect held, the height box moves the width with it.
-        host.model().setCropControl(host.id("crop"), cropHeightControl, 50);
+        host.model().setCardControl(host.id("crop"), cropHeightControl, 50);
         QTRY_COMPARE(host.data("crop")["right"].toDouble(), 50.0);
         QCOMPARE(host.data("crop")["bottom"].toDouble(), 50.0);
         QCOMPARE(host.undoCount(), ++undo);
         // An unchanged crop adds no undo step.
-        host.model().setCropControl(host.id("crop"), cropWidthControl, 50);
+        host.model().setCardControl(host.id("crop"), cropWidthControl, 50);
         settle();
         QCOMPARE(host.undoCount(), undo);
         if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {

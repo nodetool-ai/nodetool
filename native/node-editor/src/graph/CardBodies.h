@@ -3,6 +3,7 @@
 #include <optional>
 #include "NodeLayout.h"
 #include <QHash>
+#include <QImage>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QVariantMap>
@@ -53,6 +54,29 @@ struct ImageHistogram {
 };
 ImageHistogram imageHistogram(const QImage &image);
 
+// PainterBody's tool state. The web keeps it in the body, not in the node,
+// so it is view state here too. The undo and redo stacks hold earlier
+// mask_data values, at most painterHistory of each.
+struct PainterView {
+    bool eraser = false;
+    double size = 24;
+    double opacity = 1;
+    double fade = 1;
+    QString color = QStringLiteral("#ffffff");
+    QStringList undo;
+    QStringList redo;
+};
+inline constexpr int painterHistory = 30;
+// The Painter controls that edit PainterView, committed through
+// WorkflowGraphModel::setCardControl as the Crop controls are.
+inline constexpr auto painterSizeControl = "@painter:size";
+inline constexpr auto painterOpacityControl = "@painter:opacity";
+inline constexpr auto painterFadeControl = "@painter:fade";
+inline constexpr auto painterColorControl = "@painter:color";
+bool isPainterControl(const QString &name);
+// A Crop or Painter control: a card value with a row name but no property.
+bool isCardControl(const QString &name);
+
 struct CardBodyInput {
     QJsonObject node;
     QJsonObject metadata;
@@ -69,6 +93,9 @@ struct CardBodyInput {
     QHash<QString, CardMediaItem> sources;
     // The histogram of the node's result image, for the Levels body.
     std::optional<ImageHistogram> histogram;
+    // The Painter's tool state and its decoded mask_data.
+    PainterView painter;
+    QImage paintMask;
 };
 
 // Bodies that show or measure the image arriving at their image handles, as
@@ -103,6 +130,11 @@ bool isCropControl(const QString &name);
 // The crop the aspect select or a width or height box makes from crop, as
 // handleAspectChange, handleWidthChange and handleHeightChange in CropBody.tsx.
 // ratio is the selected aspect for the width and height boxes.
+// PainterBody: the canvas size (the source image's, else canvas_width and
+// canvas_height, else 512) and the mask after a stroke drawn at full alpha in
+// stroke is laid on mask at the brush opacity, or cut out of it for the eraser.
+QSize painterCanvasSize(const CardBodyInput &input);
+QImage paintedMask(const QImage &mask, const QImage &stroke, const QSize &canvas, double opacity, bool eraser);
 QRectF cropControlled(const QString &control, const QVariant &value, const QRectF &crop, const QSizeF &bounds, double ratio);
 
 // Lays out a bespoke body: its rows, port positions, result area and size. A

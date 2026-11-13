@@ -124,9 +124,17 @@ public:
   // The edge batch a Crop body control makes (see isCropControl), empty when
   // the crop stays the same.
   QJsonObject cropControlCommand(QtNodes::NodeId id, const QString &name, const QVariant &value) const;
-  // Applies a Crop body control: the aspect becomes the body tab, and changed
-  // edges commit as one step.
-  void setCropControl(QtNodes::NodeId id, const QString &name, const QVariant &value);
+  // Applies a Crop or Painter body control (see isCardControl). A Crop
+  // aspect becomes the body tab and changed edges commit as one step. A
+  // Painter control changes the card's tool state.
+  void setCardControl(QtNodes::NodeId id, const QString &name, const QVariant &value);
+  PainterView painterView(QtNodes::NodeId id) const;
+  // PainterBody's tool buttons: "painterTool" with "brush" or "eraser",
+  // "painterUndo", "painterRedo" and "painterClear".
+  void painterAction(QtNodes::NodeId id, const QString &action, const QString &value = {});
+  // Lays a finished stroke, drawn at full alpha on a canvas-sized image, on
+  // the mask and writes mask_data as one undo step.
+  void finishPaintStroke(QtNodes::NodeId id, const QImage &stroke);
   // The media drop zone row under a card-local point, or -1.
   int dropZoneAt(QtNodes::NodeId id, const QPointF &point) const;
   bool readOnly() const { return readOnly_; }
@@ -183,6 +191,11 @@ private:
   QPointer<node_editor::NodeRuntimeModel> runtime_;
   QHash<QString, QImage> previews_;
   QHash<QString, ImageHistogram> histograms_;
+  QHash<QString, PainterView> painters_;
+  // Each Painter's mask_data and its decoded image, so a layout decodes once.
+  mutable QHash<QString, std::pair<QString, QImage>> paintMasks_;
+  QImage paintMask(const QString &resource, const QJsonObject &data) const;
+  void writePaintMask(QtNodes::NodeId id, const QString &mask, const QImage &image);
   QSet<QString> canvasMediaNodes_;
   QSet<QString> configuredSecrets_;
   bool secretsKnown_ = false;

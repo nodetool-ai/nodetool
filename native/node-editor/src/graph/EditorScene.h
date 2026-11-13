@@ -1,4 +1,5 @@
 #pragma once
+#include <QImage>
 #include <QColor>
 #include <QPainterPath>
 #include <QString>
@@ -155,6 +156,9 @@ public:
   // The crop under a drag on a Crop card, in image pixels, painted before it is committed.
   QtNodes::NodeId cropDraftNode() const { return cropNode_; }
   QRectF cropDraft() const { return cropValue_; }
+  // The stroke under a drag on a Painter card, at full alpha in canvas pixels.
+  QtNodes::NodeId paintDraftNode() const { return paintNode_; }
+  const QImage &paintDraft() const { return paintStroke_; }
   // True while a node or wire is faded because a selection is active and the
   // item is not on the selected branch.
   bool branchDimmed(QtNodes::NodeId id) const;
@@ -260,6 +264,12 @@ private:
   QPointF cropPointer_;
   void moveCrop(const QPointF &scenePosition);
   void finishCrop(bool commit);
+  // A brush or eraser stroke on PainterBody's canvas.
+  QtNodes::NodeId paintNode_ = QtNodes::InvalidNodeId;
+  QImage paintStroke_;
+  QPointF paintLast_;
+  void movePaint(const QPointF &scenePosition);
+  void finishPaint(bool commit);
   // Mode switches, the dimension lock, add buttons and sliders on a card body.
   bool pressCardControl(QtNodes::NodeId id, const QPointF &local);
   void moveSlider(const QPointF &scenePosition);
