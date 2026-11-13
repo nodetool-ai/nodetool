@@ -30,7 +30,7 @@ export const ACESTEP_RELEASE_TAG = `acestep-${ACESTEP_COMMIT_SHORT}`;
  * After the first build and release, paste the digest the workflow prints
  * here.
  */
-export const ACESTEP_SHA256: string | null = null;
+export const ACESTEP_SHA256: string | null = "c5ff15f1f56ae3b13fea0a26ea22057ce6b219db1c8d8d5bdff3181d4850269e";
 
 /** The approximate archive size, only used to scale the progress bar. */
 const ACESTEP_ARCHIVE_SIZE_BYTES = 30_000_000;
