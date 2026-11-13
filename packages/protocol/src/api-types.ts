@@ -1206,6 +1206,8 @@ export const PROVIDER_IDS = {
   UBERLLM: "uberllm",
   TOGETHER: "together",
   ALIBABA: "alibaba",
+  // ByteDance BytePlus ModelArk: Seed chat, Seedream images, Seedance video.
+  BYTEPLUS: "byteplus",
   CEREBRAS: "cerebras",
   EVOLINK: "evolink",
   GMI: "gmi",

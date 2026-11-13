@@ -435,6 +435,16 @@ s(
   "Base URL for Alibaba Cloud Model Studio's OpenAI-compatible endpoint. Model Studio keys are region-scoped; set this to your region's endpoint (default: https://dashscope-intl.aliyuncs.com/compatible-mode/v1, the international/Singapore region). Media generation uses the same host's native /api/v1 endpoint"
 );
 sec(
+  "BYTEPLUS_ARK_API_KEY",
+  "BytePlus",
+  "BytePlus ModelArk API key for Seed chat, Seedream image and Seedance video models. Create one on the API Key Management page of the ModelArk console at https://console.byteplus.com/ark"
+);
+s(
+  "BYTEPLUS_ARK_BASE_URL",
+  "BytePlus",
+  "Base URL for BytePlus ModelArk. Ark keys are region-scoped; set this to your key's region endpoint (default: https://ark.ap-southeast.bytepluses.com/api/v3, Asia-Pacific)"
+);
+sec(
   "CEREBRAS_API_KEY",
   "Cerebras",
   "Cerebras API key for accessing fast LLM inference on Cerebras hardware. Get yours at https://cloud.cerebras.ai/"

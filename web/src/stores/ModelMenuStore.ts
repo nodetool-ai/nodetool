@@ -144,6 +144,9 @@ export const requiredSecretForProvider = (
   if (p.includes(PROVIDER_IDS.ALIBABA)) {
     return "DASHSCOPE_API_KEY";
   }
+  if (p.includes(PROVIDER_IDS.BYTEPLUS)) {
+    return "BYTEPLUS_ARK_API_KEY";
+  }
   if (p.includes(PROVIDER_IDS.TOGETHER)) {
     return "TOGETHER_API_KEY";
   }

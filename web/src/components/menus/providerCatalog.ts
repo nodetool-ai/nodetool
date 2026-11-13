@@ -357,6 +357,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     icon: alibabacloudColorIcon
   },
   {
+    key: "BYTEPLUS_ARK_API_KEY",
+    providerId: PROVIDER_IDS.BYTEPLUS,
+    name: "BytePlus",
+    description: "Seed chat, Seedream images, and Seedance video via BytePlus ModelArk.",
+    section: "language",
+    docsUrl: "https://docs.byteplus.com/en/docs/ModelArk/"
+  },
+  {
     key: "HF_TOKEN",
     providerId: PROVIDER_IDS.HUGGINGFACE,
     name: "HuggingFace",

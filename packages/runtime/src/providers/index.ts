@@ -63,6 +63,10 @@ import { StandardComputeProvider } from "./standardcompute-provider.js";
 import { UberLLMProvider } from "./uberllm-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import {
+  BYTEPLUS_DEFAULT_BASE_URL,
+  BytePlusProvider
+} from "./byteplus-provider.js";
+import {
   ALIBABA_DEFAULT_BASE_URL,
   AlibabaProvider
 } from "./alibaba-provider.js";
@@ -329,6 +333,7 @@ export { StandardComputeProvider };
 export { UberLLMProvider };
 export { TogetherProvider };
 export { AlibabaProvider };
+export { BytePlusProvider };
 export { CerebrasProvider };
 export { EvolinkProvider };
 export { GMIProvider };
@@ -751,6 +756,12 @@ registerBuiltinProvider(
   AlibabaProvider,
   { DASHSCOPE_API_KEY: "" },
   { DASHSCOPE_BASE_URL: ALIBABA_DEFAULT_BASE_URL }
+);
+registerBuiltinProvider(
+  PROVIDER_IDS.BYTEPLUS,
+  BytePlusProvider,
+  { BYTEPLUS_ARK_API_KEY: "" },
+  { BYTEPLUS_ARK_BASE_URL: BYTEPLUS_DEFAULT_BASE_URL }
 );
 registerBuiltinProvider(PROVIDER_IDS.CEREBRAS, CerebrasProvider, {
   CEREBRAS_API_KEY: ""

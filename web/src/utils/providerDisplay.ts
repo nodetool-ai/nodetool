@@ -184,6 +184,9 @@ export const formatGenericProviderName = (provider?: string): string => {
   if (providerLower === "alibaba") {
     return "Alibaba Cloud";
   }
+  if (providerLower === "byteplus") {
+    return "BytePlus";
+  }
   if (providerLower === "cohere") {
     return "Cohere";
   }
@@ -364,6 +367,9 @@ export const getProviderUrl = (provider?: string): string | null => {
   }
   if (providerLower === "alibaba") {
     return "https://modelstudio.console.alibabacloud.com/";
+  }
+  if (providerLower === "byteplus") {
+    return "https://console.byteplus.com/ark";
   }
   if (providerLower === "cohere") {
     return "https://cohere.com";
