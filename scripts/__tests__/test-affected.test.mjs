@@ -227,6 +227,18 @@ describe("buildPlan", () => {
   });
 
   it.each([
+    "native/parity/census.mjs",
+    "native/parity/registry.json",
+    "native/parity/host/ParityHost.cpp"
+  ])("selects the native parity checks for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(plan([file]).steps.map((step) => step.label)).toEqual([
+      "native parity: census",
+      "native parity: unit tests"
+    ]);
+  });
+
+  it.each([
     "native/chat/src/runtime/ChatSession.cpp",
     "native/chat/qml/ChatPanel.qml",
     "native/chat/fixtures/stream.json",

@@ -102,6 +102,13 @@ export const PATH_CHECKS = [
   },
   { path: /^native\/(?:graph-runner|jobs|model-picker|node-editor|timeline)\//, steps: [NATIVE_CTEST] },
   {
+    path: /^native\/parity\//,
+    steps: [
+      { label: "native parity: census", command: "node", args: ["native/parity/census.mjs", "--check"] },
+      { label: "native parity: unit tests", command: "node", args: ["--test", "native/parity/tests/census.test.mjs", "native/parity/tests/run.test.mjs"] }
+    ]
+  },
+  {
     path: /^native\/chat\//,
     steps: [{ label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }]
   },
