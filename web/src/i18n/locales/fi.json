@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Pilvi on alfavaiheessa. Tuotantokäyttöön käytä",
       "ssoTitle": "Kirjaudu NodeTooliin",
       "ssoSignIn": "Kirjaudu palvelulla {{provider}}",
-      "ssoFailed": "Kirjautuminen epäonnistui ({{reason}}). Yritä uudelleen tai pyydä käyttöoikeutta ylläpitäjältä."
+      "ssoFailed": "Kirjautuminen epäonnistui ({{reason}}). Yritä uudelleen tai pyydä käyttöoikeutta ylläpitäjältä.",
+      "marketingOptIn": "Lähetä minulle sähköpostia uusista julkaisuista ja ilmaisista tarjouksista. Voit perua tilauksen milloin tahansa."
     },
     "inspector": {
       "params": "Parametrit",
@@ -20001,5 +20002,11 @@
     "missingKeysDetail": "Tämä työnkulku tarvitsee: {{keys}}. Lisää se asetuksissa ennen suorittamista.",
     "costPerRun": "≈ {{cost}} / ajo",
     "costUnknown": "Hinta tuntematon"
+  },
+  "marketingEmails": {
+    "title": "Tuotesähköpostit",
+    "label": "Lähetä minulle sähköpostia julkaisuista ja ilmaisista tarjouksista",
+    "description": "Kuule uusista ominaisuuksista, malleista ja ilmaisista tarjouksista. Jokaisessa viestissä on peruutuslinkki, ja voit poistaa tämän käytöstä täällä milloin tahansa.",
+    "saveFailed": "Sähköpostiasetusta ei tallennettu. Yritä uudelleen."
   }
 }
