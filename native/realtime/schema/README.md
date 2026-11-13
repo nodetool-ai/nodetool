@@ -1,9 +1,10 @@
 # Realtime plan IR v1
 
 [plan-v1.schema.json](plan-v1.schema.json) is the canonical JSON Schema for the
-prepare-time description. The native build embeds this same file. A future
-TypeScript compiler must consume it as an asset rather than maintain a second
-schema. The native checker supports only the keywords used here and rejects
+prepare-time description. The native build embeds this same file. The
+[TypeScript compiler](../../../packages/realtime-compiler/README.md) prepares
+its bundled schema asset from this file during builds and tests. It maintains
+no second schema. The native checker supports only the keywords used here and rejects
 an unsupported keyword instead of ignoring it.
 
 The schema is provisional under [M1's status and assumptions](../M1_STATUS.md).

@@ -7,6 +7,7 @@ on:
       - "native/realtime/**"
       - "native/graph-runner/guest/host/gpu-catalog.mjs"
       - "packages/gpu/**"
+      - "packages/realtime-compiler/**"
       - ".github/workflows/native-realtime.yml"
   push:
     branches: [main]
@@ -14,6 +15,7 @@ on:
       - "native/realtime/**"
       - "native/graph-runner/guest/host/gpu-catalog.mjs"
       - "packages/gpu/**"
+      - "packages/realtime-compiler/**"
       - ".github/workflows/native-realtime.yml"
 
 permissions:
@@ -51,6 +53,8 @@ jobs:
         run: |
           npm run build --workspace=packages/protocol
           npm run build --workspace=packages/gpu
+          npm run build --workspace=packages/realtime-compiler
+          npm run test --workspace=packages/realtime-compiler
       - name: Check browser comparison guards
         run: |
           node --test native/realtime/spike/browser/headers.test.mjs
@@ -72,6 +76,8 @@ jobs:
             -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
       - name: Verify offline exports and required test inventory
         run: env -u DISPLAY node native/realtime/scripts/check.mjs
+      - name: Verify compiler snapshot through the native loader and renderer
+        run: env -u DISPLAY npm run test:native --workspace=packages/realtime-compiler -- "$GITHUB_WORKSPACE/native/realtime/build-gpu/nodetool-realtime"
       - name: Cache pinned wasm32 SDK
         if: matrix.mode == 'release'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

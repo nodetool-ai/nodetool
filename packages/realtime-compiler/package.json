@@ -1,0 +1,23 @@
+{
+  "name": "@nodetool-ai/realtime-compiler",
+  "version": "0.8.11",
+  "description": "Pure descriptor-driven compilation of workflow graphs to realtime plan IR",
+  "type": "module",
+  "engines": { "node": "24.22.1" },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": { ".": { "nodetool-dev": "./src/index.ts", "types": "./dist/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" } },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "node scripts/prepare-schema.mjs && node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node scripts/prepare-schema.mjs && node ../../scripts/run-vitest.mjs run",
+    "test:watch": "node scripts/prepare-schema.mjs && node ../../scripts/run-vitest.mjs",
+    "test:native": "node --import tsx tests/native-check.mjs",
+    "lint": "node scripts/prepare-schema.mjs && node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": { "@nodetool-ai/protocol": "*" },
+  "devDependencies": { "ajv": "^8.20.0", "sharp": "^0.35.3", "tsx": "^4.0.0", "typescript": "npm:@typescript/typescript6@6.0.2", "vitest": "^5.1.0" },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/nodetool-ai/nodetool.git", "directory": "packages/realtime-compiler" },
+  "publishConfig": { "access": "public" }
+}
