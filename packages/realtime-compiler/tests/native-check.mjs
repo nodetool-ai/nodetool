@@ -11,6 +11,7 @@ import { compileRealtimeGraph } from "@nodetool-ai/realtime-compiler";
 import { fixture, expressionFixture, alphaFixture } from "./fixtures/RenderGraph.ts";
 import { checkAudio } from "./native-audio-check.mjs";
 import { checkAudioControls } from "./native-control-check.mjs";
+import { checkPcmBoundaries } from "./native-pcm-check.mjs";
 
 assert.equal(process.argv.length, 3, "Pass a GPU-enabled native realtime executable");
 const executable = resolve(process.argv[2]);
@@ -67,5 +68,6 @@ try {
   assert.equal(existsSync(bypassOutput), false);
   checkAudio(executable, root);
   checkAudioControls(executable, root);
-  console.log("Compiled render/audio/control fixtures match native references; invalid bindings, alpha bypass and buffer overlap reject before output.");
+  checkPcmBoundaries(executable, root);
+  console.log("Compiled render/audio/control/PCM fixtures match native references; invalid bindings, slots and buffer reuse reject before output.");
 } finally { rmSync(root, { recursive: true, force: true }); }

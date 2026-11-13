@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "session": {
+    "sampleRate": 48000,
+    "quantum": 128,
+    "channels": "stereo",
+    "width": 4,
+    "height": 4,
+    "seed": 17
+  },
+  "params": [
+    {
+      "slot": 0,
+      "node": "gain-a",
+      "field": "gain",
+      "value": 0.5,
+      "smooth": "none",
+      "sync": "audio"
+    },
+    {
+      "slot": 1,
+      "node": "gain-b",
+      "field": "gain",
+      "value": 0.25,
+      "smooth": "none",
+      "sync": "audio"
+    },
+    {
+      "slot": 2,
+      "node": "player",
+      "field": "gain",
+      "value": 1,
+      "smooth": "none",
+      "sync": "audio"
+    }
+  ],
+  "slots": [
+    {
+      "id": "@slot:0123456789abcdef0123456789abcdef:audio",
+      "kind": "buffer",
+      "source": "[\"0123456789abcdef0123456789abcdef\",\"audio\"]",
+      "channels": "stereo"
+    }
+  ],
+  "control": {
+    "registers": 0,
+    "ops": [],
+    "stateful": []
+  },
+  "render": {
+    "passes": []
+  },
+  "audio": {
+    "buffers": [
+      {
+        "id": 0,
+        "channels": "stereo"
+      },
+      {
+        "id": 1,
+        "channels": "stereo"
+      },
+      {
+        "id": 2,
+        "channels": "stereo"
+      }
+    ],
+    "nodes": [
+      {
+        "node": "player",
+        "kernel": "sample-player",
+        "stateVersion": 1,
+        "in": [],
+        "out": [
+          0
+        ],
+        "params": [
+          2
+        ],
+        "bufferSlot": "@slot:0123456789abcdef0123456789abcdef:audio"
+      },
+      {
+        "node": "gain-a",
+        "kernel": "gain",
+        "stateVersion": 1,
+        "in": [
+          {
+            "node": "player",
+            "output": 0
+          }
+        ],
+        "out": [
+          1
+        ],
+        "params": [
+          0
+        ]
+      },
+      {
+        "node": "gain-b",
+        "kernel": "gain",
+        "stateVersion": 1,
+        "in": [
+          {
+            "node": "player",
+            "output": 0
+          }
+        ],
+        "out": [
+          2
+        ],
+        "params": [
+          1
+        ]
+      }
+    ],
+    "sinks": [
+      {
+        "node": "out-a",
+        "kind": "device",
+        "buffer": 1,
+        "subgraphHash": "d4111ccd6dd8764b2b70f1e4a1dd1cd486d1c40d3e03b8496554f2e0b171d8a5"
+      },
+      {
+        "node": "out-b",
+        "kind": "record",
+        "buffer": 2,
+        "subgraphHash": "961fd969c2f856a567e7ad7ccf2ec7d1e2b757d47b87a3698e6809e9759bb417"
+      },
+      {
+        "node": "out-source",
+        "kind": "tap",
+        "buffer": 0,
+        "subgraphHash": "7b328c13065d9ab5e90f6fa61fe09ed98fbd574c91c66da81b0388f7512c1992"
+      }
+    ]
+  }
+}
