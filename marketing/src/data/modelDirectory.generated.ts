@@ -3047,7 +3047,7 @@ export const canonicalModels: CanonicalModel[] = [
 export const modelDirectory: ModelDirectoryGroup[] = [
   {
     "kind": "language",
-    "total": 223,
+    "total": 232,
     "providers": [
       {
         "provider": "replicate",
@@ -3759,6 +3759,47 @@ export const modelDirectory: ModelDirectoryGroup[] = [
         ]
       },
       {
+        "provider": "zai",
+        "models": [
+          {
+            "id": "glm-4.6",
+            "name": "GLM-4.6"
+          },
+          {
+            "id": "glm-4.7",
+            "name": "GLM-4.7"
+          },
+          {
+            "id": "glm-5",
+            "name": "GLM-5"
+          },
+          {
+            "id": "glm-5.1",
+            "name": "GLM-5.1"
+          },
+          {
+            "id": "glm-5.2",
+            "name": "GLM-5.2"
+          },
+          {
+            "id": "glm-5.3",
+            "name": "GLM-5.3"
+          },
+          {
+            "id": "glm-5.3-flash",
+            "name": "GLM-5.3-Flash"
+          },
+          {
+            "id": "glm-5.3-flashx",
+            "name": "GLM-5.3-FlashX"
+          },
+          {
+            "id": "glm-5.3-flashx-legal",
+            "name": "GLM-5.3-FlashX-Legal"
+          }
+        ]
+      },
+      {
         "provider": "codex",
         "models": [
           {
@@ -3909,7 +3950,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "image",
-    "total": 1055,
+    "total": 1056,
     "providers": [
       {
         "provider": "fal_ai",
@@ -7359,6 +7400,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "MiniMax Image-01"
           }
         ]
+      },
+      {
+        "provider": "zai",
+        "models": [
+          {
+            "id": "glm-image",
+            "name": "GLM-Image"
+          }
+        ]
       }
     ],
     "liveProviders": [
@@ -7369,7 +7419,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "video",
-    "total": 1053,
+    "total": 1054,
     "providers": [
       {
         "provider": "fal_ai",
@@ -10880,6 +10930,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
             "name": "Gemini Video (web)"
           }
         ]
+      },
+      {
+        "provider": "zai",
+        "models": [
+          {
+            "id": "cogvideox-3",
+            "name": "CogVideoX-3"
+          }
+        ]
       }
     ],
     "liveProviders": [
@@ -11730,7 +11789,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
   },
   {
     "kind": "transcription",
-    "total": 48,
+    "total": 49,
     "providers": [
       {
         "provider": "replicate",
@@ -11935,6 +11994,15 @@ export const modelDirectory: ModelDirectoryGroup[] = [
           {
             "id": "muse-voice-transcribe-1.0",
             "name": "Muse Voice Transcribe 1.0"
+          }
+        ]
+      },
+      {
+        "provider": "zai",
+        "models": [
+          {
+            "id": "glm-asr-2512",
+            "name": "GLM-ASR-2512"
           }
         ]
       }

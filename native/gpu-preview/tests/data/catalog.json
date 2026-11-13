@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "vertex": "",
+  "vertexEntryPoint": "vs",
+  "alphaConvert": { "toStraight": "none@1", "toPremultiplied": "none@1" },
+  "modules": {
+    "test.quadrants@1": {
+      "kind": "compute",
+      "io": { "inputs": {}, "output": {} },
+      "wgsl": "struct P { level: f32, alpha: f32 } @group(0) @binding(0) var<uniform> p: P; @group(0) @binding(1) var target_image: texture_storage_2d<rgba8unorm, write>; @compute @workgroup_size(8, 8) fn main(@builtin(global_invocation_id) id: vec3u) { let size = textureDimensions(target_image); if (id.x >= size.x || id.y >= size.y) { return; } let right = id.x * 2u >= size.x; let bottom = id.y * 2u >= size.y; var c = vec3f(1.0, 0.0, 0.0); if (right && !bottom) { c = vec3f(0.0, 1.0, 0.0); } if (!right && bottom) { c = vec3f(0.0, 0.0, 1.0); } if (right && bottom) { c = vec3f(1.0, 1.0, 1.0); } textureStore(target_image, vec2i(id.xy), vec4f(c * p.level * p.alpha, p.alpha)); }",
+      "entryPoint": "main",
+      "workgroupSize": [8, 8, 1],
+      "layout": [
+        { "binding": 0, "visibility": 4, "buffer": { "type": "uniform" } },
+        { "binding": 1, "visibility": 4, "storageTexture": { "access": "write-only", "format": "rgba8unorm" } }
+      ],
+      "bindings": [
+        { "name": "params", "binding": 0, "kind": "uniform" },
+        { "name": "output", "binding": 1, "kind": "storageTexture" }
+      ],
+      "uniform": { "size": 16, "fields": [ { "name": "level", "type": "f32", "offset": 0 }, { "name": "alpha", "type": "f32", "offset": 4 } ] }
+    },
+    "test.gray16@1": {
+      "kind": "compute",
+      "io": { "inputs": {}, "output": {} },
+      "wgsl": "struct P { level: f32, alpha: f32 } @group(0) @binding(0) var<uniform> p: P; @group(0) @binding(1) var target_image: texture_storage_2d<rgba16float, write>; @compute @workgroup_size(8, 8) fn main(@builtin(global_invocation_id) id: vec3u) { let size = textureDimensions(target_image); if (id.x >= size.x || id.y >= size.y) { return; } textureStore(target_image, vec2i(id.xy), vec4f(p.level, p.level, p.level, 1.0)); }",
+      "entryPoint": "main",
+      "workgroupSize": [8, 8, 1],
+      "layout": [
+        { "binding": 0, "visibility": 4, "buffer": { "type": "uniform" } },
+        { "binding": 1, "visibility": 4, "storageTexture": { "access": "write-only", "format": "rgba16float" } }
+      ],
+      "bindings": [
+        { "name": "params", "binding": 0, "kind": "uniform" },
+        { "name": "output", "binding": 1, "kind": "storageTexture" }
+      ],
+      "uniform": { "size": 16, "fields": [ { "name": "level", "type": "f32", "offset": 0 }, { "name": "alpha", "type": "f32", "offset": 4 } ] }
+    }
+  }
+}

@@ -361,6 +361,12 @@ s(
   ["serpapi", "dataforseo", "brave", "apify", "openai", "gemini"]
 );
 s(
+  "ZAI_REGION",
+  "ZAI",
+  "Z.ai API host: international (api.z.ai, the default) or china (open.bigmodel.cn). Keys are not shared between the two",
+  ["international", "china"]
+);
+s(
   "ZAI_USE_CODING_PLAN",
   "ZAI",
   "Use Z.AI coding plan endpoint instead of normal endpoint",
@@ -514,9 +520,9 @@ sec(
   "Groq API key for accessing ultra-fast LLM inference on Groq's LPU hardware. Get yours at https://console.groq.com/keys"
 );
 sec(
-  "ZHIPU_API_KEY",
+  "ZAI_API_KEY",
   "ZAI",
-  "Z.AI API key for accessing GLM models through Z.AI's OpenAI-compatible API. Get yours at https://open.bigmodel.cn/usercenter/apikeys"
+  "Z.ai API key for GLM chat, GLM-Image, CogVideoX and GLM-ASR. Get yours at https://z.ai/manage-apikey/apikey-list"
 );
 sec(
   "MISTRAL_API_KEY",

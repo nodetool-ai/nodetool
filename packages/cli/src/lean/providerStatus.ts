@@ -23,6 +23,7 @@ export const KEYED_PROVIDERS: readonly ProviderCredential[] = [
   { id: "mistral", name: "Mistral", credentials: ["MISTRAL_API_KEY"] },
   { id: "moonshot", name: "Moonshot", credentials: ["KIMI_API_KEY"] },
   { id: "minimax", name: "MiniMax", credentials: ["MINIMAX_API_KEY"] },
+  { id: "zai", name: "Z.ai", credentials: ["ZAI_API_KEY"] },
   { id: "replicate", name: "Replicate", credentials: ["REPLICATE_API_TOKEN"] },
   { id: "fal_ai", name: "fal", credentials: ["FAL_API_KEY"] },
   { id: "kie", name: "Kie", credentials: ["KIE_API_KEY"] },

@@ -2,12 +2,15 @@
 #include "audio/Mixer.h"
 #include "audio/automation/Meters.h"
 #include "model/TimelineJson.h"
+#include "nodetool/kernels.h"
 #include "preview/SceneEval.h"
 #include <QCoreApplication>
 #include <QFile>
 #include <QJsonDocument>
 #include <QtTest>
 #include <array>
+#include <cmath>
+#include <vector>
 #include <utility>
 using namespace nt::automation;
 namespace {
@@ -106,6 +109,49 @@ private slots:
         QVERIFY(plan.tracks[0].gainSource);
         // ConstantSourceNode gain sample from dsp-reference.mjs sampleParam.
         QCOMPARE(plan.tracks[0].gainSource->valueAt(5,1),0.1129462718963623);
+    }
+    // The mixer's filter and EQ inserts use the biquad design of the
+    // lib.audio nodes (native/kernels), so a filter sounds the same in both.
+    void filtersShareTheKernelDesign() {
+        auto doc = document(); auto tracks = doc["tracks"].toArray(); auto track = tracks[0].toObject();
+        track["effects"] = QJsonArray{
+            QJsonObject{{"id","f"},{"type","filter"},{"enabled",true},{"mode","highpass"},{"frequency",700},{"q",6}},
+            QJsonObject{{"id","e"},{"type","eq3"},{"enabled",true},{"lowFreq",150},{"lowGainDb",4},{"midFreq",900},
+                        {"midQ",2},{"midGainDb",-5},{"highFreq",6000},{"highGainDb",3}}};
+        tracks[0] = track; doc["tracks"] = tracks;
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline);
+        const auto plan = nt::audio::buildMixPlan(*parsed.timeline);
+        std::shared_ptr<nt::audio::BlockProcessor> filter, eq;
+        for (const auto& p : plan.tracks[0].processors) {
+            if (p->id == "f") { filter = p; }
+            if (p->id == "e") { eq = p; }
+        }
+        QVERIFY(filter && eq);
+        const double rate = 48000;
+        filter->prepare(rate); eq->prepare(rate);
+        constexpr std::size_t frames = 512;
+        std::vector<float> mixed(frames * 2);
+        for (std::size_t i = 0; i < mixed.size(); ++i) {
+            mixed[i] = static_cast<float>(0.6 * std::sin(0.031 * static_cast<double>(i * i % 977)) - 0.2 * std::cos(0.7 * static_cast<double>(i)));
+        }
+        auto expected = mixed;
+        const nt::audio::BlockContext context{rate, 0, 1000. / rate};
+        filter->process(mixed, context); eq->process(mixed, context);
+
+        const auto apply = [&](int type, double frequency, double q, double gain) {
+            double coeffs[NT_BIQUAD_COEFFS_LEN];
+            QCOMPARE(nt_biquad_design_webaudio(type, rate, frequency, q, gain, coeffs), NT_OK);
+            std::vector<double> state(NT_BIQUAD_STATE_LEN * 2);
+            nt_biquad_process(coeffs, state.data(), expected.data(), expected.data(), frames, 2);
+        };
+        apply(NT_BIQUAD_HIGHPASS, 700, 6, 0);
+        apply(NT_BIQUAD_LOWSHELF, 150, 1, 4);
+        apply(NT_BIQUAD_PEAKING, 900, 2, -5);
+        apply(NT_BIQUAD_HIGHSHELF, 6000, 1, 3);
+        // Effects.cpp may contract a multiply-add on arm64; the kernels do not.
+        double worst = 0;
+        for (std::size_t i = 0; i < mixed.size(); ++i) { worst = std::max(worst, std::abs(double(mixed[i]) - expected[i])); }
+        QVERIFY2(worst < 1e-6, qPrintable(QString::number(worst)));
     }
     void panMatchesAudioParam() {
         auto doc = document(); auto tracks = doc["tracks"].toArray(); auto track = tracks[0].toObject();

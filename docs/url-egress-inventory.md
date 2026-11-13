@@ -120,6 +120,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | useapi.net Google Flow and Dreamina result downloads | `packages/runtime/src/providers/useapi-provider.ts` | provider response |
 | vgenv MiniMax H3 result downloads | `packages/runtime/src/providers/vgenv-provider.ts` | provider response |
 | ToAPIs GPT Image and Seedance 2 result downloads | `packages/runtime/src/providers/toapis-provider.ts` | provider response |
+| Z.ai GLM-Image and CogVideoX result downloads | `packages/runtime/src/providers/zai-provider.ts` | provider response |
 | Alibaba Model Studio Wan, Qwen-Image and Qwen TTS result downloads | `packages/runtime/src/providers/alibaba-provider.ts` | provider response |
 | KIE endpoint result downloads (`downloadMedia`) | `packages/runtime/src/providers/kie-endpoint.ts` | provider response |
 | Topaz result downloads and video part uploads | `packages/runtime/src/providers/topaz-provider.ts` | provider response |

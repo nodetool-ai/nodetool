@@ -1,0 +1,165 @@
+# Native GPU preview (native/gpu-preview/): the Qt Quick item that shows
+# textures of the graph runner's wgpu device, and the device's texture
+# sharing (native/graph-runner/src/host/gpu_share.h).
+#
+# Linux builds wgpu-native with the native interop patch
+# (native/graph-runner/third_party/wgpu-native) and runs the tests on Mesa
+# lavapipe under Xvfb, once as a release build with the Vulkan validation
+# layer, and once each under AddressSanitizer with UndefinedBehaviorSanitizer
+# and under ThreadSanitizer (native/AGENTS.md rule 15).
+#
+# macOS uses the pinned wgpu-native, whose Metal getters are enough, and runs
+# the same tests on the runner's Metal device.
+#
+# Windows has no job: Direct3D 12 sharing is not implemented
+# (native/gpu-preview/README.md).
+name: Native GPU preview
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "native/gpu-preview/**"
+      - "native/graph-runner/cmake/gpu-device.cmake"
+      - "native/graph-runner/src/host/gpu_*"
+      - "native/graph-runner/third_party/wgpu-native/**"
+      - "native/graph-runner/unittests/gpu_share.cpp"
+      - ".github/workflows/native-gpu-preview.yml"
+  push:
+    branches: [main]
+    paths:
+      - "native/gpu-preview/**"
+      - "native/graph-runner/cmake/gpu-device.cmake"
+      - "native/graph-runner/src/host/gpu_*"
+      - "native/graph-runner/third_party/wgpu-native/**"
+      - "native/graph-runner/unittests/gpu_share.cpp"
+      - ".github/workflows/native-gpu-preview.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-gpu-preview-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  QT_VERSION: "6.12.0"
+
+jobs:
+  linux:
+    name: Linux Vulkan, ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Release
+            sanitize: ""
+          - name: ASan and UBSan
+            sanitize: "address,undefined"
+          - name: TSan
+            sanitize: "thread"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake ninja-build pkg-config libclang-dev \
+            mesa-vulkan-drivers libvulkan-dev vulkan-validationlayers xvfb \
+            libgl1-mesa-dev libegl1 libfontconfig1 libdbus-1-3 libxkbcommon-dev libxkbcommon-x11-0 \
+            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xkb1 libxcb-image0 \
+            libxcb-render-util0 libxcb-randr0 libxcb-xfixes0 libxcb-sync1 libxcb-shm0 libxcb-glx0 libx11-xcb1
+
+      - name: Install Qt
+        run: |
+          python -m pip install aqtinstall==3.3.0
+          python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools -O "$RUNNER_TEMP/qt"
+          echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
+
+      # The patched library depends only on the patch and the build script.
+      - name: Restore wgpu-native with native interop
+        id: wgpu-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/wgpu-interop
+          key: wgpu-interop-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('native/graph-runner/third_party/wgpu-native/**') }}
+
+      - name: Build wgpu-native with native interop
+        if: steps.wgpu-cache.outputs.cache-hit != 'true'
+        run: |
+          native/graph-runner/third_party/wgpu-native/build.sh "$RUNNER_TEMP/wgpu-interop"
+          rm -rf "$RUNNER_TEMP/wgpu-interop/src"
+
+      - name: Configure and build
+        run: |
+          cmake -S native/gpu-preview -B native/gpu-preview/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
+            -DNODETOOL_WGPU_NATIVE_DIR="$RUNNER_TEMP/wgpu-interop" \
+            -DNT_SANITIZE="${{ matrix.sanitize }}"
+          cmake --build native/gpu-preview/build --parallel 4
+
+      # The tests must share textures: a build that fell back to "none"
+      # would pass the refusal cases and prove nothing.
+      - name: Check the sharing backend
+        run: |
+          VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json \
+            native/gpu-preview/build/tests/gr_gpu_share_tests --require-sharing | tee "$RUNNER_TEMP/share.log"
+          grep -q "^sharing: Vulkan" "$RUNNER_TEMP/share.log"
+
+      - name: Test
+        run: |
+          QT_QPA_PLATFORM=xcb xvfb-run -a -s "-screen 0 1920x1080x24" \
+            ctest --test-dir native/gpu-preview/build --output-on-failure
+
+      - name: Run the demo
+        if: matrix.sanitize == ''
+        run: |
+          VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json \
+          QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan xvfb-run -a -s "-screen 0 1920x1080x24" \
+            native/gpu-preview/build/nodetool-gpu-preview-demo --size 1280x720 --frames 60 | tee "$RUNNER_TEMP/demo.json"
+          python - "$RUNNER_TEMP/demo.json" <<'PYTHON'
+          import json, sys
+          stats = json.loads(open(sys.argv[1]).read().strip().splitlines()[-1])
+          assert stats["framesPresented"] >= 60, stats
+          assert stats["gpuToCpuTransfers"] == 0 and stats["gpuToGpuCopies"] == 0, stats
+          assert stats["ownershipFailures"] == 0, stats
+          PYTHON
+
+  macos:
+    name: macOS Metal
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: brew install ninja
+
+      - name: Install Qt
+        run: |
+          python -m pip install aqtinstall==3.3.0
+          python -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools -O "$RUNNER_TEMP/qt"
+          echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/macos" >> "$GITHUB_ENV"
+
+      - name: Configure and build
+        run: |
+          cmake -S native/gpu-preview -B native/gpu-preview/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH="$QT_PREFIX"
+          cmake --build native/gpu-preview/build --parallel 4
+
+      - name: Check the sharing backend
+        run: |
+          native/gpu-preview/build/tests/gr_gpu_share_tests --require-sharing | tee "$RUNNER_TEMP/share.log"
+          grep -q "^sharing: Metal" "$RUNNER_TEMP/share.log"
+
+      - name: Test
+        run: ctest --test-dir native/gpu-preview/build --output-on-failure
