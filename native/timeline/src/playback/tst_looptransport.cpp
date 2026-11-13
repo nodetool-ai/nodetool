@@ -226,7 +226,12 @@ private slots:
         QCOMPARE(sent.loopEndMs, kLoopOut);
         const std::uint64_t seekSeq = sent.seekSeq;
 
+        // Ten times real time. The pace keeps a deadline per block, because
+        // macOS sleeps far past a 1 ms request and 50,000 such sleeps outrun
+        // the test timeout. A late block is followed by short or no sleeps.
         const auto paceUs = qEnvironmentVariableIsSet("NT_LOOP_PACE_US") ? qEnvironmentVariableIntValue("NT_LOOP_PACE_US") : 1000;
+        const auto paceStart = std::chrono::steady_clock::now();
+        std::int64_t pacedBlocks = 0;
         std::vector<float> block(kPeriod * 2);
         float last[2] = {0, 0};
         float worstStep = 0;
@@ -286,7 +291,9 @@ private slots:
             last[0] = block[kPeriod * 2 - 2];
             last[1] = block[kPeriod * 2 - 1];
             frame += kPeriod;
-            if (paceUs > 0) std::this_thread::sleep_for(std::chrono::microseconds(paceUs));
+            if (paceUs > 0) {
+                std::this_thread::sleep_until(paceStart + std::chrono::microseconds(paceUs) * ++pacedBlocks);
+            }
         }
         const AudioEngine::Stats s = engine.stats();
         engine.stop();
