@@ -10,6 +10,7 @@ import {
   storyboardShotGraphics,
   storyboardScreenplay
 } from "../src/api-schemas/storyboards.js";
+import { normalizeCameraDirection } from "../src/creative.js";
 
 /** The shape an agent sent that the persistence layer silently refused. */
 const agentScreenplay = {
@@ -636,5 +637,48 @@ describe("camera preset persistence boundary", () => {
     const camera = { movement: "slow push in", preset_ids: ["camera.dolly-in", "camera.steadicam"] };
     expect(storyboardShot.parse({ ...target, camera }).camera).toEqual(camera);
     expect(storyboardShot.safeParse({ ...target, camera: { preset_ids: ["a", "b", "c", "d"] } }).success).toBe(false);
+  });
+});
+
+describe("camera written as one sentence", () => {
+  const target = { type: "shot", id: "s1", index: 0, action: "walk", status: "planned" };
+
+  it("reads a camera string as its movement instead of failing the board", () => {
+    // Four production boards hold this shape; storyboards.get returned 500.
+    const shot = storyboardShot.parse({ ...target, camera: "Close-up pushing in rapidly" });
+    expect(shot.camera).toEqual({ movement: "Close-up pushing in rapidly" });
+  });
+
+  it("reads an empty camera string as no camera", () => {
+    const shot = storyboardShot.parse({ ...target, camera: "  " });
+    expect(shot.camera).toBeUndefined();
+  });
+
+  it("accepts a whole document whose shots carry camera strings", () => {
+    const parsed = storyboardDocument.safeParse({
+      screenplay: null,
+      shots: [{ ...target, camera: "Direct-to-camera medium close-up" }],
+      brief: "",
+      style: "",
+      aspectRatio: "16:9",
+      directorModel: null,
+      imageModel: null,
+      videoModel: null
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("still leaves a shot without a camera untouched", () => {
+    expect(storyboardShot.parse(target)).not.toHaveProperty("camera");
+  });
+});
+
+describe("normalizeCameraDirection", () => {
+  it("keeps an object, reads a sentence as movement and drops anything else", () => {
+    expect(normalizeCameraDirection({ framing: "wide" })).toEqual({ framing: "wide" });
+    expect(normalizeCameraDirection("slow push in")).toEqual({ movement: "slow push in" });
+    expect(normalizeCameraDirection(["wide"])).toBeUndefined();
+    expect(normalizeCameraDirection(42)).toBeUndefined();
+    expect(normalizeCameraDirection(null)).toBeUndefined();
   });
 });

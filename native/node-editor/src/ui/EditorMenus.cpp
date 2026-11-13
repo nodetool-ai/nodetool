@@ -174,7 +174,8 @@ const Shortcut shortcuts[] = {
  {"Align center", "Shift+H"}, {"Align middle", "Shift+E"},
  {"Distribute horizontally", "Shift+D"}, {"Stack selection", "V"}, {"Arrange grid", "G"},
  {"Select all connected", "Shift+C"}, {"Select inputs", "Shift+I"}, {"Select outputs", "Shift+O"},
- {"Add Prompt", "Shift+P"}, {"Add Text to Image", "Shift+G"}, {"Add Text to Video", "Shift+V"}, {"Add Agent", "Shift+L"}
+ {"Add Prompt", "Shift+P"}, {"Add Text to Image", "Shift+G"}, {"Add Text to Video", "Shift+V"}, {"Add Agent", "Shift+L"},
+ {"Node info", "Ctrl+I"}
 };
 
 // The web shortcut category (config/shortcuts.ts) of each native command.
@@ -496,6 +497,7 @@ bool EditorWindow::menuActionEnabled(const QString &name) const {
     }
  if (name == "Select all connected" || name == "Select inputs" || name == "Select outputs") { return count > 0; }
  if (name == "Focus node") { return count == 1; }
+ if (name == "Node info") { return count > 0; }
  if (name == "Open child") { return count == 1 && node_editor::isChildNode(document_.node(selectedIds().first())); }
  if (name == "Link selected") { return !readOnly() && count == 2; }
  if (!quickAddNodeType(name).isEmpty()) { return !readOnly() && knownNodeType(quickAddNodeType(name)); }
@@ -852,6 +854,91 @@ void EditorWindow::showFindPanel() {
     panel->raise();
     panel->setFocus();
     QMetaObject::invokeMethod(panel->rootObject(), "activate");
+}
+
+void EditorWindow::toggleNodeInfo() {
+    if (!tabOwner_) {
+        if (activeEditor_) { activeEditor_->toggleNodeInfo(); }
+        return;
+    }
+    // NodeEditor.tsx toggles the panel for the first selected node: the same
+    // node hides it, another node moves it there.
+    const auto ids = selectedIds();
+    if (ids.isEmpty()) { return; }
+    nodeInfoId_ = nodeInfoId_ == ids.first() ? QString() : ids.first();
+    syncNodeInfo();
+}
+
+void EditorWindow::closeNodeInfo() {
+    if (nodeInfoId_.isEmpty()) { return; }
+    nodeInfoId_.clear();
+    syncNodeInfo();
+    if (view_) { view_->setFocus(); }
+}
+
+void EditorWindow::syncNodeInfo() {
+    if (!nodeInfoOverlay_) { return; }
+    std::optional<QtNodes::NodeId> found;
+    for (const auto id : model_.allNodeIds()) {
+        if (!nodeInfoId_.isEmpty() && model_.resourceId(id) == nodeInfoId_) { found = id; }
+    }
+    // A deleted node closes the panel, as NodeInfoPanel.tsx does.
+    if (!found) {
+        nodeInfoId_.clear();
+        nodeInfoOverlay_->hide();
+        nodeInfo_.clear();
+        return;
+    }
+    const auto metadata = model_.metadata(*found);
+    const auto type = document_.node(nodeInfoId_)["type"].toString();
+    nodeInfo_.setNode(nodeInfoId_, metadata["title"].toString(model_.layout(*found).title),
+                      metadata["namespace"].toString(type.section('.', 0, -2)), metadata["description"].toString(),
+                      model_.runtimeState(*found)["error"].toString());
+    positionNodeInfo();
+}
+
+// NodeInfoPanel.tsx places the 320 px panel 16 px right of the node's top
+// edge, or left of the node when the right side has no room, 16 px inside the
+// canvas, and gives it at least 200 px of height.
+void EditorWindow::positionNodeInfo() {
+    if (!nodeInfoOverlay_ || nodeInfoId_.isEmpty() || !view_) { return; }
+    const QGraphicsObject *item = nullptr;
+    QSizeF size;
+    for (const auto id : model_.allNodeIds()) {
+        if (model_.resourceId(id) == nodeInfoId_) {
+            item = scene_->nodeGraphicsObject(id);
+            size = model_.layout(id).size;
+        }
+    }
+    if (!item) {
+        nodeInfoOverlay_->hide();
+        return;
+    }
+    constexpr int gap = 16;
+    constexpr int margin = 16;
+    constexpr int minimumHeight = 200;
+    const auto card = view_->mapFromScene(QRectF(item->scenePos(), size)).boundingRect().translated(view_->viewport()->pos());
+    const auto area = view_->rect();
+    const int width = nodeInfoOverlay_->width();
+    int left = card.right() + gap;
+    if (left + width + margin > area.width()) { left = card.left() - gap - width; }
+    left = std::clamp(left, margin, std::max(margin, area.width() - width - margin));
+    const int top = std::clamp(card.top(), margin, std::max(margin, area.height() - minimumHeight - margin));
+    nodeInfo_.setMaximumHeight(area.height() - top - margin);
+    nodeInfoOverlay_->move(left, top);
+    nodeInfoOverlay_->show();
+    nodeInfoOverlay_->raise();
+}
+
+void EditorWindow::openNodeMenuAt(const QStringList &path, const QString &term) {
+    if (!tabOwner_) {
+        if (activeEditor_) { activeEditor_->openNodeMenuAt(path, term); }
+        return;
+    }
+    openNodeMenu();
+    if (nodeMenu_ && nodeMenu_->rootObject()) {
+        QMetaObject::invokeMethod(nodeMenu_->rootObject(), "showPath", Q_ARG(QVariant, QVariant(path)), Q_ARG(QVariant, QVariant(term)));
+    }
 }
 
 void EditorWindow::chatAboutSelection() {

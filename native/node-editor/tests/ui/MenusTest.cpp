@@ -746,6 +746,76 @@ private slots:
         QTRY_VERIFY(!panel->isVisible());
     }
 
+    // NodeInfoPanel.tsx: Ctrl+I toggles the panel beside the first selected node.
+    void nodeInfoTogglesBesideTheSelectedNode() {
+        auto types = catalog();
+        types.append(QJsonObject{{"node_type", "test.info.Described"}, {"title", "Described"}, {"namespace", "test.info"},
+                                 {"description", "Does a thing.\nalpha, beta\nUse cases:\n- First"},
+                                 {"properties", QJsonArray{}}, {"outputs", QJsonArray{picker_fixture::slot("output", picker_fixture::type("str"))}}});
+        EditorWindow window;
+        window.setCatalog(types);
+        QVERIFY(window.document()->load(QJsonObject{{"id", "info"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+            node("described", "test.info.Described", 0, 0), node("sink", "Sink", 900, 0)}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1400, 1000);
+        window.show();
+        window.action("Reset zoom");
+        QTest::qWait(60);
+        auto *overlay = window.findChild<QQuickWidget *>("node-info-overlay");
+        QVERIFY(overlay && overlay->rootObject());
+        QVERIFY(!overlay->isVisible());
+        auto *info = qvariant_cast<QObject *>(overlay->rootObject()->property("info"));
+        QVERIFY(info);
+        const auto toggle = [&] {
+            view(window)->setFocus();
+            QTest::keyClick(view(window)->viewport(), Qt::Key_I, Qt::ControlModifier);
+        };
+        // Nothing selected: nothing to show.
+        toggle();
+        QVERIFY(!overlay->isVisible());
+        window.selectNode("described");
+        toggle();
+        QTRY_VERIFY(overlay->isVisible());
+        QCOMPARE(info->property("nodeId").toString(), QString("described"));
+        QCOMPARE(info->property("title").toString(), QString("Described"));
+        QCOMPARE(info->property("nodeNamespace").toString(), QString("test.info"));
+        QCOMPARE(info->property("description").toString(), QString("Does a thing."));
+        QCOMPARE(info->property("tags").toStringList(), (QStringList{"alpha", "beta"}));
+        // The panel sits beside the card, 16 px from it, right of it when the
+        // canvas has room there and left of it otherwise.
+        auto *item = window.scene()->nodeGraphicsObject(nodeId(window, "described"));
+        auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+        const auto size = model.layout(nodeId(window, "described")).size;
+        const auto card = view(window)->mapFromScene(QRectF(item->scenePos(), size)).boundingRect().translated(view(window)->viewport()->pos());
+        const bool right = card.right() + 16 + overlay->width() + 16 <= view(window)->width();
+        QVERIFY2(right ? std::abs(overlay->x() - card.right() - 16) <= 2 : std::abs(overlay->geometry().right() + 1 + 16 - card.left()) <= 2,
+                 qPrintable(QString("panel %1-%2, card %3-%4").arg(overlay->x()).arg(overlay->geometry().right()).arg(card.left()).arg(card.right())));
+        QVERIFY(std::abs(overlay->y() - std::max(16, card.top())) <= 2);
+        // Another selected node moves the panel there. The same node hides it.
+        window.selectNode("sink");
+        toggle();
+        QTRY_COMPARE(info->property("nodeId").toString(), QString("sink"));
+        toggle();
+        QTRY_VERIFY(!overlay->isVisible());
+        // A tag opens the node menu searching for it.
+        window.selectNode("described");
+        toggle();
+        QTRY_VERIFY(overlay->isVisible());
+        QMetaObject::invokeMethod(info, "searchTag", Q_ARG(QString, "beta"));
+        auto *menu = window.findChild<QQuickWidget *>("node-menu");
+        QVERIFY(menu);
+        QTRY_VERIFY(menu->isVisible());
+        QCOMPARE(menu->rootObject()->property("query").toString(), QString("beta"));
+        QMetaObject::invokeMethod(info, "showNamespace");
+        QTRY_COMPARE(menu->rootObject()->property("selectedPathString").toString(), QString("test.info"));
+        QCOMPARE(menu->rootObject()->property("query").toString(), QString());
+        window.closeNodeMenu();
+        // Deleting the node closes the panel.
+        window.selectNode("described");
+        window.action("Delete");
+        QTRY_VERIFY(!overlay->isVisible());
+        QVERIFY(info->property("nodeId").toString().isEmpty());
+    }
+
     // FindInWorkflowDialog.tsx and useFindInWorkflow.ts
     void findNextPreviousAndZoom() {
         EditorWindow window;

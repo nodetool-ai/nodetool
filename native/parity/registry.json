@@ -74,7 +74,7 @@
       "native": "Delete"
     },
     "resetDefault": {
-      "missing": "No native binding"
+      "native": "removeValue()"
     },
     "groupSelected": {
       "native": "Group selection"
@@ -149,7 +149,7 @@
       "native": "Delete"
     },
     "nodeInfo": {
-      "missing": "No native binding"
+      "native": "Node info"
     },
     "openNodeMenu": {
       "native": "Add node"
@@ -185,7 +185,7 @@
       "native": "newTab()"
     },
     "closeWorkflow": {
-      "native": "closeTab(activeTab()"
+      "native": "closeTab(activeTab())"
     },
     "prevTab": {
       "native": "selectAdjacentTab(-1)"
@@ -391,8 +391,7 @@
         "native/node-editor/qml/CompatibleNodePicker.qml",
         "native/node-editor/src/graph/CompatibleNodePicker.cpp"
       ],
-      "status": "partial",
-      "note": "Picker works. The pinned Preview, Reroute, Save, Constant, Input, Prompt and AI shortcuts are missing.",
+      "note": "The AI rows create the seeded Code node and open the chat with a draft that names it. The Code assistant dialog is missing natively.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/ConnectionMatchMenu.tsx": {
@@ -421,10 +420,10 @@
     },
     "web/src/components/context_menus/InputContextMenu.tsx": {
       "native": [
-        "native/node-editor/qml/CompatibleNodePicker.qml"
+        "native/node-editor/qml/CompatibleNodePicker.qml",
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp"
       ],
-      "status": "partial",
-      "note": "Opens the compatible-node picker. Same shortcut gaps as ConnectableNodes.",
+      "note": "Constant, Input, Prompt and Create value with AI rows. The AI row opens the chat instead of the Code assistant dialog.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/NodeContextMenu.tsx": {
@@ -435,10 +434,10 @@
     },
     "web/src/components/context_menus/OutputContextMenu.tsx": {
       "native": [
-        "native/node-editor/qml/CompatibleNodePicker.qml"
+        "native/node-editor/qml/CompatibleNodePicker.qml",
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp"
       ],
-      "status": "partial",
-      "note": "Opens the compatible-node picker and deletes dynamic outputs. Same shortcut gaps as ConnectableNodes.",
+      "note": "Preview, Output, Reroute, Save, Transform this output and the quick actions, and deletes dynamic outputs. The AI row opens the chat instead of the Code assistant dialog.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/PaneContextMenu.tsx": {
@@ -536,7 +535,10 @@
       "inventory": "F42"
     },
     "web/src/components/node_editor/NodeInfoPanel.tsx": {
-      "missing": "No native counterpart. Its Focus button lives in the inspector Help tab.",
+      "native": [
+        "native/node-editor/qml/NodeInfoPanel.qml",
+        "native/node-editor/src/interfaces/NodeInfo.cpp"
+      ],
       "inventory": "F40"
     },
     "web/src/components/node_editor/RuntimeInstallDialog.tsx": {
@@ -1571,14 +1573,18 @@
     },
     "web/src/components/node/output/Actions.tsx": {
       "native": [
+        "native/node-editor/qml/RichOutput.qml",
         "native/node-editor/qml/MediaPreview.qml"
       ],
-      "status": "partial",
-      "note": "See OutputQuickActionButtons.",
+      "note": "Copy on hover over text, JSON and value outputs. Preview cards keep their own Copy.",
       "inventory": "F30"
     },
     "web/src/components/node/output/AgentStatusRenderer.tsx": {
-      "missing": "Agent status output. Not found natively."
+      "native": [
+        "native/node-editor/qml/RichOutput.qml",
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "note": "Accent bar, icon, kind label and message, colored by kind and severity."
     },
     "web/src/components/node/output/ArrayRenderer.tsx": {
       "native": [
@@ -1590,8 +1596,7 @@
       "native": [
         "native/node-editor/qml/MediaGallery.qml"
       ],
-      "status": "partial",
-      "note": "Grid hover actions, multi-select and batch download are open.",
+      "note": "Hover Copy, Download and Open, Select mode with Compare and Clear. Native adds Download of the selection into a folder.",
       "inventory": "F30"
     },
     "web/src/components/node/output/BooleanRenderer.tsx": {
@@ -1632,10 +1637,11 @@
     },
     "web/src/components/node/output/JSONRenderer.tsx": {
       "native": [
-        "native/node-editor/qml/ObjectOutput.qml"
+        "native/node-editor/qml/RichOutput.qml",
+        "native/node-editor/qml/CodeSyntax.qml"
       ],
       "status": "partial",
-      "note": "Structured fields render. Copy and expand actions not compared.",
+      "note": "Copy and token colors. Keys and string values share one color, where Prism colors them apart.",
       "inventory": "F31"
     },
     "web/src/components/node/output/markdown.tsx": {
@@ -1651,20 +1657,10 @@
       "inventory": "F31"
     },
     "web/src/components/node/output/PlotlyChart.tsx": {
-      "native": [
-        "native/node-editor/qml/RichOutput.qml"
-      ],
-      "status": "partial",
-      "note": "Native shows a configuration and data fallback, not a chart.",
-      "inventory": "F31"
+      "accepted": "Plotly charts are deprecated (Matthias, 2026-11-13). Native keeps the configuration and data fallback."
     },
     "web/src/components/node/output/PlotlyRenderer.tsx": {
-      "native": [
-        "native/node-editor/qml/RichOutput.qml"
-      ],
-      "status": "partial",
-      "note": "Native shows a configuration and data fallback, not a chart.",
-      "inventory": "F31"
+      "accepted": "Plotly charts are deprecated (Matthias, 2026-11-13). Native keeps the configuration and data fallback."
     },
     "web/src/components/node/output/RealtimeAudioOutput.tsx": {
       "native": [

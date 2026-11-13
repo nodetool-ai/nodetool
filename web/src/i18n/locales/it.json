@@ -3700,6 +3700,7 @@
         "shotCount_other": "{{count}} scatti",
         "modelLabel": "Modello",
         "modelPlaceholder": "Modello di sceneggiatura",
+        "noModels": "Nessun modello linguistico disponibile. Aggiungi una chiave del provider in Impostazioni, sotto Modelli e provider.",
         "shotsLabel": "Scatti",
         "title": "Scegli il tuo genere",
         "description": "Tono, ritmo e inquadratura seguono la tua scelta. Puoi cambiarlo più tardi.",

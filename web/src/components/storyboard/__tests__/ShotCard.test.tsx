@@ -327,6 +327,16 @@ describe("ShotCard", () => {
     act(() => useStoryboardGenerationStore.setState({ shotJobs: {} }));
   });
 
+  it("shows the reason saved on the shot when the job state is gone", () => {
+    // A reload drops the job state; the board document still has the reason.
+    renderCard(
+      makeShot({ status: "failed", failure_reason: "No video model chosen" })
+    );
+    expect(screen.getByTestId("shot-render-error")).toHaveTextContent(
+      "No video model chosen"
+    );
+  });
+
   it("falls back to a generic reason when the job state is gone", () => {
     renderCard(makeShot({ status: "failed" }));
     expect(screen.getByTestId("shot-render-error")).toHaveTextContent(

@@ -22,6 +22,7 @@ import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import { useInStudio } from "../../../studio/StudioContext";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useDefaultDirectorModel } from "../../../hooks/storyboard/useDefaultDirectorModel";
+import { useLanguageModelsByProvider } from "../../../hooks/useModelsByProvider";
 import type { LanguageModelValue } from "../../../stores/ApiTypes";
 import { SetupFooterField } from "../SetupFooterField";
 import { OptionCardGrid } from "../OptionCardGrid";
@@ -110,15 +111,26 @@ const ScreenplayModelField: React.FC<{
     },
     [boardId, readOnly, setDirectorModel]
   );
+  // An account with no reachable language model cannot direct at all. Say
+  // so where the model would be, before the creator writes a brief, instead
+  // of letting the first run fail on "Pick a model before directing."
+  const { models, isLoading } = useLanguageModelsByProvider();
+  const noModels = !directorModel?.id && !isLoading && models.length === 0;
   return (
     <SetupFooterField label={t("pass3_10.storyboard.genre.modelLabel")}>
-      <LanguageModelSelect
-        value={directorModel?.id ?? ""}
-        provider={directorModel?.provider}
-        placeholder={t("pass3_10.storyboard.genre.modelPlaceholder")}
-        onChange={handleChange}
-        disabled={readOnly}
-      />
+      {noModels ? (
+        <Text size="small" color="error" data-testid="no-screenplay-model">
+          {t("pass3_10.storyboard.genre.noModels")}
+        </Text>
+      ) : (
+        <LanguageModelSelect
+          value={directorModel?.id ?? ""}
+          provider={directorModel?.provider}
+          placeholder={t("pass3_10.storyboard.genre.modelPlaceholder")}
+          onChange={handleChange}
+          disabled={readOnly}
+        />
+      )}
     </SetupFooterField>
   );
 };

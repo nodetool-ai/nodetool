@@ -87,6 +87,7 @@ Item {
                             width: parent.width - Ui.Metrics.sm * 2
                             modelData: root.richEntry
                             resolver: root.resolver
+                            showCopy: !root.previewActions
                         }
                     }
                 }
