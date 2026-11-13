@@ -366,10 +366,30 @@ shared-device operation, close issues or change PR merge ordering.
 | M0 hardware evidence and R1/R2 | [M0 dependencies](#unverified-m0-dependencies) | Mac/device measurements, calibrated physical recording and decisions specified by WP01–WP04 |
 | WP09 completion/merge before compiler integration qualification | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400), [PR #7471](https://github.com/nodetool-ai/nodetool/pull/7471) | Required verification and merge ordering complete, then compiler fixtures are reconciled with the merged contracts |
 
-## Next independent implementation
+## WP16 initial compiler slice
 
-Proceed with WP16's pure graph-to-IR compiler and snapshot fixtures using the
-checked-in schema and loader. The final row above records the dependency-order
-deferral while WP09 remains open. Node descriptors, runner/editor integration
-and live-device behavior stay outside that initial compiler scope. M1 and the
-unfinished issues remain open.
+The [pure compiler package](../../packages/realtime-compiler/README.md) now
+lowers one render sink, host-supplied shader/control descriptors, render-domain
+state and explicitly typed batch texture boundaries. It bundles the canonical
+schema asset. A stored snapshot covers a damper feeding a shader chain.
+Compilation preserves graph identities and produces deterministic plans across
+node/edge permutations. Boundary slots preserve full graph IDs.
+
+Targeted compiler checks cover schema validation, diagnostics, stable identities,
+input ownership and a large iterative traversal. The compiled fixture loads and
+renders through Windows Release and ASan executables against independent pixel values.
+Invalid register IR rejects before output. Registry coverage selects these checks
+for compiler and canonical-schema changes. CI runs the compiler tests and native
+fixture in the offline Release and sanitizer jobs. Those new CI results remain
+pending until this revision runs.
+
+The compiler tests and selected harness-registry tests pass. Package builds,
+compiler typechecking, scoped lint, packed imports, browser bundling and the gate
+dry run pass. Broad local checks were deferred under the targeted-check policy.
+
+WP16 remains open. DSP/audio lowering, parameter slots, structural state keys,
+expression folding, conversion insertion, delayed feedback, batch graph rewriting
+and cross-domain stateful handoffs remain unimplemented. Product descriptors,
+runner/editor integration and live-device behavior also remain outside this slice.
+The dependency-order deferral above still applies while WP09 remains open. M1
+and unfinished issues remain open.

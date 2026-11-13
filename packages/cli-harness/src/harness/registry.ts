@@ -1392,6 +1392,15 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "native/realtime/spike/browser/README.md"
   },
   {
+    id: "realtime-compiler",
+    title: "Pure realtime graph compiler and IR snapshots",
+    command: "npm run test --workspace=packages/realtime-compiler",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "packages/realtime-compiler/README.md",
+    selfcheck: { command: "npm run test --workspace=packages/realtime-compiler", cost: "cheap" }
+  },
+  {
     id: "realtime-audio-worklet-spike",
     title: "Realtime native and AudioWorklet offline parity spike",
     command:
@@ -2641,6 +2650,12 @@ export const SURFACES: SurfaceEntry[] = [
       "native/realtime/cmake/", "native/realtime/CMakeLists.txt", "native/realtime/CMakePresets.json",
       "native/graph-runner/src/main.cpp", "native/graph-runner/CMakeLists.txt",
       "native/graph-runner/guest/host/gpu-catalog.mjs", ".github/workflows/native-realtime.yml"]
+  },
+  {
+    id: "realtime-compiler",
+    title: "Realtime graph-to-IR compiler",
+    harnesses: ["realtime-compiler"],
+    paths: ["packages/realtime-compiler/", "native/realtime/schema/"]
   },
   {
     id: "native-graph-runner",

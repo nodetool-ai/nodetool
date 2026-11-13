@@ -419,6 +419,16 @@ describe("harness gate", () => {
       .toBe("node scripts/check-native-graph-runner.mjs");
   });
 
+  it.each([
+    "packages/realtime-compiler/src/compileRealtimeGraph.ts",
+    "native/realtime/schema/plan-v1.schema.json"
+  ])("selects the compiler schema and snapshot checks for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.unmappedFiles).toEqual([]);
+    expect(plan.checks.find((entry) => entry.harnessId === "realtime-compiler"))
+      .toMatchObject({ command: "npm run test --workspace=packages/realtime-compiler", cost: "cheap" });
+  });
+
   it("maps every browser comparison source to its manual harness", () => {
     const directory = "native/realtime/spike/browser";
     const files = readdirSync(join(repoRoot, directory))
