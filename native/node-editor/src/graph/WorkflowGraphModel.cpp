@@ -1573,7 +1573,8 @@ QRectF WorkflowGraphModel::inlineFieldRect(NodeId id, const QString &name) const
     // An action button names its property but is not that property's editor.
     if (row.propertyName != name || name.isEmpty() || row.kind == NodeRowKind::Action) { continue; }
     // Bespoke controls carry their bounds. Sliders, mode switches and drop zones take pointer input on the canvas.
-    if (row.kind == NodeRowKind::Slider || row.kind == NodeRowKind::Segmented || row.kind == NodeRowKind::DropZone) { return {}; }
+    if (row.kind == NodeRowKind::Slider || row.kind == NodeRowKind::Segmented || row.kind == NodeRowKind::DropZone
+        || row.kind == NodeRowKind::Knob || row.kind == NodeRowKind::Waveform) { return {}; }
     if (!row.rect.isEmpty()) { return row.rect; }
     if (row.kind == NodeRowKind::Field || row.kind == NodeRowKind::Multiline) { return QRectF(inset, row.fieldY, card.size.width() - 2 * inset, row.height); }
     if (row.kind == NodeRowKind::Number) { return QRectF(card.size.width() / 2.0, row.y, card.size.width() / 2.0 - inset, node_metrics::rowHeight); }

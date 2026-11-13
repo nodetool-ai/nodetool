@@ -1040,23 +1040,43 @@
       "missing": "Code node Save to My Nodes. Not found in native sources."
     },
     "web/src/components/node_types/synth/AdsrPreview.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp"
+      ],
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/AudioOutBody.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp"
+      ],
+      "status": "partial",
+      "note": "Label strip, chunk jack and idle hint match. The live player is the shared canvas audio playback, not the web transport and visualizer on the faceplate.",
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/SynthKnob.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Drag, Shift fine drag and double-click reset match. Knobs take no keyboard focus, so arrow, Home and End keys do nothing.",
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/SynthModuleBody.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp",
+        "native/node-editor/resources/synth/modules.json"
+      ],
+      "status": "partial",
+      "note": "Faceplate, jacks, toggles and knobs match. A knob drag schedules the instant rerun instead of pushing values into the running job.",
       "inventory": "W4"
     },
     "web/src/components/node_types/synth/WaveformSelector.tsx": {
-      "missing": "Synth module body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/SynthModules.cpp"
+      ],
+      "status": "partial",
+      "note": "Glyphs and selection match. The buttons show no hover fill or tooltip.",
       "inventory": "W4"
     },
     "web/src/components/node/AddDynamicOutputButton.tsx": {

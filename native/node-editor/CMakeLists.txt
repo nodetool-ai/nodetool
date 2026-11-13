@@ -95,6 +95,7 @@ add_library(node_editor_core STATIC
  src/graph/NodeLayout.cpp src/graph/NodeLayout.h
  src/graph/CardBodies.cpp src/graph/CardBodies.h src/graph/ImageSizePresets.h
  src/graph/CardBodyPainter.cpp src/graph/CardBodyPainter.h
+ src/graph/SynthModules.cpp src/graph/SynthModules.h
  src/graph/EditorScene.cpp src/graph/EditorScene.h
  src/graph/LineageLayer.cpp src/graph/LineageLayer.h
  src/graph/InlinePropertyPresenter.cpp src/graph/InlinePropertyPresenter.h
@@ -559,6 +560,7 @@ endif()
 
 qt_add_resources(node_editor_core code_parser PREFIX /editor/code BASE resources/code FILES resources/code/acorn.js resources/code/inference.js resources/code/snippets.json)
 qt_add_resources(node_editor_core chat_tool_manifest PREFIX /editor/chat BASE resources/chat FILES resources/chat/tool-manifest.json)
+qt_add_resources(node_editor_core synth_modules PREFIX /editor/synth BASE resources/synth FILES resources/synth/modules.json)
 
 if(BUILD_TESTING)
  qt_add_executable(node_editor_versions_tests tests/server/WorkflowVersionsTests.cpp)

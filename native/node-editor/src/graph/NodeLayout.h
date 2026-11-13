@@ -193,13 +193,15 @@ inline constexpr int fontValue = 11;
 // Composer, Slider, Segmented, Lock, ModelChip, Action and DropZone rows belong
 // to the bespoke bodies. Their controls sit in NodeRow::rect.
 enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Preview,
-                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize };
+                         Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize,
+                         Knob, Waveform, Envelope, Caption };
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
-                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste };
+                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste,
+                      SynthModule, AudioOut };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.
@@ -261,6 +263,11 @@ struct NodeRow {
   int textSize = 0;
   // A bipolar slider fills from zero and signs positive values.
   bool bipolar = false;
+  // A synth knob sweeps its range on a log scale and formats its value in unit
+  // ("hz", "s", "ms", "db", "x" or none). accent names the module's palette key.
+  bool logScale = false;
+  QString unit;
+  QString accent;
   // A card warning band (ApiKeyValidation.tsx, InputNodeNameWarning.tsx): a
   // centered uppercase caption in warning ink on a faint warning fill. An
   // Action row with it draws the filled warning button.

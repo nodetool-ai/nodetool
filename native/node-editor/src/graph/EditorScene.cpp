@@ -3,6 +3,7 @@
 #include "WorkflowGraphModel.h"
 #include "CardBodyPainter.h"
 #include "CardBodies.h"
+#include "SynthModules.h"
 #include "document/ConnectionTypes.h"
 #include <QClipboard>
 #include <QGuiApplication>
@@ -1244,6 +1245,10 @@ void EditorScene::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
   emit canvasContextMenuRequested({}, event->screenPos()); event->accept();
 }
 void EditorScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) {
+  if (!model_.readOnly() && event->button() == Qt::LeftButton && resetKnob(event->scenePos())) {
+    event->accept();
+    return;
+  }
   if (!model_.readOnly() && event->button() == Qt::LeftButton) {
     for (auto *item:items(event->scenePos(),Qt::IntersectsItemShape,Qt::DescendingOrder)) {
       auto *node=qgraphicsitem_cast<NodeGraphicsObject *>(item);
@@ -1569,7 +1574,13 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             }
             emit nodeSelected(id);
         };
-        if (row.kind == NodeRowKind::Segmented) {
+        if (row.kind == NodeRowKind::Segmented && row.action == QStringLiteral("toggleBool")) {
+            // A synth faceplate's on/off toggle flips its boolean.
+            select();
+            if (!row.checked && model_.commit) { model_.commit(model_.propertyCommand(id, row.propertyName, row.selected < 0)); }
+            return true;
+        }
+        if (row.kind == NodeRowKind::Segmented || row.kind == NodeRowKind::Waveform) {
             select();
             for (int i = 0; i < row.parts.size() && i < row.optionValues.size(); ++i) {
                 if (!row.parts[i].contains(local) || i == row.selected) { continue; }
@@ -1665,6 +1676,18 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             }
             return true;
         }
+        if (row.kind == NodeRowKind::Knob) {
+            if (!knobFace(row).contains(local)) { continue; }
+            select();
+            if (row.checked) { return true; }
+            sliderNode_ = id;
+            sliderProperty_ = row.propertyName;
+            sliderOrigin_ = row.number;
+            sliderValue_ = row.number;
+            knobDrag_ = true;
+            knobStartY_ = local.y();
+            return true;
+        }
         if (row.kind == NodeRowKind::Slider) {
             select();
             if (row.checked) { return true; }
@@ -1679,11 +1702,37 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
     }
     return false;
 }
+bool EditorScene::resetKnob(const QPointF &scenePosition) {
+    // SynthKnob's double-click puts the knob back to its default in one step.
+    for (auto *item : items(scenePosition, Qt::IntersectsItemShape, Qt::DescendingOrder)) {
+        auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
+        if (!node) { continue; }
+        const auto id = node->nodeId();
+        const auto local = node->mapFromScene(scenePosition);
+        for (const auto &row : model_.layout(id).rows) {
+            if (row.kind != NodeRowKind::Knob || row.checked || !knobFace(row).contains(local)) { continue; }
+            if (row.number != row.defaultNumber && model_.commit) {
+                model_.commit(model_.propertyCommand(id, row.propertyName, row.defaultNumber));
+            }
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
 void EditorScene::moveSlider(const QPointF &scenePosition) {
     auto *item = nodeGraphicsObject(sliderNode_);
     if (!item) { finishSlider(false); return; }
     for (const auto &row : model_.layout(sliderNode_).rows) {
-        if (row.kind == NodeRowKind::Slider && row.propertyName == sliderProperty_) {
+        if (knobDrag_ && row.kind == NodeRowKind::Knob && row.propertyName == sliderProperty_) {
+            const auto value = knobDragValue(row, sliderOrigin_, knobStartY_, item->mapFromScene(scenePosition).y(), knobFine_);
+            if (value == sliderValue_) { return; }
+            sliderValue_ = value;
+            item->update();
+            emit sliderDraftChanged(sliderNode_, sliderProperty_, value);
+            return;
+        }
+        if (!knobDrag_ && row.kind == NodeRowKind::Slider && row.propertyName == sliderProperty_) {
             const auto value = sliderValueAt(row, item->mapFromScene(scenePosition).x());
             if (value == sliderValue_) { return; }
             sliderValue_ = value;
@@ -1699,6 +1748,7 @@ void EditorScene::finishSlider(bool commit) {
     const auto value = sliderValue_;
     sliderNode_ = InvalidNodeId;
     sliderProperty_.clear();
+    knobDrag_ = false;
     if (auto *item = nodeGraphicsObject(id)) { item->update(); }
     // One drag commits one value, so a single undo step reverts it.
     if (commit && model_.nodeExists(id) && value != sliderOrigin_ && model_.commit) {
@@ -1720,6 +1770,7 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
         repaintCards();
     }
     if (sliderNode_ != InvalidNodeId) {
+        knobFine_ = event->modifiers().testFlag(Qt::ShiftModifier);
         moveSlider(event->scenePos());
         event->accept();
         return;
@@ -1785,6 +1836,7 @@ void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
         repaintCards();
     }
     if (sliderNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
+        knobFine_ = event->modifiers().testFlag(Qt::ShiftModifier);
         moveSlider(event->scenePos());
         finishSlider(true);
         inlinePress_ = false;
