@@ -1450,6 +1450,28 @@ Level 1 needs fixed inputs:
 The benchmark of section 3.4 shows level 3 for one biquad chain and one mix on
 one input, and nothing more.
 
+### 15.2 Provisional M1 progress gate
+
+The user authorizes provisional implementation to advance with explicitly
+tracked deferrals. P1 progress uses WP09's scoped exit evidence: stored IR loader
+validation, repeated offline output, frame references, offline realtime-rule
+checks, stateful control and retention. The offline CLI and registered
+verification entry point must exercise the fixtures. WP10 adds the Wasm render
+build, native/browser frame comparisons and the recorded Q8 decision.
+
+Graph-to-IR snapshots belong to WP16. Synchronized parameter-change evidence
+belongs to WP13. Stall, swap-state and browser audio-parity evidence remain
+with their later work packages. M0 measurements, driver-allocation audits and
+supported live preparation also remain required for their respective claims.
+Track missing work, owning issues and completion conditions in the
+[deferred acceptance ledger](../../native/realtime/M1_STATUS.md#deferred-acceptance-work).
+
+Passing this scoped gate permits independent implementation to proceed.
+Unfinished requirements, issues and milestone qualification remain open.
+Evidence from a private-device offline run cannot qualify live/shared-device
+operation or replace physical measurements. Dependency-order deferrals follow
+the [implementation plan](graph-runner-realtime-issues.md#provisional-progress-and-deferred-work).
+
 ## 16. Delivery plan
 
 The [implementation plan](graph-runner-realtime-issues.md) splits these phases
@@ -1458,7 +1480,7 @@ into work packages, one GitHub issue each, with one milestone for each phase.
 | Phase | Work | Exit evidence |
 |---|---|---|
 | P0 | A spike outside the product on macOS. One shader chain on a wgpu surface in a Qt container window. One audio chain on the buffered driver. A synced param and one plan swap each second, with state that follows the node. A batch GPU workload on the shared device. One built-in kernel as WebAssembly in an AudioWorklet. A deliberate worker stall | Recorded frame interval statistics. The audio measures of section 13 for each load profile. The offset between sound and picture for a synced change, from a camera and a microphone. Frame misses with the gate, without it and with a second device. Pipeline creation times. Equal bytes from the native and the browser kernel |
-| P1 | `native/realtime` core, headless: IR loader, control executor, render executor, audio executor, first kernels, offline driver, CLI. A `wasm32` build of the render executor | Section 15 tests pass, except stall, swap state and audio parity. Q8 is decided |
+| P1 | `native/realtime` core, headless: IR loader, control executor, render executor, audio executor, first kernels, offline driver, CLI. A `wasm32` build of the render executor | The [provisional progress gate](#152-provisional-m1-progress-gate) passes. Deferred qualification remains open |
 | P2 | `audio-io` extraction, buffered driver, surface presenter, submit gate, clocks, params with sync policies | Stall test passes. `live bench` meets section 13 on the reference machine |
 | P3 | Compiler, live descriptors for the catalog nodes and the audio nodes, slots, slot-write node, editor picture and transport | The example of section 1 runs in the editor. The swap state test passes |
 | P4 | Custom shader node, analysis taps, feedback nodes | A tap fixture and a feedback fixture pass the frame goldens |
@@ -1466,8 +1488,10 @@ into work packages, one GitHub issue each, with one milestone for each phase.
 | P6 | Encoded export, capture sinks, taps into batch regions, session log | An export of a fixture plays in sync. An export from a session log repeats the session |
 | P7 | Kernels that arrive as data, in isolated mode | The loader tests of the memory contract pass. A kernel with an endless loop gives late blocks and no underrun, on the desktop and in a browser |
 
-P0 decides R1 and R2 before P1 starts. It also replaces the targets of D7h and
-section 13 with measured values. The built-in kernels and the WGSL path
+P0 qualification requires R1 and R2 decisions and measured replacements for the
+targets of D7h and section 13. Provisional implementation can advance under
+[section 15.2](#152-provisional-m1-progress-gate) while those requirements remain
+open. The built-in kernels and the WGSL path
 deliver phases P1 to P6 without the kernel contracts of section 10.6.
 
 ## 17. Failure handling
