@@ -197,6 +197,8 @@ signals:
   void inlineEditRequested(QtNodes::NodeId id, const QString &name);
   // A document select's open button: the document kind and the chosen id.
   void documentOpenRequested(const QString &kind, const QString &id);
+  // A card's Connect provider button, naming the missing secret.
+  void providerConnectRequested(const QString &secretKey);
   // Opens the property's inline editor expanded, as Constant String's Open editor.
   void inlineExpandRequested(QtNodes::NodeId id, const QString &name);
   // A card slider drag moved to a value it has not committed yet.

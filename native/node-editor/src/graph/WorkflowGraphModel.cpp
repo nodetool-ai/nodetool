@@ -2,6 +2,7 @@
 #include "WorkflowGraphModel.h"
 #include "CardBodies.h"
 #include "CardMedia.h"
+#include "CatalogCategories.h"
 #include "document/ChildPorts.h"
 #include "document/ConnectionTypes.h"
 #include "properties/PropertyFields.h"
@@ -213,6 +214,16 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
   const auto graphVariables = graphVariableNames(rawNodes);
   const bool variablesChanged = graphVariables != graphVariables_;
   graphVariables_ = graphVariables;
+  QHash<QString, int> inputNames;
+  for (const auto &value : rawNodes) {
+    const auto node = value.toObject();
+    if (node["type"].toString().startsWith(QStringLiteral("nodetool.input."))) {
+      ++inputNames[node["data"].toObject()["name"].toString()];
+    }
+  }
+  // Renaming one input can add or clear the warning on every other input.
+  const bool inputNamesChanged = inputNames != inputNames_;
+  inputNames_ = inputNames;
   if (reset) {
     inputs_.clear();
     outputs_.clear();
@@ -236,7 +247,8 @@ void WorkflowGraphModel::project(const QJsonObject &snapshot,
     const auto resource = it.value()["id"].toString();
     // A renamed Set Variable node changes the cards that offer its name.
     if (!samePresentation(*previous, it.value()) || incident_.value(resource) != incident.value(resource)
-        || (variablesChanged && readsGraphVariables(cardBodyFor(it.value()["type"].toString(), {})))) {
+        || (variablesChanged && readsGraphVariables(cardBodyFor(it.value()["type"].toString(), {})))
+        || (inputNamesChanged && it.value()["type"].toString().startsWith(QStringLiteral("nodetool.input.")))) {
       updated.append(it.key());
     }
   }
@@ -425,6 +437,19 @@ void WorkflowGraphModel::setCardMedia(const QString &nodeId, const QString &prop
 void WorkflowGraphModel::clearCardMedia() {
   cardMedia_.clear();
   for (auto it = ids_.cbegin(); it != ids_.cend(); ++it) { layouts_.remove(*it); emit nodeUpdated(*it); }
+}
+void WorkflowGraphModel::setConfiguredSecrets(const QStringList &keys, bool known) {
+  const QSet<QString> configured(keys.cbegin(), keys.cend());
+  if (configured == configuredSecrets_ && known == secretsKnown_) { return; }
+  configuredSecrets_ = configured;
+  secretsKnown_ = known;
+  for (auto it = ids_.cbegin(); it != ids_.cend(); ++it) {
+    const auto meta = metadata(*it);
+    if (!catalogKeyGate(meta["namespace"].toString(meta["node_type"].toString())).isEmpty()) {
+      layouts_.remove(*it);
+      emit nodeUpdated(*it);
+    }
+  }
 }
 void WorkflowGraphModel::setCanvasMediaNodes(const QSet<QString> &nodes) {
   if (canvasMediaNodes_ == nodes) { return; }
@@ -686,6 +711,44 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   if (!warning.isEmpty()) {
     NodeRow row; row.kind = NodeRowKind::Label; row.label = warning; row.y = y + nm::rowHeight / 2.0; row.height = nm::rowHeight;
     result.rows.append(row); y += nm::rowHeight;
+  }
+  {
+    // BaseNode.tsx draws ApiKeyValidation and InputNodeNameWarning above the body.
+    const double bandWidth = (width > 0 ? width : double(nm::defaultWidth)) - 2.0 * nm::borderWidth;
+    const auto band = [&](const QString &text) {
+      NodeRow row;
+      row.kind = NodeRowKind::Label;
+      row.warning = true;
+      row.label = text;
+      row.rect = QRectF(nm::borderWidth, y, bandWidth, nm::warningBandHeight);
+      row.y = row.rect.center().y();
+      row.height = row.rect.height();
+      result.rows.append(row);
+      y = row.rect.bottom();
+    };
+    const auto gate = catalogKeyGate(meta["namespace"].toString(meta["node_type"].toString()));
+    if (secretsKnown_ && !gate.isEmpty() && !configuredSecrets_.contains(gate)) {
+      band(tr("%1 is missing!").arg(catalogSecretDisplayName(gate)));
+      NodeRow connect;
+      connect.kind = NodeRowKind::Action;
+      connect.action = QStringLiteral("connectProvider");
+      connect.value = gate;
+      connect.warning = true;
+      connect.label = tr("Connect provider");
+      connect.rect = QRectF(nm::warningButtonInset, y, bandWidth + 2.0 * nm::borderWidth - 2.0 * nm::warningButtonInset, nm::warningButtonHeight);
+      connect.y = connect.rect.center().y();
+      connect.height = connect.rect.height();
+      result.rows.append(connect);
+      y = connect.rect.bottom() + nm::chipGap;
+    }
+    if (node["type"].toString().startsWith(QStringLiteral("nodetool.input."))) {
+      const auto name = node["data"].toObject()["name"].toString();
+      if (name.trimmed().isEmpty()) {
+        band(tr("Name required"));
+      } else if (inputNames_.value(name) > 1) {
+        band(tr("Duplicate name"));
+      }
+    }
   }
   // The shell's wrapped text: 13 px on 1.45 em lines for Text, 11 px on 1.4 em for Caption.
   const auto wrappedText = [](const QString &text, int pixels, double lineHeight, double textWidth) {

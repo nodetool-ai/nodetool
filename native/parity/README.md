@@ -23,14 +23,15 @@ npm run parity:census -- --suggest    # registry entries for unreviewed shortcut
 
 Three inventories are counted: keyboard shortcuts, property editor types and
 web components. Each item is `match`, `partial`, `differs`, `missing`,
-`accepted` (a deliberate difference) or `unreviewed`. The census prints two
+`accepted` (a deliberate difference), `outOfScope` or `unreviewed`. The census prints two
 numbers per inventory:
 
 - **parity**: credit over the reviewed items (match 1, partial and differs
   0.5, missing 0).
 - **coverage**: the share of items someone has reviewed.
 
-A low coverage means the parity number says little. Review items into
+Accepted and out-of-scope items count in neither number. A low coverage means
+the parity number says little. Review items into
 `registry.json`:
 
 | Inventory | Key | Entry |
@@ -38,6 +39,18 @@ A low coverage means the parity number says little. Review items into
 | `shortcuts` | the web shortcut slug in `web/src/config/shortcuts.ts` | `{"native": "<command in EditorMenus.cpp>"}`, `{"missing": "<why>"}` or `{"accepted": "<why>"}` |
 | `propertyTypes` | the type in `PropertyInput.resolver.tsx` | `{"native": "<the path that handles it>"}`, `{"partial": "<what differs>"}` or `{"accepted": "<why>"}` |
 | `components` | the web file path | `{"native": ["<qml or cpp path>"], "status": "partial", "note": "..."}` |
+
+### Out of scope
+
+The native app has two editors: the node editor and the compositor. The
+registry's `outOfScope` map lists the features the native app will not get,
+such as the chain view and the 3D, game, sketch and timeline editors. Each
+entry has a `reason` and the `web` paths of the feature, which `--check`
+requires to exist. A component under one of those paths is out of scope
+without its own entry. An entry in any inventory can also name a feature with
+`{"outOfScope": "<feature>"}`, for a file that lives outside the feature's
+directory, such as a sketch body on a node card. Do not port these items, and
+add a feature here only when the product owner decides it.
 
 Shortcuts and property types are classified from the sources first. A
 registry entry for them records what a scan cannot see. `--suggest` matches

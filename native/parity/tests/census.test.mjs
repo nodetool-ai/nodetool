@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { censusPropertyTypes, censusShortcuts, normalizeCombo, runCensus, summarize } from "../census.mjs";
+import { censusComponents, censusOutOfScope, censusPropertyTypes, censusShortcuts, normalizeCombo, runCensus, summarize } from "../census.mjs";
 
 test("normalizeCombo spells web and native combinations the same way", () => {
     assert.equal(normalizeCombo(["Control", "Shift", "Z"]), "ctrl+shift+z");
@@ -32,6 +32,23 @@ test("parity counts reviewed items and coverage counts what is reviewed", () => 
     const summary = summarize([{ status: "match" }, { status: "partial" }, { status: "missing" }, { status: "unreviewed" }, { status: "accepted" }]);
     assert.equal(summary.parity, 50);
     assert.equal(summary.coverage, 75);
+});
+
+test("components under an out-of-scope feature leave the parity count", () => {
+    const outOfScope = { "chain-view": { reason: "no", web: ["web/src/components/chain_editor"] } };
+    const web = [{ id: "web/src/components/chain_editor/ChainEditor.tsx" }, { id: "web/src/components/chain_editorial/X.tsx" }, { id: "web/src/components/node/Sketch.tsx" }];
+    const registry = { "web/src/components/node/Sketch.tsx": { outOfScope: "sketch-editor" } };
+    const { items, problems } = censusComponents(web, registry, undefined, outOfScope);
+    assert.deepEqual(items.map((i) => i.status), ["outOfScope", "unreviewed", "outOfScope"]);
+    assert.equal(problems.length, 1);
+    const summary = summarize([{ status: "match" }, { status: "missing" }, { status: "outOfScope" }]);
+    assert.equal(summary.parity, 50);
+    assert.equal(summary.coverage, 100);
+});
+
+test("an out-of-scope feature must name existing web sources and a reason", () => {
+    const problems = censusOutOfScope({ a: { reason: "x", web: ["web/src/components/does-not-exist"] }, b: { web: [] } });
+    assert.equal(problems.length, 3);
 });
 
 test("the census reads every inventory from this checkout without registry problems", async () => {

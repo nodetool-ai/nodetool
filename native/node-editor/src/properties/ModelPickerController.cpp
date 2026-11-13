@@ -63,12 +63,12 @@ QObject* ModelPickerController::catalogFor(const QString& modelType, const QStri
  const auto key = QStringList{modelType, allowedProviders.join(','), tasks.join(','), recommendations, defaultContext}.join('|');
  if (auto* existing = m_catalogs.value(key)) { return existing; }
  auto* catalog = new nt::modelpicker::Catalog(this);
- const bool huggingFace = modelType.startsWith("hf.");
+ const auto mode = nt::modelpicker::detail::catalogModeForType(modelType);
  catalog->setDefaultContext(defaultContext);
  catalog->setFilter(allowedProviders, tasks);
  catalog->setRecommendationProcedure(recommendations);
- if (huggingFace) { catalog->setHuggingFaceType(modelType); }
- catalog->setMode(huggingFace ? QStringLiteral("huggingface_model") : modelType);
+ if (modelType.startsWith("hf.") || modelType.startsWith("tjs.")) { catalog->setRepositoryType(modelType); }
+ catalog->setMode(mode);
  catalog->setIdentity(identity());
  catalog->setMutation([this](const QString& procedure, QJsonValue input, nt::modelpicker::Catalog::Completion done) {
      mutate(procedure, input, std::move(done));

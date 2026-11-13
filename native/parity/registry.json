@@ -1,5 +1,38 @@
 {
   "version": 1,
+  "outOfScope": {
+    "chain-view": {
+      "reason": "The linear chain editor (Graph and Chain switch). Decided 2026-11-07 (scope change SC5) and again 2026-11-13.",
+      "web": [
+        "web/src/components/chain_editor",
+        "web/src/components/workspace/WorkflowChainSurface.tsx"
+      ]
+    },
+    "3d-editor": {
+      "reason": "The 3D model editor and embedded 3D viewers. Matthias, 2026-11-13: the native app has two editors, the node editor and the compositor. Picking a 3D generation model on a node stays in scope.",
+      "web": [
+        "web/src/components/model_editor"
+      ]
+    },
+    "game-editor": {
+      "reason": "The game editor. Matthias, 2026-11-13: the native app has two editors, the node editor and the compositor.",
+      "web": [
+        "web/src/components/game"
+      ]
+    },
+    "sketch-editor": {
+      "reason": "The sketch (image document) editor and sketch bodies on cards. Matthias, 2026-11-13: the native app has two editors, the node editor and the compositor.",
+      "web": [
+        "web/src/components/sketch"
+      ]
+    },
+    "timeline-editor": {
+      "reason": "The timeline editor and timeline bodies on cards. Matthias, 2026-11-13: the native app has two editors, the node editor and the compositor. Keyframe inputs of video model nodes stay in scope.",
+      "web": [
+        "web/src/components/timeline"
+      ]
+    }
+  },
   "shortcuts": {
     "copy": {
       "native": "Copy"
@@ -224,13 +257,13 @@
       "native": "Zoom out"
     },
     "zoom50": {
-      "missing": "No native binding"
+      "native": "Zoom to 50%"
     },
     "zoom100": {
-      "missing": "No native binding"
+      "native": "Zoom to 100%"
     },
     "zoom200": {
-      "missing": "No native binding"
+      "native": "Zoom to 200%"
     },
     "navigateNextNode": {
       "missing": "No native binding"
@@ -783,11 +816,11 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ConstantSketchBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
+      "outOfScope": "sketch-editor",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ConstantTimelineBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
+      "outOfScope": "timeline-editor",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CropBody.tsx": {
@@ -1041,11 +1074,11 @@
     },
     "web/src/components/node/ApiKeyValidation.tsx": {
       "native": [
-        "native/node-editor/qml/ModelPropertyEditor.qml",
-        "native/node-editor/qml/Catalog.qml"
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
       ],
       "status": "partial",
-      "note": "Native warns in the model picker and catalog. The card-level missing-key banner with Connect provider is not found.",
+      "note": "Generic card bodies show the missing-key band and Connect provider, which opens the server's provider settings. Bespoke bodies do not show it, and native does not open provider onboarding at the key.",
       "inventory": "F20"
     },
     "web/src/components/node/AppNode/AppLoader.tsx": {
@@ -1069,8 +1102,10 @@
       "inventory": "W4"
     },
     "web/src/components/node/ArrayView.tsx": {
-      "missing": "np_array outputs have no native renderer.",
-      "inventory": "F31"
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "note": "dtype, shape and the first 100 values as code text."
     },
     "web/src/components/node/BaseNode.tsx": {
       "native": [
@@ -1091,8 +1126,11 @@
       "inventory": "F07"
     },
     "web/src/components/node/CalendarEventView.tsx": {
-      "missing": "calendar_event outputs have no native renderer.",
-      "inventory": "F31"
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Title, time span, location, calendar and notes as Markdown. No icons."
     },
     "web/src/components/node/ChunkDisplay.tsx": {
       "native": [
@@ -1320,7 +1358,11 @@
       "inventory": "F28"
     },
     "web/src/components/node/InputNodeNameWarning.tsx": {
-      "missing": "Warns when two inputs share a name. Not found natively."
+      "native": [
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Name required and Duplicate name bands. The tooltip is missing."
     },
     "web/src/components/node/InputProperty.tsx": {
       "native": [
@@ -1498,8 +1540,10 @@
       "missing": "Agent status output. Not found natively."
     },
     "web/src/components/node/output/ArrayRenderer.tsx": {
-      "missing": "np_array outputs have no native renderer.",
-      "inventory": "F31"
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "note": "dtype, shape and the first 100 values as code text."
     },
     "web/src/components/node/output/AssetGrid.tsx": {
       "native": [
@@ -1629,7 +1673,7 @@
         "native/node-editor/src/run/RunOutputModel.cpp"
       ],
       "status": "partial",
-      "note": "No native renderer for sketch, timeline, svg, html, document, model_3d, np_array, task, task_plan, calendar_event or thread message outputs.",
+      "note": "No native renderer for svg_element, html or document outputs. Task, task plan, calendar event, message and np_array outputs render as text. Sketch, timeline and model_3d viewers are out of scope.",
       "inventory": "F31"
     },
     "web/src/components/node/PlanningUpdateDisplay.tsx": {
@@ -1667,7 +1711,7 @@
         "native/node-editor/src/properties/PropertyFields.h"
       ],
       "status": "partial",
-      "note": "See the propertyTypes inventory: Transformers.js, llama and 3D model fields are unsupported.",
+      "note": "See the propertyTypes inventory. 3D generation model fields (model_3d_model) are unsupported.",
       "inventory": "F15"
     },
     "web/src/components/node/PropertyInput.tsx": {
@@ -1711,7 +1755,7 @@
       "missing": "Where a Save node's file goes. Not found natively."
     },
     "web/src/components/node/SketchNode/SketchNode.tsx": {
-      "missing": "Sketch nodes use the generic card body.",
+      "outOfScope": "sketch-editor",
       "inventory": "W4"
     },
     "web/src/components/node/StepView.tsx": {
@@ -1741,19 +1785,28 @@
       "inventory": "F09"
     },
     "web/src/components/node/TaskPlanView.tsx": {
-      "missing": "task_plan outputs have no native renderer.",
-      "inventory": "F31"
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Plan title over each task as Markdown."
     },
     "web/src/components/node/TaskUpdateDisplay.tsx": {
       "missing": "Agent task updates on the card. Not found natively."
     },
     "web/src/components/node/TaskView.tsx": {
-      "missing": "task outputs have no native renderer.",
-      "inventory": "F31"
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Title, description and a step checklist as Markdown."
     },
     "web/src/components/node/ThreadMessageList.tsx": {
-      "missing": "Message list outputs have no native renderer.",
-      "inventory": "F31"
+      "native": [
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Role and text parts as Markdown. Tool calls show their name only."
     },
     "web/src/components/node/WorkflowNode/WorkflowLoader.tsx": {
       "native": [
@@ -2178,7 +2231,11 @@
       "inventory": "F17"
     },
     "web/src/components/properties/LlamaModelSelect.tsx": {
-      "missing": "llama_model fields are unsupported natively (vector.Collection.embedding_model).",
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "note": "Lists models.ollama and stores {type: llama_model, repo_id}.",
       "inventory": "F20"
     },
     "web/src/components/properties/MediaPickerProperties.tsx": {
@@ -2188,15 +2245,14 @@
       "inventory": "F23"
     },
     "web/src/components/properties/Model3DModelSelect.tsx": {
-      "missing": "model_3d_model fields are unsupported natively (ImageTo3D, TextTo3D).",
+      "missing": "model_3d_model fields are unsupported natively (ImageTo3D, TextTo3D). The web picker fetches /api/models/3d, which the TypeScript server does not serve, so there is no list to port.",
       "inventory": "F20"
     },
     "web/src/components/properties/Model3DProperty.tsx": {
+      "outOfScope": "3d-editor",
       "native": [
         "native/node-editor/qml/Model3DPropertyEditor.qml"
       ],
-      "status": "partial",
-      "note": "No embedded viewer (scope change SC2).",
       "inventory": "F22"
     },
     "web/src/components/properties/ModelProperty.tsx": {
@@ -2283,11 +2339,10 @@
       "inventory": "F20"
     },
     "web/src/components/properties/SketchProperty.tsx": {
+      "outOfScope": "sketch-editor",
       "native": [
         "native/node-editor/qml/DocumentPropertyEditor.qml"
       ],
-      "status": "partial",
-      "note": "No creation or refresh controls.",
       "inventory": "F22"
     },
     "web/src/components/properties/StoryboardProperty.tsx": {
@@ -2335,11 +2390,10 @@
       "accepted": "No node in the catalog declares the text type. Native maps text in unions to str."
     },
     "web/src/components/properties/TimelineProperty.tsx": {
+      "outOfScope": "timeline-editor",
       "native": [
         "native/node-editor/qml/DocumentPropertyEditor.qml"
       ],
-      "status": "partial",
-      "note": "No creation or refresh controls.",
       "inventory": "F22"
     },
     "web/src/components/properties/ToolsListProperty.tsx": {
@@ -2349,7 +2403,12 @@
       "inventory": "F21"
     },
     "web/src/components/properties/TransformersJsModelSelect.tsx": {
-      "missing": "tjs.* fields are unsupported natively (17 transformers.* nodes).",
+      "native": [
+        "native/node-editor/qml/ModelPropertyEditor.qml",
+        "native/model-picker/src/ModelPickerCatalog.cpp"
+      ],
+      "status": "partial",
+      "note": "Lists models.transformersJsByType and stores {type, repo_id, path}. The web main list shows downloaded models only and offers the rest as recommended downloads; native lists every model the server returns.",
       "inventory": "F20"
     },
     "web/src/components/properties/TTSModelSelect.tsx": {

@@ -138,6 +138,22 @@ QString catalogKeyGate(const QString &nameSpace) {
     return keys.value(nameSpace.section('.', 0, 0).toLower());
 }
 
+QString catalogSecretDisplayName(const QString &secretKey) {
+    static const QHash<QString, QString> names{
+        {"OPENAI_API_KEY", "OpenAI API Key"}, {"ANTHROPIC_API_KEY", "Anthropic API Key"},
+        {"MISTRAL_API_KEY", "Mistral API Key"}, {"GEMINI_API_KEY", "Gemini API Key"},
+        {"MESHY_API_KEY", "Meshy API Key"}, {"RODIN_API_KEY", "Rodin API Key"}, {"TRELLIS_API_KEY", "Trellis API Key"},
+        {"TRIPO_API_KEY", "Tripo API Key"}, {"HUNYUAN3D_API_KEY", "Hunyuan3D API Key"}, {"SHAP_E_API_KEY", "Shap-E API Key"},
+        {"POINT_E_API_KEY", "Point-E API Key"}, {"APIFY_API_TOKEN", "Apify API Token"},
+        {"REPLICATE_API_TOKEN", "Replicate API Token"}, {"CALENDLY_API_TOKEN", "Calendly API Token"},
+        {"KIE_API_KEY", "Kie API Key"}, {"TOPAZ_API_KEY", "Topaz API Key"}, {"REVE_API_KEY", "Reve API Key"},
+        {"FAL_API_KEY", "FAL API Key"}, {"ELEVENLABS_API_KEY", "ElevenLabs API Key"}, {"SERPAPI_API_KEY", "SerpAPI Key"},
+        {"ATLASCLOUD_API_KEY", "AtlasCloud API Key"}, {"HIGGSFIELD_API_KEY_ID", "Higgsfield API Key ID"},
+        {"XAI_API_KEY", "xAI API Key"}, {"TOGETHER_API_KEY", "Together API Key"}, {"MINIMAX_API_KEY", "MiniMax API Key"},
+    };
+    return names.value(secretKey, secretKey);
+}
+
 QString catalogProviderName(const QString &providerId) {
     if (providerId == "local") {
         return QStringLiteral("Local");

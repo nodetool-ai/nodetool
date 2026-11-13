@@ -124,11 +124,13 @@ inline FieldLabel fieldLabel(const QString& modelType, const QVariant& value, co
     const auto object = value.toMap();
     const bool legacy = value.typeId() == QMetaType::QString;
     FieldLabel result;
-    if (modelType.startsWith("hf.")) {
-        // HuggingFaceModelSelect.tsx: the repository, then its file.
+    if (modelType.startsWith("hf.") || modelType.startsWith("tjs.")) {
+        // HuggingFaceModelSelect.tsx and TransformersJsModelSelect.tsx: the
+        // repository, then its file.
         const auto repo = object.value("repo_id").toString().isEmpty() ? object.value("id").toString() : object.value("repo_id").toString();
+        const auto prompt = modelType.startsWith("tjs.") ? QStringLiteral("Select Transformers.js model") : QStringLiteral("Select HuggingFace model");
         result.active = !repo.isEmpty();
-        result.subLabel = QStringLiteral("Select HuggingFace model");
+        result.subLabel = prompt;
         if (!details.isEmpty()) {
             const auto id = details.value("id").toString();
             const auto separator = id.indexOf(':');
@@ -140,8 +142,17 @@ inline FieldLabel fieldLabel(const QString& modelType, const QVariant& value, co
             result.label = repo;
             result.secondary = object.value("path").toString();
         } else {
-            result.label = QStringLiteral("Select HuggingFace model");
+            result.label = prompt;
         }
+        return result;
+    }
+    if (modelType == "llama_model") {
+        // LlamaModelSelect.tsx: the Ollama tag's name, or the stored tag.
+        const auto tag = legacy ? value.toString() : object.value("repo_id").toString();
+        result.active = !tag.isEmpty();
+        result.subLabel = QStringLiteral("Select Ollama model");
+        result.label = !details.value("name").toString().isEmpty() ? details.value("name").toString()
+            : tag.isEmpty() ? QStringLiteral("Select Ollama model") : tag;
         return result;
     }
     const auto id = legacy ? value.toString() : object.value("id").toString();

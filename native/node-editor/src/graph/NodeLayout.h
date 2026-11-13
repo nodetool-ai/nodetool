@@ -65,6 +65,11 @@ inline constexpr int chipPadding = 8;
 inline constexpr int chipRadius = 4;
 inline constexpr int segmentPadding = 12;
 inline constexpr int chipGap = 4;
+// Card warning bands: 8 px padding around an 11 px caption, and the Connect
+// provider button 1.8 em high with 16 px side margins (ApiKeyValidation.tsx).
+inline constexpr int warningBandHeight = 30;
+inline constexpr int warningButtonHeight = 20;
+inline constexpr int warningButtonInset = 16;
 // The CheckerDropzone empty states of OutputNode.tsx and PreviewNode.tsx.
 inline constexpr int outputPlaceholderHeight = 80;
 inline constexpr int outputMinimumHeight = 150;
@@ -256,6 +261,10 @@ struct NodeRow {
   int textSize = 0;
   // A bipolar slider fills from zero and signs positive values.
   bool bipolar = false;
+  // A card warning band (ApiKeyValidation.tsx, InputNodeNameWarning.tsx): a
+  // centered uppercase caption in warning ink on a faint warning fill. An
+  // Action row with it draws the filled warning button.
+  bool warning = false;
   // A slider thumb turns primary once its value leaves this default, as
   // AdjustmentSlider's changed flag. A bare NodeSlider keeps a neutral thumb.
   bool tracksDefault = false;

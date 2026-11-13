@@ -92,8 +92,8 @@ inline QString validateImageSizeValue(const QJsonValue& value) {
     return {};
 }
 inline bool isModelType(const QString& type) {
-    static const QSet<QString> types{"language_model", "embedding_model", "image_model", "video_model", "tts_model", "asr_model", "music_model", "audio_to_audio_model", "rerank_model"};
-    return types.contains(type) || type.startsWith("hf.");
+    static const QSet<QString> types{"language_model", "embedding_model", "image_model", "video_model", "tts_model", "asr_model", "music_model", "audio_to_audio_model", "rerank_model", "llama_model"};
+    return types.contains(type) || type.startsWith("hf.") || type.startsWith("tjs.");
 }
 // Language and embedding fields also lock to a concrete default provider. Media
 // fields honor only a declared list because their defaults name a provider.
@@ -345,7 +345,8 @@ inline QString validatePropertyValue(const QJsonObject& p, const QJsonValue& val
         const auto model = value.toObject();
         const auto type = scalarPropertyType(p);
         if (!value.isObject() || (model.contains("type") && model.value("type") != type)) { return "Choose a model"; }
-        if (type.startsWith("hf.")) { return model.value("repo_id").isString() || model.value("id").isString() ? QString{} : QStringLiteral("Choose a model"); }
+        if (type.startsWith("hf.") || type.startsWith("tjs.")) { return model.value("repo_id").isString() || model.value("id").isString() ? QString{} : QStringLiteral("Choose a model"); }
+        if (type == "llama_model") { return model.value("repo_id").isString() ? QString{} : QStringLiteral("Choose a model"); }
         if (!model.value("id").isString() || !model.value("provider").isString()) { return "Choose a model"; }
         const auto allowed = modelAllowedProviders(p);
         if (!allowed.isEmpty() && !allowed.contains(model.value("provider"))) { return "Choose a model from an allowed provider"; }
