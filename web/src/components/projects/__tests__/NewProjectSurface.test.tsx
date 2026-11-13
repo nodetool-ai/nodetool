@@ -640,10 +640,13 @@ beforeEach(() => {
   useModelPreferencesStore.setState({ defaults: {} });
   actualTabsStore.useWorkspaceTabsStore.setState({ activeProjectId: null, personalProjectId: null });
   clearChatTurn("chat-1");
+  // Most tests describe the surface after a first result, where the
+  // getting-started checklist shows. The first-run starters have their own.
   useOnboardingStore.setState({
     completedSteps: [],
     dismissed: false,
-    ideaDescribed: false
+    ideaDescribed: false,
+    firstResult: true
   });
   skills = [
     {
@@ -1261,6 +1264,22 @@ describe("NewProjectSurface", () => {
     renderSurface();
     await user.click(screen.getByRole("button", { name: "Connect an AI provider" }));
     expect(useSubscriptionOnboardingStore.getState().open).toBe(true);
+  });
+
+  // Plan A6/A7: before a first result, the starters take the checklist's
+  // place, and the guided first task starts a chat with its filled-in prompt.
+  it("starts the guided first task as a chat before the first result", async () => {
+    useOnboardingStore.setState({ firstResult: false });
+    renderSurface();
+    const starters = screen.getByRole("region", { name: "Start with a result" });
+    expect(
+      screen.queryByRole("region", { name: "Getting started checklist" })
+    ).not.toBeInTheDocument();
+    await userEvent.click(within(starters).getByRole("button", { name: "Send it" }));
+    await waitFor(() => expect(peekChatTurn("chat-1")).not.toBeNull());
+    const staged = peekChatTurn("chat-1");
+    const text = staged?.[0].type === "text" ? staged[0].text : "";
+    expect(text).toMatch(/three ideas for a 30-second video about a fox/);
   });
 
   it("shows the checklist until onboarding is done", () => {

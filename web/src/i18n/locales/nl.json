@@ -8944,6 +8944,7 @@
         "Welk soort app heeft de gebeurtenis verzonden (cloud, desktop, lokaal internet), de app-versie en de besturingssysteemfamilie.",
         "Dat de app is gestart, een workflow is gemaakt of een workflow is uitgevoerd.",
         "Voor een run: lokaal of in de cloud, telt het knooppunt als een bereik (zoals 6-20), de duur als een bereik en voor een fout een categorie zoals provider of time-out.",
+        "Voor een eerste sessie: dat de startkeuzes zijn getoond, welke is gekozen, het soort eerste resultaat (zoals chat of storyboard) met de tijd ernaartoe als bereik, en de schermklasse (telefoon, tablet of desktop).",
         "Een willekeurige ID die in deze browser wordt bewaard en die elke 30 dagen verandert, en een willekeurige ID voor deze sessie."
       ],
       "never": "Nooit",
@@ -19963,5 +19964,31 @@
         "public": "Openbaar"
       }
     }
+  },
+  "firstRun": {
+    "ariaLabel": "Begin met een resultaat",
+    "heading": "Maak iets in minder dan een minuut",
+    "subline": "Alles is al ingevuld. Probeer er een en pas hem daarna aan je eigen idee aan.",
+    "firstTask": {
+      "label": "Je eerste prompt",
+      "prompt": "Geef me drie ideeën voor een video van 30 seconden over een vos in de eerste sneeuw, elk in één regel.",
+      "hint": "Antwoordt binnen seconden met het gratis standaardmodel.",
+      "action": "Versturen"
+    },
+    "game": {
+      "title": "Maak een klein spel",
+      "description": "Een vos zoekt de laatste eikel. Opent bij het ontwerp, één klik schrijft het."
+    },
+    "storyboard": {
+      "title": "Maak een storyboard voor een korte film",
+      "description": "Een vuurtorenwachter en een gestrande robot. Opent bij het script, één klik schrijft het.",
+      "brief": "Een vuurtorenwachter vindt na een storm een kleine aangespoelde robot en leert hem het licht brandend te houden."
+    },
+    "template": {
+      "title": "Voer een sjabloon uit",
+      "description": "Advertentietekst in drie tonen, met het product al ingevuld. Druk op Uitvoeren."
+    },
+    "opening": "Openen…",
+    "startFailed": "Kan de starter niet openen: {{error}}"
   }
 }

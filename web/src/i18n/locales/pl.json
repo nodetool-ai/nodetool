@@ -9222,6 +9222,7 @@
         "Jaki rodzaj aplikacji wysłał zdarzenie (chmura, komputer stacjonarny, internet lokalny), wersja aplikacji i rodzina systemów operacyjnych.",
         "Czy aplikacja została uruchomiona, utworzono przepływ pracy lub uruchomiono przepływ pracy.",
         "W przypadku uruchomienia: lokalnego lub w chmurze, liczba węzłów jako zakres (np. 6–20), czas trwania jako zakres, a w przypadku awarii jako kategoria, np. dostawca lub limit czasu.",
+        "W pierwszej sesji: że pokazano propozycje na start, którą wybrano, rodzaj pierwszego wyniku (na przykład czat lub storyboard) z czasem do niego jako przedziałem oraz klasę ekranu (telefon, tablet lub komputer).",
         "Losowy identyfikator przechowywany w tej przeglądarce, który zmienia się co 30 dni, oraz losowy identyfikator dla tej sesji."
       ],
       "never": "Nigdy",
@@ -20585,5 +20586,31 @@
         "public": "Publiczny"
       }
     }
+  },
+  "firstRun": {
+    "ariaLabel": "Zacznij od wyniku",
+    "heading": "Stwórz coś w niecałą minutę",
+    "subline": "Wszystko jest już wypełnione. Wypróbuj jeden, a potem zmień go na własny pomysł.",
+    "firstTask": {
+      "label": "Twój pierwszy prompt",
+      "prompt": "Podaj trzy pomysły na 30-sekundowy film o lisie w pierwszym śniegu, każdy w jednej linijce.",
+      "hint": "Odpowiada w kilka sekund na darmowym modelu domyślnym.",
+      "action": "Wyślij"
+    },
+    "game": {
+      "title": "Zrób małą grę",
+      "description": "Lis szuka ostatniego żołędzia. Otwiera się na projekcie, jedno kliknięcie go pisze."
+    },
+    "storyboard": {
+      "title": "Zrób storyboard krótkiego filmu",
+      "description": "Latarnik i wyrzucony na brzeg robot. Otwiera się na scenariuszu, jedno kliknięcie go pisze.",
+      "brief": "Po sztormie latarnik znajduje małego robota wyrzuconego na brzeg i uczy go, jak podtrzymywać światło."
+    },
+    "template": {
+      "title": "Uruchom szablon",
+      "description": "Tekst reklamowy w trzech tonach, z produktem już wpisanym. Naciśnij Uruchom."
+    },
+    "opening": "Otwieranie…",
+    "startFailed": "Nie udało się otworzyć startera: {{error}}"
   }
 }

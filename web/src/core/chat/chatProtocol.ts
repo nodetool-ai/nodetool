@@ -10,6 +10,7 @@
  */
 
 import { useGenerationBatchStore } from "../../stores/GenerationBatchStore";
+import { recordFirstResult } from "../../lib/analytics";
 import { visibleToolArgs } from "./toolCallFields";
 import {
   appendSubAgentChunk,
@@ -483,6 +484,18 @@ const trailingText = (content: Message["content"]): string => {
     return lastBlock && lastBlock.type === "text" ? lastBlock.text : "";
   }
   return "";
+};
+
+/** A finished turn that ends in visible text is the person's first result. */
+const noteFirstReply = (state: GlobalChatState, threadId: string): void => {
+  const messages = state.messageCache[threadId] || [];
+  const lastMessage = messages[messages.length - 1];
+  if (
+    lastMessage?.role === "assistant" &&
+    stripThoughtContent(trailingText(lastMessage.content)).trim().length > 0
+  ) {
+    recordFirstResult("chat");
+  }
 };
 
 /** Characters of the reply a desktop notification previews. */
@@ -1681,6 +1694,7 @@ export async function handleChatWebSocketMessage(
     applyReducer(applyChunk, data);
     if (data.done && tid) {
       announceTurnFinished(get(), tid);
+      noteFirstReply(get(), tid);
     }
   } else if (data.type === "output_update") {
     applyReducer(applyOutputUpdate, data);
@@ -1719,6 +1733,9 @@ export async function handleChatWebSocketMessage(
       clearSendTimeout();
     }
     applyReducer(applyMessage, data);
+    if (data.role === "assistant" && trailingText(data.content).trim().length > 0) {
+      recordFirstResult("chat");
+    }
   } else if (data.type === "node_progress") {
     applyReducer(applyNodeProgress, data);
   } else if (data.type === "prediction") {

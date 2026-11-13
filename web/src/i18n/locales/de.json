@@ -8944,6 +8944,7 @@
         "Welche Art von App das Ereignis gesendet hat (Cloud, Desktop oder lokal), dazu App-Version und Betriebssystemfamilie.",
         "Ob die App gestartet, ein Workflow erstellt oder ein Workflow ausgeführt wurde.",
         "Bei einer Ausführung: lokal oder Cloud, die Knotenzahl als Bereich (z. B. 6–20), die Dauer als Bereich und bei Fehlern eine Kategorie wie Anbieter oder Zeitüberschreitung.",
+        "Für eine erste Sitzung: dass die Einstiegsvorschläge angezeigt wurden, welcher gewählt wurde, die Art des ersten Ergebnisses (etwa Chat oder Storyboard) mit der Zeit bis dahin als Bereich und die Bildschirmklasse (Telefon, Tablet oder Desktop).",
         "Eine zufällige ID, die in diesem Browser gespeichert und alle 30 Tage geändert wird, sowie eine zufällige ID für diese Sitzung."
       ],
       "never": "Nie",
@@ -19963,5 +19964,31 @@
         "public": "Öffentlich"
       }
     }
+  },
+  "firstRun": {
+    "ariaLabel": "Mit einem Ergebnis beginnen",
+    "heading": "In unter einer Minute etwas erstellen",
+    "subline": "Alles ist schon ausgefüllt. Probiere eins aus und ändere es dann nach deiner Idee.",
+    "firstTask": {
+      "label": "Dein erster Prompt",
+      "prompt": "Nenne mir drei Ideen für ein 30-sekündiges Video über einen Fuchs im ersten Schnee, je eine Zeile.",
+      "hint": "Antwortet in Sekunden mit dem kostenlosen Standardmodell.",
+      "action": "Senden"
+    },
+    "game": {
+      "title": "Ein kleines Spiel bauen",
+      "description": "Ein Fuchs sucht die letzte Eichel. Öffnet beim Design, ein Klick schreibt es."
+    },
+    "storyboard": {
+      "title": "Einen Kurzfilm storyboarden",
+      "description": "Ein Leuchtturmwärter und ein gestrandeter Roboter. Öffnet beim Drehbuch, ein Klick schreibt es.",
+      "brief": "Ein Leuchtturmwärter findet nach einem Sturm einen kleinen angespülten Roboter und bringt ihm bei, das Licht am Brennen zu halten."
+    },
+    "template": {
+      "title": "Eine Vorlage ausführen",
+      "description": "Werbetext in drei Tonlagen, das Produkt ist schon eingetragen. Drücke Ausführen."
+    },
+    "opening": "Wird geöffnet…",
+    "startFailed": "Der Einstieg konnte nicht geöffnet werden: {{error}}"
   }
 }
