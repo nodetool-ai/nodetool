@@ -272,7 +272,7 @@ jobs:
           cmake --build native/node-editor/build --parallel 2 --target nodetool-node-editor \
             node_editor_menus_tests node_editor_canvas_media_host_tests node_editor_media_ui_tests node_editor_local_run_tests
           QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
-            native/node-editor/build/node_editor_menus_tests opensEveryEmbeddedAudioExample
+            native/node-editor/build/node_editor_menus_tests examplesMenuOpensEachBundledExample
           QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
             native/node-editor/build/node_editor_canvas_media_host_tests storedMinuteOfAudioLoadsOnCard
           QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software \
