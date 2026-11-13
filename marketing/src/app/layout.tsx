@@ -5,6 +5,7 @@ import Script from "next/script";
 import MotionProvider from "../components/MotionProvider";
 import JsonLd from "../components/JsonLd";
 import { DEFAULT_OG_IMAGES } from "../lib/defaultOgImage";
+import { HOME_LANGUAGE_ALTERNATES } from "../data/languagePages";
 import {
   organizationSchema,
   softwareApplicationSchema,
@@ -70,12 +71,16 @@ const jetBrainsMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "NodeTool | Open-source agent-first creative workspace",
+  title: "NodeTool | Open-source AI film studio, agents, node workflows",
   description:
     "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
   metadataBase: new URL("https://nodetool.ai"),
+  // hreflang: the home page and /ja list each other. Every other route sets
+  // its own `alternates`, which replaces this object, so the languages stay on
+  // the home page only.
   alternates: {
     canonical: "/",
+    languages: HOME_LANGUAGE_ALTERNATES,
   },
   keywords: [
     "agent-first creative workspace",
@@ -105,7 +110,7 @@ export const metadata: Metadata = {
     other: [{ rel: "manifest", url: "/site.webmanifest" }],
   },
   openGraph: {
-    title: "NodeTool | Open-source agent-first creative workspace",
+    title: "NodeTool | Open-source AI film studio, agents, node workflows",
     description:
       "Open-source agent-first creative workspace. Create images, video, audio, and text with agents, then take over and edit anything yourself. You get an editable project, not just a finished file.",
     url: "https://nodetool.ai",

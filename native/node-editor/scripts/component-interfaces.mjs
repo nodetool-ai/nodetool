@@ -11,13 +11,10 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 // Root context properties set in EditorWindow::EditorWindow, with the header
-// of the object behind each one.
+// of the object behind each one. `editor` is no longer set, and stays so the
+// scan reports any file that reads the window again.
 export const CONTEXT_PROPERTIES = {
   editor: "src/ui/EditorWindow.h",
-  workflowBrowser: "src/server/WorkflowBrowser.h",
-  libraryBrowser: "src/library/LibraryBrowser.h",
-  runOutput: "src/run/RunOutputModel.h",
-  workflowSession: "src/server/WorkflowSession.h",
   mediaResolver: "src/media/MediaResolver.h",
   modelPickerController: "src/properties/ModelPickerController.h",
   assetPickerController: "src/properties/AssetPickerController.h",
@@ -32,8 +29,6 @@ export const CONTEXT_PROPERTIES = {
 const INHERITED = { editor: new Set(["width", "height"]) };
 
 export const EDITOR_ALIASES = {
-  "AuthoredControls.qml": { name: "host", source: "InlineTitlePresenter.cpp setInitialProperties host = editor" },
-  "EditorChat.qml": { name: "host", source: "EditorChat.cpp setInitialProperties host = this" },
 };
 
 // Replaces comments with spaces and string contents with "_", keeping offsets,

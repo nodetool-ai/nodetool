@@ -7,11 +7,14 @@ import NodeTool.UiPrimitives as Ui
 // the empty state and compact rows. The status bar above it is the tab strip.
 Rectangle {
     id: root
+    required property PanelLayout panels
+    required property StatusModel status
+    required property RunState runs
     EditorRoles { id: roles }
     color: roles.panel
     implicitHeight: Ui.Metrics.comfortable * 10
     implicitWidth: Ui.Metrics.dialogCompactWidth
-    readonly property bool hasRuns: !!runOutput && runOutput.runs.length > 0
+    readonly property bool hasRuns: runs.outputRuns.length > 0
     // Run status labels of the web picker (i18n trace.runStatus).
     function statusLabel(status) {
         const labels = { completed: qsTr("Completed"), failed: qsTr("Failed"), cancelled: qsTr("Cancelled"), running: qsTr("Running") }
@@ -37,18 +40,18 @@ Rectangle {
                 accessibleName: qsTr("Run")
                 property string placeholderText: qsTr("No recent runs")
                 displayText: options.length === 0 ? placeholderText : currentText
-                value: runOutput ? runOutput.selectedRunId : ""
-                options: runOutput ? runOutput.runs.map(run => ({label: run.jobId + " · " + root.statusLabel(run.status), value: run.jobId})) : []
+                value: root.runs.selectedRunId
+                options: root.runs.outputRuns.map(run => ({label: run.jobId + " · " + root.statusLabel(run.status), value: run.jobId}))
                 enabled: options.length > 0
                 density: Ui.EditorButton.Compact
-                onValueCommitted: value => runOutput.selectRun(value)
+                onValueCommitted: value => root.runs.selectRun(value)
             }
             Ui.EditorButton {
                 objectName: "askRunAgent"
                 visible: root.hasRuns
                 density: Ui.EditorButton.Compact
                 text: qsTr("Ask agent")
-                onClicked: editor.askRunAgent(runOutput.selectedRunId)
+                onClicked: root.runs.askAgent(root.runs.selectedRunId)
             }
             Item { Layout.fillWidth: true }
             NodeButton {
@@ -56,12 +59,12 @@ Rectangle {
                 visible: root.hasRuns
                 text: "Clear history"
                 variant: NodeButton.Flat
-                onClicked: runOutput.clear()
+                onClicked: root.runs.clearOutput()
             }
         }
         Ui.Text {
-            visible: editor && editor.message.length > 0
-            text: editor ? editor.message : ""
+            visible: root.status.message.length > 0
+            text: root.status.message
             role: Ui.Typography.SansCaption
             wrapMode: Text.WrapAnywhere
             Layout.fillWidth: true
@@ -77,7 +80,7 @@ Rectangle {
         Flickable {
             id: scroll
             objectName: "run-output-scroll"
-            visible: runOutput && runOutput.runs.length > 0
+            visible: root.runs.outputRuns.length > 0
             Layout.fillWidth: true
             Layout.fillHeight: true
             contentWidth: width
@@ -92,7 +95,7 @@ Rectangle {
                 // A hidden panel builds no rows. Each preview run replaces them all,
                 // and building them stalled the canvas during a slider drag.
                 Repeater {
-                    model: runOutput && editor && editor.outputVisible ? runOutput.collections : null
+                    model: root.panels.outputVisible ? root.runs.collections : null
                     ColumnLayout {
                         id: collection
                         required property string collectionKey
@@ -106,7 +109,7 @@ Rectangle {
                             objectName: "output-gallery"
                             Layout.fillWidth: true
                             Layout.preferredHeight: preferredHeight
-                            active: editor && editor.outputVisible && collection.y + collection.height >= scroll.contentY && collection.y <= scroll.contentY + scroll.height
+                            active: root.panels.outputVisible && collection.y + collection.height >= scroll.contentY && collection.y <= scroll.contentY + scroll.height
                             items: collectionItems
                             scopeKey: "panel:" + collectionKey
                             notice: collectionNotice
@@ -116,7 +119,7 @@ Rectangle {
                 // A row is one 32 px line, as web log rows are (TracePanel.tsx
                 // SPAN_ROW_HEIGHT). Entries with content show it below the line.
                 Repeater {
-                    model: runOutput && editor && editor.outputVisible ? runOutput.richEntries : null
+                    model: root.panels.outputVisible ? root.runs.richEntries : null
                     ColumnLayout {
                         id: row
                         objectName: "run-output-row"

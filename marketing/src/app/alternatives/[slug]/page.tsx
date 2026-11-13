@@ -80,7 +80,12 @@ export default async function AlternativesPage({
 
   const itemList = itemListSchema(
     `${c.name} alternatives`,
-    tools.map((t) => ({ name: t.name, ...(t.href ? { url: t.href } : {}) }))
+    // Only this site's comparison pages get a URL. A project's own page is a
+    // source for its facts, not the list item's address.
+    tools.map((t) => ({
+      name: t.name,
+      ...(t.href && !t.external ? { url: t.href } : {}),
+    }))
   );
 
   return (
@@ -366,6 +371,11 @@ export default async function AlternativesPage({
           >
             What are the best {c.name} alternatives?
           </h2>
+          {c.listAnswer && (
+            <p className="mb-6 max-w-3xl text-lg leading-relaxed text-slate-300">
+              {c.listAnswer}
+            </p>
+          )}
           <ul className="grid gap-4 md:grid-cols-2">
             {tools.map((t) => (
               <li
@@ -388,18 +398,31 @@ export default async function AlternativesPage({
                   {t.href && (
                     <a
                       href={t.href}
+                      {...(t.external ? { rel: "noopener noreferrer" } : {})}
                       className="inline-flex shrink-0 items-center gap-1 text-sm text-slate-300 transition-colors hover:text-white focus-ring rounded"
                     >
-                      Compare <ArrowRight className="h-4 w-4" />
+                      {t.external ? "Project page" : "Compare"}{" "}
+                      <ArrowRight className="h-4 w-4" aria-hidden />
                     </a>
                   )}
                 </div>
                 <p className="mt-2 text-sm leading-relaxed text-slate-300">
                   {t.note}
                 </p>
+                {t.facts && (
+                  <p className="mt-2 text-xs leading-relaxed text-slate-400">
+                    {t.facts}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
+          {c.otherTools && (
+            <p className="mt-4 text-sm leading-relaxed text-slate-400">
+              Platforms and licences checked {c.otherTools.checked} on each
+              project&apos;s page.
+            </p>
+          )}
         </section>
 
         {/* Visible FAQ — and the FAQPage schema, built from these same rows. */}

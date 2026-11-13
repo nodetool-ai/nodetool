@@ -6,10 +6,11 @@ import NodeTool.UiPrimitives as Ui
 // mode settings. Each opens a popup that the editor hosts over the window.
 Item {
     id: root
+    required property Viewport viewport
     EditorRoles { id: roles }
     implicitWidth: row.implicitWidth
     implicitHeight: Ui.Metrics.small
-    readonly property bool byType: editor && editor.miniMapColorMode === "type"
+    readonly property bool byType: root.viewport.miniMapColorMode === "type"
     component FramedButton: Rectangle {
         id: frame
         property alias button: button
@@ -42,7 +43,7 @@ Item {
             accessibleName: qsTr("Node type legend")
             onClicked: {
                 const corner = mapToGlobal(width, height)
-                editor.showMiniMapPopup("legend", corner)
+                root.viewport.showPopup("legend", corner)
             }
         }
         FramedButton {
@@ -51,7 +52,7 @@ Item {
             accessibleName: qsTr("Color mode settings")
             onClicked: {
                 const corner = mapToGlobal(width, height)
-                editor.showMiniMapPopup("colors", corner)
+                root.viewport.showPopup("colors", corner)
             }
         }
     }

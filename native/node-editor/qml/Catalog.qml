@@ -395,6 +395,8 @@ Rectangle {
                 }
             }
             OptionalPacksSection {
+                catalog: root.catalog
+                packSetup: root.packSetup
                 Layout.row: lists.empty ? 0 : 1
                 Layout.column: 0
                 Layout.columnSpan: lists.columns

@@ -1,3 +1,4 @@
+#include "host/platform_fs.h"
 #include "host/asset_destinations.h"
 
 #include "host/assets.h"
@@ -9,8 +10,6 @@
 #include <exception>
 #include <fcntl.h>
 #include <stdexcept>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <utility>
 
 using nodetool::jobs::JobDelivery;
@@ -58,16 +57,16 @@ std::vector<std::string> components(const std::vector<Root>& roots, const std::s
 
 // Opens one directory relative to `dir` without following a symlink.
 int openBelow(int dir, const std::string& name) {
-  return ::openat(dir, name.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+  return fsapi::openat(dir, name.c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
 }
 
 // Reports a failed openBelow(dir, name). Linux reports a symlink opened
 // with O_DIRECTORY | O_NOFOLLOW as ENOTDIR, so the entry's type decides.
 [[noreturn]] void refuse(int err, int dir, const std::string& name, const std::string& syscall,
                          const std::string& key) {
-  struct stat st {};
+  fsapi::FileStat st {};
   if (err == ELOOP ||
-      (err == ENOTDIR && ::fstatat(dir, name.c_str(), &st, AT_SYMLINK_NOFOLLOW) == 0 && S_ISLNK(st.st_mode))) {
+      (err == ENOTDIR && fsapi::fstatat(dir, name.c_str(), &st, AT_SYMLINK_NOFOLLOW) == 0 && S_ISLNK(st.st_mode))) {
     throw FsError("EACCES", syscall, key, "symbolic links are refused here");
   }
   throwErrno(err, syscall, key);
@@ -80,13 +79,13 @@ int openBelow(int dir, const std::string& name) {
 // symlink on the way, ENOENT for a missing directory without `create`.
 UniqueFd acquireParent(const std::vector<Root>& roots, const std::string& key, const std::string& destination,
                        bool create, const std::string& syscall) {
-  UniqueFd dir(::open(rootDir(roots).c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC));
+  UniqueFd dir(fsapi::open(rootDir(roots).c_str(), O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC));
   if (!dir) throwErrno(errno, syscall, key);
   const std::vector<std::string> parts = components(roots, destination);
   for (size_t i = 0; i + 1 < parts.size(); ++i) {
     int fd = openBelow(dir.get(), parts[i]);
     if (fd < 0 && errno == ENOENT && create) {
-      if (::mkdirat(dir.get(), parts[i].c_str(), 0755) != 0 && errno != EEXIST) throwErrno(errno, "mkdir", key);
+      if (fsapi::mkdirat(dir.get(), parts[i].c_str(), 0755) != 0 && errno != EEXIST) throwErrno(errno, "mkdir", key);
       fd = openBelow(dir.get(), parts[i]);
     }
     if (fd < 0) refuse(errno, dir.get(), parts[i], syscall, key);
@@ -122,8 +121,8 @@ public:
   bool stage(const std::vector<Root>& roots, const std::string& key, const std::string& destination,
              const std::vector<uint8_t>& bytes, const std::stop_token& stop, const AssetJobHooks& hooks) {
     parent_ = acquireParent(roots, key, destination, /*create=*/true, "open");
-    struct stat st {};
-    if (::fstat(parent_.get(), &st) != 0) throwErrno(errno, "fstat", key);
+    fsapi::FileStat st {};
+    if (fsapi::fstat(parent_.get(), &st) != 0) throwErrno(errno, "fstat", key);
     device_ = st.st_dev;
     inode_ = st.st_ino;
     leaf_ = leafOf(destination);
@@ -132,8 +131,8 @@ public:
     UniqueFd file;
     for (int attempt = 0; !file; ++attempt) {
       std::string name =
-          leaf_ + ".tmp-" + std::to_string(::getpid()) + "-" + std::to_string(tempSequence().fetch_add(1));
-      file = UniqueFd(::openat(parent_.get(), name.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC,
+          leaf_ + ".tmp-" + std::to_string(fsapi::getpid()) + "-" + std::to_string(tempSequence().fetch_add(1));
+      file = UniqueFd(fsapi::openat(parent_.get(), name.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC,
                                0644));
       if (file) {
         temporary_ = std::move(name);
@@ -148,7 +147,7 @@ public:
         return false;
       }
       const size_t chunk = std::min(kWriteChunk, bytes.size() - offset);
-      const ssize_t n = ::write(file.get(), bytes.data() + offset, chunk);
+      const fsapi::Count n = fsapi::write(file.get(), bytes.data() + offset, chunk);
       if (n < 0) {
         if (errno == EINTR) continue;
         throwErrno(errno, "write", key);
@@ -167,13 +166,13 @@ public:
   void commit(const std::vector<Root>& roots, const std::string& key, const std::string& destination,
               const AssetJobHooks& hooks) {
     const UniqueFd now = acquireParent(roots, key, destination, /*create=*/false, "rename");
-    struct stat st {};
-    if (::fstat(now.get(), &st) != 0) throwErrno(errno, "fstat", key);
+    fsapi::FileStat st {};
+    if (fsapi::fstat(now.get(), &st) != 0) throwErrno(errno, "fstat", key);
     if (st.st_dev != device_ || st.st_ino != inode_) {
       throw FsError("EACCES", "rename", key, "the destination directory was replaced or moved");
     }
     hook(hooks, "commit:validated");
-    if (::renameat(parent_.get(), temporary_.c_str(), parent_.get(), leaf_.c_str()) != 0) {
+    if (fsapi::renameat(parent_.get(), temporary_.c_str(), parent_.get(), leaf_.c_str()) != 0) {
       throwErrno(errno, "rename", key);
     }
     temporary_.clear();
@@ -182,14 +181,14 @@ public:
   // Unlinks this write's temporary file, if it still has one.
   void discard() {
     if (temporary_.empty()) return;
-    ::unlinkat(parent_.get(), temporary_.c_str(), 0);
+    fsapi::unlinkat(parent_.get(), temporary_.c_str(), 0);
     temporary_.clear();
   }
 
 private:
   UniqueFd parent_;
-  dev_t device_ = 0;
-  ino_t inode_ = 0;
+  fsapi::Device device_ = 0;
+  fsapi::Inode inode_ = 0;
   std::string leaf_;
   // Empty once renamed or unlinked.
   std::string temporary_;
@@ -216,9 +215,9 @@ bool removeTarget(const Target& target) {
   }
   hook(target.hooks, "remove:acquired");
   const std::string leaf = leafOf(target.destination);
-  struct stat st {};
-  if (::fstatat(parent.get(), leaf.c_str(), &st, AT_SYMLINK_NOFOLLOW) != 0 || !S_ISREG(st.st_mode)) return false;
-  if (::unlinkat(parent.get(), leaf.c_str(), 0) != 0) throwErrno(errno, "unlink", target.key);
+  fsapi::FileStat st {};
+  if (fsapi::fstatat(parent.get(), leaf.c_str(), &st, AT_SYMLINK_NOFOLLOW) != 0 || !S_ISREG(st.st_mode)) return false;
+  if (fsapi::unlinkat(parent.get(), leaf.c_str(), 0) != 0) throwErrno(errno, "unlink", target.key);
   return true;
 }
 

@@ -11,8 +11,10 @@ Ui.Surface {
     property var retained: []
     property var localStarts: ({})
     property double now: Date.now()
-    // The editor's debounced queue. A host without an editor shows the session queue.
-    readonly property var source: typeof editor !== "undefined" && editor ? editor.shownQueue : (workflowSession.queue || [])
+    // The debounced queue, the open workflow, the run output's selected run and
+    // the cancel and select requests.
+    required property RunState runs
+    readonly property var source: runs.queue
     readonly property var live: source.map((job, index) => Object.assign({}, job, {
             queueIndex: index
         }))
@@ -238,8 +240,8 @@ Ui.Surface {
                                 required property int index
                                 readonly property bool isRunning: modelData.status === "running"
                                 readonly property string jobId: modelData.jobId || modelData.id || ""
-                                readonly property bool focusable: isRunning && !!modelData.workflow_id && modelData.workflow_id === workflowSession.workflow.id
-                                readonly property bool focused: focusable && runOutput.selectedRunId === jobId
+                                readonly property bool focusable: isRunning && !!modelData.workflow_id && modelData.workflow_id === root.runs.workflowId
+                                readonly property bool focused: focusable && root.runs.selectedRunId === jobId
                                 objectName: "queue-focus-" + modelData.queueIndex
                                 Layout.fillWidth: true
                                 implicitHeight: cardContent.implicitHeight + Ui.Metrics.md * 2
@@ -254,7 +256,7 @@ Ui.Surface {
                                 Accessible.checked: focused
                                 function activate() {
                                     if (focusable) {
-                                        runOutput.selectRun(jobId);
+                                        root.runs.selectRun(jobId);
                                     }
                                 }
                                 Keys.onReturnPressed: activate()
@@ -319,8 +321,8 @@ Ui.Surface {
                                             visible: section.modelData.title !== "Cancelled"
                                             accessibleName: card.isRunning ? "Stop run" : "Remove from queue"
                                             description: accessibleName
-                                            enabled: workflowSession.connected && !card.modelData.stopping
-                                            onClicked: workflowSession.cancelJob(card.jobId)
+                                            enabled: root.runs.connected && !card.modelData.stopping
+                                            onClicked: root.runs.cancelJob(card.jobId)
                                         }
                                     }
                                     Ui.Progress {

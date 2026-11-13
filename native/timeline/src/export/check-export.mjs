@@ -130,13 +130,27 @@ export function checkedFrames(doc) {
   }
   return [...frames].sort((a, b) => a - b);
 }
+// `--shard k/n` keeps every n-th fixture from the k-th (1-based) of the sorted
+// list, so ctest can run the shards side by side. Without it, every fixture.
+export function shardOf(names, spec) {
+  if (!spec) return names;
+  const match = /^(\d+)\/(\d+)$/.exec(spec);
+  assert.ok(match, `--shard needs k/n, got ${spec}`);
+  const [k, n] = [Number(match[1]), Number(match[2])];
+  assert.ok(n >= 1 && k >= 1 && k <= n, `--shard ${spec} is out of range`);
+  return names.filter((_, index) => index % n === k - 1);
+}
 function golden() {
-  const expected = fs.readdirSync(path.join(root, 'fixtures')).sort().filter(name => {
+  const media = fs.readdirSync(path.join(root, 'fixtures')).sort().filter(name => {
     if (!name.endsWith('.json') || ['audio-mix.json', 'audio-proxy.json'].includes(name)) return false;
     const doc = JSON.parse(fs.readFileSync(path.join(root, 'fixtures', name)));
     return doc.clips.some(c => c.mediaPath && ['video', 'image'].includes(c.mediaType));
   });
-  assert.ok(expected.length > 0, 'Expected no media fixtures');
+  assert.ok(media.length > 0, 'Expected no media fixtures');
+  const shard = args.includes("--shard") ? args[args.indexOf("--shard") + 1] : null;
+  const expected = shardOf(media, shard);
+  assert.ok(expected.length > 0, `Shard ${shard} holds no media fixture`);
+  console.log(`export_golden: ${expected.length} of ${media.length} fixtures${shard ? ` (shard ${shard})` : ''}`);
   // Each 1080p or 4K export is tens of megabytes, so each fixture's files are
   // removed once it is compared.
   const out = fs.mkdtempSync(path.join(scratchBase, "nt-export-golden-"));

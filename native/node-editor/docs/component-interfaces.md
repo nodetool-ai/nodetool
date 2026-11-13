@@ -21,16 +21,19 @@ no longer read, and when it finds no QML files or no `EditorWindow` members.
 
 ## What the scan covers
 
-`EditorWindow::EditorWindow` sets ten root context properties, not five:
-`editor`, `workflowBrowser`, `libraryBrowser`, `runOutput`, `workflowSession`,
-`mediaResolver`, `modelPickerController`, `assetPickerController`,
-`resourcePickerController` and `documentPickerController`.
+`EditorWindow::EditorWindow` set ten root context properties. It now sets
+five: `mediaResolver`, `modelPickerController`, `assetPickerController`,
+`resourcePickerController` and `documentPickerController`. `editor`,
+`workflowBrowser`, `libraryBrowser`, `runOutput` and `workflowSession` are
+gone. The scan still lists `editor`, so it fails if a file reads the window
+again.
 
-The window also reaches QML under other names. `EditorChat.cpp` and
-`InlineTitlePresenter.cpp` pass the window as `host` through
-`setInitialProperties`. The scan counts those reads as reads of the window.
-`Inspector.qml` used to pass the window on as `propertyHost`; it now takes a
-`NodeInspector`.
+The window used to reach QML under other names. `EditorChat.cpp` and
+`InlineTitlePresenter.cpp` passed the window as `host` through
+`setInitialProperties`, and `Inspector.qml` passed it on as `propertyHost`.
+They now pass `ChatWindow`, `EditorCommands` and `RunState`, and
+`NodeInspector`. The scan counts reads of a name listed in `EDITOR_ALIASES` as
+reads of the window, and that list is now empty.
 
 The scan reads first-level members only. `editor.packSetup.configuredKeys`
 counts as `packSetup`. `packSetup`, `dynamicPorts`, `generationHistory` and
@@ -80,39 +83,123 @@ Moved so far:
   selection and read-only state. `tests/ui/InspectorComponentTest.cpp` loads
   `Inspector.qml` with a fixture inspector. It also builds the editor's media
   QML types and the model picker, which the property editors use.
+- `DocumentTabs` (`src/interfaces/DocumentTabs.h`), which `TabBar.qml` and
+  `CanvasTabStrip.qml` take, and `Notifications`
+  (`src/interfaces/Notifications.h`), which `TabBar.qml` and
+  `NotificationsPanel.qml` take. The tab state lives in the root window, and
+  each tab copies it into its own objects when the root signals a change.
+  The settings button went to `DocumentTabs` and the copy action to
+  `Notifications`, so neither file needs `EditorCommands`.
+  `tests/ui/TabBarComponentTest.cpp` loads all three files with fixture
+  objects and links only `node_editor_interfaces`, `node_editor_qml` and the
+  UI primitives.
+- `WorkflowHeader` (`src/interfaces/WorkflowHeader.h`), which `HeaderRow.qml`
+  takes for the document, and `PanelLayout`
+  (`src/interfaces/PanelLayout.h`), which `HeaderRow.qml` and `Rail.qml` take
+  for the panel toggles. Their buttons send typed requests such as `undo()` and
+  `toggleLibrary()`. `EditorWindow` maps each one to its command name, so the
+  `action` vocabulary is unchanged. `tests/ui/HeaderRowComponentTest.cpp`
+  loads both files with fixture objects.
+- `StatusModel` (`src/interfaces/StatusModel.h`), which `StatusBar.qml` takes
+  with `PanelLayout` for its view tabs. The same component test covers it.
+- `EditorCommands` (`src/interfaces/EditorCommands.h`), which `Toolbar.qml`,
+  `SelectionToolbar.qml` and `AuthoredControls.qml` take for read-only state,
+  the debounced run state and commands by name. `Selection`
+  (`src/interfaces/Selection.h`) gives `SelectionToolbar.qml` the selection
+  count, the single item and the disabled state. `RunState`
+  (`src/interfaces/RunState.h`) gives `Toolbar.qml` the shown queue, the
+  connection and the workflow id, and `AuthoredControls.qml` the connection
+  and the authored group command. Each tab owns one of each, because the
+  overlays and group controls belong to that tab's canvas.
+  `tests/ui/ToolbarComponentTest.cpp` loads all three files with fixture
+  objects.
+- `Viewport` (`src/interfaces/Viewport.h`), which `ViewportIndicator.qml`,
+  `MiniMapControls.qml` and `MiniMapPopups.qml` take for the zoom, the
+  mini-map color mode, the view commands and the popup requests. View
+  commands go up by name and count as user input, as `userAction` did.
+  `tests/ui/ViewportComponentTest.cpp` loads the three files with a fixture
+  viewport.
+- `FirstWorkflowGuide` (`src/interfaces/FirstWorkflowGuide.h`), which
+  `SetupGuide.qml` takes for whether the guide shows, whether it started, its
+  step readiness and its actions. `OptionalPacksSection.qml` takes the
+  catalog's `NodeCatalog` and `PackSetup` from `Catalog.qml`. `NodeCatalog`
+  gained the window height, which caps the packs popup, and the Runtimes and
+  packs request. `tests/ui/SetupGuideComponentTest.cpp` loads both files with
+  fixture objects.
+- `WorkflowBrowser.qml` takes the existing `WorkflowBrowser` as a required
+  property, named `WorkflowBrowserModel` in QML because the panel file already
+  names `WorkflowBrowser`. The model moved into `node_editor_interfaces` and
+  gained `open`, `confirmDelete` and `reload` requests, which the window maps
+  to `openWorkflow`, `deleteWorkflow` and the Refresh workflows command.
+  `WorkflowBrowser.qml` and `LibraryPanel.qml` take `PanelLayout` for their
+  close buttons and `StatusModel` for the connection and the connect request.
+  `StatusModel` gained `connected`. `tests/ui/WorkflowBrowserComponentTest.cpp`
+  loads the browser with fixture objects.
+- `RunOutput.qml` takes `PanelLayout` for whether the output panel is open,
+  `StatusModel`, which gained `message`, and `RunState`, which gained the
+  `askAgent` request. `TextOutput.qml` and `TypeIcon.qml` read the
+  `OutputStyle` and `TypeIcons` singletons (`src/qml/`), which the QML engine
+  owns. The icon paths moved from `NodeLayout.cpp` to `src/graph/IconPaths.cpp`
+  in `node_editor_interfaces`. `TypeIcon.qml` now draws its icon in any engine,
+  where it drew nothing without the `editor` context property.
+  `tests/ui/RunOutputComponentTest.cpp` covers the singletons and the new
+  members.
+- `ChatWindow` (`src/interfaces/ChatWindow.h`), which `EditorChat.qml` takes as
+  `frame` in place of the window as `host`. Its drag, resize and reset requests
+  map to `beginChatGeometry`, `changeChatGeometry` and `resetChatPosition`,
+  which keep the geometry. `EditorChat.qml` also needs the chat session, so
+  `tests/ui/ChatWindowComponentTest.cpp` checks the interface's requests and
+  `EditorChatTest::geometryAndPersistence` covers the window wiring.
+- The `editor`, `libraryBrowser`, `runOutput` and `workflowSession` context
+  properties are gone. `QueueOverlay.qml` takes `RunState` for the debounced
+  queue, the connection, the open workflow, the selected run and the cancel
+  and select requests. `RunOutput.qml` reads the run output's runs, selected
+  run, collections and rich entries from `RunState`, which sends its select
+  and clear requests to `RunOutputModel` and its cancel request to
+  `WorkflowSession`. `RunState` holds the two item models through `QPointer`
+  and does not own them. `LibraryPanel.qml` takes the existing
+  `LibraryBrowser` as `library`. It moved into `node_editor_interfaces`, which
+  now links `nodetool_media` for its asset list model. The window's
+  `shownQueue` property is gone. `ServerSyncPanel.qml` already took the session
+  as a `required property var workflowSession`, because `WorkflowSession` lives
+  in `node_editor_core` and cannot be a QML type of the module.
+  `tests/ui/RunOutputComponentTest.cpp` loads `QueueOverlay.qml` with a fixture
+  `RunState`, and `tests/ui/QueueUiTest.cpp` fills one as the window does.
 
 | Interface | What it holds | Main readers |
 |---|---|---|
 | `NodeCatalog` (moved) | Node metadata as a list model, categories, ranking, recent and favorite types, quick actions, add or drag a node, close or move the floating menu | `Catalog.qml`, `NodeMenu.qml` |
-| `PackSetup` (exists) | Configured keys, optional packs, setup actions, first-workflow guide | `Catalog.qml`, `NodeMenu.qml`, `OptionalPacksSection.qml`, `SetupGuide.qml` |
-| `DocumentState` | Read-only state and reason, status message, document and credential epochs | Inspector, property editors, toolbars |
-| `Selection` | Selected id, count, summary, disabled state, node context menu | `SelectionToolbar.qml`, `Inspector.qml`, `GenerationHistory.qml`, `PropertyField.qml` |
+| `PackSetup` (exists, now a required property) | Configured keys, optional packs | `Catalog.qml`, `NodeMenu.qml`, `OptionalPacksSection.qml` |
+| `FirstWorkflowGuide` (moved) | Whether the guide shows, whether it started, step readiness, guide actions | `SetupGuide.qml` |
+| `DocumentState` (not needed) | Read-only state and reason, status message, document and credential epochs | Covered by `NodeInspector`, `PropertyHost`, `EditorCommands` and `StatusModel` |
+| `Selection` (moved for the selection toolbar) | Selected count, single item, disabled state, node context menu | `SelectionToolbar.qml` |
 | `NodeInspector` (moved) | Selection header, property rows, dynamic ports, read-only reason and message, run selected, run progress, cost estimate | `Inspector.qml` |
 | `PropertyHost` (moved) | Selected id, read-only state, document and credential epochs, commit and remove a value | `PropertyField.qml` |
 | `GenerationReplay` (moved) | Generation history, pinned generation, replay set | `GenerationHistory.qml` |
-| `DocumentTabs` | Workspace tabs as a list model, active tab, project name, tab actions, canvas strips (subgraph surfaces) | `TabBar.qml`, `CanvasTabStrip.qml` |
-| `WorkflowHeader` | Workflow name and rename, save readout, undo and redo state | `HeaderRow.qml` |
-| `PanelLayout` | Which panels are open and the toggles | `HeaderRow.qml`, `Rail.qml`, `StatusBar.qml`, `RunOutput.qml` |
-| `StatusModel` | Connection status and detail, node and edge counts, queue counts, system stats | `StatusBar.qml`, `AuthoredControls.qml`, `WorkflowBrowser.qml` |
-| `RunState` | Shown queue and shown run activity, authored group run buttons, ask the agent about a run | `Toolbar.qml`, `QueueOverlay.qml`, `AuthoredControls.qml`, `RunOutput.qml` |
-| `Viewport` | Zoom percent and preset, mini-map color mode and popups | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
-| `Notifications` | Notification list model, unread count, open the list | `TabBar.qml`, `NotificationsPanel.qml` |
-| `ChatWindow` | Chat window geometry drags | `EditorChat.qml` |
-| `EditorCommands` | Named command dispatch (`action`, `userAction`), tooltip, clipboard, settings page | most chrome |
+| `DocumentTabs` (moved) | Workspace tabs, active tab, project name, tab actions, canvas strips (subgraph surfaces), strip offset, settings | `TabBar.qml`, `CanvasTabStrip.qml` |
+| `WorkflowHeader` (moved) | Workflow name and rename, save readout and its action, undo and redo, More menu | `HeaderRow.qml` |
+| `PanelLayout` (moved for the rail, the document bar and the status bar) | Which panels are open and the toggles | `HeaderRow.qml`, `Rail.qml`, `StatusBar.qml`, `RunOutput.qml` |
+| `StatusModel` (moved for the status bar and the side panels) | Connection status, detail and state, node and edge counts, queue counts, system stats, status message, connect request | `StatusBar.qml`, `WorkflowBrowser.qml`, `LibraryPanel.qml`, `RunOutput.qml` |
+| `RunState` (moved) | Shown queue, connection, workflow id, authored group commands, ask the agent about a run, run output runs and models, cancel, select and clear | `Toolbar.qml`, `AuthoredControls.qml`, `RunOutput.qml`, `QueueOverlay.qml` |
+| `Viewport` (moved) | Zoom percent and preset, mini-map color mode and popups, view commands | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
+| `Notifications` (moved) | Notification list, unread count, open the list, copy an entry | `TabBar.qml`, `NotificationsPanel.qml` |
+| `ChatWindow` (moved) | Chat window drag, resize and position reset | `EditorChat.qml` |
+| `EditorCommands` (moved for the toolbars and the group controls) | Read-only state, shown run activity, named command dispatch, tooltip, theme roles | `Toolbar.qml`, `SelectionToolbar.qml`, `AuthoredControls.qml`, most other chrome |
 
 These members should leave the window instead of joining an interface:
 
-- `iconPath` is a lookup in static data. It becomes a `QML_SINGLETON` such as
-  `TypeIcons`, so `TypeIcon.qml` needs no host at all.
-- `styleOutputMarkdown` is stateless formatting. It becomes a function on a
-  singleton or on the run output object.
+- `iconPath` is a lookup in static data. It is now the `TypeIcons`
+  `QML_SINGLETON`, so `TypeIcon.qml` needs no host at all.
+- `styleOutputMarkdown` is stateless formatting. It is now
+  `OutputStyle.styleMarkdown`, a `QML_SINGLETON`.
 - `presentation` sends theme roles from `Toolbar.qml` to the canvas painters.
-  The root QML item or `EditorWindow` should send them, so the toolbar stops
-  owning a canvas concern.
-- `height` is the QWidget height. `OptionalPacksSection.qml` should use its
-  window or parent height.
-- `openWorkflow` and `deleteWorkflow` belong on the existing `WorkflowBrowser`,
-  which `WorkflowBrowser.qml` already reads.
+  The toolbar now sends them through `EditorCommands.present`. The root QML
+  item or `EditorWindow` should send them, so the toolbar stops owning a canvas
+  concern.
+- `height` was the QWidget height. `OptionalPacksSection.qml` now reads it as
+  `NodeCatalog.windowHeight`.
+- `openWorkflow` and `deleteWorkflow` moved to the existing `WorkflowBrowser`
+  as `open` and `confirmDelete` requests.
 
 `EditorCommands` dispatches by command name, as `action(name)` does now. Typed
 methods per command would be cleaner, but the command names are also the
@@ -122,11 +209,12 @@ name and only moves it off the window.
 The other context properties are already narrow objects. Each reader takes it
 as a `required property` instead of reading the global:
 
-- `workflowBrowser`: `WorkflowBrowser.qml`.
-- `libraryBrowser`: `LibraryPanel.qml`.
-- `runOutput`: `RunOutput.qml`, `QueueOverlay.qml`.
-- `workflowSession`: `QueueOverlay.qml`, `Toolbar.qml` (`ServerSyncPanel.qml`
-  already takes it as a required property).
+- `workflowBrowser`: removed. `WorkflowBrowser.qml` takes it as `browser`.
+- `libraryBrowser`: removed. `LibraryPanel.qml` takes it as `library`.
+- `runOutput`: removed. `RunOutput.qml` and `QueueOverlay.qml` read it through
+  `RunState`.
+- `workflowSession`: removed. `QueueOverlay.qml` reads it through `RunState`,
+  and `ServerSyncPanel.qml` takes it as a required property.
 - `mediaResolver`: the media and output views.
 - The four picker controllers: the property editors. They read the global
   through `typeof x === "undefined" ? null : x` guards today, which a required
@@ -159,7 +247,7 @@ candidate list, not a plan to move them.
   `QAbstractListModel` in the same PR as the interface split, or in a follow-up?
   A list model changes delegate bindings (`modelData` to roles), so it is not a
   pure move.
-- Q3. `EditorCommands.action(name)` keeps dispatch by name. Is that acceptable,
+- Q3. `EditorCommands.run(name)` keeps dispatch by name. Is that acceptable,
   or should the most used commands get typed methods?
 
 ## Generated inventory
@@ -167,48 +255,15 @@ candidate list, not a plan to move them.
 <!-- INTERFACES -->
 ```json
 {
-  "PackSetup": ["packSetup", "setupAction", "guideReadiness", "guideStarted", "guideVisible"],
-  "DocumentState": ["readOnly", "message"],
-  "Selection": ["selectionInfo", "selectedCount", "selectionDisabled", "selectionMostlyDisabled", "showNodeMenu"],
-  "DocumentTabs": ["workflowTabs", "activeTab", "projectName", "newTab", "activateTab", "closeTab", "dropTab", "renameTab", "showTabMenu", "showProjectMenu", "showTabToolTip", "setTabStripOffset", "tabStripOffset", "tabsChanged", "tabRenameRequested", "canvasStrips", "activateSurface", "closeSurface"],
-  "WorkflowHeader": ["workflowName", "workflowRenamable", "renameWorkflow", "documentSaveStatus", "canUndo", "canRedo"],
-  "PanelLayout": ["browserVisible", "catalogVisible", "chatVisible", "libraryVisible", "inspectorVisible", "miniMapVisible", "outputVisible", "traceVisible", "versionsVisible", "setMiniMapVisible", "toggleChat", "toggleStatusView"],
-  "StatusModel": ["connectionStatus", "connectionDetail", "connectionState", "nodeCount", "edgeCount", "queuedCount", "queueAvailable", "systemStats"],
-  "RunState": ["shownQueue", "shownRunActive", "authoredAction", "askRunAgent"],
-  "Viewport": ["zoomPercent", "zoomIsPreset", "miniMapColorMode", "setMiniMapColorMode", "showMiniMapPopup", "closeMiniMapPopup"],
-  "Notifications": ["notifications", "unreadNotifications", "showNotifications"],
-  "ChatWindow": ["beginChatGeometry", "changeChatGeometry", "resetChatPosition"],
-  "EditorCommands": ["action", "userAction", "showToolTip", "copyText", "openSettings"],
-  "Leaves the window": ["iconPath", "styleOutputMarkdown", "presentation", "height", "openWorkflow", "deleteWorkflow"]
+  "Leaves the window": []
 }
 ```
 
 <!-- BEGIN GENERATED: scripts/component-interfaces.mjs -->
-Scanned 78 files in `qml/`. 36 read a root context property, 21 of them read the editor window. `EditorWindow.h` exposes 65 properties and 51 invokable methods or slots (116 members) and 15 signals.
+Scanned 78 files in `qml/`. 16 read a root context property, 0 of them read the editor window. `EditorWindow.h` exposes 11 properties and 12 invokable methods or slots (23 members) and 14 signals.
 
 | File | Editor members | Other context properties |
 |---|---:|---|
-| TabBar.qml | 18 |  |
-| HeaderRow.qml | 13 |  |
-| StatusBar.qml | 13 |  |
-| SelectionToolbar.qml | 8 |  |
-| Rail.qml | 7 |  |
-| Toolbar.qml | 6 | `workflowSession` (2) |
-| AuthoredControls.qml | 4 via `host` |  |
-| SetupGuide.qml | 4 |  |
-| WorkflowBrowser.qml | 4 | `workflowBrowser` (13) |
-| CanvasTabStrip.qml | 3 |  |
-| EditorChat.qml | 3 via `host` |  |
-| OptionalPacksSection.qml | 3 |  |
-| RunOutput.qml | 3 | `runOutput` (6) |
-| ViewportIndicator.qml | 3 |  |
-| MiniMapControls.qml | 2 |  |
-| MiniMapPopups.qml | 2 |  |
-| NotificationsPanel.qml | 2 |  |
-| LibraryPanel.qml | 1 | `libraryBrowser` (13, passed on), `assetPickerController` (3) |
-| QueueOverlay.qml | 1 | `runOutput` (2), `workflowSession` (4) |
-| TextOutput.qml | 1 | `mediaResolver` (7) |
-| TypeIcon.qml | 1 |  |
 | AssetPropertyEditor.qml |  | `mediaResolver` (0, passed on), `assetPickerController` (0, passed on), `resourcePickerController` (0, passed on) |
 | CanvasMedia.qml |  | `mediaResolver` (6) |
 | CardMediaPlayer.qml |  | `mediaResolver` (6) |
@@ -217,12 +272,13 @@ Scanned 78 files in `qml/`. 36 read a root context property, 21 of them read the
 | ImageComparisonOutput.qml |  | `mediaResolver` (6) |
 | ImageViewer.qml |  | `mediaResolver` (1) |
 | InlinePropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
+| LibraryPanel.qml |  | `assetPickerController` (3) |
 | MediaParameterPropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
 | MediaPreview.qml |  | `mediaResolver` (14) |
 | Model3DPropertyEditor.qml |  | `assetPickerController` (0, passed on) |
 | ModelPropertyEditor.qml |  | `modelPickerController` (0, passed on) |
 | RemainingResourcePropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
-| ServerSyncPanel.qml |  | `workflowSession` (11) |
+| TextOutput.qml |  | `mediaResolver` (7) |
 | WorkflowPropertyEditor.qml |  | `resourcePickerController` (0, passed on) |
 
 Files where a local `id` hides a context property, so their reads are local: CodePropertyEditor.qml (`editor`), InlinePropertyEditor.qml (`editor`).
@@ -231,56 +287,6 @@ Files where a local `id` hides a context property, so their reads are local: Cod
 
 `passed on` means the file hands the whole object to a child, such as `propertyHost: editor`.
 
-- **TabBar.qml**
-  - `editor`: activateTab, activeTab, closeTab, dropTab, newTab, on tabRenameRequested, on tabsChanged, openSettings, projectName, renameTab, setTabStripOffset, showNotifications, showProjectMenu, showTabMenu, showTabToolTip, tabStripOffset, unreadNotifications, workflowTabs
-- **HeaderRow.qml**
-  - `editor`: action, canRedo, canUndo, chatVisible, documentSaveStatus, inspectorVisible, miniMapVisible, renameWorkflow, setMiniMapVisible, showToolTip, toggleChat, workflowName, workflowRenamable
-- **StatusBar.qml**
-  - `editor`: action, connectionDetail, connectionStatus, edgeCount, nodeCount, outputVisible, queueAvailable, queuedCount, showToolTip, systemStats, toggleStatusView, traceVisible, versionsVisible
-- **SelectionToolbar.qml**
-  - `editor`: action, readOnly, selectedCount, selectionDisabled, selectionInfo, selectionMostlyDisabled, showNodeMenu, shownRunActive
-- **Rail.qml**
-  - `editor`: action, browserVisible, catalogVisible, chatVisible, libraryVisible, showToolTip, toggleChat
-- **Toolbar.qml**
-  - `editor`: action, presentation, readOnly, showToolTip, shownQueue, shownRunActive
-  - `workflowSession`: connected, workflow
-- **AuthoredControls.qml**
-  - `editor` (as `host`): authoredAction, connectionState, readOnly, shownRunActive
-- **SetupGuide.qml**
-  - `editor`: guideReadiness, guideStarted, guideVisible, setupAction
-- **WorkflowBrowser.qml**
-  - `editor`: action, connectionState, deleteWorkflow, openWorkflow
-  - `workflowBrowser`: busy, createWorkflow, error, hasNext, loadNext, loading, projectId, projects, projectsLoading, refresh, renameWorkflow, rows, search
-- **CanvasTabStrip.qml**
-  - `editor`: activateSurface, canvasStrips, closeSurface
-- **EditorChat.qml**
-  - `editor` (as `host`): beginChatGeometry, changeChatGeometry, resetChatPosition
-- **OptionalPacksSection.qml**
-  - `editor`: height, packSetup, setupAction
-- **RunOutput.qml**
-  - `editor`: askRunAgent, message, outputVisible
-  - `runOutput`: clear, collections, richEntries, runs, selectRun, selectedRunId
-- **ViewportIndicator.qml**
-  - `editor`: userAction, zoomIsPreset, zoomPercent
-- **MiniMapControls.qml**
-  - `editor`: miniMapColorMode, showMiniMapPopup
-- **MiniMapPopups.qml**
-  - `editor`: closeMiniMapPopup, setMiniMapColorMode
-- **NotificationsPanel.qml**
-  - `editor`: copyText, notifications
-- **LibraryPanel.qml**
-  - `editor`: action
-  - `libraryBrowser`: assetModel, breadcrumbs, busy, configured, createFolder, error, favoritesOnly, goUp, openFolder, refresh, searchText, tagFilter, typeFilter passed on as browser:
-  - `assetPickerController`: on failed, on uploaded, upload
-- **QueueOverlay.qml**
-  - `editor`: shownQueue
-  - `runOutput`: selectRun, selectedRunId
-  - `workflowSession`: cancelJob, connected, queue, workflow
-- **TextOutput.qml**
-  - `editor`: styleOutputMarkdown
-  - `mediaResolver`: cancel, on cleared, on failed, on resolved, release, resolve, resolvedText
-- **TypeIcon.qml**
-  - `editor`: iconPath
 - **AssetPropertyEditor.qml**
   - `mediaResolver`: none passed on as resolver:
   - `assetPickerController`: none passed on as controller:
@@ -299,6 +305,8 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `mediaResolver`: on cleared
 - **InlinePropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
+- **LibraryPanel.qml**
+  - `assetPickerController`: on failed, on uploaded, upload
 - **MediaParameterPropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
 - **MediaPreview.qml**
@@ -309,109 +317,14 @@ Files where a local `id` hides a context property, so their reads are local: Cod
   - `modelPickerController`: none passed on as controller:
 - **RemainingResourcePropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
-- **ServerSyncPanel.qml**
-  - `workflowSession`: autosaveState, conflictPending, conflictWorkflow, mergeConflicts, on credentialsChanged, on errorOccurred, on stateChanged, on workflowOpened, remoteLoading, saving, serverBound
+- **TextOutput.qml**
+  - `mediaResolver`: cancel, on cleared, on failed, on resolved, release, resolve, resolvedText
 - **WorkflowPropertyEditor.qml**
   - `resourcePickerController`: none passed on as controller:
 
 ### Editor members by proposed interface
 
-- **PackSetup** (5 members, read by 2 files: OptionalPacksSection.qml, SetupGuide.qml)
-  - `guideReadiness` property: SetupGuide.qml
-  - `guideStarted` property: SetupGuide.qml
-  - `guideVisible` property: SetupGuide.qml
-  - `packSetup` property: OptionalPacksSection.qml
-  - `setupAction` method: OptionalPacksSection.qml, SetupGuide.qml
-- **DocumentState** (2 members, read by 4 files: AuthoredControls.qml, RunOutput.qml, SelectionToolbar.qml, Toolbar.qml)
-  - `message` property: RunOutput.qml
-  - `readOnly` property: AuthoredControls.qml, SelectionToolbar.qml, Toolbar.qml
-- **Selection** (5 members, read by 1 files: SelectionToolbar.qml)
-  - `selectedCount` property: SelectionToolbar.qml
-  - `selectionDisabled` property: SelectionToolbar.qml
-  - `selectionInfo` property: SelectionToolbar.qml
-  - `selectionMostlyDisabled` property: SelectionToolbar.qml
-  - `showNodeMenu` method: SelectionToolbar.qml
-- **DocumentTabs** (18 members, read by 2 files: CanvasTabStrip.qml, TabBar.qml)
-  - `activateSurface` method: CanvasTabStrip.qml
-  - `activateTab` method: TabBar.qml
-  - `activeTab` property: TabBar.qml
-  - `canvasStrips` property: CanvasTabStrip.qml
-  - `closeSurface` method: CanvasTabStrip.qml
-  - `closeTab` method: TabBar.qml
-  - `dropTab` method: TabBar.qml
-  - `newTab` method: TabBar.qml
-  - `projectName` property: TabBar.qml
-  - `renameTab` method: TabBar.qml
-  - `setTabStripOffset` method: TabBar.qml
-  - `showProjectMenu` method: TabBar.qml
-  - `showTabMenu` method: TabBar.qml
-  - `showTabToolTip` method: TabBar.qml
-  - `tabRenameRequested` signal: TabBar.qml
-  - `tabStripOffset` method: TabBar.qml
-  - `tabsChanged` signal: TabBar.qml
-  - `workflowTabs` property: TabBar.qml
-- **WorkflowHeader** (6 members, read by 1 files: HeaderRow.qml)
-  - `canRedo` property: HeaderRow.qml
-  - `canUndo` property: HeaderRow.qml
-  - `documentSaveStatus` property: HeaderRow.qml
-  - `renameWorkflow` method: HeaderRow.qml
-  - `workflowName` property: HeaderRow.qml
-  - `workflowRenamable` property: HeaderRow.qml
-- **PanelLayout** (12 members, read by 4 files: HeaderRow.qml, Rail.qml, RunOutput.qml, StatusBar.qml)
-  - `browserVisible` property: Rail.qml
-  - `catalogVisible` property: Rail.qml
-  - `chatVisible` property: HeaderRow.qml, Rail.qml
-  - `inspectorVisible` property: HeaderRow.qml
-  - `libraryVisible` property: Rail.qml
-  - `miniMapVisible` property: HeaderRow.qml
-  - `outputVisible` property: RunOutput.qml, StatusBar.qml
-  - `setMiniMapVisible` method: HeaderRow.qml
-  - `toggleChat` method: HeaderRow.qml, Rail.qml
-  - `toggleStatusView` method: StatusBar.qml
-  - `traceVisible` property: StatusBar.qml
-  - `versionsVisible` property: StatusBar.qml
-- **StatusModel** (8 members, read by 3 files: AuthoredControls.qml, StatusBar.qml, WorkflowBrowser.qml)
-  - `connectionDetail` property: StatusBar.qml
-  - `connectionState` property: AuthoredControls.qml, WorkflowBrowser.qml
-  - `connectionStatus` property: StatusBar.qml
-  - `edgeCount` property: StatusBar.qml
-  - `nodeCount` property: StatusBar.qml
-  - `queueAvailable` property: StatusBar.qml
-  - `queuedCount` property: StatusBar.qml
-  - `systemStats` property: StatusBar.qml
-- **RunState** (4 members, read by 5 files: AuthoredControls.qml, QueueOverlay.qml, RunOutput.qml, SelectionToolbar.qml, Toolbar.qml)
-  - `askRunAgent` method: RunOutput.qml
-  - `authoredAction` method: AuthoredControls.qml
-  - `shownQueue` property: QueueOverlay.qml, Toolbar.qml
-  - `shownRunActive` property: AuthoredControls.qml, SelectionToolbar.qml, Toolbar.qml
-- **Viewport** (6 members, read by 3 files: MiniMapControls.qml, MiniMapPopups.qml, ViewportIndicator.qml)
-  - `closeMiniMapPopup` method: MiniMapPopups.qml
-  - `miniMapColorMode` property: MiniMapControls.qml
-  - `setMiniMapColorMode` method: MiniMapPopups.qml
-  - `showMiniMapPopup` method: MiniMapControls.qml
-  - `zoomIsPreset` property: ViewportIndicator.qml
-  - `zoomPercent` property: ViewportIndicator.qml
-- **Notifications** (3 members, read by 2 files: NotificationsPanel.qml, TabBar.qml)
-  - `notifications` property: NotificationsPanel.qml
-  - `showNotifications` method: TabBar.qml
-  - `unreadNotifications` property: TabBar.qml
-- **ChatWindow** (3 members, read by 1 files: EditorChat.qml)
-  - `beginChatGeometry` method: EditorChat.qml
-  - `changeChatGeometry` method: EditorChat.qml
-  - `resetChatPosition` method: EditorChat.qml
-- **EditorCommands** (5 members, read by 10 files: HeaderRow.qml, LibraryPanel.qml, NotificationsPanel.qml, Rail.qml, SelectionToolbar.qml, StatusBar.qml, TabBar.qml, Toolbar.qml, ViewportIndicator.qml, WorkflowBrowser.qml)
-  - `action` method: HeaderRow.qml, LibraryPanel.qml, Rail.qml, SelectionToolbar.qml, StatusBar.qml, Toolbar.qml, WorkflowBrowser.qml
-  - `copyText` method: NotificationsPanel.qml
-  - `openSettings` method: TabBar.qml
-  - `showToolTip` method: HeaderRow.qml, Rail.qml, StatusBar.qml, Toolbar.qml
-  - `userAction` method: ViewportIndicator.qml
-- **Leaves the window** (6 members, read by 5 files: OptionalPacksSection.qml, TextOutput.qml, Toolbar.qml, TypeIcon.qml, WorkflowBrowser.qml)
-  - `deleteWorkflow` method: WorkflowBrowser.qml
-  - `height` QWidget property: OptionalPacksSection.qml
-  - `iconPath` method: TypeIcon.qml
-  - `openWorkflow` method: WorkflowBrowser.qml
-  - `presentation` method: Toolbar.qml
-  - `styleOutputMarkdown` method: TextOutput.qml
+- **Leaves the window** (0 members, read by 0 files: )
 
-Members no QML file reads (C++ callers only, or dead): `askAgent`, `cancelCatalogPlacement`, `catalogAtPointer`, `clearReplayGenerations`, `closeAllTabs`, `closeOtherTabs`, `commitProperty`, `costEstimate`, `credentialsEpoch`, `documentEpoch`, `dynamicPorts`, `emptyCanvas`, `focusCanvas`, `generationHistory`, `graphSummary`, `hasUnsavedChanges`, `layoutOverlays`, `openChild`, `outputMedia`, `pinGeneration`, `pinnedGeneration`, `properties`, `readOnlyReason`, `removeProperty`, `replayGenerations`, `runActive`, `runProgress`, `runSelectedNodes`, `saveState`, `selection`, `serverSaveState`, `serverSyncAvailable`, `serverSyncNeedsAttention`, `setProperty`, `setup`, `toggleReplayGeneration`.
+Members no QML file reads (C++ callers only, or dead): `action`, `askAgent`, `askRunAgent`, `cancelCatalogPlacement`, `catalogAtPointer`, `closeAllTabs`, `closeOtherTabs`, `emptyCanvas`, `focusCanvas`, `graphSummary`, `hasUnsavedChanges`, `layoutOverlays`, `openChild`, `outputMedia`, `runActive`, `saveState`, `serverSaveState`, `serverSyncAvailable`, `serverSyncNeedsAttention`, `setProperty`, `setup`, `showToolTip`, `toggleChat`.
 <!-- END GENERATED -->

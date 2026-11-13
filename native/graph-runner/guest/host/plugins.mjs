@@ -61,7 +61,7 @@ export function capabilityPlugins() {
         // The contract resolves it too; build scripts that bundle without the contract plugin rely on this.
         b.onResolve({ filter: /^@napi-rs\/canvas$/ }, () => ({ path: join(here, "..", MODULES["@napi-rs/canvas"].provider) }));
         b.onResolve({ filter: /^\.\.?\/(lib\/)?audio-context\.js$/ }, (args) => {
-          if (args.importer.includes('/audio-nodes/')) return { path: join(here, 'offline-audio.mjs') };
+          if (/[\\/]audio-nodes[\\/]/.test(args.importer)) return { path: join(here, 'offline-audio.mjs') };
         });
         if (nodesDir) {
           b.onResolve({ filter: /^\.\/(lib-shader-utils|gpu-device|image-io)\.js$/ }, (args) => {

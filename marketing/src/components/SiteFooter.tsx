@@ -4,6 +4,7 @@ import Image from "next/image";
 import { track } from "../lib/analytics";
 import { footerCompareLinks } from "../data/competitorEntries";
 import { EDITIONS } from "../data/editions";
+import { LANGUAGE_PAGES } from "../data/languagePages";
 
 /**
  * Single shared site footer used by every route (P3/C4). Gives consistent
@@ -137,6 +138,17 @@ export default function SiteFooter() {
             </span>
             Built in the open.
           </p>
+          <nav aria-label="Languages">
+            <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm">
+              {Object.values(LANGUAGE_PAGES).map((page) => (
+                <li key={page.path}>
+                  <a href={page.path} hrefLang={page.hreflang} lang={page.hreflang} className="rounded text-slate-300 hover:text-white focus-ring">
+                    {page.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
           <p className="text-xs text-slate-300">AGPL-3.0 · NodeTool</p>
         </div>
       </div>

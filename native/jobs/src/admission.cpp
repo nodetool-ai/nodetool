@@ -23,15 +23,13 @@ T clampTo(T value, T fallback) {
 }  // namespace
 
 uint64_t checkedAdd(uint64_t a, uint64_t b) {
-  uint64_t sum = 0;
-  if (__builtin_add_overflow(a, b, &sum)) throw AdmissionError("the size of a host operation overflows");
-  return sum;
+  if (b > std::numeric_limits<uint64_t>::max() - a) throw AdmissionError("the size of a host operation overflows");
+  return a + b;
 }
 
 uint64_t checkedMul(uint64_t a, uint64_t b) {
-  uint64_t product = 0;
-  if (__builtin_mul_overflow(a, b, &product)) throw AdmissionError("the size of a host operation overflows");
-  return product;
+  if (a != 0 && b > std::numeric_limits<uint64_t>::max() / a) throw AdmissionError("the size of a host operation overflows");
+  return a * b;
 }
 
 uint64_t JobCost::total() const { return checkedAdd(checkedAdd(snapshotBytes, outputBytes), workspaceBytes); }

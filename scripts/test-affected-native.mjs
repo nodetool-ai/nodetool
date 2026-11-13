@@ -119,7 +119,10 @@ export const PROJECTS = {
   },
   // The editor's local-run tests load the graph runner's guest bundle from the
   // path in NODETOOL_GUEST_BUNDLE (native/node-editor/cmake/GraphRunner.cmake).
+  // On Windows the editor's launcher and check script build in `build-windows`
+  // (native/node-editor/scripts/run.mjs), so the default follows them there.
   "node-editor": {
+    windowsBuildDir: "build-windows",
     dependsOn: ["jobs", "kernels"],
     prepare: [
       {
@@ -145,6 +148,7 @@ export function projectConfig(name) {
   return {
     envVar: config.envVar ?? `NODETOOL_${name.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_BUILD_DIR`,
     configureArgs: config.configureArgs ?? [],
+    windowsBuildDir: config.windowsBuildDir ?? "build",
     prepare: config.prepare ?? [],
     bundleInputs: config.bundleInputs ?? [],
     dependsOn: config.dependsOn ?? [],
@@ -197,24 +201,28 @@ function cmakeFilesUnder(dir) {
 }
 
 /** The build directory of a project, and where the choice came from. */
-export function resolveBuildDir(name, overrides, env, root = repoRoot) {
+export function resolveBuildDir(name, overrides, env, root = repoRoot, platform = process.platform) {
   if (overrides[name]) return { dir: resolve(overrides[name]), source: "--build" };
   const { envVar } = projectConfig(name);
   if (env[envVar]) return { dir: resolve(env[envVar]), source: envVar };
-  return { dir: join(root, "native", name, "build"), source: "default" };
+  return { dir: join(root, "native", name, defaultBuildDirName(name, platform)), source: "default" };
+}
+
+function defaultBuildDirName(name, platform) {
+  return platform === "win32" ? projectConfig(name).windowsBuildDir : "build";
 }
 
 /** The exact command that configures a project's default build directory. */
-export function configureCommand(name) {
+export function configureCommand(name, platform = process.platform) {
   const dir = `native/${name}`;
-  return ["cmake", "-S", dir, "-B", `${dir}/build`, ...projectConfig(name).configureArgs].join(" ");
+  return ["cmake", "-S", dir, "-B", `${dir}/${defaultBuildDirName(name, platform)}`, ...projectConfig(name).configureArgs].join(" ");
 }
 
 export function readCache(buildDir) {
   const cache = {};
   const path = join(buildDir, "CMakeCache.txt");
   if (!existsSync(path)) return null;
-  for (const line of readFileSync(path, "utf8").split("\n")) {
+  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
     const match = /^([^#/][^:=]*):[A-Z]+=(.*)$/.exec(line);
     if (match) cache[match[1]] = match[2];
   }
@@ -409,7 +417,7 @@ export function producersOf(paths, targets, buildDir, cache) {
       const rules = join(target.buildDir, "CMakeFiles", `${target.name}.dir`, "build.make");
       if (!existsSync(rules)) continue;
       const text = readFileSync(rules, "utf8");
-      for (const path of paths) if (text.includes(path)) found.get(path).add(target.name);
+      for (const path of paths) if (text.includes(path) || text.includes(path.replaceAll("\\", "/"))) found.get(path).add(target.name);
     }
     return found;
   }
@@ -418,7 +426,7 @@ export function producersOf(paths, targets, buildDir, cache) {
     for (const block of blocks) {
       for (const target of utilities) {
         if (!block.includes(`CMakeFiles/${target.name}`)) continue;
-        for (const path of paths) if (block.includes(path)) found.get(path).add(target.name);
+        for (const path of paths) if (block.includes(path) || block.includes(path.replaceAll("\\", "/"))) found.get(path).add(target.name);
       }
     }
     return found;
@@ -801,7 +809,7 @@ export function diskReaders() {
 export function loadModel(name, buildDir, cache, log, { refresh = true } = {}) {
   const api = refresh ? ensureFileApi(buildDir, log) : readFileApi(buildDir);
   if (!api) return null;
-  const result = spawnSync("ctest", ["--test-dir", buildDir, "--show-only=json-v1"], { encoding: "utf8", maxBuffer: 1 << 28 });
+  const result = spawnSync("ctest", ["--test-dir", buildDir, ...(api.config ? ["-C", api.config] : []), "--show-only=json-v1"], { encoding: "utf8", maxBuffer: 1 << 28 });
   if (result.status !== 0) throw new Error(`ctest --show-only failed in ${buildDir}: ${result.stderr}`);
   const ctest = JSON.parse(result.stdout);
   const generated = [];

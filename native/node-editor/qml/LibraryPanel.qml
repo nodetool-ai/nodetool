@@ -10,6 +10,10 @@ import NodeTool.Media as Media
 // toolbar. A tile dragged onto the canvas adds the matching constant node.
 Rectangle {
     id: root
+    required property PanelLayout panels
+    required property StatusModel status
+    // The account's assets in the open folder, and the filters.
+    required property LibraryBrowser library
     EditorRoles { id: roles }
     color: roles.panel
     implicitWidth: Ui.Metrics.dialogCompactWidth
@@ -18,7 +22,7 @@ Rectangle {
     component LibraryLabel: Ui.Text { role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary; wrapMode: Text.Wrap }
     function clearFilters() {
         search.text = ""; tagSearch.text = ""
-        libraryBrowser.searchText = ""; libraryBrowser.typeFilter = ""; libraryBrowser.tagFilter = ""; libraryBrowser.favoritesOnly = false
+        root.library.searchText = ""; root.library.typeFilter = ""; root.library.tagFilter = ""; root.library.favoritesOnly = false
     }
     ColumnLayout {
         anchors.fill: parent
@@ -27,10 +31,10 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             LibraryLabel { Layout.fillWidth: true; text: "Library"; tone: Ui.Text.Primary }
-            LibraryButton { objectName: "library-refresh"; iconName: "refresh"; accessibleName: "Refresh"; enabled: libraryBrowser.configured && !libraryBrowser.busy; onClicked: libraryBrowser.refresh() }
-            LibraryButton { objectName: "library-create-folder"; iconName: "createNewFolder"; accessibleName: "New folder"; enabled: libraryBrowser.configured && !libraryBrowser.busy; onClicked: { folderName.text = ""; folderDialog.open() } }
-            LibraryButton { objectName: "library-import"; iconName: "fileUpload"; accessibleName: "Import"; enabled: libraryBrowser.configured; onClicked: { importError.text = ""; importDialog.open() } }
-            LibraryButton { objectName: "library-close"; iconName: "close"; accessibleName: "Close the asset library"; onClicked: editor.action("Library") }
+            LibraryButton { objectName: "library-refresh"; iconName: "refresh"; accessibleName: "Refresh"; enabled: root.library.configured && !root.library.busy; onClicked: root.library.refresh() }
+            LibraryButton { objectName: "library-create-folder"; iconName: "createNewFolder"; accessibleName: "New folder"; enabled: root.library.configured && !root.library.busy; onClicked: { folderName.text = ""; folderDialog.open() } }
+            LibraryButton { objectName: "library-import"; iconName: "fileUpload"; accessibleName: "Import"; enabled: root.library.configured; onClicked: { importError.text = ""; importDialog.open() } }
+            LibraryButton { objectName: "library-close"; iconName: "close"; accessibleName: "Close the asset library"; onClicked: root.panels.toggleLibrary() }
         }
         RowLayout {
             Layout.fillWidth: true
@@ -42,17 +46,17 @@ Rectangle {
                 accessibleName: placeholderText
                 selectByMouse: true
                 onTextEdited: searchDelay.restart()
-                onAccepted: { searchDelay.stop(); libraryBrowser.searchText = text }
-                Timer { id: searchDelay; interval: 250; onTriggered: libraryBrowser.searchText = search.text }
+                onAccepted: { searchDelay.stop(); root.library.searchText = text }
+                Timer { id: searchDelay; interval: 250; onTriggered: root.library.searchText = search.text }
             }
             Ui.MenuButton {
                 id: types
                 objectName: "library-type-filter"
                 readonly property var options: [{label:"All types",value:""},{label:"Images",value:"image"},{label:"Video",value:"video"},{label:"Audio",value:"audio"},{label:"Folders",value:"folder"},{label:"Other",value:"other"}]
-                readonly property var current: options.find(option => option.value === libraryBrowser.typeFilter) || options[0]
+                readonly property var current: options.find(option => option.value === root.library.typeFilter) || options[0]
                 density: Ui.EditorButton.Compact
                 iconName: "categoryOutlined"
-                active: libraryBrowser.typeFilter !== ""
+                active: root.library.typeFilter !== ""
                 accessibleName: "Asset type: " + current.label
                 menu: typeMenu
                 Ui.ContextMenu {
@@ -65,8 +69,8 @@ Rectangle {
                             objectName: "library-type-" + (modelData.value || "all")
                             text: modelData.label
                             checkable: true
-                            checked: libraryBrowser.typeFilter === modelData.value
-                            onTriggered: libraryBrowser.typeFilter = modelData.value
+                            checked: root.library.typeFilter === modelData.value
+                            onTriggered: root.library.typeFilter = modelData.value
                         }
                     }
                 }
@@ -76,7 +80,7 @@ Rectangle {
         RowLayout {
             visible: root.filtersExpanded
             Layout.fillWidth: true
-            LibraryButton { objectName: "library-favorites"; text: "Favorites"; checkable: true; checked: libraryBrowser.favoritesOnly; onClicked: libraryBrowser.favoritesOnly = checked }
+            LibraryButton { objectName: "library-favorites"; text: "Favorites"; checkable: true; checked: root.library.favoritesOnly; onClicked: root.library.favoritesOnly = checked }
         }
         Ui.TextField {
             id: tagSearch
@@ -87,13 +91,13 @@ Rectangle {
             accessibleName: placeholderText
             selectByMouse: true
             onTextEdited: tagDelay.restart()
-            onAccepted: { tagDelay.stop(); libraryBrowser.tagFilter = text.trim() }
-            Timer { id: tagDelay; interval: 250; onTriggered: libraryBrowser.tagFilter = tagSearch.text.trim() }
+            onAccepted: { tagDelay.stop(); root.library.tagFilter = text.trim() }
+            Timer { id: tagDelay; interval: 250; onTriggered: root.library.tagFilter = tagSearch.text.trim() }
         }
         RowLayout {
             Layout.fillWidth: true
-            visible: libraryBrowser.breadcrumbs.length > 1
-            LibraryButton { objectName: "library-up"; iconName: "arrowUpward"; accessibleName: "Up"; onClicked: { root.clearFilters(); libraryBrowser.goUp() } }
+            visible: root.library.breadcrumbs.length > 1
+            LibraryButton { objectName: "library-up"; iconName: "arrowUpward"; accessibleName: "Up"; onClicked: { root.clearFilters(); root.library.goUp() } }
             Flickable {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Ui.Metrics.compact
@@ -104,26 +108,26 @@ Rectangle {
                     id: crumbs
                     objectName: "library-path"
                     spacing: Ui.Metrics.xs
-                    LibraryButton { iconName: "home"; accessibleName: "Library root"; onClicked: { root.clearFilters(); libraryBrowser.openFolder(libraryBrowser.breadcrumbs[0].id) } }
+                    LibraryButton { iconName: "home"; accessibleName: "Library root"; onClicked: { root.clearFilters(); root.library.openFolder(root.library.breadcrumbs[0].id) } }
                     Repeater {
-                        model: libraryBrowser.breadcrumbs.slice(1)
+                        model: root.library.breadcrumbs.slice(1)
                         LibraryButton {
                             required property var modelData
                             text: modelData.name || "Folder"
-                            onClicked: { root.clearFilters(); libraryBrowser.openFolder(modelData.id) }
+                            onClicked: { root.clearFilters(); root.library.openFolder(modelData.id) }
                         }
                     }
                 }
             }
         }
-        LibraryButton { visible: !libraryBrowser.configured; text: "Connect to server"; onClicked: editor.action("Connect") }
-        LibraryLabel { objectName: "library-error"; Layout.fillWidth: true; visible: libraryBrowser.error !== ""; text: libraryBrowser.error; tone: Ui.Text.Error }
+        LibraryButton { visible: !root.library.configured; text: "Connect to server"; onClicked: root.status.connectServer() }
+        LibraryLabel { objectName: "library-error"; Layout.fillWidth: true; visible: root.library.error !== ""; text: root.library.error; tone: Ui.Text.Error }
         LibraryLabel { id: importError; objectName: "library-import-error"; Layout.fillWidth: true; visible: text !== ""; tone: Ui.Text.Error }
-        LibraryLabel { visible: libraryBrowser.busy; text: "Loading Library…" }
+        LibraryLabel { visible: root.library.busy; text: "Loading Library…" }
         LibraryLabel { Layout.fillWidth: true; visible: grid.filtered; text: "Filters search across all folders." }
         RowLayout {
             Layout.fillWidth: true
-            LibraryLabel { Layout.fillWidth: true; text: libraryBrowser.assetModel.count + " assets" }
+            LibraryLabel { Layout.fillWidth: true; text: root.library.assetModel.count + " assets" }
             Ui.Slider {
                 objectName: "library-tile-size"
                 Layout.preferredWidth: Ui.Metrics.comfortable * 4
@@ -143,7 +147,7 @@ Rectangle {
             objectName: "library-grid"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            browser: libraryBrowser
+            browser: root.library
             externalDrag: true
             onImportRequested: { importError.text = ""; importDialog.open() }
             onClearFiltersRequested: root.clearFilters()
@@ -166,11 +170,11 @@ Rectangle {
             accessibleName: placeholderText
             onAccepted: folderDialog.accept()
         }
-        onAccepted: libraryBrowser.createFolder(folderName.text)
+        onAccepted: root.library.createFolder(folderName.text)
     }
     Connections {
         target: assetPickerController
-        function onUploaded(key) { if (key.startsWith("library-import:")) libraryBrowser.refresh() }
+        function onUploaded(key) { if (key.startsWith("library-import:")) root.library.refresh() }
         function onFailed(key, message) { if (key.startsWith("library-import:")) importError.text = message }
     }
 }

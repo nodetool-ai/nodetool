@@ -1,3 +1,4 @@
+#include "interfaces/RunState.h"
 #include "server/MsgPack.h"
 #include "ui/EditorWindow.h"
 #include <QApplication>
@@ -18,25 +19,26 @@
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;
-class QueueFixture final : public QObject {
-    Q_OBJECT
-    Q_PROPERTY(QVariantList queue MEMBER rows NOTIFY changed)
-    Q_PROPERTY(QVariantMap workflow MEMBER workflow CONSTANT)
-    Q_PROPERTY(bool connected MEMBER connected CONSTANT)
+// Fills a RunState as the editor window does: the queue, the open workflow,
+// the run output's selected run, and the select request. It records the
+// cancel request instead of sending it. UI thread only.
+class QueueFixture final {
 public:
-    QVariantList rows;
-    QVariantMap workflow{{"id", "current"}};
-    bool connected = true;
+    explicit QueueFixture(RunOutputModel &output) : output_(output) {
+        runs.setConnected(true);
+        runs.setWorkflowId("current");
+        sync();
+        QObject::connect(&output, &RunOutputModel::changed, &runs, [this] { sync(); });
+        QObject::connect(&runs, &RunState::selectRunRequested, &output, &RunOutputModel::selectRun);
+        QObject::connect(&runs, &RunState::cancelRequested, &runs, [this](const QString &id) { stopped = id; });
+    }
+    void setRows(const QVariantList &rows) { runs.setQueue(rows); }
+    RunState runs;
     QString stopped;
-    void setRows(QVariantList value) {
-        rows = value;
-        emit changed();
-    }
-    Q_INVOKABLE void cancelJob(QString id) {
-        stopped = id;
-    }
-signals:
-    void changed();
+
+private:
+    void sync() { runs.setOutput(output_.runs(), output_.selectedRunId()); }
+    RunOutputModel &output_;
 };
 class QueueUiTest final : public QObject {
     Q_OBJECT
@@ -75,13 +77,12 @@ class QueueUiTest final : public QObject {
     }
 private slots:
     void roundedCorners() {
-        QueueFixture session;
         RunOutputModel output;
+        QueueFixture session(output);
         session.setRows({QVariantMap{{"jobId", "running"}, {"status", "running"}}});
         QQuickWidget widget;
         widget.setClearColor(Qt::transparent);
-        widget.rootContext()->setContextProperty("workflowSession", &session);
-        widget.rootContext()->setContextProperty("runOutput", &output);
+        widget.setInitialProperties({{"runs", QVariant::fromValue(&session.runs)}});
         widget.setResizeMode(QQuickWidget::SizeRootObjectToView);
         widget.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/QueueOverlay.qml"));
         QVERIFY(widget.rootObject());
@@ -101,13 +102,12 @@ private slots:
         }
     }
     void presentation() {
-        QueueFixture session;
         RunOutputModel output;
+        QueueFixture session(output);
         output.beginRun("a");
         output.beginRun("b");
         QQuickWidget widget;
-        widget.rootContext()->setContextProperty("workflowSession", &session);
-        widget.rootContext()->setContextProperty("runOutput", &output);
+        widget.setInitialProperties({{"runs", QVariant::fromValue(&session.runs)}});
         widget.setResizeMode(QQuickWidget::SizeRootObjectToView);
         widget.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/QueueOverlay.qml"));
         QVERIFY2(widget.rootObject(),

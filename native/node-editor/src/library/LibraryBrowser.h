@@ -9,8 +9,10 @@ class QNetworkReply;
 namespace nodetool::node_editor {
 // The account's asset library for the Library side panel: the rows of one
 // folder, in the shape that NodeTool.Media's AssetGrid and AssetItem read as
-// their `browser`. Thread affinity: UI thread only.
-class LibraryBrowser final : public QObject {
+// their `browser`. The editor window owns one per tab, and LibraryPanel.qml
+// gets a non-owning pointer through its required `library` property.
+// Thread affinity: UI thread only.
+class LibraryBrowser : public QObject {
   Q_OBJECT
   Q_PROPERTY(AssetListModel *assetModel READ assetModel CONSTANT)
   Q_PROPERTY(bool configured READ configured NOTIFY changed)

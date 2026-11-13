@@ -5,7 +5,8 @@ import "PropertyPresets.js" as Presets
 
 Row {
     id: root
-    required property var host
+    required property EditorCommands commands
+    required property RunState runs
     required property string resourceId
     readonly property bool menuOpen: options.visible || colors.visible
     required property bool bypassed
@@ -15,7 +16,7 @@ Row {
     required property var credentials
     transformOrigin: Item.TopLeft
     spacing: Ui.Metrics.sm
-    function dispatch(command) { host.authoredAction(resourceId, command, epoch, credentials) }
+    function dispatch(command) { runs.runAuthored(resourceId, command, epoch, credentials) }
     Ui.ToolbarIconButton {
         objectName: "group-options"
         visible: root.group
@@ -31,7 +32,7 @@ Row {
                 objectName: "group-color"
                 text: "Group color"
                 iconName: "paletteOutlined"
-                enabled: !root.host.readOnly
+                enabled: !root.commands.readOnly
                 onTriggered: colors.open()
             }
             Ui.MenuItem {
@@ -40,7 +41,7 @@ Row {
                 height: visible ? implicitHeight : 0
                 text: root.bypassed ? "Enable all nodes" : "Disable all nodes"
                 iconName: "powerSettingsNew"
-                enabled: !root.host.readOnly
+                enabled: !root.commands.readOnly
                 onTriggered: root.dispatch("bypass")
             }
         }
@@ -50,13 +51,13 @@ Row {
         visible: root.group
         iconName: "playArrow"
         // RunGroupButton.tsx: "Group is running" with a spinner while the workflow runs.
-        accessibleName: root.host.shownRunActive ? "Group is running" : "Run group"
-        loading: root.host.shownRunActive
+        accessibleName: root.commands.running ? "Group is running" : "Run group"
+        loading: root.commands.running
         variant: Ui.EditorButton.Primary
         circular: true
         iconSize: Ui.Metrics.iconMd
         iconTone: Ui.Text.OnAccent
-        enabled: !root.host.readOnly && !root.host.shownRunActive && root.host.connectionState === "Connected"
+        enabled: !root.commands.readOnly && !root.commands.running && root.runs.connected
         onClicked: root.dispatch("run")
     }
     Ui.ToolbarIconButton {
@@ -65,7 +66,7 @@ Row {
         opacity: hovered ? 1 : 0.5
         iconName: "paletteOutlined"
         accessibleName: "Choose comment color"
-        enabled: !root.host.readOnly
+        enabled: !root.commands.readOnly
         onClicked: colors.open()
         Ui.Popover {
             id: colors

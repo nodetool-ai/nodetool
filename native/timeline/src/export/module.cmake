@@ -22,22 +22,26 @@ function(nt_export_tests)
     add_test(NAME tst_pngzip COMMAND tst_pngzip)
     add_test(NAME export_check_guards COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-checks.mjs
         --bin $<TARGET_FILE:nodetool-timeline>)
-    foreach(check golden audio timing cancel png)
-        if(check STREQUAL "golden")
-            set(script check-export.mjs)
-        else()
-            set(script check-${check}.mjs)
-        endif()
-        add_test(NAME export_${check} COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/${script}
+    foreach(check audio timing cancel png)
+        add_test(NAME export_${check} COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-${check}.mjs
             --bin $<TARGET_FILE:nodetool-timeline>)
         set_tests_properties(export_${check} PROPERTIES LABELS render FIXTURES_REQUIRED media
             RUN_SERIAL TRUE)
     endforeach()
+    # The golden comparison is the longest test (10 to 19 minutes on hosted
+    # runners). It measures PSNR, not time, and renders offscreen, so its four
+    # shards (label `golden`) run side by side, apart from the render tests
+    # that show windows. Together they hold every fixture once (check-checks.mjs).
+    set(NT_GOLDEN_SHARDS 4)
+    foreach(shard RANGE 1 ${NT_GOLDEN_SHARDS})
+        add_test(NAME export_golden_${shard} COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-export.mjs
+            --shard ${shard}/${NT_GOLDEN_SHARDS} --bin $<TARGET_FILE:nodetool-timeline>)
+        # A full fixture export under ASan takes about 18 minutes, a shard about a third of it.
+        set_tests_properties(export_golden_${shard} PROPERTIES LABELS "render;golden" FIXTURES_REQUIRED media TIMEOUT 1200)
+    endforeach()
     add_test(NAME export_range COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-export.mjs --range
         --bin $<TARGET_FILE:nodetool-timeline>)
     set_tests_properties(export_range PROPERTIES LABELS render FIXTURES_REQUIRED media RUN_SERIAL TRUE)
-    # Full fixture export under ASan takes about 18 minutes.
-    set_tests_properties(export_golden PROPERTIES TIMEOUT 2400)
     add_test(NAME export_wav_audio COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-audio.mjs
         --bin $<TARGET_FILE:nodetool-timeline> --wav-only)
     add_test(NAME export_cleanup COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-cancel.mjs

@@ -1,3 +1,4 @@
+#include "host/platform_fs.h"
 #include "host/file_jobs.h"
 
 #include "host/paths.h"
@@ -6,8 +7,6 @@
 #include <cerrno>
 #include <fcntl.h>
 #include <stdexcept>
-#include <sys/stat.h>
-#include <unistd.h>
 
 using nodetool::jobs::JobOutcome;
 
@@ -20,10 +19,10 @@ constexpr size_t kReadChunk = size_t(1) << 20;
 constexpr size_t kMeasureChunk = size_t(64) << 10;
 
 // pread() retried on EINTR. Returns the count, or -1 with errno set.
-ssize_t preadFully(int fd, uint8_t* data, size_t size, off_t offset) {
-  ssize_t n;
+fsapi::Count preadFully(int fd, uint8_t* data, size_t size, fsapi::Offset offset) {
+  fsapi::Count n;
   do {
-    n = ::pread(fd, data, size, offset);
+    n = fsapi::pread(fd, data, size, offset);
   } while (n < 0 && errno == EINTR);
   return n;
 }
@@ -47,7 +46,7 @@ public:
     while (got < out.size()) {
       if (stop.stop_requested()) return JobOutcome::stopped();
       const size_t want = std::min(kReadChunk, out.size() - got);
-      const ssize_t n = preadFully(file_.fd.get(), out.data() + got, want, static_cast<off_t>(got));
+      const fsapi::Count n = preadFully(file_.fd.get(), out.data() + got, want, static_cast<fsapi::Offset>(got));
       if (n < 0) throwErrno(errno, "read", file_.path);
       if (n == 0) break;
       got += size_t(n);
@@ -61,7 +60,7 @@ public:
     uint64_t total = got;
     for (;;) {
       if (stop.stop_requested()) return JobOutcome::stopped();
-      const ssize_t n = preadFully(file_.fd.get(), probe, sizeof probe, static_cast<off_t>(total));
+      const fsapi::Count n = preadFully(file_.fd.get(), probe, sizeof probe, static_cast<fsapi::Offset>(total));
       if (n < 0) throwErrno(errno, "read", file_.path);
       if (n == 0) break;
       total += uint64_t(n);
@@ -83,10 +82,10 @@ private:
 
 OpenedFile openRegularFile(const std::string& real, const std::string& path) {
   // NONBLOCK keeps a FIFO from stalling the open before its type is checked.
-  UniqueFd fd(::open(real.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK));
+  UniqueFd fd(fsapi::open(real.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK));
   if (!fd) throwErrno(errno, "open", path);
-  struct stat st {};
-  if (::fstat(fd.get(), &st) != 0) throwErrno(errno, "fstat", path);
+  fsapi::FileStat st {};
+  if (fsapi::fstat(fd.get(), &st) != 0) throwErrno(errno, "fstat", path);
   if (S_ISDIR(st.st_mode)) throw FsError("EISDIR", "read", path);
   if (!S_ISREG(st.st_mode)) throw FsError("EACCES", "open", path, "not a regular file");
   // A hard link can alias a file outside the roots.

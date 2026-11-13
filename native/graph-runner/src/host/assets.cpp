@@ -1,3 +1,4 @@
+#include "host/platform_fs.h"
 // `__host.assets`: the asset store, a directory the embedder names in
 // HostOptions::assetDir. Keys are relative storage keys
 // (`<user>/<id>.<ext>`, `<id>.<ext>`, `assets/<id>`), never paths: a key
@@ -68,12 +69,9 @@
 #include <algorithm>
 #include <atomic>
 #include <cerrno>
-#include <dirent.h>
 #include <filesystem>
 #include <fcntl.h>
 #include <memory>
-#include <sys/stat.h>
-#include <unistd.h>
 
 using nodetool::jobs::JobCost;
 using nodetool::jobs::JobOutcome;
@@ -136,18 +134,17 @@ struct Assets {
       if (e.code == "ENOENT" || e.code == "ENOTDIR") return std::nullopt;
       throw;
     }
-    int fd = ::open(r.real.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC);
-    if (fd < 0) throwErrno(errno, "open", key);
-    std::unique_ptr<int, void (*)(int*)> guard(&fd, [](int* f) { ::close(*f); });
-    struct stat st {};
-    if (::fstat(fd, &st) != 0) throwErrno(errno, "fstat", key);
+    UniqueFd fd(fsapi::open(r.real.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC));
+    if (!fd) throwErrno(errno, "open", key);
+    fsapi::FileStat st {};
+    if (fsapi::fstat(fd.get(), &st) != 0) throwErrno(errno, "fstat", key);
     if (!S_ISREG(st.st_mode)) return std::nullopt;
     if (st.st_nlink > 1) throw FsError("EACCES", "open", key, "hard-linked file");
     std::vector<uint8_t> out;
     out.reserve(size_t(st.st_size));
     uint8_t buf[65536];
     for (;;) {
-      ssize_t n = ::read(fd, buf, sizeof buf);
+      fsapi::Count n = fsapi::read(fd.get(), buf, sizeof buf);
       if (n < 0) {
         if (errno == EINTR) continue;
         throwErrno(errno, "read", key);
@@ -170,10 +167,10 @@ struct Assets {
       throw;
     }
     // NONBLOCK keeps a FIFO from stalling the open before its type is checked.
-    UniqueFd fd(::open(r.real.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK));
+    UniqueFd fd(fsapi::open(r.real.c_str(), O_RDONLY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK));
     if (!fd) throwErrno(errno, "open", key);
-    struct stat st {};
-    if (::fstat(fd.get(), &st) != 0) throwErrno(errno, "fstat", key);
+    fsapi::FileStat st {};
+    if (fsapi::fstat(fd.get(), &st) != 0) throwErrno(errno, "fstat", key);
     if (!S_ISREG(st.st_mode)) return nullptr;
     if (st.st_nlink > 1) throw FsError("EACCES", "open", key, "hard-linked file");
     if (uint64_t(st.st_size) > kMaxReadBytes) throw FsError("EFBIG", "read", key);
@@ -192,8 +189,8 @@ struct Assets {
       if (e.code == "ENOENT" || e.code == "ENOTDIR") return nullptr;
       throw;
     }
-    struct stat st {};
-    if (::lstat(r.real.c_str(), &st) != 0 || !S_ISREG(st.st_mode)) return nullptr;
+    fsapi::FileStat st {};
+    if (fsapi::lstat(r.real.c_str(), &st) != 0 || !S_ISREG(st.st_mode)) return nullptr;
     return {{"size", double(st.st_size)}, {"mtimeMs", double(st.st_mtime) * 1000.0}};
   }
 
@@ -201,10 +198,10 @@ struct Assets {
   // and entries are counted as they are read, so a larger listing fails
   // before it is held.
   void walk(const std::string& dir, const std::string& prefix, nlohmann::json& out, uint64_t& budget) const {
-    std::unique_ptr<DIR, int (*)(DIR*)> d(::opendir(dir.c_str()), ::closedir);
+    auto d = fsapi::opendir(dir.c_str());
     if (!d) return;
     std::vector<std::string> names;
-    while (struct dirent* e = ::readdir(d.get())) {
+    while (fsapi::Entry* e = fsapi::readdir(d.get())) {
       std::string name = e->d_name;
       if (name == "." || name == "..") continue;
       spend(budget, name.size(), prefix);
@@ -214,8 +211,8 @@ struct Assets {
     for (const auto& name : names) {
       std::string path = dir + "/" + name;
       std::string key = prefix.empty() ? name : prefix + "/" + name;
-      struct stat st {};
-      if (::lstat(path.c_str(), &st) != 0) continue;
+      fsapi::FileStat st {};
+      if (fsapi::lstat(path.c_str(), &st) != 0) continue;
       if (S_ISDIR(st.st_mode)) {
         walk(path, key, out, budget);
       } else if (S_ISREG(st.st_mode)) {
@@ -267,18 +264,18 @@ struct Assets {
         throw;
       }
     }
-    std::unique_ptr<DIR, int (*)(DIR*)> d(::opendir(path.c_str()), ::closedir);
+    auto d = fsapi::opendir(path.c_str());
     if (!d) return out;
     const std::string needle = stem + ".";
     std::vector<std::string> names;
-    while (struct dirent* e = ::readdir(d.get())) {
+    while (fsapi::Entry* e = fsapi::readdir(d.get())) {
       std::string name = e->d_name;
       if (name.size() > needle.size() && name.compare(0, needle.size(), needle) == 0) names.push_back(name);
     }
     std::sort(names.begin(), names.end());
     for (const auto& name : names) {
-      struct stat st {};
-      if (::lstat((path + "/" + name).c_str(), &st) != 0 || !S_ISREG(st.st_mode)) continue;
+      fsapi::FileStat st {};
+      if (fsapi::lstat((path + "/" + name).c_str(), &st) != 0 || !S_ISREG(st.st_mode)) continue;
       out.push_back(dir.empty() ? name : dir + "/" + name);
     }
     return out;

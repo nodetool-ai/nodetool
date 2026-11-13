@@ -14,10 +14,7 @@
 #include "layout/AutoLayout.h"
 #include "layout/SelectionLayout.h"
 #include <QMap>
-#include <QQuickTextDocument>
-#include <QTextDocument>
 #include <QTextBlock>
-#include <QTextCursor>
 #include <QDrag>
 #include <memory>
 #include <QDragEnterEvent>
@@ -83,32 +80,6 @@
 #include <QtNodes/internal/ConnectionGraphicsObject.hpp>
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 namespace nodetool {
-void EditorWindow::styleOutputMarkdown(QObject *source, const QColor &link,
-                                     const QColor &codeSurface, const QFont &codeFont) {
-  const auto quickDocument = qobject_cast<QQuickTextDocument *>(source);
-  if (!quickDocument || !quickDocument->textDocument()) { return; }
-  auto document = quickDocument->textDocument();
-  struct Span { int start; int length; QTextCharFormat format; };
-  QList<Span> spans;
-  for (auto block = document->begin(); block.isValid(); block = block.next()) {
-    for (auto it = block.begin(); !it.atEnd(); ++it) {
-      const auto fragment = it.fragment();
-      auto format = fragment.charFormat();
-      const bool code = format.fontFixedPitch() || format.fontFamilies().toStringList().contains("monospace")
-          || format.fontFamilies().toStringList().contains(codeFont.family());
-      if (format.isAnchor()) { format.setForeground(link); }
-      if (code) { format.setFont(codeFont); format.setBackground(codeSurface); }
-      if (code || format.isAnchor()) { spans.append({fragment.position(), fragment.length(), format}); }
-    }
-  }
-  for (const auto &span : spans) {
-    QTextCursor cursor(document);
-    cursor.setPosition(span.start);
-    cursor.setPosition(span.start + span.length, QTextCursor::KeepAnchor);
-    cursor.mergeCharFormat(span.format);
-  }
-}
-
 namespace {
 // The web node menu lists code snippets as virtual node types. Choosing one
 // creates a Code node with the snippet's code (web/src/config/snippetMetadata.ts).
@@ -250,12 +221,60 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::toggleReplayRequested, this, &EditorWindow::toggleReplayGeneration);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::clearReplayRequested, this, &EditorWindow::clearReplayGenerations);
   nodeInspector_.setDynamicPorts(&dynamicPorts_);
+  // The tab bar's state lives in the root window, which tells every tab.
+  connect(this, &EditorWindow::tabsChanged, this, &EditorWindow::syncDocumentTabs);
+  connect(this, &EditorWindow::notificationsChanged, this, &EditorWindow::syncNotifications);
+  connect(&documentTabs_, &node_editor::DocumentTabs::newTabRequested, this, &EditorWindow::newTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::activateTabRequested, this, &EditorWindow::activateTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::closeTabRequested, this, &EditorWindow::closeTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::dropTabRequested, this, &EditorWindow::dropTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::renameTabRequested, this, &EditorWindow::renameTab);
+  connect(&documentTabs_, &node_editor::DocumentTabs::tabMenuRequested, this, &EditorWindow::showTabMenu);
+  connect(&documentTabs_, &node_editor::DocumentTabs::projectMenuRequested, this, &EditorWindow::showProjectMenu);
+  connect(&documentTabs_, &node_editor::DocumentTabs::toolTipRequested, this, &EditorWindow::showTabToolTip);
+  connect(&documentTabs_, &node_editor::DocumentTabs::stripScrolled, this, &EditorWindow::setTabStripOffset);
+  connect(&documentTabs_, &node_editor::DocumentTabs::activateSurfaceRequested, this, &EditorWindow::activateSurface);
+  connect(&documentTabs_, &node_editor::DocumentTabs::closeSurfaceRequested, this, &EditorWindow::closeSurface);
+  connect(&documentTabs_, &node_editor::DocumentTabs::settingsRequested, this, &EditorWindow::openSettings);
+  connect(&notificationList_, &node_editor::Notifications::openRequested, this, &EditorWindow::showNotifications);
+  connect(&notificationList_, &node_editor::Notifications::copyRequested, this, &EditorWindow::copyText);
+  syncDocumentTabs();
+  syncNotifications();
+  // The document bar and the rail read the state every panel change carries.
+  connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncChrome);
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::renameRequested, this, &EditorWindow::renameWorkflow);
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::undoRequested, this, [this] { action("Undo"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::redoRequested, this, [this] { action("Redo"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::saveToServerRequested, this, [this] { action("Server Save"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::serverSyncRequested, this, [this] { action("Server sync"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::moreRequested, this, [this] { action("More"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleBrowserRequested, this, [this] { action("Workflows"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleChatRequested, this, &EditorWindow::toggleChat);
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleLibraryRequested, this, [this] { action("Library"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleCatalogRequested, this, [this] { action("Toggle nodes"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleInspectorRequested, this, [this] { action("Toggle inspector"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::togglePanelRequested, this, [this] { action("Toggle panel"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::miniMapRequested, this, &EditorWindow::setMiniMapVisible);
+  connect(&panelLayout_, &node_editor::PanelLayout::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(&panelLayout_, &node_editor::PanelLayout::statusViewRequested, this, &EditorWindow::toggleStatusView);
+  connect(&statusModel_, &node_editor::StatusModel::connectRequested, this, [this] { action("Connect"); });
+  connect(&statusModel_, &node_editor::StatusModel::reconnectRequested, this, [this] { action("Reconnect"); });
+  connect(&statusModel_, &node_editor::StatusModel::queueRequested, this, [this] { action("Queue"); });
+  connect(&statusModel_, &node_editor::StatusModel::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(&editorCommands_, &node_editor::EditorCommands::commandRequested, this, [this](const QString &command) { action(command); });
+  connect(&editorCommands_, &node_editor::EditorCommands::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(&editorCommands_, &node_editor::EditorCommands::presentationRequested, this, &EditorWindow::presentation);
+  connect(&selection_, &node_editor::Selection::nodeMenuRequested, this, &EditorWindow::showNodeMenu);
+  connect(&runState_, &node_editor::RunState::authoredRequested, this, &EditorWindow::authoredAction);
+  connect(&runState_, &node_editor::RunState::agentRequested, this, [this](const QString &runId) { askRunAgent(runId); });
+  connect(&viewport_, &node_editor::Viewport::commandRequested, this, &EditorWindow::userAction);
+  connect(&viewport_, &node_editor::Viewport::popupRequested, this, &EditorWindow::showMiniMapPopup);
+  connect(&viewport_, &node_editor::Viewport::colorModeRequested, this, &EditorWindow::setMiniMapColorMode);
+  connect(&viewport_, &node_editor::Viewport::closePopupRequested, this, &EditorWindow::closeMiniMapPopup);
+  connect(&firstWorkflowGuide_, &node_editor::FirstWorkflowGuide::actionRequested, this, &EditorWindow::setupAction);
+  connect(&nodeCatalog_, &node_editor::NodeCatalog::runtimesRequested, this, [this] { setupAction("dependencies"); });
   engine_ = new QQmlEngine(this);
-  engine_->rootContext()->setContextProperty("editor", this);
-  engine_->rootContext()->setContextProperty("workflowBrowser", &browser_);
-  engine_->rootContext()->setContextProperty("libraryBrowser", &library_);
-  engine_->rootContext()->setContextProperty("runOutput", &runOutput_);
-  engine_->rootContext()->setContextProperty("workflowSession", &session_);
   engine_->rootContext()->setContextProperty("mediaResolver", &mediaResolver_);
   engine_->rootContext()->setContextProperty("modelPickerController", &modelPicker_);
   engine_->rootContext()->setContextProperty("assetPickerController", &assetPicker_);
@@ -308,6 +327,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   });
   connect(&library_, &node_editor::LibraryBrowser::changed, this, &EditorWindow::schedulePanelChanged);
   connect(&browser_, &node_editor::WorkflowBrowser::created, this, &EditorWindow::openWorkflow);
+  connect(&browser_, &node_editor::WorkflowBrowser::openRequested, this, &EditorWindow::openWorkflow);
+  connect(&browser_, &node_editor::WorkflowBrowser::deleteRequested, this, &EditorWindow::deleteWorkflow);
+  connect(&browser_, &node_editor::WorkflowBrowser::reloadRequested, this, [this] { action("Refresh workflows"); });
   connect(&browser_, &node_editor::WorkflowBrowser::renamed, this, [this](const QString &id) {
     if (id == document_.snapshot()["id"].toString() && document_.undoStack()->isClean()) { session_.openWorkflow(id); }
   });
@@ -328,6 +350,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     syncRuntimePreviews();
     if (!runPanelTimer_->isActive()) { runPanelTimer_->start(); }
   });
+  // After the lambda above, so the run output reads the run the runtime selected.
+  runState_.setOutputModels(runOutput_.collections(), runOutput_.richEntries());
+  const auto syncRunOutput = [this] { runState_.setOutput(runOutput_.runs(), runOutput_.selectedRunId()); };
+  syncRunOutput();
+  connect(&runOutput_, &node_editor::RunOutputModel::changed, this, syncRunOutput);
+  connect(&runState_, &node_editor::RunState::selectRunRequested, &runOutput_, &node_editor::RunOutputModel::selectRun);
+  connect(&runState_, &node_editor::RunState::clearOutputRequested, &runOutput_, &node_editor::RunOutputModel::clear);
+  connect(&runState_, &node_editor::RunState::cancelRequested, &session_, &node_editor::WorkflowSession::cancelJob);
   connect(&mediaResolver_, &node_editor::MediaResolver::resolved, this, [this](const QString &key, const QUrl &url) {
     if (!key.startsWith("node-image:")) { return; }
     const auto id = key.mid(11);
@@ -571,10 +601,13 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     canvasLayout->setSpacing(0);
     // The web document bar sits above the subgraph strip and the canvas.
     // See web/src/components/workspace/WorkflowDocumentBar.tsx.
-    auto headerRow = panel("HeaderRow");
+    // The panel's first bindings read the state the window has at this point.
+    syncChrome();
+    auto headerRow = panel("HeaderRow", {{"header", QVariant::fromValue(&workflowHeader_)},
+                                         {"panels", QVariant::fromValue(&panelLayout_)}});
     headerRow->setFixedHeight(qCeil(headerRow->rootObject()->implicitHeight()));
     canvasLayout->addWidget(headerRow);
-    auto canvasTabs = panel("CanvasTabStrip");
+    auto canvasTabs = panel("CanvasTabStrip", {{"tabs", QVariant::fromValue(&documentTabs_)}});
     const auto resizeCanvasTabs = [canvasTabs] {
         canvasTabs->setFixedHeight(qCeil(canvasTabs->rootObject()->implicitHeight()));
     };
@@ -618,10 +651,16 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   nodeMenu_->setClearColor(Qt::transparent);
   nodeMenu_->installEventFilter(this);
   nodeMenu_->hide();
-  browserDock_ = dock(tr("Workflows"), "WorkflowBrowser", Qt::LeftDockWidgetArea);
+  const QVariantMap chromeProperties{{"panels", QVariant::fromValue(&panelLayout_)},
+                                     {"status", QVariant::fromValue(&statusModel_)}};
+  auto browserProperties = chromeProperties;
+  browserProperties.insert("browser", QVariant::fromValue(&browser_));
+  browserDock_ = dock(tr("Workflows"), "WorkflowBrowser", Qt::LeftDockWidgetArea, browserProperties);
   browserDock_->setObjectName("workflow-browser-dock");
   browserDock_->hide();
-  libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea);
+  auto libraryProperties = chromeProperties;
+  libraryProperties.insert("library", QVariant::fromValue(&library_));
+  libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea, libraryProperties);
   libraryDock_->setObjectName("library-dock");
   libraryDock_->hide();
   // The panel's first bindings read the state the window has at this point.
@@ -632,7 +671,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   syncNodeInspector();
   inspectorDock_ = dock(tr("Inspector"), "Inspector", Qt::RightDockWidgetArea,
                         {{"inspector", QVariant::fromValue(&nodeInspector_)}});
-  outputDock_ = dock(tr("Output"), "RunOutput", Qt::BottomDockWidgetArea);
+  outputDock_ = dock(tr("Output"), "RunOutput", Qt::BottomDockWidgetArea,
+                     {{"panels", QVariant::fromValue(&panelLayout_)},
+                      {"status", QVariant::fromValue(&statusModel_)},
+                      {"runs", QVariant::fromValue(&runState_)}});
   {
     // placeStatusBar() moves the status bar above the output while the panel is open.
     auto *body = new QWidget(outputDock_);
@@ -648,9 +690,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   inspectorDock_->hide();
   // The web opens with its side panels closed. See web/src/stores/PanelStore.ts.
   catalogPanel_->hide();
-  auto rail = panel("Rail");
+  syncChrome();
+  auto rail = panel("Rail", {{"panels", QVariant::fromValue(&panelLayout_)}});
   rail->setFixedWidth(rail->initialSize().width());
-  auto tabs = panel("TabBar");
+  auto tabs = panel("TabBar", {{"tabs", QVariant::fromValue(&documentTabs_)},
+                               {"notifications", QVariant::fromValue(&notificationList_)}});
     const auto resizeTabs = [tabs] {
         if (tabs->rootObject()) {
             tabs->setFixedHeight(tabs->rootObject()->implicitHeight());
@@ -658,7 +702,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     };
     connect(tabs->rootObject(), &QQuickItem::implicitHeightChanged, tabs, resizeTabs);
     resizeTabs();
-  auto status = panel("StatusBar");
+  syncChrome();
+  auto status = panel("StatusBar", {{"status", QVariant::fromValue(&statusModel_)},
+                                    {"panels", QVariant::fromValue(&panelLayout_)}});
   status->setFixedHeight(status->initialSize().height());
   statusBar_ = status;
   // native-rules #2: naked new with no QObject parent, a later addLayout call takes ownership
@@ -677,8 +723,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   row->addLayout(column, 1);
   setCentralWidget(root);
   initializePanels();
-  const auto overlay = [this](const QString &file) {
-    auto widget = panel(file);
+  const auto overlay = [this](const QString &file, const QVariantMap &properties = {}) {
+    auto widget = panel(file, properties);
     widget->setParent(view_);
     widget->setAttribute(Qt::WA_AlwaysStackOnTop);
     widget->setClearColor(Qt::transparent);
@@ -686,9 +732,13 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     connect(widget, &QQuickWidget::sceneGraphError, this, [](auto, const QString &message) { qWarning() << message; });
     return widget;
   };
-  toolbarOverlay_ = overlay("Toolbar");
+  // The overlays' first bindings read the state the window has at this point.
+  syncChrome();
+  syncRuns();
+  toolbarOverlay_ = overlay("Toolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
+                                        {"runs", QVariant::fromValue(&runState_)}});
     initializeChat();
-  queueOverlay_ = overlay("QueueOverlay");
+  queueOverlay_ = overlay("QueueOverlay", {{"runs", QVariant::fromValue(&runState_)}});
   queueOverlay_->setParent(centralWidget());
   queueOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
   connect(queueOverlay_->rootObject(), SIGNAL(expandedChanged()), this, SLOT(layoutOverlays()));
@@ -700,16 +750,24 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   shownQueueTimer_->setInterval(shownQueueDelayMs);
   connect(shownQueueTimer_, &QTimer::timeout, this, [this] { updateShownQueue(true); });
   connect(&session_, &node_editor::WorkflowSession::stateChanged, this, [this] { updateShownQueue(false); });
+  connect(this, &EditorWindow::shownQueueChanged, this, &EditorWindow::syncRuns);
+  connect(&session_, &node_editor::WorkflowSession::stateChanged, this, &EditorWindow::syncRuns);
+  connect(&session_, &node_editor::WorkflowSession::workflowChanged, this, &EditorWindow::syncRuns);
   connect(this, &EditorWindow::shownQueueChanged, this, &EditorWindow::layoutOverlays, Qt::QueuedConnection);
   connect(&session_, &node_editor::WorkflowSession::systemStatsChanged, this, &EditorWindow::schedulePanelChanged);
-  selectionOverlay_ = overlay("SelectionToolbar");
-  viewportOverlay_ = overlay("ViewportIndicator");
-  miniMapControls_ = overlay("MiniMapControls");
+  selectionOverlay_ = overlay("SelectionToolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
+                                                  {"selection", QVariant::fromValue(&selection_)}});
+  syncViewport();
+  connect(this, &EditorWindow::zoomChanged, this, &EditorWindow::syncViewport);
+  connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncViewport);
+  viewportOverlay_ = overlay("ViewportIndicator", {{"viewport", QVariant::fromValue(&viewport_)}});
+  miniMapControls_ = overlay("MiniMapControls", {{"viewport", QVariant::fromValue(&viewport_)}});
   // The legend button joins the row in type mode, so the row keeps its right edge on the mini-map's.
   if (auto *controls = miniMapControls_->rootObject()) {
     connect(controls, SIGNAL(implicitWidthChanged()), this, SLOT(layoutOverlays()));
   }
-  setupGuide_ = overlay("SetupGuide");
+  syncChrome();
+  setupGuide_ = overlay("SetupGuide", {{"guide", QVariant::fromValue(&firstWorkflowGuide_)}});
   setupGuide_->show();
   // native-rules #2: naked new, parent (the view) is set inside the MiniMap constructor, not documented here
   auto miniMap = new MiniMap(model_, *scene_, *view_);
@@ -1552,8 +1610,6 @@ QVariantMap EditorWindow::selectionInfo() const {
 }
 int EditorWindow::zoomPercent() const {
   if (!tabOwner_) { return activeEditor_->zoomPercent(); } return int(std::round(view_->transform().m11() * 100)); }
-QString EditorWindow::iconPath(const QString &name) const {
-  if (!tabOwner_) { return activeEditor_->iconPath(name); } return nodetool::iconPath(name); }
 void EditorWindow::showToolTip(const QString &text) {
   if (!tabOwner_) { activeEditor_->showToolTip(text); return; }
   if (text.isEmpty()) { QToolTip::hideText(); } else { QToolTip::showText(QCursor::pos(), text, this); }
@@ -2355,6 +2411,43 @@ void EditorWindow::syncNodeCatalog() {
     nodeCatalog_.setRecent(catalogRecent());
     nodeCatalog_.setFavorites(catalogFavorites());
     nodeCatalog_.setReadOnly(readOnly());
+}
+void EditorWindow::syncChrome() {
+  workflowHeader_.setWorkflowName(workflowName());
+  workflowHeader_.setRenamable(workflowRenamable());
+  workflowHeader_.setSaveStatus(documentSaveStatus());
+  workflowHeader_.setHistory(canUndo(), canRedo());
+  panelLayout_.setPanels({.browser = browserVisible(),
+                          .chat = chatVisible(),
+                          .library = libraryVisible(),
+                          .catalog = catalogVisible(),
+                          .inspector = inspectorVisible(),
+                          .miniMap = miniMapVisible(),
+                          .output = outputVisible(),
+                          .trace = traceVisible(),
+                          .versions = versionsVisible()});
+  statusModel_.setStatus({.connectionStatus = connectionStatus(),
+                          .connectionDetail = connectionDetail(),
+                          .connected = connectionState() == tr("Connected"),
+                          .message = message(),
+                          .nodeCount = nodeCount(),
+                          .edgeCount = edgeCount(),
+                          .queuedCount = queuedCount(),
+                          .queueAvailable = queueAvailable(),
+                          .systemStats = systemStats()});
+  firstWorkflowGuide_.setState(guideVisible(), guideStarted(), guideReadiness());
+  editorCommands_.setReadOnly(readOnly());
+  selection_.setSelection(selectedCount(), selectionInfo(), selectionDisabled(), selectionMostlyDisabled());
+}
+void EditorWindow::syncViewport() {
+  viewport_.setZoom(zoomPercent(), zoomIsPreset());
+  viewport_.setMiniMapColorMode(miniMapColorMode());
+}
+void EditorWindow::syncRuns() {
+  editorCommands_.setRunning(shownRunActive());
+  runState_.setQueue(shownQueue());
+  runState_.setConnected(session_.connected());
+  runState_.setWorkflowId(session_.workflow()["id"].toString());
 }
 void EditorWindow::syncNodeInspector() {
     const auto node = selection();
@@ -3718,6 +3811,7 @@ void EditorWindow::placeStatusBar() {
 void EditorWindow::resizeEvent(QResizeEvent *event) {
   if (!tabOwner_) { QMainWindow::resizeEvent(event); return; }
   QMainWindow::resizeEvent(event);
+  nodeCatalog_.setWindowHeight(height());
   syncInspector();
 }
 void EditorWindow::closeEvent(QCloseEvent *event) {

@@ -1,5 +1,6 @@
 import { storyboardEntries } from "./storyboardEntries.generated";
 import type { PageEntry } from "./types";
+import type { QaPair } from "@/lib/jsonld";
 
 export const storyboards = storyboardEntries;
 export type Storyboard = (typeof storyboards)[number];
@@ -30,6 +31,36 @@ export const STORYBOARD_CATEGORIES: readonly {
     id: "nature",
     label: "Nature",
     blurb: "Wildlife and landscape in the documentary style."
+  }
+];
+
+// Checked against docs/storyboard-editor.md (Board settings, In this shot,
+// Render stills and clips, Assemble a timeline, the board menu).
+export const STORYBOARD_FAQ: readonly QaPair[] = [
+  {
+    question: "Is the NodeTool storyboard generator free?",
+    answer:
+      "NodeTool is open source (AGPL-3.0) and free to download for macOS, Windows, and Linux. Renders run on your own provider keys, so you pay the model provider for each still and clip. The render dialog shows the estimated price before you confirm."
+  },
+  {
+    question: "How do I keep a character consistent across storyboard shots?",
+    answer:
+      "Save the character as an entity and attach it to each shot it appears in. Entities can be characters, locations, styles, or props, and a still model that takes reference images uses them. If the still model you picked cannot take reference images, the editor shows a warning under the model picker."
+  },
+  {
+    question: "Can I turn an AI storyboard into a video?",
+    answer:
+      "Yes. Each shot holds a still and a clip. Create timeline builds a timeline from the current stills and clips, where you can trim, split, and export the film. Shots without a still or a clip are skipped."
+  },
+  {
+    question: "Which aspect ratios can a storyboard use?",
+    answer:
+      "A board is 16:9, 9:16, 1:1, 4:3, or 21:9. Each shot carries its own prompt, camera setup, motion, and duration, so you can change one shot without re-rendering the others."
+  },
+  {
+    question: "Can I export a storyboard?",
+    answer:
+      "Download ZIP in the board menu saves the board as Markdown with its stills and clips. Send to workflow passes the same stills and clips to a node workflow."
   }
 ];
 

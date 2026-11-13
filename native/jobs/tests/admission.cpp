@@ -101,6 +101,13 @@ RunnerLimits runnerLimits(uint64_t runBytes, size_t runOperations = 0) {
 // snapshot is refused, charging nothing, when it overflows or passes the
 // run limit. Destroying the reservation releases what it charged.
 void checkedArithmeticAndSnapshotLimits(Suite& t) {
+  const auto max = std::numeric_limits<uint64_t>::max();
+  CHECK(nodetool::jobs::checkedAdd(max, 0) == max);
+  CHECK(nodetool::jobs::checkedAdd(0, max) == max);
+  CHECK(nodetool::jobs::checkedMul(max, 1) == max);
+  CHECK(nodetool::jobs::checkedMul(1, max) == max);
+  CHECK(nodetool::jobs::checkedMul(0, max) == 0);
+  CHECK(nodetool::jobs::checkedMul(max, 0) == 0);
   CHECK(contains(thrown([] { nodetool::jobs::checkedAdd(std::numeric_limits<uint64_t>::max(), 1); }), "overflows"));
   CHECK(contains(thrown([] { nodetool::jobs::checkedMul(uint64_t{1} << 32, uint64_t{1} << 32); }), "overflows"));
   CHECK(contains(thrown([] { (void)JobCost{std::numeric_limits<uint64_t>::max(), 1, 0}.total(); }), "overflows"));
