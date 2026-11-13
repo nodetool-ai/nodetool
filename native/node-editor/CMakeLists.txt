@@ -22,6 +22,8 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/NodeInspector.cpp src/interfaces/NodeInspector.h
  src/interfaces/PropertyHost.cpp src/interfaces/PropertyHost.h
  src/interfaces/GenerationReplay.cpp src/interfaces/GenerationReplay.h
+ src/interfaces/GenerationActivity.cpp src/interfaces/GenerationActivity.h
+ src/run/GenerationWorkflow.cpp src/run/GenerationWorkflow.h
  src/interfaces/DocumentTabs.cpp src/interfaces/DocumentTabs.h
  src/interfaces/Notifications.cpp src/interfaces/Notifications.h
  src/interfaces/WorkflowHeader.cpp src/interfaces/WorkflowHeader.h
@@ -83,6 +85,18 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_data_table_tests)
     add_test(NAME node_editor_data_table COMMAND node_editor_data_table_tests)
     set_tests_properties(node_editor_data_table PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    # The Generations panel and the queue history, with the same media QML types.
+    qt_add_executable(node_editor_generations_panel_tests tests/ui/GenerationsPanelTest.cpp
+     src/media/MediaResolver.cpp src/media/MediaResolver.h
+     src/media/AudioWaveform.cpp src/media/AudioWaveform.h
+     src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+     src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
+     src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
+     src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
+    target_link_libraries(node_editor_generations_panel_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin nodetool_model_picker nodetool_model_pickerplugin Qt6::Quick Qt6::Multimedia Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_generations_panel_tests)
+    add_test(NAME node_editor_generations_panel COMMAND node_editor_generations_panel_tests)
+    set_tests_properties(node_editor_generations_panel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
     return()

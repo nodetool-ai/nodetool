@@ -23,8 +23,11 @@ class PanelLayout : public QObject {
     Q_PROPERTY(bool catalogVisible READ catalogVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool inspectorVisible READ inspectorVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool miniMapVisible READ miniMapVisible NOTIFY panelsChanged)
-    // The status bar's views: the run output (logs), run trace and versions.
+    // The status bar's views: the run output (logs), queue, generations, run
+    // trace and versions.
     Q_PROPERTY(bool outputVisible READ outputVisible NOTIFY panelsChanged)
+    Q_PROPERTY(bool queueVisible READ queueVisible NOTIFY panelsChanged)
+    Q_PROPERTY(bool generationsVisible READ generationsVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool traceVisible READ traceVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool versionsVisible READ versionsVisible NOTIFY panelsChanged)
 public:
@@ -37,6 +40,8 @@ public:
         bool inspector = false;
         bool miniMap = false;
         bool output = false;
+        bool queue = false;
+        bool generations = false;
         bool trace = false;
         bool versions = false;
         bool operator==(const Panels &) const = default;
@@ -52,6 +57,8 @@ public:
     bool inspectorVisible() const { return panels_.inspector; }
     bool miniMapVisible() const { return panels_.miniMap; }
     bool outputVisible() const { return panels_.output; }
+    bool queueVisible() const { return panels_.queue; }
+    bool generationsVisible() const { return panels_.generations; }
     bool traceVisible() const { return panels_.trace; }
     bool versionsVisible() const { return panels_.versions; }
 
@@ -65,7 +72,7 @@ public:
     // The rail's last button: the left panel, as the web PanelLeft toggle.
     Q_INVOKABLE void togglePanel() { emit togglePanelRequested(); }
     Q_INVOKABLE void setMiniMapVisible(bool visible) { emit miniMapRequested(visible); }
-    // Opens or closes a status bar view: logs, trace or versions.
+    // Opens or closes a status bar view: logs, queue, generations, trace or versions.
     Q_INVOKABLE void toggleStatusView(const QString &view) { emit statusViewRequested(view); }
     // Empty text hides the tool tip.
     Q_INVOKABLE void showToolTip(const QString &text) { emit toolTipRequested(text); }
