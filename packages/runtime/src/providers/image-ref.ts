@@ -58,3 +58,41 @@ export async function imageRefFromBytes(
   if (height) ref.height = height;
   return ref;
 }
+
+/**
+ * Shrink `bytes` so width × height stays within `maxPixels`, keeping the
+ * aspect ratio and the encoded format. Returns the input unchanged when it
+ * already fits, when it cannot be decoded, or when sharp is not installed:
+ * the provider then answers with its own size error, as before.
+ */
+export async function downscaleToMaxPixels(
+  bytes: Uint8Array,
+  maxPixels: number
+): Promise<Uint8Array> {
+  try {
+    const mod = await importHidden<{ default?: SharpFn } & SharpModuleNs>(
+      "sharp"
+    );
+    const sharp = mod?.default ?? (mod as unknown as SharpFn);
+    if (typeof sharp !== "function") return bytes;
+    const image = sharp(Buffer.from(bytes));
+    const { width, height, format } = await image.metadata();
+    if (!width || !height || width * height <= maxPixels) return bytes;
+    const scale = Math.sqrt(maxPixels / (width * height));
+    const resized = image.rotate().resize({
+      width: Math.max(1, Math.floor(width * scale)),
+      height: Math.max(1, Math.floor(height * scale)),
+      fit: "inside"
+    });
+    const encoded =
+      format === "png"
+        ? resized.png()
+        : format === "webp"
+          ? resized.webp()
+          : resized.jpeg({ quality: 92 });
+    return new Uint8Array(await encoded.toBuffer());
+  } catch {
+    // Undecodable input or no sharp: send it as is and let the provider decide.
+    return bytes;
+  }
+}

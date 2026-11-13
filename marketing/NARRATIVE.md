@@ -12,15 +12,14 @@ When page copy and this file disagree, one of them is wrong. Fix both in the
 same change. The page is edited more often than this file, so when in doubt
 the page is the newer of the two. Bring the doc up to it, then fix the page.
 
-The homepage, README, and docs share the primary tagline and intro in
-`BRAND.md`. On the homepage the tagline is the line above the `<h1>`, and the
-`<h1>` reads: "Create with AI. Make it your own."
-The hero paragraph introduces the AI video editor and node-based workflows.
-Below the demo, six linked cards cover timeline and node workflows, agents,
-media types, model choice, local projects and integrations. Each links to its
-detailed page. The lower strip covers plans and provider costs.
-The homepage editor showcase omits experimental game creation.
-The project section introduces the demo with "From an idea to a video you can edit."
+The docs share the primary tagline and intro in `BRAND.md`. The homepage and
+README lead with the film promise instead. The homepage pill above the `<h1>`
+reads "Open-source AI film studio · agent + node workflows", the `<h1>` reads
+"Direct AI films, shot by shot.", and the subhead opens "Start with one
+sentence." Under the reel, three linked cards cover films, the agent, and the
+live timeline. Node workflows follow in "Made it once? Run it again."
+[site-editorial.spec.md § Homepage](site-editorial.spec.md#homepage) holds the
+five blocks.
 
 ## Shared copy
 
@@ -28,9 +27,11 @@ These lines appear on more than one surface. Change them everywhere at once.
 
 | Line | Where it appears |
 |---|---|
-| "Open-source agent-first creative workspace" (tagline) | Homepage line above the `<h1>`, README title line, docs home `<h1>` |
-| The intro ("Create images, video, audio, and text with agents…") | README, docs home lead, `BRAND.md` |
-| "Create with AI. Make it your own." and its paragraph | Homepage `<h1>`, README under the intro |
+| "Open-source agent-first creative workspace" (tagline) | Docs home `<h1>`, `BRAND.md` |
+| The intro ("Create images, video, audio, and text with agents…") | Docs home lead, `BRAND.md` |
+| "Open-source AI film studio · agent + node workflows" (pill) | Homepage line above the `<h1>`, README title line |
+| "Direct AI films, shot by shot." and its subhead | Homepage `<h1>`, README under the pill |
+| The three cards (films, the agent, the live timeline) and "Made it once? Run it again." | Homepage blocks 1 and 2, README § Films, § The agent, § Node workflows |
 | "Give Claude Code a creative harness." | `/agents` `<h1>`, README § MCP, docs home agents block |
 | The plan table (ChatGPT, Claude, Gemini) | `SubscriptionSection` on `/pricing`, README, docs home |
 | The category comparison rows | README § How NodeTool compares, docs `comparisons.md` |

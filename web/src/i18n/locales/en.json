@@ -19965,6 +19965,34 @@
       }
     }
   },
+  "providerFailure": {
+    "genericTarget": "The provider",
+    "title": {
+      "billing": "{{target}} can't run: the account has no credit or billing.",
+      "quota": "{{target}} can't run: this key has no quota left for it.",
+      "auth": "{{target}} refused your API key.",
+      "model_unavailable": "{{target}} is not available to your key.",
+      "rate_limit": "{{target}} is getting too many requests."
+    },
+    "hint": {
+      "billing": "Add credit with the provider, or switch to another model.",
+      "quota": "Free-tier keys often have no quota for this model. Enable billing with the provider, or switch to another model.",
+      "auth": "Check the key in Settings, or switch to a model from another provider.",
+      "model_unavailable": "It is removed from your model lists. Pick another model.",
+      "rate_limit": "Wait a moment, then try again."
+    },
+    "repeated": "This failed the same way again, so retrying won't help. Switch to another model.",
+    "switchTo": "Use {{model}}",
+    "openKeys": "Open API keys",
+    "addCredit": "Add credit",
+    "enableBilling": "Enable billing"
+  },
+  "runReadiness": {
+    "addKey": "Add API key",
+    "missingKeysDetail": "This workflow needs {{keys}}. Add it in Settings before you run it.",
+    "costPerRun": "≈ {{cost}} per run",
+    "costUnknown": "Cost unknown"
+  },
   "firstRun": {
     "ariaLabel": "Start with a result",
     "heading": "Make something in under a minute",

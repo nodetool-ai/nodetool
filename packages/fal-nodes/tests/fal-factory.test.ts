@@ -768,6 +768,27 @@ describe("FAL factory scalar coercion", () => {
     expect(endpointCall).toHaveBeenCalledWith("fal-ai/test", {});
   });
 
+  it("sends a numeric str field with a range as a number and its empty or zero state as unset", async () => {
+    // ElevenLabs SFX `duration_seconds` is typed str with min 0.5, max 22.
+    const NodeClass = scalarNode({
+      name: "duration_seconds",
+      propType: "str",
+      min: 0.5,
+      max: 22
+    });
+    for (const [value, expected] of [
+      ["4", { duration_seconds: 4 }],
+      ["0", {}],
+      ["", {}]
+    ] as const) {
+      endpointCall.mockClear();
+      const instance = new NodeClass({});
+      (instance as unknown as Record<string, unknown>).duration_seconds = value;
+      await instance.process();
+      expect(endpointCall).toHaveBeenCalledWith("fal-ai/test", expected);
+    }
+  });
+
   it("truncates a fractional value in an int field", async () => {
     const NodeClass = scalarNode({ name: "steps", propType: "int" });
     const instance = new NodeClass({});

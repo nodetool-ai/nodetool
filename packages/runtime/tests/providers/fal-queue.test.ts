@@ -3,6 +3,7 @@ import {
   createFalQueueOperations,
   falSubmitAndWait
 } from "../../src/providers/fal-queue.js";
+import { isAuthoritativeProviderTerminalError } from "../../src/generation-receipt.js";
 
 function jsonResponse(value: unknown, status = 200): Response {
   return new Response(JSON.stringify(value), {
@@ -215,6 +216,24 @@ describe("FAL explicit queue adapter", () => {
     await expect(
       operations.submit({ endpoint: "fal-ai/flux/dev", input: {} })
     ).rejects.toThrow("FAL queue request failed (HTTP 422): prompt: required");
+  });
+
+  it("marks a rejected input or locked account as a final failure and a 5xx or 429 as recoverable", async () => {
+    const rejection = async (status: number): Promise<unknown> => {
+      const fetchFn = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(jsonResponse({ detail: "rejected" }, status));
+      const operations = createFalQueueOperations({ apiKey: "secret", fetchFn });
+      return operations
+        .submit({ endpoint: "fal-ai/flux/dev", input: {} })
+        .then(() => undefined, (error: unknown) => error);
+    };
+    for (const status of [400, 401, 403, 422]) {
+      expect(isAuthoritativeProviderTerminalError(await rejection(status))).toBe(true);
+    }
+    for (const status of [408, 429, 500, 503]) {
+      expect(isAuthoritativeProviderTerminalError(await rejection(status))).toBe(false);
+    }
   });
 
   it("aborting a waiter does not issue a remote cancellation", async () => {

@@ -29,6 +29,7 @@
 import { unzipSync } from "fflate";
 import { OpenAICompatProvider } from "./openai-compat-provider.js";
 import { bytesToImageDataUri } from "./image-mime.js";
+import { downscaleToMaxPixels } from "./image-ref.js";
 import { sniffMediaMime } from "./media-mime.js";
 import type { OpenAICompatProviderOptions } from "./openai-compat-provider.js";
 import { createLogger } from "@nodetool-ai/config";
@@ -493,6 +494,32 @@ function mapImageParams(
     }
   }
   return input;
+}
+
+/** Largest input image AtlasCloud's strictest edit endpoints accept (2048 × 2048). */
+const MAX_INPUT_IMAGE_PIXELS = 2048 * 2048;
+
+/** Named image-input fields, most specific first. */
+const INPUT_IMAGE_FIELDS = [
+  "images",
+  "image_urls",
+  "reference_image_urls",
+  "image",
+  "image_url"
+];
+
+/**
+ * The field an image-to-image call puts its source images in: a known name
+ * first, else the first declared `image` or `list[image]` field. Qwen Image
+ * 3.0 Pro Edit, for one, declares only `reference_image_urls`.
+ */
+function inputImageField(info: ModelInfo): string | undefined {
+  const named = INPUT_IMAGE_FIELDS.find((name) => info.fields.has(name));
+  if (named) return named;
+  for (const [name, field] of info.fields) {
+    if (field.type === "image" || field.type === "list[image]") return name;
+  }
+  return undefined;
 }
 
 /** Build the request input for a text-to-video / image-to-video call. */
@@ -1123,18 +1150,21 @@ export class AtlasCloudProvider extends OpenAICompatProvider {
     // (Grok Imagine uses `image_urls`). Seedance never goes through this method
     // (it's video-only). Other image-to-image endpoints that use `image`
     // (singular) get that mapping too.
-    const dataUris = sources.map((b) => bytesToImageDataUri(b));
-    if (info.fields.has("images")) {
-      input.images = dataUris;
-    } else if (info.fields.has("image_urls")) {
-      input.image_urls = dataUris;
-    } else if (info.fields.has("image")) {
-      input.image = dataUris[0];
-    } else {
+    const imageField = inputImageField(info);
+    if (!imageField) {
       throw new Error(
         `AtlasCloud model ${params.model.id} does not declare an input image field`
       );
     }
+    // Camera photos (40+ MP) exceed every edit endpoint's limit, which
+    // ranges from 4 MP to 36 MP. Edits come back at 4 MP or less anyway.
+    const fitted = await Promise.all(
+      sources.map((b) => downscaleToMaxPixels(b, MAX_INPUT_IMAGE_PIXELS))
+    );
+    const dataUris = fitted.map((b) => bytesToImageDataUri(b));
+    input[imageField] = info.fields.get(imageField)?.type.startsWith("list[")
+      ? dataUris
+      : dataUris[0];
     return this.runJob(
       "image",
       params.model.id,

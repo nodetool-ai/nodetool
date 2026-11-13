@@ -515,6 +515,29 @@ describe("provider failure message branches", () => {
       ]);
     });
 
+    it("says a text-only model does not accept images on an OpenRouter 404", async () => {
+      const frame = await failureFor(
+        "t-404-image-input",
+        Object.assign(
+          new Error("404 No endpoints found that support image input"),
+          {
+            status: 404,
+            body: {
+              error: {
+                message: "No endpoints found that support image input",
+                code: 404
+              }
+            }
+          }
+        ),
+        { provider: "fal_ai", model: "qwen/qwen3-max" }
+      );
+      expect(frame.message).toBe(
+        "Model qwen/qwen3-max on fal_ai does not accept images. Remove the image or choose a model that supports image input."
+      );
+      expect(frame.status_code).toBe(404);
+    });
+
     it("quotes the body message on a 400", async () => {
       const frame = await failureFor(
         "t-400-body",

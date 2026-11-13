@@ -20276,6 +20276,34 @@
       }
     }
   },
+  "providerFailure": {
+    "genericTarget": "O provedor",
+    "title": {
+      "billing": "{{target}} não pode ser executado: a conta não tem crédito nem faturamento.",
+      "quota": "{{target}} não pode ser executado: esta chave não tem mais cota para ele.",
+      "auth": "{{target}} recusou sua chave de API.",
+      "model_unavailable": "{{target}} não está disponível para sua chave.",
+      "rate_limit": "{{target}} está recebendo solicitações demais."
+    },
+    "hint": {
+      "billing": "Adicione crédito no provedor ou mude para outro modelo.",
+      "quota": "Chaves gratuitas muitas vezes não têm cota para este modelo. Ative o faturamento no provedor ou mude para outro modelo.",
+      "auth": "Verifique a chave nas Configurações ou mude para um modelo de outro provedor.",
+      "model_unavailable": "Ele foi removido das suas listas de modelos. Escolha outro modelo.",
+      "rate_limit": "Aguarde um momento e tente novamente."
+    },
+    "repeated": "Falhou de novo da mesma forma, então tentar outra vez não vai ajudar. Mude para outro modelo.",
+    "switchTo": "Usar {{model}}",
+    "openKeys": "Abrir chaves de API",
+    "addCredit": "Adicionar crédito",
+    "enableBilling": "Ativar faturamento"
+  },
+  "runReadiness": {
+    "addKey": "Adicionar chave de API",
+    "missingKeysDetail": "Este workflow precisa de {{keys}}. Adicione-a nas Configurações antes de executá-lo.",
+    "costPerRun": "≈ {{cost}} por execução",
+    "costUnknown": "Custo desconhecido"
+  },
   "firstRun": {
     "ariaLabel": "Comece com um resultado",
     "heading": "Crie algo em menos de um minuto",

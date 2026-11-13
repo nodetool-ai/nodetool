@@ -113,6 +113,10 @@ export const PATH_CHECKS = [
     steps: [{ label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }]
   },
   {
+    path: /^scripts\/(?:provider-model-gaps\.mjs|provider-gaps\/|__tests__\/provider-model-gaps\.test\.mjs)/,
+    steps: [{ label: "provider model gap and drift helpers", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/provider-model-gaps.test.mjs"] }]
+  },
+  {
     path: /^scripts\/(?:ci-plan\.mjs|__tests__\/ci-plan\.test\.mjs)$/,
     steps: [{ label: "CI planning regressions", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/ci-plan.test.mjs"] }]
   },
