@@ -10,6 +10,11 @@
  * Portuguese catalogs as machine translated, so those pages say so. The menu
  * path on each page uses the labels from that locale's catalog.
  *
+ * The provider list on /ja, /zh and /hi translates docs/providers.md: each
+ * entry names only the modalities that page lists for that provider. A
+ * provider with a /providers/<slug> page links there, the others link to
+ * their section of the providers reference in the docs.
+ *
  * Add a language: add an entry here, a route that renders
  * <LanguageOverview locale="…" />, and its key in LANDING_PAGES.
  */
@@ -18,6 +23,29 @@ import type { QaPair } from "@/lib/jsonld";
 export type LanguageCode = "ja" | "zh" | "hi" | "es" | "pt";
 
 type LinkedBlock = { title: string; body: string; linkLabel: string };
+
+/**
+ * Providers from China and India that NodeTool calls directly with the
+ * user's own key, and the English page each one links to.
+ */
+export const DIRECT_PROVIDER_HREFS = {
+  sarvam: "https://docs.nodetool.ai/providers#sarvam-ai",
+  deepseek: "/providers/deepseek",
+  alibaba: "/providers/alibaba",
+  moonshot: "/providers/moonshot-kimi",
+  minimax: "/providers/minimax",
+  zai: "https://docs.nodetool.ai/providers#zai",
+  kling: "https://docs.nodetool.ai/providers#kling-ai",
+  byteplus: "https://docs.nodetool.ai/providers#byteplus",
+} as const;
+
+export type DirectProvider = keyof typeof DIRECT_PROVIDER_HREFS;
+
+type ProviderList = {
+  title: string;
+  body: string;
+  items: readonly { provider: DirectProvider; name: string; does: string }[];
+};
 
 export type LanguagePage = {
   path: `/${LanguageCode}`;
@@ -42,6 +70,8 @@ export type LanguagePage = {
   workflow: LinkedBlock;
   local: LinkedBlock;
   language: LinkedBlock;
+  /** Shown on the pages whose readers look for these providers. */
+  providers?: ProviderList;
   faqHeading: string;
   faq: readonly QaPair[];
   closing: string;
@@ -117,6 +147,19 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       title: "アプリは日本語で使えます。",
       body: "設定 → 一般 → 外観 で表示言語を日本語に切り替えられます。翻訳は機械翻訳で、まだ英語のまま表示される画面もあります。このページ以外のサイトとドキュメントは英語です。",
       linkLabel: "ドキュメント（英語）",
+    },
+    providers: {
+      title: "DeepSeek、Qwen、Klingに直接つなぐ。",
+      body: "プロバイダーのAPIキーを設定に追加すると、NodeToolがそのプロバイダーを直接呼び出します。リンク先は英語のページです。",
+      items: [
+        { provider: "deepseek", name: "DeepSeek", does: "チャット（V3とR1推論モデル）" },
+        { provider: "alibaba", name: "Alibaba Cloud（Qwen、Wan）", does: "Qwenのチャット、Qwen-ImageとWanの画像生成、Wanの動画生成、Qwen TTSの音声合成" },
+        { provider: "moonshot", name: "Moonshot（Kimi）", does: "Kimiのチャット" },
+        { provider: "minimax", name: "MiniMax", does: "チャット、画像生成、Hailuoの動画生成、音声合成" },
+        { provider: "zai", name: "Z.ai（GLM）", does: "GLMのチャット、GLM-Imageの画像生成、CogVideoXの動画生成、音声認識" },
+        { provider: "kling", name: "Kling AI", does: "Klingの動画生成と画像生成" },
+        { provider: "byteplus", name: "BytePlus ModelArk", does: "Seedのチャット、Seedreamの画像生成と編集、Seedanceの動画生成" },
+      ],
     },
     faqHeading: "よくある質問",
     faq: [
@@ -213,6 +256,19 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       body: "在 设置 → 常规 → 外观 中可以把界面语言切换为简体中文。部分尚未翻译的页面仍显示英文。本页之外的网站和文档为英文。",
       linkLabel: "文档（英文）",
     },
+    providers: {
+      title: "直接连接 DeepSeek、通义千问和可灵。",
+      body: "在设置中添加服务商的 API 密钥，NodeTool 就会直接调用该服务商。链接指向英文页面。",
+      items: [
+        { provider: "deepseek", name: "DeepSeek", does: "对话（V3 和 R1 推理模型）" },
+        { provider: "alibaba", name: "阿里云（通义千问 Qwen、通义万相 Wan）", does: "Qwen 对话，Qwen-Image 和 Wan 图像生成，Wan 视频生成，Qwen TTS 语音合成" },
+        { provider: "moonshot", name: "月之暗面（Kimi）", does: "Kimi 对话" },
+        { provider: "minimax", name: "MiniMax", does: "对话、图像生成、海螺 Hailuo 视频生成、语音合成" },
+        { provider: "zai", name: "智谱 Z.ai（GLM）", does: "GLM 对话，GLM-Image 图像生成，CogVideoX 视频生成，语音识别" },
+        { provider: "kling", name: "可灵 Kling AI", does: "可灵视频生成和图像生成" },
+        { provider: "byteplus", name: "BytePlus ModelArk", does: "Seed 对话，Seedream 图像生成和编辑，Seedance 视频生成" },
+      ],
+    },
     faqHeading: "常见问题",
     faq: [
       {
@@ -307,6 +363,20 @@ export const LANGUAGE_PAGES: Record<LanguageCode, LanguagePage> = {
       title: "ऐप हिन्दी में भी चलता है।",
       body: "सेटिंग्स → जनरल → दिखावट में इंटरफ़ेस की भाषा हिन्दी चुनिए। अनुवाद मशीन से किया गया है, और कुछ स्क्रीन अभी अंग्रेज़ी में दिखती हैं। इस पेज के अलावा साइट और डॉक्यूमेंटेशन अंग्रेज़ी में हैं।",
       linkLabel: "डॉक्यूमेंटेशन (अंग्रेज़ी)",
+    },
+    providers: {
+      title: "Sarvam, DeepSeek, Qwen और Kling से सीधे जुड़िए।",
+      body: "किसी प्रोवाइडर की API कुंजी सेटिंग्स में जोड़िए, और NodeTool उस प्रोवाइडर को सीधे कॉल करता है। लिंक किए गए पेज अंग्रेज़ी में हैं।",
+      items: [
+        { provider: "sarvam", name: "Sarvam AI", does: "चैट, हिन्दी और तमिल समेत 11 भाषाओं में Bulbul से टेक्स्ट-टू-स्पीच, और 22 भारतीय भाषाओं व अंग्रेज़ी में Saaras से स्पीच-टू-टेक्स्ट" },
+        { provider: "deepseek", name: "DeepSeek", does: "चैट (V3 और R1 रीज़निंग मॉडल)" },
+        { provider: "alibaba", name: "Alibaba Cloud (Qwen, Wan)", does: "Qwen चैट, Qwen-Image और Wan से इमेज, Wan से वीडियो, Qwen TTS से टेक्स्ट-टू-स्पीच" },
+        { provider: "moonshot", name: "Moonshot (Kimi)", does: "Kimi चैट" },
+        { provider: "minimax", name: "MiniMax", does: "चैट, इमेज, Hailuo से वीडियो, टेक्स्ट-टू-स्पीच" },
+        { provider: "zai", name: "Z.ai (GLM)", does: "GLM चैट, GLM-Image से इमेज, CogVideoX से वीडियो, स्पीच-टू-टेक्स्ट" },
+        { provider: "kling", name: "Kling AI", does: "Kling से वीडियो और इमेज" },
+        { provider: "byteplus", name: "BytePlus ModelArk", does: "Seed चैट, Seedream से इमेज बनाना और एडिट करना, Seedance से वीडियो" },
+      ],
     },
     faqHeading: "अक्सर पूछे जाने वाले सवाल",
     faq: [
