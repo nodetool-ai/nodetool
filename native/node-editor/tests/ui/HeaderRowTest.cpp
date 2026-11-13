@@ -7,6 +7,7 @@
 #include <QQuickWidget>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QElapsedTimer>
 #include <QToolTip>
 #include <QtTest>
 #include <cmath>
@@ -55,6 +56,12 @@ QString describe(double actual, double expected) {
 
 class HeaderRowTest final : public QObject {
     Q_OBJECT
+public:
+    static void initMain() {
+        // Offscreen has no desktop hover hint, so Ui buttons would never report a hover or open a tooltip.
+        qputenv("QT_QUICK_CONTROLS_HOVER_ENABLED", "1");
+    }
+private:
 
     static QQuickWidget *panel(EditorWindow &window, const QString &file) {
         for (auto *widget : window.findChildren<QQuickWidget *>()) {
@@ -64,6 +71,8 @@ class HeaderRowTest final : public QObject {
         }
         return nullptr;
     }
+
+    static constexpr int tooltipWaitMs = 1500;
 
     static QQuickItem *item(QQuickWidget *widget, const QString &name) {
         return widget ? find(widget->rootObject(), name) : nullptr;
@@ -100,6 +109,27 @@ class HeaderRowTest final : public QObject {
         QTest::mouseMove(widget, center(control) - QPoint(1, 0));
         QTest::mouseMove(widget, center(control));
         settle();
+        // A tooltip opens after its hover delay, so wait for it. Hovering again would restart the delay.
+        QElapsedTimer waited;
+        waited.start();
+        while (waited.elapsed() < tooltipWaitMs) {
+            if (const auto text = shownTooltip(widget); !text.isEmpty()) {
+                return text;
+            }
+            QTest::qWait(25);
+        }
+        return {};
+    }
+
+    // The text a user sees. A Ui.Tooltip that fits its panel overlay shows there. One that does not
+    // (a thin QQuickWidget) hands its text to the window, which shows it through QToolTip.
+    static QString shownTooltip(QQuickWidget *widget) {
+        for (auto *object : widget->rootObject()->findChildren<QObject *>()) {
+            if (object->property("followsTrigger").isValid() && object->property("visible").toBool()
+                && object->property("opacity").toReal() > 0) {
+                return object->property("text").toString();
+            }
+        }
         return QToolTip::isVisible() ? QToolTip::text() : QString();
     }
 
@@ -380,13 +410,13 @@ private slots:
         // Graph is the only view. Chain says why it is off and ignores the click.
         auto *graph = item(header, QStringLiteral("header-mode-graph"));
         auto *chain = item(header, QStringLiteral("header-mode-chain"));
-        QVERIFY(graph->property("selected").toBool());
+        QVERIFY(graph->property("checked").toBool());
         QVERIFY(!chain->property("available").toBool());
         QVERIFY(!item(header, QStringLiteral("header-mode-chain-button"))->isEnabled());
         QTRY_COMPARE(hover(header, QStringLiteral("header-mode-chain")),
                  QStringLiteral("The chain view is not available in the native editor yet."));
         click(header, QStringLiteral("header-mode-chain"));
-        QVERIFY(graph->property("selected").toBool());
+        QVERIFY(graph->property("checked").toBool());
     }
 
     void moreOpensTheDocumentMenu() {

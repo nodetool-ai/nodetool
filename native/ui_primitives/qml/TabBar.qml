@@ -60,14 +60,15 @@ Item {
         spacing: root.filled ? 0 : Ui.Metrics.md
         Repeater {
             id: repeater
-            model: root.tabs
+            // Count-only model: delegates stay alive while entries change, so focus and hover survive a state change.
+            model: root.tabs.length
             delegate: Item {
                 id: cell
                 required property int index
-                required property var modelData
+                readonly property var modelData: index < root.tabs.length ? root.tabs[index] : ({})
                 readonly property bool active: root.tabActive(modelData)
                 readonly property bool available: root.tabEnabled(modelData)
-                readonly property string label: modelData.label
+                readonly property string label: modelData.label !== undefined ? modelData.label : ""
                 readonly property string iconName: modelData.iconName !== undefined ? modelData.iconName : ""
                 readonly property string disabledReason: modelData.disabledReason !== undefined ? modelData.disabledReason : ""
                 readonly property bool hasCount: modelData.count !== undefined

@@ -34,7 +34,9 @@ ToolTip {
     }
     onHostedChanged: syncHost(visible)
     onTextChanged: if (hostShowing) syncHost(true)
-    onClosed: syncHost(false)
+    // Hide on aboutToHide, not closed: the exit transition delays closed, so a stale hide would arrive after
+    // the next tooltip's request and cancel it.
+    onAboutToHide: syncHost(false)
     onAboutToShow: { tracker.prepare(); syncHost(true) }
     Ui.TooltipTracker {
         id: tracker
