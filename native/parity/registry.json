@@ -164,7 +164,8 @@
       "native": "Toggle inspector"
     },
     "toggleWorkflowSettings": {
-      "missing": "No native binding"
+      "native": "Workflow metadata",
+      "note": "Opens the workflow metadata dialog. The web toggles a side panel with the same fields."
     },
     "toggleOperator": {
       "missing": "No native binding"
@@ -242,7 +243,7 @@
       "native": "Keyboard shortcuts"
     },
     "openSettings": {
-      "missing": "No native binding"
+      "native": "Settings"
     },
     "findInWorkflow": {
       "native": "Find node"
@@ -266,28 +267,28 @@
       "native": "Zoom to 200%"
     },
     "navigateNextNode": {
-      "missing": "No native binding"
+      "native": "Focus next node"
     },
     "navigatePrevNode": {
-      "missing": "No native binding"
+      "native": "Focus previous node"
     },
     "selectFocusedNode": {
-      "missing": "No native binding"
+      "native": "Select focused node"
     },
     "focusNodeUp": {
-      "missing": "No native binding"
+      "native": "Focus node above"
     },
     "focusNodeDown": {
-      "missing": "No native binding"
+      "native": "Focus node below"
     },
     "focusNodeLeft": {
-      "missing": "No native binding"
+      "native": "Focus node left"
     },
     "focusNodeRight": {
-      "missing": "No native binding"
+      "native": "Focus node right"
     },
     "goBack": {
-      "missing": "No native binding"
+      "native": "Focus back"
     },
     "exitFullscreen": {
       "native": "Cancel gesture"
@@ -305,7 +306,7 @@
       "missing": "No native asset viewer"
     },
     "exitNavigationMode": {
-      "missing": "No native keyboard navigation mode"
+      "accepted": "The web never enters navigation mode (nothing calls enterNavigationMode), so this Escape binding never fires. Native keeps Escape for Cancel gesture."
     }
   },
   "propertyTypes": {
@@ -483,7 +484,10 @@
       "inventory": "W16"
     },
     "web/src/components/node_editor/AxisMarker.tsx": {
-      "missing": "Origin axis lines that follow the viewport. Not drawn natively."
+      "native": [
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "note": "EditorScene::drawBackground draws the 1px origin lines in c_editor_axis_color."
     },
     "web/src/components/node_editor/ConnectionLine.tsx": {
       "native": [
@@ -783,7 +787,11 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CanvasResizeBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "note": "Mode toggle, Fixed size boxes, Scale slider, padding unit and edge boxes match. The preview shows the incoming image before a run, with the dashed placement rectangle and the canvas size badge.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ChannelsBody.tsx": {
@@ -807,14 +815,23 @@
     "web/src/components/node_types/editing/ColorOverlayBody.tsx": {
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
-        "native/node-editor/src/graph/CardBodyPainter.cpp"
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
       ],
-      "status": "partial",
-      "note": "The inline color popover is missing.",
+      "status": "match",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CompositorBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/properties/CompositorLayoutEditor.cpp",
+        "native/node-editor/src/ui/CompositorLayoutDialog.cpp",
+        "native/node-editor/qml/CompositorLayoutPanel.qml"
+      ],
+      "status": "partial",
+      "note": "Layer handles, live composite, layer rows, Add another layer and the Edit layout dialog (move, scale and rotate gizmo, transform fields, canvas size, layer stack) are native. The dialog's layer rows show names where the web shows thumbnails.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ConstantSketchBody.tsx": {
@@ -826,11 +843,24 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CropBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/InlinePropertyPresenter.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "match",
+      "note": "The incoming image with the darkened outside, thirds grid, crop rectangle, eight handles, move and resize drags, size badge, aspect select with its drag lock, width and height boxes and Reset match.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CurvesBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Tonal and RGB Midtones sliders and Reset match. The Red, Green and Blue labels are not tinted, because the canvas theme has no error or info color.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/DropShadowBody.tsx": {
@@ -880,11 +910,20 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/LayerRow.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "status": "match",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/LevelsBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "match",
+      "note": "Histogram with its R, G, B and L view toggle, channel toggle, Black, Gamma and White sliders and Reset match. The histogram counts the 512 px result preview rather than the full-size image.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ListGeneratorBody.tsx": {
@@ -896,12 +935,16 @@
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/CardBodyPainter.cpp"
       ],
-      "status": "partial",
-      "note": "Upstream images in the Before and Mask preview tabs are missing.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/MasksExtractorBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "Image and Mask tabs, the incoming image and Recalculate mask match. The running button shows a darker fill without the web's spinner.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/OffsetBody.tsx": {
@@ -926,7 +969,15 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/PainterBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/qml/InlinePropertyEditor.qml"
+      ],
+      "status": "partial",
+      "note": "Canvas over the incoming image, brush and eraser strokes into mask_data, color, Undo, Redo, Clear, size, opacity, canvas size and background opacity match. The brush cursor circle follows the pointer, but the system cursor still shows over the canvas. An image file dropped on the canvas uploads and becomes the image property, which sizes the canvas through the incoming image instead of writing canvas_width and canvas_height.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/PasteBody.tsx": {
@@ -935,7 +986,7 @@
         "native/node-editor/src/graph/CardBodyPainter.cpp"
       ],
       "status": "partial",
-      "note": "Overlay rectangle and dimension badges need upstream image sizes the canvas does not read.",
+      "note": "The preview shows the base image before a run, with the dashed rectangle where the pasted image lands. The result size badge is missing because run results carry no size natively.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/promptComposer/AssetDropPlugin.tsx": {
@@ -1191,10 +1242,12 @@
     },
     "web/src/components/node/CompareImagesNode/CompareImagesNode.tsx": {
       "native": [
-        "native/node-editor/src/graph/CardBodies.cpp"
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
       ],
       "status": "partial",
-      "note": "The comparer slider is not on the card.",
+      "note": "The comparer is on the card with labels, sizes and the mode toggle. The divider follows a drag where the web follows hover, and the card compares the incoming images where the web waits for the run's comparison.",
       "inventory": "W4"
     },
     "web/src/components/node/ConstantStringNode.tsx": {
@@ -1752,7 +1805,7 @@
         "native/node-editor/src/properties/PropertyFields.h"
       ],
       "status": "partial",
-      "note": "See the propertyTypes inventory. 3D generation model fields (model_3d_model) are unsupported.",
+      "note": "See the propertyTypes inventory.",
       "inventory": "F15"
     },
     "web/src/components/node/PropertyInput.tsx": {
@@ -2317,7 +2370,12 @@
       "inventory": "F23"
     },
     "web/src/components/properties/Model3DModelSelect.tsx": {
-      "missing": "model_3d_model fields are unsupported natively (ImageTo3D, TextTo3D). The web picker fetches /api/models/3d, which the TypeScript server does not serve, so there is no list to port.",
+      "native": [
+        "native/model-picker/src/CatalogRules.h",
+        "native/node-editor/qml/ModelPropertyEditor.qml"
+      ],
+      "status": "match",
+      "note": "Both list models.model3d / models.model3dByProvider from providers with text_to_3d or image_to_3d and store id, provider and name.",
       "inventory": "F20"
     },
     "web/src/components/properties/Model3DProperty.tsx": {

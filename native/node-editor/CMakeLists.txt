@@ -40,6 +40,7 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/Assign.h
  src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
+ src/graph/NodeFocus.h
  src/server/PackSetup.cpp src/server/PackSetup.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
  src/graph/IconPaths.cpp src/graph/IconPaths.h
@@ -121,12 +122,12 @@ add_library(node_editor_core STATIC
  src/properties/ModelPickerController.cpp src/properties/ModelPickerController.h
  src/properties/CodeHighlighter.cpp src/properties/CodeHighlighter.h
  src/properties/CodeInference.cpp src/properties/CodeInference.h src/document/ChildPorts.cpp src/document/ChildPorts.h src/document/ChildSources.cpp src/document/ChildSources.h
- src/properties/DynamicPortsController.cpp src/properties/DynamicPortsController.h src/properties/ComfyWorkflowLoader.cpp src/properties/ComfyWorkflowLoader.h
+ src/properties/DynamicPortsController.cpp src/properties/DynamicPortsController.h src/properties/ComfyWorkflowLoader.cpp src/properties/ComfyWorkflowLoader.h src/properties/CompositorLayoutEditor.cpp src/properties/CompositorLayoutEditor.h
  src/server/MsgPack.cpp src/server/WorkflowSession.cpp src/server/WorkflowSession.h
  src/server/BundledServer.cpp src/server/BundledServer.h
  src/graph/WorkflowGraphModel.cpp src/graph/WorkflowGraphModel.h
  src/graph/NodeLayout.cpp src/graph/NodeLayout.h
- src/graph/CardBodies.cpp src/graph/CardBodies.h src/graph/ImageSizePresets.h
+ src/graph/CardBodies.cpp src/graph/CardBodies.h src/graph/CompositorGeometry.h src/graph/ImageSizePresets.h
  src/graph/CardBodyPainter.cpp src/graph/CardBodyPainter.h
  src/graph/SynthModules.cpp src/graph/SynthModules.h
  src/graph/EditorScene.cpp src/graph/EditorScene.h
@@ -156,7 +157,7 @@ add_library(node_editor_core STATIC
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
- src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
 target_include_directories(node_editor_core PUBLIC src)
 target_link_libraries(node_editor_core PRIVATE nodetool_graph_runner)
 target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
@@ -334,6 +335,10 @@ if(BUILD_TESTING)
  target_link_libraries(node_editor_card_warning_tests PRIVATE node_editor_core Qt6::Test)
  nodetool_use_ui_primitives(node_editor_card_warning_tests)
  add_test(NAME node_editor_card_warning COMMAND node_editor_card_warning_tests)
+add_executable(node_editor_node_focus_tests tests/graph/NodeFocusTest.cpp)
+target_include_directories(node_editor_node_focus_tests PRIVATE src)
+target_link_libraries(node_editor_node_focus_tests PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME node_editor_node_focus COMMAND node_editor_node_focus_tests)
  set_tests_properties(node_editor_card_warning PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  add_subdirectory(tests/media)
  add_subdirectory(tests/runtime)

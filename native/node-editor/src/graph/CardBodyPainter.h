@@ -1,6 +1,7 @@
 #pragma once
 #include "EditorScene.h"
 #include "NodeLayout.h"
+#include <optional>
 class QPainter;
 
 namespace nodetool {
@@ -8,9 +9,17 @@ namespace nodetool {
 struct CardBodyPaintState {
     // A run result replaces the body's empty state.
     bool hasResult = false;
+    // The node is running, so its Run button shows the running state.
+    bool running = false;
+    // The stroke being drawn on a Painter card, at full alpha.
+    const QImage *paintDraft = nullptr;
+    // The card-local pointer over a Painter canvas, where the brush circle draws.
+    std::optional<QPointF> brushCursor;
     // The slider value under an active drag, before it is committed.
     QString draftProperty;
     double draftValue = 0;
+    // The crop under an active drag, in image pixels, before it is committed.
+    std::optional<QRectF> cropDraft;
     // The pointer is over the card, which shows media badges and actions.
     bool hovered = false;
 };

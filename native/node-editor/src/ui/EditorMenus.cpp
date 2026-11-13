@@ -175,6 +175,9 @@ const Shortcut shortcuts[] = {
  {"Distribute horizontally", "Shift+D"}, {"Stack selection", "V"}, {"Arrange grid", "G"},
  {"Select all connected", "Shift+C"}, {"Select inputs", "Shift+I"}, {"Select outputs", "Shift+O"},
  {"Add Prompt", "Shift+P"}, {"Add Text to Image", "Shift+G"}, {"Add Text to Video", "Shift+V"}, {"Add Agent", "Shift+L"},
+ {"Focus next node", "Ctrl+Alt+N"}, {"Focus previous node", "Ctrl+Alt+P"}, {"Focus node above", "Alt+Up"}, {"Focus node below", "Alt+Down"},
+ {"Focus node left", "Alt+Left"}, {"Focus node right", "Alt+Right"}, {"Focus back", "Ctrl+Alt+B"},
+ {"Select focused node", "Return"}, {"Settings", "Ctrl+,"}, {"Workflow metadata", "W"},
  {"Node info", "Ctrl+I"}
 };
 
@@ -549,6 +552,9 @@ bool EditorWindow::menuActionEnabled(const QString &name) const {
  if (name == "Node info") { return count > 0; }
  if (name == "Open child") { return count == 1 && node_editor::isChildNode(document_.node(selectedIds().first())); }
  if (name == "Link selected") { return !readOnly() && count == 2; }
+ if (name == "Select focused node") { return !model_.focusedNode().isEmpty() && !document_.node(model_.focusedNode()).isEmpty(); }
+ if (name == "Focus back") { return model_.focusHistorySize() > 1; }
+ if (name.startsWith("Focus ") && name != "Focus node") { return !document_.nodes().isEmpty(); }
  if (!quickAddNodeType(name).isEmpty()) { return !readOnly() && knownNodeType(quickAddNodeType(name)); }
  if (name == "Stop") { return runActive() && (session_.connected() || session_.runsInProcess(run_)); }
  if (name == "Undo") { return !readOnly() && document_.undoStack()->canUndo(); }

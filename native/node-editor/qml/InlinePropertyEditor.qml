@@ -58,6 +58,7 @@ Item {
                 : root.structured ? structuredEditor
                 : root.imageSize ? imageSizeEditor
                 : root.kind === "document_ref" ? documentEditor
+                : root.kind === "color" ? colorEditor
                 : root.resource ? resourceEditor
                 : root.kind === "number" || root.kind === "integer" ? numberEditor
                 : multilineEditor
@@ -215,6 +216,32 @@ Item {
                         onValueCommitted: value => root.presenter.apply(value, root.token)
                     }
                 }
+            }
+        }
+    }
+    Component {
+        id: colorEditor
+        // The ColorPicker on the card: presets, hex entry and the custom dialog.
+        // A choice commits and closes the panel.
+        Rectangle {
+            id: colorPanel
+            objectName: "inline-color"
+            readonly property real wanted: colorChooser.implicitHeight + Ui.Metrics.md * 2
+            color: Ui.Theme.surfaceOverlay
+            radius: Ui.Metrics.radiusOverlay
+            border.width: Ui.Metrics.border
+            border.color: Ui.Theme.borderControl
+            function finishEdit() { root.presenter.close(root.token) }
+            onWantedChanged: root.presenter.setContentHeight(wanted)
+            Component.onCompleted: root.presenter.setContentHeight(wanted)
+            ColorPropertyEditor {
+                id: colorChooser
+                anchors.fill: parent
+                anchors.margins: Ui.Metrics.md
+                descriptor: root.descriptor
+                value: root.value
+                writable: true
+                onValueCommitted: value => root.commit(value)
             }
         }
     }

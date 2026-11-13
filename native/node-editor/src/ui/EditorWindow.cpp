@@ -32,6 +32,7 @@
 #include "graph/CompatibleNodePicker.h"
 #include "graph/CompatibleNodePlacement.h"
 #include "graph/LineageLayer.h"
+#include "graph/NodeFocus.h"
 #include "properties/PropertyFields.h"
 #include <QApplication>
 #include <QClipboard>
@@ -468,6 +469,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     connect(scene_, &EditorScene::dynamicTypeMenuRequested, this, &EditorWindow::showDynamicTypeMenu);
     connect(scene_, &EditorScene::headerActionRequested, this, [this](const QString &id, const QString &action) {
         if (action == QStringLiteral("loadComfyWorkflow")) { showComfyWorkflowDialog(id); }
+        if (action == QStringLiteral("compositorLayout")) { showCompositorLayoutDialog(id); }
     });
     connect(scene_, &EditorScene::childOpenRequested, this, [this](const QString &id) {
         if (selectNode(id)) { openChild(); }
@@ -511,6 +513,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(scene_, &EditorScene::documentOpenRequested, this, [this](const QString &kind, const QString &id) { documentPicker_.open(kind, id); });
   // The web opens provider onboarding at the key. Native opens the server's provider settings.
   connect(scene_, &EditorScene::providerConnectRequested, this, [this] { packSetup()->openProviderSettings(); });
+  // The scene selects the card before it asks, so Run selected runs that node.
+  connect(scene_, &EditorScene::nodeRunRequested, this, [this](const QString &) { action(QStringLiteral("Run selected")); });
   connect(scene_, &EditorScene::errorReportRequested, this, [this](const QString &resource) {
     node_editor::BugReportContext context{.source = QStringLiteral("Node error")};
     for (const auto id : model_.allNodeIds()) {
@@ -618,7 +622,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     return true;
   };
   connect(scene_, &EditorScene::sliderDraftChanged, this, [this](QtNodes::NodeId id, const QString &name, double value) {
-    if (readOnly() || !model_.nodeExists(id)) { return; }
+    // A card control such as the Painter's brush size is no property to rerun with.
+    if (readOnly() || !model_.nodeExists(id) || isCardControl(name)) { return; }
     sendLiveDraft(model_.resourceId(id), name, value);
     scheduleInstantRerun(model_.resourceId(id), {{"name", name}, {"value", value}}, true, true);
   });
@@ -2913,10 +2918,11 @@ void EditorWindow::applyFit() {
   const auto target = fitTarget();
   moveViewTo(target.zoom, target.center, 0);
 }
-void EditorWindow::revealSelection() {
+void EditorWindow::revealSelection() { revealNode(selected_); }
+void EditorWindow::revealNode(const QString &resourceId) {
   const auto modelId = [&]() -> std::optional<QtNodes::NodeId> {
     for (auto id : model_.allNodeIds()) {
-      if (model_.resourceId(id) == selected_) { return id; }
+      if (model_.resourceId(id) == resourceId) { return id; }
     }
     return std::nullopt;
   }();
@@ -3202,6 +3208,7 @@ void EditorWindow::action(const QString &name) {
     emit scene_->selectionChanged();
     return;
   }
+  if (name == "Settings") { openSettings(); return; }
   if (name == "Cut") { if (menuActionEnabled(name)) { action("Copy"); action("Delete"); } return; }
   if (name == "Version history" || name == "Share workflow" || name == "Workflow metadata") {
     showWorkflowDetails(name == "Version history" ? "versions" : name == "Share workflow" ? "sharing" : "metadata"); return;
@@ -3470,6 +3477,32 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "Add node") {
     openNodeMenu();
+    return;
+  }
+  // Keyboard node navigation (web hooks/useNodeFocus.ts): focus moves without
+  // changing the selection, and Enter selects the focused node.
+  static const QHash<QString, node_editor::FocusDirection> focusMoves{
+      {"Focus next node", node_editor::FocusDirection::Next}, {"Focus previous node", node_editor::FocusDirection::Previous},
+      {"Focus node above", node_editor::FocusDirection::Up}, {"Focus node below", node_editor::FocusDirection::Down},
+      {"Focus node left", node_editor::FocusDirection::Left}, {"Focus node right", node_editor::FocusDirection::Right}};
+  if (focusMoves.contains(name) || name == "Focus back") {
+    if (name == "Focus back") {
+      model_.focusBack();
+    } else {
+      QHash<QString, QPointF> positions;
+      for (const auto id : model_.allNodeIds()) { positions.insert(model_.resourceId(id), model_.nodeData(id, QtNodes::NodeRole::Position).toPointF()); }
+      QVector<node_editor::FocusCandidate> nodes;
+      for (const auto &value : document_.nodes()) {
+        const auto resource = value.toObject()["id"].toString();
+        if (positions.contains(resource)) { nodes.append({resource, positions.value(resource)}); }
+      }
+      model_.setFocusedNode(node_editor::nextFocus(nodes, model_.focusedNode(), focusMoves.value(name)));
+    }
+    if (!model_.focusedNode().isEmpty()) { revealNode(model_.focusedNode()); }
+    return;
+  }
+  if (name == "Select focused node") {
+    selectNode(model_.focusedNode());
     return;
   }
   // ADD_NODE_HOTKEYS: Shift+P, G, V and L add their node at the pointer, or
@@ -3844,6 +3877,8 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     }
     if (QApplication::activePopupWidget()) { return false; }
     command = shortcutCommand(key->key(), key->modifiers());
+    // Enter is free for the canvas until navigation has focused a node.
+    if (command == "Select focused node" && model_.focusedNode().isEmpty()) { command.clear(); }
     if (command == "Add node" && !readOnly()) {
       // Space opens the node menu where the pointer is (web useNodeEditorShortcuts.ts).
       const auto pointer = view_->viewport()->mapFromGlobal(QCursor::pos());

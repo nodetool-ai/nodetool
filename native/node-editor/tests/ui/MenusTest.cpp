@@ -294,6 +294,64 @@ private slots:
     }
 
     // NodeContextMenu.tsx
+    // useNodeFocus.ts: Ctrl+Alt+N/P cycle, Alt+arrows move by position,
+    // Ctrl+Alt+B steps back, Enter selects. Focus never changes the selection.
+    void keyboardNodeNavigation() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "navigation"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+            node("a", "Fixed", 0, 0), node("b", "Fixed", 500, 0), node("c", "Fixed", 500, 400)}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1400, 1000);
+        window.show();
+        window.action("Reset zoom");
+        QTest::qWait(60);
+        auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+        auto *canvas = view(window)->viewport();
+        view(window)->setFocus();
+        // Enter does nothing before a node has focus.
+        QTest::keyClick(canvas, Qt::Key_Return);
+        QCOMPARE(window.selectedCount(), 0);
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QTRY_COMPARE(model.focusedNode(), QString("a"));
+        QCOMPARE(window.selectedCount(), 0);
+        // The badge above the focused card is inside its item bounds.
+        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "a"))->boundingRect().top() <= -20);
+        QTest::keyClick(canvas, Qt::Key_Right, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("b"));
+        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "a"))->boundingRect().top() > -20);
+        QTest::keyClick(canvas, Qt::Key_Down, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("c"));
+        // Nothing lies below c, so the focus stays.
+        QTest::keyClick(canvas, Qt::Key_Down, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("c"));
+        QTest::keyClick(canvas, Qt::Key_P, Qt::ControlModifier | Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("b"));
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("a"));
+        QTest::keyClick(canvas, Qt::Key_B, Qt::ControlModifier | Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("c"));
+        QTest::keyClick(canvas, Qt::Key_Return);
+        QTRY_COMPARE(window.selectedCount(), 1);
+        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "c"))->isSelected());
+    }
+    // shortcuts.ts: Ctrl+, opens settings and W opens the workflow settings.
+    void settingsShortcuts() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "settings"}, {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1000, 700);
+        window.show();
+        auto *canvas = view(window)->viewport();
+        view(window)->setFocus();
+        // No server is connected, so settings explain what is missing.
+        QTest::keyClick(canvas, Qt::Key_Comma, Qt::ControlModifier);
+        QCOMPARE(window.message(), QString("Connect to a server to open settings."));
+        QTest::keyClick(canvas, Qt::Key_W);
+        QTRY_VERIFY(window.findChild<QDialog *>("workflow-details-dialog"));
+        window.findChild<QDialog *>("workflow-details-dialog")->close();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
     void nodeMenuEntriesAndActions() {
         EditorWindow window;
         window.setCatalog(catalog());

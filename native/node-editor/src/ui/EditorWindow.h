@@ -140,6 +140,8 @@ public:
   void loadChildSource(const QString &nodeId, const QString &kind, const QString &sourceId);
   // ComfyWorkflowLoader.tsx: the Run ComfyUI Workflow node's load dialog.
   void showComfyWorkflowDialog(const QString &nodeId);
+  // CompositorEditorModal.tsx: the Compositor node's layout editor.
+  void showCompositorLayoutDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
   EditorWindow *activeEditor() const;
@@ -492,6 +494,8 @@ private:
   static bool mouseNavigation();
   void applyFit();
   void revealSelection();
+  // Moves the view the least distance that shows the card whole.
+  void revealNode(const QString &resourceId);
   // The view that fits every node, as the zoom and the scene point at the viewport center.
   struct ViewTarget { double zoom = 1; QPointF center; };
   ViewTarget fitTarget() const;

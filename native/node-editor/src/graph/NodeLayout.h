@@ -2,6 +2,7 @@
 #include <QColor>
 #include "IconPaths.h"
 #include "TypeStyle.h"
+#include <QHash>
 #include <QImage>
 #include <QSize>
 #include <QRectF>
@@ -152,6 +153,18 @@ inline constexpr int schemaFooterPadding = 2;
 inline constexpr int dropZoneGap = 5;
 inline constexpr int dropZoneHeight = 46;
 inline constexpr int iconSize = 16;
+// RunModelButton: 4 px by 16 px padding, a 16 px icon and a 6 px gap in a 24 px button.
+inline constexpr int runButtonPadding = 16;
+inline constexpr int runButtonGap = 6;
+inline constexpr int runButtonHeight = 24;
+// LevelsBody's HIST_HEIGHT.
+inline constexpr int histogramHeight = 56;
+// The width the inline color editor takes over a small swatch.
+inline constexpr int colorEditorWidth = 240;
+// LayerRow: 40 px thumbnail, 96 px blend select and 28 px icon buttons.
+inline constexpr int layerThumbnail = 40;
+inline constexpr int layerBlendWidth = 96;
+inline constexpr int layerButton = 28;
 inline constexpr int fieldRadius = 6;
 inline constexpr double handleDiameter = 12;
 inline constexpr double handleRing = 2;
@@ -194,14 +207,36 @@ inline constexpr int fontValue = 11;
 // to the bespoke bodies. Their controls sit in NodeRow::rect.
 enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Preview,
                          Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize,
-                         Knob, Waveform, Envelope, Caption };
+                         // A dashed placement rectangle over a preview (rect, may be empty)
+                         // and a size badge in the corner of parts[0] (value).
+                         Overlay,
+                         // CropBody's crop rectangle over the image in rect. minimum and
+                         // maximum hold the image size, optionValues the left, top,
+                         // right and bottom edges in image pixels, value the size badge.
+                         Crop,
+                         // LevelsBody's histogram: parts[0] the area, rect the bars,
+                         // optionValues 256 bar heights from 0 to 1, value the view
+                         // ("r", "g", "b" or "luminance") that picks the color.
+                         Histogram,
+                         // PainterBody's canvas: parts[0] the area, rect the canvas,
+                         // minimum and maximum its size in pixels, media[0] the mask and
+                         // media[1] the source, number the background opacity, step the
+                         // brush size, value the color, checked the eraser and
+                         // optionValues[0] the brush opacity.
+                         Paint,
+                         Knob, Waveform, Envelope, Caption,
+                         // ImageComparer: media[0] image A over media[1] image B in rect,
+                         // number the divider from 0 to 1, checked vertical, options the
+                         // two labels.
+                         Compare };
+
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
-                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste,
-                      SynthModule, AudioOut };
+                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves, Levels, Crop,
+                      MasksExtractor, Painter, Compositor, SynthModule, AudioOut };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.
@@ -277,7 +312,10 @@ struct NodeRow {
   bool tracksDefault = false;
   double defaultNumber = 0;
   // The command an Action row requests: "addVariable" or "addOutput". A
-  // Segmented row with "previewTab" switches the body's preview, not a property.
+  // Segmented row with "previewTab" switches the body's view state (its preview
+  // tab, or the Levels channel), not a property. A "resetSliders" row writes
+  // the defaults in optionValues to the properties in options, or else every
+  // default-tracking slider's default.
   QString action;
   // A media drop zone's value kind ("image", "video" or "audio") and items. A
   // list draws its items in a grid above listZone, its own drop zone.
@@ -289,6 +327,8 @@ struct NodeRow {
 
 struct NodeLayout {
   QSize size{node_metrics::defaultWidth, 72};
+  // The selected body tab shows an input's image, so the run result is hidden.
+  bool sourceTab = false;
   QSize minimumSize{150, 40};
   QString title;
   // A shared Material path name for the inspector and catalog.
@@ -328,6 +368,9 @@ struct NodeLayout {
     QString childCount;
     QRectF footerRect() const { return QRectF(0, size.height() - node_metrics::handleRowStep, size.width(), node_metrics::handleRowStep); }
   QVector<NodeRow> rows;
+  // The image arriving at each image handle of a body that reads its source,
+  // by handle name. CardMediaLoader loads their thumbnails.
+  QHash<QString, CardMediaItem> sources;
   QVector<double> inputY;
   QVector<double> outputY;
   // The card and its visible handles. The view asks for it on every move and

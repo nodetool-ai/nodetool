@@ -516,6 +516,8 @@ private slots:
         QTest::newRow("hugging face") << "hf.text_to_image" << "" << "models.huggingfaceByType" << "" << QStringList{"type", "repo_id", "path"};
         QTest::newRow("transformers js") << "tjs.text_classification" << "" << "models.transformersJsByType" << "" << QStringList{"type", "repo_id", "path"};
         QTest::newRow("ollama") << "llama_model" << "" << "models.ollama" << "" << QStringList{"type", "repo_id"};
+        // An image-to-3D provider qualifies too, and the task list is not stored.
+        QTest::newRow("3d") << "model_3d_model" << "nodetool.model3d.ImageTo3D" << "models.model3dByProvider" << "image_to_3d" << basic;
     }
     void everyModelTypeUsesItsRouteAndValueShape() {
         QFETCH(QString, modelType);
@@ -543,6 +545,9 @@ private slots:
             QJsonObject model{{"id", "m-1"}, {"name", "Model One"}, {"type", modelType}, {"provider", "cloud"}, {"execution", execution("api")}};
             if (video) {
                 model.insert("supported_tasks", QJsonArray{"text_to_video"});
+            }
+            if (modelType == "model_3d_model") {
+                model.insert("supported_tasks", QJsonArray{"image_to_3d"});
             }
             if (modelType == "tts_model") {
                 model.insert("voices", QJsonArray{"alloy", "echo"});
@@ -1125,10 +1130,9 @@ private slots:
         QVERIFY(!validatePropertyValue(declaration, 42).isEmpty());
         QVERIFY(!validatePropertyValue(declaration, QJsonObject{{"type", "image_model"}, {"id", "m"}, {"provider", "locked"}}).isEmpty());
         const auto kindOf = [](const char* type) { return propertyKind(QJsonObject{{"type", QJsonObject{{"type", type}}}}); };
-        for (const auto* type : {"image_model", "video_model", "tts_model", "asr_model", "music_model", "embedding_model", "rerank_model", "audio_to_audio_model", "hf.text_to_image", "tjs.text_classification", "llama_model"}) {
+        for (const auto* type : {"image_model", "video_model", "tts_model", "asr_model", "music_model", "embedding_model", "rerank_model", "audio_to_audio_model", "hf.text_to_image", "tjs.text_classification", "llama_model", "model_3d_model"}) {
             QCOMPARE(kindOf(type), QString("model"));
         }
-        QCOMPARE(kindOf("model_3d_model"), QString("unsupported"));
         // A media default names a provider without locking the field to it.
         const QJsonObject image{{"type", QJsonObject{{"type", "image_model"}}}, {"default", QJsonObject{{"provider", "fal"}}}};
         QVERIFY(validatePropertyValue(image, QJsonObject{{"type", "image_model"}, {"id", "m"}, {"provider", "other"}}).isEmpty());
