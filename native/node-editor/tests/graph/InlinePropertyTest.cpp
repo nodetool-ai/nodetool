@@ -3,8 +3,8 @@
 #include "graph/WorkflowGraphModel.h"
 #include "document/WorkflowDocument.h"
 #include "properties/ResourcePickerController.h"
+#include "interfaces/PropertyHost.h"
 #include <QJsonDocument>
-#include <QQmlContext>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QApplication>
@@ -47,7 +47,8 @@ struct Fixture {
   EditorScene scene{model};
   QGraphicsView view{&scene};
   QQmlEngine engine;
-  InlinePropertyPresenter presenter{model,scene,view,&engine};
+  node_editor::PropertyHost host;
+  InlinePropertyPresenter presenter{model,scene,view,&engine,host};
   NodeId id = InvalidNodeId;
   explicit Fixture(const QJsonArray &metadata = catalog(), const QJsonObject &workflow = snapshot()) : cat(metadata) {
     document.setNodeMetadata(cat);
@@ -404,7 +405,7 @@ private slots:
   void workflowAndCollectionSelectsOnCard() {
     ResourceServer resources;
     Fixture f(structuredCatalog(),structuredSnapshot());
-    f.engine.rootContext()->setContextProperty("resourcePickerController",&resources.controller);
+    f.host.setServices({.resourcePicker=&resources.controller});
     f.open("flow");
     QTRY_VERIFY(f.item("inline-resource-select"));
     auto select=f.item("inline-resource-select");

@@ -24,4 +24,8 @@ void PropertyHost::setCredentialsEpoch(quint64 epoch) {
     if (assign(credentialsEpoch_, epoch)) { emit credentialsEpochChanged(); }
 }
 
+void PropertyHost::setServices(const Services &services) {
+    if (assign(services_, services)) { emit servicesChanged(); }
+}
+
 }  // namespace nodetool::node_editor

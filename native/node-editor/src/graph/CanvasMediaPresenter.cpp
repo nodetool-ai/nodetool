@@ -1,6 +1,7 @@
 #include "CanvasMediaPresenter.h"
 #include "EditorScene.h"
 #include "WorkflowGraphModel.h"
+#include "media/MediaResolver.h"
 #include <QEvent>
 #include <QApplication>
 #include <QQuickWindow>
@@ -50,8 +51,8 @@ protected:
 };
 }
 CanvasMediaPresenter::CanvasMediaPresenter(WorkflowGraphModel &model, EditorScene &scene,
-    QGraphicsView &view, QQmlEngine *engine, QObject *parent)
-    : QObject(parent), model_(model), scene_(scene), view_(view), engine_(engine) {
+    QGraphicsView &view, QQmlEngine *engine, node_editor::MediaResolver &resolver, QObject *parent)
+    : QObject(parent), model_(model), scene_(scene), view_(view), engine_(engine), resolver_(resolver) {
   connect(&model_, &WorkflowGraphModel::modelReset, this, [this] { allPlayerNodesDirty_ = true; releaseWidgets(); schedule(); });
   // An incremental projection keeps the players of surviving nodes.
   connect(&model_, &WorkflowGraphModel::projectionChanged, this, [this] {
@@ -241,7 +242,7 @@ void CanvasMediaPresenter::showPlayers(QtNodes::NodeGraphicsObject &node, const 
       widget->setClearColor(Qt::transparent);
       widget->setAttribute(Qt::WA_AlwaysStackOnTop);
       widget->setFocusPolicy(Qt::StrongFocus);
-      widget->setInitialProperties({{"items", items}, {"geometry", geometry}, {"playerKey", key},
+      widget->setInitialProperties({{"items", items}, {"geometry", geometry}, {"playerKey", key}, {"resolver", QVariant::fromValue<QObject *>(&resolver_)},
                                     {"requestKey", "card-media-player:" + key + ':' + QString::number(++serial_)}});
       widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CardMediaPlayer.qml"));
       if (widget->status() == QQuickWidget::Error || !widget->rootObject()) { widget->deleteLater(); continue; }
@@ -321,7 +322,7 @@ void CanvasMediaPresenter::refresh() {
           widget->setAttribute(Qt::WA_AlwaysStackOnTop);
           widget->setFocusPolicy(Qt::StrongFocus);
           widget->setInitialProperties({{"richEntry", source->value("richEntry", QVariantMap{})}, {"mediaKind", source->value("kind")}, {"locator", source->value("locator")},
-            {"filename", source->value("filename").toString()}, {"notice", source->value("notice").toString()}, {"items", source->value("items")}, {"previewActions", source->value("previewActions").toBool()}, {"requestKey", "canvas-media:" + id + ':' + QString::number(++serial_)}});
+            {"filename", source->value("filename").toString()}, {"notice", source->value("notice").toString()}, {"items", source->value("items")}, {"previewActions", source->value("previewActions").toBool()}, {"resolver", QVariant::fromValue<QObject *>(&resolver_)}, {"requestKey", "canvas-media:" + id + ':' + QString::number(++serial_)}});
           widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/CanvasMedia.qml"));
           if (widget->status() == QQuickWidget::Error) { widget->deleteLater(); continue; }
           active_.insert(id, {widget, *source});
@@ -399,7 +400,7 @@ bool CanvasMediaPresenter::openImageViewer(QtNodes::NodeId id) {
   closeImageViewer();
   QQmlComponent component(engine_, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ImageViewer.qml"));
   auto object = component.createWithInitialProperties({{"items", items}, {"selected", items.first()},
-      {"currentIndex", 0}, {"scopeKey", "canvas-image:" + resource + ':' + QString::number(++serial_)}});
+      {"currentIndex", 0}, {"resolver", QVariant::fromValue<QObject *>(&resolver_)}, {"scopeKey", "canvas-image:" + resource + ':' + QString::number(++serial_)}});
   auto viewer = qobject_cast<QQuickWindow *>(object);
   // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
   if (!viewer) { delete object; return false; }

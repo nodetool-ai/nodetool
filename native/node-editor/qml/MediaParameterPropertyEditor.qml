@@ -8,7 +8,8 @@ ColumnLayout {
     required property var descriptor
     required property var value
     required property bool writable
-    property var controller: typeof resourcePickerController === "undefined" ? null : resourcePickerController
+    // The tab's ResourcePickerController, from the property host.
+    property var controller: null
     property int generation: 0
     property string requestKey: "media-parameter-" + String(root)
     readonly property string key: requestKey + "-" + generation

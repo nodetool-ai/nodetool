@@ -1,6 +1,7 @@
 #include "InlinePropertyPresenter.h"
 #include "EditorScene.h"
 #include "WorkflowGraphModel.h"
+#include "interfaces/PropertyHost.h"
 #include <QEvent>
 #include <QApplication>
 #include <QGraphicsView>
@@ -31,8 +32,8 @@ protected:
 };
 }
 InlinePropertyPresenter::InlinePropertyPresenter(WorkflowGraphModel &model,
-    EditorScene &scene, QGraphicsView &view, QQmlEngine *engine, QObject *parent)
-    : QObject(parent), model_(model), scene_(scene), view_(view), engine_(engine) {
+    EditorScene &scene, QGraphicsView &view, QQmlEngine *engine, node_editor::PropertyHost &host, QObject *parent)
+    : QObject(parent), model_(model), scene_(scene), view_(view), engine_(engine), host_(host) {
   connect(&scene_, &EditorScene::inlineEditRequested, this, &InlinePropertyPresenter::activate);
   connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] { if (!holding_) { cancel(); } });
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, [this](QtNodes::NodeId) { reposition(); });
@@ -88,7 +89,8 @@ void InlinePropertyPresenter::activate(QtNodes::NodeId id, const QString &name) 
   widget->setAttribute(Qt::WA_AlwaysStackOnTop);
   widget->setClearColor(Qt::transparent);
   widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-  widget->setInitialProperties({{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_}});
+  widget->setInitialProperties({{"presenter", QVariant::fromValue(this)}, {"activationToken", generation_},
+                                {"host", QVariant::fromValue(&host_)}});
   reposition();
   widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/InlinePropertyEditor.qml"));
   if (widget->status() == QQuickWidget::Error) { cancel(); return; }

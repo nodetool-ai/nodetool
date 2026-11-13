@@ -10,6 +10,11 @@ ColumnLayout {
     required property bool writable
     required property string nodeId
     property bool previewReady: true
+    // The tab's AssetPickerController, MediaResolver and ResourcePickerController,
+    // passed to the previews and the picker.
+    property var controller: null
+    property var resolver: null
+    property var resourceController: null
     readonly property var entries: value && typeof value !== "string" && typeof value.length === "number" ? Array.from(value) : []
     signal valueCommitted(var value)
     signal scopeInvalidated()
@@ -42,6 +47,7 @@ ColumnLayout {
                 mediaKind: root.descriptor.mediaType
                 locator: parent.modelData
                 requestKey: "media-list-preview-" + String(root) + "-" + String(parent)
+                resolver: root.resolver
             }
             RowLayout {
                 spacing: Ui.Metrics.xs
@@ -60,6 +66,9 @@ ColumnLayout {
         writable: root.writable
         nodeId: root.nodeId
         multipleFiles: true
+        controller: root.controller
+        resolver: root.resolver
+        resourceController: root.resourceController
         dropZoneOnly: true
         onReferencesCommitted: values => root.append(values)
         onScopeInvalidated: root.scopeInvalidated()

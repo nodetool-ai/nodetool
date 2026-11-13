@@ -10,7 +10,6 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QQmlComponent>
-#include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -224,12 +223,12 @@ struct Field {
     std::unique_ptr<QObject> editor;
     QQuickItem* item = nullptr;
     QPointer<QObject> theme;
-    Field(QQmlEngine& engine, const QVariantMap& descriptor, const QVariant& value) {
+    Field(QQmlEngine& engine, QObject* controller, const QVariantMap& descriptor, const QVariant& value) {
         window->resize(900, 720);
         theme = engine.singletonInstance<QObject*>("NodeTool.UiPrimitives", "Theme");
         window->setColor(theme ? theme->property("surfaceCanvas").value<QColor>() : QColor());
         QQmlComponent component(&engine, QUrl(QStringLiteral("qrc:/editor/ModelPropertyEditor.qml")));
-        editor.reset(component.createWithInitialProperties({{"descriptor", descriptor}, {"value", value}, {"writable", true}}));
+        editor.reset(component.createWithInitialProperties({{"descriptor", descriptor}, {"value", value}, {"writable", true}, {"controller", QVariant::fromValue(controller)}}));
         item = qobject_cast<QQuickItem*>(editor.get());
         if (!item) {
             qWarning() << component.errorString();
@@ -284,7 +283,6 @@ struct Host {
     Host() {
         QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settings.path());
         engine->addImportPath(QStringLiteral("qrc:/qt/qml"));
-        engine->rootContext()->setContextProperty("modelPickerController", controller.get());
     }
     void connectAs(const QString& user, const QString& token = QStringLiteral("secret")) {
         controller->configure(server.url(), token, user);
@@ -295,7 +293,6 @@ struct Host {
         controller = std::make_unique<ModelPickerController>();
         engine = std::make_unique<QQmlEngine>();
         engine->addImportPath(QStringLiteral("qrc:/qt/qml"));
-        engine->rootContext()->setContextProperty("modelPickerController", controller.get());
     }
     void setTheme(int scheme) {
         auto* theme = engine->singletonInstance<QObject*>("NodeTool.UiPrimitives", "Theme");
@@ -547,7 +544,7 @@ private slots:
             return QJsonArray{model};
         };
         host.connectAs("type-user");
-        Field field(*host.engine, descriptor(modelType, nodeType), QVariant());
+        Field field(*host.engine, host.controller.get(), descriptor(modelType, nodeType), QVariant());
         QVERIFY(field.item);
         QVERIFY(field.open());
         const auto rowName = modelType.startsWith("hf.") ? QStringLiteral("choose_huggingface_org/repo") : QStringLiteral("choose_cloud_m-1");
@@ -620,7 +617,7 @@ private slots:
         host.server.routes["models.imageByProvider"] = models;
         host.server.routes["models.videoByProvider"] = models;
         host.connectAs("task-user");
-        Field field(*host.engine, descriptor(modelType, nodeType), QVariant());
+        Field field(*host.engine, host.controller.get(), descriptor(modelType, nodeType), QVariant());
         QVERIFY(field.open());
         QTRY_VERIFY(field.find("choose_fit_declared"));
         QCOMPARE(field.find("choose_fit_undeclared") != nullptr, undeclaredListed);
@@ -648,8 +645,8 @@ private slots:
         };
         host.connectAs("account-a");
         {
-            Field generate(*host.engine, descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
-            Field upscale(*host.engine, descriptor("image_model", "nodetool.image.Upscale"), QVariant());
+            Field generate(*host.engine, host.controller.get(), descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
+            Field upscale(*host.engine, host.controller.get(), descriptor("image_model", "nodetool.image.Upscale"), QVariant());
             QVERIFY(generate.open());
             QTRY_VERIFY(generate.find("choose_img_gen-1"));
             QVERIFY(generate.clickNamed("favorite_img_gen-1"));
@@ -669,7 +666,7 @@ private slots:
         host.restart();
         host.connectAs("account-a");
         {
-            Field later(*host.engine, descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
+            Field later(*host.engine, host.controller.get(), descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
             QVERIFY(later.open());
             QTRY_VERIFY(later.find("choose_img_gen-1"));
             QVERIFY(later.clickNamed("provider_Recent_rail"));
@@ -691,7 +688,7 @@ private slots:
         }
         host.connectAs("account-b");
         {
-            Field other(*host.engine, descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
+            Field other(*host.engine, host.controller.get(), descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
             QVERIFY(other.open());
             QTRY_VERIFY(other.find("choose_img_gen-1"));
             QVERIFY(other.clickNamed("provider_Recent_rail"));
@@ -724,7 +721,7 @@ private slots:
         };
         host.connectAs("setup-user");
         const QVariantMap stored{{"type", "language_model"}, {"id", "gpt-5-mini"}, {"provider", "openai"}, {"name", "gpt-5-mini"}};
-        Field language(*host.engine, descriptor("language_model", "nodetool.agents.Agent"), stored);
+        Field language(*host.engine, host.controller.get(), descriptor("language_model", "nodetool.agents.Agent"), stored);
         QTRY_COMPARE(language.editor->property("keyWarning").toString(),
                      QStringLiteral("OpenAI needs OPENAI_API_KEY. Add it in Settings, or pick another model."));
         auto* icon = language.find("model-key-warning-model");
@@ -732,8 +729,8 @@ private slots:
         QCOMPARE(language.find("model-label-model")->property("text").toString(), QStringLiteral("gpt-5-mini"));
         QCOMPARE(language.find("model-secondary-model")->property("text").toString(), QStringLiteral("OpenAI"));
         language.capture(QStringLiteral("key-warning-dark"));
-        Field embedding(*host.engine, descriptor("embedding_model"), QVariantMap{{"type", "embedding_model"}, {"id", "text-embedding-3"}, {"provider", "openai"}, {"name", "Embedding"}});
-        Field local(*host.engine, descriptor("language_model"), QVariantMap{{"type", "language_model"}, {"id", "llama3"}, {"provider", "ollama"}, {"name", "Llama 3"}});
+        Field embedding(*host.engine, host.controller.get(), descriptor("embedding_model"), QVariantMap{{"type", "embedding_model"}, {"id", "text-embedding-3"}, {"provider", "openai"}, {"name", "Embedding"}});
+        Field local(*host.engine, host.controller.get(), descriptor("language_model"), QVariantMap{{"type", "language_model"}, {"id", "llama3"}, {"provider", "ollama"}, {"name", "Llama 3"}});
         QTRY_VERIFY(host.catalog(local)->loaded());
         QTRY_VERIFY(host.catalog(embedding)->loaded());
         QCOMPARE(embedding.editor->property("keyWarning").toString(), QString());
@@ -794,7 +791,7 @@ private slots:
                 {"adapter", QJsonObject{{"state", "installed"}, {"artifact_ref", artifact}}}}};
         };
         host.connectAs("download-user");
-        Field field(*host.engine, descriptor("language_model", "nodetool.agents.Agent"), QVariant());
+        Field field(*host.engine, host.controller.get(), descriptor("language_model", "nodetool.agents.Agent"), QVariant());
         QVERIFY(field.open());
         QTRY_VERIFY(field.find("download_llama_cpp_qwen3"));
         QSignalSpy chosen(field.editor.get(), SIGNAL(valueCommitted(QVariant)));
@@ -876,7 +873,7 @@ private slots:
             return result;
         };
         host.connectAs("recommend-user");
-        Field field(*host.engine, descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
+        Field field(*host.engine, host.controller.get(), descriptor("image_model", "nodetool.image.TextToImage"), QVariant());
         QVERIFY(field.open());
         QTRY_VERIFY(field.find("use_huggingface_black/flux"));
         QVERIFY(field.find("download_huggingface_stabilityai/sdxl"));
@@ -920,7 +917,7 @@ private slots:
                 {"adapter", QJsonObject{{"state", "installed"}, {"artifact_ref", QJsonObject{{"source", "huggingface"}, {"repo_id", "org/" + owner}}}}}}};
         };
         host.connectAs("first", QStringLiteral("first-token"));
-        Field field(*host.engine, descriptor("language_model"), QVariant());
+        Field field(*host.engine, host.controller.get(), descriptor("language_model"), QVariant());
         QVERIFY(field.open());
         QTRY_VERIFY(field.find("download_first-cloud_first-cloud-model"));
         QVERIFY(field.clickNamed("download_first-cloud_first-cloud-model"));
@@ -951,7 +948,7 @@ private slots:
         };
         host.server.held.insert("models.llmByProvider");
         host.connectAs("stale-user");
-        Field field(*host.engine, descriptor("language_model"), QVariant());
+        Field field(*host.engine, host.controller.get(), descriptor("language_model"), QVariant());
         auto* catalog = host.catalog(field);
         QTRY_VERIFY(host.server.count("models.llmByProvider") >= 1);
         QVERIFY(catalog->loading());
@@ -1008,11 +1005,10 @@ private slots:
         ModelPickerController controller;
         QQmlEngine engine;
         engine.addImportPath("qrc:/qt/qml");
-        engine.rootContext()->setContextProperty("modelPickerController", &controller);
         QQmlComponent component(&engine, QUrl("qrc:/editor/ModelPropertyEditor.qml"));
         QTRY_VERIFY2(component.status() != QQmlComponent::Loading, qPrintable(component.errorString()));
         QVERIFY2(!component.isError(), qPrintable(component.errorString()));
-        std::unique_ptr<QObject> hf(component.createWithInitialProperties({{"descriptor", QVariantMap{{"name", "model"}, {"modelType", "hf.text_to_image"}}}, {"value", QVariantMap{{"type", "hf.text_to_image"}, {"repo_id", "org/repo"}, {"path", "a.safetensors"}}}, {"writable", true}}));
+        std::unique_ptr<QObject> hf(component.createWithInitialProperties({{"controller", QVariant::fromValue<QObject*>(&controller)}, {"descriptor", QVariantMap{{"name", "model"}, {"modelType", "hf.text_to_image"}}}, {"value", QVariantMap{{"type", "hf.text_to_image"}, {"repo_id", "org/repo"}, {"path", "a.safetensors"}}}, {"writable", true}}));
         QVERIFY2(hf != nullptr, qPrintable(component.errorString()));
         QCOMPARE(hf->property("selectedId").toString(), "org/repo:a.safetensors");
         QVariant result;
@@ -1023,7 +1019,7 @@ private slots:
         QCOMPARE(value.value("path").toString(), "b.safetensors");
         QCOMPARE(value.value("type").toString(), "hf.text_to_image");
         QVERIFY(!value.contains("id"));
-        std::unique_ptr<QObject> tts(component.createWithInitialProperties({{"descriptor", QVariantMap{{"name", "voice"}, {"modelType", "tts_model"}}}, {"value", QVariantMap{{"type", "tts_model"}, {"id", "t"}, {"provider", "p"}, {"name", "Speech"}, {"voices", QVariantList{"a", "b"}}, {"selected_voice", "a"}, {"sample_rate", 24000}}}, {"writable", true}}));
+        std::unique_ptr<QObject> tts(component.createWithInitialProperties({{"controller", QVariant::fromValue<QObject*>(&controller)}, {"descriptor", QVariantMap{{"name", "voice"}, {"modelType", "tts_model"}}}, {"value", QVariantMap{{"type", "tts_model"}, {"id", "t"}, {"provider", "p"}, {"name", "Speech"}, {"voices", QVariantList{"a", "b"}}, {"selected_voice", "a"}, {"sample_rate", 24000}}}, {"writable", true}}));
         QVERIFY2(tts != nullptr, qPrintable(component.errorString()));
         QVERIFY(tts->property("hasVoices").toBool());
         QSignalSpy committedVoice(tts.get(), SIGNAL(valueCommitted(QVariant)));
@@ -1036,7 +1032,7 @@ private slots:
         QCOMPARE(value.value("name").toString(), "Speech");
         QCOMPARE(value.value("sample_rate").toInt(), 24000);
         // A capability list without preset_voice hides the voice control.
-        std::unique_ptr<QObject> cloned(component.createWithInitialProperties({{"descriptor", QVariantMap{{"name", "voice"}, {"modelType", "tts_model"}}}, {"value", QVariantMap{{"type", "tts_model"}, {"id", "t"}, {"provider", "p"}, {"voices", QVariantList{"a"}}, {"capabilities", QVariantList{"voice_clone"}}}}, {"writable", true}}));
+        std::unique_ptr<QObject> cloned(component.createWithInitialProperties({{"controller", QVariant::fromValue<QObject*>(&controller)}, {"descriptor", QVariantMap{{"name", "voice"}, {"modelType", "tts_model"}}}, {"value", QVariantMap{{"type", "tts_model"}, {"id", "t"}, {"provider", "p"}, {"voices", QVariantList{"a"}}, {"capabilities", QVariantList{"voice_clone"}}}}, {"writable", true}}));
         QVERIFY(cloned);
         QVERIFY(!cloned->property("hasVoices").toBool());
     }
@@ -1049,7 +1045,7 @@ private slots:
             return QJsonArray{QJsonObject{{"id", "full/model-id"}, {"name", "Test model"}, {"path", "weights.bin"}, {"supported_tasks", QJsonArray{"upscale"}}, {"execution", execution("api")}}};
         };
         host.connectAs("authorized-user");
-        Field field(*host.engine, descriptor("image_model", "nodetool.image.Upscale", {"test"}), QVariantMap{{"id", "full/model-id"}, {"provider", "test"}});
+        Field field(*host.engine, host.controller.get(), descriptor("image_model", "nodetool.image.Upscale", {"test"}), QVariantMap{{"id", "full/model-id"}, {"provider", "test"}});
         QTRY_COMPARE(field.find("model-label-model")->property("text").toString(), QStringLiteral("Test model"));
         QCOMPARE(field.find("model-secondary-model")->property("text").toString(), QStringLiteral("weights.bin"));
         QVERIFY(field.open());

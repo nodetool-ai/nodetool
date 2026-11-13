@@ -2,7 +2,10 @@ import QtQuick
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 ColumnLayout {
+    id: objectOutput
     property var fields: []
+    // The tab's MediaResolver, passed to each field's output.
+    property var resolver: null
     spacing: Ui.Metrics.md
     Repeater {
         model: fields
@@ -17,7 +20,7 @@ ColumnLayout {
             }
             Loader {
                 Layout.fillWidth: true
-                Component.onCompleted: setSource("RichOutput.qml", {modelData: parent.modelData.output})
+                Component.onCompleted: setSource("RichOutput.qml", {modelData: parent.modelData.output, resolver: objectOutput.resolver})
             }
         }
     }

@@ -237,6 +237,7 @@ ColumnLayout {
     Component {
         id: model3dField
         Model3DPropertyEditor {
+            controller: root.host.assetPicker
             descriptor: root.descriptor
             value: root.effectiveValue
             writable: root.writable
@@ -251,6 +252,7 @@ ColumnLayout {
     Component {
         id: documentField
         DocumentPropertyEditor {
+            controller: root.host.documentPicker
             descriptor: root.descriptor
             value: root.effectiveValue
             writable: root.writable
@@ -265,6 +267,8 @@ ColumnLayout {
     Component {
         id: remainingResourceField
         RemainingResourcePropertyEditor {
+            controller: root.host.resourcePicker
+            resolver: root.host.media
             descriptor: root.descriptor
             value: root.effectiveValue
             writable: root.writable
@@ -297,6 +301,7 @@ ColumnLayout {
     Component {
         id: mediaParameterField
         MediaParameterPropertyEditor {
+            controller: root.host.resourcePicker
             descriptor: root.descriptor
             value: root.effectiveValue
             writable: root.writable
@@ -326,6 +331,9 @@ ColumnLayout {
     Component {
         id: documentAssetField
         AssetPropertyEditor {
+            controller: root.host.assetPicker
+            resolver: root.host.media
+            resourceController: root.host.resourcePicker
             descriptor: Object.assign({}, root.descriptor, {mediaType: "document"})
             value: root.effectiveValue
             writable: root.writable
@@ -341,6 +349,7 @@ ColumnLayout {
     Component {
         id: collectionField
         CollectionPropertyEditor {
+            controller: root.host.resourcePicker
             descriptor: root.descriptor
             value: root.effectiveValue
             writable: root.writable
@@ -352,6 +361,7 @@ ColumnLayout {
     Component {
         id: workflowField
         WorkflowPropertyEditor {
+            controller: root.host.resourcePicker
             descriptor: root.descriptor
             value: root.effectiveValue
             writable: root.writable
@@ -381,6 +391,9 @@ ColumnLayout {
     Component {
         id: mediaListField
         MediaListPropertyEditor {
+            controller: root.host.assetPicker
+            resolver: root.host.media
+            resourceController: root.host.resourcePicker
             descriptor: root.descriptor
             value: root.effectiveValue
             writable: root.writable
@@ -392,6 +405,9 @@ ColumnLayout {
     Component {
         id: mediaField
         AssetPropertyEditor {
+            controller: root.host.assetPicker
+            resolver: root.host.media
+            resourceController: root.host.resourcePicker
             descriptor: root.descriptor
             value: root.effectiveValue
             writable: root.writable
@@ -404,6 +420,7 @@ ColumnLayout {
     Component {
         id: modelField
         ModelPropertyEditor {
+            controller: root.host.modelPicker
             descriptor: root.descriptor
             value: root.effectiveValue
             writable: root.writable

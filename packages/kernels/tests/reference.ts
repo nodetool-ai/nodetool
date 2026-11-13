@@ -479,3 +479,39 @@ export function adsrStep(
   }
   return state.env;
 }
+
+// ── PCM codecs: packages/audio-nodes/src/lib/audio-wav.ts parseWavBytes and encodeWav ──
+
+export function pcmDecode(bytes: Uint8Array, bitsPerSample: number, isFloat: boolean): Float32Array {
+  const bytesPerSample = bitsPerSample / 8;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const totalSamples = Math.floor(bytes.length / bytesPerSample);
+  const samples = new Float32Array(totalSamples);
+  for (let i = 0; i < totalSamples; i++) {
+    const pos = i * bytesPerSample;
+    if (isFloat) {
+      samples[i] = view.getFloat32(pos, true);
+    } else if (bitsPerSample === 16) {
+      samples[i] = view.getInt16(pos, true) / 0x7fff;
+    } else if (bitsPerSample === 8) {
+      samples[i] = (bytes[pos] - 128) / 128;
+    } else if (bitsPerSample === 24) {
+      let v = bytes[pos] | (bytes[pos + 1] << 8) | (bytes[pos + 2] << 16);
+      if (v & 0x800000) v -= 0x1000000;
+      samples[i] = v / 0x7fffff;
+    } else {
+      samples[i] = view.getInt32(pos, true) / 0x7fffffff;
+    }
+  }
+  return samples;
+}
+
+export function pcm16Encode(samples: Float32Array): Uint8Array {
+  const out = new Uint8Array(samples.length * 2);
+  const view = new DataView(out.buffer);
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(i * 2, Math.round(s * 0x7fff), true);
+  }
+  return out;
+}
