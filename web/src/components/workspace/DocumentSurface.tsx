@@ -66,8 +66,8 @@ const DocumentSurface = ({ tab }: DocumentSurfaceProps) => {
       ) : (
         <EmptyState
           variant="no-data"
-          title={asset?.name || tab.title}
-          description="Preview is not available for this document format."
+          title="No preview for this format"
+          description="Download the document to open it in another app."
           actionText="Download document"
           onAction={handleDownload}
         />
