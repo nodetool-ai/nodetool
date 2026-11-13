@@ -102,9 +102,6 @@
       "path": "../runtime"
     },
     {
-      "path": "../runtime-install"
-    },
-    {
       "path": "../sandbox-compiler"
     },
     {

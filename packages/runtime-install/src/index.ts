@@ -19,8 +19,6 @@ export { NpmRuntimePackage } from "./packages/NpmRuntimePackage.js";
 export { ProvidedRuntimePackage } from "./packages/ProvidedRuntimePackage.js";
 export { UvToolRuntimePackage, runUv } from "./packages/UvToolRuntimePackage.js";
 export { AceStepRuntimePackage } from "./packages/AceStepRuntimePackage.js";
-// The ACE-Step model download is the "./acestep-models" subpath: it loads
-// @nodetool-ai/huggingface, which the desktop app's installer does not need.
 export { SdCppRuntimePackage } from "./packages/SdCppRuntimePackage.js";
 export { Wan2GPRuntimePackage } from "./packages/Wan2GPRuntimePackage.js";
 export { RUNTIME_PACKAGES } from "./packages/definitions.js";

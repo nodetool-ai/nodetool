@@ -28,7 +28,7 @@ function installDir(ctx: RuntimeContext): string {
  * provider starts it on demand. The archive exists for macOS on Apple silicon
  * only, so other platforms report no install target and an install fails with
  * a message that says so. The models download separately
- * (`downloadAceStepModels`).
+ * (`downloadAceStepModels` in `@nodetool-ai/websocket`).
  */
 export class AceStepRuntimePackage implements RuntimePackage {
   readonly id = "acestep";
