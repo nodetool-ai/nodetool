@@ -229,10 +229,11 @@ private slots:
         // Ten times real time, block by block. macOS sleeps far past a 1 ms
         // request, so 50,000 sleeps outrun the test timeout, and catching up
         // after a late sleep sends blocks in bursts the worker cannot fill.
-        // The loop yields until each block's deadline instead.
+        // There the loop yields until each block's deadline. Elsewhere it
+        // sleeps, which leaves the core to the worker under TSan.
         const auto paceUs = qEnvironmentVariableIsSet("NT_LOOP_PACE_US") ? qEnvironmentVariableIntValue("NT_LOOP_PACE_US") : 1000;
-        const auto paceStart = std::chrono::steady_clock::now();
-        std::int64_t pacedBlocks = 0;
+        [[maybe_unused]] const auto paceStart = std::chrono::steady_clock::now();
+        [[maybe_unused]] std::int64_t pacedBlocks = 0;
         std::vector<float> block(kPeriod * 2);
         float last[2] = {0, 0};
         float worstStep = 0;
@@ -293,8 +294,12 @@ private slots:
             last[1] = block[kPeriod * 2 - 1];
             frame += kPeriod;
             if (paceUs > 0) {
+#if defined(__APPLE__)
                 const auto deadline = paceStart + std::chrono::microseconds(paceUs) * ++pacedBlocks;
                 while (std::chrono::steady_clock::now() < deadline) std::this_thread::yield();
+#else
+                std::this_thread::sleep_for(std::chrono::microseconds(paceUs));
+#endif
             }
         }
         const AudioEngine::Stats s = engine.stats();
