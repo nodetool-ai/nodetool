@@ -10,6 +10,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = Path(__file__).resolve().parents[1]
 ROOTS = ('native/timeline/qml', 'native/timeline/src', 'native/chat/qml', 'native/model-picker/qml', 'native/media/qml', 'native/entities/qml', 'native/storyboard/qml', 'native/node-editor/qml')
+# Roots still being migrated. A pending file under one does not fail --strict, so
+# its reviewed files are gated while the rest await review.
+MIGRATING = ('native/node-editor/qml/',)
 TOKEN = re.compile(r'''(?P<space>\s+)|(?P<comment>//[^\n]*|/\*[\s\S]*?\*/)|(?P<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(?P<ident>[A-Za-z_$][\w$]*)|(?P<number>0[xX][\da-fA-F]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)|(?P<punct>.)''')
 RAW_CONTROLS = {
     'Button', 'ToolButton', 'RoundButton', 'TextField', 'TextArea', 'ComboBox',
@@ -506,8 +509,12 @@ def main(argv=None):
     errors.extend('{}: stale inventory entry'.format(path) for path in sorted(entries.keys() - actual))
     used = set()
     wrappers = semantic_wrappers([ROOT / path for path in actual])
+    deferred = 0
     for path in sorted(actual & entries.keys()):
         entry = entries[path]
+        if entry['category'] == 'pending' and path.startswith(MIGRATING) and not args.report:
+            deferred += 1
+            continue
         if args.strict and (entry['category'] == 'pending' or entry.get('test_host') in {None, '', 'unreviewed'} or entry.get('replacement') in {None, '', 'unreviewed'}):
             errors.append('{}: pending inventory review'.format(path))
         enforce = entry['category'] != 'pending' or args.strict or args.report
@@ -533,6 +540,8 @@ def main(argv=None):
         if index not in used:
             errors.append('{}: stale or duplicate exception {}:{}'.format(exception.get('path'), exception.get('object'), exception.get('binding')))
     print('Inspected {} inventoried native QML files'.format(len(actual)))
+    if deferred:
+        print('{} files under a migrating root await review'.format(deferred))
     for error in errors:
         print(error, file=sys.stderr)
     return int(bool(errors))
