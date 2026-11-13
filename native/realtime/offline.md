@@ -1,9 +1,10 @@
 # Offline execution preparation
 
-WP09 is in progress. The exact clock and control/audio driver are implemented,
-with a standalone CLI and float WAV output. Render integration, external slots,
-PNG output, the graph-runner command and
-registry gate remain pending. Local test execution is deferred.
+WP09 is in progress. The standalone driver exports float WAV tracks and,
+in GPU-enabled builds, PNG frames from the private-device backend. External
+slots, the graph-runner command and registry gate remain pending. Broad test
+runs are deferred until the larger offline-driver task is ready. Runtime GPU
+export and its pixel references have not been exercised locally.
 
 ## Prepared audio command
 
@@ -40,9 +41,42 @@ does not implement WP13's live cross-thread synchronization.
 
 The driver closes every WAV before writing a temporary manifest and renaming
 it to `manifest.json`. The manifest records sample, quantum and control-frame
-counts, sink files and sanitized sample counts. It reports zero image frames.
+counts, sink files, image-frame counts and sanitized sample counts.
 Failures preserve partial files for inspection without a success manifest.
 Existing output directories are rejected, including empty directories.
+
+## Prepared render command
+
+Configure with `NT_REALTIME_OFFLINE_GPU=ON` as described in the
+[build instructions](README.md#build-and-test). The CLI build generates the
+existing format-1 shader catalog and uses it by default. `--catalog FILE`
+selects an explicit local catalog. Audio-only exports do not load a catalog
+or create a GPU device.
+
+```sh
+native/realtime/build-gpu/nodetool-realtime live native/realtime/tests/fixtures/offline-render.json --duration 1 --fps 60 --out render-export
+```
+
+This path requests a software adapter on a private device and prepares all
+pipelines synchronously under the approved offline exception. No external GPU
+handles or live/shared device can be attached. A present output tagged `srgb`
+is required. Fragment and compute modules are supported after graph lowering.
+Catalog recipes must already be lowered to passes. Optional catalog inputs may
+be omitted and use the backend's prepared defaults.
+
+Each submitted frame is read back before the next is submitted. The offline
+host polls and may sleep while waiting, with a 60-second deadline per readback.
+These waits occur outside executor calls and are not realtime operations.
+The driver converts premultiplied RGBA8 readback to straight-alpha PNG pixels
+and writes `frame-000000.png`, `frame-000001.png` and subsequent files. Pixel
+conversion and encoding use host-owned storage, destroyed on return.
+
+The render export fixture prepares render-only and mixed audio/render runs,
+checks decoded PNG pixels against a translucent red reference and compares
+repeat PNG/WAV/manifest bytes. A `time.dt` reference checks video-frame duration
+independently of intervening audio quanta. Its first video frame has zero dt.
+These fixtures compile but have not run. The default core CI build excludes
+the optional GPU backend and cannot qualify these exports.
 
 ## Clock contract
 

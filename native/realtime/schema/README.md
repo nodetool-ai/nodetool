@@ -24,6 +24,11 @@ host registry provides its input contracts. Alpha mismatches require an explicit
 conversion pass. Color-space mismatches warn, as specified by design section
 6.2. Pass outputs are premultiplied.
 
+Host input contracts may mark an input optional. Missing required inputs and
+unknown input names are rejected. Optional inputs that are supplied still
+receive the same source, format and alpha validation. The offline catalog host
+derives these flags from the shader catalog, not from plan input data.
+
 Control registers are scoped to their audio or render domain. Each register
 has one producer. Stateful node identities may occur only once. The prepare
 step will lower this description into instructions before execution.
