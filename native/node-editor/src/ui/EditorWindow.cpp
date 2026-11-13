@@ -469,6 +469,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     connect(scene_, &EditorScene::dynamicTypeMenuRequested, this, &EditorWindow::showDynamicTypeMenu);
     connect(scene_, &EditorScene::headerActionRequested, this, [this](const QString &id, const QString &action) {
         if (action == QStringLiteral("loadComfyWorkflow")) { showComfyWorkflowDialog(id); }
+        if (action == QStringLiteral("compositorLayout")) { showCompositorLayoutDialog(id); }
     });
     connect(scene_, &EditorScene::childOpenRequested, this, [this](const QString &id) {
         if (selectNode(id)) { openChild(); }

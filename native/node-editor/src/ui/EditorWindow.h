@@ -140,6 +140,8 @@ public:
   void loadChildSource(const QString &nodeId, const QString &kind, const QString &sourceId);
   // ComfyWorkflowLoader.tsx: the Run ComfyUI Workflow node's load dialog.
   void showComfyWorkflowDialog(const QString &nodeId);
+  // CompositorEditorModal.tsx: the Compositor node's layout editor.
+  void showCompositorLayoutDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
   EditorWindow *activeEditor() const;

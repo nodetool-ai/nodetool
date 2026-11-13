@@ -1,4 +1,5 @@
 #include "CardBodies.h"
+#include "CompositorGeometry.h"
 #include "SynthModules.h"
 #include <QFont>
 #include <QFontMetricsF>
@@ -1418,61 +1419,9 @@ void layoutPainter(NodeLayout &layout, const CardBodyInput &input) {
     layout.rows.append(paint);
 }
 
-// CompositorPreview: the layers drawn bottom first (image_0 is on top), each
-// at its transform or contain-fit centered, with its opacity and blend mode,
-// on a canvas of the given size scaled to fit the area.
-QImage compositeLayers(const QStringList &keys, const QVector<CompositorLayer> &layers, const QHash<QString, CardMediaItem> &sources,
-                       const QSize &canvas, const QSizeF &area) {
-    static const QHash<QString, QPainter::CompositionMode> modes{
-        {"normal", QPainter::CompositionMode_SourceOver}, {"multiply", QPainter::CompositionMode_Multiply},
-        {"screen", QPainter::CompositionMode_Screen}, {"overlay", QPainter::CompositionMode_Overlay},
-        {"darken", QPainter::CompositionMode_Darken}, {"lighten", QPainter::CompositionMode_Lighten},
-        {"color-dodge", QPainter::CompositionMode_ColorDodge}, {"color-burn", QPainter::CompositionMode_ColorBurn},
-        {"hard-light", QPainter::CompositionMode_HardLight}, {"soft-light", QPainter::CompositionMode_SoftLight},
-        {"difference", QPainter::CompositionMode_Difference}, {"exclusion", QPainter::CompositionMode_Exclusion},
-        {"add", QPainter::CompositionMode_Plus}};
-    const auto size = QSizeF(canvas).scaled(area, Qt::KeepAspectRatio).toSize();
-    if (size.isEmpty()) { return {}; }
-    QImage result(size, QImage::Format_ARGB32_Premultiplied);
-    result.fill(Qt::transparent);
-    QPainter painter(&result);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform);
-    const auto scale = double(size.width()) / canvas.width();
-    for (auto i = keys.size() - 1; i >= 0; --i) {
-        const auto layer = layers.value(i);
-        const auto source = sources.constFind(keys[i]);
-        if (!layer.visible || layer.opacity <= 0 || source == sources.cend() || source->state != CardMediaState::Ready || source->image.isNull()) {
-            continue;
-        }
-        const QSizeF natural = source->natural.isValid() ? QSizeF(source->natural) : QSizeF(source->image.size());
-        // defaultLayerTransform: contain-fit, never upscaled, centered.
-        const auto fit = std::min({canvas.width() / natural.width(), canvas.height() / natural.height(), 1.0});
-        QPointF center(canvas.width() / 2.0, canvas.height() / 2.0);
-        QSizeF factor(fit, fit);
-        double rotation = 0;
-        if (layer.transform) {
-            const auto &t = *layer.transform;
-            center = QPointF(t["x"].toDouble(), t["y"].toDouble());
-            factor = QSizeF(t["scaleX"].toDouble(1), t["scaleY"].toDouble(1));
-            rotation = t["rotation"].toDouble();
-        }
-        painter.save();
-        painter.scale(scale, scale);
-        painter.translate(center);
-        painter.rotate(qRadiansToDegrees(rotation));
-        painter.scale(factor.width(), factor.height());
-        painter.setOpacity(layer.opacity);
-        painter.setCompositionMode(modes.value(layer.blend, QPainter::CompositionMode_SourceOver));
-        painter.drawImage(QRectF(QPointF(-natural.width() / 2, -natural.height() / 2), natural), source->image);
-        painter.restore();
-    }
-    painter.end();
-    return result;
-}
-
 // CompositorBody.tsx: a handle per image_N layer over the live composite,
 // a LayerRow per layer (thumbnail, opacity, blend mode, visibility and
-// delete), and Add another layer. The layout editor dialog is not native.
+// delete), Add another layer, and Edit layout, which opens the layout editor.
 void layoutCompositor(NodeLayout &layout, const CardBodyInput &input) {
     Column column(layout, input);
     const auto keys = compositorLayerKeys(input.node);
@@ -1544,6 +1493,17 @@ void layoutCompositor(NodeLayout &layout, const CardBodyInput &input) {
                                  nm::controlHeight));
     add.action = QStringLiteral("compositorAdd");
     layout.rows.append(add);
+    // .add-row: Edit layout beside the add button, or under it when the card is too narrow.
+    const auto editWidth = std::min(column.width, captionWidth(QObject::tr("Edit layout")) + nm::iconSize + 3 * nm::padding);
+    auto editX = add.rect.right() + nm::micro;
+    if (editX + editWidth > column.x + column.width) {
+        editX = column.x;
+        column.y += nm::controlHeight + nm::micro;
+    }
+    auto edit = iconAction(QStringLiteral("compositorLayout"), {}, QStringLiteral("edit"), QObject::tr("Edit layout"),
+                           QRectF(editX, column.y, editWidth, nm::controlHeight));
+    edit.bare = true;
+    layout.rows.append(edit);
     column.y += nm::controlHeight;
     column.finish();
     // The live composite replaces the run result once a layer image arrives.
@@ -1551,14 +1511,7 @@ void layoutCompositor(NodeLayout &layout, const CardBodyInput &input) {
     for (const auto &key : keys) { anySource = anySource || readySource(input, key); }
     if (!anySource) { return; }
     layout.sourceTab = true;
-    QSize canvas;
-    const auto data = input.node["data"].toObject();
-    for (int i = 0; i < keys.size() && canvas.isEmpty(); ++i) {
-        const auto *source = readySource(input, keys[i]);
-        if (source && layers.value(i).visible && layers.value(i).opacity > 0) { canvas = source->natural; }
-    }
-    const auto width = data.value(QStringLiteral("canvas_width")).toDouble(), height = data.value(QStringLiteral("canvas_height")).toDouble();
-    canvas = QSize(width > 0 ? int(width) : canvas.isEmpty() ? 512 : canvas.width(), height > 0 ? int(height) : canvas.isEmpty() ? 512 : canvas.height());
+    const auto canvas = compositorCanvasSize(input.node, input.sources);
     CardMediaItem composite;
     composite.state = CardMediaState::Ready;
     composite.image = compositeLayers(keys, layers, input.sources, canvas, layout.resultRect.size() * 2);
@@ -1910,6 +1863,65 @@ QJsonArray compositorLayersJson(const QVector<CompositorLayer> &layers) {
         result.append(entry);
     }
     return result;
+}
+
+// CompositorPreview: the layers drawn bottom first (image_0 is on top), each
+// at its transform or contain-fit centered, with its opacity and blend mode,
+// on a canvas of the given size scaled to fit the area.
+QImage compositeLayers(const QStringList &keys, const QVector<CompositorLayer> &layers, const QHash<QString, CardMediaItem> &sources,
+                       const QSize &canvas, const QSizeF &area) {
+    static const QHash<QString, QPainter::CompositionMode> modes{
+        {"normal", QPainter::CompositionMode_SourceOver}, {"multiply", QPainter::CompositionMode_Multiply},
+        {"screen", QPainter::CompositionMode_Screen}, {"overlay", QPainter::CompositionMode_Overlay},
+        {"darken", QPainter::CompositionMode_Darken}, {"lighten", QPainter::CompositionMode_Lighten},
+        {"color-dodge", QPainter::CompositionMode_ColorDodge}, {"color-burn", QPainter::CompositionMode_ColorBurn},
+        {"hard-light", QPainter::CompositionMode_HardLight}, {"soft-light", QPainter::CompositionMode_SoftLight},
+        {"difference", QPainter::CompositionMode_Difference}, {"exclusion", QPainter::CompositionMode_Exclusion},
+        {"add", QPainter::CompositionMode_Plus}};
+    const auto size = QSizeF(canvas).scaled(area, Qt::KeepAspectRatio).toSize();
+    if (size.isEmpty()) { return {}; }
+    QImage result(size, QImage::Format_ARGB32_Premultiplied);
+    result.fill(Qt::transparent);
+    QPainter painter(&result);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    const auto scale = double(size.width()) / canvas.width();
+    for (auto i = keys.size() - 1; i >= 0; --i) {
+        const auto layer = layers.value(i);
+        const auto source = sources.constFind(keys[i]);
+        if (!layer.visible || layer.opacity <= 0 || source == sources.cend() || source->state != CardMediaState::Ready || source->image.isNull()) {
+            continue;
+        }
+        const QSizeF natural = source->natural.isValid() ? QSizeF(source->natural) : QSizeF(source->image.size());
+        const auto t = layer.transform ? compositor::transformFromJson(*layer.transform).value_or(compositor::defaultTransform(natural, canvas))
+                                       : compositor::defaultTransform(natural, canvas);
+        painter.save();
+        painter.scale(scale, scale);
+        painter.translate(t.x, t.y);
+        painter.rotate(qRadiansToDegrees(t.rotation));
+        painter.scale(t.scaleX, t.scaleY);
+        painter.setOpacity(layer.opacity);
+        painter.setCompositionMode(modes.value(layer.blend, QPainter::CompositionMode_SourceOver));
+        painter.drawImage(QRectF(QPointF(-natural.width() / 2, -natural.height() / 2), natural), source->image);
+        painter.restore();
+    }
+    painter.end();
+    return result;
+}
+
+QSize compositorCanvasSize(const QJsonObject &node, const QHash<QString, CardMediaItem> &sources) {
+    const auto keys = compositorLayerKeys(node);
+    const auto layers = compositorLayers(node);
+    QSize canvas;
+    for (int i = 0; i < keys.size() && canvas.isEmpty(); ++i) {
+        const auto source = sources.constFind(keys[i]);
+        if (source != sources.cend() && source->state == CardMediaState::Ready && source->natural.isValid() && layers.value(i).visible
+            && layers.value(i).opacity > 0) {
+            canvas = source->natural;
+        }
+    }
+    const auto data = node["data"].toObject();
+    const auto width = data.value(QStringLiteral("canvas_width")).toDouble(), height = data.value(QStringLiteral("canvas_height")).toDouble();
+    return {width > 0 ? int(width) : canvas.isEmpty() ? 512 : canvas.width(), height > 0 ? int(height) : canvas.isEmpty() ? 512 : canvas.height()};
 }
 
 QSize painterCanvasSize(const CardBodyInput &input) {

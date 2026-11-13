@@ -342,6 +342,19 @@ void paintAction(QPainter *painter, const CanvasTheme &theme, const NodeRow &row
         painter->drawText(row.rect, Qt::AlignCenter, row.label);
         return;
     }
+    if (!row.icon.isEmpty() && row.bare && !row.label.isEmpty()) {
+        // An outlined EditorButton with a start icon, such as Edit layout.
+        painter->setPen(QPen(theme.divider, nm::borderWidth));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRoundedRect(row.rect.adjusted(0.5, 0.5, -0.5, -0.5), nm::chipRadius, nm::chipRadius);
+        painter->setFont(sans(theme, nm::fontLabel));
+        const auto labelWidth = painter->fontMetrics().horizontalAdvance(row.label);
+        const auto left = row.rect.center().x() - (labelWidth + nm::iconSize) / 2.0;
+        paintMaterialIcon(painter, row.icon, QRectF(left, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), theme.textSecondary);
+        painter->setPen(theme.textPrimary);
+        painter->drawText(QRectF(left + nm::iconSize, row.rect.y(), labelWidth + nm::micro, row.rect.height()), Qt::AlignLeft | Qt::AlignVCenter, row.label);
+        return;
+    }
     if (!row.icon.isEmpty()) {
         paintIconButton(painter, theme, row);
         return;

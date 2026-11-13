@@ -1718,6 +1718,8 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                     if (compare.kind != NodeRowKind::Compare) { continue; }
                     model_.setPreviewTab(id, compareTab({!compare.checked, compare.number}));
                 }
+            } else if (row.action == QStringLiteral("compositorLayout")) {
+                emit headerActionRequested(model_.resourceId(id), row.action);
             } else if (row.action.startsWith(QStringLiteral("compositor"))) {
                 model_.compositorAction(id, row.action, int(row.number));
             } else if (row.action.startsWith(QStringLiteral("painter"))) {

@@ -102,6 +102,12 @@ QStringList compositorLayerKeys(const QJsonObject &node);
 QVector<CompositorLayer> compositorLayers(const QJsonObject &node);
 QJsonArray compositorLayersJson(const QVector<CompositorLayer> &layers);
 const QVector<std::pair<QString, QString>> &compositorBlendModes();
+// CompositorPreview: the layers drawn bottom first (image_0 is on top), each
+// at its transform or contain-fit centered, on a canvas scaled to fit area.
+QImage compositeLayers(const QStringList &keys, const QVector<CompositorLayer> &layers, const QHash<QString, CardMediaItem> &sources,
+                       const QSize &canvas, const QSizeF &area);
+// canvas_width and canvas_height, or else the first visible layer's size, or 512.
+QSize compositorCanvasSize(const QJsonObject &node, const QHash<QString, CardMediaItem> &sources);
 
 // The loader a composite node shows in place of a property, as
 // WorkflowLoader.tsx and AppLoader.tsx: a select over the server's workflows

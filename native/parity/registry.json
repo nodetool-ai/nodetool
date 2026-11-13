@@ -826,10 +826,13 @@
       "native": [
         "native/node-editor/src/graph/CardBodies.cpp",
         "native/node-editor/src/graph/EditorScene.cpp",
-        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp",
+        "native/node-editor/src/properties/CompositorLayoutEditor.cpp",
+        "native/node-editor/src/ui/CompositorLayoutDialog.cpp",
+        "native/node-editor/qml/CompositorLayoutPanel.qml"
       ],
       "status": "partial",
-      "note": "Layer handles, live composite, layer rows and Add another layer are native. The Edit layout dialog for per-layer transforms and canvas size is not.",
+      "note": "Layer handles, live composite, layer rows, Add another layer and the Edit layout dialog (move, scale and rotate gizmo, transform fields, canvas size, layer stack) are native. The dialog's layer rows show names where the web shows thumbnails.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ConstantSketchBody.tsx": {

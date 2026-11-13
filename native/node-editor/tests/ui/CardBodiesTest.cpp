@@ -1,10 +1,12 @@
 #include "graph/CanvasDropController.h"
 #include "graph/CardBodies.h"
+#include "graph/CompositorGeometry.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/SynthModules.h"
 #include "graph/WorkflowGraphModel.h"
 #include "properties/ComfyWorkflowLoader.h"
+#include "properties/CompositorLayoutEditor.h"
 #include "ui/EditorWindow.h"
 #include <QBuffer>
 #include <QClipboard>
@@ -2328,6 +2330,121 @@ private slots:
         host.click("comp", host.row("comp", NodeRowKind::Action, "compositorAdd")->rect.center());
         QTRY_COMPARE(compositorLayerKeys(host.model().nodeSnapshot(id)), (QStringList{"image_1", "image_2"}));
         QCOMPARE(host.data("comp")["layers"].toArray()[1].toObject()["blend_mode"].toString(), QStringLiteral("normal"));
+    }
+
+    void compositorLayoutDialogTransformsLayers() {
+        const auto png = [](const QSize &size, const QColor &color) {
+            QImage image(size, QImage::Format_RGB32);
+            image.fill(color);
+            QByteArray bytes;
+            QBuffer buffer(&bytes);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "PNG");
+            return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
+        };
+        const auto constant = [](const QString &id, const QString &uri, double y) {
+            return QJsonObject{{"id", id}, {"type", "nodetool.constant.Image"},
+                               {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", uri}}}}},
+                               {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", y}}}}}};
+        };
+        auto node = partTwoNode("comp", "nodetool.image.Compositor", QPointF(0, 700));
+        node["dynamic_properties"] = QJsonObject{{"image_0", QJsonValue::Null}, {"image_1", QJsonValue::Null}};
+        auto workflow = withNodes({constant("top", png({100, 100}, Qt::red), 700), constant("bottom", png({200, 100}, Qt::blue), 900), node});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "e-top"}, {"source", "top"}, {"sourceHandle", "output"}, {"target", "comp"}, {"targetHandle", "image_0"}});
+        edges.append(QJsonObject{{"id", "e-bottom"}, {"source", "bottom"}, {"sourceHandle", "output"}, {"target", "comp"}, {"targetHandle", "image_1"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        const auto id = host.id("comp");
+        QTRY_VERIFY(host.model().layout(id).sourceTab);
+        // Edit layout on the card opens the editor over the node.
+        auto *open = host.row("comp", NodeRowKind::Action, "compositorLayout");
+        QVERIFY(open);
+        QCOMPARE(open->label, QStringLiteral("Edit layout"));
+        host.click("comp", open->rect.center());
+        QDialog *dialog = nullptr;
+        QTRY_VERIFY((dialog = host.window.findChild<QDialog *>(QStringLiteral("compositor-layout-dialog-host"))));
+        auto *editor = dialog->findChild<node_editor::CompositorLayoutEditor *>(QStringLiteral("compositor-layout-editor"));
+        auto *stage = dialog->findChild<node_editor::CompositorStage *>();
+        QVERIFY(editor && stage);
+        QTRY_VERIFY(stage->isVisible() && stage->width() > 300);
+        QCOMPARE(editor->canvas(), QSize(100, 100));
+        QCOMPARE(editor->layerEntries().size(), 2);
+        const auto at = [stage](double x, double y) { return stage->toWidget(QPointF(x, y)).toPoint(); };
+        const auto transform = [&host](int index) {
+            return compositor::transformFromJson(host.data("comp")["layers"].toArray()[index].toObject()["transform"].toObject());
+        };
+        auto undo = host.undoCount();
+        // A press on the red top layer selects it, and a drag moves it as one undo step.
+        QTest::mousePress(stage, Qt::LeftButton, {}, at(50, 50));
+        QCOMPARE(editor->selected(), 0);
+        QTest::mouseMove(stage, at(60, 55));
+        QCOMPARE(host.undoCount(), undo);
+        QTest::mouseRelease(stage, Qt::LeftButton, {}, at(60, 55));
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        auto moved = transform(0);
+        QVERIFY(moved);
+        QVERIFY(std::abs(moved->x - 60) < 0.5 && std::abs(moved->y - 55) < 0.5);
+        QCOMPARE(moved->scaleX, 1.0);
+        QCOMPARE(editor->transformFields()["x"].toDouble(), 60.0);
+        // The bottom-right corner scales both axes about the center.
+        const auto corner = compositor::layerCorners(*moved, {100, 100})[2];
+        QTest::mousePress(stage, Qt::LeftButton, {}, stage->toWidget(corner).toPoint());
+        QTest::mouseMove(stage, stage->toWidget(corner + QPointF(10, 10)).toPoint());
+        QTest::mouseRelease(stage, Qt::LeftButton, {}, stage->toWidget(corner + QPointF(10, 10)).toPoint());
+        QTRY_COMPARE(host.undoCount(), undo + 2);
+        auto scaled = transform(0);
+        QVERIFY(std::abs(scaled->scaleX - 1.2) < 0.02 && std::abs(scaled->scaleY - 1.2) < 0.02);
+        QVERIFY(std::abs(scaled->x - moved->x) < 1e-9);
+        QTRY_COMPARE(editor->transformFields()["scaleX"].toDouble(), scaled->scaleX);
+        // The rotate handle above the top edge turns the layer toward the pointer.
+        const auto handle = compositor::handlePoint(*scaled, {100, 100}, compositor::GizmoHandle::Rotate, stage->viewScale());
+        QTest::mousePress(stage, Qt::LeftButton, {}, stage->toWidget(handle).toPoint());
+        QTest::mouseMove(stage, at(scaled->x + 100, scaled->y));
+        QTest::mouseRelease(stage, Qt::LeftButton, {}, at(scaled->x + 100, scaled->y));
+        QTRY_COMPARE(host.undoCount(), undo + 3);
+        QVERIFY(std::abs(transform(0)->rotation - M_PI / 2) < 0.05);
+        QCOMPARE(editor->transformFields()["rotation"].toDouble(), 90.0);
+        // The side panel's fields and Reset write the same transform.
+        editor->setTransformField(QStringLiteral("rotation"), 45);
+        QTRY_COMPARE(host.undoCount(), undo + 4);
+        QVERIFY(std::abs(transform(0)->rotation - M_PI / 4) < 1e-9);
+        // The panel shows the selected layer's fields.
+        auto *quick = dialog->findChild<QQuickWidget *>();
+        QVERIFY(quick && quick->rootObject());
+        auto *rotation = quick->rootObject()->findChild<QQuickItem *>(QStringLiteral("compositor-field-rotation"));
+        QVERIFY(rotation);
+        QTRY_VERIFY(rotation->isVisible());
+        QTRY_COMPARE(rotation->property("value").toDouble(), 45.0);
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            // The panel's own framebuffer, since a widget grab can hold its previous frame.
+            auto image = dialog->grab().toImage();
+            QPainter painter(&image);
+            painter.drawImage(quick->geometry().topLeft(), quick->grabFramebuffer());
+            painter.end();
+            QVERIFY(image.save(directory + QStringLiteral("/CompositorLayout-dark.png")));
+        }
+        editor->resetTransform();
+        QTRY_COMPARE(host.undoCount(), undo + 5);
+        QVERIFY(!transform(0));
+        // Canvas size writes both properties in one step.
+        editor->setCanvasSize(300, 200);
+        QTRY_COMPARE(host.undoCount(), undo + 6);
+        QCOMPARE(host.data("comp")["canvas_width"].toInt(), 300);
+        QCOMPARE(host.data("comp")["canvas_height"].toInt(), 200);
+        QCOMPARE(editor->canvas(), QSize(300, 200));
+        // Empty space deselects.
+        QTest::mousePress(stage, Qt::LeftButton, {}, at(2, 2));
+        QTest::mouseRelease(stage, Qt::LeftButton, {}, at(2, 2));
+        QCOMPARE(editor->selected(), -1);
+        QCOMPARE(host.undoCount(), undo + 6);
+        // Deleting the layer from the panel removes its input, and the dialog follows.
+        editor->deleteLayer(0);
+        QTRY_COMPARE(editor->keys(), QStringList{"image_1"});
+        dialog->reject();
     }
 
     void cropRectangleDragsAndResets() {
