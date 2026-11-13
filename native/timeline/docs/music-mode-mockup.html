@@ -600,13 +600,13 @@ function renderTimeline() {
   doc.tracks.forEach((t, i) => {
     const col = ROLE_COLOR[t.role] || "var(--c-other)";
     h += `<div class="row"><div class="th" style="height:88px">
-      <div class="name"><span class="swatch" style="background:${col}"></span>${esc(t.name)}</div>
+      <div class="name"><span class="swatch" style="background:${esc(col)}"></span>${esc(t.name)}</div>
       <div class="ctl">
-        <select class="chip" data-role="${t.id}" aria-label="Role of ${esc(t.name)}"><option value="">No role</option>${ROLES.map(r => `<option value="${r}" ${t.role === r ? "selected" : ""}>${ROLE_NAME[r]}</option>`).join("")}</select>
-        <button class="ms m" data-mute="${t.id}" aria-pressed="${t.mute}" title="Mute">M</button>
-        <button class="ms s" data-solo="${t.id}" aria-pressed="${t.solo}" title="Solo">S</button>
+        <select class="chip" data-role="${esc(t.id)}" aria-label="Role of ${esc(t.name)}"><option value="">No role</option>${ROLES.map(r => `<option value="${r}" ${t.role === r ? "selected" : ""}>${ROLE_NAME[r]}</option>`).join("")}</select>
+        <button class="ms m" data-mute="${esc(t.id)}" aria-pressed="${t.mute}" title="Mute">M</button>
+        <button class="ms s" data-solo="${esc(t.id)}" aria-pressed="${t.solo}" title="Solo">S</button>
       </div></div>
-      <div class="lane ${i % 2 ? "alt" : ""} ${view.tool === "range" ? "range-tool" : ""}" data-lane="${t.id}" style="width:${W}px">`;
+      <div class="lane ${i % 2 ? "alt" : ""} ${view.tool === "range" ? "range-tool" : ""}" data-lane="${esc(t.id)}" style="width:${W}px">`;
     for (let b = 0; b <= BEATS; b++) h += `<div class="g ${b % BPB === 0 ? "b" : ""}" style="left:${b * ppb}px"></div>`;
     for (const c of doc.clips.filter(c => c.trackId === t.id)) h += clipHtml(c, col);
     if (view.sel && view.sel.trackId === t.id) {
@@ -631,19 +631,19 @@ function clipHtml(c, col) {
     else if (!job || job.state === "done" || job.state === "cancelled") st = "Result undone · redo to restore";
     else if (job.state === "running") st = `Generating ${fmtClock((performance.now() - job.runStart) / 1000)}`;
     else st = job.state === "rendering" ? "Rendering context" : "Queued";
-    inner = `<div class="lbl"><span class="t">${esc(OP_NAME[job ? job.op : "generate"])} · ${esc(tr.name)}</span></div><div class="state" data-cstate="${c.id}">${st}</div>`;
+    inner = `<div class="lbl"><span class="t">${esc(OP_NAME[job ? job.op : "generate"])} · ${esc(tr.name)}</span></div><div class="state" data-cstate="${esc(c.id)}">${esc(st)}</div>`;
   } else {
     const t = c.takes[c.active];
     const drift = t.rec && t.rec.lastBeatErrorMs > 20;
-    inner = `<div class="lbl"><span class="t">${esc(t.label)}</span>${c.takes.length > 1 ? `<span class="badge" title="${c.takes.length} takes">${c.active + 1}/${c.takes.length}</span>` : ""}${drift ? `<span class="badge warn" title="Last beat lands ${t.rec.lastBeatErrorMs} ms off the grid">drift</span>` : ""}</div><canvas data-clip="${c.id}"></canvas>`;
+    inner = `<div class="lbl"><span class="t">${esc(t.label)}</span>${c.takes.length > 1 ? `<span class="badge" title="${c.takes.length} takes">${c.active + 1}/${c.takes.length}</span>` : ""}${drift ? `<span class="badge warn" title="Last beat lands ${t.rec.lastBeatErrorMs} ms off the grid">drift</span>` : ""}</div><canvas data-clip="${esc(c.id)}"></canvas>`;
     if (t.region) inner += `<div class="splice" style="left:${t.region[0] * ppb}px;width:${(t.region[1] - t.region[0]) * ppb}px" title="Repainted bars"></div>`;
     const rj = jobs.find(j => j.op === "regenerate" && j.clipId === c.id && ["rendering","queued","running","placing"].includes(j.state));
     if (rj) {
       const a = Math.max(rj.w0, c.start) - c.start, b = Math.min(rj.w1, c.start + c.len) - c.start;
-      inner += `<div class="hatch" style="left:${a * ppb}px;width:${(b - a) * ppb}px"><span data-hstate="${rj.id}">${rj.state === "running" ? "Repainting " + barRangeLabel(rj.a, rj.b) : rj.state === "rendering" ? "Rendering context" : rj.state === "placing" ? "Placing" : "Queued"}</span></div>`;
+      inner += `<div class="hatch" style="left:${a * ppb}px;width:${(b - a) * ppb}px"><span data-hstate="${esc(rj.id)}">${rj.state === "running" ? "Repainting " + barRangeLabel(rj.a, rj.b) : rj.state === "rendering" ? "Rendering context" : rj.state === "placing" ? "Placing" : "Queued"}</span></div>`;
     }
   }
-  return `<div class="${cls}${view.selectedClip === c.id ? " selected" : ""}" data-clipid="${c.id}" style="left:${x}px;width:${w}px;--cc:${col}">${inner}</div>`;
+  return `<div class="${cls}${view.selectedClip === c.id ? " selected" : ""}" data-clipid="${esc(c.id)}" style="left:${x}px;width:${w}px;--cc:${esc(col)}">${inner}</div>`;
 }
 function drawWave(cv, c) {
   const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, hgt = cv.clientHeight;
@@ -748,7 +748,7 @@ function jobHtml(j) {
   if (j.state === "running") {
     const el = (performance.now() - j.runStart) / 1000;
     meta = est ? `${fmtClock(el)} of about ${fmtClock(est * j.genSec + 0.5)}` : `${fmtClock(el)} elapsed · no estimate yet`;
-    if (est) prog = `<div class="prog"><i data-jprog="${j.id}" style="width:${Math.min(100, el / (est * j.genSec) * 100)}%"></i></div>`;
+    if (est) prog = `<div class="prog"><i data-jprog="${esc(j.id)}" style="width:${Math.min(100, el / (est * j.genSec) * 100)}%"></i></div>`;
   } else if (j.state === "queued") meta = "Waiting for the job ahead";
   else if (j.state === "rendering") meta = j.op === "regenerate" ? "Rendering a dry bounce of the track" : "Rendering a mix of the other tracks";
   else if (j.state === "placing") meta = "Writing takes to the clip";
@@ -756,8 +756,8 @@ function jobHtml(j) {
   else if (j.state === "cancelled") meta = "Cancelled";
   const active = ["rendering","queued","running","placing"].includes(j.state);
   return `<div class="job"><div class="l1"><span class="st ${j.state}">${j.state}</span><b>${OP_NAME[j.op]} · ${esc(tr.name)} · ${barRangeLabel(j.a, j.b)}</b></div>
-    <div class="acts">${active ? `<button class="btn" data-cancel="${j.id}">Cancel</button>` : ""}${j.state === "failed" ? `<button class="btn" data-retry="${j.id}">Retry</button>` : ""}${j.orphan ? `<button class="btn" data-place="${j.id}">Place takes</button>` : ""}</div>
-    <div class="meta" data-jmeta="${j.id}">${esc(meta)}</div>${prog}${j.err ? `<div class="err">${esc(j.err)}</div>` : ""}</div>`;
+    <div class="acts">${active ? `<button class="btn" data-cancel="${esc(j.id)}">Cancel</button>` : ""}${j.state === "failed" ? `<button class="btn" data-retry="${esc(j.id)}">Retry</button>` : ""}${j.orphan ? `<button class="btn" data-place="${esc(j.id)}">Place takes</button>` : ""}</div>
+    <div class="meta" data-jmeta="${esc(j.id)}">${esc(meta)}</div>${prog}${j.err ? `<div class="err">${esc(j.err)}</div>` : ""}</div>`;
 }
 function takeHtml(clip, t, i) {
   const r = t.rec, drift = r && r.lastBeatErrorMs > 20;
@@ -770,11 +770,11 @@ function takeHtml(clip, t, i) {
     if (r.splice) rows.push(["splice", r.splice]);
     rows.push(["candidate", `${"ABCD"[r.candidateIndex]}, segment ${r.segmentIndex + 1}`], ["grid offset", `${r.offsetMs} ms corrected, confidence ${r.confidence}`],
       ["tempo ratio", `${r.tempoRatio}, last beat ${r.lastBeatErrorMs} ms off`], ["backend", r.backend]);
-    rec = `<details data-k="${t.id}"><summary>Generation record</summary><dl class="rec">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("")}</dl></details>`;
+    rec = `<details data-k="${esc(t.id)}"><summary>Generation record</summary><dl class="rec">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></details>`;
   }
   return `<div class="take ${clip.active === i ? "active" : ""}">
     <div class="hd"><button class="pick" data-take="${i}" aria-label="Make ${esc(t.label)} active"></button>
-      <div class="info" data-take="${i}"><b>${esc(t.baseline ? "Original" : t.label)}</b><span class="tag">${r ? r.task : ""}</span>${drift ? `<span class="drift" title="Last beat lands ${r.lastBeatErrorMs} ms off the grid">drifting</span>` : ""}<span class="mono">${esc(meta)}</span></div>
+      <div class="info" data-take="${i}"><b>${esc(t.baseline ? "Original" : t.label)}</b><span class="tag">${r ? esc(r.task) : ""}</span>${drift ? `<span class="drift" title="Last beat lands ${r.lastBeatErrorMs} ms off the grid">drifting</span>` : ""}<span class="mono">${esc(meta)}</span></div>
       <div class="acts">${r ? `<button class="btn ghost icon" data-reroll="${i}" title="Run this take's request again with a new seed" aria-label="Run again"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 8a5 5 0 1 1-1.5-3.5M13 2v3h-3"/></svg></button>` : ""}
       <button class="btn ghost icon" data-deltake="${i}" ${clip.takes.length < 2 ? "disabled" : ""} title="Delete take" aria-label="Delete take"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div></div>${rec}</div>`;
 }
@@ -966,8 +966,8 @@ function frame() {
   for (const j of jobs) {
     if (j.state !== "running") continue;
     const el = (performance.now() - j.runStart) / 1000, est = estimates[j.op + "|" + j.model];
-    const m = panel.querySelector(`[data-jmeta="${j.id}"]`); if (m) m.textContent = est ? `${fmtClock(el)} of about ${fmtClock(est * j.genSec + 0.5)}` : `${fmtClock(el)} elapsed · no estimate yet`;
-    const pr = panel.querySelector(`[data-jprog="${j.id}"]`); if (pr) pr.style.width = Math.min(100, el / (est * j.genSec) * 100) + "%";
+    const m = panel.querySelector(`[data-jmeta="${esc(j.id)}"]`); if (m) m.textContent = est ? `${fmtClock(el)} of about ${fmtClock(est * j.genSec + 0.5)}` : `${fmtClock(el)} elapsed · no estimate yet`;
+    const pr = panel.querySelector(`[data-jprog="${esc(j.id)}"]`); if (pr) pr.style.width = Math.min(100, el / (est * j.genSec) * 100) + "%";
     const cs = tlInner.querySelector(`[data-cstate="${j.clipId}"]`); if (cs) cs.textContent = `Generating ${fmtClock(el)}`;
   }
   requestAnimationFrame(frame);
