@@ -72,13 +72,6 @@ Item {
             onClicked: root.presenter.expand()
         }
     }
-    component FieldFrame: Rectangle {
-        property bool invalid: false
-        color: Ui.Theme.surfaceInput
-        radius: Ui.Metrics.radiusControl
-        border.width: Ui.Metrics.focus
-        border.color: invalid ? Ui.Theme.borderError : Ui.Theme.borderFocus
-    }
     Component {
         id: codeEditor
         CodePropertyEditor {
@@ -98,7 +91,7 @@ Item {
             accessibleName: root.descriptor.label || root.descriptor.name || ""
             role: Ui.Typography.MonoCaption
             wrapMode: root.kind === "multiline" || root.presenter.expanded ? TextEdit.Wrap : TextEdit.NoWrap
-            background: FieldFrame {}
+            variant: Ui.TextArea.NodeEditing
             onValueCommitted: value => root.commit(value)
             onEditCanceled: root.cancel()
             Keys.priority: Keys.BeforeItem
@@ -125,7 +118,7 @@ Item {
             accessibleName: root.descriptor.label || root.descriptor.name || ""
             valid: root.kind !== "integer" || text.trim() === "" || Number.isInteger(Number(text))
             errorText: root.kind === "integer" ? "Enter a whole number within the allowed range." : "Enter a number within the allowed range."
-            background: FieldFrame { invalid: !parent.valid || !parent.draftValid }
+            variant: Ui.NumberField.NodeEditing
             onValueCommitted: value => root.commit(value)
             onEditCanceled: root.cancel()
         }

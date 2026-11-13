@@ -53,6 +53,10 @@ Window {
                 Ui.NumberField { width: Math.min(180, parent.width); value: 12; unit: "px"; accessibleName: "Size" }
                 Ui.TextField { width: Math.min(200, parent.width); value: "Invalid"; valid: false; errorText: "Check value"; accessibleName: "Invalid example" }
                 Ui.TextField { width: Math.min(200, parent.width); value: "Read only"; readOnly: true; accessibleName: "Read only example" }
+                Ui.TextField { width: Math.min(200, parent.width); variant: Ui.TextField.Node; value: "Node field"; accessibleName: "Node field example" }
+                Ui.NumberField { width: Math.min(180, parent.width); variant: Ui.NumberField.Node; value: 12; accessibleName: "Node number example" }
+                Ui.TextField { width: Math.min(200, parent.width); variant: Ui.TextField.Node; value: "Node invalid"; valid: false; errorText: "Check value"; accessibleName: "Node invalid example" }
+                Ui.TextField { width: Math.min(200, parent.width); variant: Ui.TextField.Node; value: "Node disabled"; enabled: false; accessibleName: "Node disabled example" }
                 Ui.Select { width: 160; accessibleName: "Choice"; options: [{label: "First", value: 1}, {label: "Second", value: 2}]; value: 1 }
                 Ui.Toggle { width: Math.min(implicitWidth, parent.width); text: "Enabled"; checked: true }
                 Ui.BusyIndicator { accessibleName: "Loading" }

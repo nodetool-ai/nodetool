@@ -23,14 +23,6 @@ ColumnLayout {
     readonly property var args: descriptor.dataType && descriptor.dataType.type_args || []
     readonly property var entryType: args.length ? args[args.length - 1] : ({type: "any"})
     spacing: Ui.Metrics.xs
-    EditorRoles { id: roles }
-    component FieldFrame: Rectangle {
-        required property Item control
-        color: !control.enabled ? roles.fieldDisabled : control.activeFocus ? roles.fieldFocus : roles.field
-        radius: Ui.Metrics.radiusControl
-        border.width: control.activeFocus ? Ui.Metrics.focus : Ui.Metrics.border
-        border.color: control.valid === false ? Ui.Theme.borderError : control.activeFocus ? Ui.Theme.borderFocus : "transparent"
-    }
     function clone(v) { return JSON.parse(JSON.stringify(v)) }
     function sync() {
         working = value === null || value === undefined ? (kind === "list" ? [] : kind === "record_type" ? {type: "record_type", columns: [], data: []} : {}) : clone(value)
@@ -126,7 +118,7 @@ ColumnLayout {
         implicitHeight: Ui.Metrics.touch * 3
         value: root.jsonDraft
         enabled: root.writable && root.shapeValid
-        background: FieldFrame { control: parent }
+        variant: Ui.TextArea.Node
         accessibleName: "JSON"
         onEditStarted: root.editStarted()
         onValuePreviewed: value => root.jsonDraft = value
@@ -164,7 +156,7 @@ ColumnLayout {
                     visible: root.kind === "dict"
                     Layout.fillWidth: true
                     value: String(root.rows[row.index])
-                    background: FieldFrame { control: parent }
+                    variant: Ui.TextField.Node
                     accessibleName: "Dictionary key"
                     enabled: root.writable && root.shapeValid
                     onEditStarted: root.editStarted()
@@ -180,7 +172,7 @@ ColumnLayout {
                 visible: root.kind !== "record_type" && ["str", "string", "any"].includes(row.type)
                 Layout.fillWidth: true
                 value: typeof row.entry === "string" ? row.entry : ""
-                background: FieldFrame { control: parent }
+                variant: Ui.TextField.Node
                 accessibleName: "Entry text"
                 enabled: root.writable && root.shapeValid
                 onEditStarted: root.editStarted()
@@ -192,7 +184,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 value: typeof row.entry === "number" ? row.entry : 0
                 valid: !["int", "integer"].includes(row.type) || Number.isInteger(Number(text))
-                background: FieldFrame { control: parent }
+                variant: Ui.NumberField.Node
                 accessibleName: "Entry number"
                 enabled: root.writable && root.shapeValid
                 onEditStarted: root.editStarted()
@@ -212,7 +204,7 @@ ColumnLayout {
                 implicitHeight: Ui.Metrics.touch * 2
                 role: Ui.Typography.MonoCaption
                 value: row.entry === undefined ? "" : JSON.stringify(row.entry, null, 2)
-                background: FieldFrame { control: parent }
+                variant: Ui.TextArea.Node
                 accessibleName: "Nested JSON"
                 enabled: root.writable && root.shapeValid
                 onEditStarted: root.editStarted()
@@ -222,7 +214,7 @@ ColumnLayout {
                 visible: root.kind === "record_type"
                 Layout.fillWidth: true
                 value: root.kind === "record_type" ? (row.entry || {}).name || "" : ""
-                background: FieldFrame { control: parent }
+                variant: Ui.TextField.Node
                 accessibleName: "Column name"
                 enabled: root.writable && root.shapeValid
                 onEditStarted: root.editStarted()
@@ -241,7 +233,7 @@ ColumnLayout {
                 visible: root.kind === "record_type"
                 Layout.fillWidth: true
                 value: root.kind === "record_type" ? (row.entry || {}).description || "" : ""
-                background: FieldFrame { control: parent }
+                variant: Ui.TextField.Node
                 accessibleName: "Column description"
                 enabled: root.writable && root.shapeValid
                 onEditStarted: root.editStarted()
