@@ -650,6 +650,18 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
     if (tag == "chunk" && object["content_type"] != "tool_call" && object["content_type"] != "audio") {
       renderer = "text"; entry["text"] = object["content"].toString().left(MaxText);
     }
+    if (tag == "chunk" && object["content_type"] == "agent_status") {
+      // AgentStatusRenderer.tsx: kind, severity and a label from the chunk metadata.
+      renderer = "agent_status";
+      const auto meta = object["content_metadata"].toObject();
+      const auto kind = meta["kind"].toString(QStringLiteral("log"));
+      entry["statusKind"] = QStringList{"planning", "task", "tool_call"}.contains(kind) ? kind : QStringLiteral("log");
+      entry["statusSeverity"] = meta["severity"].toString(QStringLiteral("info"));
+      const auto field = kind == "planning" ? "phase" : kind == "task" ? "event" : kind == "tool_call" ? "name" : "";
+      const auto fallback = kind == "planning" ? QStringLiteral("planning") : kind == "task" ? QStringLiteral("task") : kind == "tool_call" ? QStringLiteral("tool") : QStringLiteral("log");
+      entry["statusLabel"] = *field ? meta[field].toVariant().toString() : fallback;
+      if (entry["statusLabel"].toString().isEmpty()) { entry["statusLabel"] = fallback; }
+    }
     if (!svg.isUndefined() && !svg.isNull()) { renderer = "generic"; }
     else if (value.isArray() && renderer != "text") {
       int budget = 256;
