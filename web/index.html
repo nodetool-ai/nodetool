@@ -1,6 +1,12 @@
 <!doctype html>
-<html lang="en">
+<!--
+  translate="no": browser page translation (Chrome, Edge) swaps the text nodes
+  React manages, and React then crashes with "Failed to execute 'removeChild'
+  on 'Node'". NodeTool ships its own translations, picked in Settings.
+-->
+<html lang="en" translate="no">
   <head>
+    <meta name="google" content="notranslate" />
     <style>
       html,
       body,

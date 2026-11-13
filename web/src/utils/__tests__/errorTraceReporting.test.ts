@@ -1,6 +1,8 @@
 import { trpcClient } from "../../trpc/client";
 import { reportClientError } from "../errorTraceReporting";
 import * as browser from "../browser";
+import * as staleness from "../../lib/deployStaleness";
+import { useStaleDeployStore } from "../../stores/StaleDeployStore";
 
 const capture = trpcClient.errorTraces.capture.mutate as jest.Mock;
 
@@ -48,5 +50,42 @@ describe("reportClientError", () => {
       expect(capture).toHaveBeenCalledWith(expect.objectContaining({ source: "electron",
         context: { component: "Electron-Output", runtime: "electron-renderer", ...run } }));
     } finally { detection.mockRestore(); }
+  });
+
+  it("names a thrown plain object by its message instead of [object Object]", () => {
+    reportClientError({ message: "Asset not found", code: 404 }, "PlainObject");
+    reportClientError({ code: "E_BUSY" }, "PlainObjectNoMessage");
+    expect(capture).toHaveBeenCalledWith(expect.objectContaining({ message: "Asset not found" }));
+    expect(capture).toHaveBeenCalledWith(expect.objectContaining({ message: '{"code":"E_BUSY"}' }));
+  });
+
+  it("records a chunk that failed after a new deploy as a warning and opens the reload prompt", async () => {
+    const check = jest.spyOn(staleness, "deployIsStale").mockResolvedValue(true);
+    try {
+      reportClientError(new TypeError(
+        "Failed to fetch dynamically imported module: https://app.nodetool.ai/assets/WorkspaceShell-old.js"
+      ), "route");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(capture).toHaveBeenCalledWith(expect.objectContaining({
+        severity: "warning",
+        context: expect.objectContaining({ cause: "stale-deploy" })
+      }));
+      expect(useStaleDeployStore.getState().open).toBe(true);
+    } finally {
+      check.mockRestore();
+      useStaleDeployStore.setState({ open: false });
+    }
+  });
+
+  it("keeps a chunk failure on a current deploy as an error", async () => {
+    const check = jest.spyOn(staleness, "deployIsStale").mockResolvedValue(false);
+    try {
+      reportClientError(new TypeError("Importing a module script failed."), "route");
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(capture).toHaveBeenCalledWith(expect.objectContaining({ severity: "error" }));
+      expect(capture.mock.calls[0][0].context.cause).toBeUndefined();
+    } finally {
+      check.mockRestore();
+    }
   });
 });
