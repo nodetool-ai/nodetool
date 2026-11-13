@@ -332,6 +332,10 @@ void deviceSharing(Counts& counts, bool requireSharing, bool noGpu) {
     CHECK_THROWS(device->createShareable(16, 16, gpu::ShareFormat::Rgba8Unorm, "share-test"));
     const uint64_t plain = device->run(*catalog, "test.fill@1", color(1, 0, 0, 1), {}, 16, 16, "share-test");
     CHECK_THROWS(device->share(plain));
+    // The readback also waits for the pass. Without it the process could
+    // exit while the driver still compiles the shader on its own thread.
+    uint32_t w = 0, h = 0;
+    CHECK(allPixels(device->read(plain, w, h), 255, 0, 0, 255));
     CHECK(device->releaseRun("share-test") == 1);
     return;
   }
