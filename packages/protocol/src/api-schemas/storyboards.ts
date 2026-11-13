@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cameraPresetIdsSchema } from "../creative.js";
+import { cameraPresetIdsSchema, normalizeCameraDirection } from "../creative.js";
 import type { Screenplay, Shot } from "../creative.js";
 import { SCENE_CLIP_MAX_SHOTS, SCENE_CLIP_MIN_SHOTS } from "../one-take.js";
 import {
@@ -164,20 +164,30 @@ export const storyboardShot = z
     action: z.string(),
     look_preset_ids: cameraPresetIdsSchema.optional(),
     status: z.string(),
+    /** Why the last render failed, while `status` is "failed". */
+    failure_reason: z.string().optional(),
     slug: z.string().optional(),
     motion: z.string().optional(),
     /** The picture the shot ends on; a one-take step's "End:". */
     end_state: z.string().optional(),
     /** What is heard in the shot; a one-take audio cue. */
     sound: z.string().optional(),
-    camera: z.object({
-      framing: z.string().optional(),
-      lens: z.string().optional(),
-      angle: z.string().optional(),
-      movement: z.string().optional(),
-      equipment: z.string().optional(),
-      preset_ids: cameraPresetIdsSchema.optional()
-    }).passthrough().optional(),
+    // A one-sentence camera string (written by agents and older imports) is
+    // read as the structured direction instead of failing the whole board.
+    camera: z.preprocess(
+      (value) =>
+        z.string().safeParse(value).success
+          ? normalizeCameraDirection(value)
+          : value,
+      z.object({
+        framing: z.string().optional(),
+        lens: z.string().optional(),
+        angle: z.string().optional(),
+        movement: z.string().optional(),
+        equipment: z.string().optional(),
+        preset_ids: cameraPresetIdsSchema.optional()
+      }).passthrough().optional()
+    ),
     graphics: storyboardShotGraphics.optional(),
     duration_seconds: z.number().optional(),
     keyframe: mediaRef.nullable().optional(),

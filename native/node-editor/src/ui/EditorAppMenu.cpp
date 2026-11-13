@@ -158,6 +158,7 @@ void EditorWindow::installApplicationMenu() {
     auto *node = bar->addMenu(tr("Node"));
     node->setObjectName(QStringLiteral("application-menu-node"));
     command(node, tr("Find Node…"), QStringLiteral("Find node"));
+    command(node, tr("Node Info"), QStringLiteral("Node info"));
     node->addSeparator();
     command(node, tr("Rename Node…"), QStringLiteral("Rename node"));
     command(node, tr("Edit Note…"), QStringLiteral("Edit note"));

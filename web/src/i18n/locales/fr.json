@@ -3700,6 +3700,7 @@
         "shotCount_other": "{{count}} coups",
         "modelLabel": "Modèle",
         "modelPlaceholder": "Modèle de scénario",
+        "noModels": "Aucun modèle de langage n'est disponible. Ajoutez une clé de fournisseur dans Paramètres, sous Modèles et fournisseurs.",
         "shotsLabel": "Coups de feu",
         "title": "Choisissez votre genre",
         "description": "Le ton, le rythme et le cadrage suivent votre choix. Vous pourrez le modifier plus tard.",

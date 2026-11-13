@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} ショット",
         "modelLabel": "モデル",
         "modelPlaceholder": "脚本モデル",
+        "noModels": "利用できる言語モデルがありません。設定の「モデルとプロバイダー」でプロバイダーキーを追加してください。",
         "shotsLabel": "ショット",
         "title": "ジャンルを選択してください",
         "description": "トーン、ペース、フレーミングはあなたの選択に従います。後で変更できます。",

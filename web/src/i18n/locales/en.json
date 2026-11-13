@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} shots",
         "modelLabel": "Model",
         "modelPlaceholder": "Screenplay model",
+        "noModels": "No language model is available. Add a provider key in Settings, under Models & Providers.",
         "shotsLabel": "Shots",
         "title": "Choose your genre",
         "description": "Tone, pacing and framing follow your choice. You can change it later.",

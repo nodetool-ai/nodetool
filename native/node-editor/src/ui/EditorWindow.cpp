@@ -233,6 +233,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(this, &EditorWindow::credentialsEpochChanged, this, [this] { nodeInspector_.fields()->setCredentialsEpoch(credentialsEpoch()); });
   connect(&nodeInspector_, &node_editor::NodeInspector::clearSelectionRequested, this, [this] { action("Clear selection"); });
   connect(&nodeInspector_, &node_editor::NodeInspector::focusNodeRequested, this, [this] { userAction("Focus node"); });
+  // The node info panel: panelChanged covers document, title and run error changes.
+  connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncNodeInfo);
+  connect(this, &EditorWindow::documentEpochChanged, this, &EditorWindow::closeNodeInfo);
+  connect(&nodeInfo_, &node_editor::NodeInfo::closeRequested, this, &EditorWindow::closeNodeInfo);
+  connect(&nodeInfo_, &node_editor::NodeInfo::focusRequested, this, [this] { focusNode(nodeInfo_.nodeId()); });
+  connect(&nodeInfo_, &node_editor::NodeInfo::namespaceRequested, this,
+          [this](const QString &nodeNamespace) { openNodeMenuAt(nodeNamespace.split('.', Qt::SkipEmptyParts), {}); });
+  connect(&nodeInfo_, &node_editor::NodeInfo::tagSearchRequested, this, [this](const QString &tag) { openNodeMenuAt({}, tag); });
   connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
   connect(&nodeInspector_, &node_editor::NodeInspector::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitProperty);
@@ -840,6 +848,16 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, followCard);
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followCard);
   connect(scene_, &EditorScene::nodeDragChanged, this, followCard);
+  // The node info panel follows its node the same way.
+  nodeInfoOverlay_ = overlay("NodeInfoPanel", {{"info", QVariant::fromValue(&nodeInfo_)}});
+  nodeInfoOverlay_->setObjectName("node-info-overlay");
+  nodeInfoOverlay_->hide();
+  const auto followInfo = [this] { positionNodeInfo(); };
+  connect(view_->horizontalScrollBar(), &QScrollBar::valueChanged, this, followInfo);
+  connect(view_->verticalScrollBar(), &QScrollBar::valueChanged, this, followInfo);
+  connect(this, &EditorWindow::zoomChanged, this, followInfo);
+  connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followInfo);
+  connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &EditorWindow::syncNodeInfo);
   connect(inspectorDock_, &QDockWidget::visibilityChanged, this, [this] { schedulePanelChanged(); });
   connect(outputDock_, &QDockWidget::visibilityChanged, this,
           [this] { placeStatusBar(); schedulePanelChanged(); });
@@ -3278,6 +3296,7 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Find node") { showFindPanel(); return; }
+  if (name == "Node info") { toggleNodeInfo(); return; }
   if (name == "Group selection" || name == "Ungroup" || name == "Remove from group") {
     const auto ids = selectedIds();
     if (ids.isEmpty()) { message_ = tr("Select nodes first."); schedulePanelChanged(); return; }

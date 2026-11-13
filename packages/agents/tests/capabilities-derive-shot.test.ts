@@ -217,7 +217,8 @@ describe("derive_shot_from_clip", () => {
     const derived = ordered[1];
     expect(derived.action).toBe("The same street, seen from a rooftop");
     expect(derived.slug).toBe("Blue hour (derived)");
-    expect(derived.camera).toBe("wide");
+    // The source shot holds a camera sentence; the copy is saved structured.
+    expect(derived.camera).toEqual({ movement: "wide" });
     expect(derived.entity_ids).toEqual(["e1"]);
     expect(derived.render_mode).toBe("reference");
     expect(derived.duration_seconds).toBe(4);
