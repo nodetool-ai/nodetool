@@ -54,7 +54,7 @@ nodetool chat -u ws://localhost:7777/ws
 | `--trace-stdout [pretty\|json]` | Stream spans to stdout |
 
 Providers: `anthropic`, `claude_agent_sdk`, `openai`, `codex`, `gemini`, `xai`,
-`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `gmi`, `meta`,
+`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `zai`, `cerebras`, `gmi`, `meta`,
 `alibaba`, `together`, `openrouter`, `requesty`, `opper`, `cheaperinference`, `api_route`, `runcrate`, `standardcompute`, `uberllm`, `huggingface`,
 `replicate`, `kie`, `aki`, `ollama`, `lmstudio`, `mlx`, `node_llama_cpp`. Any other registered provider id (e.g. `vllm`) also works when
 passed explicitly.

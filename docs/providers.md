@@ -42,6 +42,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Moonshot (Kimi) | ✅ | | | | | | |
 | Meta AI | ✅ | ✅ | | | ✅ | | |
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
+| Z.ai | ✅ | ✅ | ✅ | | ✅ | | |
 | Codex (OpenAI OAuth) | ✅ | ✅ | | | | | |
 | Claude Agent SDK | ✅ | | | | | | |
 | Antigravity | ✅ | ✅ | | | | | |
@@ -193,6 +194,15 @@ Moonshot runs Kimi chat models over its OpenAI-compatible endpoint (`https://api
 ## MiniMax
 
 MiniMax covers chat, image (Image-01), video (Hailuo 2.3), TTS, and music generation in one provider. ASR and embeddings exist in MiniMax's API but are disabled in NodeTool's provider (embeddings need a GroupId NodeTool doesn't manage) — use another provider for those. Cloud only, keyed by `MINIMAX_API_KEY`. See the [MiniMax provider guide](developer/providers/minimax.md).
+
+## Z.ai
+
+Z.ai (Zhipu) serves its GLM models over an OpenAI-compatible API at `https://api.z.ai/api/paas/v4`. Cloud only, keyed by `ZAI_API_KEY`. Set `ZAI_REGION` to `china` to use the mainland host `https://open.bigmodel.cn/api/paas/v4` instead. Keys from one host do not work on the other.
+
+- **Chat.** GLM-5.3, 5.2, 5.1, 5, 4.7 and 4.6 take text. GLM-5.3-Flash, FlashX and FlashX-Legal also read images. Streaming, tool calling and reasoning text are supported. Z.ai has no model-listing endpoint, so the list is copied from the API reference.
+- **Image.** GLM-Image text-to-image. NodeTool snaps the requested shape to the nearest of Z.ai's seven recommended sizes.
+- **Video.** CogVideoX-3 text-to-video and image-to-video with a first and optional last frame, 5 or 10 seconds, at 16:9, 9:16 or 1:1 up to 4K for 16:9. Each video is an asynchronous task that NodeTool polls, then downloads. A stopped run stops waiting, but the task still finishes and is billed.
+- **Speech to text.** GLM-ASR-2512 transcribes WAV or MP3 files up to 25 MB and 30 seconds.
 
 ## Meta AI
 

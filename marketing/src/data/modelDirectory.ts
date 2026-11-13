@@ -61,6 +61,7 @@ const PROVIDER_NAMES: Record<string, string> = {
   vgenv: "vgenv",
   voyage: "Voyage AI",
   xai: "xAI",
+  zai: "Z.ai",
 };
 
 export function modelProviderName(id: string): string {

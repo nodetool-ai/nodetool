@@ -330,11 +330,12 @@ export const PROVIDER_META: ProviderMeta[] = [
     mono: true
   },
   {
-    key: "ZHIPU_API_KEY",
-    name: "Z.AI",
-    description: "GLM models via Z.AI's OpenAI-compatible API.",
+    key: "ZAI_API_KEY",
+    providerId: PROVIDER_IDS.ZAI,
+    name: "Z.ai",
+    description: "GLM chat, GLM-Image, CogVideoX video and GLM-ASR.",
     section: "language",
-    docsUrl: "https://open.bigmodel.cn/",
+    docsUrl: "https://docs.z.ai/",
     icon: zhipuColorIcon
   },
   {

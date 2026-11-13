@@ -1,0 +1,387 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 3e218bb..2fde3d9 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1171,6 +1171,7 @@ dependencies = [
+ name = "wgpu-native"
+ version = "0.0.0"
+ dependencies = [
++ "ash",
+  "bindgen",
+  "bitflags",
+  "log",
+@@ -1184,6 +1185,7 @@ dependencies = [
+  "wgpu-core",
+  "wgpu-hal",
+  "wgpu-types",
++ "windows-core",
+ ]
+ 
+ [[package]]
+diff --git a/Cargo.toml b/Cargo.toml
+index dde9a8c..f832589 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -110,6 +110,7 @@ hal = { workspace = true, features = ["renderdoc"] }
+ 
+ [target.'cfg(windows)'.dependencies]
+ hal = { workspace = true, features = ["dx12", "renderdoc"] }
++windows-core = "0.62"
+ 
+ [dependencies.wgt]
+ workspace = true
+@@ -122,6 +123,11 @@ optional = true
+ version = "1"
+ optional = true
+ 
++# Raw handle conversions of the native interop functions (ffi/wgpu.h). The
++# versions are the ones wgpu-hal already resolves to.
++[target.'cfg(not(any(target_os = "ios", target_os = "macos")))'.dependencies]
++ash = "0.38"
++
+ [dependencies]
+ raw-window-handle = "0.6.0"
+ paste = "1"
+diff --git a/ffi/wgpu.h b/ffi/wgpu.h
+index 4f7d4e0..df32caa 100644
+--- a/ffi/wgpu.h
++++ b/ffi/wgpu.h
+@@ -1522,6 +1522,91 @@ extern "C"
+      */
+     void *wgpuTextureGetNativeMetalTexture(WGPUTexture texture);
+ 
++    /**
++     * Native interop revision of this build. 0 or a missing symbol means the
++     * Vulkan and D3D12 functions below are absent.
++     */
++#define WGPU_NATIVE_INTEROP_REVISION 1
++
++    /**
++     * Returns the backend-native `VkInstance` as an opaque pointer.
++     *
++     * The returned handle is borrowed and remains valid only while `device` is alive.
++     * Ownership is retained by wgpu-native; callers must not destroy it.
++     * Returns NULL when the active backend is not Vulkan.
++     */
++    void *wgpuDeviceGetNativeVulkanInstance(WGPUDevice device);
++
++    /**
++     * Returns the backend-native `VkPhysicalDevice` as an opaque pointer.
++     *
++     * Same lifetime and ownership as @ref wgpuDeviceGetNativeVulkanInstance.
++     */
++    void *wgpuDeviceGetNativeVulkanPhysicalDevice(WGPUDevice device);
++
++    /**
++     * Returns the backend-native `VkDevice` as an opaque pointer.
++     *
++     * Same lifetime and ownership as @ref wgpuDeviceGetNativeVulkanInstance.
++     */
++    void *wgpuDeviceGetNativeVulkanDevice(WGPUDevice device);
++
++    /**
++     * Returns the backend-native `VkQueue` wgpu submits on, as an opaque pointer.
++     *
++     * A `VkQueue` is externally synchronized: the caller must not use it
++     * while any wgpu call on `device` or its queue runs on another thread.
++     * Same lifetime and ownership as @ref wgpuDeviceGetNativeVulkanInstance.
++     */
++    void *wgpuDeviceGetNativeVulkanQueue(WGPUDevice device);
++
++    /**
++     * Returns the queue family index of @ref wgpuDeviceGetNativeVulkanQueue,
++     * or UINT32_MAX when the active backend is not Vulkan.
++     */
++    uint32_t wgpuDeviceGetNativeVulkanQueueFamilyIndex(WGPUDevice device);
++
++    /**
++     * Returns the backend-native `VkImage` handle, or 0 when the active
++     * backend is not Vulkan.
++     *
++     * The handle is borrowed and remains valid only while `texture` is alive.
++     */
++    uint64_t wgpuTextureGetNativeVulkanImage(WGPUTexture texture);
++
++    /** Called once, when wgpu-native no longer uses an imported native texture. */
++    typedef void (*WGPUNativeTextureDropCallback)(void *userdata);
++
++    /**
++     * Wraps a `VkImage` the caller created on the device of
++     * @ref wgpuDeviceGetNativeVulkanDevice as a texture.
++     *
++     * The image must match `descriptor`, be in `VK_IMAGE_LAYOUT_UNDEFINED`
++     * and have its memory bound. wgpu-native never destroys the image or
++     * frees its memory: the caller keeps both valid until `dropCallback`
++     * runs, which happens after the texture is released and the GPU work
++     * that uses it has completed. The texture is treated as initialized.
++     * Returns NULL when the active backend is not Vulkan; `dropCallback` is
++     * then not called.
++     */
++    WGPUTexture wgpuDeviceCreateTextureFromNativeVulkanImage(WGPUDevice device, WGPUTextureDescriptor const *descriptor, uint64_t image, WGPUNativeTextureDropCallback dropCallback, void *userdata);
++
++    /**
++     * Returns the backend-native `ID3D12Device` as an opaque pointer.
++     *
++     * The returned pointer is borrowed (no AddRef) and remains valid only while `device` is alive.
++     * Returns NULL when the active backend is not D3D12.
++     */
++    void *wgpuDeviceGetNativeD3D12Device(WGPUDevice device);
++
++    /**
++     * Returns the backend-native `ID3D12Resource` as an opaque pointer.
++     *
++     * The returned pointer is borrowed (no AddRef) and remains valid only while `texture` is alive.
++     * Returns NULL when the active backend is not D3D12.
++     */
++    void *wgpuTextureGetNativeD3D12Resource(WGPUTexture texture);
++
+     void wgpuRenderPassEncoderMultiDrawIndirect(WGPURenderPassEncoder encoder, WGPUBuffer buffer, uint64_t offset, uint32_t count);
+     void wgpuRenderPassEncoderMultiDrawIndexedIndirect(WGPURenderPassEncoder encoder, WGPUBuffer buffer, uint64_t offset, uint32_t count);
+ 
+diff --git a/src/lib.rs b/src/lib.rs
+index ba92673..98abbf2 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -2686,6 +2686,242 @@ pub unsafe extern "C" fn wgpuDeviceGetNativeMetalDevice(device: native::WGPUDevi
+     }
+ }
+ 
++// Native interop: the Vulkan and D3D12 counterparts of the Metal getters.
++
++#[cfg(all(feature = "vulkan", not(any(target_os = "ios", target_os = "macos"))))]
++macro_rules! vulkan_device_handle {
++    ($device:expr, $default:expr, |$hal:ident| $value:expr) => {{
++        let device = $device.as_ref().expect("invalid device");
++        match device.context.device_as_hal::<hal::api::Vulkan>(device.id) {
++            Some($hal) => $value,
++            None => $default,
++        }
++    }};
++}
++#[cfg(not(all(feature = "vulkan", not(any(target_os = "ios", target_os = "macos")))))]
++macro_rules! vulkan_device_handle {
++    ($device:expr, $default:expr, |$hal:ident| $value:expr) => {{
++        let _ = $device;
++        $default
++    }};
++}
++
++#[no_mangle]
++pub unsafe extern "C" fn wgpuDeviceGetNativeVulkanInstance(
++    device: native::WGPUDevice,
++) -> *mut c_void {
++    vulkan_device_handle!(device, std::ptr::null_mut(), |hal_device| {
++        use ash::vk::Handle;
++        hal_device.shared_instance().raw_instance().handle().as_raw() as usize as *mut c_void
++    })
++}
++
++#[no_mangle]
++pub unsafe extern "C" fn wgpuDeviceGetNativeVulkanPhysicalDevice(
++    device: native::WGPUDevice,
++) -> *mut c_void {
++    vulkan_device_handle!(device, std::ptr::null_mut(), |hal_device| {
++        use ash::vk::Handle;
++        hal_device.raw_physical_device().as_raw() as usize as *mut c_void
++    })
++}
++
++#[no_mangle]
++pub unsafe extern "C" fn wgpuDeviceGetNativeVulkanDevice(
++    device: native::WGPUDevice,
++) -> *mut c_void {
++    vulkan_device_handle!(device, std::ptr::null_mut(), |hal_device| {
++        use ash::vk::Handle;
++        hal_device.raw_device().handle().as_raw() as usize as *mut c_void
++    })
++}
++
++#[no_mangle]
++pub unsafe extern "C" fn wgpuDeviceGetNativeVulkanQueue(device: native::WGPUDevice) -> *mut c_void {
++    vulkan_device_handle!(device, std::ptr::null_mut(), |hal_device| {
++        use ash::vk::Handle;
++        hal_device.raw_queue().as_raw() as usize as *mut c_void
++    })
++}
++
++#[no_mangle]
++pub unsafe extern "C" fn wgpuDeviceGetNativeVulkanQueueFamilyIndex(
++    device: native::WGPUDevice,
++) -> u32 {
++    vulkan_device_handle!(device, u32::MAX, |hal_device| hal_device.queue_family_index())
++}
++
++#[no_mangle]
++pub unsafe extern "C" fn wgpuTextureGetNativeVulkanImage(texture: native::WGPUTexture) -> u64 {
++    #[cfg(all(feature = "vulkan", not(any(target_os = "ios", target_os = "macos"))))]
++    {
++        use ash::vk::Handle;
++        let texture = texture.as_ref().expect("invalid texture");
++        let hal_texture = texture
++            .context
++            .texture_as_hal::<hal::api::Vulkan>(texture.id);
++        if let Some(hal_texture) = hal_texture {
++            return hal_texture.raw_handle().as_raw();
++        }
++        0
++    }
++    #[cfg(not(all(feature = "vulkan", not(any(target_os = "ios", target_os = "macos")))))]
++    {
++        let _ = texture;
++        0
++    }
++}
++
++/// The caller's context pointer of a native texture drop callback. The
++/// caller promises it may be used from the thread that drops the texture.
++#[allow(dead_code)]
++struct NativeDropUserdata(*mut c_void);
++unsafe impl Send for NativeDropUserdata {}
++unsafe impl Sync for NativeDropUserdata {}
++
++#[no_mangle]
++pub unsafe extern "C" fn wgpuDeviceCreateTextureFromNativeVulkanImage(
++    device: native::WGPUDevice,
++    descriptor: Option<&native::WGPUTextureDescriptor>,
++    image: u64,
++    drop_callback: Option<unsafe extern "C" fn(userdata: *mut c_void)>,
++    userdata: *mut c_void,
++) -> native::WGPUTexture {
++    #[cfg(all(feature = "vulkan", not(any(target_os = "ios", target_os = "macos"))))]
++    {
++        use ash::vk::Handle;
++        let (device_id, context, error_sink) = {
++            let device = device.as_ref().expect("invalid device");
++            (device.id, &device.context, &device.error_sink)
++        };
++        let descriptor = descriptor.expect("invalid descriptor");
++        let drop_callback = drop_callback.expect("invalid drop callback");
++
++        let desc = wgt::TextureDescriptor {
++            label: string_view_into_label(descriptor.label),
++            size: conv::map_extent3d(&descriptor.size),
++            mip_level_count: descriptor.mipLevelCount,
++            sample_count: descriptor.sampleCount,
++            dimension: conv::map_texture_dimension(descriptor.dimension)
++                .unwrap_or(wgt::TextureDimension::D2),
++            format: conv::map_texture_format(descriptor.format)
++                .expect("invalid texture format for texture descriptor"),
++            usage: from_u64_bits(descriptor.usage)
++                .expect("invalid texture usage for texture descriptor"),
++            view_formats: make_slice(descriptor.viewFormats, descriptor.viewFormatCount)
++                .iter()
++                .map(|v| {
++                    conv::map_texture_format(*v)
++                        .expect("invalid view format for texture descriptor")
++                })
++                .collect::<Vec<_>>(),
++        };
++
++        let hal_texture = {
++            let Some(hal_device) = context.device_as_hal::<hal::api::Vulkan>(device_id) else {
++                return std::ptr::null();
++            };
++            // texture_from_raw reads the label, the format and the size.
++            let hal_desc = hal::TextureDescriptor {
++                label: desc.label.as_deref(),
++                size: desc.size,
++                mip_level_count: desc.mip_level_count,
++                sample_count: desc.sample_count,
++                dimension: desc.dimension,
++                format: desc.format,
++                usage: wgt::TextureUses::empty(),
++                memory_flags: hal::MemoryFlags::empty(),
++                view_formats: desc.view_formats.clone(),
++            };
++            let userdata = NativeDropUserdata(userdata);
++            let on_drop: hal::DropCallback = Box::new(move || {
++                let userdata = userdata;
++                drop_callback(userdata.0)
++            });
++            hal_device.texture_from_raw(
++                ash::vk::Image::from_raw(image),
++                &hal_desc,
++                Some(on_drop),
++                hal::vulkan::TextureMemory::External,
++            )
++        };
++
++        let (texture_id, error) =
++            context.create_texture_from_hal(Box::new(hal_texture), device_id, &desc, None);
++        if let Some(cause) = error {
++            handle_error(
++                error_sink,
++                cause,
++                desc.label,
++                "wgpuDeviceCreateTextureFromNativeVulkanImage",
++            );
++        }
++
++        Arc::into_raw(Arc::new(WGPUTextureImpl {
++            context: context.clone(),
++            id: texture_id,
++            error_sink: error_sink.clone(),
++            surface_id: None,
++            has_surface_presented: Arc::default(),
++            data: TextureData {
++                usage: descriptor.usage,
++                dimension: descriptor.dimension,
++                size: descriptor.size,
++                format: descriptor.format,
++                mip_level_count: descriptor.mipLevelCount,
++                sample_count: descriptor.sampleCount,
++            },
++        }))
++    }
++    #[cfg(not(all(feature = "vulkan", not(any(target_os = "ios", target_os = "macos")))))]
++    {
++        let _ = (device, descriptor, image, drop_callback, userdata);
++        std::ptr::null()
++    }
++}
++
++#[no_mangle]
++pub unsafe extern "C" fn wgpuDeviceGetNativeD3D12Device(device: native::WGPUDevice) -> *mut c_void {
++    #[cfg(all(windows, feature = "dx12"))]
++    {
++        use windows_core::Interface;
++        let device = device.as_ref().expect("invalid device");
++        let hal_device = device.context.device_as_hal::<hal::api::Dx12>(device.id);
++        if let Some(hal_device) = hal_device {
++            return hal_device.raw_device().as_raw();
++        }
++        std::ptr::null_mut()
++    }
++    #[cfg(not(all(windows, feature = "dx12")))]
++    {
++        let _ = device;
++        std::ptr::null_mut()
++    }
++}
++
++#[no_mangle]
++pub unsafe extern "C" fn wgpuTextureGetNativeD3D12Resource(
++    texture: native::WGPUTexture,
++) -> *mut c_void {
++    #[cfg(all(windows, feature = "dx12"))]
++    {
++        use windows_core::Interface;
++        let texture = texture.as_ref().expect("invalid texture");
++        let hal_texture = texture
++            .context
++            .texture_as_hal::<hal::api::Dx12>(texture.id);
++        if let Some(hal_texture) = hal_texture {
++            return hal_texture.raw_resource().as_raw();
++        }
++        std::ptr::null_mut()
++    }
++    #[cfg(not(all(windows, feature = "dx12")))]
++    {
++        let _ = texture;
++        std::ptr::null_mut()
++    }
++}
++
+ #[no_mangle]
+ pub unsafe extern "C" fn wgpuDeviceHasFeature(
+     device: native::WGPUDevice,
