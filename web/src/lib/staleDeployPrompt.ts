@@ -19,44 +19,11 @@
 
 import { useStaleDeployStore } from "../stores/StaleDeployStore";
 import type { StaleDeployReason } from "../stores/StaleDeployStore";
+import { deployIsStale } from "./deployStaleness";
 
 const RELOAD_GUARD_KEY = "nodetool:preload-error-reload";
 const RELOAD_WINDOW_MS = 10_000;
 const VISIBILITY_CHECK_INTERVAL_MS = 60_000;
-
-/** Pathname of the content-hashed entry script this tab is running. */
-function runningEntryPath(): string | null {
-  const script = document.querySelector<HTMLScriptElement>(
-    'script[type="module"][src]'
-  );
-  if (!script?.src) return null;
-  try {
-    return new URL(script.src, window.location.href).pathname;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * True when the server now serves an index.html that no longer references
- * this tab's entry script — i.e. a new deploy replaced the assets and a
- * reload will recover.
- */
-async function deployIsStale(): Promise<boolean> {
-  const entry = runningEntryPath();
-  if (!entry) return false;
-  try {
-    const res = await fetch("/", {
-      cache: "no-store",
-      headers: { Accept: "text/html" }
-    });
-    if (!res.ok) return false;
-    return !(await res.text()).includes(entry);
-  } catch {
-    // Server unreachable — a reload wouldn't help.
-    return false;
-  }
-}
 
 /** Reload into the new deploy. Unsaved work still gets the beforeunload prompt. */
 export function reloadIntoNewDeploy(): void {

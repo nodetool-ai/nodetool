@@ -44,3 +44,37 @@ export function resolveLocale(value: unknown): Locale {
   const result = localeSchema.safeParse(value);
   return result.success ? result.data : DEFAULT_LOCALE;
 }
+
+/**
+ * The supported locale closest to the browser's language list, for a user
+ * who has not picked one. The page opts out of browser translation (see
+ * web/index.html), so without this a non-English browser would get English.
+ */
+export function browserLocale(
+  languages: readonly string[] = typeof navigator === "undefined"
+    ? []
+    : navigator.languages?.length
+      ? navigator.languages
+      : [navigator.language]
+): Locale {
+  const supported: readonly string[] = localeSchema.options;
+  for (const language of languages) {
+    if (!language) {
+      continue;
+    }
+    if (supported.includes(language)) {
+      return language as Locale;
+    }
+    const base = language.split("-")[0].toLowerCase();
+    if (base === "zh") {
+      return "zh-CN";
+    }
+    if (base === "no" || base === "nn") {
+      return "nb";
+    }
+    if (supported.includes(base)) {
+      return base as Locale;
+    }
+  }
+  return DEFAULT_LOCALE;
+}

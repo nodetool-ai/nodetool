@@ -21,6 +21,14 @@ import { generationWebhookDeliveries } from "./schema/generation-webhook-deliver
 import { generationOutputs } from "./schema/generation-outputs.js";
 import { generationAttachments } from "./schema/generation-attachments.js";
 
+
+/**
+ * How long a freshly accepted generation belongs to the caller that accepted
+ * it before the recovery sweep may claim it. The caller claims within
+ * milliseconds; this only matters when it crashed in between.
+ */
+export const ACCEPTED_RECOVERY_GRACE_MS = 60_000;
+
 export interface DurableGenerationInput {
   id?: string;
   user_id: string;
@@ -309,7 +317,15 @@ export class DurablePrediction extends DBModel {
       );
     }
     const db = getPortableDb();
-    const now = new Date().toISOString();
+    const acceptedAt = new Date();
+    const now = acceptedAt.toISOString();
+    // The caller claims the lease right after acceptance. Until then the row
+    // has no lease owner, and the recovery sweep would claim it first and
+    // fail the live run ("Durable FAL generation lease could not be
+    // acquired"). Recovery takes over only after the grace window.
+    const firstRecoveryCheck = new Date(
+      acceptedAt.getTime() + ACCEPTED_RECOVERY_GRACE_MS
+    ).toISOString();
     const id = input.id ?? createTimeOrderedUuid();
     const values = {
       id,
@@ -339,6 +355,7 @@ export class DurablePrediction extends DBModel {
       input_fingerprint: input.input_fingerprint,
       accepted_at: now,
       created_at: now,
+      next_check_at: firstRecoveryCheck,
       attempt_count: 0,
       lease_version: 0
     };
@@ -385,6 +402,7 @@ export class DurablePrediction extends DBModel {
           input_fingerprint: input.input_fingerprint,
           submission_idempotency_key: input.idempotency_key,
           request_payload: input.request_payload ?? null,
+          next_check_at: firstRecoveryCheck,
           created_at: now,
           updated_at: now
         })

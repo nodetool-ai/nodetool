@@ -18176,6 +18176,8 @@
         "mediumDescription": "Balances speed and depth.",
         "high": "High",
         "highDescription": "Reasons longest. Slower and costs more.",
+        "xhigh": "Extra high",
+        "xhighDescription": "Reasons longest of all. Slowest and costs the most.",
         "level": "Reasoning level",
         "title": "Reasoning",
         "titleWithLevel": "Reasoning: {{level}}"

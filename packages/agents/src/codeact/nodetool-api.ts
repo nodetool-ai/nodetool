@@ -179,7 +179,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "delete_sketch_version",
     "validate_sketch",
     "render_sketch",
-    "edit_sketch"
+    "edit_sketch",
+    "delete_sketch"
   ],
   scripts: [
     "list_scripts",
@@ -1560,6 +1561,8 @@ const nodetool = (() => {
           image_document_id: id,
           version: version
         }),
+      /** Delete the sketch and its version history. Cannot be undone. */
+      delete: (id) => __need("delete_sketch")({ image_document_id: id }),
       /** {width, height, background_color} check an inline document against its canvas. */
       validate: (target, opts) =>
         __need("validate_sketch")(
@@ -1997,7 +2000,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     doc: `- \`nodetool.sketches\` — layered image documents: \`list()\`,
   \`create(name, {width, height})\`, \`get(id)\`, \`edit(id, ops)\`,
   \`rename(id, name)\`, \`validate(idOrDocument)\`, \`render(idOrDocument, {width, format})\` (a
-  saved PNG or layered PSD, composited as the editor does), versions. Editing
+  saved PNG or layered PSD, composited as the editor does), \`delete(id)\`
+  (the sketch and its history), versions. Editing
   is layer structure; painting stays with an editor or a workflow run.`
   },
   {

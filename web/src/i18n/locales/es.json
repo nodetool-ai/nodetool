@@ -18480,6 +18480,8 @@
         "mediumDescription": "Equilibra velocidad y profundidad.",
         "high": "Alto",
         "highDescription": "Razones más largas. Más lento y cuesta más.",
+        "xhigh": "Muy alto",
+        "xhighDescription": "Razona más que nunca. Es lo más lento y lo más caro.",
         "level": "nivel de razonamiento",
         "title": "Razonamiento",
         "titleWithLevel": "Razonamiento: {{level}}"

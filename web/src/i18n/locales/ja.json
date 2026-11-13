@@ -18176,6 +18176,8 @@
         "mediumDescription": "スピードと深さのバランスをとります。",
         "high": "高",
         "highDescription": "理由が最長。遅くなり、コストも高くなります。",
+        "xhigh": "最高",
+        "xhighDescription": "最も長く推論します。最も遅く、コストも最も高くなります。",
         "level": "推理レベル",
         "title": "推論",
         "titleWithLevel": "推論: {{level}}"

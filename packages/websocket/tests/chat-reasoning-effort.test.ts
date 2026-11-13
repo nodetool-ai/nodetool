@@ -32,7 +32,8 @@ async function runTurn(
   provider: RecordingProvider,
   threadId: string,
   model: string,
-  reasoningEffort: unknown
+  reasoningEffort: unknown,
+  providerId = "anthropic"
 ): Promise<void> {
   const harness = makeChatTurnHarness({
     session: { resolveProvider: async () => provider }
@@ -40,7 +41,7 @@ async function runTurn(
   await harness.handler.handleChatMessage({
     thread_id: threadId,
     content: "hi",
-    provider: "anthropic",
+    provider: providerId,
     model,
     reasoning_effort: reasoningEffort
   });
@@ -60,6 +61,18 @@ describe("chat turn reasoning level", () => {
   it("drops the level for a model that would reject it", async () => {
     const provider = new RecordingProvider();
     await runTurn(provider, "t-effort-off", "claude-haiku-4-5", "high");
+    expect(provider.efforts).toEqual([undefined]);
+  });
+
+  it("forwards xhigh to Gemini 4 Hydrogen, which takes it", async () => {
+    const provider = new RecordingProvider();
+    await runTurn(provider, "t-effort-xhigh", "gemini-4-hydrogen", "xhigh", "gemini");
+    expect(provider.efforts).toEqual(["xhigh"]);
+  });
+
+  it("drops xhigh for a model that only offers up to high", async () => {
+    const provider = new RecordingProvider();
+    await runTurn(provider, "t-effort-xhigh-off", "claude-opus-5-5", "xhigh");
     expect(provider.efforts).toEqual([undefined]);
   });
 

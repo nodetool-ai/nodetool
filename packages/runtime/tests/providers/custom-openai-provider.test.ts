@@ -309,3 +309,28 @@ describe("custom provider registry", () => {
     unregisterProvider("not_custom_at_all");
   });
 });
+
+describe("syncCustomProviders with several users", () => {
+  afterEach(() => {
+    syncCustomProviders([], "alice");
+    syncCustomProviders([], "bob");
+  });
+
+  it("keeps one user's provider registered when another user syncs", () => {
+    syncCustomProviders([{ slug: "alicegw", name: "Alice" }], "alice");
+    syncCustomProviders([{ slug: "bobgw", name: "Bob" }], "bob");
+    expect(listCustomProviderIds().sort()).toEqual([
+      "custom_alicegw",
+      "custom_bobgw"
+    ]);
+  });
+
+  it("drops a provider once no user wants it", () => {
+    syncCustomProviders([{ slug: "shared", name: "A" }], "alice");
+    syncCustomProviders([{ slug: "shared", name: "B" }], "bob");
+    syncCustomProviders([], "alice");
+    expect(listCustomProviderIds()).toEqual(["custom_shared"]);
+    syncCustomProviders([], "bob");
+    expect(listCustomProviderIds()).toEqual([]);
+  });
+});

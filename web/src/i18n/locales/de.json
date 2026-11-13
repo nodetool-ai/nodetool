@@ -18176,6 +18176,8 @@
         "mediumDescription": "Gleicht Geschwindigkeit und Tiefe aus.",
         "high": "Höhen",
         "highDescription": "Denkt am längsten nach. Dauert länger und kostet mehr.",
+        "xhigh": "Sehr hoch",
+        "xhighDescription": "Denkt am gründlichsten nach. Am langsamsten und am teuersten.",
         "level": "Denkstufe",
         "title": "Denken",
         "titleWithLevel": "Denken: {{level}}"
