@@ -132,7 +132,8 @@ ColumnLayout {
         onValuePreviewed: value => root.jsonDraft = value
         onValueCommitted: value => { root.jsonDraft = value; root.applyJson() }
     }
-    NodeButton {
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined
         visible: root.kind === "json"
         objectName: "structured-apply-json"
         text: "Apply JSON"
@@ -170,9 +171,9 @@ ColumnLayout {
                     onValueCommitted: value => root.rename(row.index, value)
                 }
                 Ui.Text { visible: root.kind === "list"; text: String(row.index + 1); role: Ui.Typography.MonoCaption }
-                NodeButton { objectName: "structured-up-" + row.index; text: "↑"; accessibleName: "Move up"; visible: root.kind !== "dict"; enabled: root.writable && row.index > 0; onClicked: root.move(row.index, -1) }
-                NodeButton { objectName: "structured-down-" + row.index; text: "↓"; accessibleName: "Move down"; visible: root.kind !== "dict"; enabled: root.writable && row.index + 1 < root.rows.length; onClicked: root.move(row.index, 1) }
-                NodeButton { objectName: "structured-remove-" + row.index; text: "Remove"; enabled: root.writable; onClicked: root.remove(row.index) }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "structured-up-" + row.index; text: "↑"; accessibleName: "Move up"; visible: root.kind !== "dict"; enabled: root.writable && row.index > 0; onClicked: root.move(row.index, -1) }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "structured-down-" + row.index; text: "↓"; accessibleName: "Move down"; visible: root.kind !== "dict"; enabled: root.writable && row.index + 1 < root.rows.length; onClicked: root.move(row.index, 1) }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "structured-remove-" + row.index; text: "Remove"; enabled: root.writable; onClicked: root.remove(row.index) }
             }
             Ui.TextField {
                 objectName: "structured-text-" + row.index
@@ -248,7 +249,8 @@ ColumnLayout {
             }
         }
     }
-    NodeButton {
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined
         objectName: "structured-add"
         visible: root.kind !== "json"
         enabled: root.writable && root.shapeValid

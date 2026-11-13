@@ -12,7 +12,6 @@ Rectangle {
     required property NodeCatalog catalog
     required property PackSetup packSetup
     // Hover text for the window's tool tip; empty hides it.
-    signal toolTipRequested(string text)
     color: roles.panel
     implicitWidth: 310
     property string query: ""
@@ -133,12 +132,18 @@ Rectangle {
             Layout.rightMargin: Ui.Metrics.lg
             spacing: Ui.Metrics.sm
             Ui.Text {
+                id: nodesTitle
                 text: "Nodes"
                 role: Ui.Typography.SansLabel
                 font.weight: Font.Normal
                 lineHeight: 1
                 // The PanelHeader title tooltip (config/quickAccessCategories.tsx, nodes).
-                HoverHandler { onHoveredChanged: root.toolTipRequested(hovered ? qsTr("Browse, search, and add nodes to the current workflow.") : "") }
+                HoverHandler { id: titleHover }
+                Ui.Tooltip {
+                    trigger: nodesTitle
+                    visible: titleHover.hovered
+                    text: qsTr("Browse, search, and add nodes to the current workflow.")
+                }
             }
             Ui.Text { objectName: "catalog-count"; text: root.visibleNodes.length; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; lineHeight: 1 }
             // DocsHelpLink.tsx in its label variant: an open-in-new icon to the docs topic.
@@ -154,8 +159,8 @@ Rectangle {
                 implicitHeight: Ui.Metrics.small
                 leftPadding: Ui.Metrics.none
                 rightPadding: Ui.Metrics.none
+                display: Basic.AbstractButton.IconOnly
                 accessibleName: qsTr("Nodes documentation")
-                onHoveredChanged: root.toolTipRequested(hovered ? accessibleName : "")
                 onClicked: Qt.openUrlExternally("https://docs.nodetool.ai/nodes/")
             }
             Item { Layout.fillWidth: true }
@@ -271,8 +276,9 @@ Rectangle {
                 spacing: 0
                 boundsBehavior: Flickable.StopAtBounds
                 model: root.categories
-                delegate: PanelRow {
+                delegate: Ui.ListRow {
                     id: categoryRow
+                    flat: true
                     required property var modelData
                     objectName: "catalog-category-" + modelData.id
                     x: Ui.Metrics.xs
@@ -330,8 +336,9 @@ Rectangle {
                 boundsBehavior: Flickable.StopAtBounds
                 Basic.ScrollBar.vertical: Ui.ScrollBar {}
                 model: root.visibleNodes
-                delegate: PanelRow {
+                delegate: Ui.ListRow {
                     id: nodeRow
+                    flat: true
                     required property var modelData
                     required property int index
                     active: index === root.highlighted

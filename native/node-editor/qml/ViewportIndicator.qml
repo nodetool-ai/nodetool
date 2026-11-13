@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 
 // The web ViewportStatusIndicator, floating at the canvas corner.
@@ -23,8 +24,9 @@ Item {
             id: row
             anchors.centerIn: parent
             spacing: Ui.Metrics.micro
-            NodeButton { objectName: "zoom-out"; text: ""; accessibleName: "Zoom out"; iconName: "remove"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: root.viewport.run("Zoom out") }
-            PanelRow {
+            Ui.EditorButton { objectName: "zoom-out"; text: ""; display: Basic.AbstractButton.IconOnly; accessibleName: "Zoom out"; iconName: "remove"; variant: Ui.EditorButton.Outlined; flat: true; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: root.viewport.run("Zoom out") }
+            Ui.ListRow {
+                flat: true
                 objectName: "zoom-reset"
                 accessibleName: "Zoom presets"
                 Layout.preferredWidth: Ui.Metrics.xl * 3
@@ -42,10 +44,10 @@ Item {
                     lineHeight: 1
                 }
             }
-            NodeButton { objectName: "zoom-in"; text: ""; accessibleName: "Zoom in"; iconName: "add"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: root.viewport.run("Zoom in") }
+            Ui.EditorButton { objectName: "zoom-in"; text: ""; display: Basic.AbstractButton.IconOnly; accessibleName: "Zoom in"; iconName: "add"; variant: Ui.EditorButton.Outlined; flat: true; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: root.viewport.run("Zoom in") }
             Rectangle { width: Ui.Metrics.border; height: Ui.Metrics.iconSm; color: roles.divider }
-            NodeButton { objectName: "fit-selection"; text: ""; accessibleName: "Fit selection"; iconName: "filterCenterFocus"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: root.viewport.run("Fit selection") }
-            NodeButton { objectName: "fit-view"; text: ""; accessibleName: "Fit view"; iconName: "centerFocusStrong"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: root.viewport.run("Fit") }
+            Ui.EditorButton { objectName: "fit-selection"; text: ""; display: Basic.AbstractButton.IconOnly; accessibleName: "Fit selection"; iconName: "filterCenterFocus"; variant: Ui.EditorButton.Outlined; flat: true; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: root.viewport.run("Fit selection") }
+            Ui.EditorButton { objectName: "fit-view"; text: ""; display: Basic.AbstractButton.IconOnly; accessibleName: "Fit view"; iconName: "centerFocusStrong"; variant: Ui.EditorButton.Outlined; flat: true; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: root.viewport.run("Fit") }
         }
     }
 }

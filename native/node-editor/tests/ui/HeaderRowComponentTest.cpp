@@ -147,7 +147,6 @@ private slots:
         QSignalSpy library(&panels, &PanelLayout::toggleLibraryRequested);
         QSignalSpy catalog(&panels, &PanelLayout::toggleCatalogRequested);
         QSignalSpy panel(&panels, &PanelLayout::togglePanelRequested);
-        QSignalSpy hints(&panels, &PanelLayout::toolTipRequested);
 
         QQuickView view;
         show(view, {{"panels", QVariant::fromValue(&panels)}}, "Rail.qml", {56, 700});
@@ -170,15 +169,10 @@ private slots:
         // A view with no native panel stays disabled, and its hover says why.
         QVERIFY(!button("rail-examples")->isEnabled());
         QTest::mouseMove(&view, centre(named(root, "rail-examples")));
-        const auto hinted = [&hints](const QString &text) {
-            for (const auto &call : hints) {
-                if (call.first().toString() == text) {
-                    return true;
-                }
-            }
-            return false;
-        };
-        QTRY_VERIFY(hinted("Examples has no native panel yet."));
+        auto *tip = button("rail-examples")->findChild<QObject *>("nativeButtonTooltip");
+        QVERIFY(tip);
+        QTRY_VERIFY(tip->property("visible").toBool());
+        QCOMPARE(tip->property("text").toString(), QString("Examples has no native panel yet."));
 
         panels.setPanels({.catalog = true});
         QTRY_VERIFY(button("rail-nodes")->property("active").toBool());

@@ -51,9 +51,9 @@ ColumnLayout {
             }
             RowLayout {
                 spacing: Ui.Metrics.xs
-                NodeButton { text: "Up"; accessibleName: "Move item " + (entryRow.index + 1) + " up"; enabled: root.writable && entryRow.index > 0; onClicked: root.moveAt(entryRow.index, -1) }
-                NodeButton { text: "Down"; accessibleName: "Move item " + (entryRow.index + 1) + " down"; enabled: root.writable && entryRow.index + 1 < root.entries.length; onClicked: root.moveAt(entryRow.index, 1) }
-                NodeButton { text: "Remove"; accessibleName: "Remove item " + (entryRow.index + 1); enabled: root.writable; onClicked: root.removeAt(entryRow.index) }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Up"; accessibleName: "Move item " + (entryRow.index + 1) + " up"; enabled: root.writable && entryRow.index > 0; onClicked: root.moveAt(entryRow.index, -1) }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Down"; accessibleName: "Move item " + (entryRow.index + 1) + " down"; enabled: root.writable && entryRow.index + 1 < root.entries.length; onClicked: root.moveAt(entryRow.index, 1) }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Remove"; accessibleName: "Remove item " + (entryRow.index + 1); enabled: root.writable; onClicked: root.removeAt(entryRow.index) }
             }
         }
     }

@@ -12,7 +12,6 @@ ColumnLayout {
     required property bool writable
     required property string nodeId
     // Hover text for the window's tool tip; empty hides it.
-    signal toolTipRequested(string text)
     // The tab's AssetPickerController, MediaResolver and ResourcePickerController,
     // from the property host. A field without them only shows its value.
     property var controller: null
@@ -226,7 +225,8 @@ ColumnLayout {
         wrapMode: Text.WrapAnywhere
         role: Ui.Typography.SansCaption
     }
-    NodeButton {
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined
         objectName: "document-open"
         visible: root.mediaKind === "document" && root.documentUrl.toString() !== ""
         text: "Open document"
@@ -257,13 +257,15 @@ ColumnLayout {
     RowLayout {
         visible: !root.dropZoneOnly
         spacing: Ui.Metrics.xs
-        NodeButton {
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined
             objectName: "asset-refresh-" + root.descriptor.name
             text: "Browse assets"
             enabled: root.writable && root.controller && !root.uploading
             onClicked: root.search(false)
         }
-        NodeButton {
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined
             objectName: "asset-upload-" + root.descriptor.name
             text: "Upload file"
             enabled: root.writable && root.controller && !root.uploading
@@ -287,7 +289,8 @@ ColumnLayout {
         value: root.value && root.value.asset_id ? root.value.asset_id : ""
         onValueCommitted: value => root.selectAsset(value)
     }
-    NodeButton {
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined
         visible: root.nextCursor !== "" && !root.dropZoneOnly
         text: "Load more assets"
         enabled: root.writable && !root.listing
@@ -296,7 +299,8 @@ ColumnLayout {
     RowLayout {
         visible: root.uploading
         Ui.Text { text: "Uploading " + Math.round(root.uploadProgress * 100) + "%"; role: Ui.Typography.SansCaption }
-        NodeButton {
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined
             objectName: "asset-cancel-upload"
             text: "Cancel upload"
             onClicked: root.cancelEdit()
@@ -330,7 +334,11 @@ ColumnLayout {
         Keys.onSpacePressed: root.chooseFiles()
         HoverHandler {
             id: zoneHover
-            onHoveredChanged: root.toolTipRequested(hovered ? root.dropTooltip : "")
+        }
+        Ui.Tooltip {
+            trigger: dropZone
+            visible: zoneHover.hovered
+            text: root.dropTooltip
         }
         TapHandler { onTapped: root.chooseFiles() }
         Ui.Text {

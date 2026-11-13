@@ -43,7 +43,8 @@ ColumnLayout {
     }
     Ui.Text { visible: root.loading; text: "Loading text…"; role: Ui.Typography.SansCaption }
     Ui.Text { visible: root.failure.length > 0; text: root.failure; role: Ui.Typography.SansCaption }
-    NodeButton {
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined
         objectName: "output-text-retry"
         visible: root.failure.length > 0 || (!!root.output.textUri && !root.loading && !root.content)
         text: "Retry text"
@@ -81,7 +82,8 @@ ColumnLayout {
             root.pendingLink = /^https?:\/\/[^\s@]+$/i.test(link) ? link : ""
         }
     }
-    NodeButton {
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined
         objectName: "output-open-link"
         visible: root.pendingLink.length > 0
         text: "Open " + root.pendingLink

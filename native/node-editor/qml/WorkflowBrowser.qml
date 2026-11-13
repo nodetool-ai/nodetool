@@ -20,10 +20,10 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             Ui.Text { text: "Workflows"; role: Ui.Typography.SansLabel; Layout.fillWidth: true }
-            NodeButton { objectName: "browser-refresh"; text: "Refresh"; variant: NodeButton.Flat; enabled: !root.pending; onClicked: root.browser.refresh() }
-            NodeButton { objectName: "browser-close"; accessibleName: "Close workflows"; iconName: "close"; variant: NodeButton.Flat; onClicked: root.panels.toggleBrowser() }
+            Ui.EditorButton { objectName: "browser-refresh"; text: "Refresh"; variant: Ui.EditorButton.Outlined; flat: true; enabled: !root.pending; onClicked: root.browser.refresh() }
+            Ui.EditorButton { objectName: "browser-close"; accessibleName: "Close workflows"; iconName: "close"; display: Basic.AbstractButton.IconOnly; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.panels.toggleBrowser() }
         }
-        NodeButton { visible: !root.status.connected; text: "Connect to server"; onClicked: root.status.connectServer() }
+        Ui.EditorButton { variant: Ui.EditorButton.Outlined; visible: !root.status.connected; text: "Connect to server"; onClicked: root.status.connectServer() }
         Ui.TextField {
             objectName: "workflow-search"
             Layout.fillWidth: true
@@ -45,14 +45,14 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             Ui.TextField { id: newName; objectName: "new-workflow-name"; Layout.fillWidth: true; accessibleName: "New workflow name"; placeholderText: "New workflow name"; enabled: !root.pending }
-            NodeButton { objectName: "create-workflow"; text: "Create"; enabled: !root.pending && newName.text.trim() !== ""; onClicked: { root.browser.createWorkflow(newName.text); newName.text = "" } }
+            Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "create-workflow"; text: "Create"; enabled: !root.pending && newName.text.trim() !== ""; onClicked: { root.browser.createWorkflow(newName.text); newName.text = "" } }
         }
         Ui.Text { text: root.browser.projectsLoading ? "Loading projects…" : root.browser.busy ? "Saving changes…" : "Loading workflows…"; visible: root.pending; role: Ui.Typography.SansCaption }
         RowLayout {
             visible: root.browser.error !== ""
             Layout.fillWidth: true
             Ui.Text { text: root.browser.error; role: Ui.Typography.SansCaption; tone: Ui.Text.Error; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-            NodeButton { objectName: "browser-retry"; text: "Retry"; enabled: !root.pending; onClicked: root.browser.reload() }
+            Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "browser-retry"; text: "Retry"; enabled: !root.pending; onClicked: root.browser.reload() }
         }
         Ui.EmptyState { visible: !root.pending && !root.browser.error && root.browser.rows.length === 0; Layout.fillWidth: true; title: "No workflows found"; message: root.browser.search ? "Try another name or load more workflows." : "Create a workflow or choose another project."; maxTextWidth: width }
         Flickable {
@@ -81,13 +81,13 @@ Rectangle {
                         RowLayout {
                             Layout.fillWidth: true
                             Ui.TextField { id: rename; objectName: "workflow-name-" + workflow.modelData.id; value: workflow.modelData.name; accessibleName: "Rename " + workflow.modelData.name; Layout.fillWidth: true; enabled: !root.pending }
-                            NodeButton { objectName: "rename-workflow-" + workflow.modelData.id; text: "Rename"; enabled: !root.pending && rename.text.trim() !== "" && rename.text !== workflow.modelData.name; onClicked: root.browser.renameWorkflow(workflow.modelData.id, rename.text) }
-                            NodeButton { objectName: "delete-workflow-" + workflow.modelData.id; text: "Delete"; variant: NodeButton.Flat; enabled: !root.pending; onClicked: root.browser.confirmDelete(workflow.modelData.id, workflow.modelData.name) }
+                            Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "rename-workflow-" + workflow.modelData.id; text: "Rename"; enabled: !root.pending && rename.text.trim() !== "" && rename.text !== workflow.modelData.name; onClicked: root.browser.renameWorkflow(workflow.modelData.id, rename.text) }
+                            Ui.EditorButton { objectName: "delete-workflow-" + workflow.modelData.id; text: "Delete"; variant: Ui.EditorButton.Outlined; flat: true; enabled: !root.pending; onClicked: root.browser.confirmDelete(workflow.modelData.id, workflow.modelData.name) }
                         }
                         Ui.Separator { Layout.fillWidth: true }
                     }
                 }
-                NodeButton { objectName: "load-more-workflows"; text: "Load more workflows"; Layout.fillWidth: true; visible: root.browser.hasNext; enabled: !root.pending; onClicked: root.browser.loadNext() }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "load-more-workflows"; text: "Load more workflows"; Layout.fillWidth: true; visible: root.browser.hasNext; enabled: !root.pending; onClicked: root.browser.loadNext() }
             }
         }
     }

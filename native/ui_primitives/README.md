@@ -21,7 +21,7 @@ are keys in `Ui.Icons`, and `size` is a named `Ui.Metrics.icon*` value.
 semantic color for document or media visuals. Chrome uses `tone`.
 
 Buttons use `Ui.EditorButton.Compact`, `Standard`, or `Comfortable` density
-and `Ui.EditorButton.Default`, `Primary`, `Flat`, or `Destructive` variant. Compact and
+and `Ui.EditorButton.Default`, `Primary`, `Flat`, `Destructive`, or `Outlined` variant. Compact and
 standard controls have minimum heights of 28 and 32 logical pixels. Text may
 increase either height. `providerEntry` selects a provider logo in place of
 `iconName`.
@@ -58,6 +58,8 @@ Presentation types:
   actions.
 - `Ui.ListRow.active` supplies selection appearance; its default content holds
   the row's label and nested actions. It inherits button activation.
+  `flat: true` removes the padding and the minimum height, so the row only supplies activation
+  and the hover, selected, pressed, and focus background, and its children position against its size.
 - `Ui.Popover.openAt(item)` and `Ui.ContextMenu.openAt(item)` anchor to an item
   and return focus to it on close. Popup content and menu items are supplied by
   the caller. `Ui.Popover.contentItem` is its explicit body layout slot.
@@ -71,7 +73,10 @@ Presentation types:
   and `delay` control the message and timing. One tooltip is visible at a time.
   Movement of the trigger or its ancestors dismisses it. Pointer presses,
   scrolling, key presses, and focus changes dismiss stale help. Use this
-  primitive instead of attached Qt tooltips. `Ui.ShortcutHint` renders its
+  primitive instead of attached Qt tooltips. A host whose panels are small
+  `QQuickWidget`s, where an overlay clips, sets `Ui.TooltipHost.native` and
+  connects `Ui.TooltipHost.requested(text)`. A tooltip that its overlay cannot place beside
+  its trigger then stays invisible and sends its text to the host, and an empty text hides it. `Ui.ShortcutHint` renders its
   inherited text in the mono caption role.
 
 `Ui.Slider` takes `value`, `from`, `to`, `stepSize`, `origin`, `resetValue`,
@@ -102,6 +107,11 @@ determinate progress. `Ui.ScrollBar` retains native position, size,
 orientation, and policy.
 
 `EditorButton.menuButton` marks a menu trigger and `menuExpanded` reports its open state independently of `checked`. Set `trailingIconName` to a catalog identity for a trailing icon; the control handles mirrored layout and label elision. `textRole` selects the label's typography role; its default is `Typography.SansLabel`. `iconSize` takes a named `Metrics.icon*` value; its default is `Metrics.iconSm`.
+`EditorButton.Outlined` is the web editor button: accent ink on an accent outline, a 28 pixel height at any density,
+and a caption label in medium weight. With Outlined, `highlighted` fills it with the accent and `flat` drops
+the outline and uses secondary ink. A disabled Outlined button has no fill. `iconColor` takes a feature-owned
+icon color as `Ui.Icon.domainColor` does. Set `display: AbstractButton.IconOnly` on a button without a label so
+that it shows its `accessibleName` as a tooltip.
 
 `Status` and `Banner` take `status` (`Status.Success`, `Warning`, `Error`,
 `Info`) and `message`. `Banner` also accepts optional `actionText` and emits

@@ -182,7 +182,7 @@ Moved so far:
 | `Viewport` (moved) | Zoom percent and preset, mini-map color mode and popups, view commands | `ViewportIndicator.qml`, `MiniMapControls.qml`, `MiniMapPopups.qml` |
 | `Notifications` (moved) | Notification list, unread count, open the list, copy an entry | `TabBar.qml`, `NotificationsPanel.qml` |
 | `ChatWindow` (moved) | Chat window drag, resize and position reset | `EditorChat.qml` |
-| `EditorCommands` (moved for the toolbars and the group controls) | Read-only state, shown run activity, named command dispatch, tooltip, theme roles | `Toolbar.qml`, `SelectionToolbar.qml`, `AuthoredControls.qml`, most other chrome |
+| `EditorCommands` (moved for the toolbars and the group controls) | Read-only state, shown run activity, named command dispatch, theme roles | `Toolbar.qml`, `SelectionToolbar.qml`, `AuthoredControls.qml`, most other chrome |
 
 These members should leave the window instead of joining an interface:
 
