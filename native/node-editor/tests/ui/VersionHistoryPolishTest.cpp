@@ -739,7 +739,8 @@ private slots:
         QVERIFY(find(isolated.rootObject(), "compare-clear")->isVisible());
         QTest::qWait(60);
         QCOMPARE(isolated.rootObject()->width(), qreal(minimum));
-        QVERIFY(find(isolated.rootObject(), "restore-version")->isVisible());
+        // A comparison replaces the inspected version's actions, as the web's diff view does.
+        QVERIFY(!find(isolated.rootObject(), "restore-version")->isVisible());
         const auto problems = [&isolated] {
             QStringList found;
             auto *root = isolated.rootObject();
@@ -1042,6 +1043,67 @@ private slots:
         QCOMPARE(find(widget->rootObject(), "version-count")->property("text").toString(), QString("0"));
     }
 
+    // web/src/components/version/VersionHistoryPanel.tsx: with nothing selected the preview pane
+    // only asks for a selection. Restore, Delete, the confirmation and the diff appear once a
+    // version is inspected, under a header with its number, save type, time and size.
+    void detailPaneWaitsForASelection()
+    {
+        Fixture server;
+        const QJsonObject graph{
+            {"nodes", QJsonArray{
+                QJsonObject{{"id", "0123456789abcdef"}, {"type", "nodetool.text.Template"}, {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 0}, {"y", 0}}}}}}}},
+            {"edges", QJsonArray()}};
+        server.respond = [&graph](QByteArray request) {
+            const auto line = request.left(request.indexOf("\r\n"));
+            if (line.startsWith("GET /api/workflows/")) {
+                return workflowBody("r1");
+            }
+            if (line.contains("versions.list")) {
+                return envelope(QJsonObject{{"versions", QJsonArray{versionRow("v1", 1, "autosave", "Draft", "2026-06-15T08:00:00Z", graph)}}});
+            }
+            return trpcError("Unexpected request", "NOT_FOUND", 404);
+        };
+        EditorWindow window;
+        connectWorkflow(window, server);
+        auto *widget = openHistory(window);
+        QVERIFY(widget);
+        QTRY_COMPARE(controllerOf(widget)->rows().size(), 1);
+        auto *root = widget->rootObject();
+        const auto visible = [root](const char *name) {
+            auto *item = find(root, name);
+            return item && item->isVisible();
+        };
+        QVERIFY(visible("version-detail-empty"));
+        QCOMPARE(find(root, "version-detail-empty-hint")->property("text").toString(), QString("Click any entry to see its graph and metadata here."));
+        for (const auto *name : {"version-graph-preview", "restore-confirm", "restore-version", "delete-selected-version",
+                                 "version-detail-header", "version-diff-current-heading", "version-diff-empty", "version-diff-addedNodes"}) {
+            QVERIFY2(!visible(name), name);
+        }
+        if (const auto directory = qEnvironmentVariable("NODETOOL_VERSIONS_CAPTURE_DIR"); !directory.isEmpty()) {
+            QVERIFY(QDir().mkpath(directory));
+            QTest::qWait(120);
+            QVERIFY(window.grab().save(directory + "/versions-unselected.png"));
+        }
+
+        click(widget, "version-row-0");
+        QTRY_VERIFY(visible("version-detail-header"));
+        QVERIFY(!visible("version-detail-empty"));
+        QCOMPARE(find(root, "version-detail-number")->property("text").toString(), QString("v1"));
+        QCOMPARE(find(root, "version-detail-type")->property("text").toString(), QString("Auto"));
+        QCOMPARE(find(root, "version-detail-name")->property("text").toString(), QString("Draft"));
+        for (const auto *name : {"version-graph-preview", "restore-confirm", "restore-version", "delete-selected-version", "version-diff-current-heading", "version-diff-addedNodes"}) {
+            QVERIFY2(visible(name), name);
+        }
+        // Diff rows name a node by the last segment of its type, as VersionDiff.tsx does.
+        QCOMPARE(find(root, "version-diff-title-addedNodes")->property("text").toString(), QString("Added node (1)"));
+        QCOMPARE(find(root, "version-diff-item-addedNodes-0")->property("text").toString(), QString("Template"));
+
+        // In compare mode the empty pane asks for two versions.
+        click(widget, "version-row-0");
+        click(widget, "compare-toggle");
+        QTRY_COMPARE(find(root, "version-detail-empty-hint")->property("text").toString(), QString("Pick two versions to see what changed."));
+    }
+
     // The web's compare mode (VersionHistoryPanel.tsx): the toggle makes rows pick two versions,
     // the lower version number is the older side, and GraphVisualDiff draws the result.
     void compareModeDrawsTheVisualDiff()
@@ -1113,7 +1175,7 @@ private slots:
 
         // Sections appear in the order of the web's VersionDiff.
         QTest::qWait(100);
-        const QStringList headings{"Added nodes (1)", "Removed nodes (1)", "Changed nodes (1)", "Added connections (1)", "Removed connections (1)"};
+        const QStringList headings{"Added node (1)", "Removed node (1)", "Modified node (1)", "Added connection (1)", "Removed connection (1)"};
         qreal previous = -1;
         for (const auto &heading : headings) {
             qreal y = -1;
