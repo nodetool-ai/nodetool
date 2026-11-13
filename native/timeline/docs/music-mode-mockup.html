@@ -857,10 +857,10 @@ panel.addEventListener("click", e => {
 });
 panel.addEventListener("input", e => {
   if (e.target.id === "prompt") view.prompt = e.target.value;
-  if (e.target.id === "seedVal") view.seed = e.target.value;
+  if (e.target.id === "seedVal") { const n = parseInt(e.target.value, 10); view.seed = Number.isFinite(n) ? n : ""; }
 });
 panel.addEventListener("change", e => {
-  if (e.target.id === "seedMode") { view.seedMode = e.target.value; render(); }
+  if (e.target.id === "seedMode") { view.seedMode = e.target.value === "fixed" ? "fixed" : "random"; render(); }
   if (e.target.id === "modelSel") { view.model = [TURBO, BASE].find(m => m === e.target.value) || null; render(); }
   if (e.target.id === "failNext") view.failNext = e.target.checked;
 });
@@ -868,8 +868,8 @@ panel.addEventListener("keydown", e => { if (e.target.id === "prompt" && e.key =
 
 $("#toolRange").onclick = () => { view.tool = "range"; render(); };
 $("#toolSel").onclick = () => { view.tool = "select"; render(); };
-$("#snapSel").onchange = e => { view.snap = e.target.value; };
-$("#keySel").onchange = e => { doc.key = e.target.value; toast(`Key set to ${doc.key}. New generations use it.`); };
+$("#snapSel").onchange = e => { view.snap = e.target.value === "beat" ? "beat" : "bar"; };
+$("#keySel").onchange = e => { doc.key = ["C minor", "A minor", "F major", "D minor", "G major"].find(k => k === e.target.value) || doc.key; toast(`Key set to ${doc.key}. New generations use it.`); };
 $("#undoBtn").onclick = undo; $("#redoBtn").onclick = redo;
 $("#playBtn").onclick = () => togglePlay();
 $("#loopBtn").onclick = () => { view.loop = !view.loop; render(); };
