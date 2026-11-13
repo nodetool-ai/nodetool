@@ -51,14 +51,33 @@ function register(definition: CustomProvider): string {
   return providerId;
 }
 
+/** Custom provider ids each owner (a user, or the single local host) wants. */
+const wantedByOwner = new Map<string, ReadonlySet<string>>();
+
+/** Owner used by single-user hosts that sync one catalog for the process. */
+const PROCESS_OWNER = "";
+
 /**
- * Make the registry match `definitions`: register each one and drop every
- * `custom_*` id that is no longer in the list. Returns the ids now registered.
+ * Register `definitions` for `owner` and drop every `custom_*` id that no
+ * owner wants any more. Returns the ids registered for this owner.
+ *
+ * The registry is a process global shared by every user of a multi-user
+ * server. Syncing one user's catalog must not unregister another user's
+ * providers: that made a run fail preflight with "provider is not registered"
+ * whenever someone else had loaded the model list in between.
  */
 export function syncCustomProviders(
-  definitions: readonly CustomProvider[]
+  definitions: readonly CustomProvider[],
+  owner: string = PROCESS_OWNER
 ): string[] {
-  const wanted = new Set(definitions.map((d) => customProviderId(d.slug)));
+  wantedByOwner.set(
+    owner,
+    new Set(definitions.map((d) => customProviderId(d.slug)))
+  );
+  const wanted = new Set<string>();
+  for (const ids of wantedByOwner.values()) {
+    for (const id of ids) wanted.add(id);
+  }
   for (const id of listCustomProviderIds()) {
     if (!wanted.has(id)) unregisterProvider(id);
   }
