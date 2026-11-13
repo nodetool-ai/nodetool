@@ -141,7 +141,12 @@ protocol and GPU packages first, and put CMake and CTest on `PATH`. Linux needs
 a software adapter such as lavapipe. The check fails on a missing adapter and
 does not skip GPU coverage. It verifies the required CTest inventory before
 running tests, then checks the real CLI with Unicode paths and planar PCM.
-Negative controls prove missing inventory and invalid arguments are rejected.
+The CLI phase requires a GPU-enabled executable and the root Node dependencies
+for PNG decoding. It renders control-only, audio-only, render-only, composed
+mixed and damper plans twice. It checks exact file inventories, manifest counts,
+WAV format and samples, PNG pixels and repeated output bytes. Mixed audio must
+match audio-only output. Negative controls reject empty artifacts, an incorrect
+damper frame, a corrupted PCM sample, missing inventory and invalid arguments.
 
 [offline.json](budgets/offline.json) records command/test timeouts and required
 test names. These are verification limits, not realtime deadline claims.
