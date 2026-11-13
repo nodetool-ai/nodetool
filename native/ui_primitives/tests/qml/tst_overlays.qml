@@ -32,6 +32,21 @@ TestCase {
             }
         }
     }
+    Ui.ContextMenu {
+        id: dataMenu
+        returnFocusTo: trigger
+        entries: [
+            { id: "open", label: "Open", icon: "check", shortcut: "Ctrl+O" },
+            { header: "Section" },
+            { id: "pick", label: "Pick", checked: true },
+            { id: "other", label: "Other", checked: false },
+            { separator: true },
+            { id: "gone", label: "Delete", destructive: true, enabled: false, reason: "Nothing selected." },
+            { id: "more", label: "More", submenu: [ { id: "nested", label: "Nested" } ] }
+        ]
+        onEntryTriggered: id => chosen.push(id)
+    }
+    property var chosen: []
     Ui.Surface { id: selectedSurface; width: 50; height: 30; selected: true }
     Ui.PanelHeader {
         id: header
@@ -58,7 +73,7 @@ TestCase {
     SignalSpy { id: flatClicks; target: flatRow; signalName: "clicked" }
     SignalSpy { id: rowClicks; target: row; signalName: "clicked" }
     SignalSpy { id: nestedClicks; target: nested; signalName: "clicked" }
-    function init() { menuCount = 0; rowClicks.clear(); nestedClicks.clear(); Ui.Theme.preference = Ui.Theme.Dark }
+    function init() { chosen = []; menuCount = 0; rowClicks.clear(); nestedClicks.clear(); Ui.Theme.preference = Ui.Theme.Dark }
     function test_flatRowHasNoPaddingAndNoMinimumHeight() {
         compare(flatRow.leftPadding, 0)
         compare(flatRow.rightPadding, 0)
@@ -180,6 +195,35 @@ TestCase {
         keyClick(Qt.Key_Down)
         keyClick(Qt.Key_Return)
         compare(menuCount, 1000)
+    }
+    function test_entriesBuildItems() {
+        compare(dataMenu.count, 7)
+        compare(dataMenu.itemFor("open").shortcutText, "Ctrl+O")
+        verify(!dataMenu.itemFor("open").checkable)
+        verify(dataMenu.itemFor("pick").checkable && dataMenu.itemFor("pick").checked)
+        verify(dataMenu.itemFor("other").checkable && !dataMenu.itemFor("other").checked)
+        verify(!dataMenu.itemFor("gone").enabled)
+        compare(dataMenu.itemFor("gone").reasonText, "Nothing selected.")
+        compare(dataMenu.itemFor("gone").textTone, Ui.Text.Error)
+        verify(dataMenu.itemFor("more").subMenu !== null)
+        compare(dataMenu.itemFor("nope"), null)
+        compare(dataMenu.itemFor("open").objectName, "menu-item-open")
+    }
+    function test_entriesEmitTheChosenId() {
+        dataMenu.openAt(trigger)
+        tryVerify(() => dataMenu.visible)
+        mouseClick(dataMenu.itemFor("pick"))
+        compare(chosen, ["pick"])
+        tryVerify(() => !dataMenu.visible)
+    }
+    function test_changingEntriesRebuildsTheMenu() {
+        const before = dataMenu.entries
+        dataMenu.entries = [{ id: "only", label: "Only" }]
+        compare(dataMenu.count, 1)
+        compare(dataMenu.itemFor("open"), null)
+        verify(dataMenu.itemFor("only") !== null)
+        dataMenu.entries = before
+        compare(dataMenu.count, 7)
     }
     function test_disabledItemShowsItsReason() {
         menu.popup(trigger)

@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
@@ -35,11 +34,9 @@ Item {
                 elide: Text.ElideRight
                 text: row.modelData.key
             }
-            Basic.ScrollView {
+            Ui.ScrollArea {
                 Layout.fillWidth: true
                 Layout.preferredHeight: Math.min(valueField.implicitHeight, Ui.Metrics.comfortable * 5)
-                contentWidth: availableWidth
-                clip: true
                 Ui.TextArea {
                     id: valueField
                     objectName: root.identity + "-value-" + row.index

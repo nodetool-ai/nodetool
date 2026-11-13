@@ -2,7 +2,7 @@
 #include "ui/EditorWindow.h"
 #include <QFile>
 #include <QGraphicsView>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QSettings>
@@ -396,14 +396,10 @@ private slots:
         QVERIFY(header);
         QTRY_COMPARE(hover(header, QStringLiteral("header-more")), QStringLiteral("More actions"));
         click(header, QStringLiteral("header-more"));
-        QTRY_VERIFY(window.activeEditor()->findChild<QMenu *>(QStringLiteral("more-menu")));
-        auto *menu = window.activeEditor()->findChild<QMenu *>(QStringLiteral("more-menu"));
-        QTRY_VERIFY(menu->isVisible());
-        QStringList labels;
-        for (auto *entry : menu->actions()) {
-            labels << entry->text();
-        }
-        menu->close();
+        QQuickWidget *menu = nullptr;
+        QTRY_VERIFY((menu = entry_menu::host(*window.activeEditor(), QStringLiteral("more"))));
+        const auto labels = entry_menu::labels(menu);
+        QTest::keyClick(menu, Qt::Key_Escape);
         QVERIFY2(labels.contains(QStringLiteral("Version history")), qPrintable(labels.join(", ")));
         // The toolbar no longer has Save, so the menu keeps the local file save.
         QVERIFY2(labels.contains(QStringLiteral("Save")), qPrintable(labels.join(", ")));

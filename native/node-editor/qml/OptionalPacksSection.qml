@@ -35,12 +35,9 @@ ColumnLayout {
         width: Ui.Metrics.dialogCompactWidth - Ui.Metrics.xxxl * 3 - Ui.Metrics.md
         height: Ui.Metrics.dialogWidth
         onAboutToShow: height = Math.min(content.implicitHeight + padding * 2, root.catalog.windowHeight * 0.7)
-        Basic.ScrollView {
+        Ui.ScrollArea {
             id: scroller
             anchors.fill: parent
-            clip: true
-            Basic.ScrollBar.vertical: Ui.ScrollBar {}
-            contentWidth: availableWidth
             contentHeight: content.implicitHeight
             ColumnLayout {
                 id: content

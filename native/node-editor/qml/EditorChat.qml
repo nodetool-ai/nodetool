@@ -8,6 +8,8 @@ Ui.Surface {
     required property var session
     required property ChatWindow frame
     signal closeRequested()
+    // Report on an error opens a prefilled bug report: the source label and the error text.
+    signal reportRequested(string source, string text)
     variant: Ui.Surface.Panel
     color: Ui.Theme.dark ? Ui.Theme.surfaceCanvas : Ui.Theme.surfacePanel
     clip: true
@@ -130,13 +132,14 @@ Ui.Surface {
                             onClicked: root.threadsOpen = false
                         }
                     }
-                    Ui.Text {
+                    Ui.Banner {
+                        objectName: "editorThreadError"
                         Layout.fillWidth: true
-                        role: Ui.Typography.SansLabel
-                        tone: Ui.Text.Error
-                        text: root.session.error
-                        visible: text.length > 0
-                        wrapMode: Text.WordWrap
+                        status: Ui.Status.Error
+                        message: root.session.error
+                        visible: message.length > 0
+                        reportable: true
+                        onReportRequested: root.reportRequested(qsTr("Chat error"), message)
                     }
                     ListView {
                         objectName: "editorThreadList"

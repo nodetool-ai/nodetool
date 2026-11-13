@@ -6,7 +6,7 @@
 #include <QDir>
 #include <QDockWidget>
 #include <QJsonDocument>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -273,18 +273,9 @@ private slots:
         for (const auto label :
              {QString("Instant Update: Off"), QString("Instant Update: On")}) {
             click(toolbar, "toolbar-more");
-            auto menu =
-                qobject_cast<QMenu *>(QApplication::activePopupWidget());
-            QTRY_VERIFY(menu);
-            QAction *toggle = nullptr;
-            for (auto action : menu->actions()) {
-                if (action->text() == label) {
-                    toggle = action;
-                }
-            }
-            QVERIFY(toggle);
-            QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier,
-                              menu->actionGeometry(toggle).center());
+            QQuickWidget *menu = nullptr;
+            QTRY_VERIFY((menu = entry_menu::host(window, "more")));
+            QVERIFY(entry_menu::click(menu, label));
         }
         click(toolbar, "run-workflow");
         QTRY_COMPARE(commands.size(), 1);

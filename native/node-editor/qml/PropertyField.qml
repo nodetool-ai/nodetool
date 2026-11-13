@@ -250,6 +250,7 @@ ColumnLayout {
                 ++root.commitGeneration
                 root.editNodeId = ""
             }
+            onReportRequested: (source, text) => root.host.reportError(source, text)
             onValueCommitted: value => root.immediate(value)
         }
     }

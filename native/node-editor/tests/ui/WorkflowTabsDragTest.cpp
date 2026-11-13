@@ -11,7 +11,7 @@
 #include <QFile>
 #include <QGraphicsView>
 #include <QJsonDocument>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QMessageBox>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -93,33 +93,29 @@ bool edit(EditorWindow &window) {
     return bool(window.document()->applyCommand(
         {{"op", "moveNodes"}, {"positions", positions}, {"space", "absolute"}}, "Move"));
 }
-QMenu *popup(const QString &name) {
-    QMenu *menu = nullptr;
+// A menu shown by EditorWindow::showEntryMenu, found by its menuKind in any top-level window.
+QQuickWidget *popup(const QString &name) {
+    QQuickWidget *menu = nullptr;
     const auto found = QTest::qWaitFor([&] {
-        menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
-        return menu && menu->objectName() == name && menu->isVisible();
+        for (auto *top : QApplication::topLevelWidgets()) {
+            if ((menu = entry_menu::host(*top, name))) {
+                return true;
+            }
+        }
+        return false;
     }, 2000);
     return found ? menu : nullptr;
 }
-QStringList labels(QMenu *menu) {
-    QStringList result;
-    for (auto action : menu->actions()) {
-        result.append(action->text());
-    }
-    return result;
+QStringList labels(QQuickWidget *menu) {
+    return entry_menu::labels(menu);
 }
-QAction *entry(QMenu *menu, const QString &text) {
-    for (auto action : menu->actions()) {
-        if (action->text() == text) {
-            return action;
-        }
-    }
-    return nullptr;
+QVariantMap entry(QQuickWidget *menu, const QString &text) {
+    return entry_menu::entry(menu, text);
 }
-void choose(QMenu *menu, const QString &text) {
-    auto action = entry(menu, text);
-    QVERIFY2(action, qPrintable(text));
-    QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, menu->actionGeometry(action).center());
+void choose(QQuickWidget *menu, const QString &text) {
+    const auto row = entry(menu, text);
+    QVERIFY2(!row.isEmpty(), qPrintable(text));
+    QVERIFY(entry_menu::click(menu, row["id"].toString()));
 }
 void answer(QMessageBox::StandardButton choice, int *asked) {
     // native-rules #13: timer on qApp has no expiry and can outlive the caller's asked pointer
@@ -245,8 +241,8 @@ private slots:
         auto menu = popup("workflow-tab-menu");
         QVERIFY(menu);
         QCOMPARE(labels(menu), (QStringList{"Rename", "Close tab", "Close other tabs", "Close all tabs"}));
-        for (auto action : menu->actions()) {
-            QVERIFY(action->isEnabled());
+        for (const auto &row : entry_menu::entries(menu)) {
+            QVERIFY(row.toMap()["enabled"].toBool());
         }
         int asked = 0;
         answer(QMessageBox::Cancel, &asked);
@@ -520,7 +516,7 @@ private slots:
             auto menu = popup("project-menu");
             QVERIFY(menu);
             QTRY_COMPARE(labels(menu), (QStringList{"Personal", "Marketing", "Research"}));
-            QVERIFY(entry(menu, "Marketing")->isChecked());
+            QVERIFY(entry(menu, "Marketing")["checked"].toBool());
             QCOMPARE(window.projectName(), QString("Marketing"));
             choose(menu, "Personal");
             QTRY_COMPARE(titles(window), QStringList{"Scratch"});
@@ -558,7 +554,7 @@ private slots:
             QVERIFY(press(window, "project-selector-button", Qt::LeftButton));
             menu = popup("project-menu");
             QVERIFY(menu);
-            QTRY_VERIFY(entry(menu, "Research"));
+            QTRY_VERIFY(!entry(menu, "Research").isEmpty());
             choose(menu, "Research");
             QTRY_COMPARE(window.projectName(), QString("Research"));
             QCOMPARE(titles(window), QStringList{"Untitled workflow"});
@@ -625,7 +621,7 @@ private slots:
             if (!directory.isEmpty()) {
                 QVERIFY(menu->grab().save(directory + (dark ? "/tabs-menu-dark.png" : "/tabs-menu-light.png")));
             }
-            menu->close();
+            QTest::keyClick(menu, Qt::Key_Escape);
             QCoreApplication::processEvents();
         }
     }

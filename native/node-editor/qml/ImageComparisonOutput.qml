@@ -102,29 +102,6 @@ ColumnLayout {
     }
 
     // One overlay chip over the scrim: labels and dimensions.
-    component Chip: Rectangle {
-        id: chip
-        property string text
-        property color ink: Ui.Theme.textOnAccent
-        property real maximumWidth: Number.POSITIVE_INFINITY
-        visible: text.length > 0
-        color: Ui.Theme.scrimMedia
-        radius: Ui.Metrics.radiusControl
-        width: Math.max(0, Math.min(chipText.implicitWidth + 2 * Ui.Metrics.md, maximumWidth))
-        height: chipText.implicitHeight + 2 * Ui.Metrics.xs
-        Ui.Text {
-            id: chipText
-            x: Ui.Metrics.md
-            anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, parent.width - 2 * Ui.Metrics.md)
-            text: chip.text
-            role: Ui.Typography.SansCaption
-            font.weight: Font.DemiBold
-            elide: Text.ElideRight
-            domainColor: chip.ink
-        }
-    }
-
     Ui.Text {
         Layout.fillWidth: true
         visible: root.missing
@@ -190,18 +167,18 @@ ColumnLayout {
             color: Ui.Theme.textOnAccent
         }
 
-        Chip {
+        Ui.Chip {
             x: viewport.inset; y: viewport.inset
             text: root.labelA
             maximumWidth: root.horizontal ? (viewport.width - 3 * viewport.inset) / 2 : viewport.width - 2 * viewport.inset
         }
-        Chip {
+        Ui.Chip {
             x: root.horizontal ? viewport.width - viewport.inset - width : viewport.inset
             y: root.horizontal ? viewport.inset : viewport.height - viewport.inset - height
             text: root.labelB
             maximumWidth: root.horizontal ? (viewport.width - 3 * viewport.inset) / 2 : viewport.width - 2 * viewport.inset
         }
-        Chip {
+        Ui.Chip {
             id: metadataA
             x: viewport.inset
             y: root.horizontal ? viewport.height - viewport.inset - height : Ui.Metrics.xxxl
@@ -209,7 +186,7 @@ ColumnLayout {
             ink: roles.comparisonMetadataInk
             maximumWidth: root.horizontal ? (viewport.width - 3 * viewport.inset) / 2 : viewport.width - 2 * viewport.inset
         }
-        Chip {
+        Ui.Chip {
             x: root.horizontal ? viewport.width - viewport.toggleReserve - width : viewport.inset
             y: viewport.height - (root.horizontal ? viewport.inset : Ui.Metrics.xxxl) - height
             text: root.dimensions(layerB)
@@ -229,7 +206,7 @@ ColumnLayout {
                     visible: modelData.failure.length > 0 || modelData.loading
                     spacing: Ui.Metrics.sm
                     anchors.horizontalCenter: parent.horizontalCenter
-                    Chip {
+                    Ui.Chip {
                         anchors.verticalCenter: parent.verticalCenter
                         text: status.modelData.failure.length > 0 ? status.modelData.side + ": " + status.modelData.failure : "Loading " + status.modelData.side + "…"
                         maximumWidth: viewport.width - 2 * viewport.inset - retry.width - Ui.Metrics.sm

@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 Rectangle {
@@ -164,11 +163,9 @@ Rectangle {
                     wrapMode: Text.Wrap
                 }
             }
-            Basic.ScrollView {
+            Ui.ScrollArea {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                contentWidth: availableWidth
-                clip: true
                 ColumnLayout {
                     width: parent.width
                     Repeater {
@@ -257,13 +254,11 @@ Rectangle {
                 }
             }
         }
-        Basic.ScrollView {
+        Ui.ScrollArea {
             id: detailColumn
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.minimumWidth: Math.max(confirmation.implicitWidth, actionRow.implicitWidth)
-            contentWidth: availableWidth
-            clip: true
             ColumnLayout {
                 width: parent.width
                 spacing: Ui.Metrics.md

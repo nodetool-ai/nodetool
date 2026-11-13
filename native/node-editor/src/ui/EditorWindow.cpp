@@ -51,7 +51,7 @@
 #include <QLineEdit>
 #include <QJsonDocument>
 #include <QKeyEvent>
-#include <QMenu>
+#include "EntryMenu.h"
 #include <QMessageBox>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -215,6 +215,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitProperty);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::removeRequested, this, &EditorWindow::removeProperty);
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::reportRequested, this, [this](const QString &source, const QString &text) { reportBug({.source = source, .errorText = text}); });
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::pinRequested, this, &EditorWindow::pinGeneration);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::toggleReplayRequested, this, &EditorWindow::toggleReplayGeneration);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::clearReplayRequested, this, &EditorWindow::clearReplayGenerations);
@@ -261,6 +262,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&statusModel_, &node_editor::StatusModel::connectRequested, this, [this] { action("Connect"); });
   connect(&statusModel_, &node_editor::StatusModel::reconnectRequested, this, [this] { action("Reconnect"); });
   connect(&statusModel_, &node_editor::StatusModel::queueRequested, this, [this] { action("Queue"); });
+  connect(&statusModel_, &node_editor::StatusModel::reportRequested, this, [this](const QString &source, const QString &text) { reportBug({.source = source, .errorText = text}); });
   connect(&statusModel_, &node_editor::StatusModel::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(&editorCommands_, &node_editor::EditorCommands::commandRequested, this, [this](const QString &command) { action(command); });
   connect(&editorCommands_, &node_editor::EditorCommands::presentationRequested, this, &EditorWindow::presentation);
@@ -1209,6 +1211,7 @@ void EditorWindow::showRunTrace() {
   if (content->rootObject()) {
     connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close()));
     connect(content->rootObject(), SIGNAL(askAgentRequested(QString,QString)), this, SLOT(askRunAgent(QString,QString)));
+    connect(content->rootObject(), SIGNAL(reportRequested(QString,QString)), this, SLOT(reportError(QString,QString)));
   }
   connect(dock, &QDockWidget::visibilityChanged, &runTrace_, &node_editor::RunTraceController::setActive);
   connect(this, &EditorWindow::documentEpochChanged, dock, &QDockWidget::close);
@@ -1941,10 +1944,8 @@ void EditorWindow::showDynamicPortDialog(const QString &id, bool output, const Q
 // the current type checked. A choice retypes through setDynamicInputType.
 void EditorWindow::showDynamicTypeMenu(const QString &id, const QString &name, const QRectF &sceneAnchor) {
     if (readOnly() || !selectNode(id)) { return; }
-    auto *menu = new QMenu(this);
-    menu->setObjectName("dynamic-slot-type-menu");
-    menu->setAttribute(Qt::WA_DeleteOnClose);
-    auto *controller = new node_editor::DynamicPortsController(&document_, menu);
+    // The controller lives as long as the menu, which keeps this pointer in its request.
+    const std::shared_ptr<node_editor::DynamicPortsController> controller(new node_editor::DynamicPortsController(&document_, nullptr));
     controller->setNodeMetadata(metadata_);
     controller->setSelectedNode(id);
     QString current;
@@ -1953,22 +1954,27 @@ void EditorWindow::showDynamicTypeMenu(const QString &id, const QString &name, c
         const auto row = entry.toMap();
         if (row.value("name").toString() == name) { current = row.value("typeKey").toString(); retypable = row.value("retypable").toBool(); }
     }
-    if (controller->readOnly() || !retypable) { menu->deleteLater(); return; }
+    if (controller->readOnly() || !retypable) { return; }
+    MenuBuilder menu;
     for (const auto &entry : controller->inputTypes()) {
         const auto key = entry.toMap().value("value").toString();
-        auto *choice = menu->addAction(key);
-        choice->setCheckable(true);
-        choice->setChecked(key == current);
-        connect(choice, &QAction::triggered, controller, [controller, name, key, current] {
+        menu.item("type:" + key, key, {}, [controller, name, key, current] {
             if (key != current) { controller->setPortType(name, key); }
-        });
+        }, RowOptions{.checked = key == current});
     }
-    connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
-    connect(this, &EditorWindow::credentialsEpochChanged, menu, &QMenu::close);
-    connect(&dynamicPorts_, &node_editor::DynamicPortsController::changed, menu, [this, id, menu] {
-        if (dynamicPorts_.selectedNode() != id) { menu->close(); }
+    EntryMenuRequest request;
+    request.kind = "dynamic-slot-type-menu";
+    request.global = view_->viewport()->mapToGlobal(view_->mapFromScene(sceneAnchor.bottomLeft()));
+    request.entries = menu.entries();
+    request.actions = menu.actions();
+    request.keepAlive = controller;
+    const QPointer<QQuickWidget> host = showEntryMenu(request);
+    if (!host) { return; }
+    connect(&dynamicPorts_, &node_editor::DynamicPortsController::changed, host, [this, id, host] {
+        if (dynamicPorts_.selectedNode() != id) {
+            QMetaObject::invokeMethod(host->rootObject(), "dismiss");
+        }
     });
-    menu->popup(view_->viewport()->mapToGlobal(view_->mapFromScene(sceneAnchor.bottomLeft())));
 }
 
 void EditorWindow::clearDynamicPortDialogs() {
@@ -3058,14 +3064,18 @@ void EditorWindow::action(const QString &name) {
   if (name == "Canvas uploads") { showCanvasDrops(); return; }
   if (name == "Save local copy as") { saveLocalCopyAs(); return; }
   if (name == "Arrange selection") {
-    auto menu = new QMenu(this);
-    menu->setAttribute(Qt::WA_DeleteOnClose);
+    MenuBuilder menu;
     for (auto it = selectionActions.cbegin(); it != selectionActions.cend(); ++it) {
       const auto command = it.key();
-      auto item = menu->addAction(command, this, [this, command] { action(command); });
-      item->setEnabled(!readOnly() && selectedCount() >= 2);
+      menu.item(command, command, {}, [this, command] { action(command); },
+                RowOptions{.enabled = !readOnly() && selectedCount() >= 2});
     }
-    menu->popup(QCursor::pos());
+    EntryMenuRequest request;
+    request.kind = "arrange-selection-menu";
+    request.global = QCursor::pos();
+    request.entries = menu.entries();
+    request.actions = menu.actions();
+    showEntryMenu(request);
     return;
   }
   if (name == "Duplicate vertical") {
@@ -3270,17 +3280,23 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Zoom presets") {
-    QMenu menu(this);
+    MenuBuilder menu;
     for (double zoom : {0.25, 0.5, 0.75, 1., 1.5, 2.}) {
-      auto entry = menu.addAction(QString::number(qRound(zoom * 100)) + "%");
-      entry->setCheckable(true); entry->setChecked(std::abs(view_->transform().m11()-zoom) < .01);
-      connect(entry, &QAction::triggered, this, [this, zoom] {
+      const auto label = QString::number(qRound(zoom * 100)) + "%";
+      menu.item("zoom:" + label, label, {}, [this, zoom] {
         // The menu is a user surface, so the preset animates.
         const QScopedValueRollback user(userViewInput_, true);
         zoomTo(zoom);
-      });
+      }, RowOptions{.checked = std::abs(view_->transform().m11() - zoom) < .01});
     }
-    menu.exec(viewportOverlay_->mapToGlobal(QPoint(0,0))); return;
+    EntryMenuRequest request;
+    request.kind = "zoom-presets-menu";
+    request.global = viewportOverlay_->mapToGlobal(QPoint(0, 0));
+    request.entries = menu.entries();
+    request.actions = menu.actions();
+    request.guardDocument = false;
+    showEntryMenu(request);
+    return;
   }
   if (name == "Fit selection") {
     fitSelection();

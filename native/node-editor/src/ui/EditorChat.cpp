@@ -35,6 +35,7 @@ void EditorWindow::initializeChat() {
     chatOverlay_->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/EditorChat.qml"));
     chatOverlay_->hide();
     connect(chatOverlay_->rootObject(), SIGNAL(closeRequested()), this, SLOT(toggleChat()));
+    connect(chatOverlay_->rootObject(), SIGNAL(reportRequested(QString,QString)), this, SLOT(reportError(QString,QString)));
     initializeChatTools();
     connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncChatContext);
     connect(this, &EditorWindow::tabsChanged, this, &EditorWindow::syncChatContext);
