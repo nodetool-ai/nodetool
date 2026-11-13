@@ -2853,15 +2853,16 @@
         "native/chat/src/model/MessageModel.cpp"
       ],
       "status": "partial",
-      "note": "Tasks, steps, results and logs without task durations, phase summary or the task inspector. See native/chat/docs/WEB_PARITY.md."
+      "note": "Tasks, steps, durations, the plan summary and the planning log, without the task inspector. See native/chat/docs/WEB_PARITY.md."
     },
     "web/src/components/chat/message/ChatMarkdown.tsx": {
       "native": [
         "native/chat/qml/MessageDelegate.qml",
-        "native/chat/src/model/Markdown.cpp"
+        "native/chat/src/model/Markdown.cpp",
+        "native/chat/src/model/RichContent.cpp"
       ],
       "status": "partial",
-      "note": "No syntax highlighting, math, HTML or inline Markdown images. See native/chat/docs/WEB_PARITY.md."
+      "note": "Sanitized HTML, images, highlighting and math, with math rendered as Unicode text instead of KaTeX. See native/chat/docs/WEB_PARITY.md."
     },
     "web/src/components/chat/message/CompactionCard.tsx": {
       "native": [
@@ -2870,20 +2871,21 @@
     },
     "web/src/components/chat/message/GenerationBatchProgress.tsx": {
       "native": [
-        "native/chat/qml/MessageDelegate.qml"
-      ],
-      "status": "partial",
-      "note": "Batch requests show as media rows without the time-left bar. See native/chat/docs/WEB_PARITY.md."
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp",
+        "native/chat/src/model/RichContent.cpp"
+      ]
     },
     "web/src/components/chat/message/InlineResourcePreview.tsx": {
       "accepted": "Previews sketch, timeline, 3D and game documents, whose editors are out of native scope (outOfScope). Native shows the resource chip."
     },
     "web/src/components/chat/message/MediaOutputGroup.tsx": {
       "native": [
-        "native/chat/qml/MessageDelegate.qml"
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/qml/ChatMediaPlayer.qml"
       ],
       "status": "partial",
-      "note": "Vertical rows instead of a grid. No canvas insertion or drag. See native/chat/docs/WEB_PARITY.md."
+      "note": "Image grid and embedded playback. No canvas insertion or drag. See native/chat/docs/WEB_PARITY.md."
     },
     "web/src/components/chat/message/MessageContentRenderer.tsx": {
       "native": [
@@ -2914,32 +2916,30 @@
     },
     "web/src/components/chat/message/ResourceChip.tsx": {
       "native": [
-        "native/chat/qml/MessageDelegate.qml"
-      ],
-      "status": "partial",
-      "note": "Typed Markdown-link chips. Bare, backticked and legacy mentions are not chips. See native/chat/docs/WEB_PARITY.md."
-    },
-    "web/src/components/chat/message/SecretRequestCard.tsx": {
-      "native": [
-        "native/chat/qml/MessageDelegate.qml"
-      ],
-      "status": "partial",
-      "note": "Settings and decline, without entering a key in chat. See native/chat/docs/WEB_PARITY.md."
-    },
-    "web/src/components/chat/message/ToolApprovalCard.tsx": {
-      "native": [
-        "native/chat/qml/MessageDelegate.qml"
-      ],
-      "status": "partial",
-      "note": "Per-call allow and deny. Allow for this chat is missing. See native/chat/docs/WEB_PARITY.md."
-    },
-    "web/src/components/chat/message/markdown_elements/CodeBlock.tsx": {
-      "native": [
         "native/chat/qml/MessageDelegate.qml",
         "native/chat/src/model/Markdown.cpp"
       ],
       "status": "partial",
-      "note": "Copyable paged code without highlighting."
+      "note": "Markdown-link, bare and backticked resource URIs are chips. Legacy mentions are not. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/SecretRequestCard.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/runtime/ChatSession.cpp"
+      ]
+    },
+    "web/src/components/chat/message/ToolApprovalCard.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ]
+    },
+    "web/src/components/chat/message/markdown_elements/CodeBlock.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/Markdown.cpp",
+        "native/chat/src/runtime/CodeHighlighter.cpp"
+      ]
     },
     "web/src/components/chat/message/markdown_elements/PreRenderer.tsx": {
       "native": [
@@ -2950,9 +2950,7 @@
     "web/src/components/chat/message/thought/ThoughtSection.tsx": {
       "native": [
         "native/chat/qml/MessageDelegate.qml"
-      ],
-      "status": "partial",
-      "note": "Timing and expansion without shimmer or rail. See native/chat/docs/WEB_PARITY.md."
+      ]
     },
     "web/src/components/chat/message/toolCallIcon.tsx": {
       "native": [
@@ -2962,14 +2960,17 @@
       "note": "Tool rows use buttons and surfaces instead of the web rail icons."
     },
     "web/src/components/chat/message/toolResults/SearchResults.tsx": {
-      "missing": "Search result renderers. Native pages result text and JSON."
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp",
+        "native/chat/src/model/RichContent.cpp"
+      ]
     },
     "web/src/components/chat/message/toolResults/ToolResult.tsx": {
       "native": [
-        "native/chat/qml/MessageDelegate.qml"
-      ],
-      "status": "partial",
-      "note": "Text and JSON pages without the specialized renderers. See native/chat/docs/WEB_PARITY.md."
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ]
     },
     "web/src/components/chat/message/toolResults/ToolResultJson.tsx": {
       "native": [

@@ -174,6 +174,37 @@ TestCase {
         }
         return null
     }
+    function findValueStarting(item, prefix) {
+        if (!item.visible) return null
+        if (item.linkColour !== undefined && typeof item.value === "string" && item.value.startsWith(prefix)) return item
+        for (let i = 0; i < item.children.length; ++i) {
+            const found = findValueStarting(item.children[i], prefix)
+            if (found) return found
+        }
+        return null
+    }
+    // Screenshots the newest messages, which replays add below the fold.
+    function saveAtEnd(path) {
+        const list = findChild(panel, "chatMessages")
+        list.contentY = list.originY + list.contentHeight - list.height
+        wait(100)
+        grabImage(panel).save(path)
+    }
+    // Clicks a control once the message list has stopped moving it, so the
+    // press lands on the control and not where it was a frame earlier.
+    function clickSettled(name) {
+        let last = -1
+        tryVerify(() => {
+            const control = findVisible(panel, name)
+            if (!control) return false
+            const y = control.mapToItem(panel, 0, 0).y
+            const settled = y === last
+            last = y
+            wait(50)
+            return settled
+        })
+        mouseClick(findVisible(panel, name))
+    }
     function findText(item, text) {
         if (!item.visible) return null
         if (item.visible && item.text !== undefined && item.text === text) return item
@@ -191,6 +222,12 @@ TestCase {
         function styleMarkdownLinks(document, colour) { testSession.styleMarkdownLinks(document, colour) }
         function respondToAction(id, allow, feedback) { responses = responses.concat([{id: id, allow: allow, feedback: feedback}]) }
         function openProviderSettings() { responses = responses.concat([{settings: true}]) }
+        function saveSecret(id, value) { responses = responses.concat([{id: id, secret: value}]) }
+        function allowActionForChat(id) { responses = responses.concat([{id: id, forChat: true}]) }
+        property var resolvedMedia: ({})
+        property bool embeddedMedia: false
+        function resolveImage(source) {}
+        function mediaKey(locator) { return "" }
     }
     Component { id: actionCard; MessageDelegate {} }
     function test_approvalButtonsUseServerId() {
@@ -228,10 +265,21 @@ TestCase {
         verify(findText(card, "Run this plan") === null)
         mouseClick(findText(card, "Open settings"))
         verify(actionSession.responses[0].settings)
-        mouseClick(findText(card, "Decline"))
+        mouseClick(findText(card, "Not now"))
         compare(actionSession.responses[1].id, "cccccccccccccccccccccccccccccccc")
         compare(actionSession.responses[1].allow, false)
         verify(actionSession.responses[1].feedback === undefined)
+        const value = findVisible(card, "secretValue")
+        verify(value !== null)
+        compare(value.echoMode, TextInput.Password)
+        verify(!findVisible(card, "saveSecret").enabled)
+        value.forceActiveFocus()
+        keyClick(Qt.Key_S); keyClick(Qt.Key_K)
+        verify(findVisible(card, "saveSecret").enabled)
+        mouseClick(findVisible(card, "saveSecret"))
+        compare(actionSession.responses[2].id, "cccccccccccccccccccccccccccccccc")
+        compare(actionSession.responses[2].secret, "sk")
+        compare(value.text, "")
         const directory = testDriver.screenshotDirectory()
         if (directory) grabImage(card).save(directory + "/secret-request.png")
     }
@@ -246,10 +294,11 @@ TestCase {
         wait(30)
         testDriver.resetSession()
         testDriver.replay("plans-approvals", 1, 1)
-        tryVerify(() => findText(panel, "Show details") !== null)
-        verify(findText(panel, "Arguments") === null)
-        mouseClick(findText(panel, "Show details"))
-        tryVerify(() => findText(panel, "Arguments") !== null)
+        tryVerify(() => findVisible(panel, "approvalFold_arguments") !== null)
+        verify(findText(panel, "Allow for this chat") !== null)
+        verify(findText(panel, "Hide arguments") === null)
+        mouseClick(findVisible(panel, "approvalFold_arguments"))
+        tryVerify(() => findText(panel, "Hide arguments") !== null)
         if (directory) grabImage(panel).save(directory + "/tool-approval.png")
     }
     function test_compactionCard() {
@@ -315,7 +364,8 @@ TestCase {
     }
     function test_executionTree() {
         testDriver.replay("execution-tree")
-        tryVerify(() => findText(panel, "Agent execution") !== null)
+        tryVerify(() => findText(panel, "Execution plan · 0/1 tasks") !== null)
+        verify(findText(panel, "1 running") !== null)
         tryVerify(() => findText(panel, "Audit configuration") !== null)
         tryVerify(() => findText(panel, "Read config files") !== null)
         const directory = testDriver.screenshotDirectory()
@@ -457,6 +507,75 @@ TestCase {
         wait(100)
         first = findVisible(panel, "message_0")
         verify(findVisible(first, "toolDetails_0").Accessible.expanded)
+    }
+    // ChatMarkdown.tsx, SearchResults.tsx, GenerationBatchProgress.tsx and
+    // MediaOutputGroup.tsx content kinds.
+    function test_richMessageContent() {
+        testDriver.replay("rich-content", 1)
+        tryVerify(() => findText(panel, "asset · aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") !== null)
+        const prose = findValueStarting(panel, " and <b>bold</b>")
+        verify(prose !== null)
+        verify(prose.value.indexOf("alert") < 0)
+        verify(prose.text.indexOf("<b>") < 0)
+        compare(prose.textFormat, TextEdit.MarkdownText)
+        tryVerify(() => findVisible(panel, "markdownMath") !== null)
+        compare(findVisible(panel, "markdownMath").text, "1/2")
+        tryVerify(() => findVisible(panel, "markdownImage") !== null && findVisible(panel, "markdownImage").status === Image.Ready, 5000)
+        verify(findText(panel, "Chart") !== null)
+        verify(findValueStarting(panel, "def area(r):") !== null)
+        const directory = testDriver.screenshotDirectory()
+        if (directory) grabImage(panel).save(directory + "/rich-markdown.png")
+
+        testDriver.resetSession()
+        testDriver.replay("rich-content", 2, 1)
+        tryVerify(() => findVisible(panel, "toolDetails_dddddddddddddddddddddddddddddddd") !== null)
+        clickSettled("toolDetails_dddddddddddddddddddddddddddddddd")
+        tryVerify(() => findVisible(panel, "searchResult_1") !== null)
+        tryVerify(() => findText(findVisible(panel, "searchResult_0"), "NodeTool") !== null)
+        tryVerify(() => findText(findVisible(panel, "searchResult_0"), "nodetool.ai") !== null)
+        verify(findText(findVisible(panel, "searchResult_1"), "Getting started") !== null)
+        verify(findVisible(panel, "toolResult_dddddddddddddddddddddddddddddddd") === null)
+        if (directory) saveAtEnd(directory + "/search-results.png")
+
+        testDriver.resetSession()
+        testDriver.replay("rich-content", 2, 3)
+        tryVerify(() => findVisible(panel, "batchToggle") !== null)
+        const batch = findVisible(panel, "batchToggle")
+        compare(batch.text, "1 of 2 done · About 20s left")
+        clickSettled("batchToggle")
+        tryVerify(() => findText(panel, "Fox · Done · Took 6s") !== null)
+        verify(findText(panel, "fal:flux") !== null)
+        verify(findText(panel, "Owl · Queued · Expected 20s") !== null)
+        verify(findText(panel, "An owl at night") !== null)
+        // ToolCallTimeline.tsx: two tool rows get a footer that folds them.
+        verify(findText(panel, "Working · 1/2") !== null)
+        clickSettled("toolTimelineToggle")
+        tryVerify(() => findVisible(panel, "batchToggle") === null)
+        verify(findText(panel, "2 steps") !== null)
+        clickSettled("toolTimelineToggle")
+        tryVerify(() => findVisible(panel, "batchToggle") !== null)
+        if (directory) saveAtEnd(directory + "/generation-batch.png")
+
+        testDriver.resetSession()
+        testDriver.replay("rich-content", 1, 5)
+        tryVerify(() => findVisible(panel, "mediaGrid") !== null)
+        const grid = findVisible(panel, "mediaGrid")
+        const tiles = () => {
+            const ready = []
+            for (let i = 0; i < grid.children.length; ++i) {
+                const image = findChild(grid.children[i], "mediaTileImage")
+                if (image && image.status === Image.Ready) ready.push(image)
+            }
+            return ready.length
+        }
+        tryVerify(() => tiles() === 2, 5000)
+        verify(findText(panel, "2 items") !== null)
+        if (directory) saveAtEnd(directory + "/media-grid.png")
+
+        testDriver.resetSession()
+        testDriver.replay("media-resources")
+        tryVerify(() => findVisible(panel, "loadMediaPlayer") !== null)
+        compare(testSession.embeddedMedia, true)
     }
     function test_persistedToolsAndScreenshot() {
         testDriver.persistedTools()

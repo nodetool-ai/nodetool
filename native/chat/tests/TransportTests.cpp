@@ -329,6 +329,40 @@ private slots:
         const auto sent = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "chat_message"; });
         QCOMPARE(sent["data"].toObject()["permission_mode"].toString(), QStringLiteral("auto"));
     }
+    // ToolApprovalCard.tsx and SecretRequestCard.tsx: Allow for this chat
+    // sends allow_for_chat, and a saved key goes to settings.secrets.upsert
+    // before the request is answered with saved.
+    void allowForChatAndSavedSecretReachTheServer() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        ChatSession session;
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_VERIFY(!session.historyLoading());
+        server.emitEvent({{"type", "tool_approval_request"}, {"thread_id", ThreadId}, {"approval_id", "approval-chat"},
+                          {"tool_name", "write"}, {"message", "Change document?"}});
+        server.emitEvent({{"type", "secret_request"}, {"thread_id", ThreadId}, {"approval_id", "secret-one"},
+                          {"key", "OPENAI_API_KEY"}, {"reason", "Needed for images"}}, 20);
+        QTest::qWait(80);
+        session.allowActionForChat("secret-one");
+        session.allowActionForChat("approval-chat");
+        QTRY_COMPARE(server.count("type", "tool_approval_response"), 1);
+        const auto allowed = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["type"] == "tool_approval_response"; });
+        QCOMPARE(allowed["approval_id"].toString(), QStringLiteral("approval-chat"));
+        QCOMPARE(allowed["decision"].toString(), QStringLiteral("allow_for_chat"));
+        session.saveSecret("secret-one", "   ");
+        session.saveSecret("secret-one", " sk-test ");
+        QTRY_COMPARE(server.count("type", "secret_request_response"), 1);
+        const auto upsert = std::find_if(server.requests.cbegin(), server.requests.cend(), [](const auto& request) { return request.contains("/trpc/settings.secrets.upsert"); });
+        QVERIFY(upsert != server.requests.cend());
+        QVERIFY(upsert->startsWith("POST "));
+        QVERIFY(upsert->contains("\"key\":\"OPENAI_API_KEY\""));
+        QVERIFY(upsert->contains("\"value\":\"sk-test\""));
+        const auto saved = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["type"] == "secret_request_response"; });
+        QCOMPARE(saved["approval_id"].toString(), QStringLiteral("secret-one"));
+        QCOMPARE(saved["status"].toString(), QStringLiteral("saved"));
+        QVERIFY(!saved.contains("value"));
+    }
     // GlobalChatStore.ts and MediaGenerationStore.ts persist the reasoning level,
     // permission modes and media parameters, but not the media mode.
     void preferencesSurviveANewSession() {

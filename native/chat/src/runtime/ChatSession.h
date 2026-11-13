@@ -49,6 +49,11 @@ public:
     Q_PROPERTY(QVariantList assetResults READ assetResults NOTIFY assetsChanged)
     Q_PROPERTY(QVariantList recentAssets READ recentAssets NOTIFY assetsChanged)
     Q_PROPERTY(bool hasMoreAssets READ hasMoreAssets NOTIFY assetsChanged)
+    // Images that Markdown and HTML name, and audio or video that a player
+    // loads, resolved through the authenticated client: source → {url, error}.
+    Q_PROPERTY(QVariantMap resolvedMedia READ resolvedMedia NOTIFY resolvedMediaChanged)
+    // Whether this build plays audio and video in the chat (Qt Multimedia).
+    Q_PROPERTY(bool embeddedMedia READ embeddedMedia CONSTANT)
 public:
   explicit ChatSession(QObject *parent = nullptr);
   ~ChatSession() override;
@@ -141,6 +146,25 @@ public:
   Q_INVOKABLE void openResource(const QString &uri);
   Q_INVOKABLE void openMedia(const QVariantMap &locator);
   Q_INVOKABLE void openExternal(const QUrl &);
+    QVariantMap resolvedMedia() const { return m_resolvedMedia; }
+    bool embeddedMedia() const;
+    // Fetches an image named by Markdown or HTML (asset://, a server path or
+    // a data URL) into resolvedMedia. External hosts are refused, as for
+    // every chat preview, and keep their link.
+    Q_INVOKABLE void resolveImage(const QString &source);
+    // Downloads audio or video for the embedded player into resolvedMedia,
+    // keyed by mediaKey(locator).
+    Q_INVOKABLE void loadMedia(const QVariantMap &locator);
+    Q_INVOKABLE QString mediaKey(const QVariantMap &locator) const;
+    // GenerationBatchProgress.tsx: a batch's counts, time left and item rows
+    // at nowMs, so the view can tick once a second.
+    Q_INVOKABLE QVariantMap batchProgress(const QVariantMap &batch, double nowMs) const;
+    // ToolApprovalCard.tsx: Allow for this chat grants the tool for the rest
+    // of the conversation (decision allow_for_chat).
+    Q_INVOKABLE void allowActionForChat(const QString &id);
+    // SecretRequestCard.tsx: saves the key with settings.secrets.upsert, then
+    // answers the request with saved. A failure keeps the request open.
+    Q_INVOKABLE void saveSecret(const QString &id, const QString &value);
   Q_INVOKABLE void setHostTools(const QVariantList &tools);
   bool sendHostRequest(const QString &command, const QJsonObject &data,
                        const QString &requestId);
@@ -155,6 +179,7 @@ signals:
   void hostToolRequested(QString id, QString name, QVariantMap args);
   void hostResponseReceived(QJsonObject response);
     void assetsChanged();
+    void resolvedMediaChanged();
     // A send was refused because the selected mode has no model picked.
     void modelPickerRequested();
 
@@ -175,6 +200,10 @@ private:
   const State *current() const;
   void loadHistory(const QString &, bool);
   void fail(const QString &);
+  void answerAction(const QString &id, const QJsonObject &response, const QString &status);
+  void storeMedia(const QString &key, const QString &url, const QString &error, qint64 bytes);
+  QVariantMap m_resolvedMedia;
+  qint64 m_resolvedBytes = 0;
   void resolveMedia(const QString &, const QJsonObject &,
                     const QString &projectionKey = {});
   QSet<QString> m_creatingWorkflows;

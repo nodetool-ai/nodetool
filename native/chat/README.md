@@ -15,7 +15,9 @@ Measured results and remaining acceptance work are in
 
 Requires Qt 6.12 with Quick Controls, Network, WebSockets, Test and QuickTest,
 CMake, Ninja, and the repository's Node dependencies. Chat uses public Qt APIs
-and does not depend on FFmpeg or timeline internals.
+and does not depend on FFmpeg or timeline internals. When Qt Multimedia is
+installed, chat also plays audio and video inside messages. Without it, media
+opens in the system viewer.
 
 ```bash
 node native/chat/scripts/check.mjs

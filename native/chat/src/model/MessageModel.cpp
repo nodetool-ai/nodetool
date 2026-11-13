@@ -1,4 +1,5 @@
 #include "MessageModel.h"
+#include "RichContent.h"
 #include "PlanDocument.h"
 #include <QDateTime>
 #include <QJsonDocument>
@@ -180,14 +181,14 @@ QJsonObject presentPart(QJsonObject part) {
     part["code"] = args["code"].toString();
     args.remove("code");
     part["argumentsText"] = part["args"].isObject() ? (args.isEmpty() ? QString() : displayJson(args)) : displayJson(part["args"]);
-    part["collapsible"] = true;
+    part["folds"] = true;
     return part;
   }
   if (type == "secret_request") {
     const QUrl help(part["help_url"].toString());
     part["helpUrl"] = help.isValid() && help.scheme() == "https" && !help.host().isEmpty() ? help.toString() : QString();
     part["label"] = "Credential requested: " + part["key"].toString();
-    part["text"] = part["reason"].toString() + "\n" + part["description"].toString() + "\nManage credentials in settings. Never enter a secret in chat.";
+    part["text"] = QStringList{part["reason"].toString(), part["description"].toString()}.filter(QRegularExpression("\\S")).join('\n');
     return part;
   }
   if (type != "tool_call" && type != "tool_call_update" &&
@@ -231,6 +232,13 @@ QJsonObject presentPart(QJsonObject part) {
   part["args"] = args;
   part["argumentsText"] = displayJson(args);
   part["resultText"] = displayJson(result);
+  if (const auto items = normalizeSearchResults(result); !items.isEmpty()) {
+    part["searchResults"] = items;
+  }
+  if (const auto batch = generationBatch(part["liveBatch"], result); !batch.isEmpty()) {
+    part["batch"] = batch;
+  }
+  part.remove("liveBatch");
   if (name == "run_subtask" || name == "run_search") {
     part["subAgent"] = true;
     auto other = args.toObject();
@@ -447,8 +455,10 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
       if (generation.contains(key) && !generation[key].isNull()) { metadata << label + ": " + displayJson(generation[key]); }
     }
     if (!mediaOnly(m["content"])) { metadata.prepend("Generating media…"); }
+    const auto count = m["content"].toArray().size();
+    if (metadata.isEmpty()) { metadata << (count == 1 ? QStringLiteral("1 item") : QString("%1 items").arg(count)); }
     grouped.append(QJsonObject{{"type", "media_group"}, {"label", "Generated media"},
-      {"text", metadata.join(" · ")}, {"count", m["content"].toArray().size()}});
+      {"text", metadata.join(" · ")}, {"count", count}});
   }
   const QSet<QString> separate{"execute_code", "run_subtask",    "run_search",
                                "ask_user",     "request_secret", "create_plan"};
@@ -513,6 +523,29 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
     grouped.append(group);
     first = end;
   }
+  // ToolCallTimeline in MessageView.tsx: two or more tool rows get a footer
+  // that sums up the work and folds the rows away.
+  qsizetype rows = 0;
+  for (const auto &value : grouped) { rows += value.toObject()["tool"].toBool() ? 1 : 0; }
+  if (rows > 1) {
+    int calls = 0;
+    int completed = 0;
+    bool running = false;
+    qint64 longest = -1;
+    for (const auto &value : displayed) {
+      const auto item = value.toObject();
+      if (!item["tool"].toBool()) { continue; }
+      ++calls;
+      completed += item.contains("result") ? 1 : 0;
+      running = running || item["displayStatus"] == "Running";
+      if (item.contains("durationMs")) { longest = std::max(longest, item["durationMs"].toInteger()); }
+    }
+    const auto steps = QString("%1 steps").arg(calls);
+    grouped.append(QJsonObject{{"type", "tool_timeline"},
+      {"label", running ? QString("Working · %1/%2").arg(completed).arg(calls)
+                        : longest >= 0 ? "Worked for " + durationLabel(longest) : steps},
+      {"steps", steps}, {"running", running}});
+  }
   return grouped;
 }
 } // namespace
@@ -545,6 +578,36 @@ QVariant PartModel::data(const QModelIndex &index, int role) const {
         value = call;
       }
       data["calls"] = calls;
+    }
+    // MediaOutputGroup.tsx shows consecutive images as one grid of tiles.
+    // The first image of a run carries the grid and the others hide.
+    auto image = [this](int row) {
+      const auto other = m_parts[row].toObject();
+      return other["media"].toBool() && (other["type"] == "image" || other["type"] == "image_url");
+    };
+    if (image(index.row())) {
+      if (index.row() > 0 && image(index.row() - 1)) {
+        data["gridMember"] = true;
+      } else {
+        QVariantList grid;
+        for (int row = index.row(); row < m_parts.size() && image(row); ++row) { grid.append(m_parts[row].toObject().toVariantMap()); }
+        if (grid.size() > 1) {
+          data["grid"] = grid;
+          data["label"] = QString("%1 images").arg(grid.size());
+        }
+      }
+    }
+    if (data.contains("batch")) {
+      data["batchOpen"] = m_expanded.contains(expansionKey(index.row()) + ":batch");
+    }
+    if (data.value("folds").toBool()) {
+      data["codeOpen"] = m_expanded.contains(expansionKey(index.row()) + ":code");
+      data["argumentsOpen"] = m_expanded.contains(expansionKey(index.row()) + ":arguments");
+    }
+    if (data.value("type") == "tool_timeline") {
+      data["expanded"] = !m_expanded.contains("timeline");
+    } else if (data.value("tool").toBool()) {
+      data["timelineHidden"] = m_expanded.contains("timeline");
     }
     const auto childKey = data.value("childKey", data.value("tool_call_id")).toString();
     if (m_children.contains(childKey)) {
@@ -596,10 +659,21 @@ void PartModel::toggleExpanded(int row) {
     emit dataChanged(index(row), index(row), {ModelDataRole});
     return;
   }
+  if (part["type"] == "tool_timeline") {
+    if (!m_expanded.remove("timeline")) { m_expanded.insert("timeline"); }
+    emit dataChanged(index(0), index(rowCount() - 1), {ModelDataRole});
+    return;
+  }
   const auto key = expansionKey(row);
   if (!m_expanded.remove(key)) {
     m_expanded.insert(key);
   }
+  emit dataChanged(index(row), index(row), {ModelDataRole});
+}
+void PartModel::toggleFold(int row, const QString &fold) {
+  if (row < 0 || row >= m_parts.size()) { return; }
+  const auto key = expansionKey(row) + ":" + fold;
+  if (!m_expanded.remove(key)) { m_expanded.insert(key); }
   emit dataChanged(index(row), index(row), {ModelDataRole});
 }
 void PartModel::toggleCall(int row, const QString &id) {
@@ -724,10 +798,33 @@ MessageModel *MessageModel::child(const QString &key) {
   return m_children[key];
 }
 void MessageModel::treeRow(const QString &id, const QString &label, const QString &status,
-                           const QString &body, bool expanded) {
-  upsert({{"id", id}, {"role", "execution"}, {"nativeTree", true}, {"content", ""},
-    {"parts", QJsonArray{QJsonObject{{"type", "execution"}, {"tree", true}, {"childKey", id},
-      {"label", label}, {"displayStatus", status}, {"text", body}, {"defaultExpanded", expanded}}}}});
+                           const QString &body, bool expanded, const QJsonObject &extra) {
+  QJsonObject part{{"type", "execution"}, {"tree", true}, {"childKey", id},
+                   {"label", label}, {"displayStatus", status}, {"text", body}, {"defaultExpanded", expanded}};
+  for (auto it = extra.begin(); it != extra.end(); ++it) { part[it.key()] = it.value(); }
+  upsert({{"id", id}, {"role", "execution"}, {"nativeTree", true}, {"content", ""}, {"parts", QJsonArray{part}}});
+}
+void MessageModel::summarizeExecution(const QString &key, MessageModel &run) {
+  int completed = 0, running = 0, failed = 0, waiting = 0;
+  for (const auto &row : run.m_rows) {
+    const auto id = row["id"].toString();
+    if (id == "planning" || id.startsWith("log:")) { continue; }
+    const auto status = row["parts"].toArray().first().toObject()["displayStatus"].toString();
+    if (status == "completed") { ++completed; }
+    else if (status == "failed") { ++failed; }
+    else if (status == "running") { ++running; }
+    else { ++waiting; }
+  }
+  const auto total = completed + running + failed + waiting;
+  if (total == 0) { return; }
+  QStringList counts;
+  if (completed > 0) { counts << QString("%1 done").arg(completed); }
+  if (running > 0) { counts << QString("%1 running").arg(running); }
+  if (failed > 0) { counts << QString("%1 failed").arg(failed); }
+  if (waiting > 0) { counts << QString("%1 waiting").arg(waiting); }
+  treeRow(key, QString("Execution plan · %1/%2 tasks").arg(completed).arg(total),
+          running > 0 ? "running" : failed > 0 ? "failed" : completed == total ? "completed" : "waiting", {}, true,
+          {{"progress", counts.join(" · ")}, {"progressValue", double(completed) / total}});
 }
 bool MessageModel::reduceNested(const QJsonObject &event) {
   const auto parent = event["parent_tool_call_id"].toString();
@@ -793,9 +890,16 @@ bool MessageModel::reduceNested(const QJsonObject &event) {
   const auto key = "execution:" + execution;
   auto *run = child(key);
   if (!m_indices.contains(key)) { treeRow(key, "Agent execution", "", {}, true); }
+  // Saved events carry their time. Live ones are timed on arrival.
+  const auto stamped = QDateTime::fromString(event["created_at"].toString(), Qt::ISODateWithMs);
+  const auto eventTime = stamped.isValid() ? stamped : QDateTime::currentDateTimeUtc();
   if (type == "planning_update") {
-    run->treeRow("planning", "Planning · " + payload["phase"].toString(), payload["status"].toString(),
-                 payload["content"].toString(), true);
+    // PlanningLog in ExecutionTree.tsx lists every planning phase.
+    const auto old = run->m_indices.value("planning", -1);
+    auto log = old >= 0 ? run->m_rows[old]["parts"].toArray().first().toObject()["text"].toString() : QString();
+    const auto entry = payload["phase"].toString() + (payload["content"].toString().isEmpty() ? QString() : " · " + payload["content"].toString());
+    if (!entry.isEmpty() && !log.endsWith(entry)) { log += (log.isEmpty() ? QString() : QStringLiteral("\n")) + entry; }
+    run->treeRow("planning", "Planning · " + payload["phase"].toString(), payload["status"].toString(), log, true);
   } else if (type == "log_update") {
     const auto logId = "log:" + QString::number(run->m_nestedEvents.size());
     run->m_nestedEvents.append(payload);
@@ -808,6 +912,7 @@ bool MessageModel::reduceNested(const QJsonObject &event) {
     if (action == "task_created") {
       if (run->m_indices.contains(taskId)) { return true; }
       auto *steps = run->child(taskId);
+      run->m_startedAt.insert(taskId, eventTime);
       run->treeRow(taskId, task["title"].toString(taskId), "running", {}, true);
       for (const auto &value : task["steps"].toArray()) {
         const auto step = value.toObject();
@@ -822,15 +927,32 @@ bool MessageModel::reduceNested(const QJsonObject &event) {
       if (action.startsWith("step_") && !stepId.isEmpty()) {
         const auto old = steps->m_indices.value(stepId, -1);
         const auto previous = old >= 0 ? steps->m_rows[old]["parts"].toArray().first().toObject() : QJsonObject{};
+        if (action == "step_started") { run->m_startedAt.insert("step:" + stepId, eventTime); }
+        const auto started = run->m_startedAt.value("step:" + stepId);
+        const auto duration = action != "step_started" && started.isValid()
+            ? durationLabel(started.msecsTo(eventTime)) : QString();
         steps->treeRow(stepId, previous["label"].toString(step["instructions"].toString(stepId)).left(80),
           action == "step_started" ? "running" : action == "step_failed" ? "failed" : "completed",
-          previous["text"].toString(step["instructions"].toString()));
+          previous["text"].toString(step["instructions"].toString()), false,
+          duration.isEmpty() ? QJsonObject{} : QJsonObject{{"duration", duration}});
         run->m_stepTasks.insert(stepId, taskId);
       } else if (action == "task_completed" || action == "task_failed") {
         const auto row = run->m_rows[run->m_indices[taskId]]["parts"].toArray().first().toObject();
-        run->treeRow(taskId, row["label"].toString(), action == "task_failed" ? "failed" : "completed");
+        const auto started = run->m_startedAt.value(taskId);
+        QJsonObject extra;
+        if (started.isValid()) { extra["duration"] = durationLabel(started.msecsTo(eventTime)); }
+        int done = 0, total = 0;
+        if (auto *steps = run->child(taskId)) {
+          for (const auto &stepRow : steps->m_rows) {
+            ++total;
+            if (stepRow["parts"].toArray().first().toObject()["displayStatus"] == "completed") { ++done; }
+          }
+        }
+        if (total > 0) { extra["progress"] = QString("%1/%2 steps").arg(done).arg(total); }
+        run->treeRow(taskId, row["label"].toString(), action == "task_failed" ? "failed" : "completed", {}, false, extra);
       }
     }
+    summarizeExecution(key, *run);
   } else {
     const auto stepId = type == "step_result" ? payload["step"].toObject()["id"].toString()
       : type == "tool_result_update" ? run->m_callSteps.value(payload["tool_call_id"].toString())
@@ -1054,10 +1176,24 @@ bool MessageModel::addResolvedPart(const QString &id, const QJsonObject &part) {
   emit dataChanged(index(i), index(i), {PartsRole, DisplayTextRole});
   return true;
 }
+void MessageModel::setBatch(const QJsonObject &update) {
+  const auto id = update["tool_call_id"].toString();
+  if (id.isEmpty()) { return; }
+  auto entry = m_results.value(id);
+  entry["liveBatch"] = QJsonObject{{"concurrency", update["concurrency"]}, {"items", update["items"]}};
+  m_results[id] = entry;
+  const auto owner = callOwner(id);
+  if (owner < 0) { return; }
+  refreshParts(owner);
+  emit dataChanged(index(owner), index(owner), {PartsRole});
+}
 void MessageModel::addPart(const QJsonObject &part) {
   const auto owner = callOwner(part["tool_call_id"].toString());
   if (part.contains("result") && owner >= 0) {
     auto result = part;
+    if (const auto live = m_results.value(part["tool_call_id"].toString())["liveBatch"]; live.isObject()) {
+      result["liveBatch"] = live;
+    }
     result["result_created_at"] = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
     if (part.contains("created_at")) { result["result_created_at"] = part["created_at"]; }
     if (part.contains("result_created_at")) { result["result_created_at"] = part["result_created_at"]; }

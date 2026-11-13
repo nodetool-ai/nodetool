@@ -2,6 +2,8 @@
 #include <QClipboard>
 #include <QGuiApplication>
 #include "ChatSession.h"
+#include "model/RichContent.h"
+#include <QPointer>
 #include "ComposerRules.h"
 #include <QClipboard>
 #include <QDateTime>
@@ -213,6 +215,9 @@ void ChatSession::disconnectFromServer() {
   m_serverUrl = QUrl{};
   m_serverToken.clear();
   m_previewBytes = 0;
+  m_resolvedMedia.clear();
+  m_resolvedBytes = 0;
+  emit resolvedMediaChanged();
   m_states.clear();
   m_threads.clear();
   m_selected.clear();
@@ -736,7 +741,11 @@ void ChatSession::respondToAction(const QString &id, bool approved,
   } else {
     return;
   }
-  if (!m_client.send(response)) {
+  answerAction(id, response, kind != "secret_request" && approved ? "approved" : "declined");
+}
+void ChatSession::answerAction(const QString &id, const QJsonObject &response, const QString &status) {
+  const auto action = m_actions.value(id);
+  if (action.isEmpty() || !m_client.send(response)) {
     return;
   }
   m_actions.remove(id);
@@ -744,9 +753,94 @@ void ChatSession::respondToAction(const QString &id, bool approved,
   auto part = action;
   part["actionId"] = id;
   part["pending"] = false;
-  part["status"] = kind != "secret_request" && approved ? "approved" : "declined";
+  part["status"] = status;
   state(action["thread_id"].toString()).messages->addPart(part);
   emit stateChanged();
+}
+void ChatSession::allowActionForChat(const QString &id) {
+  const auto action = m_actions.value(id);
+  if (action["type"] != "tool_approval_request" || !m_client.ready()) { return; }
+  answerAction(id, {{"type", "tool_approval_response"}, {"approval_id", id}, {"decision", "allow_for_chat"}},
+               "allowed for this chat");
+}
+void ChatSession::saveSecret(const QString &id, const QString &value) {
+  const auto action = m_actions.value(id);
+  const auto key = action["key"].toString();
+  if (action["type"] != "secret_request" || key.isEmpty() || value.trimmed().isEmpty() || !m_client.ready()) { return; }
+  QPointer<ChatSession> self(this);
+  m_client.call("settings.secrets.upsert", {{"key", key}, {"value", value.trimmed()}}, true,
+                [self, id](const QJsonValue &, const QString &error) {
+                  if (!self) { return; }
+                  if (!error.isEmpty()) { self->fail("Could not save the key: " + error); return; }
+                  self->answerAction(id, {{"type", "secret_request_response"}, {"approval_id", id}, {"status", "saved"}}, "saved");
+                });
+}
+bool ChatSession::embeddedMedia() const {
+#ifdef NODETOOL_CHAT_MEDIA
+  return true;
+#else
+  return false;
+#endif
+}
+void ChatSession::storeMedia(const QString &key, const QString &url, const QString &error, qint64 bytes) {
+  if (error.isEmpty() && m_resolvedBytes + bytes > 64 * 1024 * 1024) {
+    m_resolvedMedia[key] = QVariantMap{{"error", "Preview memory limit reached"}};
+  } else {
+    m_resolvedMedia[key] = error.isEmpty() ? QVariantMap{{"url", url}} : QVariantMap{{"error", error}};
+    if (error.isEmpty()) { m_resolvedBytes += bytes; }
+  }
+  emit resolvedMediaChanged();
+}
+void ChatSession::resolveImage(const QString &source) {
+  if (source.isEmpty() || m_resolvedMedia.contains(source)) { return; }
+  m_resolvedMedia[source] = QVariantMap{{"loading", true}};
+  emit resolvedMediaChanged();
+  QPointer<ChatSession> self(this);
+  const auto epoch = m_client.epoch();
+  auto receive = [self, source, epoch](const QJsonValue &data, const QString &error) {
+    if (!self || epoch != self->m_client.epoch()) { return; }
+    self->storeMedia(source, data.toString(), error.isEmpty() && data.toString().isEmpty() ? QStringLiteral("Image unavailable") : error,
+                     data.toString().size() * 2);
+  };
+  const QUrl url(source);
+  if (url.scheme() == "asset") {
+    m_client.call("assets.get", {{"id", url.host()}}, false, [self, receive](const QJsonValue &value, const QString &error) {
+      if (!self) { return; }
+      const auto get = value.toObject()["get_url"].toString();
+      if (!error.isEmpty() || get.isEmpty()) { receive({}, "Image unavailable"); return; }
+      self->m_client.fetchMedia(QUrl(get), receive);
+    });
+    return;
+  }
+  m_client.fetchMedia(url, receive);
+}
+QVariantMap ChatSession::batchProgress(const QVariantMap &batch, double nowMs) const {
+  return generationBatchProgress(QJsonObject::fromVariantMap(batch), nowMs).toVariantMap();
+}
+QString ChatSession::mediaKey(const QVariantMap &locator) const {
+  const auto asset = locator.value("asset_id").toString();
+  return asset.isEmpty() ? locator.value("uri").toString() : "asset://" + asset;
+}
+void ChatSession::loadMedia(const QVariantMap &locator) {
+  const auto key = mediaKey(locator);
+  if (key.isEmpty() || (m_resolvedMedia.contains(key) && !m_resolvedMedia[key].toMap().contains("error"))) { return; }
+  m_resolvedMedia[key] = QVariantMap{{"loading", true}};
+  emit resolvedMediaChanged();
+  QPointer<ChatSession> self(this);
+  auto receive = [self, key](const QJsonValue &file, const QString &error) {
+    if (!self) { return; }
+    self->storeMedia(key, file.toString(), error, 0);
+  };
+  if (key.startsWith("asset://")) {
+    m_client.call("assets.get", {{"id", key.mid(8)}}, false, [self, receive](const QJsonValue &value, const QString &error) {
+      if (!self) { return; }
+      const auto get = value.toObject()["get_url"].toString();
+      if (!error.isEmpty() || get.isEmpty()) { receive({}, "Media unavailable"); return; }
+      self->m_client.downloadMedia(QUrl(get), receive);
+    });
+    return;
+  }
+  m_client.downloadMedia(QUrl(key), receive);
 }
 void ChatSession::addAttachment(const QUrl &local) {
   if (m_selected.isEmpty() || !m_client.ready()) {
@@ -907,6 +1001,10 @@ void ChatSession::applyEvent(const QJsonObject &event) {
   }
   if (!s.uncertainReplay && s.messages->reduceNested(event)) {
     emit stateChanged();
+    return;
+  }
+  if (type == "generation_batch_update") {
+    s.messages->setBatch(event);
     return;
   }
   if (type == "chunk") {

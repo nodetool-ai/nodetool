@@ -192,6 +192,13 @@ void ChatClient::upload(const QString &id, const QUrl &local, Callback callback,
           });
 }
 void ChatClient::openMedia(const QUrl &input, Callback callback) {
+  downloadMedia(input, [callback](const QJsonValue &file, const QString &error) {
+    if (!error.isEmpty()) { callback({}, error); return; }
+    if (!QDesktopServices::openUrl(QUrl(file.toString()))) { callback({}, "No system media viewer available"); }
+    else { callback({}, {}); }
+  });
+}
+void ChatClient::downloadMedia(const QUrl &input, Callback callback) {
   const auto url = m_base.resolved(input);
   if ((url.scheme() != "https" && url.scheme() != "http") ||
       url.host() != m_base.host() || url.port() != m_base.port() || url.scheme() != m_base.scheme()) {
@@ -224,11 +231,10 @@ void ChatClient::openMedia(const QUrl &input, Callback callback) {
     QFile file(path);
     const auto bytes = reply->readAll();
     if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size()) {
-      callback({}, "Could not save media for the system viewer"); return;
+      callback({}, "Could not save media"); return;
     }
     file.close();
-    if (!QDesktopServices::openUrl(QUrl::fromLocalFile(path))) { callback({}, "No system media viewer available"); }
-    else { callback({}, {}); }
+    callback(QUrl::fromLocalFile(path).toString(), {});
   });
 }
 void ChatClient::fetchMedia(const QUrl &input, Callback callback) {
