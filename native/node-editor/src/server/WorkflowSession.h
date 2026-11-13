@@ -120,6 +120,11 @@ public:
   GenerationHistory *generationHistory() { return &m_history; }
   PartialRunPlan lastPartialPlan() const { return m_lastPlan; }
   Q_INVOKABLE void stop(const QString &jobId);
+  // Sends a live property change of a node to a run in progress, as the
+  // web's update_node_properties command does: a node that reads its
+  // properties while it runs uses the values from its next block. Returns
+  // false when the run is unknown or finished, or the change was not sent.
+  bool updateNodeProperties(const QString &jobId, const QString &nodeId, const QJsonObject &properties);
   Q_INVOKABLE void cancelJob(const QString &jobId);
   Q_INVOKABLE void reconnectRuns();
   // Retries the socket now, like the web's retryNow: a pending wait is cancelled, the attempt count
@@ -140,6 +145,8 @@ public:
   // Static preflight of the stored workflow (POST /api/sdk/v1/preflight). done gets
   // the summary's cost object, or an error. Needs a server-bound workflow.
   void preflightCost(std::function<void(QJsonObject, QString)> done);
+  // The account's generations.list page, newest first.
+  void listGenerations(std::function<void(QJsonArray, QString)> done);
 signals:
   void workflowChanged();
   void generationsChanged();
@@ -153,6 +160,8 @@ signals:
   void runEvent(QString jobId, QJsonObject event);
   void runSubmitted(QString jobId);
   void systemStatsChanged();
+  // A `prediction` message: a provider call of any run on this socket.
+  void predictionReceived(QJsonObject message);
   // An automatic reconnect was queued as attempt number `attempt`, to start after `delayMs`.
   void reconnectScheduled(int attempt, int delayMs);
 

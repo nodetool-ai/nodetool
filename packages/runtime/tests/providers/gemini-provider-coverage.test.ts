@@ -598,6 +598,34 @@ describe("GeminiProvider – streaming with tool name reverse mapping", () => {
 // Model listing methods
 // ---------------------------------------------------------------------------
 
+describe("GeminiProvider – live video listing", () => {
+  it("drops a Veo model the key's listing leaves out", async () => {
+    const provider = new GeminiProvider(
+      { GEMINI_API_KEY: "k" },
+      {
+        fetchFn: async () =>
+          makeFetchResponse({
+            models: [
+              {
+                name: "models/veo-3.1-fast-generate-preview",
+                supportedGenerationMethods: ["predictLongRunning"]
+              },
+              {
+                name: "models/gemini-2.5-flash",
+                supportedGenerationMethods: ["generateContent"]
+              }
+            ]
+          })
+      }
+    );
+    const ids = (await provider.getAvailableVideoModels()).map((m) => m.id);
+    expect(ids).toEqual([
+      "veo-3.1-fast-generate-preview",
+      "gemini-omni-1.1-flash"
+    ]);
+  });
+});
+
 describe("GeminiProvider – model listing", () => {
   // No live listing, so the known models are returned.
   const provider = new GeminiProvider(

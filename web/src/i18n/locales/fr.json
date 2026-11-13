@@ -2301,7 +2301,8 @@
       "cloudAlphaNotice": "Cloud est en version alpha. Pour les travaux de production, utilisez",
       "ssoTitle": "Connexion à NodeTool",
       "ssoSignIn": "Se connecter avec {{provider}}",
-      "ssoFailed": "Échec de la connexion ({{reason}}). Réessayez ou demandez l'accès à votre administrateur."
+      "ssoFailed": "Échec de la connexion ({{reason}}). Réessayez ou demandez l'accès à votre administrateur.",
+      "marketingOptIn": "Recevoir des e-mails sur les nouveautés et les offres gratuites. Désinscription possible à tout moment."
     },
     "inspector": {
       "params": "Paramètres",
@@ -6483,6 +6484,16 @@
           "image": "Image",
           "video": "Vidéo",
           "audio": "Audio"
+        },
+        "attachedFileActions": {
+          "label": "Partir de vos fichiers",
+          "hint": "Fichiers joints. Décrivez ce que vous voulez créer, ou partez de ceux-ci :",
+          "animate": "Animer en vidéo",
+          "image": "Créer de nouvelles images",
+          "retake": "Modifier la vidéo",
+          "script": "Transformer en script",
+          "ask": "Poser une question",
+          "askPrompt": "Regarde les fichiers joints et propose ce que je pourrais en faire."
         }
       }
     }
@@ -18481,6 +18492,8 @@
         "mediumDescription": "Équilibre la vitesse et la profondeur.",
         "high": "Élevé",
         "highDescription": "Raisons les plus longues. Plus lent et coûte plus cher.",
+        "xhigh": "Très élevé",
+        "xhighDescription": "Raisonne le plus longtemps. Le plus lent et le plus cher.",
         "level": "Niveau de raisonnement",
         "title": "Raisonnement",
         "titleWithLevel": "Raisonnement : {{level}}"
@@ -20273,5 +20286,39 @@
         "public": "Public"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "Le fournisseur",
+    "title": {
+      "billing": "{{target}} ne peut pas s'exécuter : le compte n'a ni crédit ni facturation.",
+      "quota": "{{target}} ne peut pas s'exécuter : cette clé n'a plus de quota pour lui.",
+      "auth": "{{target}} a refusé votre clé API.",
+      "model_unavailable": "{{target}} n'est pas disponible pour votre clé.",
+      "rate_limit": "{{target}} reçoit trop de requêtes."
+    },
+    "hint": {
+      "billing": "Ajoutez du crédit chez le fournisseur ou passez à un autre modèle.",
+      "quota": "Les clés gratuites n'ont souvent aucun quota pour ce modèle. Activez la facturation chez le fournisseur ou passez à un autre modèle.",
+      "auth": "Vérifiez la clé dans les Paramètres ou passez à un modèle d'un autre fournisseur.",
+      "model_unavailable": "Il a été retiré de vos listes de modèles. Choisissez un autre modèle.",
+      "rate_limit": "Patientez un instant, puis réessayez."
+    },
+    "repeated": "L'échec s'est reproduit de la même façon, réessayer n'aidera pas. Passez à un autre modèle.",
+    "switchTo": "Utiliser {{model}}",
+    "openKeys": "Ouvrir les clés API",
+    "addCredit": "Ajouter du crédit",
+    "enableBilling": "Activer la facturation"
+  },
+  "runReadiness": {
+    "addKey": "Ajouter une clé API",
+    "missingKeysDetail": "Ce workflow nécessite {{keys}}. Ajoutez-la dans les Paramètres avant de l'exécuter.",
+    "costPerRun": "≈ {{cost}} par exécution",
+    "costUnknown": "Coût inconnu"
+  },
+  "marketingEmails": {
+    "title": "E-mails produit",
+    "label": "Recevoir des e-mails sur les nouveautés et les offres gratuites",
+    "description": "Soyez informé des nouvelles fonctionnalités, des nouveaux modèles et des offres gratuites. Chaque e-mail contient un lien de désinscription, et vous pouvez désactiver cette option ici à tout moment.",
+    "saveFailed": "Votre préférence d'e-mail n'a pas été enregistrée. Réessayez."
   }
 }

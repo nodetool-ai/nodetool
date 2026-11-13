@@ -55,6 +55,14 @@ public:
   virtual bool hasRun() const = 0;
   // Returns the slot -> last emitted value map (NodeOutputs.collected()).
   virtual Task<Json> run(StreamIO& io) = 0;
+  // A live property change (NodeExecutor.applyProperties in
+  // packages/execution-core/src/node-executor.ts): the node instance takes
+  // `properties`, so a run() that reads its properties for each block uses
+  // them from its next block. False when the node takes none.
+  virtual bool applyProperties(const Json& properties) {
+    (void)properties;
+    return false;
+  }
 };
 
 // A failure raised by node code, carrying the message the TypeScript actor

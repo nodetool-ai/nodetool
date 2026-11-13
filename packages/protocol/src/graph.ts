@@ -197,6 +197,7 @@ export interface NodeDescriptor {
    * regardless of patching — e.g. the realtime audio monitor — set this.
    */
   always_emit_output_updates?: boolean;
+  audio_sink?: "live" | "render";
 
   /** Correlation-aware input execution mode. */
   input_mode?: InputMode;

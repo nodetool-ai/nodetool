@@ -230,6 +230,17 @@ public:
   // Cancels a queued or running job. Returns false for an unknown or
   // finished job.
   bool cancel(const std::string& jobId);
+  // Hands a live property change to the running job: node `nodeId` takes
+  // the values of the JSON object `propertiesJson`, as from the server's
+  // update_node_properties command. A node whose run() reads its properties
+  // for each block uses them from its next block. The worker applies the
+  // change between two steps of the run. Returns true when the change was
+  // queued for the running job. Returns false, and changes nothing, for a
+  // job that is not running, a cancelled job, an empty node id, and JSON
+  // that is not an object. A node that is unknown or takes no live change
+  // drops it: the caller's graph holds the value for the next run.
+  bool updateNodeProperties(const std::string& jobId, const std::string& nodeId,
+                            const std::string& propertiesJson);
 
   // How many times a context was loaded. A run that leaves the context in an
   // unknown state replaces it, which increments this.

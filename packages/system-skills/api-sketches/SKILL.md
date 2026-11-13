@@ -1,6 +1,6 @@
 ---
 name: api-sketches
-description: "Call nodetool.sketches from a code action: create a sketch (layered image document), read it, add, arrange and restyle layers, place images on layers, resize the canvas, validate it, render it to a PNG or PSD, and manage its versions. Load before the first call into nodetool.sketches."
+description: "Call nodetool.sketches from a code action: create a sketch (layered image document), read it, add, arrange and restyle layers, place images on layers, resize the canvas, validate it, render it to a PNG or PSD, manage its versions, and delete it. Load before the first call into nodetool.sketches."
 ---
 
 # nodetool.sketches
@@ -22,6 +22,7 @@ layers to keep is `nodetool.media.generateImage`, not a sketch.
 | `snapshot(id, {name})` | Saves a manual version. | The version number |
 | `restore(id, n)` | Rolls back. The state it replaces is snapshotted first. | The findings of the validation after the restore |
 | `deleteVersion(id, n)` | Deletes one snapshot. This cannot be undone. | — |
+| `delete(id)` | Deletes the sketch and all its versions. This cannot be undone. Deleting every version leaves the sketch in place. | `{image_document_id, deleted}` |
 
 ## Ops
 

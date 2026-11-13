@@ -15,7 +15,8 @@ import {
   isFiniteNumber,
   isNonEmptyString,
   isString,
-  supportsReasoningEffort
+  geminiModelCapabilities,
+  type GeminiThinkingLevel
 } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.gemini");
@@ -191,31 +192,27 @@ function geminiAudioMime(mime: string | undefined): string {
 }
 
 /**
- * Gemini's native/custom tool combination contract is versioned by model
- * family. Keep this check deliberately based on the model id supplied for the
- * request: model discovery is optional and callers may use a newly released
- * Gemini 3 id before it appears in the catalog.
- */
-function isGemini3Model(model: string): boolean {
-  const modelId = model.split("/").pop()?.toLowerCase() ?? model.toLowerCase();
-  return /^gemini-3(?:[.-]|$)/.test(modelId);
-}
-
-/**
- * Gemini's `thinkingConfig` for a reasoning level. Gemini 3 takes a
- * `thinkingLevel`, and only "low" and "high" are accepted across the family,
- * so "medium" keeps the model's own dynamic default. Gemini 2.5 takes a token
- * budget.
+ * Gemini's `thinkingConfig` for a reasoning level, from the per-model
+ * capability table. A level model gets the requested `thinkingLevel` when it
+ * accepts it. "xhigh" and "max" fall back to the highest level the model
+ * takes, and "medium" on a model without it keeps the model's own default.
+ * Gemini 2.5 takes a token budget. Gemini 4 rejects `thinkingBudget`, so it
+ * never gets one.
  */
 function geminiThinkingConfig(
   model: string,
   effort: ProviderEffort | undefined
 ): Record<string, unknown> | undefined {
-  if (!effort || !supportsReasoningEffort("gemini", model)) return undefined;
-  if (isGemini3Model(model)) {
-    if (effort === "low") return { thinkingLevel: "low" };
-    if (effort === "medium") return undefined;
-    return { thinkingLevel: "high" };
+  if (!effort) return undefined;
+  const thinking = geminiModelCapabilities(model).thinking;
+  if (!thinking) return undefined;
+  if (thinking.kind === "level") {
+    const wanted: GeminiThinkingLevel = effort === "max" ? "xhigh" : effort;
+    if (thinking.levels.includes(wanted)) return { thinkingLevel: wanted };
+    if (wanted === "xhigh") {
+      return { thinkingLevel: thinking.levels[thinking.levels.length - 1] };
+    }
+    return undefined;
   }
   const budgets: Record<ProviderEffort, number> = {
     low: 1024,
@@ -225,6 +222,15 @@ function geminiThinkingConfig(
     max: 24576
   };
   return { thinkingBudget: budgets[effort] };
+}
+
+/**
+ * Whether this request may send built-in tools next to function
+ * declarations. Decided from the model id supplied for the request, so a
+ * newly released Gemini 3 or 4 id works before it appears in the catalog.
+ */
+function combinesBuiltInAndFunctionTools(model: string): boolean {
+  return geminiModelCapabilities(model).combinesBuiltInAndFunctionTools;
 }
 
 export interface GeminiProviderOptions {
@@ -1535,7 +1541,7 @@ export class GeminiProvider extends BaseProvider {
     if (!hasWebSearch) return false;
 
     const hasCustomTools = this.hasCustomFunctionTools(tools);
-    return !hasCustomTools || isGemini3Model(model);
+    return !hasCustomTools || combinesBuiltInAndFunctionTools(model);
   }
 
   private hasCustomFunctionTools(tools: ProviderTool[]): boolean {
@@ -1550,7 +1556,7 @@ export class GeminiProvider extends BaseProvider {
     model: string,
     tools: ProviderTool[]
   ): void {
-    if (isGemini3Model(model)) return;
+    if (combinesBuiltInAndFunctionTools(model)) return;
 
     const hasCodeExecution = tools.some(
       (tool) => tool.type === "code_interpreter"
@@ -1558,7 +1564,7 @@ export class GeminiProvider extends BaseProvider {
     if (hasCodeExecution && this.hasCustomFunctionTools(tools)) {
       throw new Error(
         `Gemini code execution cannot be combined with other tools on ${model}; ` +
-          "only Gemini 3 models support this combination"
+          "only Gemini 3 and Gemini 4 models support this combination"
       );
     }
   }
@@ -2124,8 +2130,22 @@ export class GeminiProvider extends BaseProvider {
     ];
   }
 
+  /**
+   * The video models this file describes, less any Veo model the key's live
+   * listing leaves out. A Veo id offered from this file alone answered 404 to
+   * keys that cannot reach it. Omni Flash runs through the Interactions API,
+   * which the listing does not cover, so it stays. Without a listing the
+   * known models are returned unchanged.
+   */
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return [...GEMINI_VIDEO_MODELS];
+    const entries = await this.listModelEntries();
+    if (!entries) return [...GEMINI_VIDEO_MODELS];
+    const listed = new Set(
+      entries.map((entry) => entry.name?.split("/").pop()).filter(Boolean)
+    );
+    return GEMINI_VIDEO_MODELS.filter(
+      (model) => !model.id.startsWith("veo-") || listed.has(model.id)
+    );
   }
 
   override async getAvailableMusicModels(): Promise<MusicModel[]> {

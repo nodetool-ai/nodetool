@@ -23,9 +23,9 @@ Applies a high shelf filter to boost or cut high frequencies.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | cutoff_frequency_hz | `float` | The cutoff frequency of the shelf filter in Hz. | `5000` |
 | gain_db | `float` | The gain to apply to the frequencies above the cutoff, in dB. | `0` |
+| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 

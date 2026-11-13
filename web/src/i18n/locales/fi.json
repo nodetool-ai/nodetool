@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Pilvi on alfavaiheessa. Tuotantokäyttöön käytä",
       "ssoTitle": "Kirjaudu NodeTooliin",
       "ssoSignIn": "Kirjaudu palvelulla {{provider}}",
-      "ssoFailed": "Kirjautuminen epäonnistui ({{reason}}). Yritä uudelleen tai pyydä käyttöoikeutta ylläpitäjältä."
+      "ssoFailed": "Kirjautuminen epäonnistui ({{reason}}). Yritä uudelleen tai pyydä käyttöoikeutta ylläpitäjältä.",
+      "marketingOptIn": "Lähetä minulle sähköpostia uusista julkaisuista ja ilmaisista tarjouksista. Voit perua tilauksen milloin tahansa."
     },
     "inspector": {
       "params": "Parametrit",
@@ -6397,6 +6398,16 @@
           "image": "Kuva",
           "video": "Video",
           "audio": "Ääni"
+        },
+        "attachedFileActions": {
+          "label": "Aloita tiedostoistasi",
+          "hint": "Tiedostot liitetty. Kuvaile, mitä haluat tehdä, tai aloita niistä:",
+          "animate": "Animoi videoksi",
+          "image": "Luo uusia kuvia",
+          "retake": "Muokkaa videota",
+          "script": "Tee käsikirjoitukseksi",
+          "ask": "Kysy niistä",
+          "askPrompt": "Katso liitetyt tiedostot ja ehdota, mitä voisin tehdä niistä."
         }
       }
     }
@@ -18177,6 +18188,8 @@
         "mediumDescription": "Tasapainottaa nopeuden ja syvyyden.",
         "high": "Korkea",
         "highDescription": "Päättelee pisimpään. Hitaampi ja kalliimpi.",
+        "xhigh": "Erittäin korkea",
+        "xhighDescription": "Päättelee kaikkein pisimpään. Hitain ja kallein.",
         "level": "Päättelytaso",
         "title": "Päättely",
         "titleWithLevel": "Päättely: {{level}}"
@@ -19962,5 +19975,39 @@
         "public": "Julkinen"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "Palveluntarjoaja",
+    "title": {
+      "billing": "{{target}} ei voi toimia: tilillä ei ole saldoa tai laskutusta.",
+      "quota": "{{target}} ei voi toimia: tällä avaimella ei ole sille kiintiötä jäljellä.",
+      "auth": "{{target}} hylkäsi API-avaimesi.",
+      "model_unavailable": "{{target}} ei ole avaimesi käytettävissä.",
+      "rate_limit": "{{target}} saa liikaa pyyntöjä."
+    },
+    "hint": {
+      "billing": "Lisää saldoa palveluntarjoajalla tai vaihda toiseen malliin.",
+      "quota": "Ilmaisilla avaimilla ei usein ole kiintiötä tälle mallille. Ota laskutus käyttöön palveluntarjoajalla tai vaihda toiseen malliin.",
+      "auth": "Tarkista avain asetuksista tai vaihda toisen palveluntarjoajan malliin.",
+      "model_unavailable": "Se on poistettu malliluetteloistasi. Valitse toinen malli.",
+      "rate_limit": "Odota hetki ja yritä sitten uudelleen."
+    },
+    "repeated": "Tämä epäonnistui taas samalla tavalla, joten uusi yritys ei auta. Vaihda toiseen malliin.",
+    "switchTo": "Käytä mallia {{model}}",
+    "openKeys": "Avaa API-avaimet",
+    "addCredit": "Lisää saldoa",
+    "enableBilling": "Ota laskutus käyttöön"
+  },
+  "runReadiness": {
+    "addKey": "Lisää API-avain",
+    "missingKeysDetail": "Tämä työnkulku tarvitsee: {{keys}}. Lisää se asetuksissa ennen suorittamista.",
+    "costPerRun": "≈ {{cost}} / ajo",
+    "costUnknown": "Hinta tuntematon"
+  },
+  "marketingEmails": {
+    "title": "Tuotesähköpostit",
+    "label": "Lähetä minulle sähköpostia julkaisuista ja ilmaisista tarjouksista",
+    "description": "Kuule uusista ominaisuuksista, malleista ja ilmaisista tarjouksista. Jokaisessa viestissä on peruutuslinkki, ja voit poistaa tämän käytöstä täällä milloin tahansa.",
+    "saveFailed": "Sähköpostiasetusta ei tallennettu. Yritä uudelleen."
   }
 }

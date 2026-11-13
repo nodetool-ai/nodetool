@@ -935,13 +935,13 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
    keys[name].append(QKeySequence(QString::fromLatin1(entry.keys)).toString(QKeySequence::NativeText));
    combos[name].append(webKeys(QString::fromLatin1(entry.keys)));
   }
-  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Toggle mini-map", "Fit selection", "Focus node", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Run trace", "Version history", "Share workflow", "Workflow metadata", "Canvas uploads", "Link selected", "Group into subgraph", "Open child", "Linked workflows"}; }
+  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Examples", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Toggle mini-map", "Fit selection", "Focus node", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Run trace", "Version history", "Share workflow", "Workflow metadata", "Canvas uploads", "Link selected", "Group into subgraph", "Open child", "Linked workflows"}; }
   names.removeDuplicates();
   const auto group = [](const QString &name) {
    if (name.startsWith("Align") || name.startsWith("Distribute") || name == "Stack selection" || name == "Arrange grid") { return QString("Layout & Alignment"); }
    if (name == "Output" || name == "Toggle nodes" || name == "Toggle inspector" || name == "Workflows") { return QString("Panels"); }
    if (name.startsWith("Move") || name.startsWith("Fit") || name.startsWith("Focus") || name.startsWith("Zoom") || name.startsWith("Toggle") || name == "Workflows") { return QString("View"); }
-   if (name == "Run" || name == "Stop" || name == "Save" || name.startsWith("Open")) { return QString("Workflow"); }
+   if (name == "Run" || name == "Stop" || name == "Save" || name == "Examples" || name.startsWith("Open")) { return QString("Workflow"); }
    return QString("Edit");
   };
   QVariantList rows;
@@ -976,7 +976,9 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
  }
  {
   QStringList names;
-  if (kind == "more") { names = {instantUpdate_ ? "Instant Update: On" : "Instant Update: Off", "Open child", "Linked workflows","Stop", "Run selected", "Disable selected", "Enable selected", "Find node", "Auto layout", "Layout selection", "Arrange selection", "Link selected", "Group selection", "Group into subgraph", "Ungroup", "Remove from group", "Rename group", "Rename node", "Edit note", "Add comment", "Edit comment", "Open file", "Save", "Server Open", "Server Save", "Server sync", "Run trace", "Version history", "Share workflow", "Workflow metadata", "Reconnect", "Canvas uploads", "Command menu", "Keyboard shortcuts"}; }
+  // The document's own settings and views. The node, layout, run and server
+  // commands are in the Node and Workflow menus of the application menu.
+  if (kind == "more") { names = {instantUpdate_ ? "Instant Update: On" : "Instant Update: Off", "Save", "Version history", "Share workflow", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}; }
 #ifndef Q_OS_MACOS
   if (kind == "more") { names.insert(1, mouseNavigation() ? "Canvas navigation: Mouse" : "Canvas navigation: Trackpad"); }
 #endif

@@ -281,6 +281,84 @@ NT_KERNEL_API int nt_vcf_process(double* state, int type, double sample_rate,
                                  const float* cv, const float* in, float* out,
                                  size_t frames, uint32_t channels);
 
+/* ── Sampler (nodetool.audio.synth.Sampler) ──────────────────────────── */
+
+/* A voice plays the sample to its end. The gate length has no effect. */
+#define NT_SAMPLER_ONE_SHOT 0
+/* A voice fades out when the gate falls, and stops at the end of the sample. */
+#define NT_SAMPLER_GATED 1
+/* As NT_SAMPLER_GATED, and the sample repeats until the voice is silent. */
+#define NT_SAMPLER_LOOP 2
+
+#define NT_SAMPLER_MAX_VOICES 32
+#define NT_SAMPLER_MAX_CHANNELS 64
+
+/* One voice: {stage, position, rate, age, release level, serial}. */
+#define NT_SAMPLER_VOICE_LEN 6
+
+/* Doubles of state: {gate was high, next serial}, one declick level for each
+ * channel, then the voices. 0 when `voices` is outside
+ * 1..NT_SAMPLER_MAX_VOICES or `channels` is outside
+ * 1..NT_SAMPLER_MAX_CHANNELS. */
+NT_KERNEL_API size_t nt_sampler_state_len(uint32_t voices, uint32_t channels);
+
+/* Polyphonic sample player. Each rising edge of `gate` starts a voice at the
+ * first frame of `sample`, at the rate `rate * 2^pitch[i]` of that frame. The
+ * rate stays with the voice, so voices at different pitches sound together.
+ * A new voice takes an idle voice, or replaces the oldest one. `gate` and
+ * `pitch` hold `frames` samples. A NULL `gate` is high for the whole call,
+ * and a NULL `pitch` is 0. `sample` holds `sample_frames * channels`
+ * interleaved samples and `out` receives `frames * channels`. A voice fades
+ * in over `attack_frames` and, after the gate falls, out over
+ * `release_frames`. A voice that stops at a level above zero decays over
+ * about 128 frames. Returns the number of voices and decays that still
+ * sound, or NT_ERR_ARGS. */
+NT_KERNEL_API int nt_sampler_process(double* state, uint32_t voices,
+                                     const float* sample, size_t sample_frames,
+                                     uint32_t channels, const float* gate,
+                                     const float* pitch, float* out,
+                                     size_t frames, int mode, double rate,
+                                     double attack_frames,
+                                     double release_frames, double gain);
+
+
+// Stateful audio: state_len(channels, rate, delaySeconds) doubles. Init before
+// the first block. Blocks allocate nothing. Only delay uses delaySeconds.
+// Layout per channel:
+// bitcrush: phase, held value. compress: envelope. limiter: gain (init = 1).
+// noise_gate: envelope, gain. phaser: x[4], y[4], feedback sample, LFO phase.
+// reverb: six rings of index, lowpass store, samples[length]. Lengths are
+// max(1, round(base * rate / 44100)), bases = 1557,1617,1491,1422,225,556.
+// delay: index, dry[length], wet[length], length = floor(seconds * rate).
+// All other initial state values are zero. Delay time is structural: changing
+// it requires a new state. Indexes are stored as doubles to cross both hosts.
+#define NT_AUDIO_MAX_STREAM_DELAY_SECONDS 2
+NT_KERNEL_API size_t nt_audio_bitcrush_state_len(uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_bitcrush_init(double* state, uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_bitcrush_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double bit_depth, uint32_t reduction);
+NT_KERNEL_API size_t nt_audio_compress_state_len(uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_compress_init(double* state, uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_compress_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double threshold_db, double ratio, double attack_ms, double release_ms, int auto_gain);
+NT_KERNEL_API size_t nt_audio_limiter_state_len(uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_limiter_init(double* state, uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_limiter_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double threshold_db, double release_ms, int auto_gain);
+NT_KERNEL_API size_t nt_audio_noise_gate_state_len(uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_noise_gate_init(double* state, uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_noise_gate_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double threshold_db, double attack_ms, double release_ms);
+NT_KERNEL_API size_t nt_audio_phaser_state_len(uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_phaser_init(double* state, uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_phaser_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double rate_hz, double depth, double centre_frequency_hz, double feedback, double mix);
+NT_KERNEL_API size_t nt_audio_reverb_state_len(uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_reverb_init(double* state, uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_reverb_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double room_scale, double damping, double wet_level, double dry_level);
+NT_KERNEL_API size_t nt_audio_delay_state_len(uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_delay_init(double* state, uint32_t channels, double sample_rate, double delay_seconds);
+NT_KERNEL_API int nt_audio_delay_block(double* state, const float* in, float* out, size_t frames, uint32_t channels, double sample_rate, double delay_seconds, double feedback, double mix);
+
+// Windowed-sinc resampling. Output frames = round(frames * out_rate / in_rate).
+NT_KERNEL_API size_t nt_resample_output_frames(size_t frames, double in_rate, double out_rate);
+NT_KERNEL_API int nt_resample(const float* in, float* out, size_t frames, uint32_t channels, double in_rate, double out_rate);
+
 #ifdef __cplusplus
 }
 #endif

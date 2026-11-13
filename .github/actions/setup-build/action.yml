@@ -26,6 +26,13 @@ inputs:
       (.github/actions/package-media). Tests and example checks read it.
     required: false
     default: "true"
+  free-disk:
+    description: >-
+      `wait` (default) deletes the runner's unused SDKs before the install.
+      `background` starts the deletion and goes on at once: use it for jobs
+      whose disk use peaks long after setup, such as the native builds.
+    required: false
+    default: "wait"
   turbo:
     description: >-
       `auto` (default) restores Turbo's build cache (and saves it back when
@@ -45,10 +52,15 @@ runs:
     - name: Free disk space (Linux)
       if: runner.os == 'Linux'
       shell: bash
+      env:
+        FREE_DISK: ${{ inputs.free-disk }}
       run: |
         df -hT / && df -i /
         if [ -n "${NODETOOL_CI_IMAGE:-}" ]; then
-          if [ -d /reclaim ]; then
+          if [ -d /reclaim ] && [ "$FREE_DISK" = background ]; then
+            # About 80 seconds of deletion that the job need not wait for.
+            nohup sudo find /reclaim -mindepth 2 -maxdepth 2 -exec rm -rf {} + > /dev/null 2>&1 &
+          elif [ -d /reclaim ]; then
             sudo find /reclaim -mindepth 2 -maxdepth 2 -exec rm -rf {} +
           fi
           sudo rm -rf "$RUNNER_TOOL_CACHE/CodeQL"

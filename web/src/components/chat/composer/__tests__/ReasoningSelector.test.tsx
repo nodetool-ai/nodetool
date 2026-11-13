@@ -47,4 +47,23 @@ describe("ReasoningSelector", () => {
       expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     });
   });
+
+  it("offers Extra high only for a model that takes it", async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderSelector("gemini", "gemini-4-hydrogen");
+
+    await user.click(screen.getByRole("button", { name: "Default" }));
+    expect(await screen.findAllByRole("menuitemradio")).toHaveLength(5);
+    await user.click(screen.getByRole("menuitemradio", { name: /Extra high/ }));
+    expect(useGlobalChatStore.getState().reasoningEffort).toBe("xhigh");
+    unmount();
+
+    renderSelector("gemini", "gemini-4-argon");
+    expect(screen.getByRole("button", { name: "Default" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Default" }));
+    expect(await screen.findAllByRole("menuitemradio")).toHaveLength(4);
+    expect(
+      screen.queryByRole("menuitemradio", { name: /Extra high/ })
+    ).not.toBeInTheDocument();
+  });
 });

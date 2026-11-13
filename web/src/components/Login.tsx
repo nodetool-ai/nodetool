@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useState, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import useAuth from "../stores/useAuth";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
@@ -11,6 +11,7 @@ import {
   Text,
   Caption,
   Card,
+  Checkbox,
   FlexColumn,
   ExternalLink,
   EditorButton,
@@ -51,6 +52,12 @@ const styles = (theme: Theme) =>
     },
     ".subhead": {
       color: theme.vars.palette.grey[200]
+    },
+    ".marketing-opt-in": {
+      alignItems: "flex-start",
+      marginLeft: 0,
+      marginRight: 0,
+      textAlign: "left"
     },
     ".footnotes": {
       maxWidth: CONTENT_WIDTH
@@ -130,6 +137,14 @@ function SsoLogin() {
 function Login() {
   const theme = useTheme();
   const { t } = useTranslation();
+  // Unchecked by default: marketing email needs an active yes.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const handleMarketingOptIn = useCallback(
+    (_event: ChangeEvent<HTMLInputElement>, checked: boolean) => {
+      setMarketingOptIn(checked);
+    },
+    []
+  );
 
   if (isSsoMode()) {
     return <SsoLogin />;
@@ -157,8 +172,19 @@ function Login() {
               {t("screen_remaining.login.description")}
             </Text>
           </FlexColumn>
-          <FlexColumn fullWidth>
-            <GoogleAuthButton />
+          <FlexColumn fullWidth gap={SPACING.md}>
+            <GoogleAuthButton marketingOptIn={marketingOptIn} />
+            <Checkbox
+              size="small"
+              labelProps={{ className: "marketing-opt-in" }}
+              checked={marketingOptIn}
+              onChange={handleMarketingOptIn}
+              label={
+                <Caption size="small" color="secondary">
+                  {t("screen_remaining.login.marketingOptIn")}
+                </Caption>
+              }
+            />
           </FlexColumn>
         </FlexColumn>
       </Card>

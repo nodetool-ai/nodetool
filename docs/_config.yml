@@ -306,6 +306,7 @@ exclude:
   - plans/color-precision/
   # Native runner and editor plans. They cite native/ and web/ source, which
   # no built page can resolve, and only each other link to them.
+  - plans/audio-signal-nodes.md
   - plans/graph-runner-*
   - plans/native-node-editor.md
   - native-node-editor-visual-comparison.md

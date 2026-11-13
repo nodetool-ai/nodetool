@@ -7,7 +7,7 @@
  * path every other provider credential uses.
  *
  * The registry itself is a process global. Sync writes ids into it, never
- * credentials — two users with the same slug each reach their own endpoint, and
+ * credentials, and keeps every user's ids registered — two users with the same slug each reach their own endpoint, and
  * a user who configured nothing sees the provider as unconfigured.
  */
 
@@ -90,7 +90,7 @@ export async function syncCustomProviderRegistry(
   userId: string
 ): Promise<string[]> {
   const definitions = await loadCustomProviderCatalog(userId);
-  const ids = syncCustomProviders(definitions);
+  const ids = syncCustomProviders(definitions, userId);
   clearProviderCache();
   return ids;
 }

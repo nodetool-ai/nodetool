@@ -194,6 +194,31 @@ function validateRequiredAssetArgs(
   }
 }
 
+/**
+ * A `str` field that declares a numeric `min` or `max` is a number the codegen
+ * typed as a string (ElevenLabs SFX `duration_seconds`: "Duration in seconds
+ * (0.5-22)"). Send it as a number. Blank, or a `0` below a positive `min`
+ * (the number widget's empty state), is sent as unset, so the provider picks
+ * its own default instead of rejecting the request.
+ */
+function numericStringField(
+  value: NodeValue,
+  field: { propType: string; min?: number; max?: number }
+): NodeValue {
+  if (
+    field.propType !== "str" ||
+    (field.min === undefined && field.max === undefined) ||
+    typeof value !== "string"
+  ) {
+    return value;
+  }
+  const text = value.trim();
+  if (text === "") return null;
+  const n = Number(text);
+  if (!Number.isFinite(n)) return value;
+  return n === 0 && field.min !== undefined && field.min > 0 ? null : n;
+}
+
 async function buildArgs(
   instance: BaseNode,
   spec: FalManifestEntry,
@@ -293,7 +318,10 @@ async function buildArgs(
       }
     } else {
       args[apiName] = unsetZeroBelowMin(
-        coerceManifestScalar(value, field.propType, field.enumValues),
+        numericStringField(
+          coerceManifestScalar(value, field.propType, field.enumValues),
+          field
+        ),
         field.min,
         field.default
       );

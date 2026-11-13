@@ -497,6 +497,25 @@ describe("nodetool object model", () => {
     });
   });
 
+  it("deletes a whole sketch through delete_sketch", async () => {
+    const calls: ChatCodeActToolCall[] = [];
+    const session = makeSession(
+      ["list_sketches", "delete_sketch_version", "delete_sketch"].map(toolDef),
+      async (call) => {
+        calls.push(call);
+        return JSON.stringify({ image_document_id: "img1", deleted: true });
+      }
+    );
+    const obs = await runAction(
+      session,
+      `return await nodetool.sketches.delete("img1");`
+    );
+    expect(obs.ok).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe("delete_sketch");
+    expect(calls[0].args).toEqual({ image_document_id: "img1" });
+  });
+
   it("routes timelines.compositions to the composition capabilities", async () => {
     const { executeTool, calls } = createFakeRouter();
     const session = makeSession(TIMELINE_TOOLS, executeTool);

@@ -20,7 +20,6 @@ import CloseIcon from "@mui/icons-material/CloseOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 
 import {
-  AlertBanner,
   Text,
   Tooltip,
   FlexRow,
@@ -50,7 +49,7 @@ import type { Message } from "../../stores/ApiTypes";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useDraggable } from "../../hooks/useDraggable";
 import { cn } from "../editor_ui/editorUtils";
-import ProviderFailureReportButton from "../support/ProviderFailureReportButton";
+import ChatErrorBanner from "../chat/containers/ChatErrorBanner";
 import CanvasMediaComposer from "./CanvasMediaComposer";
 
 type ThreadStatus = React.ComponentProps<typeof ChatThreadView>["status"];
@@ -602,7 +601,7 @@ const CanvasChatWindow: React.FC<CanvasChatWindowProps> = ({
         >
           {title || t("i18n-next5.conversation.title")}
         </Text>
-        <FlexRow gap={0.25} align="center" sx={{ ml: "auto", flexShrink: 0 }}>
+        <FlexRow gap={SPACING.micro} align="center" sx={{ ml: "auto", flexShrink: 0 }}>
           <Tooltip title={t("i18n-next5.conversation.openWorkspaceTab")}>
             <button
               type="button"
@@ -713,17 +712,7 @@ const CanvasChatWindow: React.FC<CanvasChatWindowProps> = ({
 
       <div className="chat-window-composer">
         {chatError && (
-          <AlertBanner
-            severity="error"
-            compact
-            onClose={() => clearChatError()}
-            sx={{ borderRadius: BORDER_RADIUS.lg }}
-          >
-            <FlexRow align="center" gap={SPACING.sm}>
-              <span>{chatError}</span>
-              <ProviderFailureReportButton errorText={chatError} />
-            </FlexRow>
-          </AlertBanner>
+          <ChatErrorBanner error={chatError} onDismiss={clearChatError} />
         )}
         <CanvasMediaComposer />
       </div>

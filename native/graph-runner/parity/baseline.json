@@ -1,6 +1,6 @@
 {
  "counts": {
-  "parity": 312,
+  "parity": 323,
   "mismatch": 11,
   "native-unsupported": 22,
   "reference-unavailable": 88,
@@ -10,7 +10,7 @@
   "anthropic.text.WebSearch": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (a..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (a..."
   },
   "claude_code.text.WebSearch": {
    "status": "skipped",
@@ -30,37 +30,37 @@
   "gemini.audio.TextToSpeech": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected — assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini.audi..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected \u2014 assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (gemini.audi..."
   },
   "gemini.audio.Transcribe": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a asr_model to be selected — assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini.audi..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a asr_model to be selected \u2014 assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (gemini.audi..."
   },
   "gemini.image.ImageGeneration": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini...."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (gemini...."
   },
   "gemini.text.Embedding": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected \u2014 assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" ..."
   },
   "gemini.text.GroundedSearch": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (g..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (g..."
   },
   "gemini.video.ImageToVideo": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini...."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (gemini...."
   },
   "gemini.video.TextToVideo": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (gemini...."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (gemini...."
   },
   "kie.dynamic_schema.KieAI": {
    "status": "mismatch",
@@ -610,12 +610,12 @@
   "mistral.embeddings.Embedding": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected \u2014 assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" ..."
   },
   "mistral.text.ChatComplete": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (m..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (m..."
   },
   "mistral.text.CodeComplete": {
    "status": "reference-unavailable",
@@ -625,22 +625,22 @@
   "mistral.vision.ImageToText": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (m..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (m..."
   },
   "mistral.vision.OCR": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (m..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (m..."
   },
   "nodetool.agents.Agent": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.agents.Classifier": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.agents.CreateThread": {
    "status": "skipped",
@@ -650,22 +650,22 @@
   "nodetool.agents.Decision": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.agents.EnhancePrompt": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.agents.Extractor": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.agents.Summarizer": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.audio.AudioMixer": {
    "status": "parity",
@@ -675,7 +675,7 @@
   "nodetool.audio.AudioToAudio": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/audio-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a audio_to_audio_model to be selected — assign {type: \"audio_to_audio_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a audio_to_audio_model to be selected \u2014 assign {type: \"audio_to_audio_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on..."
   },
   "nodetool.audio.ChunkToAudio": {
    "status": "parity",
@@ -730,7 +730,7 @@
   "nodetool.audio.MonoToStereo": {
    "status": "mismatch",
    "package": "@nodetool-ai/audio-nodes",
-   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Could not decode audio: input is not WAV (8/16/24/32-bit PCM or 32-bit float) — WebAudio can't read it (Failed to execute 'decodeAudioData': unsupported feature: core (probe): no ..."
+   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Could not decode audio: input is not WAV (8/16/24/32-bit PCM or 32-bit float) \u2014 WebAudio can't read it (Failed to execute 'decodeAudioData': unsupported feature: core (probe): no ..."
   },
   "nodetool.audio.Normalize": {
    "status": "parity",
@@ -740,7 +740,7 @@
   "nodetool.audio.OverlayAudio": {
    "status": "mismatch",
    "package": "@nodetool-ai/audio-nodes",
-   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Could not decode audio: input is not WAV (8/16/24/32-bit PCM or 32-bit float) — WebAudio can't read it (Failed to execute 'decodeAudioData': unsupported feature: core (probe): no ..."
+   "reason": "first divergence: [job] first divergence at message 2 of 2 expected, 2 received\n  expected: {\"error\":\"Node \\\"n\\\" failed: Could not decode audio: input is not WAV (8/16/24/32-bit PCM or 32-bit float) \u2014 WebAudio can't read it (Failed to execute 'decodeAudioData': unsupported feature: core (probe): no ..."
   },
   "nodetool.audio.RemoveSilence": {
    "status": "parity",
@@ -780,12 +780,12 @@
   "nodetool.audio.TextToMusic": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/audio-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a music_model to be selected — assign {type: \"music_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a music_model to be selected \u2014 assign {type: \"music_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.audio.TextToSpeech": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/audio-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected — assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetool.au..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected \u2014 assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetool.au..."
   },
   "nodetool.audio.Trim": {
    "status": "parity",
@@ -807,6 +807,26 @@
    "package": "@nodetool-ai/audio-nodes",
    "reason": "needs database: ProcessingContext model interface 'createAsset' is not configured"
   },
+  "nodetool.audio.realtime.StreamingBitcrush": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
+  },
+  "nodetool.audio.realtime.StreamingCompress": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
+  },
+  "nodetool.audio.realtime.StreamingDelay": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
+  },
+  "nodetool.audio.realtime.StreamingDistortion": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
+  },
   "nodetool.audio.realtime.StreamingGain": {
    "status": "parity",
    "package": "@nodetool-ai/audio-nodes",
@@ -817,10 +837,45 @@
    "package": "@nodetool-ai/audio-nodes",
    "reason": "1 case(s) match"
   },
+  "nodetool.audio.realtime.StreamingHighShelf": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
+  },
+  "nodetool.audio.realtime.StreamingLimiter": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
+  },
   "nodetool.audio.realtime.StreamingLowPass": {
    "status": "parity",
    "package": "@nodetool-ai/audio-nodes",
    "reason": "1 case(s) match"
+  },
+  "nodetool.audio.realtime.StreamingLowShelf": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
+  },
+  "nodetool.audio.realtime.StreamingNoiseGate": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
+  },
+  "nodetool.audio.realtime.StreamingPeak": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
+  },
+  "nodetool.audio.realtime.StreamingPhaser": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
+  },
+  "nodetool.audio.realtime.StreamingReverb": {
+   "status": "parity",
+   "package": "@nodetool-ai/audio-nodes",
+   "reason": "audio-effects.json PCM matches TypeScript and native hosts"
   },
   "nodetool.audio.synth.ADSR": {
    "status": "parity",
@@ -1190,7 +1245,7 @@
   "nodetool.creative.Director": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.creative.ScreenplayShots": {
    "status": "parity",
@@ -1205,7 +1260,7 @@
   "nodetool.creative.ShotChain": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 2 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 2 issue(s):\n  - Property \"model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.data.ForEachRow": {
    "status": "parity",
@@ -1300,27 +1355,27 @@
   "nodetool.generators.ChartGenerator": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.generators.DataGenerator": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.generators.ListGenerator": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.generators.SVGGenerator": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.generators.StructuredOutputGenerator": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.image.BatchToList": {
    "status": "parity",
@@ -1370,7 +1425,7 @@
   "nodetool.image.ImageToImage": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/image-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.image.ImagesToList": {
    "status": "parity",
@@ -1410,12 +1465,12 @@
   "nodetool.image.Relight": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/image-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.image.RemoveBackground": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/image-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.image.Resize": {
    "status": "parity",
@@ -1450,27 +1505,27 @@
   "nodetool.image.Segment": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/image-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.image.TextToImage": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/image-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.image.Upscale": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/image-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.image.Vectorize": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/image-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.input.ASRModelInput": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a asr_model to be selected — assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetool.in..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a asr_model to be selected \u2014 assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetool.in..."
   },
   "nodetool.input.AssetFolderInput": {
    "status": "parity",
@@ -1515,7 +1570,7 @@
   "nodetool.input.EmbeddingModelInput": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a embedding_model to be selected \u2014 assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" ..."
   },
   "nodetool.input.FilePathInput": {
    "status": "parity",
@@ -1550,7 +1605,7 @@
   "nodetool.input.ImageModelInput": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.input.ImageSizeInput": {
    "status": "parity",
@@ -1565,7 +1620,7 @@
   "nodetool.input.LanguageModelInput": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.input.MessageDeconstructor": {
    "status": "parity",
@@ -1610,7 +1665,7 @@
   "nodetool.input.TTSModelInput": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a tts_model to be selected — assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetool.in..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a tts_model to be selected \u2014 assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetool.in..."
   },
   "nodetool.input.TextListInput": {
    "status": "parity",
@@ -1635,7 +1690,7 @@
   "nodetool.input.VideoModelInput": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/core-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"value\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.manimgx.GenerateScene": {
    "status": "skipped",
@@ -1690,7 +1745,7 @@
   "nodetool.model3d.ImageTo3D": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a model_3d_model to be selected — assign {type: \"model_3d_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a model_3d_model to be selected \u2014 assign {type: \"model_3d_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.model3d.LoadModel3DFile": {
    "status": "parity",
@@ -1735,7 +1790,7 @@
   "nodetool.model3d.TextTo3D": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a model_3d_model to be selected — assign {type: \"model_3d_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a model_3d_model to be selected \u2014 assign {type: \"model_3d_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.model3d.Transform3D": {
    "status": "parity",
@@ -1775,7 +1830,7 @@
   "nodetool.script.WriteScript": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.sketch.CreateSketch": {
    "status": "parity",
@@ -1800,7 +1855,7 @@
   "nodetool.storyboard.CreateStoryboard": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 2 issue(s):\n  - Property \"image_model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 2 issue(s):\n  - Property \"image_model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.storyboard.LoadStoryboard": {
    "status": "parity",
@@ -1815,12 +1870,12 @@
   "nodetool.storyboard.RenderClips": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"video_model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"video_model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.storyboard.RenderStills": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"image_model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (n..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"image_model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (n..."
   },
   "nodetool.storyboard.StoryboardShots": {
    "status": "parity",
@@ -1830,7 +1885,7 @@
   "nodetool.text.AutomaticSpeechRecognition": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/text-nodes",
-   "reason": "needs model: Graph validation failed with 2 issue(s):\n  - Property \"model\" requires a asr_model to be selected — assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetool.te..."
+   "reason": "needs model: Graph validation failed with 2 issue(s):\n  - Property \"model\" requires a asr_model to be selected \u2014 assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetool.te..."
   },
   "nodetool.text.Collect": {
    "status": "parity",
@@ -1845,7 +1900,7 @@
   "nodetool.text.Embedding": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/text-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected \u2014 assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" ..."
   },
   "nodetool.text.FilterRegexString": {
    "status": "parity",
@@ -2030,7 +2085,7 @@
   "nodetool.video.ImageToVideo": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.video.Keyframe": {
    "status": "parity",
@@ -2040,7 +2095,7 @@
   "nodetool.video.LipSync": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.video.LoadVideoAssets": {
    "status": "parity",
@@ -2060,7 +2115,7 @@
   "nodetool.video.ReferenceToVideo": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.video.Resize": {
    "status": "native-unsupported",
@@ -2115,7 +2170,7 @@
   "nodetool.video.TextToVideo": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.video.Transition": {
    "status": "native-unsupported",
@@ -2130,7 +2185,7 @@
   "nodetool.video.VideoToVideo": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/video-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (nodetoo..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (nodetoo..."
   },
   "nodetool.workflows.app_node.App": {
    "status": "mismatch",
@@ -2170,12 +2225,12 @@
   "openai.audio.TextToSpeech": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected — assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (openai.audi..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected \u2014 assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (openai.audi..."
   },
   "openai.audio.Transcribe": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a asr_model to be selected — assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (openai.audi..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a asr_model to be selected \u2014 assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (openai.audi..."
   },
   "openai.audio.Translate": {
    "status": "reference-unavailable",
@@ -2185,12 +2240,12 @@
   "openai.image.CreateImage": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (openai...."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (openai...."
   },
   "openai.image.EditImage": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (openai...."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (openai...."
   },
   "openai.image.ImageVariation": {
    "status": "reference-unavailable",
@@ -2200,7 +2255,7 @@
   "openai.text.Embedding": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected \u2014 assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" ..."
   },
   "openai.text.Moderation": {
    "status": "reference-unavailable",
@@ -2280,57 +2335,57 @@
   "vertex.audio.TextToSpeech": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected — assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (vertex.audi..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a tts_model to be selected \u2014 assign {type: \"tts_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (vertex.audi..."
   },
   "vertex.audio.Transcribe": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a asr_model to be selected — assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (vertex.audi..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a asr_model to be selected \u2014 assign {type: \"asr_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (vertex.audi..."
   },
   "vertex.image.ImageGeneration": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (vertex...."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (vertex...."
   },
   "vertex.text.Embedding": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected — assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" ..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a embedding_model to be selected \u2014 assign {type: \"embedding_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" ..."
   },
   "vertex.text.GroundedSearch": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (v..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (v..."
   },
   "vertex.video.ImageToVideo": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (vertex...."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (vertex...."
   },
   "vertex.video.TextToVideo": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected — assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (vertex...."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a video_model to be selected \u2014 assign {type: \"video_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (vertex...."
   },
   "xai.image.GenerateImage": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected — assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (xai.ima..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a image_model to be selected \u2014 assign {type: \"image_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (xai.ima..."
   },
   "xai.text.ChatComplete": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (x..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (x..."
   },
   "xai.text.WebSearch": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (x..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (x..."
   },
   "xai.vision.ImageToText": {
    "status": "reference-unavailable",
    "package": "@nodetool-ai/llm-nodes",
-   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected — assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim. on node \"n\" (x..."
+   "reason": "needs model: Graph validation failed with 1 issue(s):\n  - Property \"model\" requires a language_model to be selected \u2014 assign {type: \"language_model\", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` \u2014 assign that verbatim. on node \"n\" (x..."
   }
  }
 }

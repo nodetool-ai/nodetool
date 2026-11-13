@@ -21,7 +21,10 @@ By default it uses the runner at
 `~/.cache/graph-runner-parity/snapshot/nodetool-graph-runner`
 (`--runner <path>` picks another), builds the parity guest into
 `build/parity/` and compiles it to bytecode (`--bundle <path>` uses a prebuilt
-one). Results go to `build/parity/result.json` and `build/parity/summary.md`.
+one). `--modules <comma-separated package subpaths>` builds a guest for a
+specific qualification inside the same offline sandbox. Include the helper
+modules its graphs use, and select the qualified types with `--only`.
+Results go to `build/parity/result.json` and `build/parity/summary.md`.
 The reference stream of each case is kept next to its graph in
 `build/parity/graphs/`. A full run takes a few minutes, most of it native
 runs: each loads the whole guest in about two seconds.
