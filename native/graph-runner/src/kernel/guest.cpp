@@ -171,6 +171,11 @@ public:
     guest_.unregisterIo(ioId);
     co_return unwrap(reply);
   }
+  bool applyProperties(const Json& properties) override {
+    js::Engine& e = guest_.engine();
+    Guest::Passed in = Guest::pass(e, properties);
+    return e.toBoolean(e.call(guest_.api("apply"), e.undefined(), {id_, in.text, in.blobs}));
+  }
 
 private:
   Task<Json> call(std::string method, Json inputs) {

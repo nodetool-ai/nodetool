@@ -2301,7 +2301,8 @@
       "cloudAlphaNotice": "Cloud è in alfa. Per lavori di produzione, utilizzare",
       "ssoTitle": "Accedi a NodeTool",
       "ssoSignIn": "Accedi con {{provider}}",
-      "ssoFailed": "Accesso non riuscito ({{reason}}). Riprova o chiedi l'accesso al tuo amministratore."
+      "ssoFailed": "Accesso non riuscito ({{reason}}). Riprova o chiedi l'accesso al tuo amministratore.",
+      "marketingOptIn": "Inviami email su nuovi lanci e offerte gratuite. Puoi annullare l'iscrizione in qualsiasi momento."
     },
     "inspector": {
       "params": "Param",
@@ -6482,6 +6483,16 @@
           "image": "Immagine",
           "video": "Video",
           "audio": "Audio"
+        },
+        "attachedFileActions": {
+          "label": "Inizia dai tuoi file",
+          "hint": "File allegati. Descrivi cosa creare oppure parti da questi:",
+          "animate": "Anima in un video",
+          "image": "Crea nuove immagini",
+          "retake": "Modifica il video",
+          "script": "Trasforma in sceneggiatura",
+          "ask": "Chiedi informazioni",
+          "askPrompt": "Guarda i file allegati e suggerisci cosa potrei crearne."
         }
       }
     }
@@ -20303,6 +20314,12 @@
     "missingKeysDetail": "Questo workflow richiede {{keys}}. Aggiungila nelle Impostazioni prima di eseguirlo.",
     "costPerRun": "≈ {{cost}} per esecuzione",
     "costUnknown": "Costo sconosciuto"
+  },
+  "marketingEmails": {
+    "title": "Email sul prodotto",
+    "label": "Inviami email su lanci e offerte gratuite",
+    "description": "Ricevi notizie su nuove funzioni, modelli e offerte gratuite. Ogni email contiene un link per annullare l'iscrizione, e puoi disattivare questa opzione qui in qualsiasi momento.",
+    "saveFailed": "La preferenza email non è stata salvata. Riprova."
   },
   "firstRun": {
     "ariaLabel": "Inizia da un risultato",

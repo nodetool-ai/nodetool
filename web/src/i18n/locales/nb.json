@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Cloud er i alfa. For produksjonsarbeid, bruk",
       "ssoTitle": "Logg inn på NodeTool",
       "ssoSignIn": "Logg inn med {{provider}}",
-      "ssoFailed": "Innlogging mislyktes ({{reason}}). Prøv igjen, eller be administratoren om tilgang."
+      "ssoFailed": "Innlogging mislyktes ({{reason}}). Prøv igjen, eller be administratoren om tilgang.",
+      "marketingOptIn": "Send meg e-post om nye lanseringer og gratistilbud. Du kan melde deg av når som helst."
     },
     "inspector": {
       "params": "Params",
@@ -6396,6 +6397,16 @@
           "image": "Bilde",
           "video": "Video",
           "audio": "Lyd"
+        },
+        "attachedFileActions": {
+          "label": "Start med filene dine",
+          "hint": "Filer lagt ved. Beskriv hva du vil lage, eller start fra dem:",
+          "animate": "Animer til en video",
+          "image": "Lag nye bilder",
+          "retake": "Rediger videoen",
+          "script": "Gjør om til manus",
+          "ask": "Spør om dem",
+          "askPrompt": "Se på de vedlagte filene og foreslå hva jeg kan lage av dem."
         }
       }
     }
@@ -19992,6 +20003,12 @@
     "missingKeysDetail": "Denne arbeidsflyten trenger {{keys}}. Legg den til i Innstillinger før du kjører den.",
     "costPerRun": "≈ {{cost}} per kjøring",
     "costUnknown": "Ukjent kostnad"
+  },
+  "marketingEmails": {
+    "title": "Produkt-e-post",
+    "label": "Send meg e-post om lanseringer og gratistilbud",
+    "description": "Få høre om nye funksjoner, modeller og gratistilbud. Hver e-post har en avmeldingslenke, og du kan slå dette av her når som helst.",
+    "saveFailed": "E-postinnstillingen ble ikke lagret. Prøv igjen."
   },
   "firstRun": {
     "ariaLabel": "Start med et resultat",

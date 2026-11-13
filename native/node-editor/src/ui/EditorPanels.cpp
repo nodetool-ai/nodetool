@@ -7,7 +7,9 @@
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QGuiApplication>
+#include <QDateTime>
 #include <QDockWidget>
+#include <QJsonDocument>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -235,10 +237,107 @@ bool EditorWindow::versionsVisible() const {
   return dock && !dock->isHidden();
 }
 
+bool EditorWindow::queueVisible() const {
+  if (!tabOwner_) { return activeEditor_->queueVisible(); }
+  const auto *queue = queueOverlay_ ? queueOverlay_->rootObject() : nullptr;
+  return queue && queue->property("presented").toBool() && queue->property("showList").toBool();
+}
+
+void EditorWindow::toggleQueue() {
+  if (!tabOwner_) { activeEditor_->toggleQueue(); return; }
+  auto *queue = queueOverlay_ ? queueOverlay_->rootObject() : nullptr;
+  if (!queue) { return; }
+  // The web Queue tab opens the queue at any time and closes it when it is the open view.
+  const bool open = !queueVisible();
+  queue->setProperty("opened", open);
+  queue->setProperty("expanded", open);
+  layoutOverlays();
+  schedulePanelChanged();
+}
+
+bool EditorWindow::generationsVisible() const {
+  if (!tabOwner_) { return activeEditor_->generationsVisible(); }
+  const auto *dock = findChild<QDockWidget *>(QStringLiteral("generations-dock"));
+  return dock && !dock->isHidden();
+}
+
+void EditorWindow::showGenerations() {
+  for (auto *existing : findChildren<QDockWidget *>(QStringLiteral("generations-dock"))) { existing->close(); }
+  // Parented to the dock host and deleted when it closes.
+  auto *dock = new QDockWidget(tr("Generations"), dockHost_);
+  dock->setObjectName(QStringLiteral("generations-dock"));
+  dock->setAttribute(Qt::WA_DeleteOnClose);
+  dock->setTitleBarWidget(new QWidget(dock));
+  dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  outputDock_->hide();
+  auto *content = new QQuickWidget(engine_, dock);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties({{"activity", QVariant::fromValue(generationActivity())},
+                                 {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
+  content->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/GenerationsPanel.qml")));
+  dock->setWidget(content);
+  if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
+  connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
+  // The status bar Generations tab shows whether the panel is open.
+  connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
+  dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
+  dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
+  dock->show();
+}
+
+void EditorWindow::refreshGenerations() {
+  if (!tabOwner_) { activeEditor_->refreshGenerations(); return; }
+  auto *activity = generationActivity();
+  // Open tabs name their workflows on the tiles.
+  QHash<QString, QString> names;
+  for (const auto *tab : tabOwner_->tabs_) {
+    const auto workflow = tab->session_.workflow();
+    if (!workflow["id"].toString().isEmpty()) { names.insert(workflow["id"].toString(), workflow["name"].toString(QStringLiteral("Untitled"))); }
+  }
+  activity->setWorkflowNames(names);
+  activity->setLoading(true);
+  const QPointer<node_editor::GenerationActivity> target(activity);
+  session_.listGenerations([target](const QJsonArray &records, const QString &error) {
+    if (!target) { return; }
+    target->setLoading(false, error);
+    if (error.isEmpty()) { target->replaceHistory(records, QDateTime::currentMSecsSinceEpoch()); }
+  });
+}
+
+void EditorWindow::openWorkflowDocument(const QJsonObject &workflow) {
+  if (!tabOwner_) { activeEditor_->openWorkflowDocument(workflow); return; }
+  auto *owner = tabOwner_;
+  if (!file_.isEmpty() || !document_.nodes().isEmpty() || hasUnsavedChanges() || session_.serverBound()) { owner->newTab(); }
+  // An unsaved tab: Save asks for a file, as for an opened example.
+  owner->activeEditor_->openDocument(QJsonDocument(workflow).toJson(QJsonDocument::Compact), {});
+}
+
+void EditorWindow::reportJob(const QString &jobId) {
+  for (const auto &value : session_.queue()) {
+    const auto job = value.toMap();
+    if (job["jobId"].toString() != jobId) { continue; }
+    // ReportBugButton on a failed JobItem.tsx.
+    const auto name = job["name"].toString().isEmpty() ? QStringLiteral("Untitled") : job["name"].toString();
+    const auto error = job["error"].toString();
+    reportBug({.source = QStringLiteral("Job failure"),
+               .summary = QStringLiteral("Job failed: %1").arg(name),
+               .errorText = error.isEmpty() ? QStringLiteral("Job failed") : error,
+               .workflowId = job["workflow_id"].toString(),
+               .jobId = jobId});
+    return;
+  }
+}
+
 void EditorWindow::toggleStatusView(const QString &view) {
   if (!tabOwner_) { activeEditor_->toggleStatusView(view); return; }
   if (view == "logs") {
     action(QStringLiteral("Output"));
+  } else if (view == "queue") {
+    toggleQueue();
+  } else if (view == "generations") {
+    if (auto *dock = findChild<QDockWidget *>(QStringLiteral("generations-dock")); dock && !dock->isHidden()) { dock->close(); }
+    else { showGenerations(); }
   } else if (view == "trace") {
     if (auto *dock = findChild<QDockWidget *>(QStringLiteral("run-trace-dock")); dock && !dock->isHidden()) { dock->close(); }
     else { action(QStringLiteral("Run trace")); }

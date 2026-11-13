@@ -2301,7 +2301,8 @@
       "cloudAlphaNotice": "Cloud est en version alpha. Pour les travaux de production, utilisez",
       "ssoTitle": "Connexion à NodeTool",
       "ssoSignIn": "Se connecter avec {{provider}}",
-      "ssoFailed": "Échec de la connexion ({{reason}}). Réessayez ou demandez l'accès à votre administrateur."
+      "ssoFailed": "Échec de la connexion ({{reason}}). Réessayez ou demandez l'accès à votre administrateur.",
+      "marketingOptIn": "Recevoir des e-mails sur les nouveautés et les offres gratuites. Désinscription possible à tout moment."
     },
     "inspector": {
       "params": "Paramètres",
@@ -6482,6 +6483,16 @@
           "image": "Image",
           "video": "Vidéo",
           "audio": "Audio"
+        },
+        "attachedFileActions": {
+          "label": "Partir de vos fichiers",
+          "hint": "Fichiers joints. Décrivez ce que vous voulez créer, ou partez de ceux-ci :",
+          "animate": "Animer en vidéo",
+          "image": "Créer de nouvelles images",
+          "retake": "Modifier la vidéo",
+          "script": "Transformer en script",
+          "ask": "Poser une question",
+          "askPrompt": "Regarde les fichiers joints et propose ce que je pourrais en faire."
         }
       }
     }
@@ -20303,6 +20314,12 @@
     "missingKeysDetail": "Ce workflow nécessite {{keys}}. Ajoutez-la dans les Paramètres avant de l'exécuter.",
     "costPerRun": "≈ {{cost}} par exécution",
     "costUnknown": "Coût inconnu"
+  },
+  "marketingEmails": {
+    "title": "E-mails produit",
+    "label": "Recevoir des e-mails sur les nouveautés et les offres gratuites",
+    "description": "Soyez informé des nouvelles fonctionnalités, des nouveaux modèles et des offres gratuites. Chaque e-mail contient un lien de désinscription, et vous pouvez désactiver cette option ici à tout moment.",
+    "saveFailed": "Votre préférence d'e-mail n'a pas été enregistrée. Réessayez."
   },
   "firstRun": {
     "ariaLabel": "Commencer par un résultat",

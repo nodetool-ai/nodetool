@@ -38,6 +38,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
 import HubOutlinedIcon from "@mui/icons-material/HubOutlined";
@@ -175,7 +176,11 @@ import {
 import { newDocumentId } from "../../lib/newDocumentId";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { stageChatTurn } from "../chat/pendingChatTurn";
-import { openCreateSession, referencesFromAttachments } from "../create/openCreateSession";
+import {
+  openCreateSession,
+  referencesFromAttachments,
+  type OpenCreateSessionOptions
+} from "../create/openCreateSession";
 import { PROJECT_COLOR } from "./projectIdentity";
 import {
   composeFirstTurn,
@@ -314,6 +319,40 @@ const HOME_GOAL_FLOWS: Record<Exclude<HomeGoal, "chat">, EntryFlowId> = {
   image: "image",
   video: "video",
   audio: "speech"
+};
+
+/** File kinds the Home composer offers a next step for. */
+const isImageFile = (file: Pick<DroppedFile, "type">): boolean =>
+  file.type.startsWith("image/");
+const isVideoFile = (file: Pick<DroppedFile, "type">): boolean =>
+  file.type.startsWith("video/");
+const DOCUMENT_EXTENSIONS = /\.(docx?|pdf|txt|md|rtf|odt|fdx|fountain)$/i;
+const isDocumentFile = (file: Pick<DroppedFile, "type" | "name">): boolean =>
+  file.type.startsWith("text/") ||
+  file.type === "application/pdf" ||
+  file.type === "application/msword" ||
+  file.type.includes("wordprocessingml") ||
+  file.type === "application/rtf" ||
+  DOCUMENT_EXTENSIONS.test(file.name);
+
+/**
+ * The Create mode a video start opens in: pictures animate, a clip with no
+ * pictures is retaken, and nothing attached generates from the prompt.
+ */
+const videoSessionSeed = (
+  attachments: readonly DroppedFile[]
+): Pick<OpenCreateSessionOptions, "mode" | "references"> => {
+  if (attachments.some(isImageFile)) {
+    return {
+      mode: "image_to_video",
+      references: referencesFromAttachments(attachments)
+    };
+  }
+  const clip = attachments.find(isVideoFile);
+  if (clip) {
+    return { mode: "retake", references: referencesFromAttachments([clip]) };
+  }
+  return { mode: "video", references: referencesFromAttachments(attachments) };
 };
 
 /** The notice asking for a model; dismissed once the model is picked. */
@@ -1217,10 +1256,7 @@ const NewProjectSurface = ({
         await openCreateSession(projectId, {
           title: name,
           prompt: text,
-          references: referencesFromAttachments(attachments),
-          mode: attachments.some((f) => f.type.startsWith("image/"))
-            ? "image_to_video"
-            : "video"
+          ...videoSessionSeed(attachments)
         });
         closeTab(
           tabId(
@@ -1660,6 +1696,37 @@ const NewProjectSurface = ({
     }
     runDestinationFlow(HOME_GOAL_FLOWS[goal]);
   }, [goal, handleStart, isUploading, pendingFlow, runDestinationFlow, starting]);
+
+  // Attached files with an empty prompt: the chat send stays off until there
+  // are words, so the composer names the next step for what was attached.
+  const attachedKinds = useMemo(
+    () => ({
+      images: droppedFiles.some(isImageFile),
+      video: droppedFiles.some(isVideoFile),
+      documents: droppedFiles.some(isDocumentFile)
+    }),
+    [droppedFiles]
+  );
+  const showAttachedFileActions =
+    goal === "chat" && prompt.trim().length === 0 && droppedFiles.length > 0;
+  const handleAttachedFileAction = useCallback(
+    (flow: "image" | "video" | "script") => {
+      if (flow !== "script") {
+        setGoal(flow);
+      }
+      if (pendingFlow !== null || starting || isUploading) {
+        return;
+      }
+      runDestinationFlow(flow);
+    },
+    [isUploading, pendingFlow, runDestinationFlow, starting]
+  );
+  // Asking about the files needs words to send; write them in the box and
+  // leave the send to the person.
+  const handleAskAboutFiles = useCallback(() => {
+    setPrompt(t("pass3_32.projects.home.attachedFileActions.askPrompt"));
+    promptRef.current?.focus();
+  }, [t]);
 
   const handleNewModel = async (): Promise<void> => {
     if (
@@ -2548,6 +2615,61 @@ const NewProjectSurface = ({
                       </Box>
                       )
                     )}
+                  </FlexRow>
+                )}
+
+                {/* Files with no words leave the send off. Say why, and
+                    offer what each kind of file most often starts. */}
+                {showAttachedFileActions && (
+                  <FlexRow
+                    align="center"
+                    gap={SPACING.sm}
+                    wrap
+                    role="group"
+                    aria-label={t("pass3_32.projects.home.attachedFileActions.label")}
+                    sx={{ px: SPACING.xl, pt: SPACING.md }}
+                  >
+                    <Caption color="muted" sx={{ flexBasis: { xs: "100%", sm: "auto" } }}>
+                      {t("pass3_32.projects.home.attachedFileActions.hint")}
+                    </Caption>
+                    {attachedKinds.images && (
+                      <Chip
+                        compact
+                        icon={<VideocamOutlinedIcon />}
+                        label={t("pass3_32.projects.home.attachedFileActions.animate")}
+                        onClick={() => handleAttachedFileAction("video")}
+                      />
+                    )}
+                    {attachedKinds.images && (
+                      <Chip
+                        compact
+                        icon={<ImageOutlinedIcon />}
+                        label={t("pass3_32.projects.home.attachedFileActions.image")}
+                        onClick={() => handleAttachedFileAction("image")}
+                      />
+                    )}
+                    {!attachedKinds.images && attachedKinds.video && (
+                      <Chip
+                        compact
+                        icon={<VideocamOutlinedIcon />}
+                        label={t("pass3_32.projects.home.attachedFileActions.retake")}
+                        onClick={() => handleAttachedFileAction("video")}
+                      />
+                    )}
+                    {attachedKinds.documents && (
+                      <Chip
+                        compact
+                        icon={<DescriptionOutlinedIcon />}
+                        label={t("pass3_32.projects.home.attachedFileActions.script")}
+                        onClick={() => handleAttachedFileAction("script")}
+                      />
+                    )}
+                    <Chip
+                      compact
+                      icon={<ChatBubbleOutlineIcon />}
+                      label={t("pass3_32.projects.home.attachedFileActions.ask")}
+                      onClick={handleAskAboutFiles}
+                    />
                   </FlexRow>
                 )}
 

@@ -101,6 +101,14 @@ struct Job {
   uint64_t generation = 0;
 };
 
+// One live property change on its way from updateNodeProperties() to the
+// worker. A plain value: the caller thread builds it and the worker takes
+// it out of Impl::liveUpdates.
+struct LiveUpdate {
+  std::string nodeId;
+  Json properties;
+};
+
 // One loaded engine with its guest. Members are destroyed in reverse order,
 // so the catalog and the guest release their engine values first.
 struct Context {
@@ -199,6 +207,13 @@ struct GraphRunner::Impl {
   // native-rules #1: Job shared by caller and worker, no comment explains why unique fails
   std::deque<std::shared_ptr<Job>> queue;
   std::shared_ptr<Job> active;
+  // Live property changes for `active`, in arrival order: queued by
+  // updateNodeProperties() on any thread, taken by the worker, and dropped
+  // when the run ends. Guarded by `mutex`.
+  std::deque<LiveUpdate> liveUpdates;
+  // Mirrors !liveUpdates.empty(), so the worker's loop reads it without the
+  // lock on every idle turn. Written under `mutex`.
+  std::atomic<bool> liveUpdatesPending{false};
   bool stopping = false;
   bool loadFinished = false;
   bool isReady = false;
@@ -437,6 +452,8 @@ void GraphRunner::Impl::work() {
     {
       std::lock_guard lock(mutex);
       active.reset();
+      liveUpdates.clear();
+      liveUpdatesPending = false;
       cancelState.endRun();
       reload = !context && !stopping;
     }
@@ -559,6 +576,25 @@ void GraphRunner::Impl::runJob(Job& job) {
       // waiting on a short timer can unwind. Later ones are dropped.
       loop.limitTimers(cancel.deadline.value_or(Clock::now()));
     };
+    // Live property changes run as macrotasks of the run, one at a time.
+    LiveWork live;
+    live.pending = [this] { return liveUpdatesPending.load(); };
+    live.dispatchOne = [this, &runner] {
+      LiveUpdate update;
+      {
+        std::lock_guard lock(mutex);
+        if (liveUpdates.empty()) return;
+        update = std::move(liveUpdates.front());
+        liveUpdates.pop_front();
+        liveUpdatesPending = !liveUpdates.empty();
+      }
+      try {
+        runner.updateNodeProperties(update.nodeId, update.properties);
+      } catch (const std::exception& e) {
+        // A node that refuses the values keeps the ones it has.
+        logLine("WARN", kLog, "live property change of node " + update.nodeId + " failed: " + e.what());
+      }
+    };
     try {
       guest.begin(job.id, job.workflowId);
       auto task = runner.run(std::move(graph), std::move(params));
@@ -566,7 +602,7 @@ void GraphRunner::Impl::runJob(Job& job) {
       // as they keep the server's run going. Timers still pending then are
       // dropped, and later job results are discarded.
       EngineRunControl control(engine, async, cancelState, job.generation, [&task] { return task.done(); },
-                               onCancel);
+                               onCancel, std::move(live));
       const RunExit exit = loop.run(control);
       if (!task.done()) {
         failure = exit == RunExit::Deadline ? "The run did not unwind within the cancel grace period"
@@ -759,6 +795,20 @@ bool GraphRunner::cancel(const std::string& jobId) {
     }
   }
   return false;
+}
+
+bool GraphRunner::updateNodeProperties(const std::string& jobId, const std::string& nodeId,
+                                       const std::string& propertiesJson) {
+  if (nodeId.empty()) return false;
+  Json properties = Json::parse(propertiesJson, nullptr, false);
+  if (!properties.is_object()) return false;
+  std::lock_guard lock(impl_->mutex);
+  const auto& job = impl_->active;
+  if (!job || job->id != jobId || job->finished || job->cancelRequested) return false;
+  impl_->liveUpdates.push_back({nodeId, std::move(properties)});
+  impl_->liveUpdatesPending = true;
+  if (impl_->workerLoop) impl_->workerLoop->wake();
+  return true;
 }
 
 int GraphRunner::contextLoads() const {

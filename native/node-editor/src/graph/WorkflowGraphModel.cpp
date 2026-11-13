@@ -592,6 +592,15 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       result.edge = provider.accent;
       result.edge.setAlpha(0x40);
   }
+  // DynamicComfySchemaNode: the ComfyUI color edges the card at 25 percent,
+  // selects it at full strength, and the header carries the workflow loader.
+  const bool comfy = comfySchemaNode(type);
+  if (comfy) {
+      result.accent = comfyAccent();
+      result.edge = comfyAccent();
+      result.edge.setAlpha(0x40);
+      result.headerAction = QStringLiteral("loadComfyWorkflow");
+  }
     result.subgraph = type == "nodetool.workflows.subgraph.Subgraph";
     if (result.subgraph) {
         result.icon = "accountTree";
@@ -624,11 +633,25 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
           handleOnly.insert(port.toObject()["name"].toString());
       }
   }
+  // WorkflowNodeContent and AppNodeContent pass editableDynamicInputs={false}:
+  // the inputs a source derives are handles without fields.
+  const bool sourcePorts = !childPicker(type).property.isEmpty();
+  if (sourcePorts) {
+      QSet<QString> declared;
+      for (const auto &port : meta["properties"].toArray()) { declared.insert(port.toObject()["name"].toString()); }
+      // The ports include those derived from the stored copy's graph.
+      for (const auto &port : ports(id, PortType::In)) {
+          const auto name = port.toObject()["name"].toString();
+          if (!declared.contains(name) && name != QStringLiteral("__control__")) { handleOnly.insert(name); }
+      }
+  }
   const auto inputs = ports(id, PortType::In);
   result.inputY.resize(inputs.size());
   const auto width = ui["width"].toDouble();
   const auto addRenameControls = [&] {
       if (!meta["supports_dynamic_inputs"].toBool()) { return; }
+      // DynamicComfySchemaContent hides the action icons of its derived inputs.
+      if (comfy) { return; }
       const auto values = node["dynamic_properties"].toObject();
       const auto declarations = node["dynamic_inputs"].toObject();
       QSet<QString> staticInputs;
@@ -650,7 +673,8 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       const auto data = node["data"].toObject();
       const bool schemaDriven = nodeType.startsWith("fal.") || nodeType.startsWith("kie.") || nodeType.startsWith("replicate.")
           || nodeType.startsWith("comfy.") || nodeType == "nodetool.workflows.workflow_node.Workflow"
-          || nodeType == "nodetool.workflows.subgraph.Subgraph" || data.contains("endpoint_id") || data.contains("model_id");
+          || nodeType == "nodetool.workflows.subgraph.Subgraph" || data.contains("endpoint_id") || data.contains("model_id")
+          || comfySchemaNode(nodeType);
       for (auto &row : result.rows) {
           if (row.port < 0 || row.port >= inputs.size() || row.bare || !portVisible(id, PortType::In, row.port)) { continue; }
           const auto name = inputs[row.port].toObject()["name"].toString();
@@ -788,12 +812,16 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
   // A provider node without a schema explains how to load one. The web reads
   // dynamic_inputs, which its loader refetches; native has no loader, so a
   // stored dynamic property also counts as a loaded schema.
-  if (!provider.label.isEmpty() && node["dynamic_inputs"].toObject().isEmpty() && node["dynamic_properties"].toObject().isEmpty()) {
+  // DynamicComfySchemaContent shows its hint until the workflow gives the node slots.
+  const bool comfyHint = comfy && node["dynamic_inputs"].toObject().isEmpty() && node["dynamic_outputs"].toObject().isEmpty();
+  const auto hintDescription = comfy ? tr("Run a ComfyUI workflow on any ComfyUI server.") : provider.description;
+  const auto hintInstructions = comfy ? tr("Click the upload icon to load a workflow (paste API JSON or drop a .json/.png).") : provider.instructions;
+  if (comfyHint || (!provider.label.isEmpty() && node["dynamic_inputs"].toObject().isEmpty() && node["dynamic_properties"].toObject().isEmpty())) {
       const auto left = double(nm::borderWidth + nm::schemaHintPaddingX);
       const auto textWidth = (width > 0 ? width : double(nm::defaultWidth)) - 2 * left;
       y += nm::schemaHintPaddingY;
-      for (const auto &[text, pixels, lineHeight] : {std::tuple{provider.description, nm::fontLabel, 1.45},
-                                                      std::tuple{provider.instructions, nm::fontValue, 1.4}}) {
+      for (const auto &[text, pixels, lineHeight] : {std::tuple{hintDescription, nm::fontLabel, 1.45},
+                                                      std::tuple{hintInstructions, nm::fontValue, 1.4}}) {
           NodeRow hint;
           hint.kind = NodeRowKind::Label;
           hint.label = text;
@@ -937,6 +965,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     if (handleOnly.contains(name)) { continue; }
     // The control handle sits at the top center of the card and has no row.
     if (name == "__control__") { continue; }
+    if (compositeHiddenProperty(type, name) || (comfy && !portVisible(id, PortType::In, i))) { continue; }
     if (!first) { y += nm::inlineRowGap; }
     first = false;
     const auto field = fields.value(name);
@@ -960,7 +989,20 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     result.inputY[i] = y + (bareField ? nm::fieldHeight : nm::rowHeight) / 2.0;
     if (!row.bare) { y += nm::rowHeight; }
     const auto hasValue = value.isValid() && !value.isNull();
-    if (!connected && (kind == "text" || kind == "multiline" || kind == "choice")) {
+    const auto picker = childPicker(type);
+    if (!connected && !picker.property.isEmpty() && name == picker.property) {
+      // WorkflowLoader and AppLoader: a select labeled "Select workflow" or
+      // "Select app" that shows the picked source's name.
+      const auto reference = childPickerReference(picker, node["data"].toObject());
+      row.kind = NodeRowKind::Field;
+      row.choice = true;
+      row.label = picker.label;
+      row.placeholder = reference.isEmpty();
+      row.value = reference.isEmpty() ? tr("Select\u2026") : reference["name"].toString();
+      row.fieldY = y;
+      row.height = nm::fieldHeight;
+      y += row.height;
+    } else if (!connected && (kind == "text" || kind == "multiline" || kind == "choice")) {
       row.kind = kind == "multiline" ? NodeRowKind::Multiline : NodeRowKind::Field;
       row.choice = kind == "choice";
       // SelectProperty.tsx reads an unset or empty value as its "Select…" placeholder.
@@ -1186,10 +1228,12 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       end = y + nm::micro + nm::borderWidth;
   };
   // A provider node's inputs follow its schema, so the shell offers no add buttons.
-  if (!result.unknown && meta["supports_dynamic_inputs"].toBool() && !result.subgraph && provider.label.isEmpty()) {
+  // AppNodeContent and DynamicComfySchemaContent have no NodePropertyForm either.
+  const bool propertyForm = provider.label.isEmpty() && !comfy && type != QStringLiteral("nodetool.workflows.app_node.App");
+  if (!result.unknown && meta["supports_dynamic_inputs"].toBool() && !result.subgraph && propertyForm) {
       addAction(contentCard ? QStringLiteral("addContentInput") : QStringLiteral("addInput"), contentCard ? contentInputLabel(meta) : tr("Add input"), false);
   }
-  if (!result.unknown && meta["supports_dynamic_outputs"].toBool() && !result.subgraph && provider.label.isEmpty()) {
+  if (!result.unknown && meta["supports_dynamic_outputs"].toBool() && !result.subgraph && propertyForm) {
       addAction(QStringLiteral("addOutput"), tr("Add output"), true);
   }
   // The provider footer: a rule and the caption 2 px below the inputs, at the
@@ -1447,6 +1491,15 @@ QVariantMap WorkflowGraphModel::inlineDescriptor(NodeId id, const QString &name)
       choice["options"] = options;
       return choice;
     }
+    // A Workflow or App node picks its source from the server's list.
+    const auto picker = childPicker(nodes_.value(id)["type"].toString());
+    if (!picker.property.isEmpty() && name == picker.property) {
+      auto select = field;
+      select["kind"] = picker.kind;
+      select["label"] = picker.label;
+      select["value"] = childPickerReference(picker, nodes_.value(id)["data"].toObject());
+      return select;
+    }
     const auto kind = field["kind"].toString();
     if (kind == "text" || kind == "multiline" || kind == "number" || kind == "integer" || kind == "choice" || kind == "boolean" || kind == "model"
         || kind == "image_size" || kind == "document_ref" || inlineResource(kind) || inlineStructured(field)) { return field; }
@@ -1558,6 +1611,14 @@ bool WorkflowGraphModel::portVisible(NodeId id, PortType side, PortIndex index) 
         || meta["input_fields"].toArray().contains(name) || ui["exposed_inputs"].toArray().contains(name)
         || node["dynamic_inputs"].toObject().contains(name) || node["dynamic_properties"].toObject().contains(name);
   }
+  const auto type = node["type"].toString();
+  if (compositeHiddenProperty(type, name)) { return false; }
+  // AppLoader replaces the app_id field, which has no handle.
+  if (type == QStringLiteral("nodetool.workflows.app_node.App") && name == QStringLiteral("app_id")) { return false; }
+  // DynamicComfySchemaContent shows only the inputs the workflow derives.
+  if (comfySchemaNode(type)) {
+    return node["dynamic_inputs"].toObject().contains(name) || node["dynamic_properties"].toObject().contains(name);
+  }
   return true;
 }
 
@@ -1573,7 +1634,8 @@ QRectF WorkflowGraphModel::inlineFieldRect(NodeId id, const QString &name) const
     // An action button names its property but is not that property's editor.
     if (row.propertyName != name || name.isEmpty() || row.kind == NodeRowKind::Action) { continue; }
     // Bespoke controls carry their bounds. Sliders, mode switches and drop zones take pointer input on the canvas.
-    if (row.kind == NodeRowKind::Slider || row.kind == NodeRowKind::Segmented || row.kind == NodeRowKind::DropZone) { return {}; }
+    if (row.kind == NodeRowKind::Slider || row.kind == NodeRowKind::Segmented || row.kind == NodeRowKind::DropZone
+        || row.kind == NodeRowKind::Knob || row.kind == NodeRowKind::Waveform) { return {}; }
     if (!row.rect.isEmpty()) { return row.rect; }
     if (row.kind == NodeRowKind::Field || row.kind == NodeRowKind::Multiline) { return QRectF(inset, row.fieldY, card.size.width() - 2 * inset, row.height); }
     if (row.kind == NodeRowKind::Number) { return QRectF(card.size.width() / 2.0, row.y, card.size.width() / 2.0 - inset, node_metrics::rowHeight); }

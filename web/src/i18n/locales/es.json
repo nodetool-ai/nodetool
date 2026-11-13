@@ -2301,7 +2301,8 @@
       "cloudAlphaNotice": "La nube está en alfa. Para trabajos de producción, utilice",
       "ssoTitle": "Inicia sesión en NodeTool",
       "ssoSignIn": "Iniciar sesión con {{provider}}",
-      "ssoFailed": "No se pudo iniciar sesión ({{reason}}). Inténtalo de nuevo o pide acceso a tu administrador."
+      "ssoFailed": "No se pudo iniciar sesión ({{reason}}). Inténtalo de nuevo o pide acceso a tu administrador.",
+      "marketingOptIn": "Envíame correos sobre nuevos lanzamientos y ofertas gratuitas. Puedes darte de baja cuando quieras."
     },
     "inspector": {
       "params": "parámetros",
@@ -6482,6 +6483,16 @@
           "image": "Imagen",
           "video": "Vídeo",
           "audio": "Audio"
+        },
+        "attachedFileActions": {
+          "label": "Empezar con tus archivos",
+          "hint": "Archivos adjuntos. Describe qué quieres crear o empieza a partir de ellos:",
+          "animate": "Animar en un vídeo",
+          "image": "Crear imágenes nuevas",
+          "retake": "Editar el vídeo",
+          "script": "Convertir en guion",
+          "ask": "Preguntar sobre ellos",
+          "askPrompt": "Revisa los archivos adjuntos y sugiere qué podría crear con ellos."
         }
       }
     }
@@ -20303,6 +20314,12 @@
     "missingKeysDetail": "Este flujo de trabajo necesita {{keys}}. Añádela en Ajustes antes de ejecutarlo.",
     "costPerRun": "≈ {{cost}} por ejecución",
     "costUnknown": "Coste desconocido"
+  },
+  "marketingEmails": {
+    "title": "Correos del producto",
+    "label": "Envíame correos sobre lanzamientos y ofertas gratuitas",
+    "description": "Entérate de nuevas funciones, modelos y ofertas gratuitas. Cada correo incluye un enlace para darte de baja, y puedes desactivarlo aquí cuando quieras.",
+    "saveFailed": "No se guardó tu preferencia de correo. Inténtalo de nuevo."
   },
   "firstRun": {
     "ariaLabel": "Empieza con un resultado",

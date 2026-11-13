@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "클라우드는 알파 버전입니다. 생산 작업에는 다음을 사용하십시오.",
       "ssoTitle": "NodeTool에 로그인",
       "ssoSignIn": "{{provider}}(으)로 로그인",
-      "ssoFailed": "로그인하지 못했습니다({{reason}}). 다시 시도하거나 관리자에게 액세스를 요청하세요."
+      "ssoFailed": "로그인하지 못했습니다({{reason}}). 다시 시도하거나 관리자에게 액세스를 요청하세요.",
+      "marketingOptIn": "새 출시 소식과 무료 혜택을 이메일로 받습니다. 언제든지 구독을 취소할 수 있습니다."
     },
     "inspector": {
       "params": "매개변수",
@@ -6396,6 +6397,16 @@
           "image": "이미지",
           "video": "동영상",
           "audio": "오디오"
+        },
+        "attachedFileActions": {
+          "label": "내 파일로 시작",
+          "hint": "파일을 첨부했습니다. 만들 내용을 설명하거나 파일로 바로 시작하세요:",
+          "animate": "동영상으로 애니메이션",
+          "image": "새 이미지 만들기",
+          "retake": "동영상 편집",
+          "script": "대본으로 만들기",
+          "ask": "파일에 대해 묻기",
+          "askPrompt": "첨부한 파일을 보고 무엇을 만들 수 있을지 제안해 줘."
         }
       }
     }
@@ -19992,6 +20003,12 @@
     "missingKeysDetail": "이 워크플로에는 {{keys}}이(가) 필요합니다. 실행하기 전에 설정에서 추가하세요.",
     "costPerRun": "실행당 약 {{cost}}",
     "costUnknown": "비용 알 수 없음"
+  },
+  "marketingEmails": {
+    "title": "제품 이메일",
+    "label": "출시 소식과 무료 혜택을 이메일로 받기",
+    "description": "새 기능, 모델, 무료 혜택 소식을 받아 보세요. 모든 이메일에 구독 취소 링크가 있으며, 여기에서 언제든지 끌 수 있습니다.",
+    "saveFailed": "이메일 설정을 저장하지 못했습니다. 다시 시도하세요."
   },
   "firstRun": {
     "ariaLabel": "결과부터 시작하기",

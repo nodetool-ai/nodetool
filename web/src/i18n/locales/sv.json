@@ -2281,7 +2281,8 @@
       "cloudAlphaNotice": "Moln är i alfa. För produktionsarbete, använd",
       "ssoTitle": "Logga in på NodeTool",
       "ssoSignIn": "Logga in med {{provider}}",
-      "ssoFailed": "Inloggningen misslyckades ({{reason}}). Försök igen eller be administratören om åtkomst."
+      "ssoFailed": "Inloggningen misslyckades ({{reason}}). Försök igen eller be administratören om åtkomst.",
+      "marketingOptIn": "Skicka mejl till mig om nya lanseringar och gratiserbjudanden. Avsluta prenumerationen när som helst."
     },
     "inspector": {
       "params": "Params",
@@ -6396,6 +6397,16 @@
           "image": "Bild",
           "video": "Video",
           "audio": "Ljud"
+        },
+        "attachedFileActions": {
+          "label": "Börja med dina filer",
+          "hint": "Filer bifogade. Beskriv vad du vill skapa, eller utgå från dem:",
+          "animate": "Animera till en video",
+          "image": "Skapa nya bilder",
+          "retake": "Redigera videon",
+          "script": "Gör om till manus",
+          "ask": "Fråga om dem",
+          "askPrompt": "Titta på de bifogade filerna och föreslå vad jag kan göra av dem."
         }
       }
     }
@@ -19992,6 +20003,12 @@
     "missingKeysDetail": "Det här arbetsflödet behöver {{keys}}. Lägg till den i Inställningar innan du kör det.",
     "costPerRun": "≈ {{cost}} per körning",
     "costUnknown": "Okänd kostnad"
+  },
+  "marketingEmails": {
+    "title": "Produktmejl",
+    "label": "Skicka mejl om lanseringar och gratiserbjudanden",
+    "description": "Få veta om nya funktioner, modeller och gratiserbjudanden. Varje mejl har en avregistreringslänk, och du kan stänga av detta här när som helst.",
+    "saveFailed": "Mejlinställningen sparades inte. Försök igen."
   },
   "firstRun": {
     "ariaLabel": "Börja med ett resultat",

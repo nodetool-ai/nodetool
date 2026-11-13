@@ -1,0 +1,58 @@
+{
+  "Bitcrush": {
+    "frames": 8192,
+    "pcm_sha256": "6400c6b09d1d344328018860afd2371f2f0d52561e3cf6cce67bc6e5267c8980"
+  },
+  "Compress": {
+    "frames": 8192,
+    "pcm_sha256": "64d5ebc2f14d63718b3289cb8d2659c105a5bc39a3092a2c12530c9eea464945"
+  },
+  "Distortion": {
+    "frames": 8192,
+    "pcm_sha256": "8a66abc12f8b91d9392d634984e5b0d900c21d337f3ca8dee1c1695b4531d8ca"
+  },
+  "Limiter": {
+    "frames": 8192,
+    "pcm_sha256": "7fb0df391f8a52d4ccb1122d2d42bd820cca2facf65f5de8945f9cdc21bdb68f"
+  },
+  "NoiseGate": {
+    "frames": 8192,
+    "pcm_sha256": "1dccc515f893b5f0cb11f7a769b655c750f5f7abf48b75ee40b0d8f34f44ce20"
+  },
+  "Reverb": {
+    "frames": 8192,
+    "pcm_sha256": "88f3fee9906412608c8e5d8245e95d0639f4578ba9d65cb9993a76e04cfc0440"
+  },
+  "Phaser": {
+    "frames": 8192,
+    "pcm_sha256": "6f4f21145d000b9b5d655fa05850dfea5a8af69adcf10423d441d152d606fa08"
+  },
+  "Delay": {
+    "frames": 9956,
+    "pcm_sha256": "51cb26e35f089bce37a80c42a968f575890914b5b9ec7f737c6db74b505fdbc9"
+  },
+  "Gain": {
+    "frames": 8192,
+    "pcm_sha256": "ed5f9f2c571585b600b632d170de93084b732745254168bf636511f0b2e39d4b"
+  },
+  "HighShelfFilter": {
+    "frames": 8192,
+    "pcm_sha256": "8b5f5572311b187b288643895cfc284722cac6894ff3dd9cc806f08991549f16"
+  },
+  "LowShelfFilter": {
+    "frames": 8192,
+    "pcm_sha256": "a586a3606ed269b2520f8b107b6be66c905697540fb7fd42d991f2972a46b066"
+  },
+  "PeakFilter": {
+    "frames": 8192,
+    "pcm_sha256": "d827e3ad515c3f8ba6a8c1569b25fc0bbf58723dd2541d1c662681018b08367f"
+  },
+  "LowPassFilter": {
+    "frames": 8192,
+    "pcm_sha256": "4a765f952623f32644d4da0bfa65e728c259b57b4cadedca9654631852ce84fe"
+  },
+  "HighPassFilter": {
+    "frames": 8192,
+    "pcm_sha256": "566eade9ba7e78ef2eb8c6e1a66d7daaa5bbc31aefdc5218bc63beed5530673d"
+  }
+}

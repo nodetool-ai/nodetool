@@ -23,8 +23,8 @@ Applies a low-pass filter to attenuate frequencies above a cutoff point.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | cutoff_frequency_hz | `float` | The cutoff frequency of the low-pass filter in Hz. | `5000` |
+| audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
 
