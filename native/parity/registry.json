@@ -2022,7 +2022,7 @@
         "native/node-editor/src/server/AccountJobs.cpp"
       ],
       "status": "partial",
-      "note": "Failed jobs offer Report. History rows show no output thumbnails, duration or short job id.",
+      "note": "History rows show the status tile, short job id, duration, output count and output thumbnails, open their workflow on click and offer Report on failure. Thumbnails open the output in the browser, as the web opens a new tab.",
       "inventory": "F24"
     },
     "web/src/components/panels/jobs/QueuePanel.tsx": {
@@ -2030,7 +2030,7 @@
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Opens at any time with the Active and History sections, filters and day groups, as a canvas overlay rather than a bottom panel view.",
+      "note": "Opens at any time with the Active and History sections, filters, day groups and the Could not load jobs state, as a canvas overlay rather than a bottom panel view. It shows no loading spinner before the first jobs page.",
       "inventory": "C11"
     },
     "web/src/components/panels/LogPanel.tsx": {

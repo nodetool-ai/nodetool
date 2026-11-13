@@ -2074,8 +2074,8 @@ workflow, and Escape stops active work before clearing canvas gestures.
 
 The queue starts collapsed with a status dot, one run name or a running count,
 an elapsed clock, an expand control and queued count. Expanded content groups
-Running, Enqueued and Cancelled cards. Completed and failed jobs stay in output
-history rather than the overlay. Cancelled jobs alone do not keep it visible.
+Running and Enqueued cards, then the History section described under C11, with
+completed, failed and cancelled jobs. Finished jobs alone do not keep it visible.
 Running cards select the output lens only for the current workflow, using pointer,
 Enter or Space activation. The selected card shows On canvas. Pinned canvas
 focus remains different from the web store.
@@ -3416,7 +3416,7 @@ panels is outside the chrome work.
 | C8 | Status Generations | Panel of generations across workflows, with a count of those running. | `GenerationsPanel.qml` in a bottom dock, fed by every tab's `prediction` messages and the server's `generations.list` (`GenerationActivity`). Tiles open their workflow, preset generations open as a workflow, and the tab counts running generations. Chat media turns are not listed. | Partial. Asserted by `GenerationsPanelTest` and `statusBarTabsOpenNativePanelsOrExplainWhyNot`. |
 | C9 | Status Workers | Remote runners the server provisions. | Disabled. | Open. |
 | C10 | Status Trace | Run trace spans. | Opens the native trace/log dock. | Partial. See [run trace evidence](#run-trace-evidence). |
-| C11 | Status Queue | Panel that opens at any time and shows an empty state. | Opens the queue overlay at any time with the Active section or its empty state, and the History section with filters, day groups and Report on failed jobs. The overlay floats on the canvas instead of filling the bottom panel. | Partial. Asserted by `queueOpensWithoutJobsAndReportsFailures`. |
+| C11 | Status Queue | Panel that opens at any time and shows an empty state. | Opens the queue overlay at any time with the Active section or its empty state, the History section with filters and day groups, and "Could not load jobs" when the jobs list fails. History rows follow `JobItem`: status tile, short job id with the full id on hover, duration, output count, clock, output thumbnails that open the output, a click that opens the job's workflow, and Report on failed jobs. The overlay floats on the canvas instead of filling the bottom panel, and it shows no loading spinner. | Partial. Asserted by `queueOpensWithoutJobsAndReportsFailures`, `queueHistoryRowsMatchJobItem` and `QueueDataTest::completedJobOutputsAndListErrors`. |
 | C12 | Status connection | Connected, Connecting, Offline or Idle, with a worker label for a remote server and a worker status indicator. | Connected, Offline or Idle. No Connecting state, worker label or indicator. | Open. |
 | C13 | Status tab strip | Scroll arrows when the tabs overflow. | No arrows. | Open. |
 

@@ -243,6 +243,8 @@ public:
     void openWorkflowDocument(const QJsonObject &workflow);
     // Opens the Report issue for a failed job in the queue history.
     void reportJob(const QString &jobId);
+    // Opens a queue job output's get_url in the browser, resolved against the server.
+    void openJobOutput(const QString &url);
     // A status bar tab: opens its panel, or closes it when it is the open one (PanelBottom.tsx).
     void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;

@@ -365,6 +365,9 @@ void WorkflowSession::flushDocumentNotification() {
     emit workflowChanged();
     emit stateChanged();
 }
+QString WorkflowSession::jobsError() const {
+    return m_accountJobs ? m_accountJobs->error() : QString();
+}
 QVariantList WorkflowSession::queue() const {
     QVariantList result;
     QSet<QString> seen;
@@ -373,6 +376,9 @@ QVariantList WorkflowSession::queue() const {
         row["editedSinceError"] = row.contains("edit") && row["edit"].toDouble() != static_cast<double>(m_edit);
         row["terminal"] = QStringList{"cancelled", "completed", "failed"}.contains(row["status"].toString());
         row["stopping"] = m_accountJobs && m_accountJobs->stopping(id);
+        if (m_accountJobs && row["status"] == "completed") {
+            row["outputAssets"] = m_accountJobs->outputs(id);
+        }
         row["local"] = m_runs.contains(id);
         if (row["name"].toString().isEmpty()) {
             const auto current = workflow();

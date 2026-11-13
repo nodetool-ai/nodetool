@@ -11,6 +11,7 @@
 #include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QLocale>
 #include <QPointer>
 #include <QQuickItem>
 #include <QQuickView>
@@ -254,7 +255,9 @@ private slots:
         QVERIFY(!named(root, "queue-history-empty")->isVisible());
         QVERIFY(named(root, "queue-day-Today"));
         QCOMPARE(named(root, "queue-history-meta-broke")->property("text").toString(), QString("Node crashed"));
-        QVERIFY(named(root, "queue-history-meta-done")->property("text").toString().startsWith("Completed · "));
+        // JobItem.tsx's meta for a completed job without a start time or outputs is its finish time.
+        QCOMPARE(named(root, "queue-history-meta-done")->property("text").toString(),
+                 QLocale().toString(today.toLocalTime().time(), QLocale::ShortFormat));
         QVERIFY(named(root, "queue-report-broke")->isVisible());
         QVERIFY(!named(root, "queue-report-done")->isVisible());
         QVERIFY(!named(root, "queue-report-stop")->isVisible());
@@ -304,6 +307,54 @@ private slots:
         QCOMPARE(named(root, "generation-tile-run"), runTile.data());
         QCOMPARE(named(root, "generation-tile-bad"), badTile.data());
         QCOMPARE(named(root, "generation-tile-new"), newTile.data());
+    }
+
+    // JobItem.tsx: status tile, short id, duration and outputs, a click that
+    // opens the workflow, and QueuePanel.tsx's "Could not load jobs" state.
+    void queueHistoryRowsMatchJobItem() {
+        RunState runs;
+        QSignalSpy openWorkflow(&runs, &RunState::openJobWorkflowRequested);
+        QSignalSpy openOutput(&runs, &RunState::openJobOutputRequested);
+        QQuickView view;
+        show(view, {{"runs", QVariant::fromValue(&runs)}}, "QueueOverlay.qml", {420, 640});
+        auto *root = view.rootObject();
+        root->setProperty("opened", true);
+        const auto finished = QDateTime::currentDateTimeUtc();
+        const auto started = finished.addMSecs(-2534);
+        const QVariantList outputs{QVariantMap{{"id", "a1"}, {"name", "fox.png"}, {"content_type", "image/png"}, {"get_url", "/api/storage/a1.png"}},
+                                   QVariantMap{{"id", "a2"}, {"name", "fox2.png"}, {"content_type", "image/png"}, {"get_url", "/api/storage/a2.png"}}};
+        runs.setQueue({QVariantMap{{"jobId", "abcd1234ef"}, {"status", "completed"}, {"name", "Fox"}, {"workflow_id", "wf-a"},
+                                   {"started_at", started.toString(Qt::ISODateWithMs)}, {"finished_at", finished.toString(Qt::ISODateWithMs)},
+                                   {"outputAssets", outputs}},
+                       QVariantMap{{"jobId", "stop5678"}, {"status", "cancelled"}, {"name", "Stopped"},
+                                   {"finished_at", finished.toString(Qt::ISODateWithMs)}}});
+        QTRY_VERIFY(named(root, "queue-output-abcd1234ef-1"));
+        const auto clock = QLocale().toString(finished.toLocalTime().time(), QLocale::ShortFormat);
+        QCOMPARE(named(root, "queue-history-meta-abcd1234ef")->property("text").toString(), "2.53s · 2 images · " + clock);
+        QCOMPARE(named(root, "queue-history-meta-stop5678")->property("text").toString(), "Cancelled · " + clock);
+        QCOMPARE(named(root, "queue-history-id-abcd1234ef")->property("text").toString(), QString("#abcd"));
+        QVERIFY(named(root, "queue-history-status-abcd1234ef")->isVisible());
+        QVERIFY(named(root, "queue-history-outputs-abcd1234ef")->isVisible());
+        QVERIFY(!named(root, "queue-history-outputs-stop5678")->isVisible());
+
+        click(view, named(root, "queue-output-abcd1234ef-1"));
+        QTRY_COMPARE(openOutput.size(), 1);
+        QCOMPARE(openOutput.first().first().toString(), QString("/api/storage/a2.png"));
+        QCOMPARE(openWorkflow.size(), 0);
+        click(view, named(root, "queue-history-meta-abcd1234ef"));
+        QTRY_COMPARE(openWorkflow.size(), 1);
+        QCOMPARE(openWorkflow.first().first().toString(), QString("wf-a"));
+        // A job without a workflow has nothing to open.
+        click(view, named(root, "queue-history-meta-stop5678"));
+        QTest::qWait(50);
+        QCOMPARE(openWorkflow.size(), 1);
+
+        QVERIFY(!named(root, "queue-jobs-error")->isVisible());
+        runs.setJobsError("HTTP 500");
+        QTRY_VERIFY(named(root, "queue-jobs-error")->isVisible());
+        QCOMPARE(named(root, "queue-jobs-error")->property("message").toString(), QString("Could not load jobs"));
+        runs.setJobsError({});
+        QTRY_VERIFY(!named(root, "queue-jobs-error")->isVisible());
     }
 };
 

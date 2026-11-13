@@ -37,6 +37,8 @@ class WorkflowSession final : public QObject {
 public:
   Q_PROPERTY(QVariantList queue READ queue NOTIFY stateChanged)
   QVariantList queue() const;
+  // Why the account's jobs list last failed to load, or empty.
+  QString jobsError() const;
   // The server's latest `system_stats` sample: cpu_percent, memory_percent and memory_used_gb.
   QVariantMap systemStats() const { return m_systemStats; }
   explicit WorkflowSession(QObject *parent = nullptr);
