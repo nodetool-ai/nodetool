@@ -18,6 +18,7 @@ import {
   loadNodePath
 } from "@nodetool-ai/nodes-utils";
 import { IS_NODE } from "@nodetool-ai/config";
+import { nativeKernels, PCM_FORMATS, type PcmFormat } from "@nodetool-ai/kernels";
 import type { AudioRef } from "@nodetool-ai/node-sdk";
 import {
   loadMediaRefBytes,
@@ -215,11 +216,54 @@ export function encodeWav(
   const out = new Uint8Array(44 + dataSize);
   const view = new DataView(out.buffer);
   writeWavHeader(out, view, sampleRate, numChannels, dataSize);
+  writePcm16(samples, out.subarray(44));
+  return out;
+}
+
+/**
+ * The PCM sample loops run in the native kernels inside the graph runner,
+ * where QuickJS interprets the JavaScript loop. Elsewhere the loop stays
+ * JavaScript: these functions are synchronous and the WebAssembly kernels
+ * load asynchronously, and V8 runs the loop in a few milliseconds for 10 s
+ * of stereo. Both give the same bits (packages/kernels/tests/parity.test.ts).
+ */
+function writePcm16(samples: Float32Array, out: Uint8Array): void {
+  const kernels = nativeKernels();
+  if (kernels) {
+    kernels.pcm16Encode(samples, out);
+    return;
+  }
+  const view = new DataView(out.buffer, out.byteOffset, out.byteLength);
   for (let i = 0; i < samples.length; i++) {
     const s = Math.max(-1, Math.min(1, samples[i]));
-    view.setInt16(44 + i * 2, Math.round(s * 0x7fff), true);
+    view.setInt16(i * 2, Math.round(s * 0x7fff), true);
   }
-  return out;
+}
+
+/** Decodes `bytes` (whole samples of `format`) to float32, as writePcm16 encodes. */
+function readPcm(bytes: Uint8Array, format: PcmFormat): Float32Array {
+  const kernels = nativeKernels();
+  if (kernels) return kernels.pcmDecode(bytes, format);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const size = format === PCM_FORMATS.u8 ? 1 : format === PCM_FORMATS.s16 ? 2 : format === PCM_FORMATS.s24 ? 3 : 4;
+  const samples = new Float32Array(Math.floor(bytes.length / size));
+  for (let i = 0; i < samples.length; i++) {
+    const pos = i * size;
+    if (format === PCM_FORMATS.f32) {
+      samples[i] = view.getFloat32(pos, true);
+    } else if (format === PCM_FORMATS.s16) {
+      samples[i] = view.getInt16(pos, true) / 0x7fff;
+    } else if (format === PCM_FORMATS.u8) {
+      samples[i] = (bytes[pos] - 128) / 128;
+    } else if (format === PCM_FORMATS.s24) {
+      let v = bytes[pos] | (bytes[pos + 1] << 8) | (bytes[pos + 2] << 16);
+      if (v & 0x800000) v -= 0x1000000; // sign-extend 24-bit
+      samples[i] = v / 0x7fffff;
+    } else {
+      samples[i] = view.getInt32(pos, true) / 0x7fffffff; // 32-bit int PCM
+    }
+  }
+  return samples;
 }
 
 export interface WavHeader {
@@ -331,27 +375,20 @@ export function parseWavBytes(bytes: Uint8Array): WavData | null {
       bitsPerSample === 32);
   if (!isFloat && !isPcm) return null;
 
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const totalSamples = Math.floor(dataSize / bytesPerSample);
-  const samples = new Float32Array(totalSamples);
-
-  for (let i = 0; i < totalSamples; i++) {
-    const pos = dataOffset + i * bytesPerSample;
-    if (isFloat) {
-      samples[i] = view.getFloat32(pos, true);
-    } else if (bitsPerSample === 16) {
-      samples[i] = view.getInt16(pos, true) / 0x7fff;
-    } else if (bitsPerSample === 8) {
-      samples[i] = (bytes[pos] - 128) / 128;
-    } else if (bitsPerSample === 24) {
-      let v = bytes[pos] | (bytes[pos + 1] << 8) | (bytes[pos + 2] << 16);
-      if (v & 0x800000) v -= 0x1000000; // sign-extend 24-bit
-      samples[i] = v / 0x7fffff;
-    } else {
-      samples[i] = view.getInt32(pos, true) / 0x7fffffff; // 32-bit int PCM
-    }
-  }
-
+  const format = isFloat
+    ? PCM_FORMATS.f32
+    : bitsPerSample === 8
+      ? PCM_FORMATS.u8
+      : bitsPerSample === 16
+        ? PCM_FORMATS.s16
+        : bitsPerSample === 24
+          ? PCM_FORMATS.s24
+          : PCM_FORMATS.s32;
+  const samples = readPcm(
+    bytes.subarray(dataOffset, dataOffset + totalSamples * bytesPerSample),
+    format
+  );
   return { samples, sampleRate, numChannels };
 }
 
@@ -386,23 +423,13 @@ export function interleave(planes: Float32Array[]): Float32Array {
 
 /** Decode raw little-endian 16-bit PCM bytes into Float32 samples ([-1, 1]). */
 export function pcm16ToFloat32(bytes: Uint8Array): Float32Array {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const count = Math.floor(bytes.length / 2);
-  const samples = new Float32Array(count);
-  for (let i = 0; i < count; i++) {
-    samples[i] = view.getInt16(i * 2, true) / 0x7fff;
-  }
-  return samples;
+  return readPcm(bytes, PCM_FORMATS.s16);
 }
 
 /** Encode Float32 samples (clipped to [-1, 1]) as little-endian 16-bit PCM bytes. */
 export function float32ToPcm16(samples: Float32Array): Uint8Array {
   const out = new Uint8Array(samples.length * 2);
-  const view = new DataView(out.buffer);
-  for (let i = 0; i < samples.length; i++) {
-    const s = Math.max(-1, Math.min(1, samples[i]));
-    view.setInt16(i * 2, Math.round(s * 0x7fff), true);
-  }
+  writePcm16(samples, out);
   return out;
 }
 

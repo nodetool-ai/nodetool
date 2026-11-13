@@ -22,6 +22,11 @@ export { NT_ERR_ARGS, NT_OK } from "./backend.js";
 
 /* ── Constants of kernels.h ─────────────────────────────────────────── */
 
+/** Sample formats of `pcmDecode`, the NT_PCM_* values. */
+export const PCM_FORMATS = { u8: 1, s16: 2, s24: 3, s32: 4, f32: 5 } as const;
+export type PcmFormat = (typeof PCM_FORMATS)[keyof typeof PCM_FORMATS];
+const PCM_SAMPLE_BYTES = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 4 } as const satisfies Record<PcmFormat, number>;
+
 export const BIQUAD_TYPES = {
   lowpass: 0,
   highpass: 1,
@@ -228,6 +233,35 @@ export class Kernels {
     const frames = Math.floor(samples.length / channels);
     const out = new Float32Array(frames);
     this.run("nt_signal_extract_channel", [{ in: samples }, { out }, frames, channels, index]);
+    return out;
+  }
+
+  // PCM codecs
+
+  /**
+   * Decodes little-endian samples of `format` to float32: an integer over its
+   * full scale (8-bit unsigned is (v - 128) / 128), a float32 copied. A
+   * trailing partial sample is ignored.
+   */
+  pcmDecode(bytes: Uint8Array, format: PcmFormat): Float32Array {
+    const size = PCM_SAMPLE_BYTES[format];
+    if (!size) throw new RangeError(`unknown PCM format ${format}`);
+    const count = Math.floor(bytes.length / size);
+    const out = new Float32Array(count);
+    this.run("nt_pcm_decode", [{ in: bytes }, { out }, count, format]);
+    return out;
+  }
+
+  /**
+   * Encodes samples as little-endian 16-bit PCM: round(clamp(x, -1, 1) *
+   * 32767), NaN as 0. `out`, such as the data part of a WAV buffer, holds
+   * exactly 2 bytes a sample.
+   */
+  pcm16Encode(samples: Float32Array, out: Uint8Array = new Uint8Array(samples.length * 2)): Uint8Array {
+    if (out.length !== samples.length * 2) {
+      throw new RangeError(`out holds ${out.length} bytes, ${samples.length * 2} required`);
+    }
+    this.backend.call("nt_pcm16_encode", [{ in: samples }, { out }, samples.length]);
     return out;
   }
 
@@ -494,6 +528,19 @@ export function nativeKernelBackend(host: NativeKernelHost): KernelBackend {
 }
 
 let loading: Promise<Kernels> | undefined;
+let native: Kernels | undefined;
+
+/**
+ * The native kernels, synchronously, inside the graph runner, and undefined
+ * elsewhere. A synchronous caller, such as a WAV codec, uses this and keeps
+ * its JavaScript loop for the hosts where the kernels load asynchronously.
+ */
+export function nativeKernels(): Kernels | undefined {
+  const host = nativeHost();
+  if (!host) return undefined;
+  native ??= new Kernels(nativeKernelBackend(host));
+  return native;
+}
 
 /** Instantiates the embedded WebAssembly build, whatever host this is. */
 export async function loadWasmKernels(): Promise<Kernels> {
@@ -506,10 +553,8 @@ export async function loadWasmKernels(): Promise<Kernels> {
  */
 export function loadKernels(): Promise<Kernels> {
   if (!loading) {
-    const host = nativeHost();
-    loading = host
-      ? Promise.resolve(new Kernels(nativeKernelBackend(host)))
-      : loadWasmKernels();
+    const kernels = nativeKernels();
+    loading = kernels ? Promise.resolve(kernels) : loadWasmKernels();
     // A failed load is retried by the next caller instead of cached.
     loading.catch(() => {
       loading = undefined;

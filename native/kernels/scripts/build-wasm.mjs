@@ -22,7 +22,7 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repo = resolve(root, "../..");
 const output = join(repo, "packages/kernels/src/generated/kernels-wasm.ts");
-const sources = ["audio.cpp", "biquad.cpp", "image.cpp", "synth.cpp"].map((f) =>
+const sources = ["audio.cpp", "biquad.cpp", "image.cpp", "pcm.cpp", "synth.cpp"].map((f) =>
   join(root, "src", f)
 );
 const check = process.argv.includes("--check");
