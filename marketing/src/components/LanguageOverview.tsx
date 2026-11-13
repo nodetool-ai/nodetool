@@ -10,6 +10,7 @@ import { DEFAULT_OG_IMAGES } from "@/lib/defaultOgImage";
 import {
   BLOCK_HREFS,
   CARD_HREFS,
+  DIRECT_PROVIDER_HREFS,
   HOME_LANGUAGE_ALTERNATES,
   LANGUAGE_PAGES,
   type LanguageCode,
@@ -107,6 +108,26 @@ export default function LanguageOverview({ locale }: { locale: LanguageCode }) {
               </div>
             </section>
           ))}
+
+          {page.providers && (
+            <section aria-labelledby={`${locale}-providers`} className="mt-20 grid gap-6 border-t border-slate-700 pt-10 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+              <h2 id={`${locale}-providers`} className={sectionTitle}>{page.providers.title}</h2>
+              <div>
+                <p className={bodyText}>{page.providers.body}</p>
+                <ul className="mt-6 space-y-4">
+                  {page.providers.items.map((item) => (
+                    <li key={item.provider}>
+                      <a href={DIRECT_PROVIDER_HREFS[item.provider]} hrefLang="en" className="focus-ring inline-flex items-center gap-1 rounded font-medium text-cyan-200 hover:text-cyan-100">
+                        {item.name}
+                        <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                      </a>
+                      <p className={`mt-1 ${bodyText}`}>{item.does}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+          )}
 
           <FaqSection items={page.faq} heading={page.faqHeading} className="mt-20 max-w-3xl" id={`${locale}-faq`} />
 
