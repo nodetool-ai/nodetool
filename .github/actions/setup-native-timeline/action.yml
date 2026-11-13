@@ -27,7 +27,9 @@ runs:
         bash "$GITHUB_WORKSPACE/.github/scripts/disk-usage.sh"
         if [ -n "${NODETOOL_CI_IMAGE:-}" ]; then
           # In the native CI image the runner's SDKs are mounted under /reclaim.
-          if [ -d /reclaim ]; then sudo find /reclaim -mindepth 2 -maxdepth 2 -exec rm -rf {} +; fi
+          # setup-build may still be deleting them in the background, so a
+          # directory that vanishes mid-walk is not an error.
+          if [ -d /reclaim ]; then sudo find /reclaim -mindepth 2 -maxdepth 2 -exec rm -rf {} + 2>/dev/null || true; fi
           sudo rm -rf "$RUNNER_TOOL_CACHE/CodeQL"
         else
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
