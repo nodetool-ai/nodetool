@@ -2168,7 +2168,7 @@ none is installed. See
 ### Music mode (native timeline)
 
 Music mode has two harnesses that need no UI and one that needs a backend.
-The design is in [MUSIC-MODE.md](../native/timeline/docs/MUSIC-MODE.md).
+The design is in [MUSIC-MODE.md](https://github.com/nodetool-ai/nodetool/blob/main/native/timeline/docs/MUSIC-MODE.md).
 
 | Need | Command |
 |---|---|
