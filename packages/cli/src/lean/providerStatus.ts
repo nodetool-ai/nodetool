@@ -36,6 +36,7 @@ export const KEYED_PROVIDERS: readonly ProviderCredential[] = [
   { id: "useapi", name: "useapi.net", credentials: ["USEAPI_API_TOKEN"] },
   { id: "vgenv", name: "VGenV", credentials: ["VGENV_API_KEY"] },
   { id: "toapis", name: "ToAPIs", credentials: ["TOAPIS_API_KEY"] },
+  { id: "kling", name: "Kling AI", credentials: ["KLING_API_KEY"] },
   { id: "aki", name: "AKI", credentials: ["AKI_API_KEY"] },
   { id: "meshy", name: "Meshy", credentials: ["MESHY_API_KEY"] },
   { id: "rodin", name: "Rodin", credentials: ["RODIN_API_KEY"] },

@@ -1233,6 +1233,7 @@ export const PROVIDER_IDS = {
   USEAPI: "useapi",
   VGENV: "vgenv",
   TOAPIS: "toapis",
+  KLING: "kling",
   AKI: "aki",
   MESHY: "meshy",
   RODIN: "rodin",

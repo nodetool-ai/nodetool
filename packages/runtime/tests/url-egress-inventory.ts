@@ -536,6 +536,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "video_url, image and audio URLs from DashScope replies are screened; create and poll use the operator's DashScope region host."
   ),
   guardedSafeFetch(
+    "packages/runtime/src/providers/kling-provider.ts",
+    "Kling AI video and image result downloads",
+    "provider-response",
+    "Task result URLs are screened; create and poll use the fixed API host."
+  ),
+  guardedSafeFetch(
     "packages/runtime/src/providers/meshy-provider.ts",
     "Meshy model download",
     "provider-response",
