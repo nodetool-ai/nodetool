@@ -185,6 +185,18 @@ counts are not direct GPU execution counters. Preparing the same pass graph
 with an 8×8 session replaces the 4×4 resources and passes the resized golden.
 This covers offline replacement preparation, not in-place live resizing.
 
+The cache-pressure fixture checks pixels while three retained passes share two
+execution textures. A separate schedule instance verifies eviction and live-input
+protection. The GPU budget includes the present target and default white texture,
+and preparation rejects a budget one byte below the minimum.
+
+The readback fixture fills all three staging slots with different frame colors,
+then consumes and refills each slot while older captures remain queued. Frame
+numbers and pixels must remain ordered after a rejected full-ring submission.
+A short readback span must reject without consuming the capture. Teardown cases
+leave either one or three map requests outstanding. These are C++ host-lifetime
+checks, not an allocation audit of the prebuilt GPU library or driver.
+
 Static uniform ranges produced incorrect per-pass values on the tested pinned
 Windows D3D12 backend. Explicit block sizes alone did not fix same-sized blocks
 with different values. Binding each aligned range through a dynamic offset
