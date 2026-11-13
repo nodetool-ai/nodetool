@@ -60,42 +60,6 @@ struct CanvasTheme {
   // Reads every member from the presentation map that EditorCommands::present receives.
   static CanvasTheme fromRoles(const QVariantMap &roles);
 };
-  QColor grid{"#1f2126"};
-  QColor node{"#0d0e10"};
-  QColor reroutePaper{"#101113"};
-  QColor rerouteBorder{"#808590"};
-  QColor divider{0xff, 0xff, 0xff, 0x14};
-  QColor field{0xff, 0xff, 0xff, 0x08};
-  QColor textPrimary{"#f7f8f8"};
-  QColor textSecondary{"#8a8f98"};
-  QColor checker{0xff, 0xff, 0xff, 0x06};
-    QColor subgraphAccent{"#7C3AED"};
-  QColor primary{"#3d68a8"};
-  // web palette secondary.main, the node progress bar.
-  QColor progress{"#e879f9"};
-  // web palette success.main and warning.main, the prompt variable chips.
-  QColor success{"#50fa7b"};
-  QColor warning{"#ffb86c"};
-  // ControlEdge.tsx CONTROL_EDGE_COLOR, a fixed amber in both themes.
-  QColor controlWire{"#f59e0b"};
-  // A card inside a group: the edge, and the fill that replaces the card color.
-  QColor groupHeader{"#2a2d33"};
-  QColor groupFill{0x22, 0x22, 0x22, 0x8c};
-  // The card title while zoomed out.
-  QColor zoomedTitle{"#b4b7bd"};
-  // The selected edge of a Preview and of an Output card.
-  QColor previewSelected{"#d4d6db"};
-  QColor outputSelected{"#4adbf1"};
-  QColor selectionShadow{0, 0, 0, 77};
-  // Media on cards: the web's c_scrim behind badges and asset actions with its
-  // grey 100 ink, and the alpha surface behind an image.
-  QColor mediaScrim{0, 0, 0, 153};
-  QColor mediaScrimInk{"#d4d6db"};
-  QColor alphaBase{"#1e1e1e"};
-  QColor alphaChecker{"#2a2a2a"};
-  QString sansFamily{"Inter"};
-  QString monoFamily{"JetBrains Mono"};
-};
 
 // The curve of a wire. Painting, hit testing, and the bounds margin all use it.
 double groupLabelScale(double zoom);
