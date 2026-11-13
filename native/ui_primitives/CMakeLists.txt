@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(CTest)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Svg)
 qt_standard_project_setup(REQUIRES 6.12)
-foreach(name ChipMenu SelectionCard Theme Typography Metrics Icons StatusDot CloseButton Text Icon EditorButton ToolbarIconButton Fader LevelMeter TextField TextArea NumberField ProviderIcon Select Dialog Surface Separator PanelHeader Popover ContextMenu MenuItem ListRow Tooltip ShortcutHint Slider Toggle ScrollBar Progress BusyIndicator InspectorRow InspectorCard InspectorSection CheckBox)
+foreach(name ChipMenu SelectionCard Theme Typography Metrics Icons StatusDot CloseButton Text Icon EditorButton ToolbarIconButton Fader LevelMeter TextField TextArea NumberField ProviderIcon Select Dialog Surface Separator PanelHeader Popover ContextMenu MenuItem ListRow Tooltip ShortcutHint Slider Toggle ScrollBar Progress BusyIndicator InspectorRow InspectorCard InspectorSection CheckBox TabBar DocumentTabStrip SegmentedControl)
     set_source_files_properties(qml/${name}.qml PROPERTIES QT_RESOURCE_ALIAS ${name}.qml)
 endforeach()
 foreach(name Theme Typography Metrics Icons)
@@ -15,7 +15,7 @@ qt_add_library(nodetool_ui_primitives STATIC)
 qt_add_qml_module(nodetool_ui_primitives URI NodeTool.UiPrimitives
     CLASS_NAME NodeToolUiPrimitivesPlugin RESOURCE_PREFIX /qt/qml
     OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/UiPrimitives
-    QML_FILES qml/ChipMenu.qml qml/SelectionCard.qml qml/StatusDot.qml qml/CloseButton.qml qml/Theme.qml qml/Typography.qml qml/Metrics.qml qml/Icons.qml qml/Text.qml qml/Icon.qml qml/EditorButton.qml qml/ToolbarIconButton.qml qml/MenuButton.qml qml/Fader.qml qml/LevelMeter.qml qml/TextField.qml qml/TextArea.qml qml/NumberField.qml qml/ProviderIcon.qml qml/Select.qml qml/Dialog.qml qml/Surface.qml qml/Separator.qml qml/PanelHeader.qml qml/Popover.qml qml/ContextMenu.qml qml/MenuItem.qml qml/ListRow.qml qml/Tooltip.qml qml/ShortcutHint.qml qml/Slider.qml qml/Toggle.qml qml/ScrollBar.qml qml/Progress.qml qml/BusyIndicator.qml qml/Status.qml qml/Banner.qml qml/EmptyState.qml qml/InspectorRow.qml qml/InspectorCard.qml qml/InspectorSection.qml qml/CheckBox.qml
+    QML_FILES qml/ChipMenu.qml qml/SelectionCard.qml qml/StatusDot.qml qml/CloseButton.qml qml/Theme.qml qml/Typography.qml qml/Metrics.qml qml/Icons.qml qml/Text.qml qml/Icon.qml qml/EditorButton.qml qml/ToolbarIconButton.qml qml/MenuButton.qml qml/Fader.qml qml/LevelMeter.qml qml/TextField.qml qml/TextArea.qml qml/NumberField.qml qml/ProviderIcon.qml qml/Select.qml qml/Dialog.qml qml/Surface.qml qml/Separator.qml qml/PanelHeader.qml qml/Popover.qml qml/ContextMenu.qml qml/MenuItem.qml qml/ListRow.qml qml/Tooltip.qml qml/ShortcutHint.qml qml/Slider.qml qml/Toggle.qml qml/ScrollBar.qml qml/Progress.qml qml/BusyIndicator.qml qml/Status.qml qml/Banner.qml qml/EmptyState.qml qml/InspectorRow.qml qml/InspectorCard.qml qml/InspectorSection.qml qml/CheckBox.qml qml/TabBar.qml qml/DocumentTabStrip.qml qml/SegmentedControl.qml
     SOURCES private/PressCancel.h private/PressCancel.cpp private/TooltipTracker.h private/TooltipTracker.cpp)
 target_link_libraries(nodetool_ui_primitives PUBLIC Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Svg)
 target_include_directories(nodetool_ui_primitives PRIVATE private)

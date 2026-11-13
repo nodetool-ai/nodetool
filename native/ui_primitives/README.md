@@ -46,6 +46,31 @@ target system; these samples do not describe every glyph in a script. See
 `accessibleName`, `enabled`, `readOnly`, `valid`, `errorText`, and `density`.
 It emits `valueCommitted(value)` only for a user choice. The caller owns the value.
 
+`Ui.TabBar` takes `tabs` entries `{label, value, iconName?, count?, active?, enabled?,
+disabledReason?, objectName?}`, `value`, `accessibleName`, and `appearance`
+(`Ui.TabBar.Underline` or `Filled`). A tab with `disabledReason` is disabled and
+shows the reason as a tooltip. `active` on an entry overrides the comparison with
+`value` for strips whose tabs toggle independently. Left and Right move focus,
+Home and End jump, Enter and Space choose. It emits `valueCommitted(value)`; the
+caller owns the value.
+
+`Ui.DocumentTabStrip` takes `tabs` entries `{title, closable?, renamable?, busy?,
+modified?, accent?}` and `currentIndex`, and scrolls horizontally. Tabs close from
+a close button or a middle click. It emits `tabActivated(index)`,
+`closeRequested(index)`, `contextMenuRequested(index, globalPosition)`,
+`renameRequested(index)`, `renameCommitted(index, title)`, and, when `reorderable`,
+`tabMoved(from, to, after)`. A double click on a `renamable` tab sets
+`renamingIndex`, which shows an inline field. A cut-off title shows its full text
+after `titleTooltipDelay`. The caller owns the order and `currentIndex`.
+`scrollOffset` and `scrolled(offset)` let the host keep the scroll position.
+`objectNameFor(role, index)` and `accessibleNameFor(tab)` let a host name the parts.
+
+`Ui.SegmentedControl` takes `options` entries `{label, value, iconName?, enabled?,
+reason?, objectName?}`, `value`, `accessibleName`, `density`, and `variant`
+(`Ui.SegmentedControl.Buttons` or `Tray`). Options have radio semantics. Arrow keys
+choose the previous or next enabled option. A disabled option shows `reason` as a
+tooltip. It emits `valueCommitted(value)` only for a user choice.
+
 `Ui.TextArea.variant` is `Ui.TextArea.Field`, `Plain`, `Bubble`, `Code`, or `Quiet`.
 Quiet is transparent until hovered or focused. The role and inherited
 `textFormat` choose type and rich text behavior.
