@@ -381,15 +381,17 @@ private slots:
     QCOMPARE(f.value("tags").toArray(),(QJsonArray{"red","blue"}));
     // The constant List edits its table rows on the card.
     f.open("value","list");
-    QTRY_VERIFY(f.item("structured-remove-0"));
-    f.click(f.item("structured-remove-0"));
+    QTRY_VERIFY(f.item("data-table-select-0"));
+    f.click(f.item("data-table-select-0"));
+    QTRY_VERIFY(f.item("data-table-delete")->isEnabled());
+    f.click(f.item("data-table-delete"));
     QTRY_COMPARE(f.value("value","list").toArray(),(QJsonArray{"two"}));
   }
   void recordColumnsAndJsonOnCard() {
     Fixture f(structuredCatalog(),structuredSnapshot());
     f.open("schema");
-    QTRY_VERIFY(f.item("structured-add"));
-    f.click(f.item("structured-add"));
+    QTRY_VERIFY(f.item("record-add-column"));
+    f.click(f.item("record-add-column"));
     QTRY_COMPARE(f.value("schema").toObject()["columns"].toArray().size(),1);
     QCOMPARE(f.value("schema").toObject()["columns"].toArray().first().toObject()["name"].toString(),QString("Column 1"));
     QVERIFY(f.presenter.active());
