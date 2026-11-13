@@ -1256,10 +1256,11 @@ version must match CMake. `--version` reports that numeric version. The full
 tag version, including its suffix, names the downloads. Manual dispatch takes
 an existing tag and builds that tagged commit.
 
-Downloads are `nodetool-timeline-<version>-macos-arm64.zip`,
-`nodetool-timeline-with-server-<version>-macos-arm64.zip`,
-`nodetool-timeline-<version>-windows-x64.zip`, and
-`nodetool-timeline-<version>-linux-x64.AppImage`, plus `SHA256SUMS.txt`.
+Each platform has two downloads, plus `SHA256SUMS.txt`:
+`nodetool-timeline-<version>-<platform>` connects to a NodeTool server the
+user runs, and `nodetool-timeline-with-server-<version>-<platform>` holds
+its own server. The platforms are `macos-arm64` and `windows-x64` (ZIP) and
+`linux-x64` (AppImage).
 
 The macOS builds are signed and notarized by
 [scripts/sign-macos.sh](scripts/sign-macos.sh), with the Developer ID
@@ -1267,9 +1268,18 @@ certificate and notarization login of the Electron release. The Windows and
 Linux builds are unsigned. The draft notes explain SmartScreen and Linux
 executable permissions.
 
-The "with server" build comes from
-[scripts/package-macos-with-server.sh](scripts/package-macos-with-server.sh).
-It holds the bundled backend and Node runtime in `Contents/Resources/backend`.
+The "with server" builds come from
+[scripts/package-macos-with-server.sh](scripts/package-macos-with-server.sh),
+[scripts/package-windows-with-server.sh](scripts/package-windows-with-server.sh)
+and [scripts/package-linux-with-server.sh](scripts/package-linux-with-server.sh).
+Each runs [scripts/stage-server.sh](scripts/stage-server.sh), which stages
+the backend bundle (`scripts/bundle-backend.mjs --profile timeline`) and the
+Node runtime that Electron ships. The backend sits in
+`Contents/Resources/backend` on macOS, in `backend` next to
+`nodetool-timeline.exe` on Windows, and in
+`usr/share/nodetool-timeline/backend` in the AppImage. The release boots
+each extracted backend with
+[scripts/smoke-backend-bundle.mjs](../../scripts/smoke-backend-bundle.mjs).
 Opened without a file, the app starts that server on a free loopback port and
 lists its timelines ([src/server/BundledServer.h](src/server/BundledServer.h)).
 The server stops when the app quits and logs to `server.log` in the app's
