@@ -393,6 +393,16 @@ function providerFailureMessage(
   }
 
   const modelName = model || "requested";
+  // OpenRouter-backed routes (fal_ai, openrouter) answer a text-only model
+  // sent an image with 404 "No endpoints found that support image input",
+  // which the status class below would report as a missing model.
+  if (/\bimage input\b/i.test(bodyMessage ?? rawMessage)) {
+    return {
+      errorType: "http_status_error",
+      message: `Model ${modelName} on ${providerId} does not accept images. Remove the image or choose a model that supports image input.`,
+      statusCode
+    };
+  }
   let message: string;
   if (gemini?.kind === "quota") {
     message = `Account quota exhausted for ${providerId}/${model}. Check your ${providerId} quota or billing and try again later.`;
