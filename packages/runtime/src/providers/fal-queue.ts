@@ -133,8 +133,18 @@ async function readJson(response: Response): Promise<unknown> {
   return value;
 }
 
+/**
+ * HTTP statuses where FAL refused the request itself: invalid input (400,
+ * 422), a missing or locked account (401, 403). Retrying the same request
+ * cannot succeed, so the generation fails now instead of being re-checked
+ * by recovery for a day. Throttling, timeouts and 5xx stay recoverable.
+ */
+const DEFINITIVE_REJECTION_STATUSES = new Set([400, 401, 403, 422]);
+
 /** A non-2xx queue answer, keeping the provider's own reason apart. */
-class FalQueueHttpError extends Error {
+export class FalQueueHttpError extends Error {
+  readonly authoritativeProviderTerminal: boolean;
+
   constructor(
     readonly status: number,
     readonly detail: string | undefined
@@ -143,6 +153,8 @@ class FalQueueHttpError extends Error {
       `FAL queue request failed (HTTP ${status})${detail ? `: ${detail}` : ""}`
     );
     this.name = "FalQueueHttpError";
+    this.authoritativeProviderTerminal =
+      DEFINITIVE_REJECTION_STATUSES.has(status);
   }
 }
 
