@@ -114,7 +114,8 @@ Basic.Menu {
         }
     }
     function addSubmenu(target, entry) {
-        const sub = submenuComponent.createObject(null, { title: entry.label, objectName: "menu-" + entry.id })
+        const sub = submenuComponent.createObject(null, { parent: null, title: entry.label, objectName: "menu-" + entry.id, submenuMinimumWidth: root.submenuMinimumWidth })
+        sub.width = Qt.binding(function() { return Math.max(root.submenuMinimumWidth, sub.implicitWidth) })
         buildEntries(sub, entry.submenu)
         target.addMenu(sub)
         const row = target.itemAt(target.count - 1)
@@ -138,14 +139,9 @@ Basic.Menu {
             }
         }
     }
-    Component {
-        id: submenuComponent
-        Ui.ContextMenu {
-            // A submenu is positioned by its parent item, not by the window.
-            parent: null
-            width: Math.max(root.submenuMinimumWidth, implicitWidth)
-        }
-    }
+    // A submenu is another ContextMenu. QML rejects a type that declares itself,
+    // so the submenu is created from the file at run time.
+    readonly property Component submenuComponent: Qt.createComponent("ContextMenu.qml")
     Component { id: separatorComponent; Ui.MenuSeparator {} }
     Component { id: headerComponent; Ui.MenuHeader {} }
     background: Rectangle { color: Theme.surfaceOverlay; radius: Metrics.radiusOverlay; border.width: Metrics.border; border.color: Theme.borderControl }
