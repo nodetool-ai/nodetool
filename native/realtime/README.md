@@ -8,8 +8,8 @@ Provisional M1 development adds the [plan IR and loader](schema/README.md),
 [milestone status and unverified assumptions](M1_STATUS.md). The
 [render scheduling core and offline GPU backend](render.md) are in progress.
 GPU execution verification and live/shared-device support remain unfinished.
-WP09 starts with the [exact offline clock](offline.md). The export driver and
-CLI integration remain pending.
+WP09 includes an [exact offline clock and control/audio export command](offline.md).
+Render export and graph-runner CLI integration remain pending.
 
 ## Build and test
 
