@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "session": {
+    "sampleRate": 48000,
+    "quantum": 128,
+    "channels": "stereo",
+    "width": 4,
+    "height": 4,
+    "seed": 17
+  },
+  "params": [],
+  "slots": [],
+  "control": {
+    "registers": 10,
+    "ops": [
+      {
+        "node": "@uniform:damp:target",
+        "op": "constant",
+        "domain": "render",
+        "out": 0,
+        "in": [],
+        "values": [
+          0.75
+        ]
+      },
+      {
+        "node": "@uniform:damp:tau",
+        "op": "constant",
+        "domain": "render",
+        "out": 1,
+        "in": [],
+        "values": [
+          0.2
+        ]
+      },
+      {
+        "node": "@expression:solid:%5B%22color%22%2C1%5D",
+        "op": "constant",
+        "domain": "render",
+        "out": 3,
+        "in": [],
+        "values": [
+          0.5
+        ]
+      },
+      {
+        "node": "@expression:solid:%5B%22color%22%2C2%5D",
+        "op": "multiply",
+        "domain": "render",
+        "out": 4,
+        "in": [
+          2,
+          3
+        ],
+        "values": []
+      },
+      {
+        "node": "@expression:solid:%5B%22color%22%2C5%5D",
+        "op": "constant",
+        "domain": "render",
+        "out": 5,
+        "in": [],
+        "values": [
+          0
+        ]
+      },
+      {
+        "node": "@expression:solid:%5B%22color%22%2C6%5D",
+        "op": "constant",
+        "domain": "render",
+        "out": 6,
+        "in": [],
+        "values": [
+          0
+        ]
+      },
+      {
+        "node": "@expression:solid:%5B%22color%22%2C7%5D",
+        "op": "constant",
+        "domain": "render",
+        "out": 7,
+        "in": [],
+        "values": [
+          1
+        ]
+      },
+      {
+        "node": "@expression:solid:%5B%22color%22%2C8%5D",
+        "op": "vec4",
+        "domain": "render",
+        "out": 8,
+        "in": [
+          4,
+          5,
+          6,
+          7
+        ],
+        "values": []
+      },
+      {
+        "node": "@uniform:invert:amount",
+        "op": "constant",
+        "domain": "render",
+        "out": 9,
+        "in": [],
+        "values": [
+          1
+        ]
+      }
+    ],
+    "stateful": [
+      {
+        "node": "damp",
+        "op": "damp",
+        "domain": "render",
+        "out": 2,
+        "in": [
+          0,
+          1
+        ],
+        "values": [],
+        "stateVersion": 1
+      }
+    ]
+  },
+  "render": {
+    "passes": [
+      {
+        "node": "solid",
+        "module": "sources.solid@1",
+        "inputs": {},
+        "uniforms": [
+          8
+        ],
+        "retention": "retained",
+        "output": {
+          "format": "rgba8unorm",
+          "alpha": "premultiplied",
+          "colorSpace": "srgb",
+          "size": {
+            "kind": "session"
+          }
+        }
+      },
+      {
+        "node": "invert",
+        "module": "color.invert@1",
+        "inputs": {
+          "source": "solid"
+        },
+        "uniforms": [
+          9
+        ],
+        "retention": "retained",
+        "output": {
+          "format": "rgba8unorm",
+          "alpha": "premultiplied",
+          "colorSpace": "srgb",
+          "size": {
+            "kind": "session"
+          }
+        }
+      }
+    ],
+    "present": {
+      "source": "invert",
+      "colorSpace": "srgb"
+    }
+  },
+  "audio": {
+    "buffers": [],
+    "nodes": [],
+    "sinks": []
+  }
+}

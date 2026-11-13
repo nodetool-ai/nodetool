@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "session": {
+    "sampleRate": 48000,
+    "quantum": 128,
+    "channels": "stereo",
+    "width": 4,
+    "height": 4,
+    "seed": 17
+  },
+  "params": [
+    {
+      "slot": 0,
+      "node": "gain-a",
+      "field": "gain",
+      "value": 0.5,
+      "smooth": "none",
+      "sync": "audio"
+    },
+    {
+      "slot": 1,
+      "node": "player",
+      "field": "gain",
+      "value": 1,
+      "smooth": "none",
+      "sync": "audio"
+    }
+  ],
+  "slots": [
+    {
+      "id": "@slot:0123456789abcdef0123456789abcdef:audio",
+      "kind": "buffer",
+      "source": "[\"0123456789abcdef0123456789abcdef\",\"audio\"]",
+      "channels": "stereo"
+    }
+  ],
+  "control": {
+    "registers": 0,
+    "ops": [],
+    "stateful": []
+  },
+  "render": {
+    "passes": []
+  },
+  "audio": {
+    "buffers": [
+      {
+        "id": 0,
+        "channels": "stereo"
+      },
+      {
+        "id": 1,
+        "channels": "stereo"
+      }
+    ],
+    "nodes": [
+      {
+        "node": "player",
+        "kernel": "sample-player",
+        "stateVersion": 1,
+        "in": [],
+        "out": [
+          0
+        ],
+        "params": [
+          1
+        ],
+        "bufferSlot": "@slot:0123456789abcdef0123456789abcdef:audio"
+      },
+      {
+        "node": "gain-a",
+        "kernel": "gain",
+        "stateVersion": 1,
+        "in": [
+          {
+            "node": "player",
+            "output": 0
+          }
+        ],
+        "out": [
+          1
+        ],
+        "params": [
+          0
+        ]
+      }
+    ],
+    "sinks": [
+      {
+        "node": "out-a",
+        "kind": "device",
+        "buffer": 1,
+        "subgraphHash": "d4111ccd6dd8764b2b70f1e4a1dd1cd486d1c40d3e03b8496554f2e0b171d8a5"
+      }
+    ]
+  }
+}

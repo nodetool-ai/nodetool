@@ -726,6 +726,26 @@ setups: with the gate, without it, and with a second device for batch work. A
 second device separates the queues and costs a CPU copy for each texture slot
 value.
 
+#### Provisional offline M1 exception (RT-F44)
+
+The offline M1 backend may create pipelines synchronously before activation on
+a private device. Its single owning host thread checks validation error scopes
+after creating shaders and dependent resources. It never calls the unsupported
+compilation-info or async pipeline entry points in the pinned wgpu-native
+release. [The implementation notes](../../native/realtime/render.md#native-pipeline-api-limitation)
+record the source evidence.
+
+This exception is limited to offline preparation and execution. The backend
+creates its own instance and device, exposes no native handles, accepts no
+external device, and cannot attach to a live session. Its owner thread may pump
+nonblocking readback completion between offline frames. It does not establish
+realtime allocation, callback or scheduling guarantees for the GPU driver.
+
+Rules 4 and 5 above still apply to live/shared-device support. That path remains
+blocked until compilation/error reporting and callback ownership have a supported
+implementation and their live behavior is verified. The offline exception does
+not settle M0's device, surface, timing or physical-recording gates.
+
 ### 9.3 Frame order
 
 1. Check for work (section 9.4). Without work, wait one refresh period and
@@ -1188,7 +1208,7 @@ Rules:
 | Plan compiler | TypeScript in the QuickJS guest | TypeScript | Runs once for each edit. One implementation |
 | Session, clock, drivers | Native C++ | TypeScript and a worklet | Thread and device control |
 | Control executor | Native C++ | The same source as WebAssembly | One definition of each operation |
-| Render executor | Native C++ on wgpu-native | Open (Q8): the existing TypeScript `Executor`, or the C++ executor as WebAssembly | The GPU does the work. Section 14.5 compares the two |
+| Render executor | Native C++ on wgpu-native | C++ executor as WebAssembly (Q8) | Shared scheduling behavior. Section 14.5 records the comparison |
 | Shaders | WGSL | WGSL | N4 |
 | Audio executor, built-in kernels | Native C++ | The same source as one WebAssembly module in an AudioWorklet | N2. Native code is 2 to 8 times faster where SIMD applies |
 | User and pack kernels, phase P7 | WebAssembly in Wasmtime on a kernel worker thread | WebAssembly in a `Worker` | N3. Equal to native on recurrences, isolated from the deadline thread, one binary for both hosts |
@@ -1344,10 +1364,24 @@ The render executor has two candidates (Q8):
 | The existing TypeScript `Executor`, driven from the IR | It exists and runs the catalog in browsers today | A second implementation of the dirty, retention, swap and sync rules, with a parity test for each |
 | The C++ render executor as WebAssembly, on Emscripten's `webgpu.h` binding | One implementation of those rules for both hosts | A second header revision beside the pinned wgpu-native header, a call through JavaScript for each WebGPU call, a larger download |
 
-The choice is tested and not assumed (F43). At the end of P1 the C++ executor
-is built for `wasm32` and runs two fixtures in a browser. Three numbers decide:
-the count of lines that differ between the two header revisions, the frame
-cost of a plan with 64 passes, and the size of the module.
+Q8 selects C++/Wasm to share scheduling behavior between native and browser
+hosts. The [WP10 comparison](../../native/realtime/spike/browser/README.md)
+records the two Chrome/native fixtures, TypeScript pixel parity and a separate
+mid-range presentation-conversion regression.
+
+The pinned headers differ by 4,199 added/removed lines. In three Windows
+SwiftShader trials of 64 volatile 4x4 passes plus presentation, C++ CPU
+encode/submit medians were 0.95–1.31 ms versus 2.62–3.10 ms for TypeScript.
+With matching catalog inventories, complete experiment downloads total
+231,117 Brotli bytes for C++ versus 91,714 for TypeScript. The C++ candidate
+includes its loader/scheduler. The TypeScript candidate is a limited IR host.
+The larger download is accepted to avoid a second scheduling implementation.
+
+These measurements do not establish GPU throughput, hardware deadlines or
+production callback lifecycle safety. Browser asynchronous preparation and
+the render loop remain WP25 work. CI is configured to build the pinned wasm32
+toolchain and run fixture and benchmark guards. The private offline-device
+exception does not permit live/shared-device activation.
 
 ## 15. Offline rendering and tests
 
@@ -1416,6 +1450,28 @@ Level 1 needs fixed inputs:
 The benchmark of section 3.4 shows level 3 for one biquad chain and one mix on
 one input, and nothing more.
 
+### 15.2 Provisional M1 progress gate
+
+The user authorizes provisional implementation to advance with explicitly
+tracked deferrals. P1 progress uses WP09's scoped exit evidence: stored IR loader
+validation, repeated offline output, frame references, offline realtime-rule
+checks, stateful control and retention. The offline CLI and registered
+verification entry point must exercise the fixtures. WP10 adds the Wasm render
+build, native/browser frame comparisons and the recorded Q8 decision.
+
+Graph-to-IR snapshots belong to WP16. Synchronized parameter-change evidence
+belongs to WP13. Stall, swap-state and browser audio-parity evidence remain
+with their later work packages. M0 measurements, driver-allocation audits and
+supported live preparation also remain required for their respective claims.
+Track missing work, owning issues and completion conditions in the
+[deferred acceptance ledger](../../native/realtime/M1_STATUS.md#deferred-acceptance-work).
+
+Passing this scoped gate permits independent implementation to proceed.
+Unfinished requirements, issues and milestone qualification remain open.
+Evidence from a private-device offline run cannot qualify live/shared-device
+operation or replace physical measurements. Dependency-order deferrals follow
+the [implementation plan](graph-runner-realtime-issues.md#provisional-progress-and-deferred-work).
+
 ## 16. Delivery plan
 
 The [implementation plan](graph-runner-realtime-issues.md) splits these phases
@@ -1424,7 +1480,7 @@ into work packages, one GitHub issue each, with one milestone for each phase.
 | Phase | Work | Exit evidence |
 |---|---|---|
 | P0 | A spike outside the product on macOS. One shader chain on a wgpu surface in a Qt container window. One audio chain on the buffered driver. A synced param and one plan swap each second, with state that follows the node. A batch GPU workload on the shared device. One built-in kernel as WebAssembly in an AudioWorklet. A deliberate worker stall | Recorded frame interval statistics. The audio measures of section 13 for each load profile. The offset between sound and picture for a synced change, from a camera and a microphone. Frame misses with the gate, without it and with a second device. Pipeline creation times. Equal bytes from the native and the browser kernel |
-| P1 | `native/realtime` core, headless: IR loader, control executor, render executor, audio executor, first kernels, offline driver, CLI. A `wasm32` build of the render executor | Section 15 tests pass, except stall, swap state and audio parity. Q8 is decided |
+| P1 | `native/realtime` core, headless: IR loader, control executor, render executor, audio executor, first kernels, offline driver, CLI. A `wasm32` build of the render executor | The [provisional progress gate](#152-provisional-m1-progress-gate) passes. Deferred qualification remains open |
 | P2 | `audio-io` extraction, buffered driver, surface presenter, submit gate, clocks, params with sync policies | Stall test passes. `live bench` meets section 13 on the reference machine |
 | P3 | Compiler, live descriptors for the catalog nodes and the audio nodes, slots, slot-write node, editor picture and transport | The example of section 1 runs in the editor. The swap state test passes |
 | P4 | Custom shader node, analysis taps, feedback nodes | A tap fixture and a feedback fixture pass the frame goldens |
@@ -1432,8 +1488,10 @@ into work packages, one GitHub issue each, with one milestone for each phase.
 | P6 | Encoded export, capture sinks, taps into batch regions, session log | An export of a fixture plays in sync. An export from a session log repeats the session |
 | P7 | Kernels that arrive as data, in isolated mode | The loader tests of the memory contract pass. A kernel with an endless loop gives late blocks and no underrun, on the desktop and in a browser |
 
-P0 decides R1 and R2 before P1 starts. It also replaces the targets of D7h and
-section 13 with measured values. The built-in kernels and the WGSL path
+P0 qualification requires R1 and R2 decisions and measured replacements for the
+targets of D7h and section 13. Provisional implementation can advance under
+[section 15.2](#152-provisional-m1-progress-gate) while those requirements remain
+open. The built-in kernels and the WGSL path
 deliver phases P1 to P6 without the kernel contracts of section 10.6.
 
 ## 17. Failure handling
@@ -1507,8 +1565,8 @@ deliver phases P1 to P6 without the kernel contracts of section 10.6.
   when idle?
 - Q7. Does the browser render loop run on the main thread or on a worker with
   an `OffscreenCanvas`?
-- Q8. Is the browser render executor the TypeScript `Executor` or the C++
-  executor as WebAssembly? Section 14.5 gives the test and the three numbers.
+- Q8. **Decided: C++/Wasm.** Share the native scheduling implementation and
+  accept the larger download. Section 14.5 records the measurements and limits.
 - Q9. Do user kernels need a metered mode on the deadline thread, or is
   isolated mode with its latency enough?
 - Q10. Does the sync policy of a param need a control in the editor, or is the

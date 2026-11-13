@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "session": {
+    "sampleRate": 44100,
+    "quantum": 128,
+    "channels": "stereo",
+    "width": 64,
+    "height": 64,
+    "seed": 1
+  },
+  "params": [
+    {
+      "slot": 0,
+      "node": "gain",
+      "field": "gain",
+      "smooth": "ramp",
+      "sync": "audio",
+      "value": 0.5
+    }
+  ],
+  "slots": [
+    {
+      "id": "t0",
+      "kind": "texture",
+      "source": "batch.output",
+      "output": {
+        "format": "rgba8unorm",
+        "size": {
+          "kind": "fixed",
+          "width": 64,
+          "height": 64
+        },
+        "colorSpace": "encoded-sdr",
+        "alpha": "premultiplied"
+      }
+    }
+  ],
+  "control": {
+    "registers": 1,
+    "ops": [
+      {
+        "node": "constant",
+        "op": "constant",
+        "domain": "render",
+        "out": 0,
+        "in": [],
+        "values": [
+          0.5
+        ]
+      }
+    ],
+    "stateful": []
+  },
+  "render": {
+    "passes": [
+      {
+        "node": "blur",
+        "module": "filters/blur@1",
+        "inputs": {
+          "src": "t0"
+        },
+        "uniforms": [
+          0
+        ],
+        "retention": "retained",
+        "output": {
+          "format": "rgba8unorm",
+          "size": {
+            "kind": "session"
+          },
+          "colorSpace": "encoded-sdr",
+          "alpha": "premultiplied"
+        }
+      }
+    ],
+    "present": {
+      "source": "blur",
+      "colorSpace": "srgb"
+    }
+  },
+  "audio": {
+    "buffers": [
+      {
+        "id": 0,
+        "channels": "stereo"
+      },
+      {
+        "id": 1,
+        "channels": "stereo"
+      }
+    ],
+    "nodes": [
+      {
+        "node": "osc",
+        "kernel": "oscillator",
+        "stateVersion": 1,
+        "in": [],
+        "out": [
+          0
+        ],
+        "params": []
+      },
+      {
+        "node": "gain",
+        "kernel": "missing",
+        "stateVersion": 1,
+        "in": [
+          {
+            "node": "osc",
+            "output": 0
+          }
+        ],
+        "out": [
+          1
+        ],
+        "params": [
+          0
+        ]
+      }
+    ],
+    "sinks": [
+      {
+        "node": "audio-out",
+        "buffer": 1,
+        "kind": "device",
+        "subgraphHash": "1234abcd"
+      }
+    ]
+  }
+}

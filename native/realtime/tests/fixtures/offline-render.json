@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "session": { "sampleRate": 48000, "quantum": 128, "channels": "stereo", "width": 4, "height": 4, "seed": 17 },
+  "params": [],
+  "slots": [],
+  "control": {
+    "registers": 2,
+    "ops": [
+      { "node": "color", "op": "constant", "domain": "render", "out": 0, "in": [], "values": [0.5, 0, 0, 0.5] },
+      { "node": "amount", "op": "constant", "domain": "render", "out": 1, "in": [], "values": [1] }
+    ],
+    "stateful": []
+  },
+  "render": {
+    "passes": [
+      { "node": "solid", "module": "sources.solid@1", "inputs": {}, "uniforms": [0], "retention": "retained", "output": { "format": "rgba8unorm", "size": { "kind": "session" }, "colorSpace": "linear", "alpha": "premultiplied" } },
+      { "node": "invert", "module": "color.invert@1", "inputs": { "source": "solid" }, "uniforms": [1], "retention": "retained", "output": { "format": "rgba8unorm", "size": { "kind": "session" }, "colorSpace": "linear", "alpha": "premultiplied" } },
+      { "node": "restore", "module": "color.invert@1", "inputs": { "source": "invert" }, "uniforms": [1], "retention": "retained", "output": { "format": "rgba8unorm", "size": { "kind": "session" }, "colorSpace": "linear", "alpha": "premultiplied" } }
+    ],
+    "present": { "source": "restore", "colorSpace": "srgb" }
+  },
+  "audio": { "buffers": [], "nodes": [], "sinks": [] }
+}

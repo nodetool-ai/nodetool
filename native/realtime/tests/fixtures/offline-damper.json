@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "session": { "sampleRate": 48000, "quantum": 128, "channels": "stereo", "width": 4, "height": 4, "seed": 17 },
+  "params": [
+    { "slot": 0, "node": "tone", "field": "frequency", "smooth": "none", "sync": "audio", "value": 12000 },
+    { "slot": 1, "node": "tone", "field": "amplitude", "smooth": "none", "sync": "audio", "value": 0, "audioControl": 2 }
+  ],
+  "slots": [],
+  "control": {
+    "registers": 6,
+    "ops": [
+      { "node": "audio-target", "op": "constant", "domain": "audio", "out": 0, "in": [], "values": [0.75] },
+      { "node": "audio-tau", "op": "constant", "domain": "audio", "out": 1, "in": [], "values": [0.2] },
+      { "node": "render-target", "op": "constant", "domain": "render", "out": 0, "in": [], "values": [0.75] },
+      { "node": "render-tau", "op": "constant", "domain": "render", "out": 1, "in": [], "values": [0.2] },
+      { "node": "zero", "op": "constant", "domain": "render", "out": 2, "in": [], "values": [0] },
+      { "node": "one", "op": "constant", "domain": "render", "out": 3, "in": [], "values": [1] },
+      { "node": "color", "op": "vec4", "domain": "render", "out": 5, "in": [4, 2, 2, 3], "values": [] }
+    ],
+    "stateful": [
+      { "node": "audio-damper", "op": "damp", "domain": "audio", "out": 2, "in": [0, 1], "values": [], "stateVersion": 1 },
+      { "node": "render-damper", "op": "damp", "domain": "render", "out": 4, "in": [0, 1], "values": [], "stateVersion": 1 }
+    ]
+  },
+  "render": {
+    "passes": [
+      { "node": "solid", "module": "sources.solid@1", "inputs": {}, "uniforms": [5], "retention": "retained", "output": { "format": "rgba8unorm", "size": { "kind": "session" }, "colorSpace": "srgb", "alpha": "premultiplied" } }
+    ],
+    "present": { "source": "solid", "colorSpace": "srgb" }
+  },
+  "audio": {
+    "buffers": [{ "id": 0, "channels": "stereo" }],
+    "nodes": [{ "node": "tone", "kernel": "oscillator", "stateVersion": 1, "in": [], "out": [0], "params": [0, 1] }],
+    "sinks": [{ "node": "output", "buffer": 0, "kind": "device", "subgraphHash": "1234abcd" }]
+  }
+}

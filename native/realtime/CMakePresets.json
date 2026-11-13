@@ -1,0 +1,42 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "NT_REALTIME_BUILD_SPIKES": "OFF"
+      }
+    },
+    {
+      "name": "sanitize",
+      "inherits": "release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined",
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
+      }
+    },
+    {
+      "name": "tsan",
+      "inherits": "release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_C_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "release", "configurePreset": "release", "jobs": 2 },
+    { "name": "sanitize", "configurePreset": "sanitize", "jobs": 2 },
+    { "name": "tsan", "configurePreset": "tsan", "jobs": 2 }
+  ],
+  "testPresets": [
+    { "name": "release", "configurePreset": "release", "output": { "outputOnFailure": true } },
+    { "name": "sanitize", "configurePreset": "sanitize", "output": { "outputOnFailure": true } },
+    { "name": "tsan", "configurePreset": "tsan", "output": { "outputOnFailure": true } }
+  ]
+}

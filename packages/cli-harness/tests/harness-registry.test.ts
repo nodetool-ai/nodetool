@@ -420,6 +420,40 @@ describe("harness gate", () => {
   });
 
   it.each([
+    "packages/realtime-compiler/src/compileRealtimeGraph.ts",
+    "native/realtime/schema/plan-v1.schema.json"
+  ])("selects the compiler schema and snapshot checks for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.unmappedFiles).toEqual([]);
+    expect(plan.checks.find((entry) => entry.harnessId === "realtime-compiler"))
+      .toMatchObject({ command: "npm run test --workspace=packages/realtime-compiler", cost: "cheap" });
+  });
+
+  it("maps every browser comparison source to its manual harness", () => {
+    const directory = "native/realtime/spike/browser";
+    const files = readdirSync(join(repoRoot, directory))
+      .filter((name) => /\.(mjs|py|cpp)$/.test(name))
+      .map((name) => `${directory}/${name}`);
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+      const plan = planGate([file]);
+      expect(plan.unmappedFiles).toEqual([]);
+      expect(plan.manual.map((entry) => entry.harnessId)).toContain("realtime-browser-comparison");
+    }
+  });
+
+  it.each([
+    "native/realtime/src/offline.cpp",
+    "native/realtime/scripts/check.mjs",
+    "native/realtime/budgets/offline.json",
+    "native/graph-runner/src/main.cpp"
+  ])("selects the offline realtime check for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.checks.find((entry) => entry.harnessId === "realtime-offline"))
+      .toMatchObject({ command: "node native/realtime/scripts/check.mjs", cost: "expensive" });
+  });
+
+  it.each([
     "native/node-editor/CMakeLists.txt",
     "native/node-editor/src/graph/WorkflowGraphModel.cpp",
     "native/node-editor/qml/Inspector.qml",
