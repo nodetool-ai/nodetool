@@ -99,6 +99,12 @@ const commandNamed = (name: string): ChatCommand => {
 };
 
 // Mock ChatInputSection component
+// The error banner offers a model switch from the live provider listing,
+// which needs a QueryClient this harness does not mount.
+jest.mock("../../../../hooks/useAlternativeLanguageModel", () => ({
+  useAlternativeLanguageModel: () => undefined
+}));
+
 jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
   __esModule: true,
   default: function MockChatInputSection({

@@ -243,6 +243,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&documentTabs_, &node_editor::DocumentTabs::settingsRequested, this, &EditorWindow::openSettings);
   connect(&notificationList_, &node_editor::Notifications::openRequested, this, &EditorWindow::showNotifications);
   connect(&notificationList_, &node_editor::Notifications::copyRequested, this, &EditorWindow::copyText);
+  connect(&notificationList_, &node_editor::Notifications::reportRequested, this, [this](const QString &text) {
+    (activeEditor_ ? activeEditor_ : this)->reportBug({.source = QStringLiteral("Error notification"), .errorText = text});
+  });
   syncDocumentTabs();
   syncNotifications();
   // The document bar and the rail read the state every panel change carries.
@@ -479,6 +482,18 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     if (inlinePresenter_->active() && !inlinePresenter_->expanded()) { inlinePresenter_->expand(); }
   });
   connect(scene_, &EditorScene::documentOpenRequested, this, [this](const QString &kind, const QString &id) { documentPicker_.open(kind, id); });
+  // The web opens provider onboarding at the key. Native opens the server's provider settings.
+  connect(scene_, &EditorScene::providerConnectRequested, this, [this] { packSetup()->openProviderSettings(); });
+  connect(scene_, &EditorScene::errorReportRequested, this, [this](const QString &resource) {
+    node_editor::BugReportContext context{.source = QStringLiteral("Node error")};
+    for (const auto id : model_.allNodeIds()) {
+      if (model_.resourceId(id) != resource) { continue; }
+      context.nodeType = model_.nodeSnapshot(id)["type"].toString();
+      context.nodeTitle = model_.nodeData(id, QtNodes::NodeRole::Caption).toString();
+      context.errorText = model_.runtimeState(id)["error"].toString();
+    }
+    reportBug(context);
+  });
   connect(inlinePresenter_, &InlinePropertyPresenter::popupChanged, this, &EditorWindow::positionSelectionToolbar);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
   connect(this, &EditorWindow::documentEpochChanged, inlinePresenter_, &InlinePropertyPresenter::cancel);
@@ -2227,27 +2242,7 @@ void EditorWindow::syncLineage() {
 }
 QVariantList EditorWindow::catalog() const {
   if (!tabOwner_) { return activeEditor_->catalog(); }
-  QVariantList r;
-  for (auto v : metadata_) {
-    auto m = v.toObject();
-    // Hidden nodes stay runnable but never appear in the web node library.
-    if (m["hidden"].toBool()) { continue; }
-    auto type = m["node_type"].toString(m["type"].toString());
-    const auto ns = m["namespace"].toString(type.section('.', 0, -2));
-    const auto outputs = m["outputs"].toArray();
-    const auto output = outputs.isEmpty() ? QJsonValue{} : outputs[0].toObject()["type"];
-    const auto outputType = output.isString() ? output.toString() : output.toObject()["type"].toString();
-    r.append(QVariantMap{{"type", type}, {"label", m["title"].toString(type)},
-                         {"namespace", ns}, {"categories", catalogCategoryIds(m)},
-                         {"description", m["description"].toString()},
-                         {"deprecated", m["deprecated"].toBool()},
-                         {"inputTypes", catalogTypeNames(m["properties"].toArray())},
-                         {"outputTypes", catalogTypeNames(outputs)},
-                         {"provider", catalogProviderId(ns)}, {"providerName", catalogProviderName(catalogProviderId(ns))},
-                         {"keyGate", catalogKeyGate(ns)},
-                         {"icon", typeIcon(outputType)}, {"color", typeColor(outputType)}});
-  }
-  return r;
+  return node_editor::NodeCatalog::entriesFromMetadata(metadata_);
 }
 bool EditorWindow::miniMapVisible() const {
     if (!tabOwner_) { return activeEditor_->miniMapVisible(); }
@@ -3415,8 +3410,23 @@ void EditorWindow::action(const QString &name) {
     zoomTo(1.0);
     return;
   }
+  // The web zoom50, zoom100 and zoom200 shortcuts.
+  if (name == "Zoom to 50%" || name == "Zoom to 100%" || name == "Zoom to 200%") {
+    zoomTo(name.mid(8).chopped(1).toDouble() / 100.0);
+    return;
+  }
   if (name == "Add node") {
     openNodeMenu();
+    return;
+  }
+  // ADD_NODE_HOTKEYS: Shift+P, G, V and L add their node at the pointer, or
+  // in the visible center when the pointer is off the canvas.
+  if (const auto type = quickAddNodeType(name); !type.isEmpty()) {
+    if (readOnly()) { return; }
+    const auto pointer = view_->viewport()->mapFromGlobal(QCursor::pos());
+    const auto point = view_->viewport()->rect().contains(pointer) ? view_->mapToScene(pointer)
+                                                                 : view_->mapToScene(unobstructedViewport().center().toPoint());
+    addNodeAt(type, point, true);
     return;
   }
   if (name == "Connect" || (name == "Reconnect" && session_.serverUrl().isEmpty())) {

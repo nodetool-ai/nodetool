@@ -22,7 +22,9 @@ export * from "./package-assets.js";
 export * from "./resource-uri.js";
 export * from "./model-selection.js";
 export * from "./reasoning-effort.js";
+export * from "./gemini-models.js";
 export * from "./example-needs.js";
+export * from "./provider-failure.js";
 export {
   TypeMetadata,
   areTypeNamesCompatible

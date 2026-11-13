@@ -110,6 +110,20 @@ describe("checkCredential", () => {
     });
   });
 
+  it("probes Sarvam's model listing with the subscription-key header", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(respond(200));
+    const result = await checkCredential("SARVAM_API_KEY", "sv-key", {
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    });
+
+    expect(result.status).toBe("valid");
+    const [url, init] = fetchImpl.mock.calls[0];
+    expect(url).toBe("https://api.sarvam.ai/v2/models");
+    expect((init as RequestInit).headers).toEqual({
+      "api-subscription-key": "sv-key"
+    });
+  });
+
   it("keys a URL-authenticated provider on the value instead of a header", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(respond(200));
     await checkCredential("GEMINI_API_KEY", "abc/123", {
@@ -128,5 +142,122 @@ describe("isCredentialVerifiable", () => {
     expect(isCredentialVerifiable("FAL_API_KEY")).toBe(false);
     expect(verifiableCredentialKeys()).toContain("ANTHROPIC_API_KEY");
     expect(verifiableCredentialKeys()).not.toContain("FAL_API_KEY");
+  });
+});
+
+describe("checkCredential account probes", () => {
+  const json = (status: number, body: unknown): Response =>
+    new Response(JSON.stringify(body), { status });
+
+  /** First call answers the listing, the second the account probe. */
+  const twoStep = (listing: Response, account: Response) =>
+    vi.fn().mockResolvedValueOnce(listing).mockResolvedValueOnce(account);
+
+  it("reports an OpenAI key on an empty account", async () => {
+    const fetchImpl = twoStep(
+      json(200, { data: [] }),
+      json(429, {
+        error: {
+          message: "You exceeded your current quota, please check your plan and billing details.",
+          type: "insufficient_quota",
+          code: "insufficient_quota"
+        }
+      })
+    );
+    const result = await checkCredential("OPENAI_API_KEY", "sk", {
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    });
+    expect(result.status).toBe("valid");
+    expect(result.account?.state).toBe("no_credit");
+    expect(result.message).toBe(result.account?.message);
+    const [url, init] = fetchImpl.mock.calls[1];
+    expect(url).toBe("https://api.openai.com/v1/chat/completions");
+    expect(JSON.parse(String((init as RequestInit).body)).max_tokens).toBe(1);
+  });
+
+  it("reports a Gemini free-tier key with no quota", async () => {
+    const fetchImpl = twoStep(
+      json(200, { models: [] }),
+      json(429, {
+        error: {
+          code: 429,
+          status: "RESOURCE_EXHAUSTED",
+          message:
+            "You exceeded your current quota. Quota exceeded for metric: generate_content_free_tier_requests, limit: 0"
+        }
+      })
+    );
+    const result = await checkCredential("GEMINI_API_KEY", "g", {
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    });
+    expect(result.status).toBe("valid");
+    expect(result.account?.state).toBe("no_quota");
+  });
+
+  it("reports an Anthropic account whose credit balance is too low", async () => {
+    const fetchImpl = twoStep(
+      json(200, { data: [] }),
+      json(400, {
+        type: "error",
+        error: {
+          type: "invalid_request_error",
+          message: "Your credit balance is too low to access the Anthropic API."
+        }
+      })
+    );
+    const result = await checkCredential("ANTHROPIC_API_KEY", "a", {
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    });
+    expect(result.account?.state).toBe("no_credit");
+  });
+
+  it("reads an empty DeepSeek balance", async () => {
+    const fetchImpl = twoStep(
+      json(200, { data: [] }),
+      json(200, { is_available: false, balance_infos: [] })
+    );
+    const result = await checkCredential("DEEPSEEK_API_KEY", "d", {
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    });
+    expect(result.account?.state).toBe("no_credit");
+    expect(fetchImpl.mock.calls[1][0]).toBe("https://api.deepseek.com/user/balance");
+  });
+
+  it("reads OpenRouter's key description without a second request", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(
+        json(200, { data: { limit_remaining: null, is_free_tier: true } })
+      );
+    const result = await checkCredential("OPENROUTER_API_KEY", "o", {
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    });
+    expect(result.account?.state).toBe("free_tier");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("says nothing about the account when the test request fails for another reason", async () => {
+    const fetchImpl = twoStep(
+      json(200, { data: [] }),
+      json(404, { error: { message: "The model does not exist" } })
+    );
+    const result = await checkCredential("OPENAI_API_KEY", "sk", {
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    });
+    expect(result.status).toBe("valid");
+    expect(result.account).toBeUndefined();
+    expect(result.message).toBe("OpenAI accepted the key.");
+  });
+
+  it("keeps the key check when the account probe throws", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(json(200, { data: [] }))
+      .mockRejectedValueOnce(new Error("fetch failed"));
+    const result = await checkCredential("ANTHROPIC_API_KEY", "a", {
+      fetchImpl: fetchImpl as unknown as typeof fetch
+    });
+    expect(result.status).toBe("valid");
+    expect(result.account).toBeUndefined();
   });
 });

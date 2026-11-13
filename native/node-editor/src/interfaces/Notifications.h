@@ -8,7 +8,7 @@ namespace nodetool::node_editor {
 
 // What the tab bar's bell (TabBar.qml) and the notification list
 // (NotificationsPanel.qml) read and do: the notifications, the unread count,
-// and the open and copy requests.
+// and the open, copy and report requests.
 //
 // The owner fills the state with the setters and handles the *Requested
 // signals. A test can use a plain instance and a QSignalSpy. QML gets a
@@ -33,12 +33,15 @@ public:
     // Opens the list below `global` and marks every notification read.
     Q_INVOKABLE void open(const QPointF &global) { emit openRequested(global); }
     Q_INVOKABLE void copy(const QString &text) { emit copyRequested(text); }
+    // Report on an error notification opens a prefilled bug report.
+    Q_INVOKABLE void report(const QString &text) { emit reportRequested(text); }
 
 signals:
     void entriesChanged();
     void unreadChanged();
     void openRequested(const QPointF &global);
     void copyRequested(const QString &text);
+    void reportRequested(const QString &text);
 
 private:
     QVariantList entries_;

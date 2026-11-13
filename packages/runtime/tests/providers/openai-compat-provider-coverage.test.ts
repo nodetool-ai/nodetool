@@ -569,10 +569,24 @@ describe("OpenAICompatProvider inherits OpenAI's catalog guard", () => {
   // keeps `whisper-1` / `gpt-image-2` out of their pickers.
   it.each([
     ["gmi", new GMIProvider({ GMI_API_KEY: "k" })],
-    ["alibaba", new AlibabaProvider({ DASHSCOPE_API_KEY: "k" })],
     ["evolink", new EvolinkProvider({ EVOLINK_API_KEY: "k" })]
   ])("%s serves no OpenAI TTS, ASR or embedding models", async (_id, p) => {
     expect(await p.getAvailableTTSModels()).toEqual([]);
+    expect(await p.getAvailableASRModels()).toEqual([]);
+    expect(await p.getAvailableEmbeddingModels()).toEqual([]);
+  });
+
+  // Alibaba serves its own Wan, Qwen-Image and Qwen TTS catalog; OpenAI's
+  // models must not leak into it.
+  it("alibaba serves its own media catalog, none of OpenAI's", async () => {
+    const p = new AlibabaProvider({ DASHSCOPE_API_KEY: "k" });
+    const ids = [
+      ...(await p.getAvailableTTSModels()),
+      ...(await p.getAvailableImageModels()),
+      ...(await p.getAvailableVideoModels())
+    ].map((m) => m.id);
+    expect(ids.length).toBeGreaterThan(0);
+    expect(ids.some((id) => /^(gpt|dall-e|sora|tts-1|whisper)/.test(id))).toBe(false);
     expect(await p.getAvailableASRModels()).toEqual([]);
     expect(await p.getAvailableEmbeddingModels()).toEqual([]);
   });
@@ -594,8 +608,7 @@ describe("OpenAICompatProvider inherits OpenAI's catalog guard", () => {
   });
 
   it.each([
-    ["gmi", new GMIProvider({ GMI_API_KEY: "k" })],
-    ["alibaba", new AlibabaProvider({ DASHSCOPE_API_KEY: "k" })]
+    ["gmi", new GMIProvider({ GMI_API_KEY: "k" })]
   ])("%s serves no OpenAI image or video models", async (_id, p) => {
     expect(await p.getAvailableImageModels()).toEqual([]);
     expect(await p.getAvailableVideoModels()).toEqual([]);

@@ -18480,6 +18480,8 @@
         "mediumDescription": "Bilancia velocità e profondità.",
         "high": "Alto",
         "highDescription": "Ragioni più lunghe. Più lento e costa di più.",
+        "xhigh": "Molto alto",
+        "xhighDescription": "Ragiona più a lungo di tutti. Il più lento e il più costoso.",
         "level": "Livello di ragionamento",
         "title": "Ragionamento",
         "titleWithLevel": "Ragionamento: {{level}}"
@@ -20272,5 +20274,33 @@
         "public": "Pubblico"
       }
     }
+  },
+  "providerFailure": {
+    "genericTarget": "Il provider",
+    "title": {
+      "billing": "{{target}} non può essere eseguito: l'account non ha credito né fatturazione.",
+      "quota": "{{target}} non può essere eseguito: questa chiave non ha più quota per lui.",
+      "auth": "{{target}} ha rifiutato la tua chiave API.",
+      "model_unavailable": "{{target}} non è disponibile per la tua chiave.",
+      "rate_limit": "{{target}} sta ricevendo troppe richieste."
+    },
+    "hint": {
+      "billing": "Aggiungi credito presso il provider o passa a un altro modello.",
+      "quota": "Le chiavi gratuite spesso non hanno quota per questo modello. Attiva la fatturazione presso il provider o passa a un altro modello.",
+      "auth": "Controlla la chiave nelle Impostazioni o passa a un modello di un altro provider.",
+      "model_unavailable": "È stato rimosso dai tuoi elenchi di modelli. Scegli un altro modello.",
+      "rate_limit": "Attendi un momento, poi riprova."
+    },
+    "repeated": "Non è riuscito di nuovo nello stesso modo, quindi riprovare non servirà. Passa a un altro modello.",
+    "switchTo": "Usa {{model}}",
+    "openKeys": "Apri chiavi API",
+    "addCredit": "Aggiungi credito",
+    "enableBilling": "Attiva fatturazione"
+  },
+  "runReadiness": {
+    "addKey": "Aggiungi chiave API",
+    "missingKeysDetail": "Questo workflow richiede {{keys}}. Aggiungila nelle Impostazioni prima di eseguirlo.",
+    "costPerRun": "≈ {{cost}} per esecuzione",
+    "costUnknown": "Costo sconosciuto"
   }
 }

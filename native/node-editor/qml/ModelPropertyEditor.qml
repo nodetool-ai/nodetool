@@ -14,7 +14,8 @@ ColumnLayout {
     // The tab's ModelPickerController, from the property host.
     property var controller: null
     readonly property string modelType: descriptor.modelType || "language_model"
-    readonly property bool huggingFace: modelType.startsWith("hf.")
+    // Hugging Face and Transformers.js fields store a repository and file.
+    readonly property bool huggingFace: modelType.startsWith("hf.") || modelType.startsWith("tjs.")
     readonly property var catalog: controller ? controller.catalogFor(modelType, descriptor.allowedProviders || [], descriptor.modelTasks || [], descriptor.nodeType || "") : null
     // Saved values may be a plain id, or a Hugging Face repo with a file path.
     readonly property string selectedId: {
@@ -51,6 +52,7 @@ ColumnLayout {
         return !capabilities || capabilities.indexOf("preset_voice") >= 0
     }
     readonly property string searchPlaceholder: {
+        if (modelType.startsWith("tjs.")) return qsTr("Search Transformers.js models")
         if (huggingFace) return qsTr("Search HuggingFace models")
         switch (modelType) {
         case "language_model": return qsTr("Search language models")
@@ -62,6 +64,7 @@ ColumnLayout {
         case "audio_to_audio_model": return qsTr("Search voice changers, separators, denoisers")
         case "embedding_model": return qsTr("Search embedding models")
         case "rerank_model": return qsTr("Search reranking models")
+        case "llama_model": return qsTr("Search Ollama models")
         }
         return qsTr("Search models")
     }
@@ -81,6 +84,8 @@ ColumnLayout {
             return {type: modelType, repo_id: separator < 0 ? model.id : model.id.slice(0, separator),
                 path: (separator < 0 ? model.path : model.id.slice(separator + 1)) || null}
         }
+        // LlamaModelSelect.tsx stores the Ollama tag only.
+        if (modelType === "llama_model") return {type: modelType, repo_id: model.id}
         const result = {type: modelType, id: model.id, provider: model.provider, name: model.name || ""}
         // ImageModelSelect.tsx stores the file path and no task list.
         if (modelType === "image_model") {

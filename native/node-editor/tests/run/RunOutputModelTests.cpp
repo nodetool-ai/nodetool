@@ -1,5 +1,7 @@
 #include "../../src/run/RunOutputModel.h"
 #include <QTest>
+#include <QColor>
+#include <QImage>
 #include <QJsonArray>
 #include <QSignalSpy>
 #include <QPersistentModelIndex>
@@ -125,6 +127,72 @@ private slots:
    const auto mail = show(QJsonObject{{"type", "email"}, {"sender", "a@x"}, {"to", "b@x"}, {"subject", "Hi"}, {"body", "Body"}});
    QCOMPARE(mail["renderer"].toString(), QString("text"));
    QCOMPARE(mail["text"].toString(), QString("From: a@x\nTo: b@x\nSubject: Hi\n\nBody"));
+ }
+
+ // TaskView, TaskPlanView, CalendarEventView, ThreadMessageList and ArrayView
+ // in web/src/components/node, as Markdown or code text.
+ void svgHtmlAndDocumentOutputs() {
+   RunOutputModel model; model.beginRun("typed");
+   int output = 0;
+   auto show = [&](const QJsonValue &value) {
+     model.ingest("typed", {{"job_id", "typed"}, {"type", "output_update"}, {"node_id", "node"}, {"output_name", QString::number(++output)}, {"value", value}});
+     return model.entries().last().toMap();
+   };
+   // svg.tsx: the elements draw as one picture. Script and outside references are dropped.
+   const QJsonObject rect{{"type", "svg_element"}, {"name", "rect"},
+     {"attributes", QJsonObject{{"width", "40"}, {"height", "20"}, {"fill", "#ff0000"}, {"onclick", "alert(1)"}}}};
+   const QJsonObject image{{"type", "svg_element"}, {"name", "image"}, {"attributes", QJsonObject{{"href", "file:///etc/passwd"}}}};
+   const auto svg = show(QJsonObject{{"type", "svg_element"}, {"name", "svg"},
+     {"attributes", QJsonObject{{"width", "40"}, {"height", "20"}}}, {"children", QJsonArray{rect, image, QJsonObject{{"type", "svg_element"}, {"name", "script"}}}}});
+   QCOMPARE(svg["renderer"].toString(), QString("generic"));
+   const auto items = svg["items"].toList();
+   QCOMPARE(items.size(), 1);
+   QCOMPARE(items.first().toMap()["kind"].toString(), QString("image"));
+   const auto png = QImage::fromData(QByteArray::fromBase64(items.first().toMap()["locator"].toMap()["data"].toString().toLatin1()), "PNG");
+   QCOMPARE(png.size(), QSize(40, 20));
+   QCOMPARE(png.pixelColor(10, 10), QColor(255, 0, 0));
+   QCOMPARE(show(QJsonArray{rect, rect})["items"].toList().size(), 1);
+   // OutputRenderer's sandboxed iframe: formatted text, with no image to load.
+   const auto html = show(QJsonObject{{"type", "html"}, {"data", "<h1>Title</h1><p>Some <b>bold</b> text<img src=\"https://example.com/t.png\" alt=\"pixel\"></p><script>alert(1)</script>"}});
+   QCOMPARE(html["renderer"].toString(), QString("text"));
+   QVERIFY(html["text"].toString().startsWith("# Title"));
+   QVERIFY(html["text"].toString().contains("**bold**"));
+   QVERIFY(!html["text"].toString().contains("example.com"));
+   QCOMPARE(show(QJsonObject{{"type", "html"}, {"uri", "https://host/page.html"}})["text"].toString(), QString("[Open HTML output](https://host/page.html)"));
+   const auto document = show(QJsonObject{{"type", "document"}, {"uri", "https://host/report.pdf"}});
+   QCOMPARE(document["text"].toString(), QString("[Open document](https://host/report.pdf)"));
+ }
+ void agentAndArrayOutputs() {
+   RunOutputModel model; model.beginRun("typed");
+   int output = 0;
+   auto show = [&](const QJsonValue &value) {
+     model.ingest("typed", {{"job_id", "typed"}, {"type", "output_update"}, {"node_id", "node"}, {"output_name", QString::number(++output)}, {"value", value}});
+     return model.entries().last().toMap();
+   };
+   const QJsonObject task{{"type", "task"}, {"title", "Research"}, {"description", "Find sources"},
+     {"steps", QJsonArray{QJsonObject{{"instructions", "Search"}, {"completed", true}}, QJsonObject{{"instructions", "Summarize"}}}}};
+   const auto single = show(task);
+   QCOMPARE(single["renderer"].toString(), QString("text"));
+   QCOMPARE(single["text"].toString(), QString("### Research\n\nFind sources\n\n- [x] Search\n- [ ] Summarize"));
+   const auto plan = show(QJsonObject{{"type", "task_plan"}, {"title", "Plan"}, {"tasks", QJsonArray{task}}});
+   QVERIFY(plan["text"].toString().startsWith("## Plan\n\n### Research"));
+   const QJsonObject start{{"type", "datetime"}, {"year", 2026}, {"month", 11}, {"day", 13}, {"hour", 9}, {"minute", 30}};
+   const QJsonObject end{{"type", "datetime"}, {"year", 2026}, {"month", 11}, {"day", 13}, {"hour", 10}};
+   const auto event = show(QJsonObject{{"type", "calendar_event"}, {"title", "Review"}, {"start_date", start}, {"end_date", end}, {"location", "Room 2"}, {"notes", "Bring notes"}});
+   QCOMPARE(event["text"].toString(), QString("**Review**\n\n2026-11-13 09:30 - 2026-11-13 10:00\n\nRoom 2\n\nBring notes"));
+   const auto message = show(QJsonObject{{"type", "message"}, {"role", "assistant"}, {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", "Hello"}}}}});
+   QCOMPARE(message["text"].toString(), QString("**assistant**\n\nHello"));
+   const auto list = show(QJsonArray{QJsonObject{{"type", "message"}, {"role", "user"}, {"content", "Hi"}}, QJsonObject{{"type", "message"}, {"role", "assistant"}, {"content", "Yes"}}});
+   QCOMPARE(list["renderer"].toString(), QString("sequence"));
+   QCOMPARE(list["children"].toList().size(), 2);
+   QCOMPARE(list["children"].toList().first().toMap()["text"].toString(), QString("**user**\n\nHi"));
+   const auto array = show(QJsonObject{{"type", "np_array"}, {"dtype", "float32"}, {"shape", QJsonArray{2}}, {"value", QJsonArray{1.5, 2}}});
+   QCOMPARE(array["renderer"].toString(), QString("json"));
+   QVERIFY(array["text"].toString().startsWith("Array (float32)\nShape: 2\n\n["));
+   QJsonArray many;
+   for (int i = 0; i < 150; ++i) { many.append(i); }
+   const auto cut = show(QJsonObject{{"type", "np_array"}, {"dtype", "int64"}, {"shape", QJsonArray{150}}, {"value", many}});
+   QVERIFY(cut["text"].toString().endsWith("99]..."));
  }
 
  void dataframePreviewLimits() {
@@ -347,5 +415,5 @@ private slots:
   m.clear(); QVERIFY(m.runs().isEmpty()); QVERIFY(m.entries().isEmpty()); QVERIFY(m.selectedRunId().isEmpty());
  }
 };
-QTEST_GUILESS_MAIN(RunOutputModelTests)
+QTEST_MAIN(RunOutputModelTests)
 #include "RunOutputModelTests.moc"

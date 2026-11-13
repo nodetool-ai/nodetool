@@ -166,13 +166,15 @@ const Shortcut shortcuts[] = {
  {"Duplicate vertical", "Ctrl+Shift+D"}, {"Select all", "Ctrl+A"}, {"Duplicate", "Ctrl+D"}, {"Delete", "Delete"}, {"Delete", "Backspace"},
  {"Fit", "F"}, {"Group selection", "Ctrl+G"}, {"Add node", "Space"},
  {"Disable toggle", "B"}, {"Toggle collapse", "C"}, {"Toggle inspector", "I"}, {"Workflows", "1"},
- {"Reset zoom", "Ctrl+0"}, {"Zoom in", "Ctrl+="}, {"Zoom out", "Ctrl+-"}, {"Save", "Ctrl+S"}, {"Open", "Ctrl+O"}, {"Find node", "Ctrl+F"},
+ {"Reset zoom", "Ctrl+0"}, {"Zoom in", "Ctrl+="}, {"Zoom out", "Ctrl+-"},
+ {"Zoom to 50%", "Ctrl+Alt+5"}, {"Zoom to 100%", "Ctrl+Alt+1"}, {"Zoom to 200%", "Ctrl+Alt+2"}, {"Save", "Ctrl+S"}, {"Open", "Ctrl+O"}, {"Find node", "Ctrl+F"},
  {"Run", "Ctrl+Return"}, {"Command menu", "Ctrl+K"}, {"Keyboard shortcuts", "Ctrl+/"}, {"Keyboard shortcuts", "Shift+?"},
  {"Align left", "Shift+Left"}, {"Align right", "Shift+Right"},
  {"Align top", "Shift+Up"}, {"Align bottom", "Shift+Down"},
  {"Align center", "Shift+H"}, {"Align middle", "Shift+E"},
  {"Distribute horizontally", "Shift+D"}, {"Stack selection", "V"}, {"Arrange grid", "G"},
- {"Select all connected", "Shift+C"}, {"Select inputs", "Shift+I"}, {"Select outputs", "Shift+O"}
+ {"Select all connected", "Shift+C"}, {"Select inputs", "Shift+I"}, {"Select outputs", "Shift+O"},
+ {"Add Prompt", "Shift+P"}, {"Add Text to Image", "Shift+G"}, {"Add Text to Video", "Shift+V"}, {"Add Agent", "Shift+L"}
 };
 
 // The web shortcut category (config/shortcuts.ts) of each native command.
@@ -545,6 +547,7 @@ bool EditorWindow::menuActionEnabled(const QString &name) const {
  if (name == "Focus node") { return count == 1; }
  if (name == "Open child") { return count == 1 && node_editor::isChildNode(document_.node(selectedIds().first())); }
  if (name == "Link selected") { return !readOnly() && count == 2; }
+ if (!quickAddNodeType(name).isEmpty()) { return !readOnly() && knownNodeType(quickAddNodeType(name)); }
  if (name == "Stop") { return runActive() && (session_.connected() || session_.runsInProcess(run_)); }
  if (name == "Undo") { return !readOnly() && document_.undoStack()->canUndo(); }
  if (name == "Redo") { return !readOnly() && document_.undoStack()->canRedo(); }

@@ -89,7 +89,7 @@ Rectangle {
             ColumnLayout {
                 id: content
                 anchors.left: parent.left
-                anchors.right: copy.left
+                anchors.right: actions.left
                 anchors.top: parent.top
                 anchors.margins: Ui.Metrics.xl
                 spacing: Ui.Metrics.xs
@@ -106,17 +106,30 @@ Rectangle {
                     tone: Ui.Text.Secondary
                 }
             }
-            Ui.EditorButton {
-                id: copy
+            Row {
+                id: actions
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.margins: Ui.Metrics.xs
-                density: Ui.EditorButton.Compact
-                variant: Ui.EditorButton.Flat
-                iconName: "copy"
-                iconSize: Ui.Metrics.iconXs
-                accessibleName: qsTr("Copy notification")
-                onClicked: root.notifications.copy(entry.modelData.content)
+                spacing: Ui.Metrics.xs
+                // NotificationButton: an error notification offers Report beside Copy.
+                Ui.EditorButton {
+                    objectName: "notification-report"
+                    visible: entry.modelData.type === "error"
+                    density: Ui.EditorButton.Compact
+                    variant: Ui.EditorButton.Flat
+                    text: qsTr("Report")
+                    accessibleName: qsTr("Report this error")
+                    onClicked: root.notifications.report(entry.modelData.content)
+                }
+                Ui.EditorButton {
+                    density: Ui.EditorButton.Compact
+                    variant: Ui.EditorButton.Flat
+                    iconName: "copy"
+                    iconSize: Ui.Metrics.iconXs
+                    accessibleName: qsTr("Copy notification")
+                    onClicked: root.notifications.copy(entry.modelData.content)
+                }
             }
         }
     }

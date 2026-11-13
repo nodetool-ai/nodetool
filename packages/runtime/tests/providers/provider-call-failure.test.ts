@@ -147,3 +147,46 @@ describe("buildProviderCallFailure", () => {
     expect(failure?.model).toBeNull();
   });
 });
+
+describe("providerFailureKind account classes", () => {
+  it("reads an empty OpenAI account out of a 429", () => {
+    const error = Object.assign(
+      new Error("429 You exceeded your current quota, please check your plan and billing details."),
+      { status: 429, code: "insufficient_quota" }
+    );
+    expect(providerFailureKind(error)).toBe("payment");
+  });
+
+  it("reads Anthropic's low credit balance out of a 400", () => {
+    expect(
+      providerFailureKind(
+        httpError(400, "Your credit balance is too low to access the Anthropic API.")
+      )
+    ).toBe("payment");
+  });
+
+  it("reads a Gemini free-tier key with no quota as quota, not a burst limit", () => {
+    expect(
+      providerFailureKind(
+        httpError(
+          429,
+          "Quota exceeded for metric: generate_content_free_tier_requests, limit: 0"
+        )
+      )
+    ).toBe("quota");
+  });
+
+  it("reads a retired model out of a 400", () => {
+    expect(
+      providerFailureKind(
+        httpError(400, "models/gemini-2.5-pro is not found for API version v1beta")
+      )
+    ).toBe("not_found");
+  });
+
+  it("reads Gemini's invalid key out of a 400", () => {
+    expect(
+      providerFailureKind(httpError(400, "API key not valid. Please pass a valid API key."))
+    ).toBe("auth");
+  });
+});

@@ -3,7 +3,13 @@
 #include <QJsonDocument>
 #include <QCryptographicHash>
 #include <QDateTime>
+#include <QBuffer>
+#include <QImage>
+#include <QPainter>
+#include <QRegularExpression>
 #include <QSet>
+#include <QSvgRenderer>
+#include <QTextDocument>
 #include <algorithm>
 #include <cmath>
 #include <optional>
@@ -24,6 +30,41 @@ QString display(const QJsonValue &value) {
   if (object["type"] == "chunk" && object["content_type"] == "audio") { return "Streaming PCM audio"; }
   const auto wrapped = QJsonDocument(QJsonArray{value}).toJson(QJsonDocument::Compact);
   return QString::fromUtf8(wrapped.mid(1, wrapped.size() - 2));
+}
+// TaskView.tsx: the title, its description, then each step as a checklist line.
+QString taskMarkdown(const QJsonObject &task, const QString &heading) {
+  QStringList lines{heading + ' ' + task["title"].toString()};
+  if (!task["description"].toString().isEmpty()) { lines << QString{} << task["description"].toString(); }
+  const auto steps = task["steps"].toArray();
+  if (!steps.isEmpty()) {
+    lines << QString{};
+    for (const auto &value : steps) {
+      const auto step = value.toObject();
+      lines << QStringLiteral("- [%1] %2").arg(step["completed"].toBool() ? 'x' : ' ').arg(step["instructions"].toString());
+    }
+  }
+  return lines.join('\n');
+}
+QString datetimeText(const QJsonValue &value) {
+  const auto object = value.toObject();
+  const QDateTime when(QDate(object["year"].toInt(), object["month"].toInt(), object["day"].toInt()),
+                       QTime(object["hour"].toInt(), object["minute"].toInt(), object["second"].toInt()));
+  return when.isValid() ? when.toString("yyyy-MM-dd HH:mm") : value.toString();
+}
+// ThreadMessageList.tsx: the role, then the message's text parts.
+QString messageMarkdown(const QJsonObject &message) {
+  QStringList parts;
+  const auto content = message["content"];
+  if (content.isString()) { parts << content.toString(); }
+  for (const auto &value : content.toArray()) {
+    const auto part = value.toObject();
+    if (part["type"] == "text") { parts << part["text"].toString(); }
+    else if (!part["type"].toString().isEmpty()) { parts << '[' + part["type"].toString() + ']'; }
+  }
+  for (const auto &value : message["tool_calls"].toArray()) {
+    parts << QStringLiteral("Tool call: `%1`").arg(value.toObject()["name"].toString());
+  }
+  return QStringLiteral("**%1**\n\n%2").arg(message["role"].toString("message"), parts.join("\n\n"));
 }
 QVariantMap renderTree(const QJsonValue &value, int &budget, int depth = 0) {
   if (--budget < 0 || depth >= 8) { return {{"renderer", "text"}, {"text", "[Preview truncated]"}}; }
@@ -49,6 +90,87 @@ QVariantMap renderTree(const QJsonValue &value, int &budget, int depth = 0) {
   model.beginRun("preview");
   model.ingest("preview", {{"type", "output_update"}, {"job_id", "preview"}, {"node_id", "preview"}, {"value", value}});
   return model.entries().last().toMap();
+}
+// svg.tsx builds only drawing elements and drops attributes that can carry
+// script or a navigation. The rendered PNG carries no live content at all.
+const QSet<QString> &svgElements() {
+  static const QSet<QString> names{
+      "svg", "g", "defs", "symbol", "use", "title", "desc", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
+      "text", "tspan", "textPath", "linearGradient", "radialGradient", "stop", "pattern", "clipPath", "mask", "marker", "image",
+      "filter", "feBlend", "feColorMatrix", "feComponentTransfer", "feComposite", "feConvolveMatrix", "feDiffuseLighting",
+      "feDisplacementMap", "feDistantLight", "feDropShadow", "feFlood", "feFuncA", "feFuncB", "feFuncG", "feFuncR",
+      "feGaussianBlur", "feImage", "feMerge", "feMergeNode", "feMorphology", "feOffset", "fePointLight",
+      "feSpecularLighting", "feSpotLight", "feTile", "feTurbulence"};
+  return names;
+}
+bool safeSvgAttribute(const QString &name, const QString &value) {
+  const auto key = name.toLower();
+  if (key.startsWith("on") || key == "srcdoc") { return false; }
+  if (key == "href" || key == "xlink:href" || key == "src") {
+    // Only fragment references and inline images: never a file or the network.
+    return value.startsWith('#') || value.startsWith("data:image/");
+  }
+  return true;
+}
+QString svgMarkup(const QJsonObject &element, int depth) {
+  if (depth > 32) { return {}; }
+  const auto name = element["name"].toString(QStringLiteral("svg"));
+  if (!svgElements().contains(name)) { return QStringLiteral("<g/>"); }
+  QString markup = '<' + name;
+  if (depth == 0 && name == "svg") { markup += QStringLiteral(" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\""); }
+  const auto attributes = element["attributes"].toObject();
+  for (auto it = attributes.begin(); it != attributes.end(); ++it) {
+    const auto value = it.value().isString() ? it.value().toString() : it.value().toVariant().toString();
+    if (it.key() == "xmlns" || it.key().startsWith("xmlns:") || !safeSvgAttribute(it.key(), value)) { continue; }
+    markup += ' ' + it.key().toHtmlEscaped() + "=\"" + value.toHtmlEscaped() + '"';
+  }
+  markup += '>';
+  const auto content = element["content"].toString();
+  if (!content.trimmed().startsWith('<')) { markup += content.toHtmlEscaped(); }
+  for (const auto &child : element["children"].toArray()) { markup += svgMarkup(child.toObject(), depth + 1); }
+  return markup + "</" + name + '>';
+}
+// The PNG of an svg_element output (one element or a list), or null when the
+// value is not one or does not parse.
+QJsonValue svgPreview(const QJsonValue &value) {
+  QJsonArray elements = value.isArray() ? value.toArray() : QJsonArray{value};
+  if (elements.isEmpty()) { return {}; }
+  for (const auto &element : elements) {
+    if (element.toObject()["type"] != "svg_element") { return {}; }
+  }
+  QString markup;
+  const auto first = elements.first().toObject();
+  if (elements.size() == 1 && first["name"].toString(QStringLiteral("svg")) == "svg") {
+    markup = svgMarkup(first, 0);
+  } else {
+    markup = QStringLiteral("<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"512\" height=\"512\">");
+    for (const auto &element : elements) { markup += svgMarkup(element.toObject(), 1); }
+    markup += QStringLiteral("</svg>");
+  }
+  QSvgRenderer renderer(markup.toUtf8());
+  if (!renderer.isValid()) { return {}; }
+  QSizeF size = renderer.defaultSize();
+  if (size.isEmpty()) { size = renderer.viewBoxF().size(); }
+  if (size.isEmpty()) { size = QSizeF(512, 512); }
+  size.scale(std::min(size.width(), 1024.0), std::min(size.height(), 1024.0), Qt::KeepAspectRatio);
+  QImage image(size.toSize().expandedTo(QSize(1, 1)), QImage::Format_ARGB32_Premultiplied);
+  image.fill(Qt::transparent);
+  QPainter painter(&image);
+  renderer.render(&painter);
+  painter.end();
+  QByteArray png;
+  QBuffer buffer(&png);
+  buffer.open(QIODevice::WriteOnly);
+  image.save(&buffer, "PNG");
+  return QJsonObject{{"type", "image"}, {"content_type", "image/png"}, {"data", QString::fromLatin1(png.toBase64())}};
+}
+// The html output as Markdown. QTextDocument runs no script and loads nothing,
+// and images are reduced to their alt text so the Markdown view loads nothing either.
+QString htmlMarkdown(const QString &html) {
+  QTextDocument document;
+  document.setHtml(html);
+  static const QRegularExpression image(QStringLiteral(R"(!\[([^\]]*)\]\([^)]*\))"));
+  return document.toMarkdown().replace(image, QStringLiteral("\\1")).trimmed();
 }
 QString mediaKind(const QJsonObject &object) {
   auto kind = object["type"].toString();
@@ -390,7 +512,9 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
   int visited = 0;
   qsizetype mediaBytes = 0;
   bool previewTruncated = false;
-  const QJsonValue preview = type == "output_update" ? event["value"] : event["result"];
+  QJsonValue preview = type == "output_update" ? event["value"] : event["result"];
+  const auto svg = type == "output_update" ? svgPreview(preview) : QJsonValue{};
+  if (!svg.isUndefined() && !svg.isNull()) { preview = svg; }
   if (type == "output_update" || type == "node_update" || type == "job_update") { collectMedia(preview, media, visited, mediaBytes, previewTruncated); }
   if (!media.isEmpty()) {
     entry["items"] = collectionItems(preview, media, previewTruncated);
@@ -447,6 +571,56 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
       entry["text"] = body.isNull() ? (data.isString() ? data.toString() : display(data))
                                     : QString::fromUtf8(body.toJson(QJsonDocument::Indented)).left(MaxText);
     }
+    else if (tag == "task") {
+      renderer = "text";
+      entry["text"] = taskMarkdown(object, QStringLiteral("###")).left(MaxText);
+    }
+    else if (tag == "task_plan") {
+      // TaskPlanView.tsx: the plan title over each task.
+      renderer = "text";
+      QStringList tasks{"## " + object["title"].toString()};
+      for (const auto &task : object["tasks"].toArray()) { tasks << taskMarkdown(task.toObject(), QStringLiteral("###")); }
+      entry["text"] = tasks.join("\n\n").left(MaxText);
+    }
+    else if (tag == "calendar_event") {
+      // CalendarEventView.tsx: title, time span, location, calendar and notes.
+      renderer = "text";
+      QStringList lines{"**" + object["title"].toString() + "**", datetimeText(object["start_date"]) + " - " + datetimeText(object["end_date"])};
+      for (const auto key : {"location", "calendar"}) {
+        if (!object[key].toString().isEmpty()) { lines << object[key].toString(); }
+      }
+      if (!object["notes"].toString().isEmpty()) { lines << object["notes"].toString(); }
+      entry["text"] = lines.join("\n\n").left(MaxText);
+    }
+    else if (tag == "thread_message" || tag == "message") {
+      renderer = "text";
+      entry["text"] = messageMarkdown(object).left(MaxText);
+    }
+    else if (tag == "np_array") {
+      // ArrayView.tsx: dtype, shape, then the values, cut after 100 entries.
+      renderer = "json";
+      const auto values = object["value"].toArray();
+      QStringList shape;
+      for (const auto &dimension : object["shape"].toArray()) { shape << QString::number(dimension.toInteger()); }
+      const auto shown = values.size() > 100 ? QJsonArray::fromVariantList(values.toVariantList().mid(0, 100)) : values;
+      const auto body = object["value"].isArray() ? QString::fromUtf8(QJsonDocument(shown).toJson(values.size() > 100 ? QJsonDocument::Compact : QJsonDocument::Indented)) + (values.size() > 100 ? QStringLiteral("...") : QString{})
+                                                  : QStringLiteral("No data");
+      entry["text"] = (QStringLiteral("Array (%1)\nShape: %2\n\n").arg(object["dtype"].toString(), shape.join(", ")) + body).left(MaxText);
+    }
+    else if (tag == "html") {
+      // OutputRenderer's sandboxed iframe: the page as formatted text, or a link when only stored.
+      renderer = "text";
+      const auto data = object["data"].toString();
+      const auto uri = object["uri"].toString();
+      entry["text"] = !data.isEmpty() ? htmlMarkdown(data).left(MaxText)
+                    : QRegularExpression(QStringLiteral("^https?://")).match(uri).hasMatch() ? QStringLiteral("[Open HTML output](%1)").arg(uri)
+                    : QStringLiteral("HTML output");
+    }
+    else if (tag == "document" && QRegularExpression(QStringLiteral("^https?://")).match(object["uri"].toString()).hasMatch()) {
+      // OutputRenderer: a stored document is a link to open it.
+      renderer = "text";
+      entry["text"] = QStringLiteral("[Open document](%1)").arg(object["uri"].toString());
+    }
     else if (tag == "email") {
       renderer = "text";
       QStringList header{"From: " + object["sender"].toString(), "To: " + object["to"].toString()};
@@ -476,7 +650,8 @@ void RunOutputModel::ingest(QString jobId, QJsonObject event) {
     if (tag == "chunk" && object["content_type"] != "tool_call" && object["content_type"] != "audio") {
       renderer = "text"; entry["text"] = object["content"].toString().left(MaxText);
     }
-    if (value.isArray() && renderer != "text") {
+    if (!svg.isUndefined() && !svg.isNull()) { renderer = "generic"; }
+    else if (value.isArray() && renderer != "text") {
       int budget = 256;
       entry["children"] = renderTree(value, budget)["children"];
       renderer = "sequence";

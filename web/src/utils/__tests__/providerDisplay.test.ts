@@ -168,6 +168,10 @@ describe("providerDisplay", () => {
       expect(formatGenericProviderName("kimi")).toBe("Moonshot AI");
     });
 
+    it("should handle special case for Sarvam", () => {
+      expect(formatGenericProviderName("sarvam")).toBe("Sarvam AI");
+    });
+
     it("names the llama.cpp server provider after the server", () => {
       expect(formatGenericProviderName("llama_cpp")).toBe("llama-server");
       expect(formatGenericProviderName("llama-cpp")).toBe("llama-server");
@@ -276,6 +280,7 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("Z.AI")).toBe("https://z.ai");
       expect(getProviderUrl("moonshot")).toBe("https://platform.moonshot.ai");
       expect(getProviderUrl("kimi")).toBe("https://platform.moonshot.ai");
+      expect(getProviderUrl("sarvam")).toBe("https://www.sarvam.ai");
     });
 
     it("should return URLs for additional known providers", () => {

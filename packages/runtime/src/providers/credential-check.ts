@@ -13,7 +13,9 @@
  * `unverifiable` — never `valid` — whenever the status doesn't decide it.
  */
 
+import { classifyProviderFailure } from "@nodetool-ai/protocol";
 import { resolveAlibabaBaseURL } from "./alibaba-provider.js";
+import { resolveBytePlusBaseURL } from "./byteplus-provider.js";
 
 /**
  * - `valid` — the provider accepted the credential.
@@ -24,10 +26,32 @@ import { resolveAlibabaBaseURL } from "./alibaba-provider.js";
  */
 export type CredentialCheckStatus = "valid" | "invalid" | "unverifiable";
 
+/**
+ * What a working key can pay for, when the provider lets a cheap request tell.
+ *
+ * - `ok` — a test request went through.
+ * - `no_credit` — the key works, but the account has no credit or billing.
+ * - `no_quota` — the key works, but has no quota left, as a free-tier key with
+ *   no quota for the tested model does.
+ * - `free_tier` — the key works on a free tier with tight limits.
+ */
+export type CredentialAccountState = "ok" | "no_credit" | "no_quota" | "free_tier";
+
+export interface CredentialAccount {
+  state: CredentialAccountState;
+  /** One line the UI can show as-is. */
+  message: string;
+}
+
 export interface CredentialCheckResult {
   status: CredentialCheckStatus;
   /** One line the UI can show as-is. */
   message: string;
+  /**
+   * Set only for a `valid` key whose provider has an account probe that
+   * answered. Absent means nothing was learned about credit or quota.
+   */
+  account?: CredentialAccount;
 }
 
 interface CredentialProbe {
@@ -128,6 +152,11 @@ const PROBES: Record<string, CredentialProbe> = {
     url: () => `${resolveAlibabaBaseURL()}/models`,
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
+  BYTEPLUS_ARK_API_KEY: {
+    label: "BytePlus",
+    url: () => `${resolveBytePlusBaseURL()}/models`,
+    headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
   CEREBRAS_API_KEY: {
     label: "Cerebras",
     url: () => "https://api.cerebras.ai/v1/models",
@@ -152,6 +181,11 @@ const PROBES: Record<string, CredentialProbe> = {
     label: "Hugging Face",
     url: () => "https://huggingface.co/api/whoami-v2",
     headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
+  SARVAM_API_KEY: {
+    label: "Sarvam AI",
+    url: () => "https://api.sarvam.ai/v2/models",
+    headers: (v) => ({ "api-subscription-key": v })
   },
   ELEVENLABS_API_KEY: {
     label: "ElevenLabs",
@@ -236,7 +270,19 @@ export async function checkCredential(
       signal: controller.signal
     });
     if (response.ok) {
-      return { status: "valid", message: `${probe.label} accepted the key.` };
+      const account = await checkAccount(secretKey, value, response, {
+        fetchImpl: doFetch,
+        signal: controller.signal
+      });
+      const result: CredentialCheckResult = {
+        status: "valid",
+        message: `${probe.label} accepted the key.`
+      };
+      if (account) {
+        result.message = account.message;
+        result.account = account;
+      }
+      return result;
     }
     if (response.status === 401 || response.status === 403) {
       return {
@@ -260,5 +306,192 @@ export async function checkCredential(
     };
   } finally {
     clearTimeout(timer);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Account probes: credit and quota
+// ---------------------------------------------------------------------------
+
+/**
+ * A listing endpoint accepts a key whatever the account can pay for, so a key
+ * on an empty account or a zero-quota free tier passes the check above and
+ * fails on its first real call. Most of the sessions that saved a key failed
+ * exactly that way. For the providers below, one more request tells: a
+ * balance endpoint where there is one, otherwise a one-token request to the
+ * provider's cheapest model, which costs a fraction of a cent. A probe that
+ * cannot decide returns null, never a guess.
+ */
+interface AccountProbeContext {
+  fetchImpl: typeof fetch;
+  signal: AbortSignal;
+}
+
+type AccountProbe = (
+  value: string,
+  listing: Response,
+  context: AccountProbeContext
+) => Promise<CredentialAccount | null>;
+
+/** Read a JSON body, or null when it is not JSON. */
+async function readJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function record(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/**
+ * Turn the answer to a one-token test request into an account state, using
+ * the same classes the runtime puts on a failed call.
+ */
+async function accountFromTestRequest(
+  response: Response,
+  messages: { ok: string; noCredit: string; noQuota: string }
+): Promise<CredentialAccount | null> {
+  if (response.ok) return { state: "ok", message: messages.ok };
+  const body = await response.text().catch(() => "");
+  const kind = classifyProviderFailure({ status: response.status, message: body });
+  if (kind === "payment") return { state: "no_credit", message: messages.noCredit };
+  if (kind === "quota") return { state: "no_quota", message: messages.noQuota };
+  // A model id that moved, an overloaded provider: nothing about the account.
+  return null;
+}
+
+const ACCOUNT_PROBES: Record<string, AccountProbe> = {
+  OPENROUTER_API_KEY: async (_value, listing) => {
+    // The probe endpoint is `/api/v1/key`, which already describes the key.
+    const data = record(record(await readJson(listing))?.data);
+    if (!data) return null;
+    const remaining = data.limit_remaining;
+    if (typeof remaining === "number" && remaining <= 0) {
+      return {
+        state: "no_credit",
+        message:
+          "OpenRouter accepted the key, but its credit limit is used up. Add credit or raise the key's limit on openrouter.ai."
+      };
+    }
+    if (data.is_free_tier === true) {
+      return {
+        state: "free_tier",
+        message:
+          "OpenRouter accepted the key. The account has never bought credit, so only free models work, with a small daily request limit."
+      };
+    }
+    return { state: "ok", message: "OpenRouter accepted the key and has credit." };
+  },
+
+  DEEPSEEK_API_KEY: async (value, _listing, { fetchImpl, signal }) => {
+    const response = await fetchImpl("https://api.deepseek.com/user/balance", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${value}`, Accept: "application/json" },
+      signal
+    });
+    if (!response.ok) return null;
+    const body = record(await readJson(response));
+    if (body?.is_available === false) {
+      return {
+        state: "no_credit",
+        message:
+          "DeepSeek accepted the key, but the account balance is empty. Top up on platform.deepseek.com before using it."
+      };
+    }
+    return body?.is_available === true
+      ? { state: "ok", message: "DeepSeek accepted the key and has balance." }
+      : null;
+  },
+
+  OPENAI_API_KEY: async (value, _listing, { fetchImpl, signal }) => {
+    const response = await fetchImpl("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${value}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1-nano",
+        max_tokens: 1,
+        messages: [{ role: "user", content: "hi" }]
+      }),
+      signal
+    });
+    return accountFromTestRequest(response, {
+      ok: "OpenAI accepted the key and answered a test request.",
+      noCredit:
+        "OpenAI accepted the key, but the account has no credit. Add credit under Billing on platform.openai.com.",
+      noQuota:
+        "OpenAI accepted the key, but it has no quota left. Check the project's limits on platform.openai.com."
+    });
+  },
+
+  ANTHROPIC_API_KEY: async (value, _listing, { fetchImpl, signal }) => {
+    const response = await fetchImpl("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": value,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5",
+        max_tokens: 1,
+        messages: [{ role: "user", content: "hi" }]
+      }),
+      signal
+    });
+    return accountFromTestRequest(response, {
+      ok: "Anthropic accepted the key and answered a test request.",
+      noCredit:
+        "Anthropic accepted the key, but the credit balance is too low. Buy credits under Billing on console.anthropic.com.",
+      noQuota:
+        "Anthropic accepted the key, but it has reached its usage limit. Check the limits on console.anthropic.com."
+    });
+  },
+
+  GEMINI_API_KEY: async (value, _listing, { fetchImpl, signal }) => {
+    const response = await fetchImpl(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${encodeURIComponent(value)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: "hi" }] }],
+          generationConfig: { maxOutputTokens: 1 }
+        }),
+        signal
+      }
+    );
+    return accountFromTestRequest(response, {
+      // Veo and Imagen are paid-tier only on the Gemini API, and nothing a
+      // key answers says which tier it is on, so the note goes with every key.
+      ok: "Gemini accepted the key and answered a test request. Video (Veo) and Imagen need billing enabled on the key's Google Cloud project.",
+      noCredit:
+        "Gemini accepted the key, but the Google Cloud project has no billing. Enable billing in Google AI Studio.",
+      noQuota:
+        "Gemini accepted the key, but it has no quota left, which is common for free-tier keys. Enable billing in Google AI Studio for video, images and higher limits."
+    });
+  }
+};
+
+async function checkAccount(
+  secretKey: string,
+  value: string,
+  listing: Response,
+  context: AccountProbeContext
+): Promise<CredentialAccount | null> {
+  const probe = ACCOUNT_PROBES[secretKey];
+  if (!probe) return null;
+  try {
+    return await probe(value, listing, context);
+  } catch {
+    // A failed account probe leaves the key check standing on its own.
+    return null;
   }
 }

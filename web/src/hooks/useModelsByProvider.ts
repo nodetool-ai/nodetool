@@ -24,6 +24,10 @@ import {
 } from "./useProviders";
 import { useActiveWorker } from "./useWorkers";
 import { modelMatchesTask } from "./modelTaskMatching";
+import {
+  useUnavailableModelStore,
+  withoutUnavailableModels
+} from "../stores/UnavailableModelStore";
 
 /**
  * Collection of React Query hooks that bridge the UI to backend model endpoints.
@@ -86,11 +90,13 @@ export const useAggregatedProviderModels = <T>(
   queryKeyPrefix: string,
   fetchModels: (provider: string) => Promise<T[]>
 ): AggregatedProviderModels<T> => {
+  // Models a provider refused to this user's key stay out of every picker.
+  const refusedAt = useUnavailableModelStore((state) => state.refusedAt);
   const combine = useCallback(
     (
       results: Array<UseQueryResult<ProviderModels<T>, Error>>
     ): AggregatedProviderModels<T> => {
-      const models: T[] = [];
+      const listed: T[] = [];
       const providerErrors: Array<{ provider: string; error: unknown }> = [];
       let loaded = 0;
       let loading = 0;
@@ -99,7 +105,7 @@ export const useAggregatedProviderModels = <T>(
       results.forEach((result, index) => {
         if (result.data) {
           for (const model of result.data.models) {
-            models.push(model);
+            listed.push(model);
           }
         }
         if (result.error) {
@@ -120,7 +126,7 @@ export const useAggregatedProviderModels = <T>(
         }
       });
       return {
-        models,
+        models: withoutUnavailableModels(listed, refusedAt),
         isLoading: loading > 0,
         isFetching,
         error,
@@ -131,7 +137,7 @@ export const useAggregatedProviderModels = <T>(
         }
       };
     },
-    [providers]
+    [providers, refusedAt]
   );
 
   const queries = useMemo(

@@ -12,6 +12,7 @@
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QScreen>
+#include <QSysInfo>
 #include <QTimer>
 #include <algorithm>
 #include <cmath>
@@ -175,6 +176,14 @@ void EditorWindow::openSettings() {
 
 void EditorWindow::copyText(const QString &text) {
   QGuiApplication::clipboard()->setText(text);
+}
+
+void EditorWindow::reportBug(node_editor::BugReportContext context) {
+  if (context.workflowId.isEmpty()) { context.workflowId = document_.snapshot()["id"].toString(); }
+  if (context.jobId.isEmpty()) { context.jobId = run_; }
+  const auto system = QStringLiteral("NodeTool native editor\nQt %1\n%2 (%3)")
+                          .arg(QString::fromLatin1(qVersion()), QSysInfo::prettyProductName(), QSysInfo::currentCpuArchitecture());
+  QDesktopServices::openUrl(node_editor::bugReportUrl(context, system));
 }
 
 QVariantMap EditorWindow::costEstimate() const {
