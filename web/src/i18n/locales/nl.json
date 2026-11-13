@@ -6397,11 +6397,15 @@
           "video": "Video",
           "audio": "Audio"
         },
-        "attachedImageActions": {
-          "label": "Afbeeldingen als startpunt",
-          "hint": "Afbeeldingen bijgevoegd. Beschrijf wat je wilt maken, of begin ermee:",
-          "video": "Animeren tot video",
-          "image": "Nieuwe afbeeldingen maken"
+        "attachedFileActions": {
+          "label": "Begin met je bestanden",
+          "hint": "Bestanden bijgevoegd. Beschrijf wat je wilt maken, of begin ermee:",
+          "animate": "Animeren tot video",
+          "image": "Nieuwe afbeeldingen maken",
+          "retake": "Video bewerken",
+          "script": "Omzetten naar script",
+          "ask": "Vragen erover stellen",
+          "askPrompt": "Bekijk de bijgevoegde bestanden en stel voor wat ik ermee kan maken."
         }
       }
     }

@@ -6483,11 +6483,15 @@
           "video": "Vidéo",
           "audio": "Audio"
         },
-        "attachedImageActions": {
-          "label": "Images de départ",
-          "hint": "Images jointes. Décrivez ce que vous voulez créer, ou partez de celles-ci :",
-          "video": "Animer en vidéo",
-          "image": "Créer de nouvelles images"
+        "attachedFileActions": {
+          "label": "Partir de vos fichiers",
+          "hint": "Fichiers joints. Décrivez ce que vous voulez créer, ou partez de ceux-ci :",
+          "animate": "Animer en vidéo",
+          "image": "Créer de nouvelles images",
+          "retake": "Modifier la vidéo",
+          "script": "Transformer en script",
+          "ask": "Poser une question",
+          "askPrompt": "Regarde les fichiers joints et propose ce que je pourrais en faire."
         }
       }
     }

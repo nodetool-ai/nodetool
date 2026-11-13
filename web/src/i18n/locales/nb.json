@@ -6397,11 +6397,15 @@
           "video": "Video",
           "audio": "Lyd"
         },
-        "attachedImageActions": {
-          "label": "Bilder å starte fra",
-          "hint": "Bilder lagt ved. Beskriv hva du vil lage, eller start fra dem:",
-          "video": "Animer til en video",
-          "image": "Lag nye bilder"
+        "attachedFileActions": {
+          "label": "Start med filene dine",
+          "hint": "Filer lagt ved. Beskriv hva du vil lage, eller start fra dem:",
+          "animate": "Animer til en video",
+          "image": "Lag nye bilder",
+          "retake": "Rediger videoen",
+          "script": "Gjør om til manus",
+          "ask": "Spør om dem",
+          "askPrompt": "Se på de vedlagte filene og foreslå hva jeg kan lage av dem."
         }
       }
     }

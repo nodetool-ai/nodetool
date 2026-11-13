@@ -6397,11 +6397,15 @@
           "video": "Video",
           "audio": "Audio"
         },
-        "attachedImageActions": {
-          "label": "Bilder als Ausgangspunkt",
-          "hint": "Bilder angehängt. Beschreibe, was entstehen soll, oder starte direkt damit:",
-          "video": "Als Video animieren",
-          "image": "Neue Bilder erstellen"
+        "attachedFileActions": {
+          "label": "Mit deinen Dateien starten",
+          "hint": "Dateien angehängt. Beschreibe, was entstehen soll, oder starte direkt damit:",
+          "animate": "Als Video animieren",
+          "image": "Neue Bilder erstellen",
+          "retake": "Video bearbeiten",
+          "script": "Als Skript übernehmen",
+          "ask": "Fragen dazu stellen",
+          "askPrompt": "Sieh dir die angehängten Dateien an und schlage vor, was ich daraus machen könnte."
         }
       }
     }
