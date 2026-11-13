@@ -1,30 +1,59 @@
-import { compareNames, fail, hash, integer, parameterAllocator, prepareGraph, stateKey, values } from "./CompilerSupport.js";
+import type { Edge } from "@nodetool-ai/protocol";
+import { compareNames, fail, hash, identity, integer, parameterAllocator, prepareGraph, stateKey, values } from "./CompilerSupport.js";
 import { createControlCompiler } from "./ControlCompiler.js";
-import type { AudioNode, CompileInput, CompileResult, DspDescriptor, DspKernel, PlanParameter, RealtimePlan, StateKey } from "./Types.js";
+import type { AudioNode, BatchBoundary, BatchPcm, CompileInput, CompileResult, DspDescriptor, DspKernel, PlanParameter, RealtimePlan, StateKey } from "./Types.js";
 
 // ABI 1 built-in contracts from native/realtime/audio.md. Product descriptors remain host supplied.
 const KERNELS: ReadonlyMap<DspKernel, readonly [number, number]> = new Map([
-  ["oscillator", [0, 2]], ["noise", [0, 1]], ["gain", [1, 1]], ["mix", [2, 2]], ["level-meter", [1, 0]], ["delay", [1, 2]],
+  ["oscillator", [0, 2]], ["noise", [0, 1]], ["gain", [1, 1]], ["mix", [2, 2]], ["level-meter", [1, 0]], ["delay", [1, 2]], ["sample-player", [0, 1]],
   ["biquad.lowpass", [1, 3]], ["biquad.highpass", [1, 3]], ["biquad.bandpass", [1, 3]], ["biquad.notch", [1, 3]],
   ["biquad.allpass", [1, 3]], ["biquad.peaking", [1, 3]], ["biquad.lowshelf", [1, 3]], ["biquad.highshelf", [1, 3]]
 ]);
 
-/** Audio-only DSP/control lowering. PCM boundaries, mixed domains and feedback reject. */
+/** Audio-only DSP/control lowering with prepared PCM boundaries. Mixed domains and feedback reject. */
 export function compileAudioGraph(input: CompileInput): CompileResult {
-  const { nodes, incoming } = prepareGraph(input); const { descriptors, session } = input;
+  const { nodes, incoming } = prepareGraph(input, true); const { descriptors, session } = input;
   const allocator = parameterAllocator(input.allocation);
   const controls = createControlCompiler("audio", input, nodes, incoming);
-  const sink = nodes.get(input.outputs[0]); const sinkDescriptor = sink && descriptors.get(sink.type);
-  if (!sink || sinkDescriptor?.kind !== "audio-output") { return fail(input.outputs[0], "outputs", "Expected an audio-output descriptor"); }
-  if (!["device", "tap", "record"].includes(sinkDescriptor.sink)) { fail(sink.id, "descriptor", "Unsupported audio sink kind"); }
-  const sinkInputs = incoming.get(sink.id);
-  const sinkEdge = sinkInputs?.get(sinkDescriptor.input);
-  if (!sinkEdge || sinkInputs?.size !== 1) { fail(sink.id, "port", "Audio output requires its declared input only"); }
-  const live = new Map<string, DspDescriptor>(); const pending = [sinkEdge.source]; const controlSeeds: string[] = [];
+  const sinks = [...input.outputs].sort(compareNames).map((id) => {
+    const node = nodes.get(id); const descriptor = node && descriptors.get(node.type);
+    if (!node || descriptor?.kind !== "audio-output") { return fail(id, "outputs", "Expected audio-output descriptors; mixed-domain outputs are deferred"); }
+    if (!["device", "tap", "record"].includes(descriptor.sink)) { fail(id, "descriptor", "Unsupported audio sink kind"); }
+    const inputs = incoming.get(id); const edge = inputs?.get(descriptor.input);
+    if (!edge || inputs?.size !== 1) { fail(id, "port", "Audio output requires its declared input only"); }
+    return { node, descriptor, edge };
+  });
+  const live = new Map<string, DspDescriptor>(); const pending = sinks.map((sink) => sink.edge.source); const controlSeeds: string[] = [];
+  const pcm = new Map<string, BatchPcm>(); const prepared = new Map<string, { id: string; contract: BatchPcm }>();
+  const slots: Array<RealtimePlan["slots"][number]> = []; const boundaries: BatchBoundary[] = [];
+  for (const entry of input.batchPcm ?? []) {
+    const key = identity(entry.node, entry.output);
+    if (pcm.has(key)) { fail(entry.node, "duplicate_slot", entry.output); }
+    pcm.set(key, entry);
+  }
+  function resolvePcm(edge: Edge): { id: string; contract: BatchPcm } {
+    const source = nodes.get(edge.source);
+    if (!source || descriptors.has(source.type) || edge.edge_type === "control") { fail(edge.target, "kind", "PCM boundaries require a batch value producer"); }
+    const key = identity(edge.source, edge.sourceHandle); const existing = prepared.get(key);
+    if (existing) { return existing; }
+    const contract = pcm.get(key);
+    if (!contract) { return fail(edge.source, "boundary_contract", `Supply prepared PCM metadata for ${edge.sourceHandle}`); }
+    if (contract.sampleRate !== session.sampleRate) { fail(edge.source, "sample_rate", "Prepared PCM requires the session sample rate"); }
+    if (contract.channels !== session.channels) { fail(edge.source, "channels", "Prepared PCM requires the session channel layout"); }
+    integer(contract.frames, 1, 4294967295, edge.source);
+    if (!/^[0-9a-f]{64}$/.test(contract.contentHash)) { fail(edge.source, "boundary_contract", "Prepared PCM requires a full SHA-256 content hash"); }
+    const id = `@slot:${encodeURIComponent(edge.source)}:${encodeURIComponent(edge.sourceHandle)}`;
+    if (nodes.has(id)) { fail(edge.source, "identity_collision", id); }
+    const result = { id, contract: { node: contract.node, output: contract.output, sampleRate: contract.sampleRate,
+      channels: contract.channels, frames: contract.frames, contentHash: contract.contentHash } };
+    prepared.set(key, result); slots.push({ id, kind: "buffer", source: key, channels: contract.channels });
+    boundaries.push({ node: edge.source, output: edge.sourceHandle, slot: id, reason: "no_live_descriptor" });
+    return result;
+  }
   while (pending.length) {
     const id = pending.pop(); if (id === undefined || live.has(id)) { continue; }
     const node = nodes.get(id); const descriptor = node && descriptors.get(node.type);
-    if (!node || descriptor?.kind !== "dsp") { fail(id, "unsupported", "Audio ports require DSP producers; mixed graphs and batch PCM are deferred"); }
+    if (!node || descriptor?.kind !== "dsp") { fail(id, "unsupported", "Audio ports require DSP producers; batch PCM enters through sample-player"); }
     const contract = KERNELS.get(descriptor.kernel);
     if (!contract) { fail(id, "unknown_kernel", descriptor.kernel); }
     if (descriptor.inputs.length !== contract[0] || descriptor.params.length !== contract[1] || !descriptor.output) {
@@ -33,17 +62,23 @@ export function compileAudioGraph(input: CompileInput): CompileResult {
     integer(descriptor.stateVersion, 1, 4294967295, id);
     if (descriptor.stateVersion !== 1) { fail(id, "state_version", "Unsupported built-in DSP state version"); }
     if (descriptor.channels && descriptor.channels !== session.channels) { fail(id, "channels", "Kernel layout differs from session"); }
-    const fields = [...descriptor.inputs, ...descriptor.params.map((param) => param.property), ...(descriptor.delayFrames ? [descriptor.delayFrames.property] : [])];
+    const fields = [...descriptor.inputs, ...descriptor.params.map((param) => param.property), ...(descriptor.delayFrames ? [descriptor.delayFrames.property] : []),
+      ...(descriptor.bufferInput !== undefined ? [descriptor.bufferInput] : [])];
     if (fields.some((field) => !field) || new Set(fields).size !== fields.length) { fail(id, "descriptor", "DSP input/property names must be nonempty and unique"); }
     if ((descriptor.kernel === "delay") !== (descriptor.delayFrames !== undefined)) { fail(id, "delay", "Only delay requires delayFrames"); }
+    if ((descriptor.kernel === "sample-player") !== (descriptor.bufferInput !== undefined)) { fail(id, "buffer_slot", "Only sample-player requires a PCM input"); }
     const inputs = incoming.get(id);
     for (const [port, edge] of inputs ?? []) {
       if (descriptor.params.some((binding) => binding.property === port)) { controlSeeds.push(edge.source); }
-      else if (!descriptor.inputs.includes(port)) { fail(id, "unsupported", "Unknown DSP port or connected structural property"); }
+      else if (port !== descriptor.bufferInput && !descriptor.inputs.includes(port)) { fail(id, "unsupported", "Unknown DSP port or connected structural property"); }
     }
     for (const port of descriptor.inputs) {
       const edge = inputs?.get(port); if (!edge) { fail(id, "missing_input", port); }
       pending.push(edge.source);
+    }
+    if (descriptor.bufferInput !== undefined) {
+      const edge = inputs?.get(descriptor.bufferInput); if (!edge) { fail(id, "missing_input", descriptor.bufferInput); }
+      resolvePcm(edge);
     }
     live.set(id, descriptor);
   }
@@ -66,14 +101,14 @@ export function compileAudioGraph(input: CompileInput): CompileResult {
       if (remaining === 0) { queue.push(target); }
     }
   }
-  if (ordered.length !== live.size) { fail([...indegree.keys()].find((id) => (indegree.get(id) ?? 0) > 0) ?? sink.id, "cycle", "Audio feedback lowering is deferred"); }
+  if (ordered.length !== live.size) { fail([...indegree.keys()].find((id) => (indegree.get(id) ?? 0) > 0) ?? "$audio", "cycle", "Audio feedback lowering is deferred"); }
   function producer(edge: { source: string; sourceHandle: string; target: string; edge_type?: string | null }): string {
     const descriptor = live.get(edge.source);
     if (edge.edge_type === "control") { fail(edge.target, "unsupported", "Workflow execution-control edges are not audio values"); }
     if (!descriptor || edge.sourceHandle !== descriptor.output) { fail(edge.target, "port", "No matching DSP output"); }
     return edge.source;
   }
-  const outputNode = producer(sinkEdge);
+  const outputNodes = sinks.map((sink) => producer(sink.edge));
   const positions = new Map(ordered.map((id, index) => [id, index]));
   const lastUse = new Map(positions);
   for (const [id, descriptor] of live) {
@@ -83,7 +118,7 @@ export function compileAudioGraph(input: CompileInput): CompileResult {
       const source = producer(edge); lastUse.set(source, Math.max(lastUse.get(source) ?? 0, index));
     }
   }
-  lastUse.set(outputNode, ordered.length);
+  for (const outputNode of outputNodes) { lastUse.set(outputNode, ordered.length); }
   const release = new Map<number, string[]>();
   for (const [id, index] of lastUse) {
     const bucket = release.get(index) ?? []; bucket.push(id); release.set(index, bucket);
@@ -120,18 +155,23 @@ export function compileAudioGraph(input: CompileInput): CompileResult {
       return { ...parameter, timeConstant };
     });
     params.push(...bindings);
-    let structural: { delayFrames?: number } = {};
+    let structural: { delayFrames?: number; bufferSlot?: string } = {}; let pcmKey: readonly unknown[] | undefined;
     if (descriptor.delayFrames) {
       const frames = values(node, descriptor.delayFrames);
       if (frames.length !== 1) { fail(id, "delay", "delayFrames requires a scalar integer"); }
       integer(frames[0], 1, 480000, id); structural = { delayFrames: frames[0] };
+    }
+    if (descriptor.bufferInput !== undefined) {
+      const edge = incoming.get(id)?.get(descriptor.bufferInput); if (!edge) { fail(id, "missing_input", descriptor.bufferInput); }
+      const source = resolvePcm(edge); structural = { bufferSlot: source.id };
+      pcmKey = [null, source.id, source.contract.frames, source.contract.contentHash];
     }
     // No in-place alias contract: release input buffers only after assigning this output.
     const buffer = free.pop() ?? buffers.length;
     if (buffer === buffers.length) { buffers.push({ id: buffer, channels: session.channels }); }
     physical.set(id, buffer);
     audio.push({ node: id, kernel: descriptor.kernel, stateVersion: descriptor.stateVersion, in: inputs, out: [buffer], params: bindings.map((param) => param.slot), ...structural });
-    const key = stateKey(id, descriptor.kernel, descriptor.stateVersion, session, [structural.delayFrames ?? null]);
+    const key = stateKey(id, descriptor.kernel, descriptor.stateVersion, session, pcmKey ?? [structural.delayFrames ?? null]);
     stateKeys.push({ node: id, kind: "audio", key });
     // RT-F48: exclude physical buffer IDs and param slot IDs from the logical upstream hash.
     pathHashes.set(id, hash(["audio-path-v1", key, session.seed, inputs.map((edge) => [edge.node, edge.output, pathHashes.get(edge.node)]),
@@ -141,11 +181,14 @@ export function compileAudioGraph(input: CompileInput): CompileResult {
       const released = physical.get(source); if (released !== undefined) { free.push(released); }
     }
   }
-  const buffer = physical.get(outputNode); const subgraphHash = pathHashes.get(outputNode);
-  if (buffer === undefined || !subgraphHash) { fail(sink.id, "missing_input", "Audio output has no producer"); }
+  const outputs = sinks.map((sink, index) => {
+    const source = outputNodes[index]; const buffer = physical.get(source); const subgraphHash = pathHashes.get(source);
+    if (buffer === undefined || !subgraphHash) { fail(sink.node.id, "missing_input", "Audio output has no producer"); }
+    return { node: sink.node.id, kind: sink.descriptor.sink, buffer, subgraphHash };
+  });
   const plan: RealtimePlan = { schemaVersion: 1, revision: input.revision,
     session: { sampleRate: session.sampleRate, quantum: session.quantum, channels: session.channels, width: session.width, height: session.height, seed: session.seed },
-    params: params.sort((a, b) => a.slot - b.slot), slots: [], control: controls.program(), render: { passes: [] },
-    audio: { buffers, nodes: audio, sinks: [{ node: sink.id, kind: sinkDescriptor.sink, buffer, subgraphHash }] } };
-  return { status: "ok", plan, boundaries: [], warnings: [], allocation: allocator.snapshot(), stateKeys: [...stateKeys, ...controls.stateKeys()] };
+    params: params.sort((a, b) => a.slot - b.slot), slots: slots.sort((a, b) => compareNames(a.id, b.id)), control: controls.program(), render: { passes: [] },
+    audio: { buffers, nodes: audio, sinks: outputs } };
+  return { status: "ok", plan, boundaries: boundaries.sort((a, b) => compareNames(a.slot, b.slot)), warnings: [], allocation: allocator.snapshot(), stateKeys: [...stateKeys, ...controls.stateKeys()] };
 }

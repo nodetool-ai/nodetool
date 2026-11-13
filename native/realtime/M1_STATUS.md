@@ -357,8 +357,9 @@ shared-device operation, close issues or change PR merge ordering.
 
 | Deferred requirement | Owning work | Evidence needed to finish |
 |---|---|---|
-| Complete graph-to-IR compiler and snapshots | [WP16 #7407](https://github.com/nodetool-ai/nodetool/issues/7407) | Required graph forms, including mixed-domain placement, batch rewrites and PCM boundaries, compile to loader-qualified snapshots with stable slots and state keys |
+| Complete graph-to-IR compiler and snapshots | [WP16 #7407](https://github.com/nodetool-ai/nodetool/issues/7407) | Required graph forms, including mixed-domain placement and batch rewrites, compile to loader-qualified snapshots with stable slots and state keys |
 | Synchronized parameter changes | [WP13 #7404](https://github.com/nodetool-ai/nodetool/issues/7404) | A change reaches audio and picture at the required quantum/frame, including rapid revisions and clock-generation changes |
+| Prepared-media publication and live slot lifecycle | [WP19 #7410](https://github.com/nodetool-ai/nodetool/issues/7410) | Decode/resample and publication validate the prepared rate/layout, frame count and content hash, with immutable slot replacement, retirement and per-run resource transfer |
 | Stall and live-device timing | [WP12 #7403](https://github.com/nodetool-ai/nodetool/issues/7403), [WP15 #7406](https://github.com/nodetool-ai/nodetool/issues/7406) | Stall/load fixtures and measured device budgets pass on the required hardware |
 | Swap-state continuity | [WP18 #7409](https://github.com/nodetool-ai/nodetool/issues/7409) | Unchanged audio paths preserve bytes, and changed paths satisfy the sink-ramp checks |
 | Browser audio sample parity | [WP24 #7415](https://github.com/nodetool-ai/nodetool/issues/7415) | Each qualified kernel meets its required native/Wasm agreement level |
@@ -397,7 +398,7 @@ compiler typechecking, scoped lint, packed imports, browser bundling and the gat
 dry run pass. Broad local checks were deferred under the targeted-check policy.
 
 WP16 remains open. Mixed audio/render lowering, cross-domain control sharing, render
-parameter slots, PCM/sample-player boundaries, multiple sinks, the full descriptor
+parameter slots and the full descriptor
 expression vocabulary, reverse/floating-point alpha conversion, delayed feedback, batch graph rewriting
 and cross-domain stateful handoffs remain unimplemented. Product descriptors,
 runner/editor integration and live-device behavior also remain outside this slice.
@@ -503,8 +504,11 @@ before output, and corrupted PCM fails the reference check.
 
 Mixed-domain placement, signal history, WP13 synchronization and WP18 state
 transfer remain deferred. The bindings use the offline host. Live parameter
-transport stays in WP13. WP16 and unfinished issues remain open. Linux
-qualification of this new control batch is pending CI.
+transport stays in WP13. WP16 and unfinished issues remain open. The
+[standalone Linux run at `e53bd0514e`](https://github.com/nodetool-ai/nodetool/actions/runs/43517660665)
+passes the control matrix, core sanitizers and Wasm/browser checks. The
+[full graph-runner run at that revision](https://github.com/nodetool-ai/nodetool/actions/runs/43517660722)
+also passes Release, ASan/UBSan and TSan.
 
 Targeted compiler checks, package build/typechecking and scoped lint pass.
 The expanded control fixture matrix passes with Windows Release and ASan.
@@ -512,3 +516,38 @@ Normal-script packed imports compile an audio control binding outside the
 workspace. Render/audio/control results also agree through an isolated browser
 bundle without Node globals or external imports. Broad local checks remain
 deferred under the targeted-check policy.
+
+## WP16 prepared PCM and multiple audio sinks
+
+Sample-player descriptors now lower prepared PCM boundaries into buffer slots.
+Contracts require the session rate/layout, positive frame count and a full
+SHA-256 hash of the prepared planar float32 bytes. Slots preserve full source
+identities and are shared across players. Player state keys include slot,
+length and content identity. The metadata remains trusted host input. Publishing
+hosts must verify it against the bytes they publish. Decode/resample, publication
+verification, live replacement and batch graph rewriting remain deferred.
+
+One audio plan can now have multiple device/tap/record sink descriptions. Roots
+are sorted by graph identity, shared producers appear once, and every sink's
+producer buffer stays live through the quantum. Per-sink hashes remain equal for
+an unchanged branch when an independent branch changes execution order, physical
+buffers or parameter allocation. This supplies offline output streams and does
+not enable live device routing or shared-device use.
+
+Stored single/multi-sink plans load through the native loader and WAV exporter.
+The fixture matrix checks distinct planar channel patterns, short clips and
+quantum-crossing clips, exact finite tails, all declared streams and unchanged
+WAV bytes at 2, 60 and 120 fps, at both session rates/layouts. Missing slots,
+partial PCM and nonfinite input reject before output. Corrupted exported PCM
+fails the reference check. A reproduced cached-edge validation bug is covered
+by a regression: each PCM edge is validated before reusing its prepared slot.
+
+WP16 and the acceptance ledger remain open. Linux qualification of this PCM and
+multi-sink batch is pending CI.
+
+Targeted compiler tests, package build/typechecking and scoped lint pass. The
+expanded native fixture checker passes on Windows Release and ASan. A normal
+packed install lowers prepared PCM and shared sink outputs outside the workspace.
+Render/audio/control/PCM results agree through an isolated browser bundle without
+Node globals or external imports. Broad local checks remain deferred under the
+targeted-check policy.

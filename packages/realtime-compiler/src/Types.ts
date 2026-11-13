@@ -39,7 +39,7 @@ export interface ShaderDescriptor {
   readonly retention: "retained" | "volatile";
 }
 export interface RenderOutputDescriptor { readonly kind: "render-output"; readonly input: string; readonly colorSpace: ColorSpace; }
-export type DspKernel = "oscillator" | "noise" | "gain" | "mix" | "level-meter" | "delay" |
+export type DspKernel = "oscillator" | "noise" | "gain" | "mix" | "level-meter" | "delay" | "sample-player" |
   "biquad.lowpass" | "biquad.highpass" | "biquad.bandpass" | "biquad.notch" | "biquad.allpass" |
   "biquad.peaking" | "biquad.lowshelf" | "biquad.highshelf";
 export interface AudioParameterBinding extends ValueBinding {
@@ -54,6 +54,7 @@ export interface DspDescriptor {
   readonly params: readonly AudioParameterBinding[];
   readonly channels?: Session["channels"];
   readonly delayFrames?: ValueBinding;
+  readonly bufferInput?: string;
 }
 export interface AudioOutputDescriptor { readonly kind: "audio-output"; readonly input: string; readonly sink: "device" | "tap" | "record"; }
 export type LiveDescriptor = ControlDescriptor | ShaderDescriptor | RenderOutputDescriptor | DspDescriptor | AudioOutputDescriptor;
@@ -66,6 +67,15 @@ export interface Session {
   readonly seed: number;
 }
 export interface BatchTexture { readonly node: string; readonly output: string; readonly texture: TextureContract; }
+/** Trusted metadata for prepared planar float32 little-endian PCM, after decoding/resampling. */
+export interface BatchPcm {
+  readonly node: string;
+  readonly output: string;
+  readonly sampleRate: Session["sampleRate"];
+  readonly channels: Session["channels"];
+  readonly frames: number;
+  readonly contentHash: string;
+}
 export interface CompileInput {
   readonly graph: { readonly nodes: Readonly<GraphData["nodes"]>; readonly edges: Readonly<GraphData["edges"]> };
   readonly descriptors: ReadonlyMap<string, LiveDescriptor>;
@@ -73,6 +83,7 @@ export interface CompileInput {
   readonly session: Session;
   readonly revision: number;
   readonly batchTextures?: readonly BatchTexture[];
+  readonly batchPcm?: readonly BatchPcm[];
   readonly allocation?: ParameterAllocation;
 }
 export interface ParameterIdentity { readonly node: string; readonly field: string; readonly slot: number; }
@@ -94,6 +105,7 @@ export interface AudioNode {
   readonly out: readonly number[];
   readonly params: readonly number[];
   readonly delayFrames?: number;
+  readonly bufferSlot?: string;
 }
 export interface Diagnostic { readonly node: string; readonly reason: string; readonly detail: string; }
 export interface ControlInstruction {
@@ -117,7 +129,10 @@ export interface RealtimePlan {
   readonly revision: number;
   readonly session: Session;
   readonly params: readonly PlanParameter[];
-  readonly slots: readonly { readonly id: string; readonly kind: "texture"; readonly source: string; readonly output: TextureContract }[];
+  readonly slots: readonly (
+    { readonly id: string; readonly kind: "texture"; readonly source: string; readonly output: TextureContract } |
+    { readonly id: string; readonly kind: "buffer"; readonly source: string; readonly channels: Session["channels"] }
+  )[];
   readonly control: { readonly registers: number; readonly ops: readonly ControlInstruction[]; readonly stateful: readonly (ControlInstruction & { readonly stateVersion: number })[] };
   readonly render: { readonly passes: readonly RenderPass[]; readonly present?: { readonly source: string; readonly colorSpace: ColorSpace } };
   readonly audio: {

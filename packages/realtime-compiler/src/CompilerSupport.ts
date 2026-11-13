@@ -34,7 +34,7 @@ export function literalValues(value: unknown, node: string, field: string): numb
   }
   return fail(node, "control_value", `Expected finite scalar or vector: ${field}`);
 }
-export function prepareGraph(input: CompileInput): {
+export function prepareGraph(input: CompileInput, multipleAudioOutputs = false): {
   nodes: Map<string, NodeDescriptor>; incoming: Map<string, Map<string, Edge>>;
 } {
   const { session, graph } = input;
@@ -44,7 +44,9 @@ export function prepareGraph(input: CompileInput): {
   if ((session.sampleRate !== 44100 && session.sampleRate !== 48000) || session.quantum !== 128 ||
       (session.channels !== "mono" && session.channels !== "stereo")) { fail("$session", "session", "Unsupported session layout"); }
   if (graph.nodes.length > 100000 || graph.edges.length > 100000) { fail("$graph", "limit", "Graph exceeds v1 compiler limits"); }
-  if (input.outputs.length !== 1) { fail("$graph", "outputs", "This slice requires exactly one output"); }
+  if (input.outputs.length < 1 || input.outputs.length > (multipleAudioOutputs ? 100000 : 1) || new Set(input.outputs).size !== input.outputs.length) {
+    fail("$graph", "outputs", multipleAudioOutputs ? "Audio outputs must be nonempty, unique and within compiler limits" : "This slice requires exactly one render output");
+  }
   const nodes = new Map<string, NodeDescriptor>(); const incoming = new Map<string, Map<string, Edge>>();
   for (const node of graph.nodes) {
     if (!node.id || nodes.has(node.id)) { fail(node.id, "duplicate_node", "Node identity is empty or duplicated"); }
