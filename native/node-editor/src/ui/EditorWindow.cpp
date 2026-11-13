@@ -442,6 +442,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     });
     connect(scene_, &EditorScene::dynamicPortFormRequested, this, &EditorWindow::showDynamicPortDialog);
     connect(scene_, &EditorScene::dynamicTypeMenuRequested, this, &EditorWindow::showDynamicTypeMenu);
+    connect(scene_, &EditorScene::headerActionRequested, this, [this](const QString &id, const QString &action) {
+        if (action == QStringLiteral("loadComfyWorkflow")) { showComfyWorkflowDialog(id); }
+    });
     connect(scene_, &EditorScene::childOpenRequested, this, [this](const QString &id) {
         if (selectNode(id)) { openChild(); }
     });
@@ -2643,6 +2646,16 @@ bool EditorWindow::commitProperty(const QString &nodeId, const QString &name, co
   if (!tabOwner_) { return activeEditor_->commitProperty(nodeId, name, value); }
   if (nodeId.isEmpty() || nodeId != selected_) { return false; }
   if ((value.metaType().id() == QMetaType::Double || value.metaType().id() == QMetaType::Float) && !std::isfinite(value.toDouble())) { return false; }
+  // A Workflow or App node's select commits a reference. The node stores the
+  // id once the source and its graph have loaded.
+  const auto picker = childPicker(document_.node(nodeId)["type"].toString());
+  if (!picker.property.isEmpty() && name == picker.property && value.metaType().id() == QMetaType::QVariantMap) {
+    const auto reference = value.toMap();
+    const auto data = document_.node(nodeId)["data"].toObject();
+    if (reference.value("id").toString() == data[picker.property].toString() && !data[picker.snapshotKey].toObject()["graph"].toObject().isEmpty()) { return false; }
+    loadChildSource(nodeId, picker.kind, reference.value("id").toString());
+    return true;
+  }
   const bool changed = apply({{"op", "setProperty"}, {"id", nodeId}, {"name", name}, {"value", QJsonValue::fromVariant(value)}});
   if (changed) {
     const bool numeric = value.metaType().id() == QMetaType::Double

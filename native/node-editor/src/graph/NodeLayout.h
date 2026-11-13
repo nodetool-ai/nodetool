@@ -311,6 +311,15 @@ struct NodeLayout {
     // A header-only strip: every handle sits on its midline and no body draws.
     bool collapsed = false;
     bool subgraph = false;
+    // A header button at the right of the title, such as the ComfyUI runner's
+    // workflow loader. Empty for a card without one.
+    QString headerAction;
+    QRectF headerActionRect() const {
+        // A 16 px icon in 4 px padding, 4 px from the card's right edge, centered on the header.
+        const double side = node_metrics::iconSize + 8;
+        const double top = node_metrics::borderWidth + node_metrics::padding + (node_metrics::headerHeight - side) / 2.0;
+        return QRectF(size.width() - node_metrics::borderWidth - 4 - side, top, side, side);
+    }
     bool addOutput = false;
     bool runningProgress = false;
     // A running card other than a subgraph with a known total shows a progress band.

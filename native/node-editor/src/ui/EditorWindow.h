@@ -131,6 +131,11 @@ public:
   void showLinkedWorkflows();
   void syncChild();
   void refreshChildReferences();
+  // WorkflowLoader and AppLoader: loads the picked workflow or app and stores
+  // its id and a copy of its graph on the node in one undo step.
+  void loadChildSource(const QString &nodeId, const QString &kind, const QString &sourceId);
+  // ComfyWorkflowLoader.tsx: the Run ComfyUI Workflow node's load dialog.
+  void showComfyWorkflowDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
   EditorWindow *activeEditor() const;
