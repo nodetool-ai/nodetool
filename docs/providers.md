@@ -28,7 +28,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Groq | ✅ | | | | | | |
 | Mistral | ✅ | | | | | ✅ | |
 | Cerebras | ✅ | | | | | | |
-| Alibaba Cloud | ✅ | | | | | | |
+| Alibaba Cloud | ✅ | ✅ | ✅ | ✅ | | | |
 | GMI Cloud | ✅ | | | | | | |
 | OpenRouter | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Requesty | ✅ | | | | | | |
@@ -144,7 +144,15 @@ Cerebras runs chat models on its high-throughput inference hardware. Text only. 
 
 ## Alibaba Cloud
 
-Alibaba Cloud Model Studio serves the Qwen chat models — qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line — with streaming and tool calling. Text only. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint (default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, the international/Singapore region); models are fetched live from its `/models` endpoint. Model Studio keys are region-scoped — set `DASHSCOPE_BASE_URL` to your region's `/compatible-mode/v1` endpoint when the key was created outside Singapore. Tool calling is gated per model family: Qwen-Math, QVQ, OCR, translation, and audio models are outside Alibaba's function-calling list and are not sent tools. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+Alibaba Cloud Model Studio serves the Qwen chat models — qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line — with streaming and tool calling. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint (default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, the international/Singapore region); chat models are fetched live from its `/models` endpoint. Model Studio keys are region-scoped — set `DASHSCOPE_BASE_URL` to your region's `/compatible-mode/v1` endpoint when the key was created outside Singapore. Tool calling is gated per model family: Qwen-Math, QVQ, OCR, translation, and audio models are outside Alibaba's function-calling list and are not sent tools. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
+The same key generates media through DashScope's native API, on the same regional host with `/api/v1` in place of `/compatible-mode/v1`:
+
+- **Video:** Wan text-to-video (`wan2.7-t2v`, `wan2.6-t2v`, `wan2.5-t2v-preview`) and image-to-video (`wan2.7-i2v` with an optional last frame, `wan2.6-i2v`, `wan2.6-i2v-flash`, `wan2.5-i2v-preview`). Each clip is an async task that NodeTool polls every 15 seconds and downloads when it finishes. Clips take 1 to 5 minutes.
+- **Image:** Qwen-Image 3.0, 2.1 and 2.0, Wan 2.7 Image and Wan 2.6 text-to-image. Qwen-Image 3.0 and 2.1 and Wan 2.7 Image also edit from input images.
+- **TTS:** `qwen3-tts-flash` with its 48 system voices. Output is 24 kHz WAV, capped at 600 characters per request.
+
+Media models are listed by hand because Model Studio has no listing endpoint that says which models generate video, images or speech. Not every model is offered in every region. Check the Model Studio console for your region.
 
 ## GMI Cloud
 
