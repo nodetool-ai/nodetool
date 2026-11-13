@@ -31,6 +31,8 @@ const CLOUD = [
   "huggingface",
   "deepseek",
   "moonshot",
+  "zai",
+  "byteplus",
   "sarvam",
   "elevenlabs",
   "meshy",

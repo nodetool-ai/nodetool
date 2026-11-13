@@ -6,11 +6,13 @@ set(CMAKE_AUTOMOC ON)
 include(CTest)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Widgets QuickWidgets Qml Quick QuickControls2 Svg Network WebSockets Multimedia Test)
 qt_standard_project_setup(REQUIRES 6.12)
-include(cmake/QtNodes.cmake)
-include(cmake/GraphRunner.cmake)
+# Configures only the QML components, their interfaces and the parity
+# harness host (native/parity/host), without QtNodes, the graph runner, chat or
+# the editor window. A components-only build needs Qt and nothing else.
+option(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY "Build only the QML components and the parity host" OFF)
+option(NODETOOL_PARITY_HOST "Build the native/parity component host" ON)
 add_subdirectory(../ui_primitives ui_primitives)
 add_subdirectory(../model-picker model-picker)
-add_subdirectory(../chat chat)
 add_subdirectory(../media media)
 # The C++ interfaces that editor QML components take as required properties,
 # with what they need and nothing of the editor window. A component test links
@@ -37,12 +39,40 @@ add_library(node_editor_interfaces STATIC
  src/server/PackSetup.cpp src/server/PackSetup.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
  src/graph/IconPaths.cpp src/graph/IconPaths.h
+ src/graph/TypeStyle.cpp src/graph/TypeStyle.h
  src/library/LibraryBrowser.cpp src/library/LibraryBrowser.h)
 target_include_directories(node_editor_interfaces PUBLIC src)
 # nodetool_media for the asset list model that LibraryBrowser fills.
 target_link_libraries(node_editor_interfaces PUBLIC nodetool_media Qt6::Core Qt6::Gui Qt6::Network)
 # QML_FOREIGN in the module and qmllint read these types from the metatypes.
 qt_extract_metatypes(node_editor_interfaces)
+# The editor's QML as the NodeTool.NodeEditor module, compiled by qmlcachegen.
+# Files load as qrc:/qt/qml/NodeTool/NodeEditor/<File>.qml: the alias drops the
+# qml/ source directory from the resource path.
+file(GLOB node_editor_qml_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS qml/*.qml qml/*.js)
+foreach(file IN LISTS node_editor_qml_files)
+    get_filename_component(name ${file} NAME)
+    set_source_files_properties(${file} PROPERTIES QT_RESOURCE_ALIAS ${name})
+endforeach()
+qt_add_library(node_editor_qml STATIC)
+qt_add_qml_module(node_editor_qml
+    URI NodeTool.NodeEditor
+    RESOURCE_PREFIX /qt/qml
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/NodeEditor
+    QML_FILES ${node_editor_qml_files}
+    SOURCES src/qml/EditorQmlTypes.h src/qml/OutputStyle.cpp src/qml/OutputStyle.h src/qml/TypeIcons.cpp src/qml/TypeIcons.h)
+# The generated type registrations include EditorQmlTypes.h by its bare name.
+target_include_directories(node_editor_qml PRIVATE src/qml)
+target_link_libraries(node_editor_qml PUBLIC node_editor_interfaces nodetool_ui_primitives Qt6::Qml Qt6::Quick Qt6::QuickControls2)
+if(NODETOOL_PARITY_HOST)
+    add_subdirectory(../parity/host parity-host)
+endif()
+if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
+    return()
+endif()
+include(cmake/QtNodes.cmake)
+include(cmake/GraphRunner.cmake)
+add_subdirectory(../chat chat)
 add_library(node_editor_core STATIC
  src/server/AccountJobs.cpp src/server/AccountJobs.h
  src/server/SetupController.cpp src/server/SetupController.h
@@ -103,24 +133,6 @@ nodetool_stage_graph_runner_runtime(nodetool-node-editor)
 target_link_libraries(nodetool-node-editor PRIVATE node_editor_core)
 nodetool_use_ui_primitives(nodetool-node-editor)
 include(cmake/WindowsRuntime.cmake)
-# The editor's QML as the NodeTool.NodeEditor module, compiled by qmlcachegen.
-# Files load as qrc:/qt/qml/NodeTool/NodeEditor/<File>.qml: the alias drops the
-# qml/ source directory from the resource path.
-file(GLOB node_editor_qml_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS qml/*.qml qml/*.js)
-foreach(file IN LISTS node_editor_qml_files)
-    get_filename_component(name ${file} NAME)
-    set_source_files_properties(${file} PROPERTIES QT_RESOURCE_ALIAS ${name})
-endforeach()
-qt_add_library(node_editor_qml STATIC)
-qt_add_qml_module(node_editor_qml
-    URI NodeTool.NodeEditor
-    RESOURCE_PREFIX /qt/qml
-    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/NodeEditor
-    QML_FILES ${node_editor_qml_files}
-    SOURCES src/qml/EditorQmlTypes.h src/qml/OutputStyle.cpp src/qml/OutputStyle.h src/qml/TypeIcons.cpp src/qml/TypeIcons.h)
-# The generated type registrations include EditorQmlTypes.h by its bare name.
-target_include_directories(node_editor_qml PRIVATE src/qml)
-target_link_libraries(node_editor_qml PUBLIC node_editor_interfaces nodetool_ui_primitives Qt6::Qml Qt6::Quick Qt6::QuickControls2)
 target_link_libraries(node_editor_core PUBLIC node_editor_interfaces node_editor_qml node_editor_qmlplugin)
 qt_add_resources(node_editor_core editor_assets PREFIX /editor/resources BASE resources FILES resources/nodetool_48px.png)
 # The web data type icons from web/src/icons/data_types/nodetool, drawn in card headers.

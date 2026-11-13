@@ -225,6 +225,7 @@ const SETTING_LINKS: Record<string, string> = {
   BRAVE_API_KEY: "https://api-dashboard.search.brave.com/",
   APIFY_API_TOKEN: "https://console.apify.com/account/integrations",
   KIMI_API_KEY: "https://platform.moonshot.ai/console/api-keys",
+  ZAI_API_KEY: "https://z.ai/manage-apikey/apikey-list",
   SARVAM_API_KEY: "https://dashboard.sarvam.ai/",
   DASHSCOPE_API_KEY:
     "https://modelstudio.console.alibabacloud.com/?tab=playground#/api-key",
@@ -253,6 +254,7 @@ const SETTING_CREDENTIAL_KEYS: Record<string, string> = {
   BRAVE_API_KEY: "BRAVE_API_KEY",
   APIFY_API_TOKEN: "APIFY_API_TOKEN",
   KIMI_API_KEY: "KIMI_API_KEY",
+  ZAI_API_KEY: "ZAI_API_KEY",
   SARVAM_API_KEY: "SARVAM_API_KEY",
   DASHSCOPE_API_KEY: "DASHSCOPE_API_KEY",
   AKI_API_KEY: "AKI_API_KEY"

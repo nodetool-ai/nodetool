@@ -18,7 +18,8 @@ bundles and builds with its compile options, and sqlite-vec the version the
 `sqlite-vec` npm package ships.
 stb_image (commit `d14d46f6b44456eb88beac58cba833a4135d4c89`) and the prebuilt
 wgpu-native v29.0.1.1 for the platform, each pinned by SHA-256
-([`cmake/host-image-gpu.cmake`](cmake/host-image-gpu.cmake)).
+([`cmake/host-image-gpu.cmake`](cmake/host-image-gpu.cmake) and
+[`cmake/gpu-device.cmake`](cmake/gpu-device.cmake)).
 
 Configuration also requires ICU development libraries, the
 [image adapter dependencies](#native-image-adapter-dependencies), the
@@ -617,6 +618,25 @@ QuickJS has no WebGPU, so the guest replaces those two functions
   image capability decodes with stb_image (PNG, JPEG, BMP, GIF, TGA, PSD, PNM;
   plus libwebp for WebP). Other references go to `loadMediaRefBytes`, the media capability's
   loader.
+
+#### Sharing textures with another GPU runtime
+
+[`src/host/gpu_share.h`](src/host/gpu_share.h) lets a second GPU runtime,
+such as Qt's scene graph, sample a texture of the device without a readback.
+`Device::createShareable()` allocates an output texture that can be shared,
+`runInto()` runs a module into it, and `share()` returns a `SharedTexture`
+that keeps the allocation alive after `release()` and `releaseRun()` removed
+its id. `publish()` waits for the GPU and hands the content over, and
+`reclaim()` takes it back. `FrameRing` is the bounded pool of frames between
+one producer and one consumer. The runner itself has no Qt dependency: the
+consumer is [native/gpu-preview](../gpu-preview/README.md), which also
+documents the mechanism per platform.
+
+`Device::shareSupport()` names the backend or the reason there is none.
+Vulkan needs the Vulkan headers and a wgpu-native built from
+[third_party/wgpu-native](third_party/wgpu-native/README.md). Pass its
+directory as `-DNODETOOL_WGPU_NATIVE_DIR=<dir>`. `gr_gpu_share_tests` covers
+the ring and the device side.
 
 `HostOptions::gpu` holds `enabled` (off by default), `backends` (wgpu-native
 backends, `"primary"` by default) and `softwareOnly`. The device prefers a

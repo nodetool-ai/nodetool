@@ -34,6 +34,7 @@ export const GENAI_PROVIDER_MAP: Readonly<Record<string, string>> = {
   grok: "x-ai",
   moonshot: "moonshotai",
   moonshotai: "moonshotai",
+  zai: "zai",
   azure_openai: "azure",
   bedrock: "aws"
 };

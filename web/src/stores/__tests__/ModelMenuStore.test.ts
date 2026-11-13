@@ -69,6 +69,11 @@ describe("ModelMenuStore", () => {
       expect(requiredSecretForProvider("sarvam")).toBe("SARVAM_API_KEY");
     });
 
+    it("returns ZAI_API_KEY for the Z.ai provider", () => {
+      expect(requiredSecretForProvider("zai")).toBe("ZAI_API_KEY");
+      expect(requiredSecretForProvider("ZAI")).toBe("ZAI_API_KEY");
+    });
+
     it("returns AKI_API_KEY for valid AKI provider variants", () => {
       expect(requiredSecretForProvider("aki")).toBe("AKI_API_KEY");
       expect(requiredSecretForProvider("aki.io")).toBe("AKI_API_KEY");

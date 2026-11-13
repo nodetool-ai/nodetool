@@ -28,7 +28,8 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Groq | ✅ | | | | | | |
 | Mistral | ✅ | | | | | ✅ | |
 | Cerebras | ✅ | | | | | | |
-| Alibaba Cloud | ✅ | | | | | | |
+| Alibaba Cloud | ✅ | ✅ | ✅ | ✅ | | | |
+| BytePlus | ✅ | ✅ | ✅ | | | | |
 | GMI Cloud | ✅ | | | | | | |
 | OpenRouter | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Requesty | ✅ | | | | | | |
@@ -43,6 +44,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Sarvam AI | ✅ | | | ✅ | ✅ | | |
 | Meta AI | ✅ | ✅ | | | ✅ | | |
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
+| Z.ai | ✅ | ✅ | ✅ | | ✅ | | |
 | Codex (OpenAI OAuth) | ✅ | ✅ | | | | | |
 | Claude Agent SDK | ✅ | | | | | | |
 | Antigravity | ✅ | ✅ | | | | | |
@@ -54,6 +56,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | UseAPI | | ✅ | ✅ | | | | |
 | vgenv | | | ✅ | | | | |
 | ToAPIs | | ✅ | ✅ | | | | |
+| Kling AI | | ✅ | ✅ | | | | |
 | Replicate | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | FAL | ✅ | ✅ | ✅ | ✅ | | | |
 | Comfy Cloud | | ⁵ | ⁵ | | | | |
@@ -144,7 +147,25 @@ Cerebras runs chat models on its high-throughput inference hardware. Text only. 
 
 ## Alibaba Cloud
 
-Alibaba Cloud Model Studio serves the Qwen chat models — qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line — with streaming and tool calling. Text only. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint (default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, the international/Singapore region); models are fetched live from its `/models` endpoint. Model Studio keys are region-scoped — set `DASHSCOPE_BASE_URL` to your region's `/compatible-mode/v1` endpoint when the key was created outside Singapore. Tool calling is gated per model family: Qwen-Math, QVQ, OCR, translation, and audio models are outside Alibaba's function-calling list and are not sent tools. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+Alibaba Cloud Model Studio serves the Qwen chat models — qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line — with streaming and tool calling. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint (default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, the international/Singapore region); chat models are fetched live from its `/models` endpoint. Model Studio keys are region-scoped — set `DASHSCOPE_BASE_URL` to your region's `/compatible-mode/v1` endpoint when the key was created outside Singapore. Tool calling is gated per model family: Qwen-Math, QVQ, OCR, translation, and audio models are outside Alibaba's function-calling list and are not sent tools. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+
+The same key generates media through DashScope's native API, on the same regional host with `/api/v1` in place of `/compatible-mode/v1`:
+
+- **Video:** Wan text-to-video (`wan2.7-t2v`, `wan2.6-t2v`, `wan2.5-t2v-preview`) and image-to-video (`wan2.7-i2v` with an optional last frame, `wan2.6-i2v`, `wan2.6-i2v-flash`, `wan2.5-i2v-preview`). Each clip is an async task that NodeTool polls every 15 seconds and downloads when it finishes. Clips take 1 to 5 minutes.
+- **Image:** Qwen-Image 3.0, 2.1 and 2.0, Wan 2.7 Image and Wan 2.6 text-to-image. Qwen-Image 3.0 and 2.1 and Wan 2.7 Image also edit from input images.
+- **TTS:** `qwen3-tts-flash` with its 48 system voices. Output is 24 kHz WAV, capped at 600 characters per request.
+
+Media models are listed by hand because Model Studio has no listing endpoint that says which models generate video, images or speech. Not every model is offered in every region. Check the Model Studio console for your region.
+
+## BytePlus
+
+BytePlus ModelArk is ByteDance's international model platform. One key covers Seed chat models, Seedream image generation and editing, and Seedance text-to-video and image-to-video. Cloud only, keyed by `BYTEPLUS_ARK_API_KEY`.
+
+- **Chat.** Requests go to Ark's OpenAI-compatible `/chat/completions` with streaming and tool calling. The picker reads `GET /models` and keeps rows whose output modalities include text. When the listing fails or comes back empty, it falls back to a short built-in list of Seed models.
+- **Images.** Seedream 5.0 Pro, 5.0, 5.0 Lite, 4.5, and 4.0 run on `/images/generations`. Image-to-image sends up to 10 reference images to 5.0 Pro and up to 14 to the others. An aspect ratio becomes a pixel size at the chosen resolution tier, kept inside the model's documented pixel range. Output has no watermark.
+- **Video.** Seedance 2.5, 2.0, 2.0 Fast, 2.0 Mini, 1.5 Pro, 1.0 Pro, and 1.0 Pro Fast run as tasks: NodeTool creates one on `/contents/generations/tasks` and polls it until it succeeds, fails, or expires. Image-to-video takes a first frame and, on every model except 1.0 Pro Fast, an optional last frame.
+
+The default endpoint is `https://ark.ap-southeast.bytepluses.com/api/v3`. Ark keys work in one region only, so set `BYTEPLUS_ARK_BASE_URL` to your region's `/api/v3` endpoint when the key belongs to another region. Seed speech and transcription need a separate voice key and are not wired. Get a key in the [ModelArk console](https://console.byteplus.com/ark). See the [ModelArk docs](https://docs.byteplus.com/en/docs/ModelArk/).
 
 ## GMI Cloud
 
@@ -204,6 +225,15 @@ Sarvam's translation, transliteration, and batch speech-to-text APIs are not wir
 
 MiniMax covers chat, image (Image-01), video (Hailuo 2.3), TTS, and music generation in one provider. ASR and embeddings exist in MiniMax's API but are disabled in NodeTool's provider (embeddings need a GroupId NodeTool doesn't manage) — use another provider for those. Cloud only, keyed by `MINIMAX_API_KEY`. See the [MiniMax provider guide](developer/providers/minimax.md).
 
+## Z.ai
+
+Z.ai (Zhipu) serves its GLM models over an OpenAI-compatible API at `https://api.z.ai/api/paas/v4`. Cloud only, keyed by `ZAI_API_KEY`. Set `ZAI_REGION` to `china` to use the mainland host `https://open.bigmodel.cn/api/paas/v4` instead. Keys from one host do not work on the other.
+
+- **Chat.** GLM-5.3, 5.2, 5.1, 5, 4.7 and 4.6 take text. GLM-5.3-Flash, FlashX and FlashX-Legal also read images. Streaming, tool calling and reasoning text are supported. Z.ai has no model-listing endpoint, so the list is copied from the API reference.
+- **Image.** GLM-Image text-to-image. NodeTool snaps the requested shape to the nearest of Z.ai's seven recommended sizes.
+- **Video.** CogVideoX-3 text-to-video and image-to-video with a first and optional last frame, 5 or 10 seconds, at 16:9, 9:16 or 1:1 up to 4K for 16:9. Each video is an asynchronous task that NodeTool polls, then downloads. A stopped run stops waiting, but the task still finishes and is billed.
+- **Speech to text.** GLM-ASR-2512 transcribes WAV or MP3 files up to 25 MB and 30 seconds.
+
 ## Meta AI
 
 Meta AI serves the Muse family at `https://api.meta.ai/v1`. Cloud only, keyed by `META_API_KEY`.
@@ -260,6 +290,10 @@ vgenv is an independent API for MiniMax H3 video, not affiliated with MiniMax. I
 ## ToAPIs
 
 ToAPIs (toapis.com) is an independent API gateway for third-party image and video models. NodeTool uses it for GPT Image 2, GPT Image 2 VIP, and GPT Image 2.5 Flare and Sunburst (text-to-image and image-to-image at 1K, 2K, or 4K) and for Seedance 2, Seedance 2 Fast, and Seedance 2 Mini (text-to-video, image-to-video with a first and optional last frame, and reference-to-video with up to nine images, 4 to 15 seconds). Input images are uploaded to ToAPIs first, because its image models take URLs only. Every generation is an asynchronous task that NodeTool polls, then downloads within the 24-hour result window. ToAPIs has no cancel endpoint, so a stopped run stops waiting but the task still finishes and is billed. No chat. Cloud only, keyed by `TOAPIS_API_KEY`.
+
+## Kling AI
+
+The `kling` provider calls Kling AI (Kuaishou) directly at its global endpoint, `api-singapore.klingai.com`. Video covers Kling 4.0, 4.0 Flash, 3.0 Turbo, 3.0, 3.0 Omni, O1, and 2.6, each for text-to-video and image-to-video. Kling 4.0, 3.0, 3.0 Omni, O1, and 2.6 also take a last frame. Images cover Kling Image 3.0 (`kling-v3`), Image 3.0 Omni (`kling-v3-omni`), and Image O1 (`kling-image-o1`), for text-to-image and image-to-image. Image 3.0 takes one reference image and the two omni models take up to ten. Kling has no model listing endpoint, so these models are a static list kept in `kling-provider.ts`. Every generation is an asynchronous task that NodeTool polls, then downloads. Kling keeps results for 30 days. Kling has no cancel endpoint, so a stopped run stops waiting but the task still finishes and is billed. No chat. Cloud only, keyed by `KLING_API_KEY`, an API key from the Kling AI console. The older Access Key and Secret Key pair is not supported, because Kling's newer video endpoints accept only API keys. Kling models are also reachable through kie.ai and other gateways, which use their own keys.
 
 ## Replicate
 

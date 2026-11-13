@@ -117,6 +117,10 @@ export const PROJECTS = {
     ],
     bundleInputs: GUEST_INPUTS
   },
+  // The mixer's filters link native/kernels (native/timeline/CMakeLists.txt).
+  timeline: {
+    dependsOn: ["kernels"]
+  },
   // The editor's local-run tests load the graph runner's guest bundle from the
   // path in NODETOOL_GUEST_BUNDLE (native/node-editor/cmake/GraphRunner.cmake).
   // On Windows the editor's launcher and check script build in `build-windows`
