@@ -1,4 +1,5 @@
 #include "nodetool/realtime/offline.h"
+#include <array>
 #include <bit>
 #include <chrono>
 #include <cmath>
@@ -43,10 +44,50 @@ Plan base() {
         {"render", {{"passes", Plan::array()}}},
         {"audio", {{"buffers", Plan::array()}, {"nodes", Plan::array()}, {"sinks", Plan::array()}}}};
 }
+void damperPcm(const std::string& bytes, unsigned rate) {
+    constexpr std::array<double, 4> oscillator{0, 1, 0, -1};
+    const auto samples = rate * 3 / 5;
+    require(bytes.size() == 58 + samples * 8, "Damper audio length differs");
+    for (std::uint64_t sample = 0; sample < samples; ++sample) {
+        const double endpoint = static_cast<double>((sample / 128 + 1) * 128) / rate;
+        const double expected = 0.75 * (1 - std::exp(-endpoint / 0.2)) * oscillator[sample % 4];
+        for (unsigned channel = 0; channel < 2; ++channel) {
+            const auto actual = std::bit_cast<float>(word(bytes, 58 + sample * 8 + channel * 4));
+            require(std::isfinite(actual) && std::abs(actual - expected) < 2e-6,
+                "Damper PCM differs from quantum-endpoint reference");
+        }
+    }
+}
+void damperCadence(const std::filesystem::path& directory) {
+    auto plan = Plan::parse(read(std::filesystem::path(NT_FIXTURES) / "offline-damper.json"));
+    plan["render"] = {{"passes", Plan::array()}};
+    for (const unsigned rate : {44100u, 48000u}) {
+        plan["session"]["sampleRate"] = rate;
+        plan["params"][0]["value"] = rate / 4;
+        std::string reference;
+        for (const unsigned fps : {60u, 120u, 2u}) {
+            OfflineOptions options{"0.6", std::to_string(fps), directory / ("damp-" + std::to_string(rate) + "-" + std::to_string(fps))};
+            const auto result = runOffline(plan.dump(), options);
+            require(!result.error && result.samples == rate * 3 / 5 && result.frames == (3 * fps + 4) / 5,
+                "Damper audio export failed");
+            const auto bytes = read(options.output / "audio.wav");
+            damperPcm(bytes, rate);
+            if (reference.empty()) {
+                reference = bytes;
+                auto corrupted = bytes; corrupted.replace(58 + 8, 4, 4, '\0');
+                bool rejected = false;
+                try { damperPcm(corrupted, rate); } catch (const std::runtime_error&) { rejected = true; }
+                require(rejected, "Damper PCM comparator accepted a corrupted sample");
+            }
+            else { require(bytes == reference, "Damper PCM depends on video cadence"); }
+        }
+    }
+}
 }
 int main() {
     try {
         Directory temporary;
+        damperCadence(temporary.path);
         auto plan = base();
         OfflineOptions options{"0.01", "30000/1001", temporary.path / "silent"};
         auto result = runOffline(plan.dump(), options);

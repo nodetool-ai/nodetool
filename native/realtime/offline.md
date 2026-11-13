@@ -197,9 +197,20 @@ overflow. Source inspection corrected an earlier fixture's nonexistent
 These fixtures and the standalone CLI checks pass in the Windows Release and
 ASan offline harnesses and the Linux lavapipe job. Full graph-runner Release
 dispatch passes in CI. Standalone Linux GPU ASan/UBSan checks pass with lavapipe
-and leak detection enabled. Full-host sanitizer reruns remain pending.
+and leak detection enabled. Full-host Linux Release, ASan/UBSan and TSan pass
+at `d1656fead3`.
 See [verification details](M1_STATUS.md#verification-of-the-offline-integration)
 for repository-wide check results.
+
+The [damper fixture](tests/fixtures/offline-damper.json) drives oscillator
+amplitude and a solid frame's red channel with independent audio/render-domain
+dampers. Export tests cover 44.1 and 48 kHz at 60, 120 and 2 video frames per
+second. PCM samples use the closed-form exponential at quantum endpoints as
+their reference. PNG references use the completed quantum count at each frame
+timestamp. Common-timestamp frames and complete WAV tracks must match across
+cadences. Repeated 60 Hz exports must match every file. Negative controls reject
+a corrupted PCM sample and a frame reference stuck at time zero.
+This verifies offline state advancement, not WP13 synchronized parameter handoffs.
 
 The [private-device GPU exception](render.md#native-pipeline-api-limitation)
 and [milestone verification gaps](M1_STATUS.md) still apply. This clock does not

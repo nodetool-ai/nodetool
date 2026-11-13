@@ -251,5 +251,32 @@ Windows MSVC Release passes `realtime-render-schedule` and
 the GPU build and restricting CTest to those two tests, also passes. Windows
 MSVC ASan passes `realtime-offline-gpu`. The GPU fixture requests a software
 adapter. Sanitizers cover C++ host code, not the prebuilt GPU library or driver.
-Linux sanitizer qualification of this expanded fixture remains pending CI.
+The [standalone Linux realtime run at `0c09a8c5dc`](https://github.com/nodetool-ai/nodetool/actions/runs/43368736566)
+passes offline Release and ASan/UBSan with lavapipe, including this expanded
+fixture, and core Release/ASan+UBSan/TSan and wasm32 checks. Full-host sanitizer
+qualification of the expanded fixture remains pending.
 Broad checks were not rerun for this fixture-only batch.
+
+## Damper export cadence
+
+The [damper fixture](tests/fixtures/offline-damper.json) adds actual WAV/PNG
+export checks to the executor's cadence tests. Both 44.1 and 48 kHz runs cover
+60, 120 and 2 video frames per second. The audio-only driver checks every PCM
+sample against a closed-form quantum-endpoint reference within `2e-6`.
+The GPU export checks every frame against the completed-quantum reference
+within one byte per channel. Frames at common timestamps and complete WAV
+tracks must be byte-identical across cadences. Repeated 60 Hz mixed exports
+compare every file, including the manifest. Negative controls reject one
+corrupted PCM sample and a frame reference stuck at time zero.
+
+The fixtures and their executors, output files and private devices belong to
+one offline test thread. They introduce no threads or shared-device attachment.
+These checks do not implement WP13 synchronized parameter changes or establish
+native/Wasm audio parity, physical timing or M0 hardware qualification.
+
+Windows MSVC Release and ASan pass `realtime-offline-driver` and
+`realtime-offline-render-export`. The affected-native command against
+`0c09a8c5dc`, with CTest restricted to those two cases, passes. A separate
+GPU-disabled Release build also passes the driver test. Linux qualification
+of the new damper fixture remains pending CI. Broad checks were not rerun for
+this fixture-only batch.

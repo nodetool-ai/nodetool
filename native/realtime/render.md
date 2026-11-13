@@ -195,8 +195,9 @@ The Windows ASan offline harness also passes, including pending-map teardown.
 The prebuilt GPU library and driver are not instrumented. Standalone Linux
 lavapipe Release and ASan/UBSan checks pass with leak detection enabled.
 Full-host Linux Release, ASan/UBSan and TSan also pass at `d1656fead3`.
-The expanded retention/resize fixture passes Windows Release and ASan. Its
-Linux sanitizer qualification remains pending CI. Driver allocation checks
+The expanded retention/resize fixture passes Windows Release and ASan, and
+standalone Linux lavapipe Release and ASan/UBSan at `0c09a8c5dc`. Full-host
+sanitizer qualification of that fixture remains pending. Driver allocation checks
 and live preparation remain pending. Live/shared-device support still requires
 supported asynchronous compilation/error reporting outside the offline
 exception. See [verification details and M0 gaps](M1_STATUS.md).
