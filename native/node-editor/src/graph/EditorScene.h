@@ -1,5 +1,6 @@
 #pragma once
 #include <QColor>
+#include <QVariantMap>
 #include <QPainterPath>
 #include <QString>
 #include <QTimer>
@@ -19,7 +20,46 @@ class WorkflowGraphModel;
 // Colors and font families the canvas receives from Qt Quick. The web's node
 // background, canvas grid, and translucent controls are native-editor roles.
 struct CanvasTheme {
-  QColor canvas{"#08090a"};
+  // Every color is invalid until fromRoles fills it. Ui.Theme in native/ui_primitives is the only source of values.
+  QColor canvas;
+  QColor grid;
+  QColor node;
+  QColor reroutePaper;
+  QColor rerouteBorder;
+  QColor divider;
+  QColor field;
+  QColor textPrimary;
+  QColor textSecondary;
+  QColor checker;
+  QColor subgraphAccent;
+  QColor primary;
+  // web palette secondary.main, the node progress bar.
+  QColor progress;
+  // web palette success.main and warning.main, the prompt variable chips.
+  QColor success;
+  QColor warning;
+  // ControlEdge.tsx CONTROL_EDGE_COLOR, a fixed amber in both themes.
+  QColor controlWire;
+  // A card inside a group: the edge, and the fill that replaces the card color.
+  QColor groupHeader;
+  QColor groupFill;
+  // The card title while zoomed out.
+  QColor zoomedTitle;
+  // The selected edge of a Preview and of an Output card.
+  QColor previewSelected;
+  QColor outputSelected;
+  QColor selectionShadow;
+  // Media on cards: the web's c_scrim behind badges and asset actions with its
+  // grey 100 ink, and the alpha surface behind an image.
+  QColor mediaScrim;
+  QColor mediaScrimInk;
+  QColor alphaBase;
+  QColor alphaChecker;
+  QString sansFamily{"Inter"};
+  QString monoFamily{"JetBrains Mono"};
+  // Reads every member from the presentation map that EditorCommands::present receives.
+  static CanvasTheme fromRoles(const QVariantMap &roles);
+};
   QColor grid{"#1f2126"};
   QColor node{"#0d0e10"};
   QColor reroutePaper{"#101113"};

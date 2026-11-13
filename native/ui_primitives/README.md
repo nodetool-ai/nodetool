@@ -5,6 +5,10 @@ directory with CMake and calls `nodetool_use_ui_primitives(target)` once for
 each executable that creates a QML engine. Import it as
 `import NodeTool.UiPrimitives as Ui`.
 
+`Ui.Theme` also carries the node graph tokens (`graphCanvas`, `graphNode`,
+`fieldSurface` and related names), documented in
+[DESIGN.md](DESIGN.md#graph-tokens).
+
 `Ui.Theme.preference` uses `Ui.Theme.System`, `Ui.Theme.Dark`, or
 `Ui.Theme.Light`. `systemScheme` uses `Ui.Theme.Unknown`,
 `Ui.Theme.Dark`, or `Ui.Theme.Light`. Unknown system appearance

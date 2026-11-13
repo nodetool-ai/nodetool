@@ -1,3 +1,4 @@
+#include "../support/DarkCanvasTheme.h"
 #include "graph/WorkflowGraphModel.h"
 #include "graph/EditorScene.h"
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
@@ -111,6 +112,7 @@ void GroupPresentationTest::resizeCommitsOnceAndPreservesChildren() {
 void GroupPresentationTest::nativeLabelRendering() {
   WorkflowGraphModel model;
   EditorScene scene(model);
+  scene.setTheme(nodetool::test::darkCanvasTheme());
   model.project(gestureFixture());
   QImage image(600,500,QImage::Format_ARGB32_Premultiplied);
   image.fill(Qt::transparent);

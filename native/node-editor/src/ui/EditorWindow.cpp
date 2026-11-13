@@ -3721,49 +3721,18 @@ void EditorWindow::presentation(const QVariantMap &roles) {
   setPalette(palette);
   const auto css = [](const QColor &c) { return QStringLiteral("rgba(%1,%2,%3,%4)").arg(c.red()).arg(c.green()).arg(c.blue()).arg(c.alphaF()); };
   dockHost_->setStyleSheet(QStringLiteral("QMainWindow::separator { background: %1; width: 1px; height: 1px; }").arg(css(color("border"))));
-  setStyleSheet(QStringLiteral("QMenu { background: %1; color: %2; border: 1px solid %3; border-radius: 8px; padding: 4px; font-family: \"%4\"; font-size: 13px; }"
-                               "QMenu::item { padding: 6px 24px 6px 12px; border-radius: 6px; }"
+  const auto px = [&](const char *name) { return roles.value(name).toInt(); };
+  setStyleSheet(QStringLiteral("QMenu { background: %1; color: %2; border: %7px solid %3; border-radius: %8px; padding: %9px; font-family: \"%4\"; font-size: %12px; }"
+                               "QMenu::item { padding: %10px %13px %10px %14px; border-radius: %11px; }"
                                "QMenu::item:selected { background: %5; }"
                                "QMenu::item:disabled { color: %6; }"
-                               "QMenu::separator { height: 1px; background: %3; margin: 4px 0; }"
-                               "QToolTip { background: %1; color: %2; border: 1px solid %3; font-family: \"%4\"; font-size: 11px; padding: 4px 8px; }")
-                    .arg(css(color("overlay")), css(color("text")), css(color("border")), roles.value("sans").toString(), css(color("field")), css(color("secondary"))));
-  CanvasTheme theme;
-  theme.canvas = color("canvas");
-  theme.grid = color("grid");
-  theme.node = color("node");
-  theme.reroutePaper = color("reroutePaper");
-  theme.rerouteBorder = color("rerouteBorder");
-  theme.groupHeader = color("groupHeader");
-  theme.groupFill = color("groupFill");
-  theme.zoomedTitle = color("zoomedTitle");
-  theme.previewSelected = color("previewSelected");
-  theme.outputSelected = color("outputSelected");
-    theme.subgraphAccent = color("subgraphAccent");
-  theme.divider = color("divider");
-  theme.field = color("field");
-  theme.checker = color("checker");
-  theme.primary = color("primary");
-  if (color("progress").isValid()) {
-      theme.progress = color("progress");
-  }
-  if (color("warning").isValid()) {
-      theme.warning = color("warning");
-  }
-  if (color("success").isValid()) {
-      theme.success = color("success");
-  }
-  theme.selectionShadow = color("shadow");
-  for (const auto &[name, target] : {std::pair{"mediaScrim", &theme.mediaScrim}, std::pair{"mediaScrimInk", &theme.mediaScrimInk},
-                                     std::pair{"alphaBase", &theme.alphaBase}, std::pair{"alphaChecker", &theme.alphaChecker}}) {
-    if (color(name).isValid()) { *target = color(name); }
-  }
-  theme.textPrimary = color("text");
-  theme.textSecondary = color("secondary");
-  theme.sansFamily = roles.value("sans").toString();
-  if (roles.contains("mono")) {
-      theme.monoFamily = roles.value("mono").toString();
-  }
+                               "QMenu::separator { height: %7px; background: %3; margin: %9px 0; }"
+                               "QToolTip { background: %1; color: %2; border: %7px solid %3; font-family: \"%4\"; font-size: %15px; padding: %9px %16px; }")
+                    .arg(css(color("overlay")), css(color("text")), css(color("border")), roles.value("sans").toString(), css(color("field")), css(color("secondary")),
+                         QString::number(px("borderWidth")), QString::number(px("radiusOverlay")), QString::number(px("spaceXs")), QString::number(px("spaceSm")),
+                         QString::number(px("radiusControl")), QString::number(px("labelSize")), QString::number(px("spaceXxl")), QString::number(px("spaceLg")),
+                         QString::number(px("captionSize")), QString::number(px("spaceMd"))));
+  const auto theme = CanvasTheme::fromRoles(roles);
   QJsonObject style{{"NormalBoundaryColor", theme.divider.name(QColor::HexArgb)},
                     {"SelectedBoundaryColor", color("focus").name()},
                     {"FontColor", theme.textPrimary.name()},
