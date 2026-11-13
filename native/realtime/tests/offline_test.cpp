@@ -1,6 +1,7 @@
 #include "nodetool/realtime/offline.h"
 #include <bit>
 #include <chrono>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -75,24 +76,81 @@ int main() {
         options.output = temporary.path / "slow-control"; options.duration = "1"; options.fps = "1";
         require(!runOffline(plan.dump(), options).error, "Low frame rate advances each control quantum without skipping");
         options.duration = "0.01"; options.fps = "30000/1001";
-        plan["params"].push_back({{"slot", 0}, {"node", "constant"}, {"field", "value"}, {"smooth", "none"}, {"sync", "audio"}, {"value", 0.25}});
+        plan["params"].push_back({{"slot", 7}, {"node", "tone"}, {"field", "frequency"}, {"smooth", "none"}, {"sync", "audio"}, {"value", 11025}});
+        plan["params"].push_back({{"slot", 4000000000u}, {"node", "tone"}, {"field", "amplitude"}, {"smooth", "none"}, {"sync", "audio"}, {"value", 0.25}});
         plan["audio"]["buffers"] = {{{"id", 0}, {"channels", "stereo"}}};
-        plan["audio"]["nodes"] = {{{"node", "constant"}, {"kernel", "constant"}, {"stateVersion", 1},
-            {"in", Plan::array()}, {"out", {0}}, {"params", {0}}}};
+        plan["audio"]["nodes"] = {{{"node", "tone"}, {"kernel", "oscillator"}, {"stateVersion", 1},
+            {"in", Plan::array()}, {"out", {0}}, {"params", {7, 4000000000u}}}};
         plan["audio"]["sinks"] = {{{"node", "out"}, {"buffer", 0}, {"kind", "device"}, {"subgraphHash", "1234abcd"}},
             {{"node", "second"}, {"buffer", 0}, {"kind", "device"}, {"subgraphHash", "1234abcd"}}};
         options.output = temporary.path / "signal";
         result = runOffline(plan.dump(), options);
-        require(!result.error, "Constant signal export");
+        require(!result.error, "Oscillator signal export");
         const auto signal = read(options.output / "audio.wav");
         require(signal.size() == silent.size() && read(options.output / "audio-1.wav") == signal, "Multiple sinks");
         for (std::size_t offset = 58; offset < signal.size(); offset += 4) {
-            require(std::bit_cast<float>(word(signal, offset)) == 0.25f, "Interleaved signal samples");
+            const auto sample = (offset - 58) / 8;
+            const auto expected = 0.25 * std::sin(static_cast<double>(sample) * 3.141592653589793 / 2);
+            require(std::abs(std::bit_cast<float>(word(signal, offset)) - expected) < 2e-6, "Interleaved signal samples");
         }
         options.output = temporary.path / "repeat";
         require(!runOffline(plan.dump(), options).error && read(options.output / "audio.wav") == signal,
             "Repeat byte identity");
         require(read(options.output / "manifest.json") == read(temporary.path / "signal" / "manifest.json"), "Repeat manifest identity");
+        plan["params"][1]["audioControl"] = 1;
+        options.output = temporary.path / "bound";
+        require(!runOffline(plan.dump(), options).error, "Stateful control binding export");
+        const auto bound = read(options.output / "audio.wav");
+        for (std::size_t sample = 0; sample < 441; ++sample) {
+            const auto endpoint = static_cast<double>((sample / 128 + 1) * 128) / 44100;
+            const auto expected = endpoint * std::sin(static_cast<double>(sample) * 3.141592653589793 / 2);
+            require(std::abs(std::bit_cast<float>(word(bound, 58 + sample * 8)) - expected) < 2e-6,
+                "Audio-domain integrator sampled at quantum endpoint");
+        }
+        options.output = temporary.path / "bound-repeat"; options.fps = "240";
+        require(!runOffline(plan.dump(), options).error && read(options.output / "audio.wav") == bound,
+            "Bound audio independent of video cadence");
+        auto frameBinding = plan;
+        frameBinding["params"][1]["audioControl"] = 0;
+        frameBinding["control"]["ops"][0]["op"] = "time.frame";
+        frameBinding["control"]["ops"][0]["values"] = Plan::array();
+        options.output = temporary.path / "quantum-frame"; options.fps = "1";
+        require(!runOffline(frameBinding.dump(), options).error, "Audio frame binding export");
+        const auto quantumFrames = read(options.output / "audio.wav");
+        for (std::size_t sample = 0; sample < 441; ++sample) {
+            const auto expected = static_cast<double>(sample / 128 + 1) *
+                std::sin(static_cast<double>(sample) * 3.141592653589793 / 2);
+            require(std::abs(std::bit_cast<float>(word(quantumFrames, 58 + sample * 8)) - expected) < 2e-6,
+                "Audio frame counts quantum endpoints including drain");
+        }
+        options.output = temporary.path / "quantum-frame-fast"; options.fps = "240";
+        require(!runOffline(frameBinding.dump(), options).error && read(options.output / "audio.wav") == quantumFrames,
+            "Audio frame binding independent of video cadence");
+        auto rampBinding = plan;
+        rampBinding["params"][1]["smooth"] = "ramp";
+        options.output = temporary.path / "ramp-binding";
+        require(!runOffline(rampBinding.dump(), options).error, "Bound ramp export");
+        const auto ramp = read(options.output / "audio.wav");
+        for (std::size_t sample = 0; sample < 441; ++sample) {
+            const auto quantum = sample / 128;
+            const auto previous = quantum == 0 ? 0.25 : static_cast<double>(quantum * 128) / 44100;
+            const auto endpoint = static_cast<double>((quantum + 1) * 128) / 44100;
+            const auto amplitude = previous + (endpoint - previous) * static_cast<double>(sample % 128) / 127;
+            const auto expected = amplitude * std::sin(static_cast<double>(sample) * 3.141592653589793 / 2);
+            require(std::abs(std::bit_cast<float>(word(ramp, 58 + sample * 8)) - expected) < 2e-6,
+                "Binding preserves initial value and quantum ramp");
+        }
+        auto invalidBinding = plan;
+        invalidBinding["params"][1]["audioControl"] = 0;
+        invalidBinding["control"]["ops"][0]["values"] = {1, 2};
+        options.output = temporary.path / "vector-binding";
+        auto rejected = runOffline(invalidBinding.dump(), options);
+        require(rejected.error && rejected.error->reason == "control_width" &&
+            !std::filesystem::exists(options.output), "Vector binding rejected before output");
+        invalidBinding["control"]["ops"][0]["values"] = {1e300};
+        options.output = temporary.path / "overflow-binding";
+        require(runOffline(invalidBinding.dump(), options).error.has_value() &&
+            !std::filesystem::exists(options.output / "manifest.json"), "Overflow binding aborts without success manifest");
         plan["slots"] = {{{"id", "external"}, {"kind", "buffer"}, {"source", "asset"}, {"channels", "stereo"}}};
         options.output = temporary.path / "slots";
         require(runOffline(plan.dump(), options).error.has_value() && !std::filesystem::exists(options.output), "Slots rejected before output");

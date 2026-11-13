@@ -3,9 +3,11 @@
 `AudioExecutor::prepare` lowers the audio projection of an IR document through
 the canonical loader and built-in kernel registry. It validates compiler order,
 port layouts, buffer lifetimes, scalar parameter bindings, state versions and
-structural configuration before creating an executor. Render and control plans
-need their own validation and execution. A rejection leaves the active executor
-unchanged.
+structural configuration before creating an executor. Control producers remain
+in the validated projection to check `audioControl` references, using the
+built-in control registry. The host still prepares control instructions and
+executes them separately. Render plans need their own validation and execution.
+A rejection leaves the active executor unchanged.
 
 The prepare thread allocates every PCM buffer, sink copy, event array, parameter
 array and aligned state block. The executor uniquely owns them and the immutable
@@ -63,6 +65,13 @@ does not authorize graph cycles. The later `BlockDelay` read/write phases and
 cross-plan state migration belong to WP23 and WP18.
 
 ## Parameters, events and slots
+
+The offline driver resolves optional `audioControl` register bindings into the
+same dense snapshot used by other hosts. `AudioExecutor` does not evaluate
+control registers itself. The offline host samples scalar values at quantum
+endpoints, rejects non-finite or out-of-float-range results and passes the
+snapshot to existing smoothing. The parameter's initial `value` remains the
+starting point for ramps and one-pole smoothing.
 
 `parameterSlots()` exposes a dense list of referenced audio parameter IDs in IR
 declaration order. IDs may be sparse. A caller provides one stable snapshot in

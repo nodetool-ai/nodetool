@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cmath>
 #include <fstream>
 #include <limits>
 #include <stdexcept>
@@ -76,6 +77,28 @@ OfflineResult runOffline(std::string_view json, const OfflineOptions& options) {
         if (!audioControl.executor) { return {audioControl.error, 0, 0}; }
         auto renderControl = ControlExecutor::prepare(plan, ControlDomain::render);
         if (!renderControl.executor) { return {renderControl.error, 0, 0}; }
+        // Host-thread values. Indices borrow the prepared executor's fixed register
+        // layout, while parameter pointers are used only during preparation.
+        struct Binding { unsigned parameter; unsigned control; std::string node; };
+        std::unordered_map<unsigned, const Plan*> parameters;
+        for (const auto& parameter : plan["params"]) {
+            parameters.emplace(parameter["slot"].get<unsigned>(), &parameter);
+            if (parameter.contains("audioControl") &&
+                audioControl.executor->registers()[parameter["audioControl"].get<unsigned>()].width != 1) {
+                return {Diagnostic{parameter["node"], "control_width", "Audio parameters require scalar control registers"}, 0, 0};
+            }
+        }
+        std::vector<float> snapshot;
+        std::vector<Binding> bindings;
+        snapshot.reserve(audio.executor->parameterSlots().size());
+        for (const auto slot : audio.executor->parameterSlots()) {
+            const auto& parameter = *parameters.at(slot);
+            if (parameter.contains("audioControl")) {
+                bindings.push_back({static_cast<unsigned>(snapshot.size()), parameter["audioControl"].get<unsigned>(), parameter["node"]});
+            }
+            const auto& value = parameter["value"];
+            snapshot.push_back(value.is_boolean() ? (value.get<bool>() ? 1.0f : 0.0f) : value.get<float>());
+        }
         const auto sinkCount = static_cast<unsigned>(plan["audio"]["sinks"].size());
         // A control-only graph exports a silent session-layout track.
         std::array<float, 256> silence{};
@@ -97,8 +120,15 @@ OfflineResult runOffline(std::string_view json, const OfflineOptions& options) {
         const auto advance = [&](std::uint64_t end, std::uint64_t frame) {
             while (quantum < end) {
                 const double seconds = static_cast<double>((quantum + 1) * 128) / rate;
-                tick(*audioControl.executor, seconds, dt, frame, width, height);
-                const auto result = audio.executor->process();
+                tick(*audioControl.executor, seconds, dt, quantum + 1, width, height);
+                for (const auto& binding : bindings) {
+                    const auto value = audioControl.executor->registers()[binding.control].lanes[0];
+                    if (!std::isfinite(value) || std::abs(value) > std::numeric_limits<float>::max()) {
+                        throw std::runtime_error(binding.node + "/parameter: audio control value is outside finite float range");
+                    }
+                    snapshot[binding.parameter] = static_cast<float>(value);
+                }
+                const auto result = audio.executor->process({snapshot, true});
                 if (!result.accepted) { throw std::runtime_error("Offline audio quantum rejected"); }
                 sanitized += result.nonFiniteSamples;
                 tick(*renderControl.executor, seconds, seconds - lastRenderTime, frame, width, height);

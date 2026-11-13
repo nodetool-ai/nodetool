@@ -39,6 +39,18 @@ int main() {
     try {
         const auto base = fixture("mixed");
         accepted(base);
+        auto binding = base;
+        binding["params"][0]["audioControl"] = 0;
+        rejected(binding, "gain", "register");
+        auto producer = binding["control"]["ops"][0];
+        producer["node"] = "audio-constant"; producer["domain"] = "audio";
+        binding["control"]["ops"].push_back(producer);
+        accepted(binding);
+        binding["params"][0]["audioControl"] = 1;
+        rejected(binding, "gain", "register");
+        binding["params"][0]["audioControl"] = 0;
+        binding["params"][0]["value"] = {1, 2};
+        rejected(binding, "gain", "parameter");
         const auto active = loadPlan(base.dump(), registry());
         rejected(fixture("invalid-cycle"), "gain", "cycle");
         rejected(fixture("invalid-kind"), "blur", "kind");
