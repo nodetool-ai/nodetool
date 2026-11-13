@@ -1,5 +1,7 @@
 #include "TimelineListController.h"
 
+#include "music/MusicProject.h"
+
 #include <QDateTime>
 #include <QJsonArray>
 #include <QUuid>
@@ -168,6 +170,37 @@ QVariantMap TimelineListController::createTimeline() {
     reloadDocuments();
     finish(m_error);
     return result.data.toObject().toVariantMap();
+}
+
+QVariantMap TimelineListController::createMusicTimeline(const QVariantMap& values) {
+    const auto settings = nt::music::musicProjectSettings(values);
+    if (const auto refusal = nt::music::musicProjectRefusal(settings); !refusal.isEmpty()) {
+        finish(refusal);
+        return {};
+    }
+    if (m_projectId.isEmpty() || !begin()) {
+        return {};
+    }
+    const auto id = QUuid::createUuid().toString(QUuid::Id128);
+    const auto created = m_client->mutate(QStringLiteral("timeline.create"),
+        {{"id", id}, {"name", "Untitled music"}, {"projectId", m_projectId}});
+    if (!created.ok()) {
+        finish(created.describe());
+        return {};
+    }
+    // The create route takes no document, so the music fields follow as the first save.
+    const auto document = nt::music::musicProjectDocument(settings, [] { return QUuid::createUuid().toString(QUuid::Id128); });
+    const auto updated = m_client->mutate(QStringLiteral("timeline.update"),
+        {{"id", id}, {"baseUpdatedAt", created.data.toObject().value("updatedAt")}, {"document", document}});
+    if (!updated.ok()) {
+        finish(updated.describe());
+        return {};
+    }
+    reloadDocuments();
+    finish(m_error);
+    auto row = created.data.toObject().toVariantMap();
+    row.insert("updatedAt", updated.data.toObject().value("updatedAt").toVariant());
+    return row;
 }
 
 bool TimelineListController::renameTimeline(const QString& id, const QString& name) {

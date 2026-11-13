@@ -21,7 +21,9 @@
 // never jumps. `currentTimeMs()` is exact whenever it is read. The `time`
 // property is the value at the last `tick()`; QML drives `tick()` once per
 // frame. Only the playhead and the timecode bind to it, never the track list.
-// native-rules #9: used across threads (mutex shared with the audio callback feed) and declares no thread affinity at its top
+// Thread affinity: GUI thread, except currentTimeMs() and seekSerial(), which
+// the render thread calls while the GUI thread is blocked in synchronize().
+// The device reaches it only through the AudioClockFeed seqlocks.
 class PlaybackClock : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -126,10 +128,17 @@ private:
     // with a seek command when the device is usable. Caller holds m_mutex.
     void anchorLocked(double ms, std::int64_t nowNs);
     void sendCommandLocked(bool seek, double seekMs, std::int64_t nowNs);
+    // Whether the device crosses the loop itself (MUSIC-MODE.md MD19): the
+    // loop is on, the rate is 1 and the device is the clock. The commands
+    // then carry the loop range. Caller holds m_mutex.
+    bool engineLoopsLocked() const;
+    // Sends the loop range to the device when it changed while playing.
+    void refreshEngineLoopLocked();
     bool spanActive() const { return m_spanToMs >= 0.0; }
     void clearSpanLocked();
 
-    // native-rules #10: mutex does not say which members it guards
+    // Guards every member below. Only the GUI thread writes them, and it
+    // reads them without the lock; m_scrubNext is the GUI thread's alone.
     mutable std::mutex m_mutex;
     std::function<std::int64_t()> m_nowNs;
     nt::playback::AudioClockFeed* m_feed = nullptr;

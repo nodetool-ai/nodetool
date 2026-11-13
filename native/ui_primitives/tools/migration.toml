@@ -2848,6 +2848,14 @@ reason = "Editors read a red edit point as a ripple and a yellow one as a roll o
 [[exception]]
 path = "native/timeline/qml/TimelineVisuals.qml"
 object = "QtObject[0]"
+binding = "rangeFill"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The music range band is the edit blue of the playhead and track targets, translucent so the clips under it stay readable in either theme."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
 binding = "overlay"
 rule = "color"
 owner = "Timeline document presentation"
@@ -3580,3 +3588,156 @@ binding = "onDoubleClicked"
 rule = "manual-control"
 owner = "Program monitor effect mask overlay"
 reason = "A double click on a mask vertex converts it between a corner and a smooth point, as in Premiere. The overlay's one pointer target hit-tests vertices, tangents, the body and the feather and expansion handles."
+
+# Music mode MM2 (native/timeline/docs/MUSIC-MODE.md section 15).
+[[file]]
+path = "native/timeline/qml/music/MusicPanel.qml"
+category = "chrome"
+controls = ["Ui.EmptyState", "Ui.ScrollBar", "Ui.Text", "Ui.Select", "Ui.EditorButton", "Ui.TextArea", "Ui.NumberField", "Ui.Status", "Ui.Banner", "Ui.StatusDot", "Shortcut", "Flow", "Rectangle", "MusicPanelModel", "MusicSequenceState", "MusicSetup", "MusicJobList", "MusicTakeList"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+# Music mode, package H: the job list, take list, setup and clip job state.
+[[file]]
+path = "native/timeline/qml/music/MusicJobList.qml"
+category = "chrome"
+controls = ["Ui.Text", "ListView", "Rectangle", "Ui.EditorButton", "Ui.Progress"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicPanel.qml"]
+replacement = "Job rows composed from Ui.Text, Ui.EditorButton and Ui.Progress on a Ui.Theme card"
+
+[[file]]
+path = "native/timeline/qml/music/MusicTakeList.qml"
+category = "chrome"
+controls = ["Ui.Text", "Repeater", "Rectangle", "Ui.EditorButton", "HoverHandler", "Ui.Tooltip", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicPanel.qml"]
+replacement = "Take cards composed from Ui.Text, Ui.EditorButton, Ui.Tooltip and Ui.ContextMenu on a Ui.Theme card"
+
+[[file]]
+path = "native/timeline/qml/music/MusicSetup.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton", "Ui.Progress", "Ui.Status"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/music/MusicPanel.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/music/MusicClipJob.qml"
+category = "domain"
+controls = ["Rectangle", "Repeater", "Ui.Text"]
+signals = []
+test_host = "tst_musicwire"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Clip job state drawn in Ui.Theme and TimelineVisuals colors with Ui.Text labels"
+
+[[file]]
+path = "native/timeline/qml/music/MusicToolbar.qml"
+category = "chrome"
+controls = ["Ui.Text", "ToolbarDivider", "Ui.EditorButton", "Ui.Select", "ToolButton", "Ui.ShortcutHint", "MusicSequenceState", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Timeline ToolButton and Ui.EditorButton, Ui.Select and Ui.Text over NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/timeline/qml/music/MusicHint.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text", "Ui.ShortcutHint", "Flow", "Repeater", "MusicSequenceState", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Hint line of Ui.Text and Ui.ShortcutHint chips on Ui.Theme surfaces"
+
+[[file]]
+path = "native/timeline/qml/music/MusicContextBracket.qml"
+category = "domain"
+controls = ["Shape", "Rectangle", "Ui.Text", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Ruler bracket in Ui.Theme colors with a Ui.Text label"
+
+[[file]]
+path = "native/timeline/qml/music/MusicToast.qml"
+category = "chrome"
+controls = ["Ui.Toast", "Timer"]
+signals = []
+test_host = "tst_musicchrome"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Toast"
+
+[[file]]
+path = "native/timeline/qml/music/MusicRangeOverlay.qml"
+category = "domain"
+controls = ["Rectangle", "Ui.Text", "Ui.EditorButton", "MusicSequenceState"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Timeline lane band in Ui.Theme colors; Ui controls for labels and the loop action"
+
+[[file]]
+path = "native/timeline/qml/music/MusicRangeTool.qml"
+category = "chrome"
+controls = ["ToolButton", "MusicSequenceState"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Timeline ToolButton over NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/timeline/qml/music/MusicMode.qml"
+category = "chrome"
+controls = ["MusicSequenceState", "Timer", "Binding"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = []
+replacement = "Non-visual layout state; no presentation"
+
+[[file]]
+path = "native/timeline/qml/music/NewMusicProjectDialog.qml"
+category = "chrome"
+controls = ["ProjectSettingsDialog.TimelineListDialog", "Ui.Text", "Ui.NumberField", "Ui.Select"]
+signals = ["createRequested", "cancelled"]
+test_host = "tst_musicui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/TimelineListPanel.qml", "native/timeline/qml/TimelineDocumentActions.qml", "native/timeline/qml/music/MusicProjectWindow.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog through TimelineListDialog, Ui.Text, Ui.NumberField, Ui.Select"
+
+[[file]]
+path = "native/timeline/qml/music/MusicProjectWindow.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.EmptyState", "NewMusicProjectDialog"]
+signals = ["dismissed"]
+test_host = "tst_musicui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EmptyState"
+
+# Music mode MM7 (TK-5): the clean-up dialog.
+[[file]]
+path = "native/timeline/qml/music/MusicCleanupHost.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.BusyIndicator", "Ui.Text", "ListView", "Ui.ScrollBar", "Ui.EditorButton", "MusicCleanup"]
+signals = []
+test_host = "tst_musicui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.ScrollBar, Ui.EditorButton over the MusicCleanup controller"

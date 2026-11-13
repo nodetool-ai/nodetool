@@ -104,9 +104,17 @@ private slots:
 
     // A key must not be dead: every binding of every preset names an action
     // the editor has code for.
+    // Each preset alone and in each editor context ("premiere@music").
     void everyBindingHasAHandler_data() {
         QTest::addColumn<QString>("preset");
-        for (const auto& preset : PRESETS) { QTest::newRow(qPrintable(preset)) << preset; }
+        QVERIFY(!nt::edit::keymapContexts().isEmpty());
+        for (const auto& preset : PRESETS) {
+            QTest::newRow(qPrintable(preset)) << preset;
+            for (const auto& context : nt::edit::keymapContexts()) {
+                const auto name = nt::edit::keymapName(preset, context);
+                QTest::newRow(qPrintable(name)) << name;
+            }
+        }
     }
     void everyBindingHasAHandler() {
         QFETCH(QString, preset);
@@ -126,6 +134,45 @@ private slots:
         const auto repeats = repeatedChords(bindingsOf(preset));
         QVERIFY2(repeats.isEmpty(), qPrintable(repeats.join("; ")));
     }
+    // The Music layout's keys win there and nowhere else; Range keeps P everywhere.
+    void musicContextOverridesOnlyInMusic() {
+        using nt::edit::KeyEventLike;
+        using nt::edit::keymapName;
+        using nt::edit::resolveTimelineAction;
+        const auto key = [](const char* k, const char* code) { return KeyEventLike{k, code}; };
+        const QString music = keymapName("premiere", "music");
+        QCOMPARE(music, QStringLiteral("premiere@music"));
+        QCOMPARE(resolveTimelineAction(key("r", "KeyR"), "premiere"), QStringLiteral("rateStretchTool"));
+        QCOMPARE(resolveTimelineAction(key("r", "KeyR"), music), QStringLiteral("rangeTool"));
+        QCOMPARE(resolveTimelineAction(key("l", "KeyL"), "premiere"), QStringLiteral("shuttleForward"));
+        QCOMPARE(resolveTimelineAction(key("l", "KeyL"), music), QStringLiteral("loopMusicRange"));
+        QCOMPARE(resolveTimelineAction(key("[", "BracketLeft"), "premiere"), QStringLiteral("clipVolumeDown"));
+        QCOMPARE(resolveTimelineAction(key("[", "BracketLeft"), music), QStringLiteral("previousMusicTake"));
+        QCOMPARE(resolveTimelineAction(key("]", "BracketRight"), "premiere"), QStringLiteral("clipVolumeUp"));
+        QCOMPARE(resolveTimelineAction(key("]", "BracketRight"), music), QStringLiteral("nextMusicTake"));
+        QCOMPARE(resolveTimelineAction(key("v", "KeyV"), music), QStringLiteral("selectTool"));
+        for (const auto& preset : PRESETS) {
+            QCOMPARE(resolveTimelineAction(key("p", "KeyP"), preset), QStringLiteral("rangeTool"));
+            QCOMPARE(resolveTimelineAction(key("p", "KeyP"), keymapName(preset, "music")), QStringLiteral("rangeTool"));
+            // The chips on the music toolbar read the context's key first.
+            QCOMPARE(nt::edit::formatActionShortcut(keymapName(preset, "music"), "rangeTool"), QStringLiteral("R"));
+            QCOMPARE(nt::edit::formatActionShortcut(keymapName(preset, "music"), "selectTool"), QStringLiteral("V"));
+            QCOMPARE(nt::edit::formatActionShortcut(preset, "loopMusicRange"), QString());
+        }
+        // Final Cut's V enables clips outside the Music layout.
+        QCOMPARE(resolveTimelineAction(key("v", "KeyV"), "fcp"), QStringLiteral("toggleClipEnabled"));
+        QCOMPARE(resolveTimelineAction(key("v", "KeyV"), keymapName("fcp", "music")), QStringLiteral("selectTool"));
+        // A Shift chord the context does not name keeps its action.
+        QCOMPARE(resolveTimelineAction(KeyEventLike{"{", "BracketLeft", false, false, true}, music), QStringLiteral("clipVolumeDownMore"));
+        // The controller resolves in the context it is given.
+        gestures()->setKeymapContext("music");
+        QCOMPARE(gestures()->resolveKeyAction(Qt::Key_L, "l", Qt::NoModifier), QStringLiteral("loopMusicRange"));
+        QCOMPARE(gestures()->shortcutFor("rangeTool"), QStringLiteral("R"));
+        gestures()->setKeymapContext({});
+        QCOMPARE(gestures()->resolveKeyAction(Qt::Key_L, "l", Qt::NoModifier), QStringLiteral("shuttleForward"));
+        QCOMPARE(gestures()->shortcutFor("rangeTool"), QStringLiteral("P"));
+    }
+
     void theRepeatCheckFindsARepeat() {
         // The check above fails on bad input.
         QVERIFY(!repeatedChords({{"one", "k", true}, {"two", "K", true}}).isEmpty());

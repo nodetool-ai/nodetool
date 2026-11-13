@@ -5,8 +5,12 @@ import {
   deriveGenerationStatus,
   Prediction
 } from "@nodetool-ai/models";
-import type { RpcErrorPayload, WebSocketMode } from "@nodetool-ai/protocol";
-import { generateMediaDataSchema } from "@nodetool-ai/protocol";
+import type { AceStepSetupResult, RpcErrorPayload, WebSocketMode } from "@nodetool-ai/protocol";
+import {
+  aceStepDownloadModelsDataSchema,
+  generateMediaDataSchema,
+  musicGenerationRequestSchema
+} from "@nodetool-ai/protocol";
 import { isSdkV1RetryableError } from "@nodetool-ai/protocol/api-schemas/sdk-v1.js";
 
 import {
@@ -17,6 +21,8 @@ import {
 import { cancelGenerationForUser } from "@nodetool-ai/agents";
 import { isDraining } from "../drain.js";
 import { isAppSessionCommandAllowed } from "../lib/app-session-scope.js";
+import { isAdmin } from "../lib/admin.js";
+import { aceStepSetupService } from "../acestep-setup.js";
 import {
   isFiniteNumber,
   isNonEmptyString,
@@ -31,7 +37,12 @@ import type { HttpApiOptions } from "../http-api.js";
 import type { JobRunExecutionHooks } from "../job-run-registry.js";
 import type { ChatTurnHandler } from "./chat-turn.js";
 import type { ClientSession } from "./client-session.js";
-import { withSpan, type MessageContent } from "@nodetool-ai/runtime";
+import {
+  AceStepProvider,
+  withSpan,
+  type AceStepResolution,
+  type MessageContent
+} from "@nodetool-ai/runtime";
 import type {
   DirectInferenceHandler,
   DirectMediaSourceContext,
@@ -390,6 +401,56 @@ export class CommandRouter {
       apiOptions,
       pythonBridge: session.pythonBridge,
       getPythonBridgeReady: this.deps.getPythonBridgeReady ?? (() => true)
+    });
+  }
+
+  /**
+   * The acestep provider's resolution for this connection's user, so the
+   * setup status reads that user's settings the way a generation does.
+   * Undefined when the session cannot resolve providers.
+   */
+  private async aceStepResolution(): Promise<AceStepResolution | undefined> {
+    const resolve = this.deps.session.resolveProvider;
+    if (!resolve) return undefined;
+    const provider = await resolve("acestep", this.deps.session.requireUserId());
+    return provider instanceof AceStepProvider ? provider.resolution() : undefined;
+  }
+
+  /**
+   * Run an ACE-Step setup command for an admin. While the operation it starts
+   * runs, its progress is pushed to this connection as `acestep_setup_progress`.
+   */
+  private runAceStepSetup(
+    command: string,
+    requestId: string | undefined,
+    start: (
+      service: ReturnType<typeof aceStepSetupService>,
+      resolution: AceStepResolution | undefined
+    ) => Promise<AceStepSetupResult>
+  ): Promise<Record<string, unknown> | null> {
+    return this.runRpc(command, requestId, async () => {
+      const service = aceStepSetupService();
+      const resolution = await this.aceStepResolution();
+      if (!(await isAdmin(this.deps.session.requireUserId()))) {
+        return {
+          accepted: false,
+          reason: "not_admin",
+          status: await service.status(resolution)
+        } satisfies AceStepSetupResult;
+      }
+      const stop = service.subscribe((operation) => {
+        this.deps.session
+          .send({ type: "acestep_setup_progress", operation })
+          .catch((err: unknown) => this.deps.session.logError("acestep_setup_progress send failed", err));
+        if (operation.state !== "running") {
+          stop();
+        }
+      });
+      const result = await start(service, resolution);
+      if (!result.accepted) {
+        stop();
+      }
+      return result;
     });
   }
 
@@ -788,9 +849,23 @@ export class CommandRouter {
             continue;
           }
           seen.add(id);
-          const referenceFields: { media_edit_references?: unknown } = {};
+          const referenceFields: {
+            media_edit_references?: unknown;
+            music_takes?: unknown;
+            timing?: unknown;
+            music_status?: unknown;
+          } = {};
           if (row.parameters?.media_edit_references) {
             referenceFields.media_edit_references = row.parameters.media_edit_references;
+          }
+          // Music mode takes and timing (MUSIC-MODE.md section 10), and while
+          // the row runs, whether the backend has started the job.
+          if (row.parameters?.music_takes) {
+            referenceFields.music_takes = row.parameters.music_takes;
+            referenceFields.timing = row.parameters.timing;
+          }
+          if (row.status === "running" && row.parameters?.music_status) {
+            referenceFields.music_status = row.parameters.music_status;
           }
           generations.push({
             request_id: id,
@@ -987,6 +1062,10 @@ export class CommandRouter {
       this.mediaGenerations.set(requestId, controller);
       const task: Promise<void> = this.runRpc(command, requestId, () => {
         const references = referenceMediaDataSchema.parse(data);
+        const music =
+          data.music === undefined
+            ? undefined
+            : musicGenerationRequestSchema.parse(data.music);
         return inference.runDirectMediaGeneration({
           mode,
           provider,
@@ -1016,6 +1095,7 @@ export class CommandRouter {
           language,
           instructions,
           audioFormat,
+          music,
           presetIds: references.preset_ids,
           capability: references.capability,
           referenceAssetIds: references.reference_asset_ids,
@@ -1085,6 +1165,30 @@ export class CommandRouter {
         return { aborted, generations };
       });
     },
+
+    /**
+     * ACE-Step first-run setup for the music panel (MUSIC-MODE.md section
+     * 12.4). Every command answers `{ accepted, reason, status }`. Starting
+     * an install or a download installs software on the server, so it is
+     * limited to admins, which is every user of a local server.
+     */
+    acestep_setup_status: ({ command, requestId }) =>
+      this.runRpc(command, requestId, async () => ({
+        accepted: true,
+        reason: null,
+        status: await aceStepSetupService().status(await this.aceStepResolution())
+      })),
+
+    acestep_install: ({ command, requestId }) =>
+      this.runAceStepSetup(command, requestId, (service, resolution) => service.startInstall(resolution)),
+
+    acestep_download_models: ({ command, data, requestId }) =>
+      this.runAceStepSetup(command, requestId, (service, resolution) =>
+        service.startModelDownload(aceStepDownloadModelsDataSchema.parse(data).set, resolution)
+      ),
+
+    acestep_setup_cancel: ({ command, requestId }) =>
+      this.runAceStepSetup(command, requestId, (service, resolution) => service.cancel(resolution)),
 
     transcribe_audio: async ({ command, data, requestId }) => {
       const { defaults, inference } = this.deps;

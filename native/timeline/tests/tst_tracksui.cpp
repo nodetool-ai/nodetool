@@ -2638,7 +2638,8 @@ private slots:
         QCOMPARE(combos(cut), (QList<QStringList>{{"C"}}));
         int rows = 0;
         for (const QVariant& gv : groups) rows += gv.toMap().value("rows").toList().size();
-        QCOMPARE(rows, 177);
+        // 177, plus the music Range tool and the seventh workspace (Music).
+        QCOMPARE(rows, 179);
         if (qEnvironmentVariableIsSet("NT_SHOT_DIR")) {
             view->resize(1600, 1000);
             sheetItem->setSize(region->size());
@@ -3044,7 +3045,7 @@ private slots:
         for (const QVariant& gv : webShortcutGroups(sheet))
             for (const QVariant& rv : gv.toMap().value("rows").toList())
                 available.insert(rv.toMap().value("id").toString(), rv.toMap().value("available").toBool());
-        QCOMPARE(available.size(), 177);
+        QCOMPARE(available.size(), 179);
         for (const char* yes : {"markClip", "cutTool", "markIn", "addMarker", "splitAtPlayhead", "undo", "playPause",
                                 "rollCut", "insertOnDrop", "disableSnapping", "toggleLoop", "playInToOut", "copy", "groupClips",
                                 "matchFrame", "selectEditPoint", "toggleScrubAudio"})

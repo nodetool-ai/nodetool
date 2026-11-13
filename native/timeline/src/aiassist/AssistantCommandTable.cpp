@@ -141,8 +141,8 @@ QList<Command> buildAllowed() {
     actions({"zoomIn", "zoomOut", "zoomFit", "zoomSelection", "expandTracks", "shrinkTracks", "expandAllTracks", "minimizeAllTracks", "audioTracksTaller",
              "audioTracksShorter", "toggleTimecodeRuler", "nextPanel", "prevPanel", "toggleLeftPanels", "toggleRightPanels", "toggleDawMode"});
     actions(family("panel", {"Assets", "Effects", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Script", "Storyboard",
-                             "Text", "EffectControls", "Motion", "Color", "Scopes", "Entities", "Markers", "Assistant", "Ai", "Activity"}));
-    actions(numbered("workspace", 6));
+                             "Text", "EffectControls", "Motion", "Color", "Scopes", "Entities", "Markers", "Assistant", "Ai", "Activity", "Music"}));
+    actions(numbered("workspace", 7));
     actions(family("monitorZoom", {"Fit", "10", "25", "50", "75", "100", "150", "200", "400", "800", "1600"}));
     actions({"monitorDisplayComposite", "monitorDisplayAlpha", "monitorDisplay:comparison", "monitorDisplay:takes", "monitorShowControls",
              "monitorSafeMargins", "monitorTransparencyGrid", "monitorRulers", "monitorGuides", "monitorLockGuides", "monitorClearGuides"});
@@ -221,6 +221,15 @@ QList<Command> buildAllowed() {
     edit("setTrackVolume", "Set a track's volume", {track, db});
     edit("setTrackPan", "Set a track's pan", {track, P{"pan", ParamKind::Number, true, "-1 is left, 1 is right.", {}, {}, -1, 1}});
     edit("setMasterVolume", "Set the master volume", {db});
+    edit("music.setTrackRole", "Set a track's music role",
+         {track, P{"role", ParamKind::Choice, true, "The instrument the track holds in a music project. Add instrument generates this stem.",
+                   {"vocals", "backing_vocals", "drums", "bass", "guitar", "keyboard", "percussion", "strings", "synth", "fx", "brass", "woodwinds"}}});
+    edit("music.setKey", "Set a music project's key",
+         {P{"tonic", ParamKind::Choice, false, "The key's tonic. Leave it out to clear the key.",
+            {"C", "C#", "Db", "D", "D#", "Eb", "E", "F", "F#", "Gb", "G", "G#", "Ab", "A", "A#", "Bb", "B"}},
+          P{"mode", ParamKind::Choice, false, "Needed with a tonic.", {"major", "minor"}}});
+    edit("music.selectTake", "Make one of a music clip's takes the one it plays",
+         {clip, P{"take_id", ParamKind::Text, true, "The take's id from the clip's versions.", {}, "takeId"}});
     // Effects by name, with their default values.
     const P effect{"effect", ParamKind::Text, true, "The effect's name, such as eq3."};
     const P effectId{"effect_id", ParamKind::EffectId, true, "The effect's id from the document.", {}, "effectId"};
@@ -294,12 +303,12 @@ QHash<QString, QString> buildDenied() {
     deny({"toggleSnap", "sequence.linkedSelection", "toggleLoop", "toggleScrubAudio", "toggleShuttleKeepsPitch", "toggleLibraryScrub"}, settings);
     deny(family("monitorPlaybackResolution", {"1", "2", "4", "8"}) + family("monitorPausedResolution", {"1", "2", "4", "8"}), settings);
     deny({"playPause", "playInToOut", "playInToOutWithRoll", "playToOut", "playAround", "shuttleBack", "shuttleStop", "shuttleForward", "slowShuttleBack", "slowShuttleForward"}, playback);
-    deny({"selectTool", "trackSelectTool", "trackSelectBackwardTool", "rippleTool", "rollTool", "rateStretchTool", "cutTool", "slipTool", "slideTool", "handTool", "zoomTool"}, tool);
+    deny({"selectTool", "rangeTool", "trackSelectTool", "trackSelectBackwardTool", "rippleTool", "rollTool", "rateStretchTool", "cutTool", "slipTool", "slideTool", "handTool", "zoomTool"}, tool);
     deny({"selectEditPoint", "rollCut", "disableSnapping", "insertOnDrop", "escape"}, gesture);
     deny(family("editPoint.", {"rippleIn", "rippleOut", "roll", "trimIn", "trimOut"}), tool);
     deny({"selectNearestEditPoint", "toggleTrimType", "exitTrimMode", "monitorDisplay:trim"}, "it enters trim mode, which needs a person at the keys. Use the trim commands");
     deny({"takeRecord"}, "it records live take switches during playback");
-    deny({"toggleShortcuts", "projectSettings"}, dialog);
+    deny({"toggleShortcuts", "projectSettings", "newMusicProject"}, dialog);
     deny({"pasteAttributes"}, dialog);
     deny({"audioGain"}, dialog + ". Use setClipsGain");
     deny({"speedDuration"}, dialog + ". Use setClipSpeed");
@@ -320,6 +329,12 @@ QHash<QString, QString> buildDenied() {
           "keyframes.animations", "keyframes.bypass", "keyframes.deleteMany", "keyframes.easing", "keyframes.easingMany", "keyframes.field", "keyframes.move", "keyframes.moveMany", "keyframes.stopwatch"},
          internal);
     deny({"ai.insertGeneration", "ai.insertImageVideo", "assistant.commitBeatGeneration", "assistant.generateClip"}, "it places generated media, which stays behind its review step. Use ui_timeline_generate_clip");
+    deny({"music.insertPlaceholder", "music.applyResult"}, "it is a step of a music job, which the music panel submits and places");
+    deny({"music.recordPrompt"}, "it records the prompt of a music job, which the music panel submits");
+    deny({"music.deleteTake"}, "it drops a take from a music clip, which a person decides in the take list");
+    deny({"loopMusicRange"}, playback);
+    deny({"previousMusicTake", "nextMusicTake"}, "it steps through the takes under the music range, which a person sets. Use music.selectTake");
+    deny({"musicCleanUpTakes", "music.removeTakes"}, "it leads to deleting take audio on the server, which a person confirms in the clean-up dialog");
     deny({"assistant.foldedCommand"}, internal);
     deny({"assistant.ui_timeline_delete_clip", "assistant.ui_timeline_move_clip", "assistant.ui_timeline_plan_beats", "assistant.ui_timeline_remove_beat",
           "assistant.ui_timeline_set_clip_binding", "assistant.ui_timeline_set_setup", "assistant.ui_timeline_split_clip", "assistant.ui_timeline_update_beat"},

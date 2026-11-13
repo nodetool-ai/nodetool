@@ -66,6 +66,7 @@ function withoutPath(value: unknown, path: string): unknown {
 describe("provider contract probe manifest", () => {
   it("covers the providers the roadmap names", () => {
     expect(probeProviders().sort()).toEqual([
+      "acestep",
       "anthropic",
       "fal_ai",
       "gemini",
@@ -112,6 +113,7 @@ describe("provider contract probe manifest", () => {
     }
     // The audit must have found live entries, or it proves nothing.
     expect(Object.keys(requests).sort()).toEqual([
+      "acestep",
       "fal_ai",
       "gemini",
       "kie",

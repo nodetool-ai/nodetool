@@ -84,7 +84,9 @@ class TestMenus : public WiringFixture {
                               // Backs out of whatever is under way.
                               "escape",
                               // A second way to something that has a menu item: the Audio workspace, and Ripple Delete on a gap.
-                              "toggleDawMode", "closeGapAt"};
+                              "toggleDawMode", "closeGapAt",
+                              // Music range steps pressed while the range loops. The music toolbar's Loop button and the take list are the pointer's way.
+                              "loopMusicRange", "previousMusicTake", "nextMusicTake"};
             // The number keys, while the Program monitor's take grid is the way to them with a pointer.
             for (int number = 1; number <= 9; ++number) {
                 set.insert(QString("takeSwitch%1").arg(number));
@@ -1073,11 +1075,11 @@ private slots:
         QTest::addColumn<QString>("path");
         QTest::addColumn<QStringList>("labels");
         QTest::newRow("file") << "File" << QStringList{"Open Recent", "Open Timeline…", "New Timeline", "---",
-            "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
+            "New Music Project…", "---", "Export…", "Quick Export…", "Export Frame…", "---", "Import Premiere XML…", "Export to Premiere Pro…", "---",
             "Project Settings…", "---", "Settings…", "Quit"};
         QTest::newRow("edit") << "Edit" << QStringList{"Undo", "Redo", "---", "Cut", "Copy", "Paste", "Paste Insert", "Paste Attributes…", "---",
             "Delete", "Ripple Delete", "Duplicate", "Duplicate with Gap", "---",
-            "Select All", "Deselect All", "Select Clips at Playhead", "Select Next Clip", "Select Previous Clip", "---", "Label"};
+            "Select All", "Deselect All", "Select Clips at Playhead", "Select Next Clip", "Select Previous Clip", "---", "Label", "---", "Clean Up Unused Music Takes…"};
         QTest::newRow("clip") << "Clip" << QStringList{"Video Options", "Audio Options", "Audio Role", "Speed / Duration…", "Scene Edit Detection…", "---",
             "Insert", "Overwrite", "Append to End", "---", "Remix…", "Revert Remix", "---",
             "Enable", "Link", "Group", "Ungroup", "Lock", "---", "Keyframes", "---", "Takes", "---", "Reveal in Library"};
@@ -1103,7 +1105,7 @@ private slots:
             "Play Audio While Scrubbing", "Keep Pitch While Shuttling"};
         QTest::newRow("window") << "Window" << QStringList{"Workspaces", "---", "Maximize Frame", "Next Panel", "Previous Panel", "Left Panels", "Right Panels", "---",
             "Library", "Effects", "Source", "Timeline", "Program", "Reference", "Inspector", "Mixer", "Audio", "Scripts", "Storyboards", "Text", "Effect Controls", "Motion", "Color", "Scopes",
-            "Entities", "Markers", "Assistant", "AI", "Activity"};
+            "Entities", "Markers", "Assistant", "AI", "Activity", "Music"};
     }
     void menuBarGroups() {
         QFETCH(QString, path);

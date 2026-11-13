@@ -22,6 +22,7 @@
 
 import { z } from "zod";
 import { storedRunTraceUpdateSchema } from "./run-trace.js";
+import { musicKey, musicRole, musicTask } from "./api-schemas/timeline.js";
 
 // ---------------------------------------------------------------------------
 // Command envelope
@@ -56,7 +57,11 @@ export const UNIFIED_COMMAND_TYPES = [
   "get_node",
   "generate_media",
   "generate_text",
-  "transcribe_audio"
+  "transcribe_audio",
+  "acestep_setup_status",
+  "acestep_install",
+  "acestep_download_models",
+  "acestep_setup_cancel"
 ] as const;
 
 export type UnifiedCommandType = (typeof UNIFIED_COMMAND_TYPES)[number];
@@ -189,6 +194,140 @@ export const stopDataSchema = z
   })
   .passthrough();
 
+/** Frames per second of every music position and window (MUSIC-MODE.md MD8). */
+export const MUSIC_SAMPLE_RATE = 48000;
+/** Shortest and longest window a music request may ask for, in seconds. */
+export const MUSIC_MIN_WINDOW_SECONDS = 10;
+export const MUSIC_MAX_WINDOW_SECONDS = 600;
+
+const musicFrameRange = z.object({
+  start_frame: z.number().int().min(0),
+  end_frame: z.number().int().min(0)
+});
+
+/**
+ * A Generate segment. `index` is the segment's position in the Generate that
+ * first produced it, for a replay that renders one segment again; without it
+ * the segment's position in this request applies. The take's target is the
+ * clip range: the segment moved back by `index` segment lengths.
+ */
+const musicSegment = musicFrameRange.extend({
+  index: z.number().int().min(0).optional()
+});
+
+const inWindow = (r: { start_frame: number; end_frame: number }, frames: number): boolean =>
+  r.start_frame < r.end_frame && r.end_frame <= frames;
+
+/**
+ * The `music` object of a `generate_media` request with `mode: "music"`
+ * (MUSIC-MODE.md section 10). Every frame value counts 48 kHz frames inside
+ * the request window, except `splice`, which counts frames in the parent
+ * asset. The handler validates shape and bounds and does not recompute the plan.
+ */
+export const musicGenerationRequestSchema = z
+  .object({
+    task: musicTask,
+    bpm: z.number().int().min(30).max(300),
+    key: musicKey.optional(),
+    beats_per_bar: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(6)]),
+    beat_unit: z.union([z.literal(4), z.literal(8)]),
+    candidates: z.number().int().min(1).max(4),
+    seed: z.number().int().optional(),
+    steps: z.number().int().min(0).optional(),
+    /** Optional language model name. The DiT is the request's `model`. */
+    lm_model: z.string().min(1).optional(),
+    /** Stored language model output. When set, the language model is skipped. */
+    audio_codes: z.string().min(1).optional(),
+    request_frames: z
+      .number()
+      .int()
+      .min(MUSIC_MIN_WINDOW_SECONDS * MUSIC_SAMPLE_RATE)
+      .max(MUSIC_MAX_WINDOW_SECONDS * MUSIC_SAMPLE_RATE),
+    /** Position of the first beat inside the window. Generate only. */
+    beat_phase_frames: z.number().int().min(0).optional(),
+    /** Target segments inside the window. Generate only. */
+    segments: z.array(musicSegment).min(1).optional(),
+    /** Measure and correct the grid offset. Generate only. */
+    align: z.boolean().optional(),
+    /** Asset id of the context bounce. Regenerate and Add instrument. */
+    context_asset_id: z.string().min(1).optional(),
+    /** The region inside the window. Regenerate and Add instrument. */
+    region: musicFrameRange.optional(),
+    /** Where the region sits in the parent asset. Regenerate only. */
+    splice: z
+      .object({
+        parent_asset_id: z.string().min(1),
+        start_frame: z.number().int().min(0),
+        end_frame: z.number().int().min(0)
+      })
+      .optional(),
+    /** The stem to add. Add instrument only. */
+    track_role: musicRole.optional(),
+    /** Timeline position of the window start, recorded on each take. */
+    window_start_frame: z.number().int().min(0).optional()
+  })
+  .superRefine((m, ctx) => {
+    const issue = (message: string, path: string[]): void => {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message, path });
+    };
+    if (m.task === "text2music") {
+      if (!m.segments) {
+        issue("text2music needs segments", ["segments"]);
+      } else {
+        m.segments.forEach((seg, i) => {
+          if (!inWindow(seg, m.request_frames)) {
+            issue("segment lies outside the window", ["segments", String(i)]);
+          } else if (
+            (m.window_start_frame ?? 0) + seg.start_frame <
+            (seg.index ?? i) * (seg.end_frame - seg.start_frame)
+          ) {
+            // The take's target would start before the timeline does.
+            issue("segment index places the clip before frame 0", ["segments", String(i), "index"]);
+          }
+        });
+      }
+      if (m.context_asset_id || m.region || m.splice) {
+        issue("text2music takes no context, region or splice", ["task"]);
+      }
+      return;
+    }
+    if (!m.context_asset_id) {
+      issue(`${m.task} needs context_asset_id`, ["context_asset_id"]);
+    }
+    if (!m.region) {
+      issue(`${m.task} needs a region`, ["region"]);
+    } else if (!inWindow(m.region, m.request_frames)) {
+      issue("region lies outside the window", ["region"]);
+    }
+    if (m.segments) {
+      issue(`${m.task} takes no segments`, ["segments"]);
+    }
+    if (m.task === "repaint") {
+      if (!m.splice) {
+        issue("repaint needs a splice parent", ["splice"]);
+      } else if (
+        m.region &&
+        m.splice.end_frame - m.splice.start_frame !== m.region.end_frame - m.region.start_frame
+      ) {
+        // The splice names the selected bars inside the parent asset. Only
+        // they are replaced, so audio outside the selection stays identical.
+        issue("splice span must equal the region length", ["splice"]);
+      }
+      if (m.track_role) {
+        issue("repaint takes no track_role", ["track_role"]);
+      }
+    }
+    if (m.task === "lego") {
+      if (!m.track_role) {
+        issue("lego needs track_role", ["track_role"]);
+      }
+      if (m.splice) {
+        issue("lego takes no splice", ["splice"]);
+      }
+    }
+  });
+export type MusicGenerationRequest = z.infer<typeof musicGenerationRequestSchema>;
+
 export const generateMediaDataSchema = z
   .object({
     /**
@@ -306,7 +445,12 @@ export const generateMediaDataSchema = z
     /** Playback rate for TTS, when mode === "audio". */
     speed: z.number().optional(),
     /** Requested audio container ("mp3", "wav", "flac", "ogg", "aac", "pcm"). */
-    audio_format: z.string().optional()
+    audio_format: z.string().optional(),
+    /**
+     * Music mode operation, with `mode: "music"`. Without it a music request
+     * runs the plain text-to-music path.
+     */
+    music: musicGenerationRequestSchema.optional()
   })
   .passthrough();
 
@@ -406,6 +550,136 @@ export const generateTextDataSchema = z
  */
 export type GenerateTextRequest = z.infer<typeof generateTextDataSchema>;
 
+// ---------------------------------------------------------------------------
+// ACE-Step setup (music mode first run)
+// ---------------------------------------------------------------------------
+
+/** The model sets the setup commands download (MUSIC-MODE.md section 12.4). */
+export const ACESTEP_MODEL_SETS = ["first_run", "add_instrument"] as const;
+export const aceStepModelSetSchema = z.enum(ACESTEP_MODEL_SETS);
+export type AceStepModelSet = z.infer<typeof aceStepModelSetSchema>;
+
+/** Roles of the ACE-Step model files, as `@nodetool-ai/config` names them. */
+export const aceStepModelRoleSchema = z.enum([
+  "textEncoder",
+  "languageModel",
+  "ditTurbo",
+  "vae",
+  "ditBase"
+]);
+
+/**
+ * `acestep_download_models` data. `set` names the roles: `first_run` is the
+ * text encoder, language model, turbo DiT and VAE, `add_instrument` is the
+ * base DiT.
+ */
+export const aceStepDownloadModelsDataSchema = z
+  .object({ set: aceStepModelSetSchema })
+  .passthrough();
+
+/**
+ * Why the binary cannot be installed on this host. `unsupported-platform`:
+ * NodeTool builds ace-server for Apple silicon only. `digest-unset`: no build
+ * has published the archive digest yet, so the installer refuses.
+ * `no-install-dir`: the host has no install directory (a hosted server).
+ */
+export const aceStepInstallBlockSchema = z.enum([
+  "unsupported-platform",
+  "digest-unset",
+  "no-install-dir"
+]);
+
+export const aceStepModelSetStatusSchema = z
+  .object({
+    present: z.array(aceStepModelRoleSchema),
+    missing: z.array(aceStepModelRoleSchema),
+    /** Size of everything in the set, and of the files still missing. */
+    approx_bytes: z.number(),
+    missing_bytes: z.number()
+  })
+  .passthrough();
+
+/** The running or last finished setup operation. Progress is cumulative. */
+export const aceStepSetupOperationSchema = z
+  .object({
+    id: z.string(),
+    kind: z.enum(["install", "models"]),
+    /** Set for `models`. */
+    set: aceStepModelSetSchema.nullable(),
+    state: z.enum(["running", "done", "failed", "cancelled"]),
+    /** Human label of the current step, for example "Downloading acestep-v15-turbo-Q8_0.gguf". */
+    stage: z.string(),
+    /** 0 to 100, or null when the total is unknown. */
+    percent: z.number().nullable(),
+    downloaded_bytes: z.number(),
+    total_bytes: z.number(),
+    file: z.string().nullable(),
+    file_index: z.number(),
+    file_count: z.number(),
+    error: z.string().nullable(),
+    /** Set when an install failed: `AceStepInstallErrorCode`. */
+    error_code: z.string().nullable()
+  })
+  .passthrough();
+export type AceStepSetupOperation = z.infer<typeof aceStepSetupOperationSchema>;
+
+export const aceStepSetupStatusSchema = z
+  .object({
+    /** `ACESTEP_SERVER_URL` is set: a remote ace-server serves requests and nothing needs installing. */
+    remote: z.boolean(),
+    binary: z
+      .object({
+        installed: z.boolean(),
+        /** The acestep.cpp commit on disk. */
+        version: z.string().nullable(),
+        blocked: aceStepInstallBlockSchema.nullable(),
+        /** Words for the user when `blocked` is set. */
+        message: z.string().nullable()
+      })
+      .passthrough(),
+    models: z
+      .object({
+        first_run: aceStepModelSetStatusSchema,
+        add_instrument: aceStepModelSetStatusSchema,
+        /** False when the host has no models directory, so no download can start. */
+        available: z.boolean()
+      })
+      .passthrough(),
+    operation: aceStepSetupOperationSchema.nullable()
+  })
+  .passthrough();
+export type AceStepSetupStatus = z.infer<typeof aceStepSetupStatusSchema>;
+
+/** Why a setup command was not accepted. */
+export const aceStepSetupRefusalSchema = z.enum([
+  "busy",
+  "not_admin",
+  "blocked",
+  "no_models_dir",
+  "nothing_running"
+]);
+
+/** The `result` of every `acestep_*` command's `rpc_response`. */
+export const aceStepSetupResultSchema = z
+  .object({
+    accepted: z.boolean(),
+    reason: aceStepSetupRefusalSchema.nullable(),
+    status: aceStepSetupStatusSchema
+  })
+  .passthrough();
+export type AceStepSetupResult = z.infer<typeof aceStepSetupResultSchema>;
+
+/**
+ * Pushed to the connection that started an operation each time its progress
+ * changes, and once when it ends. Other connections poll `acestep_setup_status`.
+ */
+export const aceStepSetupProgressMessageOutSchema = z
+  .object({
+    type: z.literal("acestep_setup_progress"),
+    operation: aceStepSetupOperationSchema
+  })
+  .passthrough();
+
 export const commandDataSchemas = {
   run_job: runJobDataSchema,
   reconnect_job: reconnectJobDataSchema,
@@ -430,7 +704,11 @@ export const commandDataSchemas = {
   get_node: looseDataSchema,
   generate_media: looseDataSchema,
   generate_text: generateTextDataSchema,
-  transcribe_audio: looseDataSchema
+  transcribe_audio: looseDataSchema,
+  acestep_setup_status: looseDataSchema,
+  acestep_install: looseDataSchema,
+  acestep_download_models: aceStepDownloadModelsDataSchema,
+  acestep_setup_cancel: looseDataSchema
 } satisfies Record<UnifiedCommandType, z.ZodTypeAny>;
 
 /**
@@ -753,5 +1031,6 @@ export const outboundControlMessageSchemas = {
   renderer_tool_call: rendererToolCallMessageOutSchema,
   chat_resumed: chatResumedMessageOutSchema,
   chat_turn_active: chatTurnActiveMessageOutSchema,
-  job_resumed: jobResumedMessageOutSchema
+  job_resumed: jobResumedMessageOutSchema,
+  acestep_setup_progress: aceStepSetupProgressMessageOutSchema
 } as const;

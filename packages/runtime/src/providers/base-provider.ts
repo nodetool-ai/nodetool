@@ -30,6 +30,8 @@ import type {
   ProviderToolResult,
   EncodedAudioResult,
   TextToMusicParams,
+  MusicTaskParams,
+  MusicTaskResult,
   TextToSpeechParams,
   RelightImageParams,
   RemoveBackgroundParams,
@@ -239,6 +241,7 @@ export type ProviderCapability =
   | "lip_sync"
   | "text_to_speech"
   | "text_to_music"
+  | "music_task"
   | "audio_to_audio"
   | "video_to_audio"
   | "automatic_speech_recognition"
@@ -1932,6 +1935,15 @@ export abstract class BaseProvider {
   }
 
   /**
+   * Run one music mode backend job: text2music, repaint or lego (MUSIC-MODE.md
+   * section 12.1). Providers that advertise the `music_task` capability
+   * override this.
+   */
+  async musicTask(_params: MusicTaskParams): Promise<MusicTaskResult> {
+    throw new Error(`${this.provider} does not support musicTask`);
+  }
+
+  /**
    * Optional video-conditioned sound task. Call through requestVideoToAudio
    * for input and capability validation before dispatch.
    */
@@ -2344,6 +2356,7 @@ const MODALITY_PROMISE_METHODS = [
   "segmentImage",
   "textToSpeechEncoded",
   "textToMusic",
+  "musicTask",
   "videoToAudio",
   "automaticSpeechRecognition",
   "textToVideo",

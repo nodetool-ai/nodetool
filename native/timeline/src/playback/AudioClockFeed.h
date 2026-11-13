@@ -13,10 +13,13 @@
 // The callback side of the protocol is `CallbackClockDriver`, which the real
 // device callback and the fake device of the tests both run.
 
+#include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <type_traits>
+#include <utility>
 
 namespace nt::playback {
 
@@ -100,6 +103,12 @@ struct TransportCommand {
     // burst of the mix at `seekMs` so the drag is audible.
     bool scrub = false;
     bool keepPitch = false;
+    // The loop the device crosses by itself (MUSIC-MODE.md MD19): at
+    // `loopEndMs` the callback continues at `loopStartMs` with no seek. Set
+    // only while the loop is on, the rate is 1 and the device is the clock.
+    // Both are negative when the transport loops by seeking, or not at all.
+    double loopStartMs = -1.0;
+    double loopEndMs = -1.0;
 };
 
 // The mapping the callback renders with: device frame `frame` carries
@@ -173,6 +182,21 @@ public:
     // are primed. Returns the anchor to render this block with.
     template <typename Ready>
     AudioAnchor beginBlock(std::int64_t hostTimeNs, std::int64_t frames, double sampleRate, Ready&& pcmReadyForSeek) {
+        return beginBlock(hostTimeNs, frames, sampleRate, std::forward<Ready>(pcmReadyForSeek),
+                          [](std::uint64_t, double) { return false; });
+    }
+
+    // The same, for a device that crosses a loop by itself. When the block
+    // reaches the command's `loopEndMs`, `wrapReady(seekSeq, loopStartMs)`
+    // answers whether PCM from the loop start is primed, and claims it when
+    // it is. The driver then adds an anchor at the wrap frame that carries
+    // `loopStartMs`, and publishes it with this block, so the playhead wraps
+    // when the wrapped audio is heard. `wrapOffset()` gives the frame in the
+    // block. A wrap that is not ready is a miss: the block keeps the old
+    // anchor, and the transport seeks once it sees the range end.
+    template <typename Ready, typename WrapReady>
+    AudioAnchor beginBlock(std::int64_t hostTimeNs, std::int64_t frames, double sampleRate, Ready&& pcmReadyForSeek,
+                           WrapReady&& wrapReady) {
         // A bounded read: while the transport is mid-write, keep the last
         // coherent command for this block.
         TransportCommand cmd = m_lastCommand;
@@ -213,6 +237,39 @@ public:
             }
         }
         m_seekPending = cmd.seekSeq != m_cur.seekSeq;
+        const AudioAnchor used = m_cur;
+        m_wrapOffset = -1;
+        m_wrapMissed = false;
+        if (!m_seekPending && m_cur.playing && m_cur.rate == 1.0 && !m_cur.keepPitch && cmd.loopEndMs > cmd.loopStartMs &&
+            cmd.loopStartMs >= 0.0) {
+            // Frame i of this block carries t0 + i frames. The wrap comes at
+            // the first frame at or past the loop end, and the frames before
+            // it play from the current PCM. The 1e-6 frame tolerance absorbs
+            // the rounding of a whole-frame loop length. An end less than one
+            // frame behind the block start lay inside the last frame of the
+            // block before, which had no frame at or past it: this block
+            // wraps at its frame 0. An end further behind that this pass has
+            // not wrapped at is a miss.
+            const double t0 = timelineAt(m_cur, m_framesRendered, sampleRate);
+            const double toEnd = (cmd.loopEndMs - t0) * sampleRate / 1000.0;
+            const double wrapAt = std::max(0.0, std::ceil(toEnd - 1e-6));
+            if (toEnd - 1e-6 > -1.0 && wrapAt < static_cast<double>(frames)) {
+                if (wrapReady(m_cur.seekSeq, cmd.loopStartMs)) {
+                    AudioAnchor next = m_cur;
+                    next.frame = m_framesRendered + static_cast<std::int64_t>(wrapAt);
+                    next.timelineMs = cmd.loopStartMs;
+                    next.seek = false;
+                    startAnchor(next);
+                    m_wrapOffset = static_cast<std::int64_t>(wrapAt);
+                } else {
+                    m_wrapMissed = true;
+                    m_passEnded = true;
+                }
+            } else if (toEnd - 1e-6 <= -1.0 && !m_passEnded) {
+                m_wrapMissed = true;
+                m_passEnded = true;
+            }
+        }
         CallbackState st;
         st.framesAtStart = m_framesRendered;
         st.hostTimeNs = hostTimeNs;
@@ -220,10 +277,18 @@ public:
         st.anchorCount = m_anchorCount;
         for (int i = 0; i < m_anchorCount; ++i) st.anchors[i] = m_anchors[i];
         m_feed.callback.store(st);
-        const AudioAnchor used = m_cur;
         m_framesRendered += frames;
         return used;
     }
+
+    // The frame of the last block at which it wrapped to the loop start, or
+    // -1 when it did not.
+    std::int64_t wrapOffset() const { return m_wrapOffset; }
+    // The last block reached the loop end with no wrap PCM ready, or found
+    // the end already behind it with no wrap. Once per pass.
+    bool wrapMissed() const { return m_wrapMissed; }
+    // The command the last block ran with.
+    const TransportCommand& command() const { return m_lastCommand; }
 
     // Timeline time of device frame `frame` under `a`.
     static double timelineAt(const AudioAnchor& a, std::int64_t frame, double sampleRate) {
@@ -247,6 +312,7 @@ private:
         }
         m_anchors[m_anchorCount++] = next;
         m_cur = next;
+        m_passEnded = false;
     }
 
     AudioClockFeed& m_feed;
@@ -260,6 +326,11 @@ private:
     std::int64_t m_lastStartIssuedNs = 0;
     bool m_lastStartLate = false;
     bool m_seekPending = false;
+    std::int64_t m_wrapOffset = -1;
+    bool m_wrapMissed = false;
+    // The current anchor reached the loop end with no wrap, and that miss
+    // was reported. A new anchor (a wrap, a seek, any command) clears it.
+    bool m_passEnded = false;
 };
 
 }  // namespace nt::playback

@@ -1,4 +1,5 @@
 #include "assets/AssetBrowser.h"
+#include "assets/AssetClip.h"
 #include "aiassist/CandidatePreview.h"
 #include <QBuffer>
 #include <QProcess>
@@ -99,6 +100,36 @@ private slots:
                      QStringList({"c", "new", "b"}).at(i));
         }
         QCOMPARE(browser.assets().size(), 3);
+    }
+    // MR10: a generation's context bounce never shows in the library, from a query or a poll.
+    void generationContextAssetsStayHidden() {
+        TestHttpServer http;
+        const QJsonObject song{{"id", "44444444444444444444444444444444"}, {"user_id", "u"}, {"parent_id", "u"},
+            {"name", "song.wav"}, {"content_type", "audio/wav"}};
+        const QJsonObject bounce{{"id", "55555555555555555555555555555555"}, {"user_id", "u"}, {"parent_id", "u"},
+            {"name", "music-mix-context-0.wav"}, {"content_type", "audio/wav"},
+            {"metadata", QJsonObject{{"generation_context", "music"}, {"sequence_id", "s"}}}};
+        http.setJson([&](const QByteArray& path, const QUrl&) {
+            const QJsonValue result = path == "/trpc/assets.search" ? QJsonValue(QJsonObject{{"assets", QJsonArray{bounce, song}}, {"next_cursor", QJsonValue::Null}})
+                                                                    : QJsonValue(QJsonObject{});
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", result}}}}).toJson();
+        });
+        AssetBrowser browser;
+        browser.m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
+        QSignalSpy changed(&browser, &AssetBrowser::assetsChanged);
+        browser.refresh();
+        QTRY_VERIFY(changed.count() > 0 && !browser.busy());
+        QCOMPARE(browser.assets().size(), 1);
+        QCOMPARE(browser.assets().first().toMap().value("id").toString(), song.value("id").toString());
+        QCOMPARE(browser.assetModel()->rowCount(), 1);
+        AssetBrowser::Result poll;
+        poll.assets = {bounce, song};
+        poll.replace = true;
+        browser.receive(poll);
+        QCOMPARE(browser.assetModel()->rowCount(), 1);
+        QCOMPARE(browser.assetModel()->indexOf(bounce.value("id").toString()), -1);
+        QVERIFY(nt::assets::isGenerationContextAsset(bounce));
+        QVERIFY(!nt::assets::isGenerationContextAsset(song));
     }
     void destructionCancelsTricklingQuery() {
         TrickleHttpServer http;

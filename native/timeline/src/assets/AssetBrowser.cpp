@@ -225,9 +225,14 @@ void AssetBrowser::receive(const Result& result) {
 }
 
 void AssetBrowser::applyAssets(const QJsonArray& next, bool reset) {
-    m_assets = next;
-    if (!m_model.apply(next, reset)) { return; }
-    m_assetList = next.toVariantList();
+    // Generation inputs stay out of the library (MR10): the clean-up command manages them.
+    QJsonArray shown;
+    for (const auto& asset : next) {
+        if (!nt::assets::isGenerationContextAsset(asset.toObject())) { shown.append(asset); }
+    }
+    m_assets = shown;
+    if (!m_model.apply(shown, reset)) { return; }
+    m_assetList = shown.toVariantList();
     emit assetsChanged();
 }
 

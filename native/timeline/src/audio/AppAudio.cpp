@@ -10,25 +10,99 @@
 #include <QJsonObject>
 #include <QObject>
 
+#include <algorithm>
 #include <cstdio>
+#include <vector>
 
 namespace nt::audio {
+
+int engineRateFor(const Timeline& timeline) {
+    return timeline.raw.value(QStringLiteral("music")).isObject() ? kMusicEngineRate : 0;
+}
 
 bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model, PlaybackClock& clock, QString* error) {
     m_mode = mode;
     if (mode == u"none") return true;
-    AudioEngine::Options options;
-    options.recordSeconds = m_recordSeconds;
-    if (mode == u"null") {
-        options.backend = AudioEngine::Backend::Null;
-        options.sampleRate = 48000;
-        options.simulatedLatencySec = latencyMs / 1000.0;
-    } else if (mode == u"system") {
-        options.backend = AudioEngine::Backend::System;
-        options.sampleRate = 0;  // the device's own rate (D24)
-    } else {
+    if (mode != u"null" && mode != u"system") {
         if (error) *error = QStringLiteral("--audio takes none, null or system");
         return false;
+    }
+    m_latencyMs = latencyMs;
+    m_model = &model;
+    m_clock = &clock;
+    if (m_followDocumentRate) {
+        if (const auto snapshot = model.snapshot()) m_systemRate = engineRateFor(*snapshot);
+        // The context is this object's own, so its destruction ends the connection.
+        m_documentConnection = QObject::connect(&model, &TimelineModel::documentReplaced, &m_documentContext, [this]() {
+            const auto snapshot = m_model->snapshot();
+            QString why;
+            if (!setSystemRate(snapshot ? engineRateFor(*snapshot) : 0, &why)) {
+                std::fprintf(stderr, "error: audio: %s\n", qPrintable(why));
+            }
+        });
+    }
+    QString why;
+    if (openEngine(&why)) return true;
+    // A music project asks for 48 kHz. A device that refuses it plays at its
+    // own rate, as setSystemRate falls back, instead of failing the launch.
+    if (mode == u"system" && m_systemRate > 0) {
+        const int refused = m_systemRate;
+        m_systemRate = 0;
+        if (openEngine(nullptr)) {
+            std::fprintf(stderr, "warning: audio: cannot open the device at %d Hz (%s), playing at its own rate\n",
+                         refused, qPrintable(why));
+            return true;
+        }
+        m_systemRate = refused;
+    }
+    if (error) *error = why;
+    QObject::disconnect(m_documentConnection);
+    return false;
+}
+
+bool AppAudio::setSystemRate(int hz, QString* error) {
+    hz = std::max(0, hz);
+    const bool started = m_model && m_mode == u"system";
+    // After a failed reopen there is no engine, and any later call tries again.
+    if (hz == m_systemRate && (m_engine || !started)) return true;
+    const int previous = m_systemRate;
+    m_systemRate = hz;
+    if (!started) return true;
+    closeEngine();
+    QString why;
+    if (openEngine(&why)) return true;
+    // Keep the audio on: the rate that ran before, then the device's own rate.
+    std::vector<int> tried{hz};
+    for (const int fallback : {previous, 0}) {
+        if (std::find(tried.begin(), tried.end(), fallback) != tried.end()) continue;
+        tried.push_back(fallback);
+        m_systemRate = fallback;
+        if (openEngine(nullptr)) {
+            if (error) {
+                *error = QStringLiteral("cannot open the device at %1 Hz (%2), playing at %3")
+                             .arg(hz)
+                             .arg(why)
+                             .arg(fallback > 0 ? QStringLiteral("%1 Hz").arg(fallback) : QStringLiteral("its own rate"));
+            }
+            return false;
+        }
+    }
+    m_systemRate = hz;
+    if (error) *error = why;
+    return false;
+}
+
+bool AppAudio::openEngine(QString* error) {
+    TimelineModel& model = *m_model;
+    AudioEngine::Options options;
+    options.recordSeconds = m_recordSeconds;
+    if (m_mode == u"null") {
+        options.backend = AudioEngine::Backend::Null;
+        options.sampleRate = 48000;
+        options.simulatedLatencySec = m_latencyMs / 1000.0;
+    } else {
+        options.backend = AudioEngine::Backend::System;
+        options.sampleRate = m_systemRate;  // 0: the device's own rate (D24)
     }
     if (m_publishLoudness) options.loudness = &appLoudnessReadout();
     m_engine = std::make_unique<AudioEngine>();
@@ -55,25 +129,34 @@ bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model
     m_connections[0] = QObject::connect(&model, &TimelineModel::clipsChanged, timer, schedule);
     m_connections[1] = QObject::connect(&model, &TimelineModel::previewChanged, timer, schedule);
     std::string why;
-    if (!m_engine->start(options, &why)) {
+    if (!(m_startEngine ? m_startEngine(*m_engine, options, &why) : m_engine->start(options, &why))) {
         if (error) *error = QString::fromStdString(why);
         for (const auto& c : m_connections) QObject::disconnect(c);
         m_timer.reset();
         m_engine.reset();
         return false;
     }
-    m_clock = &clock;
-    clock.setAudioFeed(&m_engine->feed());
+    m_attachedClock = m_clock;
+    m_clock->setAudioFeed(&m_engine->feed());
     const AudioEngine::Stats s = m_engine->stats();
     std::fprintf(stderr, "audio: %s backend, device \"%s\", %.0f Hz, output latency %.1f ms\n", s.backend.c_str(),
                  s.deviceName.c_str(), s.sampleRate, s.outputLatencySec * 1000.0);
     return true;
 }
 
+void AppAudio::closeEngine() {
+    for (const auto& c : m_connections) QObject::disconnect(c);
+    if (m_attachedClock) m_attachedClock->setAudioFeed(nullptr);
+    m_attachedClock = nullptr;
+    if (m_engine) m_engine->stop();
+    m_engine.reset();
+    m_timer.reset();
+}
+
 AppAudio::~AppAudio() {
     if (!m_engine) return;
     for (const auto& c : m_connections) QObject::disconnect(c);
-    if (m_clock) m_clock->setAudioFeed(nullptr);
+    if (m_attachedClock) m_attachedClock->setAudioFeed(nullptr);
     const AudioEngine::Stats s = m_engine->stats();
     m_engine->stop();
     if (m_reportPath.isEmpty()) return;
@@ -96,6 +179,8 @@ AppAudio::~AppAudio() {
         {QStringLiteral("underruns"), static_cast<qint64>(s.underruns)},
         {QStringLiteral("waitBlocks"), static_cast<qint64>(s.waitBlocks)},
         {QStringLiteral("lateStarts"), static_cast<qint64>(s.lateStarts)},
+        {QStringLiteral("loopWraps"), static_cast<qint64>(s.loopWraps)},
+        {QStringLiteral("loopMisses"), static_cast<qint64>(s.loopMisses)},
         {QStringLiteral("playStartMs"), s.lastPlayStartMs},
         {QStringLiteral("sessions"), static_cast<qint64>(s.sessions)},
         {QStringLiteral("playedSeconds"), s.sampleRate > 0 ? static_cast<double>(s.playedFrames) / s.sampleRate : 0.0},

@@ -2129,8 +2129,9 @@ node scripts/mutation-score.mjs --survivors kernel       # survivors from the sn
 
 ### npm run probe:providers (Provider Contract Probes)
 
-Asks OpenAI, Gemini, fal, and KIE for one real response each and decodes it with
-the same production decoder a run uses. A cassette proves NodeTool still handles
+Asks OpenAI, Gemini, fal, KIE and, where one is installed, a local acestep.cpp
+`ace-server` for one real response each and decodes it with the same production
+decoder a run uses. A cassette proves NodeTool still handles
 a response a provider gave us *once*; it cannot notice that the provider changed
 the response today.
 
@@ -2156,6 +2157,40 @@ messages, never a body — no credential, prompt, request id, or signed URL
 survives. Manifest:
 `packages/runtime/src/providers/contract/probe-manifest.ts`. Details:
 [docs/provider-contract-probes.md](provider-contract-probes.md).
+
+The ACE-Step entry, `acestep.unknown-job`, sends one `GET /job` for an id the
+server does not hold and decodes the answer with `decodeAceJobStatus`. Run it
+alone with `npm run probe:providers -- --only acestep.unknown-job`. It starts
+the installed `ace-server` when `ACESTEP_PROBE_URL` is unset and skips where
+none is installed. See
+[The ace-server probe](provider-contract-probes.md#the-ace-server-probe).
+
+### Music mode (native timeline)
+
+Music mode has two harnesses that need no UI and one that needs a backend.
+The design is in [MUSIC-MODE.md](https://github.com/nodetool-ai/nodetool/blob/main/native/timeline/docs/MUSIC-MODE.md).
+
+| Need | Command |
+|---|---|
+| Render one context bounce window to a WAV | `nodetool-timeline <fixture.json> --music-bounce OUT.wav --kind mix\|dry --track ID --start-frame N --frames N` |
+| Check the ACE-Step backend assumptions on a running `ace-server` | `node native/timeline/scripts/acestep-spike.mjs --url http://127.0.0.1:8085 --pid <ace-server pid>` |
+| Check how the ace-server answers an unknown job id | `npm run probe:providers -- --only acestep.unknown-job` |
+| Time the tracks UI with 32 audio tracks and 500 audio clips | `node native/timeline/scripts/make-ui-fixture.mjs --music` then `nodetool-timeline native/timeline/fixtures/generated/ui-music-32tracks.json --ui-bench --size 1920x1080 --ui-gui-p95 8` |
+
+`--music-bounce` is the headless form of the bounce that Regenerate and Add
+instrument send as context. `--kind mix` renders every audible track and
+`--kind dry` renders the target track alone. It writes a 48 kHz stereo 32-bit
+float WAV and prints `{"frames","kind","trackId","startFrame","problems","peak"}`
+as JSON. The exit code is 0 on success, 1 when a voice had no PCM or the file
+could not be written, and 2 for bad arguments. The window is counted in 48 kHz
+frames, as every music position is.
+
+`acestep-spike.mjs` sends the requests the design depends on to a running
+`ace-server` and prints a results table, one row per MM0 exit item. It mirrors
+the wire shapes of acestep.cpp at the commit pinned in
+`packages/config/src/acestep-runtime.ts` and cites the source lines in its
+header. Start the server with both DiT models and `--max-batch 2` first. It
+needs models on disk, so CI does not run it.
 
 ### npm run crap (CRAP Scores for TypeScript)
 

@@ -121,7 +121,7 @@ private slots:
         QTest::addColumn<QString>("id");
         for (const auto* id : {"exportVideo", "quickExport", "exportFrame", "exportPremiere", "importPremiere", "exportMarkersCsv",
                                "remixClip", "sceneEditDetection", "projectSettings", "toggleSnap", "playPause", "resetWorkspace", "updateTrackEffect",
-                               "ai.insertGeneration", "assets.dropAsset", "restoreDocument", "acceptExternalUnit", "toggleScrubAudio"}) {
+                               "ai.insertGeneration", "music.insertPlaceholder", "music.applyResult", "music.removeTakes", "musicCleanUpTakes", "assets.dropAsset", "restoreDocument", "acceptExternalUnit", "toggleScrubAudio"}) {
             QTest::newRow(id) << QString(id);
         }
     }
@@ -671,8 +671,9 @@ private slots:
     }
     void toolsAdvertiseSchemas() {
         const auto tools = AssistantCommands::tools();
-        QCOMPARE(tools.size(), 4);
-        for (const auto& name : {"ui_timeline_list_commands", "ui_timeline_run_command", "ui_timeline_read_scopes", "ui_timeline_capture_frame"}) {
+        QCOMPARE(tools.size(), 7);
+        for (const auto& name : {"ui_timeline_list_commands", "ui_timeline_run_command", "ui_timeline_read_scopes", "ui_timeline_capture_frame",
+                                 "ui_timeline_music_generate", "ui_timeline_music_regenerate", "ui_timeline_music_add_instrument"}) {
             QVERIFY(AssistantCommands::handles(name));
             const auto found = std::find_if(tools.begin(), tools.end(), [&](const QVariant& tool) { return tool.toMap().value("name") == name; });
             QVERIFY(found != tools.end());
@@ -680,6 +681,19 @@ private slots:
             QVERIFY(found->toMap().value("parameters").toMap().value("required").toStringList().contains("timeline_id"));
         }
         QVERIFY(!AssistantCommands::handles("ui_timeline_get_state"));
+    }
+    // GN-8: the music tools reach the timeline's job module, which refuses a sequence that is not a music project.
+    void musicToolsDispatch() {
+        const QVariantMap args{{"timeline_id", TIMELINE}, {"track_id", TRACK_A}, {"start_bar", 1}, {"end_bar", 2}, {"prompt", "drums"}};
+        for (const auto* name : {"ui_timeline_music_generate", "ui_timeline_music_regenerate", "ui_timeline_music_add_instrument"}) {
+            const auto result = commands->execute(name, args);
+            QVERIFY(!result.value("ok").toBool());
+            QVERIFY2(result.value("error").toString().contains("not a music project"), qPrintable(result.value("error").toString()));
+        }
+        auto other = args;
+        other.insert("timeline_id", "00000000000000000000000000000000");
+        QVERIFY(commands->execute("ui_timeline_music_generate", other).value("error").toString().contains("not open"));
+        QCOMPARE(model.undoStack()->count(), 0);
     }
     void scopesRefuseBadInputSynchronously() {
         const auto base = QVariantMap{{"timeline_id", TIMELINE}};

@@ -28,9 +28,11 @@ so CTest's working directory does not affect them. Reports return non-zero.
 CTest also rejects sanitizer report text if a wrapper exits zero.
 
 The TSan preset includes source pool, FFmpeg source, CPU usage, audio engine,
-easing, frame ring, retire queue and frame cache. The last three currently
-exercise their containers synchronously, but remain selected for future
-threaded coverage. Fixture setup is selected automatically by CTest. The
+easing, frame ring, retire queue, frame cache, transport, live audio edit and
+loop transport. Frame ring, retire queue and frame cache currently exercise
+their containers synchronously, but remain selected for future threaded
+coverage. The loop transport test gates the second hazard slot of the
+gapless loop ([MUSIC-MODE.md](../../docs/MUSIC-MODE.md) MR6). Fixture setup is selected automatically by CTest. The
 `tsan` build preset builds only these test executables, so keep its `targets`
 list equal to the test preset's name filter.
 Qt and system FFmpeg are uninstrumented. Qt suppressions use `race_top`

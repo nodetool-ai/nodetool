@@ -45,6 +45,7 @@ and — where a live call is cheap enough — the single request that fetches it
 | `kie.create-task` | `decodeKieTaskSubmission` | fixture only |
 | `kie.record-info` | `decodeKieRecordInfo` + `decodeKieResultUrls` | fixture only |
 | `replicate.prediction-output` | `decodeReplicateOutput` | fixture only |
+| `acestep.unknown-job` | `decodeAceJobStatus` | 1 request to an ace-server, free, skipped where none is installed |
 
 The budget is **one request and USD 0.05 per provider per run**, enforced by
 `runProbes` and asserted by the manifest test. A fixture-only entry must say in
@@ -56,6 +57,16 @@ when the prompt outgrew the model's window. That one is recoverable — the call
 can shorten the transcript and retry — so the recognizer that identifies it is
 as much a decoder as the ones that read a successful response, and its check
 asserts which of the provider's signals fired rather than only that some did.
+
+### The ace-server probe
+
+`acestep.unknown-job` asks an acestep.cpp `ace-server` for a job id it does not
+hold. The acestep provider reads that answer as a lost job and resubmits once,
+so a changed answer would turn the resubmit into a failure. The request goes to
+the server at `ACESTEP_PROBE_URL`. When that is unset, the probe script starts
+the installed `ace-server` (`ACESTEP_SERVER_PATH` or PATH, with
+`ACESTEP_MODELS_DIR` or the Hugging Face cache) and stops it afterwards. Where
+no `ace-server` or no model folder is installed, the entry is skipped.
 
 ### Probing a different model
 

@@ -3053,7 +3053,7 @@ install policy.
 | Command | Behavior |
 |---|---|
 | `runtime list [--json]` | Show every runtime package, whether it is installed, and the conda environment path. |
-| `runtime add <ids...> [--reinstall]` | Install npm runtime libraries, `sd-cpp`, `wan2gp`, and the conda and uv packages (`python`, `yt-dlp`, `rust`, `manimgx`). Dependencies install first. `--reinstall` installs an installed conda or uv package again. |
+| `runtime add <ids...> [--reinstall]` | Install npm runtime libraries, `sd-cpp`, `acestep`, `wan2gp`, and the conda and uv packages (`python`, `yt-dlp`, `rust`, `manimgx`). Dependencies install first. `--reinstall` installs an installed conda or uv package again. |
 | `runtime remove <ids...>` | Uninstall the packages. |
 | `runtime path` | Print the npm root runtime libraries install into. |
 | `runtime python-packs list [--json]` | Show the Python node packs in the Python runtime. |

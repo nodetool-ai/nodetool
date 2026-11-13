@@ -4,7 +4,13 @@
 //   TRACKS header | TimeRuler                 (28 px)
 //   TrackHeader   | TrackLane  ...            (the rows, virtualized)
 //   TimelineScrollbar                         (14 px)
+//   footer slot                               (a layout's hint line, 0 px when none)
 //   Playhead over the ruler and the lanes
+//
+// Three slots let a layout add chrome without forking this file: an item in
+// `toolbarVariant` that reports a width replaces ToolToggle, `rulerOverlay`
+// draws over the ruler without taking input, and `tracksFooter` takes its
+// height from the lanes.
 //
 // Rows: a TrackWindowModel keeps only the rows in view plus 3 of overscan
 // (D27); the headers and the lanes are two Repeaters over it, scrolled by the
@@ -37,7 +43,10 @@ Rectangle {
         Math.max(TimelineMetrics.trackHeaderMinWidth, headerWidthDraft >= 0 ? headerWidthDraft
             : columnPreferences.trackHeaderWidth > 0 ? columnPreferences.trackHeaderWidth * Ui.Theme.uiScale
             : TimelineMetrics.trackHeaderWidth))
-    readonly property double lanesHeight: Math.max(0, height - TimelineMetrics.toolbarHeight - TimelineMetrics.rulerHeight - TimelineMetrics.scrollbarHeight)
+    readonly property double footerHeight: tracksFooter.implicitHeight
+    readonly property double lanesHeight: Math.max(0, height - TimelineMetrics.toolbarHeight - TimelineMetrics.rulerHeight - TimelineMetrics.scrollbarHeight - footerHeight)
+    // A layout's tool row (the toolbarVariant slot) is showing in place of ToolToggle.
+    readonly property bool toolbarReplaced: toolbarVariant.implicitWidth > 0
 
     objectName: "tracksRegion"
     color: Ui.Theme.surfaceCanvas
@@ -59,7 +68,7 @@ Rectangle {
         x: region.headerWidth - width / 2
         y: TimelineMetrics.toolbarHeight
         width: Ui.Metrics.md
-        height: Math.max(0, region.height - y - TimelineMetrics.scrollbarHeight)
+        height: Math.max(0, region.height - y - TimelineMetrics.scrollbarHeight - region.footerHeight)
         z: Ui.Metrics.layerOverlay
         hoverEnabled: true
         cursorShape: Qt.SizeHorCursor
@@ -155,7 +164,8 @@ Rectangle {
         property bool narrow: false
         property double neededWidth: 0
         readonly property double available: width - Ui.Metrics.md - Ui.Metrics.lg
-        readonly property double rowWidth: toolRow.width + toolbar.rightWidth + Ui.Metrics.xl
+        readonly property double toolsWidth: region.toolbarReplaced ? toolbarVariant.implicitWidth : toolRow.width
+        readonly property double rowWidth: toolsWidth + toolbar.rightWidth + Ui.Metrics.xl
         readonly property double rightWidth: rightGroup.width
         function refit() {
             if (available <= 0) return
@@ -174,7 +184,7 @@ Rectangle {
             x: Ui.Metrics.md
             width: Math.max(0, rightGroup.x - x - Ui.Metrics.xs)
             height: parent.height
-            contentWidth: toolRow.width
+            contentWidth: toolbar.toolsWidth
             contentHeight: height
             flickableDirection: Flickable.HorizontalFlick
             boundsBehavior: Flickable.StopAtBounds
@@ -183,12 +193,20 @@ Rectangle {
             ToolToggle {
                 id: toolRow
                 anchors.verticalCenter: parent.verticalCenter
+                visible: !region.toolbarReplaced
                 gestures: clipGestures
                 timeline: region.timeline
                 viewState: view
                 compact: toolbar.narrow
                 followPlayhead: region.followPlayhead
                 onFollowPlayheadChanged: region.followPlayhead = followPlayhead
+            }
+            SlotItems {
+                id: toolbarVariant
+                anchors.verticalCenter: parent.verticalCenter
+                slot: "toolbarVariant"
+                slotProperties: ({ timeline: region.timeline, gestures: clipGestures, viewState: view,
+                                   clock: region.clock, compact: toolbar.narrow })
             }
         }
         Row {
@@ -306,6 +324,16 @@ Rectangle {
         onScrubRequested: ms => region.clock.scrub(ms)
         onDeleteMarkerRequested: id => region.timeline.deleteMarker(id)
     }
+    SlotItems {
+        x: ruler.x
+        y: ruler.y
+        width: ruler.width
+        height: ruler.height
+        clip: true
+        overlay: true
+        slot: "rulerOverlay"
+        slotProperties: ({ timeline: region.timeline, gestures: clipGestures, viewState: view })
+    }
 
     // ── Track rows ──
     // Header column: clips vertically, scrolled with the lanes.
@@ -328,7 +356,6 @@ Rectangle {
                     id: header
                     required property double rowTop
                     required property double baseRowHeight
-                    required property var track
                     rowHeight: baseRowHeight
                     timeline: region.timeline
                     gestures: clipGestures
@@ -502,6 +529,15 @@ Rectangle {
                         viewState: view
                         gestures: clipGestures
                     }
+                    // Contributions drawn over the base lane, such as the music range band.
+                    SlotItems {
+                        width: parent.width
+                        height: trackRow.baseRowHeight
+                        overlay: true
+                        slot: "laneOverlay"
+                        slotProperties: ({ track: trackRow.track, timeline: region.timeline,
+                                           gestures: clipGestures, viewState: view })
+                    }
                     SlotItems {
                         id: laneRows
                         y: trackRow.baseRowHeight
@@ -624,7 +660,7 @@ Rectangle {
 
     // ── Horizontal scrollbar ──
     TimelineScrollbar {
-        y: region.height - height
+        y: region.height - region.footerHeight - height
         width: region.width
         leftInsetPx: region.headerWidth
         viewState: view
@@ -636,11 +672,21 @@ Rectangle {
         objectName: "timelineGestureArea"
         y: TimelineMetrics.toolbarHeight
         width: region.width
-        height: region.height - TimelineMetrics.toolbarHeight
+        height: region.height - TimelineMetrics.toolbarHeight - region.footerHeight
         viewState: view
         rulerTop: 0
         rowsTop: TimelineMetrics.rulerHeight
         lanesLeft: region.headerWidth
+    }
+
+    SlotItems {
+        id: tracksFooter
+        y: region.height - height
+        width: region.width
+        height: implicitHeight
+        vertical: true
+        slot: "tracksFooter"
+        slotProperties: ({ timeline: region.timeline, gestures: clipGestures, viewState: view })
     }
 
     // Playhead overlay: spans the ruler and the lanes, clipped to the lanes'

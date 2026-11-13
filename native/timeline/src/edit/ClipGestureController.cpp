@@ -9,12 +9,16 @@
 #include "edit/targeting/TargetingEdits.h"
 #include "edit/trim/TrimMode.h"
 #include "edit/groups/GroupOps.h"
+#include "music/MusicRange.h"
+#include "music/MusicSelection.h"
 #include "ui/MediaVersion.h"
 #include "preview/FfmpegSource.h"
 #include "ui/TimelineWheel.h"
 
 #include <QCoreApplication>
 #include <QCursor>
+#include <QGuiApplication>
+#include <QStyleHints>
 #include <QKeyEvent>
 #include <QThreadPool>
 
@@ -148,7 +152,8 @@ bool presetBindsSequence(const QString& preset, const QKeySequence& sequence) {
 
 }  // namespace
 
-ClipGestureController::ClipGestureController(QQuickItem* parent) : QQuickItem(parent), m_trimMode(new TrimMode(*this)) {
+ClipGestureController::ClipGestureController(QQuickItem* parent)
+    : QQuickItem(parent), m_trimMode(new TrimMode(*this)), m_musicSelection(new MusicSelection(this)) {
     setAcceptedMouseButtons(Qt::LeftButton);
     connect(this, &QQuickItem::windowChanged, this, &ClipGestureController::watchWindow);
     watchWindow(window());
@@ -326,6 +331,14 @@ void ClipGestureController::setKeyboardPreset(const QString& preset) {
     m_preset = preset;
     emit optionsChanged();
 }
+
+void ClipGestureController::setKeymapContext(const QString& context) {
+    if (context == m_keymapContext) return;
+    m_keymapContext = context;
+    emit optionsChanged();
+}
+
+QString ClipGestureController::keymap() const { return nt::edit::keymapName(m_preset, m_keymapContext); }
 
 QString ClipGestureController::trimModeFor(const QString& tool, bool rollModifier, bool rippleMode) {
     if (tool == u"rateStretch") return QStringLiteral("stretch");
@@ -563,7 +576,7 @@ void ClipGestureController::clearToolHover(const QString& id) {
 }
 
 void ClipGestureController::updateToolHover(const QString& id, const QString& part, double sceneX, double sceneY, int modifiers) {
-    if (!m_timeline || !m_view || !m_gesture.kind.isEmpty()) { clearToolHover(); return; }
+    if (!m_timeline || !m_view || !m_gesture.kind.isEmpty() || m_tool == u"range") { clearToolHover(); return; }
     if (m_hoverPlanId != id) {
         m_hoverPlanId = id;
         m_hoverClips.clear();
@@ -656,6 +669,7 @@ bool ClipGestureController::pressClip(const QString& id, const QString& pressedP
     const EditDoc doc = editDoc();
     const QJsonObject* clip = findClip(doc.clips, id);
     if (!clip) return false;
+    if (m_tool == u"range") return beginRange(clipTrackId(*clip), id, sceneX, sceneY, modifiers);
     const auto mods = static_cast<Qt::KeyboardModifiers>(modifiers);
     // useClipTrim BODY_TOOLS: these tools act on the whole clip.
     static const QSet<QString> bodyTools{QStringLiteral("cut"),         QStringLiteral("slip"),
@@ -935,6 +949,10 @@ QJsonObject ClipGestureController::targetingPayload() const {
 
 void ClipGestureController::pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers) {
     if (!m_timeline || !m_rows || !m_view || !m_viewport) { return; }
+    if (m_tool == u"range") {
+        beginRange(trackId, {}, sceneX, sceneY, modifiers);
+        return;
+    }
     m_trimMode->leave();
     cancelGesture();
     Gesture g;
@@ -985,6 +1003,85 @@ void ClipGestureController::updateMarquee() {
     setSelection(nt::edit::clipboard::marqueeSelection(clips, g.bandRows, left * m_view->msPerPx(),
                     (left + width) * m_view->msPerPx(), top, top + height, g.selectionAtStart));
     emit gestureChanged();
+}
+
+bool ClipGestureController::beginRange(const QString& trackId, const QString& clipId, double sceneX, double sceneY,
+                                       int modifiers) {
+    if (!m_timeline || !m_view) { return false; }
+    m_trimMode->leave();
+    cancelGesture();
+    clearToolHover();
+    if (parentItem()) { parentItem()->forceActiveFocus(Qt::MouseFocusReason); }
+    // A range is a target for audio generation, so it sits on audio tracks only.
+    bool audio = false;
+    for (const auto& value : m_timeline->timeline().raw.value("tracks").toArray()) {
+        if (value.toObject().value("id").toString() == trackId) { audio = value.toObject().value("type").toString() == u"audio"; }
+    }
+    const auto tempo = nt::music::sequenceTempo(m_timeline->timeline().raw);
+    if (!audio || !tempo) {
+        m_musicSelection->clear();
+        return true;
+    }
+    // The second press of a double-click on a clip selects the clip's span. The
+    // controller holds the pointer until the release, so no lane sees the rest of it.
+    const bool doubleClick = !clipId.isEmpty() && clipId == m_rangeClickClip && m_rangeClick.isValid() &&
+        m_rangeClick.elapsed() <= QGuiApplication::styleHints()->mouseDoubleClickInterval();
+    m_rangeClickClip.clear();
+    m_rangeClick.invalidate();
+    if (doubleClick) { selectClipRange(clipId); }
+    const auto mods = Qt::KeyboardModifiers(modifiers);
+    Gesture g;
+    g.rangeHeld = doubleClick;
+    g.kind = QStringLiteral("range");
+    g.clipId = trackId;
+    g.rangeClipId = clipId;
+    g.startX = g.lastX = sceneX;
+    g.startY = g.lastY = sceneY;
+    g.alt = mods & Qt::AltModifier;
+    g.scrollLeftAtStart = m_view->scrollLeftPx();
+    g.generation = m_timeline->documentGeneration();
+    g.rangeTrackAtStart = m_musicSelection->trackId();
+    g.rangeStartAtStart = m_musicSelection->startFrame();
+    g.rangeEndAtStart = m_musicSelection->endFrame();
+    g.rangeAnchor = nt::music::rangeEdge(nt::music::laneFrame(laneMsAt(sceneX)), *tempo,
+                                         nt::music::rangeDivision(m_view->gridDivision().toStdString()), g.alt);
+    m_gesture = std::move(g);
+    setCursor(QCursor(Qt::IBeamCursor));
+    setKeepMouseGrab(true);
+    grabMouse();
+    emit gestureChanged();
+    return true;
+}
+
+void ClipGestureController::updateRange() {
+    auto& g = m_gesture;
+    if (g.rangeHeld) { return; }
+    const double travelPx = std::abs(g.lastX - g.startX + m_view->scrollLeftPx() - g.scrollLeftAtStart);
+    if (!g.dragging && travelPx <= nt::ui::DRAG_THRESHOLD_PX) { return; }
+    g.dragging = true;
+    const auto tempo = nt::music::sequenceTempo(m_timeline->timeline().raw);
+    if (!tempo) { return; }
+    const auto range = nt::music::rangeBetween(g.rangeAnchor, nt::music::laneFrame(laneMsAt(g.lastX)), *tempo,
+                                               nt::music::rangeDivision(m_view->gridDivision().toStdString()), g.alt);
+    m_musicSelection->set(g.clipId, range.startFrame, range.endFrame);
+}
+
+bool ClipGestureController::selectClipRange(const QString& id) {
+    const auto* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
+    if (!clip) { return false; }
+    m_musicSelection->set(QString::fromStdString(clip->trackId), nt::music::laneFrame(clip->startMs),
+                          nt::music::laneFrame(clip->endMs()));
+    return true;
+}
+
+bool ClipGestureController::loopMusicSelection() {
+    if (!m_musicSelection->active() || !m_view || !m_clock) { return false; }
+    // Frames are whole, so the loop length is a whole number of frames (MD8).
+    m_view->clearRange();
+    m_view->setRangeIn(m_musicSelection->startMs());
+    m_view->setRangeOut(m_musicSelection->endMs());
+    m_clock->setLoop(true);
+    return true;
 }
 
 QVariantMap ClipGestureController::groupSpan(const QString& id) const {
@@ -1092,6 +1189,8 @@ void ClipGestureController::mouseMoveEvent(QMouseEvent* event) {
     m_gesture.alt = event->modifiers().testFlag(Qt::AltModifier);
     if (m_gesture.kind == u"marquee") {
         updateMarquee();
+    } else if (m_gesture.kind == u"range") {
+        updateRange();
     } else if (m_gesture.kind == u"resize" || m_gesture.kind == u"reorder") {
         m_gesture.dragging = true;
         if (m_gesture.kind == u"reorder") { updateTrackDrag(); }
@@ -1119,6 +1218,14 @@ void ClipGestureController::mouseReleaseEvent(QMouseEvent* event) {
     event->accept();
 }
 
+void ClipGestureController::mouseDoubleClickEvent(QMouseEvent* event) {
+    if (m_gesture.kind == u"range") {
+        event->accept();
+        return;
+    }
+    QQuickItem::mouseDoubleClickEvent(event);
+}
+
 void ClipGestureController::mouseUngrabEvent() {
     // Another item took the pointer (or the window lost it): cancel.
     if (!m_gesture.kind.isEmpty()) finishGesture(false, Qt::NoModifier);
@@ -1142,6 +1249,7 @@ void ClipGestureController::updatePolish() {
     else if (m_gesture.kind == u"slip") { applySlip(); }
     else if (m_gesture.kind == u"slide") { applySlide(); }
     else if (m_gesture.kind == u"marquee") { updateMarquee(); }
+    else if (m_gesture.kind == u"range") { updateRange(); }
     else if (m_gesture.kind == u"reorder") { updateTrackDrag(); }
     m_autoScrollTimer.start();
 }
@@ -1166,6 +1274,10 @@ void ClipGestureController::cancelGesture() {
     if (m_gesture.kind.isEmpty()) return;
     const Gesture g = m_gesture;
     dropGesture();
+    if (g.kind == u"range") {
+        m_musicSelection->set(g.rangeTrackAtStart, g.rangeStartAtStart, g.rangeEndAtStart);
+        return;
+    }
     if (m_timeline && g.dragging && g.kind != u"resize" && g.kind != u"reorder" && g.kind != u"marquee" && g.generation == m_timeline->documentGeneration()) {
         m_timeline->replaceClips(g.before);
     }
@@ -1182,6 +1294,35 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
     Gesture g = m_gesture;
     m_gesture = Gesture{};
     m_trimSourceRange.clear();
+    if (g.kind == u"range") {
+        if (window() && window()->mouseGrabberItem() == this) { ungrabMouse(); }
+        if (g.rangeHeld) {
+            // The double-click's release: the clip's span stays selected.
+        } else if (!completed) {
+            m_musicSelection->set(g.rangeTrackAtStart, g.rangeStartAtStart, g.rangeEndAtStart);
+        } else {
+            // The release's own modifiers decide whether the last edge is free.
+            g.alt = modifiers & Qt::AltModifier;
+            m_gesture = g;
+            updateRange();
+            const bool dragged = m_gesture.dragging;
+            m_gesture = Gesture{};
+            if (!dragged) {
+                // A click clears the range. On empty space it also parks the playhead, as a click
+                // on an empty lane does. On a clip it does not, or the playhead would take the
+                // second press of a double-click.
+                m_musicSelection->clear();
+                m_rangeClickClip = g.rangeClipId;
+                m_rangeClick.start();
+                if (m_clock && g.rangeClipId.isEmpty()) {
+                    const double time = std::round(std::max(0.0, laneMsAt(g.startX)));
+                    m_clock->seek(m_timeline->durationMs() > 0 ? std::min(time, m_timeline->durationMs()) : time);
+                }
+            }
+        }
+        emit gestureChanged();
+        return;
+    }
     if (g.kind == u"marquee") {
         const bool click = !g.dragging || m_rubberBand.value("width").toDouble() <= nt::ui::DRAG_THRESHOLD_PX;
         m_rubberBand.clear();
@@ -1393,14 +1534,14 @@ bool ClipGestureController::trimEditPoint(double edgeTargetMs, bool merge) {
 }
 
 QString ClipGestureController::resolveKeyAction(int key, const QString& text, int modifiers) const {
-    return resolveTimelineAction(domKey(key, text, modifiers), m_preset);
+    return resolveTimelineAction(domKey(key, text, modifiers), keymap());
 }
 
 bool ClipGestureController::handleKey(int key, const QString& text, int modifiers, bool autoRepeat) {
     if (!m_timeline) { return false; }
     if (m_gesture.kind.isEmpty() && m_trimMode->handleKey(key, modifiers, autoRepeat)) { return true; }
     const QVariantMap context{{"autoRepeat", autoRepeat}};
-    const QString action = resolveTimelineAction(domKey(key, text, modifiers), m_preset);
+    const QString action = resolveTimelineAction(domKey(key, text, modifiers), keymap());
     // A preset's key means that action alone, even when the action refuses.
     if (!action.isEmpty()) { return runAction(action, context); }
     auto mods = Qt::KeyboardModifiers(modifiers) & (Qt::ControlModifier | Qt::MetaModifier | Qt::ShiftModifier | Qt::AltModifier);
@@ -1410,7 +1551,7 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
     }
     const QKeySequence sequence(QKeyCombination(mods, static_cast<Qt::Key>(unshiftedKey(key))));
     for (const auto& extension : nt::wiring::keyActions()) {
-        if (extension.defaultKeys.contains(sequence) && !presetBindsAction(m_preset, extension.name)) {
+        if (extension.defaultKeys.contains(sequence) && !presetBindsAction(keymap(), extension.name)) {
             return runAction(extension.name, context);
         }
     }
@@ -1628,6 +1769,7 @@ bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRep
     }
     if (action == u"escape") {
         setSelection({});
+        m_musicSelection->clear();
         setActiveTool(QStringLiteral("select"));
         return false;  // Escape still closes menus elsewhere.
     }
@@ -1882,12 +2024,12 @@ std::optional<double> ClipGestureController::sourceCap(const QJsonObject& clip) 
 }
 
 QString ClipGestureController::shortcutFor(const QString& action) const {
-    const auto shortcut = formatActionShortcut(m_preset, action);
+    const auto shortcut = formatActionShortcut(keymap(), action);
     if (!shortcut.isEmpty()) { return shortcut; }
     for (const auto& extension : nt::wiring::keyActions()) {
         if (extension.name == action) {
             for (const auto& key : extension.defaultKeys) {
-                if (!presetBindsSequence(m_preset, key)) { return key.toString(QKeySequence::NativeText); }
+                if (!presetBindsSequence(keymap(), key)) { return key.toString(QKeySequence::NativeText); }
             }
         }
     }
@@ -1920,7 +2062,7 @@ QSet<QString> ClipGestureController::availableActions() {
 }
 
 QVariantMap ClipGestureController::shortcutSheet() const {
-    QJsonObject sheet = nt::edit::shortcutSheet(m_preset);
+    QJsonObject sheet = nt::edit::shortcutSheet(keymap());
     QJsonArray groups;
     QSet<QString> listed;
     const auto available = availableActions();
@@ -1940,12 +2082,12 @@ QVariantMap ClipGestureController::shortcutSheet() const {
     for (const auto& action : nt::wiring::keyActions()) {
         if (listed.contains(action.name)) { continue; }
         QJsonArray combos;
-        for (const QStringList& keys : actionBindingKeys(m_preset, action.name)) {
+        for (const QStringList& keys : actionBindingKeys(keymap(), action.name)) {
             combos.append(QJsonArray::fromStringList(keys));
         }
         if (combos.isEmpty()) {
             for (const auto& key : action.defaultKeys) {
-                if (!presetBindsSequence(m_preset, key)) {
+                if (!presetBindsSequence(keymap(), key)) {
                     combos.append(QJsonArray::fromStringList(key.toString(QKeySequence::NativeText).split('+')));
                 }
             }

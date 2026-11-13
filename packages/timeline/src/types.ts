@@ -31,7 +31,12 @@ import type { ClipAnimation } from "./animation/types.js";
 // the inferred types are re-exported here so a timeline consumer reaches them
 // through the same import as the rest of the document.
 import type {
+  MusicGenerationRecord,
+  MusicKey,
+  MusicRole,
+  MusicTask,
   TimelineBeat,
+  TimelineMusic,
   TimelineSetup,
   TimelineSetupStage
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
@@ -39,6 +44,7 @@ import type { ProductionCandidateResult, ProductionGenerationSnapshot } from "@n
 import type { LineDeliveryRequest } from "./lineDelivery.js";
 export type { TimelineBeat, TimelineSetup, TimelineSetupStage };
 export type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
+export type { MusicGenerationRecord, MusicKey, MusicRole, MusicTask, TimelineMusic };
 
 export interface TimelineSequence {
   /** Working color space contract. Absent preserves legacy rendering. */
@@ -82,6 +88,8 @@ export interface TimelineSequence {
   tempo?: TimelineTempo;
   /** The mix bus. Absent means 0 dB with no effects. */
   master?: TimelineMasterChannel;
+  /** Marks a music project and holds its prompt history (MUSIC-MODE.md MD3). */
+  music?: TimelineMusic;
   /**
    * Guided video-flow state (PRD § 8.5). Absent on every sequence not built
    * through the flow, which is what makes those open straight in the editor.
@@ -431,6 +439,8 @@ export interface TimelineTrack {
    * strips it.
    */
   automation?: AutomationLane[];
+  /** The stem this track holds in a music project (MUSIC-MODE.md MD4). */
+  musicRole?: MusicRole;
 }
 
 /**
@@ -1204,6 +1214,8 @@ export interface TimelineTempo {
     beatsPerBar: number;
     beatUnit: number;
   };
+  /** Project key for music generation. Absent lets the model pick one. */
+  key?: MusicKey;
 }
 
 /** Kind of sound on a clip. Mirrors `clipAudioRole` in the protocol schema. */
@@ -2728,6 +2740,8 @@ export interface ClipVersion {
     strength?: number;
     resolution?: string;
   };
+  /** Generation record of a music take (MUSIC-MODE.md MD5). */
+  musicGeneration?: MusicGenerationRecord;
 }
 
 export interface TimelineMarker {

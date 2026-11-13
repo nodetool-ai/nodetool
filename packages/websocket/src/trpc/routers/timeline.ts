@@ -557,6 +557,7 @@ export const timelineRouter = router({
           scriptEnabled: input.document.scriptEnabled ?? current.scriptEnabled,
           tempo: input.document.tempo ?? current.tempo,
           master: input.document.master ?? current.master,
+          music: input.document.music ?? current.music,
           camera2d: input.document.camera2d === undefined ? current.camera2d : input.document.camera2d,
           setup: input.document.setup ?? current.setup,
           mediaTracks: input.document.mediaTracks ?? current.mediaTracks,

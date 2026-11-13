@@ -11,6 +11,15 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   The item fills each clip body. Put pointer targets on the grips you draw.
 - `toolbar`: receives `timeline`, `gestures`, `viewState`, and `compact`, after Snap.
   Set the item's implicit width and height for the horizontal layout.
+- `toolbarVariant`: receives `timeline`, `gestures`, `viewState`, `clock`, and `compact`.
+  While an item reports a nonzero implicit width, it replaces the Timeline panel's tool row,
+  so a layout can have its own toolbar (the Music toolbar). Report 0 to give the row back.
+- `rulerOverlay`: receives `timeline`, `gestures`, and `viewState`. The item fills the
+  ruler, is clipped to it, and draws in viewport coordinates (`x` is
+  `ms / viewState.msPerPx - viewState.scrollLeftPx`). It takes no pointer input.
+- `tracksFooter`: receives `timeline`, `gestures`, and `viewState`. The item spans the
+  bottom of the Timeline panel under the scrollbar, and its implicit height comes off the
+  lanes. Report 0 to take no space.
 - `documentBar`: receives `timeline`, after Undo and Redo. Set implicit dimensions.
 - `documentBarActions`: receives `timeline`, at the right end with 8 px padding. Set implicit dimensions.
 - `preview`: receives `timeline` and `clock`, fills the preview frame, and is
@@ -22,6 +31,9 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   Show controls hides this slot. The Hand tool disables its input.
 - `trackLane`: receives the raw `track` map and `timeline`. Set `implicitHeight`
   in screen pixels. Contributions stack below the base lane and extend the row.
+- `laneOverlay`: receives the raw `track` map, `timeline`, `gestures`, and `viewState`.
+  The item fills the base lane above its clips, in lane coordinates (`x` is
+  `ms / viewState.msPerPx`). Leave pointer input to the lane except on controls you draw.
 - Playhead pass-through: add `property bool playheadPassthrough: true` to a pointer target, or define `playheadPassthrough(localPoint)` on a wrapper to hit-test its targets.
 - Monitor views: `nt::ui::registerMonitorView({id, source, order, title})` from
   `ui/MonitorViewRegistry.h`. The view appears in the Program monitor's wrench menu under
@@ -80,7 +92,10 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   action alone, even when it refuses. A default key applies only where the preset uses
   neither that key nor another key for the action, and `shortcutFor` and the sheet follow the same
   rule. Keys for one preset go in `edit/KeymapOverlay.h`, which changes the generated table
-  without editing `web/`, and need no default. Menus call the same
+  without editing `web/`, and need no default. Keys for one editor context go in
+  `KEYMAP_CONTEXT_JSON` there and apply over either preset while
+  `ClipGestureController.keymapContext` names that context (`music` in the Music layout); they
+  take their chords from the preset's other actions, so a key means one action in each context. Menus call the same
   `gestures.runAction(name, context)` dispatcher. Actions with a key appear in the shortcut
   sheet, in the sheet group named `group`, or in Extensions when it is empty. A handler that
   returns false must have changed nothing, because a key the Timeline refuses is offered again as

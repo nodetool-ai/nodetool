@@ -696,6 +696,30 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "Calls only the sd-server it spawned on 127.0.0.1 at a port it picked. Redirects are rejected. Job URLs are built from the job id, never from a response URL. The provider is excluded from the cloud profile."
   },
   {
+    file: "packages/runtime/src/providers/acestep-provider.ts",
+    owner: "ACE-Step music provider",
+    inputSource: "operator",
+    schemes: ["http", "https"],
+    authScope: "none",
+    redirects: "manual-none",
+    dnsRebinding: "deployment-egress",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "Calls the ace-server it spawned on 127.0.0.1, or the remote ace-server named by ACESTEP_SERVER_URL, normally the LAN. Every URL is that origin plus a fixed path and the job id. Redirects are rejected and no credential is sent. The acestep provider is excluded from the cloud profile and its settings group is hidden there."
+  },
+  {
+    file: "packages/runtime/src/providers/acestep-server.ts",
+    owner: "Managed ace-server",
+    inputSource: "fixed",
+    schemes: ["http"],
+    authScope: "none",
+    redirects: "manual-none",
+    dnsRebinding: "n/a",
+    policy: "fixed-host",
+    guardedBy: [],
+    note: "Polls GET /health only on the ace-server it started on 127.0.0.1 at a port it picked, until that server answers. Redirects are rejected. The acestep provider is excluded from the cloud profile."
+  },
+  {
     file: "packages/runtime/src/providers/wan2gp-client.ts",
     owner: "Wan2GP MCP client",
     inputSource: "operator",
