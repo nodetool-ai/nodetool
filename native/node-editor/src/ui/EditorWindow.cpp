@@ -3736,16 +3736,11 @@ void EditorWindow::presentation(const QVariantMap &roles) {
   const auto css = [](const QColor &c) { return QStringLiteral("rgba(%1,%2,%3,%4)").arg(c.red()).arg(c.green()).arg(c.blue()).arg(c.alphaF()); };
   dockHost_->setStyleSheet(QStringLiteral("QMainWindow::separator { background: %1; width: 1px; height: 1px; }").arg(css(color("border"))));
   const auto px = [&](const char *name) { return roles.value(name).toInt(); };
-  setStyleSheet(QStringLiteral("QMenu { background: %1; color: %2; border: %7px solid %3; border-radius: %8px; padding: %9px; font-family: \"%4\"; font-size: %12px; }"
-                               "QMenu::item { padding: %10px %13px %10px %14px; border-radius: %11px; }"
-                               "QMenu::item:selected { background: %5; }"
-                               "QMenu::item:disabled { color: %6; }"
-                               "QMenu::separator { height: %7px; background: %3; margin: %9px 0; }"
-                               "QToolTip { background: %1; color: %2; border: %7px solid %3; font-family: \"%4\"; font-size: %15px; padding: %9px %16px; }")
-                    .arg(css(color("overlay")), css(color("text")), css(color("border")), roles.value("sans").toString(), css(color("field")), css(color("secondary")),
-                         QString::number(px("borderWidth")), QString::number(px("radiusOverlay")), QString::number(px("spaceXs")), QString::number(px("spaceSm")),
-                         QString::number(px("radiusControl")), QString::number(px("labelSize")), QString::number(px("spaceXxl")), QString::number(px("spaceLg")),
-                         QString::number(px("captionSize")), QString::number(px("spaceMd"))));
+  // Menus render through Ui.ContextMenu; only the native tooltip that
+  // Ui.TooltipHost routes to (QToolTip) still takes a widget style sheet.
+  setStyleSheet(QStringLiteral("QToolTip { background: %1; color: %2; border: %3px solid %4; font-family: \"%5\"; font-size: %6px; padding: %7px %8px; }")
+                    .arg(css(color("overlay")), css(color("text")), QString::number(px("borderWidth")), css(color("border")), roles.value("sans").toString(),
+                         QString::number(px("captionSize")), QString::number(px("spaceXs")), QString::number(px("spaceMd"))));
   const auto theme = CanvasTheme::fromRoles(roles);
   QJsonObject style{{"NormalBoundaryColor", theme.divider.name(QColor::HexArgb)},
                     {"SelectedBoundaryColor", color("focus").name()},
