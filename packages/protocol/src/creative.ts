@@ -582,6 +582,11 @@ export interface Shot {
   /** Model used for this shot's latest clip render. */
   clip_model?: ShotModelRef;
   status: ShotStatus;
+  /**
+   * Why the last render failed, kept while {@link status} is `"failed"` so the
+   * board can still say why after a reload. Cleared when the status moves on.
+   */
+  failure_reason?: string;
   /** Estimated cost to render this shot's clip, for the gate. */
   cost_estimate?: number | null;
   notes?: string;
