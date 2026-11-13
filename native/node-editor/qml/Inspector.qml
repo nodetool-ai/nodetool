@@ -23,25 +23,6 @@ Rectangle {
     readonly property bool running: inspector.running
     readonly property var runProgress: inspector.runProgress
     readonly property var cost: inspector.costEstimate
-    component TabButton: PanelRow {
-        id: tabButton
-        property int index: 0
-        property var count: undefined
-        implicitWidth: tabRow.implicitWidth + Ui.Metrics.sm
-        implicitHeight: Ui.Metrics.compact
-        active: root.tab === index
-        background: Item {}
-        onClicked: root.tab = index
-        Row {
-            id: tabRow
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: -Ui.Metrics.micro
-            spacing: Ui.Metrics.sm
-            Ui.Text { text: tabButton.text; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: tabButton.active ? Ui.Text.Primary : Ui.Text.Secondary; lineHeight: 1 }
-            Ui.Text { y: Ui.Metrics.micro; visible: tabButton.count !== undefined; text: tabButton.count !== undefined ? tabButton.count : ""; role: Ui.Typography.SansCaption; domainColor: tabButton.active ? Ui.Theme.accentPrimary : Ui.Theme.textSecondary; lineHeight: 1 }
-        }
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.focus; visible: tabButton.active; color: Ui.Theme.accentPrimary }
-    }
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -71,14 +52,18 @@ Rectangle {
             visible: root.hasSelection
             Layout.fillWidth: true
             Layout.preferredHeight: Ui.Metrics.compact
-            Row {
+            Ui.TabBar {
                 x: Ui.Metrics.lg
                 height: parent.height
-                spacing: Ui.Metrics.md
-                TabButton { objectName: "tab-params"; index: 0; text: "Params"; count: root.fieldsModel.length }
-                TabButton { objectName: "tab-io"; index: 1; text: "I/O"; count: (root.info.inputs ? root.info.inputs.length : 0) + (root.info.outputs ? root.info.outputs.length : 0) }
-                TabButton { objectName: "tab-help"; index: 2; text: "Help" }
-                TabButton { objectName: "tab-history"; index: 3; text: "History" }
+                accessibleName: "Inspector"
+                value: root.tab
+                tabs: [
+                    { objectName: "tab-params", value: 0, label: "Params", count: root.fieldsModel.length },
+                    { objectName: "tab-io", value: 1, label: "I/O", count: (root.info.inputs ? root.info.inputs.length : 0) + (root.info.outputs ? root.info.outputs.length : 0) },
+                    { objectName: "tab-help", value: 2, label: "Help" },
+                    { objectName: "tab-history", value: 3, label: "History" }
+                ]
+                onValueCommitted: value => root.tab = value
             }
         }
         Rectangle { visible: root.hasSelection; Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }

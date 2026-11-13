@@ -12,7 +12,7 @@ Window {
         }
         return true
     }
-    function boundsValid() { return flowFits(titleFlow) && flowFits(actionFlow) && flowFits(fieldsFlow) && flowFits(metricsFlow) }
+    function boundsValid() { return flowFits(titleFlow) && flowFits(actionFlow) && flowFits(fieldsFlow) && flowFits(metricsFlow) && flowFits(tabsFlow) }
     Component.onCompleted: { Ui.Theme.reducedMotion = true; Ui.Theme.uiScale = galleryUiScale; Ui.Theme.textScale = galleryTextScale; Ui.Theme.preference = galleryLight ? Ui.Theme.Light : Ui.Theme.Dark }
     Flickable {
         anchors.fill: parent; clip: true
@@ -66,6 +66,35 @@ Window {
                 Ui.Slider { width: 160; value: 0.6; accessibleName: "Amount" }
                 Ui.Fader { width: 64; height: 130; value: 0.6; accessibleName: "Volume"; marks: [{position: 1, label: "+6"}, {position: 0, label: "−∞"}] }
                 Ui.LevelMeter { width: 24; height: 130; levels: [0.7, 0.45]; held: [0.8, 0.6]; clipped: [false, false]; accessibleName: "Output level" }
+            }
+            Flow {
+                id: tabsFlow
+                width: parent.width; spacing: Ui.Metrics.lg
+                Ui.TabBar {
+                    id: galleryTabs
+                    width: Math.min(implicitWidth, parent.width); accessibleName: "Sections"; value: "params"
+                    tabs: [{label: "Params", value: "params", count: 4}, {label: "I/O", value: "io", count: 2}, {label: "History", value: "history", disabledReason: "Nothing has run yet"}]
+                    onValueCommitted: value => galleryTabs.value = value
+                }
+                Ui.DocumentTabStrip {
+                    id: galleryDocuments
+                    width: Math.min(300, parent.width); height: Ui.Metrics.comfortable; accessibleName: "Documents"; currentIndex: 0
+                    minTabWidth: 90; maxTabWidth: 160
+                    tabs: [{title: "Draft", modified: true}, {title: "A document with a long name", renamable: true}, {title: "Pinned", closable: false}]
+                    onTabActivated: index => galleryDocuments.currentIndex = index
+                }
+                Ui.SegmentedControl {
+                    id: galleryChoice
+                    width: Math.min(implicitWidth, parent.width); accessibleName: "Platform"; value: "mac"
+                    options: [{label: "macOS", value: "mac"}, {label: "Windows", value: "win"}, {label: "Linux", value: "linux", enabled: false, reason: "Not available yet"}]
+                    onValueCommitted: value => galleryChoice.value = value
+                }
+                Ui.SegmentedControl {
+                    id: galleryTray
+                    width: Math.min(implicitWidth, parent.width); accessibleName: "View"; value: "graph"; variant: Ui.SegmentedControl.Tray
+                    options: [{label: "Graph", value: "graph", iconName: "accountTree"}, {label: "Chain", value: "chain", iconName: "linearScale"}]
+                    onValueCommitted: value => galleryTray.value = value
+                }
             }
             Repeater {
                 model: [Ui.Typography.SansTitle, Ui.Typography.SansBody, Ui.Typography.SansLabel, Ui.Typography.SansCaption, Ui.Typography.MonoCode, Ui.Typography.MonoStrong, Ui.Typography.MonoLabel, Ui.Typography.MonoCaption]

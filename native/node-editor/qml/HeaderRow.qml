@@ -64,54 +64,6 @@ Rectangle {
         iconColor: active ? Ui.Theme.accentPrimary : undefined
     }
 
-    component ModeOption: Item {
-        id: option
-        property string text: ""
-        property string iconName: ""
-        property bool selected: false
-        property bool available: true
-        property string tooltip: ""
-        signal picked()
-        implicitWidth: optionRow.implicitWidth + Ui.Metrics.sm * 2
-        implicitHeight: Ui.Metrics.compact
-        Accessible.role: Accessible.RadioButton
-        Accessible.name: text
-        Accessible.checked: selected
-        Accessible.description: tooltip
-        // A disabled control receives no hover, so the reason hangs on this wrapper.
-        HoverHandler {
-            onHoveredChanged: root.showHint(hovered ? option.tooltip : "")
-        }
-        PanelRow {
-            id: optionButton
-            objectName: option.objectName + "-button"
-            anchors.fill: parent
-            text: option.text
-            enabled: option.available
-            active: option.selected
-            onClicked: option.picked()
-        }
-        Row {
-            id: optionRow
-            anchors.centerIn: parent
-            spacing: Ui.Metrics.xs
-            Ui.Icon {
-                anchors.verticalCenter: parent.verticalCenter
-                name: option.iconName
-                size: Ui.Metrics.iconSm
-                tone: !option.available ? Ui.Text.Disabled : option.selected ? Ui.Text.Primary : Ui.Text.Secondary
-            }
-            Ui.Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: option.text
-                role: Ui.Typography.SansLabel
-                font.weight: Font.Normal
-                lineHeight: 1
-                tone: !option.available ? Ui.Text.Disabled : option.selected ? Ui.Text.Primary : Ui.Text.Secondary
-            }
-        }
-    }
-
     component SlotDivider: Rectangle {
         implicitWidth: Ui.Metrics.border
         implicitHeight: Ui.Metrics.iconSm
@@ -269,35 +221,17 @@ Rectangle {
 
         SlotDivider {
         }
-        Rectangle {
+        Ui.SegmentedControl {
             id: modeSwitch
             objectName: "header-mode"
-            implicitWidth: modeRow.implicitWidth + Ui.Metrics.border * 2
-            implicitHeight: Ui.Metrics.compact
-            radius: Ui.Metrics.radiusControl
-            color: Ui.Theme.actionHover
-            border.width: Ui.Metrics.border
-            border.color: roles.divider
-            clip: true
-            Accessible.role: Accessible.Grouping
-            Accessible.name: "Editor view"
-            Row {
-                id: modeRow
-                anchors.centerIn: parent
-                ModeOption {
-                    objectName: "header-mode-graph"
-                    text: "Graph"
-                    iconName: "accountTree"
-                    selected: true
-                }
-                ModeOption {
-                    objectName: "header-mode-chain"
-                    text: "Chain"
-                    iconName: "linearScale"
-                    available: false
-                    tooltip: root.chainUnavailableReason
-                }
-            }
+            variant: Ui.SegmentedControl.Tray
+            trayBorderColor: roles.divider
+            accessibleName: "Editor view"
+            value: "graph"
+            options: [
+                { objectName: "header-mode-graph", value: "graph", label: "Graph", iconName: "accountTree" },
+                { objectName: "header-mode-chain", value: "chain", label: "Chain", iconName: "linearScale", enabled: false, reason: root.chainUnavailableReason }
+            ]
         }
 
         SlotDivider {
