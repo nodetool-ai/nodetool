@@ -1649,6 +1649,7 @@ export interface SecretResponse {
   created_at?: string | null;
   updated_at?: string | null;
   is_configured: boolean;
+  source?: "user" | "server";
   is_unreadable?: boolean;
   is_set?: boolean;
   group?: string;

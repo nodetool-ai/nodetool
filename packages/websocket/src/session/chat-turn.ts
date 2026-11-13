@@ -235,6 +235,50 @@ const GENERIC_CHAT_ERROR =
   "Something went wrong while processing your request. Please try again.";
 
 /**
+ * Stands in for an assistant reply that carried no text and no tool call.
+ * Free routed models (`openrouter/free`) sometimes end a completion without
+ * any content; saved as is, the user's message looked unanswered.
+ */
+export const EMPTY_REPLY_NOTE =
+  "The model sent back an empty reply. Send your message again, or pick another model.";
+
+/**
+ * How long a turn may go without producing anything, outside a running tool,
+ * before it is stopped. `NODETOOL_CHAT_IDLE_TIMEOUT_MS` overrides it.
+ */
+const CHAT_TURN_IDLE_LIMIT_MS = 3 * 60 * 1000;
+
+function chatTurnIdleLimitMs(): number {
+  const raw = Number(process.env.NODETOOL_CHAT_IDLE_TIMEOUT_MS);
+  return Number.isFinite(raw) && raw > 0 ? raw : CHAT_TURN_IDLE_LIMIT_MS;
+}
+
+/** The note a turn stopped for silence leaves in the thread. */
+export function idleStopNote(limitMs: number): string {
+  const minutes = Math.round(limitMs / 60_000);
+  const span =
+    minutes >= 1
+      ? `${minutes} minute${minutes === 1 ? "" : "s"}`
+      : `${Math.max(1, Math.round(limitMs / 1000))} seconds`;
+  return `Stopped: the model sent nothing for ${span}. Send your message again, or pick another model.`;
+}
+
+/** Whether an assistant message would render as nothing at all. */
+export function isEmptyAssistantReply(message: ProviderMessage): boolean {
+  if (Array.isArray(message.toolCalls) && message.toolCalls.length > 0) {
+    return false;
+  }
+  const { content } = message;
+  if (content === null || content === undefined) return true;
+  if (isString(content)) return content.trim().length === 0;
+  if (!Array.isArray(content)) return false;
+  return content.every(
+    (block) =>
+      block.type === "text" && (!isString(block.text) || block.text.trim() === "")
+  );
+}
+
+/**
  * Keep implementation details out of the client error envelope. Provider
  * messages remain useful when they are short and user-facing, but database
  * diagnostics and query arguments can contain schema details or secrets.
@@ -2924,12 +2968,57 @@ export class ChatTurnHandler {
       }
     }
 
+    // ── Idle watchdog (A13) ──────────────────────────────────────────────
+    // A model that stops sending mid-turn left the user watching a spinner
+    // until the run deadline, half an hour later. The turn runs on its own
+    // signal, linked to the caller's, so silence can stop it with a reason.
+    // A running tool is not silence: generation tools legitimately take
+    // minutes, so the clock only runs while the model itself is answering.
+    const idleLimitMs = chatTurnIdleLimitMs();
+    const turnAbort = new AbortController();
+    const forwardAbort = (): void => turnAbort.abort(signal?.reason);
+    if (signal?.aborted) forwardAbort();
+    else signal?.addEventListener("abort", forwardAbort, { once: true });
+    const turnSignal = turnAbort.signal;
+    let stoppedForSilence = false;
+    let toolsRunning = 0;
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
+    const armIdleTimer = (): void => {
+      clearTimeout(idleTimer);
+      idleTimer = undefined;
+      if (toolsRunning > 0 || turnSignal.aborted) return;
+      idleTimer = setTimeout(() => {
+        stoppedForSilence = true;
+        log.warn("Chat turn stopped: no output", { threadId, idleLimitMs });
+        turnAbort.abort("idle");
+      }, idleLimitMs);
+    };
+    const watchedExecuteTool = async (
+      call: ProviderToolCall
+    ): Promise<string | MessageContent[]> => {
+      toolsRunning++;
+      clearTimeout(idleTimer);
+      try {
+        return await effectiveExecuteTool(call);
+      } finally {
+        toolsRunning--;
+        armIdleTimer();
+      }
+    };
+    const persistIdleStop = async (): Promise<void> => {
+      await persistTurnMessage(
+        { role: "assistant", content: idleStopNote(idleLimitMs) },
+        true
+      );
+    };
+
     /**
      * One pass of the provider's tool-calling loop over the current
      * `messagesToSend`. A function rather than a statement so the reactive
      * compaction below can run it a second time against a shortened history.
      */
     const streamTurn = async (): Promise<void> => {
+      armIdleTimer();
       for await (const item of provider.generateLoop({
         messages: messagesToSend,
         model,
@@ -2937,7 +3026,7 @@ export class ChatTurnHandler {
         threadId,
         providerSession: capturedSession,
         loadFullHistory: loadFullHistory ?? undefined,
-        executeTool: useTools ? effectiveExecuteTool : undefined,
+        executeTool: useTools ? watchedExecuteTool : undefined,
         maxIterations: MAX_TOOL_ROUNDS,
         turnBudget,
         effort: reasoningEffort,
@@ -2945,7 +3034,7 @@ export class ChatTurnHandler {
         workspaceDir: chatWorkspace?.localDir ?? undefined,
         skills: skillsForProvider,
         resolveMedia: mediaResolverFor(ctx),
-        signal
+        signal: turnSignal
       })) {
         // A newer turn has taken over. Stop driving the client, but do NOT
         // drop what this turn already produced: the provider checks its abort
@@ -2953,6 +3042,7 @@ export class ChatTurnHandler {
         // flight runs to completion and its result is arriving right now.
         // Discarding it left the model blind to a side effect it had already
         // caused, and it silently redid the work.
+        armIdleTimer();
         if (
           !superseded &&
           requestSeq !== undefined &&
@@ -3005,6 +3095,8 @@ export class ChatTurnHandler {
               { role: "assistant", content: `Stopped: ${detail}` },
               true
             );
+          } else if (stoppedForSilence) {
+            await persistIdleStop();
           } else if (signal?.reason === "shutdown") {
             // …except a shutdown, which nobody asked for either. The reply
             // stops mid-sentence and, said nowhere, reads as the model
@@ -3026,7 +3118,16 @@ export class ChatTurnHandler {
         }
 
         if (isProviderMessageEvent(item)) {
-          await persistTurnMessage(item.message, true);
+          // A Stop leaves the cut-short turn empty on purpose. Anything else
+          // ending with nothing to show gets a note, so the message never
+          // reads as unanswered.
+          const message =
+            item.message.role === "assistant" &&
+            !turnSignal.aborted &&
+            isEmptyAssistantReply(item.message)
+              ? { ...item.message, content: EMPTY_REPLY_NOTE }
+              : item.message;
+          await persistTurnMessage(message, true);
           continue;
         }
 
@@ -3135,6 +3236,13 @@ export class ChatTurnHandler {
         stoppedBy: turnBudget.exhausted?.kind ?? null
       });
     } catch (err) {
+      // The watchdog aborted a provider that throws on abort rather than
+      // ending its stream. Its error is the abort, not the reason.
+      if (stoppedForSilence && !superseded) {
+        await persistIdleStop();
+        await sendTerminalDone();
+        return;
+      }
       // Stop and supersede are expected control flow. Their provider errors
       // must not become durable assistant failures or a second terminal frame.
       if (
@@ -3213,6 +3321,8 @@ export class ChatTurnHandler {
       await this.saveMessageToDb(errorMsgData);
       await this.session.send(errorMsgData);
     } finally {
+      clearTimeout(idleTimer);
+      signal?.removeEventListener("abort", forwardAbort);
       // A background generation outlives the turn that started it. Its
       // terminal message closes its row, so keep listening until it settles.
       void whenBackgroundGenerationsSettle(ctx).finally(() => {
