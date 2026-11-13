@@ -52,6 +52,7 @@ import { GroqProvider } from "./groq-provider.js";
 import { MinimaxProvider } from "./minimax-provider.js";
 import { MistralProvider } from "./mistral-provider.js";
 import { MoonshotProvider } from "./moonshot-provider.js";
+import { ZaiProvider } from "./zai-provider.js";
 import { OpenRouterProvider } from "./openrouter-provider.js";
 import { RequestyProvider } from "./requesty-provider.js";
 import { OpperProvider } from "./opper-provider.js";
@@ -316,6 +317,7 @@ export { GroqProvider };
 export { MinimaxProvider };
 export { MistralProvider };
 export { MoonshotProvider };
+export { ZaiProvider };
 export { OpenRouterProvider };
 export { RequestyProvider };
 export { OpperProvider };
@@ -649,6 +651,14 @@ registerBuiltinProvider(PROVIDER_IDS.MOONSHOT, MoonshotProvider, {
 registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, {
   MINIMAX_API_KEY: ""
 });
+// Z.ai GLM: ZAI_REGION picks the international (api.z.ai) or China
+// (open.bigmodel.cn) host.
+registerBuiltinProvider(
+  PROVIDER_IDS.ZAI,
+  ZaiProvider,
+  { ZAI_API_KEY: "" },
+  { ZAI_REGION: "" }
+);
 registerBuiltinProvider(PROVIDER_IDS.REPLICATE, ReplicateProvider, {
   REPLICATE_API_TOKEN: ""
 });

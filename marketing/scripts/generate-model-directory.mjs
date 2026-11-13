@@ -101,6 +101,7 @@ const SOURCE_PROVIDERS = {
   "deepseek-provider.ts": "deepseek",
   "moonshot-provider.ts": "moonshot",
   "minimax-provider.ts": "minimax",
+  "zai-provider.ts": "zai",
   "cerebras-provider.ts": "cerebras",
   "gmi-provider.ts": "gmi",
   "meta-provider.ts": "meta",

@@ -138,6 +138,9 @@ export const requiredSecretForProvider = (
   if (p.includes(PROVIDER_IDS.MINIMAX)) {
     return "MINIMAX_API_KEY";
   }
+  if (p === PROVIDER_IDS.ZAI) {
+    return "ZAI_API_KEY";
+  }
   if (p.includes(PROVIDER_IDS.ALIBABA)) {
     return "DASHSCOPE_API_KEY";
   }
