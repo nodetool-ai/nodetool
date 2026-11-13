@@ -22,6 +22,7 @@
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
+#include "server/ComfyBackend.h"
 #include "document/WorkflowDocument.h"
 #include "graph/WorkflowGraphModel.h"
 #include "server/WorkflowSession.h"
@@ -92,6 +93,11 @@ public:
   bool emptyCanvas() const { return document_.nodes().isEmpty(); }
   node_editor::SetupController *setup() { return &setup_; }
     node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
+    // Where Comfy workflows run, shared by every tab and held by the root window.
+    node_editor::ComfyBackend *comfyBackend() { return tabOwner_ ? &tabOwner_->comfy_ : &comfy_; }
+    // useStartComfyWorkflow: a new Comfy workflow on the server, opened in a tab.
+    void newComfyWorkflow();
+    bool comfyWorkflowOpen() const { return comfyWorkflow_; }
     // The Generations panel's list, shared by every tab and held by the root window.
     node_editor::GenerationActivity *generationActivity() { return tabOwner_ ? &tabOwner_->generations_ : &generations_; }
     // The root window has no panels of its own, so it returns the active tab's.
@@ -574,6 +580,19 @@ private:
   QPointer<QObject> viewAnimation_;
 
     node_editor::PackSetup packSetup_;
+    // The root window's Comfy target. Owned by value, UI thread. Tabs reach it
+    // through comfyBackend() and never in their destructors.
+    node_editor::ComfyBackend comfy_;
+    // This tab's catalog before the Comfy records join it, and the records of
+    // the Comfy targets it has loaded (see nextComfyRecords).
+    QJsonArray baseCatalog_, comfyRecords_;
+    quint64 comfyCatalogEpoch_ = 0;
+    bool comfyWorkflow_ = false, comfyCatalogLoaded_ = false, comfyCatalogLoading_ = false;
+    void installComfy();
+    void syncComfyWorkflow();
+    void reloadComfyCatalog();
+    void syncComfyTarget();
+    void showComfyTargetMenu();
     // The root window's generations, which every tab's Generations panel reads
     // through generationActivity(). Owned by value, UI thread, destroyed with
     // the root window after its tabs and their panels.

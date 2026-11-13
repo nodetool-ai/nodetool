@@ -1,3 +1,7 @@
+#include "properties/CodeHighlighter.h"
+#include <QAbstractTextDocumentLayout>
+#include <QTextBlock>
+#include <QTextDocument>
 #include "EditorScene.h"
 #include "NodeLayout.h"
 #include "WorkflowGraphModel.h"
@@ -145,6 +149,52 @@ QFont canvasFont(const CanvasTheme &theme, int pixels, QFont::Weight weight) {
   font.setWeight(weight);
   font.setHintingPreference(QFont::PreferNoHinting);
   return font;
+}
+// The painted twin of CodePropertyEditor.qml: the field fill, a right-aligned
+// line gutter and highlighted monospace text, with the same font and offsets.
+// Only the lines that fit are laid out, so a long source paints in constant time.
+void paintCodeField(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+  const auto field = row.rect;
+  painter->save();
+  painter->setPen(Qt::NoPen);
+  painter->setBrush(theme.field);
+  painter->drawRoundedRect(field, nm::fieldRadius, nm::fieldRadius);
+  painter->setClipRect(field.adjusted(0, 0, -nm::borderWidth, -nm::borderWidth));
+  auto font = canvasFont(theme, nm::codeFontSize, QFont::Normal);
+  font.setFamily(theme.monoFamily);
+  font.setStyleHint(QFont::Monospace);
+  const QFontMetricsF metrics(font);
+  const auto visible = int(std::ceil((field.height() - nm::codePaddingY) / metrics.lineSpacing())) + 1;
+  const auto lines = row.value.split(QLatin1Char('\n'));
+  const auto shown = QStringList(lines.mid(0, visible)).join(QLatin1Char('\n'));
+  QTextDocument document;
+  document.setDocumentMargin(0);
+  document.setDefaultFont(font);
+  document.setUndoRedoEnabled(false);
+  QTextOption option;
+  option.setWrapMode(QTextOption::NoWrap);
+  document.setDefaultTextOption(option);
+  document.setPlainText(shown);
+  node_editor::CodeHighlighter highlighter;
+  highlighter.setKeyword(theme.info);
+  highlighter.setLiteral(theme.success);
+  highlighter.setComment(theme.textSecondary);
+  highlighter.setDocument(&document);
+  highlighter.rehighlight();
+  painter->setFont(font);
+  painter->setPen(theme.textSecondary);
+  const auto top = field.top() + nm::codePaddingY;
+  for (int line = 0; line < std::min<int>(visible, lines.size()); ++line) {
+    const auto block = document.findBlockByNumber(line);
+    const auto y = top + document.documentLayout()->blockBoundingRect(block).top();
+    painter->drawText(QRectF(field.left(), y, nm::codeGutterWidth - nm::codeTextGap / 2.0, metrics.lineSpacing()),
+                      Qt::AlignRight | Qt::AlignVCenter, QString::number(line + 1));
+  }
+  painter->translate(field.left() + nm::codeGutterWidth + nm::codeTextGap, top);
+  QAbstractTextDocumentLayout::PaintContext context;
+  context.palette.setColor(QPalette::Text, theme.textPrimary);
+  document.documentLayout()->draw(painter, context);
+  painter->restore();
 }
 
 void paintIcon(QPainter *painter, const QString &name, const QRectF &rect, QColor color) {
@@ -659,6 +709,8 @@ private:
       painter->drawRoundedRect(track, 7, 7);
       painter->setBrush(row.checked ? QColor(Qt::white) : theme.textSecondary);
       painter->drawEllipse(QPointF(track.x() + (row.checked ? 21 : 7), track.center().y()), 5, 5);
+    } else if (row.code) {
+      paintCodeField(painter, theme, row);
     } else if (row.kind == NodeRowKind::Field || row.kind == NodeRowKind::Multiline) {
       const QRectF field(inset, row.fieldY, width, row.height);
       painter->setPen(Qt::NoPen);

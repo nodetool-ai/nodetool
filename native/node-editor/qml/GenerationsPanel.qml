@@ -19,7 +19,12 @@ Rectangle {
     readonly property int finishedCount: counts.all - counts.generating
     // A filter whose last generation left the list falls back to everything.
     readonly property string activeFilter: counts[filter] > 0 ? filter : "all"
-    readonly property var shown: activeFilter === "all" ? activity.rows : activity.rows.filter(row => row.status === activeFilter)
+    // Updates rows in place, so a tile keeps its delegate and thumbnail while others change.
+    GenerationRowsModel {
+        id: shownRows
+        activity: root.activity
+        filter: root.activeFilter
+    }
     signal closeRequested()
     implicitWidth: Ui.Metrics.dialogCompactWidth * 2
     implicitHeight: Ui.Metrics.touch * 8
@@ -155,35 +160,35 @@ Rectangle {
             readonly property int columns: Math.max(1, Math.floor(width / minTile))
             cellWidth: width / columns
             cellHeight: (cellWidth - Ui.Metrics.sm) * 10 / 16 + Ui.Metrics.touch + Ui.Metrics.xl
-            model: root.shown
+            model: shownRows
             Accessible.role: Accessible.List
             Accessible.name: "Generations"
             Basic.ScrollBar.vertical: Ui.ScrollBar {}
             delegate: Ui.Surface {
                 id: tile
-                required property var modelData
+                required property var row
                 required property int index
-                readonly property bool running: modelData.status === "generating"
-                objectName: "generation-tile-" + modelData.id
+                readonly property bool running: row.status === "generating"
+                objectName: "generation-tile-" + row.id
                 width: grid.cellWidth - Ui.Metrics.sm
                 height: grid.cellHeight - Ui.Metrics.sm
                 variant: Ui.Surface.Input
                 selected: activeFocus
-                color: hover.hovered && modelData.canOpenSource ? Ui.Theme.actionHover : Ui.Theme.surfaceOverlay
-                activeFocusOnTab: modelData.canOpenSource
-                Accessible.role: modelData.canOpenSource ? Accessible.Button : Accessible.ListItem
-                Accessible.name: modelData.canOpenSource ? "Open " + (modelData.source || modelData.title) : modelData.title
-                Keys.onReturnPressed: root.activity.openSource(modelData.id)
-                Keys.onEnterPressed: root.activity.openSource(modelData.id)
-                Keys.onSpacePressed: root.activity.openSource(modelData.id)
+                color: hover.hovered && row.canOpenSource ? Ui.Theme.actionHover : Ui.Theme.surfaceOverlay
+                activeFocusOnTab: row.canOpenSource
+                Accessible.role: row.canOpenSource ? Accessible.Button : Accessible.ListItem
+                Accessible.name: row.canOpenSource ? "Open " + (row.source || row.title) : row.title
+                Keys.onReturnPressed: root.activity.openSource(row.id)
+                Keys.onEnterPressed: root.activity.openSource(row.id)
+                Keys.onSpacePressed: root.activity.openSource(row.id)
                 HoverHandler { id: hover }
                 MouseArea {
                     anchors.fill: parent
-                    enabled: tile.modelData.canOpenSource
+                    enabled: tile.row.canOpenSource
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         tile.forceActiveFocus()
-                        root.activity.openSource(tile.modelData.id)
+                        root.activity.openSource(tile.row.id)
                     }
                 }
                 ColumnLayout {
@@ -198,13 +203,13 @@ Rectangle {
                         clip: true
                         Loader {
                             anchors.fill: parent
-                            active: tile.modelData.kind === "image" && tile.modelData.assetId !== ""
+                            active: tile.row.kind === "image" && tile.row.assetId !== ""
                             sourceComponent: Component {
                                 MediaPreview {
                                     mediaKind: "image"
-                                    locator: ({type: "image", asset_id: tile.modelData.assetId, uri: "asset://" + tile.modelData.assetId})
+                                    locator: ({type: "image", asset_id: tile.row.assetId, uri: "asset://" + tile.row.assetId})
                                     resolver: root.resolver
-                                    requestKey: "generation-tile:" + tile.modelData.id + ":" + String(tile)
+                                    requestKey: "generation-tile:" + tile.row.id
                                     showFilename: false
                                     showDownload: false
                                     fillPreview: true
@@ -212,11 +217,11 @@ Rectangle {
                             }
                         }
                         Ui.Icon {
-                            objectName: "generation-icon-" + tile.modelData.id
+                            objectName: "generation-icon-" + tile.row.id
                             anchors.centerIn: parent
-                            visible: tile.modelData.kind !== "image" || tile.modelData.assetId === ""
-                            name: tile.modelData.status === "failed" ? "error" : root.kindIcon(tile.modelData.kind)
-                            tone: tile.modelData.status === "failed" ? Ui.Text.Error : Ui.Text.Secondary
+                            visible: tile.row.kind !== "image" || tile.row.assetId === ""
+                            name: tile.row.status === "failed" ? "error" : root.kindIcon(tile.row.kind)
+                            tone: tile.row.status === "failed" ? Ui.Text.Error : Ui.Text.Secondary
                             size: Ui.Metrics.iconLg
                         }
                         Ui.Surface {
@@ -229,23 +234,23 @@ Rectangle {
                             variant: Ui.Surface.Overlay
                             Ui.Text {
                                 id: pill
-                                objectName: "generation-status-" + tile.modelData.id
+                                objectName: "generation-status-" + tile.row.id
                                 anchors.centerIn: parent
-                                text: root.statusLabel(tile.modelData.status)
+                                text: root.statusLabel(tile.row.status)
                                 role: Ui.Typography.SansCaption
-                                tone: tile.modelData.status === "failed" ? Ui.Text.Error : tile.modelData.status === "generated" ? Ui.Text.Success : Ui.Text.Secondary
+                                tone: tile.row.status === "failed" ? Ui.Text.Error : tile.row.status === "generated" ? Ui.Text.Success : Ui.Text.Secondary
                             }
                         }
                         Ui.ToolbarIconButton {
-                            objectName: "generation-open-workflow-" + tile.modelData.id
-                            visible: tile.modelData.canOpenAsWorkflow
+                            objectName: "generation-open-workflow-" + tile.row.id
+                            visible: tile.row.canOpenAsWorkflow
                             anchors.right: parent.right
                             anchors.top: parent.top
                             anchors.margins: Ui.Metrics.xs
                             iconName: "accountTree"
                             accessibleName: "Open as workflow"
                             description: accessibleName
-                            onClicked: root.activity.openAsWorkflow(tile.modelData.id)
+                            onClicked: root.activity.openAsWorkflow(tile.row.id)
                         }
                         Ui.Progress {
                             visible: tile.running
@@ -258,22 +263,22 @@ Rectangle {
                         }
                     }
                     Ui.Text {
-                        objectName: "generation-title-" + tile.modelData.id
+                        objectName: "generation-title-" + tile.row.id
                         Layout.fillWidth: true
                         Layout.leftMargin: Ui.Metrics.micro
                         Layout.rightMargin: Ui.Metrics.micro
-                        text: tile.modelData.title
+                        text: tile.row.title
                         textFormat: Text.PlainText
                         role: Ui.Typography.SansLabel
                         elide: Text.ElideRight
                     }
                     Ui.Text {
-                        objectName: "generation-meta-" + tile.modelData.id
+                        objectName: "generation-meta-" + tile.row.id
                         Layout.fillWidth: true
                         Layout.leftMargin: Ui.Metrics.micro
                         Layout.rightMargin: Ui.Metrics.micro
-                        readonly property bool failed: tile.modelData.status === "failed" && tile.modelData.error !== ""
-                        text: failed ? tile.modelData.error : root.metaLine(tile.modelData)
+                        readonly property bool failed: tile.row.status === "failed" && tile.row.error !== ""
+                        text: failed ? tile.row.error : root.metaLine(tile.row)
                         textFormat: Text.PlainText
                         role: Ui.Typography.SansCaption
                         tone: failed ? Ui.Text.Error : Ui.Text.Secondary

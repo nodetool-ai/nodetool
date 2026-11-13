@@ -304,21 +304,26 @@ private slots:
         QVERIFY(executed.contains("a"));
         QVERIFY(executed.contains("b"));
         QVERIFY(!executed.contains("unrelated"));
+        // An edit during the run goes to that run as a live property update, not as a new run.
         QVERIFY(window.commitProperty("a", "value", "busy"));
+        QTRY_COMPARE(server.commands.size(), 2);
         QTest::qWait(350);
-        QCOMPARE(server.commands.size(), 1);
+        QCOMPARE(server.commands.size(), 2);
+        QCOMPARE(server.commands.last()["command"].toString(), QString("update_node_properties"));
+        QCOMPARE(server.commands.last()["data"].toObject()["job_id"], data["job_id"]);
+        QCOMPARE(server.commands.last()["data"].toObject()["properties"].toObject(), (QJsonObject{{"value", "busy"}}));
         auto view = window.findChild<QGraphicsView *>();
         QVERIFY(view);
         view->setFocus();
         // Like the web toolbar, Escape cancels this client's run over the socket.
         QTest::keyClick(view->viewport(), Qt::Key_Escape);
-        QTRY_COMPARE(server.commands.size(), 2);
+        QTRY_COMPARE(server.commands.size(), 3);
         QCOMPARE(server.commands.last()["command"].toString(), QString("cancel_job"));
         QCOMPARE(server.commands.last()["data"].toObject()["job_id"], data["job_id"]);
         QVERIFY(server.cancelled.isEmpty());
         server.update(data["job_id"].toString(), "cancelled");
         QTest::keyClick(view->viewport(), Qt::Key_Return, Qt::ControlModifier);
-        QTRY_COMPARE(server.commands.size(), 3);
+        QTRY_COMPARE(server.commands.size(), 4);
     }
     void toolbarLabels() {
         JobsServer server;

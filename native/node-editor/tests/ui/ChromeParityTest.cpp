@@ -297,11 +297,11 @@ private slots:
         EditorWindow window;
         show(window, fixture()["metadata"].toArray());
         auto *rail = panel(window, QStringLiteral("Rail"));
-        const QStringList names{"rail-projects", "rail-documents", "rail-chats", "rail-library", "rail-entities",
-                                "rail-examples", "rail-nodes", "rail-more", "rail-theme", "rail-panel"};
-        const QStringList labels{"Projects", "Documents", "Chats", "Library", "Entities", "Examples", "Nodes", "More", "Light", "Toggle panel"};
-        const QStringList icons{"toolProjects", "folderCopyOutlined", "forumOutlined", "collectionsOutlined", "personOutline",
-                                "exploreOutlined", "hub", "moreHoriz", "sunny", "code"};
+        const QStringList names{"rail-projects", "rail-documents", "rail-chats", "rail-library",
+                                "rail-examples", "rail-nodes", "rail-theme", "rail-panel"};
+        const QStringList labels{"Projects", "Documents", "Chats", "Library", "Examples", "Nodes", "Light", "Toggle panel"};
+        const QStringList icons{"toolProjects", "folderCopyOutlined", "forumOutlined", "collectionsOutlined",
+                                "exploreOutlined", "hub", "sunny", "code"};
         qreal previous = -1;
         for (int i = 0; i < names.size(); ++i) {
             auto *entry = find(rail->rootObject(), names[i]);
@@ -314,10 +314,12 @@ private slots:
         }
         // The theme toggle and the panel toggle sit below the divider, apart from the views.
         QVERIFY(find(rail->rootObject(), "rail-theme")->mapToItem(rail->rootObject(), QPointF()).y()
-                > find(rail->rootObject(), "rail-more")->mapToItem(rail->rootObject(), QPointF()).y() + 100);
+                > find(rail->rootObject(), "rail-nodes")->mapToItem(rail->rootObject(), QPointF()).y() + 100);
         // The native entries the web does not have stay reachable elsewhere.
         QVERIFY(!find(rail->rootObject(), "rail-inspector"));
         QVERIFY(!find(rail->rootObject(), "rail-output"));
+        QVERIFY(!find(rail->rootObject(), "rail-entities"));
+        QVERIFY(!find(rail->rootObject(), "rail-more"));
     }
 
     void railTooltipsNameEntriesAndExplainDisabledOnes() {
@@ -332,9 +334,7 @@ private slots:
             {"rail-panel", "Toggle panel"},
             {"rail-projects", "Projects has no native surface yet. Switch projects from the project menu in the tab strip."},
             {"rail-library", "Library"},
-            {"rail-entities", "Entities has no native panel yet."},
             {"rail-examples", "Examples"},
-            {"rail-more", "The More panel has no native equivalent. Native commands are in the toolbar More menu."},
         };
         for (const auto &tip : tips) {
             auto *entry = find(rail->rootObject(), tip.first);
@@ -376,7 +376,7 @@ private slots:
         click(rail, entry("rail-examples"));
         QTRY_VERIFY(!window.examplesVisible());
         // A disabled entry changes nothing.
-        for (const auto *name : {"rail-projects", "rail-library", "rail-entities", "rail-more"}) {
+        for (const auto *name : {"rail-projects", "rail-library"}) {
             click(rail, entry(name));
             QTest::qWait(30);
             QVERIFY2(!window.catalogVisible() && !window.browserVisible() && !window.chatVisible(), name);

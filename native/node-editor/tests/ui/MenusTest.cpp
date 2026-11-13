@@ -578,7 +578,7 @@ private slots:
         // Workflow menus of the application menu hold the other commands.
         // Platforms other than macOS add the canvas navigation choice.
         labels.removeIf([](const QString &label) { return label.startsWith("Canvas navigation: "); });
-        QCOMPARE(labels, (QStringList{"Instant Update: Off", "Save", "Version history", "Share workflow", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
+        QCOMPARE(labels, (QStringList{"Instant Update: Off", "Save", "Version history", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
         window.findChild<QMenu *>("more-menu")->close();
     }
 
@@ -694,7 +694,7 @@ private slots:
         auto *workflow = window.findChild<QMenu *>("application-menu-workflow");
         QVERIFY(node && workflow);
         QCOMPARE(labels(workflow), (QStringList{"Run", "Run Selected", "Stop", "Open from Server…", "Save to Server", "Sync with Server…", "Reconnect",
-            "Linked Workflows…", "Share…", "Metadata…", "Canvas Uploads…"}));
+            "Linked Workflows…", "Metadata…", "Canvas Uploads…"}));
         emit node->aboutToShow();
         QVERIFY(entry(node, "Layout Selection")->isEnabled());
         QVERIFY(!entry(node, "Rename Node…")->isEnabled());
