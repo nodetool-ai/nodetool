@@ -48,13 +48,14 @@ RUN apt-get update \
       xfwm4 dbus-x11 x11-utils \
  && rm -rf /var/lib/apt/lists/*
 
-# Graph runner: Meson and the libraries the pinned libvips, libwebp and
+# Graph runner: clang-scan-deps (clang-tools), which CMake runs to scan its
+# C++20 sources for modules under Clang, Meson and the libraries the pinned libvips, libwebp and
 # Tesseract builds link (FFmpeg, Cairo, Pango, image codecs, Leptonica), the
 # English Tesseract data its OCR tests read, and libsecret for the keychain
 # the backend packages load.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      meson libsecret-1-0 libicu-dev libcurl4-openssl-dev \
+      clang-tools meson libsecret-1-0 libicu-dev libcurl4-openssl-dev \
       libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev \
       libcairo2-dev libpango1.0-dev libglib2.0-dev libexpat1-dev libjpeg-turbo8-dev libpng-dev \
       libtiff-dev librsvg2-dev libgif-dev liblcms2-dev libexif-dev libarchive-dev \
