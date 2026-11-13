@@ -84,7 +84,9 @@ class TestMenus : public WiringFixture {
                               // Backs out of whatever is under way.
                               "escape",
                               // A second way to something that has a menu item: the Audio workspace, and Ripple Delete on a gap.
-                              "toggleDawMode", "closeGapAt"};
+                              "toggleDawMode", "closeGapAt",
+                              // Music range steps pressed while the range loops. The music toolbar's Loop button and the take list are the pointer's way.
+                              "loopMusicRange", "previousMusicTake", "nextMusicTake"};
             // The number keys, while the Program monitor's take grid is the way to them with a pointer.
             for (int number = 1; number <= 9; ++number) {
                 set.insert(QString("takeSwitch%1").arg(number));
@@ -1077,7 +1079,7 @@ private slots:
             "Project Settings…", "---", "Settings…", "Quit"};
         QTest::newRow("edit") << "Edit" << QStringList{"Undo", "Redo", "---", "Cut", "Copy", "Paste", "Paste Insert", "Paste Attributes…", "---",
             "Delete", "Ripple Delete", "Duplicate", "Duplicate with Gap", "---",
-            "Select All", "Deselect All", "Select Clips at Playhead", "Select Next Clip", "Select Previous Clip", "---", "Label"};
+            "Select All", "Deselect All", "Select Clips at Playhead", "Select Next Clip", "Select Previous Clip", "---", "Label", "---", "Clean Up Unused Music Takes…"};
         QTest::newRow("clip") << "Clip" << QStringList{"Video Options", "Audio Options", "Audio Role", "Speed / Duration…", "Scene Edit Detection…", "---",
             "Insert", "Overwrite", "Append to End", "---", "Remix…", "Revert Remix", "---",
             "Enable", "Link", "Group", "Ungroup", "Lock", "---", "Keyframes", "---", "Takes", "---", "Reveal in Library"};

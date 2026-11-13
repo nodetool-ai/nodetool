@@ -22,7 +22,7 @@ bool canClean(const QVariantMap& context) {
 
 const bool cleanupMenu = nt::app::registerShellMenuItem({
     QStringLiteral("Edit"), QStringLiteral("musicCleanUpTakes"), QStringLiteral("Clean Up Unused Music Takes…"), {}, {},
-    QStringLiteral("cleanup"), 40, canClean, {},
+    QStringLiteral("cleanup"), 50, canClean, {},
     [](const QVariantMap& context) {
         auto* gestures = gesturesOf(context);
         auto* host = nt::wiring::w::windowItem(gestures, QStringLiteral("musicCleanupHost"));
