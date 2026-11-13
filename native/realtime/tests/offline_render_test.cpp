@@ -85,6 +85,27 @@ int main() {
         golden(read(timingOptions.output / "frame-000000.png"), {0, 0, 0, 255});
         golden(read(timingOptions.output / "frame-000001.png"), {4, 0, 0, 255});
         golden(read(timingOptions.output / "frame-000002.png"), {4, 0, 0, 255});
+        auto slotPlan = Plan::parse(read(std::filesystem::path(NT_FIXTURES) / "offline-render.json"));
+        auto slotOutput = slotPlan["render"]["passes"][0]["output"];
+        slotOutput["colorSpace"] = "srgb"; slotOutput["alpha"] = "straight";
+        slotPlan["render"]["passes"] = Plan::array();
+        slotPlan["render"]["present"]["source"] = "pixels";
+        slotPlan["slots"] = {{{"id", "pixels"}, {"kind", "texture"}, {"source", "batch.image"}, {"output", slotOutput}}};
+        const auto raw = directory.path / "pixels.rgba";
+        {
+            std::ofstream stream(raw, std::ios::binary);
+            for (unsigned pixel = 0; pixel < 16; ++pixel) {
+                const std::array<unsigned char, 4> value{255, 0, 0, 128};
+                stream.write(reinterpret_cast<const char*>(value.data()), 4);
+            }
+        }
+        OfflineOptions slotOptions{"0.01", "60", directory.path / "texture-slot", NT_GPU_CATALOG, {{"pixels", raw}}};
+        require(!runOffline(slotPlan.dump(), slotOptions).error, "Texture slot export failed");
+        golden(read(slotOptions.output / "frame-000000.png"));
+        { std::ofstream stream(raw, std::ios::binary | std::ios::trunc); stream.put('x'); }
+        slotOptions.output = directory.path / "bad-texture";
+        const auto badSlot = runOffline(slotPlan.dump(), slotOptions);
+        require(badSlot.error && badSlot.error->reason == "texture_slot" && !std::filesystem::exists(slotOptions.output), "Wrong texture size rejected before output");
         plan["render"]["present"]["colorSpace"] = "linear";
         OfflineOptions invalid{"1", "60", directory.path / "invalid", NT_GPU_CATALOG};
         const auto rejected = runOffline(plan.dump(), invalid);

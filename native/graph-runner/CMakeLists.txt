@@ -181,10 +181,21 @@ target_link_libraries(nodetool_graph_runner PRIVATE gr_kernel gr_js Threads::Thr
 
 # The CLI and the tests build only when this is the top-level project.
 if(PROJECT_IS_TOP_LEVEL)
+  option(NODETOOL_GRAPH_RUNNER_REALTIME "Enable provisional offline realtime plan exports" OFF)
+  if(NODETOOL_GRAPH_RUNNER_REALTIME)
+    set(NT_REALTIME_OFFLINE_GPU ON)
+    set(NT_REALTIME_BUILD_SPIKES OFF)
+    add_subdirectory(../realtime realtime)
+  endif()
   add_executable(nodetool-graph-runner src/main.cpp)
   nodetool_stage_graph_runner_runtime(nodetool-graph-runner)
   target_link_libraries(nodetool-graph-runner PRIVATE nodetool_graph_runner
                         nlohmann_json::nlohmann_json)
+  if(NODETOOL_GRAPH_RUNNER_REALTIME)
+    target_link_libraries(nodetool-graph-runner PRIVATE nodetool_realtime_offline)
+    target_compile_definitions(nodetool-graph-runner PRIVATE NODETOOL_GRAPH_RUNNER_REALTIME=1)
+    add_dependencies(nodetool-graph-runner realtime-gpu-catalog)
+  endif()
 
   enable_testing()
   add_executable(gr_cancel_listener_tests unittests/cancel-listeners.cpp)

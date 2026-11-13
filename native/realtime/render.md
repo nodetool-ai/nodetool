@@ -133,7 +133,9 @@ Each IR uniform addresses one expanded catalog field in catalog order, including
 individual array elements. Scalar/vector widths must match. Fields are packed
 into one aligned frame buffer, capped at 64 MiB and the device limit. Floating
 point values must fit float32. Integer fields use the catalog's modulo-2^32
-conversion. A frame writes this buffer at most once and submits one command
+conversion. Each block declares its binding size and selects its aligned range
+with a dynamic offset during encoding. A frame writes this buffer at most once
+and submits one command
 buffer. No JSON parsing or application-owned container growth occurs in the
 frame path. Driver-internal allocations remain unmeasured.
 
@@ -162,25 +164,27 @@ copies the oldest ready frame to caller storage, strips row padding and unmaps
 the buffer. It does not wait. Device errors latch failure and require destroying
 the backend rather than pretending cached output remains valid.
 
-### Pending execution evidence
+### Execution evidence and remaining gaps
 
-The `realtime-render-schedule` test source covers 100-frame retention beside a
-volatile chain, synthetic pixel preservation, liveness reuse, LRU pressure,
-uniform/slot invalidation, paused edits, target exposure, failed submissions,
-dimension changes, rejection cases and a 2,000-pass chain. It includes a C++
-allocation counter with a positive control. Test execution is deferred at the
-user's request. These fixtures use a CPU command consumer and cannot establish
-GPU output correctness or adapter support.
+The Windows offline harness passes `realtime-render-schedule`, including
+retention, liveness reuse, LRU pressure, invalidation, paused edits, failed
+submissions, a 2,000-pass chain and a C++ allocation counter with a positive
+control. These CPU fixtures do not establish driver allocation behavior.
 
-The optional `realtime-offline-gpu` fixture source contains three catalog
-shader-chain pixel references, compute upload/readback, optional-mask defaults,
-unused-slot readiness, ring backpressure, invalid shader/workgroup diagnostics
-and pending-map destruction. It requests a software adapter and fails when one
-is unavailable. It has been compiled, not executed in this session.
+The software-adapter GPU fixture passes four shader-chain pixel references,
+compute upload/readback, optional-mask defaults, unused-slot readiness,
+readback ordering/backpressure, invalid preparation and pending-map destruction.
+It requests a software adapter and fails when one is unavailable.
 
-Software-adapter goldens, allocation checks, sanitizer runs and mandatory
-repository checks remain pending. In particular, linking does not validate WGSL,
-device behavior or callback teardown. Earlier audio/control results do not
-validate this increment. Live preparation still needs supported asynchronous
-compilation/error reporting outside the offline exception. M0 hardware gaps remain in
-[M1_STATUS.md](M1_STATUS.md).
+Static uniform ranges produced incorrect per-pass values on the tested pinned
+Windows D3D12 backend. Explicit block sizes alone did not fix same-sized blocks
+with different values. Binding each aligned range through a dynamic offset
+passes both cases. The underlying backend cause is not established. No pixel
+reference was relaxed.
+
+The Windows ASan offline harness also passes, including pending-map teardown.
+The prebuilt GPU library and driver are not instrumented. Linux sanitizer
+qualification, driver allocation checks, Linux adapter execution and live
+preparation remain pending. Live/shared-device support still requires
+supported asynchronous compilation/error reporting outside the offline
+exception. See [verification details and M0 gaps](M1_STATUS.md).

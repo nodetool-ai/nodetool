@@ -31,8 +31,8 @@ not measurements. Q8 requires the WP10 native/browser comparison.
 | [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Linux Release, ASan/UBSan and TSan CI pass. Local instruction-alias verification remains blocked as described below |
 | [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Windows Release/ASan and Linux Release/ASan+UBSan/TSan pass. Aggregate verification remains incomplete as described below. See [operation contracts](control.md) |
 | [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, linear/one-pole smoothing, events, built-in kernels and sink sanitation implemented. Windows Release/ASan and audio-scoped affected tests pass. See [audio contracts](audio.md) and verification below |
-| [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and provisional private-device offline GPU backend implemented. MSVC compilation/linking pass. GPU execution and exit evidence pending, with local tests deferred by request. See [render contracts](render.md) |
-| [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | Not implemented |
+| [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and provisional private-device offline GPU backend implemented. Windows software-adapter references pass. Sanitizers, driver allocation audit and live-device exit evidence remain pending. See [render contracts](render.md) |
+| [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | PNG/WAV export, local PCM/texture slots, shared CLI parsing and registered offline harness implemented. Windows offline checks pass. Full graph-runner dispatch and Linux qualification await CI |
 | [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Not implemented |
 
 M0's local build, typecheck, lint, native tests and harness checks pass. The
@@ -102,89 +102,76 @@ the pack-contamination test exceeded its five-second budget. All five failed
 cases pass in a focused rerun with local `jq` and Git's Unix tools on `PATH`.
 That rerun does not turn the aggregate result into a pass.
 
-## Render work in progress
+## Render and offline integration
 
-WP08 now has prepare-time graph lowering, version/uniform invalidation,
-volatile liveness allocation, bounded retained-cache storage and LRU eviction
-that pins live inputs. Prepared metadata preserves color-space and alpha
-contracts for the future GPU backend. Frame failure invalidates cached outputs.
-
-The scheduling library and its fixture executable compile with MSVC Release.
-The new fixtures have not been executed, and no sanitizer or aggregate pass is
-claimed for these changes. Test execution is deferred at the user's request.
-The earlier audio/control results apply to their recorded revisions.
+WP08 prepares graph scheduling, version/uniform invalidation, volatile texture
+liveness, retained-cache storage and LRU eviction with live-input pinning.
+The private-device backend prepares fragment/compute pipelines, binding variants,
+textures and one aligned uniform buffer. Presentation performs explicit transfer
+and alpha conversion. Three staging buffers provide ordered readback and
+backpressure. Callback records outlive device teardown, which may wait and is
+not a realtime operation.
 
 The approved [offline M1 exception](../../docs/plans/graph-runner-realtime.md#provisional-offline-m1-exception-rt-f44)
-uses synchronous pipeline preparation on a private device. The backend owns its
-device, textures, cached bindings, uniform buffer, session target and three
-readback buffers. No external device or live-session attachment is accepted.
-Prepared callback records outlive device teardown. Device release can wait for
-queued work and is not a realtime operation.
+allows synchronous pipeline preparation before activation on a private device.
+Live/shared-device support remains blocked because the pinned wgpu-native release
+lacks the compilation-info and asynchronous pipeline APIs required by design
+section 9.2, rule 4. See the [source evidence](render.md#native-pipeline-api-limitation).
+No external device or live-session attachment is accepted.
 
-Fragment/compute encoding, expanded catalog uniform packing, optional-input
-defaults, explicit alpha checks, texture presentation and nonblocking readback
-are implemented. The library and GPU fixture executable compile and link with
-MSVC Release against the pinned wgpu-native static library. Source review found
-and corrected unused-slot readiness, compute metadata overflow and graph-node
-diagnostic handling. No runtime reproduction or test pass is claimed for those
-cases because local test execution remains deferred.
+WP09 coordinates rational video timestamps, control ticks and 128-sample audio
+quanta. It trims the final quantum, exports float WAV tracks and straight-alpha
+PNGs, and publishes the completion manifest only after output streams close.
+Scalar `audioControl` bindings provide synchronous endpoint snapshots and existing
+smoothing. Audio `time.frame` counts quanta. Render `time.dt` uses video intervals.
+This does not implement WP13 live handoffs.
 
-The prepared GPU fixtures cover three catalog shader-chain pixel references,
-compute upload, ring backpressure, invalid preparation and pending-map teardown.
-They still need a real software-adapter run, allocation verification, sanitizer
-runs and aggregate checks. The default core CI configuration does not build or
-run the optional GPU backend. Earlier core passes cannot qualify it.
+Local `--slot ID=FILE` inputs supply immutable planar float32 PCM or raw textures.
+Consumed inputs are required and bounded. Unknown, duplicate, malformed and
+unused bindings are rejected. There is no media decoding, network resolution or
+resampling. Control/event/latched slot inputs remain unsupported. See the
+[offline contract](offline.md).
 
-Live/shared-device support remains blocked: the pinned wgpu-native release and
-inspected upstream revision leave the compilation-info and async pipeline APIs
-required by design section 9.2, rule 4 unimplemented. [Source evidence](render.md#native-pipeline-api-limitation)
-remains documented. WP08 stays open, and the offline exception neither qualifies
-M1 nor resolves any M0 hardware gate.
+The standalone CLI and optional `NODETOOL_GRAPH_RUNNER_REALTIME=ON` host command
+share their parser. Windows standalone arguments preserve Unicode paths.
+The full graph-runner dispatch is wired into Linux CI but has not been built or
+executed locally. The `realtime-offline` registry entry invokes the native build,
+checks required CTest inventory, runs adapter-backed tests and exercises the CLI.
+Its expensive classification keeps it outside the default cheap gate, so it was
+run explicitly. A dedicated Linux lavapipe job runs the same script without skips.
 
-## Offline driver preparation
+## Verification of the offline integration
 
-WP09 now has an [exact offline clock](offline.md) with rational frame scheduling,
-integer quantum boundaries and final audio-quantum trimming. Its library and
-fixture executable compile and link with MSVC Release. The fixtures cover
-fractional frame rates, long schedules, rejected inputs and partial exports,
-but have not been run. Sanitizers and aggregate checks remain deferred.
+`node native/realtime/scripts/check.mjs` passes on Windows with MSVC Release and
+the requested D3D12 software adapter. All nine required CTest entries pass,
+including shader-chain pixels, compute upload/readback, ring backpressure,
+PNG/WAV/manifest repeatability, audio-control cadence, slot ingestion and error
+paths. The CLI checks pass for Unicode paths, PCM samples and EOF silence,
+final trimming, existing-output preservation and invalid arguments/bindings.
+The inventory audit is tested against empty and missing-test inputs.
 
-The control/audio driver now coordinates both control domains with audio
-quanta, trims final samples and writes float WAV files plus a completion
-manifest. The standalone `nodetool-realtime live` command accepts control/audio
-plans without external slots. It opens no audio device and rejects existing
-output directories. Windows wide arguments preserve non-ASCII paths.
+The shader-chain regression initially produced incorrect per-pass uniform values
+with static buffer ranges. Declaring block sizes fixed different-sized layouts
+but failed a new same-sized, different-value case. Explicit dynamic offsets pass
+both cases with the shared buffer and queued readbacks. The underlying backend
+cause is not established. The regressions retain the original pixel references.
 
-The driver, CLI and fixture executable compile and link with MSVC Release.
-Prepared cases cover output chunks and samples, silence, multiple sinks,
-repeatability, low-frame-rate control progression and rejection paths. They
-remain unrun. Source review corrected partial-manifest publication and narrow
-Windows argument decoding. No runtime reproduction or pass is claimed.
+Package build, typecheck and lint pass. All 228 harness-registry tests pass.
+The full default harness gate passes all 21 selected selfchecks. The earlier
+`test:affected` invocation failed in repository-script integration tests:
+mutation planning, packed CLI workflow checks/installation and local MCP startup
+exceeded their process or test budgets. The later gate passes its script suite,
+but does not change the earlier affected command's failed exit status.
+The affected-native command against the M0 base passes all nine realtime tests
+but exits with failure because the full graph-runner build is not configured on
+this host. That integration remains a CI verification requirement.
 
-Optional `audioControl` parameter bindings now connect scalar audio-domain
-registers to prepared dense snapshots at quantum endpoints. Sparse slot IDs
-are resolved before execution, and existing smoothing applies. Source fixtures
-cover stateful binding, cadence independence and invalid bindings. The earlier
-unrun constant-signal fixture referenced a nonexistent audio kernel. Source
-inspection corrected it to an oscillator with a sine reference. These cases
-still require runtime and sanitizer verification. WP13 live handoffs are not
-implemented by this synchronous offline path.
-Source review also corrected audio-domain `time.frame` to count quantum
-endpoints instead of video frames, with an unrun regression for frame-rate
-independence and the final drain. Bound ramp fixtures preserve the initial
-parameter value and interpolate to each quantum's target.
-
-GPU-enabled driver builds now derive module contracts from the shader catalog,
-prepare the private software-adapter device, read back frames and write
-straight-alpha PNGs. Optional catalog inputs retain their default behavior.
-The host waits outside executor calls and requires an sRGB present target.
-Render-only and mixed export fixtures prepare pixel references and repeated
-PNG/WAV/manifest comparisons. Source review corrected render `time.dt` to use
-video-frame intervals instead of the last intermediate quantum interval.
-
-The GPU-enabled CLI and export fixture compile and link with MSVC Release.
-Runtime GPU export, pixel references, repeatability, sanitizers and broader
-checks remain unverified. Broad test runs are deferred until the larger task
-is ready. External slots, graph-runner CLI integration and the registry gate
-remain pending. WP09 stays open. The M0 hardware gaps and live/shared-device
-block remain unchanged.
+The same offline harness passes with Windows MSVC AddressSanitizer, including
+all nine CTest entries and CLI checks. This instruments the C++ host code, not
+the prebuilt wgpu-native library or graphics driver. Linux ASan/UBSan/TSan
+qualification of this increment, driver-internal allocation audits, Linux
+software-adapter results and full graph-runner dispatch remain pending.
+Earlier audio/control sanitizer evidence applies only to its recorded revision.
+WP08 and WP09 remain open. WP10 browser comparison/Q8, native/Wasm parity and
+all M0 hardware measurements remain unfinished. No hardware-dependent issue
+receives a closing reference.

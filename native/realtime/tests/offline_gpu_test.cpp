@@ -70,20 +70,29 @@ void golden(const std::vector<std::byte>& pixels, std::array<unsigned, 4> expect
     require(pixels.size() == 64, "Unexpected readback dimensions");
     for (unsigned i = 0; i < pixels.size(); ++i) {
         const auto actual = std::to_integer<int>(pixels[i]);
-        require(std::abs(actual - static_cast<int>(expected[i % 4])) <= 1, "Shader-chain pixel differs from reference");
+        if (std::abs(actual - static_cast<int>(expected[i % 4])) > 1) {
+            throw std::runtime_error("Shader-chain pixel byte " + std::to_string(i) + ": got " +
+                std::to_string(actual) + ", expected " + std::to_string(expected[i % 4]));
+        }
     }
 }
 void chains(const Plan& catalog) {
-    for (unsigned chain = 0; chain < 3; ++chain) {
+    for (unsigned chain = 0; chain < 4; ++chain) {
         Fixture fixture; fixture.slot("unrelated"); // Must not block an independent present chain.
         fixture.add(catalog, "sources.solid@1", Plan::object(), {{"color", {0.25, 0.5, 0.75, 1}}});
         fixture.add(catalog, "color.invert@1", {{"source", "pass-0"}});
         if (chain == 1) { fixture.add(catalog, "color.invert@1", {{"source", "pass-1"}}); }
         if (chain == 2) { fixture.add(catalog, "color.brightnessContrast@1", {{"source", "pass-1"}}, {{"brightness", 0}, {"contrast", 1}}); }
+        if (chain == 3) { fixture.add(catalog, "color.invert@1", {{"source", "pass-1"}}, {{"amount", 0}}); }
         auto gpu = fixture.prepare(catalog);
         for (unsigned i = 0; i < 3; ++i) { require(gpu->render({fixture.values, fixture.versions}, true).readbackQueued, "Readback submission rejected"); }
         require(!gpu->render({fixture.values, fixture.versions}, true).accepted, "Full readback ring did not apply backpressure");
-        for (unsigned i = 0; i < 3; ++i) { golden(read(*gpu, i), chain == 1 ? std::array<unsigned, 4>{64, 128, 191, 255} : std::array<unsigned, 4>{191, 128, 64, 255}); }
+        for (unsigned i = 0; i < 3; ++i) {
+            try {
+                golden(read(*gpu, i), chain == 1 ? std::array<unsigned, 4>{64, 128, 191, 255} : std::array<unsigned, 4>{191, 128, 64, 255});
+            }
+            catch (const std::exception& error) { throw std::runtime_error("Chain " + std::to_string(chain) + ", frame " + std::to_string(i) + ": " + error.what()); }
+        }
         const auto idle = gpu->render({fixture.values, fixture.versions}); require(idle.accepted && !idle.presented, "Unchanged graph presented again");
         fixture.values[0].width = 1;
         require(!gpu->render({fixture.values, fixture.versions}, true).accepted, "Invalid vector width accepted");

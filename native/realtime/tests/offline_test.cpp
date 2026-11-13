@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <stdexcept>
 
 namespace {
@@ -153,7 +154,42 @@ int main() {
             !std::filesystem::exists(options.output / "manifest.json"), "Overflow binding aborts without success manifest");
         plan["slots"] = {{{"id", "external"}, {"kind", "buffer"}, {"source", "asset"}, {"channels", "stereo"}}};
         options.output = temporary.path / "slots";
-        require(runOffline(plan.dump(), options).error.has_value() && !std::filesystem::exists(options.output), "Slots rejected before output");
+        require(!runOffline(plan.dump(), options).error, "Unused slot needs no file");
+        plan = base();
+        plan["slots"] = {{{"id", "pcm"}, {"kind", "buffer"}, {"source", "batch.output"}, {"channels", "stereo"}}};
+        plan["params"] = {{{"slot", 0}, {"node", "player"}, {"field", "gain"}, {"smooth", "none"}, {"sync", "audio"}, {"value", 1}}};
+        plan["audio"]["buffers"] = {{{"id", 0}, {"channels", "stereo"}}};
+        plan["audio"]["nodes"] = {{{"node", "player"}, {"kernel", "sample-player"}, {"stateVersion", 1},
+            {"in", Plan::array()}, {"out", {0}}, {"params", {0}}, {"bufferSlot", "pcm"}}};
+        plan["audio"]["sinks"] = {{{"node", "out"}, {"buffer", 0}, {"kind", "device"}, {"subgraphHash", "1234abcd"}}};
+        options.output = temporary.path / "missing-slot";
+        require(runOffline(plan.dump(), options).error.has_value() && !std::filesystem::exists(options.output), "Missing used slot rejected before output");
+        const auto raw = temporary.path / "pcm.f32";
+        const auto writeSample = [](std::ostream& stream, float sample) {
+            const auto bits = std::bit_cast<std::uint32_t>(sample);
+            for (unsigned byte = 0; byte < 4; ++byte) { stream.put(static_cast<char>((bits >> (byte * 8)) & 255)); }
+        };
+        {
+            std::ofstream stream(raw, std::ios::binary);
+            for (unsigned channel = 0; channel < 2; ++channel) {
+                for (unsigned sample = 0; sample < 200; ++sample) { writeSample(stream, channel == 0 ? 0.25f : -0.5f); }
+            }
+        }
+        options.slots = {{"pcm", raw}}; options.output = temporary.path / "pcm-output";
+        require(!runOffline(plan.dump(), options).error, "PCM slot export failed");
+        const auto pcmOutput = read(options.output / "audio.wav");
+        for (std::size_t sample = 0; sample < 441; ++sample) {
+            require(std::bit_cast<float>(word(pcmOutput, 58 + sample * 8)) == (sample < 200 ? 0.25f : 0) &&
+                std::bit_cast<float>(word(pcmOutput, 62 + sample * 8)) == (sample < 200 ? -0.5f : 0), "Planar slot playback and EOF silence");
+        }
+        options.output = temporary.path / "bad-pcm";
+        {
+            std::ofstream stream(raw, std::ios::binary | std::ios::trunc);
+            writeSample(stream, std::numeric_limits<float>::quiet_NaN()); writeSample(stream, 0);
+        }
+        require(runOffline(plan.dump(), options).error.has_value() && !std::filesystem::exists(options.output), "Non-finite PCM rejected before output");
+        { std::ofstream stream(raw, std::ios::binary | std::ios::trunc); stream.put('x'); }
+        require(runOffline(plan.dump(), options).error.has_value() && !std::filesystem::exists(options.output), "Partial PCM rejected before output");
         std::cout << "offline driver checks passed\n";
         return 0;
     } catch (const std::exception& error) {

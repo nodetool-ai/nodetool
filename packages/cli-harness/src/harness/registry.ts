@@ -1372,6 +1372,18 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "native/realtime/README.md"
   },
   {
+    id: "realtime-offline",
+    title: "Realtime offline PNG/WAV export and native core",
+    command: "node native/realtime/scripts/check.mjs",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "native/realtime/offline.md",
+    selfcheck: {
+      command: "node native/realtime/scripts/check.mjs",
+      cost: "expensive"
+    }
+  },
+  {
     id: "realtime-audio-worklet-spike",
     title: "Realtime native and AudioWorklet offline parity spike",
     command:
@@ -2602,6 +2614,16 @@ export const SURFACES: SurfaceEntry[] = [
       "native/realtime/spike/buffered-audio/", "native/realtime/spike/sync/"],
     gap: "Configure native/realtime/build and build the runtime media package before running CTest. " +
       "The null audio backend and synthetic recording cannot qualify macOS scheduling, GPU contention or physical A/V sync."
+  },
+  {
+    id: "realtime-offline",
+    title: "Realtime offline plan execution and exports",
+    harnesses: ["realtime-offline"],
+    paths: ["native/realtime/src/", "native/realtime/include/", "native/realtime/schema/",
+      "native/realtime/tests/", "native/realtime/scripts/", "native/realtime/budgets/",
+      "native/realtime/cmake/", "native/realtime/CMakeLists.txt", "native/realtime/CMakePresets.json",
+      "native/graph-runner/src/main.cpp", "native/graph-runner/CMakeLists.txt",
+      "native/graph-runner/guest/host/gpu-catalog.mjs", ".github/workflows/native-realtime.yml"]
   },
   {
     id: "native-graph-runner",

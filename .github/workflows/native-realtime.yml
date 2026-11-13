@@ -5,11 +5,15 @@ on:
   pull_request:
     paths:
       - "native/realtime/**"
+      - "native/graph-runner/guest/host/gpu-catalog.mjs"
+      - "packages/gpu/**"
       - ".github/workflows/native-realtime.yml"
   push:
     branches: [main]
     paths:
       - "native/realtime/**"
+      - "native/graph-runner/guest/host/gpu-catalog.mjs"
+      - "packages/gpu/**"
       - ".github/workflows/native-realtime.yml"
 
 permissions:
@@ -20,6 +24,36 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  offline:
+    name: Offline exports / software adapter
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install build and adapter dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++ mesa-vulkan-drivers libsecret-1-0
+      - name: Set up package dependencies
+        uses: ./.github/actions/setup-build
+        with:
+          package-media: "false"
+          build-packages: "false"
+      - name: Build shader catalog dependencies
+        run: |
+          npm run build --workspace=packages/protocol
+          npm run build --workspace=packages/gpu
+      - name: Select lavapipe
+        shell: bash
+        run: |
+          set -euo pipefail
+          driver=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)
+          test -n "$driver"
+          echo "VK_ICD_FILENAMES=$driver" >> "$GITHUB_ENV"
+          echo "VK_DRIVER_FILES=$driver" >> "$GITHUB_ENV"
+      - name: Verify offline exports and required test inventory
+        run: env -u DISPLAY node native/realtime/scripts/check.mjs
   core:
     name: Core / ${{ matrix.preset }}
     runs-on: ubuntu-24.04

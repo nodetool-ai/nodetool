@@ -37,6 +37,9 @@
 // under a live job.
 #include "nodetool/graph_runner.h"
 #include "nodetool/host_lanes.h"
+#ifdef NODETOOL_GRAPH_RUNNER_REALTIME
+#include "nodetool/realtime/offline.h"
+#endif
 
 #include <nlohmann/json.hpp>
 
@@ -49,6 +52,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <iostream>
 #include <map>
 #include <mutex>
 #include <string>
@@ -69,6 +73,8 @@ int usage(const char* message) {
   if (message) std::fprintf(stderr, "error: %s\n", message);
   std::fprintf(stderr,
                "usage:\n"
+               "  nodetool-graph-runner live <plan.json> --duration <seconds> --fps <rate> --out <new-dir> [--slot <id=file>]...\n"
+               "      (requires NODETOOL_GRAPH_RUNNER_REALTIME=ON)\n"
                "  nodetool-graph-runner run --bundle <guest.js|guest.bin> --graph "
                "<graph.json> [--params '<json>'] [--repeat <n>] [--job-summary]\n"
                "      [--sqlite-dir <dir> [--models-db <file>]]\n"
@@ -161,6 +167,15 @@ std::string runOnce(gr::GraphRunner& runner, const std::string& graph,
 int main(int argc, char** argv) {
   if (argc < 2) return usage(nullptr);
   std::string command = argv[1];
+  if (command == "live") {
+#ifdef NODETOOL_GRAPH_RUNNER_REALTIME
+    const std::vector<std::string> arguments(argv + 2, argv + argc);
+    return nt::realtime::offlineMain(arguments);
+#else
+    std::cerr << "Offline live exports require NODETOOL_GRAPH_RUNNER_REALTIME=ON\n";
+    return 2;
+#endif
+  }
   std::map<std::string, std::string> flags;
   gr::HostOptions host;
   bool printSummary = false;
