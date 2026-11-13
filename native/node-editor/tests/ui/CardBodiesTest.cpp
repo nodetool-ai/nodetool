@@ -2194,6 +2194,36 @@ private slots:
         QCOMPARE(host.window.scene()->brushCursorNode(), QtNodes::InvalidNodeId);
     }
 
+    // PainterBody.tsx's onAreaDrop: an image file dropped on the paint area
+    // uploads and becomes the image property, without a new node.
+    void painterCanvasTakesADroppedImage() {
+        Server server;
+        Host host(withNodes({partTwoNode("paint", "nodetool.image.Painter", QPointF(0, 700), {{"canvas_width", 200}, {"canvas_height", 100}})}),
+                  allMetadata());
+        emit host.window.session()->credentialsChanged(server.url(), QStringLiteral("card-token"), QStringLiteral("1"));
+        settle();
+        const auto nodes = host.window.document()->graph()["nodes"].toArray().size();
+        QTemporaryDir directory;
+        QImage image(40, 20, QImage::Format_RGB32);
+        image.fill(Qt::blue);
+        const auto path = directory.filePath(QStringLiteral("source.png"));
+        QVERIFY(image.save(path));
+        QMimeData mime;
+        mime.setUrls({QUrl::fromLocalFile(path)});
+        const QPointF position(host.point("paint", host.row("paint", NodeRowKind::Paint)->rect.center()));
+        QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(host.view->viewport(), &enter);
+        QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(host.view->viewport(), &move);
+        QDropEvent drop(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(host.view->viewport(), &drop);
+        QVERIFY(drop.isAccepted());
+        QTRY_VERIFY_WITH_TIMEOUT(!host.data("paint")["image"].toObject()["asset_id"].toString().isEmpty(), 10000);
+        QCOMPARE(host.data("paint")["image"].toObject()["type"].toString(), QStringLiteral("image"));
+        QCOMPARE(server.uploads, 1);
+        QCOMPARE(host.window.document()->graph()["nodes"].toArray().size(), nodes);
+    }
+
     // ColorOverlayBody.tsx: the Fill swatch opens the ColorPicker popover on the card.
     void colorSwatchOpensThePicker() {
         Host host(withNodes({partTwoNode("overlay", "lib.image.effects.ColorOverlay", QPointF(0, 700))}), allMetadata());

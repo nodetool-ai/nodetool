@@ -975,7 +975,7 @@
         "native/node-editor/qml/InlinePropertyEditor.qml"
       ],
       "status": "partial",
-      "note": "Canvas over the incoming image, brush and eraser strokes into mask_data, color, Undo, Redo, Clear, size, opacity, canvas size and background opacity match. The brush cursor circle follows the pointer, but the system cursor still shows over the canvas. Dropping an image on the canvas is missing.",
+      "note": "Canvas over the incoming image, brush and eraser strokes into mask_data, color, Undo, Redo, Clear, size, opacity, canvas size and background opacity match. The brush cursor circle follows the pointer, but the system cursor still shows over the canvas. An image file dropped on the canvas uploads and becomes the image property, which sizes the canvas through the incoming image instead of writing canvas_width and canvas_height.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/PasteBody.tsx": {
