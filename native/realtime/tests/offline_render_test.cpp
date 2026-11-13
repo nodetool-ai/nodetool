@@ -1,6 +1,7 @@
 #include "nodetool/realtime/offline.h"
 #include <chrono>
 #include <array>
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -40,10 +41,50 @@ void golden(const std::string& png, std::array<int, 4> expected = {255, 0, 0, 12
         }
     }
 }
+void damperCadence(const std::filesystem::path& directory) {
+    auto plan = Plan::parse(read(std::filesystem::path(NT_FIXTURES) / "offline-damper.json"));
+    for (const unsigned rate : {44100u, 48000u}) {
+        plan["session"]["sampleRate"] = rate;
+        plan["params"][0]["value"] = rate / 4;
+        const auto prefix = "damp-" + std::to_string(rate) + "-";
+        const auto reference = directory / (prefix + "60");
+        for (const unsigned fps : {60u, 120u, 2u}) {
+            OfflineOptions options{"0.6", std::to_string(fps), directory / (prefix + std::to_string(fps)), NT_GPU_CATALOG};
+            const auto result = runOffline(plan.dump(), options);
+            require(!result.error && result.frames == (3 * fps + 4) / 5, "Damper frame export failed");
+            for (std::uint64_t frame = 0; frame < result.frames; ++frame) {
+                const auto number = std::to_string(frame);
+                const auto name = "frame-" + std::string(6 - number.size(), '0') + number + ".png";
+                const auto png = read(options.output / name);
+                const auto quanta = frame * rate / (fps * 128);
+                const double seconds = static_cast<double>(quanta * 128) / rate;
+                const auto red = static_cast<int>(std::lround(255 * 0.75 * (1 - std::exp(-seconds / 0.2))));
+                golden(png, {red, 0, 0, 255});
+                if (fps == 2 && frame == 1) {
+                    bool rejected = false;
+                    try { golden(png, {0, 0, 0, 255}); } catch (const std::runtime_error&) { rejected = true; }
+                    require(rejected, "Damper golden accepted state stuck at time zero");
+                }
+                if (fps != 60 && frame * 60 % fps == 0) {
+                    const auto common = std::to_string(frame * 60 / fps);
+                    require(png == read(reference / ("frame-" + std::string(6 - common.size(), '0') + common + ".png")),
+                        "Damper pixels depend on video cadence at a common timestamp");
+                }
+            }
+            require(read(options.output / "audio.wav") == read(reference / "audio.wav"), "Mixed damper PCM depends on video cadence");
+        }
+        OfflineOptions repeat{"0.6", "60", directory / (prefix + "repeat"), NT_GPU_CATALOG};
+        require(!runOffline(plan.dump(), repeat).error, "Repeated damper export failed");
+        for (const auto& file : std::filesystem::directory_iterator(reference)) {
+            require(read(file.path()) == read(repeat.output / file.path().filename()), "Damper repeat bytes differ");
+        }
+    }
+}
 }
 int main() {
     try {
         Directory directory;
+        damperCadence(directory.path);
         auto plan = Plan::parse(read(std::filesystem::path(NT_FIXTURES) / "offline-render.json"));
         for (unsigned mixed = 0; mixed < 2; ++mixed) {
             if (mixed) {
