@@ -74,7 +74,7 @@
       "native": "Delete"
     },
     "resetDefault": {
-      "missing": "No native binding"
+      "native": "removeValue()"
     },
     "groupSelected": {
       "native": "Group selection"
@@ -149,7 +149,7 @@
       "native": "Delete"
     },
     "nodeInfo": {
-      "missing": "No native binding"
+      "native": "Node info"
     },
     "openNodeMenu": {
       "native": "Add node"
@@ -185,7 +185,7 @@
       "native": "newTab()"
     },
     "closeWorkflow": {
-      "native": "closeTab(activeTab()"
+      "native": "closeTab(activeTab())"
     },
     "prevTab": {
       "native": "selectAdjacentTab(-1)"
@@ -536,7 +536,10 @@
       "inventory": "F42"
     },
     "web/src/components/node_editor/NodeInfoPanel.tsx": {
-      "missing": "No native counterpart. Its Focus button lives in the inspector Help tab.",
+      "native": [
+        "native/node-editor/qml/NodeInfoPanel.qml",
+        "native/node-editor/src/interfaces/NodeInfo.cpp"
+      ],
       "inventory": "F40"
     },
     "web/src/components/node_editor/RuntimeInstallDialog.tsx": {

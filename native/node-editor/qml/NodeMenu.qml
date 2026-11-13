@@ -41,6 +41,12 @@ Rectangle {
     function close() {
         root.catalog.closeMenu()
     }
+    // NodeInfoPanel.tsx opens the menu at a node's namespace or searching one of its tags.
+    function showPath(path, term) {
+        search.text = term
+        query = term
+        selectedPath = Array.from(path)
+    }
 
     readonly property var nodes: root.catalog.nodes
     // Nodes whose provider key is missing stay out unless the user shows them
