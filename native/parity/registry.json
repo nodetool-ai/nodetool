@@ -391,8 +391,7 @@
         "native/node-editor/qml/CompatibleNodePicker.qml",
         "native/node-editor/src/graph/CompatibleNodePicker.cpp"
       ],
-      "status": "partial",
-      "note": "Picker works. The pinned Preview, Reroute, Save, Constant, Input, Prompt and AI shortcuts are missing.",
+      "note": "The AI rows create the seeded Code node and open the chat with a draft that names it. The Code assistant dialog is missing natively.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/ConnectionMatchMenu.tsx": {
@@ -421,10 +420,10 @@
     },
     "web/src/components/context_menus/InputContextMenu.tsx": {
       "native": [
-        "native/node-editor/qml/CompatibleNodePicker.qml"
+        "native/node-editor/qml/CompatibleNodePicker.qml",
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp"
       ],
-      "status": "partial",
-      "note": "Opens the compatible-node picker. Same shortcut gaps as ConnectableNodes.",
+      "note": "Constant, Input, Prompt and Create value with AI rows. The AI row opens the chat instead of the Code assistant dialog.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/NodeContextMenu.tsx": {
@@ -435,10 +434,10 @@
     },
     "web/src/components/context_menus/OutputContextMenu.tsx": {
       "native": [
-        "native/node-editor/qml/CompatibleNodePicker.qml"
+        "native/node-editor/qml/CompatibleNodePicker.qml",
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp"
       ],
-      "status": "partial",
-      "note": "Opens the compatible-node picker and deletes dynamic outputs. Same shortcut gaps as ConnectableNodes.",
+      "note": "Preview, Output, Reroute, Save, Transform this output and the quick actions, and deletes dynamic outputs. The AI row opens the chat instead of the Code assistant dialog.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/PaneContextMenu.tsx": {

@@ -15,6 +15,7 @@
 #include <QQuickWidget>
 #include <QQuickWindow>
 #include <QJsonDocument>
+#include <QRegularExpression>
 #include <QSet>
 #include <QTimer>
 #include <QUuid>
@@ -81,6 +82,42 @@ const NodePaths *listPathsFor(const QString &element) {
     {"text",{"nodetool.input.TextListInput","nodetool.constant.TextList",{},"Text List"}},
     {"str",{"nodetool.input.StringListInput","nodetool.constant.TextList",{},"Text List"}}};
   const auto found=paths.constFind(element); return found==paths.constEnd() ? nullptr : &found.value();
+}
+// web utils/codeGenEntryPoints.ts: a handle name as a free JavaScript identifier on the Code node.
+const QString codeNodeType=QStringLiteral("nodetool.code.Code");
+QString codePortName(const QString &handle,const QString &fallback,const QSet<QString> &taken) {
+  // @nodetool-ai/protocol api-schemas/code-gen.ts RESERVED_PORT_NAMES.
+  static const QSet<QString> reserved{"await","break","case","catch","class","const","continue","debugger","default",
+    "delete","do","else","enum","export","extends","false","finally","for","function","if","implements","import","in",
+    "instanceof","interface","let","new","null","package","private","protected","public","return","static","super",
+    "switch","this","throw","true","try","typeof","var","void","while","with","yield"};
+  static const QRegularExpression outside(QStringLiteral("[^A-Za-z0-9_$]")),identifier(QStringLiteral("^[A-Za-z_$][A-Za-z0-9_$]*$"));
+  auto base=QString(handle).replace(outside,QStringLiteral("_"));
+  if (!base.isEmpty() && base.front().isDigit()) { base.prepend('_'); }
+  base=base.left(64);
+  if (!identifier.match(base).hasMatch()) { base=fallback; }
+  const auto free=[&](const QString &name) { return !taken.contains(name) && !reserved.contains(name); };
+  if (free(base)) { return base; }
+  const auto stem=base.left(61);
+  int suffix=2;
+  while (!free(stem+"_"+QString::number(suffix))) { ++suffix; }
+  return stem+"_"+QString::number(suffix);
+}
+// web utils/dynamicSlots.ts defaultValueForType.
+QJsonValue defaultValueFor(const QString &type) {
+  if (type=="str" || type=="text" || type=="any") { return QString(); }
+  if (type=="int" || type=="float" || type=="number") { return 0; }
+  if (type=="bool") { return false; }
+  if (type=="list") { return QJsonArray{}; }
+  if (type=="dict") { return QJsonObject{}; }
+  return QJsonValue::Null;
+}
+// web utils/TypeHandler.ts isCollectType: a list of one concrete element type.
+bool isCollect(const QJsonObject &type) {
+  const auto args=type["type_args"].toArray();
+  if (type["type"].toString()!="list" || args.size()!=1) { return false; }
+  const auto element=typeOf(QJsonObject{{"type",args[0]}})["type"].toString();
+  return !element.isEmpty() && element!="any";
 }
 class PickerWidget final : public QQuickWidget {
 public:
@@ -337,6 +374,11 @@ void CompatibleNodePicker::buildFixed() {
         add("save",text,nodeType(save),port);
       }
     }
+    // OutputContextMenu.tsx: "Transform this output…" seeds a Code node input from the output.
+    if (!type.isEmpty() && !handle_.startsWith("__") && !metadataFor(codeNodeType).isEmpty()) {
+      FixedAction transform{"fixed\ntransform",tr("Transform this output…"),codeNodeType};
+      transform.code=true; fixed_.append(transform);
+    }
     // web config/outputQuickActions.ts outputQuickActionsFor.
     if (type=="image") {
       add("upscale",tr("Upscale"),"nodetool.image.Upscale","image");
@@ -392,6 +434,11 @@ void CompatibleNodePicker::buildFixed() {
   }
   add("input",special ? tr("Create %1 input").arg(special->label) : tr("Input"),inputPath,"output",handle_,inputPresets,!collect);
   if (type=="str") { add("prompt",tr("Prompt"),"nodetool.text.Prompt","output",{},{},!collect); }
+  // InputContextMenu.tsx: "Create value with AI…" seeds a Code node output from the input.
+  if (!type.isEmpty() && !handle_.startsWith("__") && !metadataFor(codeNodeType).isEmpty()) {
+    FixedAction value{"fixed\ncreate-value",tr("Create value with AI…"),codeNodeType};
+    value.code=true; fixed_.append(value);
+  }
 }
 QVariantList CompatibleNodePicker::fixedRows() const {
   QVariantList result;
@@ -410,6 +457,7 @@ void CompatibleNodePicker::choose(const QString &key, int generation) {
     const auto action=std::find_if(fixed_.cbegin(),fixed_.cend(),[&](const auto &a) { return a.key==key; });
     if (action==fixed_.cend()) { return; }
     if (action->destructive) { deleteOutput(generation); return; }
+    if (action->code) { chooseCode(metadataFor(action->type)); return; }
     const auto metadata=metadataFor(action->type);
     QString id;
     const auto command=connectCommand(metadata,port_==QtNodes::PortType::Out,resource_,handle_,action->port,position_,id,
@@ -435,13 +483,14 @@ void CompatibleNodePicker::choose(const QString &key, int generation) {
 // node's `port`; otherwise the new node's output `port` feeds `resource`'s input `handle`.
 QJsonObject CompatibleNodePicker::connectCommand(const QJsonObject &metadata,bool forward,const QString &resource,
     const QString &handle,const QString &port,const QPointF &position,QString &id,
-    const QJsonObject &overrides,const QString &receivingName,bool replaceTarget) const {
+    const QJsonObject &overrides,const QString &receivingName,bool replaceTarget,const QJsonObject &dynamic) const {
   QJsonArray existing;
   for (const auto nodeId:model_.allNodeIds()) { existing.append(model_.nodeSnapshot(nodeId)); }
   NodeCreationOptions options;
   if (forward) { options.receivingName=handle; options.useMetadataStyle=true; }
   else { options.receivingName=receivingName; }
   auto node=createNativeNode(metadata,position,existing,overrides,options);
+  for (auto it=dynamic.begin();it!=dynamic.end();++it) { node[it.key()]=it.value(); }
   id=node["id"].toString();
   const QJsonObject edge{{"id",QUuid::createUuid().toString(QUuid::Id128)},
     {"source",forward ? resource:id},{"target",forward ? id:resource},
@@ -484,6 +533,32 @@ QJsonObject CompatibleNodePicker::connectCommand(const QJsonObject &metadata,boo
   commands.append(QJsonObject{{"op","addNode"},{"node",node}});
   commands.append(QJsonObject{{"op","addEdge"},{"edge",edge}});
   return QJsonObject{{"op","batch"},{"commands",commands}};
+}
+// web hooks/useCodeGenFromHandle.ts transformOutput and createValue: one Code node whose
+// seeded slot carries the handle's type, wired to the handle. An input that takes one
+// source drops its current edge in the same step. The web opens the Code assistant
+// dialog here. Native opens the chat with a draft that names the node.
+bool CompatibleNodePicker::chooseCode(const QJsonObject &metadata) {
+  const bool forward=port_==QtNodes::PortType::Out;
+  const QJsonObject slotType=type_;
+  const auto kind=slotType["type"].toString();
+  QSet<QString> taken;
+  for (const auto &value:metadata[forward ? QStringLiteral("properties") : QStringLiteral("outputs")].toArray()) { taken.insert(value.toObject()["name"].toString()); }
+  const auto name=codePortName(handle_,forward ? QStringLiteral("value"):QStringLiteral("output"),taken);
+  const auto dynamic=forward
+      ? QJsonObject{{"dynamic_inputs",QJsonObject{{name,QJsonObject{{"type",slotType}}}}},
+                    {"dynamic_properties",QJsonObject{{name,defaultValueFor(kind)}}}}
+      : QJsonObject{{"dynamic_outputs",QJsonObject{{name,slotType}}}};
+  const auto handle=handle_;
+  QString id;
+  const auto command=connectCommand(metadata,forward,resource_,handle_,name,position_,id,{},{},!forward && !isCollect(slotType),dynamic);
+  cancel();
+  if (!applyCommand || !applyCommand(command)) { return false; }
+  emit nodeCreated(id);
+  emit codeRequested(id,forward
+      ? tr("Write the code for the Code node (id %1). Its input \"%2\" (%3) receives the \"%4\" output. It should ").arg(id,name,kind,handle)
+      : tr("Write the code for the Code node (id %1). Its output \"%2\" (%3) feeds the \"%4\" input. It should ").arg(id,name,kind,handle));
+  return true;
 }
 // Web useAddConnectedNode: a node of `type` beside an output, wired to `targetPort`, in one step.
 // The output handle's scene position is the anchor the loose-wire picker would have used.
