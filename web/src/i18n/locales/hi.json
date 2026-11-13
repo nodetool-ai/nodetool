@@ -18176,6 +18176,8 @@
         "mediumDescription": "शेष गति और गहराई।",
         "high": "उच्च",
         "highDescription": "सबसे लंबे समय तक कारण। धीमी और लागत अधिक है।",
+        "xhigh": "बहुत उच्च",
+        "xhighDescription": "सबसे गहराई से सोचता है। सबसे धीमा और सबसे महंगा।",
         "level": "तर्क स्तर",
         "title": "तर्क",
         "titleWithLevel": "तर्क: {{level}}"

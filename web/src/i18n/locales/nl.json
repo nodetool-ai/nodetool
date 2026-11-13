@@ -18176,6 +18176,8 @@
         "mediumDescription": "Brengt snelheid en diepte in evenwicht.",
         "high": "Hoog",
         "highDescription": "Redenen langst. Langzamer en kost meer.",
+        "xhigh": "Zeer hoog",
+        "xhighDescription": "Redeneert het langst. Het traagst en het duurst.",
         "level": "Redeneer niveau",
         "title": "Redenering",
         "titleWithLevel": "Redenering: {{level}}"

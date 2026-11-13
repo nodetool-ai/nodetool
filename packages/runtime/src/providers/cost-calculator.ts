@@ -16,7 +16,11 @@
  *    const cost = CostCalculator.calculate("gpt-4o-mini", { inputTokens: 1000, outputTokens: 500 }, "openai");
  */
 
-import { calcPrice, type Usage } from "@pydantic/genai-prices";
+import {
+  calcPrice,
+  type Provider as GenaiProvider,
+  type Usage
+} from "@pydantic/genai-prices";
 import { createLogger } from "@nodetool-ai/config";
 import {
   GENAI_PROVIDER_MAP,
@@ -161,6 +165,42 @@ export interface UsageInfo {
 }
 
 /**
+ * Token prices for models the bundled genai-prices catalog does not list yet,
+ * keyed by genai-prices provider id. Consulted only when the catalog has no
+ * price, so a catalog update takes over without a code change. Remove an
+ * entry once the bundled catalog prices the model.
+ */
+export const LOCAL_TOKEN_PRICES: Readonly<Record<string, GenaiProvider>> = {
+  google: {
+    id: "google",
+    name: "Google",
+    api_pattern: "",
+    models: [
+      {
+        // Gemini 4 Hydrogen, paid tier: $1.50 input and $7.50 output (thinking
+        // included) per 1M tokens, flat across the context window. Cached
+        // input $0.075 per 1M (the 95% implicit-cache discount).
+        // Source: https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/
+        // and https://ai.google.dev/gemini-api/docs/pricing
+        id: "gemini-4-hydrogen",
+        name: "Gemini 4 Hydrogen",
+        match: {
+          or: [
+            { equals: "gemini-4-hydrogen" },
+            { starts_with: "gemini-4-hydrogen-" }
+          ]
+        },
+        prices: {
+          input_mtok: 1.5,
+          cache_read_mtok: 0.075,
+          output_mtok: 7.5
+        }
+      }
+    ]
+  }
+};
+
+/**
  * Token/embedding cost in USD via genai-prices. Returns `null` when no price is
  * known (so the caller can fall back or report zero), and `0` for local models.
  */
@@ -204,7 +244,11 @@ function calcTokenPriceUsd(
       modelId,
       providerId ? { providerId } : undefined
     );
-    return result ? result.total_price : null;
+    if (result) return result.total_price;
+    const local = providerId ? LOCAL_TOKEN_PRICES[providerId] : undefined;
+    if (!local) return null;
+    const localResult = calcPrice(gpUsage, modelId, { provider: local });
+    return localResult ? localResult.total_price : null;
   } catch (error) {
     // Stryker disable next-line StringLiteral: warning text is for humans, not asserted.
     log.warn(

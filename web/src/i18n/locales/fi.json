@@ -18176,6 +18176,8 @@
         "mediumDescription": "Tasapainottaa nopeuden ja syvyyden.",
         "high": "Korkea",
         "highDescription": "Päättelee pisimpään. Hitaampi ja kalliimpi.",
+        "xhigh": "Erittäin korkea",
+        "xhighDescription": "Päättelee kaikkein pisimpään. Hitain ja kallein.",
         "level": "Päättelytaso",
         "title": "Päättely",
         "titleWithLevel": "Päättely: {{level}}"

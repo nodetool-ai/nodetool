@@ -18480,6 +18480,8 @@
         "mediumDescription": "Equilibra velocidade e profundidade.",
         "high": "Alto",
         "highDescription": "Razões mais longas. Mais lento e custa mais.",
+        "xhigh": "Muito alto",
+        "xhighDescription": "Raciocina por mais tempo. O mais lento e o mais caro.",
         "level": "Nível de raciocínio",
         "title": "Raciocínio",
         "titleWithLevel": "Raciocínio: {{level}}"

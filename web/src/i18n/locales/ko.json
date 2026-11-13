@@ -18176,6 +18176,8 @@
         "mediumDescription": "속도와 깊이의 균형을 유지합니다.",
         "high": "높음",
         "highDescription": "가장 긴 이유. 속도가 느리고 비용이 더 많이 듭니다.",
+        "xhigh": "매우 높음",
+        "xhighDescription": "가장 오래 추론합니다. 가장 느리고 비용이 가장 많이 듭니다.",
         "level": "추론 수준",
         "title": "추론",
         "titleWithLevel": "추론: {{level}}"

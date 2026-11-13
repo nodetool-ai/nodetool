@@ -18784,6 +18784,8 @@
         "mediumDescription": "Równoważy prędkość i głębokość.",
         "high": "Wysoka",
         "highDescription": "Powody najdłuższe. Wolniejsze i droższe.",
+        "xhigh": "Bardzo wysoki",
+        "xhighDescription": "Rozumuje najdłużej. Najwolniejszy i najdroższy.",
         "level": "Poziom rozumowania",
         "title": "Rozumowanie",
         "titleWithLevel": "Rozumowanie: {{level}}"
