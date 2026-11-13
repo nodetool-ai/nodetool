@@ -1,5 +1,7 @@
 #include "../../src/run/RunOutputModel.h"
 #include <QTest>
+#include <QColor>
+#include <QImage>
 #include <QJsonArray>
 #include <QSignalSpy>
 #include <QPersistentModelIndex>
@@ -129,6 +131,37 @@ private slots:
 
  // TaskView, TaskPlanView, CalendarEventView, ThreadMessageList and ArrayView
  // in web/src/components/node, as Markdown or code text.
+ void svgHtmlAndDocumentOutputs() {
+   RunOutputModel model; model.beginRun("typed");
+   int output = 0;
+   auto show = [&](const QJsonValue &value) {
+     model.ingest("typed", {{"job_id", "typed"}, {"type", "output_update"}, {"node_id", "node"}, {"output_name", QString::number(++output)}, {"value", value}});
+     return model.entries().last().toMap();
+   };
+   // svg.tsx: the elements draw as one picture. Script and outside references are dropped.
+   const QJsonObject rect{{"type", "svg_element"}, {"name", "rect"},
+     {"attributes", QJsonObject{{"width", "40"}, {"height", "20"}, {"fill", "#ff0000"}, {"onclick", "alert(1)"}}}};
+   const QJsonObject image{{"type", "svg_element"}, {"name", "image"}, {"attributes", QJsonObject{{"href", "file:///etc/passwd"}}}};
+   const auto svg = show(QJsonObject{{"type", "svg_element"}, {"name", "svg"},
+     {"attributes", QJsonObject{{"width", "40"}, {"height", "20"}}}, {"children", QJsonArray{rect, image, QJsonObject{{"type", "svg_element"}, {"name", "script"}}}}});
+   QCOMPARE(svg["renderer"].toString(), QString("generic"));
+   const auto items = svg["items"].toList();
+   QCOMPARE(items.size(), 1);
+   QCOMPARE(items.first().toMap()["kind"].toString(), QString("image"));
+   const auto png = QImage::fromData(QByteArray::fromBase64(items.first().toMap()["locator"].toMap()["data"].toString().toLatin1()), "PNG");
+   QCOMPARE(png.size(), QSize(40, 20));
+   QCOMPARE(png.pixelColor(10, 10), QColor(255, 0, 0));
+   QCOMPARE(show(QJsonArray{rect, rect})["items"].toList().size(), 1);
+   // OutputRenderer's sandboxed iframe: formatted text, with no image to load.
+   const auto html = show(QJsonObject{{"type", "html"}, {"data", "<h1>Title</h1><p>Some <b>bold</b> text<img src=\"https://example.com/t.png\" alt=\"pixel\"></p><script>alert(1)</script>"}});
+   QCOMPARE(html["renderer"].toString(), QString("text"));
+   QVERIFY(html["text"].toString().startsWith("# Title"));
+   QVERIFY(html["text"].toString().contains("**bold**"));
+   QVERIFY(!html["text"].toString().contains("example.com"));
+   QCOMPARE(show(QJsonObject{{"type", "html"}, {"uri", "https://host/page.html"}})["text"].toString(), QString("[Open HTML output](https://host/page.html)"));
+   const auto document = show(QJsonObject{{"type", "document"}, {"uri", "https://host/report.pdf"}});
+   QCOMPARE(document["text"].toString(), QString("[Open document](https://host/report.pdf)"));
+ }
  void agentAndArrayOutputs() {
    RunOutputModel model; model.beginRun("typed");
    int output = 0;
@@ -382,5 +415,5 @@ private slots:
   m.clear(); QVERIFY(m.runs().isEmpty()); QVERIFY(m.entries().isEmpty()); QVERIFY(m.selectedRunId().isEmpty());
  }
 };
-QTEST_GUILESS_MAIN(RunOutputModelTests)
+QTEST_MAIN(RunOutputModelTests)
 #include "RunOutputModelTests.moc"

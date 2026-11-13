@@ -173,7 +173,8 @@ const Shortcut shortcuts[] = {
  {"Align top", "Shift+Up"}, {"Align bottom", "Shift+Down"},
  {"Align center", "Shift+H"}, {"Align middle", "Shift+E"},
  {"Distribute horizontally", "Shift+D"}, {"Stack selection", "V"}, {"Arrange grid", "G"},
- {"Select all connected", "Shift+C"}, {"Select inputs", "Shift+I"}, {"Select outputs", "Shift+O"}
+ {"Select all connected", "Shift+C"}, {"Select inputs", "Shift+I"}, {"Select outputs", "Shift+O"},
+ {"Add Prompt", "Shift+P"}, {"Add Text to Image", "Shift+G"}, {"Add Text to Video", "Shift+V"}, {"Add Agent", "Shift+L"}
 };
 
 // The web shortcut category (config/shortcuts.ts) of each native command.
@@ -546,6 +547,7 @@ bool EditorWindow::menuActionEnabled(const QString &name) const {
  if (name == "Focus node") { return count == 1; }
  if (name == "Open child") { return count == 1 && node_editor::isChildNode(document_.node(selectedIds().first())); }
  if (name == "Link selected") { return !readOnly() && count == 2; }
+ if (!quickAddNodeType(name).isEmpty()) { return !readOnly() && knownNodeType(quickAddNodeType(name)); }
  if (name == "Stop") { return runActive() && (session_.connected() || session_.runsInProcess(run_)); }
  if (name == "Undo") { return !readOnly() && document_.undoStack()->canUndo(); }
  if (name == "Redo") { return !readOnly() && document_.undoStack()->canRedo(); }

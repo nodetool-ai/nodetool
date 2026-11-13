@@ -151,7 +151,7 @@ void EditorWindow::newTab() {
   tabs_.append(tab);
   tabStack_->addWidget(tab);
     // Cards warn about a missing provider key from the account's secrets.
-    const auto syncSecrets = [this, tab] { tab->model_.setConfiguredSecrets(packSetup_.configuredKeys(), packSetup_.secretsLoaded()); };
+    const auto syncSecrets = [this, tab] { tab->model_.setConfiguredSecrets(packSetup_.configuredKeys(), packSetup_.secretsLoaded(), packSetup_.secretKeys()); };
     connect(&packSetup_, &node_editor::PackSetup::changed, tab, syncSecrets);
     syncSecrets();
     connect(&packSetup_, &node_editor::PackSetup::registryRefreshRequested, tab, [this, tab] {
