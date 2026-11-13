@@ -20,8 +20,9 @@ Basic.Button {
             if (child && child.grabPermissions !== undefined && child.parent === content) child.parent = root
         }
     }
-    Keys.onReturnPressed: if (flat && enabled) click()
-    Keys.onEnterPressed: if (flat && enabled) click()
+    // Only a flat row takes Enter itself. Other rows leave it to their list.
+    Keys.onReturnPressed: event => { event.accepted = flat && enabled; if (event.accepted) click() }
+    Keys.onEnterPressed: event => { event.accepted = flat && enabled; if (event.accepted) click() }
     // A flat row's children anchor to it, so its content reports no implicit size of its own.
     contentItem: Item { id: content; implicitWidth: root.flat ? 0 : childrenRect.width; implicitHeight: root.flat ? 0 : childrenRect.height }
     background: Rectangle { color: root.down ? Theme.actionPressed : root.active ? Theme.actionSelected : root.hovered && (!root.flat || root.enabled) ? Theme.actionHover : "transparent"; radius: Metrics.radiusControl; border.width: root.visualFocus ? Metrics.focus : 0; border.color: Theme.borderFocus }
