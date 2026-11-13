@@ -277,6 +277,26 @@ native/Wasm audio parity, physical timing or M0 hardware qualification.
 Windows MSVC Release and ASan pass `realtime-offline-driver` and
 `realtime-offline-render-export`. The affected-native command against
 `0c09a8c5dc`, with CTest restricted to those two cases, passes. A separate
-GPU-disabled Release build also passes the driver test. Linux qualification
-of the new damper fixture remains pending CI. Broad checks were not rerun for
-this fixture-only batch.
+GPU-disabled Release build also passes the driver test. The
+[standalone Linux realtime run at `a8b1958691`](https://github.com/nodetool-ai/nodetool/actions/runs/43370759316)
+passes offline Release and ASan/UBSan with lavapipe, including the damper
+fixture, and core Release/ASan+UBSan/TSan and wasm32 checks. Broad checks were
+not rerun locally for this fixture-only batch.
+
+## Cache pressure and readback recovery
+
+Software-adapter GPU fixtures now check retained-cache eviction at the minimum
+two-texture execution budget, with pixel references and a below-minimum rejection.
+The readback fixture recycles every staging slot while older frames remain queued,
+checks distinct colors and frame numbers after backpressure, and rejects a short
+destination span without consuming its capture. Teardown coverage includes one
+and three outstanding map requests. A separate schedule instance supplies the
+eviction counts. These are not direct GPU execution or driver-allocation counts.
+
+Windows MSVC Release passes `realtime-offline-gpu` and
+`realtime-render-schedule` through the affected-native command against
+`a8b1958691`, restricted to those two tests. Windows MSVC ASan passes
+`realtime-offline-gpu`. The test thread owns the schedules, private devices,
+staging storage and callback records until backend destruction. Linux
+qualification of the new cases remains pending CI. Broad checks were not
+rerun for this fixture-only batch. Live/shared-device support remains blocked.

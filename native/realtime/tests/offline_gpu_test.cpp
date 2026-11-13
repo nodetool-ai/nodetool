@@ -50,17 +50,20 @@ struct Fixture {
         plan["render"]["passes"].push_back({{"node", name}, {"module", key}, {"inputs", inputs}, {"uniforms", uniforms}, {"retention", "retained"}, {"output", output()}});
         plan["render"]["present"] = {{"source", name}, {"colorSpace", "linear"}};
     }
-    std::unique_ptr<OfflineGpu> prepare(const Plan& catalog) const {
-        auto result = OfflineGpu::prepare(plan, registry, catalog.dump());
+    std::unique_ptr<OfflineGpu> prepare(const Plan& catalog, OfflineGpuOptions options = {}) const {
+        auto result = OfflineGpu::prepare(plan, registry, catalog.dump(), options);
         if (!result.gpu) { throw std::runtime_error(result.error->node + ": " + result.error->detail); }
         return std::move(result.gpu);
     }
 };
-std::vector<std::byte> read(OfflineGpu& gpu, std::uint64_t expectedFrame) {
+std::vector<std::byte> read(OfflineGpu& gpu, std::uint64_t expectedFrame, bool rejectShortBuffer = false) {
     std::vector<std::byte> pixels(gpu.readbackBytes()); std::uint64_t frame = 0;
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
     while (std::chrono::steady_clock::now() < deadline) {
         require(gpu.poll(), "GPU failed while polling readback");
+        if (rejectShortBuffer) {
+            require(!gpu.takeReadback(std::span(pixels).first(pixels.size() - 1), frame), "Short readback buffer accepted");
+        }
         if (gpu.takeReadback(pixels, frame)) { require(frame == expectedFrame, "Readback order changed"); return pixels; }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
@@ -123,6 +126,60 @@ void retainedPixelsAndResize(const Plan& catalog) {
     require(resized->render({fixture.values, fixture.versions, true}, true).readbackQueued, "Resized GPU frame rejected");
     golden(read(*resized, 0), {64, 64, 0, 255}, 8, 8);
 }
+void cachePressure(const Plan& catalog) {
+    Fixture fixture;
+    fixture.add(catalog, "sources.solid@1", Plan::object(), {{"color", {0.25, 0.25, 0, 1}}});
+    fixture.add(catalog, "color.invert@1", {{"source", "pass-0"}});
+    fixture.add(catalog, "color.invert@1", {{"source", "pass-1"}});
+    constexpr std::size_t reserved = 4 * 4 * 4 + 4;
+    constexpr std::size_t budget = reserved + 2 * 4 * 4 * 4;
+    auto prepared = RenderSchedule::prepare(fixture.plan, fixture.registry, {budget, reserved});
+    require(bool(prepared.schedule), "Cache-pressure schedule preparation failed");
+    auto& schedule = *prepared.schedule;
+    require(schedule.textures().size() == 2 && schedule.textureBytes() == budget,
+        "Cache-pressure fixture did not enforce the two-texture budget");
+    auto rejected = OfflineGpu::prepare(fixture.plan, fixture.registry, catalog.dump(), {true, budget - 1});
+    require(!rejected.gpu && rejected.error && rejected.error->reason == "budget", "Below-minimum GPU budget accepted");
+    auto gpu = fixture.prepare(catalog, {true, budget});
+    for (unsigned frame = 0; frame < 6; ++frame) {
+        fixture.values[0].lanes[0] = frame % 2 == 0 ? 0.25 : 0.75;
+        const RenderFrameInput input{fixture.values, fixture.versions, true, true};
+        const auto planned = schedule.beginFrame(input);
+        require(planned.accepted && planned.commands.size() == 3 && planned.evictions > 0,
+            "Cache pressure did not reconstruct evicted retained outputs");
+        require(planned.commands[0].output == planned.commands[2].output &&
+            planned.commands[1].output != planned.commands[2].output, "Cache pressure overwrote a live input");
+        schedule.completeFrame(true);
+        require(gpu->render(input, true).readbackQueued, "Cache-pressure GPU frame rejected");
+        golden(read(*gpu, frame), {frame % 2 == 0 ? 64u : 191u, 64, 0, 255});
+    }
+}
+void readbackRecovery(const Plan& catalog) {
+    Fixture fixture;
+    fixture.add(catalog, "sources.solid@1", Plan::object(), {{"color", {0, 0, 0, 1}}});
+    auto gpu = fixture.prepare(catalog);
+    constexpr std::array<double, 6> colors{0, 0.25, 0.5, 0.75, 1, 0};
+    constexpr std::array<unsigned, 6> bytes{0, 64, 128, 191, 255, 0};
+    for (unsigned frame = 0; frame < 3; ++frame) {
+        fixture.values[0].lanes[0] = colors[frame];
+        require(gpu->render({fixture.values, fixture.versions}, true).readbackQueued, "Initial ring capture rejected");
+    }
+    fixture.values[0].lanes[0] = colors[3];
+    require(!gpu->render({fixture.values, fixture.versions}, true).accepted, "Saturated ring accepted another capture");
+    for (unsigned frame = 0; frame < 6; ++frame) {
+        golden(read(*gpu, frame, frame == 0), {bytes[frame], 0, 0, 255});
+        if (frame < 3) {
+            fixture.values[0].lanes[0] = colors[frame + 3];
+            require(gpu->render({fixture.values, fixture.versions}, true).readbackQueued, "Freed ring slot did not accept a capture");
+        }
+    }
+    std::vector<std::byte> pixels(gpu->readbackBytes()); std::uint64_t frame = 0;
+    require(!gpu->takeReadback(pixels, frame) && gpu->healthy(), "Drained ring returned a capture or failed");
+    for (unsigned pending = 0; pending < 3; ++pending) {
+        require(gpu->render({fixture.values, fixture.versions}, true).readbackQueued, "Pending teardown ring did not fill");
+    }
+    require(!gpu->render({fixture.values, fixture.versions}, true).accepted, "Pending teardown ring did not apply backpressure");
+}
 void chains(const Plan& catalog) {
     for (unsigned chain = 0; chain < 4; ++chain) {
         Fixture fixture; fixture.slot("unrelated"); // Must not block an independent present chain.
@@ -164,14 +221,14 @@ void computeAndRejections(const Plan& catalog) {
     require(!result.gpu && result.error->node == "pass-0", "Bad shader diagnostic lost graph-node identity");
     result = OfflineGpu::prepare(fixture.plan, fixture.registry, catalog.dump(), {true, 1});
     require(!result.gpu, "Insufficient texture budget accepted");
-    // Destroy with an outstanding map callback. Sanitizers must cover this later.
+    // One outstanding map complements the saturated-ring teardown case.
     require(gpu->render({fixture.values, fixture.versions}, true).accepted, "Pending teardown fixture rejected");
 }
 }
 int main() {
     try {
         std::ifstream input(NT_GPU_CATALOG); require(bool(input), "Export the GPU catalog before testing"); Plan catalog; input >> catalog;
-        chains(catalog); retainedPixelsAndResize(catalog); computeAndRejections(catalog);
+        chains(catalog); retainedPixelsAndResize(catalog); cachePressure(catalog); readbackRecovery(catalog); computeAndRejections(catalog);
         std::cout << "Offline software-adapter GPU tests passed\n";
     } catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }
 }
