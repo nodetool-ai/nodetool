@@ -1,0 +1,3 @@
+# Qt's xcb platform plugin talks to the session bus through libdbus, which
+# keeps a read buffer of its connection for the process lifetime.
+leak:libdbus-1.so
