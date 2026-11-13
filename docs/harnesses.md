@@ -2326,7 +2326,7 @@ window or the graph runner, and the web side on `web/parity.html` under
 Playwright. It plays a scenario and compares probe state, the intents each
 component sent its host, and screenshots. Neither runs in CI. Setup, the
 scenario format and how to add a component are in
-[native/parity/README.md](../native/parity/README.md).
+[native/parity/README.md](https://github.com/nodetool-ai/nodetool/blob/main/native/parity/README.md).
 
 ```bash
 npm run parity:census
