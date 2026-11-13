@@ -135,8 +135,8 @@ Rectangle {
                 id: nodesTitle
                 text: "Nodes"
                 role: Ui.Typography.SansLabel
-                font.weight: Font.Normal
-                lineHeight: 1
+                weight: Font.Normal
+                tight: true
                 // The PanelHeader title tooltip (config/quickAccessCategories.tsx, nodes).
                 HoverHandler { id: titleHover }
                 Ui.Tooltip {
@@ -145,7 +145,7 @@ Rectangle {
                     text: qsTr("Browse, search, and add nodes to the current workflow.")
                 }
             }
-            Ui.Text { objectName: "catalog-count"; text: root.visibleNodes.length; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; lineHeight: 1 }
+            Ui.Text { objectName: "catalog-count"; text: root.visibleNodes.length; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; tight: true }
             // DocsHelpLink.tsx in its label variant: an open-in-new icon to the docs topic.
             Ui.EditorButton {
                 id: docsLink
@@ -310,16 +310,16 @@ Rectangle {
                             Layout.fillWidth: true
                             text: categoryRow.modelData.label
                             role: Ui.Typography.SansLabel
-                            font.weight: Font.Normal
+                            weight: Font.Normal
                             tone: categoryRow.active ? Ui.Text.Primary : Ui.Text.Secondary
                             elide: Text.ElideRight
-                            lineHeight: 1
+                            tight: true
                         }
                         Ui.Text {
                             text: categoryRow.modelData.count
                             role: Ui.Typography.SansCaption
                             tone: Ui.Text.Secondary
-                            lineHeight: 1
+                            tight: true
                         }
                     }
                 }
@@ -372,8 +372,8 @@ Rectangle {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: Ui.Metrics.micro
-                            Ui.Text { objectName: "nativeButtonLabel"; Layout.fillWidth: true; text: nodeRow.modelData.label; role: Ui.Typography.SansLabel; font.weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1 }
-                            Ui.Text { Layout.fillWidth: true; text: nodeRow.modelData.namespace; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; elide: Text.ElideRight; lineHeight: 1 }
+                            Ui.Text { objectName: "nativeButtonLabel"; Layout.fillWidth: true; text: nodeRow.modelData.label; role: Ui.Typography.SansLabel; weight: Font.Normal; elide: Text.ElideRight; tight: true }
+                            Ui.Text { Layout.fillWidth: true; text: nodeRow.modelData.namespace; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; elide: Text.ElideRight; tight: true }
                         }
                         // The favorite star shows on hover or once set (components/node_menu/NodeLibraryRow.tsx).
                         Ui.ToolbarIconButton {
@@ -425,7 +425,7 @@ Rectangle {
             elide: Text.ElideRight
             text: root.hovered ? (root.hovered.description || root.hovered.label) : "Drag a node onto the canvas. Hover for details."
             role: Ui.Typography.SansLabel
-            font.weight: Font.Normal
+            weight: Font.Normal
             tone: Ui.Text.Secondary
         }
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }
@@ -434,8 +434,8 @@ Rectangle {
             Layout.preferredHeight: Ui.Metrics.standard
             Layout.leftMargin: Ui.Metrics.lg
             Layout.rightMargin: Ui.Metrics.lg
-            Ui.Text { objectName: "catalog-footer-category"; Layout.fillWidth: true; text: root.categoryLabel; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.Secondary; lineHeight: 1 }
-            Ui.Text { objectName: "catalog-footer-hint"; text: "drag to add"; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: Ui.Text.Secondary; lineHeight: 1 }
+            Ui.Text { objectName: "catalog-footer-category"; Layout.fillWidth: true; text: root.categoryLabel; role: Ui.Typography.SansLabel; weight: Font.Normal; tone: Ui.Text.Secondary; tight: true }
+            Ui.Text { objectName: "catalog-footer-hint"; text: "drag to add"; role: Ui.Typography.SansLabel; weight: Font.Normal; tone: Ui.Text.Secondary; tight: true }
         }
     }
 }

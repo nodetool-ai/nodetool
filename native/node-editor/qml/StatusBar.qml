@@ -32,8 +32,8 @@ Rectangle {
         property bool keyFirst: false
         spacing: Ui.Metrics.sm
         layoutDirection: keyFirst ? Qt.LeftToRight : Qt.RightToLeft
-        Ui.Text { objectName: pair.objectName + "-key"; text: pair.key; role: Ui.Typography.SansLabel; tone: Ui.Text.Disabled; font.weight: Font.Normal; lineHeight: 1 }
-        Ui.Text { objectName: pair.objectName + "-value"; text: pair.value; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary; font.weight: Font.Normal; lineHeight: 1 }
+        Ui.Text { objectName: pair.objectName + "-key"; text: pair.key; role: Ui.Typography.SansLabel; tone: Ui.Text.Disabled; weight: Font.Normal; tight: true }
+        Ui.Text { objectName: pair.objectName + "-value"; text: pair.value; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary; weight: Font.Normal; tight: true }
     }
     RowLayout {
         anchors.fill: parent
@@ -43,14 +43,14 @@ Rectangle {
         RowLayout {
             Layout.rightMargin: Ui.Metrics.xl
             spacing: Ui.Metrics.md
-            Rectangle { width: Ui.Metrics.sm; height: width; radius: width / 2; color: root.connected ? Ui.Theme.statusSuccess : Ui.Theme.textDisabled }
+            Rectangle { width: Ui.Metrics.sm; height: width; radius: Ui.Metrics.radiusPill; color: root.connected ? Ui.Theme.statusSuccess : Ui.Theme.textDisabled }
             Ui.Text {
                 objectName: "status-connection"
                 text: root.connection.charAt(0).toUpperCase() + root.connection.slice(1)
                 role: Ui.Typography.SansLabel
                 tone: Ui.Text.Secondary
-                font.weight: Font.Normal
-                lineHeight: 1
+                weight: Font.Normal
+                tight: true
             }
             Ui.Text {
                 objectName: "status-connection-detail"
@@ -58,7 +58,7 @@ Rectangle {
                 text: root.status.connectionDetail
                 role: Ui.Typography.SansCaption
                 tone: Ui.Text.Disabled
-                lineHeight: 1
+                tight: true
             }
             // A server that was chosen retries by itself. The button retries now, like the web's retryNow.
             Ui.EditorButton {
@@ -118,7 +118,7 @@ Rectangle {
                 value: root.status.nodeCount
                 key: value === "1" ? "node" : "nodes"
             }
-            Ui.Text { text: "·"; role: Ui.Typography.SansLabel; tone: Ui.Text.Disabled; font.weight: Font.Normal; lineHeight: 1 }
+            Ui.Text { text: "·"; role: Ui.Typography.SansLabel; tone: Ui.Text.Disabled; weight: Font.Normal; tight: true }
             Readout {
                 objectName: "status-edges"
                 value: root.status.edgeCount

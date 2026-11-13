@@ -43,7 +43,7 @@ Rectangle {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 0
-                Ui.Text { objectName: "inspector-title"; Layout.fillWidth: true; text: root.info.title || root.inspector.selection; role: Ui.Typography.SansLabel; font.weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1.3 }
+                Ui.Text { objectName: "inspector-title"; Layout.fillWidth: true; text: root.info.title || root.inspector.selection; role: Ui.Typography.SansLabel; weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1.3 }
                 Ui.Text { objectName: "inspector-namespace"; Layout.fillWidth: true; visible: text !== ""; text: root.info.namespace || ""; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary; elide: Text.ElideMiddle; lineHeight: 1.3 }
             }
             Ui.EditorButton { objectName: "inspector-close"; text: ""; display: Basic.AbstractButton.IconOnly; accessibleName: "Close inspector"; iconName: "close"; variant: Ui.EditorButton.Outlined; flat: true; implicitWidth: Ui.Metrics.compact; onClicked: root.inspector.clearSelection() }
@@ -139,9 +139,9 @@ Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: Ui.Metrics.compact
                                 spacing: Ui.Metrics.md
-                                Rectangle { width: Ui.Metrics.md; height: width; radius: width / 2; color: ioRow.modelData.color }
-                                Ui.Text { Layout.fillWidth: true; text: ioRow.modelData.name; role: Ui.Typography.SansLabel; font.weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1 }
-                                Ui.Text { text: ioRow.modelData.type; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary; lineHeight: 1 }
+                                Rectangle { width: Ui.Metrics.md; height: width; radius: Ui.Metrics.radiusPill; color: ioRow.modelData.color }
+                                Ui.Text { Layout.fillWidth: true; text: ioRow.modelData.name; role: Ui.Typography.SansLabel; weight: Font.Normal; elide: Text.ElideRight; tight: true }
+                                Ui.Text { text: ioRow.modelData.type; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary; tight: true }
                             }
                         }
                     }

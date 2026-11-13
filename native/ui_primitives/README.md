@@ -23,6 +23,11 @@ Qt applies device pixel ratio separately.
 are keys in `Ui.Icons`, and `size` is a named `Ui.Metrics.icon*` value.
 `Ui.Text.domainColor` and `Ui.Icon.domainColor` accept a feature-owned
 semantic color for document or media visuals. Chrome uses `tone`.
+`Ui.Text.weight` takes `Font.Normal`, `Font.Medium`, or `Font.DemiBold` and
+defaults to the role's weight, as the web `Text` `weight` prop does. Other
+values warn and fall back to the role's weight. `Ui.Text.tight` sets a line
+height of 1 for single-line chrome rows. Do not set `font.weight` or
+`lineHeight` on `Ui.Text`.
 
 Buttons use `Ui.EditorButton.Compact`, `Standard`, or `Comfortable` density
 and `Ui.EditorButton.Default`, `Primary`, `Flat`, `Destructive`, or `Outlined` variant. Compact and

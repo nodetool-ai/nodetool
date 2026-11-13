@@ -65,7 +65,7 @@ ColumnLayout {
             id: fieldLabel
             text: root.title + (root.descriptor.required ? " *" : "")
             role: Ui.Typography.SansLabel
-            font.weight: Font.Normal
+            weight: Font.Normal
             tone: root.writable ? Ui.Text.Secondary : Ui.Text.Disabled
             Layout.fillWidth: true
             wrapMode: Text.Wrap
@@ -84,7 +84,7 @@ ColumnLayout {
             visible: root.descriptor.changed === true
             Layout.preferredWidth: Ui.Metrics.sm
             Layout.preferredHeight: Ui.Metrics.sm
-            radius: width / 2
+            radius: Ui.Metrics.radiusPill
             color: Ui.Theme.accentPrimary
             Accessible.role: Accessible.StaticText
             Accessible.name: "Changed from default"

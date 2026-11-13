@@ -47,7 +47,7 @@ ColumnLayout {
                 Ui.Text {
                     text: "Optional node packs"
                     role: Ui.Typography.SansLabel
-                    font.weight: Font.DemiBold
+                    weight: Font.DemiBold
                 }
                 Ui.Text {
                     Layout.fillWidth: true

@@ -152,7 +152,7 @@ Item {
                     }
                     // A running workflow turns the pill to the panel surface.
                     background: Rectangle {
-                        radius: height / 2
+                        radius: Ui.Metrics.radiusPill
                         color: root.runActive ? (runButton.hovered ? Ui.Theme.actionHover : Ui.Theme.surfacePanel)
                             : !runButton.enabled ? Ui.Theme.actionDisabled
                             : runButton.hovered ? Ui.Theme.accentHover : Ui.Theme.accentPrimary
@@ -176,8 +176,8 @@ Item {
                             visible: root.workflowRunning
                             text: root.elapsedText
                             role: Ui.Typography.MonoCaption
-                            font.weight: Font.DemiBold
-                            lineHeight: 1
+                            weight: Font.DemiBold
+                            tight: true
                         }
                         Ui.Text {
                             objectName: "run-label"
@@ -185,9 +185,9 @@ Item {
                             visible: !root.compact
                             text: root.runLabel
                             role: Ui.Typography.SansLabel
-                            font.weight: Font.Normal
+                            weight: Font.Normal
                             tone: root.runActive ? Ui.Text.Primary : Ui.Text.OnAccent
-                            lineHeight: 1
+                            tight: true
                         }
                     }
                 }

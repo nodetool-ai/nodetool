@@ -5,13 +5,18 @@ Text {
     property int role: Typography.SansBody
     property int tone: 0
     property var domainColor: undefined
+    // The sanctioned weights are Font.Normal, Font.Medium and Font.DemiBold. The default is the role's weight.
+    property int weight: Typography.weight(role)
+    // A single-line chrome row sets tight to use a line height of 1 in place of the role's.
+    property bool tight: false
     onRoleChanged: if (role < Typography.SansTitle || role > Typography.MonoCaption) { console.warn("Invalid text role"); role = Typography.SansBody }
+    onWeightChanged: if (weight !== Font.Normal && weight !== Font.Medium && weight !== Font.DemiBold) { console.warn("Invalid text weight"); weight = Typography.weight(role) }
     onToneChanged: if (tone < 0 || tone > 7) { console.warn("Invalid text tone"); tone = 0 }
     font.family: Typography.family(role)
     font.pixelSize: Typography.pixelSize(role)
-    font.weight: Typography.weight(role)
+    font.weight: weight
     lineHeightMode: Text.ProportionalHeight
-    lineHeight: Typography.lineHeight(role)
+    lineHeight: tight ? 1 : Typography.lineHeight(role)
     // A proportional line height puts all its extra space under the glyphs. Moving the text down by
     // half of that space, and the bottom edge up by the same amount, centers the glyphs in the line
     // as CSS half-leading does, without changing the implicit size.

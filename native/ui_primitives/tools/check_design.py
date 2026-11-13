@@ -379,6 +379,11 @@ def inspect(text, filename, semantic_types=None, strict=False):
             role_font = name == 'font' and approved_role_font(values, ui_aliases)
             if name in {'font', 'font.family', 'font.pixelSize', 'font.pointSize', 'font.weight', 'font.bold', 'lineHeight', 'lineHeightMode'} and not measured_font and not role_font:
                 add('typography', 'independent font attribute ' + name)
+            if is_ui and short == 'Text' and name == 'weight' and (
+                    any(token.kind == 'number' for token in values) or
+                    any(values[i].value == 'Font' and values[i + 1].value == '.' and values[i + 2].value not in {'Normal', 'Medium', 'DemiBold'}
+                        for i in range(max(0, len(values) - 2)))):
+                add('typography', 'Ui.Text weight must be Font.Normal, Font.Medium or Font.DemiBold')
             if any(re.fullmatch(r'#[\da-fA-F]{3,8}', value) for value in strings) or any(
                     values[i].value == 'Qt' and values[i + 1].value == '.' and values[i + 2].value in {'rgba', 'hsla', 'hsva', 'color'}
                     for i in range(max(0, len(values) - 2))):

@@ -95,8 +95,8 @@ Rectangle {
             Layout.maximumWidth: Math.ceil(implicitWidth)
             text: root.header.workflowName
             role: Ui.Typography.SansBody
-            font.weight: Font.Medium
-            lineHeight: 1
+            weight: Font.Medium
+            tight: true
             elide: Text.ElideRight
             Accessible.role: Accessible.StaticText
             Accessible.name: text
@@ -177,7 +177,7 @@ Rectangle {
                 text: root.saveLabel
                 role: Ui.Typography.SansCaption
                 tone: Ui.Text.Secondary
-                lineHeight: 1
+                tight: true
             }
         }
         Ui.EditorButton {

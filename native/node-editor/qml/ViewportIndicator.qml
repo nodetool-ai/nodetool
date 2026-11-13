@@ -41,7 +41,7 @@ Item {
                     role: Ui.Typography.MonoLabel
                     // ViewportStatusIndicator.tsx colors the readout whenever the zoom is one of its presets.
                     domainColor: root.viewport.zoomIsPreset ? Ui.Theme.accentPrimary : Ui.Theme.textSecondary
-                    lineHeight: 1
+                    tight: true
                 }
             }
             Ui.EditorButton { objectName: "zoom-in"; text: ""; display: Basic.AbstractButton.IconOnly; accessibleName: "Zoom in"; iconName: "add"; variant: Ui.EditorButton.Outlined; flat: true; implicitWidth: Ui.Metrics.small; implicitHeight: Ui.Metrics.small; onClicked: root.viewport.run("Zoom in") }

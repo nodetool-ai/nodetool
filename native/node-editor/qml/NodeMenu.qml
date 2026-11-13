@@ -267,10 +267,10 @@ Rectangle {
                 Layout.fillWidth: true
                 text: tile.tileLabel
                 role: Ui.Typography.SansLabel
-                font.weight: Font.Normal
+                weight: Font.Normal
                 tone: tile.enabled ? Ui.Text.Primary : Ui.Text.Disabled
                 elide: Text.ElideRight
-                lineHeight: 1
+                tight: true
             }
             Ui.ToolbarIconButton {
                 visible: tile.removable
@@ -303,8 +303,8 @@ Rectangle {
                 Layout.fillWidth: true
                 text: section.title
                 role: Ui.Typography.SansLabel
-                font.weight: Font.DemiBold
-                lineHeight: 1
+                weight: Font.DemiBold
+                tight: true
             }
             Ui.ToolbarIconButton {
                 visible: section.clearName !== ""
@@ -366,8 +366,8 @@ Rectangle {
                 anchors.leftMargin: Ui.Metrics.lg
                 anchors.rightMargin: Ui.Metrics.sm
                 spacing: Ui.Metrics.sm
-                Ui.Text { text: qsTr("Nodes"); role: Ui.Typography.SansLabel; font.weight: Font.DemiBold; lineHeight: 1 }
-                Ui.Text { objectName: "catalog-count"; text: root.homeLayout ? root.browsable.length : root.visibleNodes.length; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; lineHeight: 1 }
+                Ui.Text { text: qsTr("Nodes"); role: Ui.Typography.SansLabel; weight: Font.DemiBold; tight: true }
+                Ui.Text { objectName: "catalog-count"; text: root.homeLayout ? root.browsable.length : root.visibleNodes.length; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; tight: true }
                 Item { Layout.fillWidth: true }
                 Ui.ToolbarIconButton {
                     objectName: "node-menu-close"
@@ -467,10 +467,10 @@ Rectangle {
                             Layout.fillWidth: true
                             text: namespaceRow.modelData.name
                             role: Ui.Typography.SansLabel
-                            font.weight: namespaceRow.modelData.highlighted ? Font.DemiBold : Font.Normal
+                            weight: namespaceRow.modelData.highlighted ? Font.DemiBold : Font.Normal
                             tone: namespaceRow.modelData.selected || namespaceRow.modelData.highlighted ? Ui.Text.Primary : Ui.Text.Secondary
                             elide: Text.ElideRight
-                            lineHeight: 1
+                            tight: true
                         }
                     }
                 }
@@ -577,8 +577,8 @@ Rectangle {
                         ColumnLayout {
                             Layout.fillWidth: true
                             spacing: Ui.Metrics.micro
-                            Ui.Text { objectName: "nativeButtonLabel"; Layout.fillWidth: true; textFormat: Text.StyledText; text: root.highlight(nodeRow.modelData.label); role: Ui.Typography.SansLabel; font.weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1 }
-                            Ui.Text { objectName: "node-menu-row-namespace"; Layout.fillWidth: true; textFormat: Text.StyledText; text: root.highlight(nodeRow.modelData.namespace); role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; elide: Text.ElideRight; lineHeight: 1 }
+                            Ui.Text { objectName: "nativeButtonLabel"; Layout.fillWidth: true; textFormat: Text.StyledText; text: root.highlight(nodeRow.modelData.label); role: Ui.Typography.SansLabel; weight: Font.Normal; elide: Text.ElideRight; tight: true }
+                            Ui.Text { objectName: "node-menu-row-namespace"; Layout.fillWidth: true; textFormat: Text.StyledText; text: root.highlight(nodeRow.modelData.namespace); role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; elide: Text.ElideRight; tight: true }
                             Ui.Text {
                                 objectName: "node-menu-row-description"
                                 visible: root.searching
@@ -590,7 +590,7 @@ Rectangle {
                                 tone: Ui.Text.Secondary
                                 elide: Text.ElideRight
                                 maximumLineCount: 1
-                                lineHeight: 1
+                                tight: true
                             }
                         }
                         // The favorite star shows on hover or once set (components/node_menu/NodeItem.tsx).
@@ -638,14 +638,14 @@ Rectangle {
                     y: Ui.Metrics.lg
                     width: info.width - 2 * Ui.Metrics.lg
                     spacing: Ui.Metrics.sm
-                    Ui.Text { Layout.fillWidth: true; text: root.hovered ? root.hovered.label : ""; role: Ui.Typography.SansLabel; font.weight: Font.DemiBold; wrapMode: Text.WordWrap }
+                    Ui.Text { Layout.fillWidth: true; text: root.hovered ? root.hovered.label : ""; role: Ui.Typography.SansLabel; weight: Font.DemiBold; wrapMode: Text.WordWrap }
                     Ui.Text { Layout.fillWidth: true; text: root.hovered ? root.hovered.namespace : ""; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary; wrapMode: Text.WrapAnywhere }
                     Ui.Text {
                         objectName: "node-menu-info-description"
                         Layout.fillWidth: true
                         text: root.hovered ? (root.hovered.description || "") : ""
                         role: Ui.Typography.SansLabel
-                        font.weight: Font.Normal
+                        weight: Font.Normal
                         tone: Ui.Text.Secondary
                         wrapMode: Text.WordWrap
                     }
