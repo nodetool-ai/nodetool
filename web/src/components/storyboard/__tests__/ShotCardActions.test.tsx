@@ -345,4 +345,28 @@ describe("ShotCard upload (criterion 15)", () => {
     ]);
     expect(updated?.keyframe?.asset_id).toBe("img-1");
   });
+
+  it.each(["planned", "failed"] as const)(
+    "makes the upload the still of a %s shot that has none",
+    async (status) => {
+      const shot = seedShot({ status });
+      renderCard(shot);
+
+      const input = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      await userEvent.upload(
+        input,
+        new File(["bytes"], "still.png", { type: "image/png" })
+      );
+      mockUploadAsset.mock.calls[0][0].onCompleted?.({ id: "img-2" });
+
+      const uploaded = { type: "image", uri: "asset://img-2", asset_id: "img-2" };
+      expect(currentShot()).toMatchObject({
+        keyframe: uploaded,
+        keyframe_versions: [uploaded],
+        status: "keyframe_ready"
+      });
+    }
+  );
 });

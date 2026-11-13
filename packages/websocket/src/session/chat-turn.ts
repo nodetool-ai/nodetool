@@ -340,6 +340,10 @@ function geminiFailureSummary(
   };
 }
 
+/** Provider wordings for an account whose prepaid balance is used up. */
+const CREDITS_EXHAUSTED =
+  /no credits remaining|insufficient[_ ]quota|exceeded your current quota|credit balance is too low/i;
+
 function providerFailureMessage(
   error: unknown,
   providerId: string,
@@ -367,6 +371,20 @@ function providerFailureMessage(
     return {
       errorType: status === null ? "error" : "http_status_error",
       message: "This model requires a verified OpenAI organization. Verify your provider organization or choose a model your account can access.",
+      statusCode
+    };
+  }
+  // An empty provider balance arrives as a 429 next to real rate limits, so
+  // the status alone advises waiting, which never helps. Name the account.
+  const bodyCode =
+    isObjectLike(bodyError) && isString(bodyError.code) ? bodyError.code : null;
+  if (
+    bodyCode === "insufficient_quota" ||
+    CREDITS_EXHAUSTED.test(bodyMessage ?? rawMessage)
+  ) {
+    return {
+      errorType: status === null ? "error" : "http_status_error",
+      message: `The ${providerId} account behind this model has no credits left. Add credits to that ${providerId} account, or choose a model from another provider.`,
       statusCode
     };
   }

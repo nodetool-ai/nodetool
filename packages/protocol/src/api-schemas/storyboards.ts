@@ -164,6 +164,8 @@ export const storyboardShot = z
     action: z.string(),
     look_preset_ids: cameraPresetIdsSchema.optional(),
     status: z.string(),
+    /** Why the last render failed, while `status` is "failed". */
+    failure_reason: z.string().optional(),
     slug: z.string().optional(),
     motion: z.string().optional(),
     /** The picture the shot ends on; a one-take step's "End:". */
