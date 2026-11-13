@@ -127,9 +127,12 @@ TestCase {
     }
     function test_segmentedChoosesOnlyEnabledOptions(data) {
         segmented.variant = data.variant
-        mouseClick(segmented, segmented.width / 2, segmented.height / 2)
+        // Switching the variant swaps the delegates, so wait for the new option items.
+        tryVerify(() => findChild(segmented, "win") && findChild(segmented, "win").height === (data.variant === Ui.SegmentedControl.Tray ? segmented.trayHeight : findChild(segmented, "win").implicitHeight))
+        waitForRendering(segmented)
+        mouseClick(findChild(segmented, "win"))
         compare(chosen.count, 0)
-        mouseClick(segmented, segmented.width - 4, segmented.height / 2)
+        mouseClick(findChild(segmented, "linux"))
         compare(chosen.count, 1)
         compare(chosen.signalArguments[0][0], "linux")
         // The caller owns the value, so the control did not move by itself.

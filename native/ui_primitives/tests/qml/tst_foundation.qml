@@ -37,7 +37,7 @@ TestCase {
     SignalSpy { id: failureRetry; target: failure; signalName: "retryRequested" }
     SignalSpy { id: failureReport; target: failure; signalName: "reportRequested" }
     Ui.Chip { id: chip; x: 0; y: 330; text: "Chip" }
-    Ui.ScrollArea { id: area; x: 0; y: 360; width: 100; height: 40; Item { width: 10; height: 200 } }
+    Ui.ScrollArea { id: scrollArea; x: 0; y: 360; width: 100; height: 40; Item { implicitWidth: 10; implicitHeight: 200 } }
     Ui.EmptyState { id: empty; visible: false; title: "No results"; message: "Try another search"; actionText: "Clear" }
     Ui.BusyIndicator { id: busy; x: 180; y: 0 }
     Ui.ScrollBar { id: scroll; x: 190; y: 0; width: 8; height: 100; orientation: Qt.Vertical; size: 0.25; position: 0.25 }
@@ -233,9 +233,9 @@ TestCase {
         chip.text = "Chip"
     }
     function test_scrollArea() {
-        verify(area.clip)
-        compare(area.contentWidth, area.availableWidth)
-        verify(area.contentHeight >= 200)
+        verify(scrollArea.clip)
+        compare(scrollArea.contentWidth, scrollArea.availableWidth)
+        verify(scrollArea.contentHeight >= 200)
     }
     function test_scrollbar_policy() {
         scroll.size = 1; verify(scroll.visible); compare(scroll.opacity, 0); verify(!scroll.interactive)
