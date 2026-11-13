@@ -528,6 +528,32 @@ if(PROJECT_IS_TOP_LEVEL)
     set_tests_properties(gr_gpu_tests PROPERTIES
       ENVIRONMENT "VK_ICD_FILENAMES=${_lavapipe};VK_DRIVER_FILES=${_lavapipe}")
   endif()
+  # Texture sharing (src/host/gpu_share.h): the frame ring, and shareable
+  # textures on the device. The build's sharing backend must work where
+  # there is one. Without one, or without GPU support, the device must
+  # refuse with a reason.
+  add_executable(gr_gpu_share_tests unittests/gpu_share.cpp)
+  target_link_libraries(gr_gpu_share_tests PRIVATE gr_gpu_device)
+  set(_share_args "")
+  if(NOT NODETOOL_GRAPH_RUNNER_GPU)
+    set(_share_args --no-gpu)
+  elseif(NOT NODETOOL_GPU_SHARE_BACKEND STREQUAL "none")
+    set(_share_args --require-sharing)
+  endif()
+  add_test(NAME gr_gpu_share_tests COMMAND gr_gpu_share_tests ${_share_args})
+  if(EXISTS ${_lavapipe})
+    set_tests_properties(gr_gpu_share_tests PROPERTIES
+      ENVIRONMENT "VK_ICD_FILENAMES=${_lavapipe};VK_DRIVER_FILES=${_lavapipe}")
+    # The same run under the Vulkan validation layer, which checks the image
+    # layouts and queue family transfers of publish() and reclaim().
+    set(_validation /usr/share/vulkan/explicit_layer.d/VkLayer_khronos_validation.json)
+    if(EXISTS ${_validation} AND NODETOOL_GPU_SHARE_BACKEND STREQUAL "vulkan" AND NOT CMAKE_CXX_FLAGS MATCHES "-fsanitize")
+      add_test(NAME gr_gpu_share_validation_tests COMMAND gr_gpu_share_tests ${_share_args})
+      set_tests_properties(gr_gpu_share_validation_tests PROPERTIES
+        ENVIRONMENT "VK_ICD_FILENAMES=${_lavapipe};VK_DRIVER_FILES=${_lavapipe};VK_INSTANCE_LAYERS=VK_LAYER_KHRONOS_validation"
+        FAIL_REGULAR_EXPRESSION "Validation Error")
+    endif()
+  endif()
   include(unittests/canvas.cmake)
   include(unittests/webassembly.cmake)
 
