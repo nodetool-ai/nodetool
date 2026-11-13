@@ -149,7 +149,19 @@ fixture executable compile and link with MSVC Release. The fixtures cover
 fractional frame rates, long schedules, rejected inputs and partial exports,
 but have not been run. Sanitizers and aggregate checks remain deferred.
 
-Driver orchestration, control-to-audio parameter bindings, catalog registry
-construction, PNG/WAV export, CLI integration, output fixtures and the registry
-gate remain pending. WP09 stays open. This increment does not change the M0
-hardware gaps or the live/shared-device block.
+The control/audio driver now coordinates both control domains with audio
+quanta, trims final samples and writes float WAV files plus a completion
+manifest. The standalone `nodetool-realtime live` command accepts control/audio
+plans without external slots. It opens no audio device and rejects existing
+output directories. Windows wide arguments preserve non-ASCII paths.
+
+The driver, CLI and fixture executable compile and link with MSVC Release.
+Prepared cases cover output chunks and samples, silence, multiple sinks,
+repeatability, low-frame-rate control progression and rejection paths. They
+remain unrun. Source review corrected partial-manifest publication and narrow
+Windows argument decoding. No runtime reproduction or pass is claimed.
+
+Control-to-audio parameter bindings, external slots, catalog registry
+construction, render/PNG export, graph-runner CLI integration, image goldens
+and the registry gate remain pending. WP09 stays open. This increment does not
+change the M0 hardware gaps or the live/shared-device block.

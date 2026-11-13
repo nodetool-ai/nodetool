@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "session": { "sampleRate": 48000, "quantum": 128, "channels": "stereo", "width": 64, "height": 64, "seed": 17 },
+  "params": [
+    { "slot": 0, "node": "tone", "field": "frequency", "smooth": "none", "sync": "audio", "value": 440 },
+    { "slot": 1, "node": "tone", "field": "amplitude", "smooth": "none", "sync": "audio", "value": 0.25 }
+  ],
+  "slots": [],
+  "control": { "registers": 0, "ops": [], "stateful": [] },
+  "render": { "passes": [] },
+  "audio": {
+    "buffers": [{ "id": 0, "channels": "stereo" }],
+    "nodes": [{ "node": "tone", "kernel": "oscillator", "stateVersion": 1, "in": [], "out": [0], "params": [0, 1] }],
+    "sinks": [{ "node": "output", "buffer": 0, "kind": "device", "subgraphHash": "1234abcd" }]
+  }
+}

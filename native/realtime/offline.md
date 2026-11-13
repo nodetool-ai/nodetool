@@ -1,9 +1,37 @@
 # Offline execution preparation
 
-WP09 is in progress. The exact clock is implemented. The driver, PNG/WAV
-export, CLI integration, fixture goldens and registry gate are still pending.
-The clock and its fixture executable compile with MSVC Release. Test execution
-is deferred, so this is not a timing verification result.
+WP09 is in progress. The exact clock and control/audio driver are implemented,
+with a standalone CLI and float WAV output. Render integration, external slots,
+control-to-audio parameter bindings, PNG output, the graph-runner command and
+registry gate remain pending. Local test execution is deferred.
+
+## Prepared audio command
+
+Build the default core targets using the [build instructions](README.md#build-and-test).
+The command below prepares a one-second oscillator export when testing resumes:
+
+```sh
+native/realtime/build/nodetool-realtime live native/realtime/tests/fixtures/offline-audio.json --duration 1 --fps 30000/1001 --out tone-export --null-audio
+```
+
+Visual Studio builds place the binary at
+`native/realtime/build/Release/nodetool-realtime.exe`. Windows uses wide command
+arguments to preserve non-ASCII paths. This standalone command does not depend
+on Qt, QuickJS, a GPU adapter or an audio device. `--null-audio` is optional:
+all execution here is offline, with no playback or device callback.
+
+The output directory must not exist, and its parent must exist. The driver
+validates the plan and prepares executors before creating it. Each declared
+audio sink produces an interleaved IEEE float32 WAV at session rate and layout.
+Files are `audio.wav`, `audio-1.wav` and so on, in sink declaration order.
+Control-only plans write a silent `audio.wav`. Audio parameters use their plan
+values and existing smoothing. Control registers do not yet drive parameters.
+
+The driver closes every WAV before writing a temporary manifest and renaming
+it to `manifest.json`. The manifest records sample, quantum and control-frame
+counts, sink files and sanitized sample counts. It reports zero image frames.
+Failures preserve partial files for inspection without a success manifest.
+Existing output directories are rejected, including empty directories.
 
 ## Clock contract
 
@@ -30,18 +58,27 @@ The clock is an immutable value owned by the offline host thread. It owns no
 buffers, callbacks or operating-system resources. Preparation and indexed
 queries allocate no storage.
 
-## Driver obligations
+## Executor orchestration
 
-The driver must advance audio control and audio execution once per quantum.
-It must also advance render control at intervening quantum boundaries before
-evaluating each video frame. This avoids the interactive render executor's
+The driver advances audio control at each quantum endpoint before processing
+that quantum. It advances render control at intervening quantum boundaries
+before evaluating each frame timestamp. This avoids the interactive executor's
 bounded catch-up policy skipping state during low-frame-rate offline exports.
-Image encoding and WAV writes belong outside executor calls.
+WAV writes happen after executor calls. All executors, streams and scratch
+storage belong to one offline host thread and are destroyed on return. There
+are no worker threads or asynchronous callbacks in the driver.
 
 Prepared clock fixtures cover fractional rates, exact quantum boundaries,
 partial final quanta, a maximum-duration schedule, equivalent decimal/fraction
 inputs, large integer products and rejected inputs. They are registered as
 `realtime-offline-clock` in CTest and have not been executed locally.
+
+The driver and its fixture executable compile and link with MSVC Release.
+Prepared `realtime-offline-driver` cases cover WAV chunks and sample values,
+partial-quantum trimming, silence, multiple sinks, repeat bytes, low-frame-rate
+stateful controls, invalid clocks, unsupported slots and existing-output
+preservation. These fixtures remain unrun. CLI runtime behavior, sanitizer
+checks and aggregate checks are also unverified.
 
 The [private-device GPU exception](render.md#native-pipeline-api-limitation)
 and [milestone verification gaps](M1_STATUS.md) still apply. This clock does not
