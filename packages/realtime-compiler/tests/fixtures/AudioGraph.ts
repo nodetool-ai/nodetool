@@ -29,3 +29,21 @@ export function audioFanoutFixture(): CompileInput {
     { source: "tail", sourceHandle: "audio", target: "out", targetHandle: "audio" }
   ] } };
 }
+
+export function audioControlFixture(kind: "damp" | "time" | "constant" | "width" = "damp", shared = false): CompileInput {
+  const input = shared ? audioFanoutFixture() : audioFixture(); const descriptors = new Map(input.descriptors);
+  descriptors.set("damp-control", { kind: "control", op: "damp", stateVersion: 1, output: "value", inputs: [
+    { property: "target", default: 0.75 }, { property: "tau", default: 0.2 }
+  ] });
+  descriptors.set("time-control", { kind: "control", op: "time.seconds", output: "value", inputs: [] });
+  descriptors.set("constant-control", { kind: "control", op: "constant", output: "value", value: { property: "value", default: 0.25 } });
+  descriptors.set("width-control", { kind: "control", op: "output.width", output: "value", inputs: [] });
+  descriptors.set("add-control", { kind: "control", op: "add", output: "value", inputs: [
+    { property: "left", default: 0 }, { property: "right", default: 0 }
+  ] });
+  const graph = { nodes: [...input.graph.nodes, { id: "control", type: `${kind}-control` }], edges: [...input.graph.edges,
+    { source: "control", sourceHandle: "value", target: "gain", targetHandle: "gain" },
+    ...(shared ? [{ source: "control", sourceHandle: "value", target: "tail", targetHandle: "gain" }] : [])
+  ] };
+  return { ...input, descriptors, graph };
+}

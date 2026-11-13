@@ -1,4 +1,5 @@
 import { compareNames, fail, hash, integer, parameterAllocator, prepareGraph, stateKey, values } from "./CompilerSupport.js";
+import { createControlCompiler } from "./ControlCompiler.js";
 import type { AudioNode, CompileInput, CompileResult, DspDescriptor, DspKernel, PlanParameter, RealtimePlan, StateKey } from "./Types.js";
 
 // ABI 1 built-in contracts from native/realtime/audio.md. Product descriptors remain host supplied.
@@ -8,21 +9,22 @@ const KERNELS: ReadonlyMap<DspKernel, readonly [number, number]> = new Map([
   ["biquad.allpass", [1, 3]], ["biquad.peaking", [1, 3]], ["biquad.lowshelf", [1, 3]], ["biquad.highshelf", [1, 3]]
 ]);
 
-/** Audio-only DAG lowering. Connected control parameters, PCM boundaries and feedback reject. */
+/** Audio-only DSP/control lowering. PCM boundaries, mixed domains and feedback reject. */
 export function compileAudioGraph(input: CompileInput): CompileResult {
   const { nodes, incoming } = prepareGraph(input); const { descriptors, session } = input;
   const allocator = parameterAllocator(input.allocation);
+  const controls = createControlCompiler("audio", input, nodes, incoming);
   const sink = nodes.get(input.outputs[0]); const sinkDescriptor = sink && descriptors.get(sink.type);
   if (!sink || sinkDescriptor?.kind !== "audio-output") { return fail(input.outputs[0], "outputs", "Expected an audio-output descriptor"); }
   if (!["device", "tap", "record"].includes(sinkDescriptor.sink)) { fail(sink.id, "descriptor", "Unsupported audio sink kind"); }
   const sinkInputs = incoming.get(sink.id);
   const sinkEdge = sinkInputs?.get(sinkDescriptor.input);
   if (!sinkEdge || sinkInputs?.size !== 1) { fail(sink.id, "port", "Audio output requires its declared input only"); }
-  const live = new Map<string, DspDescriptor>(); const pending = [sinkEdge.source];
+  const live = new Map<string, DspDescriptor>(); const pending = [sinkEdge.source]; const controlSeeds: string[] = [];
   while (pending.length) {
     const id = pending.pop(); if (id === undefined || live.has(id)) { continue; }
     const node = nodes.get(id); const descriptor = node && descriptors.get(node.type);
-    if (!node || descriptor?.kind !== "dsp") { fail(id, "unsupported", "Audio-only graphs require DSP producers; control bindings, mixed graphs and batch PCM are deferred"); }
+    if (!node || descriptor?.kind !== "dsp") { fail(id, "unsupported", "Audio ports require DSP producers; mixed graphs and batch PCM are deferred"); }
     const contract = KERNELS.get(descriptor.kernel);
     if (!contract) { fail(id, "unknown_kernel", descriptor.kernel); }
     if (descriptor.inputs.length !== contract[0] || descriptor.params.length !== contract[1] || !descriptor.output) {
@@ -35,8 +37,9 @@ export function compileAudioGraph(input: CompileInput): CompileResult {
     if (fields.some((field) => !field) || new Set(fields).size !== fields.length) { fail(id, "descriptor", "DSP input/property names must be nonempty and unique"); }
     if ((descriptor.kernel === "delay") !== (descriptor.delayFrames !== undefined)) { fail(id, "delay", "Only delay requires delayFrames"); }
     const inputs = incoming.get(id);
-    for (const [port] of inputs ?? []) {
-      if (!descriptor.inputs.includes(port)) { fail(id, "unsupported", "Connected parameters and unknown DSP input ports are unsupported"); }
+    for (const [port, edge] of inputs ?? []) {
+      if (descriptor.params.some((binding) => binding.property === port)) { controlSeeds.push(edge.source); }
+      else if (!descriptor.inputs.includes(port)) { fail(id, "unsupported", "Unknown DSP port or connected structural property"); }
     }
     for (const port of descriptor.inputs) {
       const edge = inputs?.get(port); if (!edge) { fail(id, "missing_input", port); }
@@ -44,6 +47,7 @@ export function compileAudioGraph(input: CompileInput): CompileResult {
     }
     live.set(id, descriptor);
   }
+  controls.lowerRegion(controlSeeds);
   const indegree = new Map<string, number>(); const consumers = new Map<string, string[]>();
   for (const id of [...live.keys()].sort(compareNames)) { indegree.set(id, 0); consumers.set(id, []); }
   for (const [id, descriptor] of live) {
@@ -104,7 +108,12 @@ export function compileAudioGraph(input: CompileInput): CompileResult {
       if (literal.length !== 1 || Math.abs(literal[0]) > 3.4028234663852886e38) { fail(id, "parameter", "Audio parameters require finite float32 scalars"); }
       const smooth = binding.smoothing?.kind ?? "none";
       if (!["none", "ramp", "onePole"].includes(smooth)) { fail(id, "parameter", "Unsupported smoothing mode"); }
-      const parameter: PlanParameter = { slot: allocator.slot(id, binding.property), node: id, field: binding.property, value: literal[0], smooth, sync: "audio" };
+      let parameter: PlanParameter = { slot: allocator.slot(id, binding.property), node: id, field: binding.property, value: literal[0], smooth, sync: "audio" };
+      if (incoming.get(id)?.has(binding.property)) {
+        const control = controls.bind(node, binding);
+        if (control.width !== 1) { fail(id, "control_width", "Audio parameters require scalar control values"); }
+        parameter = { ...parameter, audioControl: control.index };
+      }
       if (binding.smoothing?.kind !== "onePole") { return parameter; }
       const timeConstant = binding.smoothing.timeConstant;
       if (!Number.isFinite(timeConstant) || timeConstant <= 0 || timeConstant > 60) { fail(id, "parameter", "Invalid one-pole time constant"); }
@@ -126,7 +135,8 @@ export function compileAudioGraph(input: CompileInput): CompileResult {
     stateKeys.push({ node: id, kind: "audio", key });
     // RT-F48: exclude physical buffer IDs and param slot IDs from the logical upstream hash.
     pathHashes.set(id, hash(["audio-path-v1", key, session.seed, inputs.map((edge) => [edge.node, edge.output, pathHashes.get(edge.node)]),
-      bindings.map((param) => [param.field, param.value, param.smooth, param.timeConstant ?? null])]));
+      bindings.map((param) => param.audioControl === undefined ? [param.field, param.value, param.smooth, param.timeConstant ?? null] :
+        [param.field, param.value, param.smooth, param.timeConstant ?? null, controls.hash(param.audioControl)])]));
     for (const source of release.get(index) ?? []) {
       const released = physical.get(source); if (released !== undefined) { free.push(released); }
     }
@@ -135,7 +145,7 @@ export function compileAudioGraph(input: CompileInput): CompileResult {
   if (buffer === undefined || !subgraphHash) { fail(sink.id, "missing_input", "Audio output has no producer"); }
   const plan: RealtimePlan = { schemaVersion: 1, revision: input.revision,
     session: { sampleRate: session.sampleRate, quantum: session.quantum, channels: session.channels, width: session.width, height: session.height, seed: session.seed },
-    params: params.sort((a, b) => a.slot - b.slot), slots: [], control: { registers: 0, ops: [], stateful: [] }, render: { passes: [] },
+    params: params.sort((a, b) => a.slot - b.slot), slots: [], control: controls.program(), render: { passes: [] },
     audio: { buffers, nodes: audio, sinks: [{ node: sink.id, kind: sinkDescriptor.sink, buffer, subgraphHash }] } };
-  return { status: "ok", plan, boundaries: [], warnings: [], allocation: allocator.snapshot(), stateKeys };
+  return { status: "ok", plan, boundaries: [], warnings: [], allocation: allocator.snapshot(), stateKeys: [...stateKeys, ...controls.stateKeys()] };
 }

@@ -101,14 +101,14 @@ describe("audio-only compiler", () => {
     expect(success({ ...input, session: { ...input.session, width: 90 } }).stateKeys).toEqual(first.stateKeys);
     expect(success({ ...input, session: { ...input.session, sampleRate: 44100 } }).stateKeys).not.toEqual(first.stateKeys);
   });
-  it("rejects cycles, wrong output handles, layout mismatches and connected controls", () => {
+  it("rejects cycles, wrong output handles, layout mismatches and non-control parameter producers", () => {
     const input = audioFixture();
     rejected({ ...input, graph: { ...input.graph, edges: input.graph.edges.map((edge) => edge.target === "gain" ? { ...edge, source: "gain" } : edge) } }, "cycle");
     rejected({ ...input, graph: { ...input.graph, edges: input.graph.edges.map((edge) => edge.target === "gain" ? { ...edge, sourceHandle: "missing" } : edge) } }, "port", "gain");
     const descriptors = new Map(input.descriptors); const gain = descriptors.get("gain");
     if (gain?.kind !== "dsp") { throw new Error("Missing gain"); }
     descriptors.set("gain", { ...gain, channels: "mono" }); rejected({ ...input, descriptors }, "channels", "gain");
-    rejected({ ...input, graph: { ...input.graph, edges: [...input.graph.edges, { source: "tone", sourceHandle: "audio", target: "gain", targetHandle: "gain" }] } }, "unsupported", "gain");
+    rejected({ ...input, graph: { ...input.graph, edges: [...input.graph.edges, { source: "tone", sourceHandle: "audio", target: "gain", targetHandle: "gain" }] } }, "kind", "tone");
     rejected(withProperty(input, "gain", { gain: 1e39 }), "parameter", "gain");
     rejected(withProperty(input, "gain", { gain: NaN }), "control_value", "gain");
   });
