@@ -12,8 +12,11 @@ const result = compileRealtimeGraph({ graph, descriptors, outputs: [outputId], s
 
 Descriptors are host-supplied contracts, not graph properties. Boundary textures
 require explicit output contracts. Plans preserve graph identities and use stable
-escaped slot names. A color-space mismatch warns. Alpha mismatches reject until
-conversion insertion is implemented. Cycles and workflow execution-control edges
+escaped slot names. A color-space mismatch warns. Straight RGBA8 inputs receive
+an explicit `alpha.straightToPremul@1` pass when a consumer requires premultiplied
+alpha. Consumers of the same source share the conversion. Dimensions, color-space
+tags and retention follow the source. Unsupported alpha conversions reject.
+Cycles and workflow execution-control edges
 reject. Node and edge input order does not change the compiled plan.
 
 Shader uniforms accept a property binding or `{ field, expression }`. Expression
@@ -38,7 +41,8 @@ Run `npm run test:native --workspace=packages/realtime-compiler -- <executable>`
 for snapshot-to-native-loader/render checks with a configured software GPU.
 
 WP16 remains open. DSP/audio lowering, param-slot and structural state-key
-allocation, the full descriptor expression vocabulary, alpha conversion insertion, delayed feedback,
+allocation, the full descriptor expression vocabulary, reverse/floating-point
+alpha conversion, delayed feedback,
 batch graph rewriting and cross-domain stateful handoffs remain unimplemented.
 This package does not register product node descriptors or integrate the runner,
 editor or live devices. See the [deferral ledger](../../native/realtime/M1_STATUS.md#deferred-acceptance-work).

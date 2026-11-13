@@ -54,7 +54,7 @@ describe("render/control compiler", () => {
     expect(success({ ...batch, revision: 2 }).plan.slots).toEqual(result.plan.slots);
     rejected({ ...batch, batchTextures: [] }, "boundary_contract", source);
     rejected({ ...batch, batchTextures: [{ node: source, output: "image", texture: { ...texture, size: { kind: "input", input: "source", scale: 1 } } }] }, "boundary_contract", source);
-    rejected({ ...batch, batchTextures: [{ node: source, output: "image", texture: { ...texture, alpha: "straight" } }] }, "alpha_conversion_required", "invert");
+    rejected({ ...batch, batchTextures: [{ node: source, output: "image", texture: { ...texture, alpha: "straight", format: "rgba16float" } }] }, "alpha_conversion_required", "invert");
     const warning = success({ ...batch, batchTextures: [{ node: source, output: "image", texture: { ...texture, colorSpace: "linear" } }] });
     expect(warning.warnings).toEqual([{ node: "invert", reason: "color_space", detail: "source" }]);
   });

@@ -381,18 +381,22 @@ renders through Windows Release and ASan executables against independent pixel v
 Invalid register IR rejects before output. Registry coverage selects these checks
 for compiler and canonical-schema changes. CI runs the compiler tests and native
 fixture in the offline Release and sanitizer jobs. The
-[standalone Linux run at `62640424d1`](https://github.com/nodetool-ai/nodetool/actions/runs/43378752869)
-passes the compiler tests and native fixture in Release and ASan/UBSan, alongside
+[standalone Linux run at `3543ef9dd4`](https://github.com/nodetool-ai/nodetool/actions/runs/43381172495)
+passes the compiler tests and both native fixtures in Release and ASan/UBSan, alongside
 the existing core Release, ASan/UBSan, TSan and Wasm/browser checks.
-Full graph-runner checks for that revision remain
-pending and do not receive a passing claim from the standalone run.
+The [full graph-runner run at that revision](https://github.com/nodetool-ai/nodetool/actions/runs/43381172430)
+also passes Release, ASan/UBSan and TSan. Packed-install, release-pin and selected
+aggregate CI checks pass. The Windows Node 24 package-matrix runner lost contact
+with GitHub during workspace setup. A targeted rerun was requested. This runner-loss
+failure remains unqualified until a subsequent Windows matrix job passes.
 
 The compiler tests and selected harness-registry tests pass. Package builds,
 compiler typechecking, scoped lint, packed imports, browser bundling and the gate
 dry run pass. Broad local checks were deferred under the targeted-check policy.
 
 WP16 remains open. DSP/audio lowering, parameter slots, structural state keys,
-the full descriptor expression vocabulary, conversion insertion, delayed feedback, batch graph rewriting
+the full descriptor expression vocabulary, reverse/floating-point alpha conversion,
+delayed feedback, batch graph rewriting
 and cross-domain stateful handoffs remain unimplemented. Product descriptors,
 runner/editor integration and live-device behavior also remain outside this slice.
 The dependency-order deferral above still applies while WP09 remains open. M1
@@ -413,7 +417,26 @@ compiler tests cover executor arithmetic semantics, live property overrides,
 vector widths, invalid trees, input-order invariance and deep shared trees.
 Both compiler/native fixtures pass on Windows Release and ASan. Compiler tests,
 package build/typechecking and scoped lint pass. Broad local checks remain
-deferred under the targeted-check policy. Linux CI qualification of the expression
-fixture is pending its first run.
+deferred under the targeted-check policy. Linux Release and ASan/UBSan CI also
+pass the expression fixture at `3543ef9dd4`, as linked above.
 The full descriptor expression vocabulary and the remaining WP16 requirements
 above stay open. This adds no product descriptors or live-device integration.
+
+## WP16 straight-alpha ingress
+
+The compiler now inserts the catalog's straight-to-premultiplied RGBA8 pass
+before consumers that require it. Conversions are shared by source, preserve
+color-space tags and dimensions, and retain stable identities across revisions.
+The batch slot keeps its original straight-alpha contract. Reverse conversion
+and floating-point conversion remain unsupported and reject explicitly. The
+current IR requires premultiplied pass outputs, so reverse conversion needs
+contract work before it can be lowered.
+
+A stored snapshot and native fixture cover fractional and zero-alpha pixels.
+The native checker compares decoded PNG pixels with an independent quantized
+premultiply/invert reference. Removing the conversion must make the loader reject
+the plan before creating output. Linux qualification of this new fixture remains
+pending CI. The compiler tests, native Release/ASan fixture checks, package
+build/typechecking, scoped lint and browser bundling pass locally. Broad local
+checks remain deferred under the targeted-check policy. WP16 and the deferred
+acceptance ledger remain open.
