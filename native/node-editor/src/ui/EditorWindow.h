@@ -450,6 +450,8 @@ private:
   static bool mouseNavigation();
   void applyFit();
   void revealSelection();
+  // Moves the view the least distance that shows the card whole.
+  void revealNode(const QString &resourceId);
   // The view that fits every node, as the zoom and the scene point at the viewport center.
   struct ViewTarget { double zoom = 1; QPointF center; };
   ViewTarget fitTarget() const;

@@ -31,6 +31,7 @@
 #include "graph/CompatibleNodePicker.h"
 #include "graph/CompatibleNodePlacement.h"
 #include "graph/LineageLayer.h"
+#include "graph/NodeFocus.h"
 #include "properties/PropertyFields.h"
 #include <QApplication>
 #include <QClipboard>
@@ -2792,10 +2793,11 @@ void EditorWindow::applyFit() {
   const auto target = fitTarget();
   moveViewTo(target.zoom, target.center, 0);
 }
-void EditorWindow::revealSelection() {
+void EditorWindow::revealSelection() { revealNode(selected_); }
+void EditorWindow::revealNode(const QString &resourceId) {
   const auto modelId = [&]() -> std::optional<QtNodes::NodeId> {
     for (auto id : model_.allNodeIds()) {
-      if (model_.resourceId(id) == selected_) { return id; }
+      if (model_.resourceId(id) == resourceId) { return id; }
     }
     return std::nullopt;
   }();
@@ -3305,6 +3307,32 @@ void EditorWindow::action(const QString &name) {
     openNodeMenu();
     return;
   }
+  // Keyboard node navigation (web hooks/useNodeFocus.ts): focus moves without
+  // changing the selection, and Enter selects the focused node.
+  static const QHash<QString, node_editor::FocusDirection> focusMoves{
+      {"Focus next node", node_editor::FocusDirection::Next}, {"Focus previous node", node_editor::FocusDirection::Previous},
+      {"Focus node above", node_editor::FocusDirection::Up}, {"Focus node below", node_editor::FocusDirection::Down},
+      {"Focus node left", node_editor::FocusDirection::Left}, {"Focus node right", node_editor::FocusDirection::Right}};
+  if (focusMoves.contains(name) || name == "Focus back") {
+    if (name == "Focus back") {
+      model_.focusBack();
+    } else {
+      QHash<QString, QPointF> positions;
+      for (const auto id : model_.allNodeIds()) { positions.insert(model_.resourceId(id), model_.nodeData(id, QtNodes::NodeRole::Position).toPointF()); }
+      QVector<node_editor::FocusCandidate> nodes;
+      for (const auto &value : document_.nodes()) {
+        const auto resource = value.toObject()["id"].toString();
+        if (positions.contains(resource)) { nodes.append({resource, positions.value(resource)}); }
+      }
+      model_.setFocusedNode(node_editor::nextFocus(nodes, model_.focusedNode(), focusMoves.value(name)));
+    }
+    if (!model_.focusedNode().isEmpty()) { revealNode(model_.focusedNode()); }
+    return;
+  }
+  if (name == "Select focused node") {
+    selectNode(model_.focusedNode());
+    return;
+  }
   // ADD_NODE_HOTKEYS: Shift+P, G, V and L add their node at the pointer, or
   // in the visible center when the pointer is off the canvas.
   if (const auto type = quickAddNodeType(name); !type.isEmpty()) {
@@ -3673,6 +3701,8 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
     }
     if (QApplication::activePopupWidget()) { return false; }
     command = shortcutCommand(key->key(), key->modifiers());
+    // Enter is free for the canvas until navigation has focused a node.
+    if (command == "Select focused node" && model_.focusedNode().isEmpty()) { command.clear(); }
     if (command == "Add node" && !readOnly()) {
       // Space opens the node menu where the pointer is (web useNodeEditorShortcuts.ts).
       const auto pointer = view_->viewport()->mapFromGlobal(QCursor::pos());

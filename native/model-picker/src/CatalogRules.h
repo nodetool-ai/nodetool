@@ -52,6 +52,7 @@ inline QString catalogProcedure(const QString& mode) {
     if (mode == "embedding_model") return QStringLiteral("models.embeddingByProvider");
     if (mode == "rerank_model") return QStringLiteral("models.rerankByProvider");
     if (mode == "audio_to_audio_model") return QStringLiteral("models.audioToAudioByProvider");
+    if (mode == "model_3d_model") return QStringLiteral("models.model3dByProvider");
     if (mode == "video") return QStringLiteral("models.videoByProvider");
     if (mode == "image") return QStringLiteral("models.imageByProvider");
     if (mode == "audio") return QStringLiteral("models.ttsByProvider");
@@ -73,6 +74,10 @@ inline QString imageTaskCapability(const QString& task) {
 // An image provider qualifies for a task picker only when it declares the
 // task's capability. Without tasks, any image capability qualifies.
 inline bool catalogProviderMatches(const QString& mode, const QJsonArray& capabilities, const QStringList& tasks) {
+    // Model3DModelSelect.tsx lists text-to-3D and image-to-3D models together.
+    if (mode == "model_3d_model") {
+        return capabilities.contains(QStringLiteral("text_to_3d")) || capabilities.contains(QStringLiteral("image_to_3d"));
+    }
     if (mode == "image_model") {
         QStringList wanted;
         for (const auto& task : tasks) {

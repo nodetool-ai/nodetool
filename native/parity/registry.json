@@ -266,28 +266,28 @@
       "native": "Zoom to 200%"
     },
     "navigateNextNode": {
-      "missing": "No native binding"
+      "native": "Focus next node"
     },
     "navigatePrevNode": {
-      "missing": "No native binding"
+      "native": "Focus previous node"
     },
     "selectFocusedNode": {
-      "missing": "No native binding"
+      "native": "Select focused node"
     },
     "focusNodeUp": {
-      "missing": "No native binding"
+      "native": "Focus node above"
     },
     "focusNodeDown": {
-      "missing": "No native binding"
+      "native": "Focus node below"
     },
     "focusNodeLeft": {
-      "missing": "No native binding"
+      "native": "Focus node left"
     },
     "focusNodeRight": {
-      "missing": "No native binding"
+      "native": "Focus node right"
     },
     "goBack": {
-      "missing": "No native binding"
+      "native": "Focus back"
     },
     "exitFullscreen": {
       "native": "Cancel gesture"
@@ -305,7 +305,7 @@
       "missing": "No native asset viewer"
     },
     "exitNavigationMode": {
-      "missing": "No native keyboard navigation mode"
+      "accepted": "The web never enters navigation mode (nothing calls enterNavigationMode), so this Escape binding never fires. Native keeps Escape for Cancel gesture."
     }
   },
   "propertyTypes": {
@@ -1716,7 +1716,7 @@
         "native/node-editor/src/properties/PropertyFields.h"
       ],
       "status": "partial",
-      "note": "See the propertyTypes inventory. 3D generation model fields (model_3d_model) are unsupported.",
+      "note": "See the propertyTypes inventory.",
       "inventory": "F15"
     },
     "web/src/components/node/PropertyInput.tsx": {
@@ -2255,7 +2255,12 @@
       "inventory": "F23"
     },
     "web/src/components/properties/Model3DModelSelect.tsx": {
-      "missing": "model_3d_model fields are unsupported natively (ImageTo3D, TextTo3D). The web picker fetches /api/models/3d, which the TypeScript server does not serve, so there is no list to port.",
+      "native": [
+        "native/model-picker/src/CatalogRules.h",
+        "native/node-editor/qml/ModelPropertyEditor.qml"
+      ],
+      "status": "match",
+      "note": "Both list models.model3d / models.model3dByProvider from providers with text_to_3d or image_to_3d and store id, provider and name.",
       "inventory": "F20"
     },
     "web/src/components/properties/Model3DProperty.tsx": {

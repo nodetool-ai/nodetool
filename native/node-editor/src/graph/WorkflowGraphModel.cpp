@@ -1,5 +1,6 @@
 #include "properties/CodeInference.h"
 #include "WorkflowGraphModel.h"
+#include <utility>
 #include "CardBodies.h"
 #include "CardMedia.h"
 #include "CatalogCategories.h"
@@ -437,6 +438,28 @@ void WorkflowGraphModel::setCardMedia(const QString &nodeId, const QString &prop
 void WorkflowGraphModel::clearCardMedia() {
   cardMedia_.clear();
   for (auto it = ids_.cbegin(); it != ids_.cend(); ++it) { layouts_.remove(*it); emit nodeUpdated(*it); }
+}
+void WorkflowGraphModel::setFocusedNode(const QString &resourceId) {
+  if (resourceId == focusedNode_) { return; }
+  const auto previous = std::exchange(focusedNode_, resourceId);
+  if (!resourceId.isEmpty()) {
+    focusHistory_.append(resourceId);
+    while (focusHistory_.size() > 20) { focusHistory_.removeFirst(); }
+  }
+  // The badge sits above the card, so its bounds change with the focus.
+  for (auto it = ids_.cbegin(); it != ids_.cend(); ++it) {
+    if (it.key() == previous || it.key() == resourceId) {
+      layouts_.remove(*it);
+      emit nodeUpdated(*it);
+    }
+  }
+}
+bool WorkflowGraphModel::focusBack() {
+  if (focusHistory_.size() < 2) { return false; }
+  focusHistory_.removeLast();
+  const auto target = focusHistory_.takeLast();
+  setFocusedNode(target);
+  return true;
 }
 void WorkflowGraphModel::setConfiguredSecrets(const QStringList &keys, bool known, const QStringList &secretKeys) {
   const QSet<QString> configured(keys.cbegin(), keys.cend());

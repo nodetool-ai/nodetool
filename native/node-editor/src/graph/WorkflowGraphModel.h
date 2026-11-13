@@ -62,6 +62,13 @@ public:
   void setCanvasMediaNodes(const QSet<QString> &nodes);
   // The secrets the account has set. Until `known`, no card warns about a
   // missing key, as useApiKeyValidation waits for the credential check.
+  // The node keyboard navigation has reached (web NodeFocusStore): drawn with
+  // a dashed warning edge and a "Focused" badge. History keeps the last 20.
+  QString focusedNode() const { return focusedNode_; }
+  void setFocusedNode(const QString &resourceId);
+  // Steps back to the previously focused node. False when there is none.
+  bool focusBack();
+  qsizetype focusHistorySize() const { return focusHistory_.size(); }
   // `secretKeys` lists every secret the server knows, configured or not.
   void setConfiguredSecrets(const QStringList &keys, bool known, const QStringList &secretKeys = {});
   // Thumbnails and load states of the media values cards show, from CardMediaLoader.
@@ -169,6 +176,8 @@ private:
   QSet<QString> configuredSecrets_;
   bool secretsKnown_ = false;
   QSet<QString> secretKeys_;
+  QString focusedNode_;
+  QStringList focusHistory_;
   // How many input nodes carry each name, for InputNodeNameWarning.tsx.
   QHash<QString, int> inputNames_;
   CardMediaStore cardMedia_;

@@ -92,7 +92,7 @@ inline QString validateImageSizeValue(const QJsonValue& value) {
     return {};
 }
 inline bool isModelType(const QString& type) {
-    static const QSet<QString> types{"language_model", "embedding_model", "image_model", "video_model", "tts_model", "asr_model", "music_model", "audio_to_audio_model", "rerank_model", "llama_model"};
+    static const QSet<QString> types{"language_model", "embedding_model", "image_model", "video_model", "tts_model", "asr_model", "music_model", "audio_to_audio_model", "rerank_model", "llama_model", "model_3d_model"};
     return types.contains(type) || type.startsWith("hf.") || type.startsWith("tjs.");
 }
 // Language and embedding fields also lock to a concrete default provider. Media

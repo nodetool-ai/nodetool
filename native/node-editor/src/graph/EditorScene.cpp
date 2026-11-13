@@ -40,6 +40,9 @@ namespace nodetool {
 namespace {
 namespace nm = node_metrics;
 
+// BaseNode's focused badge sits this far above the card's top edge.
+constexpr double focusBadgeOffset = 20;
+
 // NodeErrors.tsx: a failed card offers Report at its bottom left, across from
 // the status label.
 QRectF reportErrorRect(const WorkflowGraphModel &model, QtNodes::NodeId id, const NodeLayout &layout) {
@@ -79,7 +82,8 @@ public:
   QRectF boundingRect(NodeId id) const override {
     if (const auto &cached = model_.layout(id).bounds) { return *cached; }
     const auto margin = nm::handleDiameter / 2 + 2;
-    auto bounds = QRectF(QPointF(0, 0), size(id)).adjusted(-margin, model_.isGroup(id) ? -40 : -margin, margin, margin);
+    const bool focused = !model_.focusedNode().isEmpty() && model_.focusedNode() == model_.resourceId(id);
+    auto bounds = QRectF(QPointF(0, 0), size(id)).adjusted(-margin, model_.isGroup(id) ? -40 : focused ? -focusBadgeOffset - 1 : -margin, margin, margin);
     for (const auto side : {PortType::In, PortType::Out}) {
       const auto ports = model_.ports(id, side);
       for (int i = 0; i < ports.size(); ++i) {
@@ -425,10 +429,27 @@ public:
     }
     // A selected Preview card is edged in grey 100 and an Output card in info.main over white.
     const auto selectedEdge = previewCard ? theme.previewSelected : outputCard ? theme.outputSelected : layout.accent;
-    painter->setPen(QPen(item.isSelected() ? (layout.subgraph ? theme.subgraphAccent : selectedEdge) : borderColor, layout.subgraph && item.isSelected() ? 2 * nm::borderWidth : nm::borderWidth, disabled ? Qt::DashLine : Qt::SolidLine));
+    // selectionStyles.ts: the keyboard-focused card is edged dashed in warning.
+    const bool focused = !model.focusedNode().isEmpty() && model.focusedNode() == model.resourceId(item.nodeId());
+    painter->setPen(QPen(focused ? theme.warning : item.isSelected() ? (layout.subgraph ? theme.subgraphAccent : selectedEdge) : borderColor, layout.subgraph && item.isSelected() ? 2 * nm::borderWidth : nm::borderWidth, disabled || focused ? Qt::DashLine : Qt::SolidLine));
     painter->setBrush(grouped && !loading ? theme.groupFill : theme.node);
     painter->drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), nm::radius - 0.5, nm::radius - 0.5);
     if (disabled) { paintBypassStripes(painter, box, theme); }
+    if (focused) {
+      // BaseNode's "Focused" badge, centered 20 px above the card.
+      const auto font = canvasFont(theme, nm::fontValue, QFont::DemiBold);
+      const auto text = QObject::tr("Focused");
+      const auto width = QFontMetricsF(font).horizontalAdvance(text) + 2 * nm::padding;
+      const QRectF badge(box.center().x() - width / 2, -focusBadgeOffset, width, focusBadgeOffset - 4);
+      painter->save();
+      painter->setPen(Qt::NoPen);
+      painter->setBrush(theme.warning);
+      painter->drawRoundedRect(badge, 4, 4);
+      painter->setPen(theme.canvas);
+      painter->setFont(font);
+      painter->drawText(badge, Qt::AlignCenter, text);
+      painter->restore();
+    }
 
     const auto inset = double(nm::borderWidth + nm::padding);
     auto iconColor = theme.textSecondary;

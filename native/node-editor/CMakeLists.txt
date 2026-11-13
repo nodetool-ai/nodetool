@@ -36,6 +36,7 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/Assign.h
  src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
+ src/graph/NodeFocus.h
  src/server/PackSetup.cpp src/server/PackSetup.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
  src/graph/IconPaths.cpp src/graph/IconPaths.h
@@ -284,6 +285,10 @@ if(BUILD_TESTING)
  target_link_libraries(node_editor_card_warning_tests PRIVATE node_editor_core Qt6::Test)
  nodetool_use_ui_primitives(node_editor_card_warning_tests)
  add_test(NAME node_editor_card_warning COMMAND node_editor_card_warning_tests)
+add_executable(node_editor_node_focus_tests tests/graph/NodeFocusTest.cpp)
+target_include_directories(node_editor_node_focus_tests PRIVATE src)
+target_link_libraries(node_editor_node_focus_tests PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME node_editor_node_focus COMMAND node_editor_node_focus_tests)
  set_tests_properties(node_editor_card_warning PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  add_subdirectory(tests/media)
  add_subdirectory(tests/runtime)
