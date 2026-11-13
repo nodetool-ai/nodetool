@@ -38,6 +38,12 @@
       "types": "./dist/node-host.d.ts",
       "import": "./dist/node-host.js",
       "default": "./dist/node-host.js"
+    },
+    "./acestep-models": {
+      "nodetool-dev": "./src/acestep-models.ts",
+      "types": "./dist/acestep-models.d.ts",
+      "import": "./dist/acestep-models.js",
+      "default": "./dist/acestep-models.js"
     }
   },
   "license": "MIT",

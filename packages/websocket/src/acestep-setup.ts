@@ -34,7 +34,7 @@ import type {
   AceStepSetupStatus
 } from "@nodetool-ai/protocol";
 import { AceStepProvider, type AceStepResolution } from "@nodetool-ai/runtime";
-import { downloadAceStepModels, type AceStepModelProgress } from "@nodetool-ai/runtime-install";
+import { downloadAceStepModels, type AceStepModelProgress } from "@nodetool-ai/runtime-install/acestep-models";
 
 type Refusal = NonNullable<AceStepSetupResult["reason"]>;
 
