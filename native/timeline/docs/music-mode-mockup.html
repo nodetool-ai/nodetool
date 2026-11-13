@@ -299,6 +299,7 @@ textarea { width: 100%; min-height: 64px; resize: vertical; border-radius: 6px; 
 const BPM = 120, BPB = 4, BARS = 16, BEATS = BARS * BPB, SPB = 4; // steps per beat
 const BEAT_S = 60 / BPM, BAR_S = BEAT_S * BPB, STEP_S = BEAT_S / SPB;
 const ROLES = ["drums","bass","keyboard","guitar","percussion","strings","synth","fx","brass","woodwinds","vocals","backing_vocals"];
+const ROLE_COLOR = { drums:"var(--c-drums)", bass:"var(--c-bass)", keyboard:"var(--c-keyboard)", guitar:"var(--c-guitar)" };
 const ROLE_NAME = { drums:"Drums", bass:"Bass", keyboard:"Keyboard", guitar:"Guitar", percussion:"Percussion", strings:"Strings", synth:"Synth", fx:"FX", brass:"Brass", woodwinds:"Woodwinds", vocals:"Vocals", backing_vocals:"Backing vocals" };
 const TURBO = "acestep-v15-turbo", BASE = "acestep-v15-base";
 const SCALES = { major:[0,2,4,5,7,9,11], minor:[0,2,3,5,7,8,10] };
@@ -597,7 +598,7 @@ function renderTimeline() {
   }
   h += `</div></div>`;
   doc.tracks.forEach((t, i) => {
-    const col = `var(--c-${["drums","bass","keyboard","guitar"].includes(t.role) ? t.role : "other"})`;
+    const col = ROLE_COLOR[t.role] || "var(--c-other)";
     h += `<div class="row"><div class="th" style="height:88px">
       <div class="name"><span class="swatch" style="background:${col}"></span>${esc(t.name)}</div>
       <div class="ctl">
@@ -725,7 +726,7 @@ function planText(p) {
   if (p.op === "generate") {
     return `Request <b>${fmtS(p.reqS)}</b> (${p.k} × ${fmtS(p.Ls)} + 1 beat, at least 10 s)<br>` +
       `${p.k} segment${p.k > 1 ? "s" : ""} × ${view.cands} candidate${view.cands > 1 ? "s" : ""} = <b>${p.takes} takes</b><br>` +
-      `Sends ${BPM} BPM, ${doc.key}, 4/4, [Instrumental]`;
+      `Sends ${BPM} BPM, ${esc(doc.key)}, 4/4, [Instrumental]`;
   }
   const ws = (p.w1 - p.w0) * BEAT_S;
   if (p.op === "regenerate") {
@@ -833,7 +834,7 @@ tlInner.addEventListener("dblclick", e => {
 });
 tlInner.addEventListener("change", e => {
   const id = e.target.dataset.role; if (!id) return;
-  edit("role", () => { const t = trackById(id); t.role = e.target.value || null; if (t.role) t.name = ROLE_NAME[t.role]; });
+  edit("role", () => { const t = trackById(id); t.role = ROLES.find(r => r === e.target.value) || null; if (t.role) t.name = ROLE_NAME[t.role]; });
 });
 tlInner.addEventListener("click", e => {
   const m = e.target.closest("[data-mute]"), s = e.target.closest("[data-solo]");
