@@ -6482,6 +6482,12 @@
           "image": "Image",
           "video": "Vidéo",
           "audio": "Audio"
+        },
+        "attachedImageActions": {
+          "label": "Images de départ",
+          "hint": "Images jointes. Décrivez ce que vous voulez créer, ou partez de celles-ci :",
+          "video": "Animer en vidéo",
+          "image": "Créer de nouvelles images"
         }
       }
     }

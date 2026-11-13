@@ -6396,6 +6396,12 @@
           "image": "Kuva",
           "video": "Video",
           "audio": "Ääni"
+        },
+        "attachedImageActions": {
+          "label": "Kuvat lähtökohtana",
+          "hint": "Kuvat liitetty. Kuvaile, mitä haluat tehdä, tai aloita niistä:",
+          "video": "Animoi videoksi",
+          "image": "Luo uusia kuvia"
         }
       }
     }

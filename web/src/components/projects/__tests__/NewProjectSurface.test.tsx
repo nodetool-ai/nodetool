@@ -987,6 +987,46 @@ describe("NewProjectSurface", () => {
     );
   });
 
+  // Pictures with no prompt leave the chat send off. The composer says so and
+  // offers a one-click start from the pictures instead of a faded button.
+  it("offers to start a video from attached pictures when the prompt is empty", async () => {
+    createAsset.mockImplementation(async (file: File) => ({
+      id: "frame-asset",
+      name: file.name,
+      content_type: file.type
+    }));
+    renderSurface();
+    await userEvent.upload(screen.getByLabelText("Attach files"), [
+      new File(["image bytes"], "shot-10.jpg", { type: "image/jpeg" })
+    ]);
+    const actions = await screen.findByRole("group", {
+      name: "Images to start from"
+    });
+    expect(
+      within(actions).getByText(/Pictures attached\. Describe what to make/)
+    ).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText("Chat prompt"), "a fox");
+    expect(
+      screen.queryByRole("group", { name: "Images to start from" })
+    ).not.toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText("Chat prompt"));
+
+    await userEvent.click(
+      within(
+        screen.getByRole("group", { name: "Images to start from" })
+      ).getByRole("button", { name: "Animate into a video" })
+    );
+    await waitFor(() => expect(openCreateSession).toHaveBeenCalled());
+    expect(openCreateSession).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        mode: "image_to_video",
+        references: [expect.objectContaining({ assetId: "frame-asset" })]
+      })
+    );
+  });
+
   // A card started mid-upload would take only the images already uploaded,
   // and say it took them all.
   it("holds the entry cards while reference images upload", async () => {

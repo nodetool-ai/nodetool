@@ -6396,6 +6396,12 @@
           "image": "Afbeelding",
           "video": "Video",
           "audio": "Audio"
+        },
+        "attachedImageActions": {
+          "label": "Afbeeldingen als startpunt",
+          "hint": "Afbeeldingen bijgevoegd. Beschrijf wat je wilt maken, of begin ermee:",
+          "video": "Animeren tot video",
+          "image": "Nieuwe afbeeldingen maken"
         }
       }
     }
