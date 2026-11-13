@@ -1,4 +1,7 @@
-import { cameraPresetIdsSchema } from "@nodetool-ai/protocol";
+import {
+  cameraPresetIdsSchema,
+  normalizeCameraDirection
+} from "@nodetool-ai/protocol";
 import { compileMediaPresets, mediaPresetSettings } from "@nodetool-ai/presets";
 import { presetCatalog } from "./presets.js";
 import { finishStoryboard, layoutStoryboard, previewStoryboardDesign } from "./finish-storyboard.js";
@@ -1861,7 +1864,11 @@ function applyShotFields(
     next.look_preset_ids = cameraPresetIdsSchema.parse(args["look_preset_ids"]);
   }
   if (args["camera"] !== undefined) {
-    next.camera = args["camera"] as Shot["camera"];
+    // A model often sends the camera as one sentence; keep it as structured
+    // direction so the saved board stays loadable.
+    const camera = normalizeCameraDirection(args["camera"]);
+    if (camera) next.camera = camera;
+    else delete next.camera;
   }
   if (next.camera?.preset_ids !== undefined) {
     cameraPresetIdsSchema.parse(next.camera.preset_ids);

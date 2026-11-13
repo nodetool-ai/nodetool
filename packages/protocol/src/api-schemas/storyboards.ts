@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { cameraPresetIdsSchema } from "../creative.js";
+import { cameraPresetIdsSchema, normalizeCameraDirection } from "../creative.js";
 import type { Screenplay, Shot } from "../creative.js";
 import { SCENE_CLIP_MAX_SHOTS, SCENE_CLIP_MIN_SHOTS } from "../one-take.js";
 import {
@@ -172,14 +172,19 @@ export const storyboardShot = z
     end_state: z.string().optional(),
     /** What is heard in the shot; a one-take audio cue. */
     sound: z.string().optional(),
-    camera: z.object({
-      framing: z.string().optional(),
-      lens: z.string().optional(),
-      angle: z.string().optional(),
-      movement: z.string().optional(),
-      equipment: z.string().optional(),
-      preset_ids: cameraPresetIdsSchema.optional()
-    }).passthrough().optional(),
+    // A one-sentence camera string (written by agents and older imports) is
+    // read as the structured direction instead of failing the whole board.
+    camera: z.preprocess(
+      (value) => (typeof value === "string" ? normalizeCameraDirection(value) : value),
+      z.object({
+        framing: z.string().optional(),
+        lens: z.string().optional(),
+        angle: z.string().optional(),
+        movement: z.string().optional(),
+        equipment: z.string().optional(),
+        preset_ids: cameraPresetIdsSchema.optional()
+      }).passthrough().optional()
+    ),
     graphics: storyboardShotGraphics.optional(),
     duration_seconds: z.number().optional(),
     keyframe: mediaRef.nullable().optional(),

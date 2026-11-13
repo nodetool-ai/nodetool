@@ -333,6 +333,28 @@ export interface CameraDirection {
   equipment?: string;
 }
 
+/**
+ * Read a shot's `camera` as a {@link CameraDirection}.
+ *
+ * Agents and imports sometimes write the camera as one sentence ("Close-up
+ * pushing in rapidly") instead of the structured object. That sentence is
+ * kept as `movement`, the field a clip prompt reads as free text, rather than
+ * rejected: a rejected camera made the whole board fail to load. An empty
+ * string, an array or any other non-object reads as no camera.
+ */
+export function normalizeCameraDirection(
+  value: unknown
+): CameraDirection | undefined {
+  if (typeof value === "string") {
+    const text = value.trim();
+    return text ? { movement: text } : undefined;
+  }
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    return value as CameraDirection;
+  }
+  return undefined;
+}
+
 // ---------------------------------------------------------------------------
 // Render record
 // ---------------------------------------------------------------------------
