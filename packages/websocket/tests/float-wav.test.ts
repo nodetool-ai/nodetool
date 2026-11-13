@@ -39,6 +39,20 @@ describe("float WAV", () => {
     expect(sameBits(readFloatWav(bytes, 48000, 2)!, samples)).toBe(true);
   });
 
+  it("reads the samples of a Node Buffer, not the bytes before them", () => {
+    // Asset storage hands back a Buffer, and Buffer#slice is a view, not a
+    // copy. A take read from storage must not start with its own header, nor
+    // with whatever else shares the Buffer's memory.
+    const samples = ramp(4801);
+    const encoded = encodeFloatWav(samples, 48000, 2);
+    const pool = Buffer.alloc(encoded.length + 13, 0x5a);
+    pool.set(encoded, 13);
+    const stored = pool.subarray(13);
+    expect(stored.byteOffset).toBe(13);
+    expect(sameBits(readFloatWav(stored, 48000, 2)!, samples)).toBe(true);
+    expect(sameBits(readFloatWav(Buffer.from(encoded), 48000, 2)!, samples)).toBe(true);
+  });
+
   it("reads nothing directly from another format, rate or layout", () => {
     const pcm16 = encodeWav(new Float32Array(200), 48000, 2);
     expect(readWavInfo(pcm16)?.format).toBe(1);

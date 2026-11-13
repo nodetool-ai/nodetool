@@ -88,8 +88,11 @@ export function readFloatWav(
     return null;
   }
   const count = Math.floor(info.dataBytes / 4 / channels) * channels;
-  // Copy: the data chunk need not start on a 4-byte boundary.
-  const copy = bytes.slice(info.dataOffset, info.dataOffset + count * 4);
+  // Copy: the data chunk need not start on a 4-byte boundary. The copy is a
+  // fresh Uint8Array even for a Node Buffer, whose slice is a view of shared
+  // memory that would put the header in front of the samples.
+  const copy = new Uint8Array(count * 4);
+  copy.set(bytes.subarray(info.dataOffset, info.dataOffset + count * 4));
   return new Float32Array(copy.buffer, 0, count);
 }
 

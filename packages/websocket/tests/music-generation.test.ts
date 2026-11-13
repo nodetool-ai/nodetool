@@ -47,10 +47,11 @@ vi.mock("@nodetool-ai/asset-services/asset-paths", async (orig) => {
   const actual = await orig<typeof import("../src/lib/asset-paths.js")>();
   return {
     ...actual,
-    retrieveAssetBytes: vi.fn(
-      async (_adapter: unknown, _userId: string, assetId: string) =>
-        STORED.get(assetId) ?? null
-    )
+    // Storage adapters answer with a Node Buffer, whose slice is a view.
+    retrieveAssetBytes: vi.fn(async (_adapter: unknown, _userId: string, assetId: string) => {
+      const bytes = STORED.get(assetId);
+      return bytes ? Buffer.from(bytes) : null;
+    })
   };
 });
 
@@ -588,7 +589,8 @@ describe("music generation: repaint (MM5 exit 2 shape)", () => {
     expect(reply.error).toBeUndefined();
     const call = scripted.calls[0]!;
     expect(call.task).toBe("repaint");
-    expect(call.sourceAudio).toEqual(contextBytes);
+    // The context bytes reach the provider unchanged.
+    expect(Buffer.compare(Buffer.from(call.sourceAudio!), Buffer.from(contextBytes))).toBe(0);
     expect(call.regionStartSec).toBe(2);
     expect(call.regionEndSec).toBe(6);
     expect(call.durationSec).toBe(12);
