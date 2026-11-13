@@ -1550,14 +1550,18 @@
     },
     "web/src/components/node/output/Actions.tsx": {
       "native": [
+        "native/node-editor/qml/RichOutput.qml",
         "native/node-editor/qml/MediaPreview.qml"
       ],
-      "status": "partial",
-      "note": "See OutputQuickActionButtons.",
+      "note": "Copy on hover over text, JSON and value outputs. Preview cards keep their own Copy.",
       "inventory": "F30"
     },
     "web/src/components/node/output/AgentStatusRenderer.tsx": {
-      "missing": "Agent status output. Not found natively."
+      "native": [
+        "native/node-editor/qml/RichOutput.qml",
+        "native/node-editor/src/run/RunOutputModel.cpp"
+      ],
+      "note": "Accent bar, icon, kind label and message, colored by kind and severity."
     },
     "web/src/components/node/output/ArrayRenderer.tsx": {
       "native": [
@@ -1569,8 +1573,7 @@
       "native": [
         "native/node-editor/qml/MediaGallery.qml"
       ],
-      "status": "partial",
-      "note": "Grid hover actions, multi-select and batch download are open.",
+      "note": "Hover Copy, Download and Open, Select mode with Compare and Clear. Native adds Download of the selection into a folder.",
       "inventory": "F30"
     },
     "web/src/components/node/output/BooleanRenderer.tsx": {
@@ -1611,10 +1614,11 @@
     },
     "web/src/components/node/output/JSONRenderer.tsx": {
       "native": [
-        "native/node-editor/qml/ObjectOutput.qml"
+        "native/node-editor/qml/RichOutput.qml",
+        "native/node-editor/qml/CodeSyntax.qml"
       ],
       "status": "partial",
-      "note": "Structured fields render. Copy and expand actions not compared.",
+      "note": "Copy and token colors. Keys and string values share one color, where Prism colors them apart.",
       "inventory": "F31"
     },
     "web/src/components/node/output/markdown.tsx": {
@@ -1631,18 +1635,20 @@
     },
     "web/src/components/node/output/PlotlyChart.tsx": {
       "native": [
+        "native/node-editor/src/media/PlotlyChart.cpp",
         "native/node-editor/qml/RichOutput.qml"
       ],
       "status": "partial",
-      "note": "Native shows a configuration and data fallback, not a chart.",
+      "note": "Scatter, bar, histogram, pie and heatmap traces with hover labels. Other trace types, log axes, frames and the zoom and pan mode bar are missing; those figures show the data fallback.",
       "inventory": "F31"
     },
     "web/src/components/node/output/PlotlyRenderer.tsx": {
       "native": [
+        "native/node-editor/src/media/PlotlyChart.cpp",
         "native/node-editor/qml/RichOutput.qml"
       ],
       "status": "partial",
-      "note": "Native shows a configuration and data fallback, not a chart.",
+      "note": "Scatter, bar, histogram, pie and heatmap traces with hover labels. Other trace types, log axes, frames and the zoom and pan mode bar are missing; those figures show the data fallback.",
       "inventory": "F31"
     },
     "web/src/components/node/output/RealtimeAudioOutput.tsx": {

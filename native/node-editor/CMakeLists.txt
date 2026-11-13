@@ -76,6 +76,7 @@ if(BUILD_TESTING)
      src/media/MediaResolver.cpp src/media/MediaResolver.h
      src/media/AudioWaveform.cpp src/media/AudioWaveform.h
      src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+     src/media/PlotlyChart.cpp src/media/PlotlyChart.h
      src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
      src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
      src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
@@ -139,6 +140,7 @@ add_library(node_editor_core STATIC
  src/media/AudioWaveform.cpp src/media/AudioWaveform.h
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+ src/media/PlotlyChart.cpp src/media/PlotlyChart.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
  src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
 target_include_directories(node_editor_core PUBLIC src)
@@ -208,6 +210,7 @@ if(BUILD_TESTING)
         src/properties/AssetPickerController.cpp src/properties/AssetPickerController.h
         src/media/AudioWaveform.cpp src/media/AudioWaveform.h
         src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+        src/media/PlotlyChart.cpp src/media/PlotlyChart.h
         src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
         src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
         src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
@@ -471,6 +474,7 @@ set_tests_properties(node_editor_chat_window_component PROPERTIES ENVIRONMENT "Q
   src/media/MediaResolver.cpp src/media/MediaResolver.h
   src/media/AudioWaveform.cpp src/media/AudioWaveform.h
   src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+  src/media/PlotlyChart.cpp src/media/PlotlyChart.h
   src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
   src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
   src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
@@ -560,6 +564,14 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_menus_tests)
  add_test(NAME node_editor_menus COMMAND node_editor_menus_tests)
  set_tests_properties(node_editor_menus PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
+ qt_add_executable(node_editor_output_renderers_tests tests/ui/OutputRenderersTest.cpp)
+ target_link_libraries(node_editor_output_renderers_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_output_renderers_tests)
+ add_test(NAME node_editor_output_renderers COMMAND node_editor_output_renderers_tests)
+ set_tests_properties(node_editor_output_renderers PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
 if(BUILD_TESTING)
