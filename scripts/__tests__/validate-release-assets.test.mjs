@@ -27,13 +27,13 @@ const TIMELINE = ["", "with-server-"].flatMap((variant) => [
   `nodetool-timeline-${variant}0.9.0-linux-x64.AppImage`,
 ]);
 
-function validate(files) {
+function validate(files, args = ["--with-timeline"]) {
   const directory = mkdtempSync(join(tmpdir(), "release-assets-"));
   temporaryDirectories.push(directory);
   for (const file of files) {
     writeFileSync(join(directory, file), "");
   }
-  return spawnSync(process.execPath, [script, directory, "stable"], { encoding: "utf8" });
+  return spawnSync(process.execPath, [script, directory, "stable", ...args], { encoding: "utf8" });
 }
 
 afterEach(() => {
@@ -53,6 +53,12 @@ describe("validate-release-assets", () => {
     const result = validate([...DESKTOP, ...TIMELINE.filter((f) => f !== "nodetool-timeline-0.9.0-linux-x64.AppImage")]);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Missing artifact types: native timeline linux-x64");
+  });
+
+  it("skips the native timeline without --with-timeline", () => {
+    const result = validate(DESKTOP, []);
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
   });
 
   it("does not count a timeline AppImage as the desktop AppImage", () => {

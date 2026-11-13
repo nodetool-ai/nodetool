@@ -1253,7 +1253,9 @@ Every NodeTool release ships the native timeline. The
 tag or a nightly, calls the
 [timeline release workflow](../../.github/workflows/native-timeline-release.yml),
 and its downloads join that GitHub release. The release publishes only when
-the timeline packages build and pass their smoke checks. The NodeTool release
+the timeline packages build and pass their smoke checks. A desktop recovery
+run with `source_tag` builds another commit than its own and skips the
+timeline. The NodeTool release
 version names the downloads. `--version` reports `PROJECT_VERSION` from
 `CMakeLists.txt`.
 

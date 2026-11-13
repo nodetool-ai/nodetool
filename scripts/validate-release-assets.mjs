@@ -7,6 +7,8 @@ const STABLE_CHANNEL = "stable";
 
 const dir = path.resolve(process.argv[2] ?? "release-assets");
 const inputChannel = process.argv[3] ?? STABLE_CHANNEL;
+// release.yaml passes --with-timeline when native-timeline-release.yml ran.
+const withTimeline = process.argv.includes("--with-timeline");
 const channel = inputChannel === NIGHTLY_CHANNEL ? NIGHTLY_CHANNEL : STABLE_CHANNEL;
 // Stable channel publishes latest* updater manifests.
 const manifestPrefix = channel === NIGHTLY_CHANNEL ? NIGHTLY_CHANNEL : "latest";
@@ -49,7 +51,7 @@ const checks = [
   ["MCP bundle", (f) => f.endsWith(".mcpb")],
 ];
 // The native timeline (native-timeline-release.yml): plain and with server.
-for (const variant of ["", "with-server-"]) {
+for (const variant of withTimeline ? ["", "with-server-"] : []) {
   for (const [platform, ext] of [["macos-arm64", "zip"], ["windows-x64", "zip"], ["linux-x64", "AppImage"]]) {
     const pattern = new RegExp(`^nodetool-timeline-${variant}\\d.*-${platform}\\.${ext}$`);
     checks.push([`native timeline ${variant}${platform}`, (f) => pattern.test(f)]);
