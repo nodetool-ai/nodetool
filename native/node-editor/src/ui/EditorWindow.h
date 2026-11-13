@@ -7,6 +7,7 @@
 #include "interfaces/DocumentTabs.h"
 #include "interfaces/GenerationActivity.h"
 #include "interfaces/NodeCatalog.h"
+#include "interfaces/NodeInfo.h"
 #include "interfaces/NodeInspector.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PanelLayout.h"
@@ -545,6 +546,14 @@ private:
   void showContextMenu(const QString &kind, const QPoint &globalPosition, const QString &nodeId = {}, const QString &edgeId = {}, const QPointF &scenePosition = {});
   void showFindPanel();
   void revealFound(const QString &resourceId);
+  // NodeInfoPanel.tsx: Ctrl+I shows the first selected node's info beside it.
+  void toggleNodeInfo();
+  void closeNodeInfo();
+  void syncNodeInfo();
+  void positionNodeInfo();
+  // Opens the node menu at a namespace path, with a search term.
+  void openNodeMenuAt(const QStringList &path, const QString &term);
+  void focusNode(const QString &resourceId);
   bool contextAction(const QString &name);
   bool selectConnected(const QString &direction);
   void selectSameType(const QString &nodeId);
@@ -566,6 +575,9 @@ private:
     // read and do. Owned by value, UI thread, destroyed with the tab after its
     // panels.
     node_editor::NodeInspector nodeInspector_;
+    // What this tab's node info overlay (NodeInfoPanel.qml) reads and does.
+    // Owned by value, UI thread, destroyed with the tab after its panels.
+    node_editor::NodeInfo nodeInfo_;
     // What this tab's TabBar and CanvasTabStrip panels read and do, and what
     // its TabBar and notification list read about notifications. The tab
     // state lives in the root window; each tab copies it into its own objects.
@@ -674,6 +686,10 @@ private:
   // Parented to this window. It fires when a queue change has held.
   QTimer *shownQueueTimer_ = nullptr;
   QQuickWidget *selectionOverlay_ = nullptr;
+  // The node info panel, a child of view_ deleted by ~EditorWindow before
+  // nodeInfo_. nodeInfoId_ is the node it shows, empty while it is hidden.
+  QQuickWidget *nodeInfoOverlay_ = nullptr;
+  QString nodeInfoId_;
   // True while the selection toolbar floats over its card instead of the canvas top.
   bool selectionToolbarFloating_ = false;
   InlinePropertyPresenter *inlinePresenter_ = nullptr;

@@ -20,6 +20,8 @@ add_subdirectory(../media media)
 add_library(node_editor_interfaces STATIC
  src/interfaces/NodeCatalog.cpp src/interfaces/NodeCatalog.h
  src/interfaces/NodeInspector.cpp src/interfaces/NodeInspector.h
+ src/interfaces/NodeInfo.cpp src/interfaces/NodeInfo.h
+ src/graph/NodeDocumentation.cpp src/graph/NodeDocumentation.h
  src/interfaces/PropertyHost.cpp src/interfaces/PropertyHost.h
  src/interfaces/GenerationReplay.cpp src/interfaces/GenerationReplay.h
  src/interfaces/GenerationActivity.cpp src/interfaces/GenerationActivity.h
@@ -436,6 +438,13 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_header_row_component_tests)
  add_test(NAME node_editor_header_row_component COMMAND node_editor_header_row_component_tests)
  set_tests_properties(node_editor_header_row_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# NodeInfoPanel.qml with a fixture NodeInfo, and the documentation split it
+# shows: no EditorWindow, graph runner or QtNodes.
+qt_add_executable(node_editor_node_info_component_tests tests/ui/NodeInfoComponentTest.cpp)
+target_link_libraries(node_editor_node_info_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+nodetool_use_ui_primitives(node_editor_node_info_component_tests)
+add_test(NAME node_editor_node_info_component COMMAND node_editor_node_info_component_tests)
+set_tests_properties(node_editor_node_info_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 # Toolbar.qml, SelectionToolbar.qml and AuthoredControls.qml with fixture
 # commands, selection and run state: no EditorWindow, graph runner or QtNodes.
 qt_add_executable(node_editor_toolbar_component_tests tests/ui/ToolbarComponentTest.cpp)
