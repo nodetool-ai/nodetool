@@ -149,7 +149,7 @@ describe("StudioStoryboardPage setup stages", () => {
     renderPage();
     expect(screen.queryByTestId("board")).not.toBeInTheDocument();
     expect(screen.queryByTestId("agent-panel")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Write shots" })).not.toBeInTheDocument();
     expect(screen.getByText(state === "loading" ? "Loading Storyboard" : "Could not load this Storyboard")).toBeInTheDocument();
   });
 
@@ -161,7 +161,7 @@ describe("StudioStoryboardPage setup stages", () => {
   });
 
   it.each([
-    ["idea", "Continue"],
+    ["idea", "Write shots"],
     ["genre", "Generate screenplay"],
     ["review", "Set up entities"],
     ["entities", "Choose the look"],

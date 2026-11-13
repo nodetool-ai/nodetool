@@ -148,11 +148,20 @@ beforeEach(() => {
   clearSetupReports(BOARD_ID);
 });
 
+const DIRECTOR = {
+  type: "language_model" as const,
+  id: "catalog-model",
+  provider: "openai" as const,
+  name: "Catalog"
+};
+
 /** Fill in what a step writes, so its primary button is pressable. */
-const seedStepValues = () =>
+const seedStepValues = () => {
   useStoryboardStore
     .getState()
     .setSetup(BOARD_ID, { brief: "a lamp at night", genre: "Drama" });
+  useStoryboardStore.getState().setDirectorModel(BOARD_ID, DIRECTOR);
+};
 
 /**
  * What a Director run leaves behind. The review step will not advance to the
@@ -447,7 +456,9 @@ describe("useStoryboardSetupFlow", () => {
     useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "idea" });
     renderFlow();
 
-    await user.click(screen.getByRole("button", { name: "Continue" }));
+    await user.click(
+      screen.getByRole("button", { name: "Choose a genre first" })
+    );
     expect(stageOf()).toBe("genre");
 
     await user.click(
@@ -724,35 +735,82 @@ describe("useStoryboardSetupFlow", () => {
     );
   });
 
-  it("holds each step's button until that step's value is written", async () => {
-    const user = userEvent.setup();
+  it("holds the idea step's button until a brief and a model are on the board", () => {
     useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "idea" });
-    renderFlow();
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const idea = () =>
+      result.current.steps.find((step) => step.stage === "idea");
 
-    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    expect(idea()?.canAdvance).toBe(false);
+    expect(idea()?.blockedReason).toBe(
+      "Write a sentence, or bring your own script"
+    );
+
     act(() =>
       useStoryboardStore
         .getState()
         .setSetup(BOARD_ID, { brief: "a lamp at night" })
     );
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled()
-    );
-
-    await user.click(screen.getByRole("button", { name: "Continue" }));
-    expect(
-      screen.getByRole("button", { name: "Generate screenplay" })
-    ).toBeDisabled();
-    expect(direct).not.toHaveBeenCalled();
+    expect(idea()?.canAdvance).toBe(false);
+    expect(idea()?.blockedReason).toBe("Pick a model to write the screenplay");
 
     act(() =>
-      useStoryboardStore.getState().setSetup(BOARD_ID, { genre: "Drama" })
+      useStoryboardStore.getState().setDirectorModel(BOARD_ID, DIRECTOR)
     );
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Generate screenplay" })
-      ).toBeEnabled()
+    expect(idea()?.canAdvance).toBe(true);
+    // Genre is optional: the genre step directs without one.
+    const genre = result.current.steps.find((step) => step.stage === "genre");
+    expect(genre?.canAdvance).toBe(true);
+  });
+
+  // A10: 39 of 59 unfinished boards stopped at the idea step. The brief goes
+  // straight to shots, with the genre step one click away.
+  it("writes shots from the idea step and lands on review", async () => {
+    const user = userEvent.setup();
+    seedStepValues();
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "idea" });
+    direct.mockImplementation(async () => {
+      // The real run moves a board waiting for its screenplay to review.
+      useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "review" });
+      return true;
+    });
+    renderFlow();
+
+    await user.click(screen.getByRole("button", { name: "Write shots" }));
+
+    expect(direct).toHaveBeenCalledWith(BOARD_ID, 6, expect.any(AbortSignal));
+    expect(stageOf()).toBe("review");
+  });
+
+  it("stays on the idea step with the reason when the Director refuses", async () => {
+    const user = userEvent.setup();
+    seedStepValues();
+    useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "idea" });
+    direct.mockResolvedValue(false);
+    directError = "The openai account behind this model has no credits left.";
+    renderFlow();
+
+    await user.click(screen.getByRole("button", { name: "Write shots" }));
+
+    expect(stageOf()).toBe("idea");
+    expect(
+      await screen.findByText(
+        "The openai account behind this model has no credits left."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("continues from the idea step to a screenplay that already exists", () => {
+    seedStepValues();
+    seedScreenplay();
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
     );
+    const idea = result.current.steps.find((step) => step.stage === "idea");
+    expect(idea?.primaryLabel).toBe("Continue");
+    expect(idea?.onAdvance).toBeUndefined();
   });
 
   // F16: `Rewrite from brief` runs outside the shell's button, so the review

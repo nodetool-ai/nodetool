@@ -3668,6 +3668,7 @@
         "shotCount_other": "{{count}} opnamen",
         "modelLabel": "Model",
         "modelPlaceholder": "Scenariomodel",
+        "noModels": "Er is geen taalmodel beschikbaar. Voeg een providersleutel toe in Instellingen, onder Modellen en providers.",
         "shotsLabel": "Schoten",
         "title": "Kies je genre",
         "description": "Toon, tempo en kadrering volgen uw keuze. Je kunt het later wijzigen.",
