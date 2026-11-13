@@ -7362,6 +7362,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
       }
     ],
     "liveProviders": [
+      "alibaba",
       "gemini_web",
       "xai"
     ]
@@ -10882,6 +10883,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
       }
     ],
     "liveProviders": [
+      "alibaba",
       "openrouter",
       "xai"
     ]
@@ -11722,6 +11724,7 @@ export const modelDirectory: ModelDirectoryGroup[] = [
       }
     ],
     "liveProviders": [
+      "alibaba",
       "openrouter"
     ]
   },
