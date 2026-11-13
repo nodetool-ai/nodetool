@@ -199,7 +199,7 @@ enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Previe
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
-                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves };
+                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves, Levels };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.
@@ -270,7 +270,10 @@ struct NodeRow {
   bool tracksDefault = false;
   double defaultNumber = 0;
   // The command an Action row requests: "addVariable" or "addOutput". A
-  // Segmented row with "previewTab" switches the body's preview, not a property.
+  // Segmented row with "previewTab" switches the body's view state (its preview
+  // tab, or the Levels channel), not a property. A "resetSliders" row writes
+  // the defaults in optionValues to the properties in options, or else every
+  // default-tracking slider's default.
   QString action;
   // A media drop zone's value kind ("image", "video" or "audio") and items. A
   // list draws its items in a grid above listZone, its own drop zone.

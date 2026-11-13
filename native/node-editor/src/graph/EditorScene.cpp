@@ -1678,11 +1678,16 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             } else if (row.action == QStringLiteral("toggleProperty")) {
                 model_.commit(model_.propertyCommand(id, row.propertyName, !row.checked));
             } else if (row.action == QStringLiteral("resetSliders")) {
-                // CurvesBody's Reset writes every slider's default in one step.
+                // The Curves and Levels Reset writes every default in one step.
                 QJsonArray commands;
-                for (const auto &slider : layout.rows) {
-                    if (slider.kind == NodeRowKind::Slider && slider.tracksDefault) {
-                        commands.append(model_.propertyCommand(id, slider.propertyName, slider.defaultNumber));
+                for (int i = 0; i < row.options.size() && i < row.optionValues.size(); ++i) {
+                    commands.append(model_.propertyCommand(id, row.options[i], QJsonValue::fromVariant(row.optionValues[i])));
+                }
+                if (row.options.isEmpty()) {
+                    for (const auto &slider : layout.rows) {
+                        if (slider.kind == NodeRowKind::Slider && slider.tracksDefault) {
+                            commands.append(model_.propertyCommand(id, slider.propertyName, slider.defaultNumber));
+                        }
                     }
                 }
                 model_.commit({{"op", "batch"}, {"commands", commands}});

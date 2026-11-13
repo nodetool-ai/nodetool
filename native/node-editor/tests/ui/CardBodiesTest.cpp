@@ -237,6 +237,10 @@ QJsonArray partThreeMetadata() {
                     {image(), slider("black_point", 0, 0.5, 0), slider("white_point", 0.5, 1, 1), slider("shadows", -0.5, 0.5, 0),
                      slider("midtones", -0.5, 0.5, 0), slider("highlights", -0.5, 0.5, 0), slider("red_midtones", -0.5, 0.5, 0),
                      slider("green_midtones", -0.5, 0.5, 0), slider("blue_midtones", -0.5, 0.5, 0)}),
+        metadataFor("nodetool.image.Levels", "Levels",
+                    {image(), slider("r_black", 0, 255, 0, "int"), slider("r_gamma", 0.01, 10, 1), slider("r_white", 0, 255, 255, "int"),
+                     slider("g_black", 0, 255, 0, "int"), slider("g_gamma", 0.01, 10, 1), slider("g_white", 0, 255, 255, "int"),
+                     slider("b_black", 0, 255, 0, "int"), slider("b_gamma", 0.01, 10, 1), slider("b_white", 0, 255, 255, "int")}),
         fal, kie, replicate,
     };
 }
@@ -1772,6 +1776,43 @@ private slots:
         QCOMPARE(host.data("curves")["midtones"].toDouble(), 0.0);
         QCOMPARE(host.data("curves")["blue_midtones"].toDouble(), 0.0);
         QCOMPARE(host.data("curves")["white_point"].toDouble(), 1.0);
+        QCOMPARE(host.undoCount(), undo + 1);
+    }
+
+    // LevelsBody.tsx: the channel toggle is view state that swaps the Black,
+    // Gamma and White sliders; Reset neutralizes all three channels at once.
+    void levelsChannelToggleAndReset() {
+        Host host(withNodes({partTwoNode("levels", "nodetool.image.Levels", QPointF(0, 700),
+                                         {{"r_black", 10}, {"g_gamma", 2.5}, {"b_white", 200}})}), allMetadata());
+        QCOMPARE(host.model().layout(host.id("levels")).body, CardBody::Levels);
+        const auto sliders = [&host] {
+            QStringList names;
+            for (const auto &row : host.model().layout(host.id("levels")).rows) {
+                if (row.kind == NodeRowKind::Slider) { names.append(row.propertyName); }
+            }
+            return names;
+        };
+        QCOMPARE(sliders(), (QStringList{"r_black", "r_gamma", "r_white"}));
+        QCOMPARE(host.row("levels", NodeRowKind::Slider, "r_black")->number, 10.0);
+        const auto *toggle = host.row("levels", NodeRowKind::Segmented);
+        QVERIFY(toggle);
+        QCOMPARE(toggle->selected, 0);
+        auto undo = host.undoCount();
+        host.click("levels", toggle->parts[1].center());
+        QTRY_COMPARE(sliders(), (QStringList{"g_black", "g_gamma", "g_white"}));
+        // The channel never enters the document.
+        QCOMPARE(host.undoCount(), undo);
+        QCOMPARE(host.row("levels", NodeRowKind::Slider, "g_gamma")->number, 2.5);
+        QCOMPARE(host.row("levels", NodeRowKind::Slider, "g_gamma")->maximum, 10.0);
+        const NodeRow *reset = nullptr;
+        for (const auto &row : host.model().layout(host.id("levels")).rows) {
+            if (row.action == QStringLiteral("resetSliders")) { reset = &row; }
+        }
+        QVERIFY(reset);
+        host.click("levels", reset->rect.center());
+        QTRY_COMPARE(host.data("levels")["r_black"].toDouble(), 0.0);
+        QCOMPARE(host.data("levels")["g_gamma"].toDouble(), 1.0);
+        QCOMPARE(host.data("levels")["b_white"].toDouble(), 255.0);
         QCOMPARE(host.undoCount(), undo + 1);
     }
 

@@ -1134,6 +1134,37 @@ void layoutCurves(NodeLayout &layout, const CardBodyInput &input) {
              {QStringLiteral("blue_midtones"), QObject::tr("Blue"), -0.5, 0.5, 0.01, 0, true}});
     column.finish();
 }
+
+// LevelsBody.tsx: a Red, Green and Blue toggle picks which channel's Black,
+// Gamma and White sliders show. The channel is view state, kept as the body
+// tab. Reset returns all nine values to neutral.
+void layoutLevels(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    const QVariantList channels{QStringLiteral("r"), QStringLiteral("g"), QStringLiteral("b")};
+    const auto channel = channels.contains(input.previewTab) ? input.previewTab : QStringLiteral("r");
+    auto toggle = toggleRow(column, column.x, {}, {QObject::tr("Red"), QObject::tr("Green"), QObject::tr("Blue")}, channels,
+                            int(channels.indexOf(channel)), ToggleFit::Equal, false);
+    toggle.action = QStringLiteral("previewTab");
+    layout.rows.append(toggle);
+    column.y += nm::toggleHeight + nm::chipGap;
+    auto grid = autoGrid(nm::chipGap, true, nm::sliderValueWidth);
+    grid.slider({channel + QStringLiteral("_black"), QObject::tr("Black"), 0, 255, 1, 0, false});
+    grid.slider({channel + QStringLiteral("_gamma"), QObject::tr("Gamma"), 0.1, 10, 0.01, 1, false});
+    grid.slider({channel + QStringLiteral("_white"), QObject::tr("White"), 0, 255, 1, 255, false});
+    grid.place(column);
+    const auto size = double(nm::iconButtonSize);
+    auto reset = iconAction(QStringLiteral("resetSliders"), {}, QStringLiteral("restartAlt"), QObject::tr("Reset levels"),
+                            QRectF(column.x, column.y, size, size));
+    for (const auto &key : channels) {
+        for (const auto &[suffix, neutral] : {std::pair{"_black", 0.0}, std::pair{"_gamma", 1.0}, std::pair{"_white", 255.0}}) {
+            reset.options.append(key.toString() + QString::fromLatin1(suffix));
+            reset.optionValues.append(neutral);
+        }
+    }
+    layout.rows.append(reset);
+    column.y += size;
+    column.finish();
+}
 } // namespace
 
 CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
@@ -1178,7 +1209,8 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
         {"nodetool.compare.CompareImages", CardBody::CompareImages}, {"nodetool.constant.String", CardBody::ConstantString},
         {"nodetool.image.RotateAndFlip", CardBody::RotateFlip}, {"nodetool.image.Resize", CardBody::Resize},
         {"nodetool.image.Fit", CardBody::Fit}, {"nodetool.image.Paste", CardBody::Paste},
-        {"nodetool.image.CanvasResize", CardBody::CanvasResize}, {"lib.image.color_grading.Curves", CardBody::Curves}};
+        {"nodetool.image.CanvasResize", CardBody::CanvasResize}, {"lib.image.color_grading.Curves", CardBody::Curves},
+        {"nodetool.image.Levels", CardBody::Levels}};
     if (bodies.contains(type)) {
         return bodies.value(type);
     }
@@ -1219,6 +1251,7 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
     case CardBody::Fit:
     case CardBody::CanvasResize:
     case CardBody::Curves:
+    case CardBody::Levels:
         return name == QStringLiteral("image");
     case CardBody::Paste:
         return name == QStringLiteral("image") || name == QStringLiteral("paste");
@@ -1383,6 +1416,9 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
         break;
     case CardBody::Curves:
         layoutCurves(layout, input);
+        break;
+    case CardBody::Levels:
+        layoutLevels(layout, input);
         break;
     default:
         break;

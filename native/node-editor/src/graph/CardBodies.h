@@ -54,7 +54,8 @@ struct CardBodyInput {
     bool dimensionsLinked = false;
     // Names published by Set Variable nodes anywhere in the workflow, sorted.
     QStringList graphVariables;
-    // The selected preview tab of a Before/After or Mask body, empty for its default.
+    // The selected preview tab of a Before/After or Mask body, or the Levels
+    // channel, empty for its default.
     QString previewTab;
 };
 
