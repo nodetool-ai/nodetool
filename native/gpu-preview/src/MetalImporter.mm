@@ -13,7 +13,7 @@
 // on Qt's queue. A queue runs its command buffers in the order they were
 // committed, so that buffer completes after every frame committed before it.
 //
-// Not compiled or run in the environment this was written in. See the
+// Built and tested only by the macOS job of native-gpu-preview.yml. See the
 // status table in native/gpu-preview/README.md.
 #include "TextureImporter.h"
 

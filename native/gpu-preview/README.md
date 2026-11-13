@@ -16,7 +16,7 @@ compositor and hardware decoding are unchanged.
 | Platform | Mechanism | Source | Compiled | GPU validation | Run |
 |---|---|---|---|---|---|
 | Linux, Vulkan | Two `VkDevice`s, memory shared as an opaque file descriptor, ownership moved with queue family transfers | Complete | Yes, GCC 13 | Validation layer 1.3.275, see [Validation](#validation) | Yes, on Mesa lavapipe (a software driver). No hardware GPU was available |
-| macOS, Metal | One `MTLDevice` in both runtimes, the consumer holds a retained `MTLTexture` | Written | No | No | No |
+| macOS, Metal | One `MTLDevice` in both runtimes, the consumer holds a retained `MTLTexture` | Complete | Yes, Xcode 16.4 on arm64 | None. The Metal API validation layer was not enabled | Yes, in CI only, on the runner's "Apple Paravirtual device". No physical Mac |
 | Windows, D3D12 | None | Not implemented. Both sides report sharing as unavailable | No | No | No |
 
 Linux needs a wgpu-native with the native interop functions
@@ -25,10 +25,12 @@ With the pinned release binaries the module builds, and the item reports that
 sharing is unavailable.
 
 The macOS code (`src/MetalImporter.mm`, and the Metal branch of
-`gpu_device.cpp`) was written without a compiler or a Mac. Treat it as
-unverified until the macOS job of
-[native-gpu-preview.yml](../../.github/workflows/native-gpu-preview.yml) has
-built it and run the tests.
+`gpu_device.cpp`) was written without a Mac. The macOS job of
+[native-gpu-preview.yml](../../.github/workflows/native-gpu-preview.yml)
+builds it and runs `tst_gpupreview`, `tst_gpupreview_software` and
+`gr_gpu_share_tests` on the hosted runner's virtual GPU. Nobody has looked at
+the window on a physical Mac, and the demo and the measurements below were
+not run there.
 
 On Windows, wgpu's device and Qt's would have to share an `ID3D12Resource`
 and agree on its resource state at each handoff. The patch exports the
@@ -214,7 +216,8 @@ presentation.
 
 - No hardware GPU run on any platform. Cross-device sharing between two
   Vulkan devices of a hardware driver is unverified.
-- macOS is unverified, Windows is not implemented (see [Status](#status)).
+- macOS ran only on a CI runner's virtual GPU, and Windows is not
+  implemented (see [Status](#status)).
 - Device loss was not tested. A lost wgpu device makes `publish()` throw, and
   the source reports the error. `Device::acquire()` keeps a lost device for
   the life of the process, so frames do not resume. A lost Qt device
