@@ -779,18 +779,21 @@ const llmProviders: ProviderEntry[] = [
     byokEnv: "DASHSCOPE_API_KEY",
     accent: "amber",
     tagline:
-      "Run Alibaba's Qwen models in NodeTool through Model Studio, called with your own DashScope key.",
+      "Run Alibaba's Qwen chat, Qwen-Image, Wan video, and Qwen TTS models in NodeTool through Model Studio, called with your own DashScope key.",
     blurb: [
       "Alibaba Cloud Model Studio serves the Qwen family — Qwen3-Max at the top, Qwen-Plus and Qwen-Flash for everyday work, and the Qwen3-VL vision models. In NodeTool they drive chat, agent, and text blocks with tool calling and streaming.",
+      "The same key reaches Alibaba's media models: Wan 2.7 text-to-video and image-to-video, Qwen-Image and Wan image generation and editing, and Qwen3-TTS speech.",
       "The DashScope API is OpenAI-compatible and NodeTool talks to the Singapore-region international endpoint, so the same nodes work without a China-mainland account. New Model Studio accounts come with a free token quota per model.",
       "Alibaba Cloud is bring-your-own-key: set `DASHSCOPE_API_KEY` and NodeTool calls Model Studio directly at list price.",
     ],
     strengths: ["Qwen models", "Vision", "Long context"],
-    capabilities: ["Chat", "Tool use", "Streaming"],
+    capabilities: ["Chat", "Tool use", "Streaming", "Text-to-image", "Text-to-video", "Text-to-speech"],
     highlights: [
       { name: "Qwen3-Max", desc: "Alibaba's flagship chat model for hard reasoning and agent steps.", kind: "Chat" },
       { name: "Qwen-Plus / Qwen-Flash", desc: "Balanced and fast tiers for everyday chat and high-volume steps.", kind: "Chat" },
       { name: "Qwen3-VL-Plus", desc: "Vision model that reads images alongside the prompt.", kind: "Vision" },
+      { name: "Wan 2.7", desc: "Text-to-video and image-to-video clips of 2 to 15 seconds at 720P or 1080P.", kind: "Video" },
+      { name: "Qwen-Image 3.0", desc: "Text-to-image and edits from up to three input images.", kind: "Image" },
     ],
     faq: [
       {
@@ -799,7 +802,7 @@ const llmProviders: ProviderEntry[] = [
       },
       {
         q: "Which Alibaba models are available?",
-        a: "Whatever Model Studio lists for your account — NodeTool reads the models endpoint live, so qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl models appear without an update.",
+        a: "For chat, whatever Model Studio lists for your account — NodeTool reads the models endpoint live, so qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl models appear without an update. For media, the Wan video, Qwen-Image, Wan image, and qwen3-tts-flash models NodeTool lists, where your region offers them.",
       },
       {
         q: "What does Alibaba Cloud cost in NodeTool?",

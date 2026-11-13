@@ -350,7 +350,7 @@ export const PROVIDER_META: ProviderMeta[] = [
     key: "DASHSCOPE_API_KEY",
     providerId: PROVIDER_IDS.ALIBABA,
     name: "Alibaba Cloud",
-    description: "Qwen models via Alibaba Cloud Model Studio.",
+    description: "Qwen chat, Qwen-Image, Wan video, and Qwen TTS via Alibaba Cloud Model Studio.",
     section: "language",
     docsUrl: "https://www.alibabacloud.com/help/en/model-studio/",
     icon: alibabacloudColorIcon
