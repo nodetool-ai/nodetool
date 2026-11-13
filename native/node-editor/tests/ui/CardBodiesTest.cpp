@@ -242,6 +242,9 @@ QJsonArray partThreeMetadata() {
                      slider("g_black", 0, 255, 0, "int"), slider("g_gamma", 0.01, 10, 1), slider("g_white", 0, 255, 255, "int"),
                      slider("b_black", 0, 255, 0, "int"), slider("b_gamma", 0.01, 10, 1), slider("b_white", 0, 255, 255, "int")}),
         metadataFor("nodetool.constant.Image", "Image", {image("value")}),
+        metadataFor("nodetool.image.Crop", "Crop",
+                    {image(), slider("left", 0, 4096, 0, "int"), slider("top", 0, 4096, 0, "int"), slider("right", 0, 4096, 512, "int"),
+                     slider("bottom", 0, 4096, 512, "int")}),
         fal, kie, replicate,
     };
 }
@@ -1804,6 +1807,96 @@ private slots:
         QCOMPARE(overlay("paste")->rect, QRectF(pasteArea.x() + pasteArea.width() / 4, pasteArea.y() + pasteArea.height() / 4,
                                                 pasteArea.width() / 4, pasteArea.height() / 4));
         QVERIFY(overlay("paste")->value.isEmpty());
+    }
+
+    // CropBody.tsx: cropDragged keeps whole pixels inside the image, a move keeps the size.
+    void cropDragsClampToTheImage() {
+        const QSizeF bounds(200, 100);
+        const QRectF full(0, 0, 200, 100);
+        QCOMPARE(cropDragged("se", full, QPointF(-50.4, -20.6), bounds), QRectF(0, 0, 150, 79));
+        QCOMPARE(cropDragged("nw", full, QPointF(-30, 250), bounds), QRectF(QPointF(0, 99), QPointF(200, 100)));
+        QCOMPARE(cropDragged("e", QRectF(10, 10, 50, 50), QPointF(-80, 0), bounds), QRectF(QPointF(10, 10), QPointF(11, 60)));
+        QCOMPARE(cropDragged("move", QRectF(10, 10, 50, 50), QPointF(500, -500), bounds), QRectF(150, 0, 50, 50));
+    }
+
+    // CropBody.tsx: the source shows with the crop rectangle; dragging a handle
+    // or the rectangle writes the four edges in one undo step, and Reset selects the whole image.
+    void cropRectangleDragsAndResets() {
+        QImage source(200, 100, QImage::Format_RGB32);
+        source.fill(Qt::blue);
+        QByteArray bytes;
+        QBuffer buffer(&bytes);
+        buffer.open(QIODevice::WriteOnly);
+        source.save(&buffer, "PNG");
+        const QJsonObject constant{{"id", "photo"}, {"type", "nodetool.constant.Image"},
+                                   {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", QStringLiteral("data:image/png;base64,")
+                                       + QString::fromLatin1(bytes.toBase64())}}}}},
+                                   {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", 700}}}}}};
+        auto workflow = withNodes({constant, partTwoNode("crop", "nodetool.image.Crop", QPointF(0, 700))});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "e-crop"}, {"source", "photo"}, {"sourceHandle", "output"}, {"target", "crop"}, {"targetHandle", "image"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        QCOMPARE(host.model().layout(host.id("crop")).body, CardBody::Crop);
+        QTRY_VERIFY(host.row("crop", NodeRowKind::Crop));
+        auto crop = *host.row("crop", NodeRowKind::Crop);
+        QCOMPARE(crop.minimum, 200.0);
+        QCOMPARE(crop.maximum, 100.0);
+        // A 2:1 image fills the preview's width, centered.
+        const auto area = host.model().layout(host.id("crop")).resultRect;
+        QCOMPARE(crop.rect.width(), std::min(area.width(), area.height() * 2));
+        QCOMPARE(crop.rect.center(), area.center());
+        QCOMPARE(cropEdges(crop), QRectF(0, 0, 200, 100));
+        const auto drag = [&host](const QPointF &from, const QPointF &to) {
+            const auto start = host.point("crop", from);
+            const auto end = host.point("crop", to);
+            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(host.view->viewport(), &move);
+            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+            settle();
+        };
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("crop")).save(directory + QStringLiteral("/Crop-dark.png")));
+        }
+        const auto scale = crop.rect.width() / 200;
+        auto undo = host.undoCount();
+        // The bottom right handle, pulled 50 by 20 image pixels in.
+        drag(crop.rect.bottomRight(), crop.rect.bottomRight() - QPointF(50 * scale, 20 * scale));
+        // Viewport points are whole pixels, so an edge lands within one image pixel.
+        const auto near = [&host](const char *name, double expected) {
+            return std::abs(host.data("crop")[QLatin1String(name)].toDouble() - expected) <= 1;
+        };
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        ++undo;
+        QVERIFY(near("right", 150));
+        QVERIFY(near("bottom", 80));
+        QCOMPARE(host.data("crop")["left"].toDouble(), 0.0);
+        QCOMPARE(host.data("crop")["top"].toDouble(), 0.0);
+        // A drag inside moves the rectangle and keeps its size.
+        crop = *host.row("crop", NodeRowKind::Crop);
+        const auto before = cropEdges(crop);
+        const auto inside = cropOnCard(crop, before).center();
+        drag(inside, inside + QPointF(30 * scale, 10 * scale));
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        ++undo;
+        QVERIFY(near("left", 30));
+        QVERIFY(near("top", 10));
+        QCOMPARE(host.data("crop")["right"].toDouble() - host.data("crop")["left"].toDouble(), before.width());
+        QCOMPARE(host.data("crop")["bottom"].toDouble() - host.data("crop")["top"].toDouble(), before.height());
+        const NodeRow *reset = nullptr;
+        for (const auto &row : host.model().layout(host.id("crop")).rows) {
+            if (row.action == QStringLiteral("resetCrop")) { reset = &row; }
+        }
+        QVERIFY(reset);
+        host.click("crop", reset->rect.center());
+        QTRY_COMPARE(host.data("crop")["left"].toDouble(), 0.0);
+        QCOMPARE(host.data("crop")["right"].toDouble(), 200.0);
+        QCOMPARE(host.data("crop")["bottom"].toDouble(), 100.0);
+        QCOMPARE(host.undoCount(), ++undo);
     }
 
     // CurvesBody.tsx: five Tonal and three RGB midtone sliders under eyebrows,

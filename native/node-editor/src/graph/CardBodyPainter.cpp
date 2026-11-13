@@ -483,6 +483,54 @@ bool paintCardBodyRow(QPainter *painter, const CanvasTheme &theme, const NodeLay
         }
         return true;
     }
+    case NodeRowKind::Crop: {
+        const auto crop = state.cropDraft.value_or(cropEdges(row));
+        const auto card = cropOnCard(row, crop);
+        if (card.isEmpty()) {
+            return true;
+        }
+        painter->save();
+        // .darken: the scrim outside the crop, even-odd over the image.
+        QPainterPath outside;
+        outside.addRect(row.rect);
+        outside.addRect(card);
+        outside.setFillRule(Qt::OddEvenFill);
+        painter->fillPath(outside, theme.mediaScrim);
+        // .grid-line: rule-of-thirds lines inside the crop.
+        painter->setPen(QPen(QColor(255, 255, 255, 115), 0.5));
+        for (const auto third : {1.0 / 3, 2.0 / 3}) {
+            painter->drawLine(QPointF(card.left() + card.width() * third, card.top()), QPointF(card.left() + card.width() * third, card.bottom()));
+            painter->drawLine(QPointF(card.left(), card.top() + card.height() * third), QPointF(card.right(), card.top() + card.height() * third));
+        }
+        // .crop-rect and .handle in secondary.main, the handles ringed in white.
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->setPen(QPen(theme.progress, 1.5));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRect(card);
+        const auto radius = cropHandleRadius(row);
+        painter->setPen(QPen(Qt::white, 1));
+        painter->setBrush(theme.progress);
+        const auto mid = card.center();
+        for (const auto &point : {card.topLeft(), QPointF(mid.x(), card.top()), card.topRight(), QPointF(card.right(), mid.y()),
+                                  card.bottomRight(), QPointF(mid.x(), card.bottom()), card.bottomLeft(), QPointF(card.left(), mid.y())}) {
+            painter->drawEllipse(point, radius, radius);
+        }
+        // .dim-badge: the crop size in the preview's top left corner.
+        if (!row.parts.isEmpty()) {
+            const auto text = QStringLiteral("%1 × %2 px").arg(crop.width()).arg(crop.height());
+            const auto badgeFont = mono(theme, nm::fontValue - 1);
+            const auto width = QFontMetricsF(badgeFont).horizontalAdvance(text) + 2 * nm::chipGap;
+            const QRectF badge(row.parts.first().x() + nm::micro, row.parts.first().y() + nm::micro, width, card_media::badgeHeight);
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(theme.mediaScrim);
+            painter->drawRoundedRect(badge, nm::fieldRadius, nm::fieldRadius);
+            painter->setFont(badgeFont);
+            painter->setPen(Qt::white);
+            painter->drawText(badge, Qt::AlignCenter, text);
+        }
+        painter->restore();
+        return true;
+    }
     case NodeRowKind::Composer:
         paintComposer(painter, theme, row);
         return true;

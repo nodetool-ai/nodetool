@@ -197,13 +197,17 @@ enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Previe
                          Composer, Slider, Segmented, Lock, ModelChip, Action, DropZone, Swatch, ImageSize,
                          // A dashed placement rectangle over a preview (rect, may be empty)
                          // and a size badge in the corner of parts[0] (value).
-                         Overlay };
+                         Overlay,
+                         // CropBody's crop rectangle over the image in rect. minimum and
+                         // maximum hold the image size, optionValues the left, top,
+                         // right and bottom edges in image pixels, value the size badge.
+                         Crop };
 
 // The body a card draws, chosen by node type as the web's bespoke body registry does.
 enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeImage,
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
-                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves, Levels };
+                      CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves, Levels, Crop };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.

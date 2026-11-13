@@ -487,6 +487,9 @@ public:
         bodyState.draftProperty = scene_.sliderDraftProperty();
         bodyState.draftValue = scene_.sliderDraftValue();
     }
+    if (scene_.cropDraftNode() == item.nodeId()) {
+        bodyState.cropDraft = scene_.cropDraft();
+    }
     for (const auto &row : layout.rows) {
         if (!paintCardBodyRow(painter, theme, layout, row, bodyState)) {
             // nodes.zoomed.css hides property rows and their labels at overview zoom.
@@ -1677,6 +1680,16 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 model_.commit(model_.addDataframeColumnCommand(id, row.propertyName));
             } else if (row.action == QStringLiteral("toggleProperty")) {
                 model_.commit(model_.propertyCommand(id, row.propertyName, !row.checked));
+            } else if (row.action == QStringLiteral("resetCrop")) {
+                // CropBody's Reset selects the whole image, or 512 square before one arrives.
+                QSizeF bounds(512, 512);
+                for (const auto &crop : layout.rows) {
+                    if (crop.kind == NodeRowKind::Crop) { bounds = QSizeF(crop.minimum, crop.maximum); }
+                }
+                model_.commit({{"op", "batch"}, {"commands", QJsonArray{
+                    model_.propertyCommand(id, QStringLiteral("left"), 0), model_.propertyCommand(id, QStringLiteral("top"), 0),
+                    model_.propertyCommand(id, QStringLiteral("right"), bounds.width()),
+                    model_.propertyCommand(id, QStringLiteral("bottom"), bounds.height())}}});
             } else if (row.action == QStringLiteral("resetSliders")) {
                 // The Curves and Levels Reset writes every default in one step.
                 QJsonArray commands;
@@ -1698,6 +1711,18 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                     model_.propertyCommand(id, QStringLiteral("flip_horizontal"), false),
                     model_.propertyCommand(id, QStringLiteral("flip_vertical"), false)}}});
             }
+            return true;
+        }
+        if (row.kind == NodeRowKind::Crop) {
+            // Outside the crop and its handles the image passes the press to the card.
+            const auto handle = cropHandleAt(row, cropEdges(row), local);
+            if (handle.isEmpty() || model_.readOnly()) { continue; }
+            select();
+            cropNode_ = id;
+            cropHandle_ = handle;
+            cropStart_ = cropEdges(row);
+            cropValue_ = cropStart_;
+            cropPointer_ = local;
             return true;
         }
         if (row.kind == NodeRowKind::Slider) {
@@ -1728,6 +1753,37 @@ void EditorScene::moveSlider(const QPointF &scenePosition) {
         }
     }
 }
+void EditorScene::moveCrop(const QPointF &scenePosition) {
+    auto *item = nodeGraphicsObject(cropNode_);
+    if (!item) { finishCrop(false); return; }
+    for (const auto &row : model_.layout(cropNode_).rows) {
+        if (row.kind != NodeRowKind::Crop || row.rect.isEmpty()) { continue; }
+        const auto local = item->mapFromScene(scenePosition);
+        // Card pixels to image pixels, as renderedScale.
+        const QPointF delta((local.x() - cropPointer_.x()) * row.minimum / row.rect.width(),
+                            (local.y() - cropPointer_.y()) * row.maximum / row.rect.height());
+        const auto value = cropDragged(cropHandle_, cropStart_, delta, QSizeF(row.minimum, row.maximum));
+        if (value == cropValue_) { return; }
+        cropValue_ = value;
+        item->update();
+        return;
+    }
+}
+void EditorScene::finishCrop(bool commit) {
+    const auto id = cropNode_;
+    const auto value = cropValue_;
+    cropNode_ = InvalidNodeId;
+    cropHandle_.clear();
+    if (auto *item = nodeGraphicsObject(id)) { item->update(); }
+    // One drag writes the four edges together, so a single undo step reverts it.
+    if (commit && model_.nodeExists(id) && value != cropStart_ && model_.commit) {
+        model_.commit({{"op", "batch"}, {"commands", QJsonArray{
+            model_.propertyCommand(id, QStringLiteral("left"), value.left()),
+            model_.propertyCommand(id, QStringLiteral("top"), value.top()),
+            model_.propertyCommand(id, QStringLiteral("right"), value.right()),
+            model_.propertyCommand(id, QStringLiteral("bottom"), value.bottom())}}});
+    }
+}
 void EditorScene::finishSlider(bool commit) {
     const auto id = sliderNode_;
     const auto name = sliderProperty_;
@@ -1756,6 +1812,11 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
     }
     if (sliderNode_ != InvalidNodeId) {
         moveSlider(event->scenePos());
+        event->accept();
+        return;
+    }
+    if (cropNode_ != InvalidNodeId) {
+        moveCrop(event->scenePos());
         event->accept();
         return;
     }
@@ -1822,6 +1883,13 @@ void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
     if (sliderNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
         moveSlider(event->scenePos());
         finishSlider(true);
+        inlinePress_ = false;
+        event->accept();
+        return;
+    }
+    if (cropNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
+        moveCrop(event->scenePos());
+        finishCrop(true);
         inlinePress_ = false;
         event->accept();
         return;
@@ -2044,6 +2112,11 @@ void EditorScene::cancelGesture() {
 void EditorScene::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_Escape && sliderNode_ != InvalidNodeId) {
         finishSlider(false);
+        event->accept();
+        return;
+    }
+    if (event->key() == Qt::Key_Escape && cropNode_ != InvalidNodeId) {
+        finishCrop(false);
         event->accept();
         return;
     }

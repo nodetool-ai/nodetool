@@ -832,7 +832,13 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CropBody.tsx": {
-      "missing": "Image editing body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp",
+        "native/node-editor/src/graph/EditorScene.cpp"
+      ],
+      "status": "partial",
+      "note": "The incoming image with the darkened outside, thirds grid, crop rectangle, eight handles, move and resize drags, size badge and Reset match. The aspect select and the width and height boxes are missing.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CurvesBody.tsx": {

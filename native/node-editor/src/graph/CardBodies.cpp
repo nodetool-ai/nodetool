@@ -2,6 +2,7 @@
 #include <QFont>
 #include <QFontMetricsF>
 #include <QTextLayout>
+#include <QLineF>
 #include <QObject>
 #include <QRegularExpression>
 #include <QSet>
@@ -1238,6 +1239,38 @@ void layoutLevels(NodeLayout &layout, const CardBodyInput &input) {
     column.y += size;
     column.finish();
 }
+
+// CropBody.tsx: the source with its crop rectangle, the size badge, and Reset.
+// The aspect select and the width and height boxes are not drawn yet.
+void layoutCrop(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    column.y += nm::micro;
+    const auto size = double(nm::iconButtonSize);
+    layout.rows.append(iconAction(QStringLiteral("resetCrop"), {}, QStringLiteral("restartAlt"), QObject::tr("Reset crop"),
+                                  QRectF(column.x + column.width - size, column.y, size, size)));
+    column.y += size;
+    column.finish();
+    showSource(layout, input, QStringLiteral("image"));
+    const auto *source = readySource(input, QStringLiteral("image"));
+    if (!source) {
+        return;
+    }
+    const auto natural = QSizeF(source->natural);
+    auto image = QRectF(QPointF(), natural.scaled(layout.resultRect.size(), Qt::KeepAspectRatio));
+    image.moveCenter(layout.resultRect.center());
+    auto crop = controlRow(NodeRowKind::Crop, {}, QObject::tr("Crop"), image);
+    crop.minimum = natural.width();
+    crop.maximum = natural.height();
+    // An unset right or bottom edge is the image's, as props.right ?? imgDims.w.
+    const auto data = input.node["data"].toObject();
+    const auto edge = [&data](const char *name, double fallback) {
+        const auto value = data.value(QLatin1String(name));
+        return value.isDouble() ? value.toDouble() : fallback;
+    };
+    crop.optionValues = {edge("left", 0), edge("top", 0), edge("right", natural.width()), edge("bottom", natural.height())};
+    crop.parts = {layout.resultRect};
+    layout.rows.append(crop);
+}
 } // namespace
 
 CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
@@ -1283,7 +1316,7 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
         {"nodetool.image.RotateAndFlip", CardBody::RotateFlip}, {"nodetool.image.Resize", CardBody::Resize},
         {"nodetool.image.Fit", CardBody::Fit}, {"nodetool.image.Paste", CardBody::Paste},
         {"nodetool.image.CanvasResize", CardBody::CanvasResize}, {"lib.image.color_grading.Curves", CardBody::Curves},
-        {"nodetool.image.Levels", CardBody::Levels}};
+        {"nodetool.image.Levels", CardBody::Levels}, {"nodetool.image.Crop", CardBody::Crop}};
     if (bodies.contains(type)) {
         return bodies.value(type);
     }
@@ -1297,11 +1330,71 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
 }
 
 bool readsBodySources(CardBody body) {
-    return body == CardBody::CanvasResize || body == CardBody::Paste;
+    return body == CardBody::CanvasResize || body == CardBody::Paste || body == CardBody::Crop;
 }
 
 QString bodySourceKey(const QString &handle) {
     return QStringLiteral("@source:") + handle;
+}
+
+QRectF cropEdges(const NodeRow &row) {
+    const auto edge = [&row](int index) { return row.optionValues.value(index).toDouble(); };
+    return QRectF(QPointF(edge(0), edge(1)), QPointF(edge(2), edge(3)));
+}
+
+QRectF cropOnCard(const NodeRow &row, const QRectF &crop) {
+    if (row.minimum <= 0 || row.maximum <= 0) {
+        return {};
+    }
+    const auto sx = row.rect.width() / row.minimum, sy = row.rect.height() / row.maximum;
+    return QRectF(row.rect.x() + crop.left() * sx, row.rect.y() + crop.top() * sy, crop.width() * sx, crop.height() * sy);
+}
+
+double cropHandleRadius(const NodeRow &row) {
+    // handleR: 1.2% of the shorter image side, 3 to 24 image pixels, drawn at the image's scale.
+    const auto radius = std::clamp(std::min(row.minimum, row.maximum) * 0.012, 3.0, 24.0);
+    return std::max(3.0, row.minimum > 0 ? radius * row.rect.width() / row.minimum : 3.0);
+}
+
+QString cropHandleAt(const NodeRow &row, const QRectF &crop, const QPointF &local) {
+    const auto card = cropOnCard(row, crop);
+    if (card.isEmpty()) {
+        return {};
+    }
+    // A pointer finds a handle within 6 px even when the drawn handle is smaller.
+    const auto reach = std::max(6.0, cropHandleRadius(row));
+    const auto mid = card.center();
+    const std::pair<const char *, QPointF> handles[] = {
+        {"nw", card.topLeft()}, {"n", {mid.x(), card.top()}}, {"ne", card.topRight()}, {"e", {card.right(), mid.y()}},
+        {"se", card.bottomRight()}, {"s", {mid.x(), card.bottom()}}, {"sw", card.bottomLeft()}, {"w", {card.left(), mid.y()}}};
+    for (const auto &[name, point] : handles) {
+        if (QLineF(point, local).length() <= reach) {
+            return QString::fromLatin1(name);
+        }
+    }
+    return card.contains(local) ? QStringLiteral("move") : QString{};
+}
+
+QRectF cropDragged(const QString &handle, const QRectF &start, const QPointF &delta, const QSizeF &bounds) {
+    auto left = start.left(), top = start.top(), right = start.right(), bottom = start.bottom();
+    if (handle == QStringLiteral("move")) {
+        // Moving keeps the size and stops at the image's edges.
+        left = std::clamp(start.left() + delta.x(), 0.0, std::max(0.0, bounds.width() - start.width()));
+        top = std::clamp(start.top() + delta.y(), 0.0, std::max(0.0, bounds.height() - start.height()));
+        right = left + start.width();
+        bottom = top + start.height();
+    } else {
+        if (handle.contains(QLatin1Char('w'))) { left += delta.x(); }
+        if (handle.contains(QLatin1Char('e'))) { right += delta.x(); }
+        if (handle.contains(QLatin1Char('n'))) { top += delta.y(); }
+        if (handle.contains(QLatin1Char('s'))) { bottom += delta.y(); }
+    }
+    // writeRect: whole pixels, at least one pixel, inside the image.
+    const auto l = std::clamp(std::round(left), 0.0, bounds.width() - 1);
+    const auto t = std::clamp(std::round(top), 0.0, bounds.height() - 1);
+    const auto r = std::clamp(std::round(right), l + 1, std::max(l + 1, bounds.width()));
+    const auto b = std::clamp(std::round(bottom), t + 1, std::max(t + 1, bounds.height()));
+    return QRectF(QPointF(l, t), QPointF(r, b));
 }
 
 bool drawsOwnHandles(CardBody body) {
@@ -1333,6 +1426,7 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
     case CardBody::CanvasResize:
     case CardBody::Curves:
     case CardBody::Levels:
+    case CardBody::Crop:
         return name == QStringLiteral("image");
     case CardBody::Paste:
         return name == QStringLiteral("image") || name == QStringLiteral("paste");
@@ -1512,6 +1606,9 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
         break;
     case CardBody::Levels:
         layoutLevels(layout, input);
+        break;
+    case CardBody::Crop:
+        layoutCrop(layout, input);
         break;
     default:
         break;

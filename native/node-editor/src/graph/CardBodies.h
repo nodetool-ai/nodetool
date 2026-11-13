@@ -67,6 +67,17 @@ bool readsBodySources(CardBody body);
 // The card media key of a body source, apart from the node's own property values.
 QString bodySourceKey(const QString &handle);
 
+// CropBody.tsx: the crop in image pixels as a Crop row holds it, the same crop
+// on the card, the handle under a card-local point ("move" inside the crop,
+// "nw", "n" and so on at a handle, empty elsewhere), the handle radius on the
+// card, and the crop a drag by delta image pixels makes from start, clamped
+// and rounded as writeRect.
+QRectF cropEdges(const NodeRow &row);
+QRectF cropOnCard(const NodeRow &row, const QRectF &crop);
+double cropHandleRadius(const NodeRow &row);
+QString cropHandleAt(const NodeRow &row, const QRectF &crop, const QPointF &local);
+QRectF cropDragged(const QString &handle, const QRectF &start, const QPointF &delta, const QSizeF &bounds);
+
 // Lays out a bespoke body: its rows, port positions, result area and size. A
 // body whose web preview-area flexes grows it to fill an authored height or
 // the web default height, and records the growth in NodeLayout::flexHeight.
