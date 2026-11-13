@@ -16,11 +16,13 @@
 #include "music/MusicTime.h"
 #include "playback/AudioClockFeed.h"
 
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QProcess>
 #include <QSignalSpy>
+#include <QTcpServer>
 #include <QTemporaryDir>
 #include <QtTest>
 
@@ -337,6 +339,43 @@ private slots:
         const auto riff = uploaded.indexOf("RIFF");
         QVERIFY(riff >= 0);
         QCOMPARE(uploaded.mid(riff + 20, 2), QByteArray::fromHex("0300"));
+    }
+
+    // Backlog M12: Cancel, a document switch or quitting destroys a bounce on
+    // the GUI thread. The destructor joins the worker, so an upload that does
+    // not stop on interruption freezes the window until the upload ends. The
+    // server here accepts the connection and never reads, as a slow link does
+    // with a large window: the upload stalls with the request half sent.
+    void destroyingAStalledUploadReturnsQuickly_data() {
+        QTest::addColumn<QString>("expectedInstance");
+        QTest::newRow("plain upload") << QString();
+        // The bundled server's path: the instance proof goes over a raw socket.
+        QTest::newRow("instance-checked upload") << QStringLiteral("instance");
+    }
+
+    void destroyingAStalledUploadReturnsQuickly() {
+        QFETCH(QString, expectedInstance);
+        QTcpServer stalled;
+        QVERIFY(stalled.listen(QHostAddress::LocalHost));
+        auto bounce = std::make_unique<MusicBounce>();
+        MusicBounce::Job job;
+        job.timeline = document();
+        job.kind = BounceKind::Mix;
+        job.targetTrackId = "b";
+        job.startFrame = 0;
+        // 40 s of float stereo, 15 MB: far more than the socket buffers hold.
+        job.frames = 40 * kRate;
+        job.upload = nt::server::SaveTarget{QUrl(QStringLiteral("http://127.0.0.1:%1").arg(stalled.serverPort())), {},
+                                            "timeline", m_dir.path(), expectedInstance};
+        QVERIFY(bounce->start(job));
+        QVERIFY(stalled.waitForNewConnection(60000));
+        // Let the client fill the socket buffers and block on the write.
+        QTest::qWait(500);
+        QVERIFY(bounce->running());
+        QElapsedTimer elapsed;
+        elapsed.start();
+        bounce.reset();
+        QVERIFY2(elapsed.elapsed() < 1000, qPrintable(QStringLiteral("the destructor took %1 ms").arg(elapsed.elapsed())));
     }
 
     void destroyingARunningBounceJoinsIt() {
