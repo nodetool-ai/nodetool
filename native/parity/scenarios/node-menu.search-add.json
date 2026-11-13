@@ -1,0 +1,15 @@
+{
+  "id": "node-menu.search-add",
+  "component": "NodeMenu",
+  "fixture": "node-catalog",
+  "description": "Open the node menu, search for resize, move the highlight down and add the highlighted node.",
+  "steps": [
+    { "observe": { "name": "opened", "compare": ["query", "home"], "screenshot": true } },
+    { "act": { "type": "type", "text": "resize" } },
+    { "observe": { "name": "searched", "compare": ["query", "home", "results", "highlighted"], "screenshot": true } },
+    { "act": { "type": "key", "key": "ArrowDown" } },
+    { "observe": { "name": "highlighted", "compare": ["highlighted"] } },
+    { "act": { "type": "key", "key": "Enter" } },
+    { "observe": { "name": "added", "compare": [], "intents": true } }
+  ]
+}
