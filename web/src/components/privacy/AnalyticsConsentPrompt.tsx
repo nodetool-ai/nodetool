@@ -1,6 +1,7 @@
 /**
- * Asks once whether to share anonymous usage statistics, after the person's
- * first successful run, never at startup and never as a modal. Answering
+ * Asks once whether to share anonymous usage statistics, never as a modal:
+ * after the person's first successful run, or on Cloud when Home first shows
+ * the first-run starters. Answering
  * either way, or ignoring it until the next reload, records that it was
  * asked, so it does not come back. Settings → Privacy changes the answer.
  */
@@ -70,9 +71,11 @@ const AnalyticsConsentPrompt: React.FC = () => {
       padding="comfortable"
       sx={{
         position: "fixed",
-        right: SPACING.xl,
-        bottom: SPACING.xl,
-        maxWidth: "24rem",
+        // A phone has no room beside the card, so it spans the width.
+        left: { xs: SPACING.lg, sm: "auto" },
+        right: { xs: SPACING.lg, sm: SPACING.xl },
+        bottom: { xs: SPACING.lg, sm: SPACING.xl },
+        maxWidth: { sm: "24rem" },
         zIndex: Z_INDEX.toast
       }}
     >

@@ -8955,6 +8955,7 @@
         "Vilken typ av app skickade händelsen (moln, skrivbord, lokal webb), appversionen och operativsystemfamiljen.",
         "Att appen startade, ett arbetsflöde skapades eller ett arbetsflöde kördes.",
         "För en körning: lokal eller moln, noden räknas som ett intervall (som 6–20), varaktigheten som ett intervall och för ett misslyckande en kategori som leverantör eller timeout.",
+        "För en första session: att startvalen visades, vilket som valdes, typen av det första resultatet (som chatt eller storyboard) med tiden dit som ett intervall och skärmklassen (telefon, surfplatta eller dator).",
         "Ett slumpmässigt ID sparat i den här webbläsaren som ändras var 30:e dag, och ett slumpmässigt ID för denna session."
       ],
       "never": "Aldrig",
@@ -20008,5 +20009,31 @@
     "label": "Skicka mejl om lanseringar och gratiserbjudanden",
     "description": "Få veta om nya funktioner, modeller och gratiserbjudanden. Varje mejl har en avregistreringslänk, och du kan stänga av detta här när som helst.",
     "saveFailed": "Mejlinställningen sparades inte. Försök igen."
+  },
+  "firstRun": {
+    "ariaLabel": "Börja med ett resultat",
+    "heading": "Skapa något på under en minut",
+    "subline": "Allt är redan ifyllt. Prova ett och ändra det sedan till din egen idé.",
+    "firstTask": {
+      "label": "Din första prompt",
+      "prompt": "Ge mig tre idéer till en 30-sekunders video om en räv i den första snön, en rad var.",
+      "hint": "Svarar på sekunder med den kostnadsfria standardmodellen.",
+      "action": "Skicka"
+    },
+    "game": {
+      "title": "Gör ett litet spel",
+      "description": "En räv letar efter det sista ekollonet. Öppnas på designen, ett klick skriver den."
+    },
+    "storyboard": {
+      "title": "Gör storyboard till en kortfilm",
+      "description": "En fyrvaktare och en strandsatt robot. Öppnas på manuset, ett klick skriver det.",
+      "brief": "Efter en storm hittar en fyrvaktare en liten robot som spolats i land och lär den att hålla ljuset brinnande."
+    },
+    "template": {
+      "title": "Kör en mall",
+      "description": "Reklamtext i tre tonlägen, med produkten redan ifylld. Tryck på Kör."
+    },
+    "opening": "Öppnar…",
+    "startFailed": "Det gick inte att öppna startern: {{error}}"
   }
 }

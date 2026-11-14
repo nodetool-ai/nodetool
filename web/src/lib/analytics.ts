@@ -17,6 +17,7 @@ import {
   ANALYTICS_INGEST_PATH,
   bucketDuration,
   bucketNodeCount,
+  bucketViewport,
   categorizeError,
   createAnalyticsClient,
   createFetchTransport,
@@ -29,9 +30,13 @@ import {
   type AnalyticsPlatform,
   type AnalyticsStore,
   type ExecutionMode,
-  type NodeCountBucket
+  type Feature,
+  type FirstRunStarter,
+  type NodeCountBucket,
+  type ViewportClass
 } from "@nodetool-ai/analytics";
 import { BASE_URL } from "../stores/BASE_URL";
+import useOnboardingStore from "../stores/OnboardingStore";
 import { isElectron } from "./env";
 import { getRuntimeConfig, isCloudProfile } from "./runtimeConfig";
 
@@ -97,6 +102,10 @@ export const initProductAnalytics = (
     }
     client = createAnalyticsClient({
       clientType,
+      // Cloud asks at the start of the first session (see
+      // `noteFirstRunViewed`), so the steps taken before the answer are held
+      // in memory and sent only if the answer is yes.
+      holdUntilAnswered: clientType === "cloud_web",
       appVersion: normalizeAppVersion(getRuntimeConfig().version),
       platform: resolvePlatform(clientType),
       store,
@@ -128,8 +137,9 @@ let consentPromptRequested = false;
 const consentPromptListeners = new Set<() => void>();
 
 /**
- * The consent question is asked once, after the person's first successful
- * run, never at startup. This flag says a run has succeeded this session.
+ * The consent question is asked once: after the person's first successful
+ * run, or on Cloud when Home first shows the first-run starters. This flag
+ * says one of those happened this session.
  */
 export const isConsentPromptRequested = (): boolean => consentPromptRequested;
 
@@ -160,6 +170,70 @@ export const resetProductAnalyticsForTests = (): void => {
   client = null;
   runStarts.clear();
   consentPromptRequested = false;
+  firstRunViewedNoted = false;
+};
+
+const currentViewport = (): ViewportClass =>
+  bucketViewport(typeof window === "undefined" ? Number.NaN : window.innerWidth);
+
+let firstRunViewedNoted = false;
+
+/**
+ * Home showed the first-run starters. Recorded once per page load. On Cloud
+ * this is also when the consent question is asked: most first sessions never
+ * finish a workflow run, so asking after one meant almost nobody was asked.
+ */
+export const noteFirstRunViewed = (): void => {
+  try {
+    if (firstRunViewedNoted) {
+      return;
+    }
+    firstRunViewedNoted = true;
+    trackProductEvent({
+      event: "first_run_viewed",
+      properties: { viewport: currentViewport() }
+    });
+    if (resolveWebClientType() === "cloud_web") {
+      requestConsentPrompt();
+    }
+  } catch {
+    // Analytics never affects the product.
+  }
+};
+
+/** A first-run starter on Home was picked. */
+export const noteStarterSelected = (starter: FirstRunStarter): void => {
+  trackProductEvent({
+    event: "starter_selected",
+    properties: { starter, viewport: currentViewport() }
+  });
+};
+
+/**
+ * The person saw their first output: a chat reply, a finished run, a
+ * screenplay or a game design. Marks it in the onboarding store, which retires
+ * the first-run starters, and records `first_result` once per browser.
+ */
+export const recordFirstResult = (feature: Feature): void => {
+  try {
+    const onboarding = useOnboardingStore.getState();
+    if (onboarding.firstResult) {
+      return;
+    }
+    onboarding.markFirstResult();
+    const sincePageLoad =
+      typeof performance === "undefined" ? Number.NaN : performance.now();
+    trackProductEvent({
+      event: "first_result",
+      properties: {
+        feature,
+        durationBucket: bucketDuration(sincePageLoad),
+        viewport: currentViewport()
+      }
+    });
+  } catch {
+    // Analytics never affects the product.
+  }
 };
 
 /** Record one typed event. A no-op without consent. */
@@ -236,6 +310,7 @@ export const noteWorkflowRunFinished = (
     };
     if (status === "completed") {
       trackProductEvent({ event: "workflow_run_succeeded", properties: base });
+      recordFirstResult("workflow");
       requestConsentPrompt();
       return;
     }

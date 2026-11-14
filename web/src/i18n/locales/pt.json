@@ -9094,6 +9094,7 @@
         "Qual tipo de app enviou o evento (nuvem, desktop, web local), a versão do app e a família de sistemas operacionais.",
         "Que o aplicativo foi iniciado, um fluxo de trabalho foi criado ou um fluxo de trabalho foi executado.",
         "Para uma execução: local ou nuvem, o nó conta como um intervalo (como 6–20), a duração como um intervalo e, para uma falha, uma categoria como provedor ou tempo limite.",
+        "Em uma primeira sessão: que as opções iniciais foram mostradas, qual foi escolhida, o tipo do primeiro resultado (como chat ou storyboard) com o tempo até ele como intervalo e a classe de tela (telefone, tablet ou desktop).",
         "Um ID aleatório mantido neste navegador que muda a cada 30 dias e um ID aleatório para esta sessão."
       ],
       "never": "Nunca",
@@ -20319,5 +20320,31 @@
     "label": "Envie-me e-mails sobre lançamentos e ofertas gratuitas",
     "description": "Saiba de novos recursos, modelos e ofertas gratuitas. Todo e-mail tem um link para cancelar, e você pode desativar isto aqui quando quiser.",
     "saveFailed": "Sua preferência de e-mail não foi salva. Tente novamente."
+  },
+  "firstRun": {
+    "ariaLabel": "Comece com um resultado",
+    "heading": "Crie algo em menos de um minuto",
+    "subline": "Tudo já vem preenchido. Experimente um e depois mude para a sua própria ideia.",
+    "firstTask": {
+      "label": "Seu primeiro prompt",
+      "prompt": "Me dê três ideias para um vídeo de 30 segundos sobre uma raposa na primeira neve, uma linha cada.",
+      "hint": "Responde em segundos com o modelo gratuito padrão.",
+      "action": "Enviar"
+    },
+    "game": {
+      "title": "Faça um jogo pequeno",
+      "description": "Uma raposa procura a última bolota. Abre no design, um clique para escrevê-lo."
+    },
+    "storyboard": {
+      "title": "Faça o storyboard de um curta",
+      "description": "Um faroleiro e um robô encalhado. Abre no roteiro, um clique para escrevê-lo.",
+      "brief": "Depois de uma tempestade, um faroleiro encontra um pequeno robô trazido pelo mar e o ensina a manter a luz acesa."
+    },
+    "template": {
+      "title": "Execute um modelo",
+      "description": "Textos publicitários em três tons, com o produto já preenchido. Pressione Executar."
+    },
+    "opening": "Abrindo…",
+    "startFailed": "Não foi possível abrir o exemplo: {{error}}"
   }
 }

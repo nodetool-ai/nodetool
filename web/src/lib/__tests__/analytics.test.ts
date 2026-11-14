@@ -30,12 +30,16 @@ import {
   getProductAnalytics,
   initProductAnalytics,
   isConsentPromptRequested,
+  noteFirstRunViewed,
+  noteStarterSelected,
   noteWorkflowRunFinished,
   noteWorkflowRunStarted,
   resetProductAnalyticsForTests,
+  recordFirstResult,
   resolveWebClientType,
   trackProductEvent
 } from "../analytics";
+import useOnboardingStore from "../../stores/OnboardingStore";
 
 const JOB_ID = "0123456789abcdef0123456789abcdef";
 
@@ -55,6 +59,7 @@ beforeEach(() => {
   mockIsElectron = false;
   mockCloud = false;
   window.localStorage.clear();
+  useOnboardingStore.setState({ firstResult: false });
   resetProductAnalyticsForTests();
 });
 
@@ -148,6 +153,72 @@ describe("consent", () => {
     noteWorkflowRunStarted(JOB_ID, 3);
     noteWorkflowRunFinished(JOB_ID, "completed");
     expect(isConsentPromptRequested()).toBe(true);
+  });
+});
+
+describe("first session", () => {
+  it("asks at the first Home view on Cloud, not elsewhere", async () => {
+    const local = initProductAnalytics({ fetch: okFetch() });
+    await local?.ready;
+    noteFirstRunViewed();
+    expect(isConsentPromptRequested()).toBe(false);
+    resetProductAnalyticsForTests();
+
+    mockCloud = true;
+    const cloud = initProductAnalytics({ fetch: okFetch() });
+    await cloud?.ready;
+    noteFirstRunViewed();
+    expect(isConsentPromptRequested()).toBe(true);
+  });
+
+  it("holds Cloud's first steps until the answer, then sends them on yes", async () => {
+    mockCloud = true;
+    const fetchMock = okFetch();
+    const client = initProductAnalytics({ fetch: fetchMock });
+    await client?.ready;
+    noteFirstRunViewed();
+    noteStarterSelected("storyboard");
+    recordFirstResult("storyboard");
+    await client?.flush({ force: true });
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem(analyticsStorageKeys("cloud_web").queue)).toBeNull();
+
+    await client?.setConsent("productAnalytics", "granted");
+    await client?.flush({ force: true });
+    const [batch] = sentBatches(fetchMock);
+    expect(batch.events.map((event) => [event.event, event.properties])).toEqual([
+      ["app_started", {}],
+      ["first_run_viewed", { viewport: "desktop" }],
+      ["starter_selected", { starter: "storyboard", viewport: "desktop" }],
+      [
+        "first_result",
+        { feature: "storyboard", durationBucket: expect.any(String), viewport: "desktop" }
+      ]
+    ]);
+  });
+
+  it("drops the held steps when Cloud's answer is no", async () => {
+    mockCloud = true;
+    const fetchMock = okFetch();
+    const client = initProductAnalytics({ fetch: fetchMock });
+    await client?.ready;
+    noteFirstRunViewed();
+    await client?.setConsent("productAnalytics", "denied");
+    await client?.setConsent("productAnalytics", "granted");
+    await client?.flush({ force: true });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("records the first result once and retires the starters", async () => {
+    const client = initProductAnalytics({ fetch: okFetch() });
+    await client?.ready;
+    await client?.setConsent("productAnalytics", "granted");
+    recordFirstResult("chat");
+    recordFirstResult("workflow");
+    expect(useOnboardingStore.getState().firstResult).toBe(true);
+    expect(
+      client?.recentEvents().filter((event) => event.event === "first_result")
+    ).toHaveLength(1);
   });
 });
 

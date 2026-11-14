@@ -2,7 +2,8 @@ import type {
   CountBucket,
   DurationBucket,
   ErrorCategory,
-  NodeCountBucket
+  NodeCountBucket,
+  ViewportClass
 } from "../schema/properties.js";
 
 export function bucketNodeCount(count: number): NodeCountBucket {
@@ -20,6 +21,13 @@ export function bucketDuration(ms: number): DurationBucket {
   if (ms < 120_000) return "30s-2m";
   if (ms < 600_000) return "2-10m";
   return "10m+";
+}
+
+/** Width class from a CSS-pixel window width. */
+export function bucketViewport(width: number): ViewportClass {
+  if (!Number.isFinite(width) || width < 600) return "phone";
+  if (width < 1024) return "tablet";
+  return "desktop";
 }
 
 export function bucketCount(count: number): CountBucket {

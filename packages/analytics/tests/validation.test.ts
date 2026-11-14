@@ -7,6 +7,7 @@ import {
   bucketCount,
   bucketDuration,
   bucketNodeCount,
+  bucketViewport,
   categorizeError,
   isForbiddenFieldName,
   normalizeAppVersion,
@@ -223,6 +224,15 @@ describe("bucketing", () => {
     expect(bucketDuration(18_342)).toBe("10-30s");
     expect(bucketDuration(Number.NaN)).toBe("<1s");
     expect(bucketCount(3)).toBe("2-5");
+  });
+
+  it("reduces a window width to a phone, tablet or desktop class", () => {
+    expect(bucketViewport(390)).toBe("phone");
+    expect(bucketViewport(599)).toBe("phone");
+    expect(bucketViewport(600)).toBe("tablet");
+    expect(bucketViewport(1023)).toBe("tablet");
+    expect(bucketViewport(1920)).toBe("desktop");
+    expect(bucketViewport(Number.NaN)).toBe("phone");
   });
 
   it("categorizes errors without keeping the message", () => {

@@ -9094,6 +9094,7 @@
         "Quel type d'application a envoyé l'événement (Cloud, ordinateur de bureau, Web local), la version de l'application et la famille du système d'exploitation.",
         "Que l'application a démarré, qu'un workflow a été créé ou qu'un workflow s'est exécuté.",
         "Pour une exécution : locale ou cloud, le nœud compte comme une plage (par exemple 6 à 20), la durée comme une plage et pour une panne, une catégorie telle que fournisseur ou délai d'attente.",
+        "Pour une première session : que les choix de démarrage ont été affichés, celui qui a été choisi, le type du premier résultat (comme chat ou storyboard) avec le temps pour y arriver sous forme de plage, et la classe d'écran (téléphone, tablette ou ordinateur).",
         "Un identifiant aléatoire conservé dans ce navigateur qui change tous les 30 jours, et un identifiant aléatoire pour cette session."
       ],
       "never": "Jamais",
@@ -20319,5 +20320,31 @@
     "label": "Recevoir des e-mails sur les nouveautés et les offres gratuites",
     "description": "Soyez informé des nouvelles fonctionnalités, des nouveaux modèles et des offres gratuites. Chaque e-mail contient un lien de désinscription, et vous pouvez désactiver cette option ici à tout moment.",
     "saveFailed": "Votre préférence d'e-mail n'a pas été enregistrée. Réessayez."
+  },
+  "firstRun": {
+    "ariaLabel": "Commencer par un résultat",
+    "heading": "Créez quelque chose en moins d'une minute",
+    "subline": "Tout est déjà rempli. Essayez-en un, puis adaptez-le à votre idée.",
+    "firstTask": {
+      "label": "Votre premier prompt",
+      "prompt": "Donne-moi trois idées de vidéo de 30 secondes sur un renard sous la première neige, une ligne chacune.",
+      "hint": "Répond en quelques secondes avec le modèle gratuit par défaut.",
+      "action": "Envoyer"
+    },
+    "game": {
+      "title": "Créer un petit jeu",
+      "description": "Un renard cherche le dernier gland. S'ouvre sur le design, un clic pour l'écrire."
+    },
+    "storyboard": {
+      "title": "Storyboarder un court métrage",
+      "description": "Un gardien de phare et un robot échoué. S'ouvre sur le scénario, un clic pour l'écrire.",
+      "brief": "Un gardien de phare trouve un petit robot échoué après une tempête et lui apprend à garder la lumière allumée."
+    },
+    "template": {
+      "title": "Lancer un modèle",
+      "description": "Un texte publicitaire en trois tons, le produit déjà saisi. Appuyez sur Exécuter."
+    },
+    "opening": "Ouverture…",
+    "startFailed": "Impossible d'ouvrir l'exemple : {{error}}"
   }
 }

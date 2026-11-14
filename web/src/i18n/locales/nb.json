@@ -8955,6 +8955,7 @@
         "Hvilken type app som sendte hendelsen (Cloud, desktop, lokal web), appversjonen og operativsystemfamilien.",
         "At appen startet, en arbeidsflyt ble opprettet eller en arbeidsflyt kjørte.",
         "For en kjøring: lokal eller sky, teller noden som en rekkevidde (for eksempel 6–20), varigheten som en rekkevidde, og for en feil en kategori som leverandør eller tidsavbrudd.",
+        "For en første økt: at startvalgene ble vist, hvilket som ble valgt, typen av det første resultatet (som chat eller storyboard) med tiden dit som et intervall, og skjermklassen (telefon, nettbrett eller datamaskin).",
         "En tilfeldig ID lagret i denne nettleseren som endres hver 30. dag, og en tilfeldig ID for denne økten."
       ],
       "never": "Aldri",
@@ -20008,5 +20009,31 @@
     "label": "Send meg e-post om lanseringer og gratistilbud",
     "description": "Få høre om nye funksjoner, modeller og gratistilbud. Hver e-post har en avmeldingslenke, og du kan slå dette av her når som helst.",
     "saveFailed": "E-postinnstillingen ble ikke lagret. Prøv igjen."
+  },
+  "firstRun": {
+    "ariaLabel": "Start med et resultat",
+    "heading": "Lag noe på under ett minutt",
+    "subline": "Alt er fylt ut på forhånd. Prøv ett, og endre det så til din egen idé.",
+    "firstTask": {
+      "label": "Din første prompt",
+      "prompt": "Gi meg tre ideer til en 30-sekunders video om en rev i den første snøen, én linje hver.",
+      "hint": "Svarer på sekunder med den gratis standardmodellen.",
+      "action": "Send"
+    },
+    "game": {
+      "title": "Lag et lite spill",
+      "description": "En rev som leter etter det siste eikenøttet. Åpner på designet, ett klikk skriver det."
+    },
+    "storyboard": {
+      "title": "Lag storyboard til en kortfilm",
+      "description": "En fyrvokter og en strandet robot. Åpner på manuset, ett klikk skriver det.",
+      "brief": "En fyrvokter finner en liten robot som har drevet i land etter en storm, og lærer den å holde lyset tent."
+    },
+    "template": {
+      "title": "Kjør en mal",
+      "description": "Reklametekst i tre tonefall, med produktet allerede fylt ut. Trykk Kjør."
+    },
+    "opening": "Åpner…",
+    "startFailed": "Kunne ikke åpne starteren: {{error}}"
   }
 }

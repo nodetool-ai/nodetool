@@ -42,6 +42,15 @@ export interface AnalyticsClientOptions {
    * disables automatic flushing: the owner calls `flush()` itself.
    */
   flushDelayMs?: number | null;
+  /**
+   * While product-analytics consent is `unset`, keep this session's events in
+   * memory instead of dropping them, and queue them if consent is granted in
+   * the same session. They are never written to storage or sent before that,
+   * and a refusal, a revocation or the end of the page discards them. Used by
+   * a client that asks for consent at the start of the first session, so the
+   * steps taken before the answer are not lost.
+   */
+  holdUntilAnswered?: boolean;
   /** Called with the reason when an event is dropped. For tests. */
   onDrop?: (reason: string) => void;
 }
@@ -79,6 +88,8 @@ export interface AnalyticsClient {
 }
 
 const MAX_PRE_READY_EVENTS = 20;
+/** Events kept in memory while a first-session consent answer is pending. */
+const MAX_HELD_EVENTS = 50;
 const BASE_BACKOFF_MS = 60_000;
 const MAX_BACKOFF_MS = 3_600_000;
 const MAX_BATCHES_PER_FLUSH = 5;
@@ -120,6 +131,7 @@ export function createAnalyticsClient(
   let isReady = false;
   let isShutDown = false;
   let preReady: AnalyticsEvent[] = [];
+  let held: AnalyticsEvent[] = [];
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
   let flushing: Promise<void> | null = null;
   let failures = 0;
@@ -194,6 +206,15 @@ export function createAnalyticsClient(
 
   const enqueue = (event: AnalyticsEvent): void => {
     if (!enabled()) {
+      if (
+        options.holdUntilAnswered === true &&
+        !isShutDown &&
+        consent.productAnalytics === "unset" &&
+        held.length < MAX_HELD_EVENTS
+      ) {
+        held.push(event);
+        return;
+      }
       drop("consent_not_granted");
       return;
     }
@@ -265,6 +286,7 @@ export function createAnalyticsClient(
     queue = [];
     recent = [];
     preReady = [];
+    held = [];
     identity = null;
     counters.workflowRuns = 0;
     counters.workflowsCreated = 0;
@@ -292,7 +314,11 @@ export function createAnalyticsClient(
         }
       } else {
         // Leftovers from an earlier grant must not survive a revocation.
+        // Events tracked during this load are this session's own, and are
+        // decided below like any other.
+        const early = preReady;
         await clearCollectedData();
+        preReady = early;
       }
     } catch {
       consent = { ...DEFAULT_CONSENT };
@@ -357,6 +383,11 @@ export function createAnalyticsClient(
         await options.store.saveConsent(consent);
         if (category === "productAnalytics" && decision !== "granted") {
           await clearCollectedData();
+        }
+        if (category === "productAnalytics" && decision === "granted") {
+          const answered = held;
+          held = [];
+          for (const event of answered) enqueue(event);
         }
       } catch {
         // The in-memory decision still applies for this session.

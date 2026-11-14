@@ -609,7 +609,9 @@ jobs:
         - /usr/local/lib/android:/reclaim/android
         - /opt/ghc:/reclaim/ghc
         - /usr/local/.ghcup:/reclaim/ghcup
-    timeout-minutes: 45
+    # harness-gate runs its selfchecks one at a time. A diff that selects the
+    # game-flow and capability suites needs about 40 minutes of selfchecks.
+    timeout-minutes: ${{ matrix.check == 'harness-gate' && 60 || 45 }}
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix: ${{ fromJSON(needs.changes.outputs.built) }}

@@ -9094,6 +9094,7 @@
         "Qué tipo de aplicación envió el evento (nube, escritorio, web local), la versión de la aplicación y la familia del sistema operativo.",
         "Que se inició la aplicación, se creó un flujo de trabajo o se ejecutó un flujo de trabajo.",
         "Para una ejecución: local o en la nube, el nodo cuenta como un rango (como 6 a 20), la duración como un rango y, para una falla, una categoría como proveedor o tiempo de espera.",
+        "En una primera sesión: que se mostraron las opciones de inicio, cuál se eligió, el tipo del primer resultado (como chat o storyboard) con el tiempo hasta él como rango y la clase de pantalla (teléfono, tableta o escritorio).",
         "Una identificación aleatoria guardada en este navegador que cambia cada 30 días y una identificación aleatoria para esta sesión."
       ],
       "never": "nunca",
@@ -20319,5 +20320,31 @@
     "label": "Envíame correos sobre lanzamientos y ofertas gratuitas",
     "description": "Entérate de nuevas funciones, modelos y ofertas gratuitas. Cada correo incluye un enlace para darte de baja, y puedes desactivarlo aquí cuando quieras.",
     "saveFailed": "No se guardó tu preferencia de correo. Inténtalo de nuevo."
+  },
+  "firstRun": {
+    "ariaLabel": "Empieza con un resultado",
+    "heading": "Crea algo en menos de un minuto",
+    "subline": "Todo viene ya rellenado. Prueba uno y luego cámbialo por tu propia idea.",
+    "firstTask": {
+      "label": "Tu primer prompt",
+      "prompt": "Dame tres ideas para un vídeo de 30 segundos sobre un zorro en la primera nevada, una línea cada una.",
+      "hint": "Responde en segundos con el modelo gratuito predeterminado.",
+      "action": "Enviar"
+    },
+    "game": {
+      "title": "Crea un juego pequeño",
+      "description": "Un zorro busca la última bellota. Se abre en el diseño, un clic para escribirlo."
+    },
+    "storyboard": {
+      "title": "Haz el storyboard de un corto",
+      "description": "Un farero y un robot varado. Se abre en el guion, un clic para escribirlo.",
+      "brief": "Un farero encuentra un pequeño robot arrastrado por el mar tras una tormenta y le enseña a mantener la luz encendida."
+    },
+    "template": {
+      "title": "Ejecuta una plantilla",
+      "description": "Textos publicitarios en tres tonos, con el producto ya escrito. Pulsa Ejecutar."
+    },
+    "opening": "Abriendo…",
+    "startFailed": "No se pudo abrir el ejemplo: {{error}}"
   }
 }

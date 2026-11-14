@@ -9094,6 +9094,7 @@
         "Che tipo di app ha inviato l'evento (Cloud, desktop, web locale), la versione dell'app e la famiglia del sistema operativo.",
         "Che l'app è stata avviata, è stato creato un flusso di lavoro o è stato eseguito un flusso di lavoro.",
         "Per un'esecuzione: locale o cloud, il nodo conta come un intervallo (ad esempio 6–20), la durata come un intervallo e in caso di errore una categoria come provider o timeout.",
+        "Per una prima sessione: che le scelte iniziali sono state mostrate, quale è stata scelta, il tipo del primo risultato (come chat o storyboard) con il tempo per arrivarci come intervallo e la classe di schermo (telefono, tablet o desktop).",
         "Un ID casuale conservato in questo browser che cambia ogni 30 giorni e un ID casuale per questa sessione."
       ],
       "never": "Mai",
@@ -20319,5 +20320,31 @@
     "label": "Inviami email su lanci e offerte gratuite",
     "description": "Ricevi notizie su nuove funzioni, modelli e offerte gratuite. Ogni email contiene un link per annullare l'iscrizione, e puoi disattivare questa opzione qui in qualsiasi momento.",
     "saveFailed": "La preferenza email non è stata salvata. Riprova."
+  },
+  "firstRun": {
+    "ariaLabel": "Inizia da un risultato",
+    "heading": "Crea qualcosa in meno di un minuto",
+    "subline": "È tutto già compilato. Provane uno, poi adattalo alla tua idea.",
+    "firstTask": {
+      "label": "Il tuo primo prompt",
+      "prompt": "Dammi tre idee per un video di 30 secondi su una volpe nella prima neve, una riga ciascuna.",
+      "hint": "Risponde in pochi secondi con il modello gratuito predefinito.",
+      "action": "Invia"
+    },
+    "game": {
+      "title": "Crea un piccolo gioco",
+      "description": "Una volpe cerca l'ultima ghianda. Si apre sul design, un clic per scriverlo."
+    },
+    "storyboard": {
+      "title": "Fai lo storyboard di un corto",
+      "description": "Un guardiano del faro e un robot arenato. Si apre sulla sceneggiatura, un clic per scriverla.",
+      "brief": "Un guardiano del faro trova un piccolo robot portato a riva da una tempesta e gli insegna a tenere accesa la luce."
+    },
+    "template": {
+      "title": "Esegui un modello",
+      "description": "Testi pubblicitari in tre toni, con il prodotto già inserito. Premi Esegui."
+    },
+    "opening": "Apertura…",
+    "startFailed": "Impossibile aprire l'esempio: {{error}}"
   }
 }

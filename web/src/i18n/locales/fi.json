@@ -8955,6 +8955,7 @@
         "Minkä tyyppinen sovellus lähetti tapahtuman (Cloud, työpöytä, paikallinen verkko), sovelluksen versio ja käyttöjärjestelmäperhe.",
         "Että sovellus käynnistyi, työnkulku luotiin tai työnkulku suoritettiin.",
         "Ajosta: paikallinen vai pilvi, solmujen määrä välinä (esim. 6–20), kesto välinä ja epäonnistumisesta luokka, kuten palveluntarjoaja tai aikakatkaisu.",
+        "Ensimmäisessä istunnossa: että aloitusvaihtoehdot näytettiin, mikä niistä valittiin, ensimmäisen tuloksen laji (kuten keskustelu tai kuvakäsikirjoitus) ja siihen kulunut aika vaihteluvälinä sekä näyttöluokka (puhelin, tabletti tai tietokone).",
         "Tähän selaimeen tallennettu satunnainen tunniste, joka vaihtuu 30 päivän välein, sekä tämän istunnon satunnainen tunniste."
       ],
       "never": "Ei koskaan",
@@ -20008,5 +20009,31 @@
     "label": "Lähetä minulle sähköpostia julkaisuista ja ilmaisista tarjouksista",
     "description": "Kuule uusista ominaisuuksista, malleista ja ilmaisista tarjouksista. Jokaisessa viestissä on peruutuslinkki, ja voit poistaa tämän käytöstä täällä milloin tahansa.",
     "saveFailed": "Sähköpostiasetusta ei tallennettu. Yritä uudelleen."
+  },
+  "firstRun": {
+    "ariaLabel": "Aloita tuloksesta",
+    "heading": "Tee jotain alle minuutissa",
+    "subline": "Kaikki on valmiiksi täytetty. Kokeile yhtä ja muuta se sitten omaksi ideaksesi.",
+    "firstTask": {
+      "label": "Ensimmäinen kehotteesi",
+      "prompt": "Anna kolme ideaa 30 sekunnin videoon ketusta ensilumessa, yksi rivi kustakin.",
+      "hint": "Vastaa sekunneissa ilmaisella oletusmallilla.",
+      "action": "Lähetä"
+    },
+    "game": {
+      "title": "Tee pieni peli",
+      "description": "Kettu etsii viimeistä tammenterhoa. Avautuu suunnitteluun, yksi napsautus kirjoittaa sen."
+    },
+    "storyboard": {
+      "title": "Tee lyhytelokuvan kuvakäsikirjoitus",
+      "description": "Majakanvartija ja rantaan ajautunut robotti. Avautuu käsikirjoitukseen, yksi napsautus kirjoittaa sen.",
+      "brief": "Majakanvartija löytää myrskyn jälkeen rantaan ajautuneen pienen robotin ja opettaa sen pitämään valon palamassa."
+    },
+    "template": {
+      "title": "Suorita malli",
+      "description": "Mainosteksti kolmella sävyllä, tuote on jo täytetty. Paina Suorita."
+    },
+    "opening": "Avataan…",
+    "startFailed": "Aloitusta ei voitu avata: {{error}}"
   }
 }

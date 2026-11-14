@@ -145,6 +145,90 @@ describe("consent", () => {
   });
 });
 
+describe("holding first-session events until the consent answer", () => {
+  const VIEWED: AnalyticsEvent = {
+    event: "first_run_viewed",
+    properties: { viewport: "phone" }
+  };
+
+  it("stores, sends and shows nothing before the answer", async () => {
+    const transport = recordingTransport();
+    const store = createMemoryAnalyticsStore();
+    const client = makeClient({ transport, store, holdUntilAnswered: true });
+    await client.ready;
+    client.track(VIEWED);
+    await client.flush({ force: true });
+    await client.endSession();
+    expect(transport.batches).toEqual([]);
+    expect(store.snapshot().queue).toEqual([]);
+    expect(store.snapshot().identity).toBeNull();
+    expect(client.recentEvents()).toEqual([]);
+  });
+
+  it("sends the held events once consent is granted in the same session", async () => {
+    const transport = recordingTransport();
+    const client = makeClient({ transport, holdUntilAnswered: true });
+    await client.ready;
+    client.track(VIEWED);
+    client.track(RUN);
+    await client.setConsent("productAnalytics", "granted");
+    await client.flush();
+    expect(transport.batches[0]?.events.map((event) => event.event)).toEqual([
+      "first_run_viewed",
+      "workflow_run"
+    ]);
+  });
+
+  it("holds events tracked while stored consent loads", async () => {
+    const transport = recordingTransport();
+    const client = makeClient({ transport, holdUntilAnswered: true });
+    client.track(VIEWED);
+    await client.ready;
+    await client.setConsent("productAnalytics", "granted");
+    await client.flush();
+    expect(transport.batches[0]?.events.map((event) => event.event)).toEqual([
+      "first_run_viewed"
+    ]);
+  });
+
+  it("discards the held events when consent is refused", async () => {
+    const transport = recordingTransport();
+    const client = makeClient({ transport, holdUntilAnswered: true });
+    await client.ready;
+    client.track(VIEWED);
+    await client.setConsent("productAnalytics", "denied");
+    await client.setConsent("productAnalytics", "granted");
+    await client.flush({ force: true });
+    expect(transport.batches).toEqual([]);
+  });
+
+  it("holds nothing after an earlier refusal", async () => {
+    const transport = recordingTransport();
+    const client = makeClient({
+      transport,
+      holdUntilAnswered: true,
+      store: createMemoryAnalyticsStore({
+        consent: { ...DEFAULT_CONSENT, productAnalytics: "denied" }
+      })
+    });
+    await client.ready;
+    client.track(VIEWED);
+    await client.setConsent("productAnalytics", "granted");
+    await client.flush({ force: true });
+    expect(transport.batches).toEqual([]);
+  });
+
+  it("drops events without the option, as before", async () => {
+    const transport = recordingTransport();
+    const client = makeClient({ transport });
+    await client.ready;
+    client.track(VIEWED);
+    await client.setConsent("productAnalytics", "granted");
+    await client.flush({ force: true });
+    expect(transport.batches).toEqual([]);
+  });
+});
+
 describe("schema enforcement at runtime", () => {
   it("drops events whose shape escaped the type checker", async () => {
     const drops: string[] = [];

@@ -8955,6 +8955,7 @@
         "Which kind of app sent the event (Cloud, desktop, local web), the app version and the operating system family.",
         "That the app started, a workflow was created, or a workflow ran.",
         "For a run: local or cloud, the node count as a range (such as 6–20), the duration as a range, and for a failure a category such as provider or timeout.",
+        "For a first session: that the getting-started choices were shown, which one was picked, the kind of the first result (such as chat or storyboard) with the time to it as a range, and the screen class (phone, tablet or desktop).",
         "A random ID kept in this browser that changes every 30 days, and a random ID for this session."
       ],
       "never": "Never",
@@ -20008,5 +20009,31 @@
     "label": "Email me about launches and free offers",
     "description": "Hear about new features, models and free offers. Every email has an unsubscribe link, and you can turn this off here any time.",
     "saveFailed": "Your email preference was not saved. Try again."
+  },
+  "firstRun": {
+    "ariaLabel": "Start with a result",
+    "heading": "Make something in under a minute",
+    "subline": "Each one starts filled in. Try one, then change it to your own idea.",
+    "firstTask": {
+      "label": "Your first prompt",
+      "prompt": "Give me three ideas for a 30-second video about a fox in the first snow, one line each.",
+      "hint": "Answers in seconds on the free default model.",
+      "action": "Send it"
+    },
+    "game": {
+      "title": "Make a tiny game",
+      "description": "A fox looking for the last acorn. Opens on the design, one click to write it."
+    },
+    "storyboard": {
+      "title": "Storyboard a short film",
+      "description": "A lighthouse keeper and a stranded robot. Opens on the screenplay, one click to write it.",
+      "brief": "A lighthouse keeper finds a small robot washed up after a storm and teaches it to keep the light burning."
+    },
+    "template": {
+      "title": "Run a template",
+      "description": "Ad copy in three tones, with the product already filled in. Press Run."
+    },
+    "opening": "Opening…",
+    "startFailed": "Could not open the starter: {{error}}"
   }
 }

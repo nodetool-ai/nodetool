@@ -6,7 +6,7 @@
  * delete round trip against the in-memory database.
  */
 
-import { describe, expect, it, beforeEach, afterEach } from "vitest";
+import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Asset, ModelObserver, initTestDb } from "@nodetool-ai/models";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
@@ -98,7 +98,10 @@ describe("wire compatibility: a Tool built from the spec", () => {
 
 describe("behaviour through toolFromCapability", () => {
   beforeEach(() => initTestDb());
-  afterEach(() => ModelObserver.clear());
+  afterEach(() => {
+    ModelObserver.clear();
+    vi.useRealTimers();
+  });
 
   it("saves, lists, updates and deletes one memory", async () => {
     const context = ctx();
@@ -152,10 +155,15 @@ describe("behaviour through toolFromCapability", () => {
 
   it("reads one saved memory back by title or by id", async () => {
     const context = ctx();
+    // Newest wins by created_at. Two saves in one millisecond tie, and the
+    // random id then decides, so the clock moves between them.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
     await asTool(byName("memory_save")).process(context, {
       content: "clip: asset://older",
       title: "Hero clip"
     });
+    vi.setSystemTime(new Date("2026-01-01T00:00:01.000Z"));
     const saved = (await asTool(byName("memory_save")).process(context, {
       content: "clip: asset://newer",
       title: "Hero clip"
