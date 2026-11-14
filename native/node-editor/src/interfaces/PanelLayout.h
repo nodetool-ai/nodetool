@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QPointF>
 #include <QString>
 
 namespace nodetool::node_editor {
@@ -67,6 +68,8 @@ public:
 
     void setPanels(const Panels &panels);
 
+    // The rail's Projects button opens the project menu at a global point.
+    Q_INVOKABLE void showProjects(const QPointF &global) { emit projectsRequested(global); }
     Q_INVOKABLE void toggleBrowser() { emit toggleBrowserRequested(); }
     Q_INVOKABLE void toggleChat() { emit toggleChatRequested(); }
     Q_INVOKABLE void toggleLibrary() { emit toggleLibraryRequested(); }
@@ -83,6 +86,7 @@ public:
 
 signals:
     void panelsChanged();
+    void projectsRequested(const QPointF &global);
     void toggleBrowserRequested();
     void toggleChatRequested();
     void toggleLibraryRequested();

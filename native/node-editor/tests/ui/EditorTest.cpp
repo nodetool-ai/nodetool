@@ -349,20 +349,32 @@ private slots:
     w.document()->redo();
     QCOMPARE(w.document()->snapshot(), committed);
   }
-  void propertySelectionCancelsDraft() {
+  // UX study 21: a draft typed into the inspector stays on its node when the
+  // selection moves, and the reused field shows the next node's own value.
+  void propertySelectionKeepsDraft() {
     EditorWindow w;
     prepare(w);
     auto field = control(w, "Text");
     QVERIFY(field);
-    type(w, field, "uncommitted", 0);
+    type(w, field, "typed for a", 0);
     select(w, "b");
     QTest::keyClick(inspector(w)->quickWindow(), Qt::Key_Tab);
-    QCOMPARE(w.document()->node("a")["data"].toObject()["Text"], QJsonValue("baseline"));
+    QTRY_COMPARE(w.document()->node("a")["data"].toObject()["Text"], QJsonValue("typed for a"));
     QCOMPARE(w.document()->node("b")["data"].toObject()["Text"], QJsonValue("baseline"));
-    QCOMPARE(w.document()->undoStack()->count(), 0);
-    QVERIFY(!w.commitProperty("a", "Text", "stale API draft"));
+    QCOMPARE(w.document()->undoStack()->count(), 1);
+    field = control(w, "Text");
+    QVERIFY(field);
+    QTRY_COMPARE(field->property("text").toString(), QString("baseline"));
+  }
+  void propertyEscapeDiscardsDraft() {
+    EditorWindow w;
+    prepare(w);
+    auto field = control(w, "Text");
+    QVERIFY(field);
+    type(w, field, "discarded", Qt::Key_Escape);
+    select(w, "b");
+    QCoreApplication::processEvents();
     QCOMPARE(w.document()->node("a")["data"].toObject()["Text"], QJsonValue("baseline"));
-    QCOMPARE(w.document()->node("b")["data"].toObject()["Text"], QJsonValue("baseline"));
     QCOMPARE(w.document()->undoStack()->count(), 0);
   }
   void propertyDynamicUsesSeparateMap() {
@@ -1143,6 +1155,14 @@ private slots:
     QFile local(path);
     QVERIFY(local.open(QIODevice::ReadOnly));
     QVERIFY(!QJsonDocument::fromJson(local.readAll()).object().contains("id"));
+    // UX study 21: Save on a server workflow with no file saves to the server, as
+    // Ctrl+S does on the web, instead of asking for a file.
+    w.addNode("N");
+    const auto before = requests.size();
+    w.action("Save");
+    QTRY_VERIFY(requests.size() > before);
+    QVERIFY(requests.last().startsWith("PUT /api/workflows/other "));
+    QVERIFY(w.localFilePath().isEmpty());
   }
   void reconnectActionRetainsRun() {
     QWebSocketServer server("test", QWebSocketServer::NonSecureMode);

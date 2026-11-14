@@ -358,6 +358,8 @@ protected:
 
 private slots:
   void saveLocalCopyAs();
+  // Documents/<workflow name>.json: where a file dialog for this tab starts.
+  QString defaultSavePath() const;
 private:
   // An edit to rerun: the node, an uncommitted value of one of its properties
   // ({"name", "value"}, empty for a committed edit), and whether only an

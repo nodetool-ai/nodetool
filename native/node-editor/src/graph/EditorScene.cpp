@@ -1261,6 +1261,8 @@ void EditorScene::updateHandleHover(const QPointF &scenePosition) {
   if (next == handleHover_) { return; }
   const auto previous = handleHover_;
   handleHover_ = next;
+  // The port names of the hovered node are drawn in the foreground.
+  if (previous.node != next.node) { invalidate(sceneRect(), QGraphicsScene::ForegroundLayer); }
   for (const auto id : {previous.node, next.node}) {
     if (const auto item = id == InvalidNodeId ? nullptr : nodeGraphicsObject(id)) { item->update(); }
   }
@@ -2498,8 +2500,11 @@ void EditorScene::drawForeground(QPainter *painter, const QRectF &) {
   }
   for (auto item : items()) {
     // A selected node names its handle-only inputs and its outputs outside the card.
+    // So does a node while the pointer rests on one of its handles, which the web
+    // names in a tooltip (HandleTooltip.tsx); UX study 21 found bare dots unreadable.
     auto node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
-    if (!node || !node->isSelected() || model_.isReroute(node->nodeId())) { continue; }
+    if (!node || model_.isReroute(node->nodeId())) { continue; }
+    if (!node->isSelected() && handleHover_.node != node->nodeId()) { continue; }
     const auto &layout = model_.layout(node->nodeId());
     painter->setFont(canvasFont(theme_, nm::fontValue, QFont::DemiBold));
     const auto origin = node->scenePos();
