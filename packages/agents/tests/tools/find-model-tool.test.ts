@@ -180,7 +180,79 @@ describe("find_model — ranking", () => {
   });
 });
 
+describe("find_model — provider_hint that cannot be honoured", () => {
+  const fal = () =>
+    new FakeImageProvider("fal_ai", [
+      { id: "flux-1", name: "Flux 1", provider: "fal_ai" }
+    ]);
+
+  it("says the hinted provider is not configured instead of answering silently", async () => {
+    const tool = findModelTool({ fal_ai: fal() });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      provider_hint: "codex"
+    })) as {
+      results: Array<{ provider: string }>;
+      provider_hint_matched?: boolean;
+      note?: string;
+    };
+    expect(result.results[0].provider).toBe("fal_ai");
+    expect(result.provider_hint_matched).toBe(false);
+    expect(result.note).toMatch(
+      /^provider_hint 'codex' is not configured here \(configured: fal_ai\)/
+    );
+  });
+
+  it("says when the hinted provider does not offer the capability", async () => {
+    const anthropic = new FakeLanguageProvider("anthropic", [
+      { id: "claude", name: "Claude", provider: "anthropic" }
+    ]);
+    const tool = findModelTool({ fal_ai: fal(), anthropic });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      provider_hint: "anthropic"
+    })) as { provider_hint_matched?: boolean; note?: string };
+    expect(result.provider_hint_matched).toBe(false);
+    expect(result.note).toMatch(/'anthropic' does not offer text_to_image/);
+  });
+
+  it("reads `provider` as the hint", async () => {
+    const openai = new FakeImageProvider("openai", [
+      { id: "gpt-image-1", name: "GPT Image 1", provider: "openai" }
+    ]);
+    const tool = findModelTool({ openai, fal_ai: fal() });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      provider: "fal_ai"
+    })) as { results: Array<{ provider: string }>; provider_hint_matched?: boolean };
+    expect(result.results[0].provider).toBe("fal_ai");
+    expect(result.provider_hint_matched).toBe(true);
+  });
+
+  it("omits provider_hint_matched when no hint was given", async () => {
+    const tool = findModelTool({ fal_ai: fal() });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image"
+    })) as Record<string, unknown>;
+    expect(result).not.toHaveProperty("provider_hint_matched");
+  });
+});
+
 describe("find_model — invalid input", () => {
+  it("rejects an argument it does not read", async () => {
+    const tool = findModelTool({
+      fal_ai: new FakeImageProvider("fal_ai", [
+        { id: "flux-1", name: "Flux 1", provider: "fal_ai" }
+      ])
+    });
+    const result = (await tool.process(ctx, {
+      capability: "text_to_image",
+      vendor: "codex"
+    })) as { error?: string; total: number };
+    expect(result.total).toBe(0);
+    expect(result.error).toMatch(/find_model has no argument 'vendor'/);
+  });
+
   it("rejects unknown capabilities", async () => {
     const tool = findModelTool({});
     const result = (await tool.process(ctx, {

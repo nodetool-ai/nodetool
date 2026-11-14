@@ -938,6 +938,11 @@ const nodetool = (() => {
               '") to see what is configured.'
           );
         }
+        // The same for a provider the caller named: another provider's model
+        // is not what was asked for.
+        if (found && found.provider_hint_matched === false) {
+          throw new Error("nodetool.models.pick: " + found.note);
+        }
         return results[0];
       },
       list: (opts) => __need("list_models")(__merge(opts)),

@@ -48,8 +48,11 @@ import {
   listProvidersSpec,
   PROVIDER_CAPABILITY_TOOLS,
   SUPPORTED_CAPABILITIES,
-  MODEL_TYPES
+  MODEL_TYPES,
+  FIND_MODEL_INPUT_SCHEMA,
+  LIST_MODELS_SCHEMA
 } from "./models.specs.js";
+import { unknownArgKeys } from "./args.js";
 import {
   isFunction,
   isNonBlankString,
@@ -593,6 +596,20 @@ const findModel: CapabilityExport = {
       };
     }
 
+    const unknown = unknownArgKeys(FIND_MODEL_INPUT_SCHEMA, params).filter(
+      (key) => key !== "provider"
+    );
+    if (unknown.length > 0) {
+      return {
+        capability,
+        total: 0,
+        results: [],
+        error:
+          `find_model has no argument ${unknown.map((k) => `'${k}'`).join(", ")}. ` +
+          `Accepted: ${Object.keys(FIND_MODEL_INPUT_SCHEMA.properties ?? {}).join(", ")}.`
+      };
+    }
+
     const task =
       isString(params["task"])
         ? params["task"]
@@ -601,10 +618,12 @@ const findModel: CapabilityExport = {
       isString(params["query"])
         ? params["query"]
         : undefined;
-    const providerHint =
-      isString(params["provider_hint"])
-        ? params["provider_hint"]
-        : undefined;
+    // `provider` is the name `list_models` uses, so it is what a caller
+    // reaches for. It is read as the hint rather than dropped.
+    const providerHintRaw = params["provider_hint"] ?? params["provider"];
+    const providerHint = isString(providerHintRaw)
+      ? providerHintRaw
+      : undefined;
     const modelHintRaw = params["model_hint"];
     const modelHints: Set<string> = new Set(
       isString(modelHintRaw)
@@ -632,6 +651,17 @@ const findModel: CapabilityExport = {
     const recommendedSet = getRecommendedSet(capability);
     const candidates: Array<{ providerId: string; model: AnyModel }> = [];
     const unavailable: string[] = [];
+    // Why the hinted provider contributed no candidate, when it did not. A hint
+    // used to be a score bonus and nothing else, so a hint naming a provider
+    // that was not configured here answered with another provider's models
+    // and no word about it.
+    let hintMiss: string | undefined =
+      providerHint && !providerEntries.some(([id]) => id === providerHint)
+        ? `is not configured here (configured: ${providerEntries
+            .map(([id]) => id)
+            .sort()
+            .join(", ")})`
+        : undefined;
 
     const wantsFake = providerHint?.toLowerCase() === "fake" ||
       /\bfake\b/i.test(query ?? "") ||
@@ -642,26 +672,34 @@ const findModel: CapabilityExport = {
       if ((providerId === "fake") !== wantsFake) {
         continue;
       }
+      const hinted = providerId === providerHint;
       let supports: boolean;
       try {
         supports = instance
           .getCapabilities()
           .includes(capability);
       } catch {
+        supports = false;
+      }
+      if (!supports) {
+        if (hinted) hintMiss = `does not offer ${capability}`;
         continue;
       }
-      if (!supports) continue;
 
       const blocked = await unavailableReasonOf(instance);
       if (blocked) {
         unavailable.push(`${providerId} (${blocked})`);
+        if (hinted) hintMiss = `cannot run here (${blocked})`;
         continue;
       }
 
       let models: AnyModel[];
       try {
         models = await fetchModelsForCapability(instance, capability);
-      } catch {
+      } catch (e) {
+        if (hinted) {
+          hintMiss = `failed to list models (${e instanceof Error ? e.message : String(e)})`;
+        }
         continue;
       }
 
@@ -776,6 +814,18 @@ const findModel: CapabilityExport = {
       total: collected.length,
       results
     };
+    if (providerHint && !wantsFake) {
+      const matched = collected.some((r) => r.provider === providerHint);
+      answer.provider_hint_matched = matched;
+      if (!matched) {
+        const reason =
+          hintMiss ?? `has no ${capability} model matching this search`;
+        // First, so a caller that reads one sentence reads this one.
+        notes.unshift(
+          `provider_hint '${providerHint}' ${reason}. The results come from other providers.`
+        );
+      }
+    }
     const best = results[0];
     if (best !== undefined) {
       answer.ref = best.ref;
@@ -849,6 +899,11 @@ interface FindModelAnswer {
   prompting_skill?: string;
   results: RankedModel[];
   query_matched?: boolean;
+  /**
+   * Present when `provider_hint` was passed. `false` means no result comes
+   * from the hinted provider, and `note` says why.
+   */
+  provider_hint_matched?: boolean;
   note?: string;
 }
 
@@ -950,6 +1005,18 @@ function normalizeModelType(raw: unknown): ModelType | null | "invalid" {
 const listModels: CapabilityExport = {
   spec: listModelsSpec,
   impl: async (run, params) => {
+    const unknown = unknownArgKeys(LIST_MODELS_SCHEMA, params);
+    if (unknown.length > 0) {
+      const accepted = Object.keys(LIST_MODELS_SCHEMA.properties ?? {});
+      return {
+        total: 0,
+        results: [],
+        error:
+          `list_models has no filter ${unknown.map((k) => `'${k}'`).join(", ")}. ` +
+          `Accepted: ${accepted.join(", ")}. ` +
+          "To search by capability or model name, use find_model."
+      };
+    }
     const providers = providersOf(run);
     const modelType = normalizeModelType(params["model_type"]);
     if (modelType === "invalid") {

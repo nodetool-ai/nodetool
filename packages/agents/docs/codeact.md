@@ -19,6 +19,10 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
 - `CodeActExecutor` keeps the message contract, memory writes, and failure
   semantics the step loop has always had — consumers work unchanged. Bridged
   tool calls surface as `tool_call_update` events (ids `codeact_<n>`).
+- A bridged call whose result carries an `error` string throws in the guest
+  (`extractErrorPayload` in `tool-api.ts`). A `missing_pack` refusal is no
+  exception: it throws `missing_pack: <pack and install step>`, and a guest
+  that wants to continue catches it.
 - The core set goes top level. Every NodeTool tool that mirrors a Claude Agent
   SDK built-in (`CORE_TOOL_NAMES` in `@nodetool-ai/runtime` — the file set,
   `glob`/`grep`, `web_search`, `browser`/`http_request`/`download_file`,

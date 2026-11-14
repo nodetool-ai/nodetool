@@ -20,7 +20,7 @@ import type {
   MessageImageContent,
   ProviderTool
 } from "@nodetool-ai/runtime";
-import { missingPackDetailsOf, sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
+import { missingPackDetailsOf, missingPackText, sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 
 import { capabilityModuleOf } from "../capabilities/registry.js";
 import { MAX_ACTION_IMAGES } from "../constants.js";
@@ -131,9 +131,13 @@ export function toTransferable(value: unknown): JsonValue {
  * operations in a partial batch may already be persisted.
  */
 export function extractErrorPayload(result: unknown): string | null {
-  // Missing packs are actionable structured tool results. Guest code can inspect them and continue.
-  if (missingPackDetailsOf(result)) {
-    return null;
+  // A missing pack is a failure like any other. Answering it as data let a
+  // guest that mapped over several run_node calls keep the refusals as if they
+  // were outputs and save them. The message names the pack and the install
+  // step, and a guest that wants to continue catches it.
+  const missing = missingPackDetailsOf(result);
+  if (missing) {
+    return `missing_pack: ${missingPackText(missing)}`;
   }
   if (!isObjectLike(result) || Array.isArray(result)) {
     return null;
@@ -280,7 +284,7 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
         name,
         toolCallId,
         result: transferable,
-        isError: missingPackDetailsOf(result) !== null
+        isError: false
       });
       return { ok: true, result: transferable };
     } catch (e) {

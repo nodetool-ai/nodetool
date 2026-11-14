@@ -48,7 +48,7 @@ export const FIND_MODEL_INPUT_SCHEMA: JsonSchema = {
     provider_hint: {
       type: "string" as const,
       description:
-        "Optional preferred provider id (e.g. 'openai'). Boosts matching providers."
+        "Optional preferred provider id (e.g. 'openai'). Boosts matching providers. When no result comes from it, the answer has provider_hint_matched: false and a note saying why."
     },
     model_hint: {
       type: "array" as const,
