@@ -32,7 +32,7 @@ export const contentDates: {
     },
     "/mcp": {
       "date": "2026-11-14",
-      "hash": "4f253a29982f99c1"
+      "hash": "27442daffaef219e"
     },
     "/developers": {
       "date": "2026-11-09",
