@@ -48,6 +48,7 @@ import type {
   CapabilityRun
 } from "./types.js";
 import { stripElement, stripTags, stripToFixpoint } from "./html-text.js";
+import { ownedStorageReference } from "./storage-reference.js";
 import {
   webSearchSpec,
   imageSearchSpec,
@@ -905,12 +906,17 @@ function isStoredRef(url: string): boolean {
 async function copyStoredRef(
   context: ProcessingContext,
   url: string,
-  outputFile: string
+  outputFile: string,
+  projectId: string | null | undefined
 ): Promise<Record<string, unknown>> {
   const ref = url.trim();
+  const owned = await ownedStorageReference(context, ref, projectId);
+  if (!owned.ok) {
+    return { url: ref, output_file: outputFile, success: false, error: owned.error };
+  }
   let bytes: Uint8Array | null = null;
   try {
-    bytes = await loadMediaRefBytes({ uri: ref }, context);
+    bytes = await loadMediaRefBytes({ uri: owned.ref }, context);
   } catch (e) {
     return {
       url: ref,
@@ -963,7 +969,7 @@ const downloadFile: CapabilityExport = {
       }
 
       if (isStoredRef(url)) {
-        return await copyStoredRef(context, url, outputFile);
+        return await copyStoredRef(context, url, outputFile, run.projectId);
       }
 
       const customHeaders =

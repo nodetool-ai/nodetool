@@ -89,6 +89,7 @@ import {
   MAX_SPECTRUM_POINTS,
   MAX_VIDEO_FRAMES
 } from "./analysis.specs.js";
+import { ownedStorageReference } from "./storage-reference.js";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -146,9 +147,11 @@ async function loadMedia(
         `asset:// URI, an asset id, a /api/storage/ key, a URL, or a data: URI.`
     };
   }
-  const ref = trimmed.includes("://")
-    ? { uri: trimmed }
-    : { uri: trimmed, asset_id: trimmed };
+  const owned = await ownedStorageReference(run.context, trimmed, run.projectId);
+  if (!owned.ok) return { error: owned.error };
+  const ref = owned.ref.includes("://")
+    ? { uri: owned.ref }
+    : { uri: owned.ref, asset_id: owned.ref };
   let bytes: Uint8Array | null;
   try {
     bytes = await loadMediaRefBytes(ref, run.context);
