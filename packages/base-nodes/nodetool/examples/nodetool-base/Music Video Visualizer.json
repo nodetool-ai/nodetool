@@ -221,7 +221,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Music Video Visualizer\n\nTurns a track into a sequence of AI images timed to the audio. Use it for a quick lyric-driven visualizer for a song.\n\n**How it works:** \"2️⃣ Transcribe lyrics\" transcribes \"1️⃣ Song audio\". \"3️⃣ Analyze mood\" reads the lyrics with \"Genre hint\" and \"Visual style\" and writes creative direction. \"4️⃣ Generate frame prompts\" writes as many prompts as \"Frame count\" (8). A \"ForEach\" sends each to \"5️⃣ Render frames\". \"ResizeImage\" fits each frame to 1280x720 and \"SaveImageFile\" stores it as PNG before \"Collect\" gathers them. \"Normalize\" levels the track and \"GetAudioInfo\" measures its length. A \"Code\" node divides the duration at 24 fps by the frame count, and \"RepeatValue\" holds each frame that many times. \"6️⃣ Frames to video\" builds a 24 fps video and \"7️⃣ Add audio\" lays the track under it. Pick models on \"2️⃣ Transcribe lyrics\", \"3️⃣ Analyze mood\", \"4️⃣ Generate frame prompts\" and \"5️⃣ Render frames\".\n\n**Try this:** Set \"Frame count\" to 16 for faster cuts, and each image stays on screen half as long."
+          "comment": "# Music Video Visualizer\n\nTurns a track into a sequence of AI images timed to the audio. Use it for a quick lyric-driven visualizer for a song.\n\n**How it works:** \"2 Transcribe lyrics\" transcribes \"1 Song audio\". \"3 Analyze mood\" reads the lyrics with \"Genre hint\" and \"Visual style\" and writes creative direction. \"4 Generate frame prompts\" writes as many prompts as \"Frame count\" (8). A \"ForEach\" sends each to \"5 Render frames\". \"ResizeImage\" fits each frame to 1280x720 and \"SaveImageFile\" stores it as PNG before \"Collect\" gathers them. \"Normalize\" levels the track and \"GetAudioInfo\" measures its length. A \"Code\" node divides the duration at 24 fps by the frame count, and \"RepeatValue\" holds each frame that many times. \"6 Frames to video\" builds a 24 fps video and \"7 Add audio\" lays the track under it. Pick models on \"2 Transcribe lyrics\", \"3 Analyze mood\", \"4 Generate frame prompts\" and \"5 Render frames\".\n\n**Try this:** Set \"Frame count\" to 16 for faster cuts, and each image stays on screen half as long."
         },
         "ui_properties": {
           "position": {
@@ -255,7 +255,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Song audio",
+          "title": "1 Song audio",
           "selectable": true,
           "bypassed": false
         },
@@ -347,7 +347,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Transcribe lyrics",
+          "title": "2 Transcribe lyrics",
           "selectable": true,
           "bypassed": false
         },
@@ -399,7 +399,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3️⃣ Analyze mood",
+          "title": "3 Analyze mood",
           "selectable": true,
           "bypassed": false
         },
@@ -453,7 +453,7 @@
           "zIndex": 0,
           "width": 280,
           "height": 340,
-          "title": "4️⃣ Generate frame prompts",
+          "title": "4 Generate frame prompts",
           "selectable": true,
           "bypassed": false
         },
@@ -500,7 +500,7 @@
           "zIndex": 0,
           "width": 384,
           "height": 400,
-          "title": "5️⃣ Render frames",
+          "title": "5 Render frames",
           "selectable": true,
           "bypassed": false
         },
@@ -538,7 +538,7 @@
           "zIndex": 0,
           "width": 416,
           "height": 360,
-          "title": "6️⃣ Frames to video",
+          "title": "6 Frames to video",
           "selectable": true,
           "bypassed": false
         },
@@ -560,7 +560,7 @@
           "zIndex": 0,
           "width": 416,
           "height": 360,
-          "title": "7️⃣ Add audio",
+          "title": "7 Add audio",
           "selectable": true,
           "bypassed": false
         },

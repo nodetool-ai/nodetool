@@ -39,7 +39,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "premise",
-          "value": "",
+          "value": "A night-shift janitor discovers that the office tower he cleans rearranges its floors every night at 3 a.m.",
           "description": "The premise"
         },
         "ui_properties": {

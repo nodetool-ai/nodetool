@@ -942,7 +942,7 @@
             "id": "comment_main",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎬 Directed Film to Timeline\n\nTurns a one-line brief into an editable rough cut. Use it to see a whole short film take shape before you refine individual shots.\n\n**How it works:** \"Brief\" feeds the \"Director\", which writes a screenplay of 5 shots in a 16:9 style bible. \"Fan out one prompt per shot\" emits one shot prompt at a time. Each prompt renders a keyframe in \"Storyboard keyframes\" (2K) and the same prompt drives \"Animate each shot\" (4 seconds at 720p). \"Collect the clips\" gathers the clips, \"Assemble into a timeline\" appends them to a sequence named \"Directed Film\", and \"Render the rough cut\" produces the video. Pick a language model on the \"Director\". Each model step uses your default model for its type, or the one you pick on the node. The keyframe and video steps are paid, and the video step costs the most.\n\n**Try this:** Set \"shot_count\" on the \"Director\" to 3. The rough cut drops to three clips and the run costs less. Reopen the rendered timeline in the timeline editor to trim or reorder shots."
+              "comment": "# Directed Film to Timeline\n\nTurns a one-line brief into an editable rough cut. Use it to see a whole short film take shape before you refine individual shots.\n\n**How it works:** \"Brief\" feeds the \"Director\", which writes a screenplay of 5 shots in a 16:9 style bible. \"Fan out one prompt per shot\" emits one shot prompt at a time. Each prompt renders a keyframe in \"Storyboard keyframes\" (2K) and the same prompt drives \"Animate each shot\" (4 seconds at 720p). \"Collect the clips\" gathers the clips, \"Assemble into a timeline\" appends them to a sequence named \"Directed Film\", and \"Render the rough cut\" produces the video. Pick a language model on the \"Director\". Each model step uses your default model for its type, or the one you pick on the node. The keyframe and video steps are paid, and the video step costs the most.\n\n**Try this:** Set \"shot_count\" on the \"Director\" to 3. The rough cut drops to three clips and the run costs less. Reopen the rendered timeline in the timeline editor to trim or reorder shots."
             },
             "ui_properties": {
               "position": {
@@ -972,7 +972,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "1️⃣ Brief",
+              "title": "1 Brief",
               "selectable": true,
               "bypassed": false
             },
@@ -1005,7 +1005,7 @@
               "zIndex": 0,
               "width": 320,
               "height": 320,
-              "title": "2️⃣ Director — write the screenplay",
+              "title": "2 Director — write the screenplay",
               "selectable": true,
               "bypassed": false
             },
@@ -1024,7 +1024,7 @@
               "zIndex": 0,
               "width": 280,
               "height": 200,
-              "title": "3️⃣ Fan out one prompt per shot",
+              "title": "3 Fan out one prompt per shot",
               "selectable": true,
               "bypassed": false
             },
@@ -1056,7 +1056,7 @@
               "zIndex": 0,
               "width": 320,
               "height": 320,
-              "title": "4️⃣ Storyboard keyframes",
+              "title": "4 Storyboard keyframes",
               "selectable": true,
               "bypassed": false
             },
@@ -1090,7 +1090,7 @@
               "zIndex": 0,
               "width": 330,
               "height": 240,
-              "title": "5️⃣ Animate each shot",
+              "title": "5 Animate each shot",
               "selectable": true,
               "bypassed": false
             },
@@ -1109,7 +1109,7 @@
               "zIndex": 0,
               "width": 160,
               "height": 140,
-              "title": "6️⃣ Collect the clips",
+              "title": "6 Collect the clips",
               "selectable": true,
               "bypassed": false
             },
@@ -1136,7 +1136,7 @@
               "zIndex": 0,
               "width": 300,
               "height": 220,
-              "title": "7️⃣ Assemble into a timeline",
+              "title": "7 Assemble into a timeline",
               "selectable": true,
               "bypassed": false
             },
@@ -1162,7 +1162,7 @@
               "zIndex": 0,
               "width": 300,
               "height": 200,
-              "title": "8️⃣ Render the rough cut",
+              "title": "8 Render the rough cut",
               "selectable": true,
               "bypassed": false
             },
@@ -1180,7 +1180,7 @@
                 "x": 3090,
                 "y": 591
               },
-              "title": "🎬 Rough cut",
+              "title": "Rough cut",
               "selectable": true
             },
             "dynamic_properties": {},
@@ -1400,7 +1400,7 @@
                           "format": 0,
                           "mode": "normal",
                           "style": "",
-                          "text": "🎬 Movie Posters",
+                          "text": "Movie Posters",
                           "type": "text",
                           "version": 1
                         }

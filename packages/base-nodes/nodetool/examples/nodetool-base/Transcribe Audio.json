@@ -20,7 +20,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Transcribe Audio\n\nDrop in an audio clip and get a text transcript back. Use it for a quick transcript of an interview, voice memo or meeting recording.\n\n**How it works:** \"Audio input\" passes the clip to \"Transcribe\", an Automatic Speech Recognition node. It detects the language and returns the text, which \"Transcript\" shows. As an app, it runs as soon as you upload a file. The transcription step uses your default speech recognition model, or the one you pick on the node.\n\n**Try this:** Set \"Language\" on \"Transcribe\" to \"de\" for a German recording to skip auto-detection, or swap the ASR model to compare accuracy."
+          "comment": "# Transcribe Audio\n\nDrop in an audio clip and get a text transcript back. Use it for a quick transcript of an interview, voice memo or meeting recording.\n\n**How it works:** \"Audio input\" passes the clip to \"Transcribe\", an Automatic Speech Recognition node. It detects the language and returns the text, which \"Transcript\" shows. As an app, it runs as soon as you upload a file. The transcription step uses your default speech recognition model, or the one you pick on the node.\n\n**Try this:** Set \"Language\" on \"Transcribe\" to \"de\" for a German recording to skip auto-detection, or swap the ASR model to compare accuracy."
         },
         "ui_properties": {
           "selected": false,
@@ -57,7 +57,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "1️⃣ Audio input"
+          "title": "1 Audio input"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -84,7 +84,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "2️⃣ Transcribe"
+          "title": "2 Transcribe"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -101,7 +101,7 @@
             "y": 439
           },
           "width": 260,
-          "title": "3️⃣ Transcript",
+          "title": "3 Transcript",
           "selectable": true
         }
       }

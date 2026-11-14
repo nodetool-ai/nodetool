@@ -861,7 +861,7 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🖼️ Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations. Use it to compare several directions for the same subject in one run.\n\n**How it works:** \"5 Build art-direction brief\" combines \"1 Brief\", \"2 Style\" and \"3 Mood\". \"6 Art-director agent\" turns that into one art direction, so every variation shares a visual language. \"7 Write variation prompts\" asks for \"4 Variations\" (4, range 2 to 8) prompts from that direction and the style. \"8 Generate prompt list\" emits them one at a time, and \"9 Render each variation\" renders each at 1:1 into \"Concept Art\". Pick a language model on \"6 Art-director agent\" and \"8 Generate prompt list\", and an image model on \"9 Render each variation\".\n\n**Try this:** Set \"4 Variations\" to 6 and change \"3 Mood\" to \"ominous, decaying, hostile\" to get six variations in a darker direction."
+              "comment": "# Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations. Use it to compare several directions for the same subject in one run.\n\n**How it works:** \"5 Build art-direction brief\" combines \"1 Brief\", \"2 Style\" and \"3 Mood\". \"6 Art-director agent\" turns that into one art direction, so every variation shares a visual language. \"7 Write variation prompts\" asks for \"4 Variations\" (4, range 2 to 8) prompts from that direction and the style. \"8 Generate prompt list\" emits them one at a time, and \"9 Render each variation\" renders each at 1:1 into \"Concept Art\". Pick a language model on \"6 Art-director agent\" and \"8 Generate prompt list\", and an image model on \"9 Render each variation\".\n\n**Try this:** Set \"4 Variations\" to 6 and change \"3 Mood\" to \"ominous, decaying, hostile\" to get six variations in a darker direction."
             },
             "ui_properties": {
               "position": {
@@ -901,7 +901,7 @@
               "zIndex": 0,
               "width": 461,
               "height": 489,
-              "title": "9️⃣ Render each variation",
+              "title": "9 Render each variation",
               "selectable": true,
               "bypassed": false,
               "selected_generation": "8200a9c8-6d27-4298-9e02-19b2df7abfa0"
@@ -932,7 +932,7 @@
               "zIndex": 0,
               "width": 390,
               "height": 292,
-              "title": "8️⃣ Generate prompt list",
+              "title": "8 Generate prompt list",
               "selectable": true,
               "bypassed": false
             },
@@ -978,7 +978,7 @@
               "zIndex": 0,
               "width": 319,
               "height": 207,
-              "title": "6️⃣ Art-director agent",
+              "title": "6 Art-director agent",
               "selectable": true,
               "bypassed": false
             },
@@ -1001,7 +1001,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "1️⃣ Brief",
+              "title": "1 Brief",
               "selectable": true,
               "bypassed": false
             },
@@ -1023,7 +1023,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "2️⃣ Style",
+              "title": "2 Style",
               "selectable": true,
               "bypassed": false
             },
@@ -1045,7 +1045,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "3️⃣ Mood",
+              "title": "3 Mood",
               "selectable": true,
               "bypassed": false
             },
@@ -1071,7 +1071,7 @@
               "zIndex": 0,
               "width": 418,
               "height": 563,
-              "title": "7️⃣ Write variation prompts",
+              "title": "7 Write variation prompts",
               "selectable": true,
               "bypassed": false
             },
@@ -1101,7 +1101,7 @@
               "zIndex": 0,
               "width": 377,
               "height": 571,
-              "title": "5️⃣ Build art-direction brief",
+              "title": "5 Build art-direction brief",
               "selectable": true,
               "bypassed": false
             },
@@ -1149,7 +1149,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "4️⃣ Variations",
+              "title": "4 Variations",
               "selectable": true,
               "bypassed": false
             },
@@ -1222,7 +1222,7 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🐲 Pokemon Maker\n\nName a few animals, pick an art style, and get four original collectible creatures, each a fusion of the animals you chose, all rendered in the same style.\n\n**How it works:** \"1️⃣ Animal inspiration\" (lion, eagle, koi fish) and \"2️⃣ Art style\" fill \"3️⃣ Build design brief\", which asks for four creature prompts in one consistent style. \"4️⃣ Write four creature prompts\" splits the answer into four separate prompts. \"5️⃣ Render each creature\" draws each one as a 1:1 image, and \"Creature gallery\" collects all four. Pick a language model on \"4️⃣ Write four creature prompts\". The render step uses your default image model, or the one you pick on the node.\n\n**Try this:** Set \"1️⃣ Animal inspiration\" to \"axolotl, hummingbird\" and switch \"2️⃣ Art style\" to \"Retro 16-bit pixel art\" to see the whole set restyle at once."
+              "comment": "# Pokemon Maker\n\nName a few animals, pick an art style, and get four original collectible creatures, each a fusion of the animals you chose, all rendered in the same style.\n\n**How it works:** \"1 Animal inspiration\" (lion, eagle, koi fish) and \"2 Art style\" fill \"3 Build design brief\", which asks for four creature prompts in one consistent style. \"4 Write four creature prompts\" splits the answer into four separate prompts. \"5 Render each creature\" draws each one as a 1:1 image, and \"Creature gallery\" collects all four. Pick a language model on \"4 Write four creature prompts\". The render step uses your default image model, or the one you pick on the node.\n\n**Try this:** Set \"1 Animal inspiration\" to \"axolotl, hummingbird\" and switch \"2 Art style\" to \"Retro 16-bit pixel art\" to see the whole set restyle at once."
             },
             "ui_properties": {
               "selected": false,
@@ -1255,7 +1255,7 @@
               },
               "zIndex": 0,
               "width": 220,
-              "title": "1️⃣ Animal inspiration",
+              "title": "1 Animal inspiration",
               "selectable": true,
               "bypassed": false
             },
@@ -1286,7 +1286,7 @@
               },
               "zIndex": 0,
               "width": 220,
-              "title": "2️⃣ Art style",
+              "title": "2 Art style",
               "selectable": true,
               "bypassed": false
             },
@@ -1307,7 +1307,7 @@
               },
               "zIndex": 0,
               "width": 351,
-              "title": "3️⃣ Build design brief",
+              "title": "3 Build design brief",
               "selectable": true,
               "bypassed": false
             },
@@ -1342,7 +1342,7 @@
               "width": 291,
               "selectable": true,
               "bypassed": false,
-              "title": "4️⃣ Write four creature prompts"
+              "title": "4 Write four creature prompts"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1374,7 +1374,7 @@
               "selectable": true,
               "bypassed": false,
               "height": 400,
-              "title": "5️⃣ Render each creature"
+              "title": "5 Render each creature"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1462,7 +1462,7 @@
             "id": "97876",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# ✨ Image Enhance\n\nA live photo editor. Each filter exposes numeric properties that a mini app binds to sliders, and the preview updates as you drag.\n\n**How it works:** \"Source photo\" ships with a photo of a coffee mug. \"Denoise (radius)\" is a Gaussian blur set to radius 0, so it is off by default. \"Brightness & contrast\" applies brightness 0.05 and contrast 1.15. \"Saturation & hue\" raises saturation to 1.2. \"Sharpen (amount)\" is an unsharp mask with amount 1 and threshold 0.02. \"Enhanced image\" shows the result. The chain runs on the GPU in the browser with no model, API key or per-run cost.\n\n**Try this:** Set \"radius\" on \"Denoise (radius)\" to 2 and \"amount\" on \"Sharpen (amount)\" to 2. Noise in flat areas softens while edges stay crisp."
+              "comment": "# Image Enhance\n\nA live photo editor. Each filter exposes numeric properties that a mini app binds to sliders, and the preview updates as you drag.\n\n**How it works:** \"Source photo\" ships with a photo of a coffee mug. \"Denoise (radius)\" is a Gaussian blur set to radius 0, so it is off by default. \"Brightness & contrast\" applies brightness 0.05 and contrast 1.15. \"Saturation & hue\" raises saturation to 1.2. \"Sharpen (amount)\" is an unsharp mask with amount 1 and threshold 0.02. \"Enhanced image\" shows the result. The chain runs on the GPU in the browser with no model, API key or per-run cost.\n\n**Try this:** Set \"radius\" on \"Denoise (radius)\" to 2 and \"amount\" on \"Sharpen (amount)\" to 2. Noise in flat areas softens while edges stay crisp."
             },
             "ui_properties": {
               "selected": false,
@@ -1500,7 +1500,7 @@
               "width": 260,
               "selectable": true,
               "bypassed": false,
-              "title": "1️⃣ Source photo"
+              "title": "1 Source photo"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1522,7 +1522,7 @@
               "width": 240,
               "selectable": true,
               "bypassed": false,
-              "title": "2️⃣ Denoise (radius)"
+              "title": "2 Denoise (radius)"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1544,7 +1544,7 @@
               "width": 240,
               "selectable": true,
               "bypassed": false,
-              "title": "3️⃣ Brightness & contrast"
+              "title": "3 Brightness & contrast"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1567,7 +1567,7 @@
               "width": 240,
               "selectable": true,
               "bypassed": false,
-              "title": "4️⃣ Saturation & hue"
+              "title": "4 Saturation & hue"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1589,7 +1589,7 @@
               "width": 240,
               "selectable": true,
               "bypassed": false,
-              "title": "5️⃣ Sharpen (amount)"
+              "title": "5 Sharpen (amount)"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}

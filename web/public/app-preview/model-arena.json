@@ -267,7 +267,7 @@
               "zIndex": 0,
               "width": 300,
               "height": 260,
-              "title": "1️⃣ The brief",
+              "title": "1 The brief",
               "selectable": true,
               "bypassed": false
             },
@@ -290,7 +290,7 @@
               "zIndex": 0,
               "width": 300,
               "height": 240,
-              "title": "2️⃣ Audience & constraints",
+              "title": "2 Audience & constraints",
               "selectable": true,
               "bypassed": false
             },
@@ -310,7 +310,7 @@
               },
               "zIndex": 0,
               "width": 300,
-              "title": "🟢 Lane 1 answer",
+              "title": "Lane 1 answer",
               "selectable": true,
               "bypassed": false
             },
@@ -330,7 +330,7 @@
               },
               "zIndex": 0,
               "width": 300,
-              "title": "🟣 Lane 2 answer",
+              "title": "Lane 2 answer",
               "selectable": true,
               "bypassed": false
             },
@@ -350,7 +350,7 @@
               },
               "zIndex": 0,
               "width": 300,
-              "title": "🔵 Lane 3 answer",
+              "title": "Lane 3 answer",
               "selectable": true,
               "bypassed": false
             },
@@ -370,7 +370,7 @@
               },
               "zIndex": 0,
               "width": 300,
-              "title": "⚖️ Verdict",
+              "title": "Verdict",
               "selectable": true,
               "bypassed": false
             },
