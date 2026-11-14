@@ -78,9 +78,11 @@ ColumnLayout {
         // A finished draft leaves its text in the reused field; show this node's value.
         if (item.editing !== true && typeof item.text === "string" && typeof item.value === "string") item.text = item.value
     }
-    onDescriptorIdentityChanged: resetFieldScope(true)
+    // Selecting another node finishes the draft on the node it was typed into.
+    // A catalog change on the same node cancels it, as the field may now show another property.
+    onDescriptorIdentityChanged: resetFieldScope(editNodeId !== "" && editNodeId !== nodeId)
     onDocumentEpochChanged: resetFieldScope(false)
-    onCredentialsEpochChanged: resetFieldScope(true)
+    onCredentialsEpochChanged: resetFieldScope(false)
     onHostChanged: resetFieldScope(false)
     onWritableChanged: if (!writable) resetFieldScope(false)
     Component.onDestruction: finishDraft()

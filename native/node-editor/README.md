@@ -544,8 +544,9 @@ keyboard commits and dark/light wide/narrow captures. Font, media-parameter,
 file/path, and folder-path editors remain unavailable, as do the web color
 modal's saved swatches/history, harmony/contrast tools, eyedropper, and gradients.
 
-Inspector field delegates persist across value updates. When their identity
-or the credential epoch changes, including when conditional fields replace a
-same-kind slot, an open draft is finished on its original node and property.
-A replaced workflow cancels drafts and queued commands.
+Inspector field delegates persist across value updates. Selecting another
+node or the canvas finishes an open draft on its original node and property.
+A catalog change on the same node, including conditional fields replacing a
+same-kind slot, a credential epoch change, or a replaced workflow cancels
+drafts and queued commands.
 Image-size ratio lock survives ordinary dimension commits.

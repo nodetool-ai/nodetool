@@ -184,6 +184,8 @@ private slots:
    {false, {"#64748b", "#818cf8", "#22c55e"}, {"#3b82f6", "#8b5cf6", "#64748b", "#6366f1", "#22c55e", "#f59e0b"}, {"#3b82f6", "#8b5cf6", "#f59e0b"}}};
   for (const auto &palette : palettes) {
    QSettings().clear();
+   // A closed chat lets fit view fill the canvas, so each node is large enough to count.
+   QSettings().setValue("canvas-chat-dock/collapsed", true);
    EditorWindow window;
    window.setDarkTheme(palette.dark);
    loadCategories(window);
