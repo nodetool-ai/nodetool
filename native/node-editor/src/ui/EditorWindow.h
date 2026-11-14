@@ -574,6 +574,7 @@ private:
   QElapsedTimer toolbarClock_;
   QTimer toolbarDelay_;
   QJsonArray dragGroupCommands(const QJsonObject &positions, QtNodes::NodeId group, bool detach);
+  QJsonArray expandParentCommands(const QJsonObject &positions, const QStringList &dragged, const QStringList &detached);
   void showActionMenu(const QString &kind, const QPoint &position);
   bool menuActionEnabled(const QString &name) const;
   // Context menus are Quick popups on a transparent overlay (EditorMenus.cpp).

@@ -78,7 +78,7 @@ inline constexpr double disabledChipMargin = 6;
 QRectF disabledChipRect(const QRectF &header, double textWidth);
 // The web's branch-dimmed opacity for a node or wire off the selected branch,
 // styles/nodes.zoomed.css. Related items keep full opacity.
-inline constexpr double branchDimmedOpacity = 0.2;
+inline constexpr double branchDimmedOpacity = 0.6;
 // web config/constants.ts ZOOMED_OUT: at or below this zoom the web hides handles and
 // property rows, thickens wires and rings a selected card (nodes.zoomed.css).
 inline constexpr double zoomedOutThreshold = 0.35;
