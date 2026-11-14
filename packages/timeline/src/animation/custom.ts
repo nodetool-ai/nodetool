@@ -363,21 +363,19 @@ const isFiniteNumber = (value: unknown): value is number =>
 
 /**
  * Normalize one curve's keyframes to what {@link sampleAnimations} assumes:
- * sorted by `t`, `t` clamped to 0..1, first `t === 0`, last `t === 1`. A curve
- * whose ends fall short is extended by holding its end values, which is what a
- * body sampling `0.05..0.95` means.
+ * sorted by `t`, covering 0..1. A curve whose ends fall short is extended by
+ * holding its end values, which is what a body sampling `0.05..0.95` means. A
+ * keyframe outside 0..1 is kept where it is, because the sampler interpolates
+ * toward it at the window's edge: a trim leaves the keys it cut off there.
  */
 function normalizeClipKeyframes(raw: readonly Keyframe[]): Keyframe[] {
   const sorted = raw
     .map((kf) => {
-      const clamped: Keyframe = {
-        t: Math.min(1, Math.max(0, kf.t)),
-        value: kf.value
-      };
+      const copy: Keyframe = { t: kf.t, value: kf.value };
       if (kf.easing !== undefined) {
-        clamped.easing = kf.easing;
+        copy.easing = kf.easing;
       }
-      return clamped;
+      return copy;
     })
     .sort((a, b) => a.t - b.t);
 

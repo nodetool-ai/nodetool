@@ -69,18 +69,21 @@ describe("normalizeCustomCurves", () => {
     ]);
   });
 
-  it("clamps out-of-range t into 0..1", () => {
+  it("keeps a keyframe outside 0..1 where it is, as a trim leaves it", () => {
     const result = normalizeCustomCurves([
       {
         property: "opacity",
         keyframes: [
-          { t: -3, value: 0 },
-          { t: 7, value: 1 }
+          { t: -1, value: 0 },
+          { t: 0.5, value: 1 }
         ]
       }
     ]);
+    // The sampler eases toward the hidden key at the window's start, and holds
+    // the last value past 0.5.
     expect(result.ok && result.curves[0].keyframes).toEqual([
-      { t: 0, value: 0 },
+      { t: -1, value: 0 },
+      { t: 0.5, value: 1 },
       { t: 1, value: 1 }
     ]);
   });
