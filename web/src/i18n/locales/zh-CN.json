@@ -13437,7 +13437,8 @@
         "sendMessage": "无法发送消息：{{error}}",
         "compact": "无法压缩对话：{{error}}",
         "copyConversation": "无法复制对话。",
-        "rewindConversation": "无法回退对话：{{error}}"
+        "rewindConversation": "无法回退对话：{{error}}",
+        "switchVersion": "无法切换版本：{{error}}"
       },
       "notifications": {
         "copiedMessages_other": "已将 {{count}} 条消息复制为 Markdown。",
@@ -18309,9 +18310,12 @@
       "result": "结果",
       "copyResult": "复制结果",
       "editMessage": "编辑消息",
-      "editWarning": "发送后将替换此消息之后的所有内容。",
+      "editWarning": "发送后会创建新版本，当前版本仍会保留。",
       "editAndResend": "编辑并重新发送",
       "regenerate": "重新生成",
+      "previousVersion": "上一个版本",
+      "nextVersion": "下一个版本",
+      "versionOf": "第 {{index}} 个版本，共 {{count}} 个",
       "copyMessage": "复制消息",
       "enterCredential": "输入凭据",
       "credentialSubtitle": "已保存到你的密钥存储中。代理永远看不到该值。",

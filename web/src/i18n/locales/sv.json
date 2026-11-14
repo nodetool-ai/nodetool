@@ -13437,7 +13437,8 @@
         "sendMessage": "Kunde inte skicka meddelandet: {{error}}",
         "compact": "Kunde inte komprimera konversationen: {{error}}",
         "copyConversation": "Det gick inte att kopiera konversationen.",
-        "rewindConversation": "Kunde inte spola tillbaka konversationen: {{error}}"
+        "rewindConversation": "Kunde inte spola tillbaka konversationen: {{error}}",
+        "switchVersion": "Det gick inte att byta version: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Kopierade {{count}} meddelande som Markdown.",
@@ -18309,9 +18310,12 @@
       "result": "Resultat",
       "copyResult": "Kopiera resultatet",
       "editMessage": "Redigera meddelande",
-      "editWarning": "Att skicka ersätter allt efter detta meddelande.",
+      "editWarning": "Att skicka skapar en ny version. Den nuvarande finns kvar.",
       "editAndResend": "Redigera och skicka om",
       "regenerate": "Återskapa",
+      "previousVersion": "Föregående version",
+      "nextVersion": "Nästa version",
+      "versionOf": "Version {{index}} av {{count}}",
       "copyMessage": "Kopiera meddelande",
       "enterCredential": "Ange autentiseringsuppgifter",
       "credentialSubtitle": "Sparad i din hemliga butik. Agenten ser aldrig värdet.",

@@ -247,6 +247,23 @@ export const createStyles = (theme: Theme) => ({
         opacity: 1,
         pointerEvents: "auto"
       },
+    // A message where versions part keeps its switcher in view, as Claude's
+    // "‹ 1/2 ›" does, so the earlier answer is never hidden behind a hover.
+    ".message-actions.has-versions": {
+      opacity: 1,
+      pointerEvents: "auto"
+    },
+    ".message-version-switcher": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: theme.spacing(SPACING.micro)
+    },
+    ".message-version-label": {
+      ...TYPOGRAPHY.sans.caption,
+      color: theme.vars.palette.text.secondary,
+      fontVariantNumeric: "tabular-nums",
+      whiteSpace: "nowrap"
+    },
     "@media (hover: none)": {
       ".message-actions": {
         opacity: 1,

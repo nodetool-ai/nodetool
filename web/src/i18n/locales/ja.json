@@ -13437,7 +13437,8 @@
         "sendMessage": "メッセージを送信できませんでした: {{error}}",
         "compact": "会話を圧縮できませんでした: {{error}}",
         "copyConversation": "会話をコピーできませんでした。",
-        "rewindConversation": "会話を巻き戻すことができませんでした: {{error}}"
+        "rewindConversation": "会話を巻き戻すことができませんでした: {{error}}",
+        "switchVersion": "バージョンを切り替えられませんでした: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "{{count}} メッセージをマークダウンとしてコピーしました。",
@@ -18309,9 +18310,12 @@
       "result": "結果",
       "copyResult": "コピー結果",
       "editMessage": "メッセージを編集する",
-      "editWarning": "送信すると、このメッセージ以降のすべてが置き換えられます。",
+      "editWarning": "送信すると新しいバージョンが作成されます。現在のバージョンも残ります。",
       "editAndResend": "編集して再送信します",
       "regenerate": "再生する",
+      "previousVersion": "前のバージョン",
+      "nextVersion": "次のバージョン",
+      "versionOf": "バージョン {{index}}/{{count}}",
       "copyMessage": "メッセージをコピーする",
       "enterCredential": "資格情報を入力してください",
       "credentialSubtitle": "秘密のストアに保存されました。エージェントがその値を確認することはありません。",

@@ -13652,7 +13652,8 @@
         "sendMessage": "No se pudo enviar el mensaje: {{error}}",
         "compact": "No se pudo compactar la conversación: {{error}}",
         "copyConversation": "No se pudo copiar la conversación.",
-        "rewindConversation": "No se pudo rebobinar la conversación: {{error}}"
+        "rewindConversation": "No se pudo rebobinar la conversación: {{error}}",
+        "switchVersion": "No se pudo cambiar de versión: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Se copió el mensaje {{count}} como Markdown.",
@@ -18616,9 +18617,12 @@
       "result": "Resultado",
       "copyResult": "Copiar resultado",
       "editMessage": "Editar mensaje",
-      "editWarning": "El envío reemplaza todo después de este mensaje.",
+      "editWarning": "Al enviar se crea una nueva versión. La actual sigue disponible.",
       "editAndResend": "Editar y reenviar",
       "regenerate": "regenerar",
+      "previousVersion": "Versión anterior",
+      "nextVersion": "Versión siguiente",
+      "versionOf": "Versión {{index}} de {{count}}",
       "copyMessage": "Copiar mensaje",
       "enterCredential": "Introduzca una credencial",
       "credentialSubtitle": "Guardado en tu tienda secreta. El agente nunca ve el valor.",

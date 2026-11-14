@@ -13437,7 +13437,8 @@
         "sendMessage": "संदेश भेजने नहीं कर सकता: {{error}}",
         "compact": "बातचीत को कॉम्पैक्ट नहीं कर सकता: {{error}}",
         "copyConversation": "बातचीत की प्रतिलिपि नहीं कर सका।",
-        "rewindConversation": "बातचीत को रिवाइंड नहीं कर सकता: {{error}}"
+        "rewindConversation": "बातचीत को रिवाइंड नहीं कर सकता: {{error}}",
+        "switchVersion": "संस्करण नहीं बदला जा सका: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "कॉपियर {{count}} मार्कडाउन के रूप में संदेश।",
@@ -18309,9 +18310,12 @@
       "result": "परिणाम",
       "copyResult": "परिणाम कॉपी करें",
       "editMessage": "संदेश संपादित करें",
-      "editWarning": "इस संदेश के बाद सब कुछ भेजना।",
+      "editWarning": "भेजने पर एक नया संस्करण बनता है। मौजूदा संस्करण उपलब्ध रहता है।",
       "editAndResend": "संपादित करें और भेजें",
       "regenerate": "पुनर्जन्म",
+      "previousVersion": "पिछला संस्करण",
+      "nextVersion": "अगला संस्करण",
+      "versionOf": "संस्करण {{index}} / {{count}}",
       "copyMessage": "कॉपी संदेश",
       "enterCredential": "एक क्रेडेंशियल दर्ज करें",
       "credentialSubtitle": "अपने गुप्त स्टोर में सेव किया। एजेंट कभी मूल्य नहीं देखता है।",

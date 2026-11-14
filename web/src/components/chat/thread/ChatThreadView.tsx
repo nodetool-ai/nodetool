@@ -20,6 +20,7 @@ import {
   LogUpdate
 } from "../../../stores/ApiTypes";
 import { Progress } from "../feedback/Progress";
+import type { MessageVersionNav } from "../../../serverState/useThreadVersions";
 import { MediaPredictionStatus } from "../feedback/MediaPredictionStatus";
 import { MessageView } from "../message/MessageView";
 import MediaOutputGroup from "../message/MediaOutputGroup";
@@ -69,6 +70,8 @@ interface ChatThreadViewProps {
    * while a turn runs or where the thread cannot be rewound.
    */
   onResendFrom?: (message: Message, text?: string) => void;
+  /** Version switchers, keyed by the message they sit on. */
+  versionNavByMessageId?: Record<string, MessageVersionNav>;
 }
 
 // StatusFooter re-renders once a second while a reply streams; a fresh `[]`
@@ -272,7 +275,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   showTaskUpdate = true,
   externalScroll = false,
   focusMessage,
-  onResendFrom
+  onResendFrom,
+  versionNavByMessageId
 }) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -636,6 +640,9 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                           : undefined
                       }
                       onResend={onResendFrom}
+                      versionNav={
+                        msg.id ? versionNavByMessageId?.[msg.id] : undefined
+                      }
                       editRemovesLaterTurns={
                         virtualRow.index < lastUserMessageIndex
                       }

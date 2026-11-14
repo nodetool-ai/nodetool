@@ -13867,7 +13867,8 @@
         "sendMessage": "Nie można wysłać wiadomości: {{error}}",
         "compact": "Nie można zagęścić rozmowy: {{error}}",
         "copyConversation": "Nie udało się skopiować rozmowy.",
-        "rewindConversation": "Nie można przewinąć rozmowy: {{error}}"
+        "rewindConversation": "Nie można przewinąć rozmowy: {{error}}",
+        "switchVersion": "Nie udało się przełączyć wersji: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Skopiowano wiadomość {{count}} jako Markdown.",
@@ -18923,9 +18924,12 @@
       "result": "Wynik",
       "copyResult": "Skopiuj wynik",
       "editMessage": "Edytuj wiadomość",
-      "editWarning": "Wysłanie zastępuje wszystko po tej wiadomości.",
+      "editWarning": "Wysłanie tworzy nową wersję. Obecna pozostaje dostępna.",
       "editAndResend": "Edytuj i wyślij ponownie",
       "regenerate": "Zregeneruj się",
+      "previousVersion": "Poprzednia wersja",
+      "nextVersion": "Następna wersja",
+      "versionOf": "Wersja {{index}} z {{count}}",
       "copyMessage": "Skopiuj wiadomość",
       "enterCredential": "Wprowadź dane uwierzytelniające",
       "credentialSubtitle": "Zapisano w Twoim tajnym sklepie. Agent nigdy nie widzi wartości.",
