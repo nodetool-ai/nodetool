@@ -102,7 +102,7 @@ export default function McpPage() {
               <p className={`mt-4 max-w-sm ${bodyText}`}>The server registers a short list of direct tools. Two resources, nodetool://capabilities and nodetool://sandbox, describe the rest. Each skill is an MCP prompt, so Claude Code shows it as a slash command.</p>
             </div>
             <div className="min-w-0 max-w-2xl overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-950">
-              <p className="border-b border-slate-800 px-5 py-3 font-jetbrains text-xs text-slate-500">tools/list</p>
+              <p className="border-b border-slate-800 px-5 py-3 font-jetbrains text-xs text-slate-400">tools/list</p>
               <dl className="space-y-4 break-words p-5">
                 {DIRECT_TOOLS.map((tool) => (
                   <div key={tool.name} className="grid gap-1 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-6">

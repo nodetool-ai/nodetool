@@ -20,7 +20,7 @@ export default function McpSessionMock() {
           <span aria-hidden="true" className="h-3 w-3 rounded-full bg-slate-700" />
           <span aria-hidden="true" className="h-3 w-3 rounded-full bg-slate-700" />
           <span aria-hidden="true" className="h-3 w-3 rounded-full bg-slate-700" />
-          <span className="ml-3 font-jetbrains text-xs text-slate-500">claude · nodetool MCP</span>
+          <span className="ml-3 font-jetbrains text-xs text-slate-400">claude · nodetool MCP</span>
         </div>
 
         <div className="space-y-4 p-5 font-jetbrains text-[13px] leading-relaxed sm:p-6">
@@ -35,7 +35,7 @@ export default function McpSessionMock() {
               <li key={call.detail} className="flex min-w-0 items-center gap-2 text-slate-300">
                 <span aria-hidden="true" className="text-emerald-400">●</span>
                 <span className="shrink-0 text-cyan-200">nodetool · {call.tool}</span>
-                <span className="truncate text-slate-500">{call.detail}</span>
+                <span className="truncate text-slate-400">{call.detail}</span>
               </li>
             ))}
           </ul>
@@ -57,7 +57,7 @@ export default function McpSessionMock() {
           </p>
         </div>
       </div>
-      <figcaption className="mt-3 text-sm text-slate-500">
+      <figcaption className="mt-3 text-sm text-slate-400">
         An illustrative session. The tool names are the ones the server registers.
       </figcaption>
     </figure>

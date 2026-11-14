@@ -84,7 +84,7 @@ export default function AlternativesIndexPage() {
                 <li key={category}>
                   <a href={`#${categoryId(category)}`} className="focus-ring inline-flex items-center gap-2 rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1.5 text-sm text-slate-200 hover:border-slate-500">
                     {category}
-                    <span className="text-xs text-slate-500">{items.length}</span>
+                    <span className="text-xs text-slate-400">{items.length}</span>
                   </a>
                 </li>
               ))}

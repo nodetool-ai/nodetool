@@ -43,7 +43,7 @@ export default function NodeChain({ graph, limit = 4 }: { graph: TemplateGraph; 
           </li>
         );
       })}
-      {rest > 0 ? <li className="text-xs text-slate-500">+{rest} more</li> : null}
+      {rest > 0 ? <li className="text-xs text-slate-400">+{rest} more</li> : null}
     </ol>
   );
 }
