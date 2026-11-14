@@ -1103,7 +1103,7 @@ export function registerAgentMcpTools(
       tool.name,
       isImageTool ? MCP_VIEW_IMAGE_DESCRIPTION : tool.description,
       schema,
-      async (args, extra) => {
+      async (args, extra?: { signal?: AbortSignal }) => {
         try {
           const input: Record<string, unknown> = { ...args };
           if (isImageTool) {
@@ -1142,7 +1142,7 @@ export function registerAgentMcpTools(
               input["question"] = "Inline image:";
             }
           }
-          const result = await runBridgedTool(tool, input, extra.signal);
+          const result = await runBridgedTool(tool, input, extra?.signal);
           if (!isImageTool) {
             return toToolResponse(result);
           }
@@ -1292,22 +1292,16 @@ export function registerAgentMcpTools(
   };
   const capabilityRun = createCapabilityRun(runOptions);
   /**
-   * The run one direct tool call executes on. The session context has no
-   * signal of its own, so a call copies it (sharing memory) with the SDK's
+   * The run one direct tool call executes on: the session run with the SDK's
    * per-request signal, which aborts on `notifications/cancelled` and when
    * the client drops the HTTP request (`handleSessionRequest` in
-   * mcp-server.ts). A generation or `await_generation` then stops with it.
+   * mcp-server.ts). `invoke` refuses to start a cancelled call, and
+   * `await_generation` stops waiting. The context stays the session's own,
+   * because its message queue, cost ledger and temporary media handles must
+   * outlive the call.
    */
-  const runForCall = (signal: AbortSignal | undefined): CapabilityRun => {
-    if (!signal) return capabilityRun;
-    const callContext = context.copy({ shareMemory: true });
-    callContext.signal = AbortSignal.any([context.signal, signal]);
-    return createCapabilityRun({
-      ...runOptions,
-      context: callContext,
-      signal: callContext.signal
-    });
-  };
+  const runForCall = (signal: AbortSignal | undefined): CapabilityRun =>
+    signal ? createCapabilityRun({ ...runOptions, signal }) : capabilityRun;
   const byName = new Map(belt.map((tool) => [tool.name, tool]));
 
   // `view_image` is the one channel that puts pixels into a caller's context,
