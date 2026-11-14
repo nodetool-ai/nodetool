@@ -33,6 +33,7 @@
 #include <QThread>
 #include <QUuid>
 #include <algorithm>
+#include <limits>
 #include <cmath>
 
 namespace {
@@ -1411,7 +1412,20 @@ void GenerationController::resolve(const QString& clipId, const QString& takeId,
                     if (generatedCandidate && !lineDelivery && clip.value("mediaType") == "audio" && seconds > 0 &&
                         clip.value("speedMultiplier").toDouble(1) == 1 && !clip.contains("timeRemap") &&
                         !clip.contains("inPointMs") && !clip.contains("outPointMs")) {
-                        appliedClip.insert("durationMs", std::round(seconds * 1000));
+                        double duration = std::round(seconds * 1000);
+                        // A longer take must not run over the next clip on the track. A
+                        // voiceover beat keeps its length: the transcript reflow moves what follows.
+                        if (!clip.contains("caption") && clip.value("bindingKind") != "text-to-audio") {
+                            const double start = clip.value("startMs").toDouble();
+                            double next = std::numeric_limits<double>::infinity();
+                            for (const auto& other : clips) {
+                                const auto o = other.toObject();
+                                if (o.value("id") == clip.value("id") || o.value("trackId") != clip.value("trackId")) continue;
+                                if (o.value("startMs").toDouble() >= start) next = std::min(next, o.value("startMs").toDouble());
+                            }
+                            duration = std::min(duration, std::max(next - start, clip.value("durationMs").toDouble()));
+                        }
+                        appliedClip.insert("durationMs", duration);
                     }
                     clips.replace(i, appliedClip);
                     model->registerMedia(media);

@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QPointer>
+#include <QElapsedTimer>
 #include <QThread>
 #include <QTimer>
 #include <QUrl>
@@ -120,6 +121,8 @@ private:
         std::optional<nt::Clip> media = {};
         std::optional<quint64> queryGeneration = {};
         bool display = true;
+        // The project the server files the timeline under, when the work asked.
+        std::optional<QString> project = {};
     };
     void request(std::function<Result(nt::server::ServerClient&)> work,
                  std::function<void(const Result&)> done = {},
@@ -128,6 +131,8 @@ private:
     void updateAsset(const QJsonObject& fields);
     QString projectId() const;
     QString timelineId() const;
+    // True at most once a minute: whether the next request asks the server for the timeline's project.
+    bool projectCheckDue();
     void transferState(const QString& id, const QString& status, const QString& error = {});
     void importNext();
     QueuedImport takeNextImport();
@@ -157,6 +162,7 @@ private:
     bool m_reconciling = false;
     std::optional<nt::server::SaveTarget> m_target;
     QPointer<TimelineModel> m_timeline;
+    QElapsedTimer m_projectCheck;
     QPointer<QThread> m_thread;
     QJsonArray m_assets;
     QVariantList m_assetList;

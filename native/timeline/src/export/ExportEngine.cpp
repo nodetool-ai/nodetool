@@ -211,6 +211,20 @@ private:
     AVCodecContext& m_codec;
     std::unique_ptr<SwrContext, ResampleDelete> m_resample;
 };
+// Moves the finished export to its destination. A file already there moves
+// into the staging directory first and comes back when the move fails, so a
+// failed export never loses the old file.
+void publish(const QString& temporary, const QString& destination, bool replace, const QString& stagingPath) {
+    const QString previous = QDir(stagingPath).filePath(QStringLiteral("previous"));
+    const bool replacing = replace && QFileInfo(destination).isFile();
+    if (replacing && !QDir().rename(destination, previous)) throw std::runtime_error("Cannot replace the existing export");
+    if (QDir().rename(temporary, destination)) {
+        if (replacing) QFile::remove(previous);
+        return;
+    }
+    if (replacing) QDir().rename(previous, destination);
+    throw std::runtime_error("Cannot publish completed export");
+}
 }
 Result exportTimeline(const Timeline& timeline, const Options& options, std::stop_token stop,
                       ProgressCallback progress, CancelProbe cancel) {
@@ -267,7 +281,9 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         if (cancelled()) { result.cancelled = true; return result; }
         const QFileInfo destination(options.output);
         if (options.output.isEmpty() || !destination.dir().exists()) throw std::runtime_error("Export destination folder does not exist");
-        if (destination.exists()) throw std::runtime_error("Export destination already exists");
+        if (destination.exists() && (!options.replace || !destination.isFile())) {
+            throw std::runtime_error("Export destination already exists");
+        }
         std::unique_ptr<QTemporaryDir> staging;
         QString stagingPath = options.stagingDirectory;
         if (stagingPath.isEmpty()) {
@@ -448,7 +464,7 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
             muxer.reset();
         }
         if (cancelled()) { result.cancelled = true; return result; }
-        if (!QDir().rename(temporary, destination.absoluteFilePath())) throw std::runtime_error("Cannot publish completed export");
+        publish(temporary, destination.absoluteFilePath(), options.replace, stagingPath);
     } catch (const std::exception& error) {
         result.error = QString::fromUtf8(error.what());
     }

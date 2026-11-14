@@ -1459,9 +1459,8 @@ bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRep
                 const int direction = (action.endsWith(u"Back") ? -1 : 1) *
                                       (action.startsWith(u"stepFrames") ? 5 : 1);
                 const double target = (std::round(playheadMs() / frameMs) + direction) * frameMs;
-                double endMs = 0;
-                for (const auto& clip : m_timeline->timeline().clips) { endMs = std::max(endMs, clip.endMs()); }
-                m_clock->seek(std::clamp(target, 0.0, endMs));
+                // The sequence can run past its last clip: the tail stays reachable.
+                m_clock->seek(std::clamp(target, 0.0, m_timeline->contentEndMs()));
             }
             return true;
         }

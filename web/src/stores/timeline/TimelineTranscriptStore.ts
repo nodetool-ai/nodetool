@@ -146,10 +146,11 @@ function ensureVoiceoverTrack(): string {
   const store = useTimelineStore.getState();
   const existing = ops.voiceoverTrackId(store.clips, store.tracks);
   if (existing) return existing;
+  const before = new Set(store.tracks.map((t) => t.id));
   store.addTrack("audio", "Voiceover");
   const track = useTimelineStore
     .getState()
-    .tracks.find((t) => t.type === "audio");
+    .tracks.find((t) => t.type === "audio" && !before.has(t.id));
   if (!track) throw new Error("Failed to create the voiceover track");
   return track.id;
 }

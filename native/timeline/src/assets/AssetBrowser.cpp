@@ -13,6 +13,7 @@
 #include <QCryptographicHash>
 #include <QFileInfo>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QUuid>
 #include <QDir>
 #include <QSet>
@@ -22,15 +23,22 @@
 
 namespace {
 // The server can move a loose timeline into the account's Personal project
-// while it is open, so the project in the loaded document goes stale. Ask the
-// server which project the timeline is in now, and keep the document's value
-// when it cannot say.
-QString currentProject(nt::server::ServerClient& client, const QString& timelineId, const QString& loaded) {
-    if (timelineId.isEmpty()) { return loaded; }
+// while it is open, so the project in the loaded document goes stale. When a
+// check is due, ask the server which project the timeline is in now and record
+// the answer in `answer`, so the document learns it too. Keeps the document's
+// value when no check is due or the server cannot say.
+QString currentProject(nt::server::ServerClient& client, const QString& timelineId, const QString& loaded, bool check,
+                       std::optional<QString>& answer) {
+    if (!check || timelineId.isEmpty()) { return loaded; }
     const auto response = client.getTimeline(timelineId);
     const auto project = response.ok() ? response.data.toObject().value("projectId").toString() : QString{};
-    return project.isEmpty() ? loaded : project;
+    if (project.isEmpty()) { return loaded; }
+    answer = project;
+    return project;
 }
+// How long a project answer from the server stays current. Every Library query
+// asked before, and each answer carries the whole timeline document.
+constexpr qint64 ProjectCheckIntervalMs = 60000;
 }
 
 AssetBrowser::AssetBrowser(QObject* parent) : QObject(parent), m_target(nt::server::serverSaveTarget()) {
@@ -200,7 +208,16 @@ void AssetBrowser::request(std::function<Result(nt::server::ServerClient&)> work
     thread->start();
 }
 
+bool AssetBrowser::projectCheckDue() {
+    if (m_projectCheck.isValid() && m_projectCheck.elapsed() < ProjectCheckIntervalMs) { return false; }
+    m_projectCheck.start();
+    return true;
+}
+
 void AssetBrowser::receive(const Result& result) {
+    // Every consumer of the document's project (save frame, Assistant uploads,
+    // the Library scope) reads the answer from the document.
+    if (result.project && m_timeline) { m_timeline->setProjectId(*result.project); }
     if (!result.display) { return; }
     if (result.queryGeneration && *result.queryGeneration != m_queryGeneration) { return; }
     if (result.folder && *result.folder != m_folderId) { return; }
@@ -296,9 +313,10 @@ void AssetBrowser::refresh() {
     // native-rules #1: std::shared_ptr atomic flag shared with a worker, no justification comment
     const auto cancelled = std::make_shared<std::atomic_bool>(false);
     request([cancelled, folder = m_folderId, search = m_searchText.trimmed(), type = m_typeFilter,
-             tag = m_tagFilter.trimmed(), favorites = m_favoritesOnly, loaded = projectId(), timeline = timelineId(), generation](nt::server::ServerClient& client) {
+             tag = m_tagFilter.trimmed(), favorites = m_favoritesOnly, loaded = projectId(), timeline = timelineId(), generation,
+             check = projectCheckDue()](nt::server::ServerClient& client) {
         Result result;
-        const auto project = currentProject(client, timeline, loaded);
+        const auto project = currentProject(client, timeline, loaded, check, result.project);
         result.replace = true;
         result.queryGeneration = generation;
         QJsonArray candidates;
@@ -410,13 +428,16 @@ void AssetBrowser::importNext() {
     const auto queued = takeNextImport();
     transferState(queued.id, "running");
     const auto documentEpoch = m_documentEpoch;
-    request([queued, timeline = timelineId()](nt::server::ServerClient& client) {
+    const auto loaded = projectId().isEmpty() ? queued.fields.value("project_id").toString() : projectId();
+    request([queued, loaded, timeline = timelineId(), check = projectCheckDue()](nt::server::ServerClient& client) {
         auto fields = queued.fields;
-        const auto project = currentProject(client, timeline, fields.value("project_id").toString());
+        std::optional<QString> answer;
+        const auto project = currentProject(client, timeline, loaded, check, answer);
         if (!project.isEmpty()) { fields.insert("project_id", project); }
         const auto imported = nt::assets::importFile(client, queued.file, fields);
         Result result = imported.ok() ? Result{QJsonArray{imported.asset}, imported.proxyError, false}
                                       : Result{{}, imported.error, false};
+        result.project = answer;
         result.folder = queued.folder;
         result.display = false;
         return result;
@@ -691,12 +712,16 @@ void AssetBrowser::updateAsset(const QJsonObject& fields) {
 
 void AssetBrowser::createFolder(const QString& name) {
     if (name.trimmed().isEmpty()) { return; }
-    request([name = name.trimmed(), folder = m_folderId, loaded = projectId(), timeline = timelineId()](nt::server::ServerClient& client) {
-        const auto project = currentProject(client, timeline, loaded);
+    request([name = name.trimmed(), folder = m_folderId, loaded = projectId(), timeline = timelineId(),
+             check = projectCheckDue()](nt::server::ServerClient& client) {
+        std::optional<QString> answer;
+        const auto project = currentProject(client, timeline, loaded, check, answer);
         QJsonObject fields{{"name", name}, {"content_type", "folder"}, {"parent_id", folder}};
         if (!project.isEmpty()) { fields.insert("project_id", project); }
         const auto response = client.createAsset(fields);
-        return response.ok() ? Result{} : Result{{}, response.describe(), false};
+        Result result = response.ok() ? Result{} : Result{{}, response.describe(), false};
+        result.project = answer;
+        return result;
     }, [this](const Result& result) { if (result.error.isEmpty()) { refresh(); } }, m_documentEpoch);
 }
 

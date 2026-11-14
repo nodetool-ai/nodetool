@@ -193,7 +193,28 @@ bool StreamZip::finish() {
     return true;
 }
 
-QString localMediaPath(const QString& pathurl, const QString& baseDir) {
+MediaNameIndex::MediaNameIndex(QString baseDir, std::function<bool()> stop)
+    : m_baseDir(std::move(baseDir)), m_stop(std::move(stop)) {}
+
+QString MediaNameIndex::unique(const QString& fileName) {
+    if (!m_built) {
+        m_built = true;
+        int visited = 0;
+        for (QDirIterator it(m_baseDir, QDir::Files, QDirIterator::Subdirectories); it.hasNext();) {
+            if (++visited > MaxFiles || (visited % 256 == 0 && m_stop && m_stop())) {
+                m_stopped = visited <= MaxFiles;
+                break;
+            }
+            it.next();
+            m_paths[it.fileName().toLower()].append(it.filePath());
+        }
+    }
+    if (m_stopped) return {};
+    const auto found = m_paths.constFind(fileName.toLower());
+    return found != m_paths.constEnd() && found->size() == 1 ? found->first() : QString{};
+}
+
+QString localMediaPath(const QString& pathurl, const QString& baseDir, MediaNameIndex* index) {
     if (pathurl.trimmed().isEmpty()) return {};
     QString path = pathurl.trimmed();
     if (path.startsWith(u"file:", Qt::CaseInsensitive)) {
@@ -203,16 +224,13 @@ QString localMediaPath(const QString& pathurl, const QString& baseDir) {
     }
     if (!path.isEmpty() && QFileInfo(path).isFile()) return QFileInfo(path).absoluteFilePath();
     // A path from the editor's machine: take the one file of that name below the XML.
-    const QString name = QFileInfo(path.isEmpty() ? pathurl : path).fileName();
+    // A Windows path keeps its backslashes on other systems, so split on both.
+    QString name = path.isEmpty() ? pathurl : path;
+    name = name.mid(std::max(name.lastIndexOf(u'/'), name.lastIndexOf(u'\\')) + 1);
     if (name.isEmpty()) return {};
-    QString found;
-    int visited = 0;
-    for (QDirIterator it(baseDir, {name}, QDir::Files, QDirIterator::Subdirectories); it.hasNext();) {
-        it.next();
-        if (!found.isEmpty() || ++visited > 1) return {};
-        found = it.filePath();
-    }
-    return found;
+    if (index) return index->unique(name);
+    MediaNameIndex own(baseDir);
+    return own.unique(name);
 }
 
 ArchiveResult writeImportArchive(const QString& xmlPath, const QString& zipPath, const std::function<bool(int, int)>& progress) {
@@ -240,10 +258,15 @@ ArchiveResult writeImportArchive(const QString& xmlPath, const QString& zipPath,
     QStringList order;
     const QString baseDir = QFileInfo(xmlPath).absolutePath();
     QHash<QString, QString> byLocal;
+    MediaNameIndex names(baseDir, [&progress] { return progress && !progress(0, 0); });
     for (auto it = pathurl.globalMatch(xml); it.hasNext();) {
         const QString url = unescapeXml(it.next().captured(1));
         if (byUrl.contains(url)) continue;
-        const QString local = localMediaPath(url, baseDir);
+        const QString local = localMediaPath(url, baseDir, &names);
+        if (names.stopped()) {
+            result.error = QStringLiteral("Cancelled.");
+            return result;
+        }
         if (local.isEmpty()) {
             byUrl.insert(url, {});
             result.missing.append(url);

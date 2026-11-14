@@ -18,6 +18,9 @@ struct Options {
     QString videoEncoder;
     QString audioEncoder;
     QString stagingDirectory;  // editor-owned, retained until the child exits
+    // Replace a file already at `output` (the save dialog confirmed it). The
+    // old file stays until the new one is complete.
+    bool replace = false;
     double startMs = 0;
     double endMs = -1;
     int width = 0;

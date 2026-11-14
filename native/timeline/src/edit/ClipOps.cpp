@@ -1034,7 +1034,8 @@ ClipList rateStretchClips(const ClipList& clips, const IdSet& memberIds, const Q
         QJsonObject retimed = m;
         retimed.insert(QStringLiteral("speedMultiplier"), speedMultiplier);
         retimed.insert(QStringLiteral("durationMs"), nextDurationMs);
-        retimed.insert(QStringLiteral("startMs"), end ? clipStartMs(m) : clipEndMs(m) - nextDurationMs);
+        // Rounding can leave a start-edge stretch to 0 a hair below it.
+        retimed.insert(QStringLiteral("startMs"), end ? clipStartMs(m) : std::max(0.0, clipEndMs(m) - nextDurationMs));
         if (present(m, "caption")) {
             retimed.insert(QStringLiteral("caption"),
                            retimeCaption(m.value(u"caption").toObject(), 0, sourceRate(m) / newRate));

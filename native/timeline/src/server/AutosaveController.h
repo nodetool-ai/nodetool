@@ -192,6 +192,8 @@ signals:
     void saved(const QString& updatedAt);
     void conflictDetected();
     void strippedWarning(const QStringList& paths);
+    // A save response filed the timeline under another project.
+    void projectChanged(const QString& projectId);
 
 private:
     void restartStoppedChain();
