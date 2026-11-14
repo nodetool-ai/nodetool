@@ -124,13 +124,17 @@ QJsonObject applyGroupEdit(const QString &name, QJsonObject raw, const QJsonObje
         if (members.size() < 2) {
             return raw;
         }
-        QHash<QString, size_t> trackOrder;
-        for (size_t i = 0; i < doc.tracks.size(); ++i) {
-            trackOrder.insert(doc.tracks[i].id, i);
+        // The group goes on the member track drawn on top: the lowest `index`,
+        // wherever that track sits in the array.
+        QHash<QString, double> trackOrder;
+        const auto tracks = raw.value("tracks").toArray();
+        for (qsizetype i = 0; i < tracks.size(); ++i) {
+            const auto track = tracks[i].toObject();
+            trackOrder.insert(track.value("id").toString(), track.value("index").toDouble(static_cast<double>(i)));
         }
         const auto top = std::min_element(members.begin(), members.end(), [&](const auto &a, const auto &b) {
-            return trackOrder.value(clipTrackId(a), std::numeric_limits<size_t>::max()) <
-                   trackOrder.value(clipTrackId(b), std::numeric_limits<size_t>::max());
+            return trackOrder.value(clipTrackId(a), std::numeric_limits<double>::infinity()) <
+                   trackOrder.value(clipTrackId(b), std::numeric_limits<double>::infinity());
         });
         const auto group = clipboard::makeClip({{"trackId", clipTrackId(*top)},
                                                 {"name", "Group"},
