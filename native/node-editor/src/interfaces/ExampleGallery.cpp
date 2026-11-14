@@ -104,8 +104,10 @@ void ExampleGallery::setServerExamples(const QJsonArray &workflows) {
 
 bool ExampleGallery::matchesSearch(const QString &text, const QString &query) {
     static const QStringList endings{"ing", "ify", "ed", "es", "e", "s"};
+    if (query.isEmpty()) { return true; }
     const auto haystack = text.toLower();
-    const auto words = query.toLower().split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+    static const QRegularExpression whitespace(QStringLiteral("\\s+"));
+    const auto words = query.toLower().split(whitespace, Qt::SkipEmptyParts);
     for (auto word : words) {
         for (const auto &ending : endings) {
             if (word.endsWith(ending) && word.size() - ending.size() >= 4) {

@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
@@ -115,6 +116,7 @@ Rectangle {
             model: root.lines
             // A screen of cards builds ahead of the scroll, so previews load before they enter.
             cacheBuffer: Math.max(0, height)
+            reuseItems: true
             pixelAligned: true
             boundsBehavior: Flickable.StopAtBounds
             Basic.ScrollBar.vertical: Ui.ScrollBar {}
@@ -233,35 +235,44 @@ Rectangle {
                 Layout.preferredHeight: width * 9 / 16
                 variant: Ui.Surface.Canvas
                 clip: true
-                Loader {
+                // The preview is decoration, so pointer and focus stay on the card.
+                // A plain Image, not MediaPreview: a card needs no player,
+                // dialogs or zoom, and those made each card slow to build.
+                Image {
+                    id: thumb
+                    property string key: ""
                     anchors.fill: parent
-                    // The preview is decoration, so pointer and focus stay on the card.
                     enabled: false
-                    active: card.modelData.thumbnail !== "" && root.resolver !== null
-                    sourceComponent: Component {
-                        MediaPreview {
-                            mediaKind: "image"
-                            locator: ({type: "image", uri: card.modelData.thumbnail})
-                            resolver: root.resolver
-                            requestKey: "example-thumbnail:" + card.modelData.key
-                            showFilename: false
-                            showDownload: false
-                            fillPreview: true
-                        }
+                    asynchronous: true
+                    fillMode: Image.PreserveAspectCrop
+                    sourceSize.width: Math.ceil(width * Screen.devicePixelRatio)
+                    visible: status === Image.Ready
+                    function request() {
+                        if (card.modelData.thumbnail === "" || root.resolver === null) { return }
+                        key = "example-thumbnail:" + card.modelData.key
+                        root.resolver.resolve(key, {type: "image", uri: card.modelData.thumbnail})
+                    }
+                    Component.onCompleted: request()
+                    Component.onDestruction: if (key !== "" && root.resolver) { root.resolver.cancel(key); root.resolver.release(key) }
+                    Connections {
+                        target: root.resolver
+                        function onResolved(key, url) { if (key === thumb.key) { thumb.source = url } }
                     }
                 }
                 Ui.Icon {
                     anchors.centerIn: parent
-                    visible: card.modelData.thumbnail === "" || root.resolver === null
+                    visible: thumb.status !== Image.Ready
                     name: "accountTree"
                     tone: Ui.Text.Secondary
                     size: Ui.Metrics.iconLg
                 }
-                Ui.BusyIndicator {
+                Loader {
                     anchors.centerIn: parent
-                    visible: card.opening
-                    running: card.opening
-                    accessibleName: "Adding a copy"
+                    active: card.opening
+                    sourceComponent: Ui.BusyIndicator {
+                        running: true
+                        accessibleName: "Adding a copy"
+                    }
                 }
             }
             ColumnLayout {

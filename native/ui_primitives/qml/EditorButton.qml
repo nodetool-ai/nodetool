@@ -72,8 +72,22 @@ Basic.Button {
         spacing: root.outlined ? Metrics.xs : Metrics.sm
         layoutDirection: root.mirrored ? Qt.RightToLeft : Qt.LeftToRight
         Ui.Icon { id: buttonIcon; anchors.verticalCenter: parent.verticalCenter; visible: !root.loading && root.providerEntry === "" && root.iconName !== "" && root.display !== Basic.AbstractButton.TextOnly; name: root.iconName; size: root.outlined ? Metrics.iconXs : root.iconSize; tone: root.iconTone; domainColor: root.outlined ? root.outlinedInk : root.iconColor }
-        Ui.ProviderIcon { id: provider; anchors.verticalCenter: parent.verticalCenter; visible: !root.loading && root.providerEntry !== "" && root.display !== Basic.AbstractButton.TextOnly; entry: root.providerEntry; tone: root.iconTone }
-        Ui.BusyIndicator { id: spinner; anchors.verticalCenter: parent.verticalCenter; visible: root.loading; running: visible; width: Metrics.iconSm; height: width; tone: root.filled ? Ui.Text.OnAccent : Ui.Text.Primary }
+        // The provider icon and the spinner load only when shown. Most buttons
+        // never show them, and building them made every button slower to create.
+        Loader {
+            id: provider
+            anchors.verticalCenter: parent.verticalCenter
+            visible: !root.loading && root.providerEntry !== "" && root.display !== Basic.AbstractButton.TextOnly
+            active: visible
+            sourceComponent: Ui.ProviderIcon { entry: root.providerEntry; tone: root.iconTone }
+        }
+        Loader {
+            id: spinner
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.loading
+            active: visible
+            sourceComponent: Ui.BusyIndicator { running: true; width: Metrics.iconSm; height: width; tone: root.filled ? Ui.Text.OnAccent : Ui.Text.Primary }
+        }
         // A proportional line height leaves its slack under the glyphs, which pushes a one-line label above center.
         Ui.Text { id: label; objectName: "nativeButtonLabel"; lineHeight: 1; width: Math.max(0, Math.min(implicitWidth, content.width - content.iconWidth - content.trailingWidth - Math.max(0, content.visibleCount - 1) * content.spacing)); anchors.verticalCenter: parent.verticalCenter; text: root.text; visible: text !== "" && root.display !== Basic.AbstractButton.IconOnly; role: root.outlined ? Typography.SansCaption : root.textRole; font.weight: root.outlined ? Font.Medium : Typography.weight(root.textRole); tone: root.textTone; domainColor: root.outlined ? root.outlinedInk : undefined; elide: Text.ElideRight }
         Ui.Icon { id: trailingIcon; objectName: "nativeButtonTrailingIcon"; anchors.verticalCenter: parent.verticalCenter; visible: root.trailingIconName !== "" && root.display !== Basic.AbstractButton.IconOnly; name: root.trailingIconName; tone: root.iconTone }

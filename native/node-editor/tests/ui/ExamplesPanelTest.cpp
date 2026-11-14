@@ -5,6 +5,9 @@
 #include "interfaces/ExampleGallery.h"
 #include "media/VideoFrameView.h"
 
+#include <functional>
+
+#include <QElapsedTimer>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -274,6 +277,54 @@ private slots:
 
         click(view, named(root, "examples-close"));
         QTRY_COMPARE(closed.size(), 1);
+    }
+
+    // A server can list hundreds of ComfyUI examples. The panel builds only
+    // the cards near the view, so loading and scrolling stay fast.
+    void panelBuildsOnlyTheCardsNearTheView() {
+        QJsonArray many;
+        for (int i = 0; i < 600; ++i) {
+            const auto name = QStringLiteral("Comfy %1").arg(i, 3, 10, QLatin1Char('0'));
+            many.append(workflow(name + ".json", name, {"comfy"}));
+        }
+        ExampleGallery gallery;
+        gallery.setServerExamples(many);
+        QQuickView view;
+        view.setInitialProperties({{"gallery", QVariant::fromValue(&gallery)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        QElapsedTimer timer;
+        timer.start();
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ExamplesPanel.qml"));
+        QVERIFY(view.rootObject());
+        view.resize(360, 900);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        const auto loadMs = timer.elapsed();
+        auto *root = view.rootObject();
+        const auto cards = [root] {
+            int count = 0;
+            std::function<void(QQuickItem *)> walk = [&](QQuickItem *item) {
+                if (item->objectName().startsWith(QStringLiteral("example-card-"))) { ++count; }
+                for (auto *child : item->childItems()) { walk(child); }
+            };
+            walk(root);
+            return count;
+        };
+        QVERIFY(named(root, "example-card-server:Comfy 000.json"));
+        QVERIFY2(cards() < 100, qPrintable(QString::number(cards())));
+
+        auto *list = named(root, "examples-list");
+        QVERIFY(list);
+        timer.restart();
+        // ListView estimates contentHeight, so read it again at every step.
+        for (qreal y = 0; y < list->property("contentHeight").toReal(); y += 300) {
+            list->setProperty("contentY", y);
+            QCoreApplication::processEvents();
+        }
+        const auto scrollMs = timer.elapsed();
+        QVERIFY(named(root, "example-card-server:Comfy 599.json"));
+        QVERIFY2(cards() < 100, qPrintable(QString::number(cards())));
+        qInfo("600 cards: load %lld ms, full scroll %lld ms", static_cast<long long>(loadMs), static_cast<long long>(scrollMs));
     }
 };
 
