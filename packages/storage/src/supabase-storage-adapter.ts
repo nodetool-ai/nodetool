@@ -1,5 +1,6 @@
 import {
   createSupabaseStorageClient,
+  hasDotSegment,
   type SupabaseStorageApi,
   type SupabaseUploadOptions
 } from "./supabase-rest.js";
@@ -66,10 +67,10 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     if (slashIndex <= 0 || slashIndex === withoutScheme.length - 1) {
       return null;
     }
-    return {
-      bucket: withoutScheme.slice(0, slashIndex),
-      key: withoutScheme.slice(slashIndex + 1)
-    };
+    const key = withoutScheme.slice(slashIndex + 1);
+    // A dot segment would climb out of the key once `fetch` parses the URL.
+    if (hasDotSegment(key)) return null;
+    return { bucket: withoutScheme.slice(0, slashIndex), key };
   }
 
   async store(

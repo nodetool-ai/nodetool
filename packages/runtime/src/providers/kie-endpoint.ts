@@ -9,6 +9,8 @@
  * `KieProvider` still run their own submit and poll helpers.
  */
 
+import { createHmac, timingSafeEqual } from "node:crypto";
+
 import { recordGenerationReceipt } from "../generation-receipt.js";
 import type {
   EndpointCallRequest,
@@ -39,10 +41,50 @@ export const KIE_MANIFEST_PATH = "kie-manifest.json";
  * When set, KIE tasks are submitted with a real callBackUrl and the transport
  * waits for the webhook instead of polling. Set to the public base URL of this
  * server (e.g. `https://myserver.example.com`).
+ *
+ * Webhook mode also needs a secret for the callback token (see
+ * {@link kieWebhookToken}). Without one this answers undefined and the
+ * transport polls, because an unauthenticated callback would let anyone who
+ * learns a task id settle somebody's paid task.
  */
 export function getWebhookBaseUrl(): string | undefined {
   const url = process.env.KIE_WEBHOOK_URL;
-  return url && url.trim() ? url.replace(/\/+$/, "") : undefined;
+  if (!url || !url.trim() || !kieWebhookToken()) return undefined;
+  return url.replace(/\/+$/, "");
+}
+
+/** The route KIE posts task callbacks to. */
+export const KIE_WEBHOOK_PATH = "/api/kie/webhook";
+
+/**
+ * The token every KIE callback URL carries. KIE signs nothing, so the URL is
+ * the only credential: `KIE_WEBHOOK_SECRET` when the operator sets one, else a
+ * key derived from `SECRETS_MASTER_KEY`. Null when neither is set.
+ */
+export function kieWebhookToken(): string | null {
+  const explicit = process.env.KIE_WEBHOOK_SECRET?.trim();
+  const master = process.env.SECRETS_MASTER_KEY?.trim();
+  const secret = explicit || master;
+  if (!secret) return null;
+  return createHmac("sha256", secret).update("nodetool:kie-webhook:v1").digest("hex");
+}
+
+/** Whether `token` is this server's KIE callback token. */
+export function isValidKieWebhookToken(token: unknown): boolean {
+  const expected = kieWebhookToken();
+  if (!expected || typeof token !== "string") return false;
+  const a = Buffer.from(token);
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/** The callBackUrl to submit, or undefined when webhook mode is off. */
+export function kieWebhookCallbackUrl(): string | undefined {
+  const base = getWebhookBaseUrl();
+  const token = kieWebhookToken();
+  return base && token
+    ? `${base}${KIE_WEBHOOK_PATH}?token=${encodeURIComponent(token)}`
+    : undefined;
 }
 
 export function kieHeaders(apiKey: string): Record<string, string> {
@@ -395,8 +437,7 @@ export async function callKieEndpoint(
   }
 
   const { pollInterval, maxAttempts } = pollConfig(req.model, route);
-  const webhookBase = getWebhookBaseUrl();
-  const webhookUrl = webhookBase ? `${webhookBase}/api/kie/webhook` : undefined;
+  const webhookUrl = kieWebhookCallbackUrl();
 
   if (route.kind === "suno") {
     const body = req.input.callBackUrl

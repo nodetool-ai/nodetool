@@ -470,4 +470,15 @@ describe("transient failures", () => {
     expect(error?.message).toBe("denied");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("refuses a key with a dot segment instead of letting fetch collapse it", async () => {
+    fetchMock.mockResolvedValue(new Response(new Uint8Array([1])));
+    await expect(
+      client().storage.from("assets").download("projects/p/../../victim/a.png")
+    ).rejects.toThrow("Invalid storage key");
+    await expect(
+      client().storage.from("assets").download("a/./b.png")
+    ).rejects.toThrow("Invalid storage key");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

@@ -114,6 +114,16 @@ describe("SupabaseStorageAdapter retrieve", () => {
     expect(await adapter.retrieve("supabase:///key")).toBeNull();
   });
 
+  it("returns null for a key with a dot segment and never downloads", async () => {
+    const download = vi.fn(async () => ({ data: null, error: null }));
+    const { adapter } = makeAdapter({ download });
+    expect(
+      await adapter.retrieve("supabase://uploads/projects/p/../../victim/a.png")
+    ).toBeNull();
+    expect(await adapter.retrieve("supabase://uploads/./a.png")).toBeNull();
+    expect(download).not.toHaveBeenCalled();
+  });
+
   it("returns null when download reports an error", async () => {
     const { adapter } = makeAdapter({
       download: vi.fn(async () => ({ data: null, error: { message: "nope" } }))
