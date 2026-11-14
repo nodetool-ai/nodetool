@@ -671,3 +671,63 @@ export class HomePage {
     return this.page.getByRole("button", { name: "Move tool", exact: true });
   }
 }
+
+/** Home for someone who has not seen a first result yet. */
+export class FirstRunHomePage {
+  constructor(private readonly page: Page) {}
+
+  async open(): Promise<void> {
+    await this.page.addInitScript(() => {
+      // Only the first page load starts fresh. A later load in the same test
+      // must keep what the journey recorded, such as a first result.
+      if (sessionStorage.getItem("first-run-journey-seeded")) {
+        return;
+      }
+      sessionStorage.setItem("first-run-journey-seeded", "1");
+      localStorage.removeItem("nodetool-onboarding");
+      localStorage.setItem(
+        "workspace-tabs-storage",
+        JSON.stringify({
+          version: 4,
+          state: {
+            tabs: [],
+            activeTabId: null,
+            activeProjectId: null,
+            personalProjectId: null,
+            projectSessions: {}
+          }
+        })
+      );
+    });
+    await this.page.goto("/workspace", { waitUntil: "domcontentloaded" });
+    await this.starters().waitFor({ state: "visible", timeout: 60_000 });
+  }
+
+  starters(): Locator {
+    return this.page.getByRole("region", { name: "Start with a result", exact: true });
+  }
+
+  firstTask(): Locator {
+    return this.starters().getByRole("button", { name: "Send it", exact: true });
+  }
+
+  card(title: "Make a tiny game" | "Storyboard a short film" | "Run a template"): Locator {
+    return this.starters().getByText(title, { exact: true });
+  }
+
+  /** Whether the page can be panned sideways, the way a thumb would. */
+  async pansSideways(): Promise<boolean> {
+    return this.page.evaluate(() => {
+      const root = document.scrollingElement ?? document.documentElement;
+      return root.scrollWidth > root.clientWidth;
+    });
+  }
+
+  /** The onboarding store's record that a first result was seen. */
+  async firstResultRecorded(): Promise<boolean> {
+    return this.page.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem("nodetool-onboarding") ?? "{}").state?.firstResult === true
+    );
+  }
+}

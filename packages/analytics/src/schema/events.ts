@@ -10,7 +10,9 @@ import {
   ERROR_CATEGORIES,
   EXECUTION_MODES,
   FEATURES,
-  NODE_COUNT_BUCKETS
+  FIRST_RUN_STARTERS,
+  NODE_COUNT_BUCKETS,
+  VIEWPORT_CLASSES
 } from "./properties.js";
 
 /**
@@ -39,6 +41,29 @@ export const ANALYTICS_EVENTS = {
     properties: { commandCategory: COMMAND_CATEGORIES }
   },
   workflow_created: { clients: GUI_CLIENT_TYPES, properties: {} },
+  /** Home showed the first-run starters to someone who has not finished them. */
+  first_run_viewed: {
+    clients: GUI_CLIENT_TYPES,
+    properties: { viewport: VIEWPORT_CLASSES }
+  },
+  /** A first-run starter on Home was picked. */
+  starter_selected: {
+    clients: GUI_CLIENT_TYPES,
+    properties: { starter: FIRST_RUN_STARTERS, viewport: VIEWPORT_CLASSES }
+  },
+  /**
+   * The first output this browser saw: a chat reply, a finished workflow run,
+   * a screenplay or a game design. Sent once per browser. The duration is
+   * measured from the page load that produced it.
+   */
+  first_result: {
+    clients: GUI_CLIENT_TYPES,
+    properties: {
+      feature: FEATURES,
+      durationBucket: DURATION_BUCKETS,
+      viewport: VIEWPORT_CLASSES
+    }
+  },
   workflow_run: {
     clients: INTERACTIVE_CLIENT_TYPES,
     properties: {

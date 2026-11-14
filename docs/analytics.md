@@ -48,9 +48,14 @@ product analytics has a sender. Diagnostics and crash reports have no
 implementation and stay off.
 
 - Web and desktop: Settings → Privacy has the switch, the list of what is and
-  is not collected, and the recent events exactly as serialized. After the
-  first successful workflow run, a small non-modal card asks once. Answering or
+  is not collected, and the recent events exactly as serialized. A small
+  non-modal card asks once: after the first successful workflow run, or in the
+  Cloud web app when Home first shows the first-run starters. Answering or
   ignoring it records that it was asked.
+- Cloud web app only: while the answer is pending, that session's events stay
+  in memory. They are queued if the answer is yes and discarded if it is no,
+  on reload, or when the page closes. They are never stored or sent before a
+  yes, so the first steps of a first session are counted only with consent.
 - CLI: `nodetool telemetry enable|disable|status|inspect`. The CLI never
   prompts. Installing, upgrading, `npx`, CI and importing a package never
   enable it or reset the decision.
@@ -98,6 +103,9 @@ Every event has this envelope. `timestamp` is truncated to the hour.
 | `app_started` | web, desktop | none |
 | `cli_started` | CLI | `commandCategory` |
 | `workflow_created` | web, desktop | none |
+| `first_run_viewed` | web, desktop | `viewport` (`phone`, `tablet`, `desktop`) |
+| `starter_selected` | web, desktop | `starter` (`first_task`, `game`, `storyboard`, `template`), `viewport` |
+| `first_result` | web, desktop | `feature`, `durationBucket` since page load, `viewport`. Once per browser |
 | `workflow_run` | web, desktop, CLI | `executionMode`, `nodeCountBucket` |
 | `workflow_run_succeeded` | web, desktop, CLI | adds `durationBucket` |
 | `workflow_run_failed` | web, desktop, CLI | adds `durationBucket`, `errorCategory` |

@@ -47,12 +47,18 @@ interface OnboardingStore {
    * running an example without describing anything does not tick it.
    */
   ideaDescribed: boolean;
+  /**
+   * The person has seen a first output: a chat reply, a finished workflow
+   * run, a screenplay or a game design. Retires the first-run starters.
+   */
+  firstResult: boolean;
   /** Milliseconds the app was open and focused, summed across sessions. */
   activeUsageMs: number;
   /** The GitHub star prompt has been shown once already. */
   githubStarPromptShown: boolean;
   markStep: (step: OnboardingStepId) => void;
   markIdeaDescribed: () => void;
+  markFirstResult: () => void;
   dismiss: () => void;
   addActiveUsage: (ms: number) => void;
   markGithubStarPromptShown: () => void;
@@ -64,6 +70,7 @@ export const useOnboardingStore = create<OnboardingStore>()(
       completedSteps: [],
       dismissed: false,
       ideaDescribed: false,
+      firstResult: false,
       activeUsageMs: 0,
       githubStarPromptShown: false,
 
@@ -77,6 +84,10 @@ export const useOnboardingStore = create<OnboardingStore>()(
 
       markIdeaDescribed: () => {
         set({ ideaDescribed: true });
+      },
+
+      markFirstResult: () => {
+        set({ firstResult: true });
       },
 
       dismiss: () => {
