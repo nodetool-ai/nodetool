@@ -316,8 +316,9 @@ observation envelope, and the direct set: `DIRECT_TOOL_NAMES` minus every key of
 `SDK_NATIVE_TOOL_REPLACEMENTS`, because an MCP client is the host agent that
 table describes and its own `read_file` must not sit beside NodeTool's. What
 survives is discovery, the server-side reach behind NodeTool's SSRF guard and
-secrets, and `run_subtask`. A local session (stdio, or a loopback request to a
-non-production server) also gets `inspect_packs` and `manage_packs`
+secrets, and `run_subtask`. A local session (stdio, or a loopback request from
+the local user `1` to a non-production Local-mode server, see
+`isLocalMcpSession` in `packages/websocket/src/lib/mcp-mount.ts`) also gets `inspect_packs` and `manage_packs`
 (`packages/websocket/src/mcp-pack-tools.ts`). They run the `nodetool packs` CLI
 in a child process, because MCP and server processes refuse pack installs. Everything else on that belt is
 reachable inside an action by import, through the `nodetool.*` object

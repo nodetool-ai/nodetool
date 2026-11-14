@@ -33,3 +33,33 @@ export function configuredMcpUrl(
   if (!base) return null;
   return `${base.replace(/\/+$/, "")}/mcp`;
 }
+
+/** What decides whether an HTTP `/mcp` request is the machine owner's own. */
+export interface McpLocalSessionRequest {
+  isProduction: boolean;
+  /** Supabase or SSO sign-in is enforced. */
+  enforceAuth: boolean;
+  /** The user the auth hook resolved, or null. */
+  userId: string | null;
+  /** True when the socket peer is a loopback address. */
+  fromLoopback: boolean;
+}
+
+/**
+ * Whether an HTTP `/mcp` request gets the local-session tools: server file
+ * paths in `upload_asset`, `download_asset` and `view_image`, and pack
+ * management. Those read and write the server's disk, so they belong to the
+ * single local user of a Local-mode server, never to a signed-in account.
+ *
+ * A loopback peer alone is not enough. Behind a reverse proxy on the same
+ * machine every request arrives from loopback, so that test handed server
+ * file access to every account that could reach `/mcp`.
+ */
+export function isLocalMcpSession(request: McpLocalSessionRequest): boolean {
+  return (
+    !request.isProduction &&
+    !request.enforceAuth &&
+    request.userId === "1" &&
+    request.fromLoopback
+  );
+}

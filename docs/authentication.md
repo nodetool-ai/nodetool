@@ -171,7 +171,7 @@ SAML is not built in. Providers that only speak SAML can sit behind an OIDC brid
 | `AUTH_REDIRECT_URL` | no | Where the browser lands after sign-in, when the web app is served from another address than the API, such as the Vite dev server. |
 | `OIDC_SCOPES` | no | Space- or comma-separated scopes. Default `openid email profile`. `openid` is always added. |
 | `OIDC_PROVIDER_NAME` | no | Label on the sign-in button. Default `SSO`. |
-| `OIDC_ALLOWED_DOMAINS` | no | Comma-separated email domains allowed to sign in. Requires an `email` claim whose `email_verified` is not `false`. |
+| `OIDC_ALLOWED_DOMAINS` | no | Comma-separated email domains allowed to sign in. Requires an `email` claim with `email_verified: true`. Providers that omit `email_verified`, such as Microsoft Entra ID, are refused: use `OIDC_ALLOWED_GROUPS` there. |
 | `OIDC_ALLOWED_GROUPS` | no | Comma-separated groups allowed to sign in. A user needs at least one. |
 | `OIDC_GROUPS_CLAIM` | no | Claim holding the groups. Default `groups`. A dotted path reads a nested claim, such as `realm_access.roles` for Keycloak realm roles. Most providers include groups only when asked, through a scope or a client mapper. |
 | `OIDC_ADMIN_GROUPS` | no | Comma-separated groups whose members are NodeTool admins. Read from the same claim as `OIDC_ALLOWED_GROUPS`. |
