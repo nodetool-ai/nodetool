@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} 샷",
         "modelLabel": "모델",
         "modelPlaceholder": "각본 모델",
+        "noModels": "사용할 수 있는 언어 모델이 없습니다. 설정의 모델 및 공급자에서 공급자 키를 추가하세요.",
         "shotsLabel": "샷",
         "title": "장르를 선택하세요",
         "description": "톤, 속도, 프레이밍은 귀하의 선택에 따릅니다. 나중에 변경할 수 있습니다.",
@@ -3822,10 +3823,9 @@
           "lightingPlaceholder": "장면의 조명 방식",
           "shotHeader": "샷 {{count}}",
           "shotAction": "샷 {{count}} · 액션",
-          "shotDialogue": "샷 {{count}} · 대화",
-          "dialoguePlaceholder": "대화",
-          "addDialogue": "대화 추가",
+          "dialogue": "대화",
           "seconds": "초",
+          "shotLength": "{{seconds}}초",
           "sceneHeader": "장면 {{count}}"
         },
         "fallback": {

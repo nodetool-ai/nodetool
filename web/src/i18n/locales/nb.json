@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} skudd",
         "modelLabel": "Modell",
         "modelPlaceholder": "Manusmodell",
+        "noModels": "Ingen språkmodell er tilgjengelig. Legg til en leverandørnøkkel i Innstillinger, under Modeller og leverandører.",
         "shotsLabel": "Skudd",
         "title": "Velg sjangeren din",
         "description": "Tone, pacing og innramming følger ditt valg. Du kan endre det senere.",
@@ -3822,10 +3823,9 @@
           "lightingPlaceholder": "Hvordan scenen er opplyst",
           "shotHeader": "Skudd {{count}}",
           "shotAction": "Skudd {{count}} · Action",
-          "shotDialogue": "Skudd {{count}} · Dialog",
-          "dialoguePlaceholder": "Dialog",
-          "addDialogue": "Legg til dialog",
+          "dialogue": "Dialog",
           "seconds": "Sekunder",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scene {{count}}"
         },
         "fallback": {

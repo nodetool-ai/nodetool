@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} ショット",
         "modelLabel": "モデル",
         "modelPlaceholder": "脚本モデル",
+        "noModels": "利用できる言語モデルがありません。設定の「モデルとプロバイダー」でプロバイダーキーを追加してください。",
         "shotsLabel": "ショット",
         "title": "ジャンルを選択してください",
         "description": "トーン、ペース、フレーミングはあなたの選択に従います。後で変更できます。",
@@ -3822,10 +3823,9 @@
           "lightingPlaceholder": "現場の照明の様子",
           "shotHeader": "ショット {{count}}",
           "shotAction": "ショット {{count}} · アクション",
-          "shotDialogue": "ショット {{count}} · ダイアログ",
-          "dialoguePlaceholder": "対話",
-          "addDialogue": "ダイアログを追加",
+          "dialogue": "対話",
           "seconds": "秒",
+          "shotLength": "{{seconds}}秒",
           "sceneHeader": "シーン {{count}}"
         },
         "fallback": {

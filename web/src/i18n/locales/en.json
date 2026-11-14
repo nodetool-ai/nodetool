@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} shots",
         "modelLabel": "Model",
         "modelPlaceholder": "Screenplay model",
+        "noModels": "No language model is available. Add a provider key in Settings, under Models & Providers.",
         "shotsLabel": "Shots",
         "title": "Choose your genre",
         "description": "Tone, pacing and framing follow your choice. You can change it later.",
@@ -3822,10 +3823,9 @@
           "lightingPlaceholder": "How the scene is lit",
           "shotHeader": "Shot {{count}}",
           "shotAction": "Shot {{count}} · Action",
-          "shotDialogue": "Shot {{count}} · Dialogue",
-          "dialoguePlaceholder": "Dialogue",
-          "addDialogue": "Add dialogue",
+          "dialogue": "Dialogue",
           "seconds": "Seconds",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scene {{count}}"
         },
         "fallback": {

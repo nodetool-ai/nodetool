@@ -16,10 +16,9 @@ import {
   Caption,
   CopyButton,
   FlexColumn,
-  FlexRow,
   LoadingSpinner,
   ScrollArea,
-  Text, Toolbar, getSpacingPx, SPACING,
+  Toolbar, getSpacingPx, SPACING,
   EYEBROW
 } from "../ui_primitives";
 
@@ -34,10 +33,6 @@ const styles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     backgroundColor: theme.vars.palette.background.default,
-    ".filename": {
-      color: theme.vars.palette.text.primary,
-      fontWeight: 500
-    },
     ".kind-tag": {
       ...EYEBROW,
     },
@@ -140,14 +135,9 @@ const TextPreview = ({ asset }: TextPreviewProps) => {
         className="preview-header"
         sx={{ justifyContent: "space-between", pl: SPACING.lg }}
       >
-        <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-          <Text className="filename" size="small">
-            {asset.name}
-          </Text>
-          <Caption className="kind-tag">
-            {kind === "csv" ? "csv" : (language ?? kind)}
-          </Caption>
-        </FlexRow>
+        <Caption className="kind-tag">
+          {kind === "csv" ? "csv" : (language ?? kind)}
+        </Caption>
         {text !== undefined && <CopyButton value={text} buttonSize="small" />}
       </Toolbar>
       <div className="preview-body">{body()}</div>

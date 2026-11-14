@@ -1,3 +1,7 @@
+#include "properties/CodeHighlighter.h"
+#include <QAbstractTextDocumentLayout>
+#include <QTextBlock>
+#include <QTextDocument>
 #include "EditorScene.h"
 #include "NodeLayout.h"
 #include "WorkflowGraphModel.h"
@@ -41,6 +45,9 @@ namespace nodetool {
 namespace {
 namespace nm = node_metrics;
 
+// BaseNode's focused badge sits this far above the card's top edge.
+constexpr double focusBadgeOffset = 20;
+
 // NodeErrors.tsx: a failed card offers Report at its bottom left, across from
 // the status label.
 QRectF reportErrorRect(const WorkflowGraphModel &model, QtNodes::NodeId id, const NodeLayout &layout) {
@@ -80,7 +87,8 @@ public:
   QRectF boundingRect(NodeId id) const override {
     if (const auto &cached = model_.layout(id).bounds) { return *cached; }
     const auto margin = nm::handleDiameter / 2 + 2;
-    auto bounds = QRectF(QPointF(0, 0), size(id)).adjusted(-margin, model_.isGroup(id) ? -40 : -margin, margin, margin);
+    const bool focused = !model_.focusedNode().isEmpty() && model_.focusedNode() == model_.resourceId(id);
+    auto bounds = QRectF(QPointF(0, 0), size(id)).adjusted(-margin, model_.isGroup(id) ? -40 : focused ? -focusBadgeOffset - 1 : -margin, margin, margin);
     for (const auto side : {PortType::In, PortType::Out}) {
       const auto ports = model_.ports(id, side);
       for (int i = 0; i < ports.size(); ++i) {
@@ -141,6 +149,52 @@ QFont canvasFont(const CanvasTheme &theme, int pixels, QFont::Weight weight) {
   font.setWeight(weight);
   font.setHintingPreference(QFont::PreferNoHinting);
   return font;
+}
+// The painted twin of CodePropertyEditor.qml: the field fill, a right-aligned
+// line gutter and highlighted monospace text, with the same font and offsets.
+// Only the lines that fit are laid out, so a long source paints in constant time.
+void paintCodeField(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
+  const auto field = row.rect;
+  painter->save();
+  painter->setPen(Qt::NoPen);
+  painter->setBrush(theme.field);
+  painter->drawRoundedRect(field, nm::fieldRadius, nm::fieldRadius);
+  painter->setClipRect(field.adjusted(0, 0, -nm::borderWidth, -nm::borderWidth));
+  auto font = canvasFont(theme, nm::codeFontSize, QFont::Normal);
+  font.setFamily(theme.monoFamily);
+  font.setStyleHint(QFont::Monospace);
+  const QFontMetricsF metrics(font);
+  const auto visible = int(std::ceil((field.height() - nm::codePaddingY) / metrics.lineSpacing())) + 1;
+  const auto lines = row.value.split(QLatin1Char('\n'));
+  const auto shown = QStringList(lines.mid(0, visible)).join(QLatin1Char('\n'));
+  QTextDocument document;
+  document.setDocumentMargin(0);
+  document.setDefaultFont(font);
+  document.setUndoRedoEnabled(false);
+  QTextOption option;
+  option.setWrapMode(QTextOption::NoWrap);
+  document.setDefaultTextOption(option);
+  document.setPlainText(shown);
+  node_editor::CodeHighlighter highlighter;
+  highlighter.setKeyword(theme.info);
+  highlighter.setLiteral(theme.success);
+  highlighter.setComment(theme.textSecondary);
+  highlighter.setDocument(&document);
+  highlighter.rehighlight();
+  painter->setFont(font);
+  painter->setPen(theme.textSecondary);
+  const auto top = field.top() + nm::codePaddingY;
+  for (int line = 0; line < std::min<int>(visible, lines.size()); ++line) {
+    const auto block = document.findBlockByNumber(line);
+    const auto y = top + document.documentLayout()->blockBoundingRect(block).top();
+    painter->drawText(QRectF(field.left(), y, nm::codeGutterWidth - nm::codeTextGap / 2.0, metrics.lineSpacing()),
+                      Qt::AlignRight | Qt::AlignVCenter, QString::number(line + 1));
+  }
+  painter->translate(field.left() + nm::codeGutterWidth + nm::codeTextGap, top);
+  QAbstractTextDocumentLayout::PaintContext context;
+  context.palette.setColor(QPalette::Text, theme.textPrimary);
+  document.documentLayout()->draw(painter, context);
+  painter->restore();
 }
 
 void paintIcon(QPainter *painter, const QString &name, const QRectF &rect, QColor color) {
@@ -426,10 +480,27 @@ public:
     }
     // A selected Preview card is edged in grey 100 and an Output card in info.main over white.
     const auto selectedEdge = previewCard ? theme.previewSelected : outputCard ? theme.outputSelected : layout.accent;
-    painter->setPen(QPen(item.isSelected() ? (layout.subgraph ? theme.subgraphAccent : selectedEdge) : borderColor, layout.subgraph && item.isSelected() ? 2 * nm::borderWidth : nm::borderWidth, disabled ? Qt::DashLine : Qt::SolidLine));
+    // selectionStyles.ts: the keyboard-focused card is edged dashed in warning.
+    const bool focused = !model.focusedNode().isEmpty() && model.focusedNode() == model.resourceId(item.nodeId());
+    painter->setPen(QPen(focused ? theme.warning : item.isSelected() ? (layout.subgraph ? theme.subgraphAccent : selectedEdge) : borderColor, layout.subgraph && item.isSelected() ? 2 * nm::borderWidth : nm::borderWidth, disabled || focused ? Qt::DashLine : Qt::SolidLine));
     painter->setBrush(grouped && !loading ? theme.groupFill : theme.node);
     painter->drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), nm::radius - 0.5, nm::radius - 0.5);
     if (disabled) { paintBypassStripes(painter, box, theme); }
+    if (focused) {
+      // BaseNode's "Focused" badge, centered 20 px above the card.
+      const auto font = canvasFont(theme, nm::fontValue, QFont::DemiBold);
+      const auto text = QObject::tr("Focused");
+      const auto width = QFontMetricsF(font).horizontalAdvance(text) + 2 * nm::padding;
+      const QRectF badge(box.center().x() - width / 2, -focusBadgeOffset, width, focusBadgeOffset - 4);
+      painter->save();
+      painter->setPen(Qt::NoPen);
+      painter->setBrush(theme.warning);
+      painter->drawRoundedRect(badge, 4, 4);
+      painter->setPen(theme.canvas);
+      painter->setFont(font);
+      painter->drawText(badge, Qt::AlignCenter, text);
+      painter->restore();
+    }
 
     const auto inset = double(nm::borderWidth + nm::padding);
     auto iconColor = theme.textSecondary;
@@ -474,11 +545,21 @@ public:
         paintIcon(painter, QStringLiteral("uploadFile"), button.adjusted(4, 4, -4, -4), hovered ? theme.textPrimary : theme.textSecondary);
     }
     CardBodyPaintState bodyState;
-    bodyState.hasResult = model.hasRuntimeOutput(item.nodeId());
+    bodyState.hasResult = model.hasRuntimeOutput(item.nodeId()) && !layout.sourceTab;
+    bodyState.running = model.runtimeState(item.nodeId())["status"] == QStringLiteral("running");
     bodyState.hovered = item.nodeState().hovered();
     if (scene_.sliderDraftNode() == item.nodeId()) {
         bodyState.draftProperty = scene_.sliderDraftProperty();
         bodyState.draftValue = scene_.sliderDraftValue();
+    }
+    if (scene_.cropDraftNode() == item.nodeId()) {
+        bodyState.cropDraft = scene_.cropDraft();
+    }
+    if (scene_.paintDraftNode() == item.nodeId()) {
+        bodyState.paintDraft = &scene_.paintDraft();
+    }
+    if (scene_.brushCursorNode() == item.nodeId()) {
+        bodyState.brushCursor = scene_.brushCursor();
     }
     for (const auto &row : layout.rows) {
         if (!paintCardBodyRow(painter, theme, layout, row, bodyState)) {
@@ -628,6 +709,8 @@ private:
       painter->drawRoundedRect(track, 7, 7);
       painter->setBrush(row.checked ? QColor(Qt::white) : theme.textSecondary);
       painter->drawEllipse(QPointF(track.x() + (row.checked ? 21 : 7), track.center().y()), 5, 5);
+    } else if (row.code) {
+      paintCodeField(painter, theme, row);
     } else if (row.kind == NodeRowKind::Field || row.kind == NodeRowKind::Multiline) {
       const QRectF field(inset, row.fieldY, width, row.height);
       painter->setPen(Qt::NoPen);
@@ -1692,6 +1775,25 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 model_.commit({{"op", "batch"}, {"commands", QJsonArray{
                     model_.propertyCommand(id, QStringLiteral("width"), row.number),
                     model_.propertyCommand(id, QStringLiteral("height"), row.number)}}});
+            } else if (row.action == QStringLiteral("compareMode")) {
+                // ImageComparer's toggle switches the divider direction and keeps its position.
+                for (const auto &compare : layout.rows) {
+                    if (compare.kind != NodeRowKind::Compare) { continue; }
+                    model_.setPreviewTab(id, compareTab({!compare.checked, compare.number}));
+                }
+            } else if (row.action == QStringLiteral("compositorLayout")) {
+                emit headerActionRequested(model_.resourceId(id), row.action);
+            } else if (row.action.startsWith(QStringLiteral("compositor"))) {
+                model_.compositorAction(id, row.action, int(row.number));
+            } else if (row.action.startsWith(QStringLiteral("painter"))) {
+                model_.painterAction(id, row.action, row.value);
+            } else if (row.action == QStringLiteral("runNode")) {
+                // RunModelButton runs this node on its own, as Run node does.
+                if (auto *item = nodeGraphicsObject(id)) {
+                    if (!item->isSelected() || selectedItems().size() != 1) { clearSelection(); item->setSelected(true); }
+                }
+                emit nodeSelected(id);
+                emit nodeRunRequested(model_.resourceId(id));
             } else if (row.action == QStringLiteral("insertVariable")) {
                 const auto prompt = node["data"].toObject()["prompt"].toString();
                 model_.commit(model_.propertyCommand(id, QStringLiteral("prompt"), prompt + QStringLiteral("{{ %1 }}").arg(row.value)));
@@ -1712,6 +1814,30 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 }
             } else if (row.action == QStringLiteral("clearCollection")) {
                 model_.commit(model_.propertyCommand(id, QStringLiteral("items"), QJsonArray{}));
+            } else if (row.action == QStringLiteral("resetCrop")) {
+                // CropBody's Reset selects the whole image, or 512 square before one arrives.
+                QSizeF bounds(512, 512);
+                for (const auto &crop : layout.rows) {
+                    if (crop.kind == NodeRowKind::Crop) { bounds = QSizeF(crop.minimum, crop.maximum); }
+                }
+                model_.commit({{"op", "batch"}, {"commands", QJsonArray{
+                    model_.propertyCommand(id, QStringLiteral("left"), 0), model_.propertyCommand(id, QStringLiteral("top"), 0),
+                    model_.propertyCommand(id, QStringLiteral("right"), bounds.width()),
+                    model_.propertyCommand(id, QStringLiteral("bottom"), bounds.height())}}});
+            } else if (row.action == QStringLiteral("resetSliders")) {
+                // The Curves and Levels Reset writes every default in one step.
+                QJsonArray commands;
+                for (int i = 0; i < row.options.size() && i < row.optionValues.size(); ++i) {
+                    commands.append(model_.propertyCommand(id, row.options[i], QJsonValue::fromVariant(row.optionValues[i])));
+                }
+                if (row.options.isEmpty()) {
+                    for (const auto &slider : layout.rows) {
+                        if (slider.kind == NodeRowKind::Slider && slider.tracksDefault) {
+                            commands.append(model_.propertyCommand(id, slider.propertyName, slider.defaultNumber));
+                        }
+                    }
+                }
+                model_.commit({{"op", "batch"}, {"commands", commands}});
             } else if (row.action == QStringLiteral("resetTransform")) {
                 // RotateAndFlipBody's Reset writes the angle and both flips together.
                 model_.commit({{"op", "batch"}, {"commands", QJsonArray{
@@ -1719,6 +1845,46 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                     model_.propertyCommand(id, QStringLiteral("flip_horizontal"), false),
                     model_.propertyCommand(id, QStringLiteral("flip_vertical"), false)}}});
             }
+            return true;
+        }
+        if (row.kind == NodeRowKind::Compare) {
+            if (!row.rect.contains(local)) { continue; }
+            // The mode toggle sits over the images and takes its own press.
+            bool onButton = false;
+            for (const auto &other : layout.rows) { onButton = onButton || (other.kind == NodeRowKind::Action && other.rect.contains(local)); }
+            if (onButton) { continue; }
+            select();
+            compareNode_ = id;
+            const auto position = row.checked ? (local.y() - row.rect.top()) / row.rect.height() : (local.x() - row.rect.left()) / row.rect.width();
+            model_.setPreviewTab(id, compareTab({row.checked, std::clamp(position, 0.0, 1.0)}));
+            return true;
+        }
+        if (row.kind == NodeRowKind::Paint) {
+            if (!row.rect.contains(local) || model_.readOnly() || row.minimum <= 0 || row.maximum <= 0) { continue; }
+            select();
+            paintNode_ = id;
+            paintStroke_ = QImage(QSize(int(row.minimum), int(row.maximum)), QImage::Format_ARGB32_Premultiplied);
+            paintStroke_.fill(Qt::transparent);
+            // A press paints a dot, as drawStrokeTo from the same point.
+            paintLast_ = QPointF((local.x() - row.rect.x()) * row.minimum / row.rect.width(),
+                                 (local.y() - row.rect.y()) * row.maximum / row.rect.height());
+            QPainter stroke(&paintStroke_);
+            stroke.setRenderHint(QPainter::Antialiasing);
+            stroke.setPen(QPen(QColor(row.value), row.step, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            stroke.drawPoint(paintLast_);
+            if (auto *item = nodeGraphicsObject(id)) { item->update(); }
+            return true;
+        }
+        if (row.kind == NodeRowKind::Crop) {
+            // Outside the crop and its handles the image passes the press to the card.
+            const auto handle = cropHandleAt(row, cropEdges(row), local);
+            if (handle.isEmpty() || model_.readOnly()) { continue; }
+            select();
+            cropNode_ = id;
+            cropHandle_ = handle;
+            cropStart_ = cropEdges(row);
+            cropValue_ = cropStart_;
+            cropPointer_ = local;
             return true;
         }
         if (row.kind == NodeRowKind::Knob) {
@@ -1787,6 +1953,99 @@ void EditorScene::moveSlider(const QPointF &scenePosition) {
         }
     }
 }
+void EditorScene::moveCrop(const QPointF &scenePosition) {
+    auto *item = nodeGraphicsObject(cropNode_);
+    if (!item) { finishCrop(false); return; }
+    for (const auto &row : model_.layout(cropNode_).rows) {
+        if (row.kind != NodeRowKind::Crop || row.rect.isEmpty()) { continue; }
+        const auto local = item->mapFromScene(scenePosition);
+        // Card pixels to image pixels, as renderedScale.
+        const QPointF delta((local.x() - cropPointer_.x()) * row.minimum / row.rect.width(),
+                            (local.y() - cropPointer_.y()) * row.maximum / row.rect.height());
+        const auto value = cropDragged(cropHandle_, cropStart_, delta, QSizeF(row.minimum, row.maximum), row.step);
+        if (value == cropValue_) { return; }
+        cropValue_ = value;
+        item->update();
+        return;
+    }
+}
+void EditorScene::updateBrushCursor(const QPointF &scenePosition) {
+    auto next = InvalidNodeId;
+    QPointF point;
+    for (auto *item : items(scenePosition, Qt::IntersectsItemShape, Qt::DescendingOrder)) {
+        auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
+        if (!node) { continue; }
+        const auto local = node->mapFromScene(scenePosition);
+        for (const auto &row : model_.layout(node->nodeId()).rows) {
+            if (row.kind == NodeRowKind::Paint && row.rect.contains(local)) {
+                next = node->nodeId();
+                point = local;
+            }
+        }
+        break;
+    }
+    if (next == brushNode_ && point == brushPoint_) { return; }
+    const auto previous = std::exchange(brushNode_, next);
+    brushPoint_ = point;
+    if (auto *item = nodeGraphicsObject(previous)) { item->update(); }
+    if (previous != next) {
+        if (auto *item = nodeGraphicsObject(next)) { item->update(); }
+    }
+}
+void EditorScene::moveCompare(const QPointF &scenePosition) {
+    auto *item = nodeGraphicsObject(compareNode_);
+    if (!item) { compareNode_ = InvalidNodeId; return; }
+    for (const auto &row : model_.layout(compareNode_).rows) {
+        if (row.kind != NodeRowKind::Compare || row.rect.isEmpty()) { continue; }
+        const auto local = item->mapFromScene(scenePosition);
+        const auto position = row.checked ? (local.y() - row.rect.top()) / row.rect.height() : (local.x() - row.rect.left()) / row.rect.width();
+        model_.setPreviewTab(compareNode_, compareTab({row.checked, std::clamp(position, 0.0, 1.0)}));
+        return;
+    }
+}
+void EditorScene::movePaint(const QPointF &scenePosition) {
+    auto *item = nodeGraphicsObject(paintNode_);
+    if (!item) { finishPaint(false); return; }
+    for (const auto &row : model_.layout(paintNode_).rows) {
+        if (row.kind != NodeRowKind::Paint || row.rect.isEmpty()) { continue; }
+        const auto local = item->mapFromScene(scenePosition);
+        const QPointF point((local.x() - row.rect.x()) * row.minimum / row.rect.width(),
+                            (local.y() - row.rect.y()) * row.maximum / row.rect.height());
+        brushNode_ = paintNode_;
+        brushPoint_ = local;
+        if (point == paintLast_) { item->update(); return; }
+        QPainter stroke(&paintStroke_);
+        stroke.setRenderHint(QPainter::Antialiasing);
+        stroke.setPen(QPen(QColor(row.value), row.step, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        stroke.drawLine(paintLast_, point);
+        paintLast_ = point;
+        item->update();
+        return;
+    }
+}
+void EditorScene::finishPaint(bool commit) {
+    const auto id = paintNode_;
+    const auto stroke = std::exchange(paintStroke_, QImage());
+    paintNode_ = InvalidNodeId;
+    if (auto *item = nodeGraphicsObject(id)) { item->update(); }
+    // finishStroke lays the whole stroke at once, so one undo step reverts it.
+    if (commit && model_.nodeExists(id)) { model_.finishPaintStroke(id, stroke); }
+}
+void EditorScene::finishCrop(bool commit) {
+    const auto id = cropNode_;
+    const auto value = cropValue_;
+    cropNode_ = InvalidNodeId;
+    cropHandle_.clear();
+    if (auto *item = nodeGraphicsObject(id)) { item->update(); }
+    // One drag writes the four edges together, so a single undo step reverts it.
+    if (commit && model_.nodeExists(id) && value != cropStart_ && model_.commit) {
+        model_.commit({{"op", "batch"}, {"commands", QJsonArray{
+            model_.propertyCommand(id, QStringLiteral("left"), value.left()),
+            model_.propertyCommand(id, QStringLiteral("top"), value.top()),
+            model_.propertyCommand(id, QStringLiteral("right"), value.right()),
+            model_.propertyCommand(id, QStringLiteral("bottom"), value.bottom())}}});
+    }
+}
 void EditorScene::finishSlider(bool commit) {
     const auto id = sliderNode_;
     const auto name = sliderProperty_;
@@ -1796,7 +2055,9 @@ void EditorScene::finishSlider(bool commit) {
     knobDrag_ = false;
     if (auto *item = nodeGraphicsObject(id)) { item->update(); }
     // One drag commits one value, so a single undo step reverts it.
-    if (commit && model_.nodeExists(id) && value != sliderOrigin_ && model_.commit) {
+    if (commit && model_.nodeExists(id) && value != sliderOrigin_ && isCardControl(name)) {
+        model_.setCardControl(id, name, value);
+    } else if (commit && model_.nodeExists(id) && value != sliderOrigin_ && model_.commit) {
         model_.commit(model_.propertyCommand(id, name, value));
     }
 }
@@ -1820,7 +2081,23 @@ void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
         event->accept();
         return;
     }
+    if (cropNode_ != InvalidNodeId) {
+        moveCrop(event->scenePos());
+        event->accept();
+        return;
+    }
+    if (paintNode_ != InvalidNodeId) {
+        movePaint(event->scenePos());
+        event->accept();
+        return;
+    }
+    if (compareNode_ != InvalidNodeId) {
+        moveCompare(event->scenePos());
+        event->accept();
+        return;
+    }
     updateHandleHover(event->scenePos());
+    updateBrushCursor(event->scenePos());
     if (auto *old = nodeGraphicsObject(footerHover_)) {
         old->setProperty("footerHovered", false);
         old->setProperty("headerActionHovered", false);
@@ -1888,6 +2165,27 @@ void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
         knobFine_ = event->modifiers().testFlag(Qt::ShiftModifier);
         moveSlider(event->scenePos());
         finishSlider(true);
+        inlinePress_ = false;
+        event->accept();
+        return;
+    }
+    if (cropNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
+        moveCrop(event->scenePos());
+        finishCrop(true);
+        inlinePress_ = false;
+        event->accept();
+        return;
+    }
+    if (compareNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
+        moveCompare(event->scenePos());
+        compareNode_ = InvalidNodeId;
+        inlinePress_ = false;
+        event->accept();
+        return;
+    }
+    if (paintNode_ != InvalidNodeId && event->button() == Qt::LeftButton) {
+        movePaint(event->scenePos());
+        finishPaint(true);
         inlinePress_ = false;
         event->accept();
         return;
@@ -2117,6 +2415,16 @@ void EditorScene::keyPressEvent(QKeyEvent *event) {
         event->accept();
         return;
     }
+    if (event->key() == Qt::Key_Escape && cropNode_ != InvalidNodeId) {
+        finishCrop(false);
+        event->accept();
+        return;
+    }
+    if (event->key() == Qt::Key_Escape && paintNode_ != InvalidNodeId) {
+        finishPaint(false);
+        event->accept();
+        return;
+    }
   if (event->key() == Qt::Key_Escape && gesture_ != Gesture::None) {
     cancelGesture();
     event->accept();
@@ -2170,6 +2478,12 @@ void EditorScene::drawBackground(QPainter *painter, const QRectF &rect) {
   painter->setRenderHint(QPainter::Antialiasing, false);
   painter->setPen(QPen(theme_.grid, 0));
   painter->drawLines(crosses);
+  // Origin axes (web AxisMarker.tsx): 1px lines from (0, 0) running 80000 screen
+  // pixels right and down, in the palette's c_editor_axis_color.
+  const auto axisLength = axisMarkerLength / std::max(std::abs(zoom), 1e-6);
+  const QLineF axes[] = {{0, 0, axisLength, 0}, {0, 0, 0, axisLength}};
+  painter->setPen(QPen(axisMarkerColor(theme_.canvas.lightnessF() < .5), 0));
+  painter->drawLines(axes, 2);
 }
 
 void EditorScene::drawForeground(QPainter *painter, const QRectF &) {

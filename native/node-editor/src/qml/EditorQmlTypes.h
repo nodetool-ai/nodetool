@@ -4,8 +4,10 @@
 
 #include "interfaces/DocumentTabs.h"
 #include "interfaces/GenerationActivity.h"
+#include "interfaces/GenerationRowsModel.h"
 #include "interfaces/GenerationReplay.h"
 #include "interfaces/NodeCatalog.h"
+#include "interfaces/NodeInfo.h"
 #include "interfaces/NodeInspector.h"
 #include "interfaces/PanelLayout.h"
 #include "interfaces/StatusModel.h"
@@ -49,6 +51,13 @@ struct NodeInspectorForeign {
     QML_UNCREATABLE("A NodeInspector comes from its owner.")
 };
 
+struct NodeInfoForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::NodeInfo)
+    QML_NAMED_ELEMENT(NodeInfo)
+    QML_UNCREATABLE("A NodeInfo comes from its owner.")
+};
+
 struct PropertyHostForeign {
     Q_GADGET
     QML_FOREIGN(nodetool::node_editor::PropertyHost)
@@ -61,6 +70,12 @@ struct GenerationActivityForeign {
     QML_FOREIGN(nodetool::node_editor::GenerationActivity)
     QML_NAMED_ELEMENT(GenerationActivity)
     QML_UNCREATABLE("A GenerationActivity comes from its owner.")
+};
+
+struct GenerationRowsModelForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::GenerationRowsModel)
+    QML_NAMED_ELEMENT(GenerationRowsModel)
 };
 
 struct GenerationReplayForeign {

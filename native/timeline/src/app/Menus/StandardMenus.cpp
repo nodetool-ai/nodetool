@@ -162,6 +162,7 @@ std::vector<Group> table() {
 
         {"Sequence", "match", 0, {{"matchFrame", "Match Frame", assetAtPlayhead}}},
         {"Sequence", "edit", 10, {{"splitAtPlayhead", "Add Edit", sequenceClips}, {"cutAllTracks", "Add Edit to All Tracks", sequenceClips}}},
+        {"Sequence", "text", 12, {{"addTextAtPlayhead", "Add Text at Playhead", editor}}},
         // The trim module's own entries use orders 15 to 17.
         {"Sequence", "Trim", 18, {{"extendEdit", "Extend Selected Edit to Playhead", editPoint},
                                   {"extendPrevEdit", "Extend Previous Edit to Playhead", sequenceClips},

@@ -10,7 +10,7 @@
 namespace {
 constexpr int SETTLE_MS = 60;
 constexpr double RANGE_TOLERANCE_MS = 0.001;
-const QString NEW_CAPTION_REFUSAL = QStringLiteral("Move the playhead to a gap in an unlocked audio or video clip.");
+const QString NEW_CAPTION_REFUSAL = QStringLiteral("A caption needs an unlocked audio or video clip under the playhead, with no caption there yet. For words over a picture, use Add text in the timeline toolbar.");
 const QString LOCKED_REFUSAL = QStringLiteral("Unlock the clip to edit this caption.");
 }
 

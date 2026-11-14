@@ -3731,6 +3731,7 @@
         "shotCount_other": "{{count}} strzału",
         "modelLabel": "Modelka",
         "modelPlaceholder": "Model scenariusza",
+        "noModels": "Brak dostępnego modelu językowego. Dodaj klucz dostawcy w Ustawieniach, w sekcji Modele i dostawcy.",
         "shotsLabel": "Strzały",
         "title": "Wybierz swój gatunek",
         "description": "Ton, tempo i kadrowanie zależą od Twojego wyboru. Możesz to zmienić później.",
@@ -3898,10 +3899,9 @@
           "lightingPlaceholder": "Jak oświetlona jest scena",
           "shotHeader": "Strzał {{count}}",
           "shotAction": "Strzał {{count}} · Akcja",
-          "shotDialogue": "Strzał {{count}} · Dialog",
-          "dialoguePlaceholder": "Dialog",
-          "addDialogue": "Dodaj dialog",
+          "dialogue": "Dialog",
           "seconds": "Sekundy",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scena {{count}}"
         },
         "fallback": {

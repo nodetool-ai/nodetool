@@ -7,6 +7,7 @@
 #include "interfaces/DocumentTabs.h"
 #include "interfaces/GenerationActivity.h"
 #include "interfaces/NodeCatalog.h"
+#include "interfaces/NodeInfo.h"
 #include "interfaces/NodeInspector.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PanelLayout.h"
@@ -20,6 +21,7 @@
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
+#include "server/ComfyBackend.h"
 #include "document/WorkflowDocument.h"
 #include "graph/WorkflowGraphModel.h"
 #include "server/WorkflowSession.h"
@@ -79,6 +81,10 @@ public:
     Q_INVOKABLE void askAgent(const QString &message);
     Q_SLOT void askRunAgent(const QString &runId, const QString &spanId = {});
     Q_SLOT void toggleChat();
+    // web/src/config/shortcuts.ts newChat and focusChatComposer, handled by
+    // ChatView.tsx. Both open the chat when it is closed.
+    void newChatConversation();
+    void focusChatComposer();
     void beginChatGeometry();
     void resetChatPosition();
     void changeChatGeometry(int dx, int dy, int edges, bool finished);
@@ -90,6 +96,11 @@ public:
   bool emptyCanvas() const { return document_.nodes().isEmpty(); }
   node_editor::SetupController *setup() { return &setup_; }
     node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
+    // Where Comfy workflows run, shared by every tab and held by the root window.
+    node_editor::ComfyBackend *comfyBackend() { return tabOwner_ ? &tabOwner_->comfy_ : &comfy_; }
+    // useStartComfyWorkflow: a new Comfy workflow on the server, opened in a tab.
+    void newComfyWorkflow();
+    bool comfyWorkflowOpen() const { return comfyWorkflow_; }
     // The Generations panel's list, shared by every tab and held by the root window.
     node_editor::GenerationActivity *generationActivity() { return tabOwner_ ? &tabOwner_->generations_ : &generations_; }
     // The root window has no panels of its own, so it returns the active tab's.
@@ -139,6 +150,8 @@ public:
   void loadChildSource(const QString &nodeId, const QString &kind, const QString &sourceId);
   // ComfyWorkflowLoader.tsx: the Run ComfyUI Workflow node's load dialog.
   void showComfyWorkflowDialog(const QString &nodeId);
+  // CompositorEditorModal.tsx: the Compositor node's layout editor.
+  void showCompositorLayoutDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
   EditorWindow *activeEditor() const;
@@ -159,6 +172,7 @@ public:
   bool browserVisible() const;
   bool libraryVisible() const;
   void openWorkflow(const QString &id);
+  void deleteWorkflows(const QStringList &ids);
   void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
   bool runActive() const;
@@ -233,6 +247,8 @@ public:
     void openWorkflowDocument(const QJsonObject &workflow);
     // Opens the Report issue for a failed job in the queue history.
     void reportJob(const QString &jobId);
+    // Opens a queue job output's get_url in the browser, resolved against the server.
+    void openJobOutput(const QString &url);
     // A status bar tab: opens its panel, or closes it when it is the open one (PanelBottom.tsx).
     void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;
@@ -491,6 +507,8 @@ private:
   static bool mouseNavigation();
   void applyFit();
   void revealSelection();
+  // Moves the view the least distance that shows the card whole.
+  void revealNode(const QString &resourceId);
   // The view that fits every node, as the zoom and the scene point at the viewport center.
   struct ViewTarget { double zoom = 1; QPointF center; };
   ViewTarget fitTarget() const;
@@ -545,6 +563,14 @@ private:
   void showContextMenu(const QString &kind, const QPoint &globalPosition, const QString &nodeId = {}, const QString &edgeId = {}, const QPointF &scenePosition = {});
   void showFindPanel();
   void revealFound(const QString &resourceId);
+  // NodeInfoPanel.tsx: Ctrl+I shows the first selected node's info beside it.
+  void toggleNodeInfo();
+  void closeNodeInfo();
+  void syncNodeInfo();
+  void positionNodeInfo();
+  // Opens the node menu at a namespace path, with a search term.
+  void openNodeMenuAt(const QStringList &path, const QString &term);
+  void focusNode(const QString &resourceId);
   bool contextAction(const QString &name);
   bool selectConnected(const QString &direction);
   void selectSameType(const QString &nodeId);
@@ -554,6 +580,19 @@ private:
   QPointer<QObject> viewAnimation_;
 
     node_editor::PackSetup packSetup_;
+    // The root window's Comfy target. Owned by value, UI thread. Tabs reach it
+    // through comfyBackend() and never in their destructors.
+    node_editor::ComfyBackend comfy_;
+    // This tab's catalog before the Comfy records join it, and the records of
+    // the Comfy targets it has loaded (see nextComfyRecords).
+    QJsonArray baseCatalog_, comfyRecords_;
+    quint64 comfyCatalogEpoch_ = 0;
+    bool comfyWorkflow_ = false, comfyCatalogLoaded_ = false, comfyCatalogLoading_ = false;
+    void installComfy();
+    void syncComfyWorkflow();
+    void reloadComfyCatalog();
+    void syncComfyTarget();
+    void showComfyTargetMenu();
     // The root window's generations, which every tab's Generations panel reads
     // through generationActivity(). Owned by value, UI thread, destroyed with
     // the root window after its tabs and their panels.
@@ -566,6 +605,9 @@ private:
     // read and do. Owned by value, UI thread, destroyed with the tab after its
     // panels.
     node_editor::NodeInspector nodeInspector_;
+    // What this tab's node info overlay (NodeInfoPanel.qml) reads and does.
+    // Owned by value, UI thread, destroyed with the tab after its panels.
+    node_editor::NodeInfo nodeInfo_;
     // What this tab's TabBar and CanvasTabStrip panels read and do, and what
     // its TabBar and notification list read about notifications. The tab
     // state lives in the root window; each tab copies it into its own objects.
@@ -674,6 +716,10 @@ private:
   // Parented to this window. It fires when a queue change has held.
   QTimer *shownQueueTimer_ = nullptr;
   QQuickWidget *selectionOverlay_ = nullptr;
+  // The node info panel, a child of view_ deleted by ~EditorWindow before
+  // nodeInfo_. nodeInfoId_ is the node it shows, empty while it is hidden.
+  QQuickWidget *nodeInfoOverlay_ = nullptr;
+  QString nodeInfoId_;
   // True while the selection toolbar floats over its card instead of the canvas top.
   bool selectionToolbarFloating_ = false;
   InlinePropertyPresenter *inlinePresenter_ = nullptr;

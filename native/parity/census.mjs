@@ -27,7 +27,9 @@ export const WEB_COMPONENT_DIRS = [
     "web/src/components/panels",
     "web/src/components/node_types",
     "web/src/components/context_menus",
-    "web/src/components/version"
+    "web/src/components/version",
+    "web/src/components/chat",
+    "web/src/components/workflows"
 ];
 
 // Credit per status. Accepted, out-of-scope and unreviewed items are left out
@@ -110,8 +112,60 @@ export async function webShortcuts(root = ROOT) {
     }
 }
 
-// The native bindings: the command table in EditorMenus.cpp and the tab
-// shortcuts that EditorWindow::installTabShortcuts binds.
+// The application menu entries that bind keys to a call, such as
+// entry(file, tr("Close Tab"), [this] { closeTab(activeTab()); }, {QKeySequence(QStringLiteral("Ctrl+W"))}).
+// Entries made with command() run a command of the EditorMenus.cpp table and are counted there.
+export function appMenuBindings(source) {
+    const bindings = [];
+    const pattern = /entry\(\w+,\s*tr\("[^"]*"\),\s*\[this\]\s*\{\s*([A-Za-z]+\([^;]*\));\s*\},\s*\{([^}]*)\}\)/g;
+    for (const [, call, list] of source.matchAll(pattern)) {
+        for (const [, keys] of list.matchAll(/QKeySequence\(QStringLiteral\("([^"]+)"\)\)/g)) {
+            bindings.push({ command: call, combo: normalizeCombo(keys), source: "src/ui/EditorAppMenu.cpp" });
+        }
+    }
+    return bindings;
+}
+
+// Pointer gestures a QML file binds: a TapHandler with a right button, a
+// modifier and one call in onTapped, such as the Ctrl or Cmd right click that
+// resets a property. The call names the command: "removeValue()".
+export function gestureBindings(source, file) {
+    const bindings = [];
+    const buttons = { RightButton: "mouseright", LeftButton: "mouseleft" };
+    const modifiers = { ControlModifier: "ctrl", MetaModifier: "meta", ShiftModifier: "shift", AltModifier: "alt" };
+    for (const [, body] of source.matchAll(/TapHandler \{([^{}]*)\}/g)) {
+        const button = body.match(/acceptedButtons:\s*Qt\.(\w+)/)?.[1];
+        const modifier = body.match(/acceptedModifiers:\s*Qt\.(\w+)/)?.[1];
+        const call = body.match(/onTapped:[^\n]*?(?:\w+\.)?([A-Za-z]+\(\))\s*$/m)?.[1];
+        if (buttons[button] && modifiers[modifier] && call) {
+            bindings.push({ command: call, combo: normalizeCombo([modifiers[modifier], buttons[button]]), source: file });
+        }
+    }
+    return bindings;
+}
+
+// QML files whose gestures count as shortcuts.
+const GESTURE_FILES = ["qml/PropertyField.qml"];
+
+// Keys a QML key handler turns into one session call, such as the composer's
+//   if (event.key === Qt.Key_Escape && root.running) {
+//       root.session.stop()
+// The call names the command: "session.stop()".
+export function keyHandlerBindings(source, file) {
+    const bindings = [];
+    const pattern = /if \(event\.key === Qt\.Key_(\w+)[^\n]*\) \{\s*\n\s*root\.(session\.[A-Za-z]+\(\))/g;
+    for (const [, key, call] of source.matchAll(pattern)) {
+        bindings.push({ command: call, combo: normalizeCombo(key), source: file });
+    }
+    return bindings;
+}
+
+// QML files, relative to native/, whose key handlers count as shortcuts.
+const KEY_HANDLER_FILES = ["chat/qml/ChatComposer.qml"];
+
+// The native bindings: the command table in EditorMenus.cpp, the application
+// menu, the tab shortcuts that EditorWindow::installTabShortcuts binds, the
+// pointer gestures of GESTURE_FILES and the keys of KEY_HANDLER_FILES.
 export function nativeShortcuts(root = ROOT) {
     const menus = readFileSync(join(root, "native/node-editor/src/ui/EditorMenus.cpp"), "utf8");
     const table = menus.match(/const Shortcut shortcuts\[\] = \{([\s\S]*?)\n\};/);
@@ -141,6 +195,13 @@ export function nativeShortcuts(root = ROOT) {
     }
     for (const [, keys, call] of body.matchAll(/\n\s*bind\("([^"]+)", \[this\] \{ ([A-Za-z]+\([^)]*\))/g)) {
         bindings.push({ command: call, combo: normalizeCombo(keys), source: "src/ui/EditorTabs.cpp" });
+    }
+    bindings.push(...appMenuBindings(readFileSync(join(root, "native/node-editor/src/ui/EditorAppMenu.cpp"), "utf8")));
+    for (const file of GESTURE_FILES) {
+        bindings.push(...gestureBindings(readFileSync(join(root, "native/node-editor", file), "utf8"), file));
+    }
+    for (const file of KEY_HANDLER_FILES) {
+        bindings.push(...keyHandlerBindings(readFileSync(join(root, "native", file), "utf8"), file));
     }
     return bindings;
 }

@@ -263,6 +263,12 @@ QStringList CanvasDropController::dropZone(const QPoint &viewportPosition) const
             const auto local = node->mapFromScene(view_.mapToScene(viewportPosition));
             const auto row = model_.dropZoneAt(node->nodeId(), local);
             if (row < 0) {
+                // PainterBody's onAreaDrop: an image dropped on the paint area becomes its source image.
+                for (const auto &paint : model_.layout(node->nodeId()).rows) {
+                    if (paint.kind == NodeRowKind::Paint && !model_.readOnly() && paint.parts.value(0, paint.rect).contains(local)) {
+                        return {model_.resourceId(node->nodeId()), QStringLiteral("image"), QStringLiteral("image")};
+                    }
+                }
                 return {};
             }
             const auto &zone = model_.layout(node->nodeId()).rows[row];
@@ -285,7 +291,12 @@ QStringList CanvasDropController::clickZone(const QPoint &viewportPosition) cons
                 continue;
             }
             const auto local = node->mapFromScene(view_.mapToScene(viewportPosition));
-            const auto &row = model_.layout(node->nodeId()).rows[model_.dropZoneAt(node->nodeId(), local)];
+            // The Painter canvas takes drops only, so a press there paints.
+            const auto index = model_.dropZoneAt(node->nodeId(), local);
+            if (index < 0) {
+                return {};
+            }
+            const auto &row = model_.layout(node->nodeId()).rows[index];
             // A Collection's grid holds its tiles, so only the empty grid opens the picker.
             if (collectionZone(row.typeName)) {
                 return row.placeholder ? zone << QStringLiteral("pick") : QStringList{};

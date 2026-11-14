@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { censusComponents, censusOutOfScope, censusPropertyTypes, censusShortcuts, normalizeCombo, runCensus, summarize } from "../census.mjs";
+import { appMenuBindings, censusComponents, censusOutOfScope, censusPropertyTypes, censusShortcuts, gestureBindings, keyHandlerBindings, normalizeCombo, runCensus, summarize } from "../census.mjs";
 
 test("normalizeCombo spells web and native combinations the same way", () => {
     assert.equal(normalizeCombo(["Control", "Shift", "Z"]), "ctrl+shift+z");
@@ -57,4 +57,46 @@ test("the census reads every inventory from this checkout without registry probl
     for (const inventory of Object.values(report.inventories)) {
         assert.ok(inventory.total > 0);
     }
+});
+
+test("application menu entries bind each key sequence to their call", () => {
+    const source = `entry(file, tr("Close Tab"), [this] { closeTab(activeTab()); }, {QKeySequence(QStringLiteral("Ctrl+W"))});
+    entry(window, tr("Next Tab"), [this] { selectAdjacentTab(1); },
+          {QKeySequence(QStringLiteral("Ctrl+PgDown")), QKeySequence(QStringLiteral("Ctrl+Shift+]"))});
+    command(view, tr("Inspector"), QStringLiteral("Toggle inspector"));`;
+    assert.deepEqual(appMenuBindings(source).map((b) => [b.command, b.combo]), [
+        ["closeTab(activeTab())", "ctrl+w"],
+        ["selectAdjacentTab(1)", "ctrl+pgdown"],
+        ["selectAdjacentTab(1)", "ctrl+shift+]"]
+    ]);
+});
+
+test("a TapHandler with a button and a modifier is a gesture binding", () => {
+    const source = `TapHandler {
+        acceptedButtons: Qt.RightButton
+        acceptedModifiers: Qt.ControlModifier
+        onTapped: if (root.descriptor.changed === true) root.removeValue()
+    }
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: root.openMenu()
+    }`;
+    const bindings = gestureBindings(source, "qml/PropertyField.qml");
+    assert.deepEqual(bindings.map((b) => [b.command, b.combo]), [["removeValue()", "ctrl+mouseright"]]);
+    assert.equal(normalizeCombo(["Control", "MouseRight"]), bindings[0].combo);
+});
+
+test("a QML key handler that calls one session method is a key binding", () => {
+    const source = `Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Escape && root.running && root.session.turnStatus !== "stopping") {
+                        root.session.stop()
+                        event.accepted = true
+                    }
+                    if (event.key === Qt.Key_Up) {
+                        root.mentionIndex = 0
+                    }
+                }`;
+    const bindings = keyHandlerBindings(source, "chat/qml/ChatComposer.qml");
+    assert.deepEqual(bindings.map((b) => [b.command, b.combo]), [["session.stop()", "esc"]]);
+    assert.equal(normalizeCombo(["Escape"]), bindings[0].combo);
 });

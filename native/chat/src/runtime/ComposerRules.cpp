@@ -411,6 +411,17 @@ QVariantList reasoningLevels() {
             option("high", "High", "Reasons longest. Slower and costs more.")};
 }
 
+// PermissionSelector.tsx MODES with the en.json labels and descriptions.
+QVariantList permissionModes() {
+    return {option("plan", "Plan", "Investigate and propose a plan. Nothing runs."),
+            option("default", "Default", "Reads run. Actions ask first."),
+            option("auto", "Auto", "Routine work runs unattended. A step that deletes, publishes, or spends asks once.")};
+}
+
+bool isPermissionMode(const QString &mode) {
+    return mode == "plan" || mode == "default" || mode == "auto";
+}
+
 // packages/protocol/src/reasoning-effort.ts supportsReasoningEffort.
 bool supportsReasoningEffort(const QString &provider, const QString &model) {
     if (provider.isEmpty() || model.isEmpty()) {

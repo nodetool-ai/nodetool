@@ -3700,6 +3700,7 @@
         "shotCount_other": "{{count}} tiros",
         "modelLabel": "Modelo",
         "modelPlaceholder": "Modelo de roteiro",
+        "noModels": "Nenhum modelo de linguagem disponível. Adicione uma chave de provedor em Configurações, em Modelos e provedores.",
         "shotsLabel": "Tiros",
         "title": "Escolha seu gênero",
         "description": "Tom, ritmo e enquadramento seguem sua escolha. Você pode alterá-lo mais tarde.",
@@ -3860,10 +3861,9 @@
           "lightingPlaceholder": "Como a cena é iluminada",
           "shotHeader": "Tiro {{count}}",
           "shotAction": "Tiro {{count}} · Ação",
-          "shotDialogue": "Tiro {{count}} · Diálogo",
-          "dialoguePlaceholder": "Diálogo",
-          "addDialogue": "Adicionar diálogo",
+          "dialogue": "Diálogo",
           "seconds": "Segundos",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Cena {{count}}"
         },
         "fallback": {

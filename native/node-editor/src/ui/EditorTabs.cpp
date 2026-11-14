@@ -1003,6 +1003,7 @@ void nodetool::EditorWindow::syncPackSetup() {
     types.append(value.toObject()["type"].toString());
   }
   packSetup()->configure(packOrigin_, packToken_, packUser_);
+  comfyBackend()->configure(packOrigin_, packToken_, packUser_);
   packSetup()->setNodeTypes(types);
 }
 

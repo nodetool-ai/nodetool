@@ -3700,6 +3700,7 @@
         "shotCount_other": "{{count}} scatti",
         "modelLabel": "Modello",
         "modelPlaceholder": "Modello di sceneggiatura",
+        "noModels": "Nessun modello linguistico disponibile. Aggiungi una chiave del provider in Impostazioni, sotto Modelli e provider.",
         "shotsLabel": "Scatti",
         "title": "Scegli il tuo genere",
         "description": "Tono, ritmo e inquadratura seguono la tua scelta. Puoi cambiarlo più tardi.",
@@ -3860,10 +3861,9 @@
           "lightingPlaceholder": "Come è illuminata la scena",
           "shotHeader": "Tiro {{count}}",
           "shotAction": "Scatto {{count}} · Azione",
-          "shotDialogue": "Inquadratura {{count}} · Dialogo",
-          "dialoguePlaceholder": "Dialogo",
-          "addDialogue": "Aggiungi dialogo",
+          "dialogue": "Dialogo",
           "seconds": "Secondi",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scena {{count}}"
         },
         "fallback": {

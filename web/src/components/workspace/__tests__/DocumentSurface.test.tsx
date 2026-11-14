@@ -92,6 +92,19 @@ it("resolves the durable asset locator before previewing a PDF", () => {
   expect(useWorkspaceTabsStore.getState().tabs[0].title).toBe("report.pdf");
 });
 
+it("leaves the name of an unpreviewable document to the document bar", () => {
+  mockAsset = stub<Asset>({
+    id: assetId,
+    name: "Budget review.docx",
+    content_type:
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  });
+  mockUri = "https://storage.example/budget.docx";
+  renderDocument();
+  expect(screen.getByText("No preview for this format")).toBeInTheDocument();
+  expect(screen.queryByText("Budget review.docx")).not.toBeInTheDocument();
+});
+
 it("updates the tab filename when asset metadata arrives after opening", () => {
   mockPending = true;
   const { refresh } = renderDocument();
@@ -151,7 +164,7 @@ it.each(["csv", "tsv"])(
       ).toBeInTheDocument();
       expect(screen.getByRole("cell", { name: "Apples" })).toBeInTheDocument();
       expect(
-        screen.queryByText("Preview is not available for this document format.")
+        screen.queryByText("No preview for this format")
       ).not.toBeInTheDocument();
     } finally {
       fetchSpy.mockRestore();

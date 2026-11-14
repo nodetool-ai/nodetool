@@ -1,11 +1,15 @@
 #include "CardBodies.h"
 #include "CardMedia.h"
 #include "ModelLabels.h"
+#include "CompositorGeometry.h"
 #include "SynthModules.h"
 #include <QFont>
 #include <QFontMetricsF>
 #include <QTextLayout>
+#include <QLineF>
 #include <QObject>
+#include <QPainter>
+#include <QtMath>
 #include <QRegularExpression>
 #include <QSet>
 #include <algorithm>
@@ -267,33 +271,35 @@ void layoutBlur(NodeLayout &layout, const CardBodyInput &input) {
     layout.size.setHeight(int(std::ceil(slider.bottom() + nm::padding + nm::padding + nm::borderWidth)));
 }
 
-// The two number boxes of ResizeImageBody, ResizeBody, FitBody and PasteBody:
-// 12 px labels over 24 px boxes, with the aspect lock between them when `lock`
-// is set. The boxes edit width and height unless other names are given.
-// Returns the bottom of the boxes.
+// The number boxes of ResizeImageBody, ResizeBody, FitBody, PasteBody and
+// CanvasResizeBody: 12 px labels over 24 px boxes, side by side. Two boxes get
+// the aspect lock between them when `lock` is set. The boxes edit width and
+// height unless other names are given. Returns the bottom of the boxes.
 double dimensionRow(NodeLayout &layout, const CardBodyInput &input, double y, bool lock,
                     const QStringList &names = {QStringLiteral("width"), QStringLiteral("height")},
                     const QStringList &labels = {QObject::tr("Width"), QObject::tr("Height")}) {
     const auto x = double(nm::borderWidth + nm::padding + nm::micro);
+    lock = lock && names.size() == 2;
     const auto gap = lock ? double(nm::lockWidth) : double(nm::micro) * 2;
-    const auto boxWidth = (layout.size.width() - 2 * x - gap) / 2;
-    layout.rows.append(labelRow(labels[0], QRectF(x, y, boxWidth, nm::dimensionLabelHeight)));
-    layout.rows.append(labelRow(labels[1], QRectF(x + boxWidth + gap, y, boxWidth, nm::dimensionLabelHeight)));
+    const auto count = double(names.size());
+    const auto boxWidth = (layout.size.width() - 2 * x - gap * (count - 1)) / count;
+    for (int i = 0; i < names.size(); ++i) {
+        layout.rows.append(labelRow(labels[i], QRectF(x + i * (boxWidth + gap), y, boxWidth, nm::dimensionLabelHeight)));
+    }
     y += nm::dimensionLabelHeight + nm::borderWidth;
-    const QRectF widthBox(x, y, boxWidth, nm::controlHeight);
-    const QRectF heightBox(widthBox.right() + gap, y, boxWidth, nm::controlHeight);
-    layout.rows.append(numberBox(input.fields.value(names[0]), names[0], widthBox));
-    layout.rows.append(numberBox(input.fields.value(names[1]), names[1], heightBox));
-    placePort(layout, input.inputs, names[0], widthBox.center().y());
-    placePort(layout, input.inputs, names[1], heightBox.center().y());
+    for (int i = 0; i < names.size(); ++i) {
+        const QRectF box(x + i * (boxWidth + gap), y, boxWidth, nm::controlHeight);
+        layout.rows.append(numberBox(input.fields.value(names[i]), names[i], box));
+        placePort(layout, input.inputs, names[i], box.center().y());
+    }
     if (lock) {
         auto link = controlRow(NodeRowKind::Lock, {}, input.dimensionsLinked ? QObject::tr("Unlock aspect ratio") : QObject::tr("Lock aspect ratio"),
-                               QRectF(widthBox.right(), y, gap, nm::controlHeight));
+                               QRectF(x + boxWidth, y, gap, nm::controlHeight));
         link.checked = input.dimensionsLinked;
         link.icon = input.dimensionsLinked ? QStringLiteral("link") : QStringLiteral("linkOff");
         layout.rows.append(link);
     }
-    return widthBox.bottom();
+    return y + nm::controlHeight;
 }
 
 // The 256, 512, 768 and 1024 chips that set both dimensions at once. Returns their bottom.
@@ -708,14 +714,43 @@ void layoutAdjustment(NodeLayout &layout, const CardBodyInput &input) {
                   : type == QStringLiteral("lib.image.color_grading.SplitToning") ? nm::splitToningHeight : 0);
 }
 
-// SimpleFilterBody.tsx and MaskBody.tsx: a preview whose tab bar picks which image it shows.
-void layoutTabbedPreview(NodeLayout &layout, const CardBodyInput &input, const QStringList &handles, const QStringList &labels,
-                         const QStringList &tabs, const QStringList &messages, const QString &fallbackTab, double padTop) {
+const CardMediaItem *readySource(const CardBodyInput &input, const QString &handle) {
+    const auto found = input.sources.constFind(handle);
+    if (found == input.sources.cend() || found->state != CardMediaState::Ready || !found->natural.isValid()) {
+        return nullptr;
+    }
+    return &*found;
+}
+
+// ImagePreview shows the arriving image until the node has a result of its own.
+void showSource(NodeLayout &layout, const CardBodyInput &input, const QString &handle) {
+    const auto *source = readySource(input, handle);
+    if (!source) {
+        return;
+    }
+    for (auto &row : layout.rows) {
+        if (row.kind == NodeRowKind::Preview && row.rect == layout.resultRect) {
+            row.media = {*source};
+            row.mediaKind = QStringLiteral("image");
+        }
+    }
+}
+
+// SimpleFilterBody.tsx, MaskBody.tsx and MasksExtractorBody.tsx: a preview
+// whose tab bar picks which image it shows. A tab named in sources shows the
+// image arriving at that handle in place of the run result.
+Column tabbedPreview(NodeLayout &layout, const CardBodyInput &input, const QStringList &handles, const QStringList &labels,
+                     const QStringList &tabs, const QStringList &messages, const QString &fallbackTab, double padTop,
+                     const QHash<QString, QString> &sources) {
     Column column(layout, input);
     column.handles(handles);
     const auto tab = tabs.contains(input.previewTab) ? input.previewTab : fallbackTab;
     const auto index = int(tabs.indexOf(tab));
     column.preview(messages.value(index));
+    if (sources.contains(tab)) {
+        layout.sourceTab = true;
+        showSource(layout, input, sources.value(tab));
+    }
     column.y += nm::bodyGap + padTop;
     QVariantList values;
     for (const auto &value : tabs) {
@@ -725,13 +760,20 @@ void layoutTabbedPreview(NodeLayout &layout, const CardBodyInput &input, const Q
     row.action = QStringLiteral("previewTab");
     layout.rows.append(row);
     column.y += nm::toggleHeight;
-    column.finish();
+    return column;
+}
+
+void layoutTabbedPreview(NodeLayout &layout, const CardBodyInput &input, const QStringList &handles, const QStringList &labels,
+                         const QStringList &tabs, const QStringList &messages, const QString &fallbackTab, double padTop,
+                         const QHash<QString, QString> &sources) {
+    tabbedPreview(layout, input, handles, labels, tabs, messages, fallbackTab, padTop, sources).finish();
 }
 
 void layoutSimpleFilter(NodeLayout &layout, const CardBodyInput &input) {
     layoutTabbedPreview(layout, input, {QStringLiteral("image")}, {QObject::tr("Before"), QObject::tr("After")},
                         {QStringLiteral("before"), QStringLiteral("after")},
-                        {QObject::tr("Connect an image"), QObject::tr("Run the node to see the result")}, QStringLiteral("after"), 0);
+                        {QObject::tr("Connect an image"), QObject::tr("Run the node to see the result")}, QStringLiteral("after"), 0,
+                        {{QStringLiteral("before"), QStringLiteral("image")}});
 }
 
 void layoutMask(NodeLayout &layout, const CardBodyInput &input) {
@@ -739,7 +781,27 @@ void layoutMask(NodeLayout &layout, const CardBodyInput &input) {
                         {QObject::tr("Img 1"), QObject::tr("Img 2"), QObject::tr("Mask"), QObject::tr("Result")},
                         {QStringLiteral("image1"), QStringLiteral("image2"), QStringLiteral("mask"), QStringLiteral("result")},
                         {QObject::tr("Connect image 1"), QObject::tr("Connect image 2"), QObject::tr("Connect a mask"), QObject::tr("Run the node to composite")},
-                        QStringLiteral("result"), 0);
+                        QStringLiteral("result"), 0,
+                        {{QStringLiteral("image1"), QStringLiteral("image1")}, {QStringLiteral("image2"), QStringLiteral("image2")},
+                         {QStringLiteral("mask"), QStringLiteral("mask")}});
+}
+
+// MasksExtractorBody.tsx: Image and Mask tabs over the preview, then the
+// Recalculate mask button that runs this node alone.
+void layoutMasksExtractor(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = tabbedPreview(layout, input, {QStringLiteral("image")}, {QObject::tr("Image"), QObject::tr("Mask")},
+                                {QStringLiteral("image"), QStringLiteral("mask")},
+                                {QObject::tr("Connect an image"), QObject::tr("Run the node to extract a mask")}, QStringLiteral("image"), 0,
+                                {{QStringLiteral("image"), QStringLiteral("image")}});
+    // .action-row: 2 px above, aligned right. RunModelButton pads 4 px by 16 px around a 16 px icon and a 6 px gap.
+    column.y += nm::micro + nm::micro;
+    const auto label = QObject::tr("Recalculate mask");
+    const auto width = std::min(column.width, std::ceil(captionWidth(label, true)) + nm::iconSize + nm::runButtonGap + 2 * nm::runButtonPadding);
+    auto run = controlRow(NodeRowKind::Action, {}, label, QRectF(column.x + column.width - width, column.y, width, nm::runButtonHeight));
+    run.action = QStringLiteral("runNode");
+    layout.rows.append(run);
+    column.y += nm::runButtonHeight;
+    column.finish();
 }
 
 // The image column shared by the fixed-control bodies: handle, preview and gap.
@@ -933,6 +995,8 @@ void layoutGetVariable(NodeLayout &layout, const CardBodyInput &input) {
     layout.size.setHeight(int(std::ceil(y + nm::getVariableGap + nm::micro + nm::padding + nm::borderWidth)));
 }
 
+NodeRow iconAction(const QString &action, const QString &name, const QString &icon, const QString &label, const QRectF &rect);
+
 void layoutCompareImages(NodeLayout &layout, const CardBodyInput &input) {
     // The card has no content that sizes it, so it takes its 300 by 250 minimum.
     const auto ui = input.node["ui_properties"].toObject();
@@ -945,8 +1009,32 @@ void layoutCompareImages(NodeLayout &layout, const CardBodyInput &input) {
     placePort(layout, input.inputs, QStringLiteral("image_b"), nm::contentTop + nm::rowHeight / 2.0 + nm::handleRowStep);
     const auto inset = double(nm::borderWidth + nm::padding);
     const QRectF area(inset, nm::contentTop, layout.size.width() - 2 * inset, layout.size.height() - nm::contentTop - inset);
-    layout.rows.append(placeholderRow(QObject::tr("Connect two images, then run"), QStringLiteral("compare"), area));
     layout.resultRect = area;
+    const auto *a = readySource(input, QStringLiteral("image_a"));
+    const auto *b = readySource(input, QStringLiteral("image_b"));
+    if (!a || !b) {
+        layout.rows.append(placeholderRow(QObject::tr("Connect two images, then run"), QStringLiteral("compare"), area));
+        return;
+    }
+    // ImageComparer: B under A, A clipped at the divider, labels, sizes and the mode toggle.
+    const auto view = compareView(input.previewTab);
+    auto compare = controlRow(NodeRowKind::Compare, {}, QObject::tr("Compare images"), area);
+    compare.media = {*a, *b};
+    compare.number = view.position;
+    compare.checked = view.vertical;
+    const auto label = [&input](const QString &name, const QString &fallback) {
+        const auto value = fieldValue(input.fields.value(name)).toString();
+        return value.isEmpty() ? fallback : value;
+    };
+    compare.options = {label(QStringLiteral("label_a"), QStringLiteral("A")), label(QStringLiteral("label_b"), QStringLiteral("B"))};
+    layout.rows.append(compare);
+    // .toggle-button: 8 px from the bottom and 24 px from the right.
+    const auto button = double(nm::layerButton);
+    auto toggle = iconAction(QStringLiteral("compareMode"), {}, view.vertical ? QStringLiteral("swapHoriz") : QStringLiteral("swapVert"),
+                             view.vertical ? QObject::tr("Switch to horizontal") : QObject::tr("Switch to vertical"),
+                             QRectF(area.right() - 24 - button, area.bottom() - 8 - button, button, button));
+    layout.rows.append(toggle);
+    layout.sourceTab = true;
 }
 
 } // namespace
@@ -1059,6 +1147,453 @@ void layoutRotateFlip(NodeLayout &layout, const CardBodyInput &input) {
                                   QRectF(column.x + column.width - size, column.y, size, size)));
     column.y += size;
     column.finish();
+}
+
+// The loaded image arriving at a body's handle, or null while it loads or when none arrives.
+// The dashed placement rectangle, as percentages of the preview area, and the size badge.
+void placementOverlay(NodeLayout &layout, const QRectF &fraction, const QString &badge) {
+    const auto area = layout.resultRect;
+    auto row = controlRow(NodeRowKind::Overlay, {}, {}, {});
+    if (fraction.isValid()) {
+        row.rect = QRectF(area.x() + fraction.x() * area.width(), area.y() + fraction.y() * area.height(),
+                          fraction.width() * area.width(), fraction.height() * area.height());
+    }
+    row.parts = {area};
+    row.value = badge;
+    layout.rows.append(row);
+}
+
+// CanvasResizeBody.tsx: a Fixed, Scale and Padding toggle under the preview
+// picks the controls. Fixed edits the canvas size, Scale a 0.01 to 4 factor,
+// and Padding a px or percent unit and the four edges.
+void layoutCanvasResize(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    const QVariantList modes{QStringLiteral("fixed"), QStringLiteral("scale"), QStringLiteral("padding")};
+    const auto modeValue = fieldValue(input.fields.value(QStringLiteral("mode")));
+    const auto mode = modes.contains(modeValue) ? modeValue.toString() : QStringLiteral("padding");
+    auto modeRow = toggleRow(column, column.x, QStringLiteral("mode"), {QObject::tr("Fixed"), QObject::tr("Scale"), QObject::tr("Padding")},
+                             modes, int(modes.indexOf(mode)), ToggleFit::Equal, false);
+    modeRow.checked = input.fields.value(QStringLiteral("mode")).value("connected").toBool();
+    layout.rows.append(modeRow);
+    placePort(layout, input.inputs, QStringLiteral("mode"), modeRow.rect.center().y());
+    // The mode row is a column with a 4 px gap.
+    column.y += nm::toggleHeight + nm::chipGap;
+    if (mode == QStringLiteral("fixed")) {
+        column.y = dimensionRow(layout, input, column.y, false);
+    } else if (mode == QStringLiteral("scale")) {
+        const QRectF slider(column.x, column.y, column.width, nm::sliderRowHeight);
+        layout.rows.append(sliderRow(input.fields.value(QStringLiteral("scale")), QStringLiteral("scale"), QObject::tr("Scale"),
+                                     slider, 0.01, 4, 0.01, QStringLiteral("%1×")));
+        placePort(layout, input.inputs, QStringLiteral("scale"), slider.center().y());
+        column.y = slider.bottom();
+    } else {
+        const QVariantList units{QStringLiteral("px"), QStringLiteral("percent")};
+        const auto unitValue = fieldValue(input.fields.value(QStringLiteral("padding_unit")));
+        const auto unit = units.contains(unitValue) ? int(units.indexOf(unitValue)) : 0;
+        auto unitRow = toggleRow(column, column.x, QStringLiteral("padding_unit"), {QStringLiteral("px"), QStringLiteral("%")}, units, unit,
+                                 ToggleFit::Content, false);
+        unitRow.checked = input.fields.value(QStringLiteral("padding_unit")).value("connected").toBool();
+        layout.rows.append(unitRow);
+        placePort(layout, input.inputs, QStringLiteral("padding_unit"), unitRow.rect.center().y());
+        column.y += nm::toggleHeight + nm::chipGap;
+        column.y = dimensionRow(layout, input, column.y, false,
+                                {QStringLiteral("top"), QStringLiteral("bottom"), QStringLiteral("left"), QStringLiteral("right")},
+                                {QObject::tr("Top"), QObject::tr("Bottom"), QObject::tr("Left"), QObject::tr("Right")});
+    }
+    column.finish();
+    showSource(layout, input, QStringLiteral("image"));
+    const auto *source = readySource(input, QStringLiteral("image"));
+    if (!source) {
+        return;
+    }
+    // computeLayout in CanvasResizeBody.tsx.
+    const double sourceWidth = source->natural.width(), sourceHeight = source->natural.height();
+    const auto number = [&input](const char *name, double fallback) {
+        const auto value = fieldValue(input.fields.value(QString::fromLatin1(name)));
+        return value.isValid() && value.canConvert<double>() ? value.toDouble() : fallback;
+    };
+    double canvasWidth = 0, canvasHeight = 0, offsetX = 0, offsetY = 0;
+    if (mode == QStringLiteral("fixed")) {
+        canvasWidth = std::max(1.0, std::floor(number("width", sourceWidth)));
+        canvasHeight = std::max(1.0, std::floor(number("height", sourceHeight)));
+        offsetX = std::floor((canvasWidth - sourceWidth) / 2);
+        offsetY = std::floor((canvasHeight - sourceHeight) / 2);
+    } else if (mode == QStringLiteral("scale")) {
+        const auto scale = number("scale", 0) > 0 ? number("scale", 1) : 1.0;
+        canvasWidth = std::max(1.0, std::round(sourceWidth * scale));
+        canvasHeight = std::max(1.0, std::round(sourceHeight * scale));
+        offsetX = std::floor((canvasWidth - sourceWidth) / 2);
+        offsetY = std::floor((canvasHeight - sourceHeight) / 2);
+    } else {
+        const auto percent = fieldValue(input.fields.value(QStringLiteral("padding_unit"))).toString() == QStringLiteral("percent");
+        const auto pixels = [percent](double value, double dimension) {
+            return percent ? std::max(0.0, std::round(dimension * value / 100)) : std::max(0.0, std::floor(value));
+        };
+        const auto left = pixels(number("left", 0), sourceWidth), right = pixels(number("right", 0), sourceWidth);
+        const auto top = pixels(number("top", 0), sourceHeight), bottom = pixels(number("bottom", 0), sourceHeight);
+        canvasWidth = std::max(1.0, sourceWidth + left + right);
+        canvasHeight = std::max(1.0, sourceHeight + top + bottom);
+        offsetX = left;
+        offsetY = top;
+    }
+    placementOverlay(layout, QRectF(offsetX / canvasWidth, offsetY / canvasHeight, sourceWidth / canvasWidth, sourceHeight / canvasHeight),
+                     QStringLiteral("%1 × %2").arg(canvasWidth).arg(canvasHeight));
+}
+
+// CurvesBody.tsx: Tonal and RGB Midtones sections of AdjustmentSlider rows.
+// The Tonal header carries the Reset that returns every slider to its default.
+void layoutCurves(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    const auto section = [&](const QString &title, bool reset, const QVector<SliderSpec> &sliders) {
+        // .section-header pads 2 px by 4 px around the eyebrow and the reset button.
+        const auto top = column.y + nm::micro;
+        const auto height = reset ? double(nm::iconButtonSize) : double(nm::toggleHeight);
+        const auto label = title.toUpper();
+        layout.rows.append(labelRow(label, QRectF(column.x + nm::chipGap, top, captionWidth(label), height)));
+        if (reset) {
+            layout.rows.append(iconAction(QStringLiteral("resetSliders"), {}, QStringLiteral("restartAlt"), QObject::tr("Reset curves"),
+                                          QRectF(column.x + column.width - nm::chipGap - height, top, height, height)));
+        }
+        column.y = top + height + nm::micro + nm::micro;
+        auto grid = autoGrid(nm::micro, false, nm::adjustmentValueWidth);
+        for (const auto &spec : sliders) {
+            grid.slider(spec);
+        }
+        grid.place(column);
+        column.y += nm::micro;
+    };
+    section(QObject::tr("Tonal"), true,
+            {{QStringLiteral("black_point"), QObject::tr("Black point"), 0, 0.5, 0.01, 0, false},
+             {QStringLiteral("white_point"), QObject::tr("White point"), 0.5, 1, 0.01, 1, false},
+             {QStringLiteral("shadows"), QObject::tr("Shadows"), -0.5, 0.5, 0.01, 0, true},
+             {QStringLiteral("midtones"), QObject::tr("Midtones"), -0.5, 0.5, 0.01, 0, true},
+             {QStringLiteral("highlights"), QObject::tr("Highlights"), -0.5, 0.5, 0.01, 0, true}});
+    section(QObject::tr("RGB midtones"), false,
+            {{QStringLiteral("red_midtones"), QObject::tr("Red"), -0.5, 0.5, 0.01, 0, true},
+             {QStringLiteral("green_midtones"), QObject::tr("Green"), -0.5, 0.5, 0.01, 0, true},
+             {QStringLiteral("blue_midtones"), QObject::tr("Blue"), -0.5, 0.5, 0.01, 0, true}});
+    column.finish();
+}
+
+// LevelsBody.tsx: the result's histogram with an R, G, B and L view toggle,
+// then a Red, Green and Blue toggle that picks which channel's Black, Gamma
+// and White sliders show. Both choices are view state, kept together as the
+// body tab "<channel>:<view>". Reset returns all nine values to neutral.
+void layoutLevels(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    const QStringList channels{QStringLiteral("r"), QStringLiteral("g"), QStringLiteral("b")};
+    const QStringList views{QStringLiteral("r"), QStringLiteral("g"), QStringLiteral("b"), QStringLiteral("luminance")};
+    const auto tab = input.previewTab.split(QLatin1Char(':'));
+    const auto channel = channels.contains(tab.value(0)) ? tab.value(0) : channels.first();
+    const auto view = views.contains(tab.value(1)) ? tab.value(1) : views.last();
+    const auto key = [](const QString &c, const QString &v) { return c + QLatin1Char(':') + v; };
+    // .histogram-area: a 2 px padded panel holding the 56 px canvas and the view toggle 2 px below it.
+    const auto top = column.y;
+    const QRectF bars(column.x + nm::micro, top + nm::micro, column.width - 2 * nm::micro, nm::histogramHeight);
+    auto histogram = controlRow(NodeRowKind::Histogram, {}, QObject::tr("Histogram"), bars);
+    histogram.value = view;
+    if (input.histogram) {
+        const auto &bins = input.histogram->bins[size_t(views.indexOf(view))];
+        const auto peak = *std::max_element(bins.cbegin(), bins.cend());
+        // Clip extreme outliers so the histogram is readable.
+        const auto cap = std::max(1.0, peak * 0.85);
+        for (const auto count : bins) {
+            histogram.optionValues.append(peak > 0 ? std::min(1.0, count / cap) : 0.0);
+        }
+    }
+    const auto bottom = bars.bottom() + nm::micro + nm::toggleHeight + nm::micro;
+    histogram.parts = {QRectF(column.x, top, column.width, bottom - top)};
+    layout.rows.append(histogram);
+    Column inner = column;
+    inner.x = bars.x();
+    inner.width = bars.width();
+    inner.y = bars.bottom() + nm::micro;
+    QVariantList viewValues;
+    for (const auto &v : views) { viewValues.append(key(channel, v)); }
+    auto viewToggle = toggleRow(inner, inner.x, {}, {QStringLiteral("R"), QStringLiteral("G"), QStringLiteral("B"), QStringLiteral("L")},
+                                viewValues, int(views.indexOf(view)), ToggleFit::Flexible, true);
+    viewToggle.action = QStringLiteral("previewTab");
+    layout.rows.append(viewToggle);
+    column.y = bottom + nm::chipGap;
+    QVariantList channelValues;
+    for (const auto &c : channels) { channelValues.append(key(c, view)); }
+    auto toggle = toggleRow(column, column.x, {}, {QObject::tr("Red"), QObject::tr("Green"), QObject::tr("Blue")}, channelValues,
+                            int(channels.indexOf(channel)), ToggleFit::Equal, false);
+    toggle.action = QStringLiteral("previewTab");
+    layout.rows.append(toggle);
+    column.y += nm::toggleHeight + nm::chipGap;
+    auto grid = autoGrid(nm::chipGap, true, nm::sliderValueWidth);
+    grid.slider({channel + QStringLiteral("_black"), QObject::tr("Black"), 0, 255, 1, 0, false});
+    grid.slider({channel + QStringLiteral("_gamma"), QObject::tr("Gamma"), 0.1, 10, 0.01, 1, false});
+    grid.slider({channel + QStringLiteral("_white"), QObject::tr("White"), 0, 255, 1, 255, false});
+    grid.place(column);
+    const auto size = double(nm::iconButtonSize);
+    auto reset = iconAction(QStringLiteral("resetSliders"), {}, QStringLiteral("restartAlt"), QObject::tr("Reset levels"),
+                            QRectF(column.x, column.y, size, size));
+    for (const auto &c : channels) {
+        for (const auto &[suffix, neutral] : {std::pair{"_black", 0.0}, std::pair{"_gamma", 1.0}, std::pair{"_white", 255.0}}) {
+            reset.options.append(c + QString::fromLatin1(suffix));
+            reset.optionValues.append(neutral);
+        }
+    }
+    layout.rows.append(reset);
+    column.y += size;
+    column.finish();
+}
+
+// PainterBody.tsx: the canvas over the incoming image, then the brush and
+// eraser, the color, Undo, Redo and Clear, the brush size and opacity, the
+// canvas size and the background opacity. The tools are view state.
+void layoutPainter(NodeLayout &layout, const CardBodyInput &input) {
+    Column column(layout, input);
+    column.handles({QStringLiteral("image")});
+    column.preview({});
+    // The canvas replaces the run result, as the web body shows no result.
+    layout.sourceTab = true;
+    column.y += nm::bodyGap + nm::micro;
+    const auto &view = input.painter;
+    const auto size = double(nm::controlHeight);
+    auto x = column.x;
+    for (const auto &[tool, icon, label] : {std::tuple{false, "brush", QObject::tr("Brush")}, std::tuple{true, "eraser", QObject::tr("Eraser")}}) {
+        auto row = iconAction(QStringLiteral("painterTool"), {}, QLatin1String(icon), label, QRectF(x, column.y, size, size));
+        row.value = tool ? QStringLiteral("eraser") : QStringLiteral("brush");
+        row.checked = view.eraser == tool;
+        layout.rows.append(row);
+        x += size + nm::micro;
+    }
+    auto swatch = controlRow(NodeRowKind::Swatch, QLatin1String(painterColorControl), QObject::tr("Brush color"),
+                             QRectF(x + nm::chipGap, column.y, size, size));
+    swatch.value = view.color;
+    layout.rows.append(swatch);
+    auto right = column.x + column.width;
+    for (const auto &[action, icon, label, enabled] :
+         {std::tuple{"painterClear", "restartAlt", QObject::tr("Clear mask"), true},
+          std::tuple{"painterRedo", "redo", QObject::tr("Redo"), !view.redo.isEmpty()},
+          std::tuple{"painterUndo", "undo", QObject::tr("Undo"), !view.undo.isEmpty()}}) {
+        right -= size;
+        auto row = iconAction(QLatin1String(action), {}, QLatin1String(icon), label, QRectF(right, column.y, size, size));
+        row.placeholder = !enabled;
+        layout.rows.append(row);
+        right -= nm::micro;
+    }
+    column.y += size + nm::micro;
+    // Size and opacity share a row, each half wide.
+    const auto half = (column.width - nm::micro) / 2;
+    // Each slider's label takes its own width, as NumberInput's inline label.
+    const auto labelled = [](NodeRow row) {
+        row.labelWidth = captionWidth(row.label);
+        row.valueWidth = nm::sliderValueWidth;
+        row.columnGap = nm::chipGap;
+        return row;
+    };
+    layout.rows.append(labelled(sliderRow({{QStringLiteral("value"), view.size}}, QLatin1String(painterSizeControl), QObject::tr("Size"),
+                                 QRectF(column.x, column.y, half, nm::controlHeight), 1, 256, 1, QStringLiteral("%1"))));
+    layout.rows.append(labelled(sliderRow({{QStringLiteral("value"), view.opacity}}, QLatin1String(painterOpacityControl), QObject::tr("Opacity"),
+                                 QRectF(column.x + half + nm::micro, column.y, half, nm::controlHeight), 0, 1, 0.01, QStringLiteral("%1"))));
+    column.y += nm::controlHeight + nm::micro;
+    column.y = dimensionRow(layout, input, column.y, false, {QStringLiteral("canvas_width"), QStringLiteral("canvas_height")},
+                            {QObject::tr("Canvas width"), QObject::tr("Canvas height")}) + nm::micro;
+    layout.rows.append(labelled(sliderRow({{QStringLiteral("value"), view.fade}}, QLatin1String(painterFadeControl), QObject::tr("Background opacity"),
+                                 QRectF(column.x, column.y, column.width, nm::controlHeight), 0, 1, 0.01, QStringLiteral("%1"))));
+    column.y += nm::controlHeight;
+    column.finish();
+    // The canvas keeps its own aspect inside the area, as paintStageStyle.
+    const auto canvas = QSizeF(painterCanvasSize(input));
+    auto stage = QRectF(QPointF(), canvas.scaled(layout.resultRect.size(), Qt::KeepAspectRatio));
+    stage.moveCenter(layout.resultRect.center());
+    auto paint = controlRow(NodeRowKind::Paint, {}, QObject::tr("Paint"), stage);
+    paint.parts = {layout.resultRect};
+    paint.minimum = canvas.width();
+    paint.maximum = canvas.height();
+    paint.number = view.fade;
+    paint.step = view.size;
+    paint.value = view.color;
+    paint.checked = view.eraser;
+    paint.optionValues = {view.opacity};
+    CardMediaItem mask;
+    mask.state = input.paintMask.isNull() ? CardMediaState::Unrequested : CardMediaState::Ready;
+    mask.image = input.paintMask;
+    mask.natural = input.paintMask.size();
+    paint.media = {mask};
+    if (const auto *source = readySource(input, QStringLiteral("image"))) {
+        paint.media.append(*source);
+    }
+    layout.rows.append(paint);
+}
+
+// CompositorBody.tsx: a handle per image_N layer over the live composite,
+// a LayerRow per layer (thumbnail, opacity, blend mode, visibility and
+// delete), Add another layer, and Edit layout, which opens the layout editor.
+void layoutCompositor(NodeLayout &layout, const CardBodyInput &input) {
+    Column column(layout, input);
+    const auto keys = compositorLayerKeys(input.node);
+    const auto layers = compositorLayers(input.node);
+    column.handles(keys);
+    column.preview(QObject::tr("Add layers, then run"));
+    column.y += nm::micro;
+    const auto gap = double(nm::chipGap);
+    const auto thumb = double(nm::layerThumbnail);
+    const auto button = double(nm::layerButton);
+    if (keys.isEmpty()) {
+        layout.rows.append(labelRow(QObject::tr("No layers yet"), QRectF(column.x, column.y, column.width, nm::rowHeight)));
+        column.y += nm::rowHeight;
+        layout.rows.append(labelRow(QObject::tr("Add one below."), QRectF(column.x, column.y, column.width, nm::rowHeight)));
+        column.y += nm::rowHeight + nm::micro;
+    }
+    QVariantList blendValues;
+    QStringList blendLabels;
+    for (const auto &[value, label] : compositorBlendModes()) {
+        blendValues.append(value);
+        blendLabels.append(label);
+    }
+    for (int i = 0; i < keys.size(); ++i) {
+        const auto layer = layers.value(i);
+        const auto top = column.y;
+        const auto middle = top + thumb / 2;
+        // 40px | minmax(0, 1fr) | 96px | 28px | 28px.
+        auto preview = placeholderRow({}, QStringLiteral("image"), QRectF(column.x, top, thumb, thumb));
+        preview.label = QObject::tr("Layer %1 thumbnail").arg(i + 1);
+        if (const auto *source = readySource(input, keys[i])) {
+            preview.media = {*source};
+            preview.mediaKind = QStringLiteral("image");
+        }
+        layout.rows.append(preview);
+        const auto right = column.x + column.width;
+        const auto deleteX = right - button;
+        const auto visibleX = deleteX - gap - button;
+        const auto blendX = visibleX - gap - nm::layerBlendWidth;
+        const auto sliderX = column.x + thumb + gap;
+        auto slider = sliderRow({{QStringLiteral("value"), layer.opacity}}, QStringLiteral("@compositor:opacity:%1").arg(i), {},
+                                QRectF(sliderX, middle - nm::controlHeight / 2.0, blendX - gap - sliderX, nm::controlHeight), 0, 1, 0.01,
+                                QStringLiteral("%1"));
+        // NumberInput with showSlider: the value and a track, no label.
+        slider.labelWidth = 0.01;
+        slider.valueWidth = std::ceil(captionWidth(QStringLiteral("0.00"), true, true)) + nm::micro;
+        slider.columnGap = nm::micro;
+        layout.rows.append(slider);
+        auto blend = selectRow({{QStringLiteral("value"), layer.blend}}, QStringLiteral("@compositor:blend:%1").arg(i), {},
+                               QRectF(blendX, middle - nm::controlHeight / 2.0, nm::layerBlendWidth, nm::controlHeight));
+        blend.bare = true;
+        blend.options = blendLabels;
+        blend.optionValues = blendValues;
+        blend.value = blendLabels.value(int(blendValues.indexOf(layer.blend)), blendLabels.first());
+        layout.rows.append(blend);
+        auto visible = iconAction(QStringLiteral("compositorVisible"), {}, layer.visible ? QStringLiteral("visibility") : QStringLiteral("visibilityOff"),
+                                  layer.visible ? QObject::tr("Hide") : QObject::tr("Show"), QRectF(visibleX, middle - button / 2, button, button));
+        visible.number = i;
+        layout.rows.append(visible);
+        auto remove = iconAction(QStringLiteral("compositorDelete"), {}, QStringLiteral("deleteOutline"), QObject::tr("Delete layer"),
+                                 QRectF(deleteX, middle - button / 2, button, button));
+        remove.number = i;
+        layout.rows.append(remove);
+        placePort(layout, input.inputs, keys[i], nm::contentTop + nm::rowHeight / 2.0 + i * nm::handleRowStep);
+        column.y = top + thumb + nm::micro;
+    }
+    column.y += nm::micro;
+    auto add = controlRow(NodeRowKind::Action, {}, QObject::tr("Add another layer"),
+                          QRectF(column.x, column.y, std::min(column.width, captionWidth(QObject::tr("Add another layer")) + nm::iconSize + 3 * nm::padding),
+                                 nm::controlHeight));
+    add.action = QStringLiteral("compositorAdd");
+    layout.rows.append(add);
+    // .add-row: Edit layout beside the add button, or under it when the card is too narrow.
+    const auto editWidth = std::min(column.width, captionWidth(QObject::tr("Edit layout")) + nm::iconSize + 3 * nm::padding);
+    auto editX = add.rect.right() + nm::micro;
+    if (editX + editWidth > column.x + column.width) {
+        editX = column.x;
+        column.y += nm::controlHeight + nm::micro;
+    }
+    auto edit = iconAction(QStringLiteral("compositorLayout"), {}, QStringLiteral("edit"), QObject::tr("Edit layout"),
+                           QRectF(editX, column.y, editWidth, nm::controlHeight));
+    edit.bare = true;
+    layout.rows.append(edit);
+    column.y += nm::controlHeight;
+    column.finish();
+    // The live composite replaces the run result once a layer image arrives.
+    bool anySource = false;
+    for (const auto &key : keys) { anySource = anySource || readySource(input, key); }
+    if (!anySource) { return; }
+    layout.sourceTab = true;
+    const auto canvas = compositorCanvasSize(input.node, input.sources);
+    CardMediaItem composite;
+    composite.state = CardMediaState::Ready;
+    composite.image = compositeLayers(keys, layers, input.sources, canvas, layout.resultRect.size() * 2);
+    composite.natural = canvas;
+    for (auto &row : layout.rows) {
+        if (row.kind == NodeRowKind::Preview && row.rect == layout.resultRect) {
+            row.media = {composite};
+            row.mediaKind = QStringLiteral("image");
+        }
+    }
+}
+
+// CropBody.tsx: the source with its crop rectangle and size badge, then the
+// aspect select, the width and height boxes and Reset. The aspect is view
+// state, kept as the body tab, and the boxes edit the crop's edges.
+void layoutCrop(NodeLayout &layout, const CardBodyInput &input) {
+    auto column = imageColumn(layout, input);
+    showSource(layout, input, QStringLiteral("image"));
+    const auto *source = readySource(input, QStringLiteral("image"));
+    // writeRect clamps to 4096 until the image's size is known, and an unset
+    // right or bottom edge is the image's, as props.right ?? imgDims.w ?? 512.
+    const auto natural = source ? QSizeF(source->natural) : QSizeF();
+    const auto bounds = source ? natural : QSizeF(4096, 4096);
+    const auto data = input.node["data"].toObject();
+    const auto edge = [&data](const char *name, double fallback) {
+        const auto value = data.value(QLatin1String(name));
+        return value.isDouble() ? value.toDouble() : fallback;
+    };
+    const QVariantList edges{edge("left", 0), edge("top", 0), edge("right", source ? natural.width() : 512),
+                             edge("bottom", source ? natural.height() : 512)};
+    const auto keys = cropAspectKeys();
+    const auto aspect = keys.contains(input.previewTab) ? input.previewTab : keys.first();
+    const auto ratio = cropAspectRatio(aspect);
+    const auto cropRow = [&](NodeRow row) {
+        row.optionValues = edges;
+        row.minimum = bounds.width();
+        row.maximum = bounds.height();
+        row.step = ratio;
+        return row;
+    };
+    // .controls: minmax(0, auto) minmax(40px, 1fr) auto columns, 4 px gaps, padded 2 px by 4 px.
+    column.y += nm::micro;
+    const auto gap = double(nm::chipGap);
+    const auto labelWidth = std::max(captionWidth(QObject::tr("Aspect")), captionWidth(QObject::tr("Size")));
+    const auto controls = column.x + labelWidth + gap;
+    auto select = selectRow({}, QLatin1String(cropAspectControl), QObject::tr("Aspect"),
+                            QRectF(controls, column.y, column.x + column.width - controls, nm::controlHeight));
+    for (const auto &key : keys) {
+        select.options.append(key == QStringLiteral("free") ? QObject::tr("Free") : key == QStringLiteral("1:1") ? QObject::tr("1:1 Square") : key);
+        select.optionValues.append(key);
+    }
+    select.value = select.options.value(int(keys.indexOf(aspect)));
+    select.placeholder = false;
+    layout.rows.append(select);
+    column.y += nm::controlHeight + gap;
+    layout.rows.append(labelRow(QObject::tr("Size"), QRectF(column.x, column.y, labelWidth, nm::controlHeight)));
+    const auto size = double(nm::controlHeight);
+    const auto times = QStringLiteral("×");
+    const auto timesWidth = captionWidth(times) + 2 * nm::micro;
+    const auto clusterRight = column.x + column.width - size - gap;
+    const auto boxWidth = std::max(1.0, (clusterRight - controls - timesWidth) / 2);
+    const QRectF crop(QPointF(edges[0].toDouble(), edges[1].toDouble()), QPointF(edges[2].toDouble(), edges[3].toDouble()));
+    const auto box = [&](const char *name, double value, const QRectF &rect) {
+        layout.rows.append(cropRow(numberBox({{QStringLiteral("value"), std::max(1.0, value)}}, QLatin1String(name), rect)));
+    };
+    box(cropWidthControl, crop.width(), QRectF(controls, column.y, boxWidth, nm::controlHeight));
+    layout.rows.append(labelRow(times, QRectF(controls + boxWidth, column.y, timesWidth, nm::controlHeight)));
+    box(cropHeightControl, crop.height(), QRectF(controls + boxWidth + timesWidth, column.y, boxWidth, nm::controlHeight));
+    layout.rows.append(iconAction(QStringLiteral("resetCrop"), {}, QStringLiteral("restartAlt"), QObject::tr("Reset crop"),
+                                  QRectF(column.x + column.width - size, column.y, size, size)));
+    column.y += size + nm::micro;
+    column.finish();
+    if (!source) {
+        return;
+    }
+    auto image = QRectF(QPointF(), natural.scaled(layout.resultRect.size(), Qt::KeepAspectRatio));
+    image.moveCenter(layout.resultRect.center());
+    auto overlay = cropRow(controlRow(NodeRowKind::Crop, {}, QObject::tr("Crop"), image));
+    overlay.parts = {layout.resultRect};
+    layout.rows.append(overlay);
 }
 } // namespace
 
@@ -1360,7 +1895,16 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
         // The node components ReactFlowWrapper.tsx registers, and the remaining image bodies.
         {"nodetool.compare.CompareImages", CardBody::CompareImages}, {"nodetool.constant.String", CardBody::ConstantString},
         {"nodetool.image.RotateAndFlip", CardBody::RotateFlip}, {"nodetool.image.Resize", CardBody::Resize},
-        {"nodetool.image.Fit", CardBody::Fit}, {"nodetool.image.Paste", CardBody::Paste}};
+        {"nodetool.image.Fit", CardBody::Fit}, {"nodetool.image.Paste", CardBody::Paste},
+        {"nodetool.image.CanvasResize", CardBody::CanvasResize}, {"lib.image.color_grading.Curves", CardBody::Curves},
+        {"nodetool.image.Levels", CardBody::Levels}, {"nodetool.image.Crop", CardBody::Crop},
+        // MASKS_EXTRACTOR_NODE_TYPES in MasksExtractorBody.tsx.
+        {"replicate.image.background.Bria_RemoveBackground", CardBody::MasksExtractor},
+        {"replicate.image.background.BackgroundRemover_851", CardBody::MasksExtractor},
+        {"replicate.image.background.BackgroundRemover_Codeplug", CardBody::MasksExtractor},
+        {"replicate.image.process.RemoveBackground", CardBody::MasksExtractor},
+        {"fal.image_to_image.BriaBackgroundRemove", CardBody::MasksExtractor},
+        {"nodetool.image.Painter", CardBody::Painter}, {"nodetool.image.Compositor", CardBody::Compositor}};
     if (bodies.contains(type)) {
         return bodies.value(type);
     }
@@ -1390,6 +1934,321 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
     return metadata["body"] == QStringLiteral("content_card") ? CardBody::Content : CardBody::Generic;
 }
 
+bool readsBodySources(CardBody body) {
+    return body == CardBody::CanvasResize || body == CardBody::Paste || body == CardBody::Crop || body == CardBody::SimpleFilter
+           || body == CardBody::Mask || body == CardBody::MasksExtractor || body == CardBody::Painter || body == CardBody::Compositor
+           || body == CardBody::CompareImages;
+}
+
+ImageHistogram imageHistogram(const QImage &image) {
+    ImageHistogram histogram;
+    const auto rgb = image.convertToFormat(QImage::Format_RGBA8888);
+    for (int y = 0; y < rgb.height(); ++y) {
+        const auto *line = rgb.constScanLine(y);
+        for (int x = 0; x < rgb.width(); ++x) {
+            const int r = line[4 * x], g = line[4 * x + 1], b = line[4 * x + 2];
+            ++histogram.bins[0][size_t(r)];
+            ++histogram.bins[1][size_t(g)];
+            ++histogram.bins[2][size_t(b)];
+            const auto luminance = std::lround(0.2126 * r + 0.7152 * g + 0.0722 * b);
+            ++histogram.bins[3][size_t(std::clamp(luminance, 0L, 255L))];
+        }
+    }
+    return histogram;
+}
+
+QString bodySourceKey(const QString &handle) {
+    return QStringLiteral("@source:") + handle;
+}
+
+QRectF cropEdges(const NodeRow &row) {
+    const auto edge = [&row](int index) { return row.optionValues.value(index).toDouble(); };
+    return QRectF(QPointF(edge(0), edge(1)), QPointF(edge(2), edge(3)));
+}
+
+QRectF cropOnCard(const NodeRow &row, const QRectF &crop) {
+    if (row.minimum <= 0 || row.maximum <= 0) {
+        return {};
+    }
+    const auto sx = row.rect.width() / row.minimum, sy = row.rect.height() / row.maximum;
+    return QRectF(row.rect.x() + crop.left() * sx, row.rect.y() + crop.top() * sy, crop.width() * sx, crop.height() * sy);
+}
+
+double cropHandleRadius(const NodeRow &row) {
+    // handleR: 1.2% of the shorter image side, 3 to 24 image pixels, drawn at the image's scale.
+    const auto radius = std::clamp(std::min(row.minimum, row.maximum) * 0.012, 3.0, 24.0);
+    return std::max(3.0, row.minimum > 0 ? radius * row.rect.width() / row.minimum : 3.0);
+}
+
+QString cropHandleAt(const NodeRow &row, const QRectF &crop, const QPointF &local) {
+    const auto card = cropOnCard(row, crop);
+    if (card.isEmpty()) {
+        return {};
+    }
+    // A pointer finds a handle within 6 px even when the drawn handle is smaller.
+    const auto reach = std::max(6.0, cropHandleRadius(row));
+    const auto mid = card.center();
+    const std::pair<const char *, QPointF> handles[] = {
+        {"nw", card.topLeft()}, {"n", {mid.x(), card.top()}}, {"ne", card.topRight()}, {"e", {card.right(), mid.y()}},
+        {"se", card.bottomRight()}, {"s", {mid.x(), card.bottom()}}, {"sw", card.bottomLeft()}, {"w", {card.left(), mid.y()}}};
+    for (const auto &[name, point] : handles) {
+        if (QLineF(point, local).length() <= reach) {
+            return QString::fromLatin1(name);
+        }
+    }
+    return card.contains(local) ? QStringLiteral("move") : QString{};
+}
+
+namespace {
+// writeRect: whole pixels, at least one pixel, inside the image.
+QRectF cropClamped(double left, double top, double right, double bottom, const QSizeF &bounds) {
+    const auto l = std::clamp(std::round(left), 0.0, std::max(0.0, bounds.width() - 1));
+    const auto t = std::clamp(std::round(top), 0.0, std::max(0.0, bounds.height() - 1));
+    const auto r = std::clamp(std::round(right), l + 1, std::max(l + 1, bounds.width()));
+    const auto b = std::clamp(std::round(bottom), t + 1, std::max(t + 1, bounds.height()));
+    return QRectF(QPointF(l, t), QPointF(r, b));
+}
+} // namespace
+
+QRectF cropDragged(const QString &handle, const QRectF &start, const QPointF &delta, const QSizeF &bounds, double ratio) {
+    auto left = start.left(), top = start.top(), right = start.right(), bottom = start.bottom();
+    if (handle == QStringLiteral("move")) {
+        // Moving keeps the size and stops at the image's edges.
+        left = std::clamp(start.left() + delta.x(), 0.0, std::max(0.0, bounds.width() - start.width()));
+        top = std::clamp(start.top() + delta.y(), 0.0, std::max(0.0, bounds.height() - start.height()));
+        right = left + start.width();
+        bottom = top + start.height();
+        return cropClamped(left, top, right, bottom, bounds);
+    }
+    if (handle.contains(QLatin1Char('w'))) { left += delta.x(); }
+    if (handle.contains(QLatin1Char('e'))) { right += delta.x(); }
+    if (handle.contains(QLatin1Char('n'))) { top += delta.y(); }
+    if (handle.contains(QLatin1Char('s'))) { bottom += delta.y(); }
+    if (ratio > 0) {
+        // The dragged edge leads and the other side follows. A side handle or
+        // a mostly horizontal corner drag sets the height from the width.
+        const auto width = std::max(1.0, right - left), height = std::max(1.0, bottom - top);
+        const auto horizontal = handle == QStringLiteral("e") || handle == QStringLiteral("w")
+                                || std::abs(delta.x()) >= std::abs(delta.y());
+        if (horizontal) {
+            if (handle.contains(QLatin1Char('n'))) { top = bottom - width / ratio; } else { bottom = top + width / ratio; }
+        } else if (handle == QStringLiteral("nw") || handle == QStringLiteral("sw") || handle == QStringLiteral("w")) {
+            left = right - height * ratio;
+        } else {
+            right = left + height * ratio;
+        }
+    }
+    return cropClamped(left, top, right, bottom, bounds);
+}
+
+QStringList cropAspectKeys() {
+    return {QStringLiteral("free"), QStringLiteral("1:1"), QStringLiteral("4:3"), QStringLiteral("3:2"), QStringLiteral("16:9"),
+            QStringLiteral("3:4"), QStringLiteral("2:3"), QStringLiteral("9:16")};
+}
+
+double cropAspectRatio(const QString &key) {
+    const auto parts = key.split(QLatin1Char(':'));
+    if (parts.size() != 2 || !cropAspectKeys().contains(key)) {
+        return 0;
+    }
+    const auto a = parts[0].toDouble(), b = parts[1].toDouble();
+    return a > 0 && b > 0 ? a / b : 0;
+}
+
+bool isPainterControl(const QString &name) {
+    return name == QLatin1String(painterSizeControl) || name == QLatin1String(painterOpacityControl)
+           || name == QLatin1String(painterFadeControl) || name == QLatin1String(painterColorControl);
+}
+
+bool isCompositorControl(const QString &name) {
+    return name.startsWith(QStringLiteral("@compositor:opacity:")) || name.startsWith(QStringLiteral("@compositor:blend:"));
+}
+
+CompareView compareView(const QString &tab) {
+    CompareView view;
+    view.vertical = tab.startsWith(QStringLiteral("v:"));
+    bool ok = false;
+    const auto position = tab.section(':', 1).toDouble(&ok);
+    if (ok) { view.position = std::clamp(position, 0.0, 1.0); }
+    return view;
+}
+
+QString compareTab(const CompareView &view) {
+    return QStringLiteral("%1:%2").arg(view.vertical ? QStringLiteral("v") : QStringLiteral("h")).arg(std::clamp(view.position, 0.0, 1.0));
+}
+
+bool isCardControl(const QString &name) {
+    return isCropControl(name) || isPainterControl(name) || isCompositorControl(name);
+}
+
+QStringList compositorLayerKeys(const QJsonObject &node) {
+    static const QRegularExpression layer(QStringLiteral("^image_(\\d+)$"));
+    QVector<std::pair<int, QString>> found;
+    const auto values = node["dynamic_properties"].toObject();
+    for (auto it = values.begin(); it != values.end(); ++it) {
+        if (const auto match = layer.match(it.key()); match.hasMatch()) { found.append({match.captured(1).toInt(), it.key()}); }
+    }
+    std::sort(found.begin(), found.end());
+    QStringList keys;
+    for (const auto &entry : found) { keys.append(entry.second); }
+    return keys;
+}
+
+const QVector<std::pair<QString, QString>> &compositorBlendModes() {
+    static const QVector<std::pair<QString, QString>> modes{
+        {"normal", QObject::tr("Normal")}, {"multiply", QObject::tr("Multiply")}, {"screen", QObject::tr("Screen")},
+        {"overlay", QObject::tr("Overlay")}, {"darken", QObject::tr("Darken")}, {"lighten", QObject::tr("Lighten")},
+        {"color-dodge", QObject::tr("Color Dodge")}, {"color-burn", QObject::tr("Color Burn")}, {"hard-light", QObject::tr("Hard Light")},
+        {"soft-light", QObject::tr("Soft Light")}, {"difference", QObject::tr("Difference")}, {"exclusion", QObject::tr("Exclusion")},
+        {"add", QObject::tr("Add")}};
+    return modes;
+}
+
+QVector<CompositorLayer> compositorLayers(const QJsonObject &node) {
+    const auto stored = node["data"].toObject().value(QStringLiteral("layers")).toArray();
+    QVector<CompositorLayer> layers;
+    for (qsizetype i = 0; i < compositorLayerKeys(node).size(); ++i) {
+        const auto raw = stored.at(i).toObject();
+        CompositorLayer layer;
+        if (raw["opacity"].isDouble()) { layer.opacity = std::clamp(raw["opacity"].toDouble(), 0.0, 1.0); }
+        // coerceBlendMode: the legacy "over" is normal, and an unknown name falls back to normal.
+        const auto blend = raw["blend_mode"].toString();
+        for (const auto &mode : compositorBlendModes()) {
+            if (mode.first == blend) { layer.blend = blend; }
+        }
+        if (!raw["visible"].isUndefined()) { layer.visible = raw["visible"].toBool() || (raw["visible"].isDouble() && raw["visible"].toDouble() != 0); }
+        const auto transform = raw["transform"].toObject();
+        if (transform["x"].isDouble() && transform["y"].isDouble()) { layer.transform = transform; }
+        layers.append(layer);
+    }
+    return layers;
+}
+
+QJsonArray compositorLayersJson(const QVector<CompositorLayer> &layers) {
+    QJsonArray result;
+    for (const auto &layer : layers) {
+        QJsonObject entry{{"opacity", layer.opacity}, {"blend_mode", layer.blend}, {"visible", layer.visible}};
+        if (layer.transform) { entry["transform"] = *layer.transform; }
+        result.append(entry);
+    }
+    return result;
+}
+
+// CompositorPreview: the layers drawn bottom first (image_0 is on top), each
+// at its transform or contain-fit centered, with its opacity and blend mode,
+// on a canvas of the given size scaled to fit the area.
+QImage compositeLayers(const QStringList &keys, const QVector<CompositorLayer> &layers, const QHash<QString, CardMediaItem> &sources,
+                       const QSize &canvas, const QSizeF &area) {
+    static const QHash<QString, QPainter::CompositionMode> modes{
+        {"normal", QPainter::CompositionMode_SourceOver}, {"multiply", QPainter::CompositionMode_Multiply},
+        {"screen", QPainter::CompositionMode_Screen}, {"overlay", QPainter::CompositionMode_Overlay},
+        {"darken", QPainter::CompositionMode_Darken}, {"lighten", QPainter::CompositionMode_Lighten},
+        {"color-dodge", QPainter::CompositionMode_ColorDodge}, {"color-burn", QPainter::CompositionMode_ColorBurn},
+        {"hard-light", QPainter::CompositionMode_HardLight}, {"soft-light", QPainter::CompositionMode_SoftLight},
+        {"difference", QPainter::CompositionMode_Difference}, {"exclusion", QPainter::CompositionMode_Exclusion},
+        {"add", QPainter::CompositionMode_Plus}};
+    const auto size = QSizeF(canvas).scaled(area, Qt::KeepAspectRatio).toSize();
+    if (size.isEmpty()) { return {}; }
+    QImage result(size, QImage::Format_ARGB32_Premultiplied);
+    result.fill(Qt::transparent);
+    QPainter painter(&result);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    const auto scale = double(size.width()) / canvas.width();
+    for (auto i = keys.size() - 1; i >= 0; --i) {
+        const auto layer = layers.value(i);
+        const auto source = sources.constFind(keys[i]);
+        if (!layer.visible || layer.opacity <= 0 || source == sources.cend() || source->state != CardMediaState::Ready || source->image.isNull()) {
+            continue;
+        }
+        const QSizeF natural = source->natural.isValid() ? QSizeF(source->natural) : QSizeF(source->image.size());
+        const auto t = layer.transform ? compositor::transformFromJson(*layer.transform).value_or(compositor::defaultTransform(natural, canvas))
+                                       : compositor::defaultTransform(natural, canvas);
+        painter.save();
+        painter.scale(scale, scale);
+        painter.translate(t.x, t.y);
+        painter.rotate(qRadiansToDegrees(t.rotation));
+        painter.scale(t.scaleX, t.scaleY);
+        painter.setOpacity(layer.opacity);
+        painter.setCompositionMode(modes.value(layer.blend, QPainter::CompositionMode_SourceOver));
+        painter.drawImage(QRectF(QPointF(-natural.width() / 2, -natural.height() / 2), natural), source->image);
+        painter.restore();
+    }
+    painter.end();
+    return result;
+}
+
+QSize compositorCanvasSize(const QJsonObject &node, const QHash<QString, CardMediaItem> &sources) {
+    const auto keys = compositorLayerKeys(node);
+    const auto layers = compositorLayers(node);
+    QSize canvas;
+    for (int i = 0; i < keys.size() && canvas.isEmpty(); ++i) {
+        const auto source = sources.constFind(keys[i]);
+        if (source != sources.cend() && source->state == CardMediaState::Ready && source->natural.isValid() && layers.value(i).visible
+            && layers.value(i).opacity > 0) {
+            canvas = source->natural;
+        }
+    }
+    const auto data = node["data"].toObject();
+    const auto width = data.value(QStringLiteral("canvas_width")).toDouble(), height = data.value(QStringLiteral("canvas_height")).toDouble();
+    return {width > 0 ? int(width) : canvas.isEmpty() ? 512 : canvas.width(), height > 0 ? int(height) : canvas.isEmpty() ? 512 : canvas.height()};
+}
+
+QSize painterCanvasSize(const CardBodyInput &input) {
+    const auto found = input.sources.constFind(QStringLiteral("image"));
+    if (found != input.sources.cend() && found->state == CardMediaState::Ready && found->natural.isValid()) {
+        return found->natural;
+    }
+    const auto data = input.node["data"].toObject();
+    const auto side = [&data](const char *name) {
+        const auto value = data.value(QLatin1String(name)).toDouble();
+        return value > 0 ? int(value) : 512;
+    };
+    return {side("canvas_width"), side("canvas_height")};
+}
+
+QImage paintedMask(const QImage &mask, const QImage &stroke, const QSize &canvas, double opacity, bool eraser) {
+    QImage result(canvas, QImage::Format_ARGB32_Premultiplied);
+    result.fill(Qt::transparent);
+    QPainter painter(&result);
+    // The saved mask keeps its own size at the top left, as loadDataUrlIntoCanvas.
+    if (!mask.isNull()) { painter.drawImage(0, 0, mask); }
+    painter.setOpacity(std::clamp(opacity, 0.0, 1.0));
+    painter.setCompositionMode(eraser ? QPainter::CompositionMode_DestinationOut : QPainter::CompositionMode_SourceOver);
+    painter.drawImage(0, 0, stroke);
+    painter.end();
+    return result;
+}
+
+bool isCropControl(const QString &name) {
+    return name == QLatin1String(cropAspectControl) || name == QLatin1String(cropWidthControl) || name == QLatin1String(cropHeightControl);
+}
+
+QRectF cropControlled(const QString &control, const QVariant &value, const QRectF &crop, const QSizeF &bounds, double ratio) {
+    auto left = crop.left(), top = crop.top(), right = crop.right(), bottom = crop.bottom();
+    if (control == QLatin1String(cropAspectControl)) {
+        // The new ratio keeps the width and the top-left corner, and the
+        // bottom stops at the image's edge.
+        const auto next = cropAspectRatio(value.toString());
+        if (next <= 0) {
+            return crop;
+        }
+        const auto height = std::round(std::max(1.0, crop.width()) / next);
+        bottom = std::min(bounds.height(), top + height);
+        top = bottom - height < 0 ? 0 : bottom - height;
+    } else if (control == QLatin1String(cropWidthControl)) {
+        const auto width = std::max(1.0, std::round(value.toDouble()));
+        right = left + width;
+        if (ratio > 0) { bottom = top + std::round(width / ratio); }
+    } else if (control == QLatin1String(cropHeightControl)) {
+        const auto height = std::max(1.0, std::round(value.toDouble()));
+        bottom = top + height;
+        if (ratio > 0) { right = left + std::round(height * ratio); }
+    } else {
+        return crop;
+    }
+    return cropClamped(left, top, right, bottom, bounds);
+}
+
 bool drawsOwnHandles(CardBody body) {
     return body != CardBody::Generic && body != CardBody::Content;
 }
@@ -1404,6 +2263,8 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
     case CardBody::Blur:
     case CardBody::ResizeImage:
     case CardBody::SimpleFilter:
+    case CardBody::MasksExtractor:
+    case CardBody::Painter:
     case CardBody::Scale:
     case CardBody::Offset:
     case CardBody::Pad:
@@ -1416,9 +2277,15 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
     case CardBody::RotateFlip:
     case CardBody::Resize:
     case CardBody::Fit:
+    case CardBody::CanvasResize:
+    case CardBody::Curves:
+    case CardBody::Levels:
+    case CardBody::Crop:
         return name == QStringLiteral("image");
     case CardBody::Paste:
         return name == QStringLiteral("image") || name == QStringLiteral("paste");
+    case CardBody::Compositor:
+        return name == QStringLiteral("layers") || QRegularExpression(QStringLiteral("^image_\\d+$")).match(name).hasMatch();
     case CardBody::CompareImages:
         return name == QStringLiteral("image_a") || name == QStringLiteral("image_b");
     case CardBody::ConstantString:
@@ -1513,6 +2380,15 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
     case CardBody::Mask:
         layoutMask(layout, input);
         break;
+    case CardBody::MasksExtractor:
+        layoutMasksExtractor(layout, input);
+        break;
+    case CardBody::Painter:
+        layoutPainter(layout, input);
+        break;
+    case CardBody::Compositor:
+        layoutCompositor(layout, input);
+        break;
     case CardBody::Scale:
         layoutScale(layout, input);
         break;
@@ -1577,9 +2453,33 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
         layoutFit(layout, input);
         growPreview(layout, input);
         break;
-    case CardBody::Paste:
+    case CardBody::Paste: {
         layoutPaste(layout, input);
         growPreview(layout, input);
+        showSource(layout, input, QStringLiteral("image"));
+        // PasteBody.tsx: the pasted image's placement as a share of the base image.
+        const auto *base = readySource(input, QStringLiteral("image"));
+        const auto *paste = readySource(input, QStringLiteral("paste"));
+        if (base && paste) {
+            const double width = base->natural.width(), height = base->natural.height();
+            const auto offset = [&input](const QString &name) { return fieldValue(input.fields.value(name)).toDouble(); };
+            const auto share = [](double value) { return std::clamp(value, 0.0, 1.0); };
+            placementOverlay(layout, QRectF(share(offset(QStringLiteral("left")) / width), share(offset(QStringLiteral("top")) / height),
+                                            share(paste->natural.width() / width), share(paste->natural.height() / height)), {});
+        }
+        break;
+    }
+    case CardBody::CanvasResize:
+        layoutCanvasResize(layout, input);
+        break;
+    case CardBody::Curves:
+        layoutCurves(layout, input);
+        break;
+    case CardBody::Levels:
+        layoutLevels(layout, input);
+        break;
+    case CardBody::Crop:
+        layoutCrop(layout, input);
         break;
     case CardBody::ExtractVideoFrame:
         layoutExtractVideoFrame(layout, input);

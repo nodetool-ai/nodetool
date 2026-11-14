@@ -752,7 +752,12 @@ export const useStoryboardGenerationStore =
           } else if (status === "failed" && !existing.mediaEdit) {
             useStoryboardStore
               .getState()
-              .setShotStatus(existing.boardId, shotId, "failed");
+              .setShotStatus(
+                existing.boardId,
+                shotId,
+                "failed",
+                updated.errorMessage
+              );
             notifyShotFailure(updated);
           } else if (status === "failed" && existing.mediaEdit) {
             const shot = useStoryboardStore
@@ -877,7 +882,7 @@ export const useStoryboardGenerationStore =
           } else {
             useStoryboardStore
               .getState()
-              .setShotStatus(boardId, shotId, "failed");
+              .setShotStatus(boardId, shotId, "failed", errorMessage);
           }
           notifyShotFailure(jobState);
         },

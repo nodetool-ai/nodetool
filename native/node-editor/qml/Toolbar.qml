@@ -11,7 +11,7 @@ Item {
     property bool compact: false
     EditorRoles { id: roles }
     function syncTheme() {
-        root.commands.present({subgraphAccent: roles.subgraphAccent, canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, groupHeader: roles.groupHeader, groupFill: roles.groupFill, zoomedTitle: roles.zoomedTitle, previewSelected: roles.previewSelected, outputSelected: roles.outputSelected, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, mediaScrim: roles.mediaScrim, mediaScrimInk: roles.mediaScrimInk, alphaBase: roles.alphaBase, alphaChecker: roles.alphaChecker, primary: Ui.Theme.accentPrimary, progress: Ui.Theme.accentSecondary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, success: Ui.Theme.statusSuccess, sans: Ui.Typography.sansFamily, mono: Ui.Typography.monoFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), reducedMotion: Ui.Theme.reducedMotion, motionNormal: Ui.Metrics.motionNormal})
+        root.commands.present({subgraphAccent: roles.subgraphAccent, canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, groupHeader: roles.groupHeader, groupFill: roles.groupFill, zoomedTitle: roles.zoomedTitle, previewSelected: roles.previewSelected, outputSelected: roles.outputSelected, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, mediaScrim: roles.mediaScrim, mediaScrimInk: roles.mediaScrimInk, alphaBase: roles.alphaBase, alphaChecker: roles.alphaChecker, primary: Ui.Theme.accentPrimary, progress: Ui.Theme.accentSecondary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, success: Ui.Theme.statusSuccess, info: Ui.Theme.statusInfo, sans: Ui.Typography.sansFamily, mono: Ui.Typography.monoFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), reducedMotion: Ui.Theme.reducedMotion, motionNormal: Ui.Metrics.motionNormal})
     }
     Component.onCompleted: syncTheme()
     Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { root.syncTheme() } function onReducedMotionChanged() { root.syncTheme() } }
@@ -139,6 +139,31 @@ Item {
                     accessibleName: root.runLabel === "Stopping" ? "Stopping workflow" : "Stop workflow"
                     tooltip: "Stop workflow (Esc)"
                     enabled: root.runLabel !== "Stopping"
+                }
+                // ComfyTargetSelector: where this Comfy workflow runs. The menu is the window's.
+                PanelRow {
+                    id: comfyTarget
+                    objectName: "toolbar-comfy-target"
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: root.commands.comfyTarget !== ""
+                    text: root.commands.comfyTarget
+                    accessibleName: "Where this Comfy workflow runs: " + text
+                    implicitHeight: Ui.Metrics.compact
+                    implicitWidth: comfyTargetLabel.implicitWidth + Ui.Metrics.md * 2
+                    onClicked: root.commands.run("Comfy target")
+                    HoverHandler {
+                        onHoveredChanged: {
+                            root.commands.showToolTip(hovered ? "Where this Comfy workflow runs" : "")
+                        }
+                    }
+                    Ui.Text {
+                        id: comfyTargetLabel
+                        anchors.centerIn: parent
+                        text: comfyTarget.text
+                        role: Ui.Typography.SansLabel
+                        tone: Ui.Text.Secondary
+                        lineHeight: 1
+                    }
                 }
                 PanelRow {
                     id: runButton

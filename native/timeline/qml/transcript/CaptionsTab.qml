@@ -251,7 +251,7 @@ Item {
         visible: tab.session.cueCount === 0
         maxTextWidth: parent.width - 2 * Ui.Metrics.md
         title: "No captions yet"
-        message: "Captions come from timed words. Transcribe a clip in the Transcript tab, or add a caption over an audio or video clip at the playhead."
+        message: "Captions come from timed words. Transcribe a clip in the Transcript tab, or add a caption over an audio or video clip at the playhead. For a title over a picture, use Add text in the timeline toolbar."
         actionText: "Add at playhead"
         onActionTriggered: tab.add()
     }

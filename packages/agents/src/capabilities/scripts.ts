@@ -38,7 +38,11 @@ import type {
   ShotScaffold
 } from "@nodetool-ai/protocol";
 import type { CaptionWord } from "@nodetool-ai/timeline";
-import { paceSpeed, providerAppliesPace } from "@nodetool-ai/protocol";
+import {
+  normalizeCameraDirection,
+  paceSpeed,
+  providerAppliesPace
+} from "@nodetool-ai/protocol";
 import {
   isFunction,
   isNonBlankString,
@@ -1711,9 +1715,9 @@ function normalizeDirectedShots(
     if (slug) shot.slug = slug;
     const motion = optionalText(args["motion"]);
     if (motion) shot.motion = motion;
-    const camera = args["camera"];
-    if (isRecord(camera)) {
-      shot.camera = camera as Shot["camera"];
+    const camera = normalizeCameraDirection(args["camera"]);
+    if (camera) {
+      shot.camera = camera;
     }
     const seconds = Number(args["duration_seconds"]);
     if (Number.isFinite(seconds) && seconds > 0) {

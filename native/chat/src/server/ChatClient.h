@@ -19,6 +19,9 @@ public:
               std::function<void(qint64, qint64)> progress);
   void cancelUpload(const QString &id);
   void openMedia(const QUrl &, Callback);
+  // Saves server media to a temporary file and reports its file URL. The
+  // files live until the client is destroyed.
+  void downloadMedia(const QUrl &, Callback);
   void fetchMedia(const QUrl &, Callback);
   bool send(const QJsonObject &);
   bool ready() const { return m_ready; }

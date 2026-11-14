@@ -2,6 +2,8 @@
 #include <QClipboard>
 #include <QGuiApplication>
 #include "ChatSession.h"
+#include "model/RichContent.h"
+#include <QPointer>
 #include "ComposerRules.h"
 #include <QClipboard>
 #include <QDateTime>
@@ -35,6 +37,7 @@ ChatSession::ChatSession(QObject *parent)
         if (composer::isMediaMode(m_mediaMode)) {
             m_mediaSettings[m_mediaMode] =
                 composer::clampSettings(m_mediaMode, mediaSettings(), m_mediaCatalog.constraints());
+            savePreferences();
         }
         emit stateChanged();
     });
@@ -212,6 +215,9 @@ void ChatSession::disconnectFromServer() {
   m_serverUrl = QUrl{};
   m_serverToken.clear();
   m_previewBytes = 0;
+  m_resolvedMedia.clear();
+  m_resolvedBytes = 0;
+  emit resolvedMediaChanged();
   m_states.clear();
   m_threads.clear();
   m_selected.clear();
@@ -387,6 +393,9 @@ void ChatSession::createThread(const QString &draft) {
             }
             const auto id = result.toObject()["id"].toString();
             m_threadWorkflows[id] = workflow;
+            // GlobalChatStore.ts createNewThread pins the last picked mode on the new thread.
+            m_permissionModes[id] = m_lastPermissionMode;
+            savePreferences();
             upsertThread(result.toObject());
             state(id).draft = draft;
             if (workflow == m_workflow) {
@@ -588,7 +597,7 @@ void ChatSession::send() {
       {"media_generation", QJsonValue::Null},
       {"project_id",
        m_threads.get(m_selected)["project_id"].toString("default")},
-      {"permission_mode", "default"}};
+      {"permission_mode", permissionModeFor(m_selected)}};
   // MediaChatComposer.tsx submitPrompt sends a text part only for a non-blank prompt.
   QJsonArray content;
     if (!s.draft.trimmed().isEmpty()) {
@@ -732,7 +741,11 @@ void ChatSession::respondToAction(const QString &id, bool approved,
   } else {
     return;
   }
-  if (!m_client.send(response)) {
+  answerAction(id, response, kind != "secret_request" && approved ? "approved" : "declined");
+}
+void ChatSession::answerAction(const QString &id, const QJsonObject &response, const QString &status) {
+  const auto action = m_actions.value(id);
+  if (action.isEmpty() || !m_client.send(response)) {
     return;
   }
   m_actions.remove(id);
@@ -740,9 +753,94 @@ void ChatSession::respondToAction(const QString &id, bool approved,
   auto part = action;
   part["actionId"] = id;
   part["pending"] = false;
-  part["status"] = kind != "secret_request" && approved ? "approved" : "declined";
+  part["status"] = status;
   state(action["thread_id"].toString()).messages->addPart(part);
   emit stateChanged();
+}
+void ChatSession::allowActionForChat(const QString &id) {
+  const auto action = m_actions.value(id);
+  if (action["type"] != "tool_approval_request" || !m_client.ready()) { return; }
+  answerAction(id, {{"type", "tool_approval_response"}, {"approval_id", id}, {"decision", "allow_for_chat"}},
+               "allowed for this chat");
+}
+void ChatSession::saveSecret(const QString &id, const QString &value) {
+  const auto action = m_actions.value(id);
+  const auto key = action["key"].toString();
+  if (action["type"] != "secret_request" || key.isEmpty() || value.trimmed().isEmpty() || !m_client.ready()) { return; }
+  QPointer<ChatSession> self(this);
+  m_client.call("settings.secrets.upsert", {{"key", key}, {"value", value.trimmed()}}, true,
+                [self, id](const QJsonValue &, const QString &error) {
+                  if (!self) { return; }
+                  if (!error.isEmpty()) { self->fail("Could not save the key: " + error); return; }
+                  self->answerAction(id, {{"type", "secret_request_response"}, {"approval_id", id}, {"status", "saved"}}, "saved");
+                });
+}
+bool ChatSession::embeddedMedia() const {
+#ifdef NODETOOL_CHAT_MEDIA
+  return true;
+#else
+  return false;
+#endif
+}
+void ChatSession::storeMedia(const QString &key, const QString &url, const QString &error, qint64 bytes) {
+  if (error.isEmpty() && m_resolvedBytes + bytes > 64 * 1024 * 1024) {
+    m_resolvedMedia[key] = QVariantMap{{"error", "Preview memory limit reached"}};
+  } else {
+    m_resolvedMedia[key] = error.isEmpty() ? QVariantMap{{"url", url}} : QVariantMap{{"error", error}};
+    if (error.isEmpty()) { m_resolvedBytes += bytes; }
+  }
+  emit resolvedMediaChanged();
+}
+void ChatSession::resolveImage(const QString &source) {
+  if (source.isEmpty() || m_resolvedMedia.contains(source)) { return; }
+  m_resolvedMedia[source] = QVariantMap{{"loading", true}};
+  emit resolvedMediaChanged();
+  QPointer<ChatSession> self(this);
+  const auto epoch = m_client.epoch();
+  auto receive = [self, source, epoch](const QJsonValue &data, const QString &error) {
+    if (!self || epoch != self->m_client.epoch()) { return; }
+    self->storeMedia(source, data.toString(), error.isEmpty() && data.toString().isEmpty() ? QStringLiteral("Image unavailable") : error,
+                     data.toString().size() * 2);
+  };
+  const QUrl url(source);
+  if (url.scheme() == "asset") {
+    m_client.call("assets.get", {{"id", url.host()}}, false, [self, receive](const QJsonValue &value, const QString &error) {
+      if (!self) { return; }
+      const auto get = value.toObject()["get_url"].toString();
+      if (!error.isEmpty() || get.isEmpty()) { receive({}, "Image unavailable"); return; }
+      self->m_client.fetchMedia(QUrl(get), receive);
+    });
+    return;
+  }
+  m_client.fetchMedia(url, receive);
+}
+QVariantMap ChatSession::batchProgress(const QVariantMap &batch, double nowMs) const {
+  return generationBatchProgress(QJsonObject::fromVariantMap(batch), nowMs).toVariantMap();
+}
+QString ChatSession::mediaKey(const QVariantMap &locator) const {
+  const auto asset = locator.value("asset_id").toString();
+  return asset.isEmpty() ? locator.value("uri").toString() : "asset://" + asset;
+}
+void ChatSession::loadMedia(const QVariantMap &locator) {
+  const auto key = mediaKey(locator);
+  if (key.isEmpty() || (m_resolvedMedia.contains(key) && !m_resolvedMedia[key].toMap().contains("error"))) { return; }
+  m_resolvedMedia[key] = QVariantMap{{"loading", true}};
+  emit resolvedMediaChanged();
+  QPointer<ChatSession> self(this);
+  auto receive = [self, key](const QJsonValue &file, const QString &error) {
+    if (!self) { return; }
+    self->storeMedia(key, file.toString(), error, 0);
+  };
+  if (key.startsWith("asset://")) {
+    m_client.call("assets.get", {{"id", key.mid(8)}}, false, [self, receive](const QJsonValue &value, const QString &error) {
+      if (!self) { return; }
+      const auto get = value.toObject()["get_url"].toString();
+      if (!error.isEmpty() || get.isEmpty()) { receive({}, "Media unavailable"); return; }
+      self->m_client.downloadMedia(QUrl(get), receive);
+    });
+    return;
+  }
+  m_client.downloadMedia(QUrl(key), receive);
 }
 void ChatSession::addAttachment(const QUrl &local) {
   if (m_selected.isEmpty() || !m_client.ready()) {
@@ -903,6 +1001,10 @@ void ChatSession::applyEvent(const QJsonObject &event) {
   }
   if (!s.uncertainReplay && s.messages->reduceNested(event)) {
     emit stateChanged();
+    return;
+  }
+  if (type == "generation_batch_update") {
+    s.messages->setBatch(event);
     return;
   }
   if (type == "chunk") {
@@ -1077,7 +1179,99 @@ void ChatSession::setReasoningEffort(const QString &effort) {
         return;
     }
     m_reasoningEffort = effort;
+    savePreferences();
     emit stateChanged();
+}
+QString ChatSession::permissionModeFor(const QString &threadId) const {
+    const auto mode = threadId.isEmpty() ? QString() : m_permissionModes.value(threadId);
+    return mode.isEmpty() ? m_lastPermissionMode : mode;
+}
+QVariantList ChatSession::permissionModes() const {
+    return composer::permissionModes();
+}
+// GlobalChatStore.ts setPermissionMode: Auto allows the thread's pending tool
+// approvals, and the server hears the change through set_permission_mode.
+void ChatSession::setPermissionMode(const QString &mode) {
+    if (!composer::isPermissionMode(mode)) {
+        return;
+    }
+    m_lastPermissionMode = mode;
+    if (!m_selected.isEmpty()) {
+        m_permissionModes[m_selected] = mode;
+    }
+    savePreferences();
+    if (!m_selected.isEmpty()) {
+        if (mode == "auto") {
+            const auto ids = m_actions.keys();
+            for (const auto &id : ids) {
+                const auto action = m_actions.value(id);
+                if (action["thread_id"].toString() == m_selected && action["type"].toString() == "tool_approval_request") {
+                    respondToAction(id, true);
+                }
+            }
+        }
+        m_client.send({{"command", "set_permission_mode"},
+                       {"data", QJsonObject{{"thread_id", m_selected}, {"permission_mode", mode}}}});
+    }
+    emit stateChanged();
+}
+void ChatSession::usePreferences(std::unique_ptr<QSettings> preferences) {
+    m_preferences = std::move(preferences);
+    if (!m_preferences) {
+        return;
+    }
+    m_preferences->beginGroup("chat-composer");
+    const auto effort = m_preferences->value("reasoningEffort").toString();
+    if (effort.isEmpty() || effort == "low" || effort == "medium" || effort == "high") {
+        m_reasoningEffort = effort;
+    }
+    const auto last = m_preferences->value("lastPermissionMode").toString();
+    if (composer::isPermissionMode(last)) {
+        m_lastPermissionMode = last;
+    }
+    const auto modes = m_preferences->value("permissionModes").toMap();
+    for (auto it = modes.cbegin(); it != modes.cend(); ++it) {
+        if (composer::isPermissionMode(it.value().toString())) {
+            m_permissionModes[it.key()] = it.value().toString();
+        }
+    }
+    // MediaGenerationStore keeps each mode's parameters, not the mode itself.
+    const auto media = m_preferences->value("mediaSettings").toMap();
+    for (const auto &entry : composer::mediaModes()) {
+        const auto mode = entry.toMap()["id"].toString();
+        if (!composer::isMediaMode(mode) || !media.contains(mode)) {
+            continue;
+        }
+        auto settings = composer::defaultSettings(mode);
+        const auto saved = media[mode].toMap();
+        for (auto it = saved.cbegin(); it != saved.cend(); ++it) {
+            if (settings.contains(it.key())) {
+                settings[it.key()] = it.value();
+            }
+        }
+        m_mediaSettings[mode] = settings;
+    }
+    m_preferences->endGroup();
+    emit stateChanged();
+}
+void ChatSession::savePreferences() {
+    if (!m_preferences) {
+        return;
+    }
+    QVariantMap modes;
+    for (auto it = m_permissionModes.cbegin(); it != m_permissionModes.cend(); ++it) {
+        modes[it.key()] = it.value();
+    }
+    QVariantMap media;
+    for (auto it = m_mediaSettings.cbegin(); it != m_mediaSettings.cend(); ++it) {
+        media[it.key()] = it.value();
+    }
+    m_preferences->beginGroup("chat-composer");
+    m_preferences->setValue("reasoningEffort", m_reasoningEffort);
+    m_preferences->setValue("lastPermissionMode", m_lastPermissionMode);
+    m_preferences->setValue("permissionModes", modes);
+    m_preferences->setValue("mediaSettings", media);
+    m_preferences->endGroup();
 }
 bool ChatSession::reasoningSupported() const {
     return composer::supportsReasoningEffort(m_provider, m_model);
@@ -1102,6 +1296,7 @@ void ChatSession::setMediaSetting(const QString &key, const QVariant &value) {
     }
     settings[key] = value;
     m_mediaSettings[m_mediaMode] = settings;
+    savePreferences();
     emit stateChanged();
 }
 QVariantList ChatSession::mediaOptions(const QString &key) const {

@@ -3733,6 +3733,7 @@
         "shotCount_other": "{{count}} кадра",
         "modelLabel": "Модель",
         "modelPlaceholder": "Модель для сценария",
+        "noModels": "Нет доступной языковой модели. Добавьте ключ провайдера в настройках, в разделе «Модели и провайдеры».",
         "shotsLabel": "Кадры",
         "title": "Выберите жанр",
         "description": "Тон, темп и композиция зависят от вашего выбора. Его можно изменить позже.",
@@ -3898,10 +3899,9 @@
           "lightingPlaceholder": "Как освещена сцена",
           "shotHeader": "Кадр {{count}}",
           "shotAction": "Кадр {{count}} · Действие",
-          "shotDialogue": "Кадр {{count}} · Диалог",
-          "dialoguePlaceholder": "Диалог",
-          "addDialogue": "Добавить диалог",
+          "dialogue": "Диалог",
           "seconds": "Секунды",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Сцена {{count}}"
         },
         "fallback": {

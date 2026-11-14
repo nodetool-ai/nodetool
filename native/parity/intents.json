@@ -1,6 +1,8 @@
 {
   "version": 1,
   "intents": {
-    "NodeCatalog.addRequested": "addNode"
+    "NodeCatalog.addRequested": "addNode",
+    "ComposerSession.sendRequested": "send",
+    "ComposerSession.stopRequested": "stop"
   }
 }

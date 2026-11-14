@@ -3669,6 +3669,7 @@
         "shotCount_other": "{{count}} शॉट्स",
         "modelLabel": "मॉडल",
         "modelPlaceholder": "स्क्रीनप्ले मॉडल",
+        "noModels": "कोई भाषा मॉडल उपलब्ध नहीं है। सेटिंग्स में मॉडल और प्रदाता के अंतर्गत प्रदाता कुंजी जोड़ें।",
         "shotsLabel": "शॉट",
         "title": "अपनी शैली चुनें",
         "description": "Tone, pacing और framing अपनी पसंद का पालन करें। आप इसे बाद में बदल सकते हैं।",
@@ -3822,10 +3823,9 @@
           "lightingPlaceholder": "कैसे दृश्य जला दिया जाता है",
           "shotHeader": "शॉट {{count}}",
           "shotAction": "शॉट {{count}} कार्रवाई",
-          "shotDialogue": "शॉट {{count}} · संवाद",
-          "dialoguePlaceholder": "संवाद",
-          "addDialogue": "संवाद जोड़ें",
+          "dialogue": "संवाद",
           "seconds": "दूसरा",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "दृश्य {{count}}"
         },
         "fallback": {

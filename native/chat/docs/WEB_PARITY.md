@@ -18,44 +18,43 @@ and the [chat reducer](../../../web/src/core/chat/chatProtocol.ts).
 | Text and mixed-part ordering | matched | Native preserves role text, Harmony cleanup and ordered text/tool/media parts. |
 | Unknown content and null | matched | Unknown payloads remain retained and readable through fallback details. |
 | Persisted tool results | matched | Full call IDs associate live and reloaded results without replacing arguments or raw history. |
-| Tool grouping and phrasing | differs | Count/list rules, previews, MCP names, durations and individual expansion exist, but native uses buttons and surfaces instead of the web rail. |
-| Specialized tool results | gap | Native pages result text/JSON without all web search/media result renderers or the aggregate timeline footer. |
-| Code execution | differs | Code, output, copy and running/failure state exist, with paged plain code instead of highlighted code. |
+| Tool grouping and phrasing | differs | Count/list rules, previews, MCP names, durations, individual expansion and the timeline footer ("Worked for", step count, folding) exist, with buttons and surfaces instead of the web rail. |
+| Specialized tool results | matched | Web search results render as numbered linked rows with sources, and `generate_batch` calls show live batch progress with per-item status, timing, model, prompt and errors. |
+| Code execution | matched | Code, output, copy and running/failure state exist, and code is highlighted with the web One Dark and One Light palettes. |
 | Sub-agent transcripts | differs | Live objectives and nested transcripts work in bounded lists, but fresh history lacks server-persisted child transcript tags, as on web. |
-| Execution tree | gap | Tasks, steps, results and logs exist, but task durations, phase summary, earlier planning entries and the task inspector are not presented. |
-| Thinking | differs | Timing, saved markup and retained expansion work, without shimmer or a rail; history needs server-supplied reasoning. |
+| Execution tree | differs | Tasks, steps, results and logs show durations, a plan summary with progress, step counts and the planning log, but the task inspector is not presented. |
+| Thinking | differs | Timing, saved markup, retained expansion, the rail and the running shimmer work; history needs server-supplied reasoning. |
 | Markdown fences and tables | differs | Copyable fences and header-preserving table pages work, but nested fences and oversized individual table rows lack dedicated conformance coverage. |
-| Syntax highlighting and math | gap | Code is unhighlighted and math remains readable source. |
-| HTML and inline Markdown images | gap | Native keeps the plain-text fallback instead of rendering these constructs. |
+| Syntax highlighting and math | differs | Fenced code is highlighted. Inline and display math render as Unicode text (fractions, roots, scripts, Greek, symbols) instead of KaTeX typesetting. |
+| HTML and inline Markdown images | matched | Raw HTML is sanitized with the web allowlist before rendering, and Markdown images load through the authenticated media path with alt text and an open action. |
 | Markdown links | matched | Allowed external links retain their destinations and use tested light/dark theme colours. |
-| Image results | gap | Authenticated previews and a large-image dialog work, but canvas insertion, drag actions and signed external storage URLs are unsupported. |
-| Audio and video | gap | Duration, thumbnails and authenticated system-viewer actions exist, but there is no embedded player. |
-| Media groups and predictions | differs | Shared metadata, progress, cost and errors work, with vertical rows instead of a grid or shimmer. |
+| Image results | gap | Authenticated previews, a tile grid for consecutive images and a large-image dialog work, but canvas insertion, drag actions and signed external storage URLs are unsupported. |
+| Audio and video | matched | An embedded player plays, pauses and seeks downloaded media when Qt Multimedia is present, and the system-viewer action remains as the fallback. |
+| Media groups and predictions | differs | Shared metadata, progress, cost, errors and the image grid work, without shimmer. |
 | Documents | differs | Named documents expose paged text instead of a document viewer. |
-| Resource mentions and navigation | gap | Typed Markdown-link chips exist, but bare/backticked/legacy mentions, inline previews and timeline resource-opening hooks are missing. |
-| Tool approvals | gap | Per-call allow/deny and folded review work, but Allow for this chat and separate web code/argument folds are missing. |
+| Resource mentions and navigation | differs | Markdown-link, bare and backticked resource URIs become chips, and asset images preview inline. Legacy mention syntax and timeline resource-opening hooks are missing. |
+| Tool approvals | matched | Per-call allow and deny, Allow for this chat, and separate code and argument folds follow ToolApprovalCard. |
 | Plan approvals | differs | Run, revise with trimmed feedback and reject work, with single-line feedback and native typography. |
 | Plan documents | matched | Object/string parsing, task/step counts, dependencies, instructions and execution notes follow the web parser cases. |
-| Secret requests | differs | Native exposes settings and decline, deliberately without entering or saving credentials in chat. |
+| Secret requests | matched | The key can be entered and saved in chat through the server secret store, with settings and Not now as alternatives. |
 | Compaction | differs | Dedicated collapsed summaries omit the history prefix and use an explicit expansion button. |
 | Error, stop and resume | differs | Native reconciles replay and shows turn errors, but exact web visual equivalence is unmeasured. |
 | Embedded Assistant layout | differs | Shared-theme fixture checks cover dock widths, with horizontal scrolling below 320 px; the running timeline shell remains untested. |
 
-The table contains 5 matched, 12 differs and 8 gap rows.
+The table contains 11 matched, 13 differs and 1 gap row.
 
 ## Remaining decisions
 
 - **D1.** Decide whether the 100 px dock minimum should permit horizontal chat
   scrolling or whether the timeline should enforce a wider Assistant dock.
   Chat currently retains a 320 px content width below that size.
-- **D2.** Decide whether embedded media playback warrants a new chat dependency.
-  The current component intentionally avoids timeline FFmpeg and private QRhi.
 - **D3.** Decide which resource kinds the timeline should open, and whether
   canvas insertion and drag actions belong in this host.
-- **D4.** Decide whether native should offer chat-wide tool grants and credential
-  entry. Current actions remain explicit per-call approvals and settings/decline.
-- **D5.** Decide the acceptance scope for math, syntax highlighting, HTML,
-  specialized results and exact web visual treatment. These gaps are not waived.
+
+Matthias decided D2, D4 and D5 by asking for parity across all message
+content. Embedded playback uses optional Qt Multimedia, chat offers Allow for
+this chat and key entry, and math, highlighting, HTML and specialized results
+are rendered. Math remains Unicode text rather than typeset output.
 
 Signed external media needs an authenticated resolution design. Recovering
 reasoning and child transcripts after reload needs server persistence, not

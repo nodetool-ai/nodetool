@@ -3700,6 +3700,7 @@
         "shotCount_other": "{{count}} coups",
         "modelLabel": "Modèle",
         "modelPlaceholder": "Modèle de scénario",
+        "noModels": "Aucun modèle de langage n'est disponible. Ajoutez une clé de fournisseur dans Paramètres, sous Modèles et fournisseurs.",
         "shotsLabel": "Coups de feu",
         "title": "Choisissez votre genre",
         "description": "Le ton, le rythme et le cadrage suivent votre choix. Vous pourrez le modifier plus tard.",
@@ -3860,10 +3861,9 @@
           "lightingPlaceholder": "Comment la scène est éclairée",
           "shotHeader": "Tir {{count}}",
           "shotAction": "Tir {{count}} · Action",
-          "shotDialogue": "Plan {{count}} · Dialogue",
-          "dialoguePlaceholder": "Dialogues",
-          "addDialogue": "Ajouter un dialogue",
+          "dialogue": "Dialogues",
           "seconds": "Secondes",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scène {{count}}"
         },
         "fallback": {

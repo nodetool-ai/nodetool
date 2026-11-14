@@ -11,6 +11,8 @@
 #include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QLocale>
+#include <QPointer>
 #include <QQuickItem>
 #include <QQuickView>
 #include <QSignalSpy>
@@ -216,12 +218,13 @@ private slots:
         QCOMPARE(open.first().first().toString(), QString("wf1"));
 
         click(view, named(root, "generations-filter-failed"));
-        QTRY_COMPARE(root->property("shown").toList().size(), 1);
-        QCOMPARE(root->property("shown").toList().first().toMap()["id"].toString(), QString("bad"));
+        auto *grid = named(root, "generations-grid");
+        QTRY_COMPARE(grid->property("count").toInt(), 1);
+        QTRY_VERIFY(named(root, "generation-tile-bad"));
         // A filter whose last generation left the list falls back to everything.
         click(view, named(root, "generations-clear-finished"));
         QTRY_COMPARE(root->property("activeFilter").toString(), QString("all"));
-        QCOMPARE(root->property("shown").toList().size(), 1);
+        QTRY_COMPARE(grid->property("count").toInt(), 1);
         QVERIFY(!named(root, "generations-clear-finished")->isVisible());
         click(view, named(root, "generations-refresh"));
         QTRY_COMPARE(refresh.size(), 2);
@@ -252,7 +255,9 @@ private slots:
         QVERIFY(!named(root, "queue-history-empty")->isVisible());
         QVERIFY(named(root, "queue-day-Today"));
         QCOMPARE(named(root, "queue-history-meta-broke")->property("text").toString(), QString("Node crashed"));
-        QVERIFY(named(root, "queue-history-meta-done")->property("text").toString().startsWith("Completed · "));
+        // JobItem.tsx's meta for a completed job without a start time or outputs is its finish time.
+        QCOMPARE(named(root, "queue-history-meta-done")->property("text").toString(),
+                 QLocale().toString(today.toLocalTime().time(), QLocale::ShortFormat));
         QVERIFY(named(root, "queue-report-broke")->isVisible());
         QVERIFY(!named(root, "queue-report-done")->isVisible());
         QVERIFY(!named(root, "queue-report-stop")->isVisible());
@@ -275,6 +280,81 @@ private slots:
         click(view, named(root, "queue-collapse"));
         QTRY_VERIFY(!root->property("opened").toBool());
         QTRY_VERIFY(!root->property("presented").toBool());
+    }
+
+    // A change to one generation updates its tile in place. Every other tile keeps its delegate.
+    void tilesKeepTheirDelegatesAcrossChanges() {
+        GenerationActivity activity;
+        QQuickView view;
+        show(view, {{"activity", QVariant::fromValue(&activity)}}, "GenerationsPanel.qml", {900, 520});
+        auto *root = view.rootObject();
+        const auto now = [] { return QDateTime::currentMSecsSinceEpoch(); };
+        activity.ingestPrediction(prediction("run", "running", "text_to_image"), now());
+        activity.ingestPrediction(prediction("bad", "running", "text_to_video"), now());
+        activity.ingestPrediction(prediction("bad", "failed", "text_to_video", {{"error", "Provider rejected the prompt"}}), now());
+        QTRY_VERIFY(named(root, "generation-tile-run"));
+        QTRY_VERIFY(named(root, "generation-tile-bad"));
+        QPointer<QQuickItem> runTile = named(root, "generation-tile-run");
+        QPointer<QQuickItem> badTile = named(root, "generation-tile-bad");
+        activity.ingestPrediction(prediction("new", "running", "text_to_image"), now());
+        QTRY_VERIFY(named(root, "generation-tile-new"));
+        activity.ingestPrediction(prediction("new", "completed", "text_to_image", {{"asset_ids", QJsonArray{"a1"}}}), now());
+        QTRY_COMPARE(named(root, "generation-status-new")->property("text").toString(), QString("done"));
+        QPointer<QQuickItem> newTile = named(root, "generation-tile-new");
+        activity.setWorkflowNames({{"wf1", "Fox renders"}});
+        QCoreApplication::processEvents();
+        QVERIFY(runTile && badTile && newTile);
+        QCOMPARE(named(root, "generation-tile-run"), runTile.data());
+        QCOMPARE(named(root, "generation-tile-bad"), badTile.data());
+        QCOMPARE(named(root, "generation-tile-new"), newTile.data());
+    }
+
+    // JobItem.tsx: status tile, short id, duration and outputs, a click that
+    // opens the workflow, and QueuePanel.tsx's "Could not load jobs" state.
+    void queueHistoryRowsMatchJobItem() {
+        RunState runs;
+        QSignalSpy openWorkflow(&runs, &RunState::openJobWorkflowRequested);
+        QSignalSpy openOutput(&runs, &RunState::openJobOutputRequested);
+        QQuickView view;
+        show(view, {{"runs", QVariant::fromValue(&runs)}}, "QueueOverlay.qml", {420, 640});
+        auto *root = view.rootObject();
+        root->setProperty("opened", true);
+        const auto finished = QDateTime::currentDateTimeUtc();
+        const auto started = finished.addMSecs(-2534);
+        const QVariantList outputs{QVariantMap{{"id", "a1"}, {"name", "fox.png"}, {"content_type", "image/png"}, {"get_url", "/api/storage/a1.png"}},
+                                   QVariantMap{{"id", "a2"}, {"name", "fox2.png"}, {"content_type", "image/png"}, {"get_url", "/api/storage/a2.png"}}};
+        runs.setQueue({QVariantMap{{"jobId", "abcd1234ef"}, {"status", "completed"}, {"name", "Fox"}, {"workflow_id", "wf-a"},
+                                   {"started_at", started.toString(Qt::ISODateWithMs)}, {"finished_at", finished.toString(Qt::ISODateWithMs)},
+                                   {"outputAssets", outputs}},
+                       QVariantMap{{"jobId", "stop5678"}, {"status", "cancelled"}, {"name", "Stopped"},
+                                   {"finished_at", finished.toString(Qt::ISODateWithMs)}}});
+        QTRY_VERIFY(named(root, "queue-output-abcd1234ef-1"));
+        const auto clock = QLocale().toString(finished.toLocalTime().time(), QLocale::ShortFormat);
+        QCOMPARE(named(root, "queue-history-meta-abcd1234ef")->property("text").toString(), "2.53s · 2 images · " + clock);
+        QCOMPARE(named(root, "queue-history-meta-stop5678")->property("text").toString(), "Cancelled · " + clock);
+        QCOMPARE(named(root, "queue-history-id-abcd1234ef")->property("text").toString(), QString("#abcd"));
+        QVERIFY(named(root, "queue-history-status-abcd1234ef")->isVisible());
+        QVERIFY(named(root, "queue-history-outputs-abcd1234ef")->isVisible());
+        QVERIFY(!named(root, "queue-history-outputs-stop5678")->isVisible());
+
+        click(view, named(root, "queue-output-abcd1234ef-1"));
+        QTRY_COMPARE(openOutput.size(), 1);
+        QCOMPARE(openOutput.first().first().toString(), QString("/api/storage/a2.png"));
+        QCOMPARE(openWorkflow.size(), 0);
+        click(view, named(root, "queue-history-meta-abcd1234ef"));
+        QTRY_COMPARE(openWorkflow.size(), 1);
+        QCOMPARE(openWorkflow.first().first().toString(), QString("wf-a"));
+        // A job without a workflow has nothing to open.
+        click(view, named(root, "queue-history-meta-stop5678"));
+        QTest::qWait(50);
+        QCOMPARE(openWorkflow.size(), 1);
+
+        QVERIFY(!named(root, "queue-jobs-error")->isVisible());
+        runs.setJobsError("HTTP 500");
+        QTRY_VERIFY(named(root, "queue-jobs-error")->isVisible());
+        QCOMPARE(named(root, "queue-jobs-error")->property("message").toString(), QString("Could not load jobs"));
+        runs.setJobsError({});
+        QTRY_VERIFY(!named(root, "queue-jobs-error")->isVisible());
     }
 };
 

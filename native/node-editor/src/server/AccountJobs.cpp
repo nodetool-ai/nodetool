@@ -69,10 +69,16 @@ void AccountJobs::refresh(bool staleOnly) {
     m_loading = true;
     request("jobs.list", {{"limit", 20}}, false, [this](QJsonObject data, QString error) {
         m_loading = false;
+        if (!error.isEmpty() && error != m_error) {
+            m_error = error;
+            emit changed();
+        }
         if (error.isEmpty()) {
             m_rows = data["jobs"].toArray();
+            m_error.clear();
             m_updated = QDateTime::currentMSecsSinceEpoch();
             emit changed();
+            loadOutputs();
             QSet<QString> workflows;
             for (const auto &entry : m_rows) {
                 const auto row = entry.toObject();
@@ -100,6 +106,37 @@ void AccountJobs::refresh(bool staleOnly) {
             refresh();
         }
     });
+}
+void AccountJobs::loadOutputs() {
+    for (const auto &entry : std::as_const(m_rows)) {
+        const auto row = entry.toObject();
+        const auto id = row["id"].toString();
+        if (id.isEmpty() || row["status"].toString() != "completed" || m_outputsRequested.contains(id)) {
+            continue;
+        }
+        m_outputsRequested.insert(id);
+        request("assets.list", {{"job_id", id}}, false, [this, id](QJsonObject data, QString error) {
+            if (!error.isEmpty()) {
+                // A later refresh asks again.
+                m_outputsRequested.remove(id);
+                return;
+            }
+            QJsonArray outputs;
+            for (const auto &value : data["assets"].toArray()) {
+                const auto asset = value.toObject();
+                if (asset["content_type"].toString() == "folder") {
+                    continue;
+                }
+                outputs.append(QJsonObject{{"id", asset["id"]}, {"name", asset["name"]},
+                                           {"content_type", asset["content_type"]}, {"get_url", asset["get_url"]},
+                                           {"thumb_url", asset["thumb_url"]}});
+            }
+            m_outputs.insert(id, outputs);
+            if (!outputs.isEmpty()) {
+                emit changed();
+            }
+        });
+    }
 }
 void AccountJobs::cancel(const QString &id) {
     if (m_stopping.contains(id)) {
