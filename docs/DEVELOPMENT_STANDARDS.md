@@ -636,6 +636,9 @@ for the standalone module, isolated builds, design checks, and affected hosts.
 Run GUI checks offscreen. Report platform accessibility and rendering checks
 separately from local automated results.
 
+Native lists, grids and scrolling panels follow
+[Qt Quick performance](../native/ui_primitives/PERFORMANCE.md).
+
 ## Related Documents
 
 - [Root AGENTS.md](../AGENTS.md) — Quick command reference and base TS/React/Zustand/MUI rules

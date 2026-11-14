@@ -4,7 +4,9 @@ These rules apply to every project under `native/`: the C++/Qt editors, the
 media pipeline, the graph runner and the VST host. Area overlays such as
 [Native UI primitives](ui_primitives/AGENTS.md) and
 [Native chat](chat/AGENTS.md) add to them. For C++ idioms, use the
-[modern-cpp skill](../.claude/skills/modern-cpp/SKILL.md).
+[modern-cpp skill](../.claude/skills/modern-cpp/SKILL.md). For Qt Quick views
+that load or scroll, follow
+[Qt Quick performance](ui_primitives/PERFORMANCE.md).
 
 The memory and thread ownership rules below are non-negotiable. Code that
 breaks any of them has a bug, even when it compiles and its tests pass. If a

@@ -86,6 +86,7 @@ Claim an issue only when the user asks you to work on it or to pick one.
 - **[Design System](docs/DESIGN.md)** — Required for React UI work.
 - **[Native C++ and Qt](native/AGENTS.md)** — Memory, thread ownership and sanitizer rules for every project under `native/`.
 - **[Native UI primitives](native/ui_primitives/AGENTS.md)** — Qt Quick presentation rules and the independent [native design specification](native/ui_primitives/DESIGN.md).
+- **[Qt Quick performance](native/ui_primitives/PERFORMANCE.md)** — Required for native lists, grids and scrolling panels: virtualized views, row-level models, async images, frame measurement.
 - **[UX Guidelines](docs/UX_GUIDELINES.md)** — Required for UI work: entry points, model defaults, keeping work, empty states, errors, labels, small windows. Drawn from the UX research studies.
 - **[UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** — Required for frontend work.
 - **[Harness-First Engineering](docs/HARNESS_FIRST.md)** — The doctrine: every surface headlessly drivable, the registry, `nodetool harness audit`
@@ -123,7 +124,7 @@ Use these sections for the detailed rules summarized below.
 | Language and runtime | [TypeScript](docs/DEVELOPMENT_STANDARDS.md#1-typescript), [ES modules](docs/DEVELOPMENT_STANDARDS.md#2-es-modules--node-runtime), [error handling](docs/DEVELOPMENT_STANDARDS.md#18-error-handling) |
 | Components and state | [React](docs/DEVELOPMENT_STANDARDS.md#3-react), [Zustand](docs/DEVELOPMENT_STANDARDS.md#4-zustand), [TanStack Query](docs/DEVELOPMENT_STANDARDS.md#6-tanstack-query-v5), [ReactFlow](docs/DEVELOPMENT_STANDARDS.md#7-reactflow-12) |
 | UI quality | [MUI and primitives](docs/DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives), [accessibility](docs/DEVELOPMENT_STANDARDS.md#14-accessibility-a11y), [performance](docs/DEVELOPMENT_STANDARDS.md#15-performance) |
-| Native Qt UI | [Native presentation rules](docs/DEVELOPMENT_STANDARDS.md#23-native-qt-ui), [native design specification](native/ui_primitives/DESIGN.md) |
+| Native Qt UI | [Native presentation rules](docs/DEVELOPMENT_STANDARDS.md#23-native-qt-ui), [native design specification](native/ui_primitives/DESIGN.md), [Qt Quick performance](native/ui_primitives/PERFORMANCE.md) |
 | API and persistence | [Fastify](docs/DEVELOPMENT_STANDARDS.md#9-fastify-http--websocket-server), [Drizzle](docs/DEVELOPMENT_STANDARDS.md#10-drizzle-orm), [Zod](docs/DEVELOPMENT_STANDARDS.md#11-zod-validation), [WebSocket protocol](docs/DEVELOPMENT_STANDARDS.md#13-websocket-protocol) |
 | Verification and diagnostics | [testing](docs/DEVELOPMENT_STANDARDS.md#8-testing), [observability](docs/DEVELOPMENT_STANDARDS.md#17-observability), [enforcement](docs/DEVELOPMENT_STANDARDS.md#22-enforcement) |
 | Security boundaries | [application security](docs/DEVELOPMENT_STANDARDS.md#16-security), [Electron security](docs/DEVELOPMENT_STANDARDS.md#12-electron-security) |
