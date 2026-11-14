@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 /**
  * MessageDocumentAttachment — the card a chat message shows for an attached
  * file that is not media (a PDF, a Word or spreadsheet file).
@@ -8,6 +9,8 @@
 
 import React, { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
 import type { SvgIconComponent } from "@mui/icons-material";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
@@ -22,7 +25,6 @@ import {
 
 import {
   BORDER_RADIUS,
-  Box,
   Caption,
   FlexColumn,
   FlexRow,
@@ -92,6 +94,32 @@ export const MessageDocumentAttachment: React.FC<MessageDocumentAttachmentProps>
   document
 }) => {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const cardStyles = useMemo(
+    () =>
+      css({
+        appearance: "none",
+        font: "inherit",
+        color: theme.vars.palette.text.primary,
+        textAlign: "left",
+        width: "100%",
+        maxWidth: CARD_MAX_WIDTH,
+        padding: theme.spacing(SPACING.sm),
+        border: `1px solid ${theme.vars.palette.divider}`,
+        borderRadius: BORDER_RADIUS.lg,
+        backgroundColor: theme.vars.palette.background.paper,
+        cursor: "pointer",
+        transition: `${MOTION.border}, ${MOTION.background}`,
+        ...reducedMotion({ transition: MOTION.none }),
+        "&:hover:not(:disabled)": {
+          borderColor: theme.vars.palette.text.disabled,
+          backgroundColor: theme.vars.palette.action.hover
+        },
+        "&:disabled": { cursor: "default" },
+        "&:focus-visible": focusRing(theme, 2)
+      }),
+    [theme]
+  );
   const url = useResolvedMediaUri(document);
   const info = useMemo(() => describeChatAttachment(document), [document]);
   const name = info.name || t("i18n-next54.message.document");
@@ -105,34 +133,13 @@ export const MessageDocumentAttachment: React.FC<MessageDocumentAttachmentProps>
   }, [url]);
 
   return (
-    <Box
-      component="button"
+    <button
       type="button"
       disabled={!url}
       onClick={handleOpen}
       title={name}
       data-testid="message-document-attachment"
-      sx={(theme) => ({
-        appearance: "none",
-        font: "inherit",
-        color: "text.primary",
-        textAlign: "left",
-        width: "100%",
-        maxWidth: CARD_MAX_WIDTH,
-        padding: SPACING.sm,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: BORDER_RADIUS.lg,
-        bgcolor: "background.paper",
-        cursor: url ? "pointer" : "default",
-        transition: `${MOTION.border}, ${MOTION.background}`,
-        ...reducedMotion({ transition: MOTION.none }),
-        "&:hover:not(:disabled)": {
-          borderColor: "text.disabled",
-          bgcolor: "action.hover"
-        },
-        "&:focus-visible": focusRing(theme, 2)
-      })}
+      css={cardStyles}
     >
       <FlexRow gap={GAP.comfortable} align="center" sx={{ minWidth: 0 }}>
         <FlexRow
@@ -161,7 +168,7 @@ export const MessageDocumentAttachment: React.FC<MessageDocumentAttachmentProps>
           {detail ? <Caption color="muted">{detail}</Caption> : null}
         </FlexColumn>
       </FlexRow>
-    </Box>
+    </button>
   );
 };
 
