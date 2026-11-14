@@ -9,7 +9,7 @@
  * `KieProvider` still run their own submit and poll helpers.
  */
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac } from "node:crypto";
 
 import { recordGenerationReceipt } from "../generation-receipt.js";
 import type {
@@ -73,9 +73,15 @@ export function kieWebhookToken(): string | null {
 export function isValidKieWebhookToken(token: unknown): boolean {
   const expected = kieWebhookToken();
   if (!expected || typeof token !== "string") return false;
-  const a = Buffer.from(token);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+  if (token.length !== expected.length) return false;
+  // Constant time over the hex digest. `timingSafeEqual` is not used because
+  // this module also loads in the browser bundle, whose `node:crypto` stub
+  // does not export it.
+  let diff = 0;
+  for (let i = 0; i < expected.length; i += 1) {
+    diff |= token.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return diff === 0;
 }
 
 /** The callBackUrl to submit, or undefined when webhook mode is off. */
