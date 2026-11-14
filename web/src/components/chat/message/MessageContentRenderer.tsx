@@ -6,6 +6,7 @@ import AddToCanvasIcon from "@mui/icons-material/AddPhotoAlternate";
 import { MessageContent } from "../../../stores/ApiTypes";
 import ImageView from "../../node/ImageView";
 import AudioPlayer from "../../audio/AudioPlayer";
+import { MessageDocumentAttachment } from "./MessageDocumentAttachment";
 import {
   BORDER_RADIUS,
   MOTION,
@@ -246,7 +247,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       );
     }
     case "document":
-      return <div>{t("i18n-next54.message.document")}</div>;
+      return <MessageDocumentAttachment document={content.document} />;
     default:
       return null;
   }

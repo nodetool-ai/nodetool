@@ -597,7 +597,11 @@ export interface MessageAudioContent {
 
 export interface MessageDocumentContent {
   type: "document";
-  document: DocumentRef;
+  /**
+   * `title` is the attached file's name. Chat shows it on the attachment
+   * card, and providers that take a document title (Anthropic) pass it on.
+   */
+  document: DocumentRef & { title?: string };
 }
 
 export interface MessageThoughtContent {
