@@ -556,6 +556,7 @@ bool EditorWindow::menuActionEnabled(const QString &name) const {
  if (name == "Focus back") { return model_.focusHistorySize() > 1; }
  if (name.startsWith("Focus ") && name != "Focus node") { return !document_.nodes().isEmpty(); }
  if (!quickAddNodeType(name).isEmpty()) { return !readOnly() && knownNodeType(quickAddNodeType(name)); }
+ if ((name == "Run" || name == "Stop") && inlineChild_ && childParent_) { return workflowHost()->menuActionEnabled(name); }
  if (name == "Stop") { return runActive() && (session_.connected() || session_.runsInProcess(run_)); }
  if (name == "Undo") { return !readOnly() && document_.undoStack()->canUndo(); }
  if (name == "Redo") { return !readOnly() && document_.undoStack()->canRedo(); }

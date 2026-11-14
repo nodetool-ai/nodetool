@@ -2182,9 +2182,8 @@ storage, inline input editing, output creation, boundary grouping and exact JSON
 undo/redo through pointer and keyboard events. Removing the graph filter and
 boundary rewrite makes those regression tests fail. Set
 `NODETOOL_SUBGRAPH_CARD_CAPTURE_DIR` to capture dark and light cards with their
-inspectors. F09 remains partial pending visual acceptance. The native output
-form opens in a popup rather than expanding inside the card. Running progress
-has no web elapsed-time estimate.
+inspectors. F09 remains partial pending visual acceptance. Add output opens a
+dialog in both editors.
 
 [ChildPorts](../src/document/ChildPorts.cpp) reads inline subgraphs and stored
 workflow/app snapshots. It uses the web input/output type mappings, metadata
@@ -2210,6 +2209,18 @@ graph. Canvas shortcuts, inspector data and run controls use the shown surface.
 Inline Save uses the parent document. Unknown child graph fields and nested
 snapshots survive copy and local save/reopen.
 
+As in [WorkflowEditorSurface](../../../web/src/components/workspace/WorkflowEditorSurface.tsx),
+the chrome around an inline subgraph canvas belongs to the workflow. The
+document bar shows and renames the workflow, the status bar counts its nodes
+and edges, and Run and Stop flush the subgraph edits and run or stop the whole
+workflow on its session. The run toolbar, queue overlay and run output follow
+that run. Run selected still runs the selected inner nodes, and the run output
+shows whichever of the two ran last. Undo and redo stay with the shown canvas,
+while the web document bar buttons undo the workflow store. Subgraph card
+progress uses the secondary progress color and the
+[NodeProgress](../../../web/src/components/node/NodeProgress.tsx) label with its
+remaining-time estimate, which every card progress band now shares.
+
 A child graph update and its derived ports form a parent undo entry. Subgraph
 and Workflow edges on removed dynamic ports are removed in that entry, following
 SubgraphSync and replaceDynamicSlots. Undo restores those edges. Edges on
@@ -2226,7 +2237,9 @@ return, retained edges, independent undo scope, parent reconciliation, nested
 copy, unknown-field round trips, app binding/stream derivation, missing children
 and delayed responses after tab closure or account replacement. Pointer tests
 cover host activation, nested marks, cascade closure, reopening, workflow
-closure and child Save. Restore tests exclude child canvases and retain the
+closure and child Save. `subgraphSurfaceRunsAndNamesItsWorkflow` renames and
+runs the workflow from a nested subgraph and reads the transmitted graph, the
+header, the status counts and the mirrored run output. Restore tests exclude child canvases and retain the
 owning workflow selection. Replacement rejects pending child writeback. Set
 `NODETOOL_SUBGRAPH_CAPTURE_DIR` for dark and light captures with one and two
 levels of child strips. The strips occupy the native canvas column beside the
