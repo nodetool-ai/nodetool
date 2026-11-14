@@ -312,6 +312,24 @@ describe("MCP server surface", () => {
     });
     expect(toFile.isError).toBeFalsy();
     expect(readFileSync(outputPath)).toEqual(bytes);
+
+    // Parallel downloads into a folder that does not exist yet.
+    const frames = join(dataDir, "frames", "nested");
+    const parallel = await Promise.all(
+      [0, 1, 2, 3, 4].map((i) =>
+        client.callTool({
+          name: "download_asset",
+          arguments: {
+            asset_id: saved.asset_id,
+            output_path: join(frames, `frame_${i}.bin`)
+          }
+        })
+      )
+    );
+    expect(parallel.map((result) => result.isError ?? false)).toEqual([
+      false, false, false, false, false
+    ]);
+    expect(readFileSync(join(frames, "frame_4.bin"))).toEqual(bytes);
     await client.close();
   });
 
