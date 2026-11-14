@@ -4,7 +4,7 @@ import { ProcessingContext } from "@nodetool-ai/runtime";
 import { buildControlTools } from "../src/nodes/agent-control-tools.js";
 import { WorkflowRunner } from "../../kernel/src/runner.js";
 import { buildToolBridge, type ToolResultRecord } from "../../agents/src/codeact/tool-api.js";
-import { processingMessageSchema } from "@nodetool-ai/protocol";
+import { missingPackText, processingMessageSchema } from "@nodetool-ai/protocol";
 
 describe("agent control missing packs", () => {
   it("preserves real actor failures and continues controlled execution without supervisor retry", async () => {
@@ -58,7 +58,13 @@ describe("agent control missing packs", () => {
           return {
             process: async () => ({}),
             async *genProcess() {
-              observed.push(await invoke(missingTool.name, {}));
+              // A missing pack throws in the guest. Catching it lets the
+              // controller continue with the next call.
+              try {
+                observed.push(await invoke(missingTool.name, {}));
+              } catch (error) {
+                observed.push({ thrown: error instanceof Error ? error.message : String(error) });
+              }
               observed.push(await invoke(availableTool.name, {}));
               observed.push(await invoke(missingTool.name, { mode: "fallback" }));
               yield { output: "continued" };
@@ -76,7 +82,7 @@ describe("agent control missing packs", () => {
       ],
       edges: ["missing", "available"].map(target => ({ id: `control-${target}`, source: "controller", sourceHandle: "__control__", target, targetHandle: "__control__", edge_type: "control" }))
     });
-    expect(observed[0]).toMatchObject({ ...missing.details, status: "error", target_node_id: "missing" });
+    expect(observed[0]).toEqual({ thrown: `tools.${missingTool.name}: missing_pack: ${missingPackText(missing.details)}` });
     expect(observed[1]).toMatchObject({ status: "completed", result: { output: "alternative" } });
     expect(observed[2]).toMatchObject({ status: "completed", result: { output: "resumed" } });
     expect(result.status).toBe("completed");
