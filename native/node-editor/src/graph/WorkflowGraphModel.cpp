@@ -443,6 +443,10 @@ bool WorkflowGraphModel::hasRuntimeOutput(NodeId id) const {
         return false;
     }
     const auto state = runtimeState(id);
+    // The List Generator lists its own items and a Collection shows its tiles. Only an error still shows below them.
+    if (body == CardBody::ListGenerator || body == CardBody::Collection) {
+        return !state["error"].toString().isEmpty();
+    }
     for (const auto *key : {"error", "text"}) {
         if (!state[key].toString().isEmpty()) {
             return true;
@@ -841,7 +845,8 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
                                  graphVariables_, previewTabs_.value(resourceId(id)), result.sources,
                                  histograms_.contains(resourceId(id)) ? std::optional(histograms_.value(resourceId(id))) : std::nullopt,
                                  painters_.value(resourceId(id)),
-                                 result.body == CardBody::Painter ? paintMask(resourceId(id), node["data"].toObject()) : QImage{}});
+                                 result.body == CardBody::Painter ? paintMask(resourceId(id), node["data"].toObject()) : QImage{},
+                                 runtimeState(id), expandedListItems_.value(resourceId(id)), &cardMedia_});
       if (canvasMediaNodes_.contains(resourceId(id))) {
           result.size.rheight() += nm::playbackHeight + nm::rowHeight;
       } else if (result.resultRect.isEmpty() && hasRuntimeOutput(id)) {
@@ -1691,6 +1696,17 @@ void WorkflowGraphModel::setPreviewTab(NodeId id, const QString &tab) {
     previewTabs_.insert(resource, tab);
     refreshRuntimeNode(resource);
 }
+void WorkflowGraphModel::toggleListItem(NodeId id, int index) {
+    const auto resource = resourceId(id);
+    if (resource.isEmpty() || index < 0) {
+        return;
+    }
+    auto &expanded = expandedListItems_[resource];
+    if (!expanded.remove(index)) {
+        expanded.insert(index);
+    }
+    refreshRuntimeNode(resource);
+}
 void WorkflowGraphModel::setDimensionsLinked(NodeId id, bool linked) {
     const auto resource = resourceId(id);
     if (resource.isEmpty() || dimensionsLinked(id) == linked) {
@@ -1891,8 +1907,9 @@ int WorkflowGraphModel::dropZoneAt(NodeId id, const QPointF &point) const {
     }
     const auto &rows = layout(id).rows;
     for (int i = 0; i < rows.size(); ++i) {
-        // A list's zone appends files, which the canvas does not do yet.
-        if (rows[i].kind == NodeRowKind::DropZone && !rows[i].mediaList && rows[i].rect.contains(point)) {
+        // A list's zone appends files, which the canvas does not do yet. A Collection's zone does.
+        if (rows[i].kind == NodeRowKind::DropZone && (!rows[i].mediaList || layout(id).body == CardBody::Collection)
+            && rows[i].rect.contains(point)) {
             return i;
         }
     }

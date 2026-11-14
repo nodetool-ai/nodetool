@@ -1819,6 +1819,11 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             model_.setDimensionsLinked(id, !row.checked);
             return true;
         }
+        if (row.kind == NodeRowKind::ListItem && row.parts.size() > 1 && local.y() < row.parts[1].bottom()) {
+            select();
+            model_.toggleListItem(id, row.selected);
+            return true;
+        }
         if (row.kind == NodeRowKind::Action) {
             if (row.action == QStringLiteral("addOutput")) {
                 if (layout.body == CardBody::Content) { emit outputFormRequested(resource); }
@@ -1831,6 +1836,12 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             if (row.action == QStringLiteral("copyValue")) {
                 select();
                 QGuiApplication::clipboard()->setText(model_.nodeSnapshot(id)["data"].toObject()[row.value].toString());
+                return true;
+            }
+            // A List Generator row copies its whole item, as its CopyButton.
+            if (row.action == QStringLiteral("copyListItem")) {
+                select();
+                QGuiApplication::clipboard()->setText(row.value);
                 return true;
             }
             if (row.action == QStringLiteral("openDocument")) {
@@ -1904,6 +1915,19 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 model_.commit(model_.addDataframeColumnCommand(id, row.propertyName));
             } else if (row.action == QStringLiteral("toggleProperty")) {
                 model_.commit(model_.propertyCommand(id, row.propertyName, !row.checked));
+            } else if (row.action == QStringLiteral("previousFrame") || row.action == QStringLiteral("nextFrame")) {
+                // ExtractVideoFrameBody's step buttons move the extracted time one frame.
+                const auto time = node["data"].toObject()[QStringLiteral("time")].toDouble();
+                model_.commit(model_.propertyCommand(id, QStringLiteral("time"),
+                                                     steppedVideoTime(time, row.action == QStringLiteral("nextFrame") ? 1 : -1)));
+            } else if (row.action == QStringLiteral("removeCollectionItem")) {
+                auto items = node["data"].toObject()[QStringLiteral("items")].toArray();
+                if (row.selected >= 0 && row.selected < items.size()) {
+                    items.removeAt(row.selected);
+                    model_.commit(model_.propertyCommand(id, QStringLiteral("items"), items));
+                }
+            } else if (row.action == QStringLiteral("clearCollection")) {
+                model_.commit(model_.propertyCommand(id, QStringLiteral("items"), QJsonArray{}));
             } else if (row.action == QStringLiteral("resetCrop")) {
                 // CropBody's Reset selects the whole image, or 512 square before one arrives.
                 QSizeF bounds(512, 512);

@@ -521,6 +521,16 @@ class CardBodiesTest final : public QObject {
         QCoreApplication::processEvents();
     }
 
+    // Writes a card to NODETOOL_CARD_BODY_CAPTURE_DIR for visual review, when it is set.
+    static void captureCard(Host &host, const QString &resource, const QString &name) {
+        const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR");
+        if (directory.isEmpty()) {
+            return;
+        }
+        QDir().mkpath(directory);
+        QVERIFY(host.render(resource).save(QStringLiteral("%1/%2.png").arg(directory, name)));
+    }
+
     static QQuickItem *find(QQuickItem *item, const QString &name) {
         if (!item) {
             return nullptr;
@@ -3400,7 +3410,247 @@ private slots:
         QVERIFY(model->rect.bottom() < host.model().layout(host.id("model3d")).size.height());
     }
 
-    // Writes every constant card in both themes for visual review, kept outside the repository.
+    // ExtractVideoFrameBody.tsx: a 320 by 380 card with the video handle, a
+    // preview the extracted frame fills, frame steps and the time footer.
+    void videoFrameBodyStepsTheExtractedTime() {
+        QCOMPARE(videoTimecode(1.5), QStringLiteral("00:01:15"));
+        QCOMPARE(videoTimecode(3661.5), QStringLiteral("01:01:01:15"));
+        QCOMPARE(videoTimecode(-1), QStringLiteral("00:00:00"));
+        QCOMPARE(steppedVideoTime(0, -1), 0.0);
+        QCOMPARE(steppedVideoTime(1.5, 1), 46 / 30.0);
+        auto metadata = metadataFor("nodetool.video.ExtractFrame", "Extract Video Frame",
+                                    {::property("video", "video", {{"default", QJsonObject{{"type", "video"}, {"uri", ""}}}}),
+                                     ::property("time", "float", {{"default", 0}, {"min", 0}})});
+        metadata["input_fields"] = QJsonArray{"video"};
+        auto catalog = allMetadata();
+        catalog.append(metadata);
+        auto node = partTwoNode("frame", "nodetool.video.ExtractFrame", QPointF(0, 700), {{"time", 1.5}});
+        node["future_field"] = 3;
+        Host host(withNodes({node}), catalog);
+        const auto &card = host.model().layout(host.id("frame"));
+        QCOMPARE(card.body, CardBody::ExtractVideoFrame);
+        QCOMPARE(card.size, QSize(320, 380));
+        QCOMPARE(card.inputY.value(0), 46.0);
+        QVERIFY(!card.resultRect.isEmpty());
+        // The preview grows to fill the default height, above the transport row and footer.
+        QVERIFY(card.resultRect.height() > 96.0);
+        const auto *preview = host.row("frame", NodeRowKind::Preview);
+        QVERIFY(preview);
+        QCOMPARE(preview->value, QStringLiteral("Connect a video"));
+        QStringList labels;
+        for (const auto &row : card.rows) {
+            if (row.kind == NodeRowKind::Label) {
+                labels.append(row.label);
+            }
+        }
+        QCOMPARE(labels, (QStringList{"00:01:15", "TIME (S)", "FRAME", "TIMECODE", "45", "00:01:15"}));
+        const auto *box = host.row("frame", NodeRowKind::Field, "time");
+        QVERIFY(box);
+        QCOMPARE(box->value, QStringLiteral("1.5"));
+        QCOMPARE(host.model().inlineFieldRect(host.id("frame"), QStringLiteral("time")), box->rect);
+        auto undo = host.undoCount();
+        host.click("frame", host.row("frame", NodeRowKind::Action, "nextFrame")->rect.center());
+        QTRY_COMPARE(host.data("frame")["time"].toDouble(), 46 / 30.0);
+        QCOMPARE(host.undoCount(), ++undo);
+        host.click("frame", host.row("frame", NodeRowKind::Action, "previousFrame")->rect.center());
+        host.click("frame", host.row("frame", NodeRowKind::Action, "previousFrame")->rect.center());
+        QTRY_COMPARE(host.data("frame")["time"].toDouble(), 44 / 30.0);
+        QCOMPARE(host.undoCount(), undo + 2);
+        QCOMPARE(host.window.document()->node("frame")["future_field"].toInt(), 3);
+        captureCard(host, QStringLiteral("frame"), QStringLiteral("extract-video-frame"));
+    }
+
+    // ListGeneratorBody.tsx: the run's items as numbered rows that open to their
+    // full text, with Copy, the model chip under the list, and no generic preview.
+    void listGeneratorBodyListsAndExpandsItems() {
+        QCOMPARE(listItemPreview(QStringLiteral("\n\n## **Bold** idea\nmore")), QStringLiteral("Bold idea"));
+        QCOMPARE(listItemPreview(QStringLiteral("  3. `code` step")), QStringLiteral("code step"));
+        auto metadata = outputsFor(metadataFor("nodetool.generators.ListGenerator", "List Generator",
+                                               {::property("model", "language_model", {{"default", QJsonObject{{"type", "language_model"}, {"provider", "empty"}, {"id", ""}}}}),
+                                                ::property("prompt", "str", {{"default", ""}}), ::property("input_text", "str", {{"default", ""}}),
+                                                slider("max_tokens", 1, 100000, 4096, "int")}),
+                                   {output("item", "str"), output("index", "int"), output("output", "list")});
+        metadata["input_fields"] = QJsonArray{"prompt"};
+        auto catalog = allMetadata();
+        catalog.append(metadata);
+        Host host(withNodes({partTwoNode("list", "nodetool.generators.ListGenerator", QPointF(0, 700))}), catalog);
+        const auto id = host.id("list");
+        QCOMPARE(host.model().layout(id).body, CardBody::ListGenerator);
+        QCOMPARE(host.model().layout(id).size.height(), 340);
+        // The prompt handle levels with the first output.
+        QCOMPARE(host.model().nodeData(id, QtNodes::NodeRole::InPortCount).toUInt(), 1u);
+        QCOMPARE(host.model().layout(id).inputY.value(0), 46.0);
+        const auto caption = [&] {
+            for (const auto &row : host.model().layout(id).rows) {
+                if (row.kind == NodeRowKind::BodyCaption && !row.placeholder) {
+                    return row.label;
+                }
+            }
+            return QString{};
+        };
+        const auto empty = [&] {
+            for (const auto &row : host.model().layout(id).rows) {
+                if (row.kind == NodeRowKind::BodyCaption && row.placeholder) {
+                    return row.label;
+                }
+            }
+            return QString{};
+        };
+        QCOMPARE(caption(), QStringLiteral("List"));
+        QCOMPARE(empty(), QStringLiteral("Run to generate a list"));
+        const auto *chip = host.row("list", NodeRowKind::ModelChip, "model");
+        QVERIFY(chip);
+        QCOMPARE(chip->rect.bottom(), 340.0 - 17);
+        emit host.window.session()->runSubmitted(QStringLiteral("list-run"));
+        emit host.window.session()->runEvent(QStringLiteral("list-run"), {{"type", "node_update"}, {"job_id", "list-run"}, {"node_id", "list"}, {"status", "running"}});
+        settle();
+        QCOMPARE(caption(), QStringLiteral("Generating…"));
+        QCOMPARE(empty(), QStringLiteral("Generating items…"));
+        emit host.window.session()->runEvent(QStringLiteral("list-run"), {{"type", "output_update"}, {"job_id", "list-run"}, {"node_id", "list"}, {"output_name", "output"},
+                                                      {"value", QJsonArray{"# First idea\nWith a second line", "Second"}}});
+        emit host.window.session()->runEvent(QStringLiteral("list-run"), {{"type", "node_update"}, {"job_id", "list-run"}, {"node_id", "list"}, {"status", "completed"}});
+        settle();
+        QCOMPARE(caption(), QStringLiteral("2 items"));
+        QVERIFY(empty().isEmpty());
+        QVERIFY(!host.model().hasRuntimeOutput(id));
+        QCOMPARE(host.model().layout(id).size.height(), 340);
+        QVector<const NodeRow *> items;
+        for (const auto &row : host.model().layout(id).rows) {
+            if (row.kind == NodeRowKind::ListItem) {
+                items.append(&row);
+            }
+        }
+        QCOMPARE(items.size(), 2);
+        QCOMPARE(items[0]->label, QStringLiteral("First idea"));
+        QCOMPARE(items[1]->label, QStringLiteral("Second"));
+        QCOMPARE(items[0]->rect.height(), 30.0);
+        const auto secondTop = items[1]->rect.top();
+        host.click("list", items[0]->rect.topLeft() + QPointF(40, 15));
+        const NodeRow *first = nullptr;
+        const NodeRow *second = nullptr;
+        for (const auto &row : host.model().layout(id).rows) {
+            if (row.kind == NodeRowKind::ListItem) {
+                (row.selected == 0 ? first : second) = &row;
+            }
+        }
+        QVERIFY(first && second);
+        QVERIFY(first->checked);
+        QVERIFY(first->rect.height() > 30);
+        QCOMPARE(second->rect.top(), secondTop + first->rect.height() - 30);
+        // Opening a row is view state: the document has no new undo step.
+        const auto undo = host.undoCount();
+        QApplication::clipboard()->clear();
+        const NodeRow *copy = nullptr;
+        for (const auto &row : host.model().layout(id).rows) {
+            if (row.action == QStringLiteral("copyListItem") && row.value == QStringLiteral("Second")) {
+                copy = &row;
+            }
+        }
+        QVERIFY(copy);
+        host.click("list", copy->rect.center());
+        QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("Second"));
+        QCOMPARE(host.undoCount(), undo);
+        captureCard(host, QStringLiteral("list"), QStringLiteral("list-generator"));
+    }
+
+    // CollectionBody.tsx: dropped assets become numbered tiles of one type, each
+    // with its remove button, and the header clears them in one step.
+    void collectionBodyCollectsDroppedAssets() {
+        const auto images = QJsonArray{QJsonObject{{"type", "image"}, {"asset_id", "a"}, {"uri", "asset://a"}}};
+        auto appended = appendCollectionItems(images, {QJsonObject{{"type", "image"}, {"asset_id", "a"}}, QJsonObject{{"type", "image"}, {"asset_id", "b"}}});
+        QVERIFY(appended.ok);
+        QCOMPARE(appended.items.size(), 2);
+        const auto mismatch = appendCollectionItems(images, {QJsonObject{{"type", "video"}, {"asset_id", "c"}}});
+        QVERIFY(!mismatch.ok);
+        QCOMPARE(mismatch.expected, QStringLiteral("image"));
+        Server server;
+        auto metadata = outputsFor(metadataFor("nodetool.control.Collection", "Asset Collection", {::property("items", "list", {{"default", QJsonArray{}}})}),
+                                   {output("output", "any"), output("index", "int")});
+        auto catalog = allMetadata();
+        catalog.append(metadata);
+        Host host(withNodes({partTwoNode("tray", "nodetool.control.Collection", QPointF(0, 700), {{"items", QJsonArray{}}})}), catalog);
+        emit host.window.session()->credentialsChanged(server.url(), QStringLiteral("card-token"), QStringLiteral("1"));
+        settle();
+        const auto id = host.id("tray");
+        QCOMPARE(host.model().layout(id).body, CardBody::Collection);
+        QCOMPARE(host.model().layout(id).size.height(), 320);
+        const auto *zone = host.row("tray", NodeRowKind::DropZone, "items");
+        QVERIFY(zone);
+        QVERIFY(zone->placeholder);
+        QCOMPARE(zone->typeName, QStringLiteral("collection"));
+        QCOMPARE(zone->rect, QRectF(17, 68, 246, 320 - 17 - 68));
+        QTemporaryDir directory;
+        const auto drop = [&](const QString &name, bool image) {
+            const auto path = directory.filePath(name);
+            if (image) {
+                QImage pixels(8, 8, QImage::Format_RGB32);
+                pixels.fill(Qt::red);
+                QVERIFY(pixels.save(path));
+            } else {
+                QFile file(path);
+                QVERIFY(file.open(QIODevice::WriteOnly));
+                file.write("notes");
+            }
+            QMimeData mime;
+            mime.setUrls({QUrl::fromLocalFile(path)});
+            const QPointF position(host.point("tray", host.row("tray", NodeRowKind::DropZone, "items")->rect.center()));
+            QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(host.view->viewport(), &enter);
+            QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(host.view->viewport(), &move);
+            QDropEvent dropped(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(host.view->viewport(), &dropped);
+            QVERIFY(dropped.isAccepted());
+        };
+        drop(QStringLiteral("first.png"), true);
+        QTRY_COMPARE_WITH_TIMEOUT(host.data("tray")["items"].toArray().size(), 1, 10000);
+        drop(QStringLiteral("second.png"), true);
+        QTRY_COMPARE_WITH_TIMEOUT(host.data("tray")["items"].toArray().size(), 2, 10000);
+        const auto first = host.data("tray")["items"].toArray()[0].toObject();
+        QCOMPARE(first["type"].toString(), QStringLiteral("image"));
+        QVERIFY(first["uri"].toString().startsWith(QStringLiteral("asset://")));
+        QCOMPARE(first["name"].toString(), QStringLiteral("reference.png"));
+        // The first item locks the type, so a text file is turned away before it uploads.
+        QCOMPARE(host.row("tray", NodeRowKind::DropZone, "items")->typeName, QStringLiteral("collection:image"));
+        drop(QStringLiteral("notes.txt"), false);
+        settle();
+        QCOMPARE(host.data("tray")["items"].toArray().size(), 2);
+        QCOMPARE(server.uploads, 2);
+        QStringList tiles;
+        for (const auto &row : host.model().layout(id).rows) {
+            if (row.kind == NodeRowKind::CollectionTile) {
+                tiles.append(QString::number(row.selected));
+                QCOMPARE(row.rect.size(), QSizeF(78, 78));
+            }
+            if (row.kind == NodeRowKind::BodyCaption) {
+                QCOMPARE(row.label, QStringLiteral("2 items"));
+                QCOMPARE(row.typeName, QStringLiteral("image"));
+            }
+        }
+        QCOMPARE(tiles, (QStringList{"0", "1"}));
+        // Image tiles share the card media loader, keyed by the items property.
+        QCOMPARE(host.row("tray", NodeRowKind::CollectionTile, "items")->media.size(), 1);
+        captureCard(host, QStringLiteral("tray"), QStringLiteral("collection"));
+        const auto secondId = host.data("tray")["items"].toArray()[1].toObject()["asset_id"].toString();
+        auto undo = host.undoCount();
+        const NodeRow *remove = nullptr;
+        for (const auto &row : host.model().layout(id).rows) {
+            if (row.action == QStringLiteral("removeCollectionItem") && row.selected == 0) {
+                remove = &row;
+            }
+        }
+        QVERIFY(remove);
+        host.click("tray", remove->rect.center());
+        QTRY_COMPARE(host.data("tray")["items"].toArray().size(), 1);
+        QCOMPARE(host.data("tray")["items"].toArray()[0].toObject()["asset_id"].toString(), secondId);
+        QCOMPARE(host.undoCount(), ++undo);
+        host.click("tray", host.row("tray", NodeRowKind::Action, "clearCollection")->rect.center());
+        QTRY_VERIFY(host.data("tray")["items"].toArray().isEmpty());
+        QCOMPARE(host.undoCount(), ++undo);
+        QVERIFY(host.row("tray", NodeRowKind::DropZone, "items")->placeholder);
+        QVERIFY(!host.row("tray", NodeRowKind::Action, "clearCollection"));
+    }
+
     // SynthModuleBody.tsx: jacks with their labels, the module label, the
     // waveform selector and a centered grid of knobs, at the web default height.
     void synthModuleBodyLaysOutItsFaceplate() {
@@ -3639,6 +3889,7 @@ private slots:
         }
     }
 
+    // Writes every constant card in both themes for visual review, kept outside the repository.
     void captureConstantCards() {
         const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR");
         if (directory.isEmpty()) {
