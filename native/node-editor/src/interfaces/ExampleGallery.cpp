@@ -53,6 +53,7 @@ void ExampleGallery::configure(const QUrl &origin, const QString &token, const Q
     error_.clear();
     openingKey_.clear();
     loading_ = false;
+    emit listChanged();
     emit changed();
 }
 
@@ -72,6 +73,7 @@ void ExampleGallery::setBundled(const QVariantList &examples) {
         bundled_.append(row);
     }
     std::ranges::sort(bundled_, [](const Row &a, const Row &b) { return a.name.localeAwareCompare(b.name) < 0; });
+    emit listChanged();
     emit changed();
 }
 
@@ -96,6 +98,7 @@ void ExampleGallery::setServerExamples(const QJsonArray &workflows) {
         row.seed = id.endsWith(QStringLiteral(".json"), Qt::CaseInsensitive) ? id.chopped(5) : row.name;
         server_.append(row);
     }
+    emit listChanged();
     emit changed();
 }
 
@@ -164,12 +167,14 @@ QVariantList ExampleGallery::groups() const {
 void ExampleGallery::setFilter(const QString &filter) {
     if (filter_ == filter) { return; }
     filter_ = filter;
+    emit listChanged();
     emit changed();
 }
 
 void ExampleGallery::setSearch(const QString &search) {
     if (search_ == search) { return; }
     search_ = search;
+    emit listChanged();
     emit changed();
 }
 
@@ -179,6 +184,7 @@ void ExampleGallery::refresh() {
     const auto serial = ++listSerial_;
     loading_ = true;
     error_.clear();
+    emit listChanged();
     emit changed();
     QNetworkRequest request(origin_.resolved(QUrl(QStringLiteral("/api/workflows/examples"))));
     request.setTransferTimeout(30000);
@@ -194,6 +200,7 @@ void ExampleGallery::refresh() {
         if (reply->error() != QNetworkReply::NoError || status < 200 || status >= 300 ||
             !document.object()["workflows"].isArray()) {
             error_ = tr("Could not load the examples (HTTP %1)").arg(status);
+            emit listChanged();
             emit changed();
             return;
         }

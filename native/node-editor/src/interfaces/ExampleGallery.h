@@ -30,10 +30,10 @@ class ExampleGallery : public QObject {
     // The rows that match the group filter and the search, in group order.
     // Each row: key, group, name, secondary, description, thumbnail (a server
     // path or empty) and tags.
-    Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
+    Q_PROPERTY(QVariantList rows READ rows NOTIFY listChanged)
     // The groups with their count of matching rows: key, label, count,
     // loading and error.
-    Q_PROPERTY(QVariantList groups READ groups NOTIFY changed)
+    Q_PROPERTY(QVariantList groups READ groups NOTIFY listChanged)
     Q_PROPERTY(QString filter READ filter WRITE setFilter NOTIFY changed)
     Q_PROPERTY(QString search READ search WRITE setSearch NOTIFY changed)
     Q_PROPERTY(bool connected READ connected NOTIFY changed)
@@ -77,6 +77,9 @@ public:
 
 signals:
     void changed();
+    // The rows or the groups changed. A copy in progress does not emit it,
+    // so the panel keeps its cards while openingKey changes.
+    void listChanged();
     // A server example was copied into the account under this id.
     void workflowCopied(const QString &id, const QString &exampleName);
     void bundledRequested(const QString &resource);
