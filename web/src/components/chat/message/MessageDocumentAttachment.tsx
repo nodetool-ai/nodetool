@@ -16,10 +16,10 @@ import SlideshowOutlinedIcon from "@mui/icons-material/SlideshowOutlined";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import {
   chatAttachmentDetail,
-  describeChatAttachment
+  describeChatAttachment,
+  type MessageDocumentContent
 } from "@nodetool-ai/protocol";
 
-import type { MessageDocumentContent } from "../../../stores/ApiTypes";
 import {
   BORDER_RADIUS,
   Box,
