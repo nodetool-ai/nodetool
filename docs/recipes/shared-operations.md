@@ -17,10 +17,10 @@ one for older manifests. `id` and `bindingId` retain their existing meanings.
 The compiler requires one matching concrete `OperationBinding` with a pinned
 Script or Workflow target. It does not introduce another execution graph.
 
-The supplied contract describes an implementation's guarantees. It is not a
-replacement for runtime enforcement. Source ownership and actual Timeline
-fidelity still run through the existing Storyboard and finishing capabilities.
-The compiler rejects unsupported preservation or media policy before execution.
+The supplied contract describes an implementation's guarantees and does not
+replace runtime enforcement. Source ownership and Timeline fidelity still run
+through the Storyboard and finishing capabilities. The compiler rejects
+unsupported preservation or media policy before execution.
 
 The first shared library is
 [`scripts/recipe-operations.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/recipe-operations.mjs):
@@ -30,11 +30,11 @@ The first shared library is
 | `plan_storyboard@1` | Typed Recipe inputs and a constant manifest, optional Storyboard ID, then Storyboard ID/revision, visual preview, plan, source fingerprint and approval state | Updates source Asset entity metadata and creates or updates a normal Storyboard | No generation spend. Creates shots by stable semantic label. Refreshing unchanged inputs adopts current Storyboard edits, regenerates the preview and resets approval. Changed bound inputs are reconciled separately from creative direction. A changed shot order, set or aspect ratio causes an explicit conflict. |
 | `finish_storyboard@1` | The same sources, approved fingerprint and Storyboard revision, optional Timeline ID/revision, then Timeline reference/revision and validation | Creates or updates a normal Timeline and its Storyboard link | Default deterministic mode produces an explicitly unreviewed editable draft with no model spend. Agentic mode declares model spend and requires rendered visual review before reporting a reviewed finished cut. Requires approval, rejects stale source or policy changes, then uses existing revision-checked finishing and reconciliation. |
 
-Both use exact source assets, text and colors. Both support
+Both use exact source assets, text and colors and support
 `still_motion_graphics`. Neither dispatches generative video or image editing.
-The shared planner reads semantic shot and graphics intent from manifest data.
-It does not contain Recipe-specific prices, copy or product selection.
-The finisher invokes the existing `finish_storyboard` capability.
+The planner reads semantic shot and graphics intent from manifest data and
+holds no Recipe-specific prices, copy or product selection. The finisher
+invokes the existing `finish_storyboard` capability.
 
 Planning tags product and logo assets through the existing `create_entity`
 capability when they are not already canonical entities. Entities are Asset
@@ -45,9 +45,8 @@ relationship. Graphics-only entities are not cast into generation prompt lists.
 
 Without a finishing model, the planner invokes the read-only
 `preview_storyboard_design` operation and exposes its inline Timeline envelope
-through the existing Timeline widget before Approval. That is a composed visual
-preview, with no persisted Timeline or new renderer. Its textual source list
-remains available alongside it.
+through the existing Timeline widget before Approval. The preview is composed
+visually and persists no Timeline. Its textual source list stays alongside it.
 
 With a finishing model, the planner invokes `layout_storyboard` instead. A
 vision model positions and scales every image and copy layer at each shot's
@@ -84,7 +83,7 @@ constant input mappings. Compilation rejects an absent model. Execution
 rejects a missing or changed strategy/model and stale approval before provider
 dispatch. This allows normal Mini App script execution without requiring an
 ambient chat session. Omitting the strategy produces an unreviewed draft. Structural and fidelity checks
-do not certify legible rendered pixels. Only agentic finishing that passes the
+do not certify legible rendered pixels, so only agentic finishing that passes the
 rendered review gate reports a reviewed finished cut.
 Agentic script execution uses the protocol's bounded 120-second timeout.
 Deterministic planning and finishing retain 60-second timeouts. A layout or
@@ -99,10 +98,8 @@ by ordinary import and release machinery. No separate Recipe executor or
 mutable runtime registry exists.
 
 Model, generation and rendering operations supplied by an author must declare their
-spend boundary and a separate approval input. Their implementation must reject
-stale inputs or resource revisions. The compiler never folds them into an
-automatic planning action. This library does not claim to supply generation or
-export operations that have not been bound to actual implementations.
+spend boundary and a separate approval input, and must reject stale inputs or
+resource revisions. The compiler never folds them into an automatic planning action.
 
 ## Compiler mapping
 
@@ -115,10 +112,9 @@ export operations that have not been bound to actual implementations.
 | Image, video or audio | ImageInput, VideoInput or AudioInput | Matching media type |
 | Color | ColorInput | `str` |
 
-Entity, generic Asset, Storyboard and Timeline inputs currently fail with an
-unsupported-widget diagnostic. The existing ResourcePicker selects a resource
-collection and does not write an input variable. The compiler does not emit a
-control whose selection never reaches the operation.
+Entity, generic Asset, Storyboard and Timeline inputs fail with an
+unsupported-widget diagnostic. The ResourcePicker selects a resource
+collection and writes no input variable, so the compiler emits no control for them.
 Defaults preserve original values, including text whitespace. Named input
 groups become normal headings and controls. Choice values must be unique and
 their defaults must resolve.
@@ -144,9 +140,9 @@ A failed refresh preserves the previous checkpoint. Approval is checked against
 current inputs, the Storyboard revision and any linked Script fingerprint
 before building. Refresh the Storyboard and approve again after editing it.
 
-Script-backed Recipes require NodeTool on the web or desktop. Mobile displays
-this limitation before collecting inputs because it cannot execute those
-production steps or edit the resulting Timeline.
+Script-backed Recipes require NodeTool on the web or desktop. Mobile shows
+this limitation before collecting inputs because it cannot run those production
+steps or edit the resulting Timeline.
 
 ## Authoring and verification
 
@@ -187,17 +183,17 @@ node scripts/run-vitest.mjs run scripts/__tests__/recipe-operations.test.mjs
 npm run test --workspace=packages/websocket -- tests/product-price-drop.test.ts
 ```
 
-Adding a new generative operation, new widget strategy or arbitrary layout
-generator is separate work. It must provide an actual executable binding,
-runtime policy enforcement and a headless proof before a manifest can use it.
+A new generative operation, widget strategy or layout generator needs an
+executable binding, runtime policy enforcement and a headless proof before a
+manifest can use it.
 
 An optional live provider proof uses the same installed Application and pinned
 Script operations. It declares agentic finishing with
 `{provider: "claude_agent_sdk", id: "sonnet"}` and requires an authenticated
 Claude Agent SDK environment. CI skips this provider-spending test by default.
 It validates protected media and exact copy, requires rendered visual-review
-evidence and exports the actual layered cut. Normal media generation remains
-forbidden. The proof does not require a fixed decoration count from the agent.
+evidence and exports the layered cut. Normal media generation remains
+forbidden and the agent need not add a fixed decoration count.
 
 ```bash
 RECIPE_LIVE_FINISH=1 PRICE_DROP_PROOF_DIR=/tmp/recipe-live-proof \

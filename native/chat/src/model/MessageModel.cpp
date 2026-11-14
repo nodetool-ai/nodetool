@@ -343,7 +343,22 @@ QJsonArray projectedParts(const QJsonObject &m, const QHash<QString, QJsonObject
     }
     if (cursor < body.size()) { parts.append(QJsonObject{{"type", "prose"}, {"text", body.mid(cursor)}}); }
   };
-  if (m["content"].isArray()) {
+  // A user's own words show as their bubble (DisplayTextRole), with the
+  // attachments beside them, whether the content is a string or text parts.
+  if (m["role"] == "user" && m["content"].isArray()) {
+    for (const auto &value : m["content"].toArray()) {
+      const auto part = value.toObject();
+      if (part["type"] == "text") { continue; }
+      auto displayed = value;
+      for (const auto &preview : nativeParts) {
+        if (preview.toObject()["originalMedia"] == value || (part["type"] == "image_url" && preview.toObject()["type"] == "image" && preview.toObject()["image"] == part["image"])) {
+          displayed = preview;
+          break;
+        }
+      }
+      parts.append(displayed);
+    }
+  } else if (m["content"].isArray()) {
     qsizetype textOffset = 0;
     int nativeIndex = 0;
     const auto totalLength = contentLength(m["content"]);
@@ -762,6 +777,9 @@ QVariant MessageModel::data(const QModelIndex &i, int role) const {
   case TextRole:
     return textOf(m["content"]);
   case DisplayTextRole:
+    if (m["role"] == "user" && m["content"].isArray() && m["execution_event_type"] != "compaction" && parsePlanDocument(m["content"]).isEmpty()) {
+      return textOf(m["content"]);
+    }
     return m["execution_event_type"] == "compaction" || !parsePlanDocument(m["content"]).isEmpty() || m["content"].isArray() || !m["parts"].toArray().isEmpty() || textOf(m["content"]).contains("<think>") ? QString() : textOf(m["content"]);
   case TimestampRole:
     return m["created_at"].toString();

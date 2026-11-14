@@ -688,7 +688,7 @@
         "native/node-editor/qml/Rail.qml"
       ],
       "status": "partial",
-      "note": "Projects, Library, Entities, Examples and More are disabled natively (C1 to C5).",
+      "note": "Projects is disabled natively (C1). Entities and More are left out of the native rail (C3 and C5).",
       "inventory": "W25"
     },
     "web/src/components/node_menu/QuickActionTiles.constants.tsx": {
@@ -2071,10 +2071,11 @@
     "web/src/components/panels/PanelLeft.tsx": {
       "native": [
         "native/node-editor/qml/LibraryPanel.qml",
-        "native/node-editor/qml/Rail.qml"
+        "native/node-editor/qml/Rail.qml",
+        "native/node-editor/qml/ExamplesPanel.qml"
       ],
       "status": "partial",
-      "note": "Library, Entities, Examples and More views are missing.",
+      "note": "Entities and More views are missing.",
       "inventory": "W25"
     },
     "web/src/components/panels/PanelRight.tsx": {
@@ -2635,6 +2636,14 @@
         "native/node-editor/qml/VersionGraphPreview.qml"
       ],
       "inventory": "F37"
+    },
+    "web/src/components/examples/ExamplesPanel.tsx": {
+      "native": [
+        "native/node-editor/qml/ExamplesPanel.qml",
+        "native/node-editor/src/interfaces/ExampleGallery.cpp"
+      ],
+      "status": "partial",
+      "note": "Workflow and ComfyUI examples, plus the native bundled examples. Apps, storyboard, timeline, sketch, 3D model and game examples are left out, since only workflow examples belong in the node editor. Dragging a card onto the canvas is not ported."
     },
     "web/src/components/chat/ChatListPanel.tsx": {
       "native": [

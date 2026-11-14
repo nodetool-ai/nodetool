@@ -20,8 +20,6 @@ Every chat message runs the agent loop: the agent plans the steps, connects node
 | Build forms, fields, buttons, or outputs | Mini Apps | [App Builder](app-builder.md) |
 | Add a level, an enemy, or a rule | Games | [Game Editor](game-editor.md) |
 
-The agent uses the same actions the interface offers, so changes land as they happen in a normal document.
-
 ## Core guides
 
 - [Chat](global-chat.md): composer, threads, permissions.
@@ -33,10 +31,10 @@ The agent uses the same actions the interface offers, so changes land as they ha
 
 ## Typical requests
 
-1. **Build a workflow from a prompt.** Open Chat, pick a model, and describe the workflow. The agent plans the steps, checks them against the available nodes, saves the workflow, and runs it.
+1. **Build a workflow from a prompt.** Open Chat, pick a model, and describe the workflow. The agent checks its plan against the available nodes, saves the workflow, and runs it.
 2. **Edit the open document.** Ask for the change: "add an upscale step" or "put the narration on a new audio track."
-3. **Run a saved workflow.** Select it in the chat or ask for it by name. Results appear in the thread.
+3. **Run a saved workflow.** Select it in the chat or ask for it by name.
 4. **Set permissions per thread.** *Plan* gives a proposal and runs nothing, *Default* asks before actions, and *Auto* runs routine work unattended but asks once before an action it labels high risk, such as deleting, publishing, or spending. See [permission modes](global-chat.md#permission-modes).
 5. **Run the agent headless.** Use the [Agent CLI](agent-cli.md) for scripts or the [Chat API](chat-api.md) for a backend service.
 
-See the [Cookbook](cookbook.md) for patterns and the [Deployment Guide](deployment.md) for production.
+See the [Cookbook](cookbook.md) and the [Deployment Guide](deployment.md).

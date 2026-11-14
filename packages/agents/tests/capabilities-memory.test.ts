@@ -6,7 +6,7 @@
  * delete round trip against the in-memory database.
  */
 
-import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Asset, ModelObserver, initTestDb } from "@nodetool-ai/models";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
@@ -98,10 +98,7 @@ describe("wire compatibility: a Tool built from the spec", () => {
 
 describe("behaviour through toolFromCapability", () => {
   beforeEach(() => initTestDb());
-  afterEach(() => {
-    ModelObserver.clear();
-    vi.useRealTimers();
-  });
+  afterEach(() => ModelObserver.clear());
 
   it("saves, lists, updates and deletes one memory", async () => {
     const context = ctx();
@@ -155,20 +152,20 @@ describe("behaviour through toolFromCapability", () => {
 
   it("reads one saved memory back by title or by id", async () => {
     const context = ctx();
-    // "Newest" is the later created_at. Two saves in one millisecond tie and
-    // fall back to the random id, so each save gets its own clock time.
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
     await asTool(byName("memory_save")).process(context, {
       content: "clip: asset://older",
       title: "Hero clip"
     });
-    vi.setSystemTime(new Date("2026-01-01T00:00:01.000Z"));
+    // Rows order by a millisecond created_at, so a second save in the same
+    // millisecond ties with the first and the tie falls to the random id.
+    const firstSavedAt = Date.now();
+    while (Date.now() === firstSavedAt) {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+    }
     const saved = (await asTool(byName("memory_save")).process(context, {
       content: "clip: asset://newer",
       title: "Hero clip"
     })) as { memory_id: string };
-    vi.setSystemTime(new Date("2026-01-01T00:00:02.000Z"));
     await asTool(byName("memory_save")).process(context, {
       content: "Hero clip notes, not the clip",
       title: "Notes"

@@ -4,7 +4,7 @@ title: "Chat"
 description: "Ask the agent to build workflows and edit your open documents, generate media, and run saved workflows."
 ---
 
-Chat is the composer and agent loop: the agent plans, calls tools, builds and edits the document you have open, generates media, and runs saved workflows. Type a request and send it.
+The agent builds and edits the document you have open and runs saved workflows. Type a request and send it.
 
 > **Runs:** locally or cloud, depending on the model you pick. **Needs:** at least one configured provider (see [Providers](providers.md)). Permission modes (Plan, Default, Auto) set what the agent may do without asking.
 {: .callout-note}
@@ -96,13 +96,7 @@ Type `/` at the start of a word in the composer to open a list of your skills an
 
 ### The Agent Loop
 
-Every turn runs the agent loop. Per request, the assistant decides whether to break a task into steps and run a plan or answer directly.
-
-1. **Planning** -- The agent analyzes your request and, when the task warrants it, creates a plan with ordered steps
-2. **Tool selection** -- For each step, the agent chooses from the available tools
-3. **Execution** -- Steps run in sequence, with results feeding the next step
-4. **Adaptation** -- The agent adjusts its plan based on intermediate results
-5. **Reporting** -- Progress, tool calls, and reasoning stream in real time
+Per request, the agent either answers directly or breaks the task into a plan, then calls tools step by step. Progress, tool calls, and reasoning stream into the thread as the turn runs.
 
 ### Permission Modes
 
@@ -132,7 +126,7 @@ In Auto the agent labels every code action it writes `low` or `high` risk. A `lo
 
 ### Watching an Agent Work
 
-As the agent runs, the thread shows the task plan, each step's status as it starts, completes, or fails, the tools it calls and their results, and — on models that support it — its reasoning.
+The thread shows the task plan, each step's status, the tools it calls and their results, and, on models that support it, the agent's reasoning.
 
 ---
 
@@ -200,7 +194,7 @@ To use NodeTool from another agent instead, see [NodeTool as an MCP Server](mcp-
 
 ## Standalone Chat Window
 
-Click the NodeTool system tray icon and select **Chat** to open chat in its own window. It shares threads with the main app.
+The standalone window shares threads with the main app. See [Opening Chat](#opening-chat).
 
 ---
 

@@ -122,6 +122,15 @@ public:
     QString threadTitle() const;
     Q_INVOKABLE void setWorkflow(const QString &id);
     Q_INVOKABLE void deleteThread(const QString &id);
+    Q_INVOKABLE void renameThread(const QString &id, const QString &title);
+    // Cloud providers that take an API key, from settings.providerCatalog:
+    // {provider, name, key, configured}. The key itself stays on the server.
+    Q_PROPERTY(QVariantList providerKeys READ providerKeys NOTIFY providerKeysChanged)
+    Q_PROPERTY(QString providerKeyStatus READ providerKeyStatus NOTIFY providerKeysChanged)
+    QVariantList providerKeys() const { return m_providerKeys; }
+    QString providerKeyStatus() const { return m_providerKeyStatus; }
+    Q_INVOKABLE void loadProviderKeys();
+    Q_INVOKABLE void saveProviderKey(const QString &key, const QString &value);
     Q_INVOKABLE void retry();
     bool hasActiveTurns() const;
   Q_INVOKABLE void createThread(const QString &draft = {});
@@ -182,6 +191,10 @@ signals:
     void resolvedMediaChanged();
     // A send was refused because the selected mode has no model picked.
     void modelPickerRequested();
+    void providerKeysChanged();
+    // A chat send found no usable model: the host opens its API key dialog.
+    void providerSetupRequested();
+    void providerKeySaved(QString provider);
 
 private:
   struct State {
@@ -203,6 +216,8 @@ private:
   void answerAction(const QString &id, const QJsonObject &response, const QString &status);
   void storeMedia(const QString &key, const QString &url, const QString &error, qint64 bytes);
   QVariantMap m_resolvedMedia;
+  QVariantList m_providerKeys;
+  QString m_providerKeyStatus;
   qint64 m_resolvedBytes = 0;
   void resolveMedia(const QString &, const QJsonObject &,
                     const QString &projectionKey = {});

@@ -2182,9 +2182,8 @@ storage, inline input editing, output creation, boundary grouping and exact JSON
 undo/redo through pointer and keyboard events. Removing the graph filter and
 boundary rewrite makes those regression tests fail. Set
 `NODETOOL_SUBGRAPH_CARD_CAPTURE_DIR` to capture dark and light cards with their
-inspectors. F09 remains partial pending visual acceptance. The native output
-form opens in a popup rather than expanding inside the card. Running progress
-has no web elapsed-time estimate.
+inspectors. F09 remains partial pending visual acceptance. Add output opens a
+dialog in both editors.
 
 [ChildPorts](../src/document/ChildPorts.cpp) reads inline subgraphs and stored
 workflow/app snapshots. It uses the web input/output type mappings, metadata
@@ -2210,6 +2209,18 @@ graph. Canvas shortcuts, inspector data and run controls use the shown surface.
 Inline Save uses the parent document. Unknown child graph fields and nested
 snapshots survive copy and local save/reopen.
 
+As in [WorkflowEditorSurface](../../../web/src/components/workspace/WorkflowEditorSurface.tsx),
+the chrome around an inline subgraph canvas belongs to the workflow. The
+document bar shows and renames the workflow, the status bar counts its nodes
+and edges, and Run and Stop flush the subgraph edits and run or stop the whole
+workflow on its session. The run toolbar, queue overlay and run output follow
+that run. Run selected still runs the selected inner nodes, and the run output
+shows whichever of the two ran last. Undo and redo stay with the shown canvas,
+while the web document bar buttons undo the workflow store. Subgraph card
+progress uses the secondary progress color and the
+[NodeProgress](../../../web/src/components/node/NodeProgress.tsx) label with its
+remaining-time estimate, which every card progress band now shares.
+
 A child graph update and its derived ports form a parent undo entry. Subgraph
 and Workflow edges on removed dynamic ports are removed in that entry, following
 SubgraphSync and replaceDynamicSlots. Undo restores those edges. Edges on
@@ -2226,7 +2237,9 @@ return, retained edges, independent undo scope, parent reconciliation, nested
 copy, unknown-field round trips, app binding/stream derivation, missing children
 and delayed responses after tab closure or account replacement. Pointer tests
 cover host activation, nested marks, cascade closure, reopening, workflow
-closure and child Save. Restore tests exclude child canvases and retain the
+closure and child Save. `subgraphSurfaceRunsAndNamesItsWorkflow` renames and
+runs the workflow from a nested subgraph and reads the transmitted graph, the
+header, the status counts and the mirrored run output. Restore tests exclude child canvases and retain the
 owning workflow selection. Replacement rejects pending child writeback. Set
 `NODETOOL_SUBGRAPH_CAPTURE_DIR` for dark and light captures with one and two
 levels of child strips. The strips occupy the native canvas column beside the
@@ -3146,7 +3159,7 @@ is visible only on inspection.
 | W22 | Inspector width | 350 px when it first opens (`stores/RightPanelStore.ts` `sizes.initial`). The comparison captures showed 380 px because the capture script seeded that width. | 350 px. | Low | Matches. The capture script now seeds 350 px. Asserted by `ChromeParityTest::inspectorOpensAtTheWebWidth`, which passed before any change. Acceptance pending. |
 | W23 | Output panel | The bottom panel takes the status bar as its tab strip, so an open panel puts the bar above its body. The Logs view shows a run picker, which reads "No recent runs" without runs, the "No recorded runs" empty state, and 32 px rows (`PanelBottom.tsx`, `TracePanel.tsx`). | While the Output panel is open, the status bar moves to its top and the body follows below it. The body has no title row or close button, and the Logs tab closes it. The run picker is always shown and reads "No recent runs" when there are none. The empty state uses the web title and description. Rows without content are one 32 px line. The native body lists the session's run events and outputs, where the web Logs view lists stored log events of the run. Versions and Trace open their own bottom panels, which keep the status bar below them. | Medium | Fixed in `RunOutput.qml` and `EditorWindow.cpp` (`placeStatusBar`). Asserted by `ChromeParityTest` (`outputPanelUsesTheStatusBarAsItsTabStrip`, `outputPanelShowsARunPickerAndAnEmptyState`, `outputRowsAreCompact`). `EditorTest::outputDockKeepsDocumentHistory` changed its empty-state text. Open: the stored-log list and the status bar above the Versions and Trace panels. Acceptance pending. |
 | W24 | Status bar | Connection, panel tabs from Logs to Trace, counts, CPU and memory. A tab shows whether its panel is open, and the open view's tab closes the panel. The bar has no message text. | Connection (Connected, Offline or Idle), Logs, Queue, Generations, Workers, Versions and Trace tabs, node and edge counts, and CPU and memory from the server's `system_stats`. Logs, Versions and Trace show the open state and close their panel when clicked again. Queue opens the queue panel at any time and Generations opens the generations panel. Workers stays disabled with a reason. The run message left the bar. It stays in the inspector and errors reach the tab bar notifications. The Connect button for an offline session is native. | Medium | Fixed in `StatusBar.qml` and `EditorPanels.cpp` (`toggleStatusView`). Asserted by `statusBarHasTheWebItemsInOrder`, `statusBarTabsOpenNativePanelsOrExplainWhyNot`, `statusBarShowsServerStatsAndTheQueue` and `statusBarTabsShowAndToggleTheirPanels`. The remaining gaps are C9, C12 and C13 below and the L and Ctrl+Shift+T shortcuts. C8 and C11 are partial. Acceptance pending. |
-| W25 | Rail | Logo menu, Projects, Documents, Chats, Library, Entities, Examples, Nodes and More, then a theme toggle and a panel toggle. Each has a tooltip. | The same entries in the same order and icons, with the same tooltips, except Entities and More, which the native rail leaves out. Documents opens the workflow browser, Chats the native conversation, and Nodes the catalog. Projects and Library are disabled with a reason. The logo has no menu. The native Inspector and Output entries left the rail. | Low | Partly fixed in `Rail.qml` (`PanelLeft.tsx`, `QuickAccessSidebar.tsx`, `ThemeToggle.tsx`). Asserted by `railHasTheWebEntriesInOrder`, `railTooltipsNameEntriesAndExplainDisabledOnes` and `railEntriesOpenTheirNativePanels`. The gaps are in the table below. Not accepted. |
+| W25 | Rail | Logo menu, Projects, Documents, Chats, Library, Entities, Examples, Nodes and More, then a theme toggle and a panel toggle. Each has a tooltip. | The same entries in the same order and icons, with the same tooltips, except Entities and More, which the native rail leaves out. Documents opens the workflow browser, Chats the native conversation, and Nodes the catalog. Projects is disabled with a reason. Library and Examples open their left panels. The logo has no menu. The native Inspector and Output entries left the rail. | Low | Partly fixed in `Rail.qml` (`PanelLeft.tsx`, `QuickAccessSidebar.tsx`, `ThemeToggle.tsx`). Asserted by `railHasTheWebEntriesInOrder`, `railTooltipsNameEntriesAndExplainDisabledOnes` and `railEntriesOpenTheirNativePanels`. The gaps are in the table below. Not accepted. |
 | W26 | Elevations | The toolbar, viewport control, side panels, bottom panel and Preview and Output cards cast shadows. | Flat, as the [native design](../../ui_primitives/DESIGN.md#appearance) requires for persistent chrome. | Medium | Scope change [SC4](parity-inventory.md#user-approved-scope-changes): the user decided to keep persistent chrome flat. |
 | W27 | Mini-map | Hidden by default behind a header toggle. The choice is stored. Its light-theme surface is `grey[100]`, which is dark. | Hidden by default. `editor.setMiniMapVisible` and the Command menu action "Toggle mini-map" change it for every tab and store it under `minimap/visible`. A new window starts as the user left it. Colors follow the web source, including the dark light-theme surface. | Medium | Fixed in `EditorWindow.cpp` (`web/src/stores/MiniMapStore.ts`). Asserted by `miniMapIsHiddenByDefaultAndTheChoiceIsRemembered`. The color mode and legend are asserted by `ViewportNavigatorTest::miniMapColorsFollowTheColorMode` and `miniMapPaletteMenuAndLegend`. The header toggle is in `HeaderRow.qml`, and `HeaderRowTest::togglesOpenPanels` clicks it. Not accepted. |
 | W28 | Chat window | Opens by default unless the viewport is narrower than 1200 px, until the user opens or closes it (`stores/CanvasChatDockStore.ts`). The capture script seeds it collapsed. | The same rule. Without a stored choice the chat window opens when the window is at least 1200 px wide. A toggle stores the choice. The window parity and chrome tests seed it collapsed, as the web captures do. | Low | Fixed in `EditorChat.cpp`. Asserted by `ChromeParityTest::chatOpensByDefaultOnAWideWindow`. Acceptance pending. |
@@ -3433,7 +3446,7 @@ panels is outside the chrome work.
 | C1 | Rail Projects | Opens the projects list as a tab (`ProjectsRailButton.tsx`). | Disabled. The project menu in the tab strip switches projects. | Open. |
 | C2 | Rail Library | Asset grid in the left panel (`PanelLeft.tsx`). | Disabled. | Open. |
 | C3 | Rail Entities | Entity library in the left panel. | Disabled. | Open. |
-| C4 | Rail Examples | Shipped examples in the left panel. | Disabled. | Open. |
+| C4 | Rail Examples | Shipped examples in the left panel. | `ExamplesPanel.qml` in the left dock (`ExampleGallery`): the server's workflow and ComfyUI examples and the bundled examples, with search and type filters. A server example opens as the account's copy in a workflow tab. Other example kinds stay web only, and cards cannot be dragged onto the canvas. | Partial. Asserted by `ExamplesPanelTest` and `railEntriesOpenTheirNativePanels`. |
 | C5 | Rail More | Favorite nodes, recent nodes, workflow settings, skills and workspace files (`MorePanel.tsx`). | Disabled. Native commands are in the toolbar More menu. | Open. |
 | C6 | Rail logo | Opens the app menu with Settings, Help and Downloads (`RailAppMenu.tsx`). | A static logo. | Open. |
 | C7 | Rail Documents | Tree of every document in the project. | Opens the workflow browser, which lists workflows only. | Open. |

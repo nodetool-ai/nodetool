@@ -2,7 +2,7 @@
 
 Motion written as JavaScript instead of picked from the preset catalog. See [Timeline motion design](timeline-motion-design.md) for style tracks, text animators, camera, layout, repeaters, effects, and transitions.
 
-The body runs **once**, host-side, and returns keyframes. The keyframes are stored on the clip and compiled like a preset's. Nothing evaluates JavaScript at render time, because the preview, web export, text rasterizer, and headless compositor share one sampler in `packages/timeline` and the browser has no JS sandbox (QuickJS runs server-side only). A body cannot react to playback state. It emits `f(t)` at N points and the sampler interpolates.
+The body runs **once**, host-side, and returns keyframes. The keyframes are stored on the clip and compiled like a preset's. No JavaScript runs at render time: the preview, web export, text rasterizer, and headless compositor share one sampler in `packages/timeline`, and QuickJS runs server-side only. A body emits `f(t)` at N points and the sampler interpolates.
 
 ## The script contract
 
@@ -38,15 +38,14 @@ await output("samples", samples);
 
 Return exactly one of:
 
-- **`samples`** — one bag per point in time, `{t, opacity, offsetY, …}`. A
-  property must be set on every sample or none; a hole would make the sampler
-  invent motion the body never wrote.
-- **`curves`** — per-property keyframes, `{property, keyframes: [{t, value,
+- **`samples`**: one bag per point in time, `{t, opacity, offsetY, …}`. A
+  property must be set on every sample or none, because a hole makes the
+  sampler invent motion.
+- **`curves`**: per-property keyframes, `{property, keyframes: [{t, value,
   easing?}]}`, for a body that authored them directly.
 
 A body driving `wipeProgress` must also `output("mask", {direction, softness})`.
-Direction and softness never animate, and defaulting them would render a wipe
-nobody described.
+Direction and softness never animate and have no default.
 
 ### Animatable properties
 
@@ -61,7 +60,7 @@ Compositing: `opacity`, `wipeProgress`. Grade and blur: `blur`, `brightness`,
 `trimStart`, `trimEnd`.
 
 A channel folds one of four ways when several animations drive it: `add`,
-`multiply`, `min` (`wipeProgress` — more hidden wins), or `replace` (the
+`multiply`, `min` (`wipeProgress`, where more hidden wins), or `replace` (the
 absolute channels: position, anchor, trim).
 
 ## Two differences from a preset
@@ -70,8 +69,8 @@ absolute channels: position, anchor, trim).
 compiler reverses it; a body is handed its `role` and writes the motion it
 wants.
 
-**Segments default to linear.** A preset's role easing on top of a densely
-sampled `f(t)` would distort values the body already shaped. An explicit
+**Segments default to linear.** Role easing on a densely sampled `f(t)` would
+distort the body's values. An explicit
 `animation.easing`, or a per-keyframe `easing`, still wins.
 
 ## Storage
@@ -86,7 +85,7 @@ The animation carries `preset: "custom"` and a `custom` payload
   "preset": "custom",
   "durationMs": 600,
   "custom": {
-    "scriptId": "js-script-row-id",   // or "code": "…" — provenance, never run at render time
+    "scriptId": "js-script-row-id",   // or "code": "…", provenance only
     "bakedAt": "2026-09-01T12:00:00Z",
     "curves": [{ "property": "opacity", "keyframes": [{ "t": 0, "value": 0 }, { "t": 1, "value": 1 }] }]
   }
@@ -101,22 +100,22 @@ keyframes per curve, one curve per property.
 `custom.timeBase` picks the clock a curve's keyframes are placed on:
 `"clip"` (the default) normalizes `t` over the animation window, the way a
 preset does. `"source"` places every keyframe at an absolute `sourceMs`
-instead — a time in the clip's own media — and the sampler evaluates the curve
+instead (a time in the clip's own media), and the sampler evaluates the curve
 at the clip's current source time (`clipSourceMsAt`, `timeRemap.ts`) rather
-than at the window's `t`. That is the same time the compositor seeks the
-clip's video to, so a speed change, an in-point trim, or a `timeRemap` moves
-the animation exactly the way it moves the footage.
+than at the window's `t`. The compositor seeks the clip's video to the same
+time, so a speed change, an in-point trim, or a `timeRemap` moves the
+animation the way it moves the footage.
 
-`bakedFrom` names what produced the curve when a hand edit did not — an audio
-loudness bake, a motion tracker — as provenance to re-bake from (`kind`, and
-optionally `clipId`, `assetId`, `settings`), never something rendered.
+`bakedFrom` names what produced the curve when a hand edit did not (an audio
+loudness bake, a motion tracker). It is provenance to re-bake from (`kind`, and
+optionally `clipId`, `assetId`, `settings`) and is never rendered.
 
 Because the curve is placed in the media, a trim or a split **re-slices** it
 instead of letting the window stretch it (`animation/sourceCurves.ts`):
 keyframes outside the retained source window are dropped, and an interpolated
 keyframe is added at each new edge, so the motion at a timeline instant the
-edit did not touch is unchanged. That is exact for a linear segment — the
-compiler's default for a custom animation — and an approximation when a cut
+edit did not touch is unchanged. That is exact for a linear segment, the
+compiler's default for a custom animation, and an approximation when a cut
 lands inside an eased segment. A clip-based curve carries no `sourceMs` and is
 left alone: stretching with the window is what its `t` means.
 
@@ -134,11 +133,9 @@ curl -sX POST localhost:7777/api/timelines/animations/bake \
 ```
 
 The response carries `curves` (and `mask`), the body's `logs`, and `error` when
-the body failed — a body that throws is a result to show its author, not a 500.
+the body failed. A body that throws returns a result, not a 500.
 
-The run is **hermetic**: no toolbelt, no secrets, no network, capped at 10s. A
-curve generator is a function of time, and reach would let the same animation
-bake differently depending on where it ran.
+The run is **hermetic**: no toolbelt, no secrets, no network, capped at 10s.
 
 ## The agent path
 
@@ -163,20 +160,19 @@ open editor), with `preset: "custom"` and **exactly one** of `curves` and
 }
 ```
 
-`curves` are the keyframes themselves — `t` runs 0..1 over the animation's
+`curves` are the keyframes themselves. `t` runs 0..1 over the animation's
 window, and a curve that stops short of either end is extended by holding its
 end value. `code` is the body above: the host bakes it once through
-`bakeCustomAnimation` — the same hermetic run the endpoint uses — and stores
+`bakeCustomAnimation` (the same hermetic run the endpoint uses) and stores
 `code` beside the curves as provenance. Both paths end at
 `normalizeCustomCurves`, so what is stored is what will render.
 
 Rules the op enforces, each with the message that says how to fix it:
 
-- Both `curves` and `code`, or neither, is refused. One says what the motion
-  is; the other says what computes it.
+- Both `curves` and `code`, or neither, is refused.
 - A property outside `ANIMATED_PROPERTIES` is refused, and the message lists
   the ones a curve may drive.
-- A `wipeProgress` curve needs `mask` (`{direction, softness}`) — the same
+- A `wipeProgress` curve needs `mask` (`{direction, softness}`), the same
   refusal the compiler and the validator raise.
 - A machine-produced curve goes through `set_baked_animation`, not this op.
 - `code` needs a host that can bake it. `edit_timeline` wires one; a surface
@@ -186,8 +182,7 @@ Without `durationMs` the animation spans the clip, so hand-written curves need
 no arithmetic to line up with a cut.
 
 `list_animation_presets` reports the `custom` contract and every animatable
-property with its fold, identity and range, so the channels can be read off the
-tool rather than out of this document.
+property with its fold, identity and range.
 
 ### A curve something measured
 
@@ -214,17 +209,15 @@ second write of the same kind on the same property replaces that animation in
 place, keeping its id, and `replace: false` appends beside it instead. An
 animation with no `bakedFrom` — anything a person keyframed — never matches and
 is never overwritten. `role` defaults to `emphasis` over the whole clip, and
-`bakedAt` is not stamped: `bakedFrom` is this path's provenance, and a
-wall-clock field would make two hosts running the same bake write two different
-documents.
+`bakedAt` is not stamped, so two hosts running the same bake write the same
+document.
 
 `bake_audio_animation` is the producer that exists today. It measures an audio
 clip's own stretch of its file, turns loudness (`mode: "envelope"`) or onsets
 (`mode: "beats"`) into keyframes, maps each one from audio-source time through
 timeline time into the target clip's source time, and applies the op. It
-refuses a time-remapped clip on either end, because a remap makes "which source
-millisecond plays here" a curve over the clip's window with no inverse to map a
-beat through.
+refuses a time-remapped clip on either end, because a remap leaves no inverse to map a beat
+to a source millisecond.
 
 ## Checks
 

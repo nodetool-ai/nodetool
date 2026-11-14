@@ -20,7 +20,7 @@ A workflow is a graph of nodes and edges. This is the saved form of the shipped 
 }
 ```
 
-On the canvas this is three boxes and two lines. Each node does one job and each edge carries one node's output into another node's input. An agent can build and edit these graphs for you, and models run locally or on a provider with your own API key. For single-word definitions see the [Glossary](glossary.md).
+On the canvas this is three boxes and two lines. For single-word definitions see the [Glossary](glossary.md).
 
 ---
 
@@ -28,13 +28,13 @@ On the canvas this is three boxes and two lines. Each node does one job and each
 
 ### The agent
 
-The **agent** is the assistant in the Chats panel. It builds workflows, calls tools, and edits your open workflow, sketch, or timeline with the same tools you use. Its changes are visible and can be undone, and anything it builds stays editable.
+The **agent** is the assistant in the Chats panel. It builds workflows, calls tools, and edits your open workflow, sketch, or timeline with the same tools you use. Its changes are visible and can be undone.
 
 The permission mode in the chat composer sets what it may do. Plan only reads and proposes, with actions blocked. Default runs reads and asks before each action. Auto runs routine work unattended and still asks once before an action the agent declares high risk, such as a delete, a publish, or spending money. See [Chat](global-chat.md).
 
 ### Nodes
 
-A **node** is one box that does one thing.
+A **node** is one box that does one job.
 
 | Node                | What it does                                        | Example                                          |
 | ------------------- | --------------------------------------------------- | ------------------------------------------------ |
@@ -70,8 +70,6 @@ PDF, text file, 3D model, or anything else a node can read or write. Assets live
 in the Asset Explorer and can be used again in any workflow, sketch, timeline,
 or chat.
 
-Assets are shared between editors:
-
 - Drag an image asset onto a workflow and it becomes an input.
 - Save a workflow's result as an asset to use later.
 - Drag video, audio, or images onto a timeline to become clips.
@@ -103,7 +101,7 @@ A **timeline** arranges video, audio, still images, overlays, and AI-generated c
 An **Agent node** is an agent placed _inside_ a workflow, as opposed to the
 agent above, which builds workflows.
 
-It takes a goal in plain English, plans the steps, and uses tools such as web search, file access, or running code. A normal node does one fixed thing, and an Agent node decides what to do.
+It takes a goal in plain English, plans the steps, and uses tools such as web search, file access, or running code. A normal node does one fixed thing.
 
 ### Mini-Apps
 
@@ -128,8 +126,6 @@ Most work in NodeTool follows one loop:
    is just another asset a workflow can read.
 5. **Share it.** Keep the workflow to run again, wrap it as a Mini-App, or
    publish the finished file.
-
-The editors share one pool of assets and one set of AI services, and the agent works in each.
 
 {% mermaid %}
 graph LR
@@ -176,7 +172,7 @@ A **model** is a trained AI you call from a node.
 | Internet      | Works offline              | Required                                     |
 | To set up     | Download 4-20 GB per model | Paste an API key                             |
 
-Choose per node: one step can use an online model while the rest runs locally.
+You choose per node, so one step can use an online model while the rest runs locally.
 
 ---
 
@@ -250,7 +246,7 @@ The node registry resolves it in this order:
 2. The same string without a trailing `Node`
 3. If neither matches, the namespace (everything before the last dot) is loaded on demand, then the lookup runs again
 
-That is why loading a graph doesn't require importing every node module first. A type that still has no match is reported as unknown.
+A type that still has no match is reported as unknown.
 
 See the [Developer Guide](developer/) and
 [Custom Nodes](developer/custom-nodes-guide.md).

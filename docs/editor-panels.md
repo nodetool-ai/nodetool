@@ -12,7 +12,7 @@ The [Workflow Editor]({{ '/workflow-editor' | relative_url }}) has a left panel,
 
 ## Left Panel
 
-Click a rail icon to open its drawer, and click it again to collapse. The rail has five views: **Documents**, **Chats**, **Library**, **Nodes**, and **More**. The logo above them opens the app menu: **Settings**, **Help**, and **Downloads**. Settings opens as a workspace tab.
+The rail has five views: **Documents**, **Chats**, **Library**, **Nodes**, and **More**. The logo above them opens the app menu: **Settings**, **Help**, and **Downloads**. Settings opens as a workspace tab.
 
 ![Left Panel](assets/screenshots/editor-left-panel.png)
 
@@ -79,7 +79,7 @@ When no node is selected the Inspector has nothing to show, but the Cost estimat
 
 ### Cost estimate
 
-Under the Inspector, a collapsed **Cost estimate** section prices the open workflow for one run. Its header shows the total, or `incomplete` when some nodes have no known price. Expand it for a table with a row per node that uses an AI model: the node, its provider and model, the units, and the cost. A `~` means the figure rests on an assumed default, `≥` means it leaves out a known cost, and a question mark marks a node with no known price, which is left out of the total. The section is present whenever a workflow tab is open, and it takes at most 45% of the panel's height. For how prices are found, what the markers mean, and the other places NodeTool shows costs, see [Costs and credits](costs-and-credits.md).
+The collapsed **Cost estimate** section under the Inspector prices the open workflow for one run. Its header shows the total, or `incomplete` when some nodes have no known price. Expand it for a row per node that uses an AI model: the node, its provider and model, the units, and the cost. A `~` marks a figure based on an assumed default, `≥` marks one that leaves out a known cost, and a question mark marks a node with no known price, which is left out of the total. The section is present whenever a workflow tab is open and takes at most 45% of the panel's height. See [Costs and credits](costs-and-credits.md) for how prices are found.
 
 ---
 
@@ -165,7 +165,7 @@ There is no Pause, Resume, or Fit button in the dock. A run cannot be paused or 
 
 ## Customizing the Layout
 
-Click a rail icon to open or collapse a panel, and drag its inner edge to resize. State and size persist between sessions.
+Click a rail icon to open or collapse a panel, and drag its inner edge to resize. State and size persist between sessions. Three common layouts:
 
 Left panel only, canvas taking the rest:
 

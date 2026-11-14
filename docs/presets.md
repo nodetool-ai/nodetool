@@ -52,26 +52,26 @@ A request carries at most three presets. The compiler and the picker apply the s
 - A preset cannot appear in the same stack as an id in its `conflicts` list, in either direction.
 - Every preset must list the request's mode in `modes`.
 
-The picker disables a card that would break a rule and names the preset blocking it. The compiler throws an error naming both presets if a request breaks one anyway, for example `Presets camera.a and camera.b cannot combine`.
+The picker disables a card that would break a rule and names the preset blocking it. See [Errors](#errors) for the compiler's behavior.
 
 ---
 
 ## How compile works
 
-`compilePresets(ids, { modelId, mode, prompt, catalog })` returns `{ prompt, params, applied, warnings }`. It is deterministic and has no model call.
+`compilePresets(ids, { modelId, mode, prompt, catalog })` runs these steps:
 
 1. `modelFamily(modelId)` maps the provider model id to a family: `kling`, `seedance`, `veo`, `wan`, `sora`, `minimax`, `ltx`, `local-wan` or `default`. [Local Wan2GP models](#local-wan2gp-models) explains the local ids. The same table picks the prompting guide in `MODEL_PROMPTING_SKILLS`, so one list decides both. For the `nodetool` provider, the delegate model resolves first.
 2. For each preset in stack order, the compiler takes the fragment for that family, or `default` when the preset has none.
 3. A string fragment appends to the prompt with a space. An object fragment `{ prefix, suffix, replace }` joins `prefix`, then `replace` (or the current prompt when there is no `replace`), then `suffix`. A `replace` fragment drops the prompt built so far, so use it only for effects that must own the whole instruction.
-4. For each preset, the selected `family_params` entry overrides `params`. There is no default-family fallback for settings. A scoped key absent from both the selected family and shared params is dropped with a warning naming the preset, key and family. Settings outside the mode allowlist in `mediaPresetSettings` are also dropped with a warning before conflict checking. The remaining params merge in stack order. Two presets that set the same key to different values fail the compile with an error naming both.
+4. For each preset, the selected `family_params` entry overrides `params`. There is no default-family fallback for settings. A scoped key absent from both the selected family and shared params is dropped with a warning naming the preset, key and family. Settings outside the mode allowlist in `mediaPresetSettings` are also dropped with a warning before conflict checking. The remaining params merge in stack order.
 
 ### Family settings support
 
-The compiler drops `fps` and `negative_prompt` from shared and family-scoped params in every mode and every family, with a warning. Generic video generation has no fps input, and negative-prompt support varies by endpoint within a family, so presets express both in prose. Ejected workflows filter the same way. A preset can scope other settings, for example `"family_params": { "seedance": { "duration_seconds": 5 } }`. Other families omit that setting with a warning unless shared `params` supplies it. Two presets that set the same key to different values fail the compile.
+The compiler drops `fps` and `negative_prompt` from shared and family-scoped params in every mode and every family, with a warning. Generic video generation has no fps input, and negative-prompt support varies by endpoint within a family, so presets express both in prose. Ejected workflows filter the same way. A preset can scope other settings, for example `"family_params": { "seedance": { "duration_seconds": 5 } }`. Other families omit that setting with a warning unless shared `params` supplies it.
 
 ### Looks
 
-Look presets cover camera-body rendering, film stock, color grade, lighting, an era's finish, and speed ramps, in slots `body`, `stock`, `grade`, `lighting`, `era` and `ramp`. Each has default, Kling, Seedance, Veo and Wan wording. The fragments are authored direction, not a claim of rendered validation on each provider.
+Look presets cover camera-body rendering, film stock, color grade, lighting, an era's finish, and speed ramps, in slots `body`, `stock`, `grade`, `lighting`, `era` and `ramp`. Each has default, Kling, Seedance, Veo and Wan wording. 
 
 Looks support video, image-to-video and reference-to-video. Still-compatible looks also support image generation. Speed ramps support video modes only and describe action timing without a numeric frame rate. Monochrome looks conflict with color-dependent treatments, and look ramps conflict with the camera speed-ramp preset. Use looks in the composer picker, the storyboard (see [Storyboard looks](#storyboard-looks)), the CLI, agent preset tools, or media requests with `preset_ids`.
 
@@ -112,7 +112,7 @@ take a plain prompt and no `preset_ids`.
 
 ### Fallback warning
 
-A model whose family is unknown, or whose family a preset has no fragment for, compiles with the `default` fragment. The result carries a warning such as `Preset camera.arc has no fragment for kling, using default`. The warning is recorded on the generation, shown on the composer chip and listed under the shot prompt preview, so you know the wording was not tuned for that model.
+A model whose family is unknown, or whose family a preset has no fragment for, compiles with the `default` fragment. The result carries a warning such as `Preset camera.arc has no fragment for kling, using default`. The warning is recorded on the generation, shown on the composer chip and listed under the shot prompt preview.
 
 ### Where the compile runs
 
@@ -131,8 +131,8 @@ The server compiles, not the client:
 | Surface | How |
 |---|---|
 | Shot editor | The **Movement** field takes free text or opens the camera preset picker. See [Edit a shot](storyboard-editor.md#edit-a-shot) |
-| Effects gallery | Drop one picture, pick an effect and run it. Open it from **+ New**, or from an effects studio on the start page, which shows only that studio's effects until you choose **Show all effects** |
-| Create tab | A workspace tab with a prompt bar and a grid of takes. In image and video modes, the preset chip opens the picker for the current mode, and turns to a warning when the chosen model falls back to `default`. Open one from **Image**, **Video** or **Read aloud** in **+ New**, or from a Create studio on the start page with its presets on the preset chip |
+| Effects gallery | Open from **+ New**, or from an effects studio on the start page, which shows only that studio's effects until you choose **Show all effects** |
+| Create tab | A prompt bar and a grid of takes. In image and video modes, the preset chip opens the picker for the current mode and turns to a warning when the chosen model falls back to `default`. Open from **Image**, **Video** or **Read aloud** in **+ New**, or from a Create studio on the start page |
 | Agent | The `list_presets`, `get_preset` and `compile_presets` capabilities, and `preset_ids` on the media tools |
 | CLI | `nodetool presets` |
 
@@ -149,7 +149,7 @@ RPC callers use `generate_media` with `mode: "video_edit"` and `preset_ids`. Age
 ## Eject to a workflow
 
 **Open as workflow** is available on Create results, Effects results and restyles in
-Generations, and on a storyboard shot and each of its still and clip takes.
+Generations (entries that carry `preset_ids`), and on a storyboard shot and each of its still and clip takes.
 Storyboard takes keep the composed prompt, model, camera and look preset ids,
 source media, entity references and settings from submission. Ejection uses that
 record, including the different prompts for keyframe, direct and reference clips.
@@ -162,7 +162,6 @@ editable `TextToSpeech → LipSync → Output` graph with the original line, voi
 speech model, speed, picture and lipsync model. `LipSync` accepts an image or a
 video. The action uses the completed run, even if you change the studio fields.
 
-
 Any preset can become an ordinary workflow. `presetToWorkflow(preset, { model, mode })` builds the graph from the same compile:
 
 ```
@@ -171,7 +170,7 @@ StringInput (prompt) → Template ({{ prompt }}) → generation node for the mod
 
 Video restyles use mode `video_edit` and connect a `VideoInput` to `nodetool.video.VideoToVideo`. Image modes add an `ImageInput`, and reference video mode connects media to `reference_images` and `reference_videos`. The Template holds the compiled wording for the chosen model, so editing it changes what the model receives. A preset with a `workflow` field ejects a copy of that hand-built graph instead, which needs a host that can resolve the workflow by name.
 
-The web creates the workflow through the normal creation path and opens it in a tab. **Open as workflow** appears in the Effects gallery, on Create view items and on Generations panel entries that carry `preset_ids`. From the command line:
+The web creates the workflow through the normal creation path and opens it in a tab. From the command line:
 
 ```bash
 npm run dev:nodetool -- presets eject camera.dolly-zoom \
@@ -268,7 +267,7 @@ nodetool presets eject <id> --model <model id> --provider <provider> [--mode vid
 | `get_preset` | Read one preset or studio by id |
 | `compile_presets` | Compile up to three ids for a `model` and `mode`, with an optional `provider` and `prompt`. Returns the same result as the CLI |
 
-`generate_image`, `edit_image`, `generate_video` and `animate_image` accept `preset_ids`. The storyboard render capabilities compile each shot's `camera.preset_ids` for the board's video model. `edit_storyboard` can set a shot's `camera.preset_ids`. `compile_presets` returns `{ error }` on an unknown id, a conflicting stack or an unsupported mode, so the agent can correct the call.
+`generate_image`, `edit_image`, `generate_video` and `animate_image` accept `preset_ids`. The storyboard render capabilities compile each shot's `camera.preset_ids` for the board's video model. `edit_storyboard` can set a shot's `camera.preset_ids`. `compile_presets` returns `{ error }` on a failure, so the agent can correct the call.
 
 ---
 
@@ -365,10 +364,10 @@ Agents can set `look_preset_ids` with `edit_storyboard` on `set_board`, `add_sho
 ## Community preset packs
 
 Install a local data-only directory with `nodetool packs presets add ./my-pack`.
-Use `nodetool packs presets list` to list installed packs and
-`nodetool packs presets remove <id>` to remove one. These commands use the
+`nodetool packs presets list` lists installed packs and
+`nodetool packs presets remove <id>` removes one. These commands use the
 same NodeTool data directory as the server. Reload the web app after changing
-packs. The server and CLI read the current catalogue for each request.
+packs. The server and CLI read the current catalogue for each request, so
 `nodetool presets list` and the agent preset tools include installed presets.
 
 A directory contains `preset-pack.json` and its declared preset JSON files:
@@ -391,8 +390,8 @@ manifests are refused. Installation never invokes npm or runs scripts.
 
 Names are limited to 160 characters, descriptions to 2,048 and each prompt
 clause to 4,096. Prompt fragments are untrusted provider input: they can steer
-or replace the generation prompt. Review a pack before using it. They cannot
-execute application code or supply workflow graphs. They also cannot set `params`
+or replace the generation prompt. Review a pack before using it. Packs cannot
+execute application code, supply workflow graphs, or set `params`
 or `family_params`, so a pack cannot raise a generation's duration, resolution or
 step count. The compiler keeps its three-preset limit. An installed pack that is
 corrupt or collides with another preset is skipped with a logged warning, and the

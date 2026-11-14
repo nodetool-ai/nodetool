@@ -152,9 +152,11 @@ describe("desktop release recovery", () => {
     expect(checkouts[1].with).toMatchObject({
       ref: "${{ github.sha }}",
       path: ".release-tools",
-      "sparse-checkout": "scripts/smoke-backend-bundle.mjs",
+      "sparse-checkout": "scripts/smoke-backend-bundle.mjs\n.github/scripts/with-window-manager.sh\n",
       "sparse-checkout-cone-mode": false
     });
+    expect(steps.find(step => step.name === "Build VST host").run)
+      .toContain("bash .release-tools/.github/scripts/with-window-manager.sh node electron/scripts/build-vst-host.mjs --test");
     const smokeSteps = steps.filter(step => step.name?.startsWith("Smoke-boot packaged backend"));
     expect(smokeSteps).toHaveLength(2);
     for (const step of smokeSteps) {

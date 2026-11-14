@@ -4,7 +4,7 @@ title: "NodeTool User Interface"
 description: "Tour of the NodeTool interface."
 ---
 
-Desktop and browser share the same views. New here? Start with [Getting Started](getting-started.md).
+New here? Start with [Getting Started](getting-started.md).
 
 ## Where everything lives
 
@@ -78,7 +78,7 @@ output slots, and help.
 
 ![Chat Interface](assets/screenshots/global-chat-interface.png)
 
-The agent edits the document you have open: graph, sketch, timeline, storyboard, script, or mini app. It also builds and runs workflows, takes image, audio, and document attachments, and keeps each thread's history separate.
+The agent edits the document you have open and runs workflows. Chat takes image, audio, and document attachments. Each thread keeps its own history.
 
 On desktop, the tray icon opens a standalone chat window. Threads sync with the
 main app.
@@ -89,7 +89,7 @@ main app.
 
 ![Mini App — Run view](assets/screenshots/mini-app-run.png)
 
-A form or dashboard over your workflows with the graph hidden.
+A form over your workflows with the graph hidden. See [Mini Apps](mini-apps.md).
 
 1. Build the workflows in the editor.
 2. Choose **+ New → New app** in the tab bar. To scaffold one from a graph, use
@@ -170,41 +170,6 @@ The six worth memorizing:
 | `F` | Fit view |
 | `Esc` | Stop workflow |
 
-Press `Ctrl/⌘+/` for the full list inside the app.
+Press `Ctrl/⌘+/` for the full list inside the app. Every shortcut, by editor, is in [Keyboard Shortcuts](keyboard-shortcuts.md).
 
-### Global
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl/⌘+K` | Command Menu |
-| `Ctrl/⌘+,` | Settings |
-| `Ctrl/⌘+Shift+Z` | Redo |
-| `Ctrl/⌘+1…9` | Switch to tab 1 to 9 |
-| `Ctrl+PageUp` / `Ctrl+PageDown` | Previous or next tab |
-| `Ctrl/⌘+T` | New workflow (desktop app) |
-| `Ctrl/⌘+W` | Close tab (desktop app) |
-
-### Editor
-
-| Shortcut | Action |
-|----------|--------|
-| `Ctrl/⌘+F` | Find in workflow |
-| `Ctrl/⌘+D` | Duplicate |
-| `Ctrl/⌘+G` | Group |
-| `B` | Disable or enable selected nodes |
-| `A` | Align nodes |
-| `I` | Toggle Inspector |
-| `L` | Toggle Logs panel |
-| `Delete` / `Backspace` | Delete selection |
-
-See the [Workflow Editor](workflow-editor.md#keyboard-shortcuts) for the complete editor list.
-
-### Chat
-
-| Shortcut | Action |
-|----------|--------|
-| `Enter` | Send message |
-| `Shift+Enter` | New line |
-| `Esc` | Stop generation |
-
-Related: [Workflow Editor](workflow-editor.md), [Editor Panels](editor-panels.md), [Tips & Tricks](tips-and-tricks.md), [Cookbook](cookbook.md).
+Related: [Tips & Tricks](tips-and-tricks.md), [Cookbook](cookbook.md).

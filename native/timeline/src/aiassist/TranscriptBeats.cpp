@@ -97,13 +97,16 @@ QJsonObject reflowTranscript(QJsonObject document, const QJsonObject& payload) {
 QJsonObject addTranscriptBeat(QJsonObject document, const QJsonObject& payload) {
     auto tracks = document.value("tracks").toArray();
     const auto clips = document.value("clips").toArray();
-    QSet<QString> audioTracks;
+    QSet<QString> audioTracks, used;
+    for (const auto& value : clips) { used.insert(value.toObject().value("trackId").toString()); }
+    // Without a voiceover, only an empty audio track will do: a new beat on
+    // the music track would sit on top of the music.
     QString firstAudio, namedVoice;
     for (const auto& value : tracks) {
         const auto track = value.toObject();
         if (track.value("type").toString() != "audio") { continue; }
         const auto trackId = track.value("id").toString(); audioTracks.insert(trackId);
-        if (firstAudio.isEmpty()) { firstAudio = trackId; }
+        if (firstAudio.isEmpty() && !used.contains(trackId)) { firstAudio = trackId; }
         if (namedVoice.isEmpty() && track.value("name").toString() == "Voiceover") { namedVoice = trackId; }
     }
     QString trackId;

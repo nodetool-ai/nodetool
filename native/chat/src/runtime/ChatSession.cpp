@@ -5,6 +5,7 @@
 #include "model/RichContent.h"
 #include <QPointer>
 #include "ComposerRules.h"
+#include "ModelLabels.h"
 #include <QClipboard>
 #include <QDateTime>
 #include <QDesktopServices>
@@ -25,6 +26,10 @@ void ChatSession::copyText(const QString &text) { QGuiApplication::clipboard()->
 ChatSession::ChatSession(QObject *parent)
     : QObject(parent), m_threads(this), m_empty(this), m_client(this), m_catalog(this), m_mediaCatalog(this) {
   m_catalog.setMode("chat");
+  // The server answers a turn with no model with "No model selected", so the
+  // composer starts on the first usable model, as the web composer does.
+  m_catalog.setSelectFirstAvailable(true);
+  m_mediaCatalog.setSelectFirstAvailable(true);
     // native-rules #12: async callback captures raw this, not a QPointer
     m_mediaCatalog.setQuery([this](const QString &procedure, QJsonObject input,
                                    nt::modelpicker::Catalog::Completion done) {
@@ -75,6 +80,9 @@ ChatSession::ChatSession(QObject *parent)
           m_client.send({{"type", "client_tools_manifest"},
                          {"tools", QJsonArray::fromVariantList(m_hostTools)}});
           refresh();
+          if (m_model.isEmpty() && !m_catalog.loaded() && !m_catalog.loading()) {
+            m_catalog.reload();
+          }
           for (auto &[id, s] : m_states) {
             if (s.reloadHistory) {
               s.reloadHistory = false;
@@ -360,6 +368,87 @@ void ChatSession::deleteThread(const QString &id) {
             emit stateChanged();
         });
 }
+void ChatSession::renameThread(const QString &id, const QString &title) {
+  const auto trimmed = title.trimmed();
+  auto row = m_threads.get(id);
+  if (trimmed.isEmpty() || row.isEmpty() || row["title"].toString() == trimmed) {
+    return;
+  }
+  QPointer<ChatSession> self(this);
+  m_client.call("threads.update", {{"id", id}, {"title", trimmed}}, true,
+                [self, id, trimmed](const QJsonValue &, const QString &error) {
+                  if (!self) { return; }
+                  if (!error.isEmpty()) {
+                    self->fail("Could not rename the conversation. Please try again.");
+                    return;
+                  }
+                  auto updated = self->m_threads.get(id);
+                  if (updated.isEmpty()) { return; }
+                  updated["title"] = trimmed;
+                  self->m_threads.upsert(updated);
+                  emit self->stateChanged();
+                });
+}
+void ChatSession::loadProviderKeys() {
+  if (!m_client.ready()) { return; }
+  QPointer<ChatSession> self(this);
+  m_client.call("settings.providerCatalog", {}, false,
+                [self](const QJsonValue &value, const QString &error) {
+                  if (!self) { return; }
+                  if (!error.isEmpty()) {
+                    self->m_providerKeyStatus = "Could not load providers: " + error;
+                    emit self->providerKeysChanged();
+                    return;
+                  }
+                  QVariantList rows;
+                  for (const auto &entry : value.toArray()) {
+                    const auto provider = entry.toObject();
+                    QString key;
+                    for (const auto &name : provider["keys"].toArray()) {
+                      const auto candidate = name.toString();
+                      if (candidate.endsWith("_API_KEY") || candidate.endsWith("_TOKEN") || candidate.endsWith("_KEY")) {
+                        key = candidate;
+                        break;
+                      }
+                    }
+                    const auto id = provider["provider"].toString();
+                    // A local model server takes an address, not an account key.
+                    if (key.isEmpty() || nt::modelpicker::isLocalProvider(id)) { continue; }
+                    rows.append(QVariantMap{{"provider", id},
+                                            {"name", nt::modelpicker::providerDisplayName(id)},
+                                            {"key", key},
+                                            {"configured", provider["configured"].toBool()}});
+                  }
+                  self->m_providerKeys = rows;
+                  emit self->providerKeysChanged();
+                });
+}
+void ChatSession::saveProviderKey(const QString &key, const QString &value) {
+  if (key.isEmpty() || value.trimmed().isEmpty() || !m_client.ready()) { return; }
+  QString provider;
+  for (const auto &row : std::as_const(m_providerKeys)) {
+    if (row.toMap()["key"] == key) { provider = row.toMap()["name"].toString(); }
+  }
+  m_providerKeyStatus.clear();
+  emit providerKeysChanged();
+  QPointer<ChatSession> self(this);
+  m_client.call("settings.secrets.upsert", {{"key", key}, {"value", value.trimmed()}}, true,
+                [self, provider](const QJsonValue &, const QString &error) {
+                  if (!self) { return; }
+                  if (!error.isEmpty()) {
+                    self->m_providerKeyStatus = "Could not save the key: " + error;
+                    emit self->providerKeysChanged();
+                    return;
+                  }
+                  self->m_providerKeyStatus = QString("%1 is connected.").arg(provider);
+                  self->loadProviderKeys();
+                  // The new provider's models become pickable, and with no
+                  // model chosen yet the composer starts on one of them.
+                  self->m_catalog.reload();
+                  self->m_mediaCatalog.reload();
+                  emit self->providerKeySaved(provider);
+                });
+}
 bool ChatSession::hasActiveTurns() const {
     for (const auto &[id, state] : m_states) {
         if (state.status == "loading" || state.status == "streaming" || state.status == "stopping" || state.status == "interrupted") {
@@ -575,6 +664,18 @@ void ChatSession::send() {
       s.status == "stopping") {
     return;
   }
+    // The server refuses a chat turn with no model and keeps nothing, so the
+    // question stays in the composer and the way to a model opens instead.
+    if (!media && m_model.isEmpty() && m_catalog.loaded() && !m_catalog.loading()) {
+        if (m_catalog.hasAnyAvailable()) {
+            fail("Pick a model for the answer. Your question is kept.");
+            emit modelPickerRequested();
+        } else {
+            fail("Add an API key for an AI provider to get answers. Your question is kept.");
+            emit providerSetupRequested();
+        }
+        return;
+    }
     // MediaChatComposer.tsx refuses a media send with no model and opens the picker.
     if (media && m_mediaCatalog.selectedModelId().isEmpty()) {
         fail(composer::pickModelMessage(m_mediaMode));
@@ -994,6 +1095,11 @@ void ChatSession::applyEvent(const QJsonObject &event) {
       return;
     }
     s.sequence = seq;
+  }
+  // A command acknowledgement ("Chat message processing started") has no
+  // type. It advances the sequence and is not part of the conversation.
+  if (type.isEmpty()) {
+    return;
   }
   if (s.status == "stopping" && type != "generation_stopped" &&
       type != "error" && type != "job_update") {

@@ -4,7 +4,7 @@ title: "Models & Providers"
 description: "Model catalog by modality (text, image, video, audio, 3D, embeddings) with the provider that serves each, local or cloud."
 ---
 
-Every model runs locally, through a cloud API with your own key, or both in the same graph. Model lists per provider are below. Provider setup is in [Providers](providers.md), local weights are in [Supported Models](models.md), and the download panel is in [Models Manager](models-manager.md).
+Provider setup is in [Providers](providers.md), local weights are in [Supported Models](models.md), and the download panel is in [Models Manager](models-manager.md).
 
 > **Runs:** locally or cloud, chosen per node. **Needs:** a provider key for cloud models (secret names in [Providers](providers.md)), nothing for local engines. **Hardware:** local models need disk space and a GPU or Apple Silicon. Sizes depend on the model, so check the download size in the Model Manager.
 {: .callout-note}
@@ -18,25 +18,19 @@ Every model runs locally, through a cloud API with your own key, or both in the 
 | Network | Works offline | Needs internet |
 | Models | What you downloaded | Latest provider releases |
 
-Mix per node. Run Whisper locally for sensitive audio, FLUX locally for control and FAL or kie.ai for speed, and local document processing for confidential files.
-
 ## If it fails
 
-- **Missing key:** the provider throws at the call, for example `OPENAI_API_KEY is required` (the message names the secret). The node fails and the run reports the error. Add the key in **Settings → Models & Providers**.
-- **Rejected key (401/403):** reported as failure kind `auth`. Use the **Test** button on the provider to check the key.
-- **Rate limit (429):** reported as kind `rate_limit` with the provider's own message. Replicate calls wait and retry before failing. For other providers the error reaches the node as is.
-- **Insufficient balance (402):** reported as kind `payment`.
+Missing key, rejected key, rate limit, and insufficient balance errors are described under [Providers: If it fails](providers.md#if-it-fails). Add keys in **Settings → Models & Providers**.
+
 - **Local model not downloaded:** download it in the [Models Manager](models-manager.md) before running.
 
 ---
 
 ## Cloud models
 
-Add a key in **Settings → Models & Providers** and that provider's models appear in the node's model dropdown. Most chat providers fetch their list live from the provider's API. A few use fixed lists, such as kie.ai's chat gateway and Meta AI's offline fallback. Image, video, audio, and 3D models come from manifests or static lists in `packages/runtime/src/providers/` and the `packages/*-nodes/` packages. The model names below are examples and drift as providers release.
+Add a key in **Settings → Models & Providers** and that provider's models appear in the node's model dropdown. Most chat providers fetch their list live from the provider's API. A few use fixed lists, such as kie.ai's chat gateway and Meta AI's offline fallback. Image, video, audio, and 3D models come from manifests or static lists in `packages/runtime/src/providers/` and the `packages/*-nodes/` packages. Model names below are examples.
 
 ### Text & chat models (LLMs)
-
-`nodetool.agents.Agent` and the chat nodes route to the provider that owns the selected model. Swapping `claude-opus-5` for `gpt-5.6` needs no other change in the graph.
 
 | Provider | Model families |
 |---|---|
@@ -70,7 +64,7 @@ Add a key in **Settings → Models & Providers** and that provider's models appe
 | HuggingFace | The most-liked warm inference models on the Hub, through Inference Providers |
 | FAL | Chat through fal's OpenAI-compatible route (OpenRouter's catalog) |
 
-Reasoning, tool calling, and vision input are exposed where the provider supports them. For local text generation without an API key, see [Supported Models](models.md#local-inference-engines) (Ollama, llama.cpp, MLX, Transformers.js).
+Reasoning, tool calling, and vision input are exposed where the provider supports them. For local text generation, see [Supported Models](models.md#local-inference-engines) (Ollama, llama.cpp, MLX, Transformers.js).
 
 ### Image generation models
 
@@ -168,7 +162,7 @@ Generate speech through `nodetool.audio.TextToSpeech`, transcribe with `nodetool
 
 | Provider | Music & sound models |
 |---|---|
-| Suno (via kie.ai) | Suno — song generation, extend, cover, remix |
+| Suno (via kie.ai) | Suno: song generation, extend, cover, remix |
 | <img src="assets/icons/elevenlabs.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> ElevenLabs | V3 Dialogue, Sound Effects |
 | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | Music 01, Music 1.5, Music 2.6 |
 | <img src="assets/icons/gemini.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> Google | Lyria 3.5, Lyria 3 Clip |
@@ -203,14 +197,7 @@ Embedding nodes feed RAG and semantic search.
 
 ### Using these models
 
-| Output | Node |
-|---|---|
-| Video | `nodetool.video.TextToVideo`, `nodetool.video.ImageToVideo` |
-| Images | `nodetool.image.TextToImage` |
-| 3D | `nodetool.model3d.TextTo3D`, `nodetool.model3d.ImageTo3D` |
-| Music | kie.ai Suno nodes (Generate Music, Extend Music, Upload And Cover Audio, Add Vocals, and others) |
-
-Pick the model in the node's model dropdown. kie.ai (`KIE_API_KEY`) and fal.ai (`FAL_API_KEY`) carry many of these models, often at lower prices than upstream. Cloud models charge per generation, so check the provider's pricing before large runs.
+Music uses the kie.ai Suno nodes (Generate Music, Extend Music, Upload And Cover Audio, Add Vocals, and others). kie.ai (`KIE_API_KEY`) and fal.ai (`FAL_API_KEY`) carry many of the models above. Cloud models charge per generation.
 
 ---
 
@@ -223,18 +210,8 @@ Pick the model in the node's model dropdown. kie.ai (`KIE_API_KEY`) and fal.ai (
 ---
 ## Detailed Guides
 
-### General
-- **[Models Manager](models-manager.md)** – Download and manage AI models
-- **[Getting Started](getting-started.md)** – First workflow
-
-### Local AI
-- **[Supported Models](models.md)** – List of local models (llama.cpp, MLX, Whisper, Flux)
-
-### Cloud AI
-- **[Providers Guide](providers.md)** – Set up OpenAI, Anthropic, Google
-- **[HuggingFace Integration](huggingface.md)** – Access 500,000+ models
-
-### Advanced
-- **[ComfyUI](comfyui.md)** – Run an exported ComfyUI workflow as a node, locally, on a GPU worker, or on Comfy Cloud
-- **[Self-Hosted Deployment](self-hosted-deployment.md)** – Secure deployments
-- **[Deployment Guide](deployment.md)** – Cloud infrastructure
+- **[Providers Guide](providers.md)**: set up OpenAI, Anthropic, Google
+- **[HuggingFace Integration](huggingface.md)**: access 500,000+ models
+- **[ComfyUI](comfyui.md)**: run an exported ComfyUI workflow as a node, locally, on a GPU worker, or on Comfy Cloud
+- **[Self-Hosted Deployment](self-hosted-deployment.md)**: secure deployments
+- **[Deployment Guide](deployment.md)**: cloud infrastructure

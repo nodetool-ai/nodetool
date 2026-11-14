@@ -2,30 +2,27 @@
 
 Product Price Drop is a normal Application available in the example app catalog.
 Installing it imports two pinned JavaScript operations with the Application.
-This vertical slice follows [epic #5979](https://github.com/nodetool-ai/nodetool/issues/5979)
-and the foundations in PRs [#5988](https://github.com/nodetool-ai/nodetool/pull/5988),
-[#5989](https://github.com/nodetool-ai/nodetool/pull/5989),
-[#5990](https://github.com/nodetool-ai/nodetool/pull/5990), and
-[#5991](https://github.com/nodetool-ai/nodetool/pull/5991).
 The Recipe is compiled from its manifest through the
-[shared plan/finish operations and compiler](shared-operations.md), corresponding
-to issues [#5985](https://github.com/nodetool-ai/nodetool/issues/5985) and
+[shared plan/finish operations and compiler](shared-operations.md). Tracking:
+[epic #5979](https://github.com/nodetool-ai/nodetool/issues/5979), PRs
+[#5988](https://github.com/nodetool-ai/nodetool/pull/5988),
+[#5989](https://github.com/nodetool-ai/nodetool/pull/5989),
+[#5990](https://github.com/nodetool-ai/nodetool/pull/5990),
+[#5991](https://github.com/nodetool-ai/nodetool/pull/5991), and issues
+[#5984](https://github.com/nodetool-ai/nodetool/issues/5984),
+[#5985](https://github.com/nodetool-ai/nodetool/issues/5985),
+[#5986](https://github.com/nodetool-ai/nodetool/issues/5986),
 [#5987](https://github.com/nodetool-ai/nodetool/issues/5987).
-Design-frame review and finishing work is tracked in issues
-[#5984](https://github.com/nodetool-ai/nodetool/issues/5984) and
-[#5986](https://github.com/nodetool-ai/nodetool/issues/5986).
-There is no separate Recipe resource or executor.
 
 Supply a stored product image, logo, headline, old price, new price, CTA, and
 brand color. Choose a creative direction, run **Plan**, review the composed cut
-and exact layer list, approve it, then run **Build editable ad**. Changing a production input
-requires planning and approving again. Planning resets approval.
+and exact layer list, approve it, then run **Build editable ad**. Planning
+resets approval, so changing a production input requires planning and approving again.
 
 The plan has a three-second hook and a three-second CTA. Product and logo use
 the original stored assets. Copy remains exact text. The brand background is a
-shape. Finishing creates the normal editable vertical Timeline, without calling
-an image or video generation provider. Use **Open editable timeline** on the result to enter the normal Timeline editor
-and render or export there.
+shape. Finishing creates the normal editable vertical Timeline without calling
+an image or video generation provider. Use **Open editable timeline** on the result to render or export there.
 
 Rerunning the plan updates the existing shots by their stable semantic labels.
 Planning reads the linked Timeline revision, so manual placement edits made
@@ -50,32 +47,29 @@ node scripts/build-example-apps.mjs --app product-price-drop --check
 ```
 
 The integration fixture installs the bundle, saves a UI-only document edit,
-runs its actual sandbox scripts, creates a layered Timeline, renders through
-the existing compositor and encoder, reopens it, and repeats finishing after a
-manual placement edit and a price change. To preserve the render and sampled
-frames for inspection:
+runs the sandbox scripts, creates a layered Timeline, renders it, reopens it,
+and repeats finishing after a manual placement edit and a price change. To keep
+the render and sampled frames:
 
 ```bash
 PRICE_DROP_PROOF_DIR=/tmp/recipe-price-drop-proof \
   npm run test --workspace=packages/websocket -- tests/product-price-drop.test.ts
 ```
 
-The frontend interaction test exercises the same Recipe's normal input,
-ChoiceCards, and Approval bindings. The Playwright Recipe builder journey opens
-the real App Builder, edits its title through Puck, saves, reloads and confirms
-the original Recipe manifest survives. It then uploads both assets, fills every
-protected input, plans, reviews the composed preview before approval, approves,
-builds, verifies the inline preview, and opens
-the editable Timeline. It also changes the live script heads to prove that
+The frontend interaction test exercises the Recipe's input, ChoiceCards, and
+Approval bindings. The Playwright Recipe builder journey edits the title in the
+App Builder through Puck, saves, reloads and confirms the Recipe manifest
+survives. It then uploads both assets, fills every protected input, plans,
+reviews the composed preview, approves, builds, verifies the inline preview, and
+opens the editable Timeline. It also changes the live script heads to prove that
 operations still execute their pinned versions. Run it with:
 
 ```bash
 npm run test:journeys --workspace=web -- recipe-builder.spec.ts
 ```
 
-The actual Timeline validator mechanically checks
-asset identity, copy, declared transforms and provenance. It does not claim
-pixel-level semantic recognition of every rendered object.
+The Timeline validator checks asset identity, copy, declared transforms and
+provenance. It does not recognize rendered objects at the pixel level.
 
 `finish_storyboard` also accepts `strategy: "agentic"` in a provider-backed
 agent session, or with an explicit `model: {provider, id}` in a Mini App
@@ -86,17 +80,17 @@ The model still authors composition and performs mandatory pixel review.
 The opt-in pass receives the whole board, preservation rules and editable
 scaffold. A new agentic cut must author editable layout or motion before
 submission. Read-only, no-op and metadata-only edits do not satisfy this
-requirement. An existing cut may stay unchanged after visual review. This
-authoring check proves a composition change, while the visual review assesses
+requirement. An existing cut may stay unchanged after visual review. The
+authoring check proves a composition change and the visual review assesses
 its quality. Agentic reruns reuse accepted layer presentation and refresh
 Storyboard-owned source identity, exact copy, protected colors and timing.
 Typography and permitted manual placement survive input changes. Existing
 layer names stay user-owned. Manual typography, opacity or animation changes
 produce an explicit conflict before model dispatch. Retained
-presentation must pass the current production policy before model dispatch. It renders design references derived from the expected Storyboard
-revision and compares actual composited cut frames with those references.
-These are derived references, not a separate historical pixel approval.
-They show content, hierarchy and intent, not approved layout.
+presentation must pass the current production policy before model dispatch.
+The review renders design references derived from the expected Storyboard
+revision and compares composited cut frames with them. The references show
+content, hierarchy and intent, not approved layout.
 The deterministic layout fits each image of known pixel size between the copy
 above and below it. Before visual review, a layout check renders each layer
 alone at every shot's hold frame. That is the frame after the last entrance
@@ -121,8 +115,7 @@ an explicit conflict on rebuild. Existing manual placement edits to source
 layers retain the deterministic materializer's preservation behavior.
 Protected layers cannot inherit an unproven group transform. Unsupported
 protected animation, mask or effect paths fail policy validation rather than
-silently weakening source fidelity. A visual review checks sampled frames,
-not every frame or perfect visual equivalence. The returned review report
+silently weakening source fidelity. A visual review checks sampled frames, not every frame. The returned review report
 contains frame hashes, timecodes and derived-reference fingerprints.
 Agentic results report the provider's measured cost delta as `costUsd`.
 Normal JS script execution scopes both imported capability calls and native

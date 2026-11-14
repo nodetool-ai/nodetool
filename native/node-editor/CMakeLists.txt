@@ -29,6 +29,7 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/GenerationRowsModel.cpp src/interfaces/GenerationRowsModel.h
  src/run/GenerationWorkflow.cpp src/run/GenerationWorkflow.h
  src/interfaces/DocumentTabs.cpp src/interfaces/DocumentTabs.h
+ src/interfaces/ExampleGallery.cpp src/interfaces/ExampleGallery.h
  src/interfaces/Notifications.cpp src/interfaces/Notifications.h
  src/interfaces/WorkflowHeader.cpp src/interfaces/WorkflowHeader.h
  src/interfaces/PanelLayout.cpp src/interfaces/PanelLayout.h
@@ -103,6 +104,18 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_generations_panel_tests)
     add_test(NAME node_editor_generations_panel COMMAND node_editor_generations_panel_tests)
     set_tests_properties(node_editor_generations_panel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    # The Examples panel, with the same media QML types for its preview images.
+    qt_add_executable(node_editor_examples_panel_tests tests/ui/ExamplesPanelTest.cpp
+     src/media/MediaResolver.cpp src/media/MediaResolver.h
+     src/media/AudioWaveform.cpp src/media/AudioWaveform.h
+     src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+     src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
+     src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
+     src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
+    target_link_libraries(node_editor_examples_panel_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin nodetool_model_picker nodetool_model_pickerplugin Qt6::Quick Qt6::Multimedia Qt6::Network Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_examples_panel_tests)
+    add_test(NAME node_editor_examples_panel COMMAND node_editor_examples_panel_tests)
+    set_tests_properties(node_editor_examples_panel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     # WorkflowBrowser.qml with a fixture browser, panel layout and status: no
     # EditorWindow, graph runner, QtNodes or server.
     qt_add_executable(node_editor_workflow_browser_component_tests tests/ui/WorkflowBrowserComponentTest.cpp)

@@ -21,6 +21,7 @@
 import {
   makeClip,
   createTimeOrderedUuid,
+  isGroupClip,
   sourceRate,
   splitClip
 } from "@nodetool-ai/timeline";
@@ -299,10 +300,13 @@ export function voiceoverTrackId(
   const voiced = clips
     .filter((c) => isTranscriptClip(c) && audioIds.has(c.trackId))
     .sort(byTimeline);
+  // Without a voiceover, only an empty audio track will do: a new beat on the
+  // music track would sit on top of the music.
+  const used = new Set(clips.map((c) => c.trackId));
   return (
     voiced[voiced.length - 1]?.trackId ??
     audioTracks.find((t) => t.name === "Voiceover")?.id ??
-    audioTracks[0]?.id
+    audioTracks.find((t) => !used.has(t.id))?.id
   );
 }
 
@@ -487,6 +491,8 @@ function sideRelinker(): (clip: TimelineClip) => TimelineClip {
  * words partitioned and the tail's rebased), and everything after shifts left
  * by the span length so the gap closes — the "editing text = editing media"
  * core. B-roll on other tracks ripples too, keeping the composition in sync.
+ * A track with a locked clip at or after the cut, or a time-remapped clip over
+ * it, stays as it is. Groups shrink to what is left of their window.
  */
 export function rippleDeleteRange(
   clips: TimelineClip[],
@@ -498,7 +504,27 @@ export function rippleDeleteRange(
     return { clips, durationMs: maxEnd(clips) };
   }
   const span = endMs - startMs;
+  // Where a time before the cut, inside it or after it lands once it is removed.
+  const shifted = (t: number): number =>
+    t <= startMs ? t : t >= endMs ? t - span : startMs;
+  // A track keeps every clip where it is when one of its clips cannot follow
+  // the cut: a locked clip at or after it, or a time-remapped clip that
+  // overlaps it (splitClip refuses a remap). Shifting the other clips on that
+  // track would move them onto the one that stays.
+  const heldTracks = new Set<string>();
+  for (const clip of clips) {
+    const cStart = clip.startMs;
+    const cEnd = clip.startMs + clip.durationMs;
+    if (cEnd <= startMs) continue;
+    if (
+      locks.lockedClipIds?.has(clip.id) ||
+      (!isCuttable(clip) && cStart < endMs)
+    ) {
+      heldTracks.add(clip.trackId);
+    }
+  }
   const next: TimelineClip[] = [];
+  const removedGroups = new Map<string, string | undefined>();
   const relinkHead = sideRelinker();
   const relinkTail = sideRelinker();
 
@@ -506,16 +532,25 @@ export function rippleDeleteRange(
     const cStart = clip.startMs;
     const cEnd = clip.startMs + clip.durationMs;
 
-    if (cEnd <= startMs || locks.lockedClipIds?.has(clip.id)) {
-      next.push(clip); // entirely before the cut, or locked: never cut or moved
+    if (cEnd <= startMs || heldTracks.has(clip.trackId)) {
+      next.push(clip); // entirely before the cut, or on a held track: never cut or moved
       continue;
     }
     if (cStart >= endMs) {
       next.push({ ...clip, startMs: cStart - span }); // entirely after → ripple
       continue;
     }
-    if (!isCuttable(clip)) {
-      next.push(clip); // a time remap cannot be cut: leave it whole
+    if (isGroupClip(clip)) {
+      // A group is a transform parent, not media: it spans what is left of
+      // its window. A group inside the cut goes, and its children move to its
+      // parent.
+      const from = shifted(cStart);
+      const to = shifted(cEnd);
+      if (to > from) {
+        next.push({ ...clip, startMs: from, durationMs: to - from });
+      } else {
+        removedGroups.set(clip.id, clip.parentId);
+      }
       continue;
     }
 
@@ -529,7 +564,28 @@ export function rippleDeleteRange(
     // Neither remnant → the clip was fully covered and is dropped.
   }
 
-  return { clips: next, durationMs: maxEnd(next) };
+  const reparented =
+    removedGroups.size === 0
+      ? next
+      : next.map((clip) => {
+          if (clip.parentId === undefined || !removedGroups.has(clip.parentId)) {
+            return clip;
+          }
+          let parent: string | undefined = clip.parentId;
+          // Bounded: a parent cycle among removed groups must not loop.
+          for (
+            let step = 0;
+            step <= removedGroups.size && parent !== undefined && removedGroups.has(parent);
+            step++
+          ) {
+            parent = removedGroups.get(parent);
+          }
+          if (parent !== undefined && removedGroups.has(parent)) parent = undefined;
+          const { parentId: _removed, ...rest } = clip;
+          return parent ? { ...rest, parentId: parent } : rest;
+        });
+
+  return { clips: reparented, durationMs: maxEnd(reparented) };
 }
 
 /**

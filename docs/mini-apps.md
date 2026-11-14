@@ -47,16 +47,14 @@ A value with no Input node cannot be changed by a widget. A result with no Outpu
 
 ## What Mini Apps are good for
 
+Only the widgets you place are reachable, so the person running an app cannot edit the graph. Common patterns:
+
 | The situation | What the app does about it |
 | --- | --- |
-| A coworker needs to run your workflow but not edit it | They get fields and a Run button. The graph isn't reachable from the app. |
-| The workflow has 40 nodes and 3 things worth changing | Only those 3 get widgets. The rest stays fixed in the graph. |
-| A long run looks frozen | Add a progress bar and a status line that shows what the run is doing. |
 | The result arrives a word at a time | Display widgets collect what streams in. Text builds up into one block instead of flickering. |
 | One screen should drive several workflows | Give the app one operation per workflow. Each gets its own fields, results, and button. |
 | Someone must approve a draft before the next step | Step one writes a variable, a widget shows it, a second button runs step two using that variable. |
 | Dragging a slider should re-run the workflow | Bind the slider to a setting in the graph and have it re-run when you let go. |
-| The same settings every day | Mark a variable as remembered. It survives across sessions. |
 
 Do not build one for a pipeline another program calls (use the [Workflow API](workflow-api.md)) or for an open-ended task (use [Chat](global-chat.md)).
 
@@ -138,7 +136,7 @@ from an app** on the start page, or install it with
 
 ## How it works
 
-Only workflow runs compute anything. The document is configuration: nothing in it branches, loops, or calls a model. Logic in a graph can be tested, cached, and read by the agent.
+Only workflow runs compute anything. The document is configuration: nothing in it branches, loops, or calls a model.
 
 ### The app document
 
@@ -219,8 +217,7 @@ The browser, the `nodetool app debug` harness, and the test suites run the same 
 ### Saved working state
 
 Opening an app loads its server-owned default instance. Widget inputs, variable state and terminal outputs survive a reload and follow the account between browsers. Existing local variable caches are imported when the
-default instance is first created. An existing server instance wins over a
-browser cache.
+default instance is first created, but an existing server instance wins.
 
 Each operation reserves a durable app run before collecting its inputs. The
 run stores its inputs, outputs, outcome and child generation attachments. It
@@ -236,7 +233,7 @@ returns to a working instance tab.
 
 Run history is scoped to the instance. Selecting a run shows read-only inputs,
 outputs, stored agent activity, and links to its trace and documents. Document
-links open the current document. Historical inspection changes no working
+links open the current document. Inspecting history changes no working
 values and starts no execution. Expired or limited content is labelled.
 Each run also has **View trace** and **Ask the agent**. **Ask the agent** opens a chat tab
 titled "Inspect run" with the run id attached, and the first failed span when there is one.

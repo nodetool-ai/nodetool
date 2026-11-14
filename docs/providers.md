@@ -4,16 +4,14 @@ title: "Connect OpenAI, Anthropic, Gemini & Ollama to NodeTool"
 description: "Provider reference: capability matrix, the secret each provider needs, local servers, and what happens on a missing key or rate limit."
 ---
 
-A provider is the adapter between a node and an AI service: OpenAI, Anthropic, Gemini, a local Ollama daemon, or one of the others below. Each node that calls an LLM or media model has a `model` property backed by a provider id, so changing provider is a dropdown change.
-
 > **Runs:** cloud for API providers, local for Ollama, vLLM, LM Studio, llama.cpp, Wan2GP, and Transformers.js. **Needs:** one secret per cloud provider (named in each section), none for local servers. **Billing:** the provider bills you directly with no NodeTool markup. Only the `nodetool` provider, which exists in NodeTool's hosted cloud, is the exception (see [NodeTool managed models](#nodetool-managed-models)).
 {: .callout-note}
 
-Add keys in **Settings → Models & Providers**. For the local-versus-cloud overview see [Models & Providers](models-and-providers.md), and for the model catalog see [Supported Models](models.md).
+Add keys in **Settings → Models & Providers**. See [Models & Providers](models-and-providers.md) for local versus cloud and [Supported Models](models.md) for the catalog.
 
 ## Capability matrix
 
-Checked against each provider's implementation in `packages/runtime/src/providers/`. A blank cell means that provider doesn't expose the modality through NodeTool's generic nodes, even where the underlying service might.
+Checked against each provider's implementation in `packages/runtime/src/providers/`. A blank cell means the provider doesn't expose the modality through NodeTool's generic nodes.
 
 | Provider | Text | Image | Video | TTS | ASR | Embeddings | 3D |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -91,11 +89,11 @@ Each provider lists the operations it implements by overriding `BaseProvider.dec
 
 ## OpenAI
 
-OpenAI covers chat (GPT), image generation (GPT-Image), Sora 2 Pro video, TTS, Whisper transcription, and embeddings — six of the seven modalities in the matrix above. Cloud only, keyed by `OPENAI_API_KEY`. Chat models are fetched live from the OpenAI API; image models are a maintained static list. See the [OpenAI provider guide](developer/providers/openai.md).
+OpenAI covers chat (GPT), image generation (GPT-Image), Sora 2 Pro video, TTS, Whisper transcription, and embeddings. Cloud only, keyed by `OPENAI_API_KEY`. Chat models are fetched live from the OpenAI API; image models are a maintained static list. See the [OpenAI provider guide](developer/providers/openai.md).
 
 ## Anthropic
 
-Anthropic runs Claude chat models with tool calling and image input for vision tasks. It doesn't generate images, video, or audio. Cloud only, keyed by `ANTHROPIC_API_KEY`; models are fetched live from the Anthropic API. See the [Anthropic provider guide](developer/providers/anthropic.md).
+Anthropic runs Claude chat models with tool calling and image input. Cloud only, keyed by `ANTHROPIC_API_KEY`; models are fetched live from the Anthropic API. See the [Anthropic provider guide](developer/providers/anthropic.md).
 
 ## Azure OpenAI
 
@@ -131,11 +129,11 @@ xAI runs Grok chat models plus Grok Imagine for text-to-video, image-to-video, a
 
 ## DeepSeek
 
-DeepSeek is chat only — DeepSeek-V3 and the R1 reasoning line — reached through an OpenAI-compatible endpoint. Cloud only, keyed by `DEEPSEEK_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md) for how its models are fetched.
+DeepSeek is chat only (DeepSeek-V3 and the R1 reasoning line), reached through an OpenAI-compatible endpoint. Cloud only, keyed by `DEEPSEEK_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md) for how its models are fetched.
 
 ## Groq
 
-Groq runs chat models on its LPU inference hardware for low-latency responses. Text only — no image, video, or audio generation. Cloud only, keyed by `GROQ_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+Groq runs chat models on its LPU inference hardware. Text only. Cloud only, keyed by `GROQ_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## Mistral
 
@@ -143,11 +141,11 @@ Mistral runs chat models (Mistral, Mixtral) plus one embedding model, `mistral-e
 
 ## Cerebras
 
-Cerebras runs chat models on its high-throughput inference hardware. Text only. Cloud only, keyed by `CEREBRAS_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+Cerebras runs chat models. Text only. Cloud only, keyed by `CEREBRAS_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## Alibaba Cloud
 
-Alibaba Cloud Model Studio serves the Qwen chat models — qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line — with streaming and tool calling. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint (default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, the international/Singapore region); chat models are fetched live from its `/models` endpoint. Model Studio keys are region-scoped — set `DASHSCOPE_BASE_URL` to your region's `/compatible-mode/v1` endpoint when the key was created outside Singapore. Tool calling is gated per model family: Qwen-Math, QVQ, OCR, translation, and audio models are outside Alibaba's function-calling list and are not sent tools. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+Alibaba Cloud Model Studio serves the Qwen chat models (qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line) with streaming and tool calling. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint (default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, the international/Singapore region); chat models are fetched live from its `/models` endpoint. Model Studio keys are region-scoped. Set `DASHSCOPE_BASE_URL` to your region's `/compatible-mode/v1` endpoint when the key was created outside Singapore. Tool calling is gated per model family: Qwen-Math, QVQ, OCR, translation, and audio models are outside Alibaba's function-calling list and are not sent tools. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 The same key generates media through DashScope's native API, on the same regional host with `/api/v1` in place of `/compatible-mode/v1`:
 
@@ -159,7 +157,7 @@ Media models are listed by hand because Model Studio has no listing endpoint tha
 
 ## BytePlus
 
-BytePlus ModelArk is ByteDance's international model platform. One key covers Seed chat models, Seedream image generation and editing, and Seedance text-to-video and image-to-video. Cloud only, keyed by `BYTEPLUS_ARK_API_KEY`.
+BytePlus ModelArk runs Seed chat models, Seedream image generation and editing, and Seedance text-to-video and image-to-video. Cloud only, keyed by `BYTEPLUS_ARK_API_KEY`.
 
 - **Chat.** Requests go to Ark's OpenAI-compatible `/chat/completions` with streaming and tool calling. The picker reads `GET /models` and keeps rows whose output modalities include text. When the listing fails or comes back empty, it falls back to a short built-in list of Seed models.
 - **Images.** Seedream 5.0 Pro, 5.0, 5.0 Lite, 4.5, and 4.0 run on `/images/generations`. Image-to-image sends up to 10 reference images to 5.0 Pro and up to 14 to the others. An aspect ratio becomes a pixel size at the chosen resolution tier, kept inside the model's documented pixel range. Output has no watermark.
@@ -169,11 +167,11 @@ The default endpoint is `https://ark.ap-southeast.bytepluses.com/api/v3`. Ark ke
 
 ## GMI Cloud
 
-GMI Cloud is an OpenAI-compatible chat endpoint for open-weight models — Llama, DeepSeek, and Qwen variants. Text only. Cloud only, keyed by `GMI_API_KEY`.
+GMI Cloud is an OpenAI-compatible chat endpoint for open-weight models (Llama, DeepSeek, and Qwen variants). Text only. Cloud only, keyed by `GMI_API_KEY`.
 
 ## OpenRouter
 
-OpenRouter proxies 300+ chat models, image generation, Gemini image editing, and text-to-video and image-to-video models (Veo, Seedance, Kling, Wan) through a single key. Reference-to-video is not supported because OpenRouter accepts reference media only as public HTTPS URLs. Cloud only, keyed by `OPENROUTER_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+OpenRouter proxies 300+ chat models, image generation, Gemini image editing, and text-to-video and image-to-video models (Veo, Seedance, Kling, Wan) through one key. Reference-to-video is not supported because OpenRouter accepts reference media only as public HTTPS URLs. Cloud only, keyed by `OPENROUTER_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## Requesty
 
@@ -205,7 +203,7 @@ Cheaper Inference is an AI gateway that routes chat models from several provider
 
 ## Together AI
 
-Together AI is one of the broadest providers in NodeTool: chat, manifest-driven image and video generation, TTS (Orpheus, Kokoro, Cartesia Sonic), ASR (Whisper Large v3, Voxtral, Parakeet), and one embedding model. Cloud only, keyed by `TOGETHER_API_KEY`. See the [Together provider guide](developer/providers/together.md).
+Together AI covers chat, manifest-driven image and video generation, TTS (Orpheus, Kokoro, Cartesia Sonic), ASR (Whisper Large v3, Voxtral, Parakeet), and one embedding model. Cloud only, keyed by `TOGETHER_API_KEY`. See the [Together provider guide](developer/providers/together.md).
 
 ## Moonshot (Kimi)
 
@@ -213,7 +211,7 @@ Moonshot runs Kimi chat models over its OpenAI-compatible endpoint (`https://api
 
 ## Sarvam AI
 
-Sarvam AI is an Indian provider for chat, text-to-speech, and speech-to-text in Indian languages. Cloud only, keyed by `SARVAM_API_KEY`, which every request sends in the `api-subscription-key` header.
+Sarvam AI covers chat, text-to-speech, and speech-to-text in Indian languages. Cloud only, keyed by `SARVAM_API_KEY`, which every request sends in the `api-subscription-key` header.
 
 - **Chat** runs Token Factory models (Sarvam 105B, GLM, Gemma, DeepSeek, and others) over the OpenAI-compatible endpoint `https://api.sarvam.ai/v2`. The model list comes from `GET /v2/models`, so Provisioned Throughput models appear only for organizations that have them.
 - **Text-to-speech** runs the Bulbul models `bulbul:v4-flash`, `bulbul:v3`, and `bulbul:v2` in 11 languages (`hi-IN`, `en-IN`, `bn-IN`, `ta-IN`, `te-IN`, `kn-IN`, `ml-IN`, `mr-IN`, `gu-IN`, `pa-IN`, `od-IN`). Each model lists its own speakers, and v4-flash personas are named `<name>_<language>_<style>`, such as `ritu_hi_kids`. With no language set, the provider picks one from the text's script, then from a v4-flash speaker's language, then falls back to `en-IN`. Output is WAV by default, or MP3, FLAC, or AAC when requested. Each request takes up to 2,500 characters on v3 and v4-flash and 1,500 on v2.
@@ -223,7 +221,7 @@ Sarvam's translation, transliteration, and batch speech-to-text APIs are not wir
 
 ## MiniMax
 
-MiniMax covers chat, image (Image-01), video (Hailuo 2.3), TTS, and music generation in one provider. ASR and embeddings exist in MiniMax's API but are disabled in NodeTool's provider (embeddings need a GroupId NodeTool doesn't manage) — use another provider for those. Cloud only, keyed by `MINIMAX_API_KEY`. See the [MiniMax provider guide](developer/providers/minimax.md).
+MiniMax covers chat, image (Image-01), video (Hailuo 2.3), TTS, and music generation. ASR and embeddings exist in MiniMax's API but are disabled in NodeTool's provider (embeddings need a GroupId NodeTool doesn't manage). Use another provider for those. Cloud only, keyed by `MINIMAX_API_KEY`. See the [MiniMax provider guide](developer/providers/minimax.md).
 
 ## Z.ai
 
@@ -265,11 +263,11 @@ Each turn runs in an empty scratch directory under the system temp folder. NodeT
 
 ## Evolink
 
-Evolink is an OpenAI/Anthropic-compatible gateway: one key for GPT, Claude, Gemini, and DeepSeek chat, plus image (GPT Image 2, Nano Banana 2, Seedream) and video (Seedance, Wan, Veo, Sora, Grok) generation. Cloud only, keyed by `EVOLINK_API_KEY`.
+Evolink is an OpenAI/Anthropic-compatible gateway for GPT, Claude, Gemini, and DeepSeek chat, plus image (GPT Image 2, Nano Banana 2, Seedream) and video (Seedance, Wan, Veo, Sora, Grok) generation. Cloud only, keyed by `EVOLINK_API_KEY`.
 
 ## kie.ai
 
-kie.ai is a multi-model aggregator: manifest-driven image, video, TTS, and music models (Seedance, Runway, Wan, Kling, FLUX.2, Suno, and more), plus chat for a fixed list of gateway models (GPT, Claude, Grok, Kimi, DeepSeek, and Gemini families). One key covers all of it. kie.ai often lists lower prices than the upstream provider, so compare before you commit. Cloud only, keyed by `KIE_API_KEY`. See the [KIE provider guide](developer/providers/kie.md).
+kie.ai is a multi-model aggregator: manifest-driven image, video, TTS, and music models (Seedance, Runway, Wan, Kling, FLUX.2, Suno, and more), plus chat for a fixed list of gateway models (GPT, Claude, Grok, Kimi, DeepSeek, and Gemini families). Cloud only, keyed by `KIE_API_KEY`. See the [KIE provider guide](developer/providers/kie.md).
 
 ## AKI
 
@@ -305,7 +303,7 @@ FAL generates image, video, TTS, and music from models whose nodes are generated
 
 ## Comfy Cloud
 
-Comfy Cloud runs a ComfyUI workflow graph on cloud.comfy.org — no local ComfyUI install, no GPU of your own. It is reached through the `lib.comfy.RunWorkflowOnCloud` node rather than a model dropdown: the graph you paste in names its own checkpoints and LoRAs, so the provider lists no models and doesn't appear in the generic image or video pickers. Cloud only, keyed by `COMFY_API_KEY` from https://platform.comfy.org. The same key also authenticates partner API nodes inside the submitted graph. See [ComfyUI](comfyui.md).
+Comfy Cloud runs a ComfyUI workflow graph on cloud.comfy.org, with no local ComfyUI install or GPU. It is reached through the `lib.comfy.RunWorkflowOnCloud` node rather than a model dropdown: the graph you paste in names its own checkpoints and LoRAs, so the provider lists no models and doesn't appear in the generic image or video pickers. Cloud only, keyed by `COMFY_API_KEY` from https://platform.comfy.org. The same key also authenticates partner API nodes inside the submitted graph. See [ComfyUI](comfyui.md).
 
 ## HuggingFace
 
@@ -392,7 +390,7 @@ ElevenLabs covers text-to-speech, with a large static voice and model catalog, a
 
 ## Topaz
 
-Topaz enhances existing images and video — upscale, sharpen, denoise, restore — rather than generating from a prompt. Only the enhance and enhance-gen endpoints appear in the generic image-model picker; the rest (sharpen, denoise, lighting, matting, restore) are dedicated nodes. Cloud only, keyed by `TOPAZ_API_KEY`. See the [Topaz provider guide](developer/providers/topaz.md).
+Topaz enhances existing images and video (upscale, sharpen, denoise, restore) rather than generating from a prompt. Only the enhance and enhance-gen endpoints appear in the generic image-model picker; the rest (sharpen, denoise, lighting, matting, restore) are dedicated nodes. Cloud only, keyed by `TOPAZ_API_KEY`. See the [Topaz provider guide](developer/providers/topaz.md).
 
 ## Reve
 
@@ -404,7 +402,7 @@ AtlasCloud generates image, video, speech, music, and 3D assets from a hand-main
 
 ## Cohere
 
-Cohere provides text embeddings — `embed-v4.0` and the English/multilingual v3 line. No chat and no reranking in NodeTool's current provider. Cloud only, keyed by `COHERE_API_KEY`.
+Cohere provides text embeddings (`embed-v4.0` and the English/multilingual v3 line). No chat and no reranking in NodeTool's current provider. Cloud only, keyed by `COHERE_API_KEY`.
 
 ## Voyage AI
 
@@ -424,11 +422,11 @@ Rodin generates 3D assets from text or a reference image, through the generic `n
 
 ## Generic nodes: provider-agnostic workflows
 
-Nodes in the `nodetool.*` namespace take a `model` property and route to whichever provider owns that model — this is what makes switching providers a dropdown change, not a rewiring job.
+Nodes in the `nodetool.*` namespace take a `model` property and route to whichever provider owns that model, so switching providers is a dropdown change.
 
 | Node | Switches between |
 |---|---|
-| `nodetool.agents.Agent` | OpenAI, Anthropic, Gemini, xAI, DeepSeek, Ollama, any chat provider |
+| `nodetool.agents.Agent` | Any chat provider, such as OpenAI, Anthropic, Gemini, xAI, DeepSeek, Ollama |
 | `nodetool.image.TextToImage` | FLUX.2, Nano Banana 2.0, GPT Image 2, Ideogram V3, Z-Image, HuggingFace, MLX |
 | `nodetool.image.ImageToImage` | HuggingFace, local servers, cloud services |
 | `nodetool.video.TextToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0, HuggingFace |
@@ -443,7 +441,7 @@ Use a provider-specific node only for controls the generic interface lacks, such
 
 ## Getting keys in
 
-Wherever a missing provider blocks you (a model dropdown, a node warning, the getting-started checklist), NodeTool opens the **Connect an AI provider** dialog in place. It groups providers under **Sign in with your account** (Claude subscription, OpenAI, Hugging Face) and **Use an API key**. On desktop and localhost it also points at Ollama for running locally at no cost. A pasted key is checked against the provider before it is saved. If the provider rejects it, the dialog does not save it unless you choose to. If the provider cannot be reached, the key is saved and the dialog says it is unverified.
+When a missing provider blocks you (a model dropdown, a node warning, the getting-started checklist), NodeTool opens the **Connect an AI provider** dialog. It groups providers under **Sign in with your account** (Claude subscription, OpenAI, Hugging Face) and **Use an API key**. On desktop and localhost it also points at Ollama for running locally at no cost. A pasted key is checked against the provider before it is saved. If the provider rejects it, the dialog does not save it unless you choose to. If the provider cannot be reached, the key is saved and the dialog says it is unverified.
 
 ![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
 
@@ -463,7 +461,7 @@ nodetool secrets get OPENAI_API_KEY     # print a stored value
 
 Or set the variable directly in `.env.development.local` or your shell environment. A secret stored in the database wins over an environment variable of the same name, and the environment variable is the fallback when nothing is stored (the exceptions are `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `SERVER_AUTH_TOKEN`, where the environment wins). `FAL_KEY` is accepted in place of `FAL_API_KEY`. See [Configuration](configuration.md) for the full load order.
 
-Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key. Point NodeTool at the server's URL instead. For vLLM (`VLLM_BASE_URL`), llama.cpp (`LLAMA_CPP_URL`), and LM Studio (`LMSTUDIO_API_URL`), set it under **Settings → Integrations → Local Model Servers** or as an environment variable. Ollama reads `OLLAMA_API_URL` from the environment or the secret store. In NodeTool's hosted cloud these local providers are not registered, unless the server runs with `NODETOOL_NODE_PROFILE=full`.
+Local providers (Ollama, vLLM, LM Studio, llama.cpp) take a server URL instead of a key. Set `VLLM_BASE_URL`, `LLAMA_CPP_URL`, or `LMSTUDIO_API_URL` under **Settings → Integrations → Local Model Servers** or as an environment variable. Ollama reads `OLLAMA_API_URL` from the environment or the secret store. In NodeTool's hosted cloud these providers are not registered, unless the server runs with `NODETOOL_NODE_PROFILE=full`.
 
 ## If it fails
 
@@ -488,12 +486,10 @@ The same records are readable from the terminal: `nodetool costs summary`, `cost
 
 ## Adding a new provider
 
-Every provider is a class in `packages/runtime/src/providers/` extending `BaseProvider` (or `OpenAIProvider` / `AnthropicProvider` for OpenAI- or Anthropic-compatible APIs), registered in `provider-registry.ts` with the environment variables it needs. The right approach differs by provider — live model discovery, a hand-maintained manifest, or codegen from upstream schemas — so follow the [Provider Guides](developer/providers/index.md) runbook for your case rather than reverse-engineering it from an existing provider. Before opening a PR, run `npm run test:affected`, `npm run typecheck`, and `npm run lint`.
+Every provider is a class in `packages/runtime/src/providers/` extending `BaseProvider` (or `OpenAIProvider` / `AnthropicProvider` for OpenAI- or Anthropic-compatible APIs), registered in `provider-registry.ts` with the environment variables it needs. Follow the [Provider Guides](developer/providers/index.md) runbook for live model discovery, a hand-maintained manifest, or codegen from upstream schemas.
 
 ## See also
 
-- [Models & Providers](models-and-providers.md) — local vs. cloud, mixed workflows, getting started
-- [Supported Models](models.md) — the full model catalog and local inference engines
 - [Installation](installation.md) — install NodeTool on Windows, macOS, Linux
 - [Comparisons](comparisons.md) — NodeTool vs. ComfyUI, n8n, Dify, Flowise, Langflow, Weavy
 - [Chat API](chat-api.md) — WebSocket API for chat interactions and provider routing

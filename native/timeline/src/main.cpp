@@ -1048,6 +1048,8 @@ int main(int argc, char** argv) {
             loaded.timeline->raw.value(u"updatedAt").toString());
         QObject::connect(&model, &TimelineModel::commandSettled, autosave.get(),
                          &nt::server::AutosaveController::documentChanged);
+        QObject::connect(autosave.get(), &nt::server::AutosaveController::projectChanged, &model,
+                         &TimelineModel::setProjectId);
     }
     if (!autosave && !bench && !parser.isSet(realtimeOpt) && !parser.isSet(teardownOpt) &&
         QFileInfo(source).isFile()) {

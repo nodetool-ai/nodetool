@@ -115,6 +115,9 @@ public:
     bool settleCommand(quint64 token, const QJsonObject& document);
     // Reconcile asynchronous resources without adding a user undo command.
     bool settleDocument(const QJsonObject& document);
+    // The project the server now files the timeline under, with no undo
+    // entry. Undo and redo keep it. Returns false when nothing changed.
+    bool setProjectId(const QString& projectId);
 
     // Moves one clip to a new start on its track, as one undoable edit.
     Q_INVOKABLE bool moveClip(const QString& clipId, double startMs);
@@ -143,6 +146,8 @@ signals:
 
 private:
     bool replaceDocument(const QJsonObject& raw);
+    // An undo or redo step: the document, keeping the current project.
+    bool replaceFromHistory(QJsonObject raw);
     bool applyClips(const QJsonArray& clips, const std::vector<int>& reuse, bool sameIds, bool transient = false);
     bool patch(const QJsonArray& changed, bool transient);
     // The clips and tracks the transient snapshots changed since the last full notification.
