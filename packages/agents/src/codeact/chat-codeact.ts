@@ -210,6 +210,12 @@ export interface ChatCodeActSession {
   toolCallCount(): number;
 }
 
+/** The guest's bridge into one bridged tool call. */
+type CallTool = (
+  name: unknown,
+  argsJson: unknown
+) => Promise<{ ok: true; result: unknown } | { ok: false; error: string }>;
+
 interface ActionObservation {
   ok: boolean;
   result?: unknown;
@@ -349,8 +355,8 @@ export function createChatCodeActSession(
     if (names === undefined) graftExports.set(module, [tool.name]);
     else names.push(tool.name);
   }
-  const sessionModules = [...graftExports.entries()].map(
-    ([module, exports]) => ({
+  const sessionModulesFor = (callTool: CallTool) =>
+    [...graftExports.entries()].map(([module, exports]) => ({
       module,
       exports,
       call: async (name: string, args: unknown) => {
@@ -358,8 +364,7 @@ export function createChatCodeActSession(
         if (r.ok !== true) throw new Error(r.error);
         return r.result;
       }
-    })
-  );
+    }));
   const maxCallsPerAction =
     options.maxToolCallsPerAction ?? DEFAULT_MAX_TOOL_CALLS_PER_ACTION;
   const withGraphModel = hasGraphModelTools(toolNames);
@@ -370,12 +375,14 @@ export function createChatCodeActSession(
   // memory (`nodetool.memory.*`).
   const graphQueues: Record<string, unknown> = {};
   let totalCalls = 0;
-  let actionCalls = 0;
 
-  const callTool = async (
-    name: unknown,
-    argsJson: unknown
-  ): Promise<{ ok: true; result: unknown } | { ok: false; error: string }> => {
+  // Each action counts its own calls. An MCP client can run two actions on
+  // one session at once, so a session-wide counter reset at each start let
+  // one action's start lift the other's budget.
+  const callToolFor = (action: { calls: number }): CallTool => async (
+    name,
+    argsJson
+  ) => {
     try {
       if (!isString(name) || !byName.has(name)) {
         return {
@@ -383,7 +390,7 @@ export function createChatCodeActSession(
           error: `Unknown tool "${String(name)}". Use nodetool.searchTools() to discover tools.`
         };
       }
-      if (actionCalls >= maxCallsPerAction) {
+      if (action.calls >= maxCallsPerAction) {
         return {
           ok: false,
           error:
@@ -391,7 +398,7 @@ export function createChatCodeActSession(
             `calls). Return an intermediate result and continue in the next action.`
         };
       }
-      actionCalls++;
+      action.calls++;
       totalCalls++;
 
       let args: Record<string, unknown> = {};
@@ -571,6 +578,9 @@ export function createChatCodeActSession(
         toolCalls: 0
       } satisfies ActionObservation);
     }
+    const action = { calls: 0 };
+    const callTool = callToolFor(action);
+    const sessionModules = sessionModulesFor(callTool);
     const mountOptions: MountCapabilityModulesOptions = {};
     if (options.signal !== undefined) mountOptions.signal = options.signal;
     if (sessionModules.length > 0) mountOptions.session = sessionModules;
@@ -599,7 +609,6 @@ export function createChatCodeActSession(
         toolCalls: 0
       } satisfies ActionObservation);
     }
-    actionCalls = 0;
 
     const context = options.context;
     const resolveMediaRef = context
@@ -672,7 +681,7 @@ export function createChatCodeActSession(
 
     const observation: ActionObservation = {
       ok: outcome.success,
-      toolCalls: actionCalls
+      toolCalls: action.calls
     };
     if (outcome.success) {
       if (outcome.result !== undefined) observation.result = outcome.result;

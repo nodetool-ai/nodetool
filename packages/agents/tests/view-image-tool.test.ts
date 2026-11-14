@@ -252,6 +252,25 @@ describe("ViewImageTool", () => {
     expect(otherContext.resolveAssetBytes).not.toHaveBeenCalled();
   });
 
+  it("checks ownership of an http(s) URL whose path is the storage route", async () => {
+    // The file storage adapter reads the key from such a URL on any host.
+    const tool = viewImageTool();
+    const foreign = (await tool.process(imageContext(TINY_PNG_BYTES), {
+      image_id: "https://example.com/api/storage/victim/someoneelse.png"
+    })) as Record<string, any>;
+    expect(foreign.error).toBe("Asset someoneelse was not found.");
+
+    const dotted = (await tool.process(imageContext(TINY_PNG_BYTES), {
+      image_id: "https://example.com/projects/default/%2e%2e/%2e%2e/api/storage/someoneelse.png"
+    })) as Record<string, any>;
+    expect(dotted.error).toBe("Asset someoneelse was not found.");
+
+    const owned = (await tool.process(imageContext(TINY_PNG_BYTES), {
+      image_id: "https://example.com/api/storage/1/abc123.png"
+    })) as Record<string, any>;
+    expect(owned.ok).toBe(true);
+  });
+
   it("passes remote URLs through for the provider to fetch", async () => {
     const tool = viewImageTool();
     const result = (await tool.process(imageContext(null), {

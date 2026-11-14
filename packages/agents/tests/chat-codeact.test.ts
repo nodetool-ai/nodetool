@@ -197,6 +197,46 @@ describe("createChatCodeActSession", () => {
     expect(calls[0].id).toMatch(/^codeact_[0-9a-f-]{36}_1$/);
   });
 
+  it("counts each action's tool calls on its own when actions overlap", async () => {
+    // An MCP client can run two actions on one session at once. Starting the
+    // second must not reset the first one's budget.
+    let releaseA = (): void => {};
+    const holdA = new Promise<void>((resolve) => {
+      releaseA = resolve;
+    });
+    let markHeld = (): void => {};
+    const held = new Promise<void>((resolve) => {
+      markHeld = resolve;
+    });
+    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
+      if (call.args["tag"] === "a2") {
+        markHeld();
+        await holdA;
+      }
+      return JSON.stringify({ sum: 1 });
+    };
+    const session = createChatCodeActSession({
+      tools: GENERIC_TOOLS,
+      executeTool,
+      context: createMockContext() as unknown as ProcessingContext,
+      maxToolCallsPerAction: 2
+    });
+    const add = `import { ui_add } from "@nodetool-ai/sandbox-nodetool/ui";\n`;
+    const first = runAction(
+      session,
+      add +
+        `await ui_add({ tag: "a1" });\nawait ui_add({ tag: "a2" });\n` +
+        `try { await ui_add({ tag: "a3" }); return "third ran"; } ` +
+        `catch (e) { return "third refused"; }`
+    );
+    await held;
+    const second = await runAction(session, add + `await ui_add({ tag: "b1" });\nreturn "b";`);
+    releaseA();
+    const firstObs = await first;
+    expect(second).toMatchObject({ ok: true, result: "b", toolCalls: 1 });
+    expect(firstObs).toMatchObject({ ok: true, result: "third refused", toolCalls: 2 });
+  });
+
   it("reports error positions against the action's own code", async () => {
     const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
     const session = makeSession(GENERIC_TOOLS, executeTool);

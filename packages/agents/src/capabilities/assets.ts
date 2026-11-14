@@ -69,6 +69,7 @@ import {
   isString
 } from "../utils/type-guards.js";
 import { resolveProjectId, resolveReadProjectId } from "./project-scope.js";
+import { storageRoutePathOfUrl } from "./storage-reference.js";
 import { hasTemporaryImageHandle } from "../tools/image-injection.js";
 
 // ---------------------------------------------------------------------------
@@ -147,11 +148,14 @@ async function findRunAsset(
 }
 
 function assetIdFromReference(value: string): string | null {
+  const routePath = storageRoutePathOfUrl(value);
   let path: string;
   if (value.startsWith("asset://")) {
     path = value.slice("asset://".length);
   } else if (value.startsWith("/api/storage/")) {
     path = value.slice("/api/storage/".length);
+  } else if (routePath !== null) {
+    path = routePath.slice("/api/storage/".length);
   } else if (/^(?:memory|file|s3|supabase):\/\//.test(value)) {
     path = value.slice(value.indexOf("://") + 3);
   } else if (!value.includes("://") && !value.startsWith("/api/")) {
@@ -172,6 +176,7 @@ const scopedAssetStorageKey = (
 const requiresStoredAssetOwnership = (value: string): boolean =>
   value.startsWith("asset://") ||
   value.startsWith("/api/storage/") ||
+  storageRoutePathOfUrl(value) !== null ||
   /^(?:memory|file|s3|supabase):\/\//.test(value);
 
 /**
@@ -184,8 +189,17 @@ const isRunProjectStorageReference = (
   run: Parameters<CapabilityImpl>[0],
   value: string
 ): boolean => {
-  const path = value.split(/[?#]/)[0] ?? "";
-  if (path.split(/[\\/]/).some((segment) => segment === "..")) return false;
+  // An http(s) URL is read by its parsed pathname, where `%2e%2e` is already a
+  // dot segment. A storage adapter decodes the key, so check it decoded too.
+  let path = (storageRoutePathOfUrl(value) ?? value).split(/[?#]/)[0] ?? "";
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    return false;
+  }
+  if (path.split(/[\\/]/).some((segment) => segment === ".." || segment === ".")) {
+    return false;
+  }
   return path.includes(`projects/${resolveProjectId(run, {})}/`);
 };
 

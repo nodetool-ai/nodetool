@@ -217,7 +217,11 @@ function falRequestFingerprint(request: GenerationRequest): string {
  * Throwing refuses it: the seam records the generation as failed with that
  * message, and nothing is sent to the provider.
  */
-export type GenerationAdmission = (request: GenerationRequest) => Promise<void>;
+export type GenerationAdmission = (
+  request: GenerationRequest,
+  /** The seam's id for this generation, as its `prediction` messages carry. */
+  generationId: string
+) => Promise<void>;
 
 /**
  * Put `admit` in front of every generation `hooks` would accept. A host whose
@@ -233,7 +237,7 @@ export function withGenerationAdmission(
   return {
     ...hooks,
     onGenerationAccepted: async (input) => {
-      await admit(input.request);
+      await admit(input.request, input.generationId);
       return accept ? accept(input) : undefined;
     }
   };

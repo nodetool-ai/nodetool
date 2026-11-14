@@ -202,8 +202,14 @@ function buildAgentToolContext(userId: string): ProcessingContext {
     // A chat turn and a workflow run are admitted against credits and quotas
     // before they start. An MCP session has neither, so each generation is
     // admitted on its own, before its provider is called.
-    generationLifecycle: withGenerationAdmission({}, generationAdmissionFor(userId))
+    generationLifecycle: withGenerationAdmission({}, (request, generationId) =>
+      admitGeneration(request, generationId)
+    )
   });
+  // The admission reserves each managed-provider estimate and releases it on
+  // the generation's terminal prediction message, which it observes on this
+  // context, so it is bound once the context exists.
+  const admitGeneration = generationAdmissionFor(userId, context);
   // The generation tracker. Every generation tool writes its record through
   // the prediction messages this context emits, and `get_generation`,
   // `await_generation` and `list_generations` read that record. Without a

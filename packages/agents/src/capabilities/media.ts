@@ -128,7 +128,7 @@ import {
   MAX_COMPARE_IMAGES,
   MAX_UNDERSTAND_VIDEO_TOKENS
 } from "./media.specs.js";
-import { ownedStorageReference } from "./storage-reference.js";
+import { assetUriForBareId, ownedStorageReference } from "./storage-reference.js";
 
 const MAX_INLINE_TEXT_PREVIEW = 500;
 const MAX_ADHERENCE_QUESTIONS = 12;
@@ -2113,19 +2113,17 @@ const readMediaBytes: CapabilityExport = {
     if (!isNonBlankString(uri)) {
       return { error: "uri is required and must be a non-empty string" };
     }
-    const trimmed = uri.trim();
+    // A bare id is what an agent reaches for after reading `asset_id` off a
+    // generation result; read it as the asset it names.
+    const trimmed = assetUriForBareId(uri.trim());
     if (filesystemPathForUri(trimmed) !== null) {
       return {
         error: `read_media_bytes does not read filesystem paths (${trimmed}). Use read_file for a workspace file, or pass an asset:// URI.`
       };
     }
-    // A bare id is what an agent reaches for after reading `asset_id` off a
-    // generation result; accept it rather than making that a failed round trip.
     const owned = await ownedStorageReference(run.context, trimmed, run.projectId);
     if (!owned.ok) return { error: owned.error };
-    const ref = owned.ref.includes("://")
-      ? { uri: owned.ref }
-      : { uri: owned.ref, asset_id: owned.ref };
+    const ref = { uri: owned.ref };
     try {
       const bytes = await loadMediaRefBytes(ref, run.context);
       if (!bytes) {

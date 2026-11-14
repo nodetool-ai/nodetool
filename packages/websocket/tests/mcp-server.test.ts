@@ -1337,6 +1337,52 @@ describe("session scope", () => {
     expect(mcpHttpSessionCount()).toBe(MCP_MAX_SESSIONS_PER_USER);
   });
 
+  it("refuses a user's new session when all of theirs have a call running", async () => {
+    // A request whose body never finishes keeps its session busy, as a long
+    // tool call does. Busy sessions are never evicted, so without a refusal
+    // one user could open sessions until the server-wide cap is full.
+    const pendingBody = (): ReadableStream<Uint8Array> =>
+      new ReadableStream<Uint8Array>({ start() {} });
+    const alice = {
+      agentToolsScope: { userId: "alice", source: "http-session" as const }
+    };
+    for (let i = 0; i < MCP_MAX_SESSIONS_PER_USER; i += 1) {
+      const sessionId = await openHttpSession("alice");
+      void handleMcpHttpRequest(
+        new Request("http://localhost/mcp", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json, text/event-stream",
+            "mcp-session-id": sessionId
+          },
+          body: pendingBody(),
+          ...{ duplex: "half" }
+        } as RequestInit),
+        alice
+      );
+    }
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const refused = await handleMcpHttpRequest(
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream"
+        },
+        body: initializeBody
+      }),
+      alice
+    );
+    expect(refused!.status).toBe(503);
+    expect(await refused!.text()).toContain("has a call running");
+    expect(mcpHttpSessionCount()).toBe(MCP_MAX_SESSIONS_PER_USER);
+
+    // Another user is unaffected.
+    await openHttpSession("bob");
+  });
+
   it("does not evict another user's sessions when one user hits their cap", async () => {
     const bobSession = await openHttpSession("bob");
     for (let i = 0; i < MCP_MAX_SESSIONS_PER_USER + 1; i += 1) {
