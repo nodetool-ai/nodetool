@@ -26,6 +26,9 @@ QJsonObject mediaRequest(const QString &mode, const QVariantMap &settings, const
                          const QString &model);
 QString pickModelMessage(const QString &mode);
 QVariantList reasoningLevels();
+// PermissionSelector.tsx MODES, as {value, label, description}.
+QVariantList permissionModes();
+bool isPermissionMode(const QString &mode);
 bool supportsReasoningEffort(const QString &provider, const QString &model);
 QString assetUri(const QString &id, const QString &name, const QString &contentType);
 QJsonObject assetContent(const QString &id, const QString &name, const QString &contentType);

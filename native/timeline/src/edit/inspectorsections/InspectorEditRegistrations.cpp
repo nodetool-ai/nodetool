@@ -80,6 +80,22 @@ QJsonObject setClipSpeed(QJsonObject raw, const QJsonObject& payload) {
 const bool registered = [] {
     nt::app::registerEdit("patchClip", patchClip);
     nt::app::registerEdit("setClipSpeed", setClipSpeed);
+    // The Inspector's Start field moves the clip and then drops it, as a drag
+    // does, in the timeline's drop mode: Overwrite replaces what it lands on and
+    // Insert pushes it right. Without the drop a typed Start could stack two clips on
+    // one track, with the lower one hidden.
+    nt::app::registerEdit("moveSelectedClipsAndDrop", [](QJsonObject raw, const QJsonObject& payload) {
+        const auto move = nt::app::findEdit("moveSelectedClips");
+        const auto drop = nt::app::findEdit("resolveDropAction");
+        if (!move || !drop) { return raw; }
+        auto moved = move(std::move(raw), payload);
+        auto selected = payload.value("selectedIds").toArray();
+        if (selected.isEmpty()) { selected.append(payload.value("clipId")); }
+        auto dropPayload = payload;
+        dropPayload.insert("selectedIds", selected);
+        if (payload.value("mode").toString().isEmpty()) { dropPayload.insert("mode", "overwrite"); }
+        return drop(std::move(moved), dropPayload);
+    });
     return true;
 }();
 }

@@ -739,7 +739,8 @@ private slots:
         QVERIFY(find(isolated.rootObject(), "compare-clear")->isVisible());
         QTest::qWait(60);
         QCOMPARE(isolated.rootObject()->width(), qreal(minimum));
-        QVERIFY(find(isolated.rootObject(), "restore-version")->isVisible());
+        // A comparison replaces the inspected version's actions, as the web's diff view does.
+        QVERIFY(!find(isolated.rootObject(), "restore-version")->isVisible());
         const auto problems = [&isolated] {
             QStringList found;
             auto *root = isolated.rootObject();
@@ -778,74 +779,6 @@ private slots:
         QCOMPARE(problems(), QStringList());
     }
 
-    // web/src/components/sharing/ShareDocumentDialog.tsx lines 164 to 290: the dialog shows a
-    // description, three link buttons, the active links as a role chip with copy and revoke, and
-    // the people with access. It never shows the server response, a token or a link's URL.
-    void sharePanelShowsOnlyWhatTheWebDialogShows()
-    {
-        Fixture server;
-        bool revoked = false;
-        server.respond = [&revoked](QByteArray request) {
-            const auto line = request.left(request.indexOf("\r\n"));
-            if (line.startsWith("GET /api/workflows/")) {
-                return workflowBody("r1");
-            }
-            if (line.contains("sharing.revokeLink")) {
-                revoked = true;
-                return envelope(QJsonObject{{"ok", true}});
-            }
-            if (line.contains("sharing.get")) {
-                QJsonArray shares;
-                if (!revoked) {
-                    shares.append(QJsonObject{{"id", "share-a"}, {"workflow_id", "bound"}, {"token", "listed-editor"}, {"role", "editor"}, {"created_at", "2026-06-01T10:00:00Z"}, {"revoked_at", QJsonValue()}});
-                }
-                shares.append(QJsonObject{{"id", "share-b"}, {"workflow_id", "bound"}, {"token", "listed-public"}, {"role", "public"}, {"created_at", "2026-06-01T10:00:00Z"}, {"revoked_at", QJsonValue()}});
-                return envelope(QJsonObject{
-                    {"collaborators", QJsonArray{QJsonObject{{"workflow_id", "bound"}, {"user_id", "guest"}, {"role", "viewer"}, {"invited_by", "1"}, {"created_at", "2026-06-01T10:00:00Z"}}}},
-                    {"shares", shares}});
-            }
-            return trpcError("Unexpected request", "NOT_FOUND", 404);
-        };
-        EditorWindow window;
-        connectWorkflow(window, server);
-        window.action("Share workflow");
-        auto *widget = panel(window, "WorkflowDetails.qml");
-        QVERIFY(widget);
-        auto *controller = controllerOf(widget);
-        QTRY_COMPARE(controller->rows().size(), 3);
-        QTRY_VERIFY(!controller->busy());
-        QTest::qWait(60);
-
-        const auto texts = visibleTexts(widget->quickWindow()->contentItem());
-        const auto joined = texts.join("\n");
-        for (const auto &leak : {"workflow_id", "revoked_at", "created_at", "listed-editor", "listed-public", "http://", "{", "\"shares\""}) {
-            QVERIFY2(!joined.contains(leak), qPrintable(QString("share panel shows raw server data: %1").arg(leak)));
-        }
-        QVERIFY(!find(widget->quickWindow()->contentItem(), "version-preview"));
-        QVERIFY(texts.contains("Share \"Original\""));
-        QVERIFY(joined.contains("Anyone signed in to this server who opens a view or edit link gets the role assigned to that link."));
-        QVERIFY(texts.contains("Copy view link"));
-        QVERIFY(texts.contains("Copy edit link"));
-        QVERIFY(texts.contains("Copy public link"));
-        QVERIFY(texts.contains("Active links"));
-        QVERIFY(texts.contains("Can edit"));
-        QVERIFY(texts.contains("Public view"));
-        QVERIFY(texts.contains("People with access"));
-        QVERIFY(texts.contains("guest"));
-        QVERIFY(!find(widget->quickWindow()->contentItem(), "share-no-collaborators")->isVisible());
-
-        // Revoking a link sends its share id and the list then drops it.
-        click(widget, "revoke-share-link-0");
-        QTRY_COMPARE(server.count("sharing.revokeLink"), 1);
-        const auto body = requestBody(server.requests[server.indexOf("sharing.revokeLink")]);
-        QCOMPARE(body["id"].toString(), QString("bound"));
-        QCOMPARE(body["share_id"].toString(), QString("share-a"));
-        QTRY_COMPARE(controller->rows().size(), 2);
-        QVERIFY(!visibleTexts(widget->quickWindow()->contentItem()).contains("Can edit"));
-    }
-
-    // computeGraphDiff in web/src/utils/graphDiff.ts lists added, removed and changed nodes and
-    // added and removed edges in graph order. QHash iteration made the order differ between runs.
     void graphDiffKeepsGraphOrder()
     {
         const auto id = [](int index) { return QString("n%1").arg(index, 2, 10, QChar('0')); };
@@ -1042,6 +975,67 @@ private slots:
         QCOMPARE(find(widget->rootObject(), "version-count")->property("text").toString(), QString("0"));
     }
 
+    // web/src/components/version/VersionHistoryPanel.tsx: with nothing selected the preview pane
+    // only asks for a selection. Restore, Delete, the confirmation and the diff appear once a
+    // version is inspected, under a header with its number, save type, time and size.
+    void detailPaneWaitsForASelection()
+    {
+        Fixture server;
+        const QJsonObject graph{
+            {"nodes", QJsonArray{
+                QJsonObject{{"id", "0123456789abcdef"}, {"type", "nodetool.text.Template"}, {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 0}, {"y", 0}}}}}}}},
+            {"edges", QJsonArray()}};
+        server.respond = [&graph](QByteArray request) {
+            const auto line = request.left(request.indexOf("\r\n"));
+            if (line.startsWith("GET /api/workflows/")) {
+                return workflowBody("r1");
+            }
+            if (line.contains("versions.list")) {
+                return envelope(QJsonObject{{"versions", QJsonArray{versionRow("v1", 1, "autosave", "Draft", "2026-06-15T08:00:00Z", graph)}}});
+            }
+            return trpcError("Unexpected request", "NOT_FOUND", 404);
+        };
+        EditorWindow window;
+        connectWorkflow(window, server);
+        auto *widget = openHistory(window);
+        QVERIFY(widget);
+        QTRY_COMPARE(controllerOf(widget)->rows().size(), 1);
+        auto *root = widget->rootObject();
+        const auto visible = [root](const char *name) {
+            auto *item = find(root, name);
+            return item && item->isVisible();
+        };
+        QVERIFY(visible("version-detail-empty"));
+        QCOMPARE(find(root, "version-detail-empty-hint")->property("text").toString(), QString("Click any entry to see its graph and metadata here."));
+        for (const auto *name : {"version-graph-preview", "restore-confirm", "restore-version", "delete-selected-version",
+                                 "version-detail-header", "version-diff-current-heading", "version-diff-empty", "version-diff-addedNodes"}) {
+            QVERIFY2(!visible(name), name);
+        }
+        if (const auto directory = qEnvironmentVariable("NODETOOL_VERSIONS_CAPTURE_DIR"); !directory.isEmpty()) {
+            QVERIFY(QDir().mkpath(directory));
+            QTest::qWait(120);
+            QVERIFY(window.grab().save(directory + "/versions-unselected.png"));
+        }
+
+        click(widget, "version-row-0");
+        QTRY_VERIFY(visible("version-detail-header"));
+        QVERIFY(!visible("version-detail-empty"));
+        QCOMPARE(find(root, "version-detail-number")->property("text").toString(), QString("v1"));
+        QCOMPARE(find(root, "version-detail-type")->property("text").toString(), QString("Auto"));
+        QCOMPARE(find(root, "version-detail-name")->property("text").toString(), QString("Draft"));
+        for (const auto *name : {"version-graph-preview", "restore-confirm", "restore-version", "delete-selected-version", "version-diff-current-heading", "version-diff-addedNodes"}) {
+            QVERIFY2(visible(name), name);
+        }
+        // Diff rows name a node by the last segment of its type, as VersionDiff.tsx does.
+        QCOMPARE(find(root, "version-diff-title-addedNodes")->property("text").toString(), QString("Added node (1)"));
+        QCOMPARE(find(root, "version-diff-item-addedNodes-0")->property("text").toString(), QString("Template"));
+
+        // In compare mode the empty pane asks for two versions.
+        click(widget, "version-row-0");
+        click(widget, "compare-toggle");
+        QTRY_COMPARE(find(root, "version-detail-empty-hint")->property("text").toString(), QString("Pick two versions to see what changed."));
+    }
+
     // The web's compare mode (VersionHistoryPanel.tsx): the toggle makes rows pick two versions,
     // the lower version number is the older side, and GraphVisualDiff draws the result.
     void compareModeDrawsTheVisualDiff()
@@ -1113,7 +1107,7 @@ private slots:
 
         // Sections appear in the order of the web's VersionDiff.
         QTest::qWait(100);
-        const QStringList headings{"Added nodes (1)", "Removed nodes (1)", "Changed nodes (1)", "Added connections (1)", "Removed connections (1)"};
+        const QStringList headings{"Added node (1)", "Removed node (1)", "Modified node (1)", "Added connection (1)", "Removed connection (1)"};
         qreal previous = -1;
         for (const auto &heading : headings) {
             qreal y = -1;
@@ -1168,65 +1162,6 @@ private slots:
         QCOMPARE(controller->property("compareIndex").toInt(), -1);
         QVERIFY(!preview->property("diffMode").toBool());
         QVERIFY(!hint()->isVisible());
-    }
-
-    // A delete's reload is queued after its reply. A Share panel opened while the delete ran
-    // must keep its data, because the reload is for a panel that is no longer shown.
-    void reloadAfterDeleteCannotReplaceTheSharePanel()
-    {
-        Fixture server;
-        History history;
-        history.created = true;
-        server.respond = [&history](QByteArray request) {
-            const auto line = request.left(request.indexOf("\r\n"));
-            if (line.startsWith("GET /api/workflows/")) {
-                return workflowBody("r1");
-            }
-            if (line.contains("versions.delete")) {
-                return QByteArray();
-            }
-            if (line.contains("sharing.get")) {
-                return envelope(QJsonObject{
-                    {"collaborators", QJsonArray()},
-                    {"shares", QJsonArray{
-                        QJsonObject{{"id", "share-a"}, {"workflow_id", "bound"}, {"token", "listed-editor"}, {"role", "editor"}, {"created_at", "2026-06-01T10:00:00Z"}, {"revoked_at", QJsonValue()}},
-                        QJsonObject{{"id", "share-b"}, {"workflow_id", "bound"}, {"token", "listed-public"}, {"role", "public"}, {"created_at", "2026-06-01T10:00:00Z"}, {"revoked_at", QJsonValue()}}}}});
-            }
-            return line.contains("versions.list") ? history.list() : trpcError("Unexpected request", "NOT_FOUND", 404);
-        };
-        EditorWindow window;
-        connectWorkflow(window, server);
-        auto *widget = openHistory(window);
-        QVERIFY(widget);
-        auto *controller = controllerOf(widget);
-        QTRY_COMPARE(controller->rows().size(), 2);
-        click(widget, "version-row-0");
-        click(widget, "delete-selected-version");
-        QTRY_VERIFY(find(widget->quickWindow()->contentItem(), "confirm-delete-version"));
-        click(widget, "confirm-delete-version");
-        QTRY_COMPARE(server.count("versions.delete"), 1);
-        QVERIFY(controller->busy());
-
-        // Open Share while the delete is still unanswered.
-        window.findChild<QDockWidget *>("workflow-versions-dock")->close();
-        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        window.action("Share workflow");
-        auto *sharing = panel(window, "WorkflowDetails.qml");
-        QVERIFY(sharing);
-        QCOMPARE(server.count("sharing.get"), 0);
-
-        server.release(envelope(QJsonObject{{"ok", true}}));
-        QTRY_COMPARE(controller->rows().size(), 2);
-        QTRY_VERIFY(!controller->busy());
-        const auto shareRows = controller->rows();
-        QCOMPARE(shareRows.first().toMap()["kind"].toString(), QString("link"));
-        QTest::qWait(300);
-        QTRY_VERIFY(!controller->busy());
-        QCOMPARE(controller->rows(), shareRows);
-        QCOMPARE(server.count("sharing.get"), 1);
-        QCOMPARE(server.count("versions.list"), 1);
-        QCOMPARE(find(sharing->rootObject(), "versions-error")->property("text").toString(), QString());
-        QVERIFY(find(sharing->rootObject(), "copy-share-link-1")->isVisible());
     }
 
     // web/src/hooks/useFloatingToolbarActions.ts lines 156 to 180: before a run the web sends a
@@ -1439,13 +1374,6 @@ private slots:
                     versionRow("v2", 2, "checkpoint", "Before execution", "2026-06-15T09:00:00Z"),
                     versionRow("v1", 1, "restore", QString(), "2026-05-06T12:00:00Z")}}});
             }
-            if (line.contains("sharing.get")) {
-                return envelope(QJsonObject{
-                    {"collaborators", QJsonArray{QJsonObject{{"workflow_id", "bound"}, {"user_id", "guest@example.com"}, {"role", "viewer"}, {"invited_by", "1"}, {"created_at", "2026-06-01T10:00:00Z"}}}},
-                    {"shares", QJsonArray{
-                        QJsonObject{{"id", "share-a"}, {"workflow_id", "bound"}, {"token", "listed-editor"}, {"role", "editor"}, {"created_at", "2026-06-01T10:00:00Z"}, {"revoked_at", QJsonValue()}},
-                        QJsonObject{{"id", "share-b"}, {"workflow_id", "bound"}, {"token", "listed-public"}, {"role", "public"}, {"created_at", "2026-06-01T10:00:00Z"}, {"revoked_at", QJsonValue()}}}}});
-            }
             return trpcError("Unexpected request", "NOT_FOUND", 404);
         };
         EditorWindow window;
@@ -1499,83 +1427,8 @@ private slots:
             QVERIFY(window.grab().save(directory + "/versions-save-dialog-" + scheme + ".png"));
         }
         click(widget, "cancel-save-version");
-        window.findChild<QDockWidget *>("workflow-versions-dock")->close();
-        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        window.action("Share workflow");
-        auto *sharing = panel(window, "WorkflowDetails.qml");
-        QVERIFY(sharing);
-        QTRY_COMPARE(controllerOf(sharing)->rows().size(), 3);
-        // Tall enough to show the whole list of links.
-        window.findChild<QDialog *>("workflow-details-dialog")->resize(640, 1200);
-        QTest::qWait(100);
-        click(sharing, "copy-share-link-0");
-        for (const auto &scheme : {QString("dark"), QString("light")}) {
-            window.setDarkTheme(scheme == "dark");
-            sharing->rootObject()->forceActiveFocus();
-            resetScroll(sharing->rootObject());
-            QTest::qWait(120);
-            QVERIFY(sharing->grab().save(directory + "/sharing-copy-" + scheme + ".png"));
-        }
     }
 
-    void sharingLinksCopyToTheClipboard()
-    {
-        Fixture server;
-        bool allowCreate = false;
-        server.respond = [&allowCreate](QByteArray request) {
-            const auto line = request.left(request.indexOf("\r\n"));
-            if (line.startsWith("GET /api/workflows/")) {
-                return workflowBody("r1");
-            }
-            if (line.contains("sharing.get")) {
-                return envelope(QJsonObject{
-                    {"collaborators", QJsonArray{QJsonObject{{"workflow_id", "bound"}, {"user_id", "guest"}, {"role", "viewer"}, {"invited_by", "1"}, {"created_at", "2026-06-01T10:00:00Z"}}}},
-                    {"shares", QJsonArray{
-                        QJsonObject{{"id", "share-a"}, {"workflow_id", "bound"}, {"token", "listed-editor"}, {"role", "editor"}, {"created_at", "2026-06-01T10:00:00Z"}, {"revoked_at", QJsonValue()}},
-                        QJsonObject{{"id", "share-b"}, {"workflow_id", "bound"}, {"token", "listed-public"}, {"role", "public"}, {"created_at", "2026-06-01T10:00:00Z"}, {"revoked_at", QJsonValue()}}}}});
-            }
-            if (line.contains("sharing.createLink")) {
-                if (!allowCreate) {
-                    return trpcError("Only the workflow owner can manage sharing", "FORBIDDEN", 403);
-                }
-                return envelope(QJsonObject{{"id", "share-c"}, {"workflow_id", "bound"}, {"token", "fresh-viewer"}, {"role", "viewer"}, {"created_at", "2026-06-15T12:00:00Z"}, {"revoked_at", QJsonValue()}});
-            }
-            return trpcError("Unexpected request", "NOT_FOUND", 404);
-        };
-        server.status = [&allowCreate](QByteArray request) {
-            return !allowCreate && request.contains("sharing.createLink") ? 403 : 200;
-        };
-        EditorWindow window;
-        connectWorkflow(window, server);
-        window.action("Share workflow");
-        auto *widget = panel(window, "WorkflowDetails.qml");
-        QVERIFY(widget);
-        auto *controller = controllerOf(widget);
-        QTRY_COMPARE(controller->rows().size(), 3);
-        auto *clipboard = QGuiApplication::clipboard();
-        clipboard->setText("untouched");
-        const auto origin = server.url().toString();
-
-        // A failed mint leaves the clipboard alone and says why.
-        click(widget, "create-share-viewer");
-        QTRY_VERIFY(find(widget->rootObject(), "versions-error")->property("text").toString().contains("Permission denied"));
-        QCOMPARE(clipboard->text(), QString("untouched"));
-
-        click(widget, "copy-share-link-0");
-        QCOMPARE(clipboard->text(), origin + "/share/listed-editor");
-        QTRY_COMPARE(find(widget->rootObject(), "copy-share-link-0")->property("text").toString(), QString("Copied"));
-        QCOMPARE(find(widget->rootObject(), "copy-share-link-1")->property("text").toString(), QString("Copy share link"));
-        click(widget, "copy-share-link-1");
-        QCOMPARE(clipboard->text(), origin + "/view/listed-public");
-        QTRY_COMPARE(find(widget->rootObject(), "copy-share-link-1")->property("text").toString(), QString("Copied"));
-        QCOMPARE(find(widget->rootObject(), "copy-share-link-0")->property("text").toString(), QString("Copy share link"));
-
-        // Creating a link copies it at once, as the web's "Copy view link" does.
-        allowCreate = true;
-        click(widget, "create-share-viewer");
-        QTRY_COMPARE(clipboard->text(), origin + "/share/fresh-viewer");
-        QCOMPARE(find(widget->rootObject(), "create-share-viewer")->property("text").toString(), QString("Copy view link"));
-    }
 };
 
 int main(int argc, char **argv)

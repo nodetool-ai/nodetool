@@ -103,6 +103,8 @@ void EditorWindow::installApplicationMenu() {
     auto *file = bar->addMenu(tr("File"));
     file->setObjectName(QStringLiteral("application-menu-file"));
     entry(file, tr("New Workflow"), [this] { newTab(); }, {QKeySequence(QStringLiteral("Ctrl+T"))});
+    // NewProjectSurface's "Comfy workflow": a graph of ComfyUI nodes that runs on the Comfy target.
+    entry(file, tr("New Comfy Workflow"), [this] { newComfyWorkflow(); }, {});
     command(file, tr("Open…"), QStringLiteral("Open file"), {QKeySequence(QStringLiteral("Ctrl+O"))});
     auto *examples = file->addMenu(tr("Open Example"));
     examples->setObjectName(QStringLiteral("application-menu-examples"));
@@ -192,7 +194,6 @@ void EditorWindow::installApplicationMenu() {
     command(workflow, tr("Reconnect"), QStringLiteral("Reconnect"));
     workflow->addSeparator();
     command(workflow, tr("Linked Workflows…"), QStringLiteral("Linked workflows"));
-    command(workflow, tr("Share…"), QStringLiteral("Share workflow"));
     command(workflow, tr("Metadata…"), QStringLiteral("Workflow metadata"));
     command(workflow, tr("Canvas Uploads…"), QStringLiteral("Canvas uploads"));
     track(workflow);
@@ -201,6 +202,8 @@ void EditorWindow::installApplicationMenu() {
     auto *tools = bar->addMenu(tr("Tools"));
     tools->setObjectName(QStringLiteral("application-menu-tools"));
     entry(tools, tr("Chat"), [this] { toggleChat(); });
+    entry(tools, tr("New Conversation"), [this] { newChatConversation(); }, {QKeySequence(QStringLiteral("Ctrl+Shift+O"))});
+    entry(tools, tr("Focus Chat Composer"), [this] { focusChatComposer(); }, {QKeySequence(QStringLiteral("Ctrl+Shift+L"))});
     entry(tools, tr("Logs"), [this] { toggleStatusView(QStringLiteral("logs")); });
     entry(tools, tr("Run Trace"), [this] { toggleStatusView(QStringLiteral("trace")); });
     entry(tools, tr("Version History"), [this] { toggleStatusView(QStringLiteral("versions")); });

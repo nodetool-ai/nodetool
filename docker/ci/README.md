@@ -68,15 +68,24 @@ browser libraries `install-deps` installs.
 
 [`docker/ci-native/`](../ci-native/Dockerfile) is a second image,
 `ghcr.io/nodetool-ai/nodetool-ci-native`, for the Linux legs of
-`native-timeline.yml`, `native-ui-primitives.yml` and `vst-host.yml`. It has
-GCC, Clang with its sanitizer runtimes, the FFmpeg codec libraries, Mesa
-lavapipe, and the X11 and xcb libraries Qt and JUCE load. Its tag is the hash
+`native-timeline.yml`, `native-ui-primitives.yml`, `vst-host.yml`,
+`native-graph-runner.yml` and `native-gpu-preview.yml`. It has GCC, Clang with
+its sanitizer runtimes, the FFmpeg codec libraries and headers, Mesa lavapipe
+with the Vulkan validation layer, the libraries the graph runner's pinned
+libvips and Tesseract builds link, and the X11 and xcb libraries Qt and JUCE
+load. Its tag is the hash
 of its own directory, so changing one image does not rebuild the other. Those
 workflows call `ci-image.yml` with `image: ci-native`.
 
 - Qt (aqtinstall) and the LGPL FFmpeg build still install per job, because
   `QT_VERSION` and the FFmpeg build script live in the repository, outside the
   image directory.
+- The graph runner builds libvips, libwebp and Tesseract into a cached prefix
+  per job, and the GPU preview installs rustup when its wgpu-native cache
+  misses, for the same reason: their pinned versions live in the workflows.
+- `native-graph-runner.yml` runs with `--privileged`, because its parity check
+  lifts the runner's AppArmor limit on user namespaces and then starts
+  `unshare -rn`.
 - [`setup-native-timeline`](../../.github/actions/setup-native-timeline/action.yml)
   skips its apt step when `NODETOOL_CI_IMAGE` is set. The release workflows
   call the same action on the bare runner and still get the packages.

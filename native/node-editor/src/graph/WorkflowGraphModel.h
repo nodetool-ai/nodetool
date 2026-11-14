@@ -4,6 +4,7 @@
 #include <QJsonObject>
 #include <QPointF>
 #include <QRectF>
+#include "CardBodies.h"
 #include "NodeLayout.h"
 #include "CardMedia.h"
 #include "RerouteTypes.h"
@@ -54,6 +55,9 @@ public:
   QImage runtimePreview(QtNodes::NodeId id) const;
   // A status alone changes no card size. The web shows no status text on a card.
   bool hasRuntimeOutput(QtNodes::NodeId id) const;
+  // The image value leaving a node's output handle: its run result, or the
+  // value an Image constant or Image input holds. Null when none is known.
+  QJsonValue upstreamImage(const QString &node, const QString &handle) const;
   // Whether the card shows its running ring. A change between running and idle
   // shows once it holds for runningDelayMs, so a burst of short preview runs
   // does not flicker the ring.
@@ -62,6 +66,13 @@ public:
   void setCanvasMediaNodes(const QSet<QString> &nodes);
   // The secrets the account has set. Until `known`, no card warns about a
   // missing key, as useApiKeyValidation waits for the credential check.
+  // The node keyboard navigation has reached (web NodeFocusStore): drawn with
+  // a dashed warning edge and a "Focused" badge. History keeps the last 20.
+  QString focusedNode() const { return focusedNode_; }
+  void setFocusedNode(const QString &resourceId);
+  // Steps back to the previously focused node. False when there is none.
+  bool focusBack();
+  qsizetype focusHistorySize() const { return focusHistory_.size(); }
   // `secretKeys` lists every secret the server knows, configured or not.
   void setConfiguredSecrets(const QStringList &keys, bool known, const QStringList &secretKeys = {});
   // Thumbnails and load states of the media values cards show, from CardMediaLoader.
@@ -110,6 +121,23 @@ public:
   QJsonObject propertyCommand(QtNodes::NodeId id, const QString &name, const QJsonValue &value) const;
   // DataframeProperty.tsx's Add column: appends the first free "Column N" as a string column.
   QJsonObject addDataframeColumnCommand(QtNodes::NodeId id, const QString &name) const;
+  // The edge batch a Crop body control makes (see isCropControl), empty when
+  // the crop stays the same.
+  QJsonObject cropControlCommand(QtNodes::NodeId id, const QString &name, const QVariant &value) const;
+  // Applies a Crop or Painter body control (see isCardControl). A Crop
+  // aspect becomes the body tab and changed edges commit as one step. A
+  // Painter control changes the card's tool state.
+  void setCardControl(QtNodes::NodeId id, const QString &name, const QVariant &value);
+  PainterView painterView(QtNodes::NodeId id) const;
+  // PainterBody's tool buttons: "painterTool" with "brush" or "eraser",
+  // "painterUndo", "painterRedo" and "painterClear".
+  void painterAction(QtNodes::NodeId id, const QString &action, const QString &value = {});
+  // LayerRow and Add another layer: compositorAdd, compositorVisible and
+  // compositorDelete, each one undo step.
+  void compositorAction(QtNodes::NodeId id, const QString &action, int index);
+  // Lays a finished stroke, drawn at full alpha on a canvas-sized image, on
+  // the mask and writes mask_data as one undo step.
+  void finishPaintStroke(QtNodes::NodeId id, const QImage &stroke);
   // The media drop zone row under a card-local point, or -1.
   int dropZoneAt(QtNodes::NodeId id, const QPointF &point) const;
   bool readOnly() const { return readOnly_; }
@@ -165,13 +193,23 @@ private:
   QHash<QtNodes::NodeId, std::unordered_set<QtNodes::ConnectionId>> adjacency_;
   QPointer<node_editor::NodeRuntimeModel> runtime_;
   QHash<QString, QImage> previews_;
+  QHash<QString, ImageHistogram> histograms_;
+  QHash<QString, PainterView> painters_;
+  // Each Painter's mask_data and its decoded image, so a layout decodes once.
+  mutable QHash<QString, std::pair<QString, QImage>> paintMasks_;
+  QImage paintMask(const QString &resource, const QJsonObject &data) const;
+  void writePaintMask(QtNodes::NodeId id, const QString &mask, const QImage &image);
   QSet<QString> canvasMediaNodes_;
   QSet<QString> configuredSecrets_;
   bool secretsKnown_ = false;
   QSet<QString> secretKeys_;
+  QString focusedNode_;
+  QStringList focusHistory_;
   // How many input nodes carry each name, for InputNodeNameWarning.tsx.
   QHash<QString, int> inputNames_;
   CardMediaStore cardMedia_;
+  // Rebuilds the cards that show the image leaving this node.
+  void refreshSourceReaders(const QString &node);
   void refreshRuntimeNode(const QString &id);
   void trackRunning(const QString &id);
   void settleRunning();

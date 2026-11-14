@@ -1,4 +1,5 @@
 #pragma once
+#include <QImage>
 #include <QColor>
 #include <QVariantMap>
 #include <QPainterPath>
@@ -16,6 +17,11 @@
 
 namespace nodetool {
 class WorkflowGraphModel;
+
+// web AxisMarker.tsx: the origin lines run this many screen pixels, in
+// c_editor_axis_color from paletteDark.ts or paletteLight.ts.
+inline constexpr double axisMarkerLength = 80000;
+inline QColor axisMarkerColor(bool dark) { return dark ? QColor("#17181B") : QColor("#E4E4E7"); }
 
 // Colors and font families the canvas receives from Qt Quick. The web's node
 // background, canvas grid, and translucent controls are native-editor roles.
@@ -38,6 +44,8 @@ struct CanvasTheme {
   // web palette success.main and warning.main, the prompt variable chips.
   QColor success;
   QColor warning;
+  // Ui.Theme.statusInfo, the keyword color of painted code.
+  QColor info;
   // ControlEdge.tsx CONTROL_EDGE_COLOR, a fixed amber in both themes.
   QColor controlWire;
   // A card inside a group: the edge, and the fill that replaces the card color.
@@ -151,6 +159,15 @@ public:
   QtNodes::NodeId sliderDraftNode() const { return sliderNode_; }
   QString sliderDraftProperty() const { return sliderProperty_; }
   double sliderDraftValue() const { return sliderValue_; }
+  // The crop under a drag on a Crop card, in image pixels, painted before it is committed.
+  QtNodes::NodeId cropDraftNode() const { return cropNode_; }
+  // The Painter card under the pointer and the card-local brush cursor center.
+  QtNodes::NodeId brushCursorNode() const { return brushNode_; }
+  QPointF brushCursor() const { return brushPoint_; }
+  QRectF cropDraft() const { return cropValue_; }
+  // The stroke under a drag on a Painter card, at full alpha in canvas pixels.
+  QtNodes::NodeId paintDraftNode() const { return paintNode_; }
+  const QImage &paintDraft() const { return paintStroke_; }
   // True while a node or wire is faded because a selection is active and the
   // item is not on the selected branch.
   bool branchDimmed(QtNodes::NodeId id) const;
@@ -207,6 +224,8 @@ signals:
   void providerConnectRequested(const QString &secretKey);
   // Report on a failed card, naming the node's resource id.
   void errorReportRequested(const QString &nodeId);
+  // A card's Run button asks to run that node alone. The node is selected first.
+  void nodeRunRequested(const QString &nodeId);
   // Opens the property's inline editor expanded, as Constant String's Open editor.
   void inlineExpandRequested(QtNodes::NodeId id, const QString &name);
   // A card slider drag moved to a value it has not committed yet.
@@ -249,6 +268,27 @@ private:
   QString sliderProperty_;
   double sliderValue_ = 0;
   double sliderOrigin_ = 0;
+  // A drag of CropBody's rectangle or one of its handles.
+  QtNodes::NodeId cropNode_ = QtNodes::InvalidNodeId;
+  QString cropHandle_;
+  QRectF cropStart_;
+  QRectF cropValue_;
+  QPointF cropPointer_;
+  void moveCrop(const QPointF &scenePosition);
+  void finishCrop(bool commit);
+  // A brush or eraser stroke on PainterBody's canvas.
+  QtNodes::NodeId paintNode_ = QtNodes::InvalidNodeId;
+  QImage paintStroke_;
+  QPointF paintLast_;
+  void movePaint(const QPointF &scenePosition);
+  // A drag of ImageComparer's divider. The position is view state, so no undo step.
+  QtNodes::NodeId compareNode_ = QtNodes::InvalidNodeId;
+  void moveCompare(const QPointF &scenePosition);
+  // PainterBody's .brush-cursor: shown while the pointer is over a paint canvas.
+  QtNodes::NodeId brushNode_ = QtNodes::InvalidNodeId;
+  QPointF brushPoint_;
+  void updateBrushCursor(const QPointF &scenePosition);
+  void finishPaint(bool commit);
   // A synth knob drag: vertical, from the press's card-local y, a tenth as fast with Shift.
   bool knobDrag_ = false;
   double knobStartY_ = 0;

@@ -2,6 +2,11 @@
 #include "runtime/ComposerRules.h"
 #include "model/MessageModel.h"
 #include "model/Markdown.h"
+#include "model/RichContent.h"
+#include "runtime/CodeHighlighter.h"
+#include <QTextBlock>
+#include <QTextDocument>
+#include <QTextLayout>
 #include "model/PlanDocument.h"
 #include <QWebSocketServer>
 #include <QWebSocket>
@@ -148,6 +153,18 @@ private slots:
         model.addPart({{"type", "tool_result_update"}, {"tool_call_id", "plan-call"}, {"result", cases[0].toObject()["input"]}});
         QCOMPARE(partAt(partsFor(model), 0)["planText"].toString(), text);
     }
+    // Study 20: a question sent with text parts showed as a full-width card
+    // instead of the user's bubble.
+    void userTextPartsShowAsTheBubble() {
+        MessageModel model;
+        model.upsert({{"id", "asked"}, {"role", "user"},
+            {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", "When is the next meeting?"}},
+                QJsonObject{{"type", "document"}, {"document", QJsonObject{{"uri", "asset://eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}}}}}}});
+        QCOMPARE(model.data(model.index(0), MessageModel::DisplayTextRole).toString(), QStringLiteral("When is the next meeting?"));
+        auto *parts = partsFor(model);
+        QCOMPARE(parts->rowCount(), 1);
+        QCOMPARE(partAt(parts, 0)["type"].toString(), QStringLiteral("document"));
+    }
     void compactionProjection() {
         MessageModel model;
         const QJsonObject raw{{"id", "compact"}, {"role", "user"}, {"execution_event_type", "compaction"},
@@ -277,6 +294,68 @@ private slots:
         QVERIFY(partAt(parts, 0)["expanded"].toBool());
         QCOMPARE(reset.count(), 0);
     }
+    // ExecutionTree.tsx: the plan header counts tasks, tasks and steps show
+    // their durations, and the planning log keeps every phase.
+    // ToolCallTimeline in MessageView.tsx
+    void toolTimelineFooterFoldsRows() {
+        MessageModel model;
+        model.upsert({{"id", "work"}, {"role", "assistant"}, {"content", ""}, {"created_at", "2026-11-13T10:00:00.000Z"},
+            {"tool_calls", QJsonArray{QJsonObject{{"id", "one"}, {"name", "web_search"}, {"args", QJsonObject{{"query", "a"}}}},
+                                      QJsonObject{{"id", "two"}, {"name", "execute_code"}, {"args", QJsonObject{{"code", "1"}}}}}}});
+        auto *parts = partsFor(model);
+        QCOMPARE(parts->rowCount(), 3);
+        QCOMPARE(partAt(parts, 2)["label"].toString(), "Working · 0/2");
+        QVERIFY(partAt(parts, 2)["running"].toBool());
+        model.upsert({{"id", "r1"}, {"role", "tool"}, {"tool_call_id", "one"}, {"content", "done"}, {"created_at", "2026-11-13T10:00:03.000Z"}});
+        model.upsert({{"id", "r2"}, {"role", "tool"}, {"tool_call_id", "two"}, {"content", "2"}, {"created_at", "2026-11-13T10:00:42.000Z"}});
+        parts = partsFor(model);
+        const auto footer = partAt(parts, parts->rowCount() - 1);
+        QCOMPARE(footer["type"].toString(), "tool_timeline");
+        QCOMPARE(footer["label"].toString(), "Worked for 42s");
+        QCOMPARE(footer["steps"].toString(), "2 steps");
+        QVERIFY(footer["expanded"].toBool());
+        QVERIFY(!partAt(parts, 0)["timelineHidden"].toBool());
+        qobject_cast<PartModel *>(parts)->toggleExpanded(parts->rowCount() - 1);
+        QVERIFY(!partAt(parts, parts->rowCount() - 1)["expanded"].toBool());
+        QVERIFY(partAt(parts, 0)["timelineHidden"].toBool());
+        QVERIFY(partAt(parts, 1)["timelineHidden"].toBool());
+        MessageModel single;
+        single.upsert({{"id", "one"}, {"role", "assistant"}, {"content", ""},
+            {"tool_calls", QJsonArray{QJsonObject{{"id", "x"}, {"name", "web_search"}}}}});
+        QCOMPARE(partsFor(single)->rowCount(), 1);
+    }
+    void executionDurationsAndSummary() {
+        int sequence = 0;
+        auto event = [&sequence](const QString &time, const QJsonObject &content) {
+            return QJsonObject{{"type", "message"}, {"role", "agent_execution"}, {"id", QString("event-%1").arg(++sequence)},
+                {"agent_execution_id", "run"}, {"created_at", "2026-01-01T00:00:" + time + "Z"},
+                {"execution_event_type", content["type"]}, {"content", content}};
+        };
+        MessageModel model;
+        model.upsert(event("00.000", {{"type", "planning_update"}, {"phase", "plan"}, {"status", "Running"}, {"content", "Read"}}));
+        model.upsert(event("00.500", {{"type", "planning_update"}, {"phase", "refine"}, {"status", "Running"}}));
+        model.upsert(event("01.000", {{"type", "task_update"}, {"event", "task_created"}, {"task", QJsonObject{{"id", "t1"}, {"title", "Task one"},
+            {"steps", QJsonArray{QJsonObject{{"id", "s1"}, {"instructions", "Step"}}}}}}}));
+        model.upsert(event("01.000", {{"type", "task_update"}, {"event", "step_started"}, {"task", QJsonObject{{"id", "t1"}}}, {"step", QJsonObject{{"id", "s1"}}}}));
+        model.upsert(event("03.500", {{"type", "task_update"}, {"event", "step_completed"}, {"task", QJsonObject{{"id", "t1"}}}, {"step", QJsonObject{{"id", "s1"}}}}));
+        model.upsert(event("04.000", {{"type", "task_update"}, {"event", "task_completed"}, {"task", QJsonObject{{"id", "t1"}}}}));
+        auto childOf = [](MessageModel &parent, int row) {
+            return qobject_cast<MessageModel *>(partAt(partsFor(parent, row), 0)["childModel"].value<QAbstractItemModel *>());
+        };
+        const auto root = partAt(partsFor(model, 0), 0);
+        QCOMPARE(root["label"].toString(), QStringLiteral("Execution plan · 1/1 tasks"));
+        QCOMPARE(root["progress"].toString(), QStringLiteral("1 done"));
+        QCOMPARE(root["displayStatus"].toString(), QStringLiteral("completed"));
+        auto *run = childOf(model, 0);
+        QVERIFY(run);
+        QCOMPARE(partAt(partsFor(*run, 0), 0)["text"].toString(), QStringLiteral("plan · Read\nrefine"));
+        const auto task = partAt(partsFor(*run, 1), 0);
+        QCOMPARE(task["duration"].toString(), QStringLiteral("3s"));
+        QCOMPARE(task["progress"].toString(), QStringLiteral("1/1 steps"));
+        auto *steps = childOf(*run, 1);
+        QVERIFY(steps);
+        QCOMPARE(partAt(partsFor(*steps, 0), 0)["duration"].toString(), QStringLiteral("2.5s"));
+    }
     void executionTreeReplayAndLongRun() {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/execution-tree.json"));
         QVERIFY(file.open(QIODevice::ReadOnly));
@@ -362,6 +441,100 @@ private slots:
         }
         QVERIFY(sections.first().toMap()["text"].toString().contains("[NodeTool](https://nodetool.ai)"));
         QVERIFY(sections.last().toMap()["text"].toString().contains("[NodeTool](https://nodetool.ai)"));
+    }
+    // rehypeSanitizeChatHtml.ts keeps formatting and drops active content.
+    void htmlIsSanitized() {
+        const auto clean = sanitizeChatHtml(
+            "<b onclick=\"x()\">bold</b><script>alert(1)</script><style>p{}</style>"
+            "<a href=\"javascript:alert(1)\">bad</a><a href=\"https://nodetool.ai\" target=\"_blank\">good</a>"
+            "<blink>kept</blink><img src=\"asset://abc\" alt=\"Cat\"><input type=\"checkbox\" checked>"
+            "<!-- note --><https://example.com><iframe srcdoc=\"x\">inner</iframe><br/>");
+        QCOMPARE(clean, QStringLiteral("<b>bold</b><a>bad</a><a href=\"https://nodetool.ai\">good</a>"
+            "kept![Cat](asset://abc)☑ <https://example.com><br/>"));
+        QCOMPARE(sanitizeChatHtml("a < b and 3>2"), QStringLiteral("a < b and 3>2"));
+    }
+    // mathMarkdown.ts renders LaTeX with KaTeX. Native writes Unicode.
+    void texBecomesUnicode() {
+        QCOMPARE(texToUnicode(R"(\frac{a}{b})"), QStringLiteral("a/b"));
+        QCOMPARE(texToUnicode(R"(\frac{x+1}{2})"), QStringLiteral("(x+1)/2"));
+        QCOMPARE(texToUnicode("x^2 + y_{12}"), QStringLiteral("x² + y₁₂"));
+        QCOMPARE(texToUnicode(R"(\alpha_i \leq \sqrt{x+1})"), QStringLiteral("αᵢ ≤ √(x+1)"));
+        QCOMPARE(texToUnicode(R"(e^{i\pi} \in \mathbb{R})"), QStringLiteral("e^(iπ) ∈ ℝ"));
+        QCOMPARE(texToUnicode(R"(\sum_{n=1}^{\infty} \text{terms})"), QStringLiteral("∑ₙ₌₁^∞ terms"));
+        QCOMPARE(texToUnicode(R"(\hat{x} \unknown)"), QStringLiteral("x̂ \\unknown"));
+        QCOMPARE(renderInlineMath(R"(Area \(\pi r^2\) and `\(x\)` cost $5, $$a_1$$.)"),
+                 QStringLiteral("Area π r² and `\\(x\\)` cost $5, a₁."));
+    }
+    void richMarkdownSections() {
+        const auto pages = markdownPages(
+            "Intro with `asset://aaaa` and asset://bbbb. and [site](https://nodetool.ai).\n"
+            "![Cover](asset://cccc)\n"
+            "$$\n\\frac{1}{2}\n$$\n"
+            "<b>bold</b><script>x</script>\n"
+            "```js\nconst x = asset://dddd\n```\n");
+        QCOMPARE(pages.size(), 1);
+        const auto page = pages.first().toList();
+        QStringList kinds;
+        for (const auto &entry : page) {
+            const auto map = entry.toMap();
+            kinds << (map.contains("resourceUri") ? "resource:" + map["resourceUri"].toString()
+                      : map.contains("image") ? "image:" + map["image"].toString()
+                      : map["math"].toBool() ? "math:" + map["text"].toString()
+                      : map["code"].toBool() ? "code" : "text");
+        }
+        QCOMPARE(kinds, (QStringList{"text", "resource:asset://aaaa", "text", "resource:asset://bbbb", "text",
+                                     "image:asset://cccc", "text", "math:1/2", "text", "code"}));
+        QCOMPARE(page[1].toMap()["text"].toString(), QStringLiteral("aaaa"));
+        QVERIFY(page[4].toMap()["text"].toString().contains("[site](https://nodetool.ai)"));
+        QCOMPARE(page[5].toMap()["text"].toString(), QStringLiteral("Cover"));
+        QCOMPARE(page[7].toMap()["source"].toString(), QStringLiteral("\\frac{1}{2}"));
+        QCOMPARE(page[8].toMap()["text"].toString(), QStringLiteral("<b>bold</b>\n"));
+        QVERIFY(page[9].toMap()["text"].toString().contains("asset://dddd"));
+        const auto inlineMath = markdownPages(R"(\[ x^2 \] after)").first().toList();
+        QCOMPARE(inlineMath.first().toMap()["text"].toString(), QStringLiteral("x²"));
+        QCOMPARE(inlineMath.last().toMap()["text"].toString(), QStringLiteral("after\n"));
+    }
+    // CodeBlock.tsx colours fences with the One Dark palette.
+    void codeIsHighlighted() {
+        QTextDocument document("def area(r):  # size\n    return \"r\" * 2");
+        CodeHighlighter highlighter;
+        highlighter.setLanguage("python");
+        highlighter.setDocument(&document);
+        highlighter.rehighlight();
+        auto colourAt = [&](int block, int position) {
+            for (const auto &range : document.findBlockByNumber(block).layout()->formats()) {
+                if (position >= range.start && position < range.start + range.length) { return range.format.foreground().color().name(); }
+            }
+            return QString();
+        };
+        QCOMPARE(colourAt(0, 0), QStringLiteral("#c678dd"));   // def
+        QCOMPARE(colourAt(0, 4), QStringLiteral("#61afef"));   // area(
+        QCOMPARE(colourAt(0, 15), QStringLiteral("#5c6370"));  // # size
+        QCOMPARE(colourAt(1, 11), QStringLiteral("#98c379"));  // "r"
+        QCOMPARE(colourAt(1, 17), QStringLiteral("#d19a66"));  // 2
+        highlighter.setDark(false);
+        QCOMPARE(colourAt(0, 0), QStringLiteral("#a626a4"));
+        highlighter.setLanguage("text");
+        QCOMPARE(colourAt(0, 0), QString());
+    }
+    // parseSearchResults.ts
+    void searchResultsAreRecognized() {
+        const auto items = normalizeSearchResults(QJsonValue(QJsonObject{{"organic_results", QJsonArray{
+            QJsonObject{{"title", "NodeTool"}, {"link", "https://www.nodetool.ai/docs"}, {"snippet", "Visual AI"}},
+            QJsonObject{{"name", "No link"}}, QJsonObject{{"other", 1}}}}}));
+        QCOMPARE(items.size(), 2);
+        QCOMPARE(items[0].toObject()["source"].toString(), QStringLiteral("nodetool.ai"));
+        QCOMPARE(items[1].toObject()["title"].toString(), QStringLiteral("No link"));
+        const auto text = normalizeSearchResults(QJsonValue("1. First\nhttps://a.example/x\nAbout a\n2. Second\nhttps://b.example"));
+        QCOMPARE(text.size(), 2);
+        QCOMPARE(text[0].toObject()["snippet"].toString(), QStringLiteral("About a"));
+        QCOMPARE(text[1].toObject()["url"].toString(), QStringLiteral("https://b.example"));
+        QVERIFY(normalizeSearchResults(QJsonValue("1. Step one\n2. Step two")).isEmpty());
+        QVERIFY(normalizeSearchResults(QJsonValue(QJsonObject{{"ok", true}})).isEmpty());
+        QCOMPARE(normalizeSearchResults(QJsonValue("[{\"url\":\"https://c.example\"}]")).size(), 1);
+        QCOMPARE(CodeHighlighter::family("TSX"), QStringLiteral("js"));
+        QCOMPARE(CodeHighlighter::family("html"), QStringLiteral("markup"));
+        QVERIFY(CodeHighlighter::family("brainfuck").isEmpty());
     }
     void markdownStructureAndOrdering() {
         QFile file(QStringLiteral(CHAT_FIXTURE_DIR "/markdown.json"));
@@ -497,7 +670,10 @@ private slots:
             MessageModel model;
             model.upsert({{"id", "group"}, {"role", "assistant"}, {"content", ""}, {"tool_calls", test["calls"]}});
             auto *parts = partsFor(model);
-            QCOMPARE(parts->rowCount(), test["rows"].toInt());
+            // Two or more rows add the ToolCallTimeline footer after them.
+            const int rows = test["rows"].toInt();
+            QCOMPARE(parts->rowCount(), rows > 1 ? rows + 1 : rows);
+            if (rows > 1) { QCOMPARE(partAt(parts, rows)["type"].toString(), "tool_timeline"); }
             const auto labels = test["labels"].toArray();
             for (int i = 0; i < labels.size(); ++i) {
                 QCOMPARE(partAt(parts, i)["label"].toString(), labels[i].toString());

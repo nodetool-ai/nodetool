@@ -141,7 +141,18 @@ Ui.Surface {
                         reportable: true
                         onReportRequested: root.reportRequested(qsTr("Chat error"), message)
                     }
+                    // EmptyThreadList.tsx: no threads, or none matching the search.
+                    Ui.EmptyState {
+                        objectName: "editorThreadListEmpty"
+                        Layout.fillWidth: true
+                        Layout.topMargin: Ui.Metrics.lg
+                        visible: threadList.count === 0
+                        maxTextWidth: width
+                        title: root.query.length > 0 ? qsTr("No matching conversations") : qsTr("No conversations yet")
+                        message: root.query.length > 0 ? qsTr("Try a different search term.") : qsTr("Start a conversation to explore AI workflows with natural language.")
+                    }
                     ListView {
+                        id: threadList
                         objectName: "editorThreadList"
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -166,6 +177,7 @@ Ui.Surface {
                                     role: Ui.Typography.SansCaption
                                     tone: Ui.Text.Secondary
                                     text: (row.modelData.header || "").toUpperCase()
+                                    font.letterSpacing: font.pixelSize * ChatMetrics.eyebrowTracking
                                 }
                                 Ui.Text {
                                     Layout.rightMargin: Ui.Metrics.md

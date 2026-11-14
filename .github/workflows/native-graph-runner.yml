@@ -20,6 +20,7 @@ on:
       - "packages/audio-nodes/**"
       - "packages/kernels/**"
       - ".github/workflows/native-graph-runner.yml"
+      - "docker/ci-native/**"
   push:
     branches: [main]
     paths:
@@ -46,15 +47,42 @@ env:
   TESSERACT_VERSION: "5.5.3"
   TESSERACT_SHA256: 9218e62793116d42a9f6d14cd9348518b27f382096eea3d0f2d1a24616bb5884
   DEPS_PREFIX: /opt/nt-graph-runner-deps
-  CCACHE_BASEDIR: ${{ github.workspace }}
   CCACHE_COMPILERCHECK: content
   CCACHE_MAXSIZE: 2G
 
 jobs:
+  # The legs run in the native CI image (docker/ci-native/) instead of
+  # installing their system packages with apt.
+  ci-image:
+    uses: ./.github/workflows/ci-image.yml
+    with:
+      image: ci-native
+    permissions:
+      contents: read
+      packages: write
+
   build:
     name: ${{ matrix.name }}
+    needs: ci-image
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: read
+    # --privileged lets the parity check lift the runner's AppArmor limit on
+    # user namespaces and start `unshare -rn`, and lets TSan and LeakSanitizer
+    # make the calls Docker's default seccomp profile refuses.
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001 --privileged
+      volumes:
+        - /usr/share/dotnet:/reclaim/dotnet
+        - /usr/local/lib/android:/reclaim/android
+        - /opt/ghc:/reclaim/ghc
+        - /usr/local/.ghcup:/reclaim/ghcup
     strategy:
       fail-fast: false
       matrix:
@@ -73,11 +101,9 @@ jobs:
     env:
       ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
       UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
-      LSAN_OPTIONS: suppressions=${{ github.workspace }}/native/graph-runner/tools/lsan.supp
       # Hosted runners are about twice as slow as the machine the tests' wall-clock
       # budgets were measured on (unittests/sanitizer_build.h).
       GR_TEST_TIME_SCALE: "2"
-      TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1:suppressions=${{ github.workspace }}/native/graph-runner/tools/tsan.supp
     defaults:
       run:
         shell: bash
@@ -89,40 +115,37 @@ jobs:
         with:
           fetch-depth: 2
 
-      # Native C++ jobs install their system packages with apt on the runner
-      # (docker/ci/README.md).
-      - name: Install system packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libsecret-1-0 \
-            build-essential cmake ninja-build meson pkg-config ccache \
-            libicu-dev libcurl4-openssl-dev \
-            libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev \
-            libswscale-dev libswresample-dev \
-            libcairo2-dev libpango1.0-dev libfontconfig-dev \
-            libglib2.0-dev libexpat1-dev libjpeg-turbo8-dev libpng-dev \
-            libtiff-dev librsvg2-dev libgif-dev liblcms2-dev libexif-dev \
-            libarchive-dev libleptonica-dev tesseract-ocr-eng \
-            mesa-vulkan-drivers
+      # In a container job `github.workspace` names the runner's path, not
+      # the container's, so the paths come from GITHUB_WORKSPACE instead.
+      - name: Point ccache and the sanitizers at the workspace
+        run: | # zizmor: ignore[github-env]
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+          echo "LSAN_OPTIONS=suppressions=$GITHUB_WORKSPACE/native/graph-runner/tools/lsan.supp" >> "$GITHUB_ENV"
+          echo "TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1:suppressions=$GITHUB_WORKSPACE/native/graph-runner/tools/tsan.supp" >> "$GITHUB_ENV"
 
       # The guest bundle reads the node packages' dist/ output.
       - name: Set up and build backend packages
         uses: ./.github/actions/setup-build
         with:
           package-media: "false"
+          free-disk: background
+
+      # The job runs as the runner's user, so the cache restore below cannot
+      # create a directory under /opt by itself.
+      - name: Create the pinned dependency prefix
+        run: sudo mkdir -p "$DEPS_PREFIX" && sudo chown "$(id -u):$(id -g)" "$DEPS_PREFIX"
 
       - name: Restore pinned native dependencies
         id: deps-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.DEPS_PREFIX }}
-          key: graph-runner-deps-${{ runner.os }}-vips${{ env.VIPS_VERSION }}-webp${{ env.WEBP_VERSION }}-tess${{ env.TESSERACT_VERSION }}
+          key: graph-runner-deps-ci-native-vips${{ env.VIPS_VERSION }}-webp${{ env.WEBP_VERSION }}-tess${{ env.TESSERACT_VERSION }}
 
       - name: Build pinned native dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          sudo mkdir -p "$DEPS_PREFIX" && sudo chown "$USER" "$DEPS_PREFIX"
           src="$RUNNER_TEMP/deps-src" && mkdir -p "$src" && cd "$src"
           fetch() { curl -sfL -o "$2" "$1" && echo "$3  $2" | sha256sum -c -; }
           export PKG_CONFIG_PATH="$DEPS_PREFIX/lib/pkgconfig:$DEPS_PREFIX/lib/x86_64-linux-gnu/pkgconfig"
@@ -248,22 +271,16 @@ jobs:
       - name: Install Qt for the node editor
         id: editor_qt
         if: ${{ !cancelled() && matrix.name == 'Release' && steps.native_build.outcome == 'success' }}
-        uses: jurplel/install-qt-action@b344308e4483fc892e0d27b3cd1b173ebdd95f06 # v4
-        with:
-          version: '6.12.0'
-          modules: 'qtmultimedia qtwebsockets qtshadertools'
-          cache: false
+        run: | # zizmor: ignore[github-env]
+          pipx run aqtinstall install-qt linux desktop 6.12.0 linux_gcc_64 \
+            -m qtmultimedia qtwebsockets qtshadertools -O "$RUNNER_TEMP/qt"
+          echo "CMAKE_PREFIX_PATH=$RUNNER_TEMP/qt/6.12.0/gcc_64" >> "$GITHUB_ENV"
 
       - name: Build and test the audio examples in the editor
         if: ${{ !cancelled() && matrix.name == 'Release' && steps.editor_qt.outcome == 'success' }}
         env:
           CCACHE_DIR: ${{ runner.temp }}/ccache
         run: |
-          sudo apt-get install -y libegl1 libopengl0 libxkbcommon-x11-0 libxcb-cursor0 libpulse0 libasound2t64
-          # install-qt-action replaces PKG_CONFIG_PATH, so the pinned vips and
-          # WebP of the runner are no longer found. Put them back in front.
-          export PKG_CONFIG_PATH="$DEPS_PREFIX/lib/pkgconfig:$DEPS_PREFIX/lib/x86_64-linux-gnu/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
-          export LD_LIBRARY_PATH="$DEPS_PREFIX/lib:$DEPS_PREFIX/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
           # The editor compiles the runner as a subproject, so it needs the
           # runner's compiler (see Configure above).
           cmake -S native/node-editor -B native/node-editor/build -G Ninja -DCMAKE_BUILD_TYPE=Release \

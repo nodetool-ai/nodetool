@@ -911,6 +911,7 @@ void EditorWindow::openChild() {
     child->inlineChild_ = key == "graph";
     if (child->inlineChild_) {
         connect(this, &EditorWindow::panelChanged, child, &EditorWindow::schedulePanelChanged);
+        child->followHostRuns();
     }
   child->childNode_ = selected_;
   child->childParentEpoch_ = documentEpoch_;
@@ -1018,6 +1019,7 @@ void nodetool::EditorWindow::syncPackSetup() {
     types.append(value.toObject()["type"].toString());
   }
   packSetup()->configure(packOrigin_, packToken_, packUser_);
+  comfyBackend()->configure(packOrigin_, packToken_, packUser_);
   packSetup()->setNodeTypes(types);
 }
 

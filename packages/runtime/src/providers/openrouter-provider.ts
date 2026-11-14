@@ -275,11 +275,13 @@ export class OpenRouterProvider extends OpenAICompatProvider {
       prompt
     };
 
-    if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
-    // Gemini image models ignore `size`; OpenRouter reads the shape from here.
     if (params.aspectRatio) request.aspect_ratio = params.aspectRatio;
     if (params.resolution) request.resolution = params.resolution;
+    // OpenRouter rejects a `size` that disagrees with the aspect ratio or
+    // resolution preset (400 `size "1536x1024" conflicts with resolution
+    // "1K"`), so the explicit preset wins and the snapped size is dropped.
+    if (size && !params.aspectRatio && !params.resolution) request.size = size;
     if (inputs.length > 0) {
       request.input_references = inputs.map((bytes) => ({
         type: "image_url",

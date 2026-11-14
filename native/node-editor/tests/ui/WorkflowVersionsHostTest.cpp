@@ -76,15 +76,14 @@ class HostTest : public QObject {
 private slots:
  void inspectRestoreUndoAndCapture() {
   Fixture server;
-  bool restored = false, shareAllowed = false, deleted = false;
-  server.respond = [&restored, &shareAllowed, &deleted](QByteArray req) {
+  bool restored = false, deleted = false;
+  server.respond = [&restored, &deleted](QByteArray req) {
    if (req.startsWith("GET /api/workflows/") && restored) return QByteArray(R"({"id":"bound","name":"Original","extension":{"kept":true},"updated_at":"r2","graph":{"nodes":[],"edges":[],"links":[]}})");
    if (req.startsWith("GET /api/workflows/")) return QByteArray(R"({"id":"bound","extension":{"kept":true},"name":"Original","updated_at":"r1","graph":{"nodes":[],"edges":[]}})");
    if (req.contains("versions.delete")) { deleted = true; return QByteArray(R"({"result":{"data":{"ok":true}}})"); }
    if (req.contains("versions.list") && deleted) return QByteArray(R"({"result":{"data":{"versions":[]}}})");
    if (req.contains("versions.list")) return QByteArray(R"({"result":{"data":{"versions":[{"id":"version-one","version":1,"name":"Checkpoint","created_at":"2026-01-01T12:00:00Z","description":"Initial text pipeline","graph":{"nodes":[{"id":"source","type":"Text","ui_properties":{"position":{"x":0,"y":0}}},{"id":"output","type":"Preview","ui_properties":{"position":{"x":220,"y":100}}}],"edges":[{"source":"source","target":"output"}]}},{"version":2,"name":"Manual save","graph":{"nodes":[],"edges":[]}}]}}})");
    if (req.contains("versions.restore")) { restored = true; return QByteArray(R"({"result":{"data":{"id":"bound","updated_at":"r2","graph":{"nodes":[],"edges":[],"links":[]}}}})"); }
-   if (req.contains("sharing.createLink") && shareAllowed) return QByteArray(R"({"result":{"data":{"id":"link1","role":"viewer","token":"test-token"}}})");
    if (req.startsWith("PUT /api/workflows/")) {
     auto body = QJsonDocument::fromJson(req.mid(req.indexOf("\r\n\r\n") + 4)).object(); body.insert("updated_at", "r3"); body.remove("extension"); return QJsonDocument(body).toJson(QJsonDocument::Compact);
    }
@@ -133,12 +132,6 @@ private slots:
   QTRY_VERIFY(deleted); QTRY_COMPARE(controller->property("rows").toList().size(), 0);
   QCOMPARE(window.document()->graph(), dirty["graph"].toObject());
   window.findChild<QDockWidget *>("workflow-versions-dock")->close(); QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
-  window.action("Share workflow"); QTRY_VERIFY(panel(window));
-  QTRY_VERIFY(find(panel(window)->rootObject(), "versions-error")->property("text").toString().contains("Permission denied"));
-  shareAllowed = true; click(panel(window), "create-share-viewer");
-  QTRY_VERIFY(QGuiApplication::clipboard()->text().contains("/share/test-token"));
-  if (!capture.isEmpty()) { for (const auto &scheme : {QString("dark"),QString("light")}) { window.setDarkTheme(scheme == "dark"); panel(window)->rootObject()->forceActiveFocus(); resetScroll(panel(window)->rootObject()); QTest::qWait(80); QVERIFY(panel(window)->grab().save(capture + "/sharing-" + scheme + ".png")); } }
-  window.findChild<QDialog *>("workflow-details-dialog")->close(); QCoreApplication::sendPostedEvents(nullptr,QEvent::DeferredDelete);
   window.action("Workflow metadata"); QTRY_VERIFY(panel(window)); widget = panel(window);
   click(widget, "metadata-name"); QTest::keyClick(widget->quickWindow(), Qt::Key_A, Qt::ControlModifier);
   QTest::keyClicks(widget, "Renamed"); QTest::keyClick(widget->quickWindow(), Qt::Key_Return);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { appMenuBindings, censusComponents, censusOutOfScope, censusPropertyTypes, censusShortcuts, gestureBindings, normalizeCombo, runCensus, summarize } from "../census.mjs";
+import { appMenuBindings, censusComponents, censusOutOfScope, censusPropertyTypes, censusShortcuts, gestureBindings, keyHandlerBindings, normalizeCombo, runCensus, summarize } from "../census.mjs";
 
 test("normalizeCombo spells web and native combinations the same way", () => {
     assert.equal(normalizeCombo(["Control", "Shift", "Z"]), "ctrl+shift+z");
@@ -84,4 +84,19 @@ test("a TapHandler with a button and a modifier is a gesture binding", () => {
     const bindings = gestureBindings(source, "qml/PropertyField.qml");
     assert.deepEqual(bindings.map((b) => [b.command, b.combo]), [["removeValue()", "ctrl+mouseright"]]);
     assert.equal(normalizeCombo(["Control", "MouseRight"]), bindings[0].combo);
+});
+
+test("a QML key handler that calls one session method is a key binding", () => {
+    const source = `Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Escape && root.running && root.session.turnStatus !== "stopping") {
+                        root.session.stop()
+                        event.accepted = true
+                    }
+                    if (event.key === Qt.Key_Up) {
+                        root.mentionIndex = 0
+                    }
+                }`;
+    const bindings = keyHandlerBindings(source, "chat/qml/ChatComposer.qml");
+    assert.deepEqual(bindings.map((b) => [b.command, b.combo]), [["session.stop()", "esc"]]);
+    assert.equal(normalizeCombo(["Escape"]), bindings[0].combo);
 });

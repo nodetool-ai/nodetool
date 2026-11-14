@@ -1,10 +1,12 @@
 #include "graph/CanvasDropController.h"
 #include "graph/CardBodies.h"
+#include "graph/CompositorGeometry.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
 #include "graph/SynthModules.h"
 #include "graph/WorkflowGraphModel.h"
 #include "properties/ComfyWorkflowLoader.h"
+#include "properties/CompositorLayoutEditor.h"
 #include "ui/EditorWindow.h"
 #include <QBuffer>
 #include <QClipboard>
@@ -197,6 +199,17 @@ QJsonArray partTwoMetadata() {
         metadataFor("nodetool.image.Channels", "Channels",
                     {image(), property("channel", "str", {{"values", QJsonArray{"red", "green", "blue", "alpha", "luminance"}}, {"default", "luminance"}})}),
         metadataFor("lib.image.Mask", "Mask", {image("image1"), image("image2"), image("mask")}),
+        metadataFor("replicate.image.background.Bria_RemoveBackground", "Bria Remove Background", {image()}),
+        metadataFor("nodetool.image.Painter", "Painter", {image(), property("mask_data", "str", {{"default", ""}}),
+                                                          property("canvas_width", "int", {{"default", 512}}),
+                                                          property("canvas_height", "int", {{"default", 512}})}),
+        [] {
+            auto compositor = metadataFor("nodetool.image.Compositor", "Compositor",
+                                          {property("layers", "list", {{"default", QJsonArray{}}}), property("canvas_width", "int", {{"default", 0}}),
+                                           property("canvas_height", "int", {{"default", 0}})});
+            compositor["supports_dynamic_inputs"] = true;
+            return compositor;
+        }(),
         metadataFor("lib.image.color_grading.HSLAdjust", "HSL Adjust",
                     {image(), property("color_range", "str", {{"values", ranges}, {"default", "all"}}), slider("hue_shift", -1, 1, 0),
                      slider("saturation", -1, 1, 0), slider("luminance", -1, 1, 0)}),
@@ -257,6 +270,23 @@ QJsonArray partThreeMetadata() {
         metadataFor("nodetool.image.Resize", "Resize", {image(), dimension("width"), dimension("height")}),
         metadataFor("nodetool.image.Fit", "Fit", {image(), dimension("width"), dimension("height")}),
         metadataFor("nodetool.image.Paste", "Paste", {image(), image("paste"), slider("left", 0, 4096, 0, "int"), slider("top", 0, 4096, 0, "int")}),
+        metadataFor("nodetool.image.CanvasResize", "Canvas Resize",
+                    {image(), property("mode", "str", {{"values", QJsonArray{"fixed", "scale", "padding"}}, {"default", "padding"}}),
+                     dimension("width"), dimension("height"), slider("scale", 0.01, 4, 1.25),
+                     property("padding_unit", "str", {{"values", QJsonArray{"px", "percent"}}, {"default", "px"}}),
+                     slider("top", 0, 4096, 0), slider("bottom", 0, 4096, 0), slider("left", 0, 4096, 0), slider("right", 0, 4096, 0)}),
+        metadataFor("lib.image.color_grading.Curves", "Curves",
+                    {image(), slider("black_point", 0, 0.5, 0), slider("white_point", 0.5, 1, 1), slider("shadows", -0.5, 0.5, 0),
+                     slider("midtones", -0.5, 0.5, 0), slider("highlights", -0.5, 0.5, 0), slider("red_midtones", -0.5, 0.5, 0),
+                     slider("green_midtones", -0.5, 0.5, 0), slider("blue_midtones", -0.5, 0.5, 0)}),
+        metadataFor("nodetool.image.Levels", "Levels",
+                    {image(), slider("r_black", 0, 255, 0, "int"), slider("r_gamma", 0.01, 10, 1), slider("r_white", 0, 255, 255, "int"),
+                     slider("g_black", 0, 255, 0, "int"), slider("g_gamma", 0.01, 10, 1), slider("g_white", 0, 255, 255, "int"),
+                     slider("b_black", 0, 255, 0, "int"), slider("b_gamma", 0.01, 10, 1), slider("b_white", 0, 255, 255, "int")}),
+        metadataFor("nodetool.constant.Image", "Image", {image("value")}),
+        metadataFor("nodetool.image.Crop", "Crop",
+                    {image(), slider("left", 0, 4096, 0, "int"), slider("top", 0, 4096, 0, "int"), slider("right", 0, 4096, 512, "int"),
+                     slider("bottom", 0, 4096, 512, "int")}),
         fal, kie, replicate,
     };
 }
@@ -1795,6 +1825,874 @@ private slots:
         QVERIFY(!host.data("paste").contains("top"));
         QCOMPARE(host.undoCount(), undo + 1);
         QCOMPARE(host.window.document()->node("paste")["future_field"].toInt(), 7);
+    }
+
+    // CanvasResizeBody.tsx: Padding by default with a px or % unit and four
+    // edges; Fixed shows width and height; Scale shows a 0.01 to 4 slider.
+    void canvasResizeSwitchesModes() {
+        Host host(withNodes({partTwoNode("canvas", "nodetool.image.CanvasResize", QPointF(0, 700))}), allMetadata());
+        QCOMPARE(host.model().layout(host.id("canvas")).body, CardBody::CanvasResize);
+        QCOMPARE(host.model().nodeData(host.id("canvas"), QtNodes::NodeRole::InPortCount).toUInt(), 1u);
+        const auto *modes = host.row("canvas", NodeRowKind::Segmented, "mode");
+        QVERIFY(modes);
+        QCOMPARE(modes->selected, 2);
+        QCOMPARE(modes->options, (QStringList{QStringLiteral("Fixed"), QStringLiteral("Scale"), QStringLiteral("Padding")}));
+        // fullWidth: three equal options across the column.
+        QCOMPARE(modes->parts[0].width(), modes->parts[2].width());
+        const auto *unit = host.row("canvas", NodeRowKind::Segmented, "padding_unit");
+        QVERIFY(unit);
+        QCOMPARE(unit->selected, 0);
+        for (const auto *edge : {"top", "bottom", "left", "right"}) {
+            QVERIFY2(host.row("canvas", NodeRowKind::Field, QString::fromLatin1(edge)), edge);
+        }
+        const auto *top = host.row("canvas", NodeRowKind::Field, "top");
+        const auto *right = host.row("canvas", NodeRowKind::Field, "right");
+        QCOMPARE(top->rect.y(), right->rect.y());
+        QVERIFY(right->rect.right() <= modes->rect.right() + 0.5);
+        auto undo = host.undoCount();
+        host.click("canvas", unit->parts[1].center());
+        QTRY_COMPARE(host.data("canvas")["padding_unit"].toString(), QStringLiteral("percent"));
+        QCOMPARE(host.undoCount(), ++undo);
+        const auto paddingHeight = host.model().layout(host.id("canvas")).size.height();
+        host.click("canvas", host.row("canvas", NodeRowKind::Segmented, "mode")->parts[0].center());
+        QTRY_COMPARE(host.data("canvas")["mode"].toString(), QStringLiteral("fixed"));
+        QVERIFY(!host.row("canvas", NodeRowKind::Segmented, "padding_unit"));
+        QVERIFY(!host.row("canvas", NodeRowKind::Field, "top"));
+        QVERIFY(host.row("canvas", NodeRowKind::Field, "width"));
+        QVERIFY(host.row("canvas", NodeRowKind::Field, "height"));
+        QVERIFY(!host.row("canvas", NodeRowKind::Lock));
+        QVERIFY(host.model().layout(host.id("canvas")).size.height() < paddingHeight);
+        host.click("canvas", host.row("canvas", NodeRowKind::Segmented, "mode")->parts[1].center());
+        QTRY_COMPARE(host.data("canvas")["mode"].toString(), QStringLiteral("scale"));
+        const auto *scale = host.row("canvas", NodeRowKind::Slider, "scale");
+        QVERIFY(scale);
+        QCOMPARE(scale->minimum, 0.01);
+        QCOMPARE(scale->maximum, 4.0);
+        QCOMPARE(scale->number, 1.25);
+        QVERIFY(!host.row("canvas", NodeRowKind::Field, "width"));
+    }
+
+    // CanvasResizeBody.tsx and PasteBody.tsx read the image arriving at their
+    // handles: the preview shows it before a run, a dashed rectangle marks where
+    // it lands, and Canvas Resize names the resulting canvas size.
+    void imageBodiesShowTheirSource() {
+        const auto png = [](int width, int height) {
+            QImage image(width, height, QImage::Format_RGB32);
+            image.fill(Qt::red);
+            QByteArray bytes;
+            QBuffer buffer(&bytes);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "PNG");
+            return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
+        };
+        const auto constant = [](const QString &id, const QString &uri, double y) {
+            return QJsonObject{{"id", id}, {"type", "nodetool.constant.Image"},
+                               {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", uri}}}}},
+                               {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", y}}}}}};
+        };
+        auto workflow = withNodes({constant("base", png(40, 20), 700), constant("patch", png(10, 5), 1000),
+                                   partTwoNode("canvas", "nodetool.image.CanvasResize", QPointF(0, 700), {{"mode", "fixed"}, {"width", 80}, {"height", 40}}),
+                                   partTwoNode("paste", "nodetool.image.Paste", QPointF(400, 700), {{"left", 10}, {"top", 5}})});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        const auto wire = [](const QString &id, const QString &source, const QString &target, const QString &handle) {
+            return QJsonObject{{"id", id}, {"source", source}, {"sourceHandle", "output"}, {"target", target}, {"targetHandle", handle}};
+        };
+        edges.append(wire("e-canvas", "base", "canvas", "image"));
+        edges.append(wire("e-base", "base", "paste", "image"));
+        edges.append(wire("e-patch", "patch", "paste", "paste"));
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        const auto overlay = [&host](const QString &node) -> const NodeRow * {
+            for (const auto &row : host.model().layout(host.id(node)).rows) {
+                if (row.kind == NodeRowKind::Overlay) { return &row; }
+            }
+            return nullptr;
+        };
+        QTRY_VERIFY(overlay("canvas"));
+        const auto &canvas = host.model().layout(host.id("canvas"));
+        const auto area = canvas.resultRect;
+        const auto *rect = overlay("canvas");
+        // A 40 x 20 image centered on an 80 x 40 canvas covers the middle half.
+        QCOMPARE(rect->rect, QRectF(area.x() + area.width() / 4, area.y() + area.height() / 4, area.width() / 2, area.height() / 2));
+        QCOMPARE(rect->value, QStringLiteral("80 × 40"));
+        const auto *preview = host.row("canvas", NodeRowKind::Preview);
+        QVERIFY(preview);
+        QCOMPARE(preview->media.size(), 1);
+        QCOMPARE(preview->media.first().image.size(), QSize(40, 20));
+        // Padding mode adds the edges to the source.
+        host.click("canvas", host.row("canvas", NodeRowKind::Segmented, "mode")->parts[2].center());
+        QTRY_COMPARE(host.data("canvas")["mode"].toString(), QStringLiteral("padding"));
+        QTRY_VERIFY(overlay("canvas"));
+        QCOMPARE(overlay("canvas")->value, QStringLiteral("40 × 20"));
+        QTRY_VERIFY(overlay("paste"));
+        const auto pasteArea = host.model().layout(host.id("paste")).resultRect;
+        QCOMPARE(overlay("paste")->rect, QRectF(pasteArea.x() + pasteArea.width() / 4, pasteArea.y() + pasteArea.height() / 4,
+                                                pasteArea.width() / 4, pasteArea.height() / 4));
+        QVERIFY(overlay("paste")->value.isEmpty());
+    }
+
+    // CropBody.tsx: cropDragged keeps whole pixels inside the image, a move keeps the size.
+    void cropDragsClampToTheImage() {
+        const QSizeF bounds(200, 100);
+        const QRectF full(0, 0, 200, 100);
+        QCOMPARE(cropDragged("se", full, QPointF(-50.4, -20.6), bounds), QRectF(0, 0, 150, 79));
+        QCOMPARE(cropDragged("nw", full, QPointF(-30, 250), bounds), QRectF(QPointF(0, 99), QPointF(200, 100)));
+        QCOMPARE(cropDragged("e", QRectF(10, 10, 50, 50), QPointF(-80, 0), bounds), QRectF(QPointF(10, 10), QPointF(11, 60)));
+        QCOMPARE(cropDragged("move", QRectF(10, 10, 50, 50), QPointF(500, -500), bounds), QRectF(150, 0, 50, 50));
+    }
+
+    // PainterBody.tsx: a drag paints one stroke into mask_data as one undo
+    // step, the eraser cuts it out, the tools are view state, and Undo, Redo
+    // and Clear step through the body's own history.
+    void painterStrokesWriteTheMask() {
+        Host host(withNodes({partTwoNode("paint", "nodetool.image.Painter", QPointF(0, 700), {{"canvas_width", 200}, {"canvas_height", 100}})}),
+                  allMetadata());
+        const auto id = host.id("paint");
+        QCOMPARE(host.model().layout(id).body, CardBody::Painter);
+        QVERIFY(host.model().layout(id).sourceTab);
+        const auto *canvas = host.row("paint", NodeRowKind::Paint);
+        QVERIFY(canvas);
+        QCOMPARE(canvas->minimum, 200.0);
+        QCOMPARE(canvas->maximum, 100.0);
+        QCOMPARE(canvas->rect.width() / canvas->rect.height(), 2.0);
+        QVERIFY(host.row("paint", NodeRowKind::Action, "painterUndo")->placeholder);
+        auto undo = host.undoCount();
+        const auto drag = [&host](const QPointF &from, const QPointF &to) {
+            const auto start = host.point("paint", from);
+            const auto end = host.point("paint", to);
+            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(host.view->viewport(), &move);
+            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+            settle();
+        };
+        const auto rect = canvas->rect;
+        const auto at = [&rect](double x, double y) { return QPointF(rect.x() + rect.width() * x / 200, rect.y() + rect.height() * y / 100); };
+        const auto mask = [&host] {
+            QImage image;
+            image.loadFromData(QByteArray::fromBase64(host.data("paint")["mask_data"].toString().toLatin1()), "PNG");
+            return image;
+        };
+        drag(at(20, 50), at(180, 50));
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        ++undo;
+        QCOMPARE(mask().size(), QSize(200, 100));
+        QCOMPARE(mask().pixelColor(100, 50), QColor(Qt::white));
+        QCOMPARE(mask().pixelColor(100, 5).alpha(), 0);
+        QVERIFY(!host.row("paint", NodeRowKind::Action, "painterUndo")->placeholder);
+        // The size slider and the eraser are view state, not document edits.
+        host.model().setCardControl(id, painterSizeControl, 60);
+        for (const auto &row : host.model().layout(id).rows) {
+            if (row.action == QStringLiteral("painterTool") && row.value == QStringLiteral("eraser")) { host.click("paint", row.rect.center()); break; }
+        }
+        QTRY_VERIFY(host.model().painterView(id).eraser);
+        QCOMPARE(host.model().painterView(id).size, 60.0);
+        QCOMPARE(host.undoCount(), undo);
+        drag(at(100, 50), at(100, 50));
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        ++undo;
+        QCOMPARE(mask().pixelColor(100, 50).alpha(), 0);
+        QCOMPARE(mask().pixelColor(20, 50), QColor(Qt::white));
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("paint")).save(directory + QStringLiteral("/Painter-dark.png")));
+        }
+        // Undo brings the erased dot back, Redo erases it again, Clear empties the mask.
+        host.click("paint", host.row("paint", NodeRowKind::Action, "painterUndo")->rect.center());
+        QTRY_COMPARE(mask().pixelColor(100, 50), QColor(Qt::white));
+        QVERIFY(!host.row("paint", NodeRowKind::Action, "painterRedo")->placeholder);
+        host.click("paint", host.row("paint", NodeRowKind::Action, "painterRedo")->rect.center());
+        QTRY_COMPARE(mask().pixelColor(100, 50).alpha(), 0);
+        host.click("paint", host.row("paint", NodeRowKind::Action, "painterClear")->rect.center());
+        QTRY_VERIFY(host.data("paint")["mask_data"].toString().isEmpty());
+        // The swatch opens the inline color editor, and a color becomes the brush color.
+        auto *presenter = host.window.findChild<InlinePropertyPresenter *>();
+        QVERIFY(presenter);
+        host.click("paint", host.row("paint", NodeRowKind::Swatch, painterColorControl)->rect.center());
+        QTRY_VERIFY(presenter->active());
+        QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("color"));
+        presenter->cancel();
+        host.model().setCardControl(id, painterColorControl, QVariantMap{{"type", "color"}, {"value", "#ff0000"}});
+        QCOMPARE(host.row("paint", NodeRowKind::Swatch, painterColorControl)->value, QStringLiteral("#ff0000"));
+    }
+
+    // MasksExtractorBody.tsx: the Image tab shows the incoming image in place
+    // of the run result and Mask shows the result. Recalculate mask selects the
+    // card and runs it alone. SimpleFilterBody's Before tab shows its source too.
+    void masksExtractorTabsAndRun() {
+        QImage source(40, 20, QImage::Format_RGB32);
+        source.fill(Qt::green);
+        QByteArray bytes;
+        QBuffer buffer(&bytes);
+        buffer.open(QIODevice::WriteOnly);
+        source.save(&buffer, "PNG");
+        const QJsonObject constant{{"id", "photo"}, {"type", "nodetool.constant.Image"},
+                                   {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", QStringLiteral("data:image/png;base64,")
+                                       + QString::fromLatin1(bytes.toBase64())}}}}},
+                                   {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", 700}}}}}};
+        auto workflow = withNodes({constant, partTwoNode("cutout", "replicate.image.background.Bria_RemoveBackground", QPointF(0, 700)),
+                                   partTwoNode("invert", "lib.image.filter.Invert", QPointF(400, 700))});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "e-cut"}, {"source", "photo"}, {"sourceHandle", "output"}, {"target", "cutout"}, {"targetHandle", "image"}});
+        edges.append(QJsonObject{{"id", "e-inv"}, {"source", "photo"}, {"sourceHandle", "output"}, {"target", "invert"}, {"targetHandle", "image"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        const auto cutout = host.id("cutout");
+        QCOMPARE(host.model().layout(cutout).body, CardBody::MasksExtractor);
+        QVERIFY(host.model().layout(cutout).sourceTab);
+        QVERIFY(host.model().canvasResultRect(cutout).isEmpty());
+        const auto *tabs = host.row("cutout", NodeRowKind::Segmented);
+        QVERIFY(tabs);
+        QCOMPARE(tabs->options, QStringList({"Image", "Mask"}));
+        QCOMPARE(tabs->selected, 0);
+        QTRY_COMPARE(host.row("cutout", NodeRowKind::Preview)->media.size(), 1);
+        QCOMPARE(host.row("cutout", NodeRowKind::Preview)->media.first().image.size(), QSize(40, 20));
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("cutout")).save(directory + QStringLiteral("/MasksExtractor-dark.png")));
+        }
+        // The Mask tab shows the run result again.
+        host.click("cutout", tabs->parts.value(1).center());
+        QTRY_VERIFY(!host.model().layout(cutout).sourceTab);
+        QVERIFY(host.row("cutout", NodeRowKind::Preview)->media.isEmpty());
+        QVERIFY(!host.model().canvasResultRect(cutout).isEmpty());
+        // Recalculate mask selects only this card and asks to run it, with no document change.
+        QSignalSpy runs(host.window.scene(), &EditorScene::nodeRunRequested);
+        host.window.scene()->clearSelection();
+        const auto undo = host.undoCount();
+        const auto *run = host.row("cutout", NodeRowKind::Action, "runNode");
+        QVERIFY(run);
+        QCOMPARE(run->label, QStringLiteral("Recalculate mask"));
+        QVERIFY(run->rect.right() <= 280 - 11 + 0.5);
+        host.click("cutout", run->rect.center());
+        QCOMPARE(runs.size(), 1);
+        QCOMPARE(runs.first().first().toString(), QStringLiteral("cutout"));
+        QCOMPARE(host.window.scene()->selectedItems().size(), 1);
+        QCOMPARE(host.undoCount(), undo);
+        // Before shows the incoming image, and After, the default, the result.
+        QVERIFY(!host.model().layout(host.id("invert")).sourceTab);
+        host.model().setPreviewTab(host.id("invert"), QStringLiteral("before"));
+        QTRY_VERIFY(host.model().layout(host.id("invert")).sourceTab);
+        QTRY_COMPARE(host.row("invert", NodeRowKind::Preview)->media.size(), 1);
+    }
+
+    // CropBody.tsx: the aspect select fits the crop's height to its width, the
+    // width and height boxes keep a selected aspect, and a locked handle drag
+    // moves the other side with it.
+    void cropControlsFollowTheAspect() {
+        const QSizeF bounds(200, 100);
+        QCOMPARE(cropAspectRatio("free"), 0.0);
+        QCOMPARE(cropAspectRatio("16:9"), 16.0 / 9);
+        QCOMPARE(cropAspectRatio("5:4"), 0.0);
+        // 1:1 keeps the 80 px width and the top-left corner.
+        QCOMPARE(cropControlled(cropAspectControl, "1:1", QRectF(10, 10, 80, 40), bounds, 0), QRectF(10, 10, 80, 80));
+        // A taller crop than the image leaves stops at its bottom edge and moves up.
+        QCOMPARE(cropControlled(cropAspectControl, "9:16", QRectF(0, 50, 50, 40), bounds, 0), QRectF(QPointF(0, 11), QPointF(50, 100)));
+        QCOMPARE(cropControlled(cropAspectControl, "free", QRectF(0, 0, 50, 40), bounds, 0), QRectF(0, 0, 50, 40));
+        QCOMPARE(cropControlled(cropWidthControl, 60.4, QRectF(10, 10, 80, 40), bounds, 0), QRectF(10, 10, 60, 40));
+        QCOMPARE(cropControlled(cropWidthControl, 60, QRectF(10, 10, 80, 40), bounds, 2), QRectF(10, 10, 60, 30));
+        QCOMPARE(cropControlled(cropHeightControl, 30, QRectF(10, 10, 80, 40), bounds, 2), QRectF(10, 10, 60, 30));
+        QCOMPARE(cropControlled(cropWidthControl, 900, QRectF(10, 10, 80, 40), bounds, 0), QRectF(QPointF(10, 10), QPointF(200, 50)));
+        // An east drag at 2:1 sets the bottom from the new width, a north one the top.
+        QCOMPARE(cropDragged("e", QRectF(0, 0, 100, 50), QPointF(-40, 0), bounds, 2), QRectF(0, 0, 60, 30));
+        QCOMPARE(cropDragged("ne", QRectF(0, 40, 100, 50), QPointF(-40, 5), bounds, 2), QRectF(QPointF(0, 60), QPointF(60, 90)));
+        QCOMPARE(cropDragged("s", QRectF(0, 0, 100, 50), QPointF(0, -20), bounds, 2), QRectF(0, 0, 60, 30));
+        QCOMPARE(cropDragged("move", QRectF(0, 0, 100, 50), QPointF(10, 10), bounds, 2), QRectF(10, 10, 100, 50));
+    }
+
+    // CropBody.tsx: the source shows with the crop rectangle; dragging a handle
+    // or the rectangle writes the four edges in one undo step, and Reset selects the whole image.
+    // CompareImagesNode: the incoming images in ImageComparer, a divider that
+    // follows a drag, the A and B labels, each size and the mode toggle.
+    void compareImagesSliderOnTheCard() {
+        const auto png = [](const QSize &size, const QColor &color) {
+            QImage image(size, QImage::Format_RGB32);
+            image.fill(color);
+            QByteArray bytes;
+            QBuffer buffer(&bytes);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "PNG");
+            return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
+        };
+        const auto constant = [](const QString &id, const QString &uri, double y) {
+            return QJsonObject{{"id", id}, {"type", "nodetool.constant.Image"},
+                               {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", uri}}}}},
+                               {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", y}}}}}};
+        };
+        auto workflow = withNodes({constant("left", png({200, 100}, Qt::red), 700), constant("right", png({200, 100}, Qt::blue), 900),
+                                   partTwoNode("compare", "nodetool.compare.CompareImages", QPointF(0, 700))});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "e-a"}, {"source", "left"}, {"sourceHandle", "output"}, {"target", "compare"}, {"targetHandle", "image_a"}});
+        edges.append(QJsonObject{{"id", "e-b"}, {"source", "right"}, {"sourceHandle", "output"}, {"target", "compare"}, {"targetHandle", "image_b"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        const auto id = host.id("compare");
+        QTRY_VERIFY(host.row("compare", NodeRowKind::Compare));
+        auto compare = *host.row("compare", NodeRowKind::Compare);
+        QCOMPARE(compare.number, 0.5);
+        QVERIFY(!compare.checked);
+        QCOMPARE(compare.options, (QStringList{"A", "B"}));
+        QCOMPARE(compare.media.size(), 2);
+        QVERIFY(host.model().layout(id).sourceTab);
+        const auto pixel = [&host](const QPointF &local) {
+            const auto image = host.render(QStringLiteral("compare"));
+            return image.pixelColor((local * image.width() / host.model().layout(host.id("compare")).size.width()).toPoint());
+        };
+        const auto rect = compare.rect;
+        const auto middle = rect.center().y();
+        QCOMPARE(pixel(QPointF(rect.left() + rect.width() * 0.25, middle)), QColor(Qt::red));
+        QCOMPARE(pixel(QPointF(rect.left() + rect.width() * 0.75, middle)), QColor(Qt::blue));
+        // A drag moves the divider without an undo step.
+        const auto undo = host.undoCount();
+        const auto start = host.point("compare", rect.center());
+        const auto end = host.point("compare", QPointF(rect.left() + rect.width() * 0.8, middle));
+        QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+        QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(host.view->viewport(), &move);
+        QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+        settle();
+        QVERIFY(std::abs(host.row("compare", NodeRowKind::Compare)->number - 0.8) < 0.02);
+        QCOMPARE(pixel(QPointF(rect.left() + rect.width() * 0.75, middle)), QColor(Qt::red));
+        QCOMPARE(host.undoCount(), undo);
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("compare")).save(directory + QStringLiteral("/CompareImages-dark.png")));
+        }
+        // The toggle splits top and bottom and keeps the position.
+        host.click("compare", host.row("compare", NodeRowKind::Action, "compareMode")->rect.center());
+        QTRY_VERIFY(host.row("compare", NodeRowKind::Compare)->checked);
+        QVERIFY(std::abs(host.row("compare", NodeRowKind::Compare)->number - 0.8) < 0.02);
+        QCOMPARE(compareView(QStringLiteral("v:0.25")).position, 0.25);
+        QVERIFY(compareView(QStringLiteral("v:0.25")).vertical);
+        QCOMPARE(compareView({}).position, 0.5);
+    }
+
+    // PainterBody.tsx's .brush-cursor: a circle of the brush size follows the
+    // pointer over the canvas and goes away off it.
+    void painterBrushCursorFollowsThePointer() {
+        Host host(withNodes({partTwoNode("paint", "nodetool.image.Painter", QPointF(0, 700), {{"canvas_width", 200}, {"canvas_height", 100}})}),
+                  allMetadata());
+        const auto id = host.id("paint");
+        const auto canvas = host.row("paint", NodeRowKind::Paint)->rect;
+        const auto hover = [&host](const QPointF &local) {
+            const auto point = host.point("paint", local);
+            QMouseEvent move(QEvent::MouseMove, QPointF(point), QPointF(host.view->viewport()->mapToGlobal(point)), Qt::NoButton, Qt::NoButton,
+                             Qt::NoModifier);
+            QApplication::sendEvent(host.view->viewport(), &move);
+            settle();
+        };
+        const auto before = host.render(QStringLiteral("paint"));
+        hover(canvas.center());
+        QCOMPARE(host.window.scene()->brushCursorNode(), id);
+        QVERIFY(std::abs(host.window.scene()->brushCursor().x() - canvas.center().x()) < 1.5);
+        QVERIFY(host.render(QStringLiteral("paint")) != before);
+        hover(QPointF(canvas.center().x(), canvas.bottom() + 40));
+        QCOMPARE(host.window.scene()->brushCursorNode(), QtNodes::InvalidNodeId);
+    }
+
+    // PainterBody.tsx's onAreaDrop: an image file dropped on the paint area
+    // uploads and becomes the image property, without a new node.
+    void painterCanvasTakesADroppedImage() {
+        Server server;
+        Host host(withNodes({partTwoNode("paint", "nodetool.image.Painter", QPointF(0, 700), {{"canvas_width", 200}, {"canvas_height", 100}})}),
+                  allMetadata());
+        emit host.window.session()->credentialsChanged(server.url(), QStringLiteral("card-token"), QStringLiteral("1"));
+        settle();
+        const auto nodes = host.window.document()->graph()["nodes"].toArray().size();
+        QTemporaryDir directory;
+        QImage image(40, 20, QImage::Format_RGB32);
+        image.fill(Qt::blue);
+        const auto path = directory.filePath(QStringLiteral("source.png"));
+        QVERIFY(image.save(path));
+        QMimeData mime;
+        mime.setUrls({QUrl::fromLocalFile(path)});
+        const QPointF position(host.point("paint", host.row("paint", NodeRowKind::Paint)->rect.center()));
+        QDragEnterEvent enter(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(host.view->viewport(), &enter);
+        QDragMoveEvent move(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(host.view->viewport(), &move);
+        QDropEvent drop(position, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(host.view->viewport(), &drop);
+        QVERIFY(drop.isAccepted());
+        QTRY_VERIFY_WITH_TIMEOUT(!host.data("paint")["image"].toObject()["asset_id"].toString().isEmpty(), 10000);
+        QCOMPARE(host.data("paint")["image"].toObject()["type"].toString(), QStringLiteral("image"));
+        QCOMPARE(server.uploads, 1);
+        QCOMPARE(host.window.document()->graph()["nodes"].toArray().size(), nodes);
+    }
+
+    // ColorOverlayBody.tsx: the Fill swatch opens the ColorPicker popover on the card.
+    void colorSwatchOpensThePicker() {
+        Host host(withNodes({partTwoNode("overlay", "lib.image.effects.ColorOverlay", QPointF(0, 700))}), allMetadata());
+        const auto *swatch = host.row("overlay", NodeRowKind::Swatch, "color");
+        QVERIFY(swatch);
+        auto *presenter = host.window.findChild<InlinePropertyPresenter *>();
+        QVERIFY(presenter);
+        host.click("overlay", swatch->rect.center());
+        QTRY_VERIFY(presenter->active());
+        QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("color"));
+        QCOMPARE(presenter->descriptor()["minimumWidth"].toInt(), int(node_metrics::colorEditorWidth));
+        QTRY_VERIFY(host.overlay() && host.overlay()->rootObject()->findChild<QQuickItem *>("inline-color"));
+        presenter->cancel();
+    }
+
+    // CompositorBody.tsx: image_0 draws on top, each layer row edits the
+    // layers property, and add and delete keep the states aligned.
+    void compositorLayersCompositeAndEdit() {
+        const auto png = [](const QSize &size, const QColor &color) {
+            QImage image(size, QImage::Format_RGB32);
+            image.fill(color);
+            QByteArray bytes;
+            QBuffer buffer(&bytes);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "PNG");
+            return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
+        };
+        const auto constant = [](const QString &id, const QString &uri, double y) {
+            return QJsonObject{{"id", id}, {"type", "nodetool.constant.Image"},
+                               {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", uri}}}}},
+                               {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", y}}}}}};
+        };
+        auto node = partTwoNode("comp", "nodetool.image.Compositor", QPointF(0, 700));
+        node["dynamic_properties"] = QJsonObject{{"image_0", QJsonValue::Null}, {"image_1", QJsonValue::Null}};
+        auto workflow = withNodes({constant("top", png({100, 100}, Qt::red), 700), constant("bottom", png({200, 100}, Qt::blue), 900), node});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "e-top"}, {"source", "top"}, {"sourceHandle", "output"}, {"target", "comp"}, {"targetHandle", "image_0"}});
+        edges.append(QJsonObject{{"id", "e-bottom"}, {"source", "bottom"}, {"sourceHandle", "output"}, {"target", "comp"}, {"targetHandle", "image_1"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        const auto id = host.id("comp");
+        QCOMPARE(host.model().layout(id).body, CardBody::Compositor);
+        QVERIFY(!host.row("comp", NodeRowKind::Action, "addInput"));
+        QCOMPARE(compositorLayerKeys(host.model().nodeSnapshot(id)), (QStringList{"image_0", "image_1"}));
+        QTRY_VERIFY(host.model().layout(id).sourceTab);
+        // The canvas is the first visible layer's size, 100x100, so the
+        // 200x100 bottom layer is fitted to 100x50 and the red layer covers it.
+        const auto composite = [&host, id] {
+            const auto layout = host.model().layout(id);
+            for (const auto &row : layout.rows) {
+                if (row.kind == NodeRowKind::Preview && row.rect == layout.resultRect && !row.media.isEmpty()) { return row.media.first(); }
+            }
+            return CardMediaItem{};
+        };
+        QCOMPARE(composite().natural, QSize(100, 100));
+        const auto center = [&composite] {
+            const auto image = composite().image;
+            return image.pixelColor(image.width() / 2, image.height() / 2);
+        };
+        QCOMPARE(center(), QColor(Qt::red));
+        auto undo = host.undoCount();
+        // Opacity 0 on the top layer shows the bottom layer, as one undo step.
+        host.model().setCardControl(id, QStringLiteral("@compositor:opacity:0"), 0.0);
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        ++undo;
+        QCOMPARE(host.data("comp")["layers"].toArray()[0].toObject()["opacity"].toDouble(), 0.0);
+        // A hidden top layer no longer sets the canvas, so the canvas is the bottom layer's size.
+        QCOMPARE(composite().natural, QSize(200, 100));
+        QCOMPARE(center(), QColor(Qt::blue));
+        host.model().setCardControl(id, QStringLiteral("@compositor:opacity:0"), 1.0);
+        host.model().setCardControl(id, QStringLiteral("@compositor:blend:1"), QStringLiteral("multiply"));
+        QTRY_COMPARE(host.data("comp")["layers"].toArray()[1].toObject()["blend_mode"].toString(), QStringLiteral("multiply"));
+        undo = host.undoCount();
+        auto *visible = host.row("comp", NodeRowKind::Action, "compositorVisible");
+        QVERIFY(visible);
+        QCOMPARE(visible->icon, QStringLiteral("visibility"));
+        host.click("comp", visible->rect.center());
+        QTRY_COMPARE(host.data("comp")["layers"].toArray()[0].toObject()["visible"].toBool(), false);
+        QCOMPARE(host.undoCount(), undo + 1);
+        QCOMPARE(host.row("comp", NodeRowKind::Action, "compositorVisible")->icon, QStringLiteral("visibilityOff"));
+        QCOMPARE(center(), QColor(Qt::blue));
+        // The blend select opens the inline editor with the blend modes.
+        auto *presenter = host.window.findChild<InlinePropertyPresenter *>();
+        QVERIFY(presenter);
+        host.click("comp", host.row("comp", NodeRowKind::Field, "@compositor:blend:1")->rect.center());
+        QTRY_VERIFY(presenter->active());
+        QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("choice"));
+        QCOMPARE(presenter->descriptor()["options"].toList().size(), 13);
+        presenter->cancel();
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("comp")).save(directory + QStringLiteral("/Compositor-dark.png")));
+        }
+        // Delete drops the top layer's input, its edge and its state.
+        host.click("comp", host.row("comp", NodeRowKind::Action, "compositorDelete")->rect.center());
+        QTRY_COMPARE(compositorLayerKeys(host.model().nodeSnapshot(id)), QStringList{"image_1"});
+        QCOMPARE(host.data("comp")["layers"].toArray().size(), 1);
+        QCOMPARE(host.data("comp")["layers"].toArray()[0].toObject()["blend_mode"].toString(), QStringLiteral("multiply"));
+        // Add another layer appends image_2 with a default state.
+        host.click("comp", host.row("comp", NodeRowKind::Action, "compositorAdd")->rect.center());
+        QTRY_COMPARE(compositorLayerKeys(host.model().nodeSnapshot(id)), (QStringList{"image_1", "image_2"}));
+        QCOMPARE(host.data("comp")["layers"].toArray()[1].toObject()["blend_mode"].toString(), QStringLiteral("normal"));
+    }
+
+    void compositorLayoutDialogTransformsLayers() {
+        const auto png = [](const QSize &size, const QColor &color) {
+            QImage image(size, QImage::Format_RGB32);
+            image.fill(color);
+            QByteArray bytes;
+            QBuffer buffer(&bytes);
+            buffer.open(QIODevice::WriteOnly);
+            image.save(&buffer, "PNG");
+            return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
+        };
+        const auto constant = [](const QString &id, const QString &uri, double y) {
+            return QJsonObject{{"id", id}, {"type", "nodetool.constant.Image"},
+                               {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", uri}}}}},
+                               {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", y}}}}}};
+        };
+        auto node = partTwoNode("comp", "nodetool.image.Compositor", QPointF(0, 700));
+        node["dynamic_properties"] = QJsonObject{{"image_0", QJsonValue::Null}, {"image_1", QJsonValue::Null}};
+        auto workflow = withNodes({constant("top", png({100, 100}, Qt::red), 700), constant("bottom", png({200, 100}, Qt::blue), 900), node});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "e-top"}, {"source", "top"}, {"sourceHandle", "output"}, {"target", "comp"}, {"targetHandle", "image_0"}});
+        edges.append(QJsonObject{{"id", "e-bottom"}, {"source", "bottom"}, {"sourceHandle", "output"}, {"target", "comp"}, {"targetHandle", "image_1"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        const auto id = host.id("comp");
+        QTRY_VERIFY(host.model().layout(id).sourceTab);
+        // Edit layout on the card opens the editor over the node.
+        auto *open = host.row("comp", NodeRowKind::Action, "compositorLayout");
+        QVERIFY(open);
+        QCOMPARE(open->label, QStringLiteral("Edit layout"));
+        host.click("comp", open->rect.center());
+        QDialog *dialog = nullptr;
+        QTRY_VERIFY((dialog = host.window.findChild<QDialog *>(QStringLiteral("compositor-layout-dialog-host"))));
+        auto *editor = dialog->findChild<node_editor::CompositorLayoutEditor *>(QStringLiteral("compositor-layout-editor"));
+        auto *stage = dialog->findChild<node_editor::CompositorStage *>();
+        QVERIFY(editor && stage);
+        QTRY_VERIFY(stage->isVisible() && stage->width() > 300);
+        QCOMPARE(editor->canvas(), QSize(100, 100));
+        QCOMPARE(editor->layerEntries().size(), 2);
+        const auto at = [stage](double x, double y) { return stage->toWidget(QPointF(x, y)).toPoint(); };
+        const auto transform = [&host](int index) {
+            return compositor::transformFromJson(host.data("comp")["layers"].toArray()[index].toObject()["transform"].toObject());
+        };
+        auto undo = host.undoCount();
+        // A press on the red top layer selects it, and a drag moves it as one undo step.
+        QTest::mousePress(stage, Qt::LeftButton, {}, at(50, 50));
+        QCOMPARE(editor->selected(), 0);
+        QTest::mouseMove(stage, at(60, 55));
+        QCOMPARE(host.undoCount(), undo);
+        QTest::mouseRelease(stage, Qt::LeftButton, {}, at(60, 55));
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        auto moved = transform(0);
+        QVERIFY(moved);
+        QVERIFY(std::abs(moved->x - 60) < 0.5 && std::abs(moved->y - 55) < 0.5);
+        QCOMPARE(moved->scaleX, 1.0);
+        QCOMPARE(editor->transformFields()["x"].toDouble(), 60.0);
+        // The bottom-right corner scales both axes about the center.
+        const auto corner = compositor::layerCorners(*moved, {100, 100})[2];
+        QTest::mousePress(stage, Qt::LeftButton, {}, stage->toWidget(corner).toPoint());
+        QTest::mouseMove(stage, stage->toWidget(corner + QPointF(10, 10)).toPoint());
+        QTest::mouseRelease(stage, Qt::LeftButton, {}, stage->toWidget(corner + QPointF(10, 10)).toPoint());
+        QTRY_COMPARE(host.undoCount(), undo + 2);
+        auto scaled = transform(0);
+        QVERIFY(std::abs(scaled->scaleX - 1.2) < 0.02 && std::abs(scaled->scaleY - 1.2) < 0.02);
+        QVERIFY(std::abs(scaled->x - moved->x) < 1e-9);
+        QTRY_COMPARE(editor->transformFields()["scaleX"].toDouble(), scaled->scaleX);
+        // The rotate handle above the top edge turns the layer toward the pointer.
+        const auto handle = compositor::handlePoint(*scaled, {100, 100}, compositor::GizmoHandle::Rotate, stage->viewScale());
+        QTest::mousePress(stage, Qt::LeftButton, {}, stage->toWidget(handle).toPoint());
+        QTest::mouseMove(stage, at(scaled->x + 100, scaled->y));
+        QTest::mouseRelease(stage, Qt::LeftButton, {}, at(scaled->x + 100, scaled->y));
+        QTRY_COMPARE(host.undoCount(), undo + 3);
+        QVERIFY(std::abs(transform(0)->rotation - M_PI / 2) < 0.05);
+        QCOMPARE(editor->transformFields()["rotation"].toDouble(), 90.0);
+        // The side panel's fields and Reset write the same transform.
+        editor->setTransformField(QStringLiteral("rotation"), 45);
+        QTRY_COMPARE(host.undoCount(), undo + 4);
+        QVERIFY(std::abs(transform(0)->rotation - M_PI / 4) < 1e-9);
+        // The panel shows the selected layer's fields.
+        auto *quick = dialog->findChild<QQuickWidget *>();
+        QVERIFY(quick && quick->rootObject());
+        auto *rotation = quick->rootObject()->findChild<QQuickItem *>(QStringLiteral("compositor-field-rotation"));
+        QVERIFY(rotation);
+        QTRY_VERIFY(rotation->isVisible());
+        QTRY_COMPARE(rotation->property("value").toDouble(), 45.0);
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            // The panel's own framebuffer, since a widget grab can hold its previous frame.
+            auto image = dialog->grab().toImage();
+            QPainter painter(&image);
+            painter.drawImage(quick->geometry().topLeft(), quick->grabFramebuffer());
+            painter.end();
+            QVERIFY(image.save(directory + QStringLiteral("/CompositorLayout-dark.png")));
+        }
+        editor->resetTransform();
+        QTRY_COMPARE(host.undoCount(), undo + 5);
+        QVERIFY(!transform(0));
+        // Canvas size writes both properties in one step.
+        editor->setCanvasSize(300, 200);
+        QTRY_COMPARE(host.undoCount(), undo + 6);
+        QCOMPARE(host.data("comp")["canvas_width"].toInt(), 300);
+        QCOMPARE(host.data("comp")["canvas_height"].toInt(), 200);
+        QCOMPARE(editor->canvas(), QSize(300, 200));
+        // Empty space deselects.
+        QTest::mousePress(stage, Qt::LeftButton, {}, at(2, 2));
+        QTest::mouseRelease(stage, Qt::LeftButton, {}, at(2, 2));
+        QCOMPARE(editor->selected(), -1);
+        QCOMPARE(host.undoCount(), undo + 6);
+        // Deleting the layer from the panel removes its input, and the dialog follows.
+        editor->deleteLayer(0);
+        QTRY_COMPARE(editor->keys(), QStringList{"image_1"});
+        dialog->reject();
+    }
+
+    void cropRectangleDragsAndResets() {
+        QImage source(200, 100, QImage::Format_RGB32);
+        source.fill(Qt::blue);
+        QByteArray bytes;
+        QBuffer buffer(&bytes);
+        buffer.open(QIODevice::WriteOnly);
+        source.save(&buffer, "PNG");
+        const QJsonObject constant{{"id", "photo"}, {"type", "nodetool.constant.Image"},
+                                   {"data", QJsonObject{{"value", QJsonObject{{"type", "image"}, {"uri", QStringLiteral("data:image/png;base64,")
+                                       + QString::fromLatin1(bytes.toBase64())}}}}},
+                                   {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", -400}, {"y", 700}}}}}};
+        auto workflow = withNodes({constant, partTwoNode("crop", "nodetool.image.Crop", QPointF(0, 700))});
+        auto graph = workflow["graph"].toObject();
+        auto edges = graph["edges"].toArray();
+        edges.append(QJsonObject{{"id", "e-crop"}, {"source", "photo"}, {"sourceHandle", "output"}, {"target", "crop"}, {"targetHandle", "image"}});
+        graph["edges"] = edges;
+        workflow["graph"] = graph;
+        Host host(workflow, allMetadata());
+        QCOMPARE(host.model().layout(host.id("crop")).body, CardBody::Crop);
+        QTRY_VERIFY(host.row("crop", NodeRowKind::Crop));
+        auto crop = *host.row("crop", NodeRowKind::Crop);
+        QCOMPARE(crop.minimum, 200.0);
+        QCOMPARE(crop.maximum, 100.0);
+        // A 2:1 image fills the preview's width, centered.
+        const auto area = host.model().layout(host.id("crop")).resultRect;
+        QCOMPARE(crop.rect.width(), std::min(area.width(), area.height() * 2));
+        QCOMPARE(crop.rect.center(), area.center());
+        QCOMPARE(cropEdges(crop), QRectF(0, 0, 200, 100));
+        const auto drag = [&host](const QPointF &from, const QPointF &to) {
+            const auto start = host.point("crop", from);
+            const auto end = host.point("crop", to);
+            QTest::mousePress(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+            QMouseEvent move(QEvent::MouseMove, QPointF(end), QPointF(host.view->viewport()->mapToGlobal(end)), Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+            QApplication::sendEvent(host.view->viewport(), &move);
+            QTest::mouseRelease(host.view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+            settle();
+        };
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("crop")).save(directory + QStringLiteral("/Crop-dark.png")));
+        }
+        const auto scale = crop.rect.width() / 200;
+        auto undo = host.undoCount();
+        // The bottom right handle, pulled 50 by 20 image pixels in.
+        drag(crop.rect.bottomRight(), crop.rect.bottomRight() - QPointF(50 * scale, 20 * scale));
+        // Viewport points are whole pixels, so an edge lands within one image pixel.
+        const auto near = [&host](const char *name, double expected) {
+            return std::abs(host.data("crop")[QLatin1String(name)].toDouble() - expected) <= 1;
+        };
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        ++undo;
+        QVERIFY(near("right", 150));
+        QVERIFY(near("bottom", 80));
+        QCOMPARE(host.data("crop")["left"].toDouble(), 0.0);
+        QCOMPARE(host.data("crop")["top"].toDouble(), 0.0);
+        // A drag inside moves the rectangle and keeps its size.
+        crop = *host.row("crop", NodeRowKind::Crop);
+        const auto before = cropEdges(crop);
+        const auto inside = cropOnCard(crop, before).center();
+        drag(inside, inside + QPointF(30 * scale, 10 * scale));
+        QTRY_COMPARE(host.undoCount(), undo + 1);
+        ++undo;
+        QVERIFY(near("left", 30));
+        QVERIFY(near("top", 10));
+        QCOMPARE(host.data("crop")["right"].toDouble() - host.data("crop")["left"].toDouble(), before.width());
+        QCOMPARE(host.data("crop")["bottom"].toDouble() - host.data("crop")["top"].toDouble(), before.height());
+        const NodeRow *reset = nullptr;
+        for (const auto &row : host.model().layout(host.id("crop")).rows) {
+            if (row.action == QStringLiteral("resetCrop")) { reset = &row; }
+        }
+        QVERIFY(reset);
+        host.click("crop", reset->rect.center());
+        QTRY_COMPARE(host.data("crop")["left"].toDouble(), 0.0);
+        QCOMPARE(host.data("crop")["right"].toDouble(), 200.0);
+        QCOMPARE(host.data("crop")["bottom"].toDouble(), 100.0);
+        QCOMPARE(host.undoCount(), ++undo);
+        // The width box opens the inline number editor on the crop width.
+        auto *presenter = host.window.findChild<InlinePropertyPresenter *>();
+        QVERIFY(presenter);
+        const auto *width = host.row("crop", NodeRowKind::Field, cropWidthControl);
+        QVERIFY(width);
+        QCOMPARE(width->value, QStringLiteral("200"));
+        host.click("crop", width->rect.center());
+        QTRY_VERIFY(presenter->active());
+        QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("integer"));
+        QCOMPARE(presenter->descriptor()["value"].toDouble(), 200.0);
+        QCOMPARE(presenter->descriptor()["max"].toDouble(), 200.0);
+        presenter->cancel();
+        // The aspect select offers the web's ratios, and 1:1 fits the crop to a square.
+        const auto *aspect = host.row("crop", NodeRowKind::Field, cropAspectControl);
+        QVERIFY(aspect);
+        QVERIFY(aspect->choice);
+        QCOMPARE(aspect->value, QStringLiteral("Free"));
+        QCOMPARE(aspect->optionValues.size(), 8);
+        host.click("crop", aspect->rect.center());
+        QTRY_VERIFY(presenter->active());
+        QCOMPARE(presenter->descriptor()["kind"].toString(), QStringLiteral("choice"));
+        QCOMPARE(presenter->descriptor()["options"].toList().size(), 8);
+        presenter->cancel();
+        host.model().setCardControl(host.id("crop"), cropWidthControl, 80);
+        QTRY_COMPARE(host.data("crop")["right"].toDouble(), 80.0);
+        QCOMPARE(host.undoCount(), ++undo);
+        host.model().setCardControl(host.id("crop"), cropAspectControl, "1:1");
+        QTRY_COMPARE(host.data("crop")["bottom"].toDouble(), 80.0);
+        QCOMPARE(host.undoCount(), ++undo);
+        QCOMPARE(host.row("crop", NodeRowKind::Field, cropAspectControl)->value, QStringLiteral("1:1 Square"));
+        QCOMPARE(host.row("crop", NodeRowKind::Crop)->step, 1.0);
+        // With the aspect held, the height box moves the width with it.
+        host.model().setCardControl(host.id("crop"), cropHeightControl, 50);
+        QTRY_COMPARE(host.data("crop")["right"].toDouble(), 50.0);
+        QCOMPARE(host.data("crop")["bottom"].toDouble(), 50.0);
+        QCOMPARE(host.undoCount(), ++undo);
+        // An unchanged crop adds no undo step.
+        host.model().setCardControl(host.id("crop"), cropWidthControl, 50);
+        settle();
+        QCOMPARE(host.undoCount(), undo);
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QVERIFY(host.render(QStringLiteral("crop")).save(directory + QStringLiteral("/Crop-square-dark.png")));
+        }
+    }
+
+    // CurvesBody.tsx: five Tonal and three RGB midtone sliders under eyebrows,
+    // and a Reset that writes every default in one undo step.
+    void curvesResetRestoresEveryDefault() {
+        Host host(withNodes({partTwoNode("curves", "lib.image.color_grading.Curves", QPointF(0, 700),
+                                         {{"black_point", 0.2}, {"midtones", 0.3}, {"blue_midtones", -0.1}})}), allMetadata());
+        const auto &card = host.model().layout(host.id("curves"));
+        QCOMPARE(card.body, CardBody::Curves);
+        QStringList sliders;
+        QStringList eyebrows;
+        for (const auto &row : card.rows) {
+            if (row.kind == NodeRowKind::Slider) { sliders.append(row.propertyName); }
+            if (row.kind == NodeRowKind::Label) { eyebrows.append(row.label); }
+        }
+        QCOMPARE(sliders, (QStringList{"black_point", "white_point", "shadows", "midtones", "highlights", "red_midtones", "green_midtones",
+                                       "blue_midtones"}));
+        QCOMPARE(eyebrows, (QStringList{"TONAL", "RGB MIDTONES"}));
+        const auto *white = host.row("curves", NodeRowKind::Slider, "white_point");
+        QCOMPARE(white->minimum, 0.5);
+        QCOMPARE(white->number, 1.0);
+        QVERIFY(host.row("curves", NodeRowKind::Slider, "midtones")->bipolar);
+        QCOMPARE(host.row("curves", NodeRowKind::Slider, "midtones")->number, 0.3);
+        const NodeRow *reset = nullptr;
+        for (const auto &row : card.rows) {
+            if (row.action == QStringLiteral("resetSliders")) { reset = &row; }
+        }
+        QVERIFY(reset);
+        const auto undo = host.undoCount();
+        host.click("curves", reset->rect.center());
+        QTRY_COMPARE(host.data("curves")["black_point"].toDouble(), 0.0);
+        QCOMPARE(host.data("curves")["midtones"].toDouble(), 0.0);
+        QCOMPARE(host.data("curves")["blue_midtones"].toDouble(), 0.0);
+        QCOMPARE(host.data("curves")["white_point"].toDouble(), 1.0);
+        QCOMPARE(host.undoCount(), undo + 1);
+    }
+
+    // LevelsBody.tsx: the channel toggle is view state that swaps the Black,
+    // Gamma and White sliders; Reset neutralizes all three channels at once.
+    // computeHistogramFromRgba: per channel counts and Rec. 709 luminance.
+    void imageHistogramCountsChannels() {
+        QImage image(4, 1, QImage::Format_RGB32);
+        image.setPixelColor(0, 0, QColor(255, 0, 0));
+        image.setPixelColor(1, 0, QColor(0, 255, 0));
+        image.setPixelColor(2, 0, QColor(0, 0, 255));
+        image.setPixelColor(3, 0, QColor(255, 255, 255));
+        const auto histogram = imageHistogram(image);
+        QCOMPARE(histogram.bins[0][255], 2u);
+        QCOMPARE(histogram.bins[0][0], 2u);
+        QCOMPARE(histogram.bins[1][255], 2u);
+        QCOMPARE(histogram.bins[2][255], 2u);
+        QCOMPARE(histogram.bins[3][54], 1u);
+        QCOMPARE(histogram.bins[3][182], 1u);
+        QCOMPARE(histogram.bins[3][18], 1u);
+        QCOMPARE(histogram.bins[3][255], 1u);
+    }
+
+    void levelsChannelToggleAndReset() {
+        Host host(withNodes({partTwoNode("levels", "nodetool.image.Levels", QPointF(0, 700),
+                                         {{"r_black", 10}, {"g_gamma", 2.5}, {"b_white", 200}})}), allMetadata());
+        QCOMPARE(host.model().layout(host.id("levels")).body, CardBody::Levels);
+        const auto sliders = [&host] {
+            QStringList names;
+            for (const auto &row : host.model().layout(host.id("levels")).rows) {
+                if (row.kind == NodeRowKind::Slider) { names.append(row.propertyName); }
+            }
+            return names;
+        };
+        QCOMPARE(sliders(), (QStringList{"r_black", "r_gamma", "r_white"}));
+        QCOMPARE(host.row("levels", NodeRowKind::Slider, "r_black")->number, 10.0);
+        const auto toggles = [&host] {
+            QVector<NodeRow> rows;
+            for (const auto &row : host.model().layout(host.id("levels")).rows) {
+                if (row.kind == NodeRowKind::Segmented) { rows.append(row); }
+            }
+            return rows;
+        };
+        QCOMPARE(toggles().size(), 2);
+        QCOMPARE(toggles()[0].options, QStringList({"R", "G", "B", "L"}));
+        QCOMPARE(toggles()[0].selected, 3);
+        const auto toggle = toggles()[1];
+        QCOMPARE(toggle.options, QStringList({"Red", "Green", "Blue"}));
+        QCOMPARE(toggle.selected, 0);
+        // No result yet, so the histogram panel is empty.
+        const auto *histogram = host.row("levels", NodeRowKind::Histogram);
+        QVERIFY(histogram);
+        QCOMPARE(histogram->rect.height(), 56.0);
+        QVERIFY(histogram->optionValues.isEmpty());
+        auto undo = host.undoCount();
+        host.click("levels", toggle.parts[1].center());
+        QTRY_COMPARE(sliders(), (QStringList{"g_black", "g_gamma", "g_white"}));
+        // A result fills the histogram, and the view toggle keeps the channel.
+        // 512 x 256 is the preview size already, so no resampling blends the two colors.
+        QImage result(512, 256, QImage::Format_RGB32);
+        result.fill(QColor(200, 100, 0));
+        for (int x = 0; x < 128; ++x) {
+            for (int y = 0; y < 256; ++y) { result.setPixelColor(x, y, QColor(0, 0, 0)); }
+        }
+        host.model().setRuntimePreview(QStringLiteral("levels"), result);
+        QTRY_COMPARE(host.row("levels", NodeRowKind::Histogram)->optionValues.size(), 256);
+        QCOMPARE(host.row("levels", NodeRowKind::Histogram)->value, QStringLiteral("luminance"));
+        host.click("levels", toggles()[0].parts[0].center());
+        QTRY_COMPARE(host.row("levels", NodeRowKind::Histogram)->value, QStringLiteral("r"));
+        QCOMPARE(sliders(), (QStringList{"g_black", "g_gamma", "g_white"}));
+        // Three quarters of the pixels have red 200: past the 85% cap, the bar is full.
+        const auto bars = host.row("levels", NodeRowKind::Histogram)->optionValues;
+        QCOMPARE(bars[200].toDouble(), 1.0);
+        QCOMPARE(bars[0].toDouble(), 32768.0 / (98304 * 0.85));
+        QCOMPARE(bars[100].toDouble(), 0.0);
+        if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
+            QDir().mkpath(directory);
+            QVERIFY(host.render(QStringLiteral("levels")).save(directory + QStringLiteral("/Levels-dark.png")));
+        }
+        // The channel never enters the document.
+        QCOMPARE(host.undoCount(), undo);
+        QCOMPARE(host.row("levels", NodeRowKind::Slider, "g_gamma")->number, 2.5);
+        QCOMPARE(host.row("levels", NodeRowKind::Slider, "g_gamma")->maximum, 10.0);
+        const NodeRow *reset = nullptr;
+        for (const auto &row : host.model().layout(host.id("levels")).rows) {
+            if (row.action == QStringLiteral("resetSliders")) { reset = &row; }
+        }
+        QVERIFY(reset);
+        host.click("levels", reset->rect.center());
+        QTRY_COMPARE(host.data("levels")["r_black"].toDouble(), 0.0);
+        QCOMPARE(host.data("levels")["g_gamma"].toDouble(), 1.0);
+        QCOMPARE(host.data("levels")["b_white"].toDouble(), 255.0);
+        QCOMPARE(host.undoCount(), undo + 1);
     }
 
     // DynamicSchemaNodeShell.tsx: the model joins the title, a hint explains an

@@ -61,17 +61,13 @@ nodetool agent run -p openai -m gpt-5.4-mini -o "Research AI trends" \
 
 ### Permission mode
 
-Every tool call passes one gate. `default` runs reads and asks before each
-write, execute, or external call. `auto` runs everything. `plan` runs reads and
-blocks the rest. An unrecognized value is an error.
-
-With a terminal on stdin, the default mode is `default`. The prompt goes to
+The modes are defined in the [CLI reference](cli.md#permission-mode). An
+unrecognized value is an error. With a terminal on stdin, the default mode is `default`. The prompt goes to
 stderr and takes `y` (this call), `n` (refuse), or `a` (this tool for the rest
 of the run). When the objective arrives down a pipe nobody can answer, so the
 run uses the headless gate (`auto`), prints a notice once, and denies anything
 the gate escalates. An explicit `--permission-mode` still applies. With
-`--json` the notice and any prompt arrive as `log_update` events. See
-[Permission mode](cli.md#permission-mode) in the CLI reference.
+`--json` the notice and any prompt arrive as `log_update` events.
 
 ### Tools
 
@@ -89,15 +85,7 @@ plus the direct tools; the rest of the belt lives in the sandbox.
 
 ### What the planner used to do
 
-`agent run` used to plan a task DAG up front, execute it, and have a compiler
-model write the final answer. The model now decides: it calls `create_plan` when
-the objective wants decomposing, and `execute_plan` runs that DAG on the same
-executor. Four things went with the old pipeline and have no replacement flag:
-the plan approval prompt (the permission gate on `execute_plan` is the
-approval), checkpoints and the plan cache, the separate planning and reasoning
-models, and skill auto-selection by word overlap (the model loads a skill
-itself). `--max-steps` is gone with them; `--max-iterations` now bounds
-tool-calling rounds in the turn rather than action rounds per step.
+The model calls `create_plan` when the objective wants decomposing, and `execute_plan` runs that DAG. The permission gate on `execute_plan` is the plan approval. There are no flags for checkpoints, the plan cache, separate planning and reasoning models, or skill auto-selection, which the model does itself with `load_skill`. `--max-iterations` bounds tool-calling rounds in the turn.
 
 ### `nodetool agent diagnose`
 

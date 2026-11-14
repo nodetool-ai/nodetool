@@ -12,6 +12,7 @@
 #include <QLineEdit>
 #include <QPainter>
 #include <QDialog>
+#include <QDockWidget>
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QFile>
@@ -295,6 +296,64 @@ private slots:
     }
 
     // NodeContextMenu.tsx
+    // useNodeFocus.ts: Ctrl+Alt+N/P cycle, Alt+arrows move by position,
+    // Ctrl+Alt+B steps back, Enter selects. Focus never changes the selection.
+    void keyboardNodeNavigation() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "navigation"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+            node("a", "Fixed", 0, 0), node("b", "Fixed", 500, 0), node("c", "Fixed", 500, 400)}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1400, 1000);
+        window.show();
+        window.action("Reset zoom");
+        QTest::qWait(60);
+        auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+        auto *canvas = view(window)->viewport();
+        view(window)->setFocus();
+        // Enter does nothing before a node has focus.
+        QTest::keyClick(canvas, Qt::Key_Return);
+        QCOMPARE(window.selectedCount(), 0);
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QTRY_COMPARE(model.focusedNode(), QString("a"));
+        QCOMPARE(window.selectedCount(), 0);
+        // The badge above the focused card is inside its item bounds.
+        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "a"))->boundingRect().top() <= -20);
+        QTest::keyClick(canvas, Qt::Key_Right, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("b"));
+        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "a"))->boundingRect().top() > -20);
+        QTest::keyClick(canvas, Qt::Key_Down, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("c"));
+        // Nothing lies below c, so the focus stays.
+        QTest::keyClick(canvas, Qt::Key_Down, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("c"));
+        QTest::keyClick(canvas, Qt::Key_P, Qt::ControlModifier | Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("b"));
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("a"));
+        QTest::keyClick(canvas, Qt::Key_B, Qt::ControlModifier | Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("c"));
+        QTest::keyClick(canvas, Qt::Key_Return);
+        QTRY_COMPARE(window.selectedCount(), 1);
+        QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "c"))->isSelected());
+    }
+    // shortcuts.ts: Ctrl+, opens settings and W opens the workflow settings.
+    void settingsShortcuts() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "settings"}, {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1000, 700);
+        window.show();
+        auto *canvas = view(window)->viewport();
+        view(window)->setFocus();
+        // No server is connected, so settings explain what is missing.
+        QTest::keyClick(canvas, Qt::Key_Comma, Qt::ControlModifier);
+        QCOMPARE(window.message(), QString("Connect to a server to open settings."));
+        QTest::keyClick(canvas, Qt::Key_W);
+        QTRY_VERIFY(window.findChild<QDialog *>("workflow-details-dialog"));
+        window.findChild<QDialog *>("workflow-details-dialog")->close();
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    }
     void nodeMenuEntriesAndActions() {
         EditorWindow window;
         window.setCatalog(catalog());
@@ -519,21 +578,17 @@ private slots:
         // Workflow menus of the application menu hold the other commands.
         // Platforms other than macOS add the canvas navigation choice.
         labels.removeIf([](const QString &label) { return label.startsWith("Canvas navigation: "); });
-        QCOMPARE(labels, (QStringList{"Instant Update: Off", "Save", "Version history", "Share workflow", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
+        QCOMPARE(labels, (QStringList{"Instant Update: Off", "Save", "Version history", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
         closeMenu(window);
     }
 
-    // Examples lists the bundled workflows by their first tag. Each entry opens its
-    // example in a tab of its own, with no file, so Save asks for a path.
+    // File > Open Example lists the bundled workflows by their first tag. Each entry
+    // opens its example in a tab of its own, with no file, so Save asks for a path.
     void examplesMenuOpensEachBundledExample() {
         EditorWindow window; window.show(); QTest::qWait(50);
         const auto resources = QDir(":/editor/examples").entryList({"*.json"}, QDir::Files);
         QVERIFY(resources.size() >= 2);
-        const auto openMenu = [&window] {
-            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-            window.action("Examples");
-            return window.findChild<QMenu *>("examples-menu");
-        };
+        const auto openMenu = [&window] { return window.findChild<QMenu *>("application-menu-examples"); };
         auto *menu = openMenu();
         QVERIFY(menu);
         QStringList sections, names;
@@ -561,6 +616,38 @@ private slots:
         }
         // The empty first tab takes the first example, and each other example gets a new tab.
         QCOMPARE(window.workflowTabs().size(), tabs + names.size() - 1);
+    }
+
+    // The Examples panel lists the bundled examples under Built in. Opening one
+    // closes the panel and opens the example in a tab, as the menu does.
+    void examplesPanelOpensABundledExampleInATab() {
+        EditorWindow window; window.show(); QTest::qWait(50);
+        QVERIFY(!window.examplesVisible());
+        window.action("Examples");
+        QTRY_VERIFY(window.examplesVisible());
+        QVERIFY(!window.catalogVisible());
+        auto *dock = window.findChild<QDockWidget *>("examples-dock");
+        QVERIFY(dock && !dock->isHidden());
+        auto *panel = qobject_cast<QQuickWidget *>(dock->widget());
+        QVERIFY(panel && panel->rootObject());
+        auto *gallery = panel->rootObject()->property("gallery").value<QObject *>();
+        QVERIFY(gallery);
+        const auto rows = gallery->property("rows").toList();
+        QCOMPARE(rows.size(), QDir(":/editor/examples").entryList({"*.json"}, QDir::Files).size());
+        QString key;
+        for (const auto &row : rows) {
+            if (row.toMap()["name"].toString() == "A Lo-Fi Drum Loop") { key = row.toMap()["key"].toString(); }
+        }
+        QVERIFY(!key.isEmpty());
+        QVERIFY(QMetaObject::invokeMethod(gallery, "open", Q_ARG(QString, key)));
+        QTRY_COMPARE(window.document()->snapshot()["name"].toString(), QString("A Lo-Fi Drum Loop"));
+        QVERIFY(window.localFilePath().isEmpty());
+        QVERIFY(!dock->isVisible());
+        // The panel toggle closes an open Examples panel.
+        window.action("Examples");
+        QTRY_VERIFY(window.examplesVisible());
+        window.action("Toggle panel");
+        QTRY_VERIFY(!window.examplesVisible());
     }
 
     // electron/src/menu.ts: the desktop app's menu, with the native entry for each item.
@@ -607,7 +694,7 @@ private slots:
         auto *workflow = window.findChild<QMenu *>("application-menu-workflow");
         QVERIFY(node && workflow);
         QCOMPARE(labels(workflow), (QStringList{"Run", "Run Selected", "Stop", "Open from Server…", "Save to Server", "Sync with Server…", "Reconnect",
-            "Linked Workflows…", "Share…", "Metadata…", "Canvas Uploads…"}));
+            "Linked Workflows…", "Metadata…", "Canvas Uploads…"}));
         emit node->aboutToShow();
         QVERIFY(entry(node, "Layout Selection")->isEnabled());
         QVERIFY(!entry(node, "Rename Node…")->isEnabled());

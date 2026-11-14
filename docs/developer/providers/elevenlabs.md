@@ -44,27 +44,7 @@ const MODELS: Array<{ id: string; name: string }> = [
 
 Models are **static arrays**, not fetched at runtime. Two separate places hold them:
 
-**Provider** (`elevenlabs-provider.ts`): the `MODELS` array drives what `getAvailableTTSModels()` returns to the unified TTS picker:
-
-```ts
-const MODELS: Array<{ id: string; name: string }> = [
-  { id: "eleven_v3", name: "Eleven v3" },
-  { id: "eleven_multilingual_v2", name: "Multilingual v2" },
-  // …
-];
-```
-
-**Node** (`text-to-speech.ts` / `realtime-tts.ts`): each node's `model_id` prop carries its own `values` enum that controls what appears in the workflow UI:
-
-```ts
-@prop({
-  type: "enum",
-  default: "eleven_monolingual_v1",
-  title: "Model",
-  values: ["eleven_v3", "eleven_multilingual_v2", "eleven_turbo_v2_5", /* … */]
-})
-declare model_id: any;
-```
+The provider's `MODELS` array in `elevenlabs-provider.ts` drives what `getAvailableTTSModels()` returns to the unified TTS picker. Each node's (`text-to-speech.ts`, `realtime-tts.ts`) `model_id` prop carries its own `values` enum that controls the workflow UI. The snippets under "Add a model to an existing node" show both.
 
 The two lists are independent and not identical. The node's `model_id` enum also carries the speech-to-speech models `eleven_multilingual_sts_v2` and `eleven_english_sts_v2`, which the provider omits. Keep them in sync when adding a TTS model.
 
@@ -81,7 +61,7 @@ Voices are also static. The canonical map lives in two files that mirror each ot
 
 Each node file exports a `readonly NodeClass[]` named `<CATEGORY>_NODES`. `src/index.ts` spreads them all into `ELEVENLABS_NODES` and `registerElevenLabsNodes()` calls `registry.register()` on each.
 
-The package loads from **`dist/`** (see `"main": "dist/index.js"` in `package.json`). TypeScript decorators (`@prop`) require a build step before any changes take effect.
+The package loads from `dist/` (`"main": "dist/index.js"` in `package.json`), so `@prop` decorator changes need a build before they take effect.
 
 
 ## Add a new model or node
@@ -119,16 +99,7 @@ Repeat for `realtime-tts.ts` if the model supports streaming.
 
 ### Add a voice
 
-**Step 1.** Add the entry to `VOICE_ID_MAP` in `packages/elevenlabs-nodes/src/elevenlabs-base.ts`:
-
-```ts
-export const VOICE_ID_MAP: Record<string, string> = {
-  // existing entries …
-  Matilda: "XrExE9yKIg1WjnnlVkGX",  // new
-};
-```
-
-**Step 2.** Mirror the same entry in `packages/runtime/src/providers/elevenlabs-provider.ts`:
+Add the same entry to `VOICE_ID_MAP` in `packages/elevenlabs-nodes/src/elevenlabs-base.ts` and in `packages/runtime/src/providers/elevenlabs-provider.ts`:
 
 ```ts
 const VOICE_ID_MAP: Record<string, string> = {
@@ -200,10 +171,8 @@ export const ELEVENLABS_NODES: readonly NodeClass[] = [
 ## Verify
 
 ```bash
-# Build first — required because this package loads from dist/
+# Build first, because this package loads from dist/
 npm run build:packages
-
-# Type check all packages
 npm run typecheck
 
 # Run the elevenlabs-nodes test suite
@@ -214,7 +183,7 @@ npm run dev:nodetool -- node run elevenlabs.TextToSpeech \
   --props '{"text":"hello","voice_id":"9BWtsMINqrJLrRacOk9x"}' \
   --no-secrets
 
-# Validate a workflow that uses the node (if you have one)
+# Validate a workflow that uses the node
 npm run dev:nodetool -- validate workflow.json
 
 # Affected tests and the harness gate before committing

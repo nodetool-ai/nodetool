@@ -27,7 +27,10 @@ export const WEB_COMPONENT_DIRS = [
     "web/src/components/panels",
     "web/src/components/node_types",
     "web/src/components/context_menus",
-    "web/src/components/version"
+    "web/src/components/version",
+    "web/src/components/examples",
+    "web/src/components/chat",
+    "web/src/components/workflows"
 ];
 
 // Credit per status. Accepted, out-of-scope and unreviewed items are left out
@@ -145,9 +148,25 @@ export function gestureBindings(source, file) {
 // QML files whose gestures count as shortcuts.
 const GESTURE_FILES = ["qml/PropertyField.qml"];
 
+// Keys a QML key handler turns into one session call, such as the composer's
+//   if (event.key === Qt.Key_Escape && root.running) {
+//       root.session.stop()
+// The call names the command: "session.stop()".
+export function keyHandlerBindings(source, file) {
+    const bindings = [];
+    const pattern = /if \(event\.key === Qt\.Key_(\w+)[^\n]*\) \{\s*\n\s*root\.(session\.[A-Za-z]+\(\))/g;
+    for (const [, key, call] of source.matchAll(pattern)) {
+        bindings.push({ command: call, combo: normalizeCombo(key), source: file });
+    }
+    return bindings;
+}
+
+// QML files, relative to native/, whose key handlers count as shortcuts.
+const KEY_HANDLER_FILES = ["chat/qml/ChatComposer.qml"];
+
 // The native bindings: the command table in EditorMenus.cpp, the application
-// menu, the tab shortcuts that EditorWindow::installTabShortcuts binds and the
-// pointer gestures of GESTURE_FILES.
+// menu, the tab shortcuts that EditorWindow::installTabShortcuts binds, the
+// pointer gestures of GESTURE_FILES and the keys of KEY_HANDLER_FILES.
 export function nativeShortcuts(root = ROOT) {
     const menus = readFileSync(join(root, "native/node-editor/src/ui/EditorMenus.cpp"), "utf8");
     const table = menus.match(/const Shortcut shortcuts\[\] = \{([\s\S]*?)\n\};/);
@@ -181,6 +200,9 @@ export function nativeShortcuts(root = ROOT) {
     bindings.push(...appMenuBindings(readFileSync(join(root, "native/node-editor/src/ui/EditorAppMenu.cpp"), "utf8")));
     for (const file of GESTURE_FILES) {
         bindings.push(...gestureBindings(readFileSync(join(root, "native/node-editor", file), "utf8"), file));
+    }
+    for (const file of KEY_HANDLER_FILES) {
+        bindings.push(...keyHandlerBindings(readFileSync(join(root, "native", file), "utf8"), file));
     }
     return bindings;
 }

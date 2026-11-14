@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <optional>
 #include "interfaces/DocumentTabs.h"
+#include "interfaces/ExampleGallery.h"
 #include "interfaces/GenerationActivity.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInfo.h"
@@ -21,6 +22,7 @@
 #include "interfaces/WorkflowHeader.h"
 #include "server/SetupController.h"
 #include "server/PackSetup.h"
+#include "server/ComfyBackend.h"
 #include "document/WorkflowDocument.h"
 #include "graph/WorkflowGraphModel.h"
 #include "server/WorkflowSession.h"
@@ -82,6 +84,10 @@ public:
     // A failure banner's Report: opens a prefilled bug report. `source` names the surface.
     Q_SLOT void reportError(const QString &source, const QString &text);
     Q_SLOT void toggleChat();
+    // web/src/config/shortcuts.ts newChat and focusChatComposer, handled by
+    // ChatView.tsx. Both open the chat when it is closed.
+    void newChatConversation();
+    void focusChatComposer();
     void beginChatGeometry();
     void resetChatPosition();
     void changeChatGeometry(int dx, int dy, int edges, bool finished);
@@ -93,6 +99,11 @@ public:
   bool emptyCanvas() const { return document_.nodes().isEmpty(); }
   node_editor::SetupController *setup() { return &setup_; }
     node_editor::PackSetup *packSetup() { return tabOwner_ ? &tabOwner_->packSetup_ : &packSetup_; }
+    // Where Comfy workflows run, shared by every tab and held by the root window.
+    node_editor::ComfyBackend *comfyBackend() { return tabOwner_ ? &tabOwner_->comfy_ : &comfy_; }
+    // useStartComfyWorkflow: a new Comfy workflow on the server, opened in a tab.
+    void newComfyWorkflow();
+    bool comfyWorkflowOpen() const { return comfyWorkflow_; }
     // The Generations panel's list, shared by every tab and held by the root window.
     node_editor::GenerationActivity *generationActivity() { return tabOwner_ ? &tabOwner_->generations_ : &generations_; }
     // The root window has no panels of its own, so it returns the active tab's.
@@ -142,6 +153,8 @@ public:
   void loadChildSource(const QString &nodeId, const QString &kind, const QString &sourceId);
   // ComfyWorkflowLoader.tsx: the Run ComfyUI Workflow node's load dialog.
   void showComfyWorkflowDialog(const QString &nodeId);
+  // CompositorEditorModal.tsx: the Compositor node's layout editor.
+  void showCompositorLayoutDialog(const QString &nodeId);
   void restoreTabs();
   void persistTabs() const;
   EditorWindow *activeEditor() const;
@@ -161,7 +174,9 @@ public:
   node_editor::WorkflowBrowser *workflowBrowser() { return activeEditor() == this ? &browser_ : activeEditor()->workflowBrowser(); }
   bool browserVisible() const;
   bool libraryVisible() const;
+  bool examplesVisible() const;
   void openWorkflow(const QString &id);
+  void deleteWorkflows(const QStringList &ids);
   void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
   bool runActive() const;
@@ -236,6 +251,8 @@ public:
     void openWorkflowDocument(const QJsonObject &workflow);
     // Opens the Report issue for a failed job in the queue history.
     void reportJob(const QString &jobId);
+    // Opens a queue job output's get_url in the browser, resolved against the server.
+    void openJobOutput(const QString &url);
     // A status bar tab: opens its panel, or closes it when it is the open one (PanelBottom.tsx).
     void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;
@@ -388,6 +405,15 @@ private:
   QPointer<EditorWindow> childParent_;
   QString childNode_;
     bool inlineChild_ = false;
+    // The workflow surface an inline subgraph surface belongs to, or this window.
+    // From a subgraph tab the web document bar, run toolbar, run output and
+    // status counts all use that workflow (WorkflowEditorSurface.tsx).
+    EditorWindow *workflowHost();
+    const EditorWindow *workflowHost() const;
+    // Shows the workflow host's run output in this subgraph surface's run interfaces.
+    void followHostRuns();
+    // The run output this surface's run interfaces show: its own, or its workflow host's.
+    node_editor::RunOutputModel *shownRunOutput_ = nullptr;
     QPointer<EditorWindow> shownSurface_;
     QTimer *childWriteTimer_ = nullptr;
   QJsonObject syncedChildGraph_;
@@ -453,8 +479,12 @@ private:
   void refresh();
   void showBrowser(bool visible);
   void loadBrowser();
-  // Lists the bundled examples by their first tag, as a popup menu at the cursor.
-  void showExamplesMenu();
+  // Opens or closes the Examples panel, which shares the left side with the
+  // workflow browser and the asset library.
+  void toggleExamples();
+  // The bundled examples: resource, name, description and tags of each file
+  // under :/editor/examples.
+  static QVariantList bundledExamples();
   // Adds an entry per bundled example to the menu, grouped by first tag. An entry opens
   // its example on this window, which passes it to the active tab.
   void addExampleActions(QMenu *menu);
@@ -495,6 +525,8 @@ private:
   static bool mouseNavigation();
   void applyFit();
   void revealSelection();
+  // Moves the view the least distance that shows the card whole.
+  void revealNode(const QString &resourceId);
   // The view that fits every node, as the zoom and the scene point at the viewport center.
   struct ViewTarget { double zoom = 1; QPointF center; };
   ViewTarget fitTarget() const;
@@ -567,6 +599,19 @@ private:
   QPointer<QObject> viewAnimation_;
 
     node_editor::PackSetup packSetup_;
+    // The root window's Comfy target. Owned by value, UI thread. Tabs reach it
+    // through comfyBackend() and never in their destructors.
+    node_editor::ComfyBackend comfy_;
+    // This tab's catalog before the Comfy records join it, and the records of
+    // the Comfy targets it has loaded (see nextComfyRecords).
+    QJsonArray baseCatalog_, comfyRecords_;
+    quint64 comfyCatalogEpoch_ = 0;
+    bool comfyWorkflow_ = false, comfyCatalogLoaded_ = false, comfyCatalogLoading_ = false;
+    void installComfy();
+    void syncComfyWorkflow();
+    void reloadComfyCatalog();
+    void syncComfyTarget();
+    void showComfyTargetMenu();
     // The root window's generations, which every tab's Generations panel reads
     // through generationActivity(). Owned by value, UI thread, destroyed with
     // the root window after its tabs and their panels.
@@ -713,8 +758,10 @@ private:
   node_editor::DynamicPortsController dynamicPorts_;
   node_editor::WorkflowBrowser browser_;
   node_editor::LibraryBrowser library_;
+  node_editor::ExampleGallery exampleGallery_;
   QDockWidget *browserDock_ = nullptr;
   QDockWidget *libraryDock_ = nullptr;
+  QDockWidget *examplesDock_ = nullptr;
   bool browserRestoreCatalog_ = false;
   bool browserLoadingProjects_ = false;
   quint64 browserEpoch_ = 0;

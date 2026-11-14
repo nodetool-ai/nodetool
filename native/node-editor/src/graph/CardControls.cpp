@@ -178,7 +178,8 @@ void paintComposer(QPainter *painter, const CanvasTheme &theme, const NodeRow &r
 // A small icon button. An active toggle tints its icon and a round fill with
 // the primary color, as StateIconButton's isActive.
 void paintIconButton(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
-    const auto ink = row.checked ? theme.primary : theme.textSecondary;
+    // A placeholder button is disabled, as the Painter's Undo with no history.
+    const auto ink = row.checked ? theme.primary : row.placeholder ? faded(theme.textSecondary, 0.4) : theme.textSecondary;
     if (row.checked) {
         painter->setPen(Qt::NoPen);
         painter->setBrush(faded(theme.primary, nm::activeFillOpacity));
@@ -201,6 +202,19 @@ void paintAction(QPainter *painter, const CanvasTheme &theme, const NodeRow &row
         painter->setPen(theme.canvas);
         painter->setFont(sans(theme, nm::fontValue));
         painter->drawText(row.rect, Qt::AlignCenter, row.label);
+        return;
+    }
+    if (!row.icon.isEmpty() && row.bare && !row.label.isEmpty()) {
+        // An outlined EditorButton with a start icon, such as Edit layout.
+        painter->setPen(QPen(theme.divider, nm::borderWidth));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRoundedRect(row.rect.adjusted(0.5, 0.5, -0.5, -0.5), nm::chipRadius, nm::chipRadius);
+        painter->setFont(sans(theme, nm::fontLabel));
+        const auto labelWidth = painter->fontMetrics().horizontalAdvance(row.label);
+        const auto left = row.rect.center().x() - (labelWidth + nm::iconSize) / 2.0;
+        paintMaterialIcon(painter, row.icon, QRectF(left, row.rect.center().y() - nm::iconSize / 2.0, nm::iconSize, nm::iconSize), theme.textSecondary);
+        painter->setPen(theme.textPrimary);
+        painter->drawText(QRectF(left + nm::iconSize, row.rect.y(), labelWidth + nm::micro, row.rect.height()), Qt::AlignLeft | Qt::AlignVCenter, row.label);
         return;
     }
     if (!row.icon.isEmpty()) {

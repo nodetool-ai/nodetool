@@ -1,5 +1,9 @@
 #include "document/ChildPorts.h"
 #include "graph/EditorScene.h"
+#include "interfaces/RunState.h"
+#include "interfaces/StatusModel.h"
+#include "interfaces/WorkflowHeader.h"
+#include "server/MsgPack.h"
 #include "ui/EditorWindow.h"
 #include <QCryptographicHash>
 #include <QDir>
@@ -13,6 +17,8 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
+#include <QWebSocket>
+#include <QWebSocketServer>
 #include <QtTest>
 using namespace nodetool;
 using namespace nodetool::node_editor;
@@ -406,6 +412,71 @@ private slots:
       QCOMPARE(restored.workflowTabs().size(), 1);
       QVERIFY(restored.canvasStrips().isEmpty());
       QCOMPARE(restored.document()->snapshot()["name"].toString(), QString("Host"));
+  }
+  // WorkflowEditorSurface.tsx keeps the document bar, the run toolbar and the
+  // status bar on the workflow while a subgraph tab shows its canvas.
+  void subgraphSurfaceRunsAndNamesItsWorkflow() {
+    QWebSocketServer server("subgraph run", QWebSocketServer::NonSecureMode);
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    QList<QJsonObject> commands;
+    connect(&server, &QWebSocketServer::newConnection, this, [&] {
+      auto peer = server.nextPendingConnection();
+      peer->setParent(&server);
+      connect(peer, &QWebSocket::binaryMessageReceived, this, [&](const QByteArray &bytes) {
+        const auto value = decodeMsgPack(bytes);
+        QVERIFY(value);
+        commands.append(value->toObject());
+      });
+    });
+    EditorWindow window;
+    window.show();
+    window.setCatalog({QJsonObject{{"node_type", "nodetool.workflows.subgraph.Subgraph"}, {"title", "Subgraph"}}});
+    auto child = subgraph();
+    auto inner = graph();
+    auto nested = subgraph();
+    nested["id"] = "nested";
+    inner["nodes"] = QJsonArray{input(), nested};
+    child["data"] = QJsonObject{{"graph", inner}};
+    QVERIFY(window.document()->load(
+        {{"name", "Parent"},
+         {"graph", QJsonObject{{"nodes", QJsonArray{child, QJsonObject{{"id", "source"}, {"type", "test.Source"}}}},
+                               {"edges", QJsonArray{}}}}}));
+    window.session()->connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), {});
+    QTRY_VERIFY(window.session()->connected());
+    auto parent = window.document();
+    auto parentSession = window.session();
+    auto parentOutput = window.runOutput();
+    QVERIFY(window.selectNode("child"));
+    QVERIFY(click(window, "selection-open-child"));
+    QVERIFY(window.selectNode("nested"));
+    QVERIFY(click(window, "selection-open-child"));
+    QVERIFY(window.document() != parent);
+    QCOMPARE(window.document()->nodes().size(), 1);
+    QCoreApplication::processEvents();
+    QTRY_COMPARE(window.workflowHeader()->workflowName(), QString("Parent"));
+    QVERIFY(window.workflowHeader()->renamable());
+    QTRY_COMPARE(window.statusModel()->nodeCount(), 2);
+
+    // Renaming from the nested surface's document bar renames the workflow tab.
+    window.workflowHeader()->rename("Renamed");
+    QTRY_COMPARE(parent->snapshot()["name"].toString(), QString("Renamed"));
+    QTRY_COMPARE(window.workflowHeader()->workflowName(), QString("Renamed"));
+
+    // Run from the nested surface submits the whole workflow on the workflow's session.
+    QVERIFY(window.session() != parentSession);
+    QTRY_VERIFY(window.runState()->connected());
+    window.action("Run");
+    QTRY_COMPARE_WITH_TIMEOUT(commands.size(), 1, 2000);
+    QCOMPARE(commands.first()["command"].toString(), QString("run_job"));
+    QSet<QString> ids;
+    for (const auto &v : commands.first()["data"].toObject()["graph"].toObject()["nodes"].toArray()) {
+      ids.insert(v.toObject()["id"].toString());
+    }
+    QCOMPARE(ids, (QSet<QString>{"child", "source"}));
+    QCOMPARE(parentOutput->runs().size(), 1);
+    QCOMPARE(window.runOutput()->runs().size(), 0);
+    QTRY_COMPARE(window.runState()->outputRuns().size(), 1);
+    QTRY_VERIFY(!window.runState()->queue().isEmpty());
   }
   void replacementDiscardsPendingChildWriteback() {
       EditorWindow window;

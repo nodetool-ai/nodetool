@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "Miten kohtaus on valaistu",
           "shotHeader": "Otos {{count}}",
           "shotAction": "Otos {{count}} · Toiminta",
-          "shotDialogue": "Otos {{count}} · Dialogi",
-          "dialoguePlaceholder": "Dialogi",
-          "addDialogue": "Lisää dialogia",
+          "dialogue": "Dialogi",
           "seconds": "Sekunnit",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Kohtaus {{count}}"
         },
         "fallback": {

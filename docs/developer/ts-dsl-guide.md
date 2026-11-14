@@ -27,13 +27,6 @@ npm install @nodetool-ai/dsl
 
 Or inside the NodeTool monorepo, all workspace packages are available after `npm install` at the repo root.
 
-Import namespaces directly:
-
-```ts
-import { constant, text, image } from "@nodetool-ai/dsl";
-import { workflow } from "@nodetool-ai/dsl";
-```
-
 The package root is the only public entry point. `package.json` also exports `./flow`, but that is the internal native-flow backend, not a supported API (see the [native flow design](../dsl-native-flow-design.md)). A subpath import of a generated namespace file does not resolve.
 Run `npm run codegen --workspace=packages/dsl` and read
 `packages/dsl/src/generated/index.ts` for the namespace names this build ships.
@@ -43,7 +36,7 @@ Run `npm run codegen --workspace=packages/dsl` and read
 
 ### OutputHandle
 
-When you create a node, you get back a `DslNode` object. Its `output()` method returns an `OutputHandle` — a symbolic reference to one of the node's output slots. You pass handles as inputs to other nodes to create connections.
+`output()` on a `DslNode` returns an `OutputHandle`, a symbolic reference to one of the node's output slots. Pass handles as inputs to other nodes to create connections.
 
 ```ts
 const a = constant.integer({ value: 5 });
@@ -161,41 +154,11 @@ metadata, input modes, correlations, and connections. It regenerates executable
 source rather than preserving the original helper calls or handwritten text.
 
 
-## Basic Workflow
-
-```ts
-import { constant, text } from "@nodetool-ai/dsl";
-import { workflow } from "@nodetool-ai/dsl";
-
-// 1. Create nodes
-const x = constant.string({ value: "Hello" });
-const y = constant.string({ value: ", " });
-
-// 2. Connect nodes by passing output handles
-const joined = text.collect({ input_item: x.output(), separator: y.output() });
-
-// 3. Build the workflow graph
-const wf = workflow(joined);
-
-console.log(wf.nodes);  // 3 nodes
-console.log(wf.edges);  // 2 edges (x→joined, y→joined)
-```
-
-`workflow()` traces all connections from the terminal nodes back to their sources and returns a serializable `Workflow` with `nodes` and `edges`.
-
-
 ## Connecting Nodes
 
 ### Implicit single-output connections
 
-Before:
-
-```ts
-const greeting = constant.string({ value: "Hello" });
-const joined = text.concat({ a: greeting.output(), b: "!" });
-```
-
-After:
+A single-output node can be passed directly where `greeting.output()` would go. Both forms produce the same connection.
 
 ```ts
 const greeting = constant.string({ value: "Hello" }, { id: "greeting" });
@@ -203,7 +166,7 @@ const joined = text.concat({ a: greeting, b: "!" }, { id: "joined" });
 const graph = workflow(joined);
 ```
 
-Both forms produce the same connection. `resolveConnection(value)` recognizes
+`resolveConnection(value)` recognizes
 an explicit handle or a single-output node. It returns `undefined` for literals.
 The factory normalizes direct input values before graph traversal. Nodes with
 multiple outputs require an explicit selection even when the low-level factory
@@ -370,7 +333,7 @@ Namespaces under `nodetool.` drop the prefix (`nodetool.text` becomes `text`). O
 
 ## Code Generation
 
-The factory functions are auto-generated from node metadata. To regenerate after adding or modifying nodes:
+To regenerate the factory functions after adding or modifying nodes:
 
 ```bash
 npm run codegen --workspace=packages/dsl
@@ -463,12 +426,6 @@ await flow.run(async () => {
 
 `packages/dsl/src/flow/generated/` holds typed per-namespace callables, such as `text.concat(inputs)` and `text.concat.stream(inputs)`. Codegen writes them (`npm run codegen --workspace=packages/dsl`, or `--flow` for this tree only). They are not host functions. `guest-core.ts` is the runtime behind them and runs only inside the QuickJS guest, as part of the `@nodetool-ai/sandbox-flow` pack. It calls four host capabilities from the `flow` capability module: `invoke_node`, `open_node_stream`, `take_node_stream` and `close_node_stream`. The host runs each one through the API above, on the invoking run's `ProcessingContext`. Guest authors should read the `nodetool-js-scripting` skill (`packages/system-skills/nodetool-js-scripting/SKILL.md`) rather than this section.
 
-
-## Best Practices
-
-- Import namespaces (`import { text } from "@nodetool-ai/dsl"`) for autocompletion.
-- Do not reuse handles across builds. `workflow()` clears the build registry, so handles from an earlier build are stale and throw in a new `workflow()` call.
-- Host DSL graphs run through `run()` or the CLI adapter. Sandbox DSL graphs go directly to agent workflow tools.
 
 ## Canonical source and visual editing
 

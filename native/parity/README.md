@@ -57,6 +57,13 @@ registry entry for them records what a scan cannot see. `--suggest` matches
 shortcuts by key combination only, so check each suggestion before you add
 it: an asset viewer's Left arrow is not the canvas's Move left.
 
+Native shortcuts come from the `EditorMenus.cpp` command table, the
+application menu, the tab shortcuts, `PropertyField.qml` gestures and the key
+handlers of `chat/qml/ChatComposer.qml`. A key handler counts when one
+`event.key` test leads to one `root.session` call, which names the command,
+such as `session.stop()` for Escape. The components inventory also covers
+`web/src/components/chat`, the chat the canvas chat window embeds.
+
 ## Runner
 
 ### Build the Qt host
@@ -122,7 +129,8 @@ differences.
   0.05) the check fails. Use it to find layout and styling gaps, not to
   require identical pixels.
 
-Fixtures live in `fixtures/`. `node-catalog.json` is node metadata from the
+Fixtures live in `fixtures/`. A scenario without `fixture` mounts with an
+empty one. `node-catalog.json` is node metadata from the
 generated node catalog; rebuild it with `node native/parity/fixtures/build.mjs`.
 
 ### Protocol of the Qt host
@@ -145,7 +153,10 @@ reply per line on stdout. Every reply has `ok`, the command's `id` and `ms`.
    fills them through the production mapping code (for example
    `NodeCatalog::entriesFromMetadata`), sets the required properties and
    implements `probe`. A component that needs `EditorWindow` cannot be mounted
-   until it takes narrow interfaces instead.
+   until it takes narrow interfaces instead. A component whose session talks
+   to a server takes a host object in its place: `host/ComposerSession` gives
+   `ChatComposer.qml` the mode, reasoning and permission tables of the chat
+   module's `ComposerRules` and reports send and stop as intents.
 2. Web: add the same name to `MOUNTS` in `web/src/parity/mounts.tsx`. Seed the
    stores the component reads, record intents, and return a probe with the
    same field names.

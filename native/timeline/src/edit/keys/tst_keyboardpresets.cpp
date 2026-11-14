@@ -289,6 +289,13 @@ private slots:
         QCOMPARE(playhead(), 6000.0);
         press(Qt::Key_Home);
         QCOMPARE(playhead(), 0.0);
+        // Final Cut binds neither key, so the registered defaults take them.
+        gestures()->setKeyboardPreset("fcp");
+        press(Qt::Key_End);
+        QCOMPARE(playhead(), 6000.0);
+        press(Qt::Key_Home);
+        QCOMPARE(playhead(), 0.0);
+        gestures()->setKeyboardPreset("premiere");
         // Up and Down follow the targeted tracks, Shift+Up and Shift+Down do not.
         auto& targets = nt::targeting::TrackTargeting::current();
         targets.setTrackTargeted("v", false);

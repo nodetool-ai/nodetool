@@ -2,15 +2,14 @@ import QtQuick
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
-// The workflow document bar under the tab bar: the name, the save state,
-// Undo and Redo, the Graph and Chain switch, the chat, mini-map and inspector
-// toggles, and the More menu. See web/src/components/workspace/WorkflowDocumentBar.tsx
+// The workflow document bar under the tab bar: the save state,
+// Undo and Redo, the chat, mini-map and inspector
+// toggles, and the document commands as icon buttons. See web/src/components/workspace/WorkflowDocumentBar.tsx
 // and web/src/components/ui_primitives/DocumentBar.tsx.
 Rectangle {
     id: root
     required property WorkflowHeader header
     required property PanelLayout panels
-    property bool renaming: false
     readonly property string saveStatus: root.header.saveStatus
     // web/src/i18n/locales/en.json: saveState and saveStatus.
     readonly property string saveLabel: {
@@ -43,8 +42,6 @@ Rectangle {
         }
         return ""
     }
-    // The native editor has no chain view yet. See the gap rows in docs/parity.md.
-    readonly property string chainUnavailableReason: "The chain view is not available in the native editor yet."
     implicitHeight: roles.headerHeight
     color: Ui.Theme.surfacePanel
     EditorRoles {
@@ -84,68 +81,6 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         anchors.verticalCenterOffset: -Ui.Metrics.border / 2
         spacing: Ui.Metrics.md
-
-        Ui.Text {
-            id: title
-            objectName: "header-title"
-            visible: !root.renaming
-            // The whole name when it fits. A narrow bar elides it.
-            Layout.fillWidth: true
-            Layout.preferredWidth: Math.ceil(implicitWidth)
-            Layout.maximumWidth: Math.ceil(implicitWidth)
-            text: root.header.workflowName
-            role: Ui.Typography.SansBody
-            weight: Font.Medium
-            tight: true
-            elide: Text.ElideRight
-            Accessible.role: Accessible.StaticText
-            Accessible.name: text
-            Accessible.description: root.header.renamable ? "Double-click to rename" : ""
-            HoverHandler {
-                id: titleHover
-            }
-            Ui.Tooltip {
-                trigger: title
-                visible: titleHover.hovered && root.header.renamable
-                text: "Double-click to rename"
-            }
-            MouseArea {
-                anchors.fill: parent
-                acceptedButtons: Qt.LeftButton
-                onDoubleClicked: {
-                    if (root.header.renamable) {
-                        root.renaming = true
-                    }
-                }
-            }
-        }
-        Ui.TextField {
-            id: renameField
-            objectName: "header-rename"
-            visible: root.renaming
-            Layout.preferredWidth: Math.max(title.implicitWidth, Ui.Metrics.dialogCompactWidth / 2)
-            density: Ui.EditorButton.Compact
-            accessibleName: "Document name"
-            value: root.header.workflowName
-            onVisibleChanged: {
-                if (visible) {
-                    forceActiveFocus()
-                    selectAll()
-                }
-            }
-            onValueCommitted: value => {
-                root.renaming = false
-                root.header.rename(value)
-            }
-            onEditCanceled: root.renaming = false
-            onAccepted: root.renaming = false
-            onActiveFocusChanged: {
-                if (!activeFocus && !editing) {
-                    root.renaming = false
-                }
-            }
-            Keys.onEscapePressed: root.renaming = false
-        }
 
         Row {
             id: saveState
@@ -217,21 +152,6 @@ Rectangle {
 
         SlotDivider {
         }
-        Ui.SegmentedControl {
-            id: modeSwitch
-            objectName: "header-mode"
-            variant: Ui.SegmentedControl.Tray
-            trayBorderColor: roles.divider
-            accessibleName: "Editor view"
-            value: "graph"
-            options: [
-                { objectName: "header-mode-graph", value: "graph", label: "Graph", iconName: "accountTree" },
-                { objectName: "header-mode-chain", value: "chain", label: "Chain", iconName: "linearScale", enabled: false, reason: root.chainUnavailableReason }
-            ]
-        }
-
-        SlotDivider {
-        }
         Row {
             spacing: Ui.Metrics.xs
             HeaderButton {
@@ -262,11 +182,45 @@ Rectangle {
         Item {
             Layout.fillWidth: true
         }
-        HeaderButton {
-            objectName: "header-more"
-            text: "More actions"
-            iconName: "moreVert"
-            onClicked: root.header.openMore()
+        Row {
+            objectName: "header-actions"
+            spacing: Ui.Metrics.xs
+            HeaderButton {
+                objectName: "header-instant-update"
+                text: "Instant update"
+                iconName: "autoFixHigh"
+                active: root.header.instantUpdate
+                enabled: root.header.enabledActions.indexOf("Instant Update: On") >= 0
+                tooltip: active ? "Instant update is on" : "Instant update is off"
+                onClicked: root.header.runAction(active ? "Instant Update: On" : "Instant Update: Off")
+            }
+            HeaderButton {
+                objectName: "header-navigation"
+                visible: root.header.navigationSwitch
+                text: "Canvas navigation"
+                iconName: root.header.mouseNavigation ? "toolSelect" : "toolHand"
+                enabled: root.header.enabledActions.indexOf("Canvas navigation: Mouse") >= 0
+                tooltip: root.header.mouseNavigation ? "Canvas navigation: Mouse" : "Canvas navigation: Trackpad"
+                onClicked: root.header.runAction(tooltip)
+            }
+            Repeater {
+                model: [
+                    { name: "Save", icon: "saveOutlined", id: "save" },
+                    { name: "Version history", icon: "history", id: "versions" },
+                    { name: "Workflow metadata", icon: "info", id: "metadata" },
+                    { name: "Server sync", icon: "sync", id: "server-sync" },
+                    { name: "Canvas uploads", icon: "fileUpload", id: "uploads" },
+                    { name: "Command menu", icon: "search", id: "command-menu" }
+                ]
+                HeaderButton {
+                    required property var modelData
+                    objectName: "header-" + modelData.id
+                    text: modelData.name
+                    iconName: modelData.icon
+                    enabled: root.header.enabledActions.indexOf(modelData.name) >= 0
+                    onClicked: root.header.runAction(modelData.name)
+                }
+            }
         }
     }
 }

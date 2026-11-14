@@ -3899,10 +3899,9 @@
           "lightingPlaceholder": "Jak oświetlona jest scena",
           "shotHeader": "Strzał {{count}}",
           "shotAction": "Strzał {{count}} · Akcja",
-          "shotDialogue": "Strzał {{count}} · Dialog",
-          "dialoguePlaceholder": "Dialog",
-          "addDialogue": "Dodaj dialog",
+          "dialogue": "Dialog",
           "seconds": "Sekundy",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scena {{count}}"
         },
         "fallback": {

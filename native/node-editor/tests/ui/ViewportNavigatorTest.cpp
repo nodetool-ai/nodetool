@@ -6,6 +6,7 @@
 #include <QDockWidget>
 #include <QGraphicsView>
 #include <QDir>
+#include <QPainter>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickWidget>
@@ -387,6 +388,25 @@ private slots:
  // The status indicator zooms about the center by 1.2 per step and React Flow
  // clamps zoomTo to MIN_ZOOM 0.12 and MAX_ZOOM 4, so a step at the edge lands on
  // the limit instead of doing nothing.
+ // AxisMarker.tsx: 1px origin lines run right and down from (0, 0), never left or up.
+ void originAxesRunRightAndDownFromTheOrigin() {
+  EditorWindow window;
+  QVERIFY(window.document()->load(QJsonObject{{"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}}));
+  QImage image(200, 200, QImage::Format_RGB32);
+  {
+   QPainter painter(&image);
+   window.scene()->render(&painter, QRectF(0, 0, 200, 200), QRectF(-100, -100, 200, 200));
+  }
+  const auto dark = window.scene()->theme().canvas.lightnessF() < .5;
+  const auto axis = nodetool::axisMarkerColor(dark).rgb() & 0xffffff;
+  const auto canvas = window.scene()->theme().canvas.rgb() & 0xffffff;
+  // Scene x = 63 and y = 63 sit between grid crosses.
+  QCOMPARE(image.pixel(163, 100) & 0xffffff, axis);
+  QCOMPARE(image.pixel(100, 163) & 0xffffff, axis);
+  QCOMPARE(image.pixel(37, 100) & 0xffffff, canvas);
+  QCOMPARE(image.pixel(100, 37) & 0xffffff, canvas);
+  QCOMPARE(image.pixel(163, 101) & 0xffffff, canvas);
+ }
  void zoomStepsClampToTheWebZoomRange() {
   EditorWindow window;
   loadCategories(window);

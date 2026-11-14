@@ -15,6 +15,16 @@ qml_callers = ["native/chat/qml/ConversationView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.TextArea, Ui.Text, Ui.Progress, Ui.EditorButton, Ui.ToolbarIconButton"
 
 [[file]]
+path = "native/chat/qml/ChatMediaPlayer.qml"
+category = "chrome"
+controls = ["Ui.EditorButton", "Ui.Slider", "Ui.Text", "VideoOutput"]
+signals = []
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "build"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Slider, Ui.Text"
+
+[[file]]
 path = "native/chat/qml/ChatMetrics.qml"
 category = "chrome"
 controls = []
@@ -47,7 +57,7 @@ replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.EditorButton, Ui.Text, Ui.T
 [[file]]
 path = "native/chat/qml/Main.qml"
 category = "chrome"
-controls = ["Ui.ToolbarIconButton", "ChatPanel", "Ui.Dialog", "Ui.ScrollBar", "Ui.Text", "Ui.Select", "Ui.EditorButton"]
+controls = ["Ui.ToolbarIconButton", "ChatPanel", "Ui.Dialog", "Ui.ScrollBar", "Ui.Text", "Ui.Select", "Ui.EditorButton", "ProviderKeyDialog"]
 signals = []
 test_host = "node native/chat/scripts/check.mjs"
 test_scope = "build/import"
@@ -57,7 +67,7 @@ replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Dialog, Ui.Scroll
 [[file]]
 path = "native/chat/qml/MessageDelegate.qml"
 category = "chrome"
-controls = ["Ui.Text", "Ui.TextArea", "Ui.EditorButton", "Ui.ToolbarIconButton", "PagedText", "Ui.Surface", "Image", "Ui.TextField"]
+controls = ["Ui.Text", "Ui.TextArea", "Ui.EditorButton", "Ui.ToolbarIconButton", "PagedText", "Ui.Surface", "Image", "Ui.TextField", "Ui.Progress", "Flow", "Loader"]
 signals = []
 test_host = "node native/chat/scripts/check.mjs"
 test_scope = "interaction"
@@ -65,14 +75,24 @@ qml_callers = ["native/chat/qml/ConversationView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextArea, Ui.EditorButton, Ui.ToolbarIconButton, Ui.Surface, Ui.TextField"
 
 [[file]]
+path = "native/chat/qml/ProviderKeyDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.Text", "Ui.Select", "Ui.TextField", "Ui.EditorButton"]
+signals = []
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "build/import"
+qml_callers = ["native/chat/qml/Main.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.Select, Ui.TextField, Ui.EditorButton"
+
+[[file]]
 path = "native/chat/qml/ThreadList.qml"
 category = "chrome"
-controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "ListView", "Ui.ScrollBar"]
+controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "ListView", "Ui.ScrollBar", "Ui.ToolbarIconButton", "Ui.TextField", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Dialog"]
 signals = ["threadOpened"]
 test_host = "node native/chat/scripts/check.mjs"
 test_scope = "build/import"
 qml_callers = ["native/chat/qml/ChatPanel.qml"]
-replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.ScrollBar"
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.ScrollBar, Ui.ToolbarIconButton, Ui.TextField, Ui.ContextMenu, Ui.MenuItem, Ui.Dialog"
 
 [[file]]
 path = "native/model-picker/qml/ModelPicker.qml"
@@ -2513,6 +2533,16 @@ qml_callers = ["native/timeline/qml/Inspector/ShapeSection.qml", "native/timelin
 replacement = "NodeTool.UiPrimitives: Ui.Text"
 
 [[file]]
+path = "native/timeline/src/edit/inspectorsections/AudioSection.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorPillInput"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
 path = "native/timeline/src/edit/inspectorsections/MediaSection.qml"
 category = "chrome"
 controls = ["InspectorSection", "InspectorRow", "InspectorSelect", "InspectorActionButton"]
@@ -2904,13 +2934,13 @@ replacement = "unreviewed"
 
 [[file]]
 path = "native/node-editor/qml/CodePropertyEditor.qml"
-category = "chrome"
+category = "pending"
 controls = ["ColumnLayout", "RowLayout", "Ui.EditorButton", "Rectangle", "Flickable", "Item", "Repeater", "Ui.Text", "Ui.TextArea", "Loader"]
 signals = ["editCanceled", "editStarted", "valueCommitted"]
 test_host = "native/node-editor/tests/ui/CodePropertyTest.cpp"
 test_scope = "build/import"
 qml_callers = ["native/node-editor/qml/InlinePropertyEditor.qml", "native/node-editor/qml/PropertyField.qml"]
-replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text, Ui.TextArea"
+replacement = "unreviewed"
 
 [[file]]
 path = "native/node-editor/qml/CodeSyntax.qml"
@@ -2968,6 +2998,16 @@ category = "pending"
 controls = ["Rectangle", "Connections", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.TextField", "Column", "Repeater", "Ui.Separator", "ListView", "Ui.ScrollBar"]
 signals = []
 test_host = "native/node-editor/tests/ui/CompatiblePickerHostTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/CompositorLayoutPanel.qml"
+category = "pending"
+controls = ["Rectangle", "Ui.Text", "Ui.NumberField", "Basic.ScrollView", "ColumnLayout", "Item", "RowLayout", "Field", "Ui.Separator", "Ui.PanelHeader", "Ui.ToolbarIconButton", "GridLayout", "Ui.EmptyState", "Repeater", "Ui.Slider", "Ui.Select", "Ui.EditorButton"]
+signals = []
+test_host = "native/node-editor/tests/ui/CardBodiesTest.cpp"
 test_scope = "build/import"
 qml_callers = []
 replacement = "unreviewed"
@@ -3051,6 +3091,16 @@ test_host = "native/node-editor/tests/visual/Fixture.qml"
 test_scope = "build/import"
 qml_callers = ["native/node-editor/qml/CanvasTabStrip.qml", "native/node-editor/qml/CardMediaPlayer.qml", "native/node-editor/qml/Catalog.qml", "native/node-editor/qml/DynamicPorts.qml", "native/node-editor/qml/HeaderRow.qml", "native/node-editor/qml/ImageComparisonOutput.qml", "native/node-editor/qml/Inspector.qml", "native/node-editor/qml/LibraryPanel.qml", "native/node-editor/qml/MiniMapControls.qml", "native/node-editor/qml/NodeMenu.qml", "native/node-editor/qml/NotificationsPanel.qml", "native/node-editor/qml/Rail.qml", "native/node-editor/qml/RunOutput.qml", "native/node-editor/qml/StatusBar.qml", "native/node-editor/qml/TabBar.qml", "native/node-editor/qml/Toolbar.qml", "native/node-editor/qml/ViewportIndicator.qml", "native/node-editor/qml/WorkflowBrowser.qml"]
 replacement = "Node editor geometry in Ui.Metrics and Ui.Theme tokens"
+
+[[file]]
+path = "native/node-editor/qml/ExamplesPanel.qml"
+category = "pending"
+controls = ["Rectangle", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.ToolbarIconButton", "Ui.CloseButton", "Ui.TextField", "Flow", "Repeater", "Ui.EditorButton", "Ui.Banner", "Item", "Ui.EmptyState", "Flickable", "Column", "Ui.BusyIndicator", "ExampleCard", "Ui.Surface", "Loader", "MediaPreview", "Ui.Icon"]
+signals = []
+test_host = "native/node-editor/tests/ui/ExamplesPanelTest.cpp"
+test_scope = "build/import"
+qml_callers = []
+replacement = "unreviewed"
 
 [[file]]
 path = "native/node-editor/qml/FilePropertyEditor.qml"
@@ -3160,6 +3210,16 @@ signals = []
 test_host = "native/node-editor/tests/ui/ViewportNavigatorTest.cpp"
 test_scope = "build/import"
 qml_callers = []
+replacement = "unreviewed"
+
+[[file]]
+path = "native/node-editor/qml/JobOutputThumb.qml"
+category = "pending"
+controls = ["MediaPreview"]
+signals = []
+test_host = "native/node-editor/tests/ui/QueueUiTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/QueueOverlay.qml"]
 replacement = "unreviewed"
 
 [[file]]
@@ -3604,13 +3664,13 @@ replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.ListRow, Ui.Text"
 
 [[file]]
 path = "native/node-editor/qml/WorkflowBrowser.qml"
-category = "chrome"
+category = "pending"
 controls = ["Rectangle", "EditorRoles", "ColumnLayout", "RowLayout", "Ui.Text", "Ui.EditorButton", "Ui.TextField", "Ui.Select", "Ui.EmptyState", "Flickable", "Ui.ScrollBar", "Repeater", "Ui.Separator"]
 signals = []
 test_host = "native/node-editor/tests/ui/WorkflowBrowserComponentTest.cpp"
 test_scope = "build/import"
 qml_callers = []
-replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.TextField, Ui.Select, Ui.EmptyState, Ui.ScrollBar, Ui.Separator"
+replacement = "unreviewed"
 
 [[file]]
 path = "native/node-editor/qml/WorkflowDetails.qml"
@@ -4391,3 +4451,11 @@ binding = "onDoubleClicked"
 rule = "manual-control"
 owner = "Program monitor effect mask overlay"
 reason = "A double click on a mask vertex converts it between a corner and a smooth point, as in Premiere. The overlay's one pointer target hit-tests vertices, tangents, the body and the feather and expansion handles."
+
+[[exception]]
+path = "native/chat/qml/MessageDelegate.qml"
+object = "root/Repeater[0]/partFrame/partContent/Flow[0]/Repeater[0]/tile/TapHandler[0]"
+binding = "onTapped"
+rule = "manual-control"
+owner = "Chat media grid"
+reason = "A media tile is a picture, as in MediaOutputGroup.tsx. Clicking it, or Space and Return when it has focus, opens the large preview, and the tile exposes itself as an accessible button."

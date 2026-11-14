@@ -20,8 +20,6 @@ The **Examples** page lists shipped workflows, apps, storyboards, timelines, ske
 
 Sketches are 1200 × 900 with five vector layers each, and a category row filters them (All, NodeTool, Ads, Movies, Art studies). The 3D models tab groups low-poly glTF models into packs: Adventure, Dungeon, Platformer, Seaside, Sci-fi, and Sci-fi outpost. Neither tab needs a model or API key. See [Sketch Editor](sketch-editor.md) for editing sketches.
 
-The rest of this page covers the **Workflows** tab, which is the template gallery.
-
 ---
 
 ## Opening a Template
@@ -30,7 +28,7 @@ Clicking a card creates a private copy named after the template, tagged `example
 
 ![Examples page](assets/screenshots/examples-page.png)
 
-Templates are loaded from the `workflows.examples` tRPC query. They are grouped by tag into the categories below.
+Templates are grouped by tag into the categories below.
 
 | Category | Tags that match |
 |----------|-----------------|
@@ -57,7 +55,7 @@ If nothing matches, the page offers **Clear search** or **Show all templates**.
 
 ## Anatomy of a Template Card
 
-Each card shows a thumbnail (a category-colored placeholder when missing), title, description, and:
+Each Workflows card shows a thumbnail, title, description, and:
 
 - **Inputs**, each marked required, optional, or requirement unknown.
 - **Provider/model**, the models the graph selects, or the providers it uses.
@@ -79,7 +77,7 @@ Shipped templates are JSON files in `packages/base-nodes/nodetool/examples/nodet
 2. Empty model fields, a description under 80 characters, and a thumbnail at `packages/base-nodes/nodetool/assets/nodetool-base/<name>.jpg`.
 3. A passing `npm run dev:nodetool -- validate "<file>.json"`.
 
-The full checklist, including thumbnail generation and the marketing catalog step, is in `packages/base-nodes/nodetool/examples/nodetool-base/README_EXAMPLES.md`. To turn a saved workflow into code, use `nodetool workflows export-dsl <id>`.
+The full checklist is in `packages/base-nodes/nodetool/examples/nodetool-base/README_EXAMPLES.md`. To turn a saved workflow into code, use `nodetool workflows export-dsl <id>`.
 
 ---
 

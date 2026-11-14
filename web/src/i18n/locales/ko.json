@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "장면의 조명 방식",
           "shotHeader": "샷 {{count}}",
           "shotAction": "샷 {{count}} · 액션",
-          "shotDialogue": "샷 {{count}} · 대화",
-          "dialoguePlaceholder": "대화",
-          "addDialogue": "대화 추가",
+          "dialogue": "대화",
           "seconds": "초",
+          "shotLength": "{{seconds}}초",
           "sceneHeader": "장면 {{count}}"
         },
         "fallback": {

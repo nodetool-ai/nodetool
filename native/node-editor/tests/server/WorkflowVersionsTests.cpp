@@ -83,7 +83,7 @@ private slots:
   response = R"({"result":{"data":{"versions":[]}}})";
   versions.load("versions"); QTRY_VERIFY(!versions.busy()); QVERIFY(versions.rows().isEmpty());
   response = R"({"error":{"message":"Permission denied"}})";
-  server.status = 403; versions.load("sharing"); QTRY_VERIFY(!versions.busy()); QVERIFY(versions.error().contains("Permission denied"));
+  server.status = 403; versions.load("versions"); QTRY_VERIFY(!versions.busy()); QVERIFY(versions.error().contains("Permission denied"));
   server.status = 200; response = "invalid"; versions.load("versions"); QTRY_VERIFY(!versions.busy()); QVERIFY(versions.error().contains("Invalid"));
   response = QByteArray{}; versions.load("versions"); QTRY_VERIFY(versions.busy());
   const auto requests = server.requests.size(); QTRY_VERIFY(server.requests.size() > requests);

@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "How the scene is lit",
           "shotHeader": "Shot {{count}}",
           "shotAction": "Shot {{count}} · Action",
-          "shotDialogue": "Shot {{count}} · Dialogue",
-          "dialoguePlaceholder": "Dialogue",
-          "addDialogue": "Add dialogue",
+          "dialogue": "Dialogue",
           "seconds": "Seconds",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scene {{count}}"
         },
         "fallback": {
