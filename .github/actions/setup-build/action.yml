@@ -1,7 +1,7 @@
 name: Setup and build backend
 description: >-
-  Set up Node, restore the cached node_modules (restoring the npm download
-  cache and running npm ci + native rebuild only on a miss), restore Turbo's build cache, and
+  Set up Node, restore the cached node_modules (running npm ci + native
+  rebuild only on a miss), restore Turbo's build cache, and
   (optionally) build the backend packages. It installs no system packages: jobs
   that need more than the runner image ships (the Vulkan driver, the browser
   libraries) run in the CI image (docker/ci/). The calling job must check out
@@ -77,8 +77,10 @@ runs:
 
     # Cache the installed workspace node_modules keyed on the lockfile (and Node
     # version). On a hit we skip `npm ci` and the native rebuild entirely — the
-    # restored tree already has better-sqlite3 built for this runner. The npm
-    # download cache below serves `npm ci` only on a miss.
+    # restored tree already has better-sqlite3 built for this runner. There is no
+    # npm download cache: it was about as large as the tree, every job restored
+    # it, and only `npm ci` on a miss read it. A miss downloads from the
+    # registry instead.
     - name: Cache node_modules
       id: node-modules-cache
       if: inputs.cache == 'read-write'
@@ -111,22 +113,6 @@ runs:
       if: always() && runner.os == 'Linux'
       shell: bash
       run: df -hT / && df -i /
-
-    # npm's download cache is about as large as the linked tree, and only
-    # `npm ci` reads it. Restoring it on every job cost each leg a download it
-    # never used, so it is fetched only when the tree itself missed.
-    - name: Locate the npm download cache
-      id: npm-cache-dir
-      if: inputs.cache == 'read-write' && steps.node-modules-cache.outputs.cache-hit != 'true'
-      shell: bash
-      run: echo "dir=$(npm config get cache)" >> "$GITHUB_OUTPUT"
-
-    - name: Cache npm downloads
-      if: inputs.cache == 'read-write' && steps.node-modules-cache.outputs.cache-hit != 'true'
-      uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
-      with:
-        path: ${{ steps.npm-cache-dir.outputs.dir }}
-        key: ${{ runner.os }}-${{ runner.arch }}-npm-downloads-${{ hashFiles('package-lock.json') }}
 
     - name: Install all workspace dependencies
       if: steps.node-modules-cache.outputs.cache-hit != 'true' && steps.node-modules-restore.outputs.cache-hit != 'true'
