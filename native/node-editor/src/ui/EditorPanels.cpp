@@ -353,6 +353,39 @@ void EditorWindow::showGenerations() {
   dock->show();
 }
 
+bool EditorWindow::workersVisible() const {
+  if (!tabOwner_) { return activeEditor_->workersVisible(); }
+  const auto *dock = findChild<QDockWidget *>(QStringLiteral("workers-dock"));
+  return dock && !dock->isHidden();
+}
+
+void EditorWindow::showWorkers() {
+  for (auto *existing : findChildren<QDockWidget *>(QStringLiteral("workers-dock"))) { existing->close(); }
+  auto *fleet = &tabOwner_->workers_;
+  // The tab's server and credentials. A tab with no server shows the empty state.
+  fleet->setServer(session_.serverUrl(), session_.token());
+  // Parented to the dock host and deleted when it closes.
+  auto *dock = new QDockWidget(tr("Workers"), dockHost_);
+  dock->setObjectName(QStringLiteral("workers-dock"));
+  dock->setAttribute(Qt::WA_DeleteOnClose);
+  dock->setTitleBarWidget(new QWidget(dock));
+  dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  outputDock_->hide();
+  auto *content = new QQuickWidget(engine_, dock);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties({{"fleet", QVariant::fromValue(fleet)}});
+  content->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/WorkersPanel.qml")));
+  dock->setWidget(content);
+  if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
+  connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
+  // The status bar Workers tab shows whether the panel is open.
+  connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
+  dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
+  dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
+  dock->show();
+}
+
 void EditorWindow::refreshGenerations() {
   if (!tabOwner_) { activeEditor_->refreshGenerations(); return; }
   auto *activity = generationActivity();
@@ -412,6 +445,9 @@ void EditorWindow::toggleStatusView(const QString &view) {
   } else if (view == "generations") {
     if (auto *dock = findChild<QDockWidget *>(QStringLiteral("generations-dock")); dock && !dock->isHidden()) { dock->close(); }
     else { showGenerations(); }
+  } else if (view == "workers") {
+    if (auto *dock = findChild<QDockWidget *>(QStringLiteral("workers-dock")); dock && !dock->isHidden()) { dock->close(); }
+    else { showWorkers(); }
   } else if (view == "trace") {
     if (auto *dock = findChild<QDockWidget *>(QStringLiteral("run-trace-dock")); dock && !dock->isHidden()) { dock->close(); }
     else { action(QStringLiteral("Run trace")); }

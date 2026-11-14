@@ -4459,3 +4459,33 @@ binding = "onTapped"
 rule = "manual-control"
 owner = "Chat media grid"
 reason = "A media tile is a picture, as in MediaOutputGroup.tsx. Clicking it, or Space and Return when it has focus, opens the large preview, and the tile exposes itself as an accessible button."
+
+[[file]]
+path = "native/node-editor/qml/WorkersPanel.qml"
+category = "chrome"
+controls = []
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/WorkersPanelTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/node-editor/qml/WorkerProfilesDialog.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "native/node-editor/tests/ui/WorkersPanelTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/WorkersPanel.qml"]
+replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/node-editor/qml/WorkerApiKeyCard.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "native/node-editor/tests/ui/WorkersPanelTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/WorkerProfilesDialog.qml", "native/node-editor/qml/WorkersPanel.qml"]
+replacement = "NodeTool.UiPrimitives"

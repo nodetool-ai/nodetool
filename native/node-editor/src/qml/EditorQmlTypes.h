@@ -5,6 +5,7 @@
 #include "interfaces/DocumentTabs.h"
 #include "interfaces/ExampleGallery.h"
 #include "interfaces/GenerationActivity.h"
+#include "interfaces/WorkerFleet.h"
 #include "interfaces/GenerationRowsModel.h"
 #include "interfaces/GenerationReplay.h"
 #include "interfaces/NodeCatalog.h"
@@ -78,6 +79,13 @@ struct GenerationActivityForeign {
     QML_FOREIGN(nodetool::node_editor::GenerationActivity)
     QML_NAMED_ELEMENT(GenerationActivity)
     QML_UNCREATABLE("A GenerationActivity comes from its owner.")
+};
+
+struct WorkerFleetForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::WorkerFleet)
+    QML_NAMED_ELEMENT(WorkerFleet)
+    QML_UNCREATABLE("A WorkerFleet comes from its owner.")
 };
 
 struct GenerationRowsModelForeign {

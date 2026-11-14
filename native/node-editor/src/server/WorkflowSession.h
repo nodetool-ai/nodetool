@@ -98,6 +98,7 @@ public:
   Q_INVOKABLE void keepLocalWorkflow();
   bool connected() const { return m_connected; }
   QUrl serverUrl() const { return m_base; }
+  QString token() const { return m_token; }
   Q_INVOKABLE void connectToServer(const QUrl &base, const QString &token,
                                    const QString &userId = "1");
   Q_INVOKABLE void disconnectFromServer();

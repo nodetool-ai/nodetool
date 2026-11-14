@@ -8,6 +8,7 @@
 #include "ui/DockedOverlay.h"
 #include "interfaces/ExampleGallery.h"
 #include "interfaces/GenerationActivity.h"
+#include "interfaces/WorkerFleet.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInfo.h"
 #include "interfaces/NodeInspector.h"
@@ -246,6 +247,7 @@ public:
     // The queue overlay lists its jobs: opened from the status bar or expanded.
     bool queueVisible() const;
     bool generationsVisible() const;
+    bool workersVisible() const;
     // Loads the account's generations.list page into the Generations panel.
     void refreshGenerations();
     // Opens a workflow document ({name, graph}) in a new unsaved tab.
@@ -454,6 +456,7 @@ private:
   void showServerSync();
   void showRunTrace();
   void showGenerations();
+  void showWorkers();
   // Loads a workflow document into this tab, with `file` as its file or none.
   bool openDocument(const QByteArray &json, const QString &file);
   void toggleQueue();
@@ -635,6 +638,10 @@ private:
     // through generationActivity(). Owned by value, UI thread, destroyed with
     // the root window after its tabs and their panels.
     node_editor::GenerationActivity generations_;
+    // The root window's GPU workers, which every tab's Workers panel reads.
+    // Owned by value, UI thread, destroyed with the root window after its
+    // tabs and their panels.
+    node_editor::WorkerFleet workers_;
     // What this tab's Catalog and NodeMenu panels read and do. Owned by value,
     // UI thread, destroyed with the tab after its panels (~EditorWindow deletes
     // them first).
@@ -690,7 +697,8 @@ private:
   // The status bar is the bottom panel's tab strip while the Output panel is open (PanelBottom.tsx).
   QQuickWidget *statusBar_ = nullptr;
   QBoxLayout *statusColumn_ = nullptr;
-  void placeStatusBar();
+  // Opens the run output (Logs) panel at the height of the other status bar views.
+  void showOutput();
   QVariantList notifications_;
   QDateTime notificationsSeen_;
   QPointer<QQuickWidget> notificationPopup_;

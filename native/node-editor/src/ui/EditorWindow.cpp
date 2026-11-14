@@ -776,14 +776,9 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
                       {"status", QVariant::fromValue(&statusModel_)},
                       {"runs", QVariant::fromValue(&runState_)},
                       {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
-  {
-    // placeStatusBar() moves the status bar above the output while the panel is open.
-    auto *body = new QWidget(outputDock_);
-    auto *bodyLayout = new QVBoxLayout(body);
-    bodyLayout->setContentsMargins(0, 0, 0, 0);
-    bodyLayout->setSpacing(0);
-    bodyLayout->addWidget(outputDock_->widget(), 1);
-    outputDock_->setWidget(body);
+  // The output panel opens above the status bar, as the other status bar views do.
+  if (auto *output = qobject_cast<QQuickWidget *>(outputDock_->widget()); output && output->rootObject()) {
+    connect(output->rootObject(), SIGNAL(closeRequested()), outputDock_, SLOT(hide()));
   }
   outputDock_->setObjectName("run-output-dock");
   outputDock_->setAllowedAreas(Qt::BottomDockWidgetArea);
@@ -911,7 +906,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &EditorWindow::syncNodeInfo);
   connect(inspectorDock_, &QDockWidget::visibilityChanged, this, [this] { schedulePanelChanged(); });
   connect(outputDock_, &QDockWidget::visibilityChanged, this,
-          [this] { placeStatusBar(); schedulePanelChanged(); });
+          [this] { schedulePanelChanged(); });
   connect(scene_, &QtNodes::BasicGraphicsScene::nodeDoubleClicked, this, [this](QtNodes::NodeId id) {
     if (node_editor::isChildNode(document_.node(model_.resourceId(id)))) { selected_ = model_.resourceId(id); openChild(); }
   });
@@ -1036,7 +1031,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
             } else if (session_.autosaveState() == "deleted") {
               message_ = tr("Server workflow deleted. Your local draft is preserved.");
             }
-            if (!serverSyncNeedsAttention()) { outputDock_->show(); }
+            if (!serverSyncNeedsAttention()) { showOutput(); }
             schedulePanelChanged();
           });
   connect(&session_, &node_editor::WorkflowSession::runSubmitted, this,
@@ -1094,7 +1089,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
               }
             }
             if (event["type"] == "error" || status == "failed" || status == "error") {
-              outputDock_->show();
+              showOutput();
             }
           });
   connect(&session_, &node_editor::WorkflowSession::saved, this,
@@ -2649,6 +2644,7 @@ void EditorWindow::syncChrome() {
                           .output = outputVisible(),
                           .queue = queueVisible(),
                           .generations = generationsVisible(),
+                          .workers = workersVisible(),
                           .trace = traceVisible(),
                           .versions = versionsVisible()});
   statusModel_.setStatus({.connectionStatus = connectionStatus(),
@@ -3605,7 +3601,7 @@ void EditorWindow::action(const QString &name) {
   if (name == "Auto layout" || name == "Layout selection") { autoLayout(name == "Layout selection"); return; }
   if (name == "Refresh workflows") { loadBrowser(); return; }
   if (name == "Output") {
-    outputDock_->setVisible(!outputVisible());
+    if (outputVisible()) { outputDock_->hide(); } else { showOutput(); }
     return;
   }
   if (name == "Toggle panel") {
@@ -4246,20 +4242,11 @@ void EditorWindow::layoutCatalog() {
   catalogPanel_->setGeometry(area.left(), area.top(), width, area.height());
   catalogPanel_->raise();
 }
-void EditorWindow::placeStatusBar() {
-  if (!statusBar_ || !statusColumn_ || !outputDock_ || !outputDock_->widget()) { return; }
-  auto *panelLayout = qobject_cast<QBoxLayout *>(outputDock_->widget()->layout());
-  if (!panelLayout) { return; }
-  if (!outputDock_->isHidden()) {
-    if (panelLayout->indexOf(statusBar_) < 0) {
-      statusColumn_->removeWidget(statusBar_);
-      panelLayout->insertWidget(0, statusBar_);
-    }
-  } else if (statusColumn_->indexOf(statusBar_) < 0) {
-    panelLayout->removeWidget(statusBar_);
-    statusColumn_->addWidget(statusBar_);
-  }
-  statusBar_->show();
+void EditorWindow::showOutput() {
+  if (!outputDock_->isHidden()) { return; }
+  outputDock_->show();
+  // Half the window, as the Generations, Workers, Versions and Trace panels open.
+  dockHost_->resizeDocks({outputDock_}, {height() / 2}, Qt::Vertical);
 }
 void EditorWindow::resizeEvent(QResizeEvent *event) {
   if (!tabOwner_) { QMainWindow::resizeEvent(event); return; }

@@ -455,22 +455,28 @@ private slots:
         QTest::qWait(120);
         auto *status = panel(window, QStringLiteral("StatusBar"));
         auto *root = status->rootObject();
-        const QList<QPair<QString, QString>> reasons{
-            {"status-workers", "Workers has no native panel yet."},
-        };
-        for (const auto &reason : reasons) {
-            auto *tab = find(root, reason.first);
-            hover(status, tab);
-            QTRY_COMPARE_WITH_TIMEOUT(shownTooltip(status), reason.second, 1000);
-            click(status, tab);
-            QTest::qWait(30);
-            QVERIFY(!window.outputVisible());
-        }
-        // Logs shows the run output panel. Versions opens the version history panel.
+        // Workers opens the workers panel and closes it again.
+        click(status, find(root, "status-workers"));
+        QTRY_VERIFY(window.workersVisible());
+        QTRY_VERIFY(find(root, "status-workers")->property("active").toBool());
+        click(status, find(root, "status-workers"));
+        QTRY_VERIFY(!window.workersVisible());
+        // Logs shows the run output panel above the status bar, as the other views open.
+        const auto *statusParent = status->parentWidget();
+        const auto statusBottom = status->mapTo(&window, QPoint(0, status->height())).y();
         click(status, find(root, "status-logs"));
         QTRY_VERIFY(window.outputVisible());
         QVERIFY(find(root, "status-logs")->property("active").toBool());
+        QCOMPARE(status->parentWidget(), statusParent);
+        QCOMPARE(status->mapTo(&window, QPoint(0, status->height())).y(), statusBottom);
         click(status, find(root, "status-logs"));
+        QTRY_VERIFY(!window.outputVisible());
+        // Its close button closes it, as on the other views.
+        click(status, find(root, "status-logs"));
+        QTRY_VERIFY(window.outputVisible());
+        auto *logs = panel(window, QStringLiteral("RunOutput"));
+        QVERIFY(logs);
+        click(logs, find(logs->rootObject(), "logs-close"));
         QTRY_VERIFY(!window.outputVisible());
         click(status, find(root, "status-versions"));
         QTRY_VERIFY(window.findChild<QDockWidget *>(QStringLiteral("workflow-versions-dock")));
