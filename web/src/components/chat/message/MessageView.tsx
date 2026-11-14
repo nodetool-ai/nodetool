@@ -42,6 +42,7 @@ import {
   Collapse,
   ToolbarIconButton,
   TextInput,
+  Tooltip,
   EditorButton,
   SPACING
 } from "../../ui_primitives";
@@ -1218,14 +1219,12 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
               })}
           </div>
           {hasNonEmptyContent && !hideActions && (
+            // Claude's order: a reply leads with Copy and Retry, and its model
+            // trails as a muted label that names the time on hover. A prompt
+            // shows when it was sent, then Edit and Copy.
             <div className="message-actions">
-              {formattedTime && (
+              {message.role === "user" && formattedTime && (
                 <span className="message-timestamp">{formattedTime}</span>
-              )}
-              {message.role === "assistant" && message.model && (
-                <span className="message-model" title={message.model}>
-                  {message.model}
-                </span>
               )}
               {canEditAndResend && (
                 <ToolbarIconButton
@@ -1235,6 +1234,11 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                   onClick={handleEditAndResend}
                 />
               )}
+              <CopyButton
+                value={replyCopyText ?? copyText}
+                buttonSize="small"
+                tooltip={t("i18n-next54.message.copyMessage")}
+              />
               {message.role === "assistant" && onRegenerate && (
                 <ToolbarIconButton
                   icon={<RefreshIcon fontSize="small" />}
@@ -1243,11 +1247,20 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                   onClick={onRegenerate}
                 />
               )}
-              <CopyButton
-                value={replyCopyText ?? copyText}
-                buttonSize="small"
-                tooltip={t("i18n-next54.message.copyMessage")}
-              />
+              {message.role === "assistant" && message.model && (
+                <Tooltip
+                  title={
+                    formattedTime
+                      ? `${message.model} · ${formattedTime}`
+                      : message.model
+                  }
+                >
+                  <span className="message-model">{message.model}</span>
+                </Tooltip>
+              )}
+              {message.role === "assistant" && !message.model && formattedTime && (
+                <span className="message-timestamp">{formattedTime}</span>
+              )}
             </div>
           )}
         </div>

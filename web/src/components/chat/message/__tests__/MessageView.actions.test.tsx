@@ -179,6 +179,35 @@ describe("MessageView action row", () => {
   });
 });
 
+describe("MessageView reply actions", () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("leads with Copy and Retry and names the model last, with no timestamp text", () => {
+    jest.useFakeTimers().setSystemTime(new Date("2026-09-04T18:30:00"));
+    const { container } = renderView(
+      {
+        id: "m10",
+        role: "assistant",
+        thread_id: "thread-1",
+        content: "Here it is.",
+        model: "gpt-5.4",
+        created_at: "2026-09-04T14:05:00"
+      } as Message,
+      { onRegenerate: jest.fn() }
+    );
+
+    const row = container.querySelector(".message-actions");
+    const labels = Array.from(row?.children ?? []).map(
+      (el) => el.getAttribute("aria-label") ?? el.textContent
+    );
+    // The model label names the time on hover, through its tooltip.
+    expect(labels).toEqual(["Copy message", "Regenerate", "gpt-5.4 · 14:05"]);
+    expect(row?.lastElementChild).toHaveTextContent(/^gpt-5\.4$/);
+  });
+});
+
 describe("MessageView edit in place", () => {
   const sent = {
     id: "0123456789abcdef0123456789abcdef",
