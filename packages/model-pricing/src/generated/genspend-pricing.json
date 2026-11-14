@@ -2,11 +2,11 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-11-05T11:16:10.151Z",
-  "catalogGeneratedAt": "2026-11-05T11:16:08.784Z",
+  "updatedAt": "2026-11-14T10:45:46.795Z",
+  "catalogGeneratedAt": "2026-11-14T10:45:45.211Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
-  "catalogModels": 173,
-  "catalogOfferings": 581,
+  "catalogModels": 185,
+  "catalogOfferings": 638,
   "providers": [
     "atlascloud",
     "elevenlabs",
@@ -19,7 +19,7 @@
     "together",
     "xai"
   ],
-  "pricedModels": 373,
+  "pricedModels": 369,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.0/reference-to-video": {
       "unit_price": 0.14,
@@ -538,8 +538,8 @@
     },
     "atlascloud:bytedance/seedance-2.5/image-to-video": {
       "unit_price": 0.134,
-      "billing_unit": "generations",
-      "unit_class": "per-generation",
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
       "model_slug": "seedance-2.5",
       "match": "catalog",
       "live": true,
@@ -557,8 +557,8 @@
     },
     "atlascloud:bytedance/seedance-2.5/reference-to-video": {
       "unit_price": 0.134,
-      "billing_unit": "generations",
-      "unit_class": "per-generation",
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
       "model_slug": "seedance-2.5",
       "match": "provider-id",
       "live": true,
@@ -576,8 +576,8 @@
     },
     "atlascloud:bytedance/seedance-2.5/text-to-video": {
       "unit_price": 0.134,
-      "billing_unit": "generations",
-      "unit_class": "per-generation",
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
       "model_slug": "seedance-2.5",
       "match": "catalog",
       "live": true,
@@ -2184,7 +2184,7 @@
       "unit_class": "per-1m-chars",
       "model_slug": "qwen-audio-3.0-tts-flash",
       "match": "provider-id",
-      "live": true,
+      "live": false,
       "source_url": "https://fal.ai/models/alibaba/qwen-audio-3-tts"
     },
     "fal_ai:alibaba/wan-3.0-prime/image-to-video": {
@@ -2248,7 +2248,7 @@
       "clip_seconds": null
     },
     "fal_ai:blackforestlabs/flux-3-max/image-to-video": {
-      "unit_price": 0.0425,
+      "unit_price": 0.085,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "flux-3-max",
@@ -2258,7 +2258,7 @@
       "clip_seconds": null
     },
     "fal_ai:blackforestlabs/flux-3-max/text-to-video": {
-      "unit_price": 0.0425,
+      "unit_price": 0.085,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "flux-3-max",
@@ -2306,7 +2306,7 @@
       "unit_class": "per-image",
       "model_slug": "bria-fibo-edit",
       "match": "provider-id",
-      "live": true,
+      "live": false,
       "source_url": "https://fal.ai/models/bria/fibo-edit/edit"
     },
     "fal_ai:bria/fibo-gen-1.5/text-to-image/llms.txt": {
@@ -2324,7 +2324,7 @@
       "unit_class": "per-image",
       "model_slug": "bria-fibo-edit",
       "match": "catalog",
-      "live": true,
+      "live": false,
       "source_url": "https://fal.ai/models/bria/fibo-edit/edit"
     },
     "fal_ai:bytedance/seedance-2.5/image-to-video": {
@@ -3424,24 +3424,6 @@
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/krea-2/turbo"
     },
-    "fal_ai:fal-ai/luma-photon": {
-      "unit_price": 0.019,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "luma-photon",
-      "match": "provider-id",
-      "live": false,
-      "source_url": "https://fal.ai/models/fal-ai/luma-photon"
-    },
-    "fal_ai:fal-ai/luma-photon/flash/reframe": {
-      "unit_price": 0.005,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "flash-modify-photon",
-      "match": "provider-id",
-      "live": false,
-      "source_url": "https://fal.ai/models/fal-ai/luma-photon/flash/reframe"
-    },
     "fal_ai:fal-ai/minimax-music/v1.5": {
       "unit_price": 0.03,
       "billing_unit": "generations",
@@ -3668,7 +3650,7 @@
       "unit_class": "per-1m-chars",
       "model_slug": "orpheus-3b",
       "match": "provider-id",
-      "live": true,
+      "live": false,
       "source_url": "https://fal.ai/models/fal-ai/orpheus-tts"
     },
     "fal_ai:fal-ai/pixverse/c1/image-to-video": {
@@ -3979,7 +3961,7 @@
       "unit_class": "per-image",
       "model_slug": "recraft-20b",
       "match": "provider-id",
-      "live": true,
+      "live": false,
       "source_url": "https://fal.ai/models/fal-ai/recraft-20b"
     },
     "fal_ai:fal-ai/recraft-v3": {
@@ -4033,7 +4015,7 @@
       "unit_class": "per-image",
       "model_slug": "sd-3.5-large",
       "match": "provider-id",
-      "live": true,
+      "live": false,
       "source_url": "https://fal.ai/models/fal-ai/stable-diffusion-v35-large"
     },
     "fal_ai:fal-ai/veo3.1": {
@@ -4621,6 +4603,35 @@
         "max": 10
       }
     },
+    "fal_ai:fal-ai/wan/v2.2-a14b/image-to-video": {
+      "unit_price": 0.08,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "wan-2.2",
+      "match": "provider-id",
+      "live": false,
+      "source_url": "https://fal.ai/models/fal-ai/wan/v2.2-a14b/image-to-video",
+      "variants": [
+        {
+          "price_usd": 0.04,
+          "unit_class": "per-video-second",
+          "resolution": "480p",
+          "is_base": false
+        },
+        {
+          "price_usd": 0.08,
+          "unit_class": "per-video-second",
+          "resolution": "720p",
+          "is_base": true
+        }
+      ],
+      "clip_seconds": {
+        "set": [
+          5
+        ],
+        "max": 5
+      }
+    },
     "fal_ai:fal-ai/wan/v2.7/image-to-video": {
       "unit_price": 0.1,
       "billing_unit": "seconds",
@@ -4791,6 +4802,26 @@
         "min": 3,
         "max": 10
       }
+    },
+    "fal_ai:google/gemini-omni-flash/v1.2/image-to-video": {
+      "unit_price": 0.0273,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "gemini-omni-flash-1.2-image-to-video",
+      "match": "receipt",
+      "live": true,
+      "source_url": "https://fal.ai/models/google/gemini-omni-flash/v1.2/image-to-video",
+      "clip_seconds": null
+    },
+    "fal_ai:kling/v4/flash/image-to-video": {
+      "unit_price": 0.094,
+      "billing_unit": "seconds",
+      "unit_class": "per-video-second",
+      "model_slug": "kling-4.0-flash",
+      "match": "receipt",
+      "live": true,
+      "source_url": "https://fal.ai/models/kling/v4/flash/image-to-video",
+      "clip_seconds": null
     },
     "fal_ai:kling/v4/image-to-video": {
       "unit_price": 0.157,
@@ -5625,7 +5656,7 @@
       "model_slug": "veo-3.1-fast",
       "match": "provider-id",
       "live": false,
-      "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "source_url": "https://cloud.google.com/model-garden/pricing",
       "variants": [
         {
           "price_usd": 0.1,
@@ -5665,7 +5696,7 @@
       "model_slug": "veo-3.1",
       "match": "provider-id",
       "live": false,
-      "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "source_url": "https://cloud.google.com/model-garden/pricing",
       "variants": [
         {
           "price_usd": 0.4,
@@ -5705,7 +5736,7 @@
       "model_slug": "veo-3.1-lite",
       "match": "provider-id",
       "live": false,
-      "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "source_url": "https://cloud.google.com/model-garden/pricing",
       "variants": [
         {
           "price_usd": 0.05,
@@ -6295,6 +6326,12 @@
       "source_url": "https://kie.ai/grok-imagine-video-1.5",
       "variants": [
         {
+          "price_usd": 0.04,
+          "unit_class": "per-video-second",
+          "resolution": "1080p",
+          "is_base": false
+        },
+        {
           "price_usd": 0.0225,
           "unit_class": "per-video-second",
           "resolution": "720p",
@@ -6621,7 +6658,7 @@
       }
     },
     "kie:kling-3.0/motion-control": {
-      "unit_price": 0.1,
+      "unit_price": 0.1135,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-motion-control-3",
@@ -6630,13 +6667,13 @@
       "source_url": "https://kie.ai/kling-3-motion-control",
       "variants": [
         {
-          "price_usd": 0.1,
+          "price_usd": 0.1135,
           "unit_class": "per-video-second",
           "resolution": "720p",
           "is_base": true
         },
         {
-          "price_usd": 0.135,
+          "price_usd": 0.151,
           "unit_class": "per-video-second",
           "resolution": "1080p",
           "is_base": false
@@ -6715,7 +6752,7 @@
       "clip_seconds": null
     },
     "kie:kling/v3-turbo-image-to-video": {
-      "unit_price": 0.09,
+      "unit_price": 0.101,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-3.0-turbo",
@@ -6724,14 +6761,14 @@
       "source_url": "https://kie.ai/kling-3-0-turbo",
       "variants": [
         {
-          "price_usd": 0.09,
+          "price_usd": 0.101,
           "unit_class": "per-video-second",
           "resolution": "720p",
           "tier": "turbo",
           "is_base": true
         },
         {
-          "price_usd": 0.1125,
+          "price_usd": 0.126,
           "unit_class": "per-video-second",
           "resolution": "1080p",
           "tier": "turbo",
@@ -6744,7 +6781,7 @@
       }
     },
     "kie:kling/v3-turbo-text-to-video": {
-      "unit_price": 0.09,
+      "unit_price": 0.101,
       "billing_unit": "seconds",
       "unit_class": "per-video-second",
       "model_slug": "kling-3.0-turbo",
@@ -6753,14 +6790,14 @@
       "source_url": "https://kie.ai/kling-3-0-turbo",
       "variants": [
         {
-          "price_usd": 0.09,
+          "price_usd": 0.101,
           "unit_class": "per-video-second",
           "resolution": "720p",
           "tier": "turbo",
           "is_base": true
         },
         {
-          "price_usd": 0.1125,
+          "price_usd": 0.126,
           "unit_class": "per-video-second",
           "resolution": "1080p",
           "tier": "turbo",
@@ -7566,15 +7603,6 @@
       "live": true,
       "source_url": "https://replicate.com/bytedance/seedream-4"
     },
-    "replicate:google/imagen-4": {
-      "unit_price": 0.04,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "imagen-4",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://replicate.com/google/imagen-4"
-    },
     "replicate:google/lyria-2": {
       "unit_price": 0.12,
       "billing_unit": "minutes",
@@ -7591,54 +7619,6 @@
           "is_base": false
         }
       ]
-    },
-    "replicate:google/veo-3": {
-      "unit_price": 0.4,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "veo-3",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://replicate.com/google/veo-3",
-      "clip_seconds": {
-        "set": [
-          4,
-          6,
-          8
-        ],
-        "max": 8
-      }
-    },
-    "replicate:google/veo-3-fast": {
-      "unit_price": 0.15,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "veo-3-fast",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://replicate.com/google/veo-3-fast",
-      "variants": [
-        {
-          "price_usd": 0.15,
-          "unit_class": "per-video-second",
-          "tier": "fast",
-          "is_base": true
-        },
-        {
-          "price_usd": 0.1,
-          "unit_class": "per-video-second",
-          "tier": "fast",
-          "is_base": false
-        }
-      ],
-      "clip_seconds": {
-        "set": [
-          4,
-          6,
-          8
-        ],
-        "max": 8
-      }
     },
     "replicate:ideogram-ai/ideogram-v3-quality": {
       "unit_price": 0.09,
@@ -7734,25 +7714,6 @@
       "match": "receipt",
       "live": true,
       "source_url": "https://replicate.com/minimax/speech-02-hd"
-    },
-    "replicate:openai/sora-2": {
-      "unit_price": 0.1,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "sora-2",
-      "match": "provider-id",
-      "live": true,
-      "source_url": "https://replicate.com/openai/sora-2",
-      "clip_seconds": {
-        "set": [
-          4,
-          8,
-          12,
-          16,
-          20
-        ],
-        "max": 20
-      }
     },
     "replicate:recraft-ai/recraft-v3": {
       "unit_price": 0.04,
@@ -7979,15 +7940,6 @@
       "billing_unit": "images",
       "unit_class": "per-image",
       "model_slug": "grok-imagine-image-2.0",
-      "match": "catalog",
-      "live": false,
-      "source_url": "https://docs.x.ai/developers/pricing"
-    },
-    "xai:grok-imagine-image-quality": {
-      "unit_price": 0.05,
-      "billing_unit": "images",
-      "unit_class": "per-image",
-      "model_slug": "grok-imagine-quality",
       "match": "catalog",
       "live": false,
       "source_url": "https://docs.x.ai/developers/pricing"
