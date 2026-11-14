@@ -46,6 +46,7 @@ const makeMessageContent = (file: DroppedFile): MessageContent => {
       document: {
         type: 'document',
         uri: fileUri,
+        title: file.name,
       },
     };
   } else {
