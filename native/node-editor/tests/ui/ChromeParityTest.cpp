@@ -368,11 +368,13 @@ private slots:
         QTRY_VERIFY(window.chatVisible());
         click(rail, entry("rail-chats"));
         QTRY_VERIFY(!window.chatVisible());
-        // Examples opens the menu of bundled examples.
+        // Examples opens and closes the examples panel, in place of the node library.
         click(rail, entry("rail-examples"));
-        QTRY_VERIFY(window.findChild<QMenu *>("examples-menu"));
-        window.findChild<QMenu *>("examples-menu")->close();
-        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QTRY_VERIFY(window.examplesVisible());
+        QVERIFY(!window.catalogVisible());
+        QTRY_VERIFY(entry("rail-examples")->property("active").toBool());
+        click(rail, entry("rail-examples"));
+        QTRY_VERIFY(!window.examplesVisible());
         // A disabled entry changes nothing.
         for (const auto *name : {"rail-projects", "rail-library"}) {
             click(rail, entry(name));

@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <optional>
 #include "interfaces/DocumentTabs.h"
+#include "interfaces/ExampleGallery.h"
 #include "interfaces/GenerationActivity.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInfo.h"
@@ -171,6 +172,7 @@ public:
   node_editor::WorkflowBrowser *workflowBrowser() { return activeEditor() == this ? &browser_ : activeEditor()->workflowBrowser(); }
   bool browserVisible() const;
   bool libraryVisible() const;
+  bool examplesVisible() const;
   void openWorkflow(const QString &id);
   void deleteWorkflows(const QStringList &ids);
   void deleteWorkflow(const QString &id, const QString &name);
@@ -465,8 +467,12 @@ private:
   void refresh();
   void showBrowser(bool visible);
   void loadBrowser();
-  // Lists the bundled examples by their first tag, as a popup menu at the cursor.
-  void showExamplesMenu();
+  // Opens or closes the Examples panel, which shares the left side with the
+  // workflow browser and the asset library.
+  void toggleExamples();
+  // The bundled examples: resource, name, description and tags of each file
+  // under :/editor/examples.
+  static QVariantList bundledExamples();
   // Adds an entry per bundled example to the menu, grouped by first tag. An entry opens
   // its example on this window, which passes it to the active tab.
   void addExampleActions(QMenu *menu);
@@ -739,8 +745,10 @@ private:
   node_editor::DynamicPortsController dynamicPorts_;
   node_editor::WorkflowBrowser browser_;
   node_editor::LibraryBrowser library_;
+  node_editor::ExampleGallery exampleGallery_;
   QDockWidget *browserDock_ = nullptr;
   QDockWidget *libraryDock_ = nullptr;
+  QDockWidget *examplesDock_ = nullptr;
   bool browserRestoreCatalog_ = false;
   bool browserLoadingProjects_ = false;
   quint64 browserEpoch_ = 0;

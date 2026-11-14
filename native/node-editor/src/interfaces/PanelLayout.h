@@ -19,6 +19,7 @@ class PanelLayout : public QObject {
     Q_PROPERTY(bool browserVisible READ browserVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool chatVisible READ chatVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool libraryVisible READ libraryVisible NOTIFY panelsChanged)
+    Q_PROPERTY(bool examplesVisible READ examplesVisible NOTIFY panelsChanged)
     // The node library.
     Q_PROPERTY(bool catalogVisible READ catalogVisible NOTIFY panelsChanged)
     Q_PROPERTY(bool inspectorVisible READ inspectorVisible NOTIFY panelsChanged)
@@ -36,6 +37,7 @@ public:
         bool browser = false;
         bool chat = false;
         bool library = false;
+        bool examples = false;
         bool catalog = false;
         bool inspector = false;
         bool miniMap = false;
@@ -53,6 +55,7 @@ public:
     bool browserVisible() const { return panels_.browser; }
     bool chatVisible() const { return panels_.chat; }
     bool libraryVisible() const { return panels_.library; }
+    bool examplesVisible() const { return panels_.examples; }
     bool catalogVisible() const { return panels_.catalog; }
     bool inspectorVisible() const { return panels_.inspector; }
     bool miniMapVisible() const { return panels_.miniMap; }
@@ -67,6 +70,7 @@ public:
     Q_INVOKABLE void toggleBrowser() { emit toggleBrowserRequested(); }
     Q_INVOKABLE void toggleChat() { emit toggleChatRequested(); }
     Q_INVOKABLE void toggleLibrary() { emit toggleLibraryRequested(); }
+    Q_INVOKABLE void toggleExamples() { emit toggleExamplesRequested(); }
     Q_INVOKABLE void toggleCatalog() { emit toggleCatalogRequested(); }
     Q_INVOKABLE void toggleInspector() { emit toggleInspectorRequested(); }
     // The rail's last button: the left panel, as the web PanelLeft toggle.
@@ -82,6 +86,7 @@ signals:
     void toggleBrowserRequested();
     void toggleChatRequested();
     void toggleLibraryRequested();
+    void toggleExamplesRequested();
     void toggleCatalogRequested();
     void toggleInspectorRequested();
     void togglePanelRequested();
