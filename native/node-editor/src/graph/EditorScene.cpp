@@ -378,7 +378,7 @@ public:
       if (!color.isValid()) { color = group ? QColor("#9ca3af") : theme.canvas; }
       color.setAlphaF(1);
       auto fill = color;
-      fill.setAlphaF(group ? 0.35 : 0.5);
+      fill.setAlphaF(group ? 0.15 : 0.5);
       auto border = color;
       border.setAlphaF(item.isSelected() ? 1 : 0.5);
       painter->setBrush(fill);
