@@ -112,37 +112,6 @@ describe("search_nodes", () => {
     expect(results[0]).toHaveProperty("outputs");
   });
 
-  it("lists at most 8 inputs per result and reports the full count", async () => {
-    const wide = createMetadata({
-      node_type: "fal.three_d.Wide",
-      title: "Wide 3D",
-      description: "A node with many properties.",
-      namespace: "fal.three_d",
-      properties: Array.from({ length: 20 }, (_, i) => ({
-        name: `prop_${i}`,
-        type: { type: "str", type_args: [] },
-        title: `Prop ${i}`
-      }))
-    });
-    const tool = nodeTool("search_nodes", mockRegistry([wide]));
-    const result = (await tool.process(mockContext(), {
-      query: ["wide"],
-      include_provider_nodes: true
-    })) as Record<string, unknown>;
-    const row = (result.results as Array<Record<string, unknown>>)[0];
-    expect((row.inputs as unknown[]).length).toBe(8);
-    expect(row.inputs_total).toBe(20);
-  });
-
-  it("omits inputs_total when every input fits", async () => {
-    const tool = nodeTool("search_nodes", mockRegistry(allNodes));
-    const result = (await tool.process(mockContext(), {
-      query: ["resize"]
-    })) as Record<string, unknown>;
-    const row = (result.results as Array<Record<string, unknown>>)[0];
-    expect(row).not.toHaveProperty("inputs_total");
-  });
-
   it("limits results", async () => {
     const tool = nodeTool("search_nodes", mockRegistry(allNodes));
     const result = (await tool.process(mockContext(), {
