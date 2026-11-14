@@ -18,6 +18,7 @@ export * from "./api-types.js";
 export * from "./custom-providers.js";
 export * from "./asset-file-name.js";
 export * from "./mime-types.js";
+export * from "./chat-attachment.js";
 export * from "./package-assets.js";
 export * from "./resource-uri.js";
 export * from "./model-selection.js";

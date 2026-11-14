@@ -226,6 +226,7 @@ describe('useFileHandling', () => {
         document: {
           type: 'document',
           uri: mockPdfFile.dataUri,
+          title: mockPdfFile.name,
         },
       });
     });
