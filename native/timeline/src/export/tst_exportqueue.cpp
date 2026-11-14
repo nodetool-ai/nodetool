@@ -234,13 +234,14 @@ private slots:
         QTemporaryDir dir;
         TimelineModel model;
         QVERIFY(loadFixture(model));
-        QFile exists(dir.filePath("exists.wav"));
-        QVERIFY(exists.open(QIODevice::WriteOnly));
-        exists.write("keep"); exists.close();
+        // Editor exports replace an existing file, so a folder in the way is
+        // what makes this job fail.
+        const QString blocked = dir.filePath("exists.wav");
+        QVERIFY(QDir(dir.path()).mkdir("exists.wav"));
         ExportQueue queue;
         queue.setTimeline(&model);
         queue.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
-        const auto a = queue.enqueue(exists.fileName(), wav);
+        const auto a = queue.enqueue(blocked, wav);
         const auto b = queue.enqueue(dir.filePath("good.wav"), wav);
         QVERIFY(!a.isEmpty()); QVERIFY(!b.isEmpty());
         QTRY_COMPARE_WITH_TIMEOUT(queue.activeCount(), 0, 30000);
@@ -248,7 +249,7 @@ private slots:
         QVERIFY(!queue.job(a).value("error").toString().isEmpty());
         QCOMPARE(queue.job(a).value("detail"), queue.job(a).value("error"));
         QCOMPARE(state(queue, b), QString("done"));
-        QCOMPARE(QFileInfo(exists.fileName()).size(), qint64(4));
+        QVERIFY(QFileInfo(blocked).isDir());
         // A synchronous snapshot/staging failure must schedule the next item too.
         const auto c = queue.enqueue(dir.filePath("c.wav"), wav);
         QVERIFY(QDir(dir.path()).mkdir("removed"));

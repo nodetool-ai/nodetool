@@ -76,7 +76,9 @@ private slots:
         key(Qt::Key_Left); QCOMPARE(clock.time(), 1500.0);
         key(Qt::Key_Right, Qt::ShiftModifier);
         QVERIFY(qAbs(clock.time() - 50 * 1000.0 / 30) < 1e-9);
-        clock.seek(6000); key(Qt::Key_Right); QCOMPARE(clock.time(), 6000.0);
+        // Stepping stops at the sequence end, which can run past the last clip.
+        const double end = model.contentEndMs();
+        clock.seek(end); key(Qt::Key_Right); QCOMPARE(clock.time(), end);
         clock.seek(0); key(Qt::Key_Left); QCOMPARE(clock.time(), 0.0);
         clock.seek(1500); key(Qt::Key_L);
         const auto playingTime = clock.time(); key(Qt::Key_Right); QCOMPARE(clock.time(), playingTime);
