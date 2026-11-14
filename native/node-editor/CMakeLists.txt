@@ -6,14 +6,15 @@ set(CMAKE_AUTOMOC ON)
 include(CTest)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Widgets QuickWidgets Qml Quick QuickControls2 Svg Network WebSockets Multimedia Test)
 qt_standard_project_setup(REQUIRES 6.12)
-# Configures only the QML components, their interfaces and the parity
-# harness host (native/parity/host), without QtNodes, the graph runner, chat or
-# the editor window. A components-only build needs Qt and nothing else.
+# Configures only the QML components, their interfaces, the chat module and the
+# parity harness host (native/parity/host), without QtNodes, the graph runner
+# or the editor window. A components-only build needs Qt and nothing else.
 option(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY "Build only the QML components and the parity host" OFF)
 option(NODETOOL_PARITY_HOST "Build the native/parity component host" ON)
 add_subdirectory(../ui_primitives ui_primitives)
 add_subdirectory(../model-picker model-picker)
 add_subdirectory(../media media)
+add_subdirectory(../chat chat)
 # The C++ interfaces that editor QML components take as required properties,
 # with what they need and nothing of the editor window. A component test links
 # these, node_editor_qml and the UI primitives only.
@@ -115,7 +116,6 @@ if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
 endif()
 include(cmake/QtNodes.cmake)
 include(cmake/GraphRunner.cmake)
-add_subdirectory(../chat chat)
 add_library(node_editor_core STATIC
  src/server/AccountJobs.cpp src/server/AccountJobs.h
  src/server/SetupController.cpp src/server/SetupController.h

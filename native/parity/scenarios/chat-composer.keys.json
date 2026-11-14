@@ -1,0 +1,18 @@
+{
+  "id": "chat-composer.keys",
+  "component": "ChatComposer",
+  "description": "Type a two-line prompt with Shift+Enter, send it with Enter, stop the reply with Escape and recall the prompt with ArrowUp.",
+  "steps": [
+    { "observe": { "name": "opened", "compare": ["draft", "running", "compact", "permission"], "screenshot": true } },
+    { "act": { "type": "type", "text": "hello" } },
+    { "act": { "type": "key", "key": "Enter", "modifiers": ["Shift"] } },
+    { "act": { "type": "type", "text": "world" } },
+    { "observe": { "name": "typed", "compare": ["draft", "running"] } },
+    { "act": { "type": "key", "key": "Enter" } },
+    { "observe": { "name": "sent", "compare": ["draft", "running"], "intents": true } },
+    { "act": { "type": "key", "key": "Escape" } },
+    { "observe": { "name": "stopped", "compare": ["running"], "intents": true } },
+    { "act": { "type": "key", "key": "ArrowUp" } },
+    { "observe": { "name": "recalled", "compare": ["draft"] } }
+  ]
+}
