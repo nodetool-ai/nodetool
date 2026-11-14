@@ -71,15 +71,18 @@ void GroupPresentationTest::labelHitOutsideItemBounds() {
   QVERIFY(scene.nodeGraphicsObject(group)->zValue() < scene.nodeGraphicsObject(child)->zValue());
 }
 // React Flow writes fractional sizes after a resize. They round, and never
-// fall back to the default 400 x 300 frame.
+// fall back to the default 400 x 300 frame or a card's natural height.
 void GroupPresentationTest::fractionalSizesKeepTheirSize() {
   WorkflowGraphModel model;
   model.project(QJsonDocument::fromJson(R"JSON({"graph":{"nodes":[
     {"id":"group","type":"nodetool.workflows.base_node.Group","data":{"headline":"Frame"},"ui_properties":{"position":{"x":0,"y":0},"width":612.4,"height":455.6}},
-    {"id":"note","type":"nodetool.workflows.base_node.Comment","data":{"comment":"Hi"},"ui_properties":{"position":{"x":700,"y":0},"width":250.5,"height":120.2}}
+    {"id":"note","type":"nodetool.workflows.base_node.Comment","data":{"comment":"Hi"},"ui_properties":{"position":{"x":700,"y":0},"width":250.5,"height":120.2}},
+    {"id":"preview","type":"nodetool.workflows.base_node.Preview","data":{},"ui_properties":{"position":{"x":0,"y":600},"width":300,"height":420.5}}
   ],"edges":[]}})JSON").object());
   QCOMPARE(model.layout(idFor(model, "group")).size, QSize(612, 456));
   QCOMPARE(model.layout(idFor(model, "note")).size, QSize(251, 120));
+  // Cards too: a fractional height is the height the web resized it to.
+  QCOMPARE(model.layout(idFor(model, "preview")).size.height(), 421);
 }
 void GroupPresentationTest::resizeCommitsOnceAndPreservesChildren() {
   node_editor::WorkflowDocument document;

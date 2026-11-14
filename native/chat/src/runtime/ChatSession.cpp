@@ -42,7 +42,7 @@ ChatSession::ChatSession(QObject *parent)
         if (composer::isMediaMode(m_mediaMode)) {
             m_mediaSettings[m_mediaMode] =
                 composer::clampSettings(m_mediaMode, mediaSettings(), m_mediaCatalog.constraints());
-            savePreferences();
+            savePreferenceEntry("mediaSettings", m_mediaMode, m_mediaSettings[m_mediaMode]);
         }
         emit stateChanged();
     });
@@ -484,7 +484,7 @@ void ChatSession::createThread(const QString &draft) {
             m_threadWorkflows[id] = workflow;
             // GlobalChatStore.ts createNewThread pins the last picked mode on the new thread.
             m_permissionModes[id] = m_lastPermissionMode;
-            savePreferences();
+            savePreferenceEntry("permissionModes", id, m_lastPermissionMode);
             upsertThread(result.toObject());
             state(id).draft = draft;
             if (workflow == m_workflow) {
@@ -1285,7 +1285,7 @@ void ChatSession::setReasoningEffort(const QString &effort) {
         return;
     }
     m_reasoningEffort = effort;
-    savePreferences();
+    savePreference("reasoningEffort", m_reasoningEffort);
     emit stateChanged();
 }
 QString ChatSession::permissionModeFor(const QString &threadId) const {
@@ -1302,10 +1302,11 @@ void ChatSession::setPermissionMode(const QString &mode) {
         return;
     }
     m_lastPermissionMode = mode;
+    savePreference("lastPermissionMode", m_lastPermissionMode);
     if (!m_selected.isEmpty()) {
         m_permissionModes[m_selected] = mode;
+        savePreferenceEntry("permissionModes", m_selected, mode);
     }
-    savePreferences();
     if (!m_selected.isEmpty()) {
         if (mode == "auto") {
             const auto ids = m_actions.keys();
@@ -1360,23 +1361,25 @@ void ChatSession::usePreferences(std::unique_ptr<QSettings> preferences) {
     m_preferences->endGroup();
     emit stateChanged();
 }
-void ChatSession::savePreferences() {
+// Every editor tab holds its own session and settings handle. A save writes
+// only what changed, and merges the per-thread and per-mode maps with the
+// stored ones, so it keeps what another tab saved.
+void ChatSession::savePreference(const QString &key, const QVariant &value) {
     if (!m_preferences) {
         return;
     }
-    QVariantMap modes;
-    for (auto it = m_permissionModes.cbegin(); it != m_permissionModes.cend(); ++it) {
-        modes[it.key()] = it.value();
-    }
-    QVariantMap media;
-    for (auto it = m_mediaSettings.cbegin(); it != m_mediaSettings.cend(); ++it) {
-        media[it.key()] = it.value();
+    m_preferences->beginGroup("chat-composer");
+    m_preferences->setValue(key, value);
+    m_preferences->endGroup();
+}
+void ChatSession::savePreferenceEntry(const QString &key, const QString &entry, const QVariant &value) {
+    if (!m_preferences) {
+        return;
     }
     m_preferences->beginGroup("chat-composer");
-    m_preferences->setValue("reasoningEffort", m_reasoningEffort);
-    m_preferences->setValue("lastPermissionMode", m_lastPermissionMode);
-    m_preferences->setValue("permissionModes", modes);
-    m_preferences->setValue("mediaSettings", media);
+    auto stored = m_preferences->value(key).toMap();
+    stored[entry] = value;
+    m_preferences->setValue(key, stored);
     m_preferences->endGroup();
 }
 bool ChatSession::reasoningSupported() const {
@@ -1402,7 +1405,7 @@ void ChatSession::setMediaSetting(const QString &key, const QVariant &value) {
     }
     settings[key] = value;
     m_mediaSettings[m_mediaMode] = settings;
-    savePreferences();
+    savePreferenceEntry("mediaSettings", m_mediaMode, settings);
     emit stateChanged();
 }
 QVariantList ChatSession::mediaOptions(const QString &key) const {

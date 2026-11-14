@@ -305,6 +305,12 @@ private slots:
         const auto idleNow = root->property("now");
         QTest::qWait(1100);
         QCOMPARE(root->property("now"), idleNow);
+        // Opening the queue reads the clock, so its day groups are current.
+        root->setProperty("now", 0.0);
+        root->setProperty("opened", true);
+        QTRY_VERIFY(root->property("now").toDouble() > 0);
+        root->setProperty("opened", false);
+        QTRY_VERIFY(!root->property("presented").toBool());
         auto theme = widget.engine()->singletonInstance<QObject *>(
             "NodeTool.UiPrimitives", "Theme");
         QVERIFY(theme);

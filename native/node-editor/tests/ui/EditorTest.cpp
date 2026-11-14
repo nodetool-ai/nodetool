@@ -682,8 +682,8 @@ private slots:
     auto panels = w.findChildren<QQuickWidget *>();
     // Rail, tabs, document header, status, catalog, node menu, browser, inspector, output, both toolbars,
     // viewport readout, mini-map controls, first-workflow guide, queue overlay, subgraph canvas strip, chat overlay, library,
-    // node info overlay.
-    QCOMPARE(panels.size(), 19);
+    // node info overlay, examples panel.
+    QCOMPARE(panels.size(), 20);
     for (auto p : panels) {
       QCOMPARE(p->status(), QQuickWidget::Ready);
     }

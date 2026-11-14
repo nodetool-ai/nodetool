@@ -6,10 +6,11 @@
 #include <algorithm>
 
 namespace nodetool::node_editor {
-namespace {
-bool terminal(const QString &status) {
+bool isTerminalRunStatus(const QString &status) {
   return status == "completed" || status == "finished" || status == "failed" || status == "cancelled" || status == "timed_out" || status == "error";
 }
+namespace {
+bool terminal(const QString &status) { return isTerminalRunStatus(status); }
 constexpr qsizetype TextLimit = 65536;
 constexpr qsizetype ValueBudget = 131072;
 constexpr qsizetype CollectionLimit = 128;

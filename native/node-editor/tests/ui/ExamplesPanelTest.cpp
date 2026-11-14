@@ -109,6 +109,8 @@ private:
         requests.append({first.value(0), first.value(1), buffer.mid(end + 4, length), user});
         buffer.clear();
         const auto response = responses.isEmpty() ? qMakePair(500, QByteArray("{}")) : responses.takeFirst();
+        // Status 0 sends the body as the whole response, such as a redirect.
+        if (response.first == 0) { socket->write(response.second); socket->disconnectFromHost(); return; }
         socket->write("HTTP/1.1 " + QByteArray::number(response.first) + " X\r\nContent-Type: application/json\r\nContent-Length: " +
                       QByteArray::number(response.second.size()) + "\r\nConnection: close\r\n\r\n" + response.second);
         socket->disconnectFromHost();
@@ -225,6 +227,20 @@ private slots:
         const auto groups = gallery.groups();
         QVERIFY(!groups[0].toMap()["error"].toString().isEmpty());
         QVERIFY(groups[2].toMap()["error"].toString().isEmpty());
+    }
+
+    // The bearer token never follows a redirect, as with the other server clients.
+    void serverRedirectIsNotFollowed() {
+        FakeServer server;
+        const auto elsewhere = server.origin().toString() + "/elsewhere";
+        server.responses = {{0, "HTTP/1.1 302 Found\r\nLocation: " + elsewhere.toUtf8() + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"},
+                            {200, R"({"workflows":[{"id":"x","name":"Moved"}]})"}};
+        ExampleGallery gallery;
+        gallery.configure(server.origin(), "secret-token", "1");
+        gallery.refresh();
+        QTRY_VERIFY(!gallery.loading());
+        QCOMPARE(server.requests.size(), 1);
+        QVERIFY(!gallery.groups().first().toMap().value("error").toString().isEmpty());
     }
 
     void panelShowsCardsFiltersAndOpens() {

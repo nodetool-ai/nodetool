@@ -191,6 +191,40 @@ private slots:
         QCOMPARE(last(commits).toMap().value("columns").toList().size(), 1);
     }
 
+    // Tabulator's header checkbox selects the rows the search shows. A row the
+    // search hides is never selected, so Delete cannot remove it unseen.
+    void selectAllFollowsTheSearch() {
+        const QVariantMap frame{{"type", "dataframe"},
+            {"columns", QVariantList{QVariantMap{{"name", "fruit"}, {"data_type", "string"}}}},
+            {"data", QVariantList{QVariantList{"apple"}, QVariantList{"banana"}, QVariantList{"cherry"}}}};
+        auto table = make("DataTableEditor.qml", {{"kind", "dataframe"}}, frame);
+        QVERIFY(table);
+        QSignalSpy commits(table.get(), SIGNAL(valueCommitted(QVariant)));
+        table->setProperty("expanded", true);
+        call(table.get(), "toggleRow", {0, true});
+        table->setProperty("filterText", "banana");
+        QCOMPARE(unpack(table->property("selected")).toList(), QVariantList());
+        call(table.get(), "selectAll", {true});
+        QCOMPARE(unpack(table->property("selected")).toList(), QVariantList({1}));
+        auto *all = findNamed(table.get(), "data-table-select-all");
+        QVERIFY(all);
+        QVERIFY(all->property("checked").toBool());
+        QVERIFY(call(table.get(), "deleteSelected").toBool());
+        QCOMPARE(json(last(commits).toMap().value("data")), QString(R"([["apple"],["cherry"]])"));
+    }
+    // A renamed dictionary key keeps its row, although the value comes back
+    // from C++ with its keys sorted.
+    void dictionaryRenameKeepsTheRowOrder() {
+        auto table = make("DataTableEditor.qml", {{"kind", "dict"}}, QVariantMap{{"a", 1}, {"b", 2}});
+        QVERIFY(table);
+        QSignalSpy commits(table.get(), SIGNAL(valueCommitted(QVariant)));
+        QVERIFY(call(table.get(), "setCell", {0, 0, "z"}).toBool());
+        table->setProperty("value", QJsonDocument::fromVariant(last(commits)).object().toVariantMap());
+        QCOMPARE(unpack(table->property("keys")).toStringList(), QStringList({"z", "b"}));
+        call(table.get(), "addRow");
+        table->setProperty("value", QJsonDocument::fromVariant(last(commits)).object().toVariantMap());
+        QCOMPARE(unpack(table->property("keys")).toStringList(), QStringList({"z", "b", "new_key_2"}));
+    }
     // ColumnsManager.tsx refuses a name another column holds.
     void columnsEditor() {
         QQmlComponent component(&engine_, QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ColumnsEditor.qml"));

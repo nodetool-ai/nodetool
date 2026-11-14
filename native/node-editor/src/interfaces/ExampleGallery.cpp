@@ -13,6 +13,8 @@
 namespace nodetool::node_editor {
 namespace {
 constexpr std::array<const char *, 2> ServerGroups{"workflows", "comfy"};
+// The cap WorkflowBrowser applies to a server answer.
+constexpr qint64 MaxResponseBytes = 32 * 1024 * 1024;
 
 QString groupLabel(const QString &group) {
     if (group == QLatin1String("workflows")) { return QObject::tr("Workflows"); }
@@ -182,9 +184,14 @@ void ExampleGallery::refresh() {
     emit changed();
     QNetworkRequest request(origin_.resolved(QUrl(QStringLiteral("/api/workflows/examples"))));
     request.setTransferTimeout(30000);
+    // As the other server clients: a redirect never carries the token elsewhere.
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
     request.setRawHeader("x-user-id", user_.toUtf8());
     auto *reply = network_.get(request);
+    connect(reply, &QNetworkReply::readyRead, this, [reply] {
+        if (reply->bytesAvailable() > MaxResponseBytes) { reply->abort(); }
+    });
     connect(reply, &QNetworkReply::finished, this, [this, reply, epoch, serial] {
         reply->deleteLater();
         if (epoch != epoch_ || serial != listSerial_) { return; }
@@ -238,6 +245,7 @@ void ExampleGallery::copy(const Row &row) {
     url.setQuery(query);
     QNetworkRequest request(url);
     request.setTransferTimeout(30000);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
     request.setRawHeader("x-user-id", user_.toUtf8());

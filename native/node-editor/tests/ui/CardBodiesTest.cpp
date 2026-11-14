@@ -57,6 +57,8 @@ public:
     QHash<QString, QJsonObject> applications;
     QJsonObject comfySchema;
     QByteArray comfyRequest;
+    // The request heads of /api/workflows/<id>, to check the headers sent.
+    QList<QByteArray> workflowRequests;
 
     Server() {
         listen(QHostAddress::LocalHost);
@@ -110,6 +112,7 @@ private:
             send(socket, QJsonDocument(asset).toJson(QJsonDocument::Compact));
             return;
         } else if (target.startsWith("/api/workflows/")) {
+            workflowRequests.append(bytes.left(end));
             const auto workflow = workflows.value(QString::fromUtf8(target.mid(15)));
             send(socket, QJsonDocument(workflow).toJson(QJsonDocument::Compact), workflow.isEmpty() ? 404 : 200);
             return;
@@ -2877,6 +2880,10 @@ private slots:
         QTRY_COMPARE(host.data("workflow")["workflow_id"].toString(), QStringLiteral("wf1"));
         QCOMPARE(host.data("workflow")["workflow_json"].toObject()["name"].toString(), QStringLiteral("Caption images"));
         QCOMPARE(host.undoCount(), undo + 1);
+        // The headers every native server client sends.
+        QVERIFY(!server.workflowRequests.isEmpty());
+        QVERIFY(server.workflowRequests.first().toLower().contains("x-user-id: 1"));
+        QVERIFY(server.workflowRequests.first().contains("Bearer card-token"));
         // The node derives its input from the workflow's String Input.
         QCOMPARE(host.window.document()->node("workflow")["dynamic_inputs"].toObject().keys(), QStringList{QStringLiteral("topic")});
         QCOMPARE(host.row("workflow", NodeRowKind::Field, "workflow_id")->value, QStringLiteral("Caption images"));

@@ -236,7 +236,8 @@ private:
     QHash<QString, QString> m_permissionModes;
     QString m_lastPermissionMode = "default";
     std::unique_ptr<QSettings> m_preferences;
-    void savePreferences();
+    void savePreference(const QString &key, const QVariant &value);
+    void savePreferenceEntry(const QString &key, const QString &entry, const QVariant &value);
     QVariantList m_assetResults;
     QVariantList m_recentAssets;
     QString m_assetQuery;
