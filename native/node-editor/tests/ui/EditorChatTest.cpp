@@ -33,8 +33,11 @@ public:
     bool holdUploads = false;
     bool failUploads = false;
     QPointer<QTcpSocket> uploadSocket;
-    // Model rows by tRPC procedure, as models.*ByProvider returns them.
-    QHash<QString, QJsonArray> models;
+    // Model rows by tRPC procedure, as models.*ByProvider returns them. The
+    // chat refuses a send without a usable model, so one language model is
+    // always offered.
+    QHash<QString, QJsonArray> models{
+        {"models.llmByProvider", QJsonArray{QJsonObject{{"id", "claude-opus-4-6"}, {"provider", "anthropic"}, {"name", "claude-opus-4-6"}}}}};
     QJsonArray assets;
     QJsonArray threads{QJsonObject{{"id", ThreadId}, {"title", "Server conversation"}, {"workflow_id", "workflow-chat"}, {"project_id", "default"}}};
     ChatServer() {
@@ -274,6 +277,9 @@ class EditorChatTest final : public QObject {
                 return;
             }
             seen.insert(procedure + model["id"].toString());
+            if (server.models.value(procedure).contains(model)) {
+                return;
+            }
             model.remove("type");
             if (procedure == "models.videoByProvider") {
                 model["supported_tasks"] = videoTasks;
@@ -516,6 +522,8 @@ private slots:
         QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
         QTRY_VERIFY(!chat->historyLoading());
         QVERIFY(window.selectNode("node-chat"));
+        // Wait for the first usable model, so it cannot replace the one set here.
+        QTRY_VERIFY(!chat->model().isEmpty());
         chat->setProvider("openai");
         chat->setModel("fixture-model");
         QTemporaryFile attachment;

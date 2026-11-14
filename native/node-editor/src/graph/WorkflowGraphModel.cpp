@@ -862,7 +862,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       // A body such as Compare Images sets a wider minimum than the 150 px corner limit.
       result.minimumSize = QSize(std::max(150, result.minimumSize.width()),
                                  result.body == CardBody::Preview ? nm::outputPlaceholderHeight : result.size.height() - result.flexHeight);
-      result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+      result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble())));
       addRenameControls();
       if (ui["collapsed"].toBool()) { result = collapsedLayout(result, ui); }
       return *layouts_.insert(id, result);
@@ -1422,7 +1422,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     if (result.subgraph) { result.size.rheight() += nm::handleRowStep; }
   result.minimumSize = QSize(150, result.size.height());
   const auto natural = result.size.height();
-  result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+  result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble())));
   stretchCodeField(result, result.size.height() - natural);
   stretchCardMedia(result, type);
   addRenameControls();

@@ -179,6 +179,7 @@ public:
   bool examplesVisible() const;
   void openWorkflow(const QString &id);
   void deleteWorkflows(const QStringList &ids);
+  std::optional<QString> editOpenWorkflow(const QString &id, const QVariantMap &patch);
   void deleteWorkflow(const QString &id, const QString &name);
   QVariantList outputMedia() const { return activeEditor() == this ? outputMedia_ : activeEditor()->outputMedia(); }
   bool runActive() const;

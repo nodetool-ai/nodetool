@@ -383,9 +383,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&browser_, &node_editor::WorkflowBrowser::deleteRequested, this, &EditorWindow::deleteWorkflow);
   connect(&browser_, &node_editor::WorkflowBrowser::deleteSelectedRequested, this, &EditorWindow::deleteWorkflows);
   connect(&browser_, &node_editor::WorkflowBrowser::reloadRequested, this, [this] { action("Refresh workflows"); });
-  connect(&browser_, &node_editor::WorkflowBrowser::renamed, this, [this](const QString &id) {
-    if (id == document_.snapshot()["id"].toString() && document_.undoStack()->isClean()) { session_.openWorkflow(id); }
-  });
+  browser_.setOpenWorkflowEditor([this](const QString &id, const QVariantMap &patch) { return editOpenWorkflow(id, patch); });
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &mediaResolver_, &node_editor::MediaResolver::configure);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &runTrace_, &node_editor::RunTraceController::configure);
   connect(&session_, &node_editor::WorkflowSession::credentialsChanged, &modelPicker_, &node_editor::ModelPickerController::configure);
@@ -1058,8 +1056,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
             runtime_.ingest(id, event);
             runOutput_.ingest(id, event);
             const auto status = event["status"].toString();
-            const bool terminal = event["type"] == "job_update" &&
-                (status == "completed" || status == "finished" || status == "failed" || status == "cancelled");
+            const bool terminal = event["type"] == "job_update" && node_editor::isTerminalRunStatus(status);
             const bool silent = previewRuns_.contains(id) && event["error"].toString().isEmpty() && status != "failed";
             if (terminal) { previewRuns_.remove(id); }
             if (terminal && id == liveRun_) { trackLiveRun({}); }
@@ -1605,6 +1602,23 @@ void EditorWindow::deleteWorkflow(const QString &id, const QString &name) {
   const auto epoch = browserEpoch_;
   const auto answer = QMessageBox::question(this, tr("Delete workflow"), tr("Delete “%1” from the server? This cannot be undone.").arg(name), QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
   if (answer == QMessageBox::Yes && epoch == browserEpoch_) { browser_.deleteWorkflow(id); }
+}
+// The list's rename and edit dialog for a workflow open in a tab. The tab
+// saves the change with its own revision, so its unsaved edits go along and
+// its next save does not conflict, and the list reloads after that save.
+std::optional<QString> EditorWindow::editOpenWorkflow(const QString &id, const QVariantMap &patch) {
+  auto *owner = tabOwner_ ? tabOwner_ : this;
+  for (auto *tab : owner->tabs_) {
+    if (tab->childParent_ || !tab->session_.serverBound() || tab->document_.snapshot()["id"].toString() != id) { continue; }
+    if (tab->readOnly() || tab->session_.saving() || tab->session_.conflictPending()) {
+      return tr("Save or resolve the open copy of this workflow first.");
+    }
+    connect(&tab->session_, &node_editor::WorkflowSession::saved, this, [this] { browser_.refresh(); }, Qt::SingleShotConnection);
+    tab->versions_.saveMetadata(patch);
+    tab->schedulePanelChanged();
+    return QString();
+  }
+  return std::nullopt;
 }
 // WorkflowDeleteDialog.tsx with several workflows.
 void EditorWindow::deleteWorkflows(const QStringList &ids) {

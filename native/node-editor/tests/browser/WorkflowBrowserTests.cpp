@@ -3,6 +3,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QPointer>
+#include <QSettings>
+#include <QStandardPaths>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QUrlQuery>
@@ -329,6 +331,27 @@ private slots:
     QTRY_COMPARE(deleted.count(), 2);
     QTRY_VERIFY(!browser.busy() && !browser.loading());
     QVERIFY(browser.error().contains("1 workflow"));
+  }
+  // Every tab holds its own browser. A view choice saved in one tab keeps
+  // what another tab saved, such as a favourite.
+  void viewSettingsFromTwoTabsKeepEachOther() {
+    QStandardPaths::setTestModeEnabled(true);
+    QCoreApplication::setOrganizationName("nodetool-browser-tests");
+    QCoreApplication::setApplicationName("view-settings");
+    QSettings().clear();
+    WorkflowBrowser first, second;
+    first.restoreViewSettings();
+    second.restoreViewSettings();
+    first.toggleFavorite("wf-1");
+    second.setSortBy("name");
+    second.setShowGraphPreview(true);
+    second.toggleTag("video");
+    QCOMPARE(QSettings().value("workflows/favorites").toStringList(), QStringList{"wf-1"});
+    QCOMPARE(QSettings().value("workflows/sortBy").toString(), QString("name"));
+    first.setShowGraphPreview(false);
+    QCOMPARE(QSettings().value("workflows/selectedTags").toStringList(), QStringList{"video"});
+    QCOMPARE(QSettings().value("workflows/sortBy").toString(), QString("name"));
+    QSettings().clear();
   }
   void invalidResponseAndRetry() {
     Fixture server;

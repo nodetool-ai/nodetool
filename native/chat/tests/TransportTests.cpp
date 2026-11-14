@@ -421,6 +421,36 @@ private slots:
         restored.setMediaMode("image");
         QCOMPARE(restored.mediaSettings()["aspectRatio"], picked);
     }
+    // Each editor tab owns a session with its own settings handle. A save
+    // from one tab keeps the preferences another tab saved.
+    void preferencesFromTwoTabsKeepEachOther() {
+        QTemporaryDir directory;
+        QVERIFY(directory.isValid());
+        const auto file = directory.filePath("chat.ini");
+        ChatSession first;
+        first.usePreferences(std::make_unique<QSettings>(file, QSettings::IniFormat));
+        ChatSession second;
+        second.usePreferences(std::make_unique<QSettings>(file, QSettings::IniFormat));
+        first.setPermissionMode("plan");
+        second.setReasoningEffort("high");
+        second.setMediaMode("image");
+        const auto initial = second.mediaSettings()["aspectRatio"];
+        QVariant picked;
+        for (const auto &option : second.mediaOptions("aspectRatio")) {
+            if (option.toMap()["value"] != initial) {
+                picked = option.toMap()["value"];
+            }
+        }
+        QVERIFY(picked.isValid());
+        second.setMediaSetting("aspectRatio", picked);
+        first.setReasoningEffort("low");
+        ChatSession restarted;
+        restarted.usePreferences(std::make_unique<QSettings>(file, QSettings::IniFormat));
+        QCOMPARE(restarted.permissionMode(), QStringLiteral("plan"));
+        QCOMPARE(restarted.reasoningEffort(), QStringLiteral("low"));
+        restarted.setMediaMode("image");
+        QCOMPARE(restarted.mediaSettings()["aspectRatio"], picked);
+    }
     void interruptedInitialHistoryCanReconnectAndSend() {
         ChatServer server;
         server.holdHistory = true;

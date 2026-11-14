@@ -33,10 +33,14 @@ ColumnLayout {
     property string error: ""
     readonly property var columns: kind === "dataframe" ? Table.frameColumns(working) : kind === "dict" ? [{name: "Key", data_type: "string"}, {name: "Value", data_type: valueType}] : [{name: "Value", data_type: valueType}]
     readonly property int rowCount: kind === "list" ? working.length : kind === "dict" ? Object.keys(working).length : Table.frameRows(working).length
-    readonly property var keys: kind === "dict" ? Object.keys(working) : []
+    // A dictionary crosses C++ as a QVariantMap, which sorts its keys, so the
+    // rows keep the order this editor last showed and add new keys after it.
+    property var keyOrder: []
+    readonly property var keys: kind === "dict" ? Table.orderedKeys(working, keyOrder) : []
     // The dialog's search: rows with a cell that contains the text, ignoring case.
     property string filterText: ""
-    readonly property var order: {
+    readonly property var order: viewOrder()
+    function viewOrder() {
         let indices = []
         for (let i = 0; i < rowCount; ++i) indices.push(i)
         if (sortColumn >= 0 && sortColumn < columns.length) indices = Table.sortedOrder(indices.map(i => cell(i, sortColumn)), ascending)
@@ -61,8 +65,11 @@ ColumnLayout {
     }
     function sync() {
         working = normalized(value)
+        if (kind === "dict") keyOrder = Table.orderedKeys(working, keyOrder)
         selected = selected.filter(i => i < rowCount)
     }
+    // Rows the search hides cannot stay selected, or a delete would remove them unseen.
+    onFilterTextChanged: { const shown = viewOrder(); selected = selected.filter(i => shown.indexOf(i) >= 0) }
     Component.onCompleted: { sync(); valueType = Table.detectType(working) }
     onValueChanged: sync()
     onWritableChanged: if (!writable) sync()
@@ -94,11 +101,8 @@ ColumnLayout {
         if (on) next.push(row)
         selected = next
     }
-    function selectAll(on) {
-        const next = []
-        if (on) for (let i = 0; i < rowCount; ++i) next.push(i)
-        selected = next
-    }
+    // Tabulator's header checkbox selects the rows the filter shows.
+    function selectAll(on) { selected = on ? order.slice() : [] }
     function sortBy(column) {
         if (sortColumn === column) ascending = !ascending
         else { sortColumn = column; ascending = true }
@@ -137,7 +141,9 @@ ColumnLayout {
         if (kind === "dict" && column === 0) {
             const next = Table.dictRename(working, keys[row], text)
             if (next === null) { error = text === "" ? "Enter a key" : "Another entry has this key"; return false }
-            return text === keys[row] ? true : publish(next)
+            if (text === keys[row]) return true
+            keyOrder = keys.map(key => key === keys[row] ? text : key)
+            return publish(next)
         }
         if (type === "int" && !Number.isInteger(Number(text))) { error = "Enter a whole number"; return false }
         if (type === "float" && !Number.isFinite(Number(text))) { error = "Enter a number"; return false }
@@ -271,7 +277,7 @@ ColumnLayout {
                         anchors.centerIn: parent
                         objectName: "data-table-select-all"
                         accessibleName: "Select all rows"
-                        checked: root.rowCount > 0 && root.selected.length === root.rowCount
+                        checked: root.order.length > 0 && root.order.every(i => root.isSelected(i))
                         onCheckedChangedByUser: checked => root.selectAll(checked)
                     }
                 }

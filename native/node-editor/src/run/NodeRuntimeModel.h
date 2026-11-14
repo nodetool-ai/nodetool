@@ -5,6 +5,9 @@
 #include <QSet>
 
 namespace nodetool::node_editor {
+// Whether a job or node status means the run has ended. Shared by the runtime
+// model, the session and the editor window so they settle on the same statuses.
+bool isTerminalRunStatus(const QString &status);
 class NodeRuntimeModel final : public QObject {
   Q_OBJECT
 public:

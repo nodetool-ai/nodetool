@@ -254,13 +254,25 @@ private slots:
     QVERIFY(scoped);
     window.action("Open"); QTRY_VERIFY(!service->loading() && !service->projectsLoading());
     QTRY_VERIFY(item(window,"workflow-row-created"));
+    // An edit that is not saved yet. The open tab saves the new name together
+    // with it, so the list writes no separate copy that moves the revision.
+    window.session()->setAutosaveEnabled(false);
+    QVERIFY(window.document()->applyCommand({{"op","addNode"},{"node",QJsonObject{{"id","unsaved"},
+      {"type","nodetool.workflows.base_node.Comment"},{"data",QJsonObject{{"comment","unsaved"}}},
+      {"ui_properties",QJsonObject{{"position",QJsonObject{{"x",100},{"y",100}}}}}}}}));
+    const auto gets = server.count("GET /api/workflows/created ");
     // A double-click on the row renames in place.
     doubleClick(browser,item(window,"workflow-row-created"));
     QTRY_VERIFY(item(window,"workflow-rename-created")->isVisible());
     type(browser,item(window,"workflow-rename-created"),"Renamed through UI");
     QTest::keyClick(browser->quickWindow(),Qt::Key_Return);
     QTRY_COMPARE(window.workflowName(),QString("Renamed through UI"));
-    QCOMPARE(server.count("PUT /api/workflows/created "),1);
+    QTRY_COMPARE(server.count("PUT /api/workflows/created "),1);
+    QCOMPARE(server.count("GET /api/workflows/created "),gets);
+    for (const auto &request : server.requests) {
+      if (request.startsWith("PUT /api/workflows/created ")) { QVERIFY(request.contains("\"id\":\"unsaved\"")); }
+    }
+    QTRY_VERIFY(!window.session()->dirty());
   }
   void browserCancelsPreviousServer() {
     BrowserFixture oldServer, newServer;

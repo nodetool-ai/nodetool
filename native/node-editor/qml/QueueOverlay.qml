@@ -87,6 +87,8 @@ Ui.Surface {
     }
     onShownChanged: {
         if (shown) {
+            // The day groups read the clock, which stands still while the queue is hidden.
+            now = Date.now();
             retained = live;
             exitDelay.stop();
         } else if (!Ui.Theme.reducedMotion) {
@@ -102,6 +104,13 @@ Ui.Surface {
         interval: 1000
         repeat: true
         running: root.runningCount > 0
+        onTriggered: root.now = Date.now()
+    }
+    // With nothing running, the shown history's day groups still move past midnight.
+    Timer {
+        interval: 60000
+        repeat: true
+        running: root.shown && root.runningCount === 0
         onTriggered: root.now = Date.now()
     }
     // isFailed and historyBucket in QueuePanel.tsx.

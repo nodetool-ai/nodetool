@@ -83,6 +83,13 @@ function dictRename(dict, oldKey, newKey) {
     return next
 }
 
+// The keys of dict in the order given, then the keys order does not name yet.
+function orderedKeys(dict, order) {
+    var keys = Object.keys(dict)
+    var kept = (order || []).filter(function (key) { return keys.indexOf(key) >= 0 })
+    return kept.concat(keys.filter(function (key) { return kept.indexOf(key) < 0 }))
+}
+
 function dictSet(dict, key, value) { var next = clone(dict); next[key] = value; return next }
 
 function dictRemove(dict, keys) {
