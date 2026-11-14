@@ -22,6 +22,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
+import { registerPackMcpTools } from "./mcp-pack-tools.js";
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import {
   DIRECT_TOOL_NAMES,
@@ -1431,6 +1432,9 @@ export function registerAgentMcpTools(
 
   // The rest of the direct set, for parity with every other entrance.
   for (const tool of promotedDirect) register(tool);
+
+  // Pack installs change this machine, so only a local session gets them.
+  if (localFilePathsAllowed) registerPackMcpTools(server);
 
   server.tool(
     "upload_asset",

@@ -172,6 +172,16 @@ async function act(
 }
 
 describe("MCP server surface", () => {
+  it("offers pack management only to a local session", () => {
+    const local = toolNames(createMcpServer({ agentToolsScope: { userId: "1", source: "stdio-local" } }));
+    const loopback = toolNames(createMcpServer({ agentToolsScope: { userId: "1", source: "local-dev-http" }, allowLocalFilePaths: true }));
+    const remote = toolNames(createMcpServer({ agentToolsScope: { userId: "1", source: "http-session" } }));
+    expect(local).toEqual(expect.arrayContaining(["inspect_packs", "manage_packs"]));
+    expect(loopback).toEqual(expect.arrayContaining(["inspect_packs", "manage_packs"]));
+    expect(remote).not.toContain("inspect_packs");
+    expect(remote).not.toContain("manage_packs");
+  });
+
   it("creates a stdio transport", () => {
     expect(createMcpStdioTransport()).toBeDefined();
   });
@@ -190,6 +200,8 @@ describe("MCP server surface", () => {
           "view_image",
           "upload_asset",
           "download_asset",
+          "inspect_packs",
+          "manage_packs",
           ...MINI_APP_TOOL_NAMES
         ].includes(name)
       )
