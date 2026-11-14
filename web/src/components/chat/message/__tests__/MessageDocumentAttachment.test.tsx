@@ -5,7 +5,11 @@ import { ThemeProvider } from "@mui/material/styles";
 import { MessageDocumentAttachment } from "../MessageDocumentAttachment";
 import mockTheme from "../../../../__mocks__/themeMock";
 
-jest.mock("../../../../hooks/useResolvedMediaUri");
+// The factory hands the component the same module instance this suite
+// imports below, so the pending-asset set it fills is the one the hook reads.
+jest.mock("../../../../hooks/useResolvedMediaUri", () =>
+  jest.requireActual("../../../../hooks/__mocks__/useResolvedMediaUri")
+);
 import {
   mockAssetUrl,
   mockPendingAsset,
