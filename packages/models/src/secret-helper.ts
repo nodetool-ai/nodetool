@@ -326,6 +326,11 @@ export async function credentialSource(
   key: string,
   userId: string
 ): Promise<CredentialSource> {
+  // `getSecret` resolves these from the user's own sign-in (ChatGPT for
+  // Codex, Google for Workspace) and never from the environment.
+  if (key === "CODEX_ACCESS_TOKEN" || key === GOOGLE_ACCESS_TOKEN_KEY) {
+    return "user";
+  }
   if (FORCE_ENV_PRIORITY.has(key) && process.env[key] !== undefined) {
     return "server";
   }

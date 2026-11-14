@@ -68,13 +68,9 @@ The toolbar above the tracks toggles **Select** and **Cut** tools, **Ripple** (t
 - **Add** — drag media from the Asset Explorer onto a track, or add a generated clip from the add menu. Images and video fit video and overlay tracks, audio fits audio tracks, and 3D models fit video and overlay tracks. A drop on an incompatible track is refused. A drop in the second half of a clip starts at that clip's end, so the clip keeps its length. In **Overlap** mode, and in a clip's first half, the drop starts where you release it.
 - **Select** — click a clip. `Shift`/`Ctrl`-click to multi-select.
 - **Move / trim** — drag the body to move, drag the edges to trim the in/out points.
-- **Split** — position the playhead and press `Ctrl/⌘ + Alt + K` to cut a clip in two.
-- **Duplicate / delete** — `Alt + D` to duplicate, `Delete` to remove.
-- **Snapping** — clips snap to the playhead and to neighbouring clip boundaries for clean alignment. Hold `Alt` while dragging to turn snapping off.
+- **Snapping** — clips snap to the playhead and to neighbouring clip boundaries. Hold `Alt` while dragging to turn snapping off.
 - **Insert on drop** — hold `Ctrl/⌘` when releasing a dragged clip to push later clips right.
-- **Ripple delete** — `Shift + Delete` removes a clip and closes the gap in the Premiere Pro layout.
 - **Roll edit** — `Ctrl/⌘`-drag a clip edge to move the cut with its neighbour.
-- **Markers and range** — `M` adds a marker, `I` and `O` mark the in and out points of a loop range.
 - **Transitions** — `Ctrl/⌘ + T` cross-fades into the selected clips. Other transition types are `dipToColor`, `wipe`, `push`, `slide`, `zoom`, `whip`, `zoomBlur`, `glitch`, `gradientWipe`, `iris`, and `lightLeak`, set from the clip's **Transition** section.
 - **Fades** — drag the grip at a clip's top corner for an audio fade. `Alt + T` fades the selection in and out.
 
@@ -97,7 +93,6 @@ The preview composites every visible, unmuted track in real time.
 - **Timecode** — frame-accurate `HH:MM:SS:FF` readout, with the sequence FPS shown alongside. Click it to type a time. Digits fill from the frames, so `1000` is ten seconds, and `+12` or `-1:00` moves from where you are.
 - **Loop** — the loop button (`Shift + L`) repeats the in to out range. With loop off, Play runs past the marks and `Ctrl/⌘ + Shift + Space` plays from in to out once.
 - **Match frame** — `F` opens the media of the clip under the playhead in the source monitor at the same frame. `Shift + F` only selects it in Assets.
-- **Scrubbing** — drag the playhead across the ruler to scrub.
 - **Zoom** — `Ctrl/⌘ + scroll` zooms the timeline anchored at the cursor. `Shift + scroll` pans. The timeline view control holds horizontal and vertical zoom sliders.
 - **Audio** — per-clip gain and fades, per-track mute/solo and volume, mixed to a master output. Playback is driven against the audio clock.
 
@@ -115,7 +110,7 @@ The preview composites every visible, unmuted track in real time.
 
 The add menu opens prompt-first: type a prompt, pick a model, and press `Enter` to drop a clip at the playhead. Workflow-bound clips are under the **Templates** and **All workflows** tabs. The menu also adds a 3D model clip and an adjustment layer.
 
-Binding a workflow clones it into a clip-private variant and exposes its `Input*` nodes as parameters in the Inspector. Change the prompt, seed, or any input and regenerate without leaving the timeline.
+Binding a workflow clones it into a clip-private variant and exposes its `Input*` nodes as parameters in the Inspector.
 
 **Staleness & versions:**
 
@@ -124,7 +119,7 @@ Binding a workflow clones it into a clip-private variant and exposes its `Input*
 - Successful generations are kept as **versions** — restore, favourite, or delete previous results per clip.
 - Generation runs on the standard `WorkflowRunner` and reports status over the WebSocket connection, keyed by job.
 
-**Round-tripping to the node editor:** from a generated clip you can **Open in Node Editor** to edit the bound workflow on the full canvas, then return — the clip auto-marks stale so you can regenerate with the new logic.
+**Round-tripping to the node editor:** select a generated clip and choose **Open in Node Editor** to edit the bound workflow on the full canvas and save. Back in the timeline the clip is flagged **stale**. Choose **Regenerate** to render it with the new logic.
 
 ---
 
@@ -196,9 +191,8 @@ Change the sequence width, height, frame rate, and tempo in **Project settings**
 ## AI timeline editing
 
 Generated clips can hold multiple takes, source-time media tracks, derived
-reframes, and nondestructive generative edits. Use them to compare a result,
-follow a subject, make another aspect-ratio cut, or repair a shot without
-changing the original edit. See [AI Timeline Editing](ai-timeline-editing.md).
+reframes, and nondestructive generative edits. See
+[AI Timeline Editing](ai-timeline-editing.md).
 
 ---
 
@@ -247,13 +241,6 @@ These are the Premiere Pro layout, the default. The shortcut sheet (`?`) also of
 2. In the Inspector, set the prompt and inputs exposed from the workflow.
 3. **Generate** — the clip streams through queued → generating → generated.
 4. Not quite right? Tweak a parameter and **Regenerate**, or use **Regenerate as new clip** to keep the current render and compare takes.
-
-### Iterate on a bound workflow
-
-1. Select a generated clip and **Open in Node Editor**.
-2. Edit the workflow on the full canvas and save.
-3. Return to the timeline — the clip is flagged **stale**.
-4. Select the stale clip and choose **Regenerate**.
 
 ---
 

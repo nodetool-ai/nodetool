@@ -3899,10 +3899,9 @@
           "lightingPlaceholder": "Jak oświetlona jest scena",
           "shotHeader": "Strzał {{count}}",
           "shotAction": "Strzał {{count}} · Akcja",
-          "shotDialogue": "Strzał {{count}} · Dialog",
-          "dialoguePlaceholder": "Dialog",
-          "addDialogue": "Dodaj dialog",
+          "dialogue": "Dialog",
           "seconds": "Sekundy",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scena {{count}}"
         },
         "fallback": {
@@ -11021,6 +11020,8 @@
       "queuedCount_one": "{{count}} w kolejce",
       "queuedCount_other": "{{count}} w kolejce",
       "collapseQueue": "Zwiń kolejkę",
+      "moveQueue": "Przenieś kolejkę",
+      "moveQueueHint": "Przeciągnij, aby przenieść. Strzałki ją przesuwają, Home przywraca.",
       "enqueued": "Umieszczone w kolejce",
       "jobsRunning_few": "{{count}} zadania w toku",
       "jobsRunning_many": "{{count}} zadań w toku",

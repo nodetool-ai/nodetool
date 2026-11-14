@@ -98,11 +98,15 @@ describe("paramCurves through a split", () => {
 });
 
 describe("paramCurves through other clip edits", () => {
-  it("stretch with the clip on a trim, as a hand-set keyframe does", () => {
+  it("keep their instants on a trim, as a hand-set keyframe does", () => {
     const paramCurves = [curve("volumeDb", [0, 0], [1, -20])];
     const trimmed = trimClip(clip({ paramCurves }), "end", -1000);
     expect(trimmed.durationMs).toBe(1000);
-    expect(trimmed.paramCurves).toEqual(paramCurves);
+    expect(trimmed.paramCurves).toEqual([curve("volumeDb", [0, 0], [2, -20])]);
+    expect(trimClip(trimmed, "end", 1000).paramCurves).toEqual(paramCurves);
+
+    const headCut = trimClip(clip({ paramCurves }), "start", -1000);
+    expect(headCut.paramCurves).toEqual([curve("volumeDb", [-1, 0], [1, -20])]);
   });
 
   it("stay as they are through a canvas retarget, as the static values do", () => {

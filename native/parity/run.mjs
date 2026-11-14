@@ -193,7 +193,8 @@ export function compareIntents(qt, web, map) {
 }
 
 async function runScenario(scenario, hosts, intentMap, outDir) {
-  const fixture = JSON.parse(await readFile(join(HERE, "fixtures", `${scenario.fixture}.json`), "utf8"));
+  // A component whose mount seeds its own state names no fixture.
+  const fixture = scenario.fixture ? JSON.parse(await readFile(join(HERE, "fixtures", `${scenario.fixture}.json`), "utf8")) : {};
   const theme = scenario.theme ?? "dark";
   const checks = [];
   const started = performance.now();

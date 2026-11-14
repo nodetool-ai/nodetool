@@ -6,6 +6,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(CTest)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Svg Network WebSockets Test QuickTest)
 qt_standard_project_setup(REQUIRES 6.12)
+# Qt Multimedia is optional: with it the chat plays audio and video in the
+# message, without it media opens in the system viewer.
+find_package(Qt6 6.12 QUIET COMPONENTS Multimedia)
 if(NOT TARGET nodetool_model_picker)
     add_subdirectory(../model-picker ${CMAKE_CURRENT_BINARY_DIR}/model-picker)
 endif()
@@ -16,6 +19,10 @@ foreach(chat_qml IN LISTS chat_qml_files)
     set_source_files_properties("${chat_qml}" PROPERTIES QT_RESOURCE_ALIAS "${chat_qml_name}")
 endforeach()
 set_source_files_properties(qml/ChatMetrics.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set(chat_media_qml)
+if(TARGET Qt6::Multimedia)
+    set(chat_media_qml qml/ChatMediaPlayer.qml)
+endif()
 qt_add_library(nodetool_chat STATIC)
 qt_add_qml_module(nodetool_chat
     URI NodeTool.Chat
@@ -23,16 +30,24 @@ qt_add_qml_module(nodetool_chat
     QML_FILES
         qml/ChatMetrics.qml qml/ChatPanel.qml qml/Main.qml qml/ThreadList.qml
         qml/ConversationView.qml qml/MessageDelegate.qml qml/ChatComposer.qml
+        qml/ProviderKeyDialog.qml
+        ${chat_media_qml}
     SOURCES
         src/model/ThreadModel.h src/model/ThreadModel.cpp
         src/model/MessageModel.h src/model/MessageModel.cpp
         src/model/Markdown.h src/model/Markdown.cpp
+        src/model/RichContent.h src/model/RichContent.cpp
         src/model/PlanDocument.h src/model/PlanDocument.cpp
         src/runtime/ChatSession.h src/runtime/ChatSession.cpp
         src/runtime/ComposerRules.h src/runtime/ComposerRules.cpp
+        src/runtime/CodeHighlighter.h src/runtime/CodeHighlighter.cpp
         src/server/ChatClient.h src/server/ChatClient.cpp)
-target_include_directories(nodetool_chat PUBLIC src)
+target_include_directories(nodetool_chat PUBLIC src PRIVATE src/runtime)
 target_link_libraries(nodetool_chat PUBLIC nodetool_ui_primitives nodetool_model_picker Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::WebSockets)
+if(TARGET Qt6::Multimedia)
+    target_link_libraries(nodetool_chat PUBLIC Qt6::Multimedia)
+    target_compile_definitions(nodetool_chat PRIVATE NODETOOL_CHAT_MEDIA)
+endif()
 if(MSVC)
     target_compile_options(nodetool_chat PRIVATE /W4)
 else()

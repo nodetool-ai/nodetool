@@ -4,7 +4,7 @@ title: "Tips and Tricks"
 description: "Editor techniques: adding and arranging nodes, canvas navigation, debugging with Preview and disable, and panel keys."
 ---
 
-Editor techniques that save steps. The full key list is in [Keyboard Shortcuts](keyboard-shortcuts.md).
+The full key list is in [Keyboard Shortcuts](keyboard-shortcuts.md).
 
 ---
 
@@ -37,7 +37,6 @@ Editor techniques that save steps. The full key list is in [Keyboard Shortcuts](
 
 - One output can feed many inputs. An input takes one line.
 - Right-click a connection or drag it away to disconnect.
-- Add Preview nodes between steps to inspect intermediate data.
 
 ---
 
@@ -95,7 +94,6 @@ More in [Troubleshooting](troubleshooting.md).
 ## Files
 
 - Drop files onto the canvas to add them as assets.
-- Press `2` to open the Assets panel.
 - Add Comment nodes to explain sections of a shared workflow.
 - Press `Ctrl/⌘ + I` on a selected node for its info panel.
 
@@ -107,4 +105,3 @@ More in [Troubleshooting](troubleshooting.md).
 - **[Sketch Editor](sketch-editor.md)** – Image editing guide
 - **[Game Editor](game-editor.md)** – Build, play, and export 2D and 3D games
 - **[Cookbook](cookbook.md)** – Workflow patterns
-- **[Keyboard Shortcuts](keyboard-shortcuts.md)**

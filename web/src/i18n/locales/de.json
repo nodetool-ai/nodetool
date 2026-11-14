@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "Wie die Szene beleuchtet ist",
           "shotHeader": "Einstellung {{count}}",
           "shotAction": "Einstellung {{count}} · Handlung",
-          "shotDialogue": "Einstellung {{count}} · Dialog",
-          "dialoguePlaceholder": "Dialog",
-          "addDialogue": "Dialog hinzufügen",
+          "dialogue": "Dialog",
           "seconds": "Sekunden",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Szene {{count}}"
         },
         "fallback": {
@@ -10695,6 +10694,8 @@
       "queuedCount_one": "{{count}} in der Warteschlange",
       "queuedCount_other": "{{count}} in der Warteschlange",
       "collapseQueue": "Warteschlange einklappen",
+      "moveQueue": "Warteschlange verschieben",
+      "moveQueueHint": "Zum Verschieben ziehen. Pfeiltasten verschieben sie, Pos1 setzt sie zurück.",
       "enqueued": "Eingereiht"
     },
     "toolbar": {

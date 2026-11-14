@@ -20,7 +20,7 @@ ColumnLayout {
             }
             Loader {
                 Layout.fillWidth: true
-                Component.onCompleted: setSource("RichOutput.qml", {modelData: parent.modelData.output, resolver: objectOutput.resolver})
+                Component.onCompleted: setSource("RichOutput.qml", {modelData: parent.modelData.output, resolver: objectOutput.resolver, showCopy: false})
             }
         }
     }

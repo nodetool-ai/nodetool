@@ -34,6 +34,19 @@ both together. Translucent web values are flattened over the panel surface.
 | Warning surface / text | `#3d2b10` / `#ffd08a` | `#fff1d6` / `#825100` | native |
 | Error surface / text | `#441d21` / `#ffb3b3` | `#ffebeb` / `#b42323` | native |
 
+### Graph tokens
+
+`Theme.qml` also holds the node graph tokens, so the node editor has one color
+source. The `graph*` tokens cover the canvas, grid, card, paper, reroute,
+group, zoomed title, selected-card edge, divider, shadow, checker, outline and
+disabled ink. `fieldSurface`, `fieldSurfaceFocus` and `fieldSurfaceDisabled`
+are translucent card fields. `alphaSurface*`, `mediaScrimInk`,
+`mediaScrimStrong` and `comparisonMetadataInk` serve media on cards. These
+values are exceptions to the flattened palette above, because they stay
+translucent or differ from the panel surfaces. A graph role that equals a
+palette token reuses it. The node editor sends them to C++ in its presentation
+map, and `CanvasTheme` has no color defaults.
+
 Action hover, pressed, selected, and disabled use respectively 2%, 8%, 5%,
 and 10% white over dark surfaces, or 4%, 10%, 7%, and 8% of `#18181b` over
 light surfaces, as in the web `action` palette. Media and modal scrims use 60%

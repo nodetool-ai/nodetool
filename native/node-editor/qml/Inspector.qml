@@ -23,25 +23,6 @@ Rectangle {
     readonly property bool running: inspector.running
     readonly property var runProgress: inspector.runProgress
     readonly property var cost: inspector.costEstimate
-    component TabButton: PanelRow {
-        id: tabButton
-        property int index: 0
-        property var count: undefined
-        implicitWidth: tabRow.implicitWidth + Ui.Metrics.sm
-        implicitHeight: Ui.Metrics.compact
-        active: root.tab === index
-        background: Item {}
-        onClicked: root.tab = index
-        Row {
-            id: tabRow
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.verticalCenterOffset: -Ui.Metrics.micro
-            spacing: Ui.Metrics.sm
-            Ui.Text { text: tabButton.text; role: Ui.Typography.SansLabel; font.weight: Font.Normal; tone: tabButton.active ? Ui.Text.Primary : Ui.Text.Secondary; lineHeight: 1 }
-            Ui.Text { y: Ui.Metrics.micro; visible: tabButton.count !== undefined; text: tabButton.count !== undefined ? tabButton.count : ""; role: Ui.Typography.SansCaption; domainColor: tabButton.active ? Ui.Theme.accentPrimary : Ui.Theme.textSecondary; lineHeight: 1 }
-        }
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.focus; visible: tabButton.active; color: Ui.Theme.accentPrimary }
-    }
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -62,23 +43,27 @@ Rectangle {
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 0
-                Ui.Text { objectName: "inspector-title"; Layout.fillWidth: true; text: root.info.title || root.inspector.selection; role: Ui.Typography.SansLabel; font.weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1.3 }
+                Ui.Text { objectName: "inspector-title"; Layout.fillWidth: true; text: root.info.title || root.inspector.selection; role: Ui.Typography.SansLabel; weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1.3 }
                 Ui.Text { objectName: "inspector-namespace"; Layout.fillWidth: true; visible: text !== ""; text: root.info.namespace || ""; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary; elide: Text.ElideMiddle; lineHeight: 1.3 }
             }
-            NodeButton { objectName: "inspector-close"; text: ""; accessibleName: "Close inspector"; iconName: "close"; variant: NodeButton.Flat; implicitWidth: Ui.Metrics.compact; onClicked: root.inspector.clearSelection() }
+            Ui.EditorButton { objectName: "inspector-close"; text: ""; display: Basic.AbstractButton.IconOnly; accessibleName: "Close inspector"; iconName: "close"; variant: Ui.EditorButton.Outlined; flat: true; implicitWidth: Ui.Metrics.compact; onClicked: root.inspector.clearSelection() }
         }
         Item {
             visible: root.hasSelection
             Layout.fillWidth: true
             Layout.preferredHeight: Ui.Metrics.compact
-            Row {
+            Ui.TabBar {
                 x: Ui.Metrics.lg
                 height: parent.height
-                spacing: Ui.Metrics.md
-                TabButton { objectName: "tab-params"; index: 0; text: "Params"; count: root.fieldsModel.length }
-                TabButton { objectName: "tab-io"; index: 1; text: "I/O"; count: (root.info.inputs ? root.info.inputs.length : 0) + (root.info.outputs ? root.info.outputs.length : 0) }
-                TabButton { objectName: "tab-help"; index: 2; text: "Help" }
-                TabButton { objectName: "tab-history"; index: 3; text: "History" }
+                accessibleName: "Inspector"
+                value: root.tab
+                tabs: [
+                    { objectName: "tab-params", value: 0, label: "Params", count: root.fieldsModel.length },
+                    { objectName: "tab-io", value: 1, label: "I/O", count: (root.info.inputs ? root.info.inputs.length : 0) + (root.info.outputs ? root.info.outputs.length : 0) },
+                    { objectName: "tab-help", value: 2, label: "Help" },
+                    { objectName: "tab-history", value: 3, label: "History" }
+                ]
+                onValueCommitted: value => root.tab = value
             }
         }
         Rectangle { visible: root.hasSelection; Layout.fillWidth: true; Layout.preferredHeight: Ui.Metrics.border; color: roles.divider }
@@ -154,9 +139,9 @@ Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: Ui.Metrics.compact
                                 spacing: Ui.Metrics.md
-                                Rectangle { width: Ui.Metrics.md; height: width; radius: width / 2; color: ioRow.modelData.color }
-                                Ui.Text { Layout.fillWidth: true; text: ioRow.modelData.name; role: Ui.Typography.SansLabel; font.weight: Font.Normal; elide: Text.ElideRight; lineHeight: 1 }
-                                Ui.Text { text: ioRow.modelData.type; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary; lineHeight: 1 }
+                                Rectangle { width: Ui.Metrics.md; height: width; radius: Ui.Metrics.radiusPill; color: ioRow.modelData.color }
+                                Ui.Text { Layout.fillWidth: true; text: ioRow.modelData.name; role: Ui.Typography.SansLabel; weight: Font.Normal; elide: Text.ElideRight; tight: true }
+                                Ui.Text { text: ioRow.modelData.type; role: Ui.Typography.MonoCaption; tone: Ui.Text.Secondary; tight: true }
                             }
                         }
                     }
@@ -185,8 +170,9 @@ Rectangle {
                 tone: Ui.Text.Secondary
             }
             // NodeInfoPanel.tsx: the Focus button centers the canvas on the node.
-            NodeButton {
+            Ui.EditorButton {
                 id: focusButton
+                variant: Ui.EditorButton.Outlined
                 objectName: "inspector-focus"
                 x: Ui.Metrics.lg
                 y: helpText.y + helpText.implicitHeight + Ui.Metrics.lg
@@ -294,7 +280,7 @@ Rectangle {
                         text: qsTr("Run selected")
                         accessibleName: qsTr("Run selected nodes")
                         enabled: !root.running && !root.inspector.readOnly
-                        onHoveredChanged: root.inspector.showToolTip(hovered ? qsTr("Run selected nodes") + "  " + (Qt.platform.os === "osx" ? "⌘ Enter" : "Ctrl+Enter") : "")
+                        shortcutText: Qt.platform.os === "osx" ? "⌘ Enter" : "Ctrl+Enter"
                         onClicked: root.inspector.runSelectedNodes(root.runs)
                     }
                     Ui.Text {

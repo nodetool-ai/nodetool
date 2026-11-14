@@ -12,7 +12,6 @@ import {
   DIRECT_TOOLS,
   MCP_DESCRIPTION,
   MCP_FAQ,
-  MCP_INSTALL,
   MCP_LEAD,
   MCP_LIMITS,
   MCP_LINKS,
@@ -20,6 +19,9 @@ import {
   TRANSPORT_ROWS,
 } from "@/data/mcpPage";
 import PageUpdated from "@/components/PageUpdated";
+import McpSessionMock from "@/components/McpSessionMock";
+import McpInstallCommand from "@/components/agents/McpInstallCommand";
+import { SurfaceCard, type Surface } from "@/components/agents/AgentSurfaceGrid";
 
 export const metadata: Metadata = {
   title: MCP_TITLE,
@@ -31,6 +33,22 @@ export const metadata: Metadata = {
 
 const sectionTitle = "max-w-sm text-3xl font-semibold tracking-tight md:text-4xl";
 const bodyText = "leading-relaxed text-slate-300";
+/** Recorded product surface for each capability group, keyed by its title. */
+const CAPABILITY_MEDIA: Record<string, { poster: string; clip?: string }> = {
+  "Generate media": { poster: "/surface-storyboard-poster.webp", clip: "/surface-storyboard" },
+  "Build video": { poster: "/surface-timeline-poster.webp", clip: "/surface-timeline" },
+  "Build games": { poster: "/surface-game-poster.webp", clip: "/surface-game" },
+  "Edit images": { poster: "/surface-sketch-poster.webp", clip: "/surface-sketch" },
+  "Run workflows": { poster: "/surface-nodes-poster.webp", clip: "/surface-nodes" },
+  "Keep the files": { poster: "/screen_assets.webp" },
+};
+
+const CAPABILITY_CARDS: Surface[] = CAPABILITY_GROUPS.map((group) => ({
+  title: group.title,
+  body: group.body,
+  ...CAPABILITY_MEDIA[group.title],
+}));
+
 const codeBlock = "overflow-x-auto rounded-lg border border-slate-700 bg-slate-900 p-4 font-mono text-sm text-slate-100";
 
 export default function McpPage() {
@@ -39,41 +57,41 @@ export default function McpPage() {
       <SiteHeader />
       <main id="content" className="bg-slate-950 text-slate-100">
         <div className="mx-auto max-w-7xl px-6 pb-24 pt-36 lg:px-8">
-          <section className="mb-16 grid items-end gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+          <section className="mb-16 grid items-center gap-12 lg:grid-cols-2">
             <div className="min-w-0">
               <p className="mb-5 text-base font-medium text-cyan-200">Creative MCP server</p>
-              <h1 className="max-w-3xl text-5xl font-semibold leading-tight tracking-tight md:text-7xl">Give your coding agent a creative studio.</h1>
-            </div>
-            <div className="min-w-0 max-w-lg">
-              <p className="text-lg leading-relaxed text-slate-300">{MCP_LEAD}</p>
-              <pre className={`mt-7 ${codeBlock}`}><code>{MCP_INSTALL}</code></pre>
+              <h1 className="max-w-3xl text-5xl font-semibold leading-tight tracking-tight md:text-6xl">Give your coding agent a creative studio.</h1>
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-300">{MCP_LEAD}</p>
+              <div className="mt-8 max-w-xl">
+                <McpInstallCommand placement="mcp-hero" />
+              </div>
               <p className="mt-3 text-sm text-slate-400">Needs Node.js 22 or later. Restart your client, then ask it to use NodeTool.</p>
+            </div>
+            <div className="min-w-0">
+              <McpSessionMock />
             </div>
           </section>
 
           <section aria-labelledby="clients-title" className="mt-16 grid gap-10 border-t border-slate-700 pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <h2 id="clients-title" className={sectionTitle}>Works with your client</h2>
-            <dl className="max-w-2xl space-y-5">
+            <ul className="grid gap-4 sm:grid-cols-2">
               {CLIENT_ROWS.map((row) => (
-                <div key={row.client}>
-                  <dt className="text-lg font-medium">{row.client}</dt>
-                  <dd className={`mt-1 ${bodyText}`}>{row.setup}</dd>
-                </div>
+                <li key={row.client} className="rounded-xl border border-slate-800 bg-slate-900/50 p-5">
+                  <h3 className="text-lg font-medium">{row.client}</h3>
+                  <p className={`mt-1 text-sm ${bodyText}`}>{row.setup}</p>
+                </li>
               ))}
-            </dl>
+            </ul>
           </section>
 
-          <section aria-labelledby="can-title" className="mt-24 grid gap-10 border-t border-slate-700 pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-            <div>
-              <h2 id="can-title" className={sectionTitle}>What your agent can do</h2>
-              <p className={`mt-4 max-w-sm ${bodyText}`}>Everything lands in your NodeTool project, so you open the agent&apos;s work in Studio and keep editing it.</p>
+          <section aria-labelledby="can-title" className="mt-24 border-t border-slate-700 pt-12">
+            <div className="mb-10 max-w-2xl">
+              <h2 id="can-title" className="text-3xl font-semibold tracking-tight md:text-4xl">What your agent can do</h2>
+              <p className={`mt-4 ${bodyText}`}>Everything lands in your NodeTool project, so you open the agent&apos;s work in Studio and keep editing it.</p>
             </div>
-            <ul className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
-              {CAPABILITY_GROUPS.map((group) => (
-                <li key={group.title}>
-                  <h3 className="text-xl font-medium">{group.title}</h3>
-                  <p className={`mt-2 ${bodyText}`}>{group.body}</p>
-                </li>
+            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {CAPABILITY_CARDS.map((card) => (
+                <SurfaceCard key={card.title} surface={card} />
               ))}
             </ul>
           </section>
@@ -83,14 +101,17 @@ export default function McpPage() {
               <h2 id="tools-title" className={sectionTitle}>Tools, resources, and prompts</h2>
               <p className={`mt-4 max-w-sm ${bodyText}`}>The server registers a short list of direct tools. Two resources, nodetool://capabilities and nodetool://sandbox, describe the rest. Each skill is an MCP prompt, so Claude Code shows it as a slash command.</p>
             </div>
-            <dl className="min-w-0 max-w-2xl space-y-5 break-words">
-              {DIRECT_TOOLS.map((tool) => (
-                <div key={tool.name}>
-                  <dt className="font-mono text-sm text-cyan-200">{tool.name}</dt>
-                  <dd className={`mt-1 ${bodyText}`}>{tool.purpose}</dd>
-                </div>
-              ))}
-            </dl>
+            <div className="min-w-0 max-w-2xl overflow-hidden rounded-2xl border border-slate-700/70 bg-slate-950">
+              <p className="border-b border-slate-800 px-5 py-3 font-jetbrains text-xs text-slate-400">tools/list</p>
+              <dl className="space-y-4 break-words p-5">
+                {DIRECT_TOOLS.map((tool) => (
+                  <div key={tool.name} className="grid gap-1 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-6">
+                    <dt className="font-jetbrains text-sm text-cyan-200">{tool.name}</dt>
+                    <dd className="text-sm leading-relaxed text-slate-300">{tool.purpose}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
           </section>
 
           <section aria-labelledby="transport-title" className="mt-24 grid gap-10 border-t border-slate-700 pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">

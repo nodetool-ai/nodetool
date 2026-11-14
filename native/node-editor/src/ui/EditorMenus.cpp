@@ -1,4 +1,5 @@
 #include "EditorWindow.h"
+#include "EntryMenu.h"
 #include "document/ChildPorts.h"
 #include "graph/EditorScene.h"
 #include "graph/CanvasMediaPresenter.h"
@@ -9,7 +10,6 @@
 #include <QKeySequence>
 #include <QClipboard>
 #include <QJsonDocument>
-#include <QMenu>
 #include <QDialog>
 #include <QVBoxLayout>
 #include <QQuickWidget>
@@ -174,7 +174,11 @@ const Shortcut shortcuts[] = {
  {"Align center", "Shift+H"}, {"Align middle", "Shift+E"},
  {"Distribute horizontally", "Shift+D"}, {"Stack selection", "V"}, {"Arrange grid", "G"},
  {"Select all connected", "Shift+C"}, {"Select inputs", "Shift+I"}, {"Select outputs", "Shift+O"},
- {"Add Prompt", "Shift+P"}, {"Add Text to Image", "Shift+G"}, {"Add Text to Video", "Shift+V"}, {"Add Agent", "Shift+L"}
+ {"Add Prompt", "Shift+P"}, {"Add Text to Image", "Shift+G"}, {"Add Text to Video", "Shift+V"}, {"Add Agent", "Shift+L"},
+ {"Focus next node", "Ctrl+Alt+N"}, {"Focus previous node", "Ctrl+Alt+P"}, {"Focus node above", "Alt+Up"}, {"Focus node below", "Alt+Down"},
+ {"Focus node left", "Alt+Left"}, {"Focus node right", "Alt+Right"}, {"Focus back", "Ctrl+Alt+B"},
+ {"Select focused node", "Return"}, {"Settings", "Ctrl+,"}, {"Workflow metadata", "W"},
+ {"Node info", "Ctrl+I"}
 };
 
 // The web shortcut category (config/shortcuts.ts) of each native command.
@@ -196,55 +200,6 @@ QStringList webKeys(const QString &sequence) {
     }
     return keys;
 }
-
-struct RowOptions {
-    QString shortcut;
-    QString tooltip;
-    QString reason;
-    bool enabled = true;
-    bool destructive = false;
-};
-
-// Entries for ContextMenuPanel.qml plus the action each id runs.
-class MenuBuilder {
-public:
-    void item(const QString &id, const QString &label, const QString &icon, std::function<void()> run, const RowOptions &options = {}) {
-        QVariantMap entry{{"id", id}, {"label", label}, {"icon", icon}, {"enabled", options.enabled}, {"destructive", options.destructive}};
-        if (!options.shortcut.isEmpty()) { entry.insert("shortcut", options.shortcut); }
-        if (!options.tooltip.isEmpty()) { entry.insert("tooltip", options.tooltip); }
-        if (!options.reason.isEmpty() && !options.enabled) { entry.insert("reason", options.reason); }
-        entries_.append(entry);
-        actions_.insert(id, std::move(run));
-    }
-    void submenu(const QString &id, const QString &label, const QString &icon, const MenuBuilder &children, const RowOptions &options = {}) {
-        QVariantMap entry{{"id", id}, {"label", label}, {"icon", icon}, {"enabled", options.enabled && !children.entries_.isEmpty()}, {"submenu", children.entries_}};
-        if (!options.reason.isEmpty() && !entry.value("enabled").toBool()) { entry.insert("reason", options.reason); }
-        entries_.append(entry);
-        for (auto it = children.actions_.cbegin(); it != children.actions_.cend(); ++it) {
-            actions_.insert(it.key(), it.value());
-        }
-    }
-    void separator() {
-        if (entries_.isEmpty() || entries_.last().toMap().contains("separator")) {
-            return;
-        }
-        entries_.append(QVariantMap{{"separator", true}});
-    }
-    void header(const QString &label) {
-        entries_.append(QVariantMap{{"header", label}});
-    }
-    QVariantList entries() const {
-        auto result = entries_;
-        while (!result.isEmpty() && result.last().toMap().contains("separator")) {
-            result.removeLast();
-        }
-        return result;
-    }
-    const QHash<QString, std::function<void()>> &actions() const { return actions_; }
-private:
-    QVariantList entries_;
-    QHash<QString, std::function<void()>> actions_;
-};
 
 QString hint(const char *sequence) {
     return QKeySequence(QString::fromLatin1(sequence)).toString(QKeySequence::NativeText);
@@ -545,9 +500,14 @@ bool EditorWindow::menuActionEnabled(const QString &name) const {
     }
  if (name == "Select all connected" || name == "Select inputs" || name == "Select outputs") { return count > 0; }
  if (name == "Focus node") { return count == 1; }
+ if (name == "Node info") { return count > 0; }
  if (name == "Open child") { return count == 1 && node_editor::isChildNode(document_.node(selectedIds().first())); }
  if (name == "Link selected") { return !readOnly() && count == 2; }
+ if (name == "Select focused node") { return !model_.focusedNode().isEmpty() && !document_.node(model_.focusedNode()).isEmpty(); }
+ if (name == "Focus back") { return model_.focusHistorySize() > 1; }
+ if (name.startsWith("Focus ") && name != "Focus node") { return !document_.nodes().isEmpty(); }
  if (!quickAddNodeType(name).isEmpty()) { return !readOnly() && knownNodeType(quickAddNodeType(name)); }
+ if ((name == "Run" || name == "Stop") && inlineChild_ && childParent_) { return workflowHost()->menuActionEnabled(name); }
  if (name == "Stop") { return runActive() && (session_.connected() || session_.runsInProcess(run_)); }
  if (name == "Undo") { return !readOnly() && document_.undoStack()->canUndo(); }
  if (name == "Redo") { return !readOnly() && document_.undoStack()->canRedo(); }
@@ -688,6 +648,26 @@ void EditorWindow::showContextMenu(const QString &kind, const QPoint &globalPosi
     if (menu.entries().isEmpty()) {
         return;
     }
+    EntryMenuRequest request;
+    request.kind = kind;
+    request.global = globalPosition;
+    request.entries = menu.entries();
+    request.actions = menu.actions();
+    request.guardSelection = true;
+    // The entry actions capture the builder, so the menu keeps it alive.
+    request.keepAlive = builder;
+    showEntryMenu(request);
+}
+
+// Shows entries in ContextMenuPanel.qml on a transparent overlay of this window,
+// the same surface as the canvas context menus. Returns the overlay, or null
+// when it could not be created.
+QQuickWidget *EditorWindow::showEntryMenu(const EntryMenuRequest &menuRequest) {
+    if (contextMenuHost_) {
+        contextMenuHost_->hide();
+        contextMenuHost_->deleteLater();
+    }
+    const auto request = std::make_shared<const EntryMenuRequest>(menuRequest);
     const auto epoch = documentEpoch_;
     const auto credentials = credentialsEpoch_;
     const auto selection = selectedIds();
@@ -695,15 +675,14 @@ void EditorWindow::showContextMenu(const QString &kind, const QPoint &globalPosi
     auto *host = new QQuickWidget(engine_, this);
     contextMenuHost_ = host;
     host->setObjectName("context-menu-host");
-    host->setProperty("menuKind", kind);
+    host->setProperty("menuKind", request->kind);
     host->setAttribute(Qt::WA_AlwaysStackOnTop);
     host->setAttribute(Qt::WA_TranslucentBackground);
     host->setClearColor(Qt::transparent);
     host->setResizeMode(QQuickWidget::SizeRootObjectToView);
     host->setGeometry(rect());
     auto *dispatch = new MenuDispatch(host);
-    const auto actions = menu.actions();
-    dispatch->invoke = [this, host, epoch, credentials, selection, actions, prior, builder](const QString &id) {
+    dispatch->invoke = [this, host, epoch, credentials, selection, prior, request](const QString &id) {
         if (!host->isVisible()) {
             return;
         }
@@ -712,26 +691,42 @@ void EditorWindow::showContextMenu(const QString &kind, const QPoint &globalPosi
         if (prior) {
             prior->setFocus();
         }
-        if (id.isEmpty() || epoch != documentEpoch_ || credentials != credentialsEpoch_ || selection != selectedIds()) {
+        if (id.isEmpty()
+            || (request->guardDocument && (epoch != documentEpoch_ || credentials != credentialsEpoch_))
+            || (request->guardSelection && selection != selectedIds())) {
             return;
         }
-        if (const auto run = actions.value(id)) {
+        std::function<void()> run;
+        if (request->choose) {
+            run = [request, id] { request->choose(id); };
+        } else if (const auto action = request->actions.value(id)) {
+            run = action;
+        }
+        if (!run) {
+            return;
+        }
+        if (request->deferChoice) {
+            QTimer::singleShot(0, this, run);
+        } else {
             run();
         }
     };
-    connect(this, &EditorWindow::documentEpochChanged, host, [dispatch] { dispatch->choose(""); });
-    connect(this, &EditorWindow::credentialsEpochChanged, host, [dispatch] { dispatch->choose(""); });
-    host->setInitialProperties({{"dispatch", QVariant::fromValue(dispatch)}, {"entries", menu.entries()}});
+    if (request->guardDocument) {
+        connect(this, &EditorWindow::documentEpochChanged, host, [dispatch] { dispatch->choose(""); });
+        connect(this, &EditorWindow::credentialsEpochChanged, host, [dispatch] { dispatch->choose(""); });
+    }
+    host->setInitialProperties({{"dispatch", QVariant::fromValue(dispatch)}, {"entries", request->entries}});
     host->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ContextMenuPanel.qml"));
     if (!host->rootObject()) {
         host->deleteLater();
-        return;
+        return nullptr;
     }
     host->show();
     host->raise();
     host->setFocus();
-    const auto local = mapFromGlobal(globalPosition);
+    const auto local = mapFromGlobal(request->global);
     QMetaObject::invokeMethod(host->rootObject(), "popupAt", Q_ARG(QVariant, local.x()), Q_ARG(QVariant, local.y()));
+    return host;
 }
 
 // The nodes whose title, type, ID, or property names and values contain the term.
@@ -868,6 +863,91 @@ void EditorWindow::showFindPanel() {
     QMetaObject::invokeMethod(panel->rootObject(), "activate");
 }
 
+void EditorWindow::toggleNodeInfo() {
+    if (!tabOwner_) {
+        if (activeEditor_) { activeEditor_->toggleNodeInfo(); }
+        return;
+    }
+    // NodeEditor.tsx toggles the panel for the first selected node: the same
+    // node hides it, another node moves it there.
+    const auto ids = selectedIds();
+    if (ids.isEmpty()) { return; }
+    nodeInfoId_ = nodeInfoId_ == ids.first() ? QString() : ids.first();
+    syncNodeInfo();
+}
+
+void EditorWindow::closeNodeInfo() {
+    if (nodeInfoId_.isEmpty()) { return; }
+    nodeInfoId_.clear();
+    syncNodeInfo();
+    if (view_) { view_->setFocus(); }
+}
+
+void EditorWindow::syncNodeInfo() {
+    if (!nodeInfoOverlay_) { return; }
+    std::optional<QtNodes::NodeId> found;
+    for (const auto id : model_.allNodeIds()) {
+        if (!nodeInfoId_.isEmpty() && model_.resourceId(id) == nodeInfoId_) { found = id; }
+    }
+    // A deleted node closes the panel, as NodeInfoPanel.tsx does.
+    if (!found) {
+        nodeInfoId_.clear();
+        nodeInfoOverlay_->hide();
+        nodeInfo_.clear();
+        return;
+    }
+    const auto metadata = model_.metadata(*found);
+    const auto type = document_.node(nodeInfoId_)["type"].toString();
+    nodeInfo_.setNode(nodeInfoId_, metadata["title"].toString(model_.layout(*found).title),
+                      metadata["namespace"].toString(type.section('.', 0, -2)), metadata["description"].toString(),
+                      model_.runtimeState(*found)["error"].toString());
+    positionNodeInfo();
+}
+
+// NodeInfoPanel.tsx places the 320 px panel 16 px right of the node's top
+// edge, or left of the node when the right side has no room, 16 px inside the
+// canvas, and gives it at least 200 px of height.
+void EditorWindow::positionNodeInfo() {
+    if (!nodeInfoOverlay_ || nodeInfoId_.isEmpty() || !view_) { return; }
+    const QGraphicsObject *item = nullptr;
+    QSizeF size;
+    for (const auto id : model_.allNodeIds()) {
+        if (model_.resourceId(id) == nodeInfoId_) {
+            item = scene_->nodeGraphicsObject(id);
+            size = model_.layout(id).size;
+        }
+    }
+    if (!item) {
+        nodeInfoOverlay_->hide();
+        return;
+    }
+    constexpr int gap = 16;
+    constexpr int margin = 16;
+    constexpr int minimumHeight = 200;
+    const auto card = view_->mapFromScene(QRectF(item->scenePos(), size)).boundingRect().translated(view_->viewport()->pos());
+    const auto area = view_->rect();
+    const int width = nodeInfoOverlay_->width();
+    int left = card.right() + gap;
+    if (left + width + margin > area.width()) { left = card.left() - gap - width; }
+    left = std::clamp(left, margin, std::max(margin, area.width() - width - margin));
+    const int top = std::clamp(card.top(), margin, std::max(margin, area.height() - minimumHeight - margin));
+    nodeInfo_.setMaximumHeight(area.height() - top - margin);
+    nodeInfoOverlay_->move(left, top);
+    nodeInfoOverlay_->show();
+    nodeInfoOverlay_->raise();
+}
+
+void EditorWindow::openNodeMenuAt(const QStringList &path, const QString &term) {
+    if (!tabOwner_) {
+        if (activeEditor_) { activeEditor_->openNodeMenuAt(path, term); }
+        return;
+    }
+    openNodeMenu();
+    if (nodeMenu_ && nodeMenu_->rootObject()) {
+        QMetaObject::invokeMethod(nodeMenu_->rootObject(), "showPath", Q_ARG(QVariant, QVariant(path)), Q_ARG(QVariant, QVariant(term)));
+    }
+}
+
 void EditorWindow::chatAboutSelection() {
     if (!tabOwner_) { activeEditor_->chatAboutSelection(); return; }
     const auto ids = selectedIds();
@@ -904,15 +984,9 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
   showContextMenu(kind == "group" ? QString("node") : kind, position, kind == "pane" || kind == "selection" ? QString() : selectedIds().value(0));
   return;
  }
- auto *menu = new QMenu(this);
- menu->setObjectName(kind + "-menu"); menu->setAttribute(Qt::WA_DeleteOnClose);
  const auto epoch = documentEpoch_, credentials = credentialsEpoch_;
  const auto selection = selectedIds();
- connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
- connect(this, &EditorWindow::credentialsEpochChanged, menu, &QMenu::close);
  if (kind == "command" || kind == "shortcuts") {
-  // native-rules #2: naked delete on a Qt child that also has a parent or scene owner
-  delete menu;
   auto *panel = new QDialog(this, Qt::Popup | Qt::FramelessWindowHint);
   panel->setObjectName(kind + "-panel");
   panel->setAttribute(Qt::WA_TranslucentBackground);
@@ -935,7 +1009,7 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
    keys[name].append(QKeySequence(QString::fromLatin1(entry.keys)).toString(QKeySequence::NativeText));
    combos[name].append(webKeys(QString::fromLatin1(entry.keys)));
   }
-  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Examples", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Toggle mini-map", "Fit selection", "Focus node", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Run trace", "Version history", "Share workflow", "Workflow metadata", "Canvas uploads", "Link selected", "Group into subgraph", "Open child", "Linked workflows"}; }
+  if (kind == "command") { names += QStringList{"Add comment", "Run selected", "Disable selected", "Enable selected", "Auto layout", "Zoom in", "Zoom out", "Reset zoom", "Stop", "Open file", "Examples", "Layout selection", "Remove from group", "Ungroup", "Rename group", "Edit note", "Rename node", "Edit comment", "Output", "Toggle nodes", "Toggle mini-map", "Fit selection", "Focus node", "Zoom presets", "Connect", "Server Open", "Server Save", "Reconnect", "Server sync", "Run trace", "Version history", "Workflow metadata", "Canvas uploads", "Link selected", "Group into subgraph", "Open child", "Linked workflows"}; }
   names.removeDuplicates();
   const auto group = [](const QString &name) {
    if (name.startsWith("Align") || name.startsWith("Distribute") || name == "Stack selection" || name == "Arrange grid") { return QString("Layout & Alignment"); }
@@ -978,20 +1052,24 @@ void EditorWindow::showActionMenu(const QString &kind, const QPoint &position) {
   QStringList names;
   // The document's own settings and views. The node, layout, run and server
   // commands are in the Node and Workflow menus of the application menu.
-  if (kind == "more") { names = {instantUpdate_ ? "Instant Update: On" : "Instant Update: Off", "Save", "Version history", "Share workflow", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}; }
+  if (kind == "more") { names = {instantUpdate_ ? "Instant Update: On" : "Instant Update: Off", "Save", "Version history", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}; }
 #ifndef Q_OS_MACOS
   if (kind == "more") { names.insert(1, mouseNavigation() ? "Canvas navigation: Mouse" : "Canvas navigation: Trackpad"); }
 #endif
+  if (names.isEmpty()) { return; }
+  EntryMenuRequest request;
+  request.kind = kind;
+  request.global = position;
+  request.guardSelection = true;
   for (const auto &name : names) {
-   auto *item = menu->addAction(name);
-   item->setEnabled(menuActionEnabled(name));
-   connect(item, &QAction::triggered, this, [this, name, epoch, credentials, selection] {
-    if (epoch != documentEpoch_ || credentials != credentialsEpoch_ || selection != selectedIds() || !menuActionEnabled(name)) { return; }
-    userAction(name);
-   });
+   request.entries.append(QVariantMap{{"id", name}, {"label", name}, {"enabled", menuActionEnabled(name)}});
   }
+  request.choose = [this, epoch, credentials, selection](const QString &name) {
+   if (epoch != documentEpoch_ || credentials != credentialsEpoch_ || selection != selectedIds() || !menuActionEnabled(name)) { return; }
+   userAction(name);
+  };
+  showEntryMenu(request);
  }
- menu->popup(position);
 }
 }
 

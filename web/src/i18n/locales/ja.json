@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "現場の照明の様子",
           "shotHeader": "ショット {{count}}",
           "shotAction": "ショット {{count}} · アクション",
-          "shotDialogue": "ショット {{count}} · ダイアログ",
-          "dialoguePlaceholder": "対話",
-          "addDialogue": "ダイアログを追加",
+          "dialogue": "対話",
           "seconds": "秒",
+          "shotLength": "{{seconds}}秒",
           "sceneHeader": "シーン {{count}}"
         },
         "fallback": {
@@ -10695,6 +10694,8 @@
       "queuedCount_one": "{{count}} がキューに入れられました",
       "queuedCount_other": "{{count}} がキューに入れられました",
       "collapseQueue": "キューを折りたたむ",
+      "moveQueue": "キューを移動",
+      "moveQueueHint": "ドラッグで移動。矢印キーで移動、Home でリセット。",
       "enqueued": "キューに入れられました"
     },
     "toolbar": {

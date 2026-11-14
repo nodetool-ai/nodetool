@@ -125,9 +125,25 @@ private:
     static void hover(QQuickWidget *host, QQuickItem *item) {
         QVERIFY(host);
         QVERIFY(item);
+        // The window tooltip opens at the cursor, so park the cursor on the item as a real pointer would be.
+        // Moving it first lets the window system's enter and leave settle before the quick window sees the move.
+        QCursor::setPos(host->mapToGlobal(center(item)));
+        QCoreApplication::processEvents();
         QTest::mouseMove(host->quickWindow(), QPoint(2, 2));
         QTest::mouseMove(host->quickWindow(), center(item));
         QCoreApplication::processEvents();
+    }
+
+    // The text a user sees. A Ui.Tooltip that fits its panel overlay shows there. One that does not
+    // (a thin QQuickWidget) hands its text to the window, which shows it through QToolTip.
+    static QString shownTooltip(QQuickWidget *host) {
+        for (auto *object : host->rootObject()->findChildren<QObject *>()) {
+            if (object->property("followsTrigger").isValid() && object->property("visible").toBool()
+                && object->property("opacity").toReal() > 0) {
+                return object->property("text").toString();
+            }
+        }
+        return QToolTip::text();
     }
 
     static void openCatalog(EditorWindow &window) {
@@ -297,11 +313,11 @@ private slots:
         EditorWindow window;
         show(window, fixture()["metadata"].toArray());
         auto *rail = panel(window, QStringLiteral("Rail"));
-        const QStringList names{"rail-projects", "rail-documents", "rail-chats", "rail-library", "rail-entities",
-                                "rail-examples", "rail-nodes", "rail-more", "rail-theme", "rail-panel"};
-        const QStringList labels{"Projects", "Documents", "Chats", "Library", "Entities", "Examples", "Nodes", "More", "Light", "Toggle panel"};
-        const QStringList icons{"toolProjects", "folderCopyOutlined", "forumOutlined", "collectionsOutlined", "personOutline",
-                                "exploreOutlined", "hub", "moreHoriz", "sunny", "code"};
+        const QStringList names{"rail-projects", "rail-documents", "rail-chats", "rail-library",
+                                "rail-examples", "rail-nodes", "rail-theme", "rail-panel"};
+        const QStringList labels{"Projects", "Documents", "Chats", "Library", "Examples", "Nodes", "Light", "Toggle panel"};
+        const QStringList icons{"toolProjects", "folderCopyOutlined", "forumOutlined", "collectionsOutlined",
+                                "exploreOutlined", "hub", "sunny", "code"};
         qreal previous = -1;
         for (int i = 0; i < names.size(); ++i) {
             auto *entry = find(rail->rootObject(), names[i]);
@@ -314,10 +330,12 @@ private slots:
         }
         // The theme toggle and the panel toggle sit below the divider, apart from the views.
         QVERIFY(find(rail->rootObject(), "rail-theme")->mapToItem(rail->rootObject(), QPointF()).y()
-                > find(rail->rootObject(), "rail-more")->mapToItem(rail->rootObject(), QPointF()).y() + 100);
+                > find(rail->rootObject(), "rail-nodes")->mapToItem(rail->rootObject(), QPointF()).y() + 100);
         // The native entries the web does not have stay reachable elsewhere.
         QVERIFY(!find(rail->rootObject(), "rail-inspector"));
         QVERIFY(!find(rail->rootObject(), "rail-output"));
+        QVERIFY(!find(rail->rootObject(), "rail-entities"));
+        QVERIFY(!find(rail->rootObject(), "rail-more"));
     }
 
     void railTooltipsNameEntriesAndExplainDisabledOnes() {
@@ -332,15 +350,13 @@ private slots:
             {"rail-panel", "Toggle panel"},
             {"rail-projects", "Projects has no native surface yet. Switch projects from the project menu in the tab strip."},
             {"rail-library", "Library"},
-            {"rail-entities", "Entities has no native panel yet."},
             {"rail-examples", "Examples"},
-            {"rail-more", "The More panel has no native equivalent. Native commands are in the toolbar More menu."},
         };
         for (const auto &tip : tips) {
             auto *entry = find(rail->rootObject(), tip.first);
             QVERIFY2(entry, qPrintable(tip.first));
             hover(rail, entry);
-            QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), tip.second, 1000);
+            QTRY_COMPARE_WITH_TIMEOUT(shownTooltip(rail), tip.second, 1000);
             const bool unavailable = !entry->property("unavailable").toString().isEmpty();
             QCOMPARE(entry->property("button").value<QObject *>()->property("enabled").toBool(), !unavailable);
         }
@@ -368,13 +384,15 @@ private slots:
         QTRY_VERIFY(window.chatVisible());
         click(rail, entry("rail-chats"));
         QTRY_VERIFY(!window.chatVisible());
-        // Examples opens the menu of bundled examples.
+        // Examples opens and closes the examples panel, in place of the node library.
         click(rail, entry("rail-examples"));
-        QTRY_VERIFY(window.findChild<QMenu *>("examples-menu"));
-        window.findChild<QMenu *>("examples-menu")->close();
-        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QTRY_VERIFY(window.examplesVisible());
+        QVERIFY(!window.catalogVisible());
+        QTRY_VERIFY(entry("rail-examples")->property("active").toBool());
+        click(rail, entry("rail-examples"));
+        QTRY_VERIFY(!window.examplesVisible());
         // A disabled entry changes nothing.
-        for (const auto *name : {"rail-projects", "rail-library", "rail-entities", "rail-more"}) {
+        for (const auto *name : {"rail-projects", "rail-library"}) {
             click(rail, entry(name));
             QTest::qWait(30);
             QVERIFY2(!window.catalogVisible() && !window.browserVisible() && !window.chatVisible(), name);
@@ -410,7 +428,7 @@ private slots:
         for (int i = 0; i < tabs.size(); ++i) {
             auto *tab = find(root, QString("status-%1").arg(tabs[i].toLower()));
             QCOMPARE(tab->property("label").toString(), tabs[i]);
-            QCOMPARE(tab->property("glyph").toString(), glyphs[i]);
+            QCOMPARE(tab->property("iconName").toString(), glyphs[i]);
         }
         QCOMPARE(find(root, "status-nodes-value")->property("text").toString(), QString("12"));
         QCOMPARE(find(root, "status-nodes-key")->property("text").toString(), QString("nodes"));
@@ -438,7 +456,7 @@ private slots:
         for (const auto &reason : reasons) {
             auto *tab = find(root, reason.first);
             hover(status, tab);
-            QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), reason.second, 1000);
+            QTRY_COMPARE_WITH_TIMEOUT(shownTooltip(status), reason.second, 1000);
             click(status, tab);
             QTest::qWait(30);
             QVERIFY(!window.outputVisible());
@@ -514,7 +532,7 @@ private slots:
         QTRY_COMPARE(find(root, "status-memory-value")->property("text").toString(), QString("63%"));
         // A started run shows the queue summary, and the tab expands the queue panel.
         auto *queue = find(root, "status-queue");
-        QCOMPARE(queue->property("unavailable").toString(), QString());
+        QCOMPARE(queue->property("disabledReason").toString(), QString());
         window.action("Run");
         QTRY_VERIFY_WITH_TIMEOUT(!commands.isEmpty(), 2000);
         QTRY_VERIFY(window.queueAvailable());
@@ -677,7 +695,7 @@ private slots:
         QVERIFY(link->mapToItem(catalog->rootObject(), QPointF()).x() > count->mapToItem(catalog->rootObject(), QPointF()).x());
         QCOMPARE(link->property("accessibleName").toString(), QStringLiteral("Nodes documentation"));
         hover(catalog, link);
-        QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), QStringLiteral("Nodes documentation"), 1500);
+        QTRY_COMPARE_WITH_TIMEOUT(shownTooltip(catalog), QStringLiteral("Nodes documentation"), 1500);
         UrlCatcher catcher;
         QDesktopServices::setUrlHandler(QStringLiteral("https"), &catcher, "open");
         click(catalog, link);

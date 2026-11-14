@@ -6,25 +6,30 @@ set(CMAKE_AUTOMOC ON)
 include(CTest)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Widgets QuickWidgets Qml Quick QuickControls2 Svg Network WebSockets Multimedia Test)
 qt_standard_project_setup(REQUIRES 6.12)
-# Configures only the QML components, their interfaces and the parity
-# harness host (native/parity/host), without QtNodes, the graph runner, chat or
-# the editor window. A components-only build needs Qt and nothing else.
+# Configures only the QML components, their interfaces, the chat module and the
+# parity harness host (native/parity/host), without QtNodes, the graph runner
+# or the editor window. A components-only build needs Qt and nothing else.
 option(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY "Build only the QML components and the parity host" OFF)
 option(NODETOOL_PARITY_HOST "Build the native/parity component host" ON)
 add_subdirectory(../ui_primitives ui_primitives)
 add_subdirectory(../model-picker model-picker)
 add_subdirectory(../media media)
+add_subdirectory(../chat chat)
 # The C++ interfaces that editor QML components take as required properties,
 # with what they need and nothing of the editor window. A component test links
 # these, node_editor_qml and the UI primitives only.
 add_library(node_editor_interfaces STATIC
  src/interfaces/NodeCatalog.cpp src/interfaces/NodeCatalog.h
  src/interfaces/NodeInspector.cpp src/interfaces/NodeInspector.h
+ src/interfaces/NodeInfo.cpp src/interfaces/NodeInfo.h
+ src/graph/NodeDocumentation.cpp src/graph/NodeDocumentation.h
  src/interfaces/PropertyHost.cpp src/interfaces/PropertyHost.h
  src/interfaces/GenerationReplay.cpp src/interfaces/GenerationReplay.h
  src/interfaces/GenerationActivity.cpp src/interfaces/GenerationActivity.h
+ src/interfaces/GenerationRowsModel.cpp src/interfaces/GenerationRowsModel.h
  src/run/GenerationWorkflow.cpp src/run/GenerationWorkflow.h
  src/interfaces/DocumentTabs.cpp src/interfaces/DocumentTabs.h
+ src/interfaces/ExampleGallery.cpp src/interfaces/ExampleGallery.h
  src/interfaces/Notifications.cpp src/interfaces/Notifications.h
  src/interfaces/WorkflowHeader.cpp src/interfaces/WorkflowHeader.h
  src/interfaces/PanelLayout.cpp src/interfaces/PanelLayout.h
@@ -38,7 +43,9 @@ add_library(node_editor_interfaces STATIC
  src/interfaces/Assign.h
  src/graph/CatalogCategories.cpp src/graph/CatalogCategories.h
  src/graph/CatalogSearch.cpp src/graph/CatalogSearch.h
+ src/graph/NodeFocus.h
  src/server/PackSetup.cpp src/server/PackSetup.h
+ src/server/ComfyBackend.cpp src/server/ComfyBackend.h
  src/server/WorkflowBrowser.cpp src/server/WorkflowBrowser.h
  src/graph/IconPaths.cpp src/graph/IconPaths.h
  src/graph/TypeStyle.cpp src/graph/TypeStyle.h
@@ -97,13 +104,31 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_generations_panel_tests)
     add_test(NAME node_editor_generations_panel COMMAND node_editor_generations_panel_tests)
     set_tests_properties(node_editor_generations_panel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    # The Examples panel, with the same media QML types for its preview images.
+    qt_add_executable(node_editor_examples_panel_tests tests/ui/ExamplesPanelTest.cpp
+     src/media/MediaResolver.cpp src/media/MediaResolver.h
+     src/media/AudioWaveform.cpp src/media/AudioWaveform.h
+     src/media/VideoFrameView.cpp src/media/VideoFrameView.h
+     src/media/PcmStream.cpp src/media/PcmStream.h src/media/AudioVisualAnalysis.h
+     src/media/LiveAudioVisualizer.cpp src/media/LiveAudioVisualizer.h
+     src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h)
+    target_link_libraries(node_editor_examples_panel_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin nodetool_model_picker nodetool_model_pickerplugin Qt6::Quick Qt6::Multimedia Qt6::Network Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_examples_panel_tests)
+    add_test(NAME node_editor_examples_panel COMMAND node_editor_examples_panel_tests)
+    set_tests_properties(node_editor_examples_panel PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    # WorkflowBrowser.qml with a fixture browser, panel layout and status: no
+    # EditorWindow, graph runner, QtNodes or server.
+    qt_add_executable(node_editor_workflow_browser_component_tests tests/ui/WorkflowBrowserComponentTest.cpp)
+    target_link_libraries(node_editor_workflow_browser_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_workflow_browser_component_tests)
+    add_test(NAME node_editor_workflow_browser_component COMMAND node_editor_workflow_browser_component_tests)
+    set_tests_properties(node_editor_workflow_browser_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 if(NODETOOL_NODE_EDITOR_COMPONENTS_ONLY)
     return()
 endif()
 include(cmake/QtNodes.cmake)
 include(cmake/GraphRunner.cmake)
-add_subdirectory(../chat chat)
 add_library(node_editor_core STATIC
  src/server/AccountJobs.cpp src/server/AccountJobs.h
  src/server/SetupController.cpp src/server/SetupController.h
@@ -119,13 +144,14 @@ add_library(node_editor_core STATIC
  src/properties/ModelPickerController.cpp src/properties/ModelPickerController.h
  src/properties/CodeHighlighter.cpp src/properties/CodeHighlighter.h
  src/properties/CodeInference.cpp src/properties/CodeInference.h src/document/ChildPorts.cpp src/document/ChildPorts.h src/document/ChildSources.cpp src/document/ChildSources.h
- src/properties/DynamicPortsController.cpp src/properties/DynamicPortsController.h src/properties/ComfyWorkflowLoader.cpp src/properties/ComfyWorkflowLoader.h
+ src/properties/DynamicPortsController.cpp src/properties/DynamicPortsController.h src/properties/ComfyWorkflowLoader.cpp src/properties/ComfyWorkflowLoader.h src/properties/CompositorLayoutEditor.cpp src/properties/CompositorLayoutEditor.h
  src/server/MsgPack.cpp src/server/WorkflowSession.cpp src/server/WorkflowSession.h
  src/server/BundledServer.cpp src/server/BundledServer.h
  src/graph/WorkflowGraphModel.cpp src/graph/WorkflowGraphModel.h
  src/graph/NodeLayout.cpp src/graph/NodeLayout.h
- src/graph/CardBodies.cpp src/graph/CardBodies.h src/graph/ImageSizePresets.h
+ src/graph/CardBodies.cpp src/graph/CardBodies.h src/graph/CompositorGeometry.h src/graph/ImageSizePresets.h
  src/graph/CardBodyPainter.cpp src/graph/CardBodyPainter.h
+ src/graph/CardControls.cpp src/graph/CardControls.h
  src/graph/SynthModules.cpp src/graph/SynthModules.h
  src/graph/EditorScene.cpp src/graph/EditorScene.h
  src/graph/LineageLayer.cpp src/graph/LineageLayer.h
@@ -154,7 +180,7 @@ add_library(node_editor_core STATIC
  src/media/MediaGalleryModel.cpp src/media/MediaGalleryModel.h
  src/media/VideoFrameView.cpp src/media/VideoFrameView.h
  src/ui/EditorChat.cpp src/ui/EditorChatTools.cpp src/ui/EditorChatSearch.cpp src/ui/EditorChatSearch.h
- src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
+ src/ui/EditorWindow.cpp src/ui/EditorTabs.cpp src/ui/ChildSourceLoader.cpp src/ui/EditorComfy.cpp src/ui/CompositorLayoutDialog.cpp src/ui/EditorAppMenu.cpp src/ui/EditorWindow.h src/ui/EditorMenus.cpp src/ui/EditorViewport.cpp src/ui/EditorPanels.cpp)
 target_include_directories(node_editor_core PUBLIC src)
 target_link_libraries(node_editor_core PRIVATE nodetool_graph_runner)
 target_link_libraries(node_editor_core PUBLIC nodetool_model_picker nodetool_model_pickerplugin nodetool_chat nodetool_chatplugin nodetool_media nodetool_mediaplugin QtNodes Qt6::Widgets Qt6::QuickWidgets Qt6::Svg Qt6::Network Qt6::WebSockets Qt6::Multimedia)
@@ -231,7 +257,7 @@ if(BUILD_TESTING)
     qt_add_resources(node_editor_remaining_property_tests remaining_property_qml PREFIX /editor BASE qml FILES
         qml/RemainingResourcePropertyEditor.qml qml/PathPropertyEditor.qml qml/FilePropertyEditor.qml
         qml/ToolsPropertyEditor.qml qml/MediaParameterPropertyEditor.qml qml/AssetPropertyEditor.qml
-        qml/MediaPreview.qml qml/NodeButton.qml qml/EditorRoles.qml)
+        qml/MediaPreview.qml qml/EditorRoles.qml)
     nodetool_use_ui_primitives(node_editor_remaining_property_tests)
     add_test(NAME node_editor_remaining_property COMMAND node_editor_remaining_property_tests)
     set_tests_properties(node_editor_remaining_property PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
@@ -310,6 +336,8 @@ if(BUILD_TESTING)
  set_tests_properties(node_editor_navigation PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  qt_add_executable(node_editor_group_authoring_tests tests/ui/GroupAuthoringTest.cpp)
  target_link_libraries(node_editor_group_authoring_tests PRIVATE node_editor_core Qt6::Test)
+target_compile_definitions(node_editor_group_authoring_tests PRIVATE
+    WINDOW_PARITY_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/tests/ui/WindowParityFixture.json")
  nodetool_use_ui_primitives(node_editor_group_authoring_tests)
  add_test(NAME node_editor_group_authoring COMMAND node_editor_group_authoring_tests)
  set_tests_properties(node_editor_group_authoring PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
@@ -332,6 +360,10 @@ if(BUILD_TESTING)
  target_link_libraries(node_editor_card_warning_tests PRIVATE node_editor_core Qt6::Test)
  nodetool_use_ui_primitives(node_editor_card_warning_tests)
  add_test(NAME node_editor_card_warning COMMAND node_editor_card_warning_tests)
+add_executable(node_editor_node_focus_tests tests/graph/NodeFocusTest.cpp)
+target_include_directories(node_editor_node_focus_tests PRIVATE src)
+target_link_libraries(node_editor_node_focus_tests PRIVATE Qt6::Core Qt6::Test)
+add_test(NAME node_editor_node_focus COMMAND node_editor_node_focus_tests)
  set_tests_properties(node_editor_card_warning PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  add_subdirectory(tests/media)
  add_subdirectory(tests/runtime)
@@ -436,6 +468,13 @@ if(BUILD_TESTING)
  nodetool_use_ui_primitives(node_editor_header_row_component_tests)
  add_test(NAME node_editor_header_row_component COMMAND node_editor_header_row_component_tests)
  set_tests_properties(node_editor_header_row_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+# NodeInfoPanel.qml with a fixture NodeInfo, and the documentation split it
+# shows: no EditorWindow, graph runner or QtNodes.
+qt_add_executable(node_editor_node_info_component_tests tests/ui/NodeInfoComponentTest.cpp)
+target_link_libraries(node_editor_node_info_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
+nodetool_use_ui_primitives(node_editor_node_info_component_tests)
+add_test(NAME node_editor_node_info_component COMMAND node_editor_node_info_component_tests)
+set_tests_properties(node_editor_node_info_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 # Toolbar.qml, SelectionToolbar.qml and AuthoredControls.qml with fixture
 # commands, selection and run state: no EditorWindow, graph runner or QtNodes.
 qt_add_executable(node_editor_toolbar_component_tests tests/ui/ToolbarComponentTest.cpp)
@@ -457,13 +496,6 @@ target_link_libraries(node_editor_setup_guide_component_tests PRIVATE node_edito
 nodetool_use_ui_primitives(node_editor_setup_guide_component_tests)
 add_test(NAME node_editor_setup_guide_component COMMAND node_editor_setup_guide_component_tests)
 set_tests_properties(node_editor_setup_guide_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
-# WorkflowBrowser.qml with a fixture browser, panel layout and status: no
-# EditorWindow, graph runner, QtNodes or server.
-qt_add_executable(node_editor_workflow_browser_component_tests tests/ui/WorkflowBrowserComponentTest.cpp)
-target_link_libraries(node_editor_workflow_browser_component_tests PRIVATE node_editor_interfaces node_editor_qml node_editor_qmlplugin Qt6::Quick Qt6::Test)
-nodetool_use_ui_primitives(node_editor_workflow_browser_component_tests)
-add_test(NAME node_editor_workflow_browser_component COMMAND node_editor_workflow_browser_component_tests)
-set_tests_properties(node_editor_workflow_browser_component PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 # The run output's TypeIcons and OutputStyle singletons and its interface
 # members: no EditorWindow, graph runner or QtNodes.
 qt_add_executable(node_editor_run_output_component_tests tests/ui/RunOutputComponentTest.cpp)
@@ -577,6 +609,14 @@ if(BUILD_TESTING)
 endif()
 
 if(BUILD_TESTING)
+ qt_add_executable(node_editor_output_renderers_tests tests/ui/OutputRenderersTest.cpp)
+ target_link_libraries(node_editor_output_renderers_tests PRIVATE node_editor_core Qt6::Test)
+ nodetool_use_ui_primitives(node_editor_output_renderers_tests)
+ add_test(NAME node_editor_output_renderers COMMAND node_editor_output_renderers_tests)
+ set_tests_properties(node_editor_output_renderers PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endif()
+
+if(BUILD_TESTING)
  qt_add_executable(node_editor_rich_output_host_tests tests/ui/RichOutputHostTest.cpp)
  target_link_libraries(node_editor_rich_output_host_tests PRIVATE node_editor_core Qt6::Test)
  nodetool_use_ui_primitives(node_editor_rich_output_host_tests)
@@ -672,6 +712,11 @@ if(BUILD_TESTING)
     nodetool_use_ui_primitives(node_editor_pack_setup_host_tests)
     add_test(NAME node_editor_pack_setup_host COMMAND node_editor_pack_setup_host_tests)
     set_tests_properties(node_editor_pack_setup_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    qt_add_executable(node_editor_comfy_backend_host_tests tests/ui/ComfyBackendHostTest.cpp)
+    target_link_libraries(node_editor_comfy_backend_host_tests PRIVATE node_editor_core Qt6::Test)
+    nodetool_use_ui_primitives(node_editor_comfy_backend_host_tests)
+    add_test(NAME node_editor_comfy_backend_host COMMAND node_editor_comfy_backend_host_tests)
+    set_tests_properties(node_editor_comfy_backend_host PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
 
 if(BUILD_TESTING)

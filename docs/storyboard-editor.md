@@ -10,8 +10,6 @@ A storyboard is a board of shots. Each shot has a prompt, a camera setup, and th
 > **Runs:** locally or cloud, depending on the models you pick. **Needs:** a language model for **Direct**, an image model for stills, and a video model for clips. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** stills, clips, still edits that call a model, and **Iterate** are billed by paid providers at provider rates. **Adjust**, reordering, and slideshow call no provider.
 {: .callout-note}
 
-Open it with **+** in the tab bar, **New storyboard…**, then **Blank storyboard** or an example.
-
 ## Trace: agent builds a board
 
 Without an open editor, the agent uses the backend tools in `packages/agents/src/capabilities/storyboards.specs.ts`. With the editor open, it uses the `ui_storyboard_*` tools (see [Creative Agent](creative-agent.md#trace-brief-to-timeline)).
@@ -40,8 +38,6 @@ User prompt: "Break this brief into six shots and render stills."
 
 ![Storyboard editor](assets/screenshots/storyboard-board.png)
 
-The board opens as a workspace tab with the assistant panel beside it on request. Running renders are listed in the bottom panel's **Generations** view.
-
 | Area | What it holds |
 |---|---|
 | Document bar | Board title, save state, Undo and Redo, **Board** and **Preview**, the Board settings and Assistant toggles, **Render**, **Open timeline**, and the ⋮ menu |
@@ -51,8 +47,6 @@ The board opens as a workspace tab with the assistant panel beside it on request
 | Shot row | Search, **Add shot**, the shot summary, the card media toggle, and the card size slider |
 
 The ⋮ menu holds **Slideshow**, **One take**, **Open script** or **Extract script**, **Create timeline** or **Rebuild linked timeline**, **Change style**, **Download ZIP**, and **Send to workflow**.
-
-Stills, clips, and takes stay in your asset library, so closing the tab loses nothing.
 
 ---
 
@@ -106,7 +100,6 @@ Shots sit under scene headers labeled **Scene 1**, **Scene 2**, and so on, with 
 - **Reorder:** Drag a card onto another. Dropping across a scene header moves the shot to that scene.
 - **Hover actions:** A card shows **Edit**, **Iterate**, a regenerate button, and an upload button for your own still. Double-click the media to view it fullscreen.
 - **Shot actions menu:** **Render still…**, **Render clip…**, **Download**, **Send to workflow…**, **Duplicate shot**, **Delete shot**.
-- **Undo and redo:** The undo buttons in the document bar cover board edits. The Undo tooltip reads "Undo (⌘Z)".
 - **Genre:** The chip beside the title shows the genre. **Set genre** appears when none is set.
 
 Select a card to open the shot inspector under the grid. It repeats **Edit**, **Iterate**, **Regenerate**, and **Delete**, and its **Appears in** row links to the timeline cut and the script lines that use the shot.
@@ -132,7 +125,7 @@ Select a card to open the shot inspector under the grid. It repeats **Edit**, **
 
 Type `@` in **Description**, **Motion**, or **End** to pick an entity from the library. Its name goes into the text and the entity joins **In this shot**, the same as picking it there. A picked entity also joins the board, and joins the shot at once, before you save the text.
 
-Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** shows the still prompt and clip prompt the render will send, so you can check them before you spend anything. When the shot has camera presets, the clip prompt shows the camera wording compiled for the board's video model, and a note lists any preset that has no wording tuned for that model. The **Regenerate** button renders a new still. The **More shot actions** menu holds **Render clip** (or **Re-render clip**), **Move earlier in scene**, and **Move later in scene**. A clip in keyframe mode needs a still first.
+Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** shows the still prompt and clip prompt the render will send, so you can check them before you spend anything. When the shot has camera presets, the clip prompt shows the camera wording compiled for the board's video model, and a note lists any preset that has no wording tuned for that model. The **More shot actions** menu holds **Render clip** (or **Re-render clip**), **Move earlier in scene**, and **Move later in scene**. A clip in keyframe mode needs a still first.
 
 ### Look presets
 
@@ -148,7 +141,7 @@ The **Movement** field takes typed words or opens a picker of camera presets: na
 - A board saved before presets opens with the card whose alias matches the saved movement already selected. Nothing is saved until you change the field.
 - A shot with only typed movement renders as it always did.
 
-At render time the presets compile for the board's video model, so the same move is worded differently for each model family. The **Prompts** section shows that wording before you spend anything. Details are in [Presets](presets.md).
+At render time the presets compile for the board's video model, so the same move is worded differently for each model family. Details are in [Presets](presets.md).
 
 ---
 
@@ -164,7 +157,7 @@ At render time the presets compile for the board's video model, so the same move
 | **Regenerate** | Card, inspector, editor | Re-renders the still with the model the shot used last |
 | **Iterate** | Card, inspector | Asks for a note such as "make it darker, add rain" and re-renders the current clip with it |
 
-The shot remembers the model you picked. If an entity is attached and the chosen still model cannot take reference images, a warning appears under the model picker.
+If an entity is attached and the chosen still model cannot take reference images, a warning appears under the model picker.
 
 The Render button shows the next batch, stills until every shot has one and then clips. Its arrow offers both. The dialog and confirm button show a price, for example "Render stills · ~$0.40". Text under the picker explains any request that could not be priced, and **Select a priced model to see the estimate.** appears when no priced model is selected. After you choose stills, the dialog also shows what rendering the clips for the same shots would add. See [Costs and Credits](costs-and-credits.md).
 
@@ -206,7 +199,7 @@ Press the board actions button (**More board actions**) and choose **Change styl
 
 When versions are stale, a banner reads for example "Inputs changed (style). 3 stills and 1 clip are stale." with **Regenerate stale stills** and **Regenerate stale clips** buttons. A confirmation shows the estimated cost. Each shot renders a new take with the model it last used, and the current take stays selected until you choose the new one.
 
-The same menu offers **Download ZIP** and **Send to workflow…**, which passes the board's stills and clips to a workflow.
+**Send to workflow…** passes the board's stills and clips to a workflow.
 
 ---
 
@@ -239,7 +232,7 @@ Once a timeline exists, the button reads **Rebuild linked timeline…**. The con
 
 ## Assistant
 
-The **Assistant** button opens the Storyboard Assistant beside the board, and **Hide Assistant** or **Show Assistant** in the command palette toggles it. It sees the board and the selected shot. Try "break this brief into six shots", "add a close-up after shot 3", or "assemble the shots into a timeline". On phones, **Board** and **Assistant** are separate tabs.
+The **Assistant** button opens the Storyboard Assistant beside the board, and **Hide Assistant** or **Show Assistant** in the command palette toggles it. It sees the board and the selected shot. Example requests: "add a close-up after shot 3", "assemble the shots into a timeline". On phones, **Board** and **Assistant** are separate tabs.
 
 The backend storyboard tools are `list_storyboards`, `create_storyboard`, `get_storyboard`, `direct_storyboard`, `render_storyboard_stills`, `render_storyboard_clips`, `revise_storyboard_clip`, `assemble_storyboard_timeline`, `edit_storyboard`, `extract_script_from_storyboard`, and `delete_storyboard`. `delete_storyboard` removes the board with its saved version history and cannot be undone.
 

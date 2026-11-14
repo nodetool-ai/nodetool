@@ -199,7 +199,7 @@ export function isPublicAtlasCloudWebhookRequest(
 /**
  * Paths that skip session auth in the server's `onRequest` hook. Every entry
  * must carry no per-caller private state, or authenticate on its own (webhook
- * secret, OAuth PKCE state, KIE webhook signature, fal and AtlasCloud Ed25519
+ * secret, OAuth PKCE state, KIE callback token, fal and AtlasCloud Ed25519
  * signatures).
  * All of these are still
  * covered by the global `@fastify/rate-limit` plugin registered before auth.

@@ -1879,9 +1879,16 @@ if (mcpHttpEnabled) {
               ? Buffer.alloc(0)
               : JSON.stringify(req.body);
 
+    // Abort the request when the client goes away before its response is
+    // written, so the MCP mount cancels the tool calls it carried.
+    const disconnect = new AbortController();
+    reply.raw.on("close", () => {
+      if (!reply.raw.writableFinished) disconnect.abort();
+    });
     const request = new Request(url, {
       method: req.method,
       headers,
+      signal: disconnect.signal,
       body: Buffer.isBuffer(requestBody)
         ? new Uint8Array(requestBody)
         : requestBody,

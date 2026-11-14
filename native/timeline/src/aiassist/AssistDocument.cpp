@@ -84,7 +84,24 @@ QJsonObject deleteTranscriptRange(QJsonObject document, const QJsonObject& paylo
         }
         return clip;
     };
+    const double span = end - start;
+    // Where a time before the cut, inside it or after it lands once it is removed.
+    const auto shifted = [start, end, span](double t) { return t <= start ? t : t >= end ? t - span : start; };
+    // A track keeps every clip where it is when one of its clips cannot follow
+    // the cut: a locked clip at or after it, or a time-remapped clip that
+    // overlaps it (splitClip refuses a remap). Shifting the other clips on
+    // that track would move them onto the one that stays.
+    QSet<QString> heldTracks;
+    for (const auto& clip : editDoc.clips) {
+        const double a = clip.value("startMs").toDouble();
+        const double b = a + clip.value("durationMs").toDouble();
+        if (b <= start) { continue; }
+        if (locked.contains(clip.value("id").toString()) || (clip.contains("timeRemap") && a < end)) {
+            heldTracks.insert(clip.value("trackId").toString());
+        }
+    }
     QJsonArray next;
+    QHash<QString, QJsonValue> removedGroups;
     double duration = 0;
     auto append = [&next, &duration](QJsonObject clip) {
         duration = std::max(duration, clip.value("startMs").toDouble() + clip.value("durationMs").toDouble());
@@ -93,9 +110,24 @@ QJsonObject deleteTranscriptRange(QJsonObject document, const QJsonObject& paylo
     for (const auto& clip : editDoc.clips) {
         const double a = clip.value("startMs").toDouble();
         const double b = a + clip.value("durationMs").toDouble();
-        if (b <= start || locked.contains(clip.value("id").toString())) { append(clip); continue; }
-        if (a >= end) { auto moved = clip; moved.insert("startMs", a - (end - start)); append(moved); continue; }
-        if (clip.contains("timeRemap")) { append(clip); continue; }
+        if (b <= start || heldTracks.contains(clip.value("trackId").toString())) { append(clip); continue; }
+        if (a >= end) { auto moved = clip; moved.insert("startMs", a - span); append(moved); continue; }
+        if (nt::edit::isGroupClip(clip)) {
+            // A group is a transform parent, not media: it spans what is left
+            // of its window. A group inside the cut goes, and its children
+            // move to its parent.
+            const double from = shifted(a);
+            const double to = shifted(b);
+            if (to > from) {
+                auto kept = clip;
+                kept.insert("startMs", from);
+                kept.insert("durationMs", to - from);
+                append(kept);
+            } else {
+                removedGroups.insert(clip.value("id").toString(), clip.value("parentId"));
+            }
+            continue;
+        }
         if (start > a) {
             auto head = nt::edit::splitClip(clip, start).first;
             head.insert("id", clip.value("id"));
@@ -105,6 +137,20 @@ QJsonObject deleteTranscriptRange(QJsonObject document, const QJsonObject& paylo
             auto tail = nt::edit::splitClip(clip, end).second;
             tail.insert("startMs", start);
             append(relink(tail, tails));
+        }
+    }
+    if (!removedGroups.isEmpty()) {
+        for (auto&& value : next) {
+            auto clip = value.toObject();
+            auto parent = clip.value("parentId");
+            if (!removedGroups.contains(parent.toString())) { continue; }
+            // Bounded: a parent cycle among removed groups must not loop.
+            for (qsizetype step = 0; step <= removedGroups.size() && removedGroups.contains(parent.toString()); ++step) {
+                parent = removedGroups.value(parent.toString());
+            }
+            if (removedGroups.contains(parent.toString())) { parent = QJsonValue(); }
+            if (parent.isString() && !parent.toString().isEmpty()) { clip.insert("parentId", parent); } else { clip.remove("parentId"); }
+            value = clip;
         }
     }
     document.insert("clips", next);

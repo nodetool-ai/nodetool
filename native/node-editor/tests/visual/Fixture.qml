@@ -23,9 +23,9 @@ Rectangle {
     }
     Toolbar { visible: false; commands: fixture.commands; runs: fixture.runs }
     EditorRoles { id: roles }
-    NodeButton { objectName: "button-default"; x: 20; y: 20; text: "Run" }
-    NodeButton { objectName: "button-primary"; x: 150; y: 20; text: "Run"; variant: NodeButton.Primary }
-    NodeButton { objectName: "button-disabled"; x: 280; y: 20; text: "Run"; enabled: false }
+    Ui.EditorButton { objectName: "button-default"; x: 20; y: 20; text: "Run"; variant: Ui.EditorButton.Outlined }
+    Ui.EditorButton { objectName: "button-primary"; x: 150; y: 20; text: "Run"; variant: Ui.EditorButton.Outlined; highlighted: true }
+    Ui.EditorButton { objectName: "button-disabled"; x: 280; y: 20; text: "Run"; variant: Ui.EditorButton.Outlined; enabled: false }
     Ui.Text { objectName: "text-label"; x: 20; y: 160; text: "Prompt"; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
     Ui.Text { objectName: "text-caption"; x: 280; y: 160; text: "Sample text"; role: Ui.Typography.SansCaption; tone: Ui.Text.Secondary }
     ViewportIndicator { objectName: "surface-panel"; x: 540; y: 160; viewport: fixture.viewport }

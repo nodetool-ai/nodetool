@@ -80,11 +80,13 @@ describe("providerOnboardingCatalog", () => {
   });
 });
 
-it("offers the Codex sign-in for chat only, and OpenAI as an API key", () => {
+it("offers the Codex sign-in for chat and images, and OpenAI as an API key", () => {
   const chat = providersForCapability("generate_message");
   expect(chat.find((provider) => provider.id === "codex")).toMatchObject({ oauth: "openai", oauthOnly: true });
   expect(chat.find((provider) => provider.id === "openai")?.oauth).toBeUndefined();
-  for (const capability of ["text_to_image", "text_to_speech", "generate_embedding"] as const) {
+  // The `codex` provider generates GPT Image pictures on the ChatGPT plan.
+  expect(providersForCapability("text_to_image").some((provider) => provider.id === "codex")).toBe(true);
+  for (const capability of ["text_to_speech", "generate_embedding"] as const) {
     const providers = providersForCapability(capability);
     expect(providers.some((provider) => provider.id === "openai")).toBe(true);
     expect(providers.some((provider) => provider.id === "codex")).toBe(false);

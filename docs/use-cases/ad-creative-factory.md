@@ -13,15 +13,8 @@ canonical_url: "https://nodetool.ai/templates/ad-creative-factory"
 
 <p class="usecase-eyebrow">Use case · Advertising</p>
 
-Turn one product photo and one offer into a batch of ready-to-test vertical
-video ads. A strategist agent plans the test, and every variant comes out
-staged, animated, and voiced — what an agency bills per video, this graph
-produces by the batch at provider cost.
-
-Since ad platforms took over targeting, creative volume is the lever that's
-left: accounts win by testing many angles and refreshing them before they
-fatigue. That makes ad variants a recurring line item — bought monthly, per
-video. This workflow moves that line item onto your canvas.
+A strategist agent plans a persona × angle test matrix from one product photo
+and one offer. Each matrix cell becomes a staged, animated, voiced vertical ad.
 
 ## How it works
 
@@ -30,7 +23,7 @@ there is nothing to open under Examples. Build it on the canvas from the nodes
 named below, or start from one of the shipped ad workflows listed under
 [Next steps](#next-steps).
 
-Four inputs, one fan-out. The strategist plans once; everything after the list
+Four inputs, one fan-out. The strategist plans once. Everything after the list
 generator runs once per variant.
 
 {% mermaid %}
@@ -59,47 +52,43 @@ graph LR
 {% endmermaid %}
 
 1. **Feed in the campaign.** The product and offer, the audience, a variant
-   count, and one clean product photo — the same shot anchors every variant.
+   count, and one clean product photo. The same photo anchors every variant.
    *(e.g. "Aurora Trail smart fitness watch · 20% off launch week · weekend
    hikers · 6 variants")*
 2. **Plan the test.** A strategist agent studies the photo and brief, then
-   writes a test matrix: buyer personas × message angles (pain point, bold
-   claim, social proof, offer urgency), and picks the strongest pairings to
-   test.
+   writes a test matrix of buyer personas × message angles (pain point, bold
+   claim, social proof, offer urgency) and picks the strongest pairings.
 3. **Write the hooks.** A list generator turns each matrix cell into one spoken
-   hook — 18 words or fewer, plain language, said in the first three seconds.
+   hook: 18 words or fewer, plain language, said in the first three seconds.
 4. **Stage every scene.** For each hook, an image-to-image model places the
    product from your photo into that hook's world: native UGC framing, natural
    light, 9:16, upper third kept clear for caption text.
 5. **Animate and voice.** An image-to-video model adds a subtle handheld
    push-in; a text-to-speech model reads the hook.
 6. **Mix and ship.** The voiceover lands on the clip, and the finished ads
-   collect in a preview grid — one ready-to-upload vertical ad per matrix cell.
+   collect in a preview grid, one per matrix cell.
 
 ## One photo in, a test cell out
 
-Every variant isolates one persona × angle pairing, so when one ad wins in the
-ad account you know *why* it won — and the next run can breed from it. Paste
-last week's winning hooks into the audience or offer input, raise the variant
-count, and the strategist plans the next generation around them.
+Every variant isolates one persona × angle pairing, so a winning ad shows which
+pairing worked. Paste last week's winning hooks into the audience or offer
+input, raise the variant count, and the strategist plans the next generation
+around them.
 
 ## Make it yours
 
-- **Swap any model.** Language, image, video, and voice are each one node.
-  Trade the video model up for hero variants, down for cheap broad tests.
-- **Retune the strategist.** The persona × angle matrix is a prompt you can
-  read and edit — push it toward founder-story ads, comparison ads, or a
-  single angle across ten personas.
-- **Change the format.** Aspect ratio, duration, and resolution live on the
-  image and video nodes. Go 1:1 for feed placements or 16:9 for YouTube in one
-  click.
-- **Localize the batch.** Point the voiceover at another voice or language and
-  re-run — the same matrix ships in every market.
+- Language, image, video, and voice are each one node. Use a pricier video
+  model for hero variants and a cheaper one for broad tests.
+- The persona × angle matrix is a prompt you can edit. Push it toward
+  founder-story ads, comparison ads, or a single angle across ten personas.
+- Aspect ratio, duration, and resolution live on the image and video nodes.
+  Set 1:1 for feed placements or 16:9 for YouTube.
+- Point the voiceover at another voice or language and re-run to ship the same
+  matrix in another market.
 
 ## Models in this workflow
 
-Pick one model per role when you build it. Called with your own keys, so the
-bill comes from the provider.
+Pick one model per role. Calls use your own keys, so the provider bills you.
 
 | Role | Node | Works well with |
 | --- | --- | --- |
@@ -117,6 +106,6 @@ See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to se
   *Ad Loop from a Product Photo* animates one photo into a looping hero shot
   with Kling 2.6 on Kie, and *Per-SKU Ad Factory* turns one approved storyboard
   into one ad per product.
-- [Product Video Generator]({{ '/use-cases/product-video' | relative_url }}) — one cinematic hero video instead of a test batch
-- [Movie Trailer Generator]({{ '/use-cases/movie-trailer' | relative_url }}) — the same fan-out pattern, pointed at film
+- [Product Video Generator]({{ '/use-cases/product-video' | relative_url }}): one cinematic hero video instead of a test batch
+- [Movie Trailer Generator]({{ '/use-cases/movie-trailer' | relative_url }}): the same fan-out pattern, pointed at film
 - [All use cases]({{ '/use-cases' | relative_url }})

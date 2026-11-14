@@ -445,8 +445,8 @@ build was run beside them, so no pixel comparison with the web exists.
 | 3 | An edge flows while its source node is starting, running or booting, or the edge reports `message_sent` (`useProcessedEdges.ts` 418-451, `CustomEdge.tsx` 62, `handle_edge_tooltip.css` 148-155) | Partial. The flow followed the target node and the edge statuses `running` and `active` | Implemented in `WorkflowGraphModel::runtimeWireFlowing`. Control edges never flow |
 | 4 | An edge that carried more than one item shows its count in a pill (`CustomEdge.tsx` 60, 120-135) | Missing | Implemented in `WirePainter`, with the card background, 600 weight and pill radius |
 | 5 | A streaming source draws its flow wider (`useProcessedEdges.ts` 305-309, `handle_edge_tooltip.css` 158-162) | Missing | Implemented. The flow is 4 wide when the source declares `is_streaming_output` |
-| 6 | After a run, the untaken side of an If or Switch fades to 0.4, a node with one live input stays, and a selection's 0.2 wins (`untakenBranches.ts`, `ReactFlowWrapper.tsx` 862-947, `nodes.states.css` 75-78) | Missing | Implemented by `src/run/UntakenBranch.h` and `EditorScene::updateBranchDimming`. Edge reports now outlive the finished run, as the web store does |
-| 7 | A selection keeps its branch at full opacity and fades the rest to 0.2 (`reactFlowGraphModel.ts` 178-263) | Implemented | Implemented |
+| 6 | After a run, the untaken side of an If or Switch fades to 0.4, a node with one live input stays, and a selection's 0.6 wins (`untakenBranches.ts`, `ReactFlowWrapper.tsx` 862-947, `nodes.states.css` 75-78) | Missing | Implemented by `src/run/UntakenBranch.h` and `EditorScene::updateBranchDimming`. Edge reports now outlive the finished run, as the web store does |
+| 7 | A selection keeps its branch at full opacity and fades the rest to 0.6 (`reactFlowGraphModel.ts` 178-263) | Implemented | Implemented |
 | 8 | An Agent control edge leaves the bottom center of the controller, enters the top center of the controlled node and draws amber, dashed 8 4, 2 wide at 0.7 opacity and 3 wide at full opacity when selected (`ControlEdge.tsx` 12-40, `BaseNode.tsx` 756, 840) | Partial. The edge became a typed wire between side handles and the card showed a "control" row | Implemented. The handle sits at the card's top or bottom center, takes no row, and the wire paints as `ControlEdge` does |
 | 9 | Control edges select, delete and open the edge menu like other edges (`EdgeContextMenu.tsx` 43, 154) | Implemented through the shared wire | Implemented |
 | 10 | An edge from or to a bypassed node draws dashed at half opacity (`useProcessedEdges.ts` 298-302) | Implemented | Implemented |
@@ -1200,7 +1200,7 @@ Source identifiers below come from the web owners. Open rows describe the exact 
 | CommandMenu.tsx | `runEntireWorkflow` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
 | CommandMenu.tsx | `saveWorkflow` | Mapped through this work: Save. |
 | CommandMenu.tsx | `selectAll` | Mapped through this work: Select all. |
-| CommandMenu.tsx | `shareWorkflow` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
+| CommandMenu.tsx | `shareWorkflow` | Removed: the native editor has no share feature. Share workflows from the web app. |
 | CommandMenu.tsx | `showMiniMap` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
 | CommandMenu.tsx | `snapToGrid` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
 | CommandMenu.tsx | `toggleAssets` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
@@ -1378,7 +1378,7 @@ Remaining differences:
 - Find highlights no inspector property for a property match, and the web 150 ms debounce is not tied to a live node store.
 - Help shows the native bindings, not every web shortcut. The Assets category is empty. The web list shows both platforms at once, the native list follows the platform toggle. Web hover and press tooltips on keys are native tooltips.
 - Right-click on an empty selection rectangle and the property, input and output context menus of F03 are unchanged.
-- The Command menu and the More dropdown remain the earlier panel and `QMenu`.
+- The Command menu remains the earlier panel. The More dropdown uses the shared Quick context-menu overlay.
 - Offscreen tests do not establish platform accessibility, fractional-DPI rendering or real popup behavior.
 
 The shortcut inventory includes surrounding web panels and asset shortcuts. Those remain open when their native surface or binding is absent.
@@ -1456,18 +1456,21 @@ Web sources: [GroupNode.tsx](../../../web/src/components/node/GroupNode.tsx),
 |---|---|---|---|
 | F07.1 | Ctrl+G, the toolbar and the context menu surround two or more cards with a group at (minX − 20, minY − 50), sized to the cards plus 40 and at least 200. Children keep their canvas place and the change is one undo step (`useSurroundWithGroup.ts`). | I | `groupNodes` in `WorkflowDocument.cpp`. `GroupAuthoringTest::keyboardGroupingAndNestedMovement`. The web skips group nodes, native also wraps nested frames. |
 | F07.2 | The label is plain text above the frame, scaled with the zoom. A double-click edits it, and the edit saves 500 ms after the last key (`GroupNode.tsx` 401-418, 599-624). | I | `InlineTitleTest::groupHeadlineAndCommentIsolation`, `GroupPresentationTest::labelZoomMatchesWeb`. Native commits once on Enter or blur. |
-| F07.3 | The frame ignores the pointer. Only the label selects and drags the group (`GroupNode.tsx` 521-534). | P | Native selects and drags a group from its body too. Open. |
+| F07.3 | The frame ignores the pointer. Only the label selects and drags the group, and the label is as wide as its text (`GroupNode.tsx` 521-534, `ReactFlowWrapper.tsx` `selectGroupFromLabel`). A press on the body starts a box selection, a click clears the selection, a right-click opens the pane menu and a double-click opens the node menu. Shift, Ctrl or Cmd on the label adds the group to the selection or takes it out. A plain click selects the group alone. | I | `GroupAuthoringTest::groupBodyPressStartsABoxSelection`, `labelClickTogglesWithShiftAndSelectsAlone`, `rightClickOnTheBodyReachesThePane`. Groups accept no mouse button, so the scene leaves a body press unaccepted and the view starts its box. The resize edges and the corner handle still take the press. |
 | F07.4 | Moving a group moves its children (`GroupNode`, React Flow parent). | I | `GroupAuthoringTest::createGroupEditAndUndo`. |
 | F07.5 | Resize handle and edges, minimum 200 × 200, children stay where they are (`GroupNode.tsx` 53-54, 389-399, 693-698). | I | `GroupPresentationTest::resizeCommitsOnceAndPreservesChildren`. |
 | F07.6 | Header actions show on header hover or selection: More and Run (`GroupNode.tsx` 494, 626-647). Run runs the children through Run selected (343-349). | I | `GroupAuthoringTest::pointerRunSubmitsGroupWithoutSelectingIt`, which also checks the spinner and the "Group is running" name (`RunGroupButton.tsx`). Disabled cards: `NodeActionsTest::disabledCardPaintsStripesAndAWarningBadge`. Bypass exclusion: `PartialRunPlannerTest::bypassedNodesLeaveWithTheirIncidentEdges`. Acceptance pending. |
-| F07.7 | The menu holds Disable all or Enable all, shown only with children, and a color picker (`GroupNode.tsx` 649-678, 351-363). Bypass is one undo step. | P | `pointerBypassAndColorRoundTrip`. Native has the web swatches. Custom colors are missing. |
+| F07.7 | The menu holds Disable all or Enable all, shown only with children, and a color picker (`GroupNode.tsx` 649-678, 351-363). The group passes no `showCustom`, so its picker has swatches only (`ColorPicker.tsx`). Bypass is one undo step. | I | `pointerBypassAndColorRoundTrip`. Native has the web swatches. |
 | F07.8 | Dropping a card on a group moves it in and keeps its canvas position. The group grows to hold it with 25 px right and 50 px below, and never shrinks (`useDragHandlers.ts` 113-138, 153-172, `useAddToGroup.ts`). Cards that already have a group stay. Groups never join groups. | I | New. `GroupAuthoringTest::dropOnGroupJoinsKeepsPlaceGrowsAndUndoesOnce`, `dropOutsideEveryGroupLeavesTheCardLoose`, `groupedCardDroppedInsideItsGroupStaysGrouped`. The drop and the growth are one undo step. Native joins the smallest overlapping group, the web the first. |
 | F07.9 | The group a dragged card overlaps draws at 0.8 opacity with a 60 percent primary edge (`GroupNode.tsx` 521-534). | I | New. `dropTargetGroupHighlightsWhileDragging`. |
 | F07.10 | Alt while dragging takes the cards out of their group. A quick shake does the same (`useDragHandlers.ts` 94-104, `MousePosition.ts` 12-91). Cards keep their canvas place. | I | New. `altDragTakesTheCardOutOfItsGroup`, `shakingTheCardTakesItOutOfItsGroup`, `steadyDragIsNotAShake`, `dragWithoutAltKeepsTheGroup`. `DragWiggle.h` ports the detector. The out and in steps are one undo step. |
 | F07.11 | Remove from group is in the node More menu (`NodeToolButtons.tsx` 105-109, 250-256) and sets a card loose at its canvas place (`useRemoveFromGroup.ts`). | I | `GroupAuthoringTest::createGroupEditAndUndo`. Native also has Ungroup, which the web lacks. |
-| F07.12 | While a group has a selected child and Ctrl or Cmd is held, the group becomes selectable and dimmed so a box can start inside it (`GroupNode.tsx` 480-489). | M | Open. |
-| F07.13 | A help hint above the group lists how to remove nodes (`GroupNode.tsx` 681-691). | M | Open on purpose. The web text says Ctrl or Cmd while the code uses Alt, so native does not copy it. |
+| F07.12 | While a group has a selected direct child and Alt (Option) is held, the group takes the pointer on its body and draws at 0.5 opacity (`GroupNode.tsx` `modifierActive`). | I | `GroupAuthoringTest::altMakesTheGroupOfASelectedCardTakeThePointer`. Alt is read from key events and from the modifiers of every pointer event. |
+| F07.13 | A dragged card that stays over a group for a second shows a hint 32 px above the frame: "REMOVE NODES FROM GROUP", "Drag out while holding Alt (Option ⌥ on Mac)" and "Shake rapidly, then drag out" (`GroupNode.tsx` help-text, `TOOLTIP_DESCRIPTION_DELAY`). | I | `GroupAuthoringTest::dropHintShowsAfterASecondOverTheGroup`. The box scales with the canvas, as in the web. Native shows it at once after the delay and does not fade it in. |
 | F07.14 | Read-only: no group edits. | I | `pointerColorIsBlockedAfterReadOnlyTransition`. The drag outcome is ignored when read-only. |
+| F07.15 | A box selection selects a group only when it encloses the frame, and selects every card it touches (`useSelectionEvents.ts` `selectGroupsWithinSelection`, the default `selectionMode: "partial"`). | I | `GroupAuthoringTest::boxEnclosingTheGroupSelectsIt`, `groupBodyPressStartsABoxSelection`. Like the web, a box also takes out a selected group it does not enclose. |
+| F07.16 | Every grouped card has React Flow `expandParent` (`useSurroundWithGroup.ts`). A card dragged past its frame stays in the group and the frame grows to hold it exactly. Past the left or top edge the frame moves out and its other cards keep their canvas place. | I | `GroupAuthoringTest::groupingRealCardsDrawsAFrameAndDraggingMovesIt`, which also groups three fixture cards with Ctrl-click and Ctrl+G and drags the frame by its label. The growth and the move are one undo step. React Flow grows the frame during the drag, native when the card is dropped. |
+| F07.17 | React Flow stores fractional group and comment sizes after a resize. | I | `GroupPresentationTest::fractionalSizesKeepTheirSize`. Native rounds them. It used to read them as missing and draw a 400 × 300 frame. |
 
 ## F08 comments
 
@@ -1564,10 +1567,10 @@ covers the editor's undo step and the listed conflict. See
 [Server workflow synchronization](server-document-sync.md#operation-level-merge).
 Acceptance pending.
 
-### F37 workflow versions, sharing and metadata
+### F37 workflow versions and metadata
 
-**Version history**, **Share workflow** and **Workflow metadata** are available
-from More and the command menu. [WorkflowVersions](../src/server/WorkflowVersions.cpp)
+**Version history** and **Workflow metadata** are available from the document
+bar and the command menu. The native editor has no share feature. [WorkflowVersions](../src/server/WorkflowVersions.cpp)
 uses the authenticated workflow tRPC endpoints. Local files without an explicit
 server binding show an unavailable state. Credential changes and document
 replacement invalidate pending requests and close the panels.
@@ -1658,7 +1661,7 @@ There is no endpoint for persisting arbitrary workflow root fields.
 empty, invalid response, permission denial, local unavailability, delayed
 responses crossing document detachment and account changes, read-only inspection and graph undo.
 [VersionHistoryPolishTest](../tests/ui/VersionHistoryPolishTest.cpp) uses a fake
-server that returns the `versionResponse` and `shareItem` shapes from
+server that returns the `versionResponse` shape from
 [the workflow schemas](../../../packages/protocol/src/api-schemas/workflows.ts)
 and tRPC error bodies with their HTTP status. It covers named version creation
 through `workflows.versions.create`, including the local save that must reach the
@@ -1666,16 +1669,15 @@ server first, a blank name, a create failure with retry and a failed local save
 that sends no create. It also covers relative times at fixed ages including calendar
 months and years, labels that advance with an injected clock, wheel zoom about
 the cursor with the web's limits, drag pan, refit on selection, copy to the
-clipboard from both share actions, and the absence of wrapped or clipped button
+clipboard, and the absence of wrapped or clipped button
 labels at the dock's minimum width. Removing the pre-save, or sending `title`
 instead of `name`, made the creation test fail, and the original code was restored.
-The same suite also covers the share panel's content with a revoke click, the
+The same suite also covers the
 order of the diff sections and of the items in them, the filter, the empty state,
-compare mode with the visual diff's pixels, a delete reply that arrives after
-Share was opened, the checkpoint before a run (its request body, the wait, a
+compare mode with the visual diff's pixels, the checkpoint before a run (its request body, the wait, a
 failure and an empty graph) and the dock minimum after a UI scale change. Iterating
 the diff in hash order failed the two order tests, dropping the panel check on the
-queued reload and the late reply failed the delete test, running without the
+queued reload failed the delete test, running without the
 checkpoint failed the checkpoint test, and removing the dock's follow of the
 panel's minimum failed the scale test. The original code was restored each time.
 [WorkflowVersionsHostTest](../tests/ui/WorkflowVersionsHostTest.cpp) uses real
@@ -2075,16 +2077,23 @@ workflow, and Escape stops active work before clearing canvas gestures.
 
 The queue starts collapsed with a status dot, one run name or a running count,
 an elapsed clock, an expand control and queued count. Expanded content groups
-Running, Enqueued and Cancelled cards. Completed and failed jobs stay in output
-history rather than the overlay. Cancelled jobs alone do not keep it visible.
+Running and Enqueued cards, then the History section described under C11, with
+completed, failed and cancelled jobs. Finished jobs alone do not keep it visible.
 Running cards select the output lens only for the current workflow, using pointer,
 Enter or Space activation. The selected card shows On canvas. Pinned canvas
 focus remains different from the web store.
 
-The overlay is 304 logical pixels wide at the canvas leading margin, beyond the
-native rail and catalog. Its maximum height is the window height minus 112 logical pixels. Like the web
-overlay, it floats above the output dock. Narrow
-canvases constrain its width to keep controls inside the viewport. Enter and exit
+The overlay is 304 logical pixels wide and starts 16 logical pixels inside the
+canvas's top-left corner, past the rail, the catalog and the document bar. It
+stays inside the canvas, so it never covers the output dock or its tabs, and
+narrow or short canvases shrink it. Dragging its header or grip moves it. The
+drop docks it to the nearer horizontal and vertical canvas edges, so it keeps
+that corner when the window or the docks resize, and a bottom-docked overlay
+grows upward. Arrow keys on the focused grip move it, Shift moves it further,
+and Home or a header double click returns it to the default corner. Both
+clients store the same `{anchorX, anchorY, x, y}` record: the native editor in
+QSettings `queueOverlay/position`, the web per user in local storage. The pure
+model is `src/ui/DockedOverlay.h` and `web/src/utils/dockedPanelPosition.ts`. Enter and exit
 use the primitive normal motion duration with retained exit content. Reduced
 motion removes transitions and progress animation. Elapsed clocks use server
 `started_at` when available, otherwise the locally observed running time. The
@@ -2092,7 +2101,9 @@ one-second timer stops when no live job runs.
 
 `QueueUiTest.cpp` uses pointer and keyboard events against QML and deterministic
 MsgPack events through EditorWindow. `NODETOOL_QUEUE_CAPTURE_DIR` enables dark
-and light captures at wide and narrow sizes, in both expansion states. F24 remains
+and light captures at wide and narrow sizes, in both expansion states, plus a
+capture after a drag. Its drag test covers the drop, the stored position, a
+narrower window, a second window and the grip's keys. F24 remains
 partial pending visual acceptance and pinned canvas focus parity. The expanded
 header centers counts with the title. Shared Surface shadows are disabled on the
 software renderer because the unblurred offset rectangle is clipped into dark
@@ -2183,9 +2194,8 @@ storage, inline input editing, output creation, boundary grouping and exact JSON
 undo/redo through pointer and keyboard events. Removing the graph filter and
 boundary rewrite makes those regression tests fail. Set
 `NODETOOL_SUBGRAPH_CARD_CAPTURE_DIR` to capture dark and light cards with their
-inspectors. F09 remains partial pending visual acceptance. The native output
-form opens in a popup rather than expanding inside the card. Running progress
-has no web elapsed-time estimate.
+inspectors. F09 remains partial pending visual acceptance. Add output opens a
+dialog in both editors.
 
 [ChildPorts](../src/document/ChildPorts.cpp) reads inline subgraphs and stored
 workflow/app snapshots. It uses the web input/output type mappings, metadata
@@ -2211,6 +2221,18 @@ graph. Canvas shortcuts, inspector data and run controls use the shown surface.
 Inline Save uses the parent document. Unknown child graph fields and nested
 snapshots survive copy and local save/reopen.
 
+As in [WorkflowEditorSurface](../../../web/src/components/workspace/WorkflowEditorSurface.tsx),
+the chrome around an inline subgraph canvas belongs to the workflow. The
+document bar shows and renames the workflow, the status bar counts its nodes
+and edges, and Run and Stop flush the subgraph edits and run or stop the whole
+workflow on its session. The run toolbar, queue overlay and run output follow
+that run. Run selected still runs the selected inner nodes, and the run output
+shows whichever of the two ran last. Undo and redo stay with the shown canvas,
+while the web document bar buttons undo the workflow store. Subgraph card
+progress uses the secondary progress color and the
+[NodeProgress](../../../web/src/components/node/NodeProgress.tsx) label with its
+remaining-time estimate, which every card progress band now shares.
+
 A child graph update and its derived ports form a parent undo entry. Subgraph
 and Workflow edges on removed dynamic ports are removed in that entry, following
 SubgraphSync and replaceDynamicSlots. Undo restores those edges. Edges on
@@ -2227,7 +2249,9 @@ return, retained edges, independent undo scope, parent reconciliation, nested
 copy, unknown-field round trips, app binding/stream derivation, missing children
 and delayed responses after tab closure or account replacement. Pointer tests
 cover host activation, nested marks, cascade closure, reopening, workflow
-closure and child Save. Restore tests exclude child canvases and retain the
+closure and child Save. `subgraphSurfaceRunsAndNamesItsWorkflow` renames and
+runs the workflow from a nested subgraph and reads the transmitted graph, the
+header, the status counts and the mirrored run output. Restore tests exclude child canvases and retain the
 owning workflow selection. Replacement rejects pending child writeback. Set
 `NODETOOL_SUBGRAPH_CAPTURE_DIR` for dark and light captures with one and two
 levels of child strips. The strips occupy the native canvas column beside the
@@ -2660,15 +2684,39 @@ the picker above the prompt, and the reasoning levels. No web capture of this
 surface exists, because the web preview routes do not include the composer.
 The comparison is against the web sources cited above.
 
-These differences remain. The native chip row wraps in the 420-pixel window,
-where the web goes icon-first on one line below 520 pixels. Native menu rows
-have no secondary descriptions or subheaders, because `Ui.MenuItem` shows a
-caption only for disabled rows. The picker is inline above the prompt and lists
-assets only, without web entities, rename or thumbnails. Presets, the cost
-estimate, the provider-setup banner, the permission selector, slash commands,
-prompt history, dictation and Enter-to-send are absent. Media settings,
-reasoning level and recent assets last for the session, where the web persists
-settings and the level. Thread headings have no letter spacing. F36 is not
+The composer follows the
+[handleKeyDown](../../../web/src/components/chat/composer/MediaChatComposer.tsx)
+order: IME composition, the mention picker, Escape to stop a reply, prompt
+history as [usePromptHistory](../../../web/src/components/chat/hooks/usePromptHistory.ts),
+then Enter to send and Shift+Enter for a line. Below the 520-pixel card width
+the mode, reasoning and permission chips show icons only, as `isCompact` does.
+The permission chip follows
+[PermissionSelector](../../../web/src/components/chat/composer/PermissionSelector.tsx):
+Plan, Default and Auto per thread, a new thread takes the last picked mode,
+`set_permission_mode` reaches the server, and Auto allows the thread's pending
+tool approvals. The reasoning level, the permission modes and each media
+mode's settings persist in `QSettings` group `chat-composer`, as the web
+persists them in `global-chat-storage` and `nodetool-media-generation`. The
+media mode itself is not kept. Tools menu New Conversation (Ctrl+Shift+O) and
+Focus Chat Composer (Ctrl+Shift+L) open the chat when it is closed. The thread
+list shows the [EmptyThreadList](../../../web/src/components/chat/thread/EmptyThreadList.tsx)
+titles and its headings use the web eyebrow letter spacing.
+
+The parity harness mounts `ChatComposer` on both sides. Scenario
+`chat-composer.keys` types a two-line prompt, sends it with Enter, stops the
+reply with Escape and recalls the prompt with ArrowUp, comparing the draft,
+the turn state and the send and stop intents. Every intent and state check
+matches. The screenshot differs, because the web composer is one row with the
+send button beside the chips and the Qt composer gives the send button its own
+row. The census covers
+`web/src/components/chat` in the components inventory.
+
+These differences remain. Native menu rows have no secondary descriptions or
+subheaders, because `Ui.MenuItem` shows a caption only for disabled rows, and
+the permission dot has one tone. The picker is inline above the prompt and
+lists assets only, without web entities, rename or thumbnails. Presets, the
+cost estimate, the provider-setup banner, the `/` menu of commands and skills,
+and dictation are absent. Threads cannot be renamed. F36 is not
 accepted.
 
 
@@ -3106,12 +3154,12 @@ is visible only on inspection.
 | W5 | Card typography and geometry | Width 280, radius 8, 1 px border at 8% white, Inter 13 title in the 400 face, first port at 46 and 28 px steps. | Same measurements. | Low | Matches. |
 | W6 | Ports and wires | 12 px handles with a 2 px ring in the card color. Wires are 1.5 px in the source type color. | Same measurements. | Low | Matches. |
 | W7 | Grid | 25-unit crosses 3 units wide, which scale with zoom. | Same pattern. | Low | Matches. |
-| W8 | Selection | Selecting a node keeps it and every node upstream or downstream of it at full opacity and fades all other nodes, groups, notes and wires to 0.2 (`reactFlowGraphModel.ts` `branchNodeIds`, `markComprehensionEdges`, `nodes.zoomed.css`). With several nodes selected the branches join. A wire is related when both of its ends are. The fade has no transition, so reduced motion changes nothing. The node action toolbar floats above the selected card. | Same rule, at the same 0.2 opacity, through item opacity in `EditorScene.cpp`. Media widgets and group labels follow the card. A single selected card gets the web node toolbar above it, centered with an 8 px gap, and the toolbar follows the card through pan, zoom, resize and move and hides while the card drags. A group, a comment or several nodes keep the canvas toolbar at the top center, where the web shows none. | Medium | Dimming, toolbar position and the delay fixed. Asserted by `SelectionPresentationTest` and `NodeActionsTest` with real pointer clicks. The toolbar appears 200 ms after the card is selected and still (`NodeSelectionToolbar.tsx` `TOOLBAR_SHOW_DELAY`, `useDelayedVisibility`), hides at once on deselect or drag, and restarts its delay when the card is selected again (`toolbarShowsTwoHundredMillisecondsAfterTheSelection`). Acceptance pending. |
+| W8 | Selection | Selecting a node keeps it and every node upstream or downstream of it at full opacity and fades all other nodes, groups, notes and wires to 0.6 (`reactFlowGraphModel.ts` `branchNodeIds`, `markComprehensionEdges`, `nodes.zoomed.css`). With several nodes selected the branches join. A wire is related when both of its ends are. The fade has no transition, so reduced motion changes nothing. The node action toolbar floats above the selected card. | Same rule, at the same 0.6 opacity, through item opacity in `EditorScene.cpp`. Media widgets and group labels follow the card. A single selected card gets the web node toolbar above it, centered with an 8 px gap, and the toolbar follows the card through pan, zoom, resize and move and hides while the card drags. A group, a comment or several nodes keep the canvas toolbar at the top center, where the web shows none. | Medium | Dimming, toolbar position and the delay fixed. Asserted by `SelectionPresentationTest` and `NodeActionsTest` with real pointer clicks. The toolbar appears 200 ms after the card is selected and still (`NodeSelectionToolbar.tsx` `TOOLBAR_SHOW_DELAY`, `useDelayedVisibility`), hides at once on deselect or drag, and restarts its delay when the card is selected again (`toolbarShowsTwoHundredMillisecondsAfterTheSelection`). Acceptance pending. |
 | W9 | Selection viewport | A canvas click never moves the viewport. The inspector slides over the canvas and `useClearInspectorOverlap` pans left over 200 ms only when it covers a node, and never past the point where the selected node is 16 px from the canvas edge. Find centers the node at 100% over 300 ms. The node info Focus button centers at 150%. The web editor has no outline. | A selection never refits. The docked inspector narrows the canvas, so native applies the same pan rule to the inspector width, animated over 200 ms and instant under reduced motion or for a programmatic selection. Find centers at 100% over 300 ms, and Focus in the inspector Help tab centers at 150% over 300 ms. | Medium | Fixed in `EditorWindow.cpp`, `InspectorClearance.h`. Asserted by `SelectionPresentationTest`. `EditorTest::fitKeepsEveryNodeVisibleAcrossPanels` changed. Open: native has no node info panel. Its Focus button sits in the inspector Help tab (`ViewportNavigatorTest::inspectorFocusButtonRunsFocus`). Native pans 300 px in the capture where the web pans 371 px, because card sizes and positions still differ. The fit zoom before selection differs (web 71%, native 67%) and is not part of this row. |
 | W10 | Running ring | Running cards draw a conic ring in their type colors. | Same ring. | Low | Matches. |
 | W11 | Run status on cards | A status changes no card and shows no text. | Every card with a status grew by 98 px and printed "completed" or "running 40%". | High | Fixed in `WorkflowGraphModel.cpp` and `EditorScene.cpp`. Errors and a lost connection keep a label. Asserted by `runStatusKeepsCardSizeAndShowsProgress`. |
 | W12 | Node progress | A running content card with a total adds a 47 px band with a "12 / 30" mono count and a 6 px bar in `secondary.main`. | Only subgraph cards showed progress. | High | Fixed in `EditorScene.cpp` with the new `Theme.accentSecondary` role. Asserted by `runStatusKeepsCardSizeAndShowsProgress`. |
-| W13 | Header row | A 40 px row under the tab bar holds the workflow name, which renames on double-click, the save state, Undo and Redo, Graph and Chain, the chat, mini-map and inspector toggles, and ⋮ at the right. The bar spans the canvas column, and the catalog and inspector cover its ends. | `HeaderRow.qml` draws the same slots and sizes: 8 px side padding, 28 px buttons 4 px apart, 16 px rules with 8 px gaps, a 28 px Graph and Chain switch, an 8 px save dot and an 11 px caption. Save states are Saved, Saving…, Unsaved changes, Not saved with Retry, Read only, and Server conflict or Server deleted with Review, which opens Server sync. ⋮ opens the existing More menu. The open catalog covers the left end of the bar, as on the web (W17). The bar ends at the inspector dock, so ⋮ stays visible with the inspector open, where the web inspector covers it. The mode switch's selected fill is `Theme.actionSelected`, slightly lighter than the web's. Items sit up to 3 px right of the web positions. | High | Fixed in `HeaderRow.qml` and `EditorWindow.cpp`. `HeaderRowTest` asserts the web geometry and drives rename, save states, history, toggles, ⋮ and the Chain tooltip with pointer and key events. The chat toggle has no conversation count badge. Not accepted. |
+| W13 | Header row | A 40 px row under the tab bar holds the workflow name, which renames on double-click, the save state, Undo and Redo, Graph and Chain, the chat, mini-map and inspector toggles, and ⋮ at the right. The bar spans the canvas column, and the catalog and inspector cover its ends. | `HeaderRow.qml` draws the same slots and sizes, except the workflow name, which only the tab shows: 8 px side padding, 28 px buttons 4 px apart, 16 px rules with 8 px gaps, an 8 px save dot and an 11 px caption. Save states are Saved, Saving…, Unsaved changes, Not saved with Retry, Read only, and Server conflict or Server deleted with Review, which opens Server sync. The native bar replaces ⋮ with icon buttons for its commands: Instant update, canvas navigation off macOS, Save, Version history, Share, Metadata, Server sync, Canvas uploads and Command menu. The open catalog covers the left end of the bar, as on the web (W17). The bar ends at the inspector dock, so the command buttons stay visible with the inspector open. Items sit up to 3 px right of the web positions. | High | Fixed in `HeaderRow.qml` and `EditorWindow.cpp`. `HeaderRowTest` asserts the web geometry and drives save states, history, toggles and the command buttons with pointer and key events. The chat toggle has no conversation count badge. Not accepted. |
 | W14 | Floating toolbar | Add node, Auto layout, Run and the workflow menu, 273×46: a 1 px border, 4 px padding, 28 px buttons, 8 px between the tool and run groups, a 36 px Run pill and a 0 8 32 shadow at 40% black. | Same contents, order and sizes, 279×46 with the wider native label. Undo, Redo, Open, Save and Conversation left the toolbar. Undo, Redo and chat are in the header, Open stays on the rail and in the More menu, and the More menu gains Save for the local file. The Ctrl+S and Ctrl+O shortcuts are unchanged. No shadow. | Medium | Fixed in `Toolbar.qml`. Asserted by `HeaderRowTest::geometryFollowsWeb`. Changing the padding back to 6 px fails it at a 48 px toolbar. The shadow is W26. Not accepted. |
 | W15 | Toolbar run state | A Stop button and an elapsed "0:01 Running" pill on the panel surface replace Run. | For a run this session submitted, Stop appears before the pill, the pill turns to the panel surface, and an `M:SS` clock in semibold mono precedes "Running" from the first running update. Esc and Stop cancel the run. A run that another client started shows no Stop or clock. The running capture shows the same toolbar as the web, and the session's job also opens the queue overlay that the web capture, with its injected messages, does not show. Instant Update does not hide the clock as it does on the web. | Medium | Fixed in `Toolbar.qml`. `HeaderRowTest::toolbarStopsAndTimesASubmittedRun` submits a run to `FakeRunServer`, reads 0:00 and then 0:01, and clicks Stop, which sends `cancel_job`. Not accepted. |
 | W16 | Tab bar | Project chip, tabs, and notification and settings icons on the right. The bell lists notifications with a dot for unread ones, and Settings opens the settings page (`WorkspaceTabBar.tsx`, `NotificationButton.tsx`, `SettingsHeaderButton.tsx`). | `TabBar.qml` ends with the same 28 px bell and settings buttons, 4 px apart and 4 px from the edge, with the web accessible names. Session, run and canvas upload errors become notifications. The bell shows a secondary-color dot while some are unread and opens `NotificationsPanel.qml`, which lists them with a type-colored edge, the time and Copy, or "No notifications". Settings opens the `/settings` page of the connected server in the browser, because native has no settings page. The web activity indicator before the bell, the bug report action and the Ctrl+, shortcut are missing. | Low | Fixed in `TabBar.qml`, `NotificationsPanel.qml` and `EditorPanels.cpp`. Asserted by `ChromeParityTest::tabBarEndsWithNotificationsAndSettings`. Acceptance pending. |
@@ -3123,11 +3171,11 @@ is visible only on inspection.
 | W22 | Inspector width | 350 px when it first opens (`stores/RightPanelStore.ts` `sizes.initial`). The comparison captures showed 380 px because the capture script seeded that width. | 350 px. | Low | Matches. The capture script now seeds 350 px. Asserted by `ChromeParityTest::inspectorOpensAtTheWebWidth`, which passed before any change. Acceptance pending. |
 | W23 | Output panel | The bottom panel takes the status bar as its tab strip, so an open panel puts the bar above its body. The Logs view shows a run picker, which reads "No recent runs" without runs, the "No recorded runs" empty state, and 32 px rows (`PanelBottom.tsx`, `TracePanel.tsx`). | While the Output panel is open, the status bar moves to its top and the body follows below it. The body has no title row or close button, and the Logs tab closes it. The run picker is always shown and reads "No recent runs" when there are none. The empty state uses the web title and description. Rows without content are one 32 px line. The native body lists the session's run events and outputs, where the web Logs view lists stored log events of the run. Versions and Trace open their own bottom panels, which keep the status bar below them. | Medium | Fixed in `RunOutput.qml` and `EditorWindow.cpp` (`placeStatusBar`). Asserted by `ChromeParityTest` (`outputPanelUsesTheStatusBarAsItsTabStrip`, `outputPanelShowsARunPickerAndAnEmptyState`, `outputRowsAreCompact`). `EditorTest::outputDockKeepsDocumentHistory` changed its empty-state text. Open: the stored-log list and the status bar above the Versions and Trace panels. Acceptance pending. |
 | W24 | Status bar | Connection, panel tabs from Logs to Trace, counts, CPU and memory. A tab shows whether its panel is open, and the open view's tab closes the panel. The bar has no message text. | Connection (Connected, Offline or Idle), Logs, Queue, Generations, Workers, Versions and Trace tabs, node and edge counts, and CPU and memory from the server's `system_stats`. Logs, Versions and Trace show the open state and close their panel when clicked again. Queue opens the queue panel at any time and Generations opens the generations panel. Workers stays disabled with a reason. The run message left the bar. It stays in the inspector and errors reach the tab bar notifications. The Connect button for an offline session is native. | Medium | Fixed in `StatusBar.qml` and `EditorPanels.cpp` (`toggleStatusView`). Asserted by `statusBarHasTheWebItemsInOrder`, `statusBarTabsOpenNativePanelsOrExplainWhyNot`, `statusBarShowsServerStatsAndTheQueue` and `statusBarTabsShowAndToggleTheirPanels`. The remaining gaps are C9, C12 and C13 below and the L and Ctrl+Shift+T shortcuts. C8 and C11 are partial. Acceptance pending. |
-| W25 | Rail | Logo menu, Projects, Documents, Chats, Library, Entities, Examples, Nodes and More, then a theme toggle and a panel toggle. Each has a tooltip. | The same entries in the same order and icons, with the same tooltips. Documents opens the workflow browser, Chats the native conversation, and Nodes the catalog. Projects, Library, Entities, Examples and More are disabled with a reason. The logo has no menu. The native Inspector and Output entries left the rail. | Low | Partly fixed in `Rail.qml` (`PanelLeft.tsx`, `QuickAccessSidebar.tsx`, `ThemeToggle.tsx`). Asserted by `railHasTheWebEntriesInOrder`, `railTooltipsNameEntriesAndExplainDisabledOnes` and `railEntriesOpenTheirNativePanels`. The gaps are in the table below. Not accepted. |
+| W25 | Rail | Logo menu, Projects, Documents, Chats, Library, Entities, Examples, Nodes and More, then a theme toggle and a panel toggle. Each has a tooltip. | The same entries in the same order and icons, with the same tooltips, except Entities and More, which the native rail leaves out. Documents opens the workflow browser, Chats the native conversation, and Nodes the catalog. Projects is disabled with a reason. Library and Examples open their left panels. The logo has no menu. The native Inspector and Output entries left the rail. | Low | Partly fixed in `Rail.qml` (`PanelLeft.tsx`, `QuickAccessSidebar.tsx`, `ThemeToggle.tsx`). Asserted by `railHasTheWebEntriesInOrder`, `railTooltipsNameEntriesAndExplainDisabledOnes` and `railEntriesOpenTheirNativePanels`. The gaps are in the table below. Not accepted. |
 | W26 | Elevations | The toolbar, viewport control, side panels, bottom panel and Preview and Output cards cast shadows. | Flat, as the [native design](../../ui_primitives/DESIGN.md#appearance) requires for persistent chrome. | Medium | Scope change [SC4](parity-inventory.md#user-approved-scope-changes): the user decided to keep persistent chrome flat. |
 | W27 | Mini-map | Hidden by default behind a header toggle. The choice is stored. Its light-theme surface is `grey[100]`, which is dark. | Hidden by default. `editor.setMiniMapVisible` and the Command menu action "Toggle mini-map" change it for every tab and store it under `minimap/visible`. A new window starts as the user left it. Colors follow the web source, including the dark light-theme surface. | Medium | Fixed in `EditorWindow.cpp` (`web/src/stores/MiniMapStore.ts`). Asserted by `miniMapIsHiddenByDefaultAndTheChoiceIsRemembered`. The color mode and legend are asserted by `ViewportNavigatorTest::miniMapColorsFollowTheColorMode` and `miniMapPaletteMenuAndLegend`. The header toggle is in `HeaderRow.qml`, and `HeaderRowTest::togglesOpenPanels` clicks it. Not accepted. |
 | W28 | Chat window | Opens by default unless the viewport is narrower than 1200 px, until the user opens or closes it (`stores/CanvasChatDockStore.ts`). The capture script seeds it collapsed. | The same rule. Without a stored choice the chat window opens when the window is at least 1200 px wide. A toggle stores the choice. The window parity and chrome tests seed it collapsed, as the web captures do. | Low | Fixed in `EditorChat.cpp`. Asserted by `ChromeParityTest::chatOpensByDefaultOnAWideWindow`. Acceptance pending. |
-| W29 | Chain view | Graph and Chain switch the canvas and the linear chain editor in `WorkflowChainSurface.tsx`. | No chain view. Chain is disabled, and its tooltip says the chain view is not available in the native editor yet. | Medium | Scope change [SC5](parity-inventory.md#user-approved-scope-changes): the user decided not to build a chain view. `HeaderRowTest::togglesOpenPanels` asserts the disabled option and its tooltip. |
+| W29 | Chain view | Graph and Chain switch the canvas and the linear chain editor in `WorkflowChainSurface.tsx`. | No chain view. The header has no Graph and Chain switch, because the graph is the only view. | Medium | Scope change [SC5](parity-inventory.md#user-approved-scope-changes): the user decided not to build a chain view. The switch was removed from `HeaderRow.qml`. |
 | W30 | Disabled card | A bypassed card has `opacity: 0.8` and `filter: saturate(0.2)` over the whole node, handles included (`nodes.states.css` 38-41). | The card, its handles and the chip are painted into an image, desaturated with the CSS saturate matrix, and drawn at 0.8 (`NodePainter::paintDesaturated` in `EditorScene.cpp`). Wires are not filtered, as on the web. | Medium | Fixed. Asserted by `CanvasChromeTest::disabledCardIsDesaturated`, which reads the output handle pixel of a disabled and an enabled card. Acceptance pending. |
 | W31 | Disabled chip and title | The chip is the compact outlined warning `MuiChip` of `NodeHeader.tsx` 345-352: 24 px high, 8 px label padding, a 1 px border at 50 percent and a 12 percent fill, a 6 px margin before it (`ThemeNodetool.tsx` 429-457, `nodes.states.css` 62-65). A bypassed title is drawn at 0.8 inside the card's 0.8 (`nodes.states.css` 56-58). | `disabledChipRect` gives the chip, and the title takes the room the chip needs. The title is drawn at 0.64 overall. | Low | Fixed. Asserted by `disabledChipFollowsTheCompactChip` and `disabledTitleIsFainterThanTheCard`, which measures a ratio of 0.64 to 0.8 between the title peaks. Acceptance pending. |
 | W32 | Wire styles | A bypassed wire dashes 5 5 in user units, not stroke widths (`nodes.states.css` 66-69). A streaming wire is 3 wide at 0.8 opacity dashed 30 3, or 8 when selected. A flowing wire (`message_sent`) dashes 14 10 with round caps and scrolls 120 px a second, 4 2 and still under reduced motion. Selected and hover rules apply to bypassed wires too. A control wire widens to 3 at full opacity on hover and casts a glow when selected (`handle_edge_tooltip.css` 80-230). | Pen dashes are set in pixels with flat caps, the flowing wire replaces the solid stroke instead of overlaying it, and the glow and hover filter no longer skip a bypassed wire. Before the change a bypassed wire's dashes measured 7.5 px and a flowing wire kept its solid stroke under a thin overlay. | Medium | Fixed. Asserted by `bypassedWireDashesFivePixels`, `selectedBypassedWireKeepsItsGlow`, `streamingWireDashesThirtyAndThree`, `flowingWireDashesAndScrolls` and `hoveredControlWireWidensAndBrightens` by measuring dash runs along the rendered wire. Acceptance pending. |
@@ -3410,14 +3458,14 @@ panels is outside the chrome work.
 | C1 | Rail Projects | Opens the projects list as a tab (`ProjectsRailButton.tsx`). | Disabled. The project menu in the tab strip switches projects. | Open. |
 | C2 | Rail Library | Asset grid in the left panel (`PanelLeft.tsx`). | Disabled. | Open. |
 | C3 | Rail Entities | Entity library in the left panel. | Disabled. | Open. |
-| C4 | Rail Examples | Shipped examples in the left panel. | Disabled. | Open. |
+| C4 | Rail Examples | Shipped examples in the left panel. | `ExamplesPanel.qml` in the left dock (`ExampleGallery`): the server's workflow and ComfyUI examples and the bundled examples, with search and type filters. A server example opens as the account's copy in a workflow tab. Other example kinds stay web only, and cards cannot be dragged onto the canvas. | Partial. Asserted by `ExamplesPanelTest` and `railEntriesOpenTheirNativePanels`. |
 | C5 | Rail More | Favorite nodes, recent nodes, workflow settings, skills and workspace files (`MorePanel.tsx`). | Disabled. Native commands are in the toolbar More menu. | Open. |
 | C6 | Rail logo | Opens the app menu with Settings, Help and Downloads (`RailAppMenu.tsx`). | A static logo. | Open. |
 | C7 | Rail Documents | Tree of every document in the project. | Opens the workflow browser, which lists workflows only. | Open. |
 | C8 | Status Generations | Panel of generations across workflows, with a count of those running. | `GenerationsPanel.qml` in a bottom dock, fed by every tab's `prediction` messages and the server's `generations.list` (`GenerationActivity`). Tiles open their workflow, preset generations open as a workflow, and the tab counts running generations. Chat media turns are not listed. | Partial. Asserted by `GenerationsPanelTest` and `statusBarTabsOpenNativePanelsOrExplainWhyNot`. |
 | C9 | Status Workers | Remote runners the server provisions. | Disabled. | Open. |
 | C10 | Status Trace | Run trace spans. | Opens the native trace/log dock. | Partial. See [run trace evidence](#run-trace-evidence). |
-| C11 | Status Queue | Panel that opens at any time and shows an empty state. | Opens the queue overlay at any time with the Active section or its empty state, and the History section with filters, day groups and Report on failed jobs. The overlay floats on the canvas instead of filling the bottom panel. | Partial. Asserted by `queueOpensWithoutJobsAndReportsFailures`. |
+| C11 | Status Queue | Panel that opens at any time and shows an empty state. | Opens the queue overlay at any time with the Active section or its empty state, the History section with filters and day groups, and "Could not load jobs" when the jobs list fails. History rows follow `JobItem`: status tile, short job id with the full id on hover, duration, output count, clock, output thumbnails that open the output, a click that opens the job's workflow, and Report on failed jobs. The overlay floats on the canvas instead of filling the bottom panel, and it shows no loading spinner. | Partial. Asserted by `queueOpensWithoutJobsAndReportsFailures`, `queueHistoryRowsMatchJobItem` and `QueueDataTest::completedJobOutputsAndListErrors`. |
 | C12 | Status connection | Connected, Connecting, Offline or Idle, with a worker label for a remote server and a worker status indicator. | Connected, Offline or Idle. No Connecting state, worker label or indicator. | Open. |
 | C13 | Status tab strip | Scroll arrows when the tabs overflow. | No arrows. | Open. |
 

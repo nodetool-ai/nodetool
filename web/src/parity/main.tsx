@@ -11,6 +11,8 @@ import { WorkflowManagerProvider } from "../contexts/WorkflowManagerContext";
 import TranslationProvider from "../contexts/TranslationProvider";
 import ThemeNodetool from "../components/themes/ThemeNodetool";
 import { ThemeRoot } from "../components/ui_primitives";
+import { trpc } from "../trpc/client";
+import { createTrpcLinks } from "../trpc/links";
 import { MOUNTS, type ParityFixture, type ParityIntent, type ParityMount } from "./mounts";
 import "@xyflow/react/dist/style.css";
 import "../styles/vars.css";
@@ -18,6 +20,9 @@ import "../styles/index.css";
 import "../styles/base.css";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { enabled: false, retry: false } } });
+// Components that read tRPC queries, such as the chat composer's skills, find a
+// client. Queries stay disabled, so the page sends no requests.
+const trpcClient = trpc.createClient({ links: createTrpcLinks() });
 
 function Scheme({ scheme, onReady, children }: { scheme: "dark" | "light"; onReady: () => void; children: ReactElement }): ReactElement {
   const { mode, setMode } = useColorScheme();
@@ -43,18 +48,18 @@ const parity = {
     if (!host) {
       throw new Error("Missing parity root");
     }
-    current = factory(fixture, (intent) => intents.push(intent));
+    current = factory(fixture, (intent) => intents.push(intent), queryClient);
     const mount = current;
     host.setAttribute("data-parity-scope", "");
     host.style.cssText = "position:relative;width:100vw;height:100vh";
     root = createRoot(host);
     return new Promise((resolve) => {
       root?.render(
-        <MemoryRouter><QueryClientProvider client={queryClient}><WorkflowManagerProvider queryClient={queryClient}><TranslationProvider>
+        <MemoryRouter><trpc.Provider client={trpcClient} queryClient={queryClient}><QueryClientProvider client={queryClient}><WorkflowManagerProvider queryClient={queryClient}><TranslationProvider>
           <ThemeRoot theme={ThemeNodetool}>
             <Scheme scheme={scheme} onReady={() => resolve(mount.size)}>{mount.element}</Scheme>
           </ThemeRoot>
-        </TranslationProvider></WorkflowManagerProvider></QueryClientProvider></MemoryRouter>
+        </TranslationProvider></WorkflowManagerProvider></QueryClientProvider></trpc.Provider></MemoryRouter>
       );
     });
   },

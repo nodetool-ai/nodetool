@@ -4,7 +4,7 @@ title: "OpenAI-Compatible Providers: Add a Provider or Models"
 description: "How to add a new OpenAI-compatible cloud provider (Groq, Mistral, DeepSeek, etc.) or adjust an existing one's model list."
 ---
 
-This guide covers twelve providers that share one implementation pattern:
+These providers share one implementation pattern:
 **Groq**, **Mistral**, **DeepSeek**, **Moonshot (Kimi)**, **Cerebras**, **Alibaba Cloud (Qwen)**, **Cohere**, **OpenRouter**, **Requesty**, **Opper**, **API Route**, **Cheaper Inference**, **Runcrate**, **Standard Compute**, and **UberLLM**.
 
 > **Runs:** cloud. **Needs:** one key per provider, for example `GROQ_API_KEY`, `MISTRAL_API_KEY`, `DEEPSEEK_API_KEY`, `KIMI_API_KEY` (Moonshot), `CEREBRAS_API_KEY`, `DASHSCOPE_API_KEY` (Alibaba Cloud), `COHERE_API_KEY`, `OPENROUTER_API_KEY`, `REQUESTY_API_KEY`, `OPPER_API_KEY`, `API_ROUTE_API_KEY`, `CHEAPER_INFERENCE_API_KEY`, `RUNCRATE_API_KEY`, `STANDARDCOMPUTE_API_KEY`, `UBERLLM_API_KEY`. Each provider's `requiredSecrets()` names its key.
@@ -12,8 +12,8 @@ This guide covers twelve providers that share one implementation pattern:
 
 ## No code needed: add an endpoint from Settings
 
-Most OpenAI-compatible endpoints — a proxy, a company gateway, a self-hosted
-router — need nothing from this guide. **Settings → Models & Providers →
+Most OpenAI-compatible endpoints (a proxy, a company gateway, a self-hosted
+router) need nothing from this guide. **Settings → Models & Providers →
 OpenAI-compatible endpoints → Add endpoint** takes a name, a slug, a base URL
 and an optional API key, and the provider appears in the model menu straight
 away. Add as many as you like.
@@ -23,8 +23,8 @@ on model objects, spans and saved workflows. It is fixed once created, because
 renaming it would orphan every model reference in a saved graph.
 
 The endpoint and key are stored per account and encrypted, and they also read
-from the environment under the same names — so a server can be configured with
-no database writes at all:
+from the environment under the same names, so a server can be configured with
+no database writes:
 
 ```bash
 CUSTOM_MYPROXY_BASE_URL=https://proxy.example.com/v1
@@ -75,10 +75,9 @@ with NodeTool. That is the rest of this guide.
 
 ## TL;DR
 
-- Models appear automatically: each provider fetches its `/models` endpoint at runtime, so new upstream models show up in the model picker without a code change.
-- Adding a whole new provider is three small edits: one constant in `@nodetool-ai/protocol`, one file of about 45 lines in `packages/runtime/src/providers/`, one `registerBuiltinProvider` call in the runtime index.
-- Cohere is the only exception: it subclasses `BaseProvider` directly (embeddings only, no chat).
-- Every other provider here subclasses `OpenAICompatProvider`, which owns the chat path. Moonshot (Kimi) uses the same pattern against its OpenAI-compatible endpoint, with its own `/models` fetch.
+- Each provider fetches its `/models` endpoint at runtime, so new upstream models need no code change.
+- A new provider is three edits: one constant in `@nodetool-ai/protocol`, one file of about 45 lines in `packages/runtime/src/providers/`, one `registerBuiltinProvider` call in the runtime index.
+- Cohere subclasses `BaseProvider` directly (embeddings only, no chat). Every other provider here subclasses `OpenAICompatProvider`, which owns the chat path.
 
 ## Where things live
 
@@ -179,7 +178,7 @@ export const PROVIDER_IDS = {
 } as const;
 ```
 
-The comment above the const says: "Adding a provider? Add it here first, then register it in `@nodetool-ai/runtime`'s provider index." Follow that order.
+Add the ID here first, then register the provider in `@nodetool-ai/runtime`'s provider index.
 
 Build the protocol package so downstream packages see the new constant:
 
@@ -220,13 +219,13 @@ And one `registerBuiltinProvider` call in the registration block, before the loc
 registerBuiltinProvider(PROVIDER_IDS.ACME, AcmeProvider, { ACME_API_KEY: "" });
 ```
 
-The empty string for `ACME_API_KEY` is intentional — it forces the registry to resolve the key from the DB or env on every `getProvider()` call rather than baking a stale value at module load.
+The empty string for `ACME_API_KEY` is intentional. It forces the registry to resolve the key from the DB or env on every `getProvider()` call rather than baking a stale value at module load.
 
 ## Adjust an existing provider's models
 
 ### Chat models are fetched dynamically — no change needed
 
-If Groq, DeepSeek, Mistral, Cerebras, Alibaba Cloud, OpenRouter, Requesty, Opper, API Route, Cheaper Inference, Runcrate, Standard Compute, or UberLLM adds a new chat model, it appears in the model picker automatically on the next call to `getAvailableLanguageModels()`. No code change is required.
+A new upstream chat model appears in the model picker on the next call to `getAvailableLanguageModels()`. This includes Moonshot, which fetches `GET https://api.moonshot.ai/v1/models` live.
 
 ### Tool-support overrides
 
@@ -251,10 +250,6 @@ Mistral is the only provider here that subclasses `OpenAICompatProvider` and als
 
 Cohere subclasses `BaseProvider` directly, not `OpenAICompatProvider`. It has no chat support. Its embedding model list is the static `COHERE_EMBEDDING_MODELS` array at the top of `packages/runtime/src/providers/cohere-provider.ts`. Append there to add a new Cohere embedding model.
 
-### Moonshot
-
-Moonshot fetches `GET https://api.moonshot.ai/v1/models` live, so new Kimi models need no code change.
-
 ## Verify
 
 After any change:
@@ -271,7 +266,7 @@ cd packages/protocol && npm run build
 npm run typecheck
 ```
 
-**3. Confirm the provider returns models** (requires the API key in secrets or env).
+**3. Confirm the provider returns models** (needs the API key in secrets or env).
 
 ```bash
 npm run dev:nodetool -- models by-provider acme --kind llm

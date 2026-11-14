@@ -5,18 +5,12 @@ permalink: /script-editor
 description: "Write dialogue and narration, cast voices, record takes per line, and send the voiced script to a storyboard, a timeline, or an SRT file."
 ---
 
-A script is a document of sections and lines with a cast and a set of voiced takes per line. It feeds the [Storyboard Editor](storyboard-editor.md), the [Video Editor](video-editor.md), and SRT files. Create one with **+** then **New script** in the tab bar, or open one from the **Scripts** panel.
+A script is a document of sections and lines with a cast and a set of voiced takes per line. It feeds the [Storyboard Editor](storyboard-editor.md), the [Video Editor](video-editor.md), and SRT files. The script owns words and voice, a linked storyboard owns pictures and motion, and a timeline owns placement. Edits to a line's text or a speaker's voice reach the storyboard and timeline (see [AI Video Production](ai-video-production.md)).
 
 > **Runs:** locally or cloud, depending on the text-to-speech model you pick. **Needs:** a text-to-speech provider key for hosted voices (see [Providers](providers.md)). The agent tool `voice_script_lines` also transcribes each take for word timings by default with provider `openai`, model `whisper-1`, so it uses OPENAI_API_KEY unless you pass `transcribe: false`. **Costs:** voicing is billed by the provider at its own rates. Editing, linking, and SRT export are free.
 {: .callout-note}
 
 ![Script Editor with a voiceover script: the narrator in the cast column, voiced and stale lines, and the Script Assistant](assets/screenshots/script-editor.png)
-
----
-
-## Where this fits
-
-The script owns words and voice, a linked storyboard owns pictures and motion, and a timeline owns placement. Edits to a line's text or a speaker's voice in the script reach the storyboard and timeline. See [AI Video Production](ai-video-production.md).
 
 ---
 
@@ -39,19 +33,17 @@ A script still in its guided flow shows the flow in place of the editor until yo
 
 ## Write lines
 
-The empty state offers **Add first line**. **Add section** below the last section adds another.
+Use **Add first line** in an empty script and **Add section** below the last section.
 
-- **Write a line.** Type in the line field (placeholder "Write a line…"). Press Enter to split a line at the cursor.
-- **Insert a line.** Hover the gap between two lines and click the **+** rule.
-- **Reorder.** Drag the handle ("Drag to reorder line"). Drop between lines, or into another section.
-- **Name a section.** Edit its "Section title" field.
-- **Line menu.** The **More line actions** menu sets a pause after the line (No pause after, 0.5s, 1s, 2s), **Duplicate line**, or **Delete line**.
+- Enter splits a line at the cursor. The **+** rule between two lines inserts a line.
+- Drag the handle ("Drag to reorder line") to move a line between lines or into another section.
+- The **More line actions** menu sets a pause after the line (No pause after, 0.5s, 1s, 2s), **Duplicate line**, or **Delete line**.
 
 There are no line types. Dialogue and narration are the same kind of line, distinguished by speaker. Add a speaker called Narrator for voiceover.
 
 ### Speakers and directions
 
-The speaker button in the gutter shows the line's speaker. Click it to pick a cast member, choose **No speaker**, or choose **Add speaker**.
+The speaker button in the gutter picks a cast member, **No speaker**, or **Add speaker**.
 
 The theater-mask button (**Add direction** / **Remove direction**) adds a field, "Direction (e.g. whispering, tired)…". The direction is stored with the line and sent when you voice it.
 
@@ -136,7 +128,7 @@ Choose **Export SRT** from the toolbar's **More actions** menu, or **Export Subt
 
 ## Assistant
 
-The **Assistant** tab in the right dock opens a chat that knows which script is open. It edits the script live through the `ui_script_*` tools. Try "draft a 30-second intro for two hosts" or "voice every line and send it to a timeline".
+The **Assistant** tab in the right dock opens a chat that knows which script is open. It edits the script live through the `ui_script_*` tools.
 
 ---
 
@@ -166,7 +158,7 @@ Trace: the user asks "write a two-line ad read and voice it".
 | `edit_script` | Ops apply in order. An argument an op does not take is refused instead of ignored. |
 | `voice_script_lines` | With no `targets`, every unvoiced or stale line is voiced (3 at a time by default, 8 at most). Each take is saved as an audio asset, appended to its line, and made current. Earlier takes stay. Word timings are transcribed best-effort. |
 
-Passing `provider`, `model`, and `voice` to `voice_script_lines` overrides every line's own voice.
+Passing `provider`, `model`, and `voice` to `voice_script_lines` overrides every line's voice.
 
 | Tool | Purpose |
 |---|---|

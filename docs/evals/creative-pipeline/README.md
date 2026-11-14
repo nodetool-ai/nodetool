@@ -4,9 +4,8 @@ What one run of the `creative-pipeline` eval produced with `--live`, kept here
 so the suite's output can be looked at without paying for a run.
 
 The suite is headless by default: every generate and render is a status flip
-against in-memory state, which is what makes it cost the agent loop and nothing
-else. `--live` additionally routes the same tool calls to fal, so these files
-are what the model directed, not illustrations of it.
+against in-memory state, so a run costs only the agent loop. `--live` also
+routes the same tool calls to fal.
 
 ## The commission
 
@@ -30,8 +29,7 @@ Stills come from `openai/gpt-image-2`, clips from
 `fal-ai/ltx-2-19b/distilled/image-to-video`.
 
 Compressed for the repo: stills to WebP at 720px, clips to h264 at 540px.
-Raw output became 1.8 MB, which is the difference between a fixture and a
-liability. The originals are not kept.
+Raw output was 1.8 MB. The originals are not kept.
 
 ## Reproducing
 
@@ -50,37 +48,14 @@ the pipeline's output.
 
 ## Why not a cheaper image model
 
-The first pass used `flux/schnell` at $0.003 per megapixel, chosen on cost. It
-was the wrong trade: flux mangles hands, and this brief requires them in three
-of four shots. A model that cannot draw the thing being commissioned is not
-cheap. gpt-image-2 costs materially more per image and renders anatomy that
-survives a look.
+The first pass used `flux/schnell` at $0.003 per megapixel. It mangles hands, and this brief requires them in three of four shots, so the pass used `openai/gpt-image-2`, which costs more per image and renders usable anatomy.
 
-Swapping it in introduced a *different* brief violation, which is the more
-interesting half. flux could not render legible text, so it never breached the
-brief's `no logo` rule by accident. gpt-image-2 can, and branded the bottle in
-shot 3 with "COLD BREW COFFEE" in raised lettering. Better capability, new
-failure mode.
+The swap introduced a different brief violation. flux cannot render legible text, so it never breached the `no logo` rule. gpt-image-2 can, and it branded the bottle in shot 3 with "COLD BREW COFFEE" in raised lettering. Sonnet never carried `no logo` from the brief into any image prompt. Shot 3 was regenerated with the constraint appended explicitly.
 
-The prompt is why. Sonnet never carried `no logo` into any image prompt — it
-lives in the brief, and the model read the brief, but the constraint did not
-survive into the generation call. Shot 3 was regenerated with the constraint
-appended explicitly.
+## What the files show that the eval cannot
 
-## Two things these files show that the eval cannot
+**The planted defect is conservative.** The suite simulates rendered clips coming back 1.35× longer than requested. LTX returned 4.84s takes for 3s requests, which is **1.61×**.
 
-**The planted defect is conservative.** The suite simulates rendered clips
-coming back 1.35× longer than requested. LTX returned 4.84s takes for 3s
-requests — **1.61×**. Real video models overshoot harder than the eval assumes.
+**Two brief violations the predicates cannot see.** `clip-shot_3` contains neither hands nor sunrise. The model caught that in its own review, while the suite's `mustFeature` check passed because it only asks whether each element appears somewhere in the shot list. The same shot came back branded, which `forbiddenAvoided` also passed. That check reads shot action text and layer names, so it sees the word "logo" in a prompt and never what the picture contains.
 
-**Two brief violations the predicates cannot see.** `clip-shot_3` contains
-neither hands nor sunrise; the model caught that in its own review and filed
-it, while the suite's `mustFeature` check passed because it only asks whether
-each element appears *somewhere* in the shot list. And the same shot came back
-branded, which `forbiddenAvoided` also passed — that check reads shot action
-text and layer names, so it can see the word "logo" in a prompt and never what
-the picture actually contains.
-
-Both are the same limit. The predicates grade the plan; only a human or a
-vision model grades the artifact. Worth knowing before trusting a green run to
-mean the deliverable is on brief.
+The predicates grade the plan. Only a human or a vision model grades the artifact.

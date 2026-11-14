@@ -32,6 +32,16 @@ private slots:
         actual.insert("clips", clips);
         QCOMPARE(actual, deleted.value("expected").toObject());
     }
+    void newBeatStaysOffTheMusic() {
+        const QJsonObject music{{"id", "song"}, {"trackId", "music"}, {"mediaType", "audio"}, {"startMs", 0}, {"durationMs", 8000}};
+        const QJsonObject timeline{{"clips", QJsonArray{music}},
+                                   {"tracks", QJsonArray{QJsonObject{{"id", "music"}, {"type", "audio"}, {"name", "Music"}, {"index", 0}}}}};
+        const auto added = nt::aiassist::addTranscriptBeat(timeline, {{"id", "beat"}, {"newTrackId", "vo"}, {"text", "Hello there"}});
+        const auto tracks = added.value("tracks").toArray();
+        QCOMPARE(tracks.size(), 2);
+        QCOMPARE(tracks.last().toObject().value("name").toString(), QStringLiteral("Voiceover"));
+        QCOMPARE(added.value("clips").toArray().last().toObject().value("trackId").toString(), QStringLiteral("vo"));
+    }
     void editsAndTakeReflow() {
         const QJsonObject first{{"id", "first"}, {"trackId", "audio"}, {"bindingKind", "text-to-audio"}, {"prompt", "Hello"}, {"startMs", 0}, {"durationMs", 3000}, {"currentAssetId", "old"}};
         const QJsonObject second{{"id", "second"}, {"trackId", "audio"}, {"bindingKind", "text-to-audio"}, {"startMs", 3500}, {"durationMs", 3000}};

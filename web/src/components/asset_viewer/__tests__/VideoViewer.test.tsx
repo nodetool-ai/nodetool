@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -24,6 +24,14 @@ describe("VideoViewer", () => {
       "aria-label",
       "intro.mp4"
     );
+  });
+
+  it("leaves the visible name to the document bar", () => {
+    renderViewer({
+      name: "intro.mp4",
+      get_url: "https://example.com/intro.mp4"
+    } as Asset);
+    expect(screen.queryByText("intro.mp4")).not.toBeInTheDocument();
   });
 
   it("falls back to a generic name without an asset", () => {

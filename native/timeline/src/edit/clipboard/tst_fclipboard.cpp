@@ -323,6 +323,32 @@ class TestFClipboard : public QObject {
         QVERIFY(opacity->property("checked").toBool());
         QCOMPARE(opacity->property("accessibleName").toString(), QString("Opacity and blend mode"));
     }
+    void duplicateDropsInTheDropMode_data() {
+        QTest::addColumn<QString>("mode");
+        QTest::addColumn<double>("nextStartMs");
+        QTest::addColumn<double>("nextDurationMs");
+        QTest::newRow("overwrite") << QString("overwrite") << 2000.0 << 500.0;
+        QTest::newRow("insert") << QString("insert") << 2500.0 << 1000.0;
+        QTest::newRow("default") << QString() << 2000.0 << 500.0;
+    }
+    void duplicateDropsInTheDropMode() {
+        QFETCH(QString, mode);
+        QFETCH(double, nextStartMs);
+        QFETCH(double, nextDurationMs);
+        auto parsed = nt::parseTimelineJson(
+            R"({"name":"D","width":640,"height":360,"fps":30,"durationMs":10000,"tracks":[{"id":"v","type":"video","index":0}],"clips":[{"id":"a","name":"A","mediaType":"image","trackId":"v","startMs":0,"durationMs":1000},{"id":"b","name":"B","mediaType":"image","trackId":"v","startMs":1500,"durationMs":1000}]})");
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        QJsonObject payload{{"selectedIds", QJsonArray{"a"}}};
+        if (!mode.isEmpty()) { payload.insert("mode", mode); }
+        QVERIFY(model.applyEdit("duplicateSelected", payload));
+        // The copy lands at 1000-2000, over the head of b: it never stacks on b.
+        const auto* next = model.findClip("b");
+        QVERIFY(next);
+        QCOMPARE(next->startMs, nextStartMs);
+        QCOMPARE(next->durationMs, nextDurationMs);
+    }
     void undo_data() {
         QTest::addColumn<QString>("action");
         for (const auto &action :

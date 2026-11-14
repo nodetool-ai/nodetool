@@ -10,8 +10,6 @@ Debug a workflow by reading node status, adding Preview nodes, checking logs, an
 
 ## Quick Debugging Checklist
 
-When a workflow isn't working:
-
 - [ ] Look for a moving ring (running), a **Completed in** badge, or a **Failed in** badge on each node
 - [ ] Read the red error panel on failed nodes
 - [ ] Add Preview nodes after suspicious nodes
@@ -24,8 +22,6 @@ When a workflow isn't working:
 ---
 
 ## Understanding Node Status
-
-Nodes show their execution status on the canvas:
 
 | Sign | Status | Meaning |
 |------|--------|---------|
@@ -42,15 +38,13 @@ When a node fails, the error text appears on the node. The panel has **View logs
 
 Preview nodes show the value on any wire. Press **Space**, search "Preview", and connect the output to inspect. Faster: drop a connection on empty canvas, or right-click an output port, and choose **Preview**. It creates a Preview node already connected.
 
-Put a Preview after each major step and before and after a suspect node:
+Put a Preview before and after each suspect node:
 
 ```
 Input → Process → Preview(1) → Transform → Preview(2) → LLM → Preview(3) → Output
 ```
 
 ### What Preview Shows
-
-Preview nodes render the value by type:
 
 | Data Type | Preview Display |
 |-----------|-----------------|
@@ -155,12 +149,10 @@ NODETOOL_LOG_FILE=/tmp/nodetool.log nodetool serve
 
 ### Understanding Error Messages
 
-Messages you are likely to meet:
-
 ```
 Select a model
 ```
-→ An Agent node has no model chosen. Pick one in the Inspector.
+→ An Agent node has no model chosen. Pick one in the Inspector, or set a default in **Settings → Default Models**.
 
 ```
 COHERE_API_KEY is not configured
@@ -237,9 +229,6 @@ Three `nodetool` commands debug without the editor. See the [CLI reference]({{ '
 
 | Problem | Solution |
 |---------|----------|
-| Wire will not connect | Types are incompatible. Add a conversion node between them |
-| "Select a model" | Choose a model on the Agent node, or set a default in Settings → Default Models |
-| "... is not configured" | Add the named key in Settings → Models & Providers |
 | Model not available | Install it in More → Model Manager or configure its API key |
 | Empty output | Add Preview to find where data is lost |
 | Wrong format | Use the **Format Text** node or a conversion node |
@@ -249,13 +238,7 @@ Three `nodetool` commands debug without the editor. See the [CLI reference]({{ '
 
 ## Getting More Help
 
-1. **Click Report on the failed node.** The bug-report form collects the error,
-   the node's settings, the workflow and the logs for you. The hosted app sends
-   it to the NodeTool team. A local install saves a zip you drag into a
-   pre-filled GitHub issue. See
-   [Report a Bug from inside NodeTool](troubleshooting.md#report-a-bug-from-inside-nodetool).
-2. **Ask on [Discord](https://discord.gg/WmQTWZRcYE)** if you would rather talk
-   it through first. Bring the workflow JSON, a screenshot, and your OS and
-   NodeTool version.
+1. **Click Report on the failed node.** The form collects the error, the node's settings, the workflow and the logs. The hosted app sends it to the NodeTool team. A local install saves a zip you drag into a pre-filled GitHub issue. See [Report a Bug from inside NodeTool](troubleshooting.md#report-a-bug-from-inside-nodetool).
+2. **Ask on [Discord](https://discord.gg/WmQTWZRcYE)** with the workflow JSON, a screenshot, and your OS and NodeTool version.
 
 Related: [Troubleshooting](troubleshooting.md), [Key Concepts](key-concepts.md), [Workflow Editor](workflow-editor.md), [Cookbook](cookbook.md).

@@ -962,6 +962,19 @@ async function pruneTargetedPackages(modulesDir) {
     await remove(path.join(pdfjsDir, "web"));
   }
 
+  // node-av's postinstall downloads an FFmpeg CLI build into node-av/binary/
+  // for its optional node-av/ffmpeg export, which the backend never imports.
+  // Media runs in process on libav through node-av.node. Keep only .node
+  // files there, since node-av's binding also looks for node-av.node in it.
+  const nodeAvBinaryDir = path.join(modulesDir, "node-av", "binary");
+  if (fs.existsSync(nodeAvBinaryDir)) {
+    for (const entry of await fsp.readdir(nodeAvBinaryDir)) {
+      if (!entry.endsWith(".node")) {
+        await remove(path.join(nodeAvBinaryDir, entry));
+      }
+    }
+  }
+
   return reclaimed;
 }
 

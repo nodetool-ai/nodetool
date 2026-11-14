@@ -378,6 +378,10 @@ export {
   pendingCount as kieWebhookPendingCount
 } from "./kie-webhook-registry.js";
 export {
+  isValidKieWebhookToken,
+  kieWebhookCallbackUrl
+} from "./kie-endpoint.js";
+export {
   AtlasWebhookWaitTimeout,
   registerAtlasWebhookWait,
   resolveAtlasWebhook,

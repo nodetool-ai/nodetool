@@ -248,6 +248,45 @@ private slots:
     QCOMPARE(input["name"].toString(),QString("count"));
     f.document.undo(); QCOMPARE(f.document.snapshot(),baseline);
   }
+  // OutputContextMenu.tsx "Transform this output…" and InputContextMenu.tsx "Create value with AI…"
+  // (useCodeGenFromHandle.ts): a Code node with one slot typed from the handle, wired in one step.
+  void aiRowsCreateASeededCodeNode() {
+    auto catalog=picker_fixture::staticCatalog();
+    catalog.append(QJsonObject{{"node_type","nodetool.code.Code"},{"title","Code"},
+      {"properties",QJsonArray{picker_fixture::slot("code",picker_fixture::type("str"))}},{"outputs",QJsonArray{}},
+      {"supports_dynamic_inputs",true},{"supports_dynamic_outputs",true}});
+    Fixture f(catalog); const auto baseline=f.document.snapshot(); f.open();
+    QCOMPARE(labels(f.picker.fixedRows()),QStringList({"Preview","Output","Reroute","Save",QString::fromUtf8("Transform this output…")}));
+    QSignalSpy created(&f.picker,&CompatibleNodePicker::nodeCreated);
+    QSignalSpy requested(&f.picker,&CompatibleNodePicker::codeRequested);
+    f.picker.choose("fixed\ntransform",f.picker.generation());
+    QCOMPARE(created.size(),1); QCOMPARE(requested.size(),1); QVERIFY(!f.picker.active());
+    auto id=created.last().first().toString();
+    QCOMPARE(requested.last().first().toString(),id); QVERIFY(requested.last().last().toString().contains(id));
+    auto code=f.document.node(id);
+    QCOMPARE(code["type"].toString(),QString("nodetool.code.Code"));
+    QCOMPARE(code["dynamic_inputs"].toObject()["out"].toObject()["type"].toObject()["type"].toString(),QString("str"));
+    QCOMPARE(code["dynamic_properties"].toObject()["out"].toString(),QString());
+    auto edge=f.document.edges().first().toObject();
+    QCOMPARE(edge["source"].toString(),QString("origin")); QCOMPARE(edge["sourceHandle"].toString(),QString("out"));
+    QCOMPARE(edge["target"].toString(),id); QCOMPARE(edge["targetHandle"].toString(),QString("out"));
+    QCOMPARE(f.document.undoStack()->count(),1); f.document.undo(); QCOMPARE(f.document.snapshot(),baseline);
+    f.model.project(f.document.snapshot(),f.catalog);
+    // The input menu: "in" is a reserved word, so the seeded output is "in_2". It replaces the edge into "in".
+    f.open(PortType::In,f.input("in"));
+    QCOMPARE(labels(f.picker.fixedRows()),QStringList({"Constant","Input","Prompt",QString::fromUtf8("Create value with AI…")}));
+    f.picker.choose("fixed\nconstant",f.picker.generation()); QCOMPARE(f.document.edges().size(),1);
+    const auto withConstant=f.document.snapshot();
+    f.open(PortType::In,f.input("in")); f.picker.choose("fixed\ncreate-value",f.picker.generation());
+    QCOMPARE(requested.size(),2);
+    id=created.last().first().toString(); code=f.document.node(id);
+    QCOMPARE(code["dynamic_outputs"].toObject()["in_2"].toObject()["type"].toString(),QString("str"));
+    QCOMPARE(f.document.edges().size(),1); edge=f.document.edges().first().toObject();
+    QCOMPARE(edge["source"].toString(),id); QCOMPARE(edge["sourceHandle"].toString(),QString("in_2"));
+    QCOMPARE(edge["target"].toString(),QString("origin")); QCOMPARE(edge["targetHandle"].toString(),QString("in"));
+    f.document.undo(); QCOMPARE(f.document.snapshot(),withConstant);
+    f.document.undo(); QCOMPARE(f.document.snapshot(),baseline);
+  }
 };
 QTEST_MAIN(CompatibleNodePickerTest)
 #include "CompatibleNodePickerTest.moc"

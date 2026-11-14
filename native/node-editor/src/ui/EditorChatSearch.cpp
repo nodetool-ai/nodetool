@@ -1,5 +1,6 @@
 #include "EditorChatSearch.h"
 #include "document/ConnectionTypes.h"
+#include "graph/NodeDocumentation.h"
 #include <QCollator>
 #include <QHash>
 #include <QJsonObject>
@@ -66,52 +67,10 @@ template <typename Value> class OrderedMap {
 
 // stores/formatNodeDocumentation.ts formatNodeDocumentation.
 void splitDocumentation(Meta &meta) {
-    QStringList lines;
-    for (const auto &line : meta.description.split('\n')) {
-        lines.append(line.trimmed());
-    }
-    meta.cleanDescription = lines.value(0);
-    QStringList tags;
-    if (lines.size() > 1) {
-        for (const auto &tag : lines[1].split(',')) {
-            const auto trimmed = tag.trimmed();
-            if (!trimmed.isEmpty()) {
-                tags.append(trimmed);
-            }
-        }
-    }
-    meta.tags = tags.join(", ");
-    qsizetype useCasesIndex = -1;
-    for (qsizetype i = 0; i < lines.size(); ++i) {
-        if (lines[i].startsWith("Use cases:")) {
-            useCasesIndex = i;
-            break;
-        }
-    }
-    if (useCasesIndex < 0) {
-        return;
-    }
-    QStringList useCaseLines;
-    bool hasBullets = false;
-    for (qsizetype i = useCasesIndex + 1; i < lines.size(); ++i) {
-        if (lines[i].trimmed().isEmpty()) {
-            continue;
-        }
-        useCaseLines.append(lines[i]);
-        hasBullets = hasBullets || lines[i].startsWith('-');
-    }
-    if (!hasBullets) {
-        meta.useCases = useCaseLines.join(' ');
-        return;
-    }
-    static const QRegularExpression bullet("^-\\s*");
-    QStringList bullets;
-    for (auto line : useCaseLines) {
-        if (line.startsWith('-')) {
-            bullets.append(line.remove(bullet).trimmed());
-        }
-    }
-    meta.useCases = bullets.join('\n');
+    const auto parts = node_editor::splitNodeDocumentation(meta.description);
+    meta.cleanDescription = parts.description;
+    meta.tags = parts.tags.join(", ");
+    meta.useCases = parts.useCases.join('\n');
 }
 
 // utils/ranking.ts searchTermsFromQuery.

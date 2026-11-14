@@ -26,7 +26,7 @@ A guided flow is a short sequence of steps that ends in a document you keep edit
 
 ## Start a flow
 
-**From the new-project screen.** The screen has a **Start with a guided flow** section. It shows the **Storyboard**, **Read aloud**, **Image**, **Workflow**, **Game**, and **App** cards. Choose **More formats** to also show **Entity**, **Video**, and **Script**. **Fewer formats** hides them again. Text typed in the prompt box is not sent to a flow unless you click its card, and the Image card uses it as the first brief.
+**From the new-project screen.** The **Start with a guided flow** section shows the **Storyboard**, **Read aloud**, **Image**, **Workflow**, **Game**, and **App** cards. Choose **More formats** to also show **Entity**, **Video**, and **Script**. **Fewer formats** hides them again. Text typed in the prompt box is not sent to a flow unless you click its card, and the Image card uses it as the first brief.
 
 **From the tab bar.** The **+ New** menu lists the same flows in its first section. The menu names the Video card **Timeline** and the Image card **Sketch**. Each choice creates an untitled document in the selected project and opens it as a tab, except **App**, which opens its flow and creates the app only when the build succeeds. A failed start shows the notification "Could not start the guided flow".
 
@@ -36,15 +36,15 @@ A guided flow is a short sequence of steps that ends in a document you keep edit
 
 **From the Entities page.** **Add entity** runs the Entity flow in place.
 
-Each step's primary button is named for its outcome, such as **Generate your image**. When it is disabled, a line beside it says why, for example "Pick an image use case". Where a step spends money, the cost estimate sits beside the button. Step 1 of the Image, Workflow, and Entity flows has **Other ways to start**, which skips the flow. Flows opened from the new-project screen also show **Change flow** on step 1, which asks for confirmation before it discards the draft.
+When a step's primary button is disabled, a line beside it says why, for example "Pick an image use case". Where a step spends money, the cost estimate sits beside the button. Step 1 of the Image, Workflow, and Entity flows has **Other ways to start**, which skips the flow. Flows opened from the new-project screen also show **Change flow** on step 1, which asks for confirmation before it discards the draft.
 
 ## Image
 
-The Image flow creates a sketch by one of two paths. The quick path renders your sentence from step 1. The step-by-step path expands it into a brief, lets you choose size and style, then renders one, two, or four variations. See [Sketch Editor](sketch-editor.md).
+The quick path renders your sentence from step 1. The step-by-step path expands it into a brief, lets you choose size and style, then renders one, two, or four variations. See [Sketch Editor](sketch-editor.md).
 
 ### Step 1: Idea
 
-The heading is **What image do you want?** The **Your image** box is required. Three example briefs below it fill the box when clicked.
+The **Your image** box is required. Three example briefs below it fill the box when clicked.
 
 Reference images or entities attached on the new-project prompt appear under **Came with your prompt**. The step-by-step brief reads the reference images. The quick path uses your text only.
 
@@ -96,11 +96,11 @@ Below the sheet, **Make more variations** renders another batch, **Back to gener
 
 ## Workflow
 
-The Workflow flow plans a graph from a task, shows the plan, then builds the graph, validates it, and runs it once with sample inputs. Planning places nothing and runs nothing. See [Workflow Editor](workflow-editor.md).
+Planning places nothing and runs nothing. The build step then creates the graph, validates it, and runs it once with sample inputs. See [Workflow Editor](workflow-editor.md).
 
 ### Step 1: Idea
 
-The heading is **What should this workflow do?** Describe only the task in the **The task** box, for example "Summarize a PDF and email it". Three example tasks sit below it.
+Describe only the task in the **The task** box, for example "Summarize a PDF and email it". Three example tasks sit below it.
 
 **Other ways to start**:
 
@@ -132,7 +132,7 @@ Every step needs a title and every output needs a name. **Re-plan** asks the mod
 
 ### Step 3: Build
 
-The heading is **Models and how it runs**. Pick a model for each role the plan needs, then choose how the workflow starts:
+Pick a model for each role the plan needs, then choose how the workflow starts:
 
 | Run mode | After the test run |
 |----------|--------------------|
@@ -152,11 +152,9 @@ When the build finishes, the canvas opens with a checklist: **Graph built** (wit
 
 ## Entity
 
-The Entity flow creates a reusable character, location, style, or prop with a reference image. See [Entities](entities.md).
+The reference image keeps the entity consistent across prompts. See [Entities](entities.md).
 
 ### Step 1: Details
-
-The heading is **What should stay consistent?**
 
 1. Choose the entity type: **Character**, **Location**, **Style**, or **Prop**.
 2. Enter a **Name**. The placeholder is "Nova".
@@ -166,8 +164,6 @@ The heading is **What should stay consistent?**
 The name and descriptor are required. **Start with a blank reference** under **Other ways to start** makes a plain white 1024 x 1024 image, fills an empty name with "Untitled entity" and an empty descriptor with "A reusable visual entity.", and jumps to the review. Otherwise continue with **Choose a reference**.
 
 ### Step 2: Reference
-
-The heading is **Choose a reference image**.
 
 - **Choose from assets** opens the asset picker. After a pick the button reads **Change reference**. Images that are already entities are not offered.
 - **Generate with AI** opens **Generate a reference image**. Choose a view for the entity type, edit the **Prompt**, pick an **Image model**, and choose **Generate reference**. The image is made at 1K resolution and selected for you.
@@ -188,16 +184,15 @@ Continue with **Review entity**.
 
 ## App
 
-The App flow makes a mini app: the screen and the workflows behind it. Nothing is added to your project until the build passes its tests.
+Nothing is added to your project until the build passes its tests.
 
 ### Step 1: Idea
 
-The heading is **What should the app do?** Describe what someone types or picks, what the button does, and what they get back, for example "A page where I type a product name, press a button, and get a short description back". **Model** in the footer picks the language model that writes the design and builds the app. **Start with a blank app** under **Other ways to start** creates an empty app and opens it in the App Builder. Otherwise continue with **Write the design**.
+Describe what someone types or picks, what the button does, and what they get back, for example "A page where I type a product name, press a button, and get a short description back". **Model** in the footer picks the language model that writes the design and builds the app. **Start with a blank app** under **Other ways to start** creates an empty app and opens it in the App Builder. Otherwise continue with **Write the design**.
 
 ### Step 2: Design
 
-The heading is **Review the design**. Every field is editable.
-
+Every field is editable.
 
 - **The app** holds the title.
 - **What it runs** has one card per workflow behind the screen. **What it does** says what that workflow does, and the line under it names what it takes and gives back.
@@ -214,4 +209,4 @@ If you leave the tab before the build, the design is kept and restored when you 
 
 ## Game
 
-The Game flow creates a playable game in the built-in engine. **+ New** creates a 2D top-down room game named "Untitled game". On the new-project screen, **Game card starts as** picks **2D game** or **3D exploration**. See [Game Editor](game-editor.md).
+**+ New** creates a 2D top-down room game named "Untitled game". On the new-project screen, **Game card starts as** picks **2D game** or **3D exploration**. See [Game Editor](game-editor.md).

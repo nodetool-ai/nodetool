@@ -65,6 +65,7 @@ ColumnLayout {
         case "embedding_model": return qsTr("Search embedding models")
         case "rerank_model": return qsTr("Search reranking models")
         case "llama_model": return qsTr("Search Ollama models")
+        case "model_3d_model": return qsTr("Search 3D generation models")
         }
         return qsTr("Search models")
     }
@@ -90,6 +91,8 @@ ColumnLayout {
         // ImageModelSelect.tsx stores the file path and no task list.
         if (modelType === "image_model") {
             result.path = model.path || ""
+        } else if (modelType === "model_3d_model") {
+            // Model3DModelSelect.tsx stores id, provider and name only.
         } else if (listOf(model.supported_tasks)) {
             result.supported_tasks = listOf(model.supported_tasks)
         }
@@ -138,7 +141,7 @@ ColumnLayout {
             Ui.Text {
                 objectName: "model-label-" + root.descriptor.name
                 role: Ui.Typography.SansLabel
-                lineHeight: 1
+                tight: true
                 text: root.fieldText.label
                 tone: !button.enabled ? Ui.Text.Disabled : root.fieldText.active ? Ui.Text.Primary : Ui.Text.Secondary
                 elide: Text.ElideRight
@@ -151,7 +154,7 @@ ColumnLayout {
                 id: secondaryText
                 objectName: "model-secondary-" + root.descriptor.name
                 role: Ui.Typography.SansCaption
-                lineHeight: 1
+                tight: true
                 text: root.fieldText.secondary
                 visible: text !== ""
                 tone: Ui.Text.Secondary

@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "장면의 조명 방식",
           "shotHeader": "샷 {{count}}",
           "shotAction": "샷 {{count}} · 액션",
-          "shotDialogue": "샷 {{count}} · 대화",
-          "dialoguePlaceholder": "대화",
-          "addDialogue": "대화 추가",
+          "dialogue": "대화",
           "seconds": "초",
+          "shotLength": "{{seconds}}초",
           "sceneHeader": "장면 {{count}}"
         },
         "fallback": {
@@ -10695,6 +10694,8 @@
       "queuedCount_one": "{{count}} 대기 중",
       "queuedCount_other": "{{count}} 대기 중",
       "collapseQueue": "대기열 축소",
+      "moveQueue": "대기열 이동",
+      "moveQueueHint": "드래그하여 이동합니다. 화살표 키로 이동하고 Home으로 초기화합니다.",
       "enqueued": "대기열에 추가됨"
     },
     "toolbar": {

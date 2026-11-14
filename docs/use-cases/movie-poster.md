@@ -13,9 +13,8 @@ canonical_url: "https://nodetool.ai/use-cases/movie-poster"
 
 <p class="usecase-eyebrow">Use case · Design</p>
 
-From a title, genre, and audience, the canvas writes a creative strategy and
-renders a batch of cinematic poster concepts — title, tagline, billing block and
-all. One run gives you a spread of directions, not a single guess.
+From a title, genre, and visual style, the canvas writes a creative strategy and
+renders a batch of poster concepts with title, tagline, and billing block.
 
 <div class="usecase-hero">
   <img src="{{ '/assets/use-cases/poster-singularity-1.png' | relative_url }}" alt="Movie poster concept: 'The end of time isn't the end.'">
@@ -23,9 +22,8 @@ all. One run gives you a spread of directions, not a single guess.
 
 ## How it works
 
-Three text inputs and a strategy-then-render pipeline turn a one-line brief into
-a batch of theatrical posters. The shipped template is named *Movie Posters*
-(**Examples** in the sidebar, **Workflows** tab).
+The shipped template is named *Movie Posters* (**Examples** in the sidebar,
+**Workflows** tab).
 
 {% mermaid %}
 graph LR
@@ -49,16 +47,16 @@ graph LR
 {% endmermaid %}
 
 1. **Set the brief.** Three text inputs hold the film's title, its genre, and the
-   visual style you want. That's the entire creative input.
+   visual style you want.
    *(e.g. "Singularity · Sci-Fi Thriller · Neo-noir, high-contrast, cinematic")*
 2. **Write the strategy.** A Prompt node frames the brief and a Structured Output
    Generator returns it as fields: positioning, audience insight, a core visual
    concept, and a design direction covering palette and typography.
 3. **Spin up concepts.** A list generator turns the strategy into a batch of
-   distinct plot angles, so one run gives you a spread of directions.
+   distinct plot angles.
 4. **Render the key art.** Each concept is templated into a full theatrical
-   poster prompt, then an image model renders it — title, tagline, billing block
-   and all.
+   poster prompt, then an image model renders it with title, tagline, and
+   billing block.
 
 ## Concepts from one run
 
@@ -87,20 +85,19 @@ graph LR
 
 ## Make it yours
 
-- **Swap the image model.** GPT Image-2, Flux, Nano Banana, Ideogram. Change one
-  node and the whole batch re-renders in a new look.
-- **Shift the tone.** Change the genre or visual style and the strategy, palette, and
-  posters all follow — no manual re-briefing.
-- **Edit the poster recipe.** The poster Prompt node owns the composition,
-  typography, and billing-block layout. Tune it once, every render obeys.
-- **Batch any title.** Drop in a new title and run it again. The workflow is the
-  reusable part; the posters are just this run's output.
+- Swap the image model (GPT Image-2, Flux, Nano Banana, Ideogram) by changing
+  one node. The whole batch re-renders in the new look.
+- Change the genre or visual style and the strategy, palette, and posters
+  follow.
+- The poster Prompt node owns the composition, typography, and billing-block
+  layout. Edit it once and every render follows.
+- Drop in a new title and run it again.
 
 ## Models in this workflow
 
-Called with your own keys. The bill comes from the provider. The template
-ships with these defaults and each is one dropdown. The gallery images above
-were rendered with other models, so your output will differ.
+Calls use your own keys, so the provider bills you. The template ships with
+these defaults, each a dropdown. The gallery images above were rendered with
+other models, so your output will differ.
 
 | Model | Role | Provider |
 | --- | --- | --- |
@@ -111,8 +108,8 @@ See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to se
 
 ## Next steps
 
-- [Movie Posters workflow]({{ '/workflows/movie-posters' | relative_url }}) — the walkthrough for the *Movie Posters* template
-- [Movie Trailer Generator]({{ '/use-cases/movie-trailer' | relative_url }}) — from one logline to a cut teaser
+- [Movie Posters workflow]({{ '/workflows/movie-posters' | relative_url }}): the walkthrough for the *Movie Posters* template
+- [Movie Trailer Generator]({{ '/use-cases/movie-trailer' | relative_url }}): from one logline to a cut teaser
 - [All use cases]({{ '/use-cases' | relative_url }})
 </content>
 </invoke>

@@ -466,6 +466,25 @@ private slots:
             {"textStyle", QJsonObject{{"text", "Text"}, {"fontSizePx", 96}, {"color", "#FFFFFF"}}}}));
         model.undoStack()->undo(); QCOMPARE(doc(), before);
     }
+    void addTextAtPlayheadMenuItem() {
+        // The top track has a clip under the playhead, so the title gets a Titles track of its own.
+        clock.seek(1500);
+        const auto before = doc();
+        const auto tracks = before.value("tracks").toArray().size();
+        nt::app::ShellMenus menus;
+        menus.setAnchor(view->rootObject());
+        QVERIFY(menus.trigger("addTextAtPlayhead"));
+        QCOMPARE(model.undoStack()->count(), 1);
+        const auto after = doc().value("tracks").toArray();
+        QCOMPARE(after.size(), tracks + 1);
+        QCOMPARE(after.first().toObject().value("name").toString(), QString("Titles"));
+        QCOMPARE(gestures()->selection().size(), 1);
+        const auto added = clip(gestures()->selection().first());
+        QCOMPARE(added.value("trackId"), after.first().toObject().value("id"));
+        QCOMPARE(added.value("startMs").toDouble(), 1500.0);
+        QCOMPARE(added.value("mediaType").toString(), QString("text"));
+        model.undoStack()->undo(); QCOMPARE(doc(), before);
+    }
     void lockedLane() {
         auto raw = doc(); auto tracks = raw.value("tracks").toArray(); auto t = tracks[0].toObject();
         t.insert("locked", true); tracks[0] = t; raw.insert("tracks", tracks); restore(raw);
@@ -1087,7 +1106,7 @@ private slots:
         QTest::newRow("keyframes") << "Clip > Keyframes" << QStringList{"Add or Remove Keyframe", "Next Keyframe", "Previous Keyframe"};
         QTest::newRow("takes") << "Clip > Takes" << QStringList{"Show Takes in the Program Monitor", "Record Take Switches"};
         QTest::newRow("sequence") << "Sequence" << QStringList{"Match Frame", "---", "Add Edit", "Add Edit to All Tracks", "---",
-            "Trim Edit", "Toggle Trim Type", "Exit Trim Mode", "Extend Selected Edit to Playhead", "Extend Previous Edit to Playhead", "Extend Next Edit to Playhead",
+            "Add Text at Playhead", "---", "Trim Edit", "Toggle Trim Type", "Exit Trim Mode", "Extend Selected Edit to Playhead", "Extend Previous Edit to Playhead", "Extend Next Edit to Playhead",
             "Ripple Trim Previous Edit to Playhead", "Ripple Trim Next Edit to Playhead", "---",
             "Apply Video Transition", "Apply Audio Transition", "Remove Transition", "Fade In and Out", "Remove Fades", "---",
             "Lift", "Extract", "---", "Remove Filler Words", "---", "Zoom In", "Zoom Out", "Zoom to Fit Content", "Zoom to Selection", "---", "Go to Gap", "---", "Tools", "---",

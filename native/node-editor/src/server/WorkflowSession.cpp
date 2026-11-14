@@ -365,14 +365,20 @@ void WorkflowSession::flushDocumentNotification() {
     emit workflowChanged();
     emit stateChanged();
 }
+QString WorkflowSession::jobsError() const {
+    return m_accountJobs ? m_accountJobs->error() : QString();
+}
 QVariantList WorkflowSession::queue() const {
     QVariantList result;
     QSet<QString> seen;
     auto append = [&](const QString &id, QJsonObject row) {
         row["jobId"] = id;
         row["editedSinceError"] = row.contains("edit") && row["edit"].toDouble() != static_cast<double>(m_edit);
-        row["terminal"] = QStringList{"cancelled", "completed", "failed"}.contains(row["status"].toString());
+        row["terminal"] = QStringList{"cancelled", "completed", "failed", "timed_out"}.contains(row["status"].toString());
         row["stopping"] = m_accountJobs && m_accountJobs->stopping(id);
+        if (m_accountJobs && row["status"] == "completed") {
+            row["outputAssets"] = m_accountJobs->outputs(id);
+        }
         row["local"] = m_runs.contains(id);
         if (row["name"].toString().isEmpty()) {
             const auto current = workflow();
@@ -1385,7 +1391,7 @@ void WorkflowSession::ingestRunEvent(QJsonObject event) {
   }
   const bool lifecycle = type == "job_update" || type == "job_resumed";
   const auto reported = message.value("status").toString();
-  const bool settles = QStringList{"completed", "failed", "cancelled", "finished", "error"}.contains(reported);
+  const bool settles = QStringList{"completed", "failed", "cancelled", "finished", "error", "timed_out"}.contains(reported);
   // A late lifecycle frame never reopens a finished run.
   if (lifecycle && run.value("terminal").toBool() && !settles) {
     return;
@@ -1422,7 +1428,7 @@ void WorkflowSession::ingestRunEvent(QJsonObject event) {
   } else if (lifecycle) {
     auto status = message["status"].toString();
     if (status == "finished") status = "completed";
-    if (status == "error") status = "failed";
+    if (status == "error" || status == "timed_out") status = "failed";
     if (message["started_at"].isString()) {
         run.insert("started_at", message["started_at"]);
     }

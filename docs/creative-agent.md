@@ -6,7 +6,7 @@ description: "Brief to finished cut: the Director writes a typed screenplay, the
 image: /assets/creative-agent/storyboard-surface.png
 ---
 
-A Director agent turns a brief into a typed screenplay, the storyboard renders a still and then a clip for each shot, and **Create timeline** assembles the clips into the timeline editor. You can drive each step from the UI, from chat (the agent calls the same `ui_*` tools), or from an external agent over MCP.
+A Director agent turns a brief into a typed screenplay on a [storyboard](storyboard-editor.md). You can drive each step from the UI, from chat (the agent calls the same `ui_*` tools), or from an external agent over MCP.
 
 > **Runs:** locally or cloud, depending on the models you pick. **Needs:** a text model for the Director and an image and video model for renders. Hosted models need their provider key (see [Providers](providers.md)). **Costs:** stills and clips on paid providers are billed at provider rates. The Director call is billed when its text model is paid. Local models cost nothing per render.
 {: .callout-note}
@@ -69,7 +69,7 @@ graph LR
   revise -. "round-trips into the cut" .-> nle
 {% endmermaid %}
 
-Stills come before clips because a still usually costs far less. Each render dialog shows an estimate before you confirm.
+Stills come before clips because a still usually costs far less.
 
 ## Start from a shipped board
 
@@ -80,7 +80,7 @@ four steps (Idea, Story, Entities, Look) and ends on the rendered board. An exam
 
 ## Direct: brief in, screenplay out
 
-In **Board settings**, write a brief and a style, pick an aspect ratio and a shot count (3, 4, 5, 6, 8, 10, or 12), and press **Direct**. Once the board has shots the button reads **Re-direct** and asks for confirmation, because it rewrites the screenplay and replaces every shot. Each shot carries action, camera (framing, lens, angle, movement, equipment), motion, and duration.
+In **Board settings**, write a brief and a style, pick an aspect ratio and a shot count (3, 4, 5, 6, 8, 10, or 12), and press **Direct**. **Re-direct** replaces every shot (see [Direct a screenplay](storyboard-editor.md#direct-a-screenplay)). Each shot carries action, camera (framing, lens, angle, movement, equipment), motion, and duration.
 
 The board uses the same Director prompt and screenplay schema as the `nodetool.creative.Director` node (shot count 1 to 20, default 5). Two sibling nodes use the screenplay in a graph: `nodetool.creative.ScreenplayShots` streams each shot with a composed image-generation prompt, and `nodetool.creative.ApplyEntities` injects entity descriptors.
 
@@ -88,15 +88,7 @@ The board uses the same Director prompt and screenplay schema as the `nodetool.c
 
 <img src="{{ '/assets/creative-agent/storyboard-surface.png' | relative_url }}" alt="Storyboard surface: a grid of six shot cards, each with its still, shot number and status, over the inspector for the selected shot">
 
-Each card shows the still or clip, a shot label such as `SH 03`, a status pill, and the action line. **Render stills** and **Render clips** in the toolbar each open a dialog where you pick the model and see an estimated cost before confirming. Select a card and a footer docks under the grid with **Edit**,
-**Iterate**, **Regenerate**, and **Delete**, plus an "Appears in" row of links
-to the shot's clip in the cut and its script line. **Edit** opens the shot's
-fields, still and clip takes, and script lines under its card, where you set
-the current still or take. **Iterate** re-renders the current clip with a text
-note ("make it darker, add rain") and is disabled until the shot has a clip.
-The status pill reads `planned`, `still`, `still · clip queued`,
-`rendering still`, `rendering clip`, `failed`, or `covered`, with `· stale`
-added when the style or models changed after the render. A shot with a clip shows no pill. Regenerating shot 3 does not re-render other shots.
+Each card shows the still or clip, a shot label such as `SH 03`, a status pill, and the action line. A shot with a clip shows no pill. **Render stills** and **Render clips** in the toolbar each open a dialog where you pick the model and see an estimated cost before confirming. Select a card to dock a footer under the grid with **Edit**, **Iterate**, **Regenerate**, and **Delete**. **Iterate** is disabled until the shot has a clip. Regenerating shot 3 does not re-render other shots. Pill values, takes, and the footer's links are in [Storyboard Editor](storyboard-editor.md#the-board).
 
 ## Assemble: from storyboard to timeline
 
@@ -111,11 +103,7 @@ narration and music become draft text-to-audio clips on **Narration** and
 line gets its own voiceover clip and the editor shows a **Script** tab.
 Shots without an accepted clip are skipped. Timeline playback and export mix audio clips, never a video element's track, so the shot-audio clips carry a video model's dialogue and room tone. Mute one when a shot should play silent under narration.
 
-Every assembled clip stays linked to its shot. Selecting a new clip take afterward replaces the asset in the persisted cut. Once
-a timeline is linked, the button reads **Rebuild linked timeline…** and asks
-for confirmation, because rebuilding replaces every clip the storyboard owns,
-including trims made to those clips. Tracks and clips you added yourself are
-kept.
+Every assembled clip stays linked to its shot. Selecting a new clip take afterward replaces the asset in the persisted cut. **Rebuild linked timeline…** replaces every clip the storyboard owns, including trims, and keeps tracks and clips you added yourself.
 
 ## Entities: reusable ingredients
 

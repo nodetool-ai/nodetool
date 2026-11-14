@@ -11,7 +11,7 @@ Item {
     property bool compact: false
     EditorRoles { id: roles }
     function syncTheme() {
-        root.commands.present({subgraphAccent: roles.subgraphAccent, canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, groupHeader: roles.groupHeader, groupFill: roles.groupFill, zoomedTitle: roles.zoomedTitle, previewSelected: roles.previewSelected, outputSelected: roles.outputSelected, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, mediaScrim: roles.mediaScrim, mediaScrimInk: roles.mediaScrimInk, alphaBase: roles.alphaBase, alphaChecker: roles.alphaChecker, primary: Ui.Theme.accentPrimary, progress: Ui.Theme.accentSecondary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, success: Ui.Theme.statusSuccess, sans: Ui.Typography.sansFamily, mono: Ui.Typography.monoFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), reducedMotion: Ui.Theme.reducedMotion, motionNormal: Ui.Metrics.motionNormal})
+        root.commands.present({subgraphAccent: roles.subgraphAccent, controlWire: roles.controlWire, canvas: roles.canvas, grid: roles.grid, node: roles.node, reroutePaper: roles.reroutePaper, rerouteBorder: roles.rerouteBorder, groupHeader: roles.groupHeader, groupFill: roles.groupFill, zoomedTitle: roles.zoomedTitle, previewSelected: roles.previewSelected, outputSelected: roles.outputSelected, panel: roles.panel, overlay: roles.overlay, divider: roles.divider, field: roles.field, checker: roles.checker, shadow: roles.shadow, mediaScrim: roles.mediaScrim, mediaScrimInk: roles.mediaScrimInk, alphaBase: roles.alphaBase, alphaChecker: roles.alphaChecker, primary: Ui.Theme.accentPrimary, progress: Ui.Theme.accentSecondary, text: Ui.Theme.textPrimary, secondary: Ui.Theme.textSecondary, border: roles.divider, focus: Ui.Theme.borderFocus, error: Ui.Theme.statusError, warning: Ui.Theme.statusWarning, success: Ui.Theme.statusSuccess, info: Ui.Theme.statusInfo, sans: Ui.Typography.sansFamily, mono: Ui.Typography.monoFamily, captionSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption), borderWidth: Math.round(Ui.Metrics.border), spaceXs: Math.round(Ui.Metrics.xs), spaceMd: Math.round(Ui.Metrics.md), reducedMotion: Ui.Theme.reducedMotion, motionNormal: Ui.Metrics.motionNormal})
     }
     Component.onCompleted: syncTheme()
     Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { root.syncTheme() } function onReducedMotionChanged() { root.syncTheme() } }
@@ -78,27 +78,20 @@ Item {
     implicitHeight: frame.implicitHeight
     // The web toolbar: Add node and Auto layout on the left, then Stop while a
     // run is active, Run and the workflow menu. See web/src/components/panels/FloatingToolBar.tsx.
-    component ActionButton: PanelRow {
+    component ActionButton: Ui.ToolbarIconButton {
         id: action
         property string glyph: ""
         property string tooltip: text
+        property string shortcut: ""
         implicitWidth: Ui.Metrics.compact
         implicitHeight: Ui.Metrics.compact
         enabled: !root.commands.readOnly || !["Run", "Add node", "Auto layout"].includes(text)
         objectName: "toolbar-" + text.toLowerCase().split(" ").join("-")
-        accessibleName: text
+        accessibleName: tooltip
+        shortcutText: shortcut
+        iconName: glyph
+        iconTone: enabled ? Ui.Text.Secondary : Ui.Text.Disabled
         onClicked: root.commands.run(text)
-        HoverHandler {
-            onHoveredChanged: {
-                root.commands.showToolTip(hovered ? action.tooltip : "")
-            }
-        }
-        Ui.Icon {
-            anchors.centerIn: parent
-            name: action.glyph
-            size: Ui.Metrics.iconSm
-            tone: action.enabled ? Ui.Text.Secondary : Ui.Text.Disabled
-        }
     }
     Rectangle {
         id: frame
@@ -119,7 +112,7 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Add node"
                     glyph: "addCircle"
-                    tooltip: "Add node (Space)"
+                    shortcut: "Space"
                 }
                 // A phone keeps Auto layout in the workflow menu, as the web does.
                 ActionButton {
@@ -137,11 +130,38 @@ Item {
                     text: "Stop"
                     glyph: "stop"
                     accessibleName: root.runLabel === "Stopping" ? "Stopping workflow" : "Stop workflow"
-                    tooltip: "Stop workflow (Esc)"
+                    shortcut: "Esc"
                     enabled: root.runLabel !== "Stopping"
                 }
-                PanelRow {
+                // ComfyTargetSelector: where this Comfy workflow runs. The menu is the window's.
+                Ui.ListRow {
+                    id: comfyTarget
+                    flat: true
+                    objectName: "toolbar-comfy-target"
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: root.commands.comfyTarget !== ""
+                    text: root.commands.comfyTarget
+                    accessibleName: "Where this Comfy workflow runs: " + text
+                    implicitHeight: Ui.Metrics.compact
+                    implicitWidth: comfyTargetLabel.implicitWidth + Ui.Metrics.md * 2
+                    onClicked: root.commands.run("Comfy target")
+                    Ui.Tooltip {
+                        trigger: comfyTarget
+                        visible: comfyTarget.hovered
+                        text: "Where this Comfy workflow runs"
+                    }
+                    Ui.Text {
+                        id: comfyTargetLabel
+                        anchors.centerIn: parent
+                        text: comfyTarget.text
+                        role: Ui.Typography.SansLabel
+                        tone: Ui.Text.Secondary
+                        tight: true
+                    }
+                }
+                Ui.ListRow {
                     id: runButton
+                    flat: true
                     objectName: "run-workflow"
                     readonly property string actionName: "Run"
                     anchors.verticalCenter: parent.verticalCenter
@@ -151,14 +171,14 @@ Item {
                     implicitHeight: Ui.Metrics.comfortable
                     implicitWidth: Math.ceil(Math.max(Ui.Metrics.comfortable, runRow.implicitWidth + Ui.Metrics.lg * 2))
                     onClicked: root.commands.run(actionName)
-                    HoverHandler {
-                        onHoveredChanged: {
-                            root.commands.showToolTip(hovered ? root.runTooltip : "")
-                        }
+                    Ui.Tooltip {
+                        trigger: runButton
+                        visible: runButton.hovered && text !== ""
+                        text: root.runTooltip
                     }
                     // A running workflow turns the pill to the panel surface.
                     background: Rectangle {
-                        radius: height / 2
+                        radius: Ui.Metrics.radiusPill
                         color: root.runActive ? (runButton.hovered ? Ui.Theme.actionHover : Ui.Theme.surfacePanel)
                             : !runButton.enabled ? Ui.Theme.actionDisabled
                             : runButton.hovered ? Ui.Theme.accentHover : Ui.Theme.accentPrimary
@@ -182,8 +202,8 @@ Item {
                             visible: root.workflowRunning
                             text: root.elapsedText
                             role: Ui.Typography.MonoCaption
-                            font.weight: Font.DemiBold
-                            lineHeight: 1
+                            weight: Font.DemiBold
+                            tight: true
                         }
                         Ui.Text {
                             objectName: "run-label"
@@ -191,9 +211,9 @@ Item {
                             visible: !root.compact
                             text: root.runLabel
                             role: Ui.Typography.SansLabel
-                            font.weight: Font.Normal
+                            weight: Font.Normal
                             tone: root.runActive ? Ui.Text.Primary : Ui.Text.OnAccent
-                            lineHeight: 1
+                            tight: true
                         }
                     }
                 }

@@ -165,7 +165,9 @@ private slots:
         QFETCH(QString, operation); const auto before = doc(); click("clip-c");
         if (operation == "duplicate" || operation == "duplicateWithGap") {
             QTest::keyClick(view.get(), Qt::Key_D, operation == "duplicate" ? Qt::AltModifier : Qt::AltModifier | Qt::ShiftModifier);
-            QCOMPARE(model.clipCount(), 6);
+            // With the gap, the copy (4000-6000) lands on d (5000-6000) and overwrites it, as a paste does.
+            QCOMPARE(model.clipCount(), operation == "duplicate" ? 6 : 5);
+            QCOMPARE(clip("d").isEmpty(), operation == "duplicateWithGap");
             QCOMPARE(clip(gestures()->selection().value(0)).value("startMs").toDouble(), operation == "duplicate" ? 3000.0 : 4000.0);
         } else {
             QTest::keyClick(view.get(), operation == "cut" ? Qt::Key_X : Qt::Key_C, Qt::ControlModifier);

@@ -5,7 +5,7 @@
 #include <QGraphicsView>
 #include <QInputDialog>
 #include <QTimer>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QElapsedTimer>
 #include <QClipboard>
 #include <QCursor>
@@ -209,14 +209,10 @@ private slots:
     QTRY_VERIFY(arrangeButton->isEnabled());
     QTest::mouseClick(toolbar->quickWindow(), Qt::LeftButton, Qt::NoModifier,
                      arrangeButton->mapToScene(QPointF(arrangeButton->width() / 2, arrangeButton->height() / 2)).toPoint());
-    QAction *align = nullptr;
-    for (auto menu : window.findChildren<QMenu *>()) {
-      for (auto action : menu->actions()) { if (action->text() == "Align left") { align = action; } }
-    }
-    QVERIFY(align);
-    QVERIFY(align->isEnabled());
-    align->trigger();
-    for (auto menu : window.findChildren<QMenu *>()) { menu->close(); }
+    auto *arrangeMenu = entry_menu::host(window, "arrange-selection-menu");
+    QVERIFY(arrangeMenu);
+    QVERIFY(entry_menu::entry(arrangeMenu, "Align left")["enabled"].toBool());
+    QVERIFY(entry_menu::click(arrangeMenu, "Align left"));
     for (const auto &value : window.document()->nodes()) {
       QCOMPARE(value.toObject()["ui_properties"].toObject()["position"].toObject()["x"].toDouble(), 100.0);
     }

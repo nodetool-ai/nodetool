@@ -22,6 +22,8 @@ rules:
       - marketing-ci.yml
       - mutation-changed.yml
       - mutation-testing.yaml
+      - native-gpu-preview.yml
+      - native-graph-runner.yml
       - native-timeline.yml
       - native-ui-primitives.yml
       - packed-core-cli.yml

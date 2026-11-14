@@ -66,7 +66,8 @@ std::shared_ptr<const ParamCurves> ParamCurves::parse(const QJsonArray& curves) 
             const double t = k.value(u"t").toDouble(std::nan(""));
             const double v = k.value(u"value").toDouble(std::nan(""));
             if (std::isfinite(t) && std::isfinite(v)) {
-                parsed.points.push_back({std::clamp(t, 0.0, 1.0), v, k.value(u"easing").toString().toStdString()});
+                // A key a trim cut off keeps a `t` outside 0..1 and still shapes the curve at the edge.
+                parsed.points.push_back({t, v, k.value(u"easing").toString().toStdString()});
             }
         }
         if (parsed.property.isEmpty() || parsed.points.empty()) {

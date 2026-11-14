@@ -34,7 +34,11 @@ import {
   type BundledJsScript,
   type BundledWorkflow
 } from "@nodetool-ai/app-runtime";
-import { createJsScriptAppRunner } from "@nodetool-ai/agents";
+import {
+  createJsScriptAppRunner,
+  isStorageReference,
+  ownedStorageReference
+} from "@nodetool-ai/agents";
 import { createLogger, loadAssetStorageConfig } from "@nodetool-ai/config";
 import type {
   AppServerRunInput,
@@ -61,12 +65,14 @@ import {
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 import {
+  advanceOwnedAppInstance,
   createOwnedAppInstance,
   getOwnedAppInstance
 } from "./lib/app-instances-service.js";
 import { releasedApplicationDocument } from "./lib/applications-service.js";
 import { isRecord, isString } from "./lib/wire-values.js";
 import { resolveMediaRefUrl } from "./resolve-media-urls.js";
+import { generationAdmissionFor } from "./lib/generation-admission.js";
 
 const log = createLogger("nodetool.websocket.mcp-apps");
 
@@ -90,6 +96,14 @@ const BATCH_WINDOW_MS = 250;
 const MAX_MESSAGES_PER_SLICE = 500;
 /** Settled runs stay readable this long, for a late or repeated poll. */
 const SETTLED_RUN_TTL_MS = 10 * 60_000;
+/**
+ * Messages one run buffers before it stops keeping stream chunks. Status,
+ * output and terminal messages are still kept, so the screen's final state is
+ * complete; only the live typing of a very long stream is cut short.
+ */
+export const MAX_BUFFERED_RUN_MESSAGES = 5_000;
+/** A running run nobody has polled for this long is cancelled and dropped. */
+const UNPOLLED_RUN_TTL_MS = 10 * 60_000;
 /** Media at or under this size is inlined as a `data:` URL. */
 const INLINE_MEDIA_LIMIT_BYTES = 8 * 1024 * 1024;
 /** Inlined bytes one slice may carry before larger refs fall back to URLs. */
@@ -133,6 +147,8 @@ interface RunEntry {
   readonly listeners: Set<() => void>;
   done: boolean;
   settledAt: number | null;
+  /** When the run was started or last polled. */
+  lastPolledAt: number;
 }
 
 const runs = new Map<string, RunEntry>();
@@ -141,8 +157,23 @@ function sweepSettledRuns(now = Date.now()): void {
   for (const [id, entry] of runs) {
     if (entry.settledAt !== null && now - entry.settledAt > SETTLED_RUN_TTL_MS) {
       runs.delete(id);
+    } else if (entry.settledAt === null && now - entry.lastPolledAt > UNPOLLED_RUN_TTL_MS) {
+      entry.controller.abort();
+      runs.delete(id);
     }
   }
+}
+
+/** Buffer one message, dropping stream chunks once the run is over the cap. */
+export function bufferRunMessage(
+  messages: Array<Record<string, unknown>>,
+  message: Record<string, unknown>
+): boolean {
+  if (messages.length >= MAX_BUFFERED_RUN_MESSAGES && message["type"] === "chunk") {
+    return false;
+  }
+  messages.push(message);
+  return true;
 }
 
 function wake(entry: RunEntry): void {
@@ -255,8 +286,17 @@ async function sandboxMediaRef(
   const { data: _bytes, ...rest } = value;
   const uri = value["uri"];
   if (isString(uri) && uri.startsWith("data:")) return rest;
+  // A workflow output's uri is the user's own data: a Constant or Code node
+  // can emit `supabase://<bucket>/<someone else's key>`. Only read a storage
+  // key the user owns.
+  let readable: Record<string, unknown> = value;
+  if (isString(uri) && isStorageReference(uri)) {
+    const owned = await ownedStorageReference(deps.context, uri);
+    if (!owned.ok) return rest;
+    readable = { ...value, uri: owned.ref };
+  }
   try {
-    const bytes = await loadMediaRefBytes(value, deps.context, {
+    const bytes = await loadMediaRefBytes(readable, deps.context, {
       allowLocalFile: false
     });
     if (
@@ -553,7 +593,7 @@ export function registerMiniAppMcpTools(server: McpServer, deps: MiniAppToolDeps
         );
         // The default working instance the web's Run view opens, so a run here
         // lands in the same history and keeps the same variables.
-        const instance = await createOwnedAppInstance(
+        let instance = await createOwnedAppInstance(
           userId,
           {
             application_id: applicationId,
@@ -563,6 +603,23 @@ export function registerMiniAppMcpTools(server: McpServer, deps: MiniAppToolDeps
           },
           true
         );
+        // The default instance keeps the snapshot it was first frozen with.
+        // After a new release, move it forward as the web's advance action
+        // does, so this tool opens the released version it describes.
+        if (release && instance.version !== release.version) {
+          try {
+            instance = await advanceOwnedAppInstance(userId, {
+              id: instance.id,
+              expected_revision: instance.revision,
+              version: release.version
+            });
+          } catch (error) {
+            log.warn("Could not advance the app's working instance to its release", {
+              applicationId,
+              error: error instanceof Error ? error.message : String(error)
+            });
+          }
+        }
         const bundle = bundleFromSnapshot(app.name, app.description ?? "", instance.snapshot);
         const operations = bundle.app.operations.map((operation) => operation.id);
         const summary =
@@ -631,12 +688,12 @@ export function registerMiniAppMcpTools(server: McpServer, deps: MiniAppToolDeps
           controller,
           listeners: new Set(),
           done: false,
-          settledAt: null
+          settledAt: null,
+          lastPolledAt: Date.now()
         };
         runs.set(runId, entry);
         const push = (message: Record<string, unknown>): void => {
-          entry.messages.push(message);
-          wake(entry);
+          if (bufferRunMessage(entry.messages, message)) wake(entry);
         };
         const settle = (status: string, error: string | null): void => {
           const terminal: Record<string, unknown> = { type: "job_update", status };
@@ -668,6 +725,9 @@ export function registerMiniAppMcpTools(server: McpServer, deps: MiniAppToolDeps
             origin: "agent",
             context: runContext,
             registry,
+            // MCP admits nothing up front, so each provider call the run
+            // makes is checked against credits and quotas.
+            admitGeneration: generationAdmissionFor(userId),
             resolvedInputs: inputs,
             inputSnapshot:
               Object.keys(overrides).length > 0
@@ -710,6 +770,7 @@ export function registerMiniAppMcpTools(server: McpServer, deps: MiniAppToolDeps
     },
     async ({ run_id, cursor, cancel }) => {
       try {
+        sweepSettledRuns();
         const entry = runs.get(run_id);
         if (!entry || entry.userId !== userId) {
           throw new Error(
@@ -721,6 +782,7 @@ export function registerMiniAppMcpTools(server: McpServer, deps: MiniAppToolDeps
           entry.controller.abort();
           return jsonResult({ run_id, cancelled: true });
         }
+        entry.lastPolledAt = Date.now();
         const from = cursor ?? 0;
         await waitForMessages(entry, from, pollWaitMs);
         return jsonResult(await slice(entry, run_id, from, deps));

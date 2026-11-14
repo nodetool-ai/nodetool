@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { MediaPlayerView } from '../media/MediaPlayerView';
+import { MessageDocumentAttachment } from './MessageDocumentAttachment';
 import { MessageContent } from '../../types/ApiTypes';
 import { useTheme } from '../../hooks/useTheme';
 import type { ThemeColors } from '../../utils/theme';
@@ -106,15 +107,8 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
       );
     }
 
-    case 'document': {
-      return (
-        <View style={[styles.documentContainer, { backgroundColor: colors.surface }]}>
-          <Text style={[styles.documentText, { color: colors.text }]}>
-            📄 Document attached
-          </Text>
-        </View>
-      );
-    }
+    case 'document':
+      return <MessageDocumentAttachment document={content.document} />;
 
     default:
       return null;
@@ -282,15 +276,6 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 11,
-  },
-  documentContainer: {
-    maxWidth: '100%',
-    marginVertical: 8,
-    borderRadius: 8,
-    padding: 12,
-  },
-  documentText: {
-    fontSize: 14,
   },
   errorText: {
     fontSize: 12,

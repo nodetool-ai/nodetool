@@ -1,10 +1,10 @@
 /**
  * Finishes an OAuth login the server cannot receive a callback for.
  *
- * The OpenAI (Codex) client is registered against one redirect —
- * `http://localhost:1455/auth/callback` — which resolves in the browser's own
+ * Sign in with ChatGPT only redirects to a loopback address —
+ * `http://127.0.0.1:1455/auth/callback` — which resolves in the browser's own
  * machine. When the server runs somewhere else, the browser lands on its own
- * localhost with nothing listening and the authorization code sitting in the
+ * 127.0.0.1 with nothing listening and the authorization code sitting in the
  * address bar. This dialog takes that address and hands it back to the server,
  * which does the code exchange.
  *
@@ -102,7 +102,7 @@ export const OAuthManualCompletionDialog = ({
           placeholder={
             prompt.input === "code"
               ? t("screen_settings.oauth.codeStatePlaceholder")
-              : "http://localhost:1455/auth/callback?code=…&state=…"
+              : "http://127.0.0.1:1455/auth/callback?code=…&state=…"
           }
           value={value}
           onChange={(event) => setValue(event.target.value)}

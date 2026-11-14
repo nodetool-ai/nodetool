@@ -8,7 +8,8 @@ namespace nodetool {
 class WorkflowGraphModel;
 namespace node_editor { class MediaResolver; }
 
-// Loads the images that card drop zones show. It resolves each image value
+// Loads the images that card drop zones show, and the images arriving at the
+// bodies that show their source. It resolves each image value
 // through MediaResolver, decodes a bounded thumbnail and hands it to the model,
 // which lays the card out at the image's size. Video and audio values play in
 // CanvasMediaPresenter's overlays, which resolve their own sources.

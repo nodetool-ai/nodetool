@@ -21,7 +21,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# ⚔️ Model Arena\n\nOne brief, three frontier models, side by side, then a fourth model judges them blind. Use it to compare how models reason on the same decision, spec, or judgement call.\n\n**How it works:** \"1️⃣ The brief\" and \"2️⃣ Audience & constraints\" fill the \"Shared prompt (one format, all lanes)\", which asks for exactly three sections: Recommendation, Why, and Strongest counterargument. Three Agent lanes answer it: \"🟢 Lane 1\", \"🟣 Lane 2\" and \"🔵 Lane 3\". Each answer goes to its own output and into \"Judge prompt (answers as A, B, C)\" without the model names. \"⚖️ Blind judge\" scores each answer from 1 to 5 on four criteria and names a winner in \"⚖️ Verdict\". Pick a different model on each lane before running. The judge uses your default language model unless you pick one on it.\n\n**Try this:** Paste your own decision into \"1️⃣ The brief\", then switch the model on \"⚖️ Blind judge\" to a different one and see whether the winner changes."
+          "comment": "# Model Arena\n\nOne brief, three frontier models, side by side, then a fourth model judges them blind. Use it to compare how models reason on the same decision, spec, or judgement call.\n\n**How it works:** \"1 The brief\" and \"2 Audience & constraints\" fill the \"Shared prompt (one format, all lanes)\", which asks for exactly three sections: Recommendation, Why, and Strongest counterargument. Three Agent lanes answer it: \"Lane 1\", \"Lane 2\" and \"Lane 3\". Each answer goes to its own output and into \"Judge prompt (answers as A, B, C)\" without the model names. \"Blind judge\" scores each answer from 1 to 5 on four criteria and names a winner in \"Verdict\". Pick a different model on each lane before running. The judge uses your default language model unless you pick one on it.\n\n**Try this:** Paste your own decision into \"1 The brief\", then switch the model on \"Blind judge\" to a different one and see whether the winner changes."
         },
         "ui_properties": {
           "position": {
@@ -54,7 +54,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 260,
-          "title": "1️⃣ The brief",
+          "title": "1 The brief",
           "selectable": true,
           "bypassed": false
         },
@@ -77,7 +77,7 @@
           "zIndex": 0,
           "width": 300,
           "height": 240,
-          "title": "2️⃣ Audience & constraints",
+          "title": "2 Audience & constraints",
           "selectable": true,
           "bypassed": false
         },
@@ -139,7 +139,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 340,
-          "title": "🟢 Lane 1",
+          "title": "Lane 1",
           "selectable": true,
           "bypassed": false
         },
@@ -177,7 +177,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 340,
-          "title": "🟣 Lane 2",
+          "title": "Lane 2",
           "selectable": true,
           "bypassed": false
         },
@@ -215,7 +215,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 340,
-          "title": "🔵 Lane 3",
+          "title": "Lane 3",
           "selectable": true,
           "bypassed": false
         },
@@ -235,7 +235,7 @@
           },
           "zIndex": 0,
           "width": 300,
-          "title": "🟢 Lane 1 answer",
+          "title": "Lane 1 answer",
           "selectable": true,
           "bypassed": false
         },
@@ -255,7 +255,7 @@
           },
           "zIndex": 0,
           "width": 300,
-          "title": "🟣 Lane 2 answer",
+          "title": "Lane 2 answer",
           "selectable": true,
           "bypassed": false
         },
@@ -275,7 +275,7 @@
           },
           "zIndex": 0,
           "width": 300,
-          "title": "🔵 Lane 3 answer",
+          "title": "Lane 3 answer",
           "selectable": true,
           "bypassed": false
         },
@@ -340,7 +340,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 340,
-          "title": "⚖️ Blind judge",
+          "title": "Blind judge",
           "selectable": true,
           "bypassed": false
         },
@@ -360,7 +360,7 @@
           },
           "zIndex": 0,
           "width": 300,
-          "title": "⚖️ Verdict",
+          "title": "Verdict",
           "selectable": true,
           "bypassed": false
         },

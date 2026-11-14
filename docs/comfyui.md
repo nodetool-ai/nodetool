@@ -25,15 +25,14 @@ Three nodes cover three topologies:
 | Outputs | Streamed, one frame per file | Buffered on the bridge path, streamed on the v2 path | Streamed, one frame per file |
 
 All three live in the `lib.comfy` namespace and ship in the built-in `base` node
-pack, so every install registers them — including a server running the curated
-cloud profile (`NODETOOL_NODE_PROFILE=cloud`, the production default), which
-allowlists the three runners by name while dropping the rest of the namespace.
+pack, so every install registers them. A server on the curated cloud profile
+(`NODETOOL_NODE_PROFILE=cloud`, the production default) allowlists the three
+runners by name and drops the rest of the namespace.
 
-If they don't appear in the node menu, that is the menu's own decluttering, not
-a gate: `lib.comfy` sits in the **Developer Tools** group of
-`web/src/config/optionalNodePacks.ts`, hidden from the browsable namespace tree
-until you reveal that group. Search, paste, and saved workflows resolve the
-nodes either way.
+If they don't appear in the node menu, `lib.comfy` is in the **Developer Tools**
+group of `web/src/config/optionalNodePacks.ts`, which is hidden from the
+browsable namespace tree until you reveal it. Search, paste, and saved workflows
+resolve the nodes either way.
 
 ---
 
@@ -42,24 +41,19 @@ nodes either way.
 From a workflow you already have to a run inside NodeTool.
 
 1. **Export in API format.** In ComfyUI use **Save (API Format)**. The regular
-   save writes the UI format, which every node here rejects with a message
-   saying exactly that.
+   save writes the UI format, which every node here rejects.
 2. **Get an endpoint.** A ComfyUI already listening on `127.0.0.1:8188` needs
    nothing further. With no local install and no GPU, use the Cloud node and a
    `COMFY_API_KEY` instead. Both paths, and the rented-GPU one between them, are
    in [ComfyUI Setup](comfyui-setup.md).
-3. **Add the node.** Search the node menu for *Run ComfyUI Workflow*. Searching
-   finds it even though `lib.comfy` is collapsed out of the browsable tree.
-4. **Load the workflow.** Use the **Load Workflow** button in the node header:
-   paste the JSON, drop the `.json`, or drop a `.png` that ComfyUI wrote. The
-   inputs picked in ComfyUI App Mode become typed input handles, or the
-   workflow's `Load*` nodes and prompt text when it has no App Mode inputs. Its
-   `Save*` nodes become typed output handles.
+3. **Add the node.** Search the node menu for *Run ComfyUI Workflow*.
+4. **Load the workflow.** Use the **Load Workflow** button in the node header
+   ([details](#loading-a-workflow)): paste the JSON, drop the `.json`, or drop a
+   `.png` that ComfyUI wrote.
 5. **Run it.** Outputs arrive one file at a time as each save node finishes.
 
 If the submit fails, the cause is usually a model or custom node the server
-doesn't have rather than anything in NodeTool. [Troubleshooting](#troubleshooting)
-lists the messages.
+doesn't have. [Troubleshooting](#troubleshooting) lists the messages.
 
 ---
 
@@ -116,9 +110,8 @@ the node that produced it finishes. That is the default `native` API; setting
 
 In the editor, the node header has an upload icon with the tooltip **Load Workflow**. It opens a **Load ComfyUI Workflow** dialog that accepts:
 
-- **Pasted JSON** in API format. In ComfyUI, use **Save (API Format)** — not the
-  regular save, which writes the UI format with a `nodes` array. Pasting the UI
-  format gives you an error saying exactly that.
+- **Pasted JSON** in API format. The regular save writes the UI format with a
+  `nodes` array, and pasting it gives an error saying so.
 - **A dropped `.json` file** in the same format.
 - **A dropped `.png` exported by ComfyUI**, whose `prompt` metadata chunk is read
   out of the PNG's `tEXt`/`iTXt` chunks. Its `workflow` chunk, the UI graph,
@@ -283,13 +276,9 @@ loopback-only. The node closes the bridge, turns `worker_url` into an HTTP origi
 (`wss://host/ws` becomes `https://host`), and runs the workflow through the same
 v2 client the Cloud node uses, with `worker_token` as the key.
 
-Media inputs go through the asset API and are deduplicated by a blake3 hash of
-the bytes. The submit carries an idempotency key and retries a `429` for up to 60
-seconds, the run is followed over SSE with polling as the fallback, and
-cancelling calls the job's cancel endpoint.
-
-The worker image that reports the flag is a `nodetool-core` change and has not
-shipped, so today every worker takes the bridge path.
+Uploads, `429` retry, SSE with polling fallback, and cancel work as in
+[Using the v2 API](#using-the-v2-api). No shipped worker image reports the flag
+yet, so every worker takes the bridge path.
 
 #### The bridge path
 
@@ -317,11 +306,8 @@ The node logs `started`, `cached`, and `executing`, and turns `progress`
 
 ### Outputs
 
-On the v2 path each finished file is emitted on its own slot, keyed
-`<comfyNodeId>:<kind>`: `image`, `audio` and `video` carry a media ref, `text`
-carries the decoded string, and `file` and `latent` carry a document ref. The
-static `output` slot carries the job manifest, `job_id` and `status` and one
-entry per output file. That is the convention the direct and Cloud nodes use.
+On the v2 path each finished file is emitted on its own slot, with the slot
+keys and job manifest described in [Using the v2 API](#using-the-v2-api).
 
 On the bridge path output files come back as blobs on the terminal result. Each
 blob's media kind is sniffed from its leading bytes (PNG, JPEG, GIF, RIFF for
@@ -365,9 +351,8 @@ ComfyUI `.png` all fill it in. See
 
 ### How a run works
 
-The prompt is deep-cloned per run, so the stored `workflow` property is never
-mutated. Each dynamic input keyed `<comfyNodeId>:<field>` is written into
-`prompt[id].inputs[field]`: a scalar goes in as it is, and a connected image,
+Each dynamic input keyed `<comfyNodeId>:<field>` is written into the per-run
+copy of the prompt at `prompt[id].inputs[field]`: a scalar goes in as it is, and a connected image,
 audio, or video ref is uploaded through the SDK's asset API and referenced as a
 `core/ASSET` object. That upload is deduplicated by a blake3 hash of the bytes,
 so re-running with the same input file uploads nothing the second time.
@@ -386,9 +371,7 @@ rather than running on unwatched.
 
 This is a streaming-output node. Each finished file is fetched while the job is
 still running, because the signed URL Comfy hands out expires, and emitted on
-its own slot, keyed `<comfyNodeId>:<output type>`: `image`, `audio` and `video`
-carry a media ref, `text` carries the decoded string, and anything else
-(`file`, `latent`) carries a document ref.
+its own slot with the keys described in [Using the v2 API](#using-the-v2-api).
 
 A final frame on the static `output` slot (`dict[str, any]`) describes the
 finished job: `job_id`, `status`, and one entry per output file with its
@@ -620,9 +603,8 @@ the authoritative field reference is `docs/comfy-proxy.md` in `nodetool-core`.
   Cloud column in a run's cost breakdown stays empty. The Comfy job id is
   written to the run log, so a run can be matched against Comfy's own billing.
 
-The worker node's v2 path is built; the worker image that reports
-`comfy.api_v2` is a `nodetool-core` change and ships separately, so the `comfy.*`
-bridge family stays until it does. The direct node's `v2` stays opt-in while a
+The `comfy.*` bridge family stays until a worker image reports `comfy.api_v2`,
+which is a `nodetool-core` change. The direct node's `v2` stays opt-in while a
 local ComfyUI needs `comfy-api-proxy` in front of it. The design is
 `docs/superpowers/specs/2026-09-05-comfy-sdk-integration-design.md` in the
 repository (engineering specs are not part of the published site).

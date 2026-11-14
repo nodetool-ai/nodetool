@@ -304,6 +304,19 @@ private slots:
         QCOMPARE(nt::interchange::localMediaPath("C:\\Footage\\twice.mp4", base), QString());  // two files of that name
         QCOMPARE(nt::interchange::localMediaPath("nothing.mp4", base), QString());
         QCOMPARE(nt::interchange::localMediaPath("", base), QString());
+        // A name is compared literally: brackets and stars are not wildcards.
+        QVERIFY(write(dir.filePath("seq/c/take[1].mp4"), "5"));
+        QVERIFY(write(dir.filePath("seq/c/take1.mp4"), "6"));
+        QCOMPARE(nt::interchange::localMediaPath("C:\\Footage\\take[1].mp4", base), QFileInfo(dir.filePath("seq/c/take[1].mp4")).absoluteFilePath());
+        QCOMPARE(nt::interchange::localMediaPath("/Volumes/x/take*.mp4", base), QString());
+        // One walk serves every lookup, and a stop ends it.
+        nt::interchange::MediaNameIndex index(base);
+        QCOMPARE(index.unique("ONLY.mp4"), QFileInfo(dir.filePath("seq/deep/only.mp4")).absoluteFilePath());
+        QCOMPARE(index.unique("twice.mp4"), QString());
+        for (int i = 0; i < 300; ++i) { QVERIFY(write(dir.filePath(QStringLiteral("seq/many/%1.mp4").arg(i)), "x")); }
+        nt::interchange::MediaNameIndex stopped(base, [] { return true; });
+        QCOMPARE(stopped.unique("only.mp4"), QString());
+        QVERIFY(stopped.stopped());
     }
 
     void zipRefusesWhatItCannotHold() {

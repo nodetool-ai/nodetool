@@ -68,8 +68,20 @@ private:
     return nullptr;
   }
   static QQuickItem *item(EditorWindow &window, const QString &name) {
-    for (auto widget : window.findChildren<QQuickWidget *>()) { if (widget->rootObject()) { if (auto result = find(widget->rootObject(), name)) { return result; } } }
+    // The window's content item also holds the overlay, where menus open.
+    for (auto widget : window.findChildren<QQuickWidget *>()) { if (widget->rootObject()) { if (auto result = find(widget->quickWindow()->contentItem(), name)) { return result; } } }
     return nullptr;
+  }
+  static void doubleClick(QQuickWidget *panel, QQuickItem *control) {
+    QVERIFY(control);
+    QTest::mouseDClick(panel->quickWindow(), Qt::LeftButton, Qt::NoModifier, control->mapToScene(QPointF(control->width()/2, control->height()/2)).toPoint());
+    QCoreApplication::processEvents();
+  }
+  // The row menu from the keyboard's Menu key, as WorkflowContextMenu.tsx opens on right-click.
+  static void rowMenu(QQuickWidget *panel, QQuickItem *row) {
+    QVERIFY(row); panel->setFocus(); row->forceActiveFocus();
+    QTest::keyClick(panel->quickWindow(), Qt::Key_Menu);
+    QCoreApplication::processEvents();
   }
   static void click(QQuickWidget *panel, QQuickItem *control) {
     QVERIFY(control);
@@ -241,9 +253,12 @@ private slots:
     for (const auto &request : server.requests) { if (request.startsWith("POST /api/workflows ") && request.toLower().contains("x-user-id: fixture-user") && request.contains("Bearer fixture-token")) { scoped = true; } }
     QVERIFY(scoped);
     window.action("Open"); QTRY_VERIFY(!service->loading() && !service->projectsLoading());
-    QTRY_VERIFY(item(window,"workflow-name-created"));
-    type(browser,item(window,"workflow-name-created"),"Renamed through UI");
-    click(browser,item(window,"rename-workflow-created"));
+    QTRY_VERIFY(item(window,"workflow-row-created"));
+    // A double-click on the row renames in place.
+    doubleClick(browser,item(window,"workflow-row-created"));
+    QTRY_VERIFY(item(window,"workflow-rename-created")->isVisible());
+    type(browser,item(window,"workflow-rename-created"),"Renamed through UI");
+    QTest::keyClick(browser->quickWindow(),Qt::Key_Return);
     QTRY_COMPARE(window.workflowName(),QString("Renamed through UI"));
     QCOMPARE(server.count("PUT /api/workflows/created "),1);
   }
@@ -293,7 +308,7 @@ private slots:
     QTRY_VERIFY(!service->error().isEmpty());
     QVERIFY(item(window,"browser-retry")->isVisible());
     click(browser,item(window,"browser-retry"));
-    QTRY_VERIFY(item(window,"open-workflow-remote")); QTRY_VERIFY(!service->loading() && !service->projectsLoading());
+    QTRY_VERIFY(item(window,"workflow-row-remote")); QTRY_VERIFY(!service->loading() && !service->projectsLoading());
     auto project = item(window,"workflow-project"); QVERIFY(project);
     QVERIFY(QMetaObject::invokeMethod(project,"valueCommitted",Q_ARG(QVariant,"project")));
     QTRY_VERIFY(server.count("GET /api/workflows?limit=100&project_id=project") > 0);
@@ -307,18 +322,23 @@ private slots:
     QVERIFY(window.document()->applyCommand({{"op","setProperty"},{"id","local"},{"name","value"},{"value","unsaved"}}));
     const auto unsaved = window.document()->snapshot();
     // Opening leaves unsaved work in its own tab, as WorkspaceTabsStore.openTab does.
-    click(browser,item(window,"open-workflow-remote"));
+    click(browser,item(window,"workflow-row-remote"));
     QTRY_COMPARE(server.count("GET /api/workflows/remote"),1);
     QTRY_COMPARE(window.workflowName(),QString("Remote workflow")); QVERIFY(!window.browserVisible());
     QCOMPARE(window.workflowTabs().size(),2);
     window.activateTab(0); QCOMPARE(window.document()->snapshot(),unsaved); window.activateTab(1);
     auto &remoteTab = *window.activeEditor();
-    window.action("Open"); QTRY_VERIFY(item(remoteTab,"delete-workflow-remote"));
+    window.action("Open"); QTRY_VERIFY(item(remoteTab,"workflow-row-remote"));
     auto remoteBrowser = panel(remoteTab,"WorkflowBrowser"); QVERIFY(remoteBrowser);
     auto remoteService = window.workflowBrowser(); QTRY_VERIFY(!remoteService->loading() && !remoteService->projectsLoading());
     const auto current = window.document()->snapshot();
-    answer(QMessageBox::Cancel); click(remoteBrowser,item(remoteTab,"delete-workflow-remote")); QCOMPARE(server.count("DELETE /api/workflows/remote"),0);
-    answer(QMessageBox::Yes); click(remoteBrowser,item(remoteTab,"delete-workflow-remote")); QTRY_COMPARE(server.count("DELETE /api/workflows/remote"),1);
+    const auto deleteFromMenu = [&] {
+      rowMenu(remoteBrowser,item(remoteTab,"workflow-row-remote"));
+      QTRY_VERIFY(item(remoteTab,"workflow-menu-delete") && item(remoteTab,"workflow-menu-delete")->isVisible());
+      click(remoteBrowser,item(remoteTab,"workflow-menu-delete"));
+    };
+    answer(QMessageBox::Cancel); deleteFromMenu(); QCOMPARE(server.count("DELETE /api/workflows/remote"),0);
+    answer(QMessageBox::Yes); deleteFromMenu(); QTRY_COMPARE(server.count("DELETE /api/workflows/remote"),1);
     QCOMPARE(window.document()->snapshot(),current);
     QTRY_VERIFY(!remoteService->loading());
     QTest::qWait(150);

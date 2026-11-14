@@ -249,6 +249,19 @@ export class OAuthCredential extends DBModel {
     await this.save();
   }
 
+  /**
+   * Erase the tokens but keep the row, for providers whose row also records
+   * an app registration to reuse on the next sign-in. The access token is
+   * stored as an encrypted empty string because the column is required.
+   */
+  async clearTokens(): Promise<void> {
+    const masterKey = await initMasterKey();
+    this.encrypted_access_token = encrypt(masterKey, this.user_id, "");
+    this.encrypted_refresh_token = null;
+    this.expires_at = null;
+    await this.save();
+  }
+
   /** Return a safe dictionary representation without encrypted tokens. */
   toSafeObject() {
     return {

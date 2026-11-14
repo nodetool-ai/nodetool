@@ -35,7 +35,7 @@ Rectangle {
             LibraryLabel { Layout.fillWidth: true; text: "Library"; tone: Ui.Text.Primary }
             LibraryButton { objectName: "library-refresh"; iconName: "refresh"; accessibleName: "Refresh"; enabled: root.library.configured && !root.library.busy; onClicked: root.library.refresh() }
             LibraryButton { objectName: "library-create-folder"; iconName: "createNewFolder"; accessibleName: "New folder"; enabled: root.library.configured && !root.library.busy; onClicked: { folderName.text = ""; folderDialog.open() } }
-            LibraryButton { objectName: "library-import"; iconName: "fileUpload"; accessibleName: "Import"; enabled: root.library.configured; onClicked: { importError.text = ""; importDialog.open() } }
+            LibraryButton { objectName: "library-import"; iconName: "fileUpload"; accessibleName: "Import"; enabled: root.library.configured; onClicked: { importError.message = ""; importDialog.open() } }
             LibraryButton { objectName: "library-close"; iconName: "close"; accessibleName: "Close the asset library"; onClicked: root.panels.toggleLibrary() }
         }
         RowLayout {
@@ -123,8 +123,26 @@ Rectangle {
             }
         }
         LibraryButton { visible: !root.library.configured; text: "Connect to server"; onClicked: root.status.connectServer() }
-        LibraryLabel { objectName: "library-error"; Layout.fillWidth: true; visible: root.library.error !== ""; text: root.library.error; tone: Ui.Text.Error }
-        LibraryLabel { id: importError; objectName: "library-import-error"; Layout.fillWidth: true; visible: text !== ""; tone: Ui.Text.Error }
+        Ui.Banner {
+            objectName: "library-error"
+            Layout.fillWidth: true
+            visible: root.library.error !== ""
+            status: Ui.Status.Error
+            message: root.library.error
+            retryable: true
+            reportable: true
+            onRetryRequested: root.library.refresh()
+            onReportRequested: root.status.reportError(qsTr("Library error"), root.library.error)
+        }
+        Ui.Banner {
+            id: importError
+            objectName: "library-import-error"
+            Layout.fillWidth: true
+            visible: message !== ""
+            status: Ui.Status.Error
+            reportable: true
+            onReportRequested: root.status.reportError(qsTr("Library import error"), message)
+        }
         LibraryLabel { visible: root.library.busy; text: "Loading Library…" }
         LibraryLabel { Layout.fillWidth: true; visible: grid.filtered; text: "Filters search across all folders." }
         RowLayout {
@@ -151,7 +169,7 @@ Rectangle {
             Layout.fillHeight: true
             browser: root.library
             externalDrag: true
-            onImportRequested: { importError.text = ""; importDialog.open() }
+            onImportRequested: { importError.message = ""; importDialog.open() }
             onClearFiltersRequested: root.clearFilters()
         }
     }
@@ -177,6 +195,6 @@ Rectangle {
     Connections {
         target: root.assets
         function onUploaded(key) { if (key.startsWith("library-import:")) root.library.refresh() }
-        function onFailed(key, message) { if (key.startsWith("library-import:")) importError.text = message }
+        function onFailed(key, message) { if (key.startsWith("library-import:")) importError.message = message }
     }
 }

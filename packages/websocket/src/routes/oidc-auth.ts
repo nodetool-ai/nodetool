@@ -184,10 +184,7 @@ const oidcAuthRoutes: FastifyPluginAsync<OidcAuthRouteOptions> = async (
         config.sessionTtlSeconds,
         now
       );
-      log.info("SSO sign-in", {
-        userId: identity.userId,
-        email: identity.email
-      });
+      log.info("SSO sign-in", { userId: identity.userId });
       reply.header("Set-Cookie", loginCookie("", 0, config.secureCookie));
       reply.header("Cache-Control", "no-store");
       return reply.redirect(

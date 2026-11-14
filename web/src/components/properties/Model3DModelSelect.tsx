@@ -3,9 +3,9 @@ import React, { useState, useCallback, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import isEqual from "../../utils/isEqual";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
-import { BASE_URL } from "../../stores/BASE_URL";
 import { Model3DModelValue } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
+import { trpc } from "../../lib/trpc";
 import ModelSelectButton from "./shared/ModelSelectButton";
 
 import {
@@ -71,17 +71,9 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
 
-  const load3DModels = useCallback(async () => {
-    const res = await fetch(`${BASE_URL}/api/models/3d`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch 3D models: ${res.status}`);
-    }
-    return (await res.json()) as Model3DModel[];
-  }, []);
-
   const { data: models, isLoading } = useQuery({
     queryKey: ["3d-models"],
-    queryFn: async () => await load3DModels()
+    queryFn: () => trpc.models.model3d.query() as Promise<Model3DModel[]>
   });
 
   const filteredModels = useMemo(() => {

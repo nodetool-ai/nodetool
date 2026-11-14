@@ -1,4 +1,5 @@
 #include "../../src/server/WorkflowBrowser.h"
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QPointer>
@@ -34,6 +35,8 @@ public:
         if (!respond) { return; }
         const auto body = respond(*buffer);
         if (body.isNull()) { return; }
+        // A body that is a whole response, such as an error status, goes out as it is.
+        if (body.startsWith("HTTP/1.1 ")) { socket->write(body); socket->disconnectFromHost(); return; }
         socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\nContent-Length: " + QByteArray::number(body.size()) + "\r\n\r\n" + body);
         socket->disconnectFromHost();
       });
@@ -196,6 +199,136 @@ private slots:
     QVERIFY(newServer.requests.first().contains("new-secret"));
     QVERIFY(!newServer.requests.first().contains("old-secret"));
     QVERIFY(browser.error().isEmpty());
+  }
+  void datesAndCopyNamesFollowTheWeb() {
+    const auto now = QDateTime::fromString("2026-11-13T12:00:00Z", Qt::ISODate);
+    QCOMPARE(WorkflowBrowser::dayGroup(now.addSecs(-3600), now), QString("Today"));
+    QCOMPARE(WorkflowBrowser::dayGroup(QDateTime::fromString("2026-11-12T23:59:00Z", Qt::ISODate), now), QString("Yesterday"));
+    QCOMPARE(WorkflowBrowser::dayGroup(now.addDays(-3), now), QString("3 days ago"));
+    QCOMPARE(WorkflowBrowser::dayGroup(now.addDays(-8), now), QString("1 week ago"));
+    QCOMPARE(WorkflowBrowser::dayGroup(now.addDays(-20), now), QString("2 weeks ago"));
+    QCOMPARE(WorkflowBrowser::dayGroup(now.addMonths(-2), now), QString("2 months ago"));
+    QCOMPARE(WorkflowBrowser::dayGroup(now.addYears(-1), now), QString("1 year ago"));
+    QCOMPARE(WorkflowBrowser::relativeDate(now.addSecs(-2), now), QString("now"));
+    QCOMPARE(WorkflowBrowser::relativeDate(now.addSecs(-90), now), QString("1 minute ago"));
+    QCOMPARE(WorkflowBrowser::relativeDate(now.addSecs(-3 * 3600), now), QString("3 hours ago"));
+    QCOMPARE(WorkflowBrowser::relativeDate(now.addDays(-1), now), QString("yesterday"));
+    QCOMPARE(WorkflowBrowser::relativeDate(now.addDays(-8), now), QString("last week"));
+    QCOMPARE(WorkflowBrowser::relativeDate(now.addDays(-70), now), QString("2 months ago"));
+    QCOMPARE(WorkflowBrowser::nextCopyName("Poster", {"Poster", "Poster (2)", "Other (7)"}), QString("Poster (3)"));
+    QCOMPARE(WorkflowBrowser::nextCopyName("Poster (2)", {"Poster (2)"}), QString("Poster (3)"));
+    QCOMPARE(WorkflowBrowser::nextCopyName("a.b", {"axb (4)"}), QString("a.b (1)"));
+  }
+  void filtersSortAndGroups() {
+    Fixture server;
+    server.respond = [](QByteArray) {
+      return QByteArray(R"({"workflows":[
+        {"id":"old","name":"Beta","updated_at":"2026-11-01T10:00:00Z","tags":["image","video"]},
+        {"id":"new","name":"alpha","updated_at":"2026-11-13T09:00:00Z","tags":["image"]},
+        {"id":"mid","name":"Gamma","updated_at":"2026-11-12T09:00:00Z"}],"next":null})");
+    };
+    WorkflowBrowser browser;
+    browser.configure(server.url());
+    browser.setNow(QDateTime::fromString("2026-11-13T12:00:00Z", Qt::ISODate));
+    browser.refresh();
+    QTRY_VERIFY(!browser.loading());
+    const auto ids = [&] {
+      QStringList result;
+      for (const auto &row : browser.rows()) { result.append(row.toMap()["id"].toString()); }
+      return result;
+    };
+    QCOMPARE(ids(), QStringList({"new", "mid", "old"}));
+    QCOMPARE(browser.rows()[0].toMap()["group"].toString(), QString("Today"));
+    QCOMPARE(browser.rows()[1].toMap()["group"].toString(), QString("Yesterday"));
+    QCOMPARE(browser.rows()[2].toMap()["group"].toString(), QString("1 week ago"));
+    browser.setSortBy("name");
+    QCOMPARE(ids(), QStringList({"new", "old", "mid"}));
+    QVERIFY(browser.rows()[0].toMap()["group"].toString().isEmpty());
+    QCOMPARE(browser.rows()[0].toMap()["updatedLabel"].toString(), QString("3 hours ago"));
+    QCOMPARE(browser.availableTags(), QStringList({"image", "video"}));
+    browser.toggleTag("image");
+    QCOMPARE(ids(), QStringList({"new", "old"}));
+    browser.toggleTag("video");
+    QCOMPARE(ids(), QStringList({"old"}));
+    browser.clearTags();
+    browser.toggleFavorite("mid");
+    QVERIFY(browser.isFavorite("mid"));
+    browser.setFavoritesOnly(true);
+    QCOMPARE(ids(), QStringList({"mid"}));
+    QVERIFY(browser.rows()[0].toMap()["favorite"].toBool());
+    browser.setFavoritesOnly(false);
+    QCOMPARE(browser.loadedCount(), 3);
+    browser.setCurrentId("old");
+    browser.setSelectionMode(true);
+    browser.toggleSelected("new");
+    for (const auto &row : browser.rows()) {
+      const auto map = row.toMap();
+      QCOMPARE(map["current"].toBool(), map["id"] == "old");
+      QCOMPARE(map["selected"].toBool(), map["id"] == "new");
+    }
+    QSignalSpy confirm(&browser, &WorkflowBrowser::deleteSelectedRequested);
+    browser.confirmDeleteSelected();
+    QCOMPARE(confirm.first().first().toStringList(), QStringList({"new"}));
+    browser.setSelectionMode(false);
+    QVERIFY(browser.selectedIds().isEmpty());
+  }
+  void duplicateEditAndBulkDelete() {
+    Fixture server;
+    server.respond = [](QByteArray request) {
+      if (request.startsWith("GET /api/workflows/a ")) {
+        return QByteArray(R"({"id":"a","name":"Poster","updated_at":"revision","description":"Keep","access":"public","graph":{"nodes":[{"id":"n"}],"edges":[]},"tags":["keep"],"run_mode":"chat","project_id":"p"})");
+      }
+      if (request.startsWith("GET /trpc/jobs.triggersRunning")) {
+        return QByteArray(R"({"result":{"data":{"triggers":[
+          {"workflow_id":"a","enabled":true,"last_error":null,"disabled_reason":null},
+          {"workflow_id":"b","enabled":false,"last_error":null,"disabled_reason":"expired"}]}}})");
+      }
+      if (request.startsWith("GET ")) { return QByteArray(R"j({"workflows":[{"id":"a","name":"Poster"},{"id":"b","name":"Poster (1)"}],"next":null})j"); }
+      if (request.startsWith("DELETE /api/workflows/bad")) {
+        return QByteArray("HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+      }
+      if (request.startsWith("POST ")) { return QByteArray(R"({"id":"copy"})"); }
+      return QByteArray(R"({"id":"a"})");
+    };
+    WorkflowBrowser browser;
+    browser.configure(server.url());
+    browser.refresh();
+    QTRY_VERIFY(!browser.loading());
+    browser.loadTriggers();
+    QTRY_VERIFY(browser.rows()[1].toMap()["trigger"].toMap()["failing"].toBool());
+    QCOMPARE(browser.rows()[0].toMap()["trigger"].toMap()["label"].toString(), QString("Trigger armed"));
+    QSignalSpy created(&browser, &WorkflowBrowser::created);
+    browser.duplicateWorkflow("a");
+    QTRY_COMPARE(created.count(), 1);
+    QCOMPARE(created.first().first().toString(), QString("copy"));
+    QTRY_VERIFY(!browser.loading());
+    const auto body = [&](const QByteArray &method) {
+      QByteArray found;
+      for (const auto &request : server.requests) { if (request.startsWith(method)) { found = request; } }
+      return QJsonDocument::fromJson(found.mid(found.indexOf("\r\n\r\n") + 4)).object();
+    };
+    const auto copy = body("POST ");
+    QCOMPARE(copy["name"].toString(), QString("Poster (2)"));
+    QCOMPARE(copy["access"].toString(), QString("private"));
+    QCOMPARE(copy["description"].toString(), QString("Keep"));
+    QCOMPARE(copy["run_mode"].toString(), QString("chat"));
+    QCOMPARE(copy["project_id"].toString(), QString("p"));
+    QCOMPARE(copy["graph"].toObject()["nodes"].toArray().size(), 1);
+    QSignalSpy renamed(&browser, &WorkflowBrowser::renamed);
+    browser.updateWorkflow("a", {{"description", "New"}, {"tags", QStringList{"x", "y"}}, {"graph", "ignored"}});
+    QTRY_COMPARE(renamed.count(), 1);
+    QTRY_VERIFY(!browser.loading());
+    const auto update = body("PUT ");
+    QCOMPARE(update["description"].toString(), QString("New"));
+    QCOMPARE(update["tags"].toArray().size(), 2);
+    QCOMPARE(update["name"].toString(), QString("Poster"));
+    QCOMPARE(update["expected_updated_at"].toString(), QString("revision"));
+    QCOMPARE(update["graph"].toObject()["nodes"].toArray().size(), 1);
+    QSignalSpy deleted(&browser, &WorkflowBrowser::deleted);
+    browser.deleteWorkflows({"a", "bad", "b"});
+    QTRY_COMPARE(deleted.count(), 2);
+    QTRY_VERIFY(!browser.busy() && !browser.loading());
+    QVERIFY(browser.error().contains("1 workflow"));
   }
   void invalidResponseAndRetry() {
     Fixture server;

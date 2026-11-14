@@ -4,8 +4,6 @@ title: "NodeTool Cookbook"
 description: "Recipes for what people make in NodeTool: product films, ads, short films, explainers, images, 3D sets, games, mini apps, and the workflows that repeat them."
 ---
 
-Each recipe starts from the result you want, such as a launch film, a set of ads, or a playable game, and names where to start, what the agent does, and which editor you finish in. When a job repeats, the last section turns it into a workflow.
-
 ## How a recipe runs
 
 1. **Start.** Open **New project** and type the brief, or pick a
@@ -14,16 +12,14 @@ Each recipe starts from the result you want, such as a launch film, a set of ads
    recipe names. The agent then follows that skill's steps for the request.
 2. **Attach what is real.** Type `@` to attach a product photo, a logo, or an
    [entity]({{ '/entities' | relative_url }}) such as a recurring character.
-   Generations use its reference image, so the cast and product stay the same
-   across shots.
+   Generations use its reference image, so the cast and product stay the same.
 3. **Watch and approve.** The plan, each tool call, and each render appear as
    they run. The thread's
    [permission mode]({{ '/global-chat' | relative_url }}#permission-modes)
    decides which actions ask first. Plan mode proposes the steps without
    running them.
 4. **Finish in the editor.** The result is a storyboard, timeline, sketch,
-   3D model, game, or app that you can open and edit, not a single exported
-   file.
+   3D model, game, or app, not a single exported file.
 
 > **Needs:** provider keys for cloud models, or local models. Storyboards render stills before video, and each provider call's cost is recorded. See [Costs & Credits]({{ '/costs-and-credits' | relative_url }}).
 {: .callout-note}
@@ -66,8 +62,7 @@ single shot by note.
 
 Pick the **Script** flow when the words drive the timing. Write or import the
 script, assign a voice per speaker, and generate the takes. Create a linked
-storyboard from the script for the visuals. When you edit a line later, its
-take is marked stale so you know which lines to voice again. See
+storyboard from the script for the visuals. When you edit a line, its take is marked stale. See
 [Script: write and cast the words first]({{ '/ai-video-production' | relative_url }}#script-write-and-cast-the-words-first).
 
 ### Sound-off social ad
@@ -131,9 +126,8 @@ first when the game plays correctly but feels flat.
 
 ## Repeat it with a workflow
 
-An editor is where you make one piece and judge it. A workflow graph is where
-you make the same piece again for the next brief, SKU, language, or aspect
-ratio. Ask the agent to build a workflow for the job, type `/video-workflow`,
+A workflow graph makes the same piece again for the next brief, SKU, language,
+or aspect ratio. Ask the agent to build a workflow for the job, type `/video-workflow`,
 or use the **Workflow** flow. Storyboards, scripts, timelines, and sketches are
 typed values a graph can read and write, so an approved document can feed the
 graph directly.
@@ -150,7 +144,7 @@ graph directly.
 | Thirty on-brand assets with one cast | [Entities]({{ '/cookbook/patterns' | relative_url }}#pattern-3-entities) |
 
 The [workflow patterns]({{ '/cookbook/patterns' | relative_url }}) give each
-graph with its nodes and the shipped template closest to it.
+graph and the closest shipped template.
 [Workflow concepts]({{ '/cookbook/core-concepts' | relative_url }}) covers
 typed edges, documents as values, fan-out, and how to check a graph before it
 spends.

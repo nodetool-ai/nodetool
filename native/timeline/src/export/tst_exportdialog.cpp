@@ -333,6 +333,32 @@ private slots:
         const QColor pixel = relative.pixelColor(32, 24);
         QVERIFY2(pixel.red() < 30 && pixel.green() < 30 && pixel.blue() < 30, qPrintable(pixel.name()));
     }
+    void replacesExistingFileOnlyWhenAsked() {
+        QTemporaryDir dir;
+        nt::Timeline timeline;
+        timeline.width = timeline.height = 64;
+        timeline.fps = 30;
+        timeline.durationMs = 200;
+        nt::Track track;
+        track.id = "audio";
+        track.type = nt::TrackType::Audio;
+        timeline.tracks.push_back(track);
+        nt::exporting::Options options;
+        options.output = dir.filePath("again.wav");
+        options.format = "wav";
+        QFile old(options.output);
+        QVERIFY(old.open(QIODevice::WriteOnly));
+        old.write("old export");
+        old.close();
+        auto result = nt::exporting::exportTimeline(timeline, options);
+        QCOMPARE(result.error, QStringLiteral("Export destination already exists"));
+        options.replace = true;
+        result = nt::exporting::exportTimeline(timeline, options);
+        QVERIFY2(result.error.isEmpty(), qPrintable(result.error));
+        QVERIFY(old.open(QIODevice::ReadOnly));
+        QVERIFY(old.read(4) == QByteArrayLiteral("RIFF"));
+        QCOMPARE(QDir(dir.path()).entryList(QDir::AllEntries | QDir::Hidden | QDir::NoDotAndDotDot), QStringList{"again.wav"});
+    }
     void cancelExportDuringAudio() {
         if (!avio_find_protocol_name("tcp://127.0.0.1:1")) { QSKIP("FFmpeg has no TCP protocol"); }
         QTemporaryDir dir;

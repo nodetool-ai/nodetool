@@ -99,6 +99,31 @@ private slots:
     QVERIFY(data.value("id").toString().size() == 32);
     QVERIFY(!data.contains("tools"));
   }
+  void bridgeMoveKeepsTrackTypesAndDrops() {
+    const QJsonObject raw{
+        {"id", "sequence"},
+        {"tracks", QJsonArray{QJsonObject{{"id", "video"}, {"type", "video"}},
+                              QJsonObject{{"id", "audio"}, {"type", "audio"}}}},
+        {"clips", QJsonArray{QJsonObject{{"id", "picture"}, {"trackId", "video"}, {"mediaType", "video"},
+                                         {"startMs", 0}, {"durationMs", 1000}},
+                             QJsonObject{{"id", "next"}, {"trackId", "video"}, {"mediaType", "video"},
+                                         {"startMs", 2000}, {"durationMs", 1000}},
+                             QJsonObject{{"id", "sound"}, {"trackId", "audio"}, {"mediaType", "audio"},
+                                         {"startMs", 0}, {"durationMs", 1000}}}}};
+    // Audio never lands on a video track.
+    QCOMPARE(nt::aiassist::assistantEdit("ui_timeline_move_clip", raw,
+                                         {{"clipId", "sound"}, {"trackId", "video"}, {"startMs", 5000}}),
+             raw);
+    // A move onto another clip overwrites it, as a drag does, instead of stacking.
+    const auto moved = nt::aiassist::assistantEdit("ui_timeline_move_clip", raw,
+                                                   {{"clipId", "picture"}, {"startMs", 1500}});
+    QJsonObject next;
+    for (const auto& value : moved.value("clips").toArray()) {
+      if (value.toObject().value("id") == "next") { next = value.toObject(); }
+    }
+    QCOMPARE(next.value("startMs").toDouble(), 2500.0);
+    QCOMPARE(next.value("durationMs").toDouble(), 500.0);
+  }
   void bridgeUsesLockedDocumentRules() {
     QJsonObject raw{
         {"id", "sequence"},

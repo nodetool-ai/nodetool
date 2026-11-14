@@ -303,9 +303,14 @@ describe("voiceoverTrackId", () => {
     expect(voiceoverTrackId([], tracks)).toBe("vo");
   });
 
-  it("falls back to the first audio track, and to none without one", () => {
+  it("falls back to the first empty audio track, and to none without one", () => {
     expect(voiceoverTrackId([], [{ id: "m", type: "audio", name: "Music" }])).toBe("m");
     expect(voiceoverTrackId([], [{ id: "v", type: "video", name: "Video" }])).toBeUndefined();
+  });
+
+  it("does not put a new beat on a track that holds music", () => {
+    const music = { ...beat("song", { durationMs: 8000 }), trackId: "m", bindingKind: undefined };
+    expect(voiceoverTrackId([music], [{ id: "m", type: "audio", name: "Music" }])).toBeUndefined();
   });
 });
 
@@ -905,6 +910,57 @@ describe("transcript ripple edit fidelity (F9, F42, F43)", () => {
     const { clips } = rippleDeleteRange([c], 300, 600);
     expect(clips).toHaveLength(1);
     expect(clips[0].durationMs).toBe(1200);
+  });
+
+  it("keeps the clips after a time-remapped clip on its track in place", () => {
+    const remapped = {
+      ...beat("r", { startMs: 0, durationMs: 1000 }),
+      timeRemap: { keyframes: [] }
+    } as unknown as TimelineClip;
+    const after = beat("a", { startMs: 1000, durationMs: 500 });
+    const other = { ...beat("o", { startMs: 1000, durationMs: 500 }), trackId: "music" };
+    const { clips } = rippleDeleteRange([remapped, after, other], 300, 600);
+    expect(clips.map((c) => [c.id, c.startMs, c.durationMs])).toEqual([
+      ["r", 0, 1000],
+      ["a", 1000, 500],
+      ["o", 700, 500]
+    ]);
+  });
+
+  it("keeps a track with a locked clip after the cut in place", () => {
+    const cut = beat("c", { startMs: 0, durationMs: 1000 });
+    const before = { ...beat("b", { startMs: 400, durationMs: 300 }), trackId: "music" };
+    const lockedAfter = { ...beat("l", { startMs: 1200, durationMs: 300 }), trackId: "music" };
+    const { clips } = rippleDeleteRange([cut, before, lockedAfter], 300, 600, {
+      lockedClipIds: new Set(["l"])
+    });
+    expect(clips.filter((c) => c.trackId === "music").map((c) => [c.id, c.startMs])).toEqual([
+      ["b", 400],
+      ["l", 1200]
+    ]);
+  });
+
+  it("shrinks a group over the cut instead of splitting it", () => {
+    const group = makeClip({
+      id: "g",
+      trackId: "top",
+      mediaType: "group",
+      startMs: 0,
+      durationMs: 1000
+    });
+    const child = { ...beat("c", { startMs: 0, durationMs: 1000 }), parentId: "g" };
+    const { clips } = rippleDeleteRange([group, child], 300, 600);
+    expect(clips.find((c) => c.id === "g")).toMatchObject({ startMs: 0, durationMs: 700 });
+    expect(clips.filter((c) => c.parentId === "g")).toHaveLength(2);
+  });
+
+  it("removes a group inside the cut and moves its children to its parent", () => {
+    const outer = makeClip({ id: "outer", trackId: "top", mediaType: "group", startMs: 0, durationMs: 2000 });
+    const inner = { ...makeClip({ id: "inner", trackId: "mid", mediaType: "group", startMs: 400, durationMs: 200 }), parentId: "outer" };
+    const kept = { ...beat("k", { startMs: 1000, durationMs: 500 }), trackId: "other", parentId: "inner" };
+    const { clips } = rippleDeleteRange([outer, inner, kept], 300, 700);
+    expect(clips.some((c) => c.id === "inner")).toBe(false);
+    expect(clips.find((c) => c.id === "k")).toMatchObject({ startMs: 600, parentId: "outer" });
   });
 
   it("F42: consecutive deleted words leave no gap fragments", () => {

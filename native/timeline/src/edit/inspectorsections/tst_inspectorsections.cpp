@@ -102,9 +102,13 @@ private slots:
         auto* probe = findItem(panel, "testInspectorSection");
         auto* timing = section(panel, "Timing"); QVERIFY(timing);
         // One owner per control: Effect Controls holds these.
-        for (const auto& moved : {QString("Render"), QString("Transform"), QString("Camera"), QString("Crop"), QString("Corners"), QString("Time remap"), QString("Motion blur"), QString("Audio")}) {
+        for (const auto& moved : {QString("Render"), QString("Transform"), QString("Camera"), QString("Crop"), QString("Corners"), QString("Time remap"), QString("Motion blur")}) {
             QVERIFY2(!section(panel, moved), qPrintable(moved));
         }
+        // Audio holds only the volume of an audio or video clip (clipVolume); Effect Controls keeps the rest.
+        auto* audio = section(panel, "Audio"); QVERIFY(audio);
+        QCOMPARE(audio->objectName(), QString("inspectorAudio"));
+        QVERIFY(!audio->isVisible());
         // One owner per control: these have panels of their own.
         for (const auto& moved : {QString("Animate"), QString("Advanced motion"), QString("Follow object"), QString("Smart reframe"), QString("AI"), QString("Effects")}) {
             QVERIFY2(!section(panel, moved), qPrintable(moved));
@@ -223,6 +227,74 @@ private slots:
         QVERIFY(QMetaObject::invokeMethod(hidden, "change", Q_ARG(bool, true)));
         QVERIFY(e.clip("b")["hidden"].toBool()); QCOMPARE(e.model.undoStack()->count(), count + 1);
         e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(), before);
+    }
+    void typedStartOverwritesClipUnderneath() {
+        Editor e; QVERIFY2(e.object, qPrintable(e.error)); e.gestures()->setSelection({"b"});
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        QCOMPARE(e.gestures()->dropMode(), QString("overwrite"));
+        auto* timing = section(e.inspector(), "Timing"); QVERIFY(timing); timing->setProperty("open", true);
+        const auto before = e.model.documentJson(); const auto index = e.model.undoStack()->index();
+        QVERIFY(textSignal(findItem(timing, "timingStart"), "commit", "00:00:01:00"));
+        QCOMPARE(e.model.undoStack()->index(), index + 1);
+        QCOMPARE(e.clip("b")["startMs"].toDouble(), 1000.0);
+        QCOMPARE(e.clip("a")["startMs"].toDouble(), 0.0);
+        QCOMPARE(e.clip("a")["durationMs"].toDouble(), 1000.0);
+        e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(), before);
+    }
+    void moveSelectedClipsAndDropEdit() {
+        const auto edit = nt::app::findEdit("moveSelectedClipsAndDrop");
+        QVERIFY(edit);
+        const auto clip = [](const QString& id, double start) {
+            return QJsonObject{{"id", id}, {"trackId", "v"}, {"mediaType", "image"}, {"startMs", start}, {"durationMs", 3000}};
+        };
+        const QJsonObject raw{{"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+                              {"clips", QJsonArray{clip("a", 0), clip("b", 3000)}}};
+        const auto find = [](const QJsonObject& doc, const QString& id) {
+            for (const auto& c : doc.value("clips").toArray()) { if (c.toObject()["id"] == id) { return c.toObject(); } }
+            return QJsonObject{};
+        };
+        // No mode means overwrite; selectedIds falls back to clipId.
+        const auto moved = edit(raw, {{"clipId", "b"}, {"deltaMs", -2000}});
+        QCOMPARE(find(moved, "b")["startMs"].toDouble(), 1000.0);
+        QCOMPARE(find(moved, "a")["durationMs"].toDouble(), 1000.0);
+        const auto plain = nt::app::findEdit("moveSelectedClips")(raw, {{"clipId", "b"}, {"selectedIds", QJsonArray{"b"}}, {"deltaMs", -2000}});
+        QCOMPARE(find(plain, "a")["durationMs"].toDouble(), 3000.0);
+        const auto inserted = edit(raw, {{"clipId", "b"}, {"selectedIds", QJsonArray{"b"}}, {"deltaMs", -2000}, {"mode", "insert"}});
+        QCOMPARE(find(inserted, "b")["startMs"].toDouble(), 1000.0);
+        double covered = 0;
+        for (const auto& c : inserted.value("clips").toArray()) {
+            if (c.toObject()["id"] != "b") { covered += c.toObject()["durationMs"].toDouble(); }
+        }
+        QCOMPARE(covered, 3000.0);
+    }
+    void clipVolume() {
+        Editor e; QVERIFY2(e.object, qPrintable(e.error));
+        auto parsed = nt::parseTimelineJson(R"({"name":"Volume","width":640,"height":360,"fps":30,"durationMs":6000,"tracks":[{"id":"v","type":"video","name":"Video"},{"id":"au","type":"audio","name":"Audio"}],"clips":[{"id":"img","name":"Still","trackId":"v","mediaType":"image","startMs":0,"durationMs":3000,"currentAssetId":"asset-a"},{"id":"snd","name":"Sound","trackId":"au","mediaType":"audio","startMs":0,"durationMs":3000,"currentAssetId":"asset-s"}]})");
+        QVERIFY(parsed.timeline);
+        e.model.setTimeline(std::move(*parsed.timeline));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        const auto registered = InspectorSectionRegistry().sections();
+        const auto entry = std::find_if(registered.begin(), registered.end(), [](const QVariant& v) { return v.toMap()["id"] == "clipVolume"; });
+        QVERIFY(entry != registered.end());
+        QCOMPARE(entry->toMap()["source"].toUrl(), QUrl("qrc:/qt/qml/NodeTool/Timeline/src/edit/inspectorsections/AudioSection.qml"));
+        e.gestures()->setSelection({"img"});
+        QTRY_VERIFY(findItem(e.inspector(), "inspectorAudio"));
+        QTRY_VERIFY(!findItem(e.inspector(), "inspectorAudio")->isVisible());
+        e.gestures()->setSelection({"snd"});
+        auto* audio = findItem(e.inspector(), "inspectorAudio");
+        QTRY_VERIFY(audio->isVisible());
+        auto* timing = section(e.inspector(), "Timing"); QVERIFY(timing);
+        QTRY_VERIFY(audio->mapToItem(e.inspector(), QPointF{}).y() >= timing->mapToItem(e.inspector(), QPointF{}).y() + timing->height());
+        const auto before = e.model.documentJson(); const auto index = e.model.undoStack()->index();
+        QVERIFY(textSignal(findItem(audio, "audioVolume"), "commit", "-6"));
+        QCOMPARE(e.clip("snd")["volumeDb"].toDouble(), -6.0);
+        QCOMPARE(e.model.undoStack()->index(), index + 1);
+        e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(), before);
+        QVERIFY(textSignal(findItem(audio, "audioVolume"), "commit", "500"));
+        QCOMPARE(e.clip("snd")["volumeDb"].toDouble(), 24.0);
+        e.model.undoStack()->undo();
+        QVERIFY(textSignal(findItem(audio, "audioVolume"), "commit", "loud"));
+        QCOMPARE(e.model.documentJson(), before);
     }
     void duplicateRegistry() {
         InspectorSectionRegistry registry;

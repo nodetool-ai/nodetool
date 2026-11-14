@@ -39,7 +39,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "idea",
-          "value": "",
+          "value": "a cosy reading nook in a treehouse on a rainy afternoon",
           "description": "The idea, in plain words"
         },
         "ui_properties": {

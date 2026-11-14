@@ -7,9 +7,9 @@ description: "Open-source agent-first creative workspace. Create images, video, 
   <p class="eyebrow">NodeTool documentation</p>
   <h1>Open-source agent-first creative workspace</h1>
   <p class="lead">
-    Create and edit images, video, audio, and text with agents that work alongside
-    you. Let them build and revise workflows, then inspect and edit the results
-    yourself. Your project keeps the brief, assets, and edits together.
+    Agents build and revise workflows that make images, video, audio, and text.
+    You inspect and edit the results. The project keeps the brief, assets, and
+    edits together.
   </p>
   <figure class="hero-reel">
     <div class="media-frame">
@@ -34,8 +34,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
   <h2 id="start-by-asking">Describe it. The agent builds the project.</h2>
   <p class="section-lead">
     Give the agent a brief. It drafts the script, boards the shots, renders the
-    takes, and cuts them on a timeline. What comes back is a project you can
-    open, not a finished file.
+    takes, and cuts them on a timeline. You get back an editable project.
   </p>
   <figure class="media-frame agent-media">
     <video class="inview-video" muted loop playsinline preload="none"
@@ -69,8 +68,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
   <p class="section-kicker">Editors</p>
   <h2 id="seven-editors">Seven editors. One project.</h2>
   <p class="section-lead">
-    Everything the agent makes opens in an editor. The agent works each editor
-    with the same tools you click.
+    Everything the agent makes opens in an editor. The agent uses the same tools you click.
   </p>
   <div class="surface-grid">
     <article class="surface-card wide">
@@ -180,7 +178,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
   <h2 id="featured-use-cases">Start from an example</h2>
   <p class="section-lead">
     Every video below is a NodeTool timeline. Open one, swap in your own
-    product, copy, and footage, and render your version.
+    product, copy, and footage, and render it.
   </p>
   <h3 id="ad-recipes" class="example-heading">Ad recipes</h3>
   <p class="example-lead">

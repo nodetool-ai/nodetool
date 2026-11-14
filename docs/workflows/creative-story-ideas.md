@@ -5,7 +5,7 @@ title: "Creative Story Ideas"
 
 ## Overview
 
-A beginner workflow that fills a prompt from three inputs and streams story ideas one at a time.
+Fills a prompt from three inputs and streams story ideas one at a time.
 
 > This tutorial does not ship as an importable template. Build it manually by following the steps below.
 
@@ -15,7 +15,6 @@ A beginner workflow that fills a prompt from three inputs and streams story idea
 3. **Generate ideas** - A `nodetool.generators.ListGenerator` sends the prompt to the language model you select and streams one idea per item.
 
 **Key concepts:**
-- Connect nodes to create workflows
 - A Prompt node turns {% raw %}`{{ variables }}`{% endraw %} into inputs, so one wording serves many runs
 - `ListGenerator` streams its `item` output, so downstream nodes start before the list is complete
 
@@ -54,10 +53,6 @@ graph TD
    - **Setting**: "Space station", "Medieval castle", "Future city", etc.
 4. Press <kbd>Ctrl/⌘ + Enter</kbd> or click Run
 5. Add a Preview node on the `item` output to watch the ideas arrive
-
-**Tips:**
-- Run multiple times to get different ideas
-- Try unusual combinations for unique results
 
 ## Next Steps
 

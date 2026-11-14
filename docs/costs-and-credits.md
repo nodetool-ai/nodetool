@@ -10,8 +10,6 @@ NodeTool estimates a run's cost before it starts, records each provider call's c
 
 ## Your own keys or hosted credits
 
-There are two ways a generation gets paid for.
-
 | | Your own provider keys | Hosted credits |
 |---|---|---|
 | Who bills you | The provider (fal, OpenAI, Anthropic, and so on) | NodeTool, against a credit balance |
@@ -19,9 +17,9 @@ There are two ways a generation gets paid for.
 | Where it exists | Every install | Only NodeTool's hosted cloud |
 | Provider | Each provider you configure | The `nodetool` provider |
 
-With your own keys, NodeTool does not mark up a provider's price and never charges you. The estimates and the [Costs page](#the-costs-page) are for your planning. The provider invoices you. Local models (Ollama, vLLM, LM Studio, llama.cpp) need no key and have no catalog price. See [Providers](providers.md).
+With your own keys, NodeTool does not mark up a provider's price and never charges you. The provider invoices you. Local models (Ollama, vLLM, LM Studio, llama.cpp) need no key and have no catalog price. See [Providers](providers.md).
 
-Hosted credits exist only where the `nodetool` provider is registered. That provider runs a curated model catalog on NodeTool's own platform keys, and it is cloud-only. Desktop and self-hosted installs do not register it, so none of the credit features below apply to them. Credits meter only calls through the `nodetool` provider. Calls on your own keys never reduce a credit balance, even on a hosted server where both kinds coexist.
+Hosted credits exist only where the `nodetool` provider is registered. That provider runs a curated model catalog on NodeTool's own platform keys and is cloud-only. Desktop and self-hosted installs do not register it, so the credit features below do not apply to them. Calls on your own keys never reduce a credit balance, even on a hosted server where both kinds coexist.
 
 ---
 
@@ -43,8 +41,6 @@ The estimate updates as you edit the graph. Nodes that do not use an AI model (p
 Hover a row to see how the figure was reached, such as `5 s × $0.205/s at 720p`, plus any warnings.
 
 ### Reading the markers
-
-An estimate states how sure it is.
 
 | You see | It means |
 |---|---|
@@ -110,8 +106,6 @@ Runs emit OpenTelemetry spans. Every `llm.chat` and `llm.stream` span carries `g
 
 ## Limiting spend
 
-Limits apply in different places. Each one is described below with where it is set.
-
 ### Agent runs
 
 An agent run (a chat turn, its sub-agents, and any agent node it starts) shares one budget:
@@ -148,8 +142,7 @@ Estimates are a floor, because an unpriced node estimates as zero. For that reas
 
 #### How credits work
 
-One credit is one US cent (USD 0.01) of provider spend at the delegate's price. The balance is every grant ever recorded, minus the spend recorded for the `nodetool` provider, rounded up to whole credits. Spend on your own provider keys is excluded.
-
+One credit is one US cent (USD 0.01) of provider spend at the delegate's price. The balance is every grant ever recorded, minus the spend recorded for the `nodetool` provider, rounded up to whole credits. 
 Grants arrive lazily, the first time the balance is read:
 
 - A one-time welcome grant when you are first seen. The default is 500 credits.
@@ -163,9 +156,9 @@ The plans are defined in code:
 | Creator | 3,000 | $12 per month |
 | Pro | 10,000 | $40 per month |
 
-The price is for display. Payment processing is not implemented, so switching plans takes effect immediately and no card is charged.
+The price is for display. Payment processing is not implemented, so switching plans takes effect immediately and no card is charged. The top-up below also has no payment behind it.
 
-You see the balance in the **Studio** header as a credits chip, and on the **Plan & credits** page at `/studio/account`, which also lists the plans and switches between them. The page notes that credits meter only NodeTool's managed models. The same data is available from the `credits` tRPC router (`status`, `setPlan`, and `topup`).
+You see the balance in the **Studio** header as a credits chip, and on the **Plan & credits** page at `/studio/account`, which also lists the plans and switches between them. The same data is available from the `credits` tRPC router (`status`, `setPlan`, and `topup`).
 
 #### Operator settings
 
@@ -184,10 +177,5 @@ A managed model is offered only when its delegate provider has a platform key an
 The top-up is for development only. It adds credits with no payment behind it, and the server refuses it unless `NODETOOL_ENABLE_TEST_TOPUP` is set, because minted credits unlock spend on platform-owned keys. When the variable is set, the account page shows an **Add 1000 credits (test)** button.
 
 ---
-
-## Known gaps
-
-- The estimate cannot price a model the catalogs do not carry for the selected provider. Those rows show as unknown and stay out of the total.
-- Credits have no payment provider behind them yet. Plan prices are displayed only.
 
 For provider keys and setup, see [Providers](providers.md#tracking-spend).

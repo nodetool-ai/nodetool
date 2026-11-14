@@ -2,7 +2,8 @@
 export {
   getMaxUploadBytes,
   getMaxLocalUploadBytes,
-  assertUploadWithinLimit
+  assertUploadWithinLimit,
+  UploadTooLargeError
 } from "./storage-limits.js";
 
 // URI-based asset storage (used by the runtime / websocket server)

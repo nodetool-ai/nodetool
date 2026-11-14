@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "Hoe de scène wordt verlicht",
           "shotHeader": "Schot {{count}}",
           "shotAction": "Schot {{count}} · Actie",
-          "shotDialogue": "Schot {{count}} · Dialoog",
-          "dialoguePlaceholder": "Dialoog",
-          "addDialogue": "Dialoog toevoegen",
+          "dialogue": "Dialoog",
           "seconds": "Seconden",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scène {{count}}"
         },
         "fallback": {
@@ -10695,6 +10694,8 @@
       "queuedCount_one": "{{count}} staat in de wachtrij",
       "queuedCount_other": "{{count}} staat in de wachtrij",
       "collapseQueue": "Wachtrij samenvouwen",
+      "moveQueue": "Wachtrij verplaatsen",
+      "moveQueueHint": "Sleep om te verplaatsen. Pijltoetsen verplaatsen, Home zet terug.",
       "enqueued": "In de wachtrij"
     },
     "toolbar": {

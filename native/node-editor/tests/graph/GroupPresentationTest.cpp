@@ -1,3 +1,4 @@
+#include "../support/DarkCanvasTheme.h"
 #include "graph/WorkflowGraphModel.h"
 #include "graph/EditorScene.h"
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
@@ -26,6 +27,7 @@ private slots:
   void ordinaryNodeResizeBounds();
   void nativeLabelRendering();
   void invalidCycleDoesNotRecurse();
+  void fractionalSizesKeepTheirSize();
 };
 #ifndef Q_MOC_RUN
 namespace {
@@ -67,6 +69,17 @@ void GroupPresentationTest::labelHitOutsideItemBounds() {
   QCOMPARE(model.nodeData(group, NodeRole::Position).toPointF(), QPointF(180,240));
   QCOMPARE(model.nodeData(child, NodeRole::Position).toPointF(), QPointF(220,290));
   QVERIFY(scene.nodeGraphicsObject(group)->zValue() < scene.nodeGraphicsObject(child)->zValue());
+}
+// React Flow writes fractional sizes after a resize. They round, and never
+// fall back to the default 400 x 300 frame.
+void GroupPresentationTest::fractionalSizesKeepTheirSize() {
+  WorkflowGraphModel model;
+  model.project(QJsonDocument::fromJson(R"JSON({"graph":{"nodes":[
+    {"id":"group","type":"nodetool.workflows.base_node.Group","data":{"headline":"Frame"},"ui_properties":{"position":{"x":0,"y":0},"width":612.4,"height":455.6}},
+    {"id":"note","type":"nodetool.workflows.base_node.Comment","data":{"comment":"Hi"},"ui_properties":{"position":{"x":700,"y":0},"width":250.5,"height":120.2}}
+  ],"edges":[]}})JSON").object());
+  QCOMPARE(model.layout(idFor(model, "group")).size, QSize(612, 456));
+  QCOMPARE(model.layout(idFor(model, "note")).size, QSize(251, 120));
 }
 void GroupPresentationTest::resizeCommitsOnceAndPreservesChildren() {
   node_editor::WorkflowDocument document;
@@ -111,6 +124,7 @@ void GroupPresentationTest::resizeCommitsOnceAndPreservesChildren() {
 void GroupPresentationTest::nativeLabelRendering() {
   WorkflowGraphModel model;
   EditorScene scene(model);
+  scene.setTheme(nodetool::test::darkCanvasTheme());
   model.project(gestureFixture());
   QImage image(600,500,QImage::Format_ARGB32_Premultiplied);
   image.fill(Qt::transparent);

@@ -288,6 +288,38 @@ private slots:
     QTRY_COMPARE(events.count(), 4);
     QVERIFY(!session.run(snapshot).isEmpty());
   }
+  // timed_out is terminal on the server and in the web's SETTLED_JOB_STATUSES.
+  void timedOutRunSettlesAsFailed() {
+    QWebSocketServer server("timed out", QWebSocketServer::NonSecureMode);
+    QVERIFY(server.listen(QHostAddress::LocalHost));
+    QPointer<QWebSocket> peer;
+    int commands = 0;
+    connect(&server, &QWebSocketServer::newConnection, this, [&] {
+      peer = server.nextPendingConnection();
+      peer->setParent(&server);
+      connect(peer, &QWebSocket::binaryMessageReceived, this, [&](QByteArray) { ++commands; });
+    });
+    WorkflowSession session;
+    const QJsonObject snapshot{{"id", "workflow"}, {"name", "Test"},
+                               {"graph", QJsonObject{{"nodes", QJsonArray{QJsonObject{{"id", "a"}, {"type", "x"}}}}, {"edges", QJsonArray{}}}}};
+    session.connectToServer(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())), "secret");
+    QTRY_VERIFY(session.connected());
+    const auto job = session.run(snapshot);
+    QVERIFY(!job.isEmpty());
+    QTRY_COMPARE(commands, 1);
+    const auto row = [&session, &job] {
+      for (const auto &value : session.queue()) {
+        if (value.toMap()["jobId"].toString() == job) { return value.toMap(); }
+      }
+      return QVariantMap{};
+    };
+    QVERIFY(!row()["terminal"].toBool());
+    QSignalSpy events(&session, &WorkflowSession::runEvent);
+    peer->sendBinaryMessage(encodeMsgPack(QJsonObject{{"type", "job_update"}, {"job_id", job}, {"status", "timed_out"}, {"job_seq", 1}}));
+    QTRY_COMPARE(events.count(), 1);
+    QCOMPARE(row()["status"].toString(), QString("failed"));
+    QVERIFY(row()["terminal"].toBool());
+  }
   // A live property change of a server run goes out as the web's
   // update_node_properties command, and only while the run is in progress.
   void livePropertyChangeGoesToTheServer() {

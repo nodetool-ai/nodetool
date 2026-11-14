@@ -1920,6 +1920,47 @@ export const modelsRouter = router({
       )
     ),
 
+  /** 3D generation models from every available provider (Model3DModelSelect). */
+  model3d: protectedProcedure.output(modelsListOutput).query(async ({ ctx }) => {
+    const availableIds = await getAvailableProviderIds(ctx.userId);
+    const results = await Promise.all(
+      availableIds.map((providerId) =>
+        safeProviderCall(
+          "model3d (aggregate)",
+          { provider: providerId, userId: ctx.userId },
+          async () => {
+            const instance = await instantiateProvider(providerId, ctx.userId);
+            if (!instance) return [] as UnifiedModel[];
+            const models = await instance.getAvailable3DModels();
+            return models.map((m) => toUnifiedModel(m, "model_3d_model"));
+          },
+          [] as UnifiedModel[]
+        )
+      )
+    );
+    return results.flat();
+  }),
+
+  model3dByProvider: protectedProcedure
+    .input(providerInput)
+    .output(modelsListOutput)
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "model3dByProvider",
+        { provider: input.provider, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) return [];
+          const models = await instance.getAvailable3DModels();
+          return models.map((m) => toUnifiedModel(m, "model_3d_model"));
+        },
+        []
+      )
+    ),
+
   embeddingByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)

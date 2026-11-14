@@ -896,6 +896,9 @@ SaveResult AutosaveController::save(ServerClient& client) {
         const QJsonObject data = r.data.toObject();
         result.ok = true;
         result.updatedAt = data.value(u"updatedAt").toString();
+        // The server can file a loose timeline under another project while it is open.
+        const QString project = data.value(u"projectId").toString();
+        if (!project.isEmpty() && project != raw.value(u"projectId").toString()) { emit projectChanged(project); }
         for (const QJsonValue& p : data.value(u"stripped").toArray()) result.stripped << p.toString();
         m_base = result.updatedAt;
         m_mergeBase = sync::mergeDocumentOf(raw);

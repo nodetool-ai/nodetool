@@ -26,25 +26,18 @@ Rectangle {
         Layout.alignment: Qt.AlignHCenter
         Layout.preferredWidth: Ui.Metrics.comfortable
         Layout.preferredHeight: Ui.Metrics.compact
-        PanelRow {
+        Ui.ToolbarIconButton {
             id: button
             anchors.fill: parent
             text: entry.label
+            accessibleName: entry.tip
+            disabledReason: entry.unavailable
+            iconName: entry.glyph
+            iconSize: Ui.Metrics.iconMd
+            iconTone: !enabled ? Ui.Text.Disabled : entry.active ? Ui.Text.Primary : Ui.Text.Secondary
             active: entry.active
             enabled: entry.unavailable === ""
             onClicked: entry.activated()
-            Ui.Icon {
-                anchors.centerIn: parent
-                name: entry.glyph
-                size: Ui.Metrics.iconMd
-                tone: !button.enabled ? Ui.Text.Disabled : entry.active ? Ui.Text.Primary : Ui.Text.Secondary
-            }
-        }
-        // The hover handler sits on the wrapper, which stays enabled, so a disabled button still explains itself.
-        HoverHandler {
-            onHoveredChanged: {
-                root.panels.showToolTip(hovered ? (entry.unavailable !== "" ? entry.unavailable : entry.tip) : "")
-            }
         }
     }
     ColumnLayout {
@@ -83,16 +76,11 @@ Rectangle {
             onActivated: root.panels.toggleLibrary()
         }
         RailEntry {
-            objectName: "rail-entities"
-            label: "Entities"
-            glyph: "personOutline"
-            unavailable: qsTr("Entities has no native panel yet.")
-        }
-        RailEntry {
             objectName: "rail-examples"
             label: "Examples"
             glyph: "exploreOutlined"
-            onActivated: editor.action("Examples")
+            active: root.panels.examplesVisible
+            onActivated: root.panels.toggleExamples()
         }
         RailEntry {
             objectName: "rail-nodes"
@@ -100,12 +88,6 @@ Rectangle {
             glyph: "hub"
             active: root.panels.catalogVisible
             onActivated: root.panels.toggleCatalog()
-        }
-        RailEntry {
-            objectName: "rail-more"
-            label: "More"
-            glyph: "moreHoriz"
-            unavailable: qsTr("The More panel has no native equivalent. Native commands are in the toolbar More menu.")
         }
         Item { Layout.fillHeight: true }
         Ui.Separator { Layout.fillWidth: true; Layout.leftMargin: Ui.Metrics.md; Layout.rightMargin: Ui.Metrics.md }

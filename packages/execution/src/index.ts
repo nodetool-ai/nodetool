@@ -7,7 +7,8 @@ export type { MissingPackLookupOptions } from "./missing-packs.js";
 export {
   DurableGenerationLifecycle,
   createDurableGenerationLifecycle,
-  createFalGenerationLifecycleHooks
+  createFalGenerationLifecycleHooks,
+  withGenerationAdmission
 } from "./generation-lifecycle.js";
 export { DurableGenerationRecoveryWorker } from "./generation-recovery-worker.js";
 export {
@@ -23,6 +24,7 @@ export type {
 } from "./generation-recovery-worker.js";
 export type {
   DurableGenerationAcceptance,
+  GenerationAdmission,
   GenerationLeaseWindow,
   FalGenerationLifecycleHooksOptions
 } from "./generation-lifecycle.js";

@@ -201,7 +201,9 @@ jobs:
         with:
           ref: ${{ github.sha }}
           path: .release-tools
-          sparse-checkout: scripts/smoke-backend-bundle.mjs
+          sparse-checkout: |
+            scripts/smoke-backend-bundle.mjs
+            .github/scripts/with-window-manager.sh
           sparse-checkout-cone-mode: false
 
       - name: Print selected version
@@ -324,11 +326,20 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libx11-dev libxext-dev libxinerama-dev \
-            libxrandr-dev libxcursor-dev libfreetype6-dev libfontconfig1-dev
+            libxrandr-dev libxcursor-dev libfreetype6-dev libfontconfig1-dev \
+            xvfb xauth dbus-x11 xfwm4 x11-utils
 
       - name: Build VST host
         shell: bash
-        run: node electron/scripts/build-vst-host.mjs --test
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            # The editor test needs a display and window-manager atoms, even headlessly.
+            # The wrapper comes from the workflow commit, so source_tag recovery of
+            # an older tag gets it too.
+            bash .release-tools/.github/scripts/with-window-manager.sh node electron/scripts/build-vst-host.mjs --test
+          else
+            node electron/scripts/build-vst-host.mjs --test
+          fi
 
       - name: Create Web Build Archive
         if: matrix.os == 'ubuntu-latest'

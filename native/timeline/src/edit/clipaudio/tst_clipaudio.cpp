@@ -713,6 +713,13 @@ AudioGainDialog { clipIds: ["c", "silent"] })", QUrl());
         QCOMPARE(model.undoStack()->count(), 1);
         model.undoStack()->undo();
         QCOMPARE(model.clipsJson(), before);
+        auto clips = model.clipsJson();
+        auto locked = clips[0].toObject();
+        locked.insert("locked", true);
+        clips[0] = locked;
+        QVERIFY(model.replaceClips(clips));
+        QVERIFY(!model.applyEdit("setClipAudio", {{"clipId", "c"}, {"field", "fadeInMs"}, {"value", 200}}));
+        QVERIFY(!model.applyEdit("setClipFadeGrip", {{"clipId", "c"}, {"field", "fadeInMs"}, {"value", 200}}));
     }
     void inspectorControls() {
         TimelineModel model;

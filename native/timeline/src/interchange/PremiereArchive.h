@@ -6,6 +6,7 @@
 // values that point at the editor's disk, so the app packs the files itself.
 
 #include <QByteArray>
+#include <QHash>
 #include <QString>
 #include <QStringList>
 
@@ -47,11 +48,32 @@ private:
     bool m_finished = false;
 };
 
+// The files below a folder by file name, compared literally and ignoring
+// case. Built once, on the first lookup, so an import with many missing files
+// walks the folder once. The walk stops after `MaxFiles` files, or when `stop`
+// returns true. Thread affinity: the thread that owns it.
+class MediaNameIndex {
+public:
+    static constexpr int MaxFiles = 20000;
+    MediaNameIndex(QString baseDir, std::function<bool()> stop = {});
+    // The one file of that name, or an empty string when there is none or more than one.
+    QString unique(const QString& fileName);
+    bool stopped() const { return m_stopped; }
+
+private:
+    QString m_baseDir;
+    std::function<bool()> m_stop;
+    QHash<QString, QStringList> m_paths;
+    bool m_built = false;
+    bool m_stopped = false;
+};
+
 // The file a `pathurl` names, or an empty string when none exists. Handles
 // `file://localhost/...` and `file:///...` URLs with percent escapes, absolute
 // paths and paths relative to `baseDir`. A path from another machine that does
-// not exist falls back to the one file of that name below `baseDir`.
-QString localMediaPath(const QString& pathurl, const QString& baseDir);
+// not exist falls back to the one file of that name below `baseDir`, looked up
+// in `index` when given.
+QString localMediaPath(const QString& pathurl, const QString& baseDir, MediaNameIndex* index = nullptr);
 
 struct ArchiveResult {
     bool ok = false;

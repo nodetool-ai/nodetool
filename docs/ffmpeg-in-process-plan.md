@@ -2,7 +2,7 @@
 
 The server can drop the `ffmpeg` and `ffprobe` binaries. Every operation in the code maps to node-av, which is already shipped, and the bundled build has every filter and encoder the code uses. mediabunny can take about a third of the call sites, but it cannot do filter graphs, audio mixing or text.
 
-Line numbers are approximate and refer to the code as audited. Counts come from a static read of the sources and tests, with spot checks.
+Line numbers refer to the code as audited. Counts come from a static read of the sources and tests, with spot checks.
 
 ## Verdict
 
@@ -75,7 +75,7 @@ The timeline render sites are in the next section. The detection-only sites (`ru
 
 ## Timeline render path
 
-A native timeline editor needs the Node compositor path, not the headless-Chromium path, and that path runs FFmpeg at every stage today. node-av replaces each stage without a change to the pipeline shape. The audio mix is the largest item.
+The native timeline editor needs the Node compositor path, not the headless-Chromium path. That path runs FFmpeg at every stage today, and node-av replaces each stage without changing the pipeline shape. The audio mix is the largest item.
 
 The render has four paths today:
 
@@ -148,8 +148,6 @@ The Electron bundle ships one node-av prebuild per target. node-av declares 8: d
 
 ## Blockers and risks
 
-One possible blocker exists. The other items are risks to test, not reasons to stop.
-
 - **R1 manimgx (resolved).** manimgx bundles its own x264 and FFmpeg libraries, so it needs no FFmpeg on the host.
 - **R2 Colour parity.** The Node compositor matches Chromium through `accurate_rnd+full_chroma_int` and BT.709 tags. Keep these in the node-av filter string and add a pixel test against the browser output.
 - **R3 Frame timing.** Keep `fps=round=up` and keyframe seek semantics. mediabunny `samplesAtTimestamps` differs from the `fps` filter by one frame at edges.
@@ -176,7 +174,7 @@ Classes: VALIDATED (real media, real FFmpeg, output content checked), SMOKE (rea
 | Agent ffmpeg and ffprobe tools, codeact, guard | 4 | 0 | 1 | 3 | 0 |
 | Total | 74 | 28 | 5 | 24 | 17 |
 
-**Well covered, keep as port oracles:** peaks, video proxy (keyframes, pts, duration per frame), the extract-audio route, the video thumbnail, JPEG frame sampling, audio-wav decode, export-media validation, EaseCurve (luma and loudness over time), Resize with ForEachFrame (pixels), the timeline audio mix (RMS windows, fades, gain, effects, pan law), VFR and reverse decode (frame identity by gray level), the ProRes and VP9 alpha round trip, alpha PNG render, and the compositor time remap.
+**Port oracles (well covered):** peaks, video proxy (keyframes, pts, duration per frame), the extract-audio route, the video thumbnail, JPEG frame sampling, audio-wav decode, export-media validation, EaseCurve (luma and loudness over time), Resize with ForEachFrame (pixels), the timeline audio mix (RMS windows, fades, gain, effects, pan law), VFR and reverse decode (frame identity by gray level), the ProRes and VP9 alpha round trip, alpha PNG render, and the compositor time remap.
 
 **No output test, by area:**
 
@@ -190,9 +188,9 @@ Classes: VALIDATED (real media, real FFmpeg, output content checked), SMOKE (rea
 - **G1** No test renders decoded video and audio together through the compositor. No A/V sync test exists.
 - **G2** The rough-cut fallback is fully mocked, but the server falls back to it when WebGPU is missing.
 - **G3** Image clips (raster stills) have no decode test.
-- **G4** The browser-vs-Node parity test needs Chromium. The package test jobs in `quality-checks.yml` do not install Playwright Chromium, so it probably skips in CI. Confirm this in a CI log.
+- **G4** The browser-vs-Node parity test needs Chromium, which the package test jobs in `quality-checks.yml` did not install (closed, see [Left open](#left-open)).
 - **G5** The strongest export oracle, `web/tests/benchmarks/timeline-server-export.mjs` (exact frame count, pixel colours per layer, alpha corners), runs only by hand. No workflow runs it.
-- **G6** The RenderTimeline output duration is checked only as "over 500 ms".
+- **G6** The RenderTimeline output duration is checked only as "over 500 ms" (closed).
 
 **Tests that pass whatever FFmpeg does.** These validate nothing and will not catch a broken port:
 
@@ -202,13 +200,13 @@ Classes: VALIDATED (real media, real FFmpeg, output content checked), SMOKE (rea
 - `audio-nodes/tests/audio-decode-ffmpeg.test.ts:60` returns early when its fixture cannot be built.
 - `websocket/tests/thumbnail-extra-coverage.test.ts:111-141` swallows the failure on garbage bytes.
 
-**Oracles that pin FFmpeg quirks.** `video-nodes/tests/timeline-vfr-decode.test.ts` expected `probeVideoFrameRate` to return 60 for an MKV that keeps 24 frames per second, because ffprobe reports the nominal rate as `avg_frame_rate` for this file. Decided: the frame-grid cache indexes frame k of a decode window at k / fps, so it needs the rate of the timestamp lattice, not the average. `probeVideoFrameRate` now returns Mediabunny's `underlyingFrameRate` (60 here), and 1 for a source on no lattice. The grid check then refuses this file, because two slots in five are empty, and every frame is an exact seek. The test and its comment say so.
+**Oracles that pin FFmpeg quirks.** `video-nodes/tests/timeline-vfr-decode.test.ts` expected `probeVideoFrameRate` to return 60 for an MKV that keeps 24 frames per second, because ffprobe reports the nominal rate as `avg_frame_rate` for this file. Decided: the frame-grid cache indexes frame k of a decode window at k / fps, so it needs the rate of the timestamp lattice, not the average. `probeVideoFrameRate` now returns Mediabunny's `underlyingFrameRate` (60 here), and 1 for a source on no lattice. The grid check then refuses this file, because two slots in five are empty, and every frame is an exact seek. 
 
-**Input media depends on the CLI.** Almost every real-media test generates its input with `ffmpeg -f lavfi` (testsrc, sine, color) and checks the output with `ffprobe`. The repository has no video fixtures for these tests. Removing the binary breaks the tests before it breaks the code.
+**Input media depends on the CLI.** Almost every real-media test generates its input with `ffmpeg -f lavfi` (testsrc, sine, color) and checks the output with `ffprobe`. The repository has no video fixtures for these tests. 
 
 ## Migration order
 
-Step 0 comes before the port (done except item 4's export script; see [Status](#status)):
+Step 0 came before the port and is done except item 4's export script (see [Status](#status)):
 
 1. Add a shared test helper that generates media (a testsrc pattern, gray-level frames, sine, silence) and probes output (duration, size, frame pts, PCM RMS) with node-av or mediabunny, not the CLI.
 2. Write an output test for each site in the NONE and MOCKED lists, starting with the timeline gaps G1-G3 and `trimVideoWindow`. Each test must pass on the current CLI code.
@@ -216,18 +214,16 @@ Step 0 comes before the port (done except item 4's export script; see [Status](#
 4. Run `timeline-server-export.mjs` in a CI job, and install Chromium for the parity test.
 5. Reproduce the node-av stress crash (R6) and decide on worker or child-process isolation.
 
-Then port one site at a time. The same test must pass before and after. All eight steps are done.
+Then port one site at a time. The same test must pass before and after. All eight steps are done. The [Status](#status) tables list each site's replacement.
 
-1. Add a shared `media` module in `runtime` with the probe, decode, encode and filter helpers on node-av and mediabunny. Add the filter and encoder probe as a startup check and a CI test on every platform.
+1. Add a shared `media` module in `runtime` with the probe, decode, encode and filter helpers on node-av and mediabunny, plus the filter and encoder probe as a startup check and a CI test on every platform.
 2. Port every probe site (about 20, all S). This alone removes ffprobe.
 3. Port the websocket lib: peaks, thumbnails, video proxy, extract audio, trim. The native editor needs these first.
-4. Port the timeline Node compositor: frame decode, frame encode, then the audio mix (L).
+4. Port the timeline Node compositor: frame decode, frame encode, then the audio mix (L). After this step, the server in the timeline-editor configuration needs no external FFmpeg.
 5. Replace the agent `ffmpeg` tool with the typed operation set, and update the skills and evals.
 6. Port the video.ts nodes: single-filter nodes first (S each), then Concat, Overlay, Transition, EaseCurve and AddSubtitles.
 7. Port the remaining nodes: transcription, transformers, topaz, audio-wav, ShotChain, game-renderer and the blender bake.
 8. Remove the conda package, the apt line, `requiredRuntimes` and the detection code. Resolve R1 before the apt line goes.
-
-After step 4, the server in the timeline-editor configuration needs no external FFmpeg.
 
 ## Status
 
@@ -312,12 +308,12 @@ Rewritten: `timeline-raw-frames.test.ts` (mocked `spawn` to real media). The moc
 
 Deleted: the five "pass whatever FFmpeg does" tests, `websocket/tests/media-extract-coverage.test.ts` (argv only) and `video-nodes/tests/missing-ffprobe.test.ts` (a probe can no longer be missing).
 
-For steps 5–8, `video-nodes/tests/video-edit-nodes.test.ts` checks the output of each video.ts node and passed on the CLI code first, and `runtime/tests/media/media-transform.test.ts` covers `transformMedia`, `concatCopy`, `pngFrames` and the image decoder. Every remaining fixture (timeline suites, agent, CLI, websocket and base-nodes tests) now generates and measures media with the helper. The suites pass with `ffmpeg` and `ffprobe` removed from `PATH`.
+For steps 5–8, `video-nodes/tests/video-edit-nodes.test.ts` checks the output of each video.ts node and passed on the CLI code first, and `runtime/tests/media/media-transform.test.ts` covers `transformMedia`, `concatCopy`, `pngFrames` and the image decoder. Every remaining fixture generates and measures media with the helper, and the suites pass with `ffmpeg` and `ffprobe` removed from `PATH`.
 
 ### Left open
 
 - **G5.** `timeline-server-export.mjs` still runs only by hand. It needs the perf fixtures and a GPU runner.
-- **G4 and G6** are done: the `test-packages-nodes` shard installs Chromium, so the browser parity and render suites run in CI, and the RenderTimeline test checks the output duration within 100 ms.
+- **G4 and G6** are done. The `test-packages-nodes` shard installs Chromium, so the browser parity and render suites run in CI, and the RenderTimeline test checks the output duration within 100 ms.
 - **VP9 alpha in the Node compositor.** libav's built-in VP9 decoder drops WebM's alpha plane; only `libvpx-vp9` reads it. The CLI path behaved the same way.
 - **Concurrency.** Encodes run on the libuv pool. With libuv's default four threads, four encodes at once raised event-loop p99 to about 20 ms and fs latency p50 to about 8 ms on a four-core host. The server and CLI entries now size the pool to 128 threads (`@nodetool-ai/config/threadpool`), so encodes no longer queue file reads behind them. There is no cap on concurrent media jobs.
 - **Open risks:** R6 (residual native leak, no process isolation), R7 (win32 prebuilds untested), R9 (report upstream), R10, R11.

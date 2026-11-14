@@ -247,7 +247,7 @@ Rectangle {
                 c.fillRect(p.x, p.y, nw, nh)
                 c.strokeRect(p.x, p.y, nw, nh)
                 c.fillStyle = Ui.Theme.textPrimary
-                c.fillText(node.type || node.id, p.x + Ui.Metrics.md, p.y + nh / 2, nw - Ui.Metrics.xl)
+                c.fillText(root.nodeLabel(node), p.x + Ui.Metrics.md, p.y + nh / 2, nw - Ui.Metrics.xl)
             })
         }
     }

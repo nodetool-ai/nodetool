@@ -4,9 +4,10 @@
  * `GlobalChatStore` starts on an unsendable `{ provider: "empty" }`
  * placeholder, and the model menu highlights whatever sorts first, so the
  * first Enter used to commit an arbitrary model and persist it forever. This
- * hook fills the placeholder once from the recommended list — the curated
- * managed catalog first, then the server's `RECOMMENDED_MODELS` — restricted
- * to models this account can actually run.
+ * hook fills the placeholder once from the recommended list — the free
+ * OpenRouter router for an account with no key of its own, then the curated
+ * managed catalog, then the server's `RECOMMENDED_MODELS` — restricted to
+ * models this account can actually run.
  *
  * It never touches a model the user picked, and it waits for the model list
  * to load. When nothing recommended is available the placeholder stays, and
@@ -19,10 +20,8 @@ import useGlobalChatStore from "../stores/GlobalChatStore";
 import type { LanguageModel } from "../stores/ApiTypes";
 import { useLanguageModelsByProvider } from "./useModelsByProvider";
 import { useModelAvailability } from "./useModelAvailability";
-import {
-  recommendedModelKey,
-  useRecommendedModelKeys
-} from "./useRecommendedModelKeys";
+import { recommendedModelKey } from "./useRecommendedModelKeys";
+import { useDefaultLanguageModelKeys } from "./useDefaultLanguageModelKeys";
 
 /**
  * The first model in `preferredKeys` that is present and available, or null.
@@ -50,7 +49,7 @@ export const useFirstRunLanguageModel = (): void => {
   const setSelectedModel = useGlobalChatStore((s) => s.setSelectedModel);
   const { models, isLoading } = useLanguageModelsByProvider();
   const getAvailability = useModelAvailability();
-  const recommendedKeys = useRecommendedModelKeys();
+  const recommendedKeys = useDefaultLanguageModelKeys();
   const applied = useRef(false);
 
   useEffect(() => {

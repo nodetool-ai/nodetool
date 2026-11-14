@@ -16,6 +16,10 @@ void RunState::setConnected(bool connected) {
     if (assign(connected_, connected)) { emit connectionChanged(); }
 }
 
+void RunState::setJobsError(const QString &error) {
+    if (assign(jobsError_, error)) { emit jobsErrorChanged(); }
+}
+
 void RunState::setWorkflowId(const QString &id) {
     if (assign(workflowId_, id)) { emit workflowIdChanged(); }
 }

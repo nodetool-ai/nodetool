@@ -1,0 +1,88 @@
+{
+  "events": [
+    {
+      "type": "message",
+      "id": "11111111111111111111111111111111",
+      "role": "assistant",
+      "content": "Here is `asset://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa` and <b>bold</b><script>alert(1)</script>.\n\n$$\n\\frac{1}{2}\n$$\n\n![Chart](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAACFklEQVR4nO3ChREYBAAEwS/nu8JdEtyCBnd3wuEOIcHd3a0e+vi5nU1PwJ6Znog9Mz0Je2Z6MvbM9BTsmemp2DPT07Bnpqdjz0zPwJ6Znok9Mz0Le2Z6NvbM9Bzsmem52DPT87Bnpudjz0wPYM9MD2LPTC/AnpleiD0zvQh7Znox9sz0EuyZ6aXYM9PLsGeml2PPTK/AnpleiT0zvQp7ZnoIe2Z6NfbM9Brsmem12DPT67Bnptdjz0xvwJ6ZHsaemd6IPTO9CXtmejP2zPQW7Jnprdgz09uwZ6a3Y89M78Cemd6JPTO9C3tmejf2zPQe7Jnpvdgz0/uwZ6b3Y89MH8CemT6IPTN9CHtm+jD2zPQR7Jnpo9gz08ewZ6aPY89Mn8CemT6JPTN9CntmegR7Zvo09swU7JnpM9gz02exZ6bPYc9Mn8eemb6APTN9EXtm+hL2zPRl7JnpK9gz01exZ6avYc9MX8eemb6BPTN9E3tm+hb2zPQo9sz0beyZ6THsmelx7JnpO9gz03exZ6bvYc9M38eemX6APTP9EHtm+hH2zPRj7JnpJ9gz00+xZ6afYc9MP8eemX6BPTP9Entm+hX2zPRr7JnpN9gz02+xZ6bfYc9Mv8eemf6APTP9EXtm+hP2zPRn7JnpL9gz01+xZ6a/Yc9Mf8eemf6BPTP9E3tm+hf2zPRv7JnpP9gz03+xZ6b/Yc/8Hw9M0laTwhzkAAAAAElFTkSuQmCC)\n\n```python\ndef area(r):\n    return 3.14 * r ** 2\n```\n"
+    },
+    {
+      "type": "tool_call_update",
+      "tool_call_id": "dddddddddddddddddddddddddddddddd",
+      "name": "web_search",
+      "args": {
+        "query": "nodetool"
+      }
+    },
+    {
+      "type": "tool_result_update",
+      "tool_call_id": "dddddddddddddddddddddddddddddddd",
+      "name": "web_search",
+      "result": {
+        "results": [
+          {
+            "title": "NodeTool",
+            "url": "https://nodetool.ai",
+            "snippet": "Visual AI workflows"
+          },
+          {
+            "title": "Docs",
+            "link": "https://docs.nodetool.ai/start",
+            "description": "Getting started"
+          }
+        ]
+      }
+    },
+    {
+      "type": "tool_call_update",
+      "tool_call_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "name": "generate_batch",
+      "args": {
+        "requests": 2
+      }
+    },
+    {
+      "type": "generation_batch_update",
+      "tool_call_id": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "concurrency": 1,
+      "items": [
+        {
+          "label": "Fox",
+          "status": "completed",
+          "estimate_seconds": 10,
+          "started_at": 1000,
+          "finished_at": 7000,
+          "provider": "fal",
+          "model": "flux"
+        },
+        {
+          "label": "Owl",
+          "status": "queued",
+          "estimate_seconds": 20,
+          "prompt": "An owl at night"
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "id": "22222222222222222222222222222222",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "image_url",
+          "image": {
+            "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAACFklEQVR4nO3ChREYBAAEwS/nu8JdEtyCBnd3wuEOIcHd3a0e+vi5nU1PwJ6Znog9Mz0Je2Z6MvbM9BTsmemp2DPT07Bnpqdjz0zPwJ6Znok9Mz0Le2Z6NvbM9Bzsmem52DPT87Bnpudjz0wPYM9MD2LPTC/AnpleiD0zvQh7Znox9sz0EuyZ6aXYM9PLsGeml2PPTK/AnpleiT0zvQp7ZnoIe2Z6NfbM9Brsmem12DPT67Bnptdjz0xvwJ6ZHsaemd6IPTO9CXtmejP2zPQW7Jnprdgz09uwZ6a3Y89M78Cemd6JPTO9C3tmejf2zPQe7Jnpvdgz0/uwZ6b3Y89MH8CemT6IPTN9CHtm+jD2zPQR7Jnpo9gz08ewZ6aPY89Mn8CemT6JPTN9CntmegR7Zvo09swU7JnpM9gz02exZ6bPYc9Mn8eemb6APTN9EXtm+hL2zPRl7JnpK9gz01exZ6avYc9MX8eemb6BPTN9E3tm+hb2zPQo9sz0beyZ6THsmelx7JnpO9gz03exZ6bvYc9M38eemX6APTP9EHtm+hH2zPRj7JnpJ9gz00+xZ6afYc9MP8eemX6BPTP9Entm+hX2zPRr7JnpN9gz02+xZ6bfYc9Mv8eemf6APTP9EXtm+hP2zPRn7JnpL9gz01+xZ6a/Yc9Mf8eemf6BPTP9E3tm+hf2zPRv7JnpP9gz03+xZ6b/Yc/8Hw9M0laTwhzkAAAAAElFTkSuQmCC",
+            "name": "First"
+          }
+        },
+        {
+          "type": "image_url",
+          "image": {
+            "uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPAAAAB4CAIAAABD1OhwAAACFklEQVR4nO3ChREYBAAEwS/nu8JdEtyCBnd3wuEOIcHd3a0e+vi5nU1PwJ6Znog9Mz0Je2Z6MvbM9BTsmemp2DPT07Bnpqdjz0zPwJ6Znok9Mz0Le2Z6NvbM9Bzsmem52DPT87Bnpudjz0wPYM9MD2LPTC/AnpleiD0zvQh7Znox9sz0EuyZ6aXYM9PLsGeml2PPTK/AnpleiT0zvQp7ZnoIe2Z6NfbM9Brsmem12DPT67Bnptdjz0xvwJ6ZHsaemd6IPTO9CXtmejP2zPQW7Jnprdgz09uwZ6a3Y89M78Cemd6JPTO9C3tmejf2zPQe7Jnpvdgz0/uwZ6b3Y89MH8CemT6IPTN9CHtm+jD2zPQR7Jnpo9gz08ewZ6aPY89Mn8CemT6JPTN9CntmegR7Zvo09swU7JnpM9gz02exZ6bPYc9Mn8eemb6APTN9EXtm+hL2zPRl7JnpK9gz01exZ6avYc9MX8eemb6BPTN9E3tm+hb2zPQo9sz0beyZ6THsmelx7JnpO9gz03exZ6bvYc9M38eemX6APTP9EHtm+hH2zPRj7JnpJ9gz00+xZ6afYc9MP8eemX6BPTP9Entm+hX2zPRr7JnpN9gz02+xZ6bfYc9Mv8eemf6APTP9EXtm+hP2zPRn7JnpL9gz01+xZ6a/Yc9Mf8eemf6BPTP9E3tm+hf2zPRv7JnpP9gz03+xZ6b/Yc/8Hw9M0laTwhzkAAAAAElFTkSuQmCC",
+            "name": "Second"
+          }
+        }
+      ]
+    }
+  ]
+}

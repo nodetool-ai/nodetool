@@ -2,18 +2,26 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { initTestDb, OAuthCredential } from "@nodetool-ai/models";
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from "vitest";
+import { exportJWK, generateKeyPair, SignJWT, type JWK } from "jose";
+import {
+  initTestDb,
+  OAuthCredential,
+  resetChatGptDiscoveryForTests
+} from "@nodetool-ai/models";
 import {
   generatePkcePair,
   generateState,
   oauthStateStore,
   handleOAuthRequest,
-  closeActiveCodexCallbackServer,
+  closeActiveChatGptCallbackServer,
   closeActiveClaudeLogin,
-  parseCodexRedirect,
-  pendingCodexLogins
+  pendingChatGptLogins
 } from "../src/oauth-api.js";
+import {
+  parseChatGptRedirect,
+  resetChatGptHostIdForTests
+} from "../src/chatgpt-signin.js";
 
 function getUserId(): string {
   return "test-user-1";
@@ -287,198 +295,339 @@ describe("OAuth API: GitHub endpoints", () => {
   });
 });
 
-describe("parseCodexRedirect", () => {
-  it("reads code and state from the whole redirect address", () => {
+const DISCOVERY = {
+  issuer: "https://auth.openai.com",
+  authorization_endpoint: "https://auth.openai.com/oauth/authorize",
+  token_endpoint: "https://auth.openai.com/oauth/token",
+  revocation_endpoint: "https://auth.openai.com/oauth/revoke",
+  jwks_uri: "https://auth.openai.com/.well-known/jwks.json"
+};
+const FULL_SCOPE =
+  "openid profile email offline_access resource.invoke chatgpt.tokens.use.direct";
+const ISSUED_CLIENT_ID = "oaiapp_test123";
+
+let signingKey: CryptoKey;
+let publicJwk: JWK;
+
+beforeAll(async () => {
+  const pair = await generateKeyPair("RS256", { extractable: true });
+  signingKey = pair.privateKey;
+  publicJwk = { ...(await exportJWK(pair.publicKey)), kid: "test-key", alg: "RS256", use: "sig" };
+});
+
+function signIdToken(claims: {
+  clientId?: string;
+  nonce: string;
+  sub?: string;
+  issuer?: string;
+}): Promise<string> {
+  return new SignJWT({ nonce: claims.nonce, email: "me@example.com" })
+    .setProtectedHeader({ alg: "RS256", kid: "test-key" })
+    .setIssuer(claims.issuer ?? "https://auth.openai.com")
+    .setAudience(claims.clientId ?? ISSUED_CLIENT_ID)
+    .setSubject(claims.sub ?? "user-sub-1")
+    .setIssuedAt()
+    .setExpirationTime("1h")
+    .sign(signingKey);
+}
+
+interface OpenAIMock {
+  tokenBodies: URLSearchParams[];
+  revokeBodies: URLSearchParams[];
+}
+
+/** Serve discovery, the JWKS, the token and revocation endpoints. */
+function mockOpenAIAuth(tokenResponse: (body: URLSearchParams) => Promise<Response> | Response): OpenAIMock {
+  const mock: OpenAIMock = { tokenBodies: [], revokeBodies: [] };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.endsWith("/.well-known/openid-configuration")) {
+        return Response.json(DISCOVERY);
+      }
+      if (url === DISCOVERY.jwks_uri) {
+        return Response.json({ keys: [publicJwk] });
+      }
+      const body = new URLSearchParams(String(init?.body ?? ""));
+      if (url === DISCOVERY.token_endpoint) {
+        mock.tokenBodies.push(body);
+        return tokenResponse(body);
+      }
+      if (url === DISCOVERY.revocation_endpoint) {
+        mock.revokeBodies.push(body);
+        return new Response(null, { status: 200 });
+      }
+      return new Response("unexpected", { status: 500 });
+    })
+  );
+  return mock;
+}
+
+/** A token endpoint answering with a signed ID token for the login's nonce. */
+function tokenEndpoint(opts: { nonce: () => string; scope?: string; clientId?: string }) {
+  return async () =>
+    Response.json({
+      access_token: "chatgpt-access",
+      refresh_token: "chatgpt-refresh",
+      id_token: await signIdToken({ nonce: opts.nonce(), clientId: opts.clientId }),
+      token_type: "Bearer",
+      expires_in: 3600,
+      scope: opts.scope ?? FULL_SCOPE
+    });
+}
+
+async function startLogin(url = "http://api.example.com/api/oauth/openai/start", userId = getUserId) {
+  const response = await handleOAuthRequest(new Request(url), "/api/oauth/openai/start", userId);
+  expect(response!.status).toBe(200);
+  const body = (await jsonBody(response!)) as { auth_url: string; manual: boolean; redirect_uri: string };
+  const params = new URL(body.auth_url).searchParams;
+  return { body, params, state: params.get("state")!, nonce: params.get("nonce")! };
+}
+
+function completeLogin(address: string, userId = getUserId) {
+  return handleOAuthRequest(
+    new Request("http://api.example.com/api/oauth/openai/complete", {
+      method: "POST",
+      body: JSON.stringify({ code: address })
+    }),
+    "/api/oauth/openai/complete",
+    userId
+  );
+}
+
+async function listTokens(): Promise<Array<{ account_id: string }>> {
+  const response = await handleOAuthRequest(
+    new Request("http://localhost:7777/api/oauth/openai/tokens"),
+    "/api/oauth/openai/tokens",
+    getUserId
+  );
+  return ((await jsonBody(response!)) as { tokens: Array<{ account_id: string }> }).tokens;
+}
+
+describe("parseChatGptRedirect", () => {
+  it("reads code, state and the issued client id from the whole redirect address", () => {
     expect(
-      parseCodexRedirect(
-        "http://localhost:1455/auth/callback?code=ac_abc&scope=openid+profile&state=st_xyz"
+      parseChatGptRedirect(
+        "http://127.0.0.1:1455/auth/callback?code=ac_abc&state=st_xyz&client_id=oaiapp_1"
       )
-    ).toEqual({ code: "ac_abc", state: "st_xyz" });
+    ).toEqual({ code: "ac_abc", state: "st_xyz", clientId: "oaiapp_1" });
   });
 
   it("accepts a bare query string and ignores a fragment", () => {
-    expect(parseCodexRedirect("  ?code=ac_abc&state=st_xyz#done  ")).toEqual({
+    expect(parseChatGptRedirect("  ?code=ac_abc&state=st_xyz#done  ")).toEqual({
       code: "ac_abc",
-      state: "st_xyz"
+      state: "st_xyz",
+      clientId: null
     });
   });
 
   it("surfaces the provider's own refusal", () => {
     expect(() =>
-      parseCodexRedirect(
-        "http://localhost:1455/auth/callback?error=access_denied&error_description=User+said+no"
+      parseChatGptRedirect(
+        "http://127.0.0.1:1455/auth/callback?error=server_error&error_description=Try+later"
       )
-    ).toThrow("User said no");
+    ).toThrow("Try later");
+    expect(() =>
+      parseChatGptRedirect("http://127.0.0.1:1455/auth/callback?error=access_denied&state=s")
+    ).toThrow("cancelled");
   });
 
   it("refuses a code with no state to check it against", () => {
     expect(() =>
-      parseCodexRedirect("http://localhost:1455/auth/callback?code=ac_abc")
+      parseChatGptRedirect("http://127.0.0.1:1455/auth/callback?code=ac_abc")
     ).toThrow(/whole address/);
-    expect(() => parseCodexRedirect("ac_abc")).toThrow(/whole address/);
+    expect(() => parseChatGptRedirect("ac_abc")).toThrow(/whole address/);
   });
 });
 
-describe("OAuth API: OpenAI (Codex) endpoints", () => {
-  beforeEach(() => {
+describe("OAuth API: OpenAI (Sign in with ChatGPT) endpoints", () => {
+  let dataHome: string;
+
+  beforeEach(async () => {
     initTestDb();
     oauthStateStore.clear();
-    pendingCodexLogins.clear();
+    pendingChatGptLogins.clear();
+    resetChatGptDiscoveryForTests();
+    resetChatGptHostIdForTests();
+    dataHome = await mkdtemp(join(tmpdir(), "nodetool-chatgpt-"));
+    vi.stubEnv("XDG_DATA_HOME", dataHome);
+    vi.stubEnv("APPDATA", dataHome);
   });
 
   afterEach(async () => {
-    await closeActiveCodexCallbackServer();
+    await closeActiveChatGptCallbackServer();
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
+    await rm(dataHome, { recursive: true, force: true });
   });
 
-  it("GET /api/oauth/openai/start returns a Codex PKCE auth_url", async () => {
-    const response = await handleOAuthRequest(
-      new Request("http://localhost:7777/api/oauth/openai/start", {
-        headers: { host: "localhost:7777" }
-      }),
-      "/api/oauth/openai/start",
-      getUserId
-    );
+  it("GET /api/oauth/openai/start registers the app on a first sign-in", async () => {
+    mockOpenAIAuth(() => new Response(null, { status: 500 }));
+    const { body, params } = await startLogin("http://localhost:7777/api/oauth/openai/start");
 
-    expect(response).not.toBeNull();
-    expect(response!.status).toBe(200);
-    const body = (await jsonBody(response!)) as { auth_url: string };
-    expect(body.auth_url).toContain("https://auth.openai.com/oauth/authorize");
-    // The published, secret-less Codex CLI client.
-    expect(body.auth_url).toContain(
-      "client_id=app_EMoamEEZ73f0CkXaXp7hrann"
-    );
-    expect(body.auth_url).toContain("code_challenge=");
-    expect(body.auth_url).toContain("code_challenge_method=S256");
-    expect(body.auth_url).toContain("state=");
-    // Codex's pre-registered loopback redirect — not a server route.
-    expect(body.auth_url).toContain(
-      "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
-    );
-    // Codex-specific authorization params.
-    expect(body.auth_url).toContain("codex_cli_simplified_flow=true");
-    expect(body.auth_url).toContain("id_token_add_organizations=true");
+    expect(body.auth_url.startsWith(`${DISCOVERY.authorization_endpoint}?`)).toBe(true);
+    expect(params.get("client_id")).toBe("dynamic_agent_client");
+    expect(params.get("agent_name_hint")).toBe("NodeTool");
+    expect(params.get("ext_agent_host_id")).toMatch(/^urn:uuid:[0-9a-f-]{36}$/);
+    expect(params.get("scope")).toBe(FULL_SCOPE);
+    expect(params.get("resource")).toBe("https://api.openai.com/v1");
+    expect(params.get("response_type")).toBe("code");
+    expect(params.get("code_challenge_method")).toBe("S256");
+    expect(params.get("code_challenge")).toBeTruthy();
+    expect(params.get("nonce")).toBeTruthy();
+    expect(params.get("prompt")).toBeNull();
+    // A loopback listener on the literal 127.0.0.1, never localhost.
+    expect(body.manual).toBe(false);
+    expect(params.get("redirect_uri")).toMatch(/^http:\/\/127\.0\.0\.1:\d+\/auth\/callback$/);
+    expect(body.redirect_uri).toBe(params.get("redirect_uri"));
+  });
+
+  it("keeps the host id across sign-ins", async () => {
+    mockOpenAIAuth(() => new Response(null, { status: 500 }));
+    const first = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
+    resetChatGptHostIdForTests();
+    const second = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
+    expect(second.params.get("ext_agent_host_id")).toBe(first.params.get("ext_agent_host_id"));
   });
 
   it("GET /api/oauth/openai/start binds no listener on a shared server", async () => {
-    // A shared server's users browse from elsewhere, so localhost:1455 is
+    // A shared server's users browse from elsewhere, so 127.0.0.1:1455 is
     // theirs, not ours — binding it here would only swallow the port.
     vi.stubEnv("SUPABASE_URL", "https://project.supabase.co");
     vi.stubEnv("SUPABASE_KEY", "service-key");
+    mockOpenAIAuth(() => new Response(null, { status: 500 }));
 
-    const response = await handleOAuthRequest(
-      new Request("http://api.example.com/api/oauth/openai/start"),
-      "/api/oauth/openai/start",
-      getUserId
-    );
-
-    expect(response!.status).toBe(200);
-    const body = (await jsonBody(response!)) as {
-      auth_url: string;
-      manual: boolean;
-      redirect_uri: string;
-    };
+    const { body } = await startLogin();
     expect(body.manual).toBe(true);
-    expect(body.redirect_uri).toBe("http://localhost:1455/auth/callback");
-    expect(pendingCodexLogins.size).toBe(1);
+    expect(body.redirect_uri).toBe("http://127.0.0.1:1455/auth/callback");
+    expect(pendingChatGptLogins.size).toBe(1);
 
     // Nothing is listening, so the port is free to bind.
     const probe = createServer();
     await new Promise<void>((resolve, reject) => {
       probe.once("error", reject);
-      probe.listen(1455, "localhost", resolve);
+      probe.listen(1455, "127.0.0.1", resolve);
     });
     await new Promise<void>((resolve) => probe.close(() => resolve()));
   });
 
   it("GET /api/oauth/openai/start?manual=true skips the listener too", async () => {
-    const response = await handleOAuthRequest(
-      new Request("http://localhost:7777/api/oauth/openai/start?manual=true"),
-      "/api/oauth/openai/start",
-      getUserId
-    );
-
-    const body = (await jsonBody(response!)) as { manual: boolean };
+    mockOpenAIAuth(() => new Response(null, { status: 500 }));
+    const { body } = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
     expect(body.manual).toBe(true);
   });
 
-  it("POST /api/oauth/openai/complete exchanges a pasted redirect address", async () => {
-    vi.stubEnv("SUPABASE_URL", "https://project.supabase.co");
-    vi.stubEnv("SUPABASE_KEY", "service-key");
+  it("POST /api/oauth/openai/complete exchanges the code with the issued client id and stores the verified identity", async () => {
+    let nonce = "";
+    const mock = mockOpenAIAuth(tokenEndpoint({ nonce: () => nonce }));
+    const started = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
+    nonce = started.nonce;
 
-    await handleOAuthRequest(
-      new Request("http://api.example.com/api/oauth/openai/start"),
-      "/api/oauth/openai/start",
-      getUserId
+    const response = await completeLogin(
+      `http://127.0.0.1:1455/auth/callback?code=ac_test&state=${started.state}&client_id=${ISSUED_CLIENT_ID}`
     );
-    const [state] = [...pendingCodexLogins.keys()];
-
-    const fetchMock = vi.fn(async (input: string | URL | Request) => {
-      const url = typeof input === "string" ? input : input.toString();
-      if (url.includes("/oauth/token")) {
-        return new Response(
-          JSON.stringify({
-            access_token: "codex-access",
-            refresh_token: "codex-refresh",
-            token_type: "Bearer",
-            expires_in: 3600
-          }),
-          { headers: { "content-type": "application/json" } }
-        );
-      }
-      // userinfo is best-effort; refusing it must not fail the login.
-      return new Response("nope", { status: 500 });
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    const response = await handleOAuthRequest(
-      new Request("http://api.example.com/api/oauth/openai/complete", {
-        method: "POST",
-        body: JSON.stringify({
-          code: `http://localhost:1455/auth/callback?code=ac_test&state=${state}`
-        })
-      }),
-      "/api/oauth/openai/complete",
-      getUserId
-    );
-
-    expect(response!.status).toBe(200);
     expect(await jsonBody(response!)).toEqual({ success: true });
+    expect(response!.status).toBe(200);
     // The code is single-use; the pending login must not survive it.
-    expect(pendingCodexLogins.size).toBe(0);
+    expect(pendingChatGptLogins.size).toBe(0);
 
-    const stored = await OAuthCredential.listForUserAndProvider(
-      "test-user-1",
-      "openai"
-    );
+    expect(mock.tokenBodies).toHaveLength(1);
+    expect(Object.fromEntries(mock.tokenBodies[0])).toEqual({
+      grant_type: "authorization_code",
+      client_id: ISSUED_CLIENT_ID,
+      code: "ac_test",
+      code_verifier: expect.any(String),
+      redirect_uri: "http://127.0.0.1:1455/auth/callback",
+      resource: "https://api.openai.com/v1"
+    });
+
+    const stored = await OAuthCredential.listForUserAndProvider("test-user-1", "openai_chatgpt");
     expect(stored).toHaveLength(1);
-    expect(await stored[0].getDecryptedAccessToken()).toBe("codex-access");
+    expect(stored[0].account_id).toBe(`${ISSUED_CLIENT_ID}:user-sub-1`);
+    expect(stored[0].username).toBe("me@example.com");
+    expect(stored[0].scope).toBe(FULL_SCOPE);
+    expect(await stored[0].getDecryptedAccessToken()).toBe("chatgpt-access");
+    expect(await listTokens()).toHaveLength(1);
+  });
 
-    const tokenCall = fetchMock.mock.calls.find(([url]) =>
-      String(url).includes("/oauth/token")
+  it("signs a returning account in with its saved client id", async () => {
+    let nonce = "";
+    mockOpenAIAuth(tokenEndpoint({ nonce: () => nonce }));
+    const first = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
+    nonce = first.nonce;
+    await completeLogin(
+      `http://127.0.0.1:1455/auth/callback?code=ac_1&state=${first.state}&client_id=${ISSUED_CLIENT_ID}`
     );
-    const sentBody = String(
-      (tokenCall?.[1] as { body?: unknown } | undefined)?.body ?? ""
+
+    const second = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
+    expect(second.params.get("client_id")).toBe(ISSUED_CLIENT_ID);
+    expect(second.params.get("agent_name_hint")).toBeNull();
+    expect(second.params.get("login_hint")).toBe("me@example.com");
+
+    // A callback naming another registration is refused.
+    const response = await completeLogin(
+      `http://127.0.0.1:1455/auth/callback?code=ac_2&state=${second.state}&client_id=oaiapp_other`
     );
-    expect(sentBody).toContain("code=ac_test");
-    expect(sentBody).toContain(
-      "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
+    expect(response!.status).toBe(400);
+    expect(((await jsonBody(response!)) as { detail: string }).detail).toContain(
+      "different app registration"
     );
   });
 
-  it("POST /api/oauth/openai/complete rejects an unknown state", async () => {
-    const response = await handleOAuthRequest(
-      new Request("http://api.example.com/api/oauth/openai/complete", {
-        method: "POST",
-        body: JSON.stringify({
-          code: "http://localhost:1455/auth/callback?code=ac_test&state=nope"
-        })
-      }),
-      "/api/oauth/openai/complete",
-      getUserId
+  it("refuses a first sign-in whose callback carries no issued client id", async () => {
+    let nonce = "";
+    const mock = mockOpenAIAuth(tokenEndpoint({ nonce: () => nonce }));
+    const started = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
+    nonce = started.nonce;
+    const response = await completeLogin(
+      `http://127.0.0.1:1455/auth/callback?code=ac_test&state=${started.state}`
     );
+    expect(response!.status).toBe(400);
+    expect(((await jsonBody(response!)) as { detail: string }).detail).toContain(
+      "did not complete the app registration"
+    );
+    expect(mock.tokenBodies).toHaveLength(0);
+  });
 
+  it("refuses an ID token minted for another login", async () => {
+    mockOpenAIAuth(tokenEndpoint({ nonce: () => "someone-elses-nonce" }));
+    const started = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
+    const response = await completeLogin(
+      `http://127.0.0.1:1455/auth/callback?code=ac_test&state=${started.state}&client_id=${ISSUED_CLIENT_ID}`
+    );
+    expect(response!.status).toBe(400);
+    expect(((await jsonBody(response!)) as { detail: string }).detail).toContain(
+      "could not be verified"
+    );
+    expect(await OAuthCredential.listForUserAndProvider("test-user-1", "openai_chatgpt")).toHaveLength(0);
+  });
+
+  it("reports a sign-in without plan usage and asks for consent next time", async () => {
+    let nonce = "";
+    mockOpenAIAuth(
+      tokenEndpoint({ nonce: () => nonce, scope: "openid profile email offline_access" })
+    );
+    const started = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
+    nonce = started.nonce;
+    const response = await completeLogin(
+      `http://127.0.0.1:1455/auth/callback?code=ac_test&state=${started.state}&client_id=${ISSUED_CLIENT_ID}`
+    );
+    expect(response!.status).toBe(400);
+    expect(((await jsonBody(response!)) as { detail: string }).detail).toContain(
+      "allow plan usage"
+    );
+    expect(await listTokens()).toEqual([]);
+
+    const retry = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
+    expect(retry.params.get("client_id")).toBe(ISSUED_CLIENT_ID);
+    expect(retry.params.get("prompt")).toBe("consent");
+  });
+
+  it("POST /api/oauth/openai/complete rejects an unknown state", async () => {
+    const response = await completeLogin(
+      "http://127.0.0.1:1455/auth/callback?code=ac_test&state=nope"
+    );
     expect(response!.status).toBe(400);
     expect((await jsonBody(response!)) as { detail: string }).toMatchObject({
       detail: expect.stringContaining("expired or was never started")
@@ -486,39 +635,20 @@ describe("OAuth API: OpenAI (Codex) endpoints", () => {
   });
 
   it("POST /api/oauth/openai/complete rejects another user's state", async () => {
-    await handleOAuthRequest(
-      new Request("http://localhost:7777/api/oauth/openai/start?manual=true"),
-      "/api/oauth/openai/start",
-      getUserId
-    );
-    const [state] = [...pendingCodexLogins.keys()];
+    mockOpenAIAuth(() => new Response(null, { status: 500 }));
+    const { state } = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
 
-    const response = await handleOAuthRequest(
-      new Request("http://api.example.com/api/oauth/openai/complete", {
-        method: "POST",
-        body: JSON.stringify({
-          code: `http://localhost:1455/auth/callback?code=ac_test&state=${state}`
-        })
-      }),
-      "/api/oauth/openai/complete",
+    const response = await completeLogin(
+      `http://127.0.0.1:1455/auth/callback?code=ac_test&state=${state}`,
       () => "someone-else"
     );
-
     expect(response!.status).toBe(400);
     // The other user's login is still theirs to finish.
-    expect(pendingCodexLogins.has(state)).toBe(true);
+    expect(pendingChatGptLogins.has(state)).toBe(true);
   });
 
   it("POST /api/oauth/openai/complete rejects a code with no state", async () => {
-    const response = await handleOAuthRequest(
-      new Request("http://api.example.com/api/oauth/openai/complete", {
-        method: "POST",
-        body: JSON.stringify({ code: "ac_just_the_code" })
-      }),
-      "/api/oauth/openai/complete",
-      getUserId
-    );
-
+    const response = await completeLogin("ac_just_the_code");
     expect(response!.status).toBe(400);
     expect((await jsonBody(response!)) as { detail: string }).toMatchObject({
       detail: expect.stringContaining("whole address")
@@ -526,54 +656,66 @@ describe("OAuth API: OpenAI (Codex) endpoints", () => {
   });
 
   it("GET /api/oauth/openai/tokens returns empty list initially", async () => {
-    const response = await handleOAuthRequest(
-      new Request("http://localhost:7777/api/oauth/openai/tokens"),
-      "/api/oauth/openai/tokens",
-      getUserId
-    );
-
-    expect(response!.status).toBe(200);
-    const body = (await jsonBody(response!)) as { tokens: unknown[] };
-    expect(body.tokens).toEqual([]);
+    expect(await listTokens()).toEqual([]);
   });
 
-  it("POST /api/oauth/openai/disconnect removes stored credentials", async () => {
-    const now = new Date().toISOString();
+  it("does not list a credential from the earlier Codex CLI login", async () => {
     await OAuthCredential.upsert({
       user_id: "test-user-1",
       provider: "openai",
       account_id: "acc-openai",
-      access_token: "openai-access",
-      refresh_token: "openai-refresh",
+      access_token: "codex-cli-access",
+      refresh_token: "codex-cli-refresh",
+      token_type: "Bearer",
+      received_at: new Date().toISOString()
+    });
+    expect(await listTokens()).toEqual([]);
+  });
+
+  it("POST /api/oauth/openai/disconnect revokes and clears tokens but keeps the registration", async () => {
+    const now = new Date().toISOString();
+    await OAuthCredential.upsert({
+      user_id: "test-user-1",
+      provider: "openai_chatgpt",
+      account_id: `${ISSUED_CLIENT_ID}:user-sub-1`,
+      access_token: "chatgpt-access",
+      refresh_token: "chatgpt-refresh",
+      username: "me@example.com",
+      token_type: "Bearer",
+      scope: FULL_SCOPE,
+      received_at: now
+    });
+    await OAuthCredential.upsert({
+      user_id: "test-user-1",
+      provider: "openai",
+      account_id: "acc-openai",
+      access_token: "codex-cli-access",
       token_type: "Bearer",
       received_at: now
     });
-
-    const before = await handleOAuthRequest(
-      new Request("http://localhost:7777/api/oauth/openai/tokens"),
-      "/api/oauth/openai/tokens",
-      getUserId
-    );
-    expect(((await jsonBody(before!)) as { tokens: unknown[] }).tokens).toHaveLength(1);
+    expect(await listTokens()).toHaveLength(1);
+    const mock = mockOpenAIAuth(() => new Response(null, { status: 500 }));
 
     const disconnect = await handleOAuthRequest(
-      new Request("http://localhost:7777/api/oauth/openai/disconnect", {
-        method: "POST"
-      }),
+      new Request("http://localhost:7777/api/oauth/openai/disconnect", { method: "POST" }),
       "/api/oauth/openai/disconnect",
       getUserId
     );
     expect(disconnect!.status).toBe(200);
-    const body = (await jsonBody(disconnect!)) as { success: boolean; removed: number };
-    expect(body.success).toBe(true);
-    expect(body.removed).toBe(1);
+    expect(await jsonBody(disconnect!)).toEqual({ success: true, removed: 2 });
+    expect(mock.revokeBodies.map((b) => Object.fromEntries(b))).toEqual([
+      {
+        token: "chatgpt-refresh",
+        token_type_hint: "refresh_token",
+        client_id: ISSUED_CLIENT_ID
+      }
+    ]);
 
-    const after = await handleOAuthRequest(
-      new Request("http://localhost:7777/api/oauth/openai/tokens"),
-      "/api/oauth/openai/tokens",
-      getUserId
-    );
-    expect(((await jsonBody(after!)) as { tokens: unknown[] }).tokens).toEqual([]);
+    expect(await listTokens()).toEqual([]);
+    expect(await OAuthCredential.listForUserAndProvider("test-user-1", "openai")).toHaveLength(0);
+    // The next sign-in reuses the registration instead of registering again.
+    const next = await startLogin("http://localhost:7777/api/oauth/openai/start?manual=true");
+    expect(next.params.get("client_id")).toBe(ISSUED_CLIENT_ID);
   });
 
   it("rejects a GET to the disconnect endpoint", async () => {

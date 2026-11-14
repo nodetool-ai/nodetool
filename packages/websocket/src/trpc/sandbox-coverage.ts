@@ -717,6 +717,16 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "find_model resolves a model by capability; list_models and " +
       "list_provider_models enumerate the catalogs."
   },
+  "models.model3d": {
+    gap:
+      "find_model and list_provider_models do not list 3D generation " +
+      "models yet. Not a security limit: the catalog is public provider data."
+  },
+  "models.model3dByProvider": {
+    gap:
+      "find_model and list_provider_models do not list 3D generation " +
+      "models yet. Not a security limit: the catalog is public provider data."
+  },
   "models.music": {
     elsewhere:
       "find_model resolves a model by capability; list_models and " +

@@ -234,7 +234,7 @@ private slots:
     void defaultsAndVisibility() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(QTest::qWaitForWindowExposed(&e.window));
         e.gestures()->setSelection({"text"}); QCoreApplication::processEvents();
-        auto* s = findItem(e.inspector(),"inspectorText"); QVERIFY(s); QVERIFY(!s->property("open").toBool()); s->setProperty("open",true);
+        auto* s = findItem(e.inspector(),"inspectorText"); QVERIFY(s); QVERIFY(s->property("open").toBool());  // A text clip opens on its style
         QCOMPARE(findItem(s,"textWeight")->property("value").toString(),QString("400"));
         QCOMPARE(findItem(s,"textStyle")->property("value").toString(),QString("normal"));
         QCOMPARE(findItem(s,"textAlign")->property("value").toString(),QString("center"));

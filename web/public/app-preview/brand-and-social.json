@@ -865,7 +865,7 @@
               },
               "zIndex": 0,
               "width": 300,
-              "title": "1️⃣ Website",
+              "title": "1 Website",
               "selectable": true,
               "bypassed": false
             },
@@ -1018,7 +1018,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "1️⃣ Brand name"
+              "title": "1 Brand name"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1040,7 +1040,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "2️⃣ Brand vibe"
+              "title": "2 Brand vibe"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1062,7 +1062,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "3️⃣ Tagline"
+              "title": "3 Tagline"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1087,7 +1087,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "4️⃣ Brand color"
+              "title": "4 Brand color"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -1145,7 +1145,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "1️⃣ Video topic",
+              "title": "1 Video topic",
               "selectable": true,
               "bypassed": false
             },
@@ -1168,7 +1168,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "2️⃣ Target audience",
+              "title": "2 Target audience",
               "selectable": true,
               "bypassed": false
             },
@@ -1193,7 +1193,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "3️⃣ How many hooks",
+              "title": "3 How many hooks",
               "selectable": true,
               "bypassed": false
             },
@@ -1214,7 +1214,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "🖼️ Thumbnail gallery",
+              "title": "Thumbnail gallery",
               "selectable": true,
               "bypassed": false
             },
@@ -1236,7 +1236,7 @@
               "zIndex": 0,
               "width": 360,
               "height": 300,
-              "title": "🪝 Hook ideas",
+              "title": "Hook ideas",
               "selectable": true,
               "bypassed": false
             },
@@ -1258,7 +1258,7 @@
               "zIndex": 0,
               "width": 360,
               "height": 320,
-              "title": "🖼️ Latest thumbnail",
+              "title": "Latest thumbnail",
               "selectable": true,
               "bypassed": false
             },

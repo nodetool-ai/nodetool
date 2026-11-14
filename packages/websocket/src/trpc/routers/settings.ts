@@ -89,6 +89,7 @@ async function toSecretResponse(
     created_at: safe.created_at as string | undefined,
     updated_at: safe.updated_at as string | undefined,
     is_configured: true,
+    source: "user",
     is_unreadable: isUnreadable
   };
   if (value !== undefined) {
@@ -114,13 +115,18 @@ const secretsRouter = router({
         if (configured) {
           return toSecretResponse(configured);
         }
-        return {
+        const fromServer = process.env[def.envVar] !== undefined;
+        const placeholder: SecretResponse = {
           key: def.envVar,
           user_id: ctx.userId,
           description: def.description ?? "",
-          is_configured: process.env[def.envVar] !== undefined,
+          is_configured: fromServer,
           is_unreadable: false
         };
+        if (fromServer) {
+          placeholder.source = "server";
+        }
+        return placeholder;
       })
     );
 

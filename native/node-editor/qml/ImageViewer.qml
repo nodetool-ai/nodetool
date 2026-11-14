@@ -90,23 +90,23 @@ Window {
             RowLayout {
                 Layout.fillWidth: true
                 Ui.Text { text: "Image viewer"; role: Ui.Typography.SansLabel; Layout.fillWidth: true }
-                NodeButton { objectName: "image-viewer-compare"; visible: root.items.length >= 2 && !root.comparing; text: "Compare"; accessibleName: "Compare with another image"; variant: NodeButton.Flat; onClicked: root.startCompare() }
-                NodeButton { objectName: "image-viewer-close"; text: "Close"; accessibleName: "Close image viewer"; onClicked: root.dismiss() }
+                Ui.EditorButton { objectName: "image-viewer-compare"; visible: root.items.length >= 2 && !root.comparing; text: "Compare"; accessibleName: "Compare with another image"; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.startCompare() }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "image-viewer-close"; text: "Close"; accessibleName: "Close image viewer"; onClicked: root.dismiss() }
             }
             RowLayout {
                 visible: root.comparing && !root.compared
                 Layout.fillWidth: true
                 spacing: Ui.Metrics.sm
                 Ui.Text { Layout.fillWidth: true; text: "Select another image to compare"; role: Ui.Typography.SansCaption; wrapMode: Text.Wrap }
-                NodeButton { objectName: "image-viewer-compare-pick"; text: "Compare with this image"; accessibleName: "Compare with this image"; enabled: root.selected.itemKey !== root.compareA.itemKey; onClicked: root.pickCompare() }
-                NodeButton { objectName: "image-viewer-compare-cancel"; text: "Cancel"; accessibleName: "Cancel image comparison"; variant: NodeButton.Flat; onClicked: root.cancelCompare() }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "image-viewer-compare-pick"; text: "Compare with this image"; accessibleName: "Compare with this image"; enabled: root.selected.itemKey !== root.compareA.itemKey; onClicked: root.pickCompare() }
+                Ui.EditorButton { objectName: "image-viewer-compare-cancel"; text: "Cancel"; accessibleName: "Cancel image comparison"; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.cancelCompare() }
             }
             RowLayout {
                 visible: root.compared
                 Layout.fillWidth: true
                 spacing: Ui.Metrics.sm
                 Item { Layout.fillWidth: true }
-                NodeButton { objectName: "image-viewer-compare-exit"; text: "Exit compare"; accessibleName: "Exit image comparison"; variant: NodeButton.Flat; onClicked: root.exitCompare() }
+                Ui.EditorButton { objectName: "image-viewer-compare-exit"; text: "Exit compare"; accessibleName: "Exit image comparison"; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.exitCompare() }
             }
             Loader {
                 id: comparisonView
@@ -148,9 +148,9 @@ Window {
             }
             RowLayout {
                 Layout.fillWidth: true
-                NodeButton { objectName: "image-viewer-previous"; text: "Previous"; accessibleName: "Previous image"; enabled: !root.compared && root.currentIndex > 0; onClicked: root.step(-1) }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "image-viewer-previous"; text: "Previous"; accessibleName: "Previous image"; enabled: !root.compared && root.currentIndex > 0; onClicked: root.step(-1) }
                 Ui.Text { objectName: "image-viewer-position"; Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; text: (root.currentIndex + 1) + " / " + root.items.length; role: Ui.Typography.MonoCaption }
-                NodeButton { objectName: "image-viewer-next"; text: "Next"; accessibleName: "Next image"; enabled: !root.compared && root.currentIndex + 1 < root.items.length; onClicked: root.step(1) }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "image-viewer-next"; text: "Next"; accessibleName: "Next image"; enabled: !root.compared && root.currentIndex + 1 < root.items.length; onClicked: root.step(1) }
             }
         }
     }

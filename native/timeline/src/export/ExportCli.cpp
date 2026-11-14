@@ -52,13 +52,14 @@ int exportCli(int argc, char** argv) {
         {QStringLiteral("cancel-file"), "Cancel when this file exists", "PATH"},
         {QStringLiteral("video-encoder"), "Override video encoder for diagnostics", "NAME"},
         {QStringLiteral("audio-encoder"), "Override audio encoder for diagnostics", "NAME"},
+        {QStringLiteral("replace"), "Replace an existing file at OUT once the export succeeds"},
         {QStringLiteral("json"), "Print the JSON result"}
     });
     parser.process(app);
     nt::setDecodeMode(nt::DecodeMode::Software);
     nt::hw::selectGraphicsApi(false);
     if (parser.positionalArguments().size() != 1) {
-        std::fprintf(stderr, "usage: nodetool-timeline <timeline.json> --export OUT [--format mp4|webm|png_sequence|wav|mp3] [--start-ms MS] [--end-ms MS] [--width PX] [--height PX] [--fps FPS] [--video-bitrate KBPS] [--scale-mode fit|fill]\n");
+        std::fprintf(stderr, "usage: nodetool-timeline <timeline.json> --export OUT [--format mp4|webm|png_sequence|wav|mp3] [--start-ms MS] [--end-ms MS] [--width PX] [--height PX] [--fps FPS] [--video-bitrate KBPS] [--scale-mode fit|fill] [--replace]\n");
         return 2;
     }
     bool valid = true;
@@ -69,6 +70,7 @@ int exportCli(int argc, char** argv) {
     }
     Options options{parser.value("export"), parser.value("format"), parser.isSet("alpha"),
         parser.value("video-encoder"), parser.value("audio-encoder"), parser.value("staging-directory")};
+    options.replace = parser.isSet("replace");
     if (qEnvironmentVariable("NT_TEST_EXPORT_FP16") == u"1") {
         options.workingFormat = nt::WorkingFormat::Rgba16F;
     }

@@ -428,7 +428,7 @@ void WorkflowVersions::request(const QString &procedure, QJsonObject input, bool
   reply->deleteLater(); if (epoch != m_epoch) { return; }
   const auto body = QJsonDocument::fromJson(reply->readAll()).object();
   if (reply->error() != QNetworkReply::NoError || body.contains("error")) {
-   m_error = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 403 ? tr("Permission denied. Versions require editor access and sharing requires ownership.") : tr("Server request failed: ") + (body.contains("error") ? QString::fromUtf8(QJsonDocument(body).toJson(QJsonDocument::Compact)) : reply->errorString());
+   m_error = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 403 ? tr("Permission denied. Versions require editor access.") : tr("Server request failed: ") + (body.contains("error") ? QString::fromUtf8(QJsonDocument(body).toJson(QJsonDocument::Compact)) : reply->errorString());
   } else if (!body.value("result").toObject().contains("data")) { m_error = tr("Invalid server response"); }
   else { done(body["result"].toObject()["data"].toObject()); }
   m_busy = false; emit changed();
@@ -442,14 +442,10 @@ void WorkflowVersions::load(const QString &kind) {
  m_pendingLoad.clear();
  if (kind == "metadata") { m_error = available() ? QString{} : tr("Save this local workflow to a server first."); emit changed(); return; }
  if (m_busy) { m_pendingLoad = kind; emit changed(); return; }
- request(kind == "sharing" ? "sharing.get" : "versions.list", {}, false, [this, kind](QJsonObject data) {
+ request("versions.list", {}, false, [this, kind](QJsonObject data) {
   // The reply is for a panel that is no longer shown. Its data must not replace the current panel's.
   if (m_panel != kind) { return; }
-  if (kind == "sharing") {
-   for (const auto &entry : data["shares"].toArray()) { auto row = entry.toObject(); if (row["revoked_at"].isNull() || !row.contains("revoked_at")) { row.insert("kind", "link"); row.insert("url", m_origin.resolved(QUrl((row["role"].toString() == "public" ? "/view/" : "/share/") + row["token"].toString())).toString()); m_rows.append(row.toVariantMap()); } }
-   for (const auto &entry : data["collaborators"].toArray()) { auto row = entry.toObject(); row.insert("kind", "collaborator"); m_rows.append(row.toVariantMap()); }
-  }
-  else {
+  {
    for (const auto &entry : data["versions"].toArray()) {
     auto row = entry.toObject().toVariantMap();
     row.insert("size_bytes", QJsonDocument(entry.toObject()["graph"].toObject()).toJson(QJsonDocument::Compact).size());
@@ -494,18 +490,6 @@ void WorkflowVersions::restore(bool confirmDirty) {
   if (epoch != m_epoch) { return; }
   m_session->setVersionRestoreBusy(false); m_session->setAutosaveEnabled(autosave);
  });
-}
-void WorkflowVersions::sharingAction(const QString &procedure, const QVariantMap &input) {
- if (procedure != "revokeLink" && procedure != "setRole" && procedure != "removeCollaborator") { return; }
- request("sharing." + procedure, QJsonObject::fromVariantMap(input), true, [this](QJsonObject) { reloadIfShowing("sharing"); });
-}
-void WorkflowVersions::createLink(const QString &role) {
- if (role != "viewer" && role != "editor" && role != "public") { return; }
- request("sharing.createLink", {{"role", role}}, true, [this](QJsonObject data) {
-        // The web copies a new link at once and keeps it copyable from the list.
-        copyText(m_origin.resolved(QUrl((data["role"].toString() == "public" ? "/view/" : "/share/") + data["token"].toString())).toString());
-        reloadIfShowing("sharing");
-    });
 }
 void WorkflowVersions::saveMetadata(const QVariantMap &patch) {
  if (!available() || m_busy || m_session->saving() || m_session->conflictPending()) { m_error = tr("Server workflow is unavailable or needs sync."); emit changed(); return; }

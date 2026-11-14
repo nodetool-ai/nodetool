@@ -52,19 +52,20 @@ Item {
         Loader {
             id: loader
             width: parent.width
-            height: parent.height - (root.kind === "text" || root.kind === "multiline" ? Ui.Metrics.small : 0)
+            height: parent.height - (root.descriptor.name !== "code" && (root.kind === "text" || root.kind === "multiline") ? Ui.Metrics.small : 0)
             sourceComponent: root.descriptor.name === "code" ? codeEditor : root.kind === "boolean" ? booleanEditor : root.kind === "choice" ? choiceEditor
                 : root.kind === "model" ? modelEditor
                 : root.structured ? structuredEditor
                 : root.imageSize ? imageSizeEditor
                 : root.kind === "document_ref" ? documentEditor
+                : root.kind === "color" ? colorEditor
                 : root.resource ? resourceEditor
                 : root.kind === "number" || root.kind === "integer" ? numberEditor
                 : multilineEditor
         }
         Ui.EditorButton {
             objectName: "inline-expand"
-            visible: root.kind === "text" || root.kind === "multiline"
+            visible: root.descriptor.name !== "code" && (root.kind === "text" || root.kind === "multiline")
             x: parent.width - width
             y: loader.height
             implicitHeight: Ui.Metrics.small
@@ -74,16 +75,10 @@ Item {
             onClicked: root.presenter.expand()
         }
     }
-    component FieldFrame: Rectangle {
-        property bool invalid: false
-        color: Ui.Theme.surfaceInput
-        radius: Ui.Metrics.radiusControl
-        border.width: Ui.Metrics.focus
-        border.color: invalid ? Ui.Theme.borderError : Ui.Theme.borderFocus
-    }
     Component {
         id: codeEditor
         CodePropertyEditor {
+            canvas: true
             value: typeof root.value === "string" ? root.value : ""
             nodeType: root.descriptor.nodeType || ""
             writable: true
@@ -100,7 +95,7 @@ Item {
             accessibleName: root.descriptor.label || root.descriptor.name || ""
             role: Ui.Typography.MonoCaption
             wrapMode: root.kind === "multiline" || root.presenter.expanded ? TextEdit.Wrap : TextEdit.NoWrap
-            background: FieldFrame {}
+            variant: Ui.TextArea.NodeEditing
             onValueCommitted: value => root.commit(value)
             onEditCanceled: root.cancel()
             Keys.priority: Keys.BeforeItem
@@ -127,7 +122,7 @@ Item {
             accessibleName: root.descriptor.label || root.descriptor.name || ""
             valid: root.kind !== "integer" || text.trim() === "" || Number.isInteger(Number(text))
             errorText: root.kind === "integer" ? "Enter a whole number within the allowed range." : "Enter a number within the allowed range."
-            background: FieldFrame { invalid: !parent.valid || !parent.draftValid }
+            variant: Ui.NumberField.NodeEditing
             onValueCommitted: value => root.commit(value)
             onEditCanceled: root.cancel()
         }
@@ -215,6 +210,32 @@ Item {
                         onValueCommitted: value => root.presenter.apply(value, root.token)
                     }
                 }
+            }
+        }
+    }
+    Component {
+        id: colorEditor
+        // The ColorPicker on the card: presets, hex entry and the custom dialog.
+        // A choice commits and closes the panel.
+        Rectangle {
+            id: colorPanel
+            objectName: "inline-color"
+            readonly property real wanted: colorChooser.implicitHeight + Ui.Metrics.md * 2
+            color: Ui.Theme.surfaceOverlay
+            radius: Ui.Metrics.radiusOverlay
+            border.width: Ui.Metrics.border
+            border.color: Ui.Theme.borderControl
+            function finishEdit() { root.presenter.close(root.token) }
+            onWantedChanged: root.presenter.setContentHeight(wanted)
+            Component.onCompleted: root.presenter.setContentHeight(wanted)
+            ColorPropertyEditor {
+                id: colorChooser
+                anchors.fill: parent
+                anchors.margins: Ui.Metrics.md
+                descriptor: root.descriptor
+                value: root.value
+                writable: true
+                onValueCommitted: value => root.commit(value)
             }
         }
     }

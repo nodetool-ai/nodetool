@@ -59,6 +59,43 @@ bool isKeyframeAnimation(const QJsonObject& a) {
 constexpr double EPSILON_MS = 1e-6;
 constexpr double T_EPSILON = 1e-4;
 
+// keyframes.ts retimeKeyframeCurves: curves normalized over a clip `fromMs` long, renormalized
+// over the clip a trim made of it, `headMs` added before the old start. Every key keeps its
+// instant; a key the trim cut off keeps a `t` outside 0..1, so trimming back out restores it.
+QJsonArray retimeKeyframeCurves(const QJsonArray& curves, double fromMs, double toMs, double headMs) {
+    if (fromMs <= 0 || toMs <= 0 || (fromMs == toMs && headMs == 0)) return curves;
+    QJsonArray next;
+    for (const QJsonValue& value : curves) {
+        QJsonObject curve = value.toObject();
+        QJsonArray keyframes;
+        for (const QJsonValue& keyValue : curve.value(u"keyframes").toArray()) {
+            QJsonObject keyframe = keyValue.toObject();
+            keyframe.insert(QStringLiteral("t"), (keyframe.value(u"t").toDouble() * fromMs + headMs) / toMs);
+            keyframes.append(keyframe);
+        }
+        curve.insert(QStringLiteral("keyframes"), keyframes);
+        next.append(curve);
+    }
+    return next;
+}
+
+// keyframes.ts retimeKeyframeAnimations: the hand-keyframe animation after a trim.
+QJsonArray retimeKeyframeAnimations(const QJsonArray& animations, double fromMs, double toMs, double headMs) {
+    QJsonArray next;
+    for (const QJsonValue& value : animations) {
+        QJsonObject animation = value.toObject();
+        if (isKeyframeAnimation(animation) && animation.value(u"custom").isObject()) {
+            QJsonObject custom = animation.value(u"custom").toObject();
+            custom.insert(QStringLiteral("curves"),
+                          retimeKeyframeCurves(custom.value(u"curves").toArray(), fromMs, toMs, headMs));
+            animation.insert(QStringLiteral("custom"), custom);
+            animation.insert(QStringLiteral("durationMs"), toMs);
+        }
+        next.append(animation);
+    }
+    return next;
+}
+
 double valueAtSourceMs(const std::vector<QJsonObject>& keyframes, const std::vector<double>& times, double atMs) {
     if (atMs <= times.front()) {
         return keyframes.front().value(u"value").toDouble();
@@ -555,10 +592,17 @@ QJsonObject trimClip(const QJsonObject& clip, const QString& edge, double deltaM
         next.insert(QStringLiteral("caption"),
                     retimeCaption(clip.value(u"caption").toObject(), clipStartMs(clip) - nextStartMs));
     }
+    // Hand-set keys and paramCurves keep their instants (keyframes.ts retimeKeyframeAnimations).
+    const double headMs = start ? deltaMs : 0;
     if (present(clip, "animations")) {
         next.insert(QStringLiteral("animations"),
-                    resliceSourceAnimations(clip.value(u"animations").toArray(), nextInPointMs, nextOutPointMs,
-                                            nextDurationMs));
+                    retimeKeyframeAnimations(resliceSourceAnimations(clip.value(u"animations").toArray(),
+                                                                     nextInPointMs, nextOutPointMs, nextDurationMs),
+                                             clipDurationMs(clip), nextDurationMs, headMs));
+    }
+    if (present(clip, "paramCurves")) {
+        next.insert(QStringLiteral("paramCurves"), retimeKeyframeCurves(clip.value(u"paramCurves").toArray(),
+                                                                        clipDurationMs(clip), nextDurationMs, headMs));
     }
     return next;
 }
@@ -1034,7 +1078,8 @@ ClipList rateStretchClips(const ClipList& clips, const IdSet& memberIds, const Q
         QJsonObject retimed = m;
         retimed.insert(QStringLiteral("speedMultiplier"), speedMultiplier);
         retimed.insert(QStringLiteral("durationMs"), nextDurationMs);
-        retimed.insert(QStringLiteral("startMs"), end ? clipStartMs(m) : clipEndMs(m) - nextDurationMs);
+        // Rounding can leave a start-edge stretch to 0 a hair below it.
+        retimed.insert(QStringLiteral("startMs"), end ? clipStartMs(m) : std::max(0.0, clipEndMs(m) - nextDurationMs));
         if (present(m, "caption")) {
             retimed.insert(QStringLiteral("caption"),
                            retimeCaption(m.value(u"caption").toObject(), 0, sourceRate(m) / newRate));

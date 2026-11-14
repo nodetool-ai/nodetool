@@ -3,7 +3,8 @@ import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 Basic.TextArea {
     id: root
-    enum Variant { Field, Plain, Bubble, Code, Quiet }
+    // Node and NodeEditing draw the node editor field frame: a quiet fill with no idle border. NodeEditing is the editor overlaid on a painted card field, which always shows its focus border.
+    enum Variant { Field, Plain, Bubble, Code, Quiet, Node, NodeEditing }
     property int variant: 0
     property string value: ""
     property string accessibleName: ""
@@ -30,10 +31,12 @@ Basic.TextArea {
     wrapMode: TextEdit.Wrap
     text: value
     background: Rectangle {
-        color: root.variant === 1 || (root.variant === 4 && !root.hovered && !root.activeFocus) ? "transparent" : root.variant === 2 ? Theme.actionSelected : root.enabled ? Theme.surfaceInput : Theme.actionDisabled
+        color: root.variant === Ui.TextArea.Node ? (!root.enabled ? Theme.fieldSurfaceDisabled : root.activeFocus ? Theme.fieldSurfaceFocus : Theme.fieldSurface)
+            : root.variant === Ui.TextArea.NodeEditing ? Theme.surfaceInput
+            : root.variant === 1 || (root.variant === 4 && !root.hovered && !root.activeFocus) ? "transparent" : root.variant === 2 ? Theme.actionSelected : root.enabled ? Theme.surfaceInput : Theme.actionDisabled
         radius: Metrics.radiusControl
-        border.width: root.variant === 1 || root.variant === 2 || (root.variant === 4 && !root.hovered && !root.activeFocus) ? 0 : root.activeFocus ? Metrics.focus : Metrics.border
-        border.color: !root.valid ? Theme.borderError : root.activeFocus ? Theme.borderFocus : Theme.borderControl
+        border.width: root.variant === Ui.TextArea.NodeEditing ? Metrics.focus : root.variant === 1 || root.variant === 2 || (root.variant === 4 && !root.hovered && !root.activeFocus) ? 0 : root.activeFocus ? Metrics.focus : Metrics.border
+        border.color: !root.valid ? Theme.borderError : root.variant === Ui.TextArea.NodeEditing || root.activeFocus ? Theme.borderFocus : root.variant === Ui.TextArea.Node ? "transparent" : Theme.borderControl
     }
     function cancelEdit() {
         if (!editing) return

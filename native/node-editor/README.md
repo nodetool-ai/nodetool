@@ -22,8 +22,9 @@ more than 1024 logical pixels therefore bends less than React Flow's.
 
 [`node_metrics`](src/graph/NodeLayout.h) and
 [`EditorRoles`](qml/EditorRoles.qml) hold the web values scoped to this editor.
-`NodeButton` and `PanelRow` are editor controls for the web's button and row
-styles. Other native apps keep the [native design](../ui_primitives/DESIGN.md).
+`Ui.EditorButton.Outlined` is the web's button style, and `Ui.ListRow` with `flat: true`
+is the web's row style. Other native apps keep
+the [native design](../ui_primitives/DESIGN.md).
 
 The panels form the `NodeTool.NodeEditor` QML module. No panel reads the editor
 window. The panels take small interface objects as required properties, such
@@ -169,10 +170,15 @@ process and on the server. A node that reads its properties while it runs,
 such as a synthesis node, uses the value from its next block. Inspector
 edits, card edits, slider drags, undo and redo all go to the run.
 
-The Examples entry of the rail, the File menu and the command menu list the workflows in [`examples/`](examples). The files are canonical
+The File menu's Open Example lists the workflows in [`examples/`](examples). The files are canonical
 NodeTool JSON, compiled into the editor as Qt resources. The menu groups them
 by their first tag. An example opens in a tab of its own with no file, so Save
 asks for a path.
+
+The Examples entry of the rail and the command menu open the Examples panel
+(`qml/ExamplesPanel.qml`). It lists the same bundled examples under Built in,
+and, with a server connected, the server's workflow and ComfyUI examples. A
+server example opens as the account's own copy in a workflow tab.
 
 Each example runs in process with no server, file, model or key. Its sources
 are draw nodes or Code nodes that synthesize WAV bytes, and its results go to

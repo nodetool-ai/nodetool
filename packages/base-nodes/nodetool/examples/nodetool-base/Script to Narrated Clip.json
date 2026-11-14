@@ -39,7 +39,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "script",
-          "value": "",
+          "value": "The tide comes in twice a day, and twice a day the harbour forgets its shape.",
           "description": "The line to narrate"
         },
         "ui_properties": {
@@ -60,7 +60,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "scene",
-          "value": "",
+          "value": "Slow aerial shot over a small stone harbour at sunrise, the tide rising around moored fishing boats",
           "description": "The scene to show"
         },
         "ui_properties": {
