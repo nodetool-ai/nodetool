@@ -152,6 +152,8 @@ const WorkflowEditorSurface = ({
   // Why the last load failed, or null while it has not.
   const [loadFailed, setLoadFailed] = useState<string | null>(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  // The canvas host the queue overlay stays inside.
+  const [canvasHost, setCanvasHost] = useState<HTMLDivElement | null>(null);
   // A workflow flow still in setup (`settings.setup` not at `done`) is where
   // this tab lands after a refresh or a close — same rule as the game flow
   // above. A workflow saved before the flow existed has no `setup` key and
@@ -620,6 +622,7 @@ const WorkflowEditorSurface = ({
                 hostLabel="Workflow"
               />
               <div
+                ref={setCanvasHost}
                 style={{
                   flex: 1,
                   minHeight: 0,
@@ -682,7 +685,7 @@ const WorkflowEditorSurface = ({
                 )}
               </div>
               {active && <FloatingToolBar />}
-              {active && <QueueOverlay />}
+              {active && <QueueOverlay canvas={canvasHost} />}
               {active && !(activeSubgraph && !showChain) && (
                 <NodeCreateBridge />
               )}

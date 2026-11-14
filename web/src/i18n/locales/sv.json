@@ -10693,6 +10693,8 @@
       "queuedCount_one": "{{count}} i kö",
       "queuedCount_other": "{{count}} i kö",
       "collapseQueue": "Komprimera kön",
+      "moveQueue": "Flytta kön",
+      "moveQueueHint": "Dra för att flytta. Piltangenterna flyttar den, Home återställer den.",
       "enqueued": "I kö"
     },
     "toolbar": {

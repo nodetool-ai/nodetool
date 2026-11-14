@@ -10856,6 +10856,8 @@
       "queuedCount_one": "{{count}} en cola",
       "queuedCount_other": "{{count}} en cola",
       "collapseQueue": "Colapsar cola",
+      "moveQueue": "Mover cola",
+      "moveQueueHint": "Arrastra para moverla. Las flechas la mueven e Inicio la restablece.",
       "enqueued": "en cola",
       "jobsRunning_many": "{{count}} trabajos en ejecución",
       "queuedCount_many": "{{count}} en cola"

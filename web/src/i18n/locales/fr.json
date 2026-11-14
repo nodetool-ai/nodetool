@@ -10856,6 +10856,8 @@
       "queuedCount_one": "{{count}} en file d'attente",
       "queuedCount_other": "{{count}} en file d'attente",
       "collapseQueue": "Réduire la file d'attente",
+      "moveQueue": "Déplacer la file",
+      "moveQueueHint": "Faites glisser pour la déplacer. Les flèches la déplacent, Début la réinitialise.",
       "enqueued": "Mis en file d'attente",
       "jobsRunning_many": "{{count}} tâches en cours d'exécution",
       "queuedCount_many": "{{count}} en file d'attente"

@@ -10693,6 +10693,8 @@
       "queuedCount_one": "{{count}} queued",
       "queuedCount_other": "{{count}} queued",
       "collapseQueue": "Collapse queue",
+      "moveQueue": "Move queue",
+      "moveQueueHint": "Drag to move. Arrow keys move it, Home resets it.",
       "enqueued": "Enqueued"
     },
     "toolbar": {
