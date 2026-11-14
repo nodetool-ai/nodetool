@@ -20,6 +20,26 @@ void styleMarkdownLinks(QTextDocument &document, const QColor &colour) {
     }
   }
 }
+void styleReadingRhythm(QTextDocument &document, qreal blockGap, qreal itemGap, qreal headingGap) {
+  constexpr qreal readingLineHeight = 165;
+  for (auto block = document.begin(); block.isValid(); block = block.next()) {
+    const auto next = block.next();
+    const auto *list = block.textList();
+    const bool listContinues = list && next.isValid() && next.textList() == list;
+    auto format = block.blockFormat();
+    const qreal top = block == document.begin() ? 0 : format.headingLevel() > 0 ? headingGap : list && block.previous().textList() == list ? itemGap : 0;
+    const qreal bottom = !next.isValid() || listContinues ? 0 : format.headingLevel() > 0 ? itemGap * 2 : blockGap;
+    if (format.lineHeightType() == QTextBlockFormat::ProportionalHeight && qFuzzyCompare(format.lineHeight(), readingLineHeight) &&
+        qFuzzyCompare(format.topMargin() + 1, top + 1) && qFuzzyCompare(format.bottomMargin() + 1, bottom + 1)) {
+      continue;
+    }
+    format.setLineHeight(readingLineHeight, QTextBlockFormat::ProportionalHeight);
+    format.setTopMargin(top);
+    format.setBottomMargin(bottom);
+    QTextCursor cursor(block);
+    cursor.setBlockFormat(format);
+  }
+}
 QString cleanHarmony(const QString &source) {
   auto text = source;
   static const QRegularExpression header("<\\|start\\|>[^<]*(?:<\\|channel\\|>[^<]*)?(?:<\\|message\\|>|$)");

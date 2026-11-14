@@ -16,6 +16,9 @@ Item {
     property bool followBottom: true
     property int anchorIndex: 0
     property real anchorOffset: 0
+    // A reply is on its way: ChatThreadView.tsx shows a quiet pulse at the
+    // end of the conversation in place of a status word.
+    readonly property bool responding: !!session && (session.turnStatus === "loading" || session.turnStatus === "streaming")
     objectName: "chatConversation"
     function savePosition() {
         if (session && session.selectedThreadId === previousThread) {
@@ -104,7 +107,7 @@ Item {
         }
         Ui.Text {
             role: Ui.Typography.SansLabel
-            text: root.session && root.session.turnStatus !== "idle" ? root.session.turnStatus : ""
+            text: root.session && root.session.turnStatus !== "idle" && !root.responding ? root.session.turnStatus : ""
             tone: Ui.Text.Secondary
             Layout.rightMargin: Ui.Metrics.lg
         }
@@ -152,12 +155,34 @@ Item {
                     Qt.callLater(root.restoreAnchor);
                 }
             }
+            footer: Item {
+                width: messages.width
+                height: root.responding ? Ui.Metrics.xxl : 0
+                visible: root.responding
+                Ui.StatusDot {
+                    id: respondingPulse
+                    objectName: "chatRespondingPulse"
+                    anchors.verticalCenter: parent.verticalCenter
+                    x: (parent.width - Math.min(parent.width, ChatMetrics.columnWidth)) / 2 + Ui.Metrics.xl
+                    active: true
+                    Accessible.role: Accessible.StatusBar
+                    Accessible.name: qsTr("Responding…")
+                    SequentialAnimation on opacity {
+                        running: root.responding && !Ui.Theme.reducedMotion
+                        loops: Animation.Infinite
+                        onRunningChanged: if (!running) respondingPulse.opacity = 1
+                        NumberAnimation { to: 0.35; duration: Ui.Metrics.motionSpin; easing.type: Easing.InOutQuad }
+                        NumberAnimation { to: 1; duration: Ui.Metrics.motionSpin; easing.type: Easing.InOutQuad }
+                    }
+                }
+            }
             delegate: Item {
                 required property string messageId
                 required property string role
                 required property string displayText
                 required property var parts
                 required property string status
+                required property int index
                 width: messages.width
                 height: turn.implicitHeight
                 MessageDelegate {
@@ -169,6 +194,7 @@ Item {
                     text: parent.displayText
                     parts: parent.parts
                     status: parent.status
+                    latest: parent.index === messages.count - 1
                     session: root.session
                 }
             }
