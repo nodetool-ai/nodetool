@@ -6,7 +6,7 @@ import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { FLOW_CAPABILITIES, setFlowBackend } from "../src/capabilities/flow.js";
 import * as backend from "../../dsl/src/flow/index.js";
 import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
-import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
+import { missingPackText, sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 import { buildToolBridge, type ToolResultRecord } from "../src/codeact/tool-api.js";
 
 class CatalogFixture extends BaseNode {
@@ -27,7 +27,7 @@ class Echo extends BaseNode {
 afterEach(() => setFlowBackend(null));
 
 describe("dynamic node pack refusals", () => {
-  it("marks structured pack refusals as errors in the real tool bridge while returning guest data", async () => {
+  it("fails a structured pack refusal in the real tool bridge", async () => {
     const missing = createMissingPackError("game", ["fixture.LazyGame"]).details;
     const observed: ToolResultRecord[] = [];
     const bridge = buildToolBridge({ tools: [{ name: "run_node" }], invoke: async () => missing, onToolResult: record => observed.push(record) });
@@ -35,10 +35,11 @@ describe("dynamic node pack refusals", () => {
     if (typeof call !== "function") {
       throw new Error("Tool bridge callable is missing");
     }
-    expect(await call("run_node", "{}")).toEqual({ ok: true, result: missing });
-    expect(observed).toEqual([{ name: "run_node", toolCallId: "codeact_1", result: missing, isError: true }]);
+    const message = `tools.run_node: missing_pack: ${missingPackText(missing)}`;
+    expect(await call("run_node", "{}")).toEqual({ ok: false, error: message });
+    expect(observed).toEqual([{ name: "run_node", toolCallId: "codeact_1", result: `missing_pack: ${missingPackText(missing)}`, isError: true }]);
   });
-  it("keeps run_node missing-pack details available to guest code and continues", async () => {
+  it("throws run_node missing packs in guest code, which can catch and continue", async () => {
     const missing = createMissingPackError("huggingface", [CatalogFixture.nodeType]).details;
     const calls: string[] = [];
     const session = createChatCodeActSession({
@@ -49,13 +50,20 @@ describe("dynamic node pack refusals", () => {
         return JSON.stringify(type === CatalogFixture.nodeType ? missing : { output: "continued" });
       }
     });
-    const observation = JSON.parse(await session.executeAction({ code: `
+    const uncaught = JSON.parse(await session.executeAction({ code: `
       const missing = await nodetool.nodes.run(${JSON.stringify(CatalogFixture.nodeType)});
+      return { missing };
+    ` }));
+    expect(uncaught.ok).toBe(false);
+    expect(uncaught.error).toContain("missing_pack: Node pack huggingface is not installed.");
+    const observation = JSON.parse(await session.executeAction({ code: `
+      let missing;
+      try { await nodetool.nodes.run(${JSON.stringify(CatalogFixture.nodeType)}); } catch (e) { missing = e.message; }
       const continued = await nodetool.nodes.run(${JSON.stringify(Echo.nodeType)});
       return { missing, continued };
     ` }));
-    expect(observation).toMatchObject({ ok: true, result: { missing: { error: "missing_pack", packs: [{ id: "huggingface" }] }, continued: { output: "continued" } } });
-    expect(calls).toEqual([CatalogFixture.nodeType, Echo.nodeType]);
+    expect(observation).toMatchObject({ ok: true, result: { missing: expect.stringContaining("missing_pack"), continued: { output: "continued" } } });
+    expect(calls).toEqual([CatalogFixture.nodeType, CatalogFixture.nodeType, Echo.nodeType]);
   });
   it.each(["invoke_node", "open_node_stream"])("returns structured %s errors and continues the same run", async (name) => {
     const registry = new NodeRegistry();
@@ -85,11 +93,12 @@ describe("dynamic node pack refusals", () => {
     const session = createChatCodeActSession({ tools: [], capabilityRun: run, executeTool: async (call) => run.invoke(call.name, call.args) });
     const observation = JSON.parse(await session.executeAction({ code: `
       import { ${name}, invoke_node as invoke } from ${JSON.stringify(sandboxCapabilitySpecifier("flow"))};
-      const missing = await ${name}({ type: ${JSON.stringify(CatalogFixture.nodeType)} });
+      let missing;
+      try { await ${name}({ type: ${JSON.stringify(CatalogFixture.nodeType)} }); } catch (e) { missing = e.message; }
       const continued = await invoke({ type: ${JSON.stringify(Echo.nodeType)} });
       return { missing, continued };
     ` }));
-    expect(observation).toMatchObject({ ok: true, result: { missing: { error: "missing_pack", packs: [{ id: "huggingface" }] }, continued: { output: "continued" } } });
+    expect(observation).toMatchObject({ ok: true, result: { missing: expect.stringContaining("Node pack huggingface is not installed."), continued: { output: "continued" } } });
     expect(created).toBe(4);
     expect(closed).toBe(4);
   });
