@@ -23,7 +23,7 @@ applies unchanged.
 | Windows | Title bars with maximize and close buttons. No taskbar, start menu, root menu, or minimize button, so no window can be lost. Alt+Tab switches windows and Alt+F4 closes one. The app's first window opens maximized unless the packet sets `window: "as-opened"`. |
 | Input | Coordinate click (left, middle, right, up to three clicks), hover, drag, mouse wheel, typing at one key every 15 ms, key presses in the browser runner's spelling (`Enter`, `Control+A`), bounded wait, and `open_app` to start the app again after it closed. Input goes through XTest, as a real mouse and keyboard do. |
 | Receipt | The screenshot and its ID, the active window's title, the open windows' titles, windows that opened or closed, and "The app closed." when the process ends. |
-| Home | A new home folder per session, so the app starts in its first-run state with no settings. The packet's `assets` are copied into its `Documents` folder, and the app's file dialogs find them there. |
+| Home | A new home folder per session, so the app starts in its first-run state with no settings. The app runs with that folder as its working folder, so a file dialog never opens on the host's files. The packet's `assets` are copied into its `Documents` folder, and the app's file dialogs find them there. |
 | Other programs | `xdg-open`, `BROWSER`, and the desktop openers are stubs. A link that would open a browser is reported as "The app tried to open a web page (origin) in a web browser … it did not open", as the browser runner reports a blocked navigation. The request is in `private/desktop.jsonl`. |
 | Host session | The app does not inherit the host's `XDG_RUNTIME_DIR`, desktop, Wayland display, or `NODETOOL_TOKEN`. |
 

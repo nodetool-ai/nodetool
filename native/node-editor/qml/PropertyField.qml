@@ -34,33 +34,56 @@ ColumnLayout {
     readonly property bool tableKind: descriptor.kind === "dataframe"
         || (descriptor.kind === "list" && descriptor.nodeType === "nodetool.constant.List")
         || (descriptor.kind === "dict" && descriptor.nodeType === "nodetool.constant.Dict")
-    function begin() { editNodeId = nodeId }
+    // A draft belongs to the node it was typed into. Moving the selection, or
+    // closing the inspector, finishes it there, as the web inspector keeps an
+    // edit when another node is clicked. Escape, a reset and a replaced document
+    // discard it. The token, not this delegate, carries the cancel state, so a
+    // commit still lands after the delegate is reused or destroyed.
+    property string editName: ""
+    property var editEpoch: 0
+    property var cancelToken: ({ cancelled: false })
+    function begin() {
+        if (!writable) return
+        editNodeId = nodeId; editName = descriptor.name || ""; editEpoch = host.documentEpoch
+    }
     function commit(value) {
-        if (!writable || editNodeId !== nodeId || host.selection !== editNodeId) return
-        const generation = commitGeneration
-        const target = host
-        const id = editNodeId
-        const name = descriptor.name
+        if (editNodeId === "" || host.readOnly) return
+        const token = cancelToken, target = host, id = editNodeId, name = editName, epoch = editEpoch
         Qt.callLater(function() {
-            if (root.commitGeneration === generation && root.writable && root.host === target && root.nodeId === id && target.selection === id)
+            if (!token.cancelled && !target.readOnly && target.documentEpoch === epoch)
                 target.commitProperty(id, name, value)
         })
     }
-    function cancelDraft() {
+    function cancelPending() {
+        cancelToken.cancelled = true
+        cancelToken = { cancelled: false }
         ++commitGeneration
+    }
+    function cancelDraft() {
+        cancelPending()
         if (fieldLoader.item && fieldLoader.item.cancelEdit) fieldLoader.item.cancelEdit()
     }
-    function resetFieldScope() {
-        ++commitGeneration; editNodeId = ""; multiline = false
-        if (typeof fieldLoader === "undefined" || !fieldLoader || !fieldLoader.item) return
-        if (fieldLoader.item.resetScope) fieldLoader.item.resetScope()
-        else if (fieldLoader.item.cancelEdit) fieldLoader.item.cancelEdit()
+    function finishDraft() {
+        const item = typeof fieldLoader === "undefined" || !fieldLoader ? null : fieldLoader.item
+        if (item && item.editing === true && item.finishEdit) item.finishEdit()
     }
-    onDescriptorIdentityChanged: resetFieldScope()
-    onDocumentEpochChanged: resetFieldScope()
-    onCredentialsEpochChanged: resetFieldScope()
-    onHostChanged: resetFieldScope()
-    onWritableChanged: if (!writable) resetFieldScope()
+    function resetFieldScope(keepDraft) {
+        if (keepDraft) finishDraft()
+        else cancelPending()
+        editNodeId = ""; editName = ""; multiline = false
+        if (typeof fieldLoader === "undefined" || !fieldLoader || !fieldLoader.item) return
+        const item = fieldLoader.item
+        if (item.resetScope) item.resetScope()
+        else if (item.cancelEdit) item.cancelEdit()
+        // A finished draft leaves its text in the reused field; show this node's value.
+        if (item.editing !== true && typeof item.text === "string" && typeof item.value === "string") item.text = item.value
+    }
+    onDescriptorIdentityChanged: resetFieldScope(true)
+    onDocumentEpochChanged: resetFieldScope(false)
+    onCredentialsEpochChanged: resetFieldScope(true)
+    onHostChanged: resetFieldScope(false)
+    onWritableChanged: if (!writable) resetFieldScope(false)
+    Component.onDestruction: finishDraft()
     function removeValue() {
         cancelDraft()
         if (!writable || host.selection !== nodeId) return
@@ -270,7 +293,7 @@ ColumnLayout {
             writable: root.writable
             nodeId: root.nodeId
             onScopeInvalidated: {
-                ++root.commitGeneration
+                root.cancelPending()
                 root.editNodeId = ""
             }
             onValueCommitted: value => root.immediate(value)
@@ -285,7 +308,7 @@ ColumnLayout {
             writable: root.writable
             nodeId: root.nodeId
             onScopeInvalidated: {
-                ++root.commitGeneration
+                root.cancelPending()
                 root.editNodeId = ""
             }
             onValueCommitted: value => root.immediate(value)
@@ -301,7 +324,7 @@ ColumnLayout {
             writable: root.writable
             nodeId: root.nodeId
             onScopeInvalidated: {
-                ++root.commitGeneration
+                root.cancelPending()
                 root.editNodeId = ""
             }
             onValueCommitted: value => root.immediate(value)
@@ -333,7 +356,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             onScopeInvalidated: {
-                ++root.commitGeneration
+                root.cancelPending()
                 root.editNodeId = ""
             }
             onValueCommitted: value => root.immediate(value)
@@ -367,7 +390,7 @@ ColumnLayout {
             nodeId: root.nodeId
             onToolTipRequested: text => root.host.showToolTip(text)
             onScopeInvalidated: {
-                ++root.commitGeneration
+                root.cancelPending()
                 root.editNodeId = ""
             }
             onValueCommitted: value => root.immediate(value)
@@ -381,7 +404,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
-            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
+            onScopeInvalidated: { root.cancelPending(); root.editNodeId = "" }
             onValueCommitted: value => root.immediate(value)
         }
     }
@@ -393,7 +416,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
-            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
+            onScopeInvalidated: { root.cancelPending(); root.editNodeId = "" }
             onValueCommitted: value => root.immediate(value)
         }
     }
@@ -425,7 +448,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
-            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
+            onScopeInvalidated: { root.cancelPending(); root.editNodeId = "" }
             onValueCommitted: value => root.immediate(value)
         }
     }
@@ -440,7 +463,7 @@ ColumnLayout {
             writable: root.writable
             nodeId: root.nodeId
             onToolTipRequested: text => root.host.showToolTip(text)
-            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
+            onScopeInvalidated: { root.cancelPending(); root.editNodeId = "" }
             onValueCommitted: value => root.immediate(value)
         }
     }

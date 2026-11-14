@@ -59,7 +59,8 @@ Rectangle {
             objectName: "rail-projects"
             label: "Projects"
             glyph: "toolProjects"
-            unavailable: qsTr("Projects has no native surface yet. Switch projects from the project menu in the tab strip.")
+            tip: qsTr("Switch or create a project")
+            onActivated: root.panels.showProjects(button.mapToGlobal(button.width, 0))
         }
         RailEntry {
             objectName: "rail-documents"

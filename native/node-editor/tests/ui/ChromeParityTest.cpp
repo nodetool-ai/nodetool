@@ -332,7 +332,7 @@ private slots:
             {"rail-nodes", "Nodes"},
             {"rail-theme", "Switch to light mode"},
             {"rail-panel", "Toggle panel"},
-            {"rail-projects", "Projects has no native surface yet. Switch projects from the project menu in the tab strip."},
+            {"rail-projects", "Switch or create a project"},
             {"rail-library", "Library"},
             {"rail-examples", "Examples"},
         };
@@ -375,8 +375,12 @@ private slots:
         QTRY_VERIFY(entry("rail-examples")->property("active").toBool());
         click(rail, entry("rail-examples"));
         QTRY_VERIFY(!window.examplesVisible());
+        // Projects opens the project menu, as the tab strip's project selector does.
+        click(rail, entry("rail-projects"));
+        QTRY_VERIFY(window.findChild<QMenu *>("project-menu"));
+        window.findChild<QMenu *>("project-menu")->close();
         // A disabled entry changes nothing.
-        for (const auto *name : {"rail-projects", "rail-library"}) {
+        for (const auto *name : {"rail-library"}) {
             click(rail, entry(name));
             QTest::qWait(30);
             QVERIFY2(!window.catalogVisible() && !window.browserVisible() && !window.chatVisible(), name);

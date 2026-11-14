@@ -318,7 +318,8 @@ server, and programmatic selection changes invalidate drafts and queued writes.
 Select a node to open the inspector's Params, I/O, and Help tabs for the full
 metadata-driven property controls. Titles, help, constraints, nullable values, and defaults come
 from the property descriptors. Ordinary strings use multiline editing unless metadata requests a single line.
-Single-line fields also offer multiline editing. Escape cancels the draft. Each committed field
+Single-line fields also offer multiline editing. Escape cancels the draft. Selecting another
+node, or the empty canvas, finishes the draft on the node it was typed into. Each committed field
 edit creates one undo step and is bound to its original node. Connected inputs are disabled with an explanation.
 Lists, dictionaries, records, and JSON have validated editors where their entry
 types are supported. Image/audio/video and generic asset properties offer authenticated library
@@ -543,7 +544,8 @@ keyboard commits and dark/light wide/narrow captures. Font, media-parameter,
 file/path, and folder-path editors remain unavailable, as do the web color
 modal's saved swatches/history, harmony/contrast tools, eyedropper, and gradients.
 
-Inspector field delegates persist across value updates. Their identity and
-workflow/credential epochs cancel stale drafts and queued commands when the
-scope changes, including when conditional fields replace a same-kind slot.
+Inspector field delegates persist across value updates. When their identity
+or the credential epoch changes, including when conditional fields replace a
+same-kind slot, an open draft is finished on its original node and property.
+A replaced workflow cancels drafts and queued commands.
 Image-size ratio lock survives ordinary dimension commits.
