@@ -339,8 +339,15 @@ QJsonObject applyClipboardEdit(const QString &name, QJsonObject raw, const QJson
         for (auto &clip : copies) {
             clip.insert("startMs", clipStartMs(clip) + spanMs + offset);
         }
+        IdSet copyIds;
+        for (const auto &clip : copies) {
+            copyIds.insert(clipId(clip));
+        }
         doc.clips.insert(doc.clips.end(), copies.begin(), copies.end());
-        return structure::withClips(std::move(raw), doc.clips);
+        // The copies drop like a paste, in the timeline's drop mode, so they never
+        // cover the clip that follows the selection. Without a mode they overwrite.
+        return settleDrop(structure::withClips(std::move(raw), doc.clips), p, copyIds,
+                          p.value("mode").toString("overwrite"));
     }
     if (name == u"altDragCopy") {
         const auto primaryId = p.value("clipId").toString();

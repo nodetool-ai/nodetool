@@ -204,10 +204,13 @@ private slots:
         timeline.setTimeline(*parsed.timeline);
         controller.m_target = target;
         controller.m_candidates = candidate;
+        controller.m_error.clear();
         controller.apply("clip", "request");
         timeline.setTimeline(*parsed.timeline);
         QTRY_VERIFY(!controller.m_resolving && !controller.m_worker);
         QVERIFY(timeline.clipsJson().first().toObject().value("currentAssetId").isUndefined());
+        // A reload during the resolve leaves the clip alone and says why.
+        QVERIFY2(controller.m_error.contains("reloaded"), qPrintable(controller.m_error));
     }
     void applyMediaEditKeepsOriginal() {
         QTemporaryDir cache;

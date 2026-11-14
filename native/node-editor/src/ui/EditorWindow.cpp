@@ -245,7 +245,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&nodeInfo_, &node_editor::NodeInfo::tagSearchRequested, this, [this](const QString &tag) { openNodeMenuAt({}, tag); });
   connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
   connect(&nodeInspector_, &node_editor::NodeInspector::toolTipRequested, this, &EditorWindow::showToolTip);
-  connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitProperty);
+  // A field commits an edit that ended, which can arrive after the click that ended it selected another node.
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitFinishedEdit);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::removeRequested, this, &EditorWindow::removeProperty);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::pinRequested, this, &EditorWindow::pinGeneration);
@@ -288,6 +289,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&panelLayout_, &node_editor::PanelLayout::toggleBrowserRequested, this, [this] { action("Workflows"); });
   connect(&panelLayout_, &node_editor::PanelLayout::toggleChatRequested, this, &EditorWindow::toggleChat);
   connect(&panelLayout_, &node_editor::PanelLayout::toggleLibraryRequested, this, [this] { action("Library"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::toggleExamplesRequested, this, [this] { action("Examples"); });
   connect(&panelLayout_, &node_editor::PanelLayout::toggleCatalogRequested, this, [this] { action("Toggle nodes"); });
   connect(&panelLayout_, &node_editor::PanelLayout::toggleInspectorRequested, this, [this] { action("Toggle inspector"); });
   connect(&panelLayout_, &node_editor::PanelLayout::togglePanelRequested, this, [this] { action("Toggle panel"); });
@@ -351,8 +353,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     browser_.configure(origin, token, userId);
     previewAssets_.configure(origin, token, userId);
     library_.configure(origin, token, userId);
+    exampleGallery_.configure(origin, token, userId);
     if (browserVisible() && !origin.isEmpty()) { loadBrowser(); }
     if (libraryVisible()) { library_.refresh(); }
+    if (examplesVisible()) { exampleGallery_.refresh(); }
     if (scene_) { refresh(); }
   });
   connect(&previewAssets_, &node_editor::PreviewSourceAssets::changed, this, [this] { syncRuntimePreviews(); });
@@ -390,12 +394,15 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     if (!runPanelTimer_->isActive()) { runPanelTimer_->start(); }
   });
   // After the lambda above, so the run output reads the run the runtime selected.
+  shownRunOutput_ = &runOutput_;
   runState_.setOutputModels(runOutput_.collections(), runOutput_.richEntries());
-  const auto syncRunOutput = [this] { runState_.setOutput(runOutput_.runs(), runOutput_.selectedRunId()); };
+  const auto syncRunOutput = [this] {
+    if (shownRunOutput_ == &runOutput_) { runState_.setOutput(runOutput_.runs(), runOutput_.selectedRunId()); }
+  };
   syncRunOutput();
   connect(&runOutput_, &node_editor::RunOutputModel::changed, this, syncRunOutput);
-  connect(&runState_, &node_editor::RunState::selectRunRequested, &runOutput_, &node_editor::RunOutputModel::selectRun);
-  connect(&runState_, &node_editor::RunState::clearOutputRequested, &runOutput_, &node_editor::RunOutputModel::clear);
+  connect(&runState_, &node_editor::RunState::selectRunRequested, this, [this](const QString &runId) { shownRunOutput_->selectRun(runId); });
+  connect(&runState_, &node_editor::RunState::clearOutputRequested, this, [this] { shownRunOutput_->clear(); });
   connect(&runState_, &node_editor::RunState::cancelRequested, &session_, &node_editor::WorkflowSession::cancelJob);
   connect(&runState_, &node_editor::RunState::reportJobRequested, this, &EditorWindow::reportJob);
   connect(&runState_, &node_editor::RunState::openJobWorkflowRequested, this, &EditorWindow::openWorkflow);
@@ -728,6 +735,30 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   libraryDock_ = dock(tr("Library"), "LibraryPanel", Qt::LeftDockWidgetArea, libraryProperties);
   libraryDock_->setObjectName("library-dock");
   libraryDock_->hide();
+  // The rail's Examples view: the server's workflow examples and the bundled ones.
+  exampleGallery_.setBundled(bundledExamples());
+  examplesDock_ = dock(tr("Examples"), "ExamplesPanel", Qt::LeftDockWidgetArea,
+                       {{"gallery", QVariant::fromValue(&exampleGallery_)},
+                        {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
+  examplesDock_->setObjectName("examples-dock");
+  examplesDock_->hide();
+  // The web leaves the panel to the opened document (showTab in useExampleGroups.ts).
+  const auto leavePanel = [this] {
+    if (examplesVisible()) { toggleExamples(); }
+  };
+  connect(&exampleGallery_, &node_editor::ExampleGallery::bundledRequested, this, [this, leavePanel](const QString &resource) {
+    leavePanel();
+    openExample(resource);
+  });
+  connect(&exampleGallery_, &node_editor::ExampleGallery::workflowCopied, this, [this, leavePanel](const QString &id, const QString &name) {
+    leavePanel();
+    openWorkflow(id);
+    // handleExampleClick in web/src/hooks/useWorkflowActions.ts says the tab holds a copy.
+    notify("info", tr("This is your own copy of \"%1\". Changes you save stay in your copy, and the example stays as it was.").arg(name));
+  });
+  connect(&exampleGallery_, &node_editor::ExampleGallery::copyFailed, this, [this](const QString &message) { notify("error", message); });
+  connect(&exampleGallery_, &node_editor::ExampleGallery::connectRequested, this, [this] { action("Connect"); });
+  connect(&exampleGallery_, &node_editor::ExampleGallery::closeRequested, this, &EditorWindow::toggleExamples);
   // The panel's first bindings read the state the window has at this point.
   nodeInspector_.setRunning(shownRunActive());
   nodeInspector_.setCostEstimate(costEstimate());
@@ -1511,6 +1542,8 @@ bool EditorWindow::browserVisible() const {
   if (!tabOwner_) { return activeEditor_->browserVisible(); } return browserDock_ && !browserDock_->isHidden(); }
 bool EditorWindow::libraryVisible() const {
   if (!tabOwner_) { return activeEditor_->libraryVisible(); } return libraryDock_ && !libraryDock_->isHidden(); }
+bool EditorWindow::examplesVisible() const {
+  if (!tabOwner_) { return activeEditor_->examplesVisible(); } return examplesDock_ && !examplesDock_->isHidden(); }
 void EditorWindow::loadBrowser() {
   if (session_.serverUrl().isEmpty()) { return; }
   // Favourites and view choices other tabs changed since the last load. Its
@@ -1525,6 +1558,7 @@ void EditorWindow::showBrowser(bool visible) {
     browserRestoreCatalog_ = catalogVisible();
     catalogPanel_->hide();
     if (libraryDock_) { libraryDock_->hide(); }
+    if (examplesDock_) { examplesDock_->hide(); }
     inspectorDock_->hide();
     browserDock_->show();
     loadBrowser();
@@ -1681,6 +1715,10 @@ bool EditorWindow::workflowRenamable() const {
 void EditorWindow::renameWorkflow(const QString &name) {
     if (!tabOwner_) {
         activeEditor_->renameWorkflow(name);
+        return;
+    }
+    if (inlineChild_ && childParent_) {
+        workflowHost()->renameWorkflow(name);
         return;
     }
     if (!workflowRenamable()) {
@@ -2513,8 +2551,10 @@ void EditorWindow::syncNodeCatalog() {
     nodeCatalog_.setReadOnly(readOnly());
 }
 void EditorWindow::syncChrome() {
-  workflowHeader_.setWorkflowName(workflowName());
-  workflowHeader_.setRenamable(workflowRenamable());
+  // The web document bar of a subgraph tab names the workflow (WorkflowDocumentBar.tsx).
+  const auto *host = (tabOwner_ || !activeEditor_ ? this : activeEditor_)->workflowHost();
+  workflowHeader_.setWorkflowName(host->workflowName());
+  workflowHeader_.setRenamable(host->workflowRenamable());
   workflowHeader_.setSaveStatus(documentSaveStatus());
   workflowHeader_.setHistory(canUndo(), canRedo());
   browser_.setCurrentId(document_.snapshot()["id"].toString());
@@ -2529,6 +2569,7 @@ void EditorWindow::syncChrome() {
   panelLayout_.setPanels({.browser = browserVisible(),
                           .chat = chatVisible(),
                           .library = libraryVisible(),
+                          .examples = examplesVisible(),
                           .catalog = catalogVisible(),
                           .inspector = inspectorVisible(),
                           .miniMap = miniMapVisible(),
@@ -2541,8 +2582,9 @@ void EditorWindow::syncChrome() {
                           .connectionDetail = connectionDetail(),
                           .connected = connectionState() == tr("Connected"),
                           .message = message(),
-                          .nodeCount = nodeCount(),
-                          .edgeCount = edgeCount(),
+                          // The web status bar counts the workflow, also from a subgraph tab (PanelBottom.tsx).
+                          .nodeCount = host->nodeCount(),
+                          .edgeCount = host->edgeCount(),
                           .queuedCount = queuedCount(),
                           .generatingCount = generationActivity()->counts().value("generating").toInt(),
                           .systemStats = systemStats()});
@@ -2555,11 +2597,48 @@ void EditorWindow::syncViewport() {
   viewport_.setMiniMapColorMode(miniMapColorMode());
 }
 void EditorWindow::syncRuns() {
-  editorCommands_.setRunning(shownRunActive());
-  runState_.setQueue(shownQueue());
-  runState_.setConnected(session_.connected());
-  runState_.setJobsError(session_.jobsError());
-  runState_.setWorkflowId(session_.workflow()["id"].toString());
+  // A subgraph surface shows the run state of the workflow it belongs to.
+  const auto *host = workflowHost();
+  editorCommands_.setRunning(host->shownRunActive());
+  runState_.setQueue(host->shownQueue());
+  runState_.setConnected(host->session_.connected());
+  runState_.setJobsError(host->session_.jobsError());
+  runState_.setWorkflowId(host->session_.workflow()["id"].toString());
+}
+EditorWindow *EditorWindow::workflowHost() {
+  auto *host = this;
+  while (host->inlineChild_ && host->childParent_) { host = host->childParent_; }
+  return host;
+}
+const EditorWindow *EditorWindow::workflowHost() const {
+  return const_cast<EditorWindow *>(this)->workflowHost();
+}
+void EditorWindow::followHostRuns() {
+  auto *host = workflowHost();
+  if (host == this) { return; }
+  connect(host, &EditorWindow::shownQueueChanged, this, &EditorWindow::syncRuns);
+  connect(&host->session_, &node_editor::WorkflowSession::stateChanged, this, &EditorWindow::syncRuns);
+  // The run output panel follows whichever surface ran last: the workflow for Run,
+  // this subgraph for Run selected.
+  const auto show = [this](node_editor::RunOutputModel *output) {
+    if (shownRunOutput_ != output) {
+      shownRunOutput_ = output;
+      runState_.setOutputModels(output->collections(), output->richEntries());
+    }
+    runState_.setOutput(output->runs(), output->selectedRunId());
+  };
+  connect(&host->runOutput_, &node_editor::RunOutputModel::changed, this, [show, host] { show(&host->runOutput_); });
+  connect(&runOutput_, &node_editor::RunOutputModel::changed, this, [show, this] { show(&runOutput_); });
+  QPointer<EditorWindow> self(this);
+  connect(host, &QObject::destroyed, this, [self] {
+    if (self && self->shownRunOutput_ != &self->runOutput_) {
+      self->shownRunOutput_ = &self->runOutput_;
+      self->runState_.setOutputModels(self->runOutput_.collections(), self->runOutput_.richEntries());
+      self->runState_.setOutput(self->runOutput_.runs(), self->runOutput_.selectedRunId());
+    }
+  });
+  if (!host->runOutput_.runs().isEmpty()) { show(&host->runOutput_); }
+  syncRuns();
 }
 void EditorWindow::syncNodeInspector() {
     const auto node = selection();
@@ -2723,6 +2802,11 @@ void EditorWindow::setProperty(const QString &name, const QVariant &value) {
 bool EditorWindow::commitProperty(const QString &nodeId, const QString &name, const QVariant &value) {
   if (!tabOwner_) { return activeEditor_->commitProperty(nodeId, name, value); }
   if (nodeId.isEmpty() || nodeId != selected_) { return false; }
+  return commitFinishedEdit(nodeId, name, value);
+}
+bool EditorWindow::commitFinishedEdit(const QString &nodeId, const QString &name, const QVariant &value) {
+  if (!tabOwner_) { return activeEditor_->commitFinishedEdit(nodeId, name, value); }
+  if (nodeId.isEmpty() || document_.node(nodeId).isEmpty()) { return false; }
   if ((value.metaType().id() == QMetaType::Double || value.metaType().id() == QMetaType::Float) && !std::isfinite(value.toDouble())) { return false; }
   // A Workflow or App node's select commits a reference. The node stores the
   // id once the source and its graph have loaded.
@@ -3086,26 +3170,46 @@ void EditorWindow::openExample(const QString &resource) {
         editor->refresh();
     }
 }
-void EditorWindow::showExamplesMenu() {
-    if (!tabOwner_) { activeEditor_->showExamplesMenu(); return; }
-    // Parented to this window and deleted when it closes.
-    auto *menu = new QMenu(this);
-    menu->setObjectName(QStringLiteral("examples-menu"));
-    menu->setAttribute(Qt::WA_DeleteOnClose);
-    connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
-    addExampleActions(menu);
-    menu->popup(QCursor::pos());
+void EditorWindow::toggleExamples() {
+    if (!tabOwner_) { activeEditor_->toggleExamples(); return; }
+    if (!examplesDock_) { return; }
+    // The examples, the library and the workflow browser share the left side,
+    // as views of the web left panel.
+    if (examplesDock_->isHidden()) {
+        showBrowser(false);
+        catalogPanel_->hide();
+        if (libraryDock_) { libraryDock_->hide(); }
+        examplesDock_->show();
+        if (exampleGallery_.connected() && !exampleGallery_.loading()) { exampleGallery_.refresh(); }
+    } else {
+        examplesDock_->hide();
+    }
+    schedulePanelChanged();
+    scheduleViewportSettle();
 }
-void EditorWindow::addExampleActions(QMenu *menu) {
-    struct Example { QString section, name, description, resource; };
-    QList<Example> examples;
+QVariantList EditorWindow::bundledExamples() {
+    QVariantList examples;
     for (const auto &entry : QDir(QStringLiteral(":/editor/examples")).entryInfoList({QStringLiteral("*.json")}, QDir::Files)) {
         QFile file(entry.filePath());
         if (!file.open(QIODevice::ReadOnly)) { continue; }
         const auto workflow = QJsonDocument::fromJson(file.readAll()).object();
-        auto section = workflow["tags"].toArray().at(0).toString(tr("Other"));
+        QStringList tags;
+        for (const auto &tag : workflow["tags"].toArray()) { tags.append(tag.toString()); }
+        examples.append(QVariantMap{{"resource", entry.filePath()},
+                                    {"name", workflow["name"].toString(entry.baseName())},
+                                    {"description", workflow["description"].toString()},
+                                    {"tags", tags}});
+    }
+    return examples;
+}
+void EditorWindow::addExampleActions(QMenu *menu) {
+    struct Example { QString section, name, description, resource; };
+    QList<Example> examples;
+    for (const auto &value : bundledExamples()) {
+        const auto example = value.toMap();
+        auto section = example["tags"].toStringList().value(0, tr("Other"));
         if (!section.isEmpty()) { section[0] = section[0].toUpper(); }
-        examples.append({section, workflow["name"].toString(entry.baseName()), workflow["description"].toString(), entry.filePath()});
+        examples.append({section, example["name"].toString(), example["description"].toString(), example["resource"].toString()});
     }
     std::ranges::sort(examples, [](const Example &a, const Example &b) {
         return a.section != b.section ? a.section < b.section : a.name.localeAwareCompare(b.name) < 0;
@@ -3427,6 +3531,10 @@ void EditorWindow::action(const QString &name) {
       showBrowser(false);
       return;
     }
+    if (examplesVisible()) {
+      toggleExamples();
+      return;
+    }
     action("Toggle nodes");
     return;
   }
@@ -3440,6 +3548,7 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "Toggle nodes") {
     if (browserVisible()) { showBrowser(false); catalogPanel_->show(); return; }
+    if (examplesVisible()) { toggleExamples(); catalogPanel_->show(); return; }
     catalogAutoHidden_ = false;
     catalogPanel_->setVisible(!catalogVisible());
     return;
@@ -3577,14 +3686,18 @@ void EditorWindow::action(const QString &name) {
   if (name == "Library") {
     // The library and the workflow browser share the left side, as in the web left panel.
     const bool show = libraryDock_ && libraryDock_->isHidden();
-    if (show) { showBrowser(false); catalogPanel_->hide(); libraryDock_->show(); library_.refresh(); }
+    if (show) {
+      showBrowser(false); catalogPanel_->hide();
+      if (examplesDock_) { examplesDock_->hide(); }
+      libraryDock_->show(); library_.refresh();
+    }
     else if (libraryDock_) { libraryDock_->hide(); }
     schedulePanelChanged();
     scheduleViewportSettle();
     return;
   }
   if (name == "Examples") {
-    showExamplesMenu();
+    toggleExamples();
     return;
   }
   if (name == "Server Open" || name == "Open" || name == "Workflows") {
@@ -3597,6 +3710,12 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "Server Save") {
     session_.save();
+    return;
+  }
+  // The web run toolbar of a subgraph tab runs and stops the workflow (FloatingToolBar.tsx).
+  if ((name == "Run" || name == "Stop") && inlineChild_ && childParent_) {
+    flushChild();
+    workflowHost()->action(name);
     return;
   }
   if (readOnly() && (name == "Run" || name == "Delete" || name == "Paste" ||
@@ -3619,6 +3738,9 @@ void EditorWindow::action(const QString &name) {
     if (!p.isEmpty()) {
       openFileInTab(p);
     }
+  } else if (name == "Save" && session_.serverBound()) {
+    // A server workflow saves to the server, as closing its tab does. Save As keeps a local copy.
+    session_.save();
   } else if (name == "Save") {
     auto p = file_.isEmpty()
                  ? QFileDialog::getSaveFileName(this, tr("Save workflow"), {},
@@ -3938,6 +4060,11 @@ bool EditorWindow::confirmOpen() {
       tr("Save changes before opening another workflow?"),
       QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
   if (choice == QMessageBox::Save) {
+    if (session_.serverBound()) {
+      // The server save answers later, so the open waits for the user to retry.
+      session_.save();
+      return false;
+    }
     action("Save");
     return document_.undoStack()->isClean();
   }

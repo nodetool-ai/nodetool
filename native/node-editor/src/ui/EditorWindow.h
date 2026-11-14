@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <optional>
 #include "interfaces/DocumentTabs.h"
+#include "interfaces/ExampleGallery.h"
 #include "interfaces/GenerationActivity.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInfo.h"
@@ -171,6 +172,7 @@ public:
   node_editor::WorkflowBrowser *workflowBrowser() { return activeEditor() == this ? &browser_ : activeEditor()->workflowBrowser(); }
   bool browserVisible() const;
   bool libraryVisible() const;
+  bool examplesVisible() const;
   void openWorkflow(const QString &id);
   void deleteWorkflows(const QStringList &ids);
   void deleteWorkflow(const QString &id, const QString &name);
@@ -315,6 +317,9 @@ public:
   void clearCatalogRecent();
   Q_INVOKABLE void setProperty(const QString &name, const QVariant &value);
   bool commitProperty(const QString &nodeId, const QString &name, const QVariant &value);
+  // commitProperty without the selection check, for an inspector edit that
+  // finished as the press that ended it selected another node.
+  bool commitFinishedEdit(const QString &nodeId, const QString &name, const QVariant &value);
   bool removeProperty(const QString &nodeId, const QString &name);
   Q_INVOKABLE void action(const QString &name);
   // An action that the user started from a button, menu or key. Zoom, fit and Focus
@@ -401,6 +406,15 @@ private:
   QPointer<EditorWindow> childParent_;
   QString childNode_;
     bool inlineChild_ = false;
+    // The workflow surface an inline subgraph surface belongs to, or this window.
+    // From a subgraph tab the web document bar, run toolbar, run output and
+    // status counts all use that workflow (WorkflowEditorSurface.tsx).
+    EditorWindow *workflowHost();
+    const EditorWindow *workflowHost() const;
+    // Shows the workflow host's run output in this subgraph surface's run interfaces.
+    void followHostRuns();
+    // The run output this surface's run interfaces show: its own, or its workflow host's.
+    node_editor::RunOutputModel *shownRunOutput_ = nullptr;
     QPointer<EditorWindow> shownSurface_;
     QTimer *childWriteTimer_ = nullptr;
   QJsonObject syncedChildGraph_;
@@ -465,8 +479,12 @@ private:
   void refresh();
   void showBrowser(bool visible);
   void loadBrowser();
-  // Lists the bundled examples by their first tag, as a popup menu at the cursor.
-  void showExamplesMenu();
+  // Opens or closes the Examples panel, which shares the left side with the
+  // workflow browser and the asset library.
+  void toggleExamples();
+  // The bundled examples: resource, name, description and tags of each file
+  // under :/editor/examples.
+  static QVariantList bundledExamples();
   // Adds an entry per bundled example to the menu, grouped by first tag. An entry opens
   // its example on this window, which passes it to the active tab.
   void addExampleActions(QMenu *menu);
@@ -739,8 +757,10 @@ private:
   node_editor::DynamicPortsController dynamicPorts_;
   node_editor::WorkflowBrowser browser_;
   node_editor::LibraryBrowser library_;
+  node_editor::ExampleGallery exampleGallery_;
   QDockWidget *browserDock_ = nullptr;
   QDockWidget *libraryDock_ = nullptr;
+  QDockWidget *examplesDock_ = nullptr;
   bool browserRestoreCatalog_ = false;
   bool browserLoadingProjects_ = false;
   quint64 browserEpoch_ = 0;

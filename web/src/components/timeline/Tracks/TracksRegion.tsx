@@ -1539,10 +1539,18 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           case "duplicate":
           case "duplicateWithGap": {
             e.preventDefault();
-            const newIds = duplicateSelected(
-              selectedClipIds,
-              action === "duplicateWithGap" ? DUPLICATE_OFFSET_MS : 0
-            );
+            // The copies drop like a paste, in the drop mode, so they never
+            // cover the clip that follows the selection.
+            const newIds = runAsOneUndoEntry(docStore, () => {
+              const ids = duplicateSelected(
+                selectedClipIds,
+                action === "duplicateWithGap" ? DUPLICATE_OFFSET_MS : 0
+              );
+              if (ids.length > 0) {
+                docStore.getState().resolveDrop(new Set(ids), ui.dropMode);
+              }
+              return ids;
+            });
             if (newIds.length > 0) setSelection(newIds);
             return;
           }

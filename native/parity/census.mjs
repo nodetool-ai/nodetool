@@ -28,6 +28,7 @@ export const WEB_COMPONENT_DIRS = [
     "web/src/components/node_types",
     "web/src/components/context_menus",
     "web/src/components/version",
+    "web/src/components/examples",
     "web/src/components/chat",
     "web/src/components/workflows"
 ];

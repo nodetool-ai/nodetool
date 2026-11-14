@@ -1294,8 +1294,9 @@ each extracted backend with
 [scripts/smoke-backend-bundle.mjs](../../scripts/smoke-backend-bundle.mjs).
 Opened without a file, the app starts that server on a free loopback port and
 lists its timelines ([src/server/BundledServer.h](src/server/BundledServer.h)).
-The server stops when the app quits and logs to `server.log` in the app's
-data folder.
+Windows opened from that window, through Open timeline, Recent or a Premiere
+import, use the same server. The server stops after the last of these windows
+quits, and logs to `server.log` in the app's data folder.
 
 The workflow builds only the app, checks the extracted packages with
 [scripts/smoke-package.py](scripts/smoke-package.py), and retains the existing

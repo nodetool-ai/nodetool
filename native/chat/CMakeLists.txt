@@ -30,6 +30,7 @@ qt_add_qml_module(nodetool_chat
     QML_FILES
         qml/ChatMetrics.qml qml/ChatPanel.qml qml/Main.qml qml/ThreadList.qml
         qml/ConversationView.qml qml/MessageDelegate.qml qml/ChatComposer.qml
+        qml/ProviderKeyDialog.qml
         ${chat_media_qml}
     SOURCES
         src/model/ThreadModel.h src/model/ThreadModel.cpp

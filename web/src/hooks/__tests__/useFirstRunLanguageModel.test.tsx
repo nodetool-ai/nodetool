@@ -43,8 +43,11 @@ jest.mock("../useModelAvailability", () => ({
 
 jest.mock("../useRecommendedModelKeys", () => ({
   recommendedModelKey: (provider?: string, id?: string) =>
-    `${provider ?? ""}:${id ?? ""}`,
-  useRecommendedModelKeys: () => ["anthropic:claude-sonnet-5"]
+    `${provider ?? ""}:${id ?? ""}`
+}));
+
+jest.mock("../useDefaultLanguageModelKeys", () => ({
+  useDefaultLanguageModelKeys: () => ["anthropic:claude-sonnet-5"]
 }));
 
 describe("pickFirstRunModel", () => {

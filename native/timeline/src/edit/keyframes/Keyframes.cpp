@@ -1325,8 +1325,13 @@ QJsonArray times(const QJsonObject& clip, const QStringList& ps) {
             continue;
         }
         for (const auto& k : c["keyframes"].toArray()) {
+            const double t = k.toObject()["t"].toDouble();
+            // A key a trim cut off is kept but not shown.
+            if (t < -epsilon || t > 1 + epsilon) {
+                continue;
+            }
             // Unrounded, as keyframes.ts keyframeTimesMs returns them.
-            found.insert(k.toObject()["t"].toDouble() * clip["durationMs"].toDouble());
+            found.insert(t * clip["durationMs"].toDouble());
         }
     }
     auto values = found.values();

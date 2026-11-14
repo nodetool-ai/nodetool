@@ -21,7 +21,8 @@ import {
   assetKeyCandidates,
   FileStorageAdapter,
   getMaxLocalUploadBytes,
-  getMaxUploadBytes
+  getMaxUploadBytes,
+  UploadTooLargeError
 } from "@nodetool-ai/storage";
 import {
   getAssetFileName,
@@ -232,6 +233,18 @@ async function resolveValidParent(
  * capability so both write surfaces answer the same way; this wrapper only
  * turns it into an HTTP error.
  */
+const BYTES_PER_MB = 1024 * 1024;
+
+/** What the editor shows when storage refuses a file for its size. */
+export function uploadTooLargeMessage(error: UploadTooLargeError): string {
+  const size = (error.byteLength / BYTES_PER_MB).toFixed(1);
+  const limit =
+    error.maxBytes === null
+      ? "the storage limit"
+      : `the ${(error.maxBytes / BYTES_PER_MB).toFixed(0)} MB limit`;
+  return `This file is ${size} MB, which is over ${limit}, so it was not saved.`;
+}
+
 function assertWritable(asset: AssetModel): void {
   const problem = Asset.systemEntityRefusal(asset);
   if (problem) {
@@ -805,13 +818,24 @@ export const assetsRouter = router({
           contentType: asset.content_type,
           bytes: buf.byteLength
         });
-        await storeAssetWithThumbnail(
-          asset.user_id,
-          asset.id,
-          fileName,
-          new Uint8Array(buf),
-          asset.content_type
-        );
+        try {
+          await storeAssetWithThumbnail(
+            asset.user_id,
+            asset.id,
+            fileName,
+            new Uint8Array(buf),
+            asset.content_type
+          );
+        } catch (error) {
+          if (error instanceof UploadTooLargeError) {
+            throwApiError(
+              ApiErrorCode.ASSET_UPLOAD_FAILED,
+              uploadTooLargeMessage(error),
+              "PAYLOAD_TOO_LARGE"
+            );
+          }
+          throw error;
+        }
       }
 
       const saved =

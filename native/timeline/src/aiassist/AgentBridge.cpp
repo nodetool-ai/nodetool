@@ -1741,6 +1741,19 @@ QJsonObject assistantEdit(const QString &name, QJsonObject raw,
         doc, id, std::max(0.0, target) - source->value("startMs").toDouble(),
         payload.value("trackId").toString(source->value("trackId").toString()),
         true);
+    // Drop the moved clips as a drag does in the default Overwrite mode, so
+    // a move never stacks two clips on one track.
+    nt::edit::IdSet moved;
+    for (size_t i = 0; i < clips.size() && i < doc.clips.size(); ++i) {
+      if (clips[i] != doc.clips[i]) {
+        moved.insert(clips[i].value("id").toString());
+      }
+    }
+    if (!moved.empty()) {
+      auto movedDoc = doc;
+      movedDoc.clips = clips;
+      clips = nt::edit::resolveDropAction(movedDoc, moved, "overwrite");
+    }
   } else if (name == "ui_timeline_delete_clip") {
     clips = nt::edit::deleteSelected(doc, {id});
   } else if (name == "ui_timeline_split_clip") {

@@ -46,6 +46,10 @@ jest.mock("../useRecommendedModelKeys", () => ({
   recommendedModelKey: (p?: string, id?: string) => `${p ?? ""}:${id ?? ""}`,
   useRecommendedModelKeys: () => []
 }));
+let mockDefaultKeys: string[] = [];
+jest.mock("../useDefaultLanguageModelKeys", () => ({
+  useDefaultLanguageModelKeys: () => mockDefaultKeys
+}));
 jest.mock("../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManagerStore: () => ({
     getState: () => ({
@@ -85,6 +89,7 @@ beforeEach(() => {
   }));
   mockUnavailable.clear();
   mockNodes = [];
+  mockDefaultKeys = [];
 });
 
 describe("pickSeedModel", () => {
@@ -105,6 +110,17 @@ describe("useSeedDefaultModels", () => {
     expect(defaults()["language_model"]).toMatchObject({
       provider: "openai",
       id: "gpt-5"
+    });
+  });
+
+  it("pins the first preferred key, such as the free router", () => {
+    const FREE = lm("openrouter", "openrouter/free");
+    mockLanguage.models = [OPENAI, FREE];
+    mockDefaultKeys = ["openrouter:openrouter/free"];
+    renderHook(() => useSeedDefaultModels());
+    expect(defaults()["language_model"]).toMatchObject({
+      provider: "openrouter",
+      id: "openrouter/free"
     });
   });
 

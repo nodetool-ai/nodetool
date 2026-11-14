@@ -117,7 +117,10 @@ keyframe is added at each new edge, so the motion at a timeline instant the
 edit did not touch is unchanged. That is exact for a linear segment, the
 compiler's default for a custom animation, and an approximation when a cut
 lands inside an eased segment. A clip-based curve carries no `sourceMs` and is
-left alone: stretching with the window is what its `t` means.
+left alone: stretching with the window is what its `t` means. Hand-set
+keyframes are the exception. A trim keeps each of them at its instant, and a
+key the trim cuts off stays stored outside `0..1` until the clip grows back
+over it (`keyframes.ts`).
 
 ## Baking
 

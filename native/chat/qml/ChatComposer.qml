@@ -611,6 +611,16 @@ Ui.Surface {
         function onModelPickerRequested() {
             if (root.mediaMode && mediaPickerLoader.item) {
                 mediaPickerLoader.item.openAt(mediaModelChooser)
+            } else if (!root.mediaMode && modelPickerLoader.item) {
+                modelPickerLoader.item.openAt(modelChooser)
+            }
+        }
+        function onProviderSetupRequested() {
+            const dialog = root.nativeProviderSettings()
+            if (dialog) {
+                dialog.open()
+            } else if (modelPickerLoader.item) {
+                modelPickerLoader.item.openAt(modelChooser)
             }
         }
     }
@@ -633,6 +643,10 @@ Ui.Surface {
                     root.session.openProviderSettings()
                 }
             }
+            onConnectProviderRequested: provider => {
+                const dialog = root.nativeProviderSettings()
+                if (dialog && dialog.preselect) dialog.preselect(provider)
+            }
         }
     }
     Loader {
@@ -648,6 +662,10 @@ Ui.Surface {
                 } else {
                     root.session.openProviderSettings()
                 }
+            }
+            onConnectProviderRequested: provider => {
+                const dialog = root.nativeProviderSettings()
+                if (dialog && dialog.preselect) dialog.preselect(provider)
             }
         }
     }

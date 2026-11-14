@@ -10,6 +10,8 @@
 
 interface SupabaseError {
   message: string;
+  /** Status of the failed request: the body's `statusCode`, else HTTP. */
+  status?: number;
 }
 
 /** Blob-compatible download payload — only `arrayBuffer()` is consumed. */
@@ -166,16 +168,23 @@ interface SupabaseErrorBody {
  */
 async function readError(response: Response): Promise<SupabaseError> {
   let message = "";
+  let status = response.status;
   try {
     const body: SupabaseErrorBody = await response.json();
     message = body.message || body.error || "";
+    // Storage can answer HTTP 400 with the real status in the body.
+    const bodyStatus = Number(body.statusCode);
+    if (Number.isInteger(bodyStatus) && bodyStatus > 0) {
+      status = bodyStatus;
+    }
   } catch {
     // Non-JSON error body — use the status fallback below.
   }
   return {
     message:
       message ||
-      `Supabase Storage request failed with status ${response.status}`
+      `Supabase Storage request failed with status ${response.status}`,
+    status
   };
 }
 

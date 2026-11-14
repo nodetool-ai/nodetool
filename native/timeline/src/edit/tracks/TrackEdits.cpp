@@ -313,14 +313,15 @@ QJsonObject reorderTracks(QJsonObject doc, const QJsonObject& payload) {
     QSet<QString> ordered;
     QJsonArray result;
     const auto ids = payload.value("orderedIds").toArray();
-    for (qsizetype i = 0; i < ids.size(); ++i) {
-        const auto id = ids[i].toString();
+    for (const auto& value : ids) {
+        // Unknown and repeated ids are skipped, so each track appears once and
+        // the indices stay 0..n-1.
+        const auto id = value.toString();
+        if (!byId.contains(id) || ordered.contains(id)) { continue; }
         ordered.insert(id);
-        if (byId.contains(id)) {
-            auto track = byId.value(id);
-            track.insert("index", i);
-            result.append(track);
-        }
+        auto track = byId.value(id);
+        track.insert("index", result.size());
+        result.append(track);
     }
     for (const auto& value : tracks) {
         auto track = value.toObject();
@@ -359,7 +360,13 @@ QJsonObject addTextOnTop(QJsonObject doc, const QJsonObject& payload) {
     auto clips = doc.value("clips").toArray();
     QString trackId;
     if (!tracks.isEmpty()) {
-        const auto top = tracks.first().toObject();
+        // The top row has the lowest `index`, wherever it sits in the array.
+        qsizetype topAt = 0;
+        for (qsizetype i = 1; i < tracks.size(); ++i) {
+            if (tracks[i].toObject().value("index").toDouble(static_cast<double>(i)) <
+                tracks[topAt].toObject().value("index").toDouble(static_cast<double>(topAt))) { topAt = i; }
+        }
+        const auto top = tracks[topAt].toObject();
         const auto type = top.value("type").toString();
         bool free = !top.value("locked").toBool() && (type == "video" || type == "overlay");
         for (qsizetype i = 0; free && i < clips.size(); ++i) {
@@ -375,7 +382,10 @@ QJsonObject addTextOnTop(QJsonObject doc, const QJsonObject& payload) {
         tracks = doc.value("tracks").toArray();
         trackId = tracks.first().toObject().value("id").toString();
     }
-    const auto id = payload.value("clipId").toString();
+    auto id = payload.value("clipId").toString();
+    for (const auto& clip : clips) {
+        if (!id.isEmpty() && clip.toObject().value("id").toString() == id) { id.clear(); }
+    }
     clips.append(QJsonObject{{"id", id.isEmpty() ? freshId() : id}, {"trackId", trackId}, {"name", text}, {"startMs", at},
         {"durationMs", duration}, {"mediaType", "text"}, {"sourceType", "imported"}, {"status", "generated"},
         {"locked", false}, {"versions", QJsonArray{}},

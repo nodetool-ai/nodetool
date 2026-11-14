@@ -348,10 +348,12 @@ CustomCurves normalizeCustomCurves(const QJsonValue& raw, const QJsonValue& time
             std::stable_sort(parsed.begin(), parsed.end(), [](const Keyframe& a, const Keyframe& b) { return a.t < b.t; });
             curve.keyframes = std::move(parsed);
         } else {
+            // A key outside 0..1 stays where it is: evalCurve eases toward it at the window's
+            // edge, and a trim leaves the keys it cut off there (custom.ts normalizeClipKeyframes).
             std::vector<Keyframe> sorted;
             for (const Keyframe& kf : parsed) {
                 Keyframe c2;
-                c2.t = std::min(1.0, std::max(0.0, kf.t));
+                c2.t = kf.t;
                 c2.value = kf.value;
                 c2.easing = kf.easing;
                 sorted.push_back(c2);

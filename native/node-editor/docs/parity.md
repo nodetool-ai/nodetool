@@ -1456,18 +1456,19 @@ Web sources: [GroupNode.tsx](../../../web/src/components/node/GroupNode.tsx),
 |---|---|---|---|
 | F07.1 | Ctrl+G, the toolbar and the context menu surround two or more cards with a group at (minX − 20, minY − 50), sized to the cards plus 40 and at least 200. Children keep their canvas place and the change is one undo step (`useSurroundWithGroup.ts`). | I | `groupNodes` in `WorkflowDocument.cpp`. `GroupAuthoringTest::keyboardGroupingAndNestedMovement`. The web skips group nodes, native also wraps nested frames. |
 | F07.2 | The label is plain text above the frame, scaled with the zoom. A double-click edits it, and the edit saves 500 ms after the last key (`GroupNode.tsx` 401-418, 599-624). | I | `InlineTitleTest::groupHeadlineAndCommentIsolation`, `GroupPresentationTest::labelZoomMatchesWeb`. Native commits once on Enter or blur. |
-| F07.3 | The frame ignores the pointer. Only the label selects and drags the group (`GroupNode.tsx` 521-534). | P | Native selects and drags a group from its body too. Open. |
+| F07.3 | The frame ignores the pointer. Only the label selects and drags the group, and the label is as wide as its text (`GroupNode.tsx` 521-534, `ReactFlowWrapper.tsx` `selectGroupFromLabel`). A press on the body starts a box selection, a click clears the selection, a right-click opens the pane menu and a double-click opens the node menu. Shift, Ctrl or Cmd on the label adds the group to the selection or takes it out. A plain click selects the group alone. | I | `GroupAuthoringTest::groupBodyPressStartsABoxSelection`, `labelClickTogglesWithShiftAndSelectsAlone`, `rightClickOnTheBodyReachesThePane`. Groups accept no mouse button, so the scene leaves a body press unaccepted and the view starts its box. The resize edges and the corner handle still take the press. |
 | F07.4 | Moving a group moves its children (`GroupNode`, React Flow parent). | I | `GroupAuthoringTest::createGroupEditAndUndo`. |
 | F07.5 | Resize handle and edges, minimum 200 × 200, children stay where they are (`GroupNode.tsx` 53-54, 389-399, 693-698). | I | `GroupPresentationTest::resizeCommitsOnceAndPreservesChildren`. |
 | F07.6 | Header actions show on header hover or selection: More and Run (`GroupNode.tsx` 494, 626-647). Run runs the children through Run selected (343-349). | I | `GroupAuthoringTest::pointerRunSubmitsGroupWithoutSelectingIt`, which also checks the spinner and the "Group is running" name (`RunGroupButton.tsx`). Disabled cards: `NodeActionsTest::disabledCardPaintsStripesAndAWarningBadge`. Bypass exclusion: `PartialRunPlannerTest::bypassedNodesLeaveWithTheirIncidentEdges`. Acceptance pending. |
-| F07.7 | The menu holds Disable all or Enable all, shown only with children, and a color picker (`GroupNode.tsx` 649-678, 351-363). Bypass is one undo step. | P | `pointerBypassAndColorRoundTrip`. Native has the web swatches. Custom colors are missing. |
+| F07.7 | The menu holds Disable all or Enable all, shown only with children, and a color picker (`GroupNode.tsx` 649-678, 351-363). The group passes no `showCustom`, so its picker has swatches only (`ColorPicker.tsx`). Bypass is one undo step. | I | `pointerBypassAndColorRoundTrip`. Native has the web swatches. |
 | F07.8 | Dropping a card on a group moves it in and keeps its canvas position. The group grows to hold it with 25 px right and 50 px below, and never shrinks (`useDragHandlers.ts` 113-138, 153-172, `useAddToGroup.ts`). Cards that already have a group stay. Groups never join groups. | I | New. `GroupAuthoringTest::dropOnGroupJoinsKeepsPlaceGrowsAndUndoesOnce`, `dropOutsideEveryGroupLeavesTheCardLoose`, `groupedCardDroppedInsideItsGroupStaysGrouped`. The drop and the growth are one undo step. Native joins the smallest overlapping group, the web the first. |
 | F07.9 | The group a dragged card overlaps draws at 0.8 opacity with a 60 percent primary edge (`GroupNode.tsx` 521-534). | I | New. `dropTargetGroupHighlightsWhileDragging`. |
 | F07.10 | Alt while dragging takes the cards out of their group. A quick shake does the same (`useDragHandlers.ts` 94-104, `MousePosition.ts` 12-91). Cards keep their canvas place. | I | New. `altDragTakesTheCardOutOfItsGroup`, `shakingTheCardTakesItOutOfItsGroup`, `steadyDragIsNotAShake`, `dragWithoutAltKeepsTheGroup`. `DragWiggle.h` ports the detector. The out and in steps are one undo step. |
 | F07.11 | Remove from group is in the node More menu (`NodeToolButtons.tsx` 105-109, 250-256) and sets a card loose at its canvas place (`useRemoveFromGroup.ts`). | I | `GroupAuthoringTest::createGroupEditAndUndo`. Native also has Ungroup, which the web lacks. |
-| F07.12 | While a group has a selected child and Ctrl or Cmd is held, the group becomes selectable and dimmed so a box can start inside it (`GroupNode.tsx` 480-489). | M | Open. |
-| F07.13 | A help hint above the group lists how to remove nodes (`GroupNode.tsx` 681-691). | M | Open on purpose. The web text says Ctrl or Cmd while the code uses Alt, so native does not copy it. |
+| F07.12 | While a group has a selected direct child and Alt (Option) is held, the group takes the pointer on its body and draws at 0.5 opacity (`GroupNode.tsx` `modifierActive`). | I | `GroupAuthoringTest::altMakesTheGroupOfASelectedCardTakeThePointer`. Alt is read from key events and from the modifiers of every pointer event. |
+| F07.13 | A dragged card that stays over a group for a second shows a hint 32 px above the frame: "REMOVE NODES FROM GROUP", "Drag out while holding Alt (Option ⌥ on Mac)" and "Shake rapidly, then drag out" (`GroupNode.tsx` help-text, `TOOLTIP_DESCRIPTION_DELAY`). | I | `GroupAuthoringTest::dropHintShowsAfterASecondOverTheGroup`. The box scales with the canvas, as in the web. Native shows it at once after the delay and does not fade it in. |
 | F07.14 | Read-only: no group edits. | I | `pointerColorIsBlockedAfterReadOnlyTransition`. The drag outcome is ignored when read-only. |
+| F07.15 | A box selection selects a group only when it encloses the frame, and selects every card it touches (`useSelectionEvents.ts` `selectGroupsWithinSelection`, the default `selectionMode: "partial"`). | I | `GroupAuthoringTest::boxEnclosingTheGroupSelectsIt`, `groupBodyPressStartsABoxSelection`. Like the web, a box also takes out a selected group it does not enclose. |
 
 ## F08 comments
 
@@ -2182,9 +2183,8 @@ storage, inline input editing, output creation, boundary grouping and exact JSON
 undo/redo through pointer and keyboard events. Removing the graph filter and
 boundary rewrite makes those regression tests fail. Set
 `NODETOOL_SUBGRAPH_CARD_CAPTURE_DIR` to capture dark and light cards with their
-inspectors. F09 remains partial pending visual acceptance. The native output
-form opens in a popup rather than expanding inside the card. Running progress
-has no web elapsed-time estimate.
+inspectors. F09 remains partial pending visual acceptance. Add output opens a
+dialog in both editors.
 
 [ChildPorts](../src/document/ChildPorts.cpp) reads inline subgraphs and stored
 workflow/app snapshots. It uses the web input/output type mappings, metadata
@@ -2210,6 +2210,18 @@ graph. Canvas shortcuts, inspector data and run controls use the shown surface.
 Inline Save uses the parent document. Unknown child graph fields and nested
 snapshots survive copy and local save/reopen.
 
+As in [WorkflowEditorSurface](../../../web/src/components/workspace/WorkflowEditorSurface.tsx),
+the chrome around an inline subgraph canvas belongs to the workflow. The
+document bar shows and renames the workflow, the status bar counts its nodes
+and edges, and Run and Stop flush the subgraph edits and run or stop the whole
+workflow on its session. The run toolbar, queue overlay and run output follow
+that run. Run selected still runs the selected inner nodes, and the run output
+shows whichever of the two ran last. Undo and redo stay with the shown canvas,
+while the web document bar buttons undo the workflow store. Subgraph card
+progress uses the secondary progress color and the
+[NodeProgress](../../../web/src/components/node/NodeProgress.tsx) label with its
+remaining-time estimate, which every card progress band now shares.
+
 A child graph update and its derived ports form a parent undo entry. Subgraph
 and Workflow edges on removed dynamic ports are removed in that entry, following
 SubgraphSync and replaceDynamicSlots. Undo restores those edges. Edges on
@@ -2226,7 +2238,9 @@ return, retained edges, independent undo scope, parent reconciliation, nested
 copy, unknown-field round trips, app binding/stream derivation, missing children
 and delayed responses after tab closure or account replacement. Pointer tests
 cover host activation, nested marks, cascade closure, reopening, workflow
-closure and child Save. Restore tests exclude child canvases and retain the
+closure and child Save. `subgraphSurfaceRunsAndNamesItsWorkflow` renames and
+runs the workflow from a nested subgraph and reads the transmitted graph, the
+header, the status counts and the mirrored run output. Restore tests exclude child canvases and retain the
 owning workflow selection. Replacement rejects pending child writeback. Set
 `NODETOOL_SUBGRAPH_CAPTURE_DIR` for dark and light captures with one and two
 levels of child strips. The strips occupy the native canvas column beside the
@@ -3146,7 +3160,7 @@ is visible only on inspection.
 | W22 | Inspector width | 350 px when it first opens (`stores/RightPanelStore.ts` `sizes.initial`). The comparison captures showed 380 px because the capture script seeded that width. | 350 px. | Low | Matches. The capture script now seeds 350 px. Asserted by `ChromeParityTest::inspectorOpensAtTheWebWidth`, which passed before any change. Acceptance pending. |
 | W23 | Output panel | The bottom panel takes the status bar as its tab strip, so an open panel puts the bar above its body. The Logs view shows a run picker, which reads "No recent runs" without runs, the "No recorded runs" empty state, and 32 px rows (`PanelBottom.tsx`, `TracePanel.tsx`). | While the Output panel is open, the status bar moves to its top and the body follows below it. The body has no title row or close button, and the Logs tab closes it. The run picker is always shown and reads "No recent runs" when there are none. The empty state uses the web title and description. Rows without content are one 32 px line. The native body lists the session's run events and outputs, where the web Logs view lists stored log events of the run. Versions and Trace open their own bottom panels, which keep the status bar below them. | Medium | Fixed in `RunOutput.qml` and `EditorWindow.cpp` (`placeStatusBar`). Asserted by `ChromeParityTest` (`outputPanelUsesTheStatusBarAsItsTabStrip`, `outputPanelShowsARunPickerAndAnEmptyState`, `outputRowsAreCompact`). `EditorTest::outputDockKeepsDocumentHistory` changed its empty-state text. Open: the stored-log list and the status bar above the Versions and Trace panels. Acceptance pending. |
 | W24 | Status bar | Connection, panel tabs from Logs to Trace, counts, CPU and memory. A tab shows whether its panel is open, and the open view's tab closes the panel. The bar has no message text. | Connection (Connected, Offline or Idle), Logs, Queue, Generations, Workers, Versions and Trace tabs, node and edge counts, and CPU and memory from the server's `system_stats`. Logs, Versions and Trace show the open state and close their panel when clicked again. Queue opens the queue panel at any time and Generations opens the generations panel. Workers stays disabled with a reason. The run message left the bar. It stays in the inspector and errors reach the tab bar notifications. The Connect button for an offline session is native. | Medium | Fixed in `StatusBar.qml` and `EditorPanels.cpp` (`toggleStatusView`). Asserted by `statusBarHasTheWebItemsInOrder`, `statusBarTabsOpenNativePanelsOrExplainWhyNot`, `statusBarShowsServerStatsAndTheQueue` and `statusBarTabsShowAndToggleTheirPanels`. The remaining gaps are C9, C12 and C13 below and the L and Ctrl+Shift+T shortcuts. C8 and C11 are partial. Acceptance pending. |
-| W25 | Rail | Logo menu, Projects, Documents, Chats, Library, Entities, Examples, Nodes and More, then a theme toggle and a panel toggle. Each has a tooltip. | The same entries in the same order and icons, with the same tooltips, except Entities and More, which the native rail leaves out. Documents opens the workflow browser, Chats the native conversation, and Nodes the catalog. Projects and Library are disabled with a reason. The logo has no menu. The native Inspector and Output entries left the rail. | Low | Partly fixed in `Rail.qml` (`PanelLeft.tsx`, `QuickAccessSidebar.tsx`, `ThemeToggle.tsx`). Asserted by `railHasTheWebEntriesInOrder`, `railTooltipsNameEntriesAndExplainDisabledOnes` and `railEntriesOpenTheirNativePanels`. The gaps are in the table below. Not accepted. |
+| W25 | Rail | Logo menu, Projects, Documents, Chats, Library, Entities, Examples, Nodes and More, then a theme toggle and a panel toggle. Each has a tooltip. | The same entries in the same order and icons, with the same tooltips, except Entities and More, which the native rail leaves out. Documents opens the workflow browser, Chats the native conversation, and Nodes the catalog. Projects is disabled with a reason. Library and Examples open their left panels. The logo has no menu. The native Inspector and Output entries left the rail. | Low | Partly fixed in `Rail.qml` (`PanelLeft.tsx`, `QuickAccessSidebar.tsx`, `ThemeToggle.tsx`). Asserted by `railHasTheWebEntriesInOrder`, `railTooltipsNameEntriesAndExplainDisabledOnes` and `railEntriesOpenTheirNativePanels`. The gaps are in the table below. Not accepted. |
 | W26 | Elevations | The toolbar, viewport control, side panels, bottom panel and Preview and Output cards cast shadows. | Flat, as the [native design](../../ui_primitives/DESIGN.md#appearance) requires for persistent chrome. | Medium | Scope change [SC4](parity-inventory.md#user-approved-scope-changes): the user decided to keep persistent chrome flat. |
 | W27 | Mini-map | Hidden by default behind a header toggle. The choice is stored. Its light-theme surface is `grey[100]`, which is dark. | Hidden by default. `editor.setMiniMapVisible` and the Command menu action "Toggle mini-map" change it for every tab and store it under `minimap/visible`. A new window starts as the user left it. Colors follow the web source, including the dark light-theme surface. | Medium | Fixed in `EditorWindow.cpp` (`web/src/stores/MiniMapStore.ts`). Asserted by `miniMapIsHiddenByDefaultAndTheChoiceIsRemembered`. The color mode and legend are asserted by `ViewportNavigatorTest::miniMapColorsFollowTheColorMode` and `miniMapPaletteMenuAndLegend`. The header toggle is in `HeaderRow.qml`, and `HeaderRowTest::togglesOpenPanels` clicks it. Not accepted. |
 | W28 | Chat window | Opens by default unless the viewport is narrower than 1200 px, until the user opens or closes it (`stores/CanvasChatDockStore.ts`). The capture script seeds it collapsed. | The same rule. Without a stored choice the chat window opens when the window is at least 1200 px wide. A toggle stores the choice. The window parity and chrome tests seed it collapsed, as the web captures do. | Low | Fixed in `EditorChat.cpp`. Asserted by `ChromeParityTest::chatOpensByDefaultOnAWideWindow`. Acceptance pending. |
@@ -3433,7 +3447,7 @@ panels is outside the chrome work.
 | C1 | Rail Projects | Opens the projects list as a tab (`ProjectsRailButton.tsx`). | Disabled. The project menu in the tab strip switches projects. | Open. |
 | C2 | Rail Library | Asset grid in the left panel (`PanelLeft.tsx`). | Disabled. | Open. |
 | C3 | Rail Entities | Entity library in the left panel. | Disabled. | Open. |
-| C4 | Rail Examples | Shipped examples in the left panel. | Disabled. | Open. |
+| C4 | Rail Examples | Shipped examples in the left panel. | `ExamplesPanel.qml` in the left dock (`ExampleGallery`): the server's workflow and ComfyUI examples and the bundled examples, with search and type filters. A server example opens as the account's copy in a workflow tab. Other example kinds stay web only, and cards cannot be dragged onto the canvas. | Partial. Asserted by `ExamplesPanelTest` and `railEntriesOpenTheirNativePanels`. |
 | C5 | Rail More | Favorite nodes, recent nodes, workflow settings, skills and workspace files (`MorePanel.tsx`). | Disabled. Native commands are in the toolbar More menu. | Open. |
 | C6 | Rail logo | Opens the app menu with Settings, Help and Downloads (`RailAppMenu.tsx`). | A static logo. | Open. |
 | C7 | Rail Documents | Tree of every document in the project. | Opens the workflow browser, which lists workflows only. | Open. |

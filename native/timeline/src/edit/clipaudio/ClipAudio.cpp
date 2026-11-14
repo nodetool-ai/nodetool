@@ -32,6 +32,15 @@ QJsonObject editClipAudio(QJsonObject raw, const QJsonObject& payload, bool grip
         if (clip.value("id").toString() != id || !sounding(clip.value("mediaType").toString())) {
             continue;
         }
+        // A locked clip or a clip on a locked track keeps its levels and fades.
+        if (clip.value("locked").toBool()) {
+            return raw;
+        }
+        for (const auto& track : raw.value("tracks").toArray()) {
+            if (track.toObject().value("id") == clip.value("trackId") && track.toObject().value("locked").toBool()) {
+                return raw;
+            }
+        }
         QJsonValue value;
         if (shape) {
             value = parseShape(input);

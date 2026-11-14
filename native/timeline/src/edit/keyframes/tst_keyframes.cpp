@@ -632,9 +632,42 @@ class TestKeyframes : public QObject {
         QCOMPARE(nt::keyframes::inputValue(left, "depth", 0, 1000), 20.0);
         QCOMPARE(nt::keyframes::inputValue(right, "depth", 0, 0), 20.0);
         QCOMPARE(nt::keyframes::inputValue(right, "depth", 0, 1000), 40.0);
-        // A trim stretches keys with the clip, as every normalized keyframe does.
-        const auto trimmed = nt::edit::trimClip(clip, "end", -1000, std::nullopt);
-        QCOMPARE(nt::keyframes::inputValue(trimmed, "depth", 0, 500), 20.0);
+    }
+    // D1 of the 2026-11-14 second audit: a trim keeps every key at its instant, as Premiere does.
+    void trimKeepsKeysAtTheirInstants() {
+        TimelineModel model;
+        model.setTimeline(fixture());
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "rotationX"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "rotationX"}, {"input", 0}, {"value", 40}, {"atMs", 2000}}));
+        QVERIFY(model.applyEdit("keyframes.stopwatch", {{"clipId", "c"}, {"row", "depth"}, {"atMs", 0}}));
+        QVERIFY(model.applyEdit("keyframes.input", {{"clipId", "c"}, {"row", "depth"}, {"input", 0}, {"value", 40}, {"atMs", 2000}}));
+        const auto clip = model.clipsJson()[0].toObject();
+        const auto render = [](const QJsonObject& c, double atMs) {
+            const auto compiled = nt::scene::compileAnimations(nt::scene::parseAnimations(c["animations"].toArray()),
+                                                               c["durationMs"].toDouble(), {});
+            return nt::scene::sampleAnimations(compiled, atMs, std::nullopt).rotationX;
+        };
+        const auto depth = [](const QJsonObject& c, double atMs) {
+            return nt::scene::ParamCurves::parse(c["paramCurves"].toArray())->value(u"depthPx", atMs / c["durationMs"].toDouble());
+        };
+
+        // The tail trim cuts the 2000 ms keys off. They are hidden, and the curve still runs toward them.
+        const auto tail = nt::edit::trimClip(clip, "end", -1000, std::nullopt);
+        QCOMPARE(nt::keyframes::times(tail, {"rotationX", "depthPx"}), (QJsonArray{0.0}));
+        QCOMPARE(nt::keyframes::inputValue(tail, "rotationX", 0, 500), 10.0);
+        QCOMPARE(nt::keyframes::inputValue(tail, "depth", 0, 1000), 20.0);
+        QCOMPARE(render(tail, 1000), 20.0);
+        QCOMPARE(*depth(tail, 1000), 20.0);
+        // Trimming back out shows them again.
+        const auto restored = nt::edit::trimClip(tail, "end", 1000, std::nullopt);
+        QCOMPARE(nt::keyframes::times(restored, {"rotationX", "depthPx"}), (QJsonArray{0.0, 2000.0}));
+        QCOMPARE(render(restored, 1500), 30.0);
+
+        // A head trim keeps each key at its timeline instant: clip time 0 is now the old 1000 ms.
+        const auto head = nt::edit::trimClip(clip, "start", -1000, std::nullopt);
+        QCOMPARE(nt::keyframes::times(head, {"rotationX", "depthPx"}), (QJsonArray{1000.0}));
+        QCOMPARE(render(head, 0), 20.0);
+        QCOMPARE(*depth(head, 500), 30.0);
     }
     void lockedClipRefusesNewRows() {
         auto document = fixture().raw;
@@ -995,8 +1028,10 @@ class TestKeyframes : public QObject {
         QCOMPARE(nt::keyframes::inputValue(left, "effect:e:radius", 0, 1000), 10.0);
         QCOMPARE(nt::keyframes::inputValue(right, "effect:e:radius", 0, 0), 10.0);
         QCOMPARE(nt::keyframes::inputValue(right, "effect:e:radius", 0, 1000), 20.0);
+        // A trim keeps the keys at their instants.
         const auto trimmed = nt::edit::trimClip(clip, "end", -1000, std::nullopt);
-        QCOMPARE(nt::keyframes::inputValue(trimmed, "effect:e:radius", 0, 500), 10.0);
+        QCOMPARE(nt::keyframes::inputValue(trimmed, "effect:e:radius", 0, 500), 5.0);
+        QCOMPARE(nt::keyframes::inputValue(trimmed, "effect:e:radius", 0, 1000), 10.0);
     }
     void removingAnEffectDropsOnlyItsCurves() {
         const auto curve = [](const QString& property) {

@@ -245,6 +245,8 @@ private slots:
         QTRY_COMPARE(session.attachments().first().toMap()["status"].toString(), QStringLiteral("ready"));
         QCOMPARE(session.attachments().first().toMap()["assetId"].toString(), QStringLiteral("cccccccccccccccccccccccccccccccc"));
         QVERIFY(session.attachments().first().toMap()["progress"].toDouble() > 0);
+        session.setProvider("test-provider");
+        session.setModel("test-model");
         session.setDraft("Use attached file");
         session.send();
         QTRY_COMPARE(server.count("command", "chat_message"), 1);
@@ -323,6 +325,8 @@ private slots:
         QCOMPARE(server.count("type", "plan_approval_response"), 0);
         session.setPermissionMode("everything");
         QCOMPARE(session.permissionMode(), QStringLiteral("auto"));
+        session.setProvider("test-provider");
+        session.setModel("test-model");
         session.setDraft("Go");
         session.send();
         QTRY_COMPARE(server.count("command", "chat_message"), 1);
@@ -418,6 +422,8 @@ private slots:
         QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
         QTRY_VERIFY(std::count_if(server.requests.cbegin(), server.requests.cend(), [](const auto& request) { return request.contains("/trpc/messages.list"); }) >= 2);
         QTRY_VERIFY(!session.historyLoading());
+        session.setProvider("test-provider");
+        session.setModel("test-model");
         session.setDraft("Send after history reconnected");
         session.send();
         QTRY_COMPARE(server.count("command", "chat_message"), 1);
@@ -429,6 +435,8 @@ private slots:
         session.connectToServer(server.url(), {});
         QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
         QTRY_VERIFY(!session.historyLoading());
+        session.setProvider("test-provider");
+        session.setModel("test-model");
         session.setDraft("run once");
         session.send();
         QTRY_COMPARE(server.count("command", "chat_message"), 1);
@@ -455,6 +463,52 @@ private slots:
         QTRY_COMPARE(hostResponses.size(), 2);
         QCOMPARE(hostResponses.at(1).at(0).toJsonObject()["result"].toObject()["text"].toString(),
                  QStringLiteral("fresh"));
+    }
+    // Study 20: the server refuses a turn with no model and keeps nothing, so
+    // the question stays in the composer and the key dialog opens instead.
+    void sendWithNoUsableModelKeepsTheQuestion() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        ChatSession session;
+        QSignalSpy setup(&session, &ChatSession::providerSetupRequested);
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_VERIFY(!session.historyLoading());
+        QTRY_VERIFY(session.modelCatalog()->loaded() && !session.modelCatalog()->loading());
+        session.setDraft("What is the capital of France?");
+        session.send();
+        QCOMPARE(setup.size(), 1);
+        QCOMPARE(session.draft(), QStringLiteral("What is the capital of France?"));
+        QTest::qWait(100);
+        QCOMPARE(server.count("command", "chat_message"), 0);
+    }
+    // Study 20: the "Chat message processing started" acknowledgement has no
+    // type and showed as an "unknown" card holding JSON.
+    void commandAcknowledgementIsNotAMessage() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        ChatSession session;
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_VERIFY(!session.historyLoading());
+        server.emitEvent({{"chat_seq", 1}, {"message", "Chat message processing started"}, {"thread_id", ThreadId}});
+        server.emitEvent({{"type", "chunk"}, {"chat_seq", 2}, {"thread_id", ThreadId}, {"content", "Paris"}, {"done", true}});
+        QTRY_COMPARE(session.messages()->rowCount(), 1);
+        QVERIFY(session.error().isEmpty());
+    }
+    void renameThreadUpdatesTheServerAndTheList() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        ChatSession session;
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        session.renameThread(ThreadId, "  Sister's visit  ");
+        QTRY_COMPARE(session.threads()->data(session.threads()->index(0, 0), nt::chat::ThreadModel::TitleRole).toString(),
+                     QStringLiteral("Sister's visit"));
+        const auto update = std::find_if(server.requests.cbegin(), server.requests.cend(),
+                                         [](const auto& request) { return request.contains("/trpc/threads.update"); });
+        QVERIFY(update != server.requests.cend());
+        QVERIFY(update->contains("Sister's visit"));
     }
 };
 QTEST_MAIN(TransportTests)

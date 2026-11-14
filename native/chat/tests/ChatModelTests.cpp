@@ -153,6 +153,18 @@ private slots:
         model.addPart({{"type", "tool_result_update"}, {"tool_call_id", "plan-call"}, {"result", cases[0].toObject()["input"]}});
         QCOMPARE(partAt(partsFor(model), 0)["planText"].toString(), text);
     }
+    // Study 20: a question sent with text parts showed as a full-width card
+    // instead of the user's bubble.
+    void userTextPartsShowAsTheBubble() {
+        MessageModel model;
+        model.upsert({{"id", "asked"}, {"role", "user"},
+            {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", "When is the next meeting?"}},
+                QJsonObject{{"type", "document"}, {"document", QJsonObject{{"uri", "asset://eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}}}}}}});
+        QCOMPARE(model.data(model.index(0), MessageModel::DisplayTextRole).toString(), QStringLiteral("When is the next meeting?"));
+        auto *parts = partsFor(model);
+        QCOMPARE(parts->rowCount(), 1);
+        QCOMPARE(partAt(parts, 0)["type"].toString(), QStringLiteral("document"));
+    }
     void compactionProjection() {
         MessageModel model;
         const QJsonObject raw{{"id", "compact"}, {"role", "user"}, {"execution_event_type", "compaction"},

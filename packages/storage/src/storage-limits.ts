@@ -27,6 +27,23 @@ export function getMaxLocalUploadBytes(): number {
 }
 
 /**
+ * An upload larger than a storage limit: NodeTool's own cap or the backend's
+ * (the Supabase project's global file size limit). Hosts map it to a 413.
+ */
+export class UploadTooLargeError extends Error {
+  readonly byteLength: number;
+  /** The limit in bytes, when the backend reports it. */
+  readonly maxBytes: number | null;
+
+  constructor(message: string, byteLength: number, maxBytes: number | null) {
+    super(message);
+    this.name = "UploadTooLargeError";
+    this.byteLength = byteLength;
+    this.maxBytes = maxBytes;
+  }
+}
+
+/**
  * Throw if `byteLength` exceeds the configured upload cap.
  *
  * @param key        Storage key, included in the error for diagnosis.
@@ -35,9 +52,11 @@ export function getMaxLocalUploadBytes(): number {
 export function assertUploadWithinLimit(key: string, byteLength: number): void {
   const max = getMaxUploadBytes();
   if (byteLength > max) {
-    throw new Error(
+    throw new UploadTooLargeError(
       `Upload for key "${key}" exceeds maximum size: ${byteLength} > ${max} bytes ` +
-        `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`
+        `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`,
+      byteLength,
+      max
     );
   }
 }

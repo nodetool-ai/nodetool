@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <exception>
 #include <memory>
 
 namespace {
@@ -401,7 +402,7 @@ quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before,
     afterDocument.insert("clips", commandAfter);
     const auto token = nextCommandToken();
     auto command = std::make_unique<DocumentCommand>(text, std::move(beforeDocument), std::move(afterDocument),
-        [this](const QJsonObject& raw) { replaceDocument(raw); }, token, mergeId, continuation);
+        [this](const QJsonObject& raw) { replaceFromHistory(raw); }, token, mergeId, continuation);
     m_undo->push(command.release());
     return token;
 }
@@ -518,21 +519,47 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
         }
         return true;
     };
+    // An edit that cannot apply to this document throws (ClipOps' OpError).
+    // That leaves the document as it was instead of ending the process.
+    const auto run = [&](const QJsonObject& raw) -> std::optional<QJsonObject> {
+        try {
+            return edit(raw, payload);
+        } catch (const std::exception& error) {
+            qWarning("edit %s failed: %s", qPrintable(name), error.what());
+            return std::nullopt;
+        }
+    };
     const auto snapshot = m_timeline;
     auto before = snapshot->raw;
-    auto after = edit(before, payload);
-    if (!valid(before, after)) { return false; }
+    auto after = run(before);
+    if (!after || !valid(before, *after)) { return false; }
     emit beforeCommand();
     if (m_timeline != snapshot && m_timeline->raw != before) {
         before = m_timeline->raw;
-        after = edit(before, payload);
-        if (!valid(before, after)) { return false; }
+        after = run(before);
+        if (!after || !valid(before, *after)) { return false; }
     }
     const auto token = nextCommandToken();
-    auto command = std::make_unique<DocumentCommand>(name, before, after,
-        [this](const QJsonObject& raw) { replaceDocument(raw); }, token);
+    auto command = std::make_unique<DocumentCommand>(name, before, *after,
+        [this](const QJsonObject& raw) { replaceFromHistory(raw); }, token);
     m_undo->push(command.release());
     return token;
+}
+
+bool TimelineModel::replaceFromHistory(QJsonObject raw) {
+    // No edit changes the project. The server can move the timeline to another
+    // project while it is open (setProjectId), and undo must not move it back.
+    const auto project = m_timeline->raw.value(QStringLiteral("projectId"));
+    if (project.isUndefined()) { raw.remove(QStringLiteral("projectId")); }
+    else { raw.insert(QStringLiteral("projectId"), project); }
+    return replaceDocument(raw);
+}
+
+bool TimelineModel::setProjectId(const QString& projectId) {
+    if (projectId.isEmpty() || m_timeline->raw.value(QStringLiteral("projectId")).toString() == projectId) { return false; }
+    auto raw = m_timeline->raw;
+    raw.insert(QStringLiteral("projectId"), projectId);
+    return replaceDocument(raw);
 }
 
 bool TimelineModel::replaceDocument(const QJsonObject& incoming) {

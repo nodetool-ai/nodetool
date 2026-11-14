@@ -154,6 +154,26 @@ describe("createSupabaseStorageClient", () => {
     expect(signResult.error?.message).toBe("Bucket not found");
   });
 
+  it("reports the body's statusCode when Storage answers HTTP 400", async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        {
+          statusCode: "413",
+          error: "Payload too large",
+          message: "The object exceeded the maximum allowed size"
+        },
+        400
+      )
+    );
+    const { error } = await client()
+      .storage.from("uploads")
+      .upload("big.glb", new Uint8Array([1]));
+    expect(error).toEqual({
+      message: "The object exceeded the maximum allowed size",
+      status: 413
+    });
+  });
+
   it("getPublicUrl builds the public object URL without fetching", () => {
     const { data } = client().storage.from("uploads").getPublicUrl("a/b.png");
     expect(data.publicUrl).toBe(
