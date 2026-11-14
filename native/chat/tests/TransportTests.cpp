@@ -510,10 +510,11 @@ private slots:
     // switcher on the first message after the fork.
     void editRewindsSendsAndShowsVersions() {
         ChatServer server;
+        // Newest first, as messages.list answers with reverse set.
         server.history = QJsonArray{
+            QJsonObject{{"id", "reply"}, {"role", "assistant"}, {"content", "A Quiet Harbour"}},
             QJsonObject{{"id", "prompt"}, {"role", "user"}, {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", "Draft a title"}},
-                QJsonObject{{"type", "image_url"}, {"image", QJsonObject{{"uri", "asset://brief"}}}}}}},
-            QJsonObject{{"id", "reply"}, {"role", "assistant"}, {"content", "A Quiet Harbour"}}};
+                QJsonObject{{"type", "image_url"}, {"image", QJsonObject{{"uri", "asset://brief"}}}}}}}};
         server.rewound = QJsonArray{"prompt", "reply"};
         server.forks = QJsonArray{QJsonObject{{"after", ""}, {"first_message_id", "prompt"},
             {"versions", QJsonArray{"older", QJsonValue::Null}}, {"active", 1}}};
@@ -551,11 +552,12 @@ private slots:
     }
     void retryLatestSendsTheLastPromptAgain() {
         ChatServer server;
+        // messages.list is asked for newest first and the client flips it.
         server.history = QJsonArray{
-            QJsonObject{{"id", "first"}, {"role", "user"}, {"content", "One"}},
-            QJsonObject{{"id", "answer"}, {"role", "assistant"}, {"content", "First answer"}},
+            QJsonObject{{"id", "latest"}, {"role", "assistant"}, {"content", "Second answer"}},
             QJsonObject{{"id", "second"}, {"role", "user"}, {"content", "Two"}},
-            QJsonObject{{"id", "latest"}, {"role", "assistant"}, {"content", "Second answer"}}};
+            QJsonObject{{"id", "answer"}, {"role", "assistant"}, {"content", "First answer"}},
+            QJsonObject{{"id", "first"}, {"role", "user"}, {"content", "One"}}};
         server.rewound = QJsonArray{"second", "latest"};
         QVERIFY(server.listen());
         ChatSession session;
