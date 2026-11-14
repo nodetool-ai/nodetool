@@ -42,6 +42,8 @@
 #include <QDialog>
 #include <QFile>
 #include <QFileDialog>
+#include <QRegularExpression>
+#include <QStandardPaths>
 #include <QDir>
 #include <QFileInfo>
 #include <QCursor>
@@ -290,6 +292,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&panelLayout_, &node_editor::PanelLayout::toggleChatRequested, this, &EditorWindow::toggleChat);
   connect(&panelLayout_, &node_editor::PanelLayout::toggleLibraryRequested, this, [this] { action("Library"); });
   connect(&panelLayout_, &node_editor::PanelLayout::toggleExamplesRequested, this, [this] { action("Examples"); });
+  connect(&panelLayout_, &node_editor::PanelLayout::projectsRequested, this, &EditorWindow::showProjectMenu);
   connect(&panelLayout_, &node_editor::PanelLayout::toggleCatalogRequested, this, [this] { action("Toggle nodes"); });
   connect(&panelLayout_, &node_editor::PanelLayout::toggleInspectorRequested, this, [this] { action("Toggle inspector"); });
   connect(&panelLayout_, &node_editor::PanelLayout::togglePanelRequested, this, [this] { action("Toggle panel"); });
@@ -1359,18 +1362,26 @@ void EditorWindow::showCanvasDrops() {
   if (const auto root = content->rootObject()) connect(root, SIGNAL(closeRequested()), dialog, SLOT(close()));
   showOverlayDialog(dialog, content, this, {444, 540});
 }
+QString EditorWindow::defaultSavePath() const {
+  auto name = document_.snapshot()["name"].toString().trimmed();
+  name.replace(QRegularExpression(QStringLiteral("[\\\\/:*?\"<>|]")), QStringLiteral(" "));
+  if (name.isEmpty()) { name = tr("Untitled workflow"); }
+  return QDir(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation)).filePath(name + QStringLiteral(".json"));
+}
 void EditorWindow::saveLocalCopyAs() {
   const auto snapshot = document_.snapshot();
   QWidget *owner = serverSyncDialog_ ? static_cast<QWidget *>(serverSyncDialog_.data()) : this;
-  const auto path = QFileDialog::getSaveFileName(owner, tr("Save local copy"), {}, tr("Workflow (*.json)"));
+  const auto path = QFileDialog::getSaveFileName(owner, tr("Save As"), defaultSavePath(), tr("Workflow (*.json)"));
   if (path.isEmpty()) { return; }
   const auto bytes = QJsonDocument(snapshot).toJson();
   QSaveFile file(path);
   if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit()) {
-    QMessageBox::warning(owner, tr("Save local copy"), file.errorString());
+    QMessageBox::warning(owner, tr("Save As"), file.errorString());
     return;
   }
-  message_ = tr("Saved a local copy. Server changes remain unresolved.");
+  // The menu's Save As names its file. The server sync dialog's copy still leaves the conflict open.
+  message_ = serverSyncDialog_ ? tr("Saved a local copy. Server changes remain unresolved.")
+                               : tr("Saved a copy to %1").arg(QDir::toNativeSeparators(path));
   schedulePanelChanged();
 }
 void EditorWindow::syncSourcePreviews() {
@@ -3074,6 +3085,12 @@ QRectF EditorWindow::unobstructedViewport() const {
     const auto bottom = selectionOverlay_->geometry().bottom() + 8.0;
     if (bottom < area.height() / 2) { area.setTop(bottom); }
   }
+  // The chat window floats over the canvas's right side. Fitting the graph beside
+  // it keeps an opened workflow's last nodes in sight (UX study 21).
+  if (chatOverlay_ && chatOverlay_->isVisible()) {
+    const auto chatLeft = view_->viewport()->mapFrom(view_, chatOverlay_->geometry().topLeft()).x() - 8.0;
+    if (chatLeft > area.left() + area.width() / 2) { area.setRight(chatLeft); }
+  }
   if (!toolbarOverlay_ || !toolbarOverlay_->isVisible()) { return area; }
   const auto toolbarTop = toolbarOverlay_->geometry().top() - 8.0;
   // On a very short canvas the toolbar has to overlap the graph.
@@ -3805,7 +3822,7 @@ void EditorWindow::action(const QString &name) {
   } else if (name == "Fit") {
     fitView();
   } else if (name == "Open file") {
-    auto p = QFileDialog::getOpenFileName(this, tr("Open workflow"), {},
+    auto p = QFileDialog::getOpenFileName(this, tr("Open workflow"), QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation),
                                           tr("Workflow (*.json)"));
     if (!p.isEmpty()) {
       openFileInTab(p);
@@ -3815,7 +3832,7 @@ void EditorWindow::action(const QString &name) {
     session_.save();
   } else if (name == "Save") {
     auto p = file_.isEmpty()
-                 ? QFileDialog::getSaveFileName(this, tr("Save workflow"), {},
+                 ? QFileDialog::getSaveFileName(this, tr("Save workflow"), defaultSavePath(),
                                                 tr("Workflow (*.json)"))
                  : file_;
     if (!p.isEmpty()) {

@@ -433,6 +433,11 @@ class CardBodiesTest final : public QObject {
             const auto loaded = window.document()->load(workflow);
             Q_ASSERT(loaded.ok);
             settle();
+            // Fit fills the canvas only while the chat is closed, which keeps the
+            // card bodies at the zoom their pixel assertions expect.
+            if (window.chatVisible()) {
+                window.toggleChat();
+            }
             window.fit();
             if (window.catalogVisible()) {
                 window.action(QStringLiteral("Toggle nodes"));
