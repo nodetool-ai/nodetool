@@ -1301,7 +1301,13 @@ export function registerAgentMcpTools(
    * outlive the call.
    */
   const runForCall = (signal: AbortSignal | undefined): CapabilityRun =>
-    signal ? createCapabilityRun({ ...runOptions, signal }) : capabilityRun;
+    signal
+      ? createCapabilityRun({
+          ...runOptions,
+          availableSecrets: runOptions.availableSecrets,
+          signal
+        })
+      : capabilityRun;
   const byName = new Map(belt.map((tool) => [tool.name, tool]));
 
   // `view_image` is the one channel that puts pixels into a caller's context,
