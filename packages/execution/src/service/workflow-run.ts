@@ -930,9 +930,7 @@ export async function runWorkflow(
       storage: environment.storage ?? null,
       assetStorage: environment.assetStorage ?? null,
       durableFalGenerations: true,
-      ...(environment.admitGeneration
-        ? { admitGeneration: environment.admitGeneration }
-        : {})
+      admitGeneration: environment.admitGeneration
     });
     environment.configureContext?.(executionContext);
     if (environment.persistGeneration && !options.graph && workflowId) {

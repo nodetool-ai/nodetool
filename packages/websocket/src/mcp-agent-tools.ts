@@ -1286,7 +1286,7 @@ export function registerAgentMcpTools(
     availableSecrets: contextSecretAvailability(context),
     nodeRegistry: options.registry,
     ...hostDeps,
-    ...(workflowEnvironment ? { workflowEnvironment } : {}),
+    workflowEnvironment,
     providers: sharedProviders,
     loaders: { timeline: loadTimelineForUser, sketch: loadSketchForUser }
   };
