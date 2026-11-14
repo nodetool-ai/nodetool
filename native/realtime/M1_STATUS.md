@@ -11,9 +11,11 @@ Use the [scoped M1 progress gate](../../docs/plans/graph-runner-realtime.md#152-
 and keep every missing requirement in the [acceptance ledger](#deferred-acceptance-work).
 No unfinished issue or milestone is closed by a deferral.
 
-This branch is based on [M0 PR #7445](https://github.com/nodetool-ai/nodetool/pull/7445).
-Its PR targets the M0 branch to keep the milestone diff separate. Review and
-merge ordering must preserve the M0 changes before retargeting M1 to main.
+This work was originally stacked on
+[M0 PR #7445](https://github.com/nodetool-ai/nodetool/pull/7445).
+Integration proceeds in that order: merge M0, then retarget and merge
+[M1 PR #7471](https://github.com/nodetool-ai/nodetool/pull/7471) into main.
+Merging the implementation does not close unfinished acceptance requirements.
 
 ## Current M1 acceptance evidence
 
@@ -392,8 +394,34 @@ The complete offline check passes on Windows Release after this batch: all five
 inventory regressions, all nine required native tests and the five-plan CLI
 matrix pass. The real build's required entries contain no disabled/skip policies.
 No C++ runtime code, threads or resource ownership changed. New-revision Linux
-CI qualification of the guard remains pending. Broad local checks remain
+CI qualification of the guard passes at `fe1cebf0f5` in the
+[standalone run](https://github.com/nodetool-ai/nodetool/actions/runs/43632411206).
+The [full-host run](https://github.com/nodetool-ai/nodetool/actions/runs/43632411207)
+also passes its native tests and CLI matrix at that revision.
+Broad local checks remain
 deferred under the targeted-check policy.
+
+## Continuation after integration
+
+Start subsequent milestone work from a fresh branch based on main after both
+PRs have merged. The old M0 and M1 worktrees retain their original local heads.
+Do not use those heads as the integration baseline. The conflict-resolution
+worktree is separate from the main checkout and native-editor work.
+
+The integration replays M0's commits over current main and M1's commits over
+the updated M0. It preserves the newer native project/parity test mappings,
+Windows editor build-directory behavior, graph-runner parity/editor checks
+and affected-test filtering. Realtime dispatch and explicit software-adapter
+selection remain in the combined workflow. Targeted selector/helper and
+compiler checks pass locally. CI must qualify the rebased combined revision
+before merge. No executor or compiler source changed during reconciliation.
+
+Use the [implementation plan](../../docs/plans/graph-runner-realtime-issues.md#work-packages)
+to select later work. WP16 remains partial. Its offline compiler work can
+continue under the existing progress deferral. M2 starts with WP11's audio-I/O
+extraction and then WP12's live session core. Device/surface qualification,
+cross-thread synchronization and state transfer retain their dependencies.
+Keep the acceptance ledger and every unfinished issue open after the PR merges.
 
 ## Provisional progress gate
 
