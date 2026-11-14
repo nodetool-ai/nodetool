@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SupabaseStorageAdapter } from "../src/supabase-storage-adapter.js";
+import { UploadTooLargeError } from "../src/storage-limits.js";
 import type {
   SupabaseBucketApi,
   SupabaseObjectEntry,
@@ -76,6 +77,29 @@ describe("SupabaseStorageAdapter store", () => {
     await expect(
       adapter.store("k.txt", new Uint8Array([1]))
     ).rejects.toThrow('Supabase upload failed for "k.txt": Bucket full');
+  });
+
+  it("raises UploadTooLargeError when the project size limit rejects it", async () => {
+    const { adapter } = makeAdapter({
+      upload: vi.fn(async () => ({
+        error: {
+          message: "The object exceeded the maximum allowed size",
+          status: 413
+        }
+      }))
+    });
+    const failure = adapter.store("m.glb", new Uint8Array(3));
+    await expect(failure).rejects.toBeInstanceOf(UploadTooLargeError);
+    await expect(failure).rejects.toMatchObject({ byteLength: 3, maxBytes: null });
+  });
+
+  it("keeps other upload failures as plain errors", async () => {
+    const { adapter } = makeAdapter({
+      upload: vi.fn(async () => ({ error: { message: "Bucket full", status: 400 } }))
+    });
+    await expect(
+      adapter.store("k.txt", new Uint8Array([1]))
+    ).rejects.not.toBeInstanceOf(UploadTooLargeError);
   });
 });
 

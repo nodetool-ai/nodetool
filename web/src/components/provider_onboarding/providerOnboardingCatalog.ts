@@ -111,8 +111,9 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
     mono: true,
     oauth: "openai",
     oauthOnly: true,
-    tagline: "Use a ChatGPT Plus or Pro subscription with Codex models — no API key.",
-    capabilities: ["generate_message"],
+    tagline: "Use your ChatGPT Plus or Pro plan for chat and images. No API key.",
+    // The `codex` provider also generates images (GPT Image) on the plan.
+    capabilities: ["generate_message", "text_to_image"],
     keyUrl: "https://chatgpt.com/pricing",
     pricingUrl: "https://chatgpt.com/pricing",
     costHint: "Included in your ChatGPT subscription — no per-token API bill.",

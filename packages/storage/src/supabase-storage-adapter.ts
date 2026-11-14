@@ -14,7 +14,10 @@ import type {
 } from "./storage-adapter.js";
 import { SIGNED_URL_TTL } from "@nodetool-ai/config";
 import { compareStorageKeys, normalizeStorageKey } from "./storage-keys.js";
-import { assertUploadWithinLimit } from "./storage-limits.js";
+import {
+  assertUploadWithinLimit,
+  UploadTooLargeError
+} from "./storage-limits.js";
 import { objectCacheControl } from "./cache-control.js";
 
 /** Supabase upload tokens last two hours and the sign call takes no TTL. */
@@ -89,7 +92,13 @@ export class SupabaseStorageAdapter implements StorageAdapter {
       .storage.from(this.bucket)
       .upload(key, data, uploadOptions);
     if (error) {
-      throw new Error(`Supabase upload failed for "${key}": ${error.message}`);
+      const message = `Supabase upload failed for "${key}": ${error.message}`;
+      // The project's global file size limit answers 413 ("The object
+      // exceeded the maximum allowed size") before any bucket limit applies.
+      if (error.status === 413 || /maximum allowed size/i.test(error.message)) {
+        throw new UploadTooLargeError(message, data.byteLength, null);
+      }
+      throw new Error(message);
     }
     return `supabase://${this.bucket}/${key}`;
   }
