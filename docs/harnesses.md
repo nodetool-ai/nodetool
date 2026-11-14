@@ -56,8 +56,9 @@ node scripts/run-vitest.mjs run --config vitest.config.ts scripts/__tests__/pin-
 ```
 
 The
-`release-pins` job in `packed-core-cli.yml` verifies actual Linux measurement
-and packing without publishing.
+`packed-install` job in `packed-core-cli.yml` verifies actual Linux measurement
+and packing without publishing, then smoke-tests the packed CLI from those
+tarballs.
 
 ## CLI
 

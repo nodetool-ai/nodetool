@@ -33,7 +33,8 @@ function selectLegs(plan, { skipTests = false } = {}) {
     const lines = readFileSync(output, "utf8").split("\n");
     const legs = (key) =>
       new Map(JSON.parse(lines.find((l) => l.startsWith(`${key}=`)).slice(key.length + 1)).include.map((leg) => [leg.check, leg]));
-    return { static: legs("static"), built: legs("built"), step };
+    const builtLegs = JSON.parse(lines.find((l) => l.startsWith("built=")).slice("built=".length)).include;
+    return { static: legs("static"), built: legs("built"), builtLegs, step };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -138,6 +139,20 @@ describe("Test workflow runner demand", () => {
     expect(appTests({ ...FULL_PLAN, electron: false, mobile: true })).toBe(true);
     expect(appTests(FULL_PLAN, { skipTests: true })).toBe(false);
     expect(selectLegs(FULL_PLAN).step.env.SKIP_TESTS).toBe("${{ inputs.skip-tests }}");
+  });
+
+  it("splits the serial agents suite across two runners with vitest shards", () => {
+    const agents = selectLegs(FULL_PLAN).builtLegs.filter((leg) => leg.check === "test-packages-agents");
+    expect(agents.map((leg) => leg.shard)).toEqual(["1", "2"]);
+    expect(agents.map((leg) => leg.command)).toEqual([
+      "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED -- --shard=1/2",
+      "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED -- --shard=2/2"
+    ]);
+    expect(selectLegs({ ...FULL_PLAN, packages_agents: false }).builtLegs.some((leg) => leg.check === "test-packages-agents")).toBe(false);
+    // Each shard names its job and keeps its own test-results cache.
+    const job = read(".github/workflows/quality-checks.yml");
+    expect(job).toContain("name: ${{ matrix.shard && format('{0} ({1}/2)', matrix.check, matrix.shard) || matrix.check }}");
+    expect(job.match(/test-results-v2-\$\{\{ matrix\.check \}\}\$\{\{ matrix\.shard && format\('-\{0\}', matrix\.shard\) \|\| '' \}\}-/g)).toHaveLength(3);
   });
 
   it("runs the shipped-workflow integration tests and the workflow-runner browser E2E on one runner", () => {
