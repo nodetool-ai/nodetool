@@ -89,7 +89,7 @@ import {
   isGoogleWorkspaceEnabled
 } from "@nodetool-ai/config";
 import { basename, dirname, isAbsolute, join } from "node:path";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
@@ -1523,7 +1523,9 @@ export function registerAgentMcpTools(
       output_path: z
         .string()
         .optional()
-        .describe("Absolute server-local output path; local connections only.")
+        .describe(
+          "Absolute server-local output path; local connections only. Missing parent folders are created."
+        )
     },
     async ({ asset_id, output_path }) => {
       try {
@@ -1553,6 +1555,9 @@ export function registerAgentMcpTools(
         }
         const bytes = await loadMediaRefBytes({ asset_id: asset.id }, context);
         if (!bytes) throw new Error("Asset bytes not found.");
+        // Parallel downloads into a fresh folder all failed with ENOENT
+        // when the folder had to exist first.
+        await mkdir(dirname(output_path), { recursive: true });
         await writeFile(output_path, bytes);
         return toToolResponse({ ...described, size: bytes.length, output_path });
       } catch (err) {
