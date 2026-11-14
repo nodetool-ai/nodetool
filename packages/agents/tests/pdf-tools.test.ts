@@ -44,6 +44,8 @@ const workspaceDir = "/tmp/test-workspace";
 
 function makeMockContext(): ProcessingContext {
   return {
+    workspaceDir,
+    workspace: null,
     resolveWorkspacePath(path: string): string {
       const resolved = resolve(join(workspaceDir, path));
       if (!resolved.startsWith(resolve(workspaceDir))) {
@@ -137,7 +139,7 @@ describe("ExtractPDFTablesTool", () => {
   it("has correct name and schema", () => {
     expect(tool.name).toBe("extract_pdf_tables");
     expect((tool.inputSchema as Record<string, unknown>).required).toContain("path");
-    expect((tool.inputSchema as Record<string, unknown>).required).toContain("output_file");
+    expect((tool.inputSchema as Record<string, unknown>).required).not.toContain("output_file");
   });
 
   it("extracts tables and writes JSON output", async () => {
@@ -188,7 +190,7 @@ describe("ConvertPDFToMarkdownTool", () => {
   it("has correct name and schema", () => {
     expect(tool.name).toBe("convert_pdf_to_markdown");
     expect((tool.inputSchema as Record<string, unknown>).required).toContain("input_file");
-    expect((tool.inputSchema as Record<string, unknown>).required).toContain("output_file");
+    expect((tool.inputSchema as Record<string, unknown>).required).not.toContain("output_file");
   });
 
   it("converts PDF to markdown", async () => {
