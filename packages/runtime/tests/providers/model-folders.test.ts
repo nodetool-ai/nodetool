@@ -35,9 +35,9 @@ describe("findModelFiles", () => {
     await writeFile(join(root, "models", ".cache", "hidden.safetensors"), "x");
     await mkdir(join(root, "extra"));
     await writeFile(join(root, "extra", "linked.SAFETENSORS"), "x");
-    await symlink(join(root, "extra"), join(root, "models", "extra-link"));
+    await symlink(join(root, "extra"), join(root, "models", "extra-link"), process.platform === "win32" ? "junction" : "dir");
     // A loop back to the root must not recurse forever.
-    await symlink(join(root, "models"), join(root, "models", "checkpoints", "loop"));
+    await symlink(join(root, "models"), join(root, "models", "checkpoints", "loop"), process.platform === "win32" ? "junction" : "dir");
   });
 
   afterAll(async () => {

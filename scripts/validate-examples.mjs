@@ -35,7 +35,7 @@ import {
   writeFileSync
 } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker, isMainThread, parentPort } from "node:worker_threads";
 
@@ -148,7 +148,7 @@ if (!isMainThread) {
 // scan, so a stale model id or node type there drifted with the gate green —
 // and those are the CLI-facing examples examples/workflows/README.md tells
 // people to run.
-function findExamples(dir) {
+export function findExamples(dir) {
   const results = [];
   for (const entry of readdirSync(dir)) {
     if (entry === "node_modules" || entry === "dist") continue;
@@ -156,7 +156,7 @@ function findExamples(dir) {
     const stat = statSync(full);
     if (stat.isDirectory()) {
       results.push(...findExamples(full));
-    } else if (entry !== "package.json" && entry.endsWith(".json") && full.includes("/examples/")) {
+    } else if (entry !== "package.json" && entry.endsWith(".json") && full.includes(`${sep}examples${sep}`)) {
       results.push(full);
     }
   }
@@ -620,7 +620,7 @@ async function main() {
   // main thread already knows is broken (an unparseable bundle, say).
   const jobs = [];
   for (const file of workflowExamples) {
-    const label = file.slice(repoRoot.length + 1);
+    const label = relative(repoRoot, file).split(sep).join("/");
     jobs.push({
       label,
       path: file,
@@ -644,7 +644,7 @@ async function main() {
   // standard a standalone example graph is.
   const scratch = mkdtempSync(join(tmpdir(), "validate-app-bundles-"));
   for (const [b, file] of bundles.entries()) {
-    const rel = file.slice(repoRoot.length + 1);
+    const rel = relative(repoRoot, file).split(sep).join("/");
     const { parseError, workflows } = expandBundle(file);
     if (parseError) {
       jobs.push({ label: rel, failure: parseError });
@@ -671,20 +671,20 @@ async function main() {
   // the asset directory leaves the shipped board pointing at a 404. Check the
   // text and the files here, where the rest of the shipped examples are checked.
   for (const file of storyboards) {
-    jobs.push({ label: file.slice(repoRoot.length + 1), failure: checkStoryboard(file) });
+    jobs.push({ label: relative(repoRoot, file).split(sep).join("/"), failure: checkStoryboard(file) });
   }
   for (const file of timelines) {
-    jobs.push({ label: file.slice(repoRoot.length + 1), failure: await checkTimeline(file) });
+    jobs.push({ label: relative(repoRoot, file).split(sep).join("/"), failure: await checkTimeline(file) });
   }
   for (const file of games) {
-    jobs.push({ label: file.slice(repoRoot.length + 1), failure: await checkGame(file) });
+    jobs.push({ label: relative(repoRoot, file).split(sep).join("/"), failure: await checkGame(file) });
   }
   // A composition is a document fragment, not a graph: what rots is a
   // parameter pointer that no longer lands on a child field, or a clip the
   // timeline validator has stopped accepting.
   for (const file of compositions) {
     jobs.push({
-      label: file.slice(repoRoot.length + 1),
+      label: relative(repoRoot, file).split(sep).join("/"),
       failure: await checkComposition(file)
     });
   }
@@ -697,7 +697,7 @@ async function main() {
   const appWorkflows = readAppWorkflows(bundles);
   for (const file of recipes) {
     jobs.push({
-      label: file.slice(repoRoot.length + 1),
+      label: relative(repoRoot, file).split(sep).join("/"),
       failure: checkRecipe(file, exampleNames, appWorkflows)
     });
   }

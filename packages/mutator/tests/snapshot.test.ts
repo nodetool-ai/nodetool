@@ -48,6 +48,6 @@ describe("SnapshotStore", () => {
 
   it("rejects a namespace that would escape the snapshot directory", () => {
     expect(() => snapshotPath("/r/.metrics/mutate", "a/../b")).toThrow("unsafe namespace");
-    expect(snapshotPath("/r/.metrics/mutate", "pkg.mod.Class")).toBe("/r/.metrics/mutate/pkg.mod.Class.json");
+    expect(snapshotPath("/r/.metrics/mutate", "pkg.mod.Class")).toBe(join("/r/.metrics/mutate", "pkg.mod.Class.json"));
   });
 });
