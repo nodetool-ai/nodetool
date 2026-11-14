@@ -108,7 +108,11 @@ import {
   applyTransformersJsCacheSetting,
   resolveWorkerSettingsEnv
 } from "./worker-settings-env.js";
-import { isMcpHttpEnabled, MCP_ENABLE_FLAG } from "./lib/mcp-mount.js";
+import {
+  isLocalMcpSession,
+  isMcpHttpEnabled,
+  MCP_ENABLE_FLAG
+} from "./lib/mcp-mount.js";
 import {
   authenticateMcpAccessToken,
   mcpBearerChallenge
@@ -1905,7 +1909,12 @@ if (mcpHttpEnabled) {
       registry,
       examplesDir: apiOptions.examplesDir,
       frontendRendererRegistry,
-      allowLocalFilePaths: !isProduction && isLoopbackAddress(req.ip),
+      allowLocalFilePaths: isLocalMcpSession({
+        isProduction,
+        enforceAuth,
+        userId: req.userId,
+        fromLoopback: isLoopbackAddress(req.ip)
+      }),
       agentToolsScope: req.userId
         ? {
             userId: req.userId,

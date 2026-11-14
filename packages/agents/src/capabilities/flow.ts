@@ -32,6 +32,10 @@
  */
 
 import { importHidden } from "@nodetool-ai/config";
+import {
+  builtinNodePolicyFromEnv,
+  isBuiltinNodeAdmitted
+} from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import type {
@@ -291,12 +295,35 @@ function nodeInputs(params: Record<string, unknown>): Record<string, unknown> {
   return isRecord(inputs) ? { ...(inputs as Record<string, unknown>) } : {};
 }
 
+/**
+ * The refusal for a node type this server does not run, or null.
+ *
+ * The server prunes its registry in production and on the cloud profile, but
+ * a node call resolves through `@nodetool-ai/dsl/flow`, which keeps its own
+ * registry. This check applies the same rule at the door, so a type the host
+ * removed (a host-filesystem node on the cloud, say) stays unreachable from
+ * guest code whatever registry the backend consults.
+ */
+export function unavailableNodeRefusal(
+  type: string,
+  env: Readonly<Record<string, string | undefined>> = process.env
+): Record<string, unknown> | null {
+  if (isBuiltinNodeAdmitted(type, builtinNodePolicyFromEnv(env))) return null;
+  return {
+    error: "node_not_available",
+    type,
+    message: `${type} is not available on this server.`
+  };
+}
+
 /** The context one invocation runs on, or the gate's refusal. */
 function childContext(
   run: CapabilityRun,
   type: string,
   secrets: unknown
 ): { context: ProcessingContext } | { refusal: Record<string, unknown> } {
+  const unavailable = unavailableNodeRefusal(type);
+  if (unavailable) return { refusal: unavailable };
   const gate = enterFlowInvoke(run.context, type);
   if (!gate.ok || !gate.childContext) {
     return { refusal: gate.refusal ?? { error: "flow_invoke_refused" } };

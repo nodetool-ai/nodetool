@@ -366,6 +366,11 @@ describe("OidcClient", () => {
 
       provider.idToken = await idToken({ nonce: state.nonce });
       await expect(signIn(provider, env, state)).rejects.toMatchObject({ code: "not_allowed" });
+
+      // A token that does not say the email is verified is not trusted for
+      // the domain check.
+      provider.idToken = await idToken({ nonce: state.nonce, email: "eve@example.com" });
+      await expect(signIn(provider, env, state)).rejects.toMatchObject({ code: "not_allowed" });
     });
 
     it("checks groups, including a nested claim", async () => {

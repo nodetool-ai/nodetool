@@ -351,6 +351,16 @@ one the host granted.
   the `@nodetool-ai/sandbox-nodetool/*` import and the belt bridge. A kernel
   workflow run sets no gate and runs `auto`, since pressing Run on the graph
   was the consent.
+- **Node calls follow the server's node policy.** `invoke_node` and
+  `open_node_stream` refuse a type the server drops in production or on the
+  cloud profile (`isBuiltinNodeAdmitted` in `@nodetool-ai/node-sdk`), so guest
+  code cannot reach a host-filesystem node the graph editor does not offer.
+- **Host modules load no external resources.** `sandbox-fabric` refuses image
+  sources that are not inline raster `data:` URIs and SVG that references
+  anything outside itself, because Fabric's Node build would otherwise read
+  `file://` paths and request internal hosts past the `fetch` guard. One
+  rasterized output is capped at 4096 x 4096 pixels, since encoding runs on the
+  host's main thread.
 - **Bridges are the boundary, not the hiding.** The host and WASM module
   dispatchers validate module identity, export name and argument list before any
   implementation loads, and their bindings are deleted before user code starts.
