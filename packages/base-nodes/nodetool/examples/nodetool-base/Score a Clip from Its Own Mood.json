@@ -63,7 +63,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "mood",
-          "value": "",
+          "value": "Hopeful and unhurried, like the first warm morning of spring",
           "description": "The mood to hit"
         },
         "ui_properties": {

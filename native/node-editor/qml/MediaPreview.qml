@@ -327,13 +327,13 @@ Item {
         visible: root.failure.length > 0
         Layout.fillWidth: true
         Ui.Text { Layout.fillWidth: true; text: root.failure; role: Ui.Typography.SansCaption; wrapMode: Text.WrapAnywhere }
-        NodeButton { text: "Retry"; variant: NodeButton.Flat; onClicked: root.resolve() }
+        Ui.EditorButton { text: "Retry"; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.resolve() }
     }
     RowLayout {
         visible: root.mediaKind !== "image" && (!root.compact || root.mediaKind !== "audio")
         Layout.fillWidth: true
         spacing: Ui.Metrics.sm
-        NodeButton { objectName: "preview-play"; text: root.playing ? "Pause" : "Play"; accessibleName: text; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.togglePlayback() }
+        Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "preview-play"; text: root.playing ? "Pause" : "Play"; accessibleName: text; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.togglePlayback() }
         Ui.Slider { objectName: "preview-seek"; Layout.fillWidth: true; Layout.minimumWidth: 0; accessibleName: "Seek media"; enabled: player.seekable; from: 0; to: Math.max(1, player.duration); value: player.position; onValueCommitted: value => root.seek(value) }
         Ui.Text { text: root.time(player.position) + " / " + root.time(player.duration); role: Ui.Typography.MonoCaption }
     }
@@ -341,10 +341,10 @@ Item {
         Layout.fillWidth: true
         spacing: Ui.Metrics.sm
         visible: root.mediaKind !== "image" || root.showDownload || root.showCopy
-        NodeButton { objectName: "preview-open-image"; visible: root.mediaKind === "image" && !root.interactiveImage; text: "Open"; accessibleName: "Open image viewer"; variant: NodeButton.Flat; onClicked: root.imageActivated() }
-        NodeButton { objectName: "preview-image-fit"; visible: root.interactiveImage; text: "Fit"; accessibleName: "Fit image"; variant: NodeButton.Flat; onClicked: root.fitImage() }
+        Ui.EditorButton { objectName: "preview-open-image"; visible: root.mediaKind === "image" && !root.interactiveImage; text: "Open"; accessibleName: "Open image viewer"; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.imageActivated() }
+        Ui.EditorButton { objectName: "preview-image-fit"; visible: root.interactiveImage; text: "Fit"; accessibleName: "Fit image"; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.fitImage() }
         Ui.Text { objectName: "preview-image-dimensions"; visible: root.interactiveImage; text: image.sourceSize.width + " × " + image.sourceSize.height; role: Ui.Typography.MonoCaption; height: Ui.Metrics.standard; verticalAlignment: Text.AlignVCenter }
-        NodeButton { objectName: "preview-compact-play"; visible: root.compact && root.mediaKind === "audio"; text: root.playing ? "Pause" : "Play"; accessibleName: text; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.togglePlayback() }
+        Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "preview-compact-play"; visible: root.compact && root.mediaKind === "audio"; text: root.playing ? "Pause" : "Play"; accessibleName: text; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.togglePlayback() }
         Ui.Text { visible: root.compact && root.mediaKind === "audio"; text: root.time(player.position) + " / " + root.time(player.duration); role: Ui.Typography.MonoCaption; height: Ui.Metrics.standard; verticalAlignment: Text.AlignVCenter }
         Ui.Select {
             objectName: "preview-speed"
@@ -362,32 +362,32 @@ Item {
             from: 1; to: 100; stepSize: 1; value: root.zoom
             onValueCommitted: value => root.setZoom(value)
         }
-        NodeButton { objectName: "preview-fit"; visible: !root.compact && root.mediaKind === "audio"; text: "Fit"; accessibleName: "Fit audio waveform"; variant: NodeButton.Flat; onClicked: root.setZoom(1) }
-        NodeButton {
+        Ui.EditorButton { objectName: "preview-fit"; visible: !root.compact && root.mediaKind === "audio"; text: "Fit"; accessibleName: "Fit audio waveform"; variant: Ui.EditorButton.Outlined; flat: true; onClicked: root.setZoom(1) }
+        Ui.EditorButton {
             objectName: "preview-loop"
             checkable: true
             checked: player.loops === MediaPlayer.Infinite
             visible: root.mediaKind === "audio"
             text: player.loops === MediaPlayer.Infinite ? "Stop looping" : "Loop"
             accessibleName: text
-            variant: NodeButton.Flat
+            variant: Ui.EditorButton.Outlined; flat: true
             onClicked: player.loops = player.loops === MediaPlayer.Infinite ? 1 : MediaPlayer.Infinite
         }
-        NodeButton {
+        Ui.EditorButton {
             id: fullscreenButton
             objectName: "preview-fullscreen"
             visible: root.mediaKind === "video"
             text: root.fullscreen ? "Exit fullscreen" : "Fullscreen"
             accessibleName: text
             enabled: root.resolvedSource.toString().length > 0 && !root.failure
-            variant: NodeButton.Flat
+            variant: Ui.EditorButton.Outlined; flat: true
             onClicked: root.toggleFullscreen()
         }
-        NodeButton { objectName: "preview-mute"; visible: root.mediaKind !== "image"; checkable: true; checked: audio.muted; text: audio.muted ? "Unmute" : "Mute"; accessibleName: text; variant: NodeButton.Flat; onClicked: audio.muted = !audio.muted }
+        Ui.EditorButton { objectName: "preview-mute"; visible: root.mediaKind !== "image"; checkable: true; checked: audio.muted; text: audio.muted ? "Unmute" : "Mute"; accessibleName: text; variant: Ui.EditorButton.Outlined; flat: true; onClicked: audio.muted = !audio.muted }
         Ui.Slider { objectName: "preview-volume"; visible: root.mediaKind !== "image" && (!root.compact || root.mediaKind !== "audio"); width: Ui.Metrics.xxxl * 3; accessibleName: "Volume"; from: 0; to: 1; value: audio.volume; onValueCommitted: value => audio.volume = value }
-        NodeButton { objectName: "preview-copy"; visible: root.showCopy; text: "Copy"; accessibleName: "Copy image"; variant: NodeButton.Flat; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.copyImage() }
-        NodeButton { objectName: "preview-download"; visible: root.showDownload; text: "Download"; accessibleName: "Download media"; variant: NodeButton.Flat; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.download() }
-        NodeButton { objectName: "preview-save-assets"; visible: root.showDownload && root.showSaveToAssets; text: "Save to assets"; accessibleName: "Save " + root.mediaKind + " to assets"; variant: NodeButton.Flat; enabled: root.resolvedSource.toString().length > 0 && !root.failure && !root.savingToAssets; onClicked: root.saveToAssets() }
+        Ui.EditorButton { objectName: "preview-copy"; visible: root.showCopy; text: "Copy"; accessibleName: "Copy image"; variant: Ui.EditorButton.Outlined; flat: true; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.copyImage() }
+        Ui.EditorButton { objectName: "preview-download"; visible: root.showDownload; text: "Download"; accessibleName: "Download media"; variant: Ui.EditorButton.Outlined; flat: true; enabled: root.resolvedSource.toString().length > 0 && !root.failure; onClicked: root.download() }
+        Ui.EditorButton { objectName: "preview-save-assets"; visible: root.showDownload && root.showSaveToAssets; text: "Save to assets"; accessibleName: "Save " + root.mediaKind + " to assets"; variant: Ui.EditorButton.Outlined; flat: true; enabled: root.resolvedSource.toString().length > 0 && !root.failure && !root.savingToAssets; onClicked: root.saveToAssets() }
     }
 }
 }

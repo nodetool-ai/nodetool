@@ -3,7 +3,7 @@
 #include <QApplication>
 #include <QGraphicsView>
 #include <QJsonDocument>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QTcpServer>
@@ -291,16 +291,9 @@ private slots:
         QVERIFY(server.commands.isEmpty());
         auto toolbar = panel(window, "Toolbar.qml");
         click(toolbar, "toolbar-more");
-        auto menu = qobject_cast<QMenu *>(QApplication::activePopupWidget());
-        QVERIFY(menu);
-        QAction *toggle = nullptr;
-        for (auto action : menu->actions()) {
-            if (action->text() == "Instant Update: Off") {
-                toggle = action;
-            }
-        }
-        QVERIFY(toggle);
-        QTest::mouseClick(menu, Qt::LeftButton, Qt::NoModifier, menu->actionGeometry(toggle).center());
+        QQuickWidget *menu = nullptr;
+        QTRY_VERIFY((menu = entry_menu::host(window, "more")));
+        QVERIFY(entry_menu::click(menu, "Instant Update: Off"));
         QVERIFY(window.commitProperty("a", "value", "first"));
         QVERIFY(window.commitProperty("a", "value", "latest"));
         QTest::qWait(100);

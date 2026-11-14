@@ -1026,7 +1026,7 @@
               }
             },
             "ui_properties": {
-              "title": "1️⃣ Source video",
+              "title": "1 Source video",
               "position": {
                 "x": 0,
                 "y": 442
@@ -1068,7 +1068,7 @@
               "name": "graded_video"
             },
             "ui_properties": {
-              "title": "6️⃣ Graded output",
+              "title": "6 Graded output",
               "position": {
                 "x": 2036,
                 "y": 662

@@ -62,7 +62,10 @@ import {
   PROVIDER_TOOL_NAMES
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
-import { attachRunCostLedger } from "@nodetool-ai/execution";
+import {
+  attachRunCostLedger,
+  withGenerationAdmission
+} from "@nodetool-ai/execution";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { missingPackDetailsOf } from "@nodetool-ai/protocol";
@@ -93,6 +96,7 @@ import { fileURLToPath } from "node:url";
 import { loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "./lib/storage.js";
 import { createTempUrlResolver } from "./lib/temp-url-resolver.js";
+import { generationAdmissionFor } from "./lib/generation-admission.js";
 import { registerDslFlowBackend } from "./flow-backend.js";
 import { normalizeAssetContentType } from "./lib/asset-paths.js";
 import { toAssetResponse } from "./lib/asset-response.js";
@@ -193,7 +197,11 @@ function buildAgentToolContext(userId: string): ProcessingContext {
     // renders. Without a resolver that URL was the raw `supabase://` or
     // `s3://` storage uri, which no MCP client can load. The resolver signs a
     // cloud object, as the chat runner's context does.
-    tempUrlResolver: createTempUrlResolver(storage, getDefaultAssetsPath())
+    tempUrlResolver: createTempUrlResolver(storage, getDefaultAssetsPath()),
+    // A chat turn and a workflow run are admitted against credits and quotas
+    // before they start. An MCP session has neither, so each generation is
+    // admitted on its own, before its provider is called.
+    generationLifecycle: withGenerationAdmission({}, generationAdmissionFor(userId))
   });
   // The generation tracker. Every generation tool writes its record through
   // the prediction messages this context emits, and `get_generation`,
@@ -417,6 +425,10 @@ async function loadViewedImageBytes(
       key = decodeURIComponent(uri.slice(STORAGE_ROUTE_PREFIX.length));
     } catch {
       key = uri.slice(STORAGE_ROUTE_PREFIX.length);
+    }
+    // Decoding can turn `%2E%2E` into `..`, which some adapters resolve.
+    if (key.split(/[\\/]/).some((segment) => segment === "." || segment === "..")) {
+      return null;
     }
     const stored = await context.storage.retrieve(
       context.storage.uriForKey(key)
@@ -994,6 +1006,9 @@ function buildCapabilityCatalog(belt: CapabilitySpec[], directToolNames: string[
  * carries the same contract and catalog the chat runner puts in its system
  * prompt, because MCP has no system prompt to put it in.
  */
+/** How long one session keeps its loaded provider set before reloading it. */
+const PROVIDERS_TTL_MS = 60_000;
+
 export function registerAgentMcpTools(
   server: McpServer,
   options: McpServerOptions,
@@ -1018,14 +1033,26 @@ export function registerAgentMcpTools(
   // Populated lazily on first `find_model` call — provider probing hits the
   // secret store and network, so it's deferred out of server construction.
   const sharedProviders: Record<string, BaseProvider> = {};
+  // A failed load is not cached, and a successful one is reloaded after
+  // PROVIDERS_TTL_MS so a key the user adds mid-session shows up.
   let providersPromise: Promise<void> | null = null;
+  let providersLoadedAt = 0;
   const ensureProviders = (): Promise<void> => {
+    if (providersPromise && Date.now() - providersLoadedAt > PROVIDERS_TTL_MS) {
+      providersPromise = null;
+    }
     if (!providersPromise) {
-      providersPromise = loadConfiguredProviders(scope.userId).then(
-        (loaded) => {
-          Object.assign(sharedProviders, loaded);
+      providersLoadedAt = Date.now();
+      const pending = loadConfiguredProviders(scope.userId).then((loaded) => {
+        for (const key of Object.keys(sharedProviders)) {
+          if (!(key in loaded)) delete sharedProviders[key];
         }
-      );
+        Object.assign(sharedProviders, loaded);
+      });
+      pending.catch(() => {
+        if (providersPromise === pending) providersPromise = null;
+      });
+      providersPromise = pending;
     }
     return providersPromise;
   };
@@ -1051,9 +1078,10 @@ export function registerAgentMcpTools(
   // so the result is the open tool-result domain `Tool.process` declares.
   const runBridgedTool = async (
     tool: CapabilitySpec,
-    args: Record<string, unknown>
+    args: Record<string, unknown>,
+    signal?: AbortSignal
   ): Promise<unknown> => {
-    return capabilityRun.invoke(tool.name, args);
+    return runForCall(signal).invoke(tool.name, args);
   };
 
   const register = (tool: CapabilitySpec): void => {
@@ -1075,7 +1103,7 @@ export function registerAgentMcpTools(
       tool.name,
       isImageTool ? MCP_VIEW_IMAGE_DESCRIPTION : tool.description,
       schema,
-      async (args) => {
+      async (args, extra?: { signal?: AbortSignal }) => {
         try {
           const input: Record<string, unknown> = { ...args };
           if (isImageTool) {
@@ -1114,7 +1142,7 @@ export function registerAgentMcpTools(
               input["question"] = "Inline image:";
             }
           }
-          const result = await runBridgedTool(tool, input);
+          const result = await runBridgedTool(tool, input, extra?.signal);
           if (!isImageTool) {
             return toToolResponse(result);
           }
@@ -1144,7 +1172,13 @@ export function registerAgentMcpTools(
     metadataMaxDepth: options.metadataMaxDepth,
     examplesDir: options.examplesDir
   });
-  const workflowEnvironment = hostDeps.workflowEnvironment;
+  // Workflow and node runs build their own contexts, so they carry the same
+  // per-generation admission through their run environment.
+  const admitGeneration = generationAdmissionFor(scope.userId);
+  const baseWorkflowEnvironment = hostDeps.workflowEnvironment;
+  const workflowEnvironment = baseWorkflowEnvironment
+    ? async () => ({ ...(await baseWorkflowEnvironment()), admitGeneration })
+    : undefined;
   const legacyEntries = [
     new ImportAssetTool(localFilePathsAllowed, (args) =>
       capabilityRun.invoke("save_asset", args)
@@ -1159,7 +1193,7 @@ export function registerAgentMcpTools(
           workflowEnvironment
             ? workflowEnvironment()
             : options.registry
-              ? { registry: options.registry }
+              ? { registry: options.registry, admitGeneration }
               : null
       })
     ),
@@ -1245,16 +1279,35 @@ export function registerAgentMcpTools(
       }
     });
   }
-  const capabilityRun = createCapabilityRun({
+  const runOptions = {
     capabilities: hostCapabilities,
     context,
     gate,
     availableSecrets: contextSecretAvailability(context),
     nodeRegistry: options.registry,
     ...hostDeps,
+    workflowEnvironment,
     providers: sharedProviders,
     loaders: { timeline: loadTimelineForUser, sketch: loadSketchForUser }
-  });
+  };
+  const capabilityRun = createCapabilityRun(runOptions);
+  /**
+   * The run one direct tool call executes on: the session run with the SDK's
+   * per-request signal, which aborts on `notifications/cancelled` and when
+   * the client drops the HTTP request (`handleSessionRequest` in
+   * mcp-server.ts). `invoke` refuses to start a cancelled call, and
+   * `await_generation` stops waiting. The context stays the session's own,
+   * because its message queue, cost ledger and temporary media handles must
+   * outlive the call.
+   */
+  const runForCall = (signal: AbortSignal | undefined): CapabilityRun =>
+    signal
+      ? createCapabilityRun({
+          ...runOptions,
+          availableSecrets: runOptions.availableSecrets,
+          signal
+        })
+      : capabilityRun;
   const byName = new Map(belt.map((tool) => [tool.name, tool]));
 
   // `view_image` is the one channel that puts pixels into a caller's context,

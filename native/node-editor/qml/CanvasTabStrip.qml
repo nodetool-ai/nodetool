@@ -27,83 +27,32 @@ Item {
                     height: Ui.Metrics.border
                     color: Ui.Theme.borderSubtle
                 }
-                Flickable {
+                Ui.DocumentTabStrip {
+                    id: strip
                     anchors.fill: parent
-                    contentWidth: childrenRow.width
-                    clip: true
-                    Row {
-                        id: childrenRow
-                        height: parent.height
-                        Repeater {
-                            model: modelData.entries
-                            delegate: Rectangle {
-                                id: entry
-                                required property var modelData
-                                required property int index
-                                width: entryControls.implicitWidth + Ui.Metrics.md + (modelData.host ? Ui.Metrics.md : Ui.Metrics.xs)
-                                height: childrenRow.height - (modelData.selected ? 0 : Ui.Metrics.border)
-                                color: modelData.selected ? Ui.Theme.surfacePanel : entryHover.hovered ? Ui.Theme.actionHover : "transparent"
-                                activeFocusOnTab: true
-                                Accessible.role: Accessible.PageTab
-                                Accessible.name: modelData.title
-                                Accessible.checkable: true
-                                Accessible.checked: modelData.selected
-                                Accessible.onPressAction: root.tabs.activateSurface(modelData.surface)
-                                Keys.onReturnPressed: root.tabs.activateSurface(modelData.surface)
-                                Keys.onSpacePressed: root.tabs.activateSurface(modelData.surface)
-                                HoverHandler {
-                                    id: entryHover
-                                }
-                                MouseArea {
-                                    objectName: "activate-canvas-" + depth + "-" + entry.index
-                                    anchors.fill: parent
-                                    onClicked: {
-                                        entry.forceActiveFocus();
-                                        root.tabs.activateSurface(entry.modelData.surface);
-                                    }
-                                }
-                                RowLayout {
-                                    id: entryControls
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: Ui.Metrics.md
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    spacing: Ui.Metrics.xs
-                                    Ui.Text {
-                                        objectName: "canvas-label-" + depth + "-" + entry.index
-                                        text: entry.modelData.title
-                                        role: Ui.Typography.SansLabel
-                                        tone: entry.modelData.selected || entryHover.hovered ? Ui.Text.Primary : Ui.Text.Secondary
-                                    }
-                                    Ui.CloseButton {
-                                        objectName: "close-canvas-" + depth + "-" + entry.index
-                                        visible: !entry.modelData.host
-                                        implicitWidth: Ui.Metrics.iconSm
-                                        implicitHeight: Ui.Metrics.iconSm
-                                        iconSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption)
-                                        iconTone: hovered ? Ui.Text.Primary : Ui.Text.Secondary
-                                        leftPadding: Ui.Metrics.none
-                                        rightPadding: Ui.Metrics.none
-                                        accessibleName: "Close " + entry.modelData.title
-                                        onClicked: root.tabs.closeSurface(entry.modelData.surface)
-                                    }
-                                }
-                                Rectangle {
-                                    anchors.right: parent.right
-                                    width: Ui.Metrics.border
-                                    height: parent.height
-                                    color: Ui.Theme.borderSubtle
-                                }
-                                Rectangle {
-                                    objectName: "canvas-selection"
-                                    anchors.top: parent.top
-                                    width: parent.width
-                                    height: Ui.Metrics.focus
-                                    visible: entry.modelData.selected
-                                    color: entry.modelData.host ? Ui.Theme.accentPrimary : roles.subgraphAccent
-                                }
-                            }
+                    tabs: modelData.entries.map(entry => ({title: entry.title, closable: !entry.host, accent: entry.host ? Ui.Theme.accentPrimary : roles.subgraphAccent}))
+                    currentIndex: modelData.entries.findIndex(entry => entry.selected)
+                    tabPadding: Ui.Metrics.md
+                    closablePadding: Ui.Metrics.xs
+                    plainPadding: Ui.Metrics.md
+                    contentSpacing: Ui.Metrics.xs
+                    unchosenInset: Ui.Metrics.border
+                    indicatorEdge: Qt.TopEdge
+                    selectedColor: Ui.Theme.surfacePanel
+                    dividerColor: Ui.Theme.borderSubtle
+                    closeIconSize: Ui.Typography.pixelSize(Ui.Typography.SansCaption)
+                    closeIdleTone: Ui.Text.Secondary
+                    objectNameFor: function (role, index) {
+                        switch (role) {
+                        case "activate": return "activate-canvas-" + depth + "-" + index;
+                        case "close": return "close-canvas-" + depth + "-" + index;
+                        case "title": return "canvas-label-" + depth + "-" + index;
+                        case "indicator": return "canvas-selection";
                         }
+                        return "";
                     }
+                    onTabActivated: index => root.tabs.activateSurface(modelData.entries[index].surface)
+                    onCloseRequested: index => root.tabs.closeSurface(modelData.entries[index].surface)
                 }
             }
         }

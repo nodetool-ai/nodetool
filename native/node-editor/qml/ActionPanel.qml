@@ -104,31 +104,6 @@ Rectangle {
         }
     }
 
-    component Segmented: Row {
-        id: group
-        property var options: []
-        property string value: ""
-        property string accessibleName: ""
-        signal picked(string value)
-        spacing: Ui.Metrics.xs
-        Accessible.role: Accessible.RadioButton
-        Accessible.name: accessibleName
-        Repeater {
-            model: group.options
-            delegate: Ui.EditorButton {
-                required property var modelData
-                objectName: "help-" + group.accessibleName + "-" + modelData.value
-                text: modelData.label
-                density: Ui.EditorButton.Compact
-                active: group.value === modelData.value
-                variant: active ? Ui.EditorButton.Primary : Ui.EditorButton.Default
-                Accessible.role: Accessible.RadioButton
-                Accessible.checked: active
-                onClicked: group.picked(modelData.value)
-            }
-        }
-    }
-
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Ui.Metrics.md
@@ -150,23 +125,26 @@ Rectangle {
             visible: root.help
             Layout.fillWidth: true
             spacing: Ui.Metrics.lg
-            Segmented {
+            Ui.SegmentedControl {
                 accessibleName: "platform"
+                optionNamePrefix: "help-platform-"
                 options: [{ value: "mac", label: qsTr("macOS") }, { value: "win", label: qsTr("Windows/Linux") }]
                 value: root.os
-                onPicked: value => root.os = value
+                onValueCommitted: value => root.os = value
             }
-            Segmented {
+            Ui.SegmentedControl {
                 accessibleName: "layout"
+                optionNamePrefix: "help-layout-"
                 options: [{ value: "english", label: qsTr("EN") }, { value: "german", label: qsTr("DE") }]
                 value: root.layoutName
-                onPicked: value => root.layoutName = value
+                onValueCommitted: value => root.layoutName = value
             }
-            Segmented {
+            Ui.SegmentedControl {
                 accessibleName: "category"
+                optionNamePrefix: "help-category-"
                 options: root.categories
                 value: root.category
-                onPicked: value => root.category = value
+                onValueCommitted: value => root.category = value
             }
         }
         ShortcutKeyboard {
@@ -223,8 +201,9 @@ Rectangle {
                 tone: Ui.Text.Secondary
             }
             Basic.ScrollBar.vertical: Ui.ScrollBar {}
-            delegate: PanelRow {
+            delegate: Ui.ListRow {
                 id: row
+                flat: true
                 required property var modelData
                 required property int index
                 width: ListView.view.width - Ui.Metrics.md

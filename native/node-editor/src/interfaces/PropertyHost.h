@@ -68,8 +68,9 @@ public:
         emit commitRequested(nodeId, name, value);
     }
     Q_INVOKABLE void removeProperty(const QString &nodeId, const QString &name) { emit removeRequested(nodeId, name); }
+    // Report on a failure banner in an editor opens a prefilled bug report. `source` names the surface.
+    Q_INVOKABLE void reportError(const QString &source, const QString &text) { emit reportRequested(source, text); }
     // Empty text hides the tool tip.
-    Q_INVOKABLE void showToolTip(const QString &text) { emit toolTipRequested(text); }
 
 signals:
     void selectionChanged();
@@ -79,7 +80,7 @@ signals:
     void servicesChanged();
     void commitRequested(const QString &nodeId, const QString &name, const QVariant &value);
     void removeRequested(const QString &nodeId, const QString &name);
-    void toolTipRequested(const QString &text);
+    void reportRequested(const QString &source, const QString &text);
 
 private:
     QString selection_;

@@ -33,6 +33,11 @@ TestCase {
     Ui.InspectorCard { id: inspectorCard; x: 200; y: 40; Ui.Text { objectName: "cardContent"; text: "Clip" } }
     Ui.Banner { id: banner; x: 230; y: 150; status: Ui.Status.Warning; message: "Offline"; actionText: "Retry" }
     SignalSpy { id: bannerAction; target: banner; signalName: "actionTriggered" }
+    Ui.Banner { id: failure; x: 0; y: 260; width: 240; status: Ui.Status.Error; message: "Could not load the library"; retryable: true; reportable: true }
+    SignalSpy { id: failureRetry; target: failure; signalName: "retryRequested" }
+    SignalSpy { id: failureReport; target: failure; signalName: "reportRequested" }
+    Ui.Chip { id: chip; x: 0; y: 330; text: "Chip" }
+    Ui.ScrollArea { id: scrollArea; x: 0; y: 360; width: 100; height: 40; Item { implicitWidth: 10; implicitHeight: 200 } }
     Ui.EmptyState { id: empty; visible: false; title: "No results"; message: "Try another search"; actionText: "Clear" }
     Ui.BusyIndicator { id: busy; x: 180; y: 0 }
     Ui.ScrollBar { id: scroll; x: 190; y: 0; width: 8; height: 100; orientation: Qt.Vertical; size: 0.25; position: 0.25 }
@@ -98,6 +103,22 @@ TestCase {
         label.tone = 99; compare(label.tone, Ui.Text.Primary)
         button.density = 99; compare(button.density, Ui.EditorButton.Standard)
         button.variant = 99; compare(button.variant, Ui.EditorButton.Default)
+    }
+    function test_outlined_variant() {
+        button.variant = Ui.EditorButton.Outlined
+        verify(button.outlined)
+        compare(button.implicitHeight, Ui.Metrics.compact)
+        compare(button.outlinedInk, Ui.Theme.accentPrimary)
+        button.flat = true
+        compare(button.outlinedInk, Ui.Theme.textSecondary)
+        button.flat = false
+        button.highlighted = true
+        compare(button.outlinedInk, Ui.Theme.textOnAccent)
+        button.highlighted = false
+        button.enabled = false
+        compare(button.outlinedInk, Ui.Theme.outlinedDisabledInk)
+        button.enabled = true
+        button.variant = Ui.EditorButton.Outlined + 1; compare(button.variant, Ui.EditorButton.Default)
     }
     function luminance(color) {
         function channel(v) { return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4) }
@@ -183,6 +204,38 @@ TestCase {
         bannerAction.clear()
         mouseClick(action)
         compare(bannerAction.count, 1)
+    }
+    function test_errorBannerActions() {
+        verify(findChild(failure, "bannerActionButton") !== null)
+        verify(!findChild(failure, "bannerActionButton").visible)
+        failureRetry.clear(); failureReport.clear()
+        mouseClick(findChild(failure, "bannerRetryButton"))
+        compare(failureRetry.count, 1)
+        mouseClick(findChild(failure, "bannerReportButton"))
+        compare(failureReport.count, 1)
+        failure.retryable = false; failure.reportable = false
+        verify(!findChild(failure, "bannerRetryButton").visible)
+        verify(!findChild(failure, "bannerReportButton").visible)
+        failure.retryable = true; failure.reportable = true
+        compare(failure.color, Ui.Theme.statusErrorSurface)
+    }
+    function test_chip() {
+        verify(chip.visible && chip.width > 0 && chip.height > 0)
+        compare(chip.color, Ui.Theme.scrimMedia)
+        chip.variant = Ui.Chip.Tone
+        compare(chip.color, Ui.Theme.surfaceInput)
+        chip.variant = Ui.Chip.Scrim
+        chip.maximumWidth = 20
+        compare(chip.width, 20)
+        chip.maximumWidth = Number.POSITIVE_INFINITY
+        chip.text = ""
+        verify(!chip.visible)
+        chip.text = "Chip"
+    }
+    function test_scrollArea() {
+        verify(scrollArea.clip)
+        compare(scrollArea.contentWidth, scrollArea.availableWidth)
+        verify(scrollArea.contentHeight >= 200)
     }
     function test_scrollbar_policy() {
         scroll.size = 1; verify(scroll.visible); compare(scroll.opacity, 0); verify(!scroll.interactive)

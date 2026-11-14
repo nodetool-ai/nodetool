@@ -35,13 +35,14 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         visible: !root.canvas
-        NodeButton {
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined
             objectName: "code-expand"
             text: root.expanded ? "Collapse editor" : "Expand editor"
             visible: root.nodeType !== "nodetool.code.Code"
             onClicked: root.expanded = !root.expanded
         }
-        NodeButton { text: "Copy"; onClicked: { editor.selectAll(); editor.copy(); editor.deselect() } }
+        Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Copy"; onClicked: { editor.selectAll(); editor.copy(); editor.deselect() } }
     }
     Rectangle {
         objectName: "code-frame"

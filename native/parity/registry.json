@@ -818,7 +818,12 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/CollectionBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Drop and pick files or assets, one locked type, image thumbnails, index badges, remove and clear. Video and audio tiles show an icon instead of a frame, and the output handle keeps its declared any type.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ColorOverlayBody.tsx": {
@@ -880,7 +885,12 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ExtractVideoFrameBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Video handle, previous and next frame, the time box and the frame and timecode readouts at 30 fps. No in-card player, scrubber, play, mute or frame download: the preview shows the extracted frame after a run.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/FitBody.tsx": {
@@ -936,7 +946,12 @@
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ListGeneratorBody.tsx": {
-      "missing": "Bespoke body drawn with the generic card body natively.",
+      "native": [
+        "native/node-editor/src/graph/CardBodies.cpp",
+        "native/node-editor/src/graph/CardBodyPainter.cpp"
+      ],
+      "status": "partial",
+      "note": "Numbered rows of the settled list that open to their full text, Copy and the model chip. Items appear when the list output arrives, not one by one while streaming, and an open item shows plain text instead of rendered markdown.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/MaskBody.tsx": {
@@ -2090,7 +2105,7 @@
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Pinned focus and acceptance are open.",
+      "note": "The drag, the grip's keys, the canvas clamp and the stored position match. Pinned focus and acceptance are open.",
       "inventory": "F24"
     },
     "web/src/components/panels/RailAppMenu.tsx": {

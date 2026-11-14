@@ -11019,6 +11019,8 @@
       "queuedCount_one": "{{count}} w kolejce",
       "queuedCount_other": "{{count}} w kolejce",
       "collapseQueue": "Zwiń kolejkę",
+      "moveQueue": "Przenieś kolejkę",
+      "moveQueueHint": "Przeciągnij, aby przenieść. Strzałki ją przesuwają, Home przywraca.",
       "enqueued": "Umieszczone w kolejce",
       "jobsRunning_few": "{{count}} zadania w toku",
       "jobsRunning_many": "{{count}} zadań w toku",

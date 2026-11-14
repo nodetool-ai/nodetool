@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <optional>
 #include "interfaces/DocumentTabs.h"
+#include "ui/DockedOverlay.h"
 #include "interfaces/ExampleGallery.h"
 #include "interfaces/GenerationActivity.h"
 #include "interfaces/NodeCatalog.h"
@@ -46,7 +47,6 @@
 #include <QMainWindow>
 #include <QPointer>
 class QTimer;
-class QMenu;
 class QDialog;
 class QQmlEngine;
 class QQuickWidget;
@@ -55,6 +55,7 @@ class QBoxLayout;
 class QGraphicsView;
 class QStackedWidget;
 namespace nodetool {
+struct EntryMenuRequest;
 namespace node_editor { class LineageLayer; }
 class EditorScene;
 class InlinePropertyPresenter;
@@ -81,6 +82,8 @@ public:
     nt::chat::ChatSession *chatSession();
     Q_INVOKABLE void askAgent(const QString &message);
     Q_SLOT void askRunAgent(const QString &runId, const QString &spanId = {});
+    // A failure banner's Report: opens a prefilled bug report. `source` names the surface.
+    Q_SLOT void reportError(const QString &source, const QString &text);
     Q_SLOT void toggleChat();
     // web/src/config/shortcuts.ts newChat and focusChatComposer, handled by
     // ChatView.tsx. Both open the chat when it is closed.
@@ -431,12 +434,13 @@ private:
     void installTabShortcuts();
     void harvestProjects(const QJsonArray &projects);
     void populateProjectMenu();
+    QVariantList projectEntries() const;
     QQuickWidget *tabBarWidget() const;
     QString assignedProject_;
     QJsonArray projects_;
     QString projectsAccount_;
     QHash<QString, QPointer<EditorWindow>> projectActive_;
-    QPointer<QMenu> projectMenu_;
+    QPointer<QQuickWidget> projectMenu_;
     QVariantList tabSignature_;
     qreal tabStripOffset_ = 0;
     bool discardApproved_ = false;
@@ -507,6 +511,18 @@ private:
   // Copies the zoom and the mini-map color mode into the viewport interface.
   void syncViewport();
   Q_SLOT void layoutOverlays();
+  // The queue overlay's drag from its header grip (QueueOverlay.qml). A move
+  // follows the pointer inside the canvas, and the drop docks it to the nearer
+  // edges and keeps that position for every tab in QSettings.
+  Q_SLOT void moveQueue(double dx, double dy);
+  Q_SLOT void finishQueueMove();
+  // Arrow keys on the grip move it by these pixels. Home resets it to the canvas's top-left.
+  Q_SLOT void nudgeQueue(double dx, double dy);
+  Q_SLOT void resetQueuePosition();
+  // The canvas rectangle in central widget coordinates, and the overlay size inside it.
+  QRect queueArea() const;
+  QSize queueSize(const QRect &area) const;
+  void setQueuePosition(std::optional<node_editor::docked_overlay::Position> position);
   void syncInspector();
   // Applies a node click or a programmatic selection to the inspector. It does
   // nothing when the selection change already synced the inspector.
@@ -574,10 +590,12 @@ private:
   QElapsedTimer toolbarClock_;
   QTimer toolbarDelay_;
   QJsonArray dragGroupCommands(const QJsonObject &positions, QtNodes::NodeId group, bool detach);
+  QJsonArray expandParentCommands(const QJsonObject &positions, const QStringList &dragged, const QStringList &detached);
   void showActionMenu(const QString &kind, const QPoint &position);
   bool menuActionEnabled(const QString &name) const;
   // Context menus are Quick popups on a transparent overlay (EditorMenus.cpp).
   friend class ContextMenuBuilder;
+  QQuickWidget *showEntryMenu(const EntryMenuRequest &request);
   void showContextMenu(const QString &kind, const QPoint &globalPosition, const QString &nodeId = {}, const QString &edgeId = {}, const QPointF &scenePosition = {});
   void showFindPanel();
   void revealFound(const QString &resourceId);
@@ -703,6 +721,10 @@ private:
     QSize chatSize_{420, 2000};
   QQuickWidget *toolbarOverlay_ = nullptr;
   QQuickWidget *queueOverlay_ = nullptr;
+  // The dropped queue position, or nothing for the canvas's top-left corner.
+  std::optional<node_editor::docked_overlay::Position> queuePosition_;
+  // The queue overlay's top-left while the user drags it.
+  std::optional<QPoint> queueDragPoint_;
   quint64 instantUpdateGeneration_ = 0;
   bool canvasReducedMotion_ = false;
   bool instantUpdate_ = false;

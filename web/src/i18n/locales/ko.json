@@ -10693,6 +10693,8 @@
       "queuedCount_one": "{{count}} 대기 중",
       "queuedCount_other": "{{count}} 대기 중",
       "collapseQueue": "대기열 축소",
+      "moveQueue": "대기열 이동",
+      "moveQueueHint": "드래그하여 이동합니다. 화살표 키로 이동하고 Home으로 초기화합니다.",
       "enqueued": "대기열에 추가됨"
     },
     "toolbar": {

@@ -26,25 +26,18 @@ Rectangle {
         Layout.alignment: Qt.AlignHCenter
         Layout.preferredWidth: Ui.Metrics.comfortable
         Layout.preferredHeight: Ui.Metrics.compact
-        PanelRow {
+        Ui.ToolbarIconButton {
             id: button
             anchors.fill: parent
             text: entry.label
+            accessibleName: entry.tip
+            disabledReason: entry.unavailable
+            iconName: entry.glyph
+            iconSize: Ui.Metrics.iconMd
+            iconTone: !enabled ? Ui.Text.Disabled : entry.active ? Ui.Text.Primary : Ui.Text.Secondary
             active: entry.active
             enabled: entry.unavailable === ""
             onClicked: entry.activated()
-            Ui.Icon {
-                anchors.centerIn: parent
-                name: entry.glyph
-                size: Ui.Metrics.iconMd
-                tone: !button.enabled ? Ui.Text.Disabled : entry.active ? Ui.Text.Primary : Ui.Text.Secondary
-            }
-        }
-        // The hover handler sits on the wrapper, which stays enabled, so a disabled button still explains itself.
-        HoverHandler {
-            onHoveredChanged: {
-                root.panels.showToolTip(hovered ? (entry.unavailable !== "" ? entry.unavailable : entry.tip) : "")
-            }
         }
     }
     ColumnLayout {

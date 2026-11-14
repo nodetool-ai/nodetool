@@ -32,6 +32,21 @@ TestCase {
             }
         }
     }
+    Ui.ContextMenu {
+        id: dataMenu
+        returnFocusTo: trigger
+        entries: [
+            { id: "open", label: "Open", icon: "check", shortcut: "Ctrl+O" },
+            { header: "Section" },
+            { id: "pick", label: "Pick", checked: true },
+            { id: "other", label: "Other", checked: false },
+            { separator: true },
+            { id: "gone", label: "Delete", destructive: true, enabled: false, reason: "Nothing selected." },
+            { id: "more", label: "More", submenu: [ { id: "nested", label: "Nested" } ] }
+        ]
+        onEntryTriggered: id => chosen.push(id)
+    }
+    property var chosen: []
     Ui.Surface { id: selectedSurface; width: 50; height: 30; selected: true }
     Ui.PanelHeader {
         id: header
@@ -48,9 +63,74 @@ TestCase {
         Ui.Text { id: rowText; text: "Model"; anchors.verticalCenter: parent.verticalCenter }
         Ui.ToolbarIconButton { id: nested; anchors.right: parent.right; iconName: "star"; accessibleName: "Favorite" }
     }
+    Ui.ListRow {
+        id: flatRow
+        x: 10; y: 70; width: 100; height: 30
+        flat: true
+        accessibleName: "Flat"
+        Ui.Text { id: flatLabel; anchors.fill: parent; text: "Flat" }
+    }
+    SignalSpy { id: flatClicks; target: flatRow; signalName: "clicked" }
+    Ui.ListRow {
+        id: draggableRow
+        x: 10; y: 110; width: 100; height: 30
+        flat: true
+        accessibleName: "Draggable"
+        DragHandler { id: rowDrag; target: null }
+        Ui.Text { anchors.fill: parent; text: "Drag" }
+    }
+    SignalSpy { id: draggableClicks; target: draggableRow; signalName: "clicked" }
     SignalSpy { id: rowClicks; target: row; signalName: "clicked" }
     SignalSpy { id: nestedClicks; target: nested; signalName: "clicked" }
-    function init() { menuCount = 0; rowClicks.clear(); nestedClicks.clear(); Ui.Theme.preference = Ui.Theme.Dark }
+    function init() { chosen = []; menuCount = 0; rowClicks.clear(); nestedClicks.clear(); Ui.Theme.preference = Ui.Theme.Dark }
+    function test_flatRowWithADragHandlerStillClicks() {
+        draggableClicks.clear()
+        mouseClick(draggableRow)
+        compare(draggableClicks.count, 1)
+        compare(rowDrag.parent, draggableRow)
+    }
+    function test_flatRowHasNoPaddingAndNoMinimumHeight() {
+        compare(flatRow.leftPadding, 0)
+        compare(flatRow.rightPadding, 0)
+        compare(flatRow.implicitHeight, 0)
+        compare(flatLabel.width, 100)
+        compare(flatLabel.height, 30)
+        verify(row.leftPadding > 0)
+        verify(row.implicitHeight >= Ui.Metrics.standard)
+        flatClicks.clear()
+        flatRow.forceActiveFocus()
+        keyClick(Qt.Key_Return)
+        compare(flatClicks.count, 1)
+    }
+    function test_tooltipHostReceivesTextThatTheOverlayCannotHold() {
+        const received = []
+        const record = text => received.push(text)
+        Ui.TooltipHost.requested.connect(record)
+        Ui.TooltipHost.routeToHost = true
+        tooltip.text = "word ".repeat(300)
+        tooltip.visible = true
+        tryVerify(() => received.length > 0)
+        compare(received[0], tooltip.text)
+        compare(tooltip.opacity, 0)
+        tooltip.visible = false
+        tryVerify(() => received[received.length - 1] === "")
+        Ui.TooltipHost.routeToHost = false
+        Ui.TooltipHost.requested.disconnect(record)
+        tooltip.text = "Tooltip near the edge"
+    }
+    function test_tooltipStaysInOverlayWithoutAHost() {
+        const received = []
+        const record = text => received.push(text)
+        Ui.TooltipHost.requested.connect(record)
+        tooltip.text = "word ".repeat(300)
+        tooltip.visible = true
+        tryVerify(() => tooltip.visible)
+        compare(received.length, 0)
+        compare(tooltip.opacity, 1)
+        tooltip.visible = false
+        Ui.TooltipHost.requested.disconnect(record)
+        tooltip.text = "Tooltip near the edge"
+    }
     function test_tooltipStaysInOverlay() {
         tooltip.text = "A translated tooltip with a long description ".repeat(6)
         tooltip.visible = true
@@ -130,6 +210,35 @@ TestCase {
         keyClick(Qt.Key_Down)
         keyClick(Qt.Key_Return)
         compare(menuCount, 1000)
+    }
+    function test_entriesBuildItems() {
+        compare(dataMenu.count, 7)
+        compare(dataMenu.itemFor("open").shortcutText, "Ctrl+O")
+        verify(!dataMenu.itemFor("open").checkable)
+        verify(dataMenu.itemFor("pick").checkable && dataMenu.itemFor("pick").checked)
+        verify(dataMenu.itemFor("other").checkable && !dataMenu.itemFor("other").checked)
+        verify(!dataMenu.itemFor("gone").enabled)
+        compare(dataMenu.itemFor("gone").reasonText, "Nothing selected.")
+        compare(dataMenu.itemFor("gone").textTone, Ui.Text.Error)
+        verify(dataMenu.itemFor("more").subMenu !== null)
+        compare(dataMenu.itemFor("nope"), null)
+        compare(dataMenu.itemFor("open").objectName, "menu-item-open")
+    }
+    function test_entriesEmitTheChosenId() {
+        dataMenu.openAt(trigger)
+        tryVerify(() => dataMenu.visible)
+        mouseClick(dataMenu.itemFor("pick"))
+        compare(chosen, ["pick"])
+        tryVerify(() => !dataMenu.visible)
+    }
+    function test_changingEntriesRebuildsTheMenu() {
+        const before = dataMenu.entries
+        dataMenu.entries = [{ id: "only", label: "Only" }]
+        compare(dataMenu.count, 1)
+        compare(dataMenu.itemFor("open"), null)
+        verify(dataMenu.itemFor("only") !== null)
+        dataMenu.entries = before
+        compare(dataMenu.count, 7)
     }
     function test_disabledItemShowsItsReason() {
         menu.popup(trigger)

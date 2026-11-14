@@ -11023,6 +11023,8 @@
       "queuedCount_many": "{{count}} в очереди",
       "queuedCount_other": "{{count}} в очереди",
       "collapseQueue": "Свернуть очередь",
+      "moveQueue": "Переместить очередь",
+      "moveQueueHint": "Перетащите, чтобы переместить. Стрелки сдвигают, Home возвращает на место.",
       "enqueued": "В очереди"
     },
     "toolbar": {

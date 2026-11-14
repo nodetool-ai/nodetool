@@ -445,8 +445,8 @@ build was run beside them, so no pixel comparison with the web exists.
 | 3 | An edge flows while its source node is starting, running or booting, or the edge reports `message_sent` (`useProcessedEdges.ts` 418-451, `CustomEdge.tsx` 62, `handle_edge_tooltip.css` 148-155) | Partial. The flow followed the target node and the edge statuses `running` and `active` | Implemented in `WorkflowGraphModel::runtimeWireFlowing`. Control edges never flow |
 | 4 | An edge that carried more than one item shows its count in a pill (`CustomEdge.tsx` 60, 120-135) | Missing | Implemented in `WirePainter`, with the card background, 600 weight and pill radius |
 | 5 | A streaming source draws its flow wider (`useProcessedEdges.ts` 305-309, `handle_edge_tooltip.css` 158-162) | Missing | Implemented. The flow is 4 wide when the source declares `is_streaming_output` |
-| 6 | After a run, the untaken side of an If or Switch fades to 0.4, a node with one live input stays, and a selection's 0.2 wins (`untakenBranches.ts`, `ReactFlowWrapper.tsx` 862-947, `nodes.states.css` 75-78) | Missing | Implemented by `src/run/UntakenBranch.h` and `EditorScene::updateBranchDimming`. Edge reports now outlive the finished run, as the web store does |
-| 7 | A selection keeps its branch at full opacity and fades the rest to 0.2 (`reactFlowGraphModel.ts` 178-263) | Implemented | Implemented |
+| 6 | After a run, the untaken side of an If or Switch fades to 0.4, a node with one live input stays, and a selection's 0.6 wins (`untakenBranches.ts`, `ReactFlowWrapper.tsx` 862-947, `nodes.states.css` 75-78) | Missing | Implemented by `src/run/UntakenBranch.h` and `EditorScene::updateBranchDimming`. Edge reports now outlive the finished run, as the web store does |
+| 7 | A selection keeps its branch at full opacity and fades the rest to 0.6 (`reactFlowGraphModel.ts` 178-263) | Implemented | Implemented |
 | 8 | An Agent control edge leaves the bottom center of the controller, enters the top center of the controlled node and draws amber, dashed 8 4, 2 wide at 0.7 opacity and 3 wide at full opacity when selected (`ControlEdge.tsx` 12-40, `BaseNode.tsx` 756, 840) | Partial. The edge became a typed wire between side handles and the card showed a "control" row | Implemented. The handle sits at the card's top or bottom center, takes no row, and the wire paints as `ControlEdge` does |
 | 9 | Control edges select, delete and open the edge menu like other edges (`EdgeContextMenu.tsx` 43, 154) | Implemented through the shared wire | Implemented |
 | 10 | An edge from or to a bypassed node draws dashed at half opacity (`useProcessedEdges.ts` 298-302) | Implemented | Implemented |
@@ -1378,7 +1378,7 @@ Remaining differences:
 - Find highlights no inspector property for a property match, and the web 150 ms debounce is not tied to a live node store.
 - Help shows the native bindings, not every web shortcut. The Assets category is empty. The web list shows both platforms at once, the native list follows the platform toggle. Web hover and press tooltips on keys are native tooltips.
 - Right-click on an empty selection rectangle and the property, input and output context menus of F03 are unchanged.
-- The Command menu and the More dropdown remain the earlier panel and `QMenu`.
+- The Command menu remains the earlier panel. The More dropdown uses the shared Quick context-menu overlay.
 - Offscreen tests do not establish platform accessibility, fractional-DPI rendering or real popup behavior.
 
 The shortcut inventory includes surrounding web panels and asset shortcuts. Those remain open when their native surface or binding is absent.
@@ -1469,6 +1469,8 @@ Web sources: [GroupNode.tsx](../../../web/src/components/node/GroupNode.tsx),
 | F07.13 | A dragged card that stays over a group for a second shows a hint 32 px above the frame: "REMOVE NODES FROM GROUP", "Drag out while holding Alt (Option ⌥ on Mac)" and "Shake rapidly, then drag out" (`GroupNode.tsx` help-text, `TOOLTIP_DESCRIPTION_DELAY`). | I | `GroupAuthoringTest::dropHintShowsAfterASecondOverTheGroup`. The box scales with the canvas, as in the web. Native shows it at once after the delay and does not fade it in. |
 | F07.14 | Read-only: no group edits. | I | `pointerColorIsBlockedAfterReadOnlyTransition`. The drag outcome is ignored when read-only. |
 | F07.15 | A box selection selects a group only when it encloses the frame, and selects every card it touches (`useSelectionEvents.ts` `selectGroupsWithinSelection`, the default `selectionMode: "partial"`). | I | `GroupAuthoringTest::boxEnclosingTheGroupSelectsIt`, `groupBodyPressStartsABoxSelection`. Like the web, a box also takes out a selected group it does not enclose. |
+| F07.16 | Every grouped card has React Flow `expandParent` (`useSurroundWithGroup.ts`). A card dragged past its frame stays in the group and the frame grows to hold it exactly. Past the left or top edge the frame moves out and its other cards keep their canvas place. | I | `GroupAuthoringTest::groupingRealCardsDrawsAFrameAndDraggingMovesIt`, which also groups three fixture cards with Ctrl-click and Ctrl+G and drags the frame by its label. The growth and the move are one undo step. React Flow grows the frame during the drag, native when the card is dropped. |
+| F07.17 | React Flow stores fractional group and comment sizes after a resize. | I | `GroupPresentationTest::fractionalSizesKeepTheirSize`. Native rounds them. It used to read them as missing and draw a 400 × 300 frame. |
 
 ## F08 comments
 
@@ -2081,10 +2083,17 @@ Running cards select the output lens only for the current workflow, using pointe
 Enter or Space activation. The selected card shows On canvas. Pinned canvas
 focus remains different from the web store.
 
-The overlay is 304 logical pixels wide at the canvas leading margin, beyond the
-native rail and catalog. Its maximum height is the window height minus 112 logical pixels. Like the web
-overlay, it floats above the output dock. Narrow
-canvases constrain its width to keep controls inside the viewport. Enter and exit
+The overlay is 304 logical pixels wide and starts 16 logical pixels inside the
+canvas's top-left corner, past the rail, the catalog and the document bar. It
+stays inside the canvas, so it never covers the output dock or its tabs, and
+narrow or short canvases shrink it. Dragging its header or grip moves it. The
+drop docks it to the nearer horizontal and vertical canvas edges, so it keeps
+that corner when the window or the docks resize, and a bottom-docked overlay
+grows upward. Arrow keys on the focused grip move it, Shift moves it further,
+and Home or a header double click returns it to the default corner. Both
+clients store the same `{anchorX, anchorY, x, y}` record: the native editor in
+QSettings `queueOverlay/position`, the web per user in local storage. The pure
+model is `src/ui/DockedOverlay.h` and `web/src/utils/dockedPanelPosition.ts`. Enter and exit
 use the primitive normal motion duration with retained exit content. Reduced
 motion removes transitions and progress animation. Elapsed clocks use server
 `started_at` when available, otherwise the locally observed running time. The
@@ -2092,7 +2101,9 @@ one-second timer stops when no live job runs.
 
 `QueueUiTest.cpp` uses pointer and keyboard events against QML and deterministic
 MsgPack events through EditorWindow. `NODETOOL_QUEUE_CAPTURE_DIR` enables dark
-and light captures at wide and narrow sizes, in both expansion states. F24 remains
+and light captures at wide and narrow sizes, in both expansion states, plus a
+capture after a drag. Its drag test covers the drop, the stored position, a
+narrower window, a second window and the grip's keys. F24 remains
 partial pending visual acceptance and pinned canvas focus parity. The expanded
 header centers counts with the title. Shared Surface shadows are disabled on the
 software renderer because the unblurred offset rectangle is clipped into dark
@@ -3143,7 +3154,7 @@ is visible only on inspection.
 | W5 | Card typography and geometry | Width 280, radius 8, 1 px border at 8% white, Inter 13 title in the 400 face, first port at 46 and 28 px steps. | Same measurements. | Low | Matches. |
 | W6 | Ports and wires | 12 px handles with a 2 px ring in the card color. Wires are 1.5 px in the source type color. | Same measurements. | Low | Matches. |
 | W7 | Grid | 25-unit crosses 3 units wide, which scale with zoom. | Same pattern. | Low | Matches. |
-| W8 | Selection | Selecting a node keeps it and every node upstream or downstream of it at full opacity and fades all other nodes, groups, notes and wires to 0.2 (`reactFlowGraphModel.ts` `branchNodeIds`, `markComprehensionEdges`, `nodes.zoomed.css`). With several nodes selected the branches join. A wire is related when both of its ends are. The fade has no transition, so reduced motion changes nothing. The node action toolbar floats above the selected card. | Same rule, at the same 0.2 opacity, through item opacity in `EditorScene.cpp`. Media widgets and group labels follow the card. A single selected card gets the web node toolbar above it, centered with an 8 px gap, and the toolbar follows the card through pan, zoom, resize and move and hides while the card drags. A group, a comment or several nodes keep the canvas toolbar at the top center, where the web shows none. | Medium | Dimming, toolbar position and the delay fixed. Asserted by `SelectionPresentationTest` and `NodeActionsTest` with real pointer clicks. The toolbar appears 200 ms after the card is selected and still (`NodeSelectionToolbar.tsx` `TOOLBAR_SHOW_DELAY`, `useDelayedVisibility`), hides at once on deselect or drag, and restarts its delay when the card is selected again (`toolbarShowsTwoHundredMillisecondsAfterTheSelection`). Acceptance pending. |
+| W8 | Selection | Selecting a node keeps it and every node upstream or downstream of it at full opacity and fades all other nodes, groups, notes and wires to 0.6 (`reactFlowGraphModel.ts` `branchNodeIds`, `markComprehensionEdges`, `nodes.zoomed.css`). With several nodes selected the branches join. A wire is related when both of its ends are. The fade has no transition, so reduced motion changes nothing. The node action toolbar floats above the selected card. | Same rule, at the same 0.6 opacity, through item opacity in `EditorScene.cpp`. Media widgets and group labels follow the card. A single selected card gets the web node toolbar above it, centered with an 8 px gap, and the toolbar follows the card through pan, zoom, resize and move and hides while the card drags. A group, a comment or several nodes keep the canvas toolbar at the top center, where the web shows none. | Medium | Dimming, toolbar position and the delay fixed. Asserted by `SelectionPresentationTest` and `NodeActionsTest` with real pointer clicks. The toolbar appears 200 ms after the card is selected and still (`NodeSelectionToolbar.tsx` `TOOLBAR_SHOW_DELAY`, `useDelayedVisibility`), hides at once on deselect or drag, and restarts its delay when the card is selected again (`toolbarShowsTwoHundredMillisecondsAfterTheSelection`). Acceptance pending. |
 | W9 | Selection viewport | A canvas click never moves the viewport. The inspector slides over the canvas and `useClearInspectorOverlap` pans left over 200 ms only when it covers a node, and never past the point where the selected node is 16 px from the canvas edge. Find centers the node at 100% over 300 ms. The node info Focus button centers at 150%. The web editor has no outline. | A selection never refits. The docked inspector narrows the canvas, so native applies the same pan rule to the inspector width, animated over 200 ms and instant under reduced motion or for a programmatic selection. Find centers at 100% over 300 ms, and Focus in the inspector Help tab centers at 150% over 300 ms. | Medium | Fixed in `EditorWindow.cpp`, `InspectorClearance.h`. Asserted by `SelectionPresentationTest`. `EditorTest::fitKeepsEveryNodeVisibleAcrossPanels` changed. Open: native has no node info panel. Its Focus button sits in the inspector Help tab (`ViewportNavigatorTest::inspectorFocusButtonRunsFocus`). Native pans 300 px in the capture where the web pans 371 px, because card sizes and positions still differ. The fit zoom before selection differs (web 71%, native 67%) and is not part of this row. |
 | W10 | Running ring | Running cards draw a conic ring in their type colors. | Same ring. | Low | Matches. |
 | W11 | Run status on cards | A status changes no card and shows no text. | Every card with a status grew by 98 px and printed "completed" or "running 40%". | High | Fixed in `WorkflowGraphModel.cpp` and `EditorScene.cpp`. Errors and a lost connection keep a label. Asserted by `runStatusKeepsCardSizeAndShowsProgress`. |

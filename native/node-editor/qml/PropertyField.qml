@@ -20,15 +20,6 @@ ColumnLayout {
     // A connected or preserved value explains itself in the hint below the label.
     readonly property string error: descriptor.editable === false || (descriptor.connected && !descriptor.appendStatic) ? "" : (descriptor.error || "")
     spacing: Ui.Metrics.xs
-    EditorRoles { id: roles }
-    // The web inspector field: a quiet translucent fill with no idle border.
-    component FieldFrame: Rectangle {
-        required property Item control
-        color: !control.enabled ? roles.fieldDisabled : control.activeFocus ? roles.fieldFocus : roles.field
-        radius: Ui.Metrics.radiusControl
-        border.width: control.activeFocus ? Ui.Metrics.focus : Ui.Metrics.border
-        border.color: control.valid === false ? Ui.Theme.borderError : control.activeFocus ? Ui.Theme.borderFocus : "transparent"
-    }
     // ListProperty.tsx and DictProperty.tsx show a table on the constant nodes only;
     // DataframeProperty.tsx shows one for every dataframe.
     readonly property bool tableKind: descriptor.kind === "dataframe"
@@ -88,16 +79,20 @@ ColumnLayout {
         Layout.fillWidth: true
         spacing: Ui.Metrics.sm
         Ui.Text {
+            id: fieldLabel
             text: root.title + (root.descriptor.required ? " *" : "")
             role: Ui.Typography.SansLabel
-            font.weight: Font.Normal
+            weight: Font.Normal
             tone: root.writable ? Ui.Text.Secondary : Ui.Text.Disabled
             Layout.fillWidth: true
             wrapMode: Text.Wrap
             readonly property string helpText: root.descriptor.description || ""
             Accessible.description: helpText
-            HoverHandler {
-                onHoveredChanged: root.host.showToolTip(hovered ? parent.helpText : "")
+            HoverHandler { id: labelHover }
+            Ui.Tooltip {
+                trigger: fieldLabel
+                visible: labelHover.hovered && fieldLabel.helpText !== ""
+                text: fieldLabel.helpText
             }
         }
         // The web marks a value that differs from its default (property-input-container.value-changed).
@@ -106,7 +101,7 @@ ColumnLayout {
             visible: root.descriptor.changed === true
             Layout.preferredWidth: Ui.Metrics.sm
             Layout.preferredHeight: Ui.Metrics.sm
-            radius: width / 2
+            radius: Ui.Metrics.radiusPill
             color: Ui.Theme.accentPrimary
             Accessible.role: Accessible.StaticText
             Accessible.name: "Changed from default"
@@ -174,10 +169,10 @@ ColumnLayout {
             valid: true
             errorText: root.error
             topPadding: Ui.Metrics.sm; bottomPadding: Ui.Metrics.sm
-            leftPadding: 10; rightPadding: 10
-            implicitHeight: 34
+            leftPadding: Ui.Metrics.nodeFieldPadding; rightPadding: Ui.Metrics.nodeFieldPadding
+            implicitHeight: Ui.Metrics.nodeFieldHeight
             font.weight: Font.Normal
-            background: FieldFrame { control: parent }
+            variant: Ui.TextField.Node
             onEditStarted: root.begin()
             onValueCommitted: value => root.commit(value)
         }
@@ -191,7 +186,7 @@ ColumnLayout {
             implicitHeight: Math.max(contentHeight + Ui.Metrics.xl, Ui.Metrics.touch * 2)
             role: Ui.Typography.SansLabel
             font.weight: Font.Normal
-            background: FieldFrame { control: parent }
+            variant: Ui.TextArea.Node
             accessibleName: root.title
             enabled: root.writable
             valid: true
@@ -214,7 +209,7 @@ ColumnLayout {
             enabled: root.writable
             valid: (root.descriptor.kind !== "integer" || text.trim() === "" || Number.isInteger(Number(text)))
             errorText: root.error || "Enter a valid " + root.descriptor.kind + " within the allowed range."
-            background: FieldFrame { control: parent }
+            variant: Ui.NumberField.Node
             onEditStarted: root.begin()
             onValueCommitted: value => root.commit(value)
         }
@@ -285,6 +280,7 @@ ColumnLayout {
                 ++root.commitGeneration
                 root.editNodeId = ""
             }
+            onReportRequested: (source, text) => root.host.reportError(source, text)
             onValueCommitted: value => root.immediate(value)
         }
     }
@@ -377,7 +373,6 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
-            onToolTipRequested: text => root.host.showToolTip(text)
             onScopeInvalidated: {
                 ++root.commitGeneration
                 root.editNodeId = ""
@@ -451,7 +446,6 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
-            onToolTipRequested: text => root.host.showToolTip(text)
             onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
             onValueCommitted: value => root.immediate(value)
         }
@@ -495,8 +489,8 @@ ColumnLayout {
         Layout.fillWidth: true
         wrapMode: Text.Wrap
     }
-    NodeButton {
-        variant: NodeButton.Flat
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined; flat: true
         leftPadding: 0
         Layout.alignment: Qt.AlignLeft
         visible: root.descriptor.kind === "text" && root.writable
@@ -512,8 +506,8 @@ ColumnLayout {
             || (root.descriptor.required === false && !root.descriptor.hasDefault)
             || root.descriptor.changed === true)
         spacing: Ui.Metrics.md
-        NodeButton {
-            variant: NodeButton.Flat
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined; flat: true
             leftPadding: 0
             onPressed: root.cancelDraft()
             text: "Set null"
@@ -521,8 +515,8 @@ ColumnLayout {
             enabled: !root.descriptor.hasValue || root.descriptor.value !== null
             onClicked: root.immediate(null)
         }
-        NodeButton {
-            variant: NodeButton.Flat
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined; flat: true
             leftPadding: 0
             onPressed: root.cancelDraft()
             text: "Clear value"
@@ -532,8 +526,8 @@ ColumnLayout {
                 root.removeValue()
             }
         }
-        NodeButton {
-            variant: NodeButton.Flat
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined; flat: true
             leftPadding: 0
             onPressed: root.cancelDraft()
             objectName: "reset-default"

@@ -43,7 +43,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Meta AI | ✅ | ✅ | | | ✅ | | |
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
 | Z.ai | ✅ | ✅ | ✅ | | ✅ | | |
-| Codex (OpenAI OAuth) | ✅ | ✅ | | | | | |
+| Codex (Sign in with ChatGPT) | ✅ | ✅ | | | | | |
 | Claude Agent SDK | ✅ | | | | | | |
 | Antigravity | ✅ | ✅ | | | | | |
 | GitHub Copilot | ✅ | | | | | | |
@@ -241,9 +241,11 @@ Meta AI serves the Muse family at `https://api.meta.ai/v1`. Cloud only, keyed by
 - **Speech to text.** Muse Voice Transcribe (`muse-voice-transcribe-1.0`) returns the transcript and timed turns. Audio that is not mono 16-bit WAV at 16 or 24 kHz is converted in process first. It has no word-level timestamps.
 - **Segmentation.** SAM 3.1 (`sam-3.1`) segments an image from a short noun phrase, a box, or points, and returns one full-frame mask per object.
 
-## Codex (OpenAI OAuth)
+## Codex (Sign in with ChatGPT)
 
-Codex reaches GPT chat models and GPT Image generation (GPT Image 2 and 1.5) through your ChatGPT/Codex OAuth session instead of an API key, and usage bills against that subscription. Sign in with the **Codex** card in Settings → Models & Providers. The provider reads the stored `CODEX_ACCESS_TOKEN`, so no `OPENAI_API_KEY` is needed. The Codex backend serves only the Responses API, so the `codex` node namespace has Web Search and Create Image. Embeddings, moderation, speech, transcription, translation, and realtime nodes need an API key and stay in `openai`.
+The `codex` provider runs GPT models on your ChatGPT plan instead of an API key, and usage counts against that plan. Sign in with the **ChatGPT** card in Settings → Models & Providers. NodeTool follows OpenAI's [Sign in with ChatGPT](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt) flow: the first sign-in registers NodeTool as an app on your ChatGPT account, and you approve plan usage on the consent screen. Requests go to the public Responses API (`https://api.openai.com/v1/responses`), and the model list comes from `GET /v1/models` for the signed-in account. The provider reads the stored `CODEX_ACCESS_TOKEN`, so no `OPENAI_API_KEY` is needed.
+
+The plan token reaches only the Responses API, so the `codex` node namespace has Web Search and Create Image. Embeddings, moderation, speech, transcription, translation, and realtime nodes need an API key and stay in `openai`. When you reach your plan's usage limit, the error links to [ChatGPT usage settings](https://chatgpt.com/settings/usage). Disconnecting revokes the sign-in. You can also remove NodeTool from ChatGPT's connected apps. Sign-ins made with the earlier Codex CLI login no longer work, so sign in again once.
 
 ## Claude Agent SDK
 
@@ -445,7 +447,7 @@ When a missing provider blocks you (a model dropdown, a node warning, the gettin
 
 ![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
 
-**Settings → Models & Providers** is the full list, grouped as Popular, Language Models, Media Generation, Gateways & Hubs, Web Search, Compute & Local, and Services & Advanced. Each configured provider has a **Test** button that calls the provider to confirm the key still works, and a **Manage** button to replace it. Codex and Claude Code offer sign-in with your account instead of a key. The dialog's OpenAI sign-in stores a ChatGPT Codex token, so it enables the `codex` provider and leaves `openai` unconfigured until you paste an API key. Claude Code sign-in is hidden on hosted deployments because it finishes on the server's own machine.
+**Settings → Models & Providers** is the full list, grouped as Popular, Language Models, Media Generation, Gateways & Hubs, Web Search, Compute & Local, and Services & Advanced. Each configured provider has a **Test** button that calls the provider to confirm the key still works, and a **Manage** button to replace it. Codex and Claude Code offer sign-in with your account instead of a key. The dialog's ChatGPT sign-in stores a ChatGPT plan token, so it enables the `codex` provider and leaves `openai` unconfigured until you paste an API key. Claude Code sign-in is hidden on hosted deployments because it finishes on the server's own machine.
 
 ![Models & Providers settings](assets/screenshots/settings-providers-test.png)
 

@@ -3,6 +3,9 @@ import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 Basic.TextField {
     id: root
+    // Node and NodeEditing draw the node editor field frame: a quiet fill with no idle border. Node marks only a rejected owner value, NodeEditing also an unparsable draft. NodeEditing is the editor overlaid on a painted card field, which always shows its focus border.
+    enum Variant { Field, Node, NodeEditing }
+    property int variant: Ui.NumberField.Field
     property real value: 0
     property string displayValue: String(value)
     property string accessibleName: ""
@@ -40,9 +43,13 @@ Basic.TextField {
     text: displayValue
     Ui.Text { id: unitLabel; LayoutMirroring.enabled: false; anchors.left: root.LayoutMirroring.enabled ? parent.left : undefined; anchors.right: root.LayoutMirroring.enabled || !root.boxed ? undefined : parent.right; x: root.boxed ? 0 : root.leftPadding + root.contentWidth + Metrics.xs; anchors.leftMargin: Metrics.md; anchors.rightMargin: Metrics.md; anchors.verticalCenter: parent.verticalCenter; text: root.unit; visible: text !== ""; role: Typography.SansCaption; tone: Ui.Text.Secondary }
     background: Rectangle {
-        color: !root.boxed ? "transparent" : root.enabled ? Theme.surfaceInput : Theme.actionDisabled; radius: Metrics.radiusControl
-        border.width: !root.boxed ? 0 : root.activeFocus ? Metrics.focus : Metrics.border
-        border.color: !root.valid || !root.draftValid ? Theme.borderError : root.activeFocus ? Theme.borderFocus : Theme.borderControl
+        color: !root.boxed ? "transparent"
+            : root.variant === Ui.NumberField.Node ? (!root.enabled ? Theme.fieldSurfaceDisabled : root.activeFocus ? Theme.fieldSurfaceFocus : Theme.fieldSurface)
+            : root.variant === Ui.NumberField.NodeEditing ? Theme.surfaceInput
+            : root.enabled ? Theme.surfaceInput : Theme.actionDisabled
+        radius: Metrics.radiusControl
+        border.width: !root.boxed ? 0 : root.variant === Ui.NumberField.NodeEditing || root.activeFocus ? Metrics.focus : Metrics.border
+        border.color: !root.valid || (root.variant !== Ui.NumberField.Node && !root.draftValid) ? Theme.borderError : root.variant === Ui.NumberField.NodeEditing || root.activeFocus ? Theme.borderFocus : root.variant === Ui.NumberField.Field ? Theme.borderControl : "transparent"
     }
     function isValidDraft() { const n = Number(text); return text.trim() !== "" && Number.isFinite(n) && n >= from && n <= to }
     function begin() { if (!editing) { editBaseline = value; editing = true; editStarted() } }

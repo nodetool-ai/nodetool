@@ -208,6 +208,25 @@ inline constexpr double gridCross = 3;
 inline constexpr int fontTitle = 13;
 inline constexpr int fontLabel = 13;
 inline constexpr int fontValue = 11;
+// Painted card controls (CardControls.h). Fades are alpha factors on a theme color.
+inline constexpr int fontCaption = fontValue - micro;
+inline constexpr double mutedOpacity = 0.7;
+inline constexpr double placeholderIconOpacity = 0.65;
+inline constexpr double chipFillOpacity = 0.18;
+inline constexpr double activeFillOpacity = 0.1;
+// A 1 px outline is stroked on pixel centers, 0.5 px inside its rect.
+inline constexpr double outlineInset = 0.5;
+inline constexpr int actionRadius = 1;
+// The checker cell of an empty state and the right padding a choice reserves for its chevron.
+inline constexpr int placeholderCell = 16;
+inline constexpr int choiceInset = 24;
+// The chevron: its center sits 12 px from the field's right edge, 6 px wide and 3 px tall.
+inline constexpr double chevronInset = 12;
+inline constexpr double chevronHalfWidth = 3;
+inline constexpr double chevronHalfHeight = 1.5;
+inline constexpr double chevronStroke = 1.2;
+// A drop zone's icon-hint text line.
+inline constexpr double dropZoneLine = 12;
 } // namespace node_metrics
 
 // Composer, Slider, Segmented, Lock, ModelChip, Action and DropZone rows belong
@@ -231,7 +250,7 @@ enum class NodeRowKind { Handle, Label, Field, Multiline, Number, Toggle, Previe
                          // brush size, value the color, checked the eraser and
                          // optionValues[0] the brush opacity.
                          Paint,
-                         Knob, Waveform, Envelope, Caption,
+                         BodyCaption, ListItem, CollectionTile, Knob, Waveform, Envelope, Caption,
                          // ImageComparer: media[0] image A over media[1] image B in rect,
                          // number the divider from 0 to 1, checked vertical, options the
                          // two labels.
@@ -243,7 +262,7 @@ enum class CardBody { Generic, Content, Prompt, Output, Preview, Blur, ResizeIma
                       Adjustment, SimpleFilter, Scale, Offset, Pad, Outline, DropShadow, ColorOverlay,
                       ChromaKey, Channels, Mask, HslAdjust, Generator, GetVariable,
                       CompareImages, ConstantString, RotateFlip, Resize, Fit, Paste, CanvasResize, Curves, Levels, Crop,
-                      MasksExtractor, Painter, Compositor, SynthModule, AudioOut };
+                      MasksExtractor, Painter, Compositor, ExtractVideoFrame, ListGenerator, Collection, SynthModule, AudioOut };
 
 // One media value on a card: an image, video or audio reference and, for an
 // image, the thumbnail CardMediaLoader decoded. rect is card-local.

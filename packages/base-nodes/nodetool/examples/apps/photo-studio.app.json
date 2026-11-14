@@ -447,7 +447,7 @@
             "id": "97876",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# ✨ Image Enhance\n\nA live photo editor. Each filter exposes numeric properties that a mini app binds to sliders, and the preview updates as you drag.\n\n**How it works:** \"Source photo\" ships with a photo of a coffee mug. \"Denoise (radius)\" is a Gaussian blur set to radius 0, so it is off by default. \"Brightness & contrast\" applies brightness 0.05 and contrast 1.15. \"Saturation & hue\" raises saturation to 1.2. \"Sharpen (amount)\" is an unsharp mask with amount 1 and threshold 0.02. \"Enhanced image\" shows the result. The chain runs on the GPU in the browser with no model, API key or per-run cost.\n\n**Try this:** Set \"radius\" on \"Denoise (radius)\" to 2 and \"amount\" on \"Sharpen (amount)\" to 2. Noise in flat areas softens while edges stay crisp."
+              "comment": "# Image Enhance\n\nA live photo editor. Each filter exposes numeric properties that a mini app binds to sliders, and the preview updates as you drag.\n\n**How it works:** \"Source photo\" ships with a photo of a coffee mug. \"Denoise (radius)\" is a Gaussian blur set to radius 0, so it is off by default. \"Brightness & contrast\" applies brightness 0.05 and contrast 1.15. \"Saturation & hue\" raises saturation to 1.2. \"Sharpen (amount)\" is an unsharp mask with amount 1 and threshold 0.02. \"Enhanced image\" shows the result. The chain runs on the GPU in the browser with no model, API key or per-run cost.\n\n**Try this:** Set \"radius\" on \"Denoise (radius)\" to 2 and \"amount\" on \"Sharpen (amount)\" to 2. Noise in flat areas softens while edges stay crisp."
             },
             "ui_properties": {
               "selected": false,
@@ -485,7 +485,7 @@
               "width": 260,
               "selectable": true,
               "bypassed": false,
-              "title": "1️⃣ Source photo"
+              "title": "1 Source photo"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -507,7 +507,7 @@
               "width": 240,
               "selectable": true,
               "bypassed": false,
-              "title": "2️⃣ Denoise (radius)"
+              "title": "2 Denoise (radius)"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -529,7 +529,7 @@
               "width": 240,
               "selectable": true,
               "bypassed": false,
-              "title": "3️⃣ Brightness & contrast"
+              "title": "3 Brightness & contrast"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -552,7 +552,7 @@
               "width": 240,
               "selectable": true,
               "bypassed": false,
-              "title": "4️⃣ Saturation & hue"
+              "title": "4 Saturation & hue"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -574,7 +574,7 @@
               "width": 240,
               "selectable": true,
               "bypassed": false,
-              "title": "5️⃣ Sharpen (amount)"
+              "title": "5 Sharpen (amount)"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -610,7 +610,7 @@
             "id": "comment-intro",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhances a list of photos through a fixed retouch chain with an AI polish at the end. Drop images into the input, with no folder path required.\n\n**How it works:** \"1️⃣ Iterate photos\" sends each image from \"Photos to enhance\" down the chain. \"2️⃣ Auto-contrast\" clips 2% at each end. \"3️⃣ Brightness/Contrast\" raises contrast by a factor of 1.1. \"4️⃣ Adjust color\" multiplies brightness by \"Brightness factor\" (1.05) and saturation by \"Color factor\" (1.2). \"5️⃣ Sharpen\" and \"6️⃣ Sharpen detail\" apply two unsharp-mask passes at amounts 1 and 1.2. \"7️⃣ AI enhance\" runs image-to-image at strength 0.3 with a cinematic-grade prompt. \"8️⃣ Collect enhanced batch\" gathers the results into one list. Every step runs locally except \"7️⃣ AI enhance\", which uses your default image model or the one you pick on the node.\n\n**Try this:** Raise \"Color factor\" to 1.6 and compare the saturation of the output with the original."
+              "comment": "# Photo Enhancement Suite\n\nBatch-enhances a list of photos through a fixed retouch chain with an AI polish at the end. Drop images into the input, with no folder path required.\n\n**How it works:** \"1 Iterate photos\" sends each image from \"Photos to enhance\" down the chain. \"2 Auto-contrast\" clips 2% at each end. \"3 Brightness/Contrast\" raises contrast by a factor of 1.1. \"4 Adjust color\" multiplies brightness by \"Brightness factor\" (1.05) and saturation by \"Color factor\" (1.2). \"5 Sharpen\" and \"6 Sharpen detail\" apply two unsharp-mask passes at amounts 1 and 1.2. \"7 AI enhance\" runs image-to-image at strength 0.3 with a cinematic-grade prompt. \"8 Collect enhanced batch\" gathers the results into one list. Every step runs locally except \"7 AI enhance\", which uses your default image model or the one you pick on the node.\n\n**Try this:** Raise \"Color factor\" to 1.6 and compare the saturation of the output with the original."
             },
             "ui_properties": {
               "selected": false,
@@ -635,7 +635,7 @@
               "input_item": []
             },
             "ui_properties": {
-              "title": "8️⃣ Collect enhanced batch",
+              "title": "8 Collect enhanced batch",
               "position": {
                 "x": 3144,
                 "y": 818
@@ -674,7 +674,7 @@
             "ui_properties": {
               "width": 384,
               "height": 400,
-              "title": "7️⃣ AI enhance",
+              "title": "7 AI enhance",
               "position": {
                 "x": 2660,
                 "y": 654
@@ -699,7 +699,7 @@
               "threshold": 0.0117647
             },
             "ui_properties": {
-              "title": "6️⃣ Sharpen detail",
+              "title": "6 Sharpen detail",
               "position": {
                 "x": 2280,
                 "y": 751
@@ -723,7 +723,7 @@
               "amount": 1
             },
             "ui_properties": {
-              "title": "5️⃣ Sharpen",
+              "title": "5 Sharpen",
               "position": {
                 "x": 1900,
                 "y": 750
@@ -749,7 +749,7 @@
               "brightness": 1
             },
             "ui_properties": {
-              "title": "4️⃣ Adjust color",
+              "title": "4 Adjust color",
               "position": {
                 "x": 1520,
                 "y": 735
@@ -774,7 +774,7 @@
               "contrast": 1.1
             },
             "ui_properties": {
-              "title": "3️⃣ Brightness/Contrast",
+              "title": "3 Brightness/Contrast",
               "position": {
                 "x": 1140,
                 "y": 667
@@ -798,7 +798,7 @@
               "cutoff": 2
             },
             "ui_properties": {
-              "title": "2️⃣ Auto-contrast",
+              "title": "2 Auto-contrast",
               "position": {
                 "x": 760,
                 "y": 607
@@ -816,7 +816,7 @@
               "limit": -1
             },
             "ui_properties": {
-              "title": "1️⃣ Iterate photos",
+              "title": "1 Iterate photos",
               "position": {
                 "x": 380,
                 "y": 560

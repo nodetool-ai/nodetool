@@ -1163,8 +1163,8 @@ export interface ResourceLimits {
 export const PROVIDER_IDS = {
   // Hosted LLM / multimodal APIs
   OPENAI: "openai",
-  // OpenAI via ChatGPT/Codex OAuth login (no API key — uses the stored
-  // Codex OAuth token and the chatgpt.com Codex backend).
+  // OpenAI models on the user's ChatGPT plan through Sign in with ChatGPT
+  // (no API key — the stored OAuth token calls the public Responses API).
   CODEX: "codex",
   ANTHROPIC: "anthropic",
   // Claude via the Claude Agent SDK / `claude` CLI (no API key — uses the
@@ -1266,37 +1266,61 @@ export const PROVIDER_IDS = {
 export type KnownProviderId = (typeof PROVIDER_IDS)[keyof typeof PROVIDER_IDS];
 
 /**
- * Codex (ChatGPT-backed) OAuth constants, shared across packages so the login
- * flow (`websocket`), the token resolver (`models`), and the provider
- * (`runtime`) all agree without a cross-layer dependency. The client is the
- * published public Codex CLI app — there is no client secret.
+ * Sign in with ChatGPT constants, shared across packages so the login flow
+ * (`websocket`), the token resolver (`models`), and the provider (`runtime`)
+ * agree without a cross-layer dependency. They follow OpenAI's published
+ * "Sign in with ChatGPT" flow
+ * (https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt):
+ * each install registers its own public client on first sign-in, and the
+ * resulting OAuth token calls the public Responses API on the user's plan.
  */
-export const CODEX_OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
-export const CODEX_OAUTH_AUTHORIZATION_URL =
-  "https://auth.openai.com/oauth/authorize";
-export const CODEX_OAUTH_TOKEN_URL = "https://auth.openai.com/oauth/token";
-export const CODEX_OAUTH_REVOCATION_URL =
-  "https://auth.openai.com/oauth/revoke";
-export const CODEX_OAUTH_SCOPES = [
+export const CHATGPT_OAUTH_ISSUER = "https://auth.openai.com";
+/**
+ * Documented endpoints, used when OIDC discovery at
+ * `${CHATGPT_OAUTH_ISSUER}/.well-known/openid-configuration` is unreachable.
+ */
+export const CHATGPT_OAUTH_AUTHORIZATION_URL =
+  "https://auth.openai.com/api/accounts/authorize";
+export const CHATGPT_OAUTH_TOKEN_URL =
+  "https://auth.openai.com/api/accounts/oauth/token";
+/**
+ * First-time registration entry point. The callback returns the client id
+ * OpenAI issued for this install (`oaiapp_…`), which every later sign-in,
+ * code exchange and refresh uses instead.
+ */
+export const CHATGPT_DYNAMIC_CLIENT_ID = "dynamic_agent_client";
+/** The scope that lets the token run requests on the user's ChatGPT plan. */
+export const CHATGPT_DIRECT_SCOPE = "chatgpt.tokens.use.direct";
+export const CHATGPT_OAUTH_SCOPES = [
   "openid",
   "profile",
   "email",
-  "offline_access"
+  "offline_access",
+  "resource.invoke",
+  CHATGPT_DIRECT_SCOPE
 ] as const;
-/** ChatGPT backend base URL the Codex routes live under. */
-export const CODEX_BACKEND_BASE_URL = "https://chatgpt.com/backend-api/codex";
-/** `originator` header the ChatGPT backend expects from a Codex client. */
-export const CODEX_DEFAULT_ORIGINATOR = "codex_cli_rs";
+/** OAuth `resource` for authorization, code exchange and refresh. */
+export const CHATGPT_OAUTH_RESOURCE = "https://api.openai.com/v1";
+/** Public OpenAI API base the plan token calls (`/responses`, `/models`). */
+export const CHATGPT_API_BASE_URL = "https://api.openai.com/v1";
+/** App name shown in ChatGPT's connected-apps list on first registration. */
+export const CHATGPT_AGENT_NAME = "NodeTool";
 /**
- * Codex client version presented to the ChatGPT backend. The backend gates its
- * model allowlist on this: too-old a version yields an empty `/models` list and
- * "model not supported" on `/responses`. Must be ≥ the served models'
- * `minimal_client_version`. Override via `CODEX_CLIENT_VERSION`.
+ * Loopback redirect. The host must be the literal `127.0.0.1` (never
+ * `localhost`) and the path must stay fixed. The port may change between
+ * sign-ins; 1455 is preferred.
  */
-export const CODEX_CLIENT_VERSION = "0.162.1";
-/** Loopback port/path the Codex client's redirect URI is registered against. */
-export const CODEX_CALLBACK_PORT = 1455;
-export const CODEX_CALLBACK_PATH = "/auth/callback";
+export const CHATGPT_CALLBACK_HOST = "127.0.0.1";
+export const CHATGPT_CALLBACK_PORT = 1455;
+export const CHATGPT_CALLBACK_PATH = "/auth/callback";
+/**
+ * `OAuthCredential.provider` for Sign in with ChatGPT rows. Each row's
+ * `account_id` is `<issued client id>:<verified sub>`, so the issued client id
+ * is kept with the identity it was registered for.
+ */
+export const CHATGPT_CREDENTIAL_PROVIDER = "openai_chatgpt";
+/** Where the user manages their plan usage. */
+export const CHATGPT_USAGE_SETTINGS_URL = "https://chatgpt.com/settings/usage";
 
 /**
  * Claude Code OAuth constants — the same public client and endpoints the

@@ -22,8 +22,9 @@ more than 1024 logical pixels therefore bends less than React Flow's.
 
 [`node_metrics`](src/graph/NodeLayout.h) and
 [`EditorRoles`](qml/EditorRoles.qml) hold the web values scoped to this editor.
-`NodeButton` and `PanelRow` are editor controls for the web's button and row
-styles. Other native apps keep the [native design](../ui_primitives/DESIGN.md).
+`Ui.EditorButton.Outlined` is the web's button style, and `Ui.ListRow` with `flat: true`
+is the web's row style. Other native apps keep
+the [native design](../ui_primitives/DESIGN.md).
 
 The panels form the `NodeTool.NodeEditor` QML module. No panel reads the editor
 window. The panels take small interface objects as required properties, such

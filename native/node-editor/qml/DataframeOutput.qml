@@ -26,11 +26,11 @@ ColumnLayout {
     }
     onModelDataChanged: sizeColumns()
     Component.onCompleted: sizeColumns()
-    NodeButton {
+    Ui.EditorButton {
         id: expand
         objectName: "dataframe-expand"
         text: "Open full view"
-        variant: NodeButton.Flat
+        variant: Ui.EditorButton.Outlined; flat: true
         onClicked: full.open()
     }
     Component {
@@ -133,7 +133,7 @@ ColumnLayout {
         contentItem: ColumnLayout {
             Loader { Layout.fillWidth: true; Layout.fillHeight: true; sourceComponent: full.opened ? tableComponent : undefined }
             Ui.Text { Layout.fillWidth: true; text: root.modelData.tableNotice || ""; role: Ui.Typography.SansCaption; wrapMode: Text.Wrap }
-            NodeButton { objectName: "dataframe-close"; text: "Close"; onClicked: full.close() }
+            Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "dataframe-close"; text: "Close"; onClicked: full.close() }
         }
     }
 }

@@ -719,7 +719,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "1️⃣ Episode audio",
+              "title": "1 Episode audio",
               "selectable": true,
               "bypassed": false
             },
@@ -741,7 +741,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "2️⃣ Show context",
+              "title": "2 Show context",
               "selectable": true,
               "bypassed": false
             },
@@ -765,7 +765,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "3️⃣ Quote-card count",
+              "title": "3 Quote-card count",
               "selectable": true,
               "bypassed": false
             },
@@ -786,7 +786,7 @@
               "zIndex": 0,
               "width": 320,
               "height": 300,
-              "title": "📝 Show notes & titles",
+              "title": "Show notes & titles",
               "selectable": true,
               "bypassed": false
             },
@@ -807,7 +807,7 @@
               "zIndex": 0,
               "width": 320,
               "height": 300,
-              "title": "✉️ Newsletter edition",
+              "title": "Newsletter edition",
               "selectable": true,
               "bypassed": false
             },
@@ -828,7 +828,7 @@
               "zIndex": 0,
               "width": 300,
               "height": 260,
-              "title": "📣 Social posts",
+              "title": "Social posts",
               "selectable": true,
               "bypassed": false
             },
@@ -849,7 +849,7 @@
               "zIndex": 0,
               "width": 360,
               "height": 380,
-              "title": "🖼️ Quote cards",
+              "title": "Quote cards",
               "selectable": true,
               "bypassed": false
             },

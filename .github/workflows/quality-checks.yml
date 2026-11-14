@@ -813,7 +813,9 @@ jobs:
     name: docker
     needs: changes
     if: ${{ !inputs.docs-only && inputs.shared && needs.changes.outputs.docker == 'true' }}
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest now resolves to 26.04, where Playwright 1.60 has
+    # no Chromium build ("Playwright does not support chromium on ubuntu26.04-x64").
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout code
@@ -840,7 +842,7 @@ jobs:
       # work this leg has no use for — it talks to the container over HTTP and
       # needs nothing from the source tree but the script itself.
       #
-      # No --with-deps: the ubuntu-latest image already carries the shared
+      # No --with-deps: the runner image already carries the shared
       # libraries Chromium links against, and the apt update it triggers costs
       # more than the browser download.
       - name: Install Playwright Chromium

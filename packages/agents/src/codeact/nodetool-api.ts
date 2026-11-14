@@ -1878,7 +1878,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     skill: "api-assets",
     doc: `- \`nodetool.documents\` — workspace file conversion: \`convert(inputFile,
   outputFile)\`, \`extractText(pdfPath)\`, \`extractTables(pdfPath, outFile)\`,
-  \`markdownToPdf(inputFile, outputFile)\`, \`pdfToMarkdown(inputFile, outputFile)\`.`
+  \`markdownToPdf(inputFile, outputFile)\`, \`pdfToMarkdown(inputFile, outputFile)\`.
+  A PDF path may be the \`asset://\` uri of an attached PDF. Omit
+  \`outputFile\` on \`pdfToMarkdown\`/\`extractTables\` to get \`markdown\`/\`tables\` back inline.`
   },
   {
     namespace: "web",

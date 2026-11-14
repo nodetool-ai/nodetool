@@ -68,9 +68,9 @@ ColumnLayout {
                 enabled: root.writable
                 onValueCommitted: value => root.setType(column.index, value)
             }
-            NodeButton {
+            Ui.EditorButton {
                 objectName: "column-delete-" + column.index
-                variant: NodeButton.Flat
+                variant: Ui.EditorButton.Outlined; flat: true
                 iconName: "close"
                 accessibleName: "Delete column"
                 enabled: root.writable

@@ -1,3 +1,4 @@
+#include "../support/DarkCanvasTheme.h"
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
 #include "graph/NodeLayout.h"
@@ -59,6 +60,7 @@ private slots:
   WorkflowGraphModel graph; graph.project(snapshot, catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
   EditorScene scene(graph);
+  scene.setTheme(nodetool::test::darkCanvasTheme());
   const auto id = *graph.allNodeIds().begin();
   const QVector<QColor> expected{typeColor("image"), typeColor("str"), typeColor("int"), typeColor("int"), typeColor("int")};
   QCOMPARE(graph.layout(id).runningColors, expected);
@@ -182,6 +184,7 @@ private slots:
   WorkflowGraphModel graph; graph.project(snapshot,catalog);
   NodeRuntimeModel runtime; graph.setRuntimeModel(&runtime);
   EditorScene scene(graph);
+  scene.setTheme(nodetool::test::darkCanvasTheme());
   const auto ad = wireOf(graph,"ad");
   const auto path = wireCurve(scene.connectionGraphicsObject(ad)->endPoint(QtNodes::PortType::Out), scene.connectionGraphicsObject(ad)->endPoint(QtNodes::PortType::In));
   const auto mid = path.pointAtPercent(0.5);

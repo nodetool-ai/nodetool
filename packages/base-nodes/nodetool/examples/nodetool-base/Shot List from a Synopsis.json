@@ -39,7 +39,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "synopsis",
-          "value": "",
+          "value": "A retired lighthouse keeper finds a message in a bottle addressed to her, written in her own handwriting and dated next week. Over one stormy night she has to decide whether to follow its warning or keep the light burning.",
           "description": "The story in a paragraph"
         },
         "ui_properties": {

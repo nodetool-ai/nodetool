@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
@@ -8,6 +7,7 @@ ColumnLayout {
     id: root
     required property var controller
     signal askAgentRequested(string runId, string spanId)
+    signal reportRequested(string source, string text)
     readonly property var span: controller.focus
     Layout.minimumWidth: 0
     spacing: Ui.Metrics.md
@@ -21,17 +21,26 @@ ColumnLayout {
         Ui.EditorButton { objectName: "trace-copy"; text: root.controller.copied ? qsTr("Copied") : qsTr("Copy span JSON"); visible: !!root.span.json; onClicked: root.controller.copyFocusedSpan() }
         Ui.EditorButton { objectName: "trace-ask-span"; text: qsTr("Ask agent"); onClicked: root.askAgentRequested(root.controller.selectedRunId, root.controller.focusedSpanId) }
     }
-    Basic.ScrollView {
+    Ui.ScrollArea {
         id: viewport
         objectName: "trace-details-scroll"
         Layout.fillWidth: true
         Layout.fillHeight: true
-        contentWidth: availableWidth
-        clip: true
         ColumnLayout {
             width: viewport.availableWidth
             spacing: Ui.Metrics.md
-            Ui.Text { Layout.fillWidth: true; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; text: root.controller.focusError + root.controller.focusNotices.join("\n"); visible: text.length > 0 }
+            Ui.Banner {
+                objectName: "trace-span-load-error"
+                Layout.fillWidth: true
+                visible: root.controller.focusError !== ""
+                status: Ui.Status.Error
+                message: root.controller.focusError
+                retryable: true
+                reportable: true
+                onRetryRequested: root.controller.focusSpan(root.controller.focusedSpanId)
+                onReportRequested: root.reportRequested(qsTr("Run trace span error"), root.controller.focusError)
+            }
+            Ui.Text { Layout.fillWidth: true; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; text: root.controller.focusNotices.join("\n"); visible: text.length > 0 }
             Ui.Text { text: qsTr("Loading span…"); visible: root.controller.focusLoading }
             Ui.Text { objectName: "trace-span-status"; textFormat: Text.PlainText; text: root.span.statusLabel || ""; tone: root.span.status === "ERROR" ? Ui.Text.Error : root.span.status === "OK" ? Ui.Text.Success : Ui.Text.Secondary; visible: !!root.span.spanId }
             Ui.Text { objectName: "trace-span-meta"; Layout.fillWidth: true; textFormat: Text.PlainText; wrapMode: Text.Wrap; text: root.span.meta || "" }
