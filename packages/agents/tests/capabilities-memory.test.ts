@@ -156,6 +156,12 @@ describe("behaviour through toolFromCapability", () => {
       content: "clip: asset://older",
       title: "Hero clip"
     });
+    // Rows order by a millisecond created_at, so a second save in the same
+    // millisecond ties with the first and the tie falls to the random id.
+    const firstSavedAt = Date.now();
+    while (Date.now() === firstSavedAt) {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+    }
     const saved = (await asTool(byName("memory_save")).process(context, {
       content: "clip: asset://newer",
       title: "Hero clip"

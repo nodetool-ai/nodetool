@@ -35,10 +35,8 @@ import {
   useTTSModelsByProvider
 } from "./useModelsByProvider";
 import { useModelAvailability } from "./useModelAvailability";
-import {
-  recommendedModelKey,
-  useRecommendedModelKeys
-} from "./useRecommendedModelKeys";
+import { recommendedModelKey } from "./useRecommendedModelKeys";
+import { useDefaultLanguageModelKeys } from "./useDefaultLanguageModelKeys";
 
 type Seedable = {
   provider?: string | null;
@@ -107,7 +105,7 @@ export const useSeedDefaultModels = (): void => {
   );
   const hasImageModel = useMediaGenerationStore((s) => s.image.model !== null);
   const getAvailability = useModelAvailability();
-  const recommendedKeys = useRecommendedModelKeys();
+  const recommendedKeys = useDefaultLanguageModelKeys();
 
   useEffect(() => {
     if (language.isLoading || image.isLoading) {

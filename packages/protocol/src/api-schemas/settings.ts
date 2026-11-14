@@ -28,6 +28,11 @@ export const secretResponse = z.object({
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
   is_configured: z.boolean(),
+  /**
+   * Whose value is configured: one the user saved (`user`), or the server's
+   * environment variable that `getSecret` falls back to (`server`).
+   */
+  source: z.enum(["user", "server"]).optional(),
   is_unreadable: z.boolean().optional(),
   value: z.string().optional()
 });
