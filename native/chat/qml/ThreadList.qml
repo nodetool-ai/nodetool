@@ -82,10 +82,6 @@ Item {
                     root.session.selectThread(threadRow.threadId);
                     root.threadOpened();
                 }
-                TapHandler {
-                    acceptedButtons: Qt.RightButton
-                    onTapped: (eventPoint) => threadMenu.popupAt(openButton, eventPoint.position.x, eventPoint.position.y)
-                }
                 Keys.onPressed: (event) => {
                     if (event.key === Qt.Key_F2) { threadRow.startRename(); event.accepted = true }
                     else if (event.key === Qt.Key_Delete) { deleteDialog.openFor(threadRow.threadId, threadRow.label); event.accepted = true }
