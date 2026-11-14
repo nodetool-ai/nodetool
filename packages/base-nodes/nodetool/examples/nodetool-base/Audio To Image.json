@@ -53,7 +53,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Audio To Image\n\nSpeak a description and watch it become an image. Use it when you would rather describe a picture out loud than type a prompt.\n\n**How it works:** \"1 Record audio\" holds a voice clip. \"2 Transcribe\" turns it into text. That text becomes the prompt of \"3 Generate image\", which renders a 1:1, 1K image, and the output node shows it. Each model step uses your default model for its type, or the one you pick on the node.\n\n**Try this:** Set \"aspect_ratio\" on \"3 Generate image\" to 16:9 and record the same description to get a wide version."
+          "comment": "# Audio To Image\n\nSpeak a description and watch it become an image. Use it when you would rather describe a picture out loud than type a prompt.\n\n**How it works:** \"1 Record audio\" holds a voice clip. \"2 Transcribe\" turns it into text. That text becomes the prompt of \"3 Generate image\", which renders a 1:1, 1K image, and the output node shows it. Each model step uses your default model for its type, or the one you pick on the node.\n\n**Try this:** Set \"aspect_ratio\" on \"3 Generate image\" to 16:9 and record the same description to get a wide version."
         },
         "ui_properties": {
           "selected": false,
@@ -81,7 +81,7 @@
           }
         },
         "ui_properties": {
-          "title": "1️⃣ Record audio",
+          "title": "1 Record audio",
           "selected": false,
           "position": {
             "x": 0,
@@ -108,7 +108,7 @@
           }
         },
         "ui_properties": {
-          "title": "2️⃣ Transcribe",
+          "title": "2 Transcribe",
           "selected": false,
           "position": {
             "x": 345,
@@ -139,7 +139,7 @@
           "resolution": "1K"
         },
         "ui_properties": {
-          "title": "3️⃣ Generate image",
+          "title": "3 Generate image",
           "selected": false,
           "position": {
             "x": 725,

@@ -136,7 +136,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🖼️ Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out. Use it when you need several distinct scenes for one product instead of one prompt and one image.\n\n**How it works:** \"1️⃣ Product name\", \"5️⃣ Product description\", \"4️⃣ Target audience\" and \"2️⃣ Scene count\" (6) fill \"6️⃣ Build scene prompt\". \"7️⃣ Scene concept agent\" invents distinct scenes, and \"8️⃣ Build image prompt\" turns them into photography prompts. \"9️⃣ Split into per-scene prompts\" emits one prompt per scene to two branches. \"🔟 Render scene (text-to-image)\" draws the empty scene for the \"scene\" output. \"🅰️ Composite product into scene (image-to-image)\" places \"3️⃣ Product image\" into the scene at strength 0.65. Two Brightness/Contrast passes, \"🅱️ Brightness / contrast polish\" and \"©️ Final color adjust → mockup\" (contrast 1.1), finish the \"mockup\" output. Pick models on \"7️⃣ Scene concept agent\" and \"9️⃣ Split into per-scene prompts\".\n\n**Try this:** Change \"4️⃣ Target audience\" to \"college students on a budget\" and watch the whole shot list shift."
+          "comment": "# Product Mockup Generator\n\nOne product photo in, a coordinated set of lifestyle mockups out. Use it when you need several distinct scenes for one product instead of one prompt and one image.\n\n**How it works:** \"1 Product name\", \"5 Product description\", \"4 Target audience\" and \"2 Scene count\" (6) fill \"6 Build scene prompt\". \"7 Scene concept agent\" invents distinct scenes, and \"8 Build image prompt\" turns them into photography prompts. \"9 Split into per-scene prompts\" emits one prompt per scene to two branches. \"10 Render scene (text-to-image)\" draws the empty scene for the \"scene\" output. \"Composite product into scene (image-to-image)\" places \"3 Product image\" into the scene at strength 0.65. Two Brightness/Contrast passes, \"Brightness / contrast polish\" and \"Final color adjust → mockup\" (contrast 1.1), finish the \"mockup\" output. Pick models on \"7 Scene concept agent\" and \"9 Split into per-scene prompts\".\n\n**Try this:** Change \"4 Target audience\" to \"college students on a budget\" and watch the whole shot list shift."
         },
         "ui_properties": {
           "selected": false,
@@ -169,7 +169,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "©️ Final color adjust → mockup"
+          "title": "Final color adjust → mockup"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -190,7 +190,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "🅱️ Brightness / contrast polish"
+          "title": "Brightness / contrast polish"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -223,7 +223,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "🅰️ Composite product into scene (image-to-image)"
+          "title": "Composite product into scene (image-to-image)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -249,7 +249,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "3️⃣ Product image"
+          "title": "3 Product image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -278,7 +278,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "9️⃣ Split into per-scene prompts"
+          "title": "9 Split into per-scene prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -298,7 +298,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "8️⃣ Build image prompt"
+          "title": "8 Build image prompt"
         },
         "dynamic_properties": {
           "scenes": "Studio shot on a matte black surface with soft key lighting; lifestyle scene on a wooden desk beside a laptop",
@@ -347,7 +347,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "7️⃣ Scene concept agent"
+          "title": "7 Scene concept agent"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -367,7 +367,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "6️⃣ Build scene prompt"
+          "title": "6 Build scene prompt"
         },
         "dynamic_properties": {
           "name": "Premium Wireless Headphones",
@@ -394,7 +394,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "1️⃣ Product name"
+          "title": "1 Product name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -416,7 +416,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "5️⃣ Product description"
+          "title": "5 Product description"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -438,7 +438,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "4️⃣ Target audience"
+          "title": "4 Target audience"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -462,7 +462,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "2️⃣ Scene count"
+          "title": "2 Scene count"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -493,7 +493,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "🔟 Render scene (text-to-image)"
+          "title": "10 Render scene (text-to-image)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
