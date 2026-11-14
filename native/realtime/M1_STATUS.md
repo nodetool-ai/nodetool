@@ -423,6 +423,22 @@ extraction and then WP12's live session core. Device/surface qualification,
 cross-thread synchronization and state transfer retain their dependencies.
 Keep the acceptance ledger and every unfinished issue open after the PR merges.
 
+## Compiler build inputs
+
+The full integration quality run reproduced a Docker build failure: the
+compiler's schema generator could not read
+`native/realtime/schema/plan-v1.schema.json` in the build stage. The stage now
+copies that canonical asset before building packages. A sparse build-input
+reproduction fails without the schema and generates the exact bundled module
+with the Dockerfile's declared copy.
+
+The compiler's Turbo build task now hashes the canonical schema outside its
+package. The input-inventory regression fails before the declaration and
+passes afterward. A schema-only edit also changes the real Turbo build hash.
+Targeted cache-input checks and scoped lint pass. Full Docker and combined
+integration CI must pass at the corrected revision before merge. This changes
+build inputs, not executor behavior or deferred milestone acceptance.
+
 ## Provisional progress gate
 
 The user accepts [WP09's scoped M1 evidence](https://github.com/nodetool-ai/nodetool/issues/7400)

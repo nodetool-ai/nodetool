@@ -28,3 +28,21 @@ describe("protocol artifact test cache inputs", () => {
     }
   }, 35_000);
 });
+
+describe("realtime compiler build cache inputs", () => {
+  it("hashes the canonical schema consumed outside the package", () => {
+    const result = spawnSync(process.execPath, [
+      "scripts/run-turbo.mjs", "run", "build",
+      "--filter=@nodetool-ai/realtime-compiler", "--dry=json"
+    ], { cwd: ROOT, encoding: "utf8", timeout: 30_000 });
+    expect(result.error).toBeUndefined();
+    expect(result.signal).toBeNull();
+    expect(result.status).toBe(0);
+    const plan = JSON.parse(result.stdout);
+    const task = plan.tasks.find((entry) => entry.taskId === "@nodetool-ai/realtime-compiler#build");
+    expect(task).toBeDefined();
+    const inputs = Object.keys(task.inputs).map((path) => resolve(ROOT, "packages/realtime-compiler", path));
+    expect(inputs).toContain(resolve(ROOT, "native/realtime/schema/plan-v1.schema.json"));
+    expect(inputs).toContain(resolve(ROOT, "packages/realtime-compiler/scripts/prepare-schema.mjs"));
+  }, 35_000);
+});

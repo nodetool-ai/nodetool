@@ -7,6 +7,11 @@ state and explicit batch texture boundaries. Audio graphs support built-in DSP
 DAGs with property/control parameters. Results contain plan data, boundary reports,
 parameter allocation and state keys, or graph-node diagnostics, without I/O.
 
+Package builds read the canonical schema from `native/realtime/schema` and
+generate the bundled schema module. Docker's build stage copies that source
+asset explicitly. The compiler's Turbo build inputs include it, so schema
+changes invalidate the build cache without changing the generated file by hand.
+
 ```ts
 import { compileRealtimeGraph } from "@nodetool-ai/realtime-compiler";
 const result = compileRealtimeGraph({ graph, descriptors, outputs: [outputId], session, revision });
