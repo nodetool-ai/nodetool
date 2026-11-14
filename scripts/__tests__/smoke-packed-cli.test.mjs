@@ -85,9 +85,9 @@ it("keeps the required core-smoke status dependent on verification and the indep
   expect(packedChecks).toContain("node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts");
   expect(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts")).toBeGreaterThan(packedChecks.indexOf("node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts"));
   expect(workflow.jobs["packed-install"].steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("off");
-  for (const job of ["verification", "release-pins"]) {
-    expect(workflow.jobs[job].steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("read-only");
-  }
+  expect(workflow.jobs.verification.steps.find(step => step.uses === "./.github/actions/setup-build").with.cache).toBe("read-only");
+  // packed-install already packs and pins every release tarball, so no second job repeats it.
+  expect(Object.values(workflow.jobs).flatMap(job => job.steps ?? []).filter(step => step.run?.startsWith("node scripts/publish-packages.mjs --pack-only"))).toHaveLength(1);
   for (const planned of ["success", "failure", "cancelled", "skipped"]) {
     for (const verification of ["success", "failure", "cancelled", "skipped"]) {
       for (const installed of ["success", "failure", "cancelled", "skipped"]) {

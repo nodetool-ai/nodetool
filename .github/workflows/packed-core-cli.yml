@@ -294,27 +294,3 @@ jobs:
             echo "Packed CLI verification did not pass."
             exit 1
           fi
-  release-pins:
-    needs: ci-image
-    runs-on: ubuntu-latest
-    container:
-      image: ${{ needs.ci-image.outputs.image }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-      options: --init --user 1001
-      volumes:
-        - /usr/share/dotnet:/reclaim/dotnet
-        - /usr/local/lib/android:/reclaim/android
-        - /opt/ghc:/reclaim/ghc
-        - /usr/local/.ghcup:/reclaim/ghcup
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/setup-build
-        with:
-          cache: read-only
-      - name: Pin workspace versions in the test tarballs
-        run: node scripts/prepare-publish.mjs
-      - name: Measure and pin original pack tarballs without publishing
-        run: node scripts/publish-packages.mjs --pack-only --tarballs-dir .release-pins
