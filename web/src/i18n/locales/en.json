@@ -13464,8 +13464,14 @@
         },
         "connectProviderTitle": "Connect an AI provider to get started",
         "connectProviderButton": "Connect a provider",
-        "title": "How can I help you today?",
-        "subtitle": "Ask anything, drop in files, or start with one of these:"
+        "greeting": {
+          "morning": "Good morning",
+          "afternoon": "Good afternoon",
+          "evening": "Good evening",
+          "morningName": "Good morning, {{name}}",
+          "afternoonName": "Good afternoon, {{name}}",
+          "eveningName": "Good evening, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Tasks",

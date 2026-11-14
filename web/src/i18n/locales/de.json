@@ -13464,8 +13464,14 @@
         },
         "connectProviderTitle": "Verbinde einen KI-Anbieter, um loszulegen",
         "connectProviderButton": "Anbieter verbinden",
-        "title": "Wie kann ich dir heute helfen?",
-        "subtitle": "Frag einfach, füge Dateien hinzu oder starte mit einem dieser Vorschläge:"
+        "greeting": {
+          "morning": "Guten Morgen",
+          "afternoon": "Guten Tag",
+          "evening": "Guten Abend",
+          "morningName": "Guten Morgen, {{name}}",
+          "afternoonName": "Guten Tag, {{name}}",
+          "eveningName": "Guten Abend, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Aufgaben",

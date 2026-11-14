@@ -13464,8 +13464,14 @@
         },
         "connectProviderTitle": "एआई प्रदाता को शुरू करने के लिए कनेक्ट करें",
         "connectProviderButton": "एक प्रदाता से कनेक्ट करें",
-        "title": "मैं आज कैसे मदद कर सकता हूँ?",
-        "subtitle": "कुछ भी पूछो, फ़ाइलों में ड्रॉप, या इनमें से एक के साथ शुरू:"
+        "greeting": {
+          "morning": "सुप्रभात",
+          "afternoon": "नमस्कार",
+          "evening": "शुभ संध्या",
+          "morningName": "सुप्रभात, {{name}}",
+          "afternoonName": "नमस्कार, {{name}}",
+          "eveningName": "शुभ संध्या, {{name}}"
+        }
       },
       "taskDock": {
         "label": "कार्य",

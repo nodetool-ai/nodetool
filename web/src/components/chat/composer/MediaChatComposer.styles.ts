@@ -153,11 +153,17 @@ export const createMediaComposerStyles = (theme: Theme) =>
     },
 
     // The primary send/generate action, a row sibling of the chip cluster.
+    // The model chip shares this cluster with Send and truncates before
+    // the button loses its place.
     ".media-primary-action": {
       display: "inline-flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      flexShrink: 0
+      minWidth: 0,
+      flexShrink: 1,
+      "> :not(.media-control-chip-grow):not(.media-control-chip)": {
+        flexShrink: 0
+      }
     },
 
     // The list price of the next generation. Quiet enough to ignore, close

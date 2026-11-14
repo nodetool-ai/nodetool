@@ -13464,8 +13464,14 @@
         },
         "connectProviderTitle": "Anslut en AI-leverantör för att komma igång",
         "connectProviderButton": "Anslut en leverantör",
-        "title": "Hur kan jag hjälpa dig idag?",
-        "subtitle": "Fråga vad som helst, släpp in filer eller börja med något av följande:"
+        "greeting": {
+          "morning": "God morgon",
+          "afternoon": "God eftermiddag",
+          "evening": "God kväll",
+          "morningName": "God morgon, {{name}}",
+          "afternoonName": "God eftermiddag, {{name}}",
+          "eveningName": "God kväll, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Uppgifter",

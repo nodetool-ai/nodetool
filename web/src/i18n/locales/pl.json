@@ -13896,8 +13896,14 @@
         },
         "connectProviderTitle": "Aby rozpocząć, połącz się z dostawcą AI",
         "connectProviderButton": "Połącz się z dostawcą",
-        "title": "Jak mogę Ci dzisiaj pomóc?",
-        "subtitle": "Zapytaj o cokolwiek, prześlij pliki lub zacznij od jednego z poniższych:"
+        "greeting": {
+          "morning": "Dzień dobry",
+          "afternoon": "Dzień dobry",
+          "evening": "Dobry wieczór",
+          "morningName": "Dzień dobry, {{name}}",
+          "afternoonName": "Dzień dobry, {{name}}",
+          "eveningName": "Dobry wieczór, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Zadania",

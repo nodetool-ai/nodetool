@@ -13464,8 +13464,14 @@
         },
         "connectProviderTitle": "Sluit een AI-provider aan om aan de slag te gaan",
         "connectProviderButton": "Sluit een aanbieder aan",
-        "title": "Hoe kan ik je vandaag helpen?",
-        "subtitle": "Vraag alles, lever bestanden in of begin met een van deze:"
+        "greeting": {
+          "morning": "Goedemorgen",
+          "afternoon": "Goedemiddag",
+          "evening": "Goedenavond",
+          "morningName": "Goedemorgen, {{name}}",
+          "afternoonName": "Goedemiddag, {{name}}",
+          "eveningName": "Goedenavond, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Taken",

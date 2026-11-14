@@ -122,6 +122,24 @@ const styles = (theme: Theme) =>
       maxWidth: `${CHAT_COLUMN_MAX_WIDTH}px`,
       alignSelf: "center"
     },
+    // The new chat: greeting and composer as one block in the middle, a
+    // little above centre so the composer sits at eye height.
+    ".chat-main.empty-centered": {
+      justifyContent: "center",
+      paddingBottom: "12vh"
+    },
+    ".chat-main.empty-centered .chat-thread-container": {
+      flex: "0 1 auto",
+      paddingBottom: theme.spacing(SPACING.xl)
+    },
+    ".chat-main.empty-centered .chat-welcome": {
+      flex: "0 1 auto",
+      paddingTop: 0,
+      paddingBottom: 0
+    },
+    ".chat-main.empty-centered .chat-input-section": {
+      marginTop: 0
+    },
     ".chat-controls": {
       padding: "0",
       marginTop: "auto",
@@ -176,6 +194,11 @@ type ChatViewProps = {
    * Optional React node to display when there are no messages yet.
    */
   noMessagesPlaceholder?: React.ReactNode;
+  /**
+   * Before the first message, sit the placeholder and the composer together
+   * in the middle of the panel, as Claude's new chat does.
+   */
+  centerEmptyState?: boolean;
   onInsertCode?: (text: string, language?: string) => void;
   allowedProviders?: string[];
   /** Hide non-tool-capable models in the composer's language model picker. */
@@ -254,6 +277,7 @@ const ChatView = ({
   currentLogUpdate,
   externalScroll = false,
   noMessagesPlaceholder,
+  centerEmptyState = false,
   graph,
   onInsertCode,
   runningToolCallId,
@@ -603,7 +627,11 @@ const ChatView = ({
       css={cssStyles}
       ref={rootRef}
     >
-      <div className="chat-main">
+      <div
+        className={`chat-main${
+          centerEmptyState && messages.length === 0 ? " empty-centered" : ""
+        }`}
+      >
         {((!isMobile && messages.length > 0) ||
           (showNewChatButton && onNewChat)) && (
           <FlexRow className="chat-overlay-actions" align="center" gap={SPACING.md}>

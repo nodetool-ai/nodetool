@@ -13680,8 +13680,14 @@
         },
         "connectProviderTitle": "Connectez un fournisseur d'IA pour commencer",
         "connectProviderButton": "Connecter un fournisseur",
-        "title": "Comment puis-je vous aider aujourd'hui ?",
-        "subtitle": "Demandez n'importe quoi, déposez des fichiers ou commencez par l'un de ces éléments :"
+        "greeting": {
+          "morning": "Bonjour",
+          "afternoon": "Bon après-midi",
+          "evening": "Bonsoir",
+          "morningName": "Bonjour, {{name}}",
+          "afternoonName": "Bon après-midi, {{name}}",
+          "eveningName": "Bonsoir, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Tâches",

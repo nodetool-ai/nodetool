@@ -13464,8 +13464,14 @@
         },
         "connectProviderTitle": "连接 AI 提供商以开始使用",
         "connectProviderButton": "连接提供商",
-        "title": "今天我能帮你做什么？",
-        "subtitle": "可以随意提问、添加文件，或从以下示例开始："
+        "greeting": {
+          "morning": "早上好",
+          "afternoon": "下午好",
+          "evening": "晚上好",
+          "morningName": "{{name}}，早上好",
+          "afternoonName": "{{name}}，下午好",
+          "eveningName": "{{name}}，晚上好"
+        }
       },
       "taskDock": {
         "label": "任务",

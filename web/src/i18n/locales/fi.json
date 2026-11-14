@@ -13464,8 +13464,14 @@
         },
         "connectProviderTitle": "Aloita yhdistämällä tekoälypalveluntarjoaja",
         "connectProviderButton": "Yhdistä palveluntarjoaja",
-        "title": "Miten voin auttaa tänään?",
-        "subtitle": "Kysy mitä tahansa, pudota tiedostoja tai aloita jollakin näistä:"
+        "greeting": {
+          "morning": "Hyvää huomenta",
+          "afternoon": "Hyvää iltapäivää",
+          "evening": "Hyvää iltaa",
+          "morningName": "Hyvää huomenta, {{name}}",
+          "afternoonName": "Hyvää iltapäivää, {{name}}",
+          "eveningName": "Hyvää iltaa, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Tehtävät",

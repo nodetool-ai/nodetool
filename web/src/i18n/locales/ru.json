@@ -13896,8 +13896,14 @@
         },
         "connectProviderTitle": "Подключите AI-провайдера, чтобы начать",
         "connectProviderButton": "Подключить провайдера",
-        "title": "Чем я могу помочь сегодня?",
-        "subtitle": "Спросите что угодно, перетащите файлы или начните с одного из вариантов:"
+        "greeting": {
+          "morning": "Доброе утро",
+          "afternoon": "Добрый день",
+          "evening": "Добрый вечер",
+          "morningName": "Доброе утро, {{name}}",
+          "afternoonName": "Добрый день, {{name}}",
+          "eveningName": "Добрый вечер, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Задачи",

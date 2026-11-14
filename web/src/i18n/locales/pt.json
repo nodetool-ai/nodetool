@@ -13680,8 +13680,14 @@
         },
         "connectProviderTitle": "Conecte um provedor de IA para começar",
         "connectProviderButton": "Conecte um provedor",
-        "title": "Como posso ajudá-lo hoje?",
-        "subtitle": "Pergunte qualquer coisa, insira arquivos ou comece com um destes:"
+        "greeting": {
+          "morning": "Bom dia",
+          "afternoon": "Boa tarde",
+          "evening": "Boa noite",
+          "morningName": "Bom dia, {{name}}",
+          "afternoonName": "Boa tarde, {{name}}",
+          "eveningName": "Boa noite, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Tarefas",
