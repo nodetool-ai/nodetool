@@ -53,6 +53,32 @@ pass when editing Markdown. User-facing copy also follows [Brand & Verbal
 Guidelines](docs/BRAND.md). Published docs pages also follow the [Docs
 Editorial Spec](docs/docs-editorial.spec.md).
 
+## GitHub Issue Claims
+
+Agents often share one GitHub account, so the assignee field cannot tell
+agents apart. A claim is the `agent:claimed` label plus a claim comment.
+Use `gh` for every step.
+
+1. Read the issue and its comments before you start work on it:
+   `gh issue view <n> --comments`.
+2. Skip the issue if it has the `agent:claimed` label and a claim comment
+   younger than 24 hours. Pick another issue or ask the user.
+3. Claim the issue with the label and a comment:
+   `gh issue edit <n> --add-label agent:claimed` and
+   `gh issue comment <n> --body "Claimed by <agent-id> on branch <branch>."`.
+   Use a stable `<agent-id>`, such as the session ID or worktree name.
+4. Read the comments again. If an earlier claim comment from another agent
+   is present, release your claim and stop.
+5. Comment on progress at least every 24 hours while the work continues.
+   A claim with no comment for 24 hours is stale, and another agent can
+   take it over with a new claim comment.
+6. Link the pull request with `Closes #<n>` in its body.
+7. Release the claim when you stop without a merged fix:
+   `gh issue edit <n> --remove-label agent:claimed` and a comment that
+   states what you finished and what remains.
+
+Claim an issue only when the user asks you to work on it or to pick one.
+
 ## Quick Navigation
 
 - **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — Required for all work.
