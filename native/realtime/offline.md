@@ -140,7 +140,12 @@ Set `NODETOOL_REALTIME_BUILD_DIR` to reuse another build directory. Build the
 protocol and GPU packages first, and put CMake and CTest on `PATH`. Linux needs
 a software adapter such as lavapipe. The check fails on a missing adapter and
 does not skip GPU coverage. It verifies the required CTest inventory before
-running tests, then checks the real CLI with Unicode paths and planar PCM.
+running tests. Required entries must be enabled and cannot declare
+`SKIP_RETURN_CODE` or a nonempty `SKIP_REGULAR_EXPRESSION`. A successful CTest
+exit alone does not prove those tests ran. Optional checks retain their own
+policies. The inventory regression covers each required entry and reproduces
+CTest returning success with a disabled or skipped required test.
+The check then exercises the real CLI with Unicode paths and planar PCM.
 The CLI phase requires a GPU-enabled executable and the root Node dependencies
 for PNG decoding. It renders control-only, audio-only, render-only, composed
 mixed and damper plans twice. It checks exact file inventories, manifest counts,

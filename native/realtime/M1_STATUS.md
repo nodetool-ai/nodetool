@@ -15,6 +15,44 @@ This branch is based on [M0 PR #7445](https://github.com/nodetool-ai/nodetool/pu
 Its PR targets the M0 branch to keep the milestone diff separate. Review and
 merge ordering must preserve the M0 changes before retargeting M1 to main.
 
+## Current M1 acceptance evidence
+
+The acceptance review at `b9cd13af71` confirms the scoped offline evidence below.
+The [standalone realtime run](https://github.com/nodetool-ai/nodetool/actions/runs/43527502752)
+passes core Release, ASan/UBSan and TSan, offline Release and ASan/UBSan,
+and the pinned Wasm/browser checks. Its offline jobs each execute every required
+CTest entry, the five-plan CLI matrix and compiler render/audio/control/PCM references.
+The [full graph-runner run](https://github.com/nodetool-ai/nodetool/actions/runs/43527502641)
+passes all 65 CTest entries and the same CLI matrix in Release, ASan/UBSan and TSan.
+These results include retention/resize, readback pressure and damper fixtures.
+
+| Scoped requirement | Reproduction and evidence | Remaining qualification |
+|---|---|---|
+| WP05 loader | `realtime-plan-loader`: valid IR, invalid kinds/layouts/kernels/cycles, stable node diagnostics and large graph validation | M0 dependency and milestone acceptance remain open |
+| WP06 control | `realtime-control`: operation references, fixed-quantum cadence, bounded catch-up and zero C++ allocations with a positive control | No live handoff or cross-host audio claim |
+| WP07 audio | `realtime-audio-executor` and `realtime-dsp-c-abi`: kernel references, repeat bytes, smoothing/events, sink sanitation and zero C++ allocations with a positive control | C allocation/device-callback audit and browser audio qualification remain open |
+| WP08 render | `realtime-render-schedule` and `realtime-offline-gpu`: retention, replacement resize, chain pixels, cache pressure and readback recovery | Driver allocation audit and supported live preparation remain open |
+| WP09 offline driver and CLI | `realtime-offline-clock`, `realtime-offline-driver`, `realtime-offline-render-export` and `scripts/cli-check.mjs`: exact scheduling, independent samples/pixels, repeated artifacts and rejection controls | M0-before-M1 merge order and final acceptance remain open |
+| WP10 browser decision | Pinned Wasm builds, native/browser fixture comparisons and guarded 64-pass comparisons pass. Q8 selects C++/Wasm | Production browser lifecycle and audio qualification belong to WP24/WP25 |
+
+The [packed verification run](https://github.com/nodetool-ai/nodetool/actions/runs/43527502640)
+passes every selected affected-test bucket and the fixed typecheck, lint, harness
+gate and packaged-backend checks. The
+[package matrix](https://github.com/nodetool-ai/nodetool/actions/runs/43527502777)
+passes on Linux, macOS and Windows with both tested Node versions. The
+[Docs CI run](https://github.com/nodetool-ai/nodetool/actions/runs/43527502638)
+passes. These current CI results supersede pending CI qualifications recorded
+below. Earlier failed local commands retain their failed exit status and do not
+describe the current Linux CI result. The Windows instruction-alias, security
+and symlink limitations remain local limitations.
+
+The scoped gate permits implementation progress. It does not complete M0,
+qualify a live device or close M1 and its work packages. Every missing
+requirement remains in the [deferred ledger](#deferred-acceptance-work).
+Hardware evidence, driver auditing, the unsupported live preparation APIs and
+merge ordering are the remaining M1 acceptance dependencies. Later compiler,
+synchronization, swap and editor work is not part of the M1 implementation scope.
+
 ## Unverified M0 dependencies
 
 | Dependency | Evidence still needed |
@@ -33,15 +71,17 @@ not measurements. Q8 selects C++/Wasm from the WP10 native/browser comparison.
 
 | Work package | State |
 |---|---|
-| [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Linux Release, ASan/UBSan and TSan CI pass. Local instruction-alias verification remains blocked as described below |
-| [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Windows Release/ASan and Linux Release/ASan+UBSan/TSan pass. Aggregate verification remains incomplete as described below. See [operation contracts](control.md) |
-| [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, linear/one-pole smoothing, events, built-in kernels and sink sanitation implemented. Windows Release/ASan and audio-scoped affected tests pass. See [audio contracts](audio.md) and verification below |
+| [WP05 #7396](https://github.com/nodetool-ai/nodetool/issues/7396): schema and loader | Schema, loader and fixtures implemented. Current Linux Release, ASan/UBSan, TSan and Docs CI pass. Local instruction-alias verification remains blocked as described below |
+| [WP06 #7397](https://github.com/nodetool-ai/nodetool/issues/7397): control executor | Register machine, project math and fixed-quantum state implemented. Windows Release/ASan and current Linux Release/ASan+UBSan/TSan pass. Current selected aggregate CI passes. See [operation contracts](control.md) |
+| [WP07 #7398](https://github.com/nodetool-ai/nodetool/issues/7398): audio executor | C ABI, planar execution, linear/one-pole smoothing, events, built-in kernels and sink sanitation implemented. Windows Release/ASan and current Linux core/offline sanitizer checks pass. See [audio contracts](audio.md) and verification below |
 | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399): render executor | Scheduling and provisional private-device offline GPU backend implemented. Windows Release/ASan and Linux software-adapter references pass. Full-host Linux Release, ASan/UBSan and TSan pass with lavapipe. Driver allocation audit and live-device exit evidence remain pending. See [render contracts](render.md) |
-| [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | PNG/WAV export, local PCM/texture slots, shared CLI parsing and registered offline harness implemented. Windows Release/ASan and Linux offline checks pass. Full graph-runner Release dispatch passes in CI. Remaining qualification is listed below |
-| [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Header inventory, C++/TypeScript Chrome frame comparisons, 64-pass timings and render-only candidate download sizes are recorded. A mid-range color regression verifies presentation conversion. Q8 selects C++/Wasm. Pinned toolchain CI passes at `d1656fead3`, including both Wasm builds, fixture comparisons and benchmark guards. See [comparison results](spike/browser/README.md) |
+| [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400): offline driver and CLI | PNG/WAV export, local PCM/texture slots, shared CLI parsing and registered offline harness implemented. Current standalone and full-host CLI fixtures pass in Release and sanitizers. Remaining acceptance dependencies are listed above |
+| [WP10 #7401](https://github.com/nodetool-ai/nodetool/issues/7401): browser comparison and Q8 | Header inventory, C++/TypeScript Chrome frame comparisons, 64-pass timings and render-only candidate download sizes are recorded. A mid-range color regression verifies presentation conversion. Q8 selects C++/Wasm. Pinned toolchain CI passes at `b9cd13af71`, including both Wasm builds, fixture comparisons and benchmark guards. See [comparison results](spike/browser/README.md) |
+
+## Earlier local verification
 
 M0's local build, typecheck, lint, native tests and harness checks pass. The
-latest aggregate affected test run stops at Windows browser-isolation tests.
+earlier local aggregate affected test run stops at Windows browser-isolation tests.
 Browser isolation and credential ACL work are deferred. Real file-symlink
 tests await CI with symlink privileges. These are not passing results.
 
@@ -57,7 +97,7 @@ five-second preset-preview timeout. The other fails on a five-second resource
 copy timeout followed by cleanup racing the copy. Both integration suites now
 have a 30-second Windows budget, and resource cleanup stays with its asynchronous
 operation. Their assertions are unchanged. All eight focused tests pass. The
-latest full harness rerun passes those fixtures but fails the separate
+subsequent local full harness rerun passes those fixtures but fails the separate
 `preset-previews` CLI dry-run test's five-second budget. All ten tests in that
 suite pass in isolation. The full harness result remains failed.
 
@@ -259,7 +299,7 @@ adapter. Sanitizers cover C++ host code, not the prebuilt GPU library or driver.
 The [standalone Linux realtime run at `0c09a8c5dc`](https://github.com/nodetool-ai/nodetool/actions/runs/43368736566)
 passes offline Release and ASan/UBSan with lavapipe, including this expanded
 fixture, and core Release/ASan+UBSan/TSan and wasm32 checks. Full-host sanitizer
-qualification of the expanded fixture remains pending.
+qualification subsequently passes at `b9cd13af71`, as linked in the current review.
 Broad checks were not rerun for this fixture-only batch.
 
 ## Damper export cadence
@@ -336,9 +376,24 @@ corrupted PCM sample. Unicode paths and existing argument/slot checks remain.
 
 The expanded checker passes with Windows MSVC Release and ASan standalone
 executables. Both existing CI entry points invoke it: the standalone offline
-harness and the full graph-runner command-dispatch job. Linux and full-host
-qualification of these new CLI cases remains pending CI. Broad checks were
+harness and the full graph-runner command-dispatch job. Linux standalone and
+full-host Release/sanitizer qualification passes at `b9cd13af71`. Broad checks were
 not rerun for this CLI-check-only batch.
+
+## Required-check execution guard
+
+The offline inventory audit now rejects disabled required tests, declared skip
+return codes and nonempty skip expressions. A real CTest reproduction showed
+that each policy can leave a required test unexecuted while CTest exits zero.
+Both the per-entry regression and the subprocess reproduction fail before the
+guard and pass afterward. Optional tests can still declare their own policies.
+
+The complete offline check passes on Windows Release after this batch: all five
+inventory regressions, all nine required native tests and the five-plan CLI
+matrix pass. The real build's required entries contain no disabled/skip policies.
+No C++ runtime code, threads or resource ownership changed. New-revision Linux
+CI qualification of the guard remains pending. Broad local checks remain
+deferred under the targeted-check policy.
 
 ## Provisional progress gate
 
@@ -542,8 +597,8 @@ partial PCM and nonfinite input reject before output. Corrupted exported PCM
 fails the reference check. A reproduced cached-edge validation bug is covered
 by a regression: each PCM edge is validated before reusing its prepared slot.
 
-WP16 and the acceptance ledger remain open. Linux qualification of this PCM and
-multi-sink batch is pending CI.
+WP16 and the acceptance ledger remain open. The standalone Linux Release and
+ASan/UBSan jobs at `b9cd13af71` pass this PCM and multi-sink batch, as linked above.
 
 Targeted compiler tests, package build/typechecking and scoped lint pass. The
 expanded native fixture checker passes on Windows Release and ASan. A normal

@@ -7,9 +7,18 @@ const source = fileURLToPath(new URL("..", import.meta.url));
 const budget = JSON.parse(readFileSync(new URL("../budgets/offline.json", import.meta.url), "utf8"));
 
 export function requireTestInventory(inventory) {
-  const names = new Set(inventory.tests?.map((test) => test.name));
-  const missing = budget.requiredTests.filter((name) => !names.has(name));
+  const tests = new Map(inventory.tests?.map((test) => [test.name, test]));
+  const missing = budget.requiredTests.filter((name) => !tests.has(name));
   if (missing.length) { throw new Error(`Missing required offline checks: ${missing.join(", ")}`); }
+  for (const name of budget.requiredTests) {
+    for (const property of tests.get(name).properties || []) {
+      if ((property.name === "DISABLED" && property.value === true) ||
+          property.name === "SKIP_RETURN_CODE" ||
+          (property.name === "SKIP_REGULAR_EXPRESSION" && property.value.length > 0)) {
+        throw new Error(`Required offline check ${name} cannot use ${property.name}`);
+      }
+    }
+  }
 }
 
 export function check({ build = process.env.NODETOOL_REALTIME_BUILD_DIR || join(source, "build-gpu") } = {}) {
@@ -40,7 +49,7 @@ export function check({ build = process.env.NODETOOL_REALTIME_BUILD_DIR || join(
   run("cmake", ["--build", build, "--config", "Release", "--parallel", "2"]);
   const inventory = JSON.parse(run("ctest", ["--test-dir", build, "-C", "Release", "--show-only=json-v1"], true));
   requireTestInventory(inventory);
-  console.log(`Verified ${budget.requiredTests.length} required CTest entries before execution.`);
+  console.log(`Verified ${budget.requiredTests.length} required CTest entries with no disabled or skip policies before execution.`);
   run("ctest", ["--test-dir", build, "-C", "Release", "--output-on-failure", "--no-tests=error", "--timeout", String(budget.ctestTimeoutSeconds)]);
   const filename = process.platform === "win32" ? "nodetool-realtime.exe" : "nodetool-realtime";
   const executable = [join(build, "Release", filename), join(build, filename)].find(existsSync);
