@@ -54,6 +54,7 @@
 #include <QLineEdit>
 #include <QJsonDocument>
 #include <QKeyEvent>
+#include "EntryMenu.h"
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -244,11 +245,10 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
           [this](const QString &nodeNamespace) { openNodeMenuAt(nodeNamespace.split('.', Qt::SkipEmptyParts), {}); });
   connect(&nodeInfo_, &node_editor::NodeInfo::tagSearchRequested, this, [this](const QString &tag) { openNodeMenuAt({}, tag); });
   connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
-  connect(&nodeInspector_, &node_editor::NodeInspector::toolTipRequested, this, &EditorWindow::showToolTip);
   // A field commits an edit that ended, which can arrive after the click that ended it selected another node.
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitFinishedEdit);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::removeRequested, this, &EditorWindow::removeProperty);
-  connect(nodeInspector_.fields(), &node_editor::PropertyHost::toolTipRequested, this, &EditorWindow::showToolTip);
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::reportRequested, this, [this](const QString &source, const QString &text) { reportBug({.source = source, .errorText = text}); });
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::pinRequested, this, &EditorWindow::pinGeneration);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::toggleReplayRequested, this, &EditorWindow::toggleReplayGeneration);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::clearReplayRequested, this, &EditorWindow::clearReplayGenerations);
@@ -294,14 +294,13 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&panelLayout_, &node_editor::PanelLayout::toggleInspectorRequested, this, [this] { action("Toggle inspector"); });
   connect(&panelLayout_, &node_editor::PanelLayout::togglePanelRequested, this, [this] { action("Toggle panel"); });
   connect(&panelLayout_, &node_editor::PanelLayout::miniMapRequested, this, &EditorWindow::setMiniMapVisible);
-  connect(&panelLayout_, &node_editor::PanelLayout::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(&panelLayout_, &node_editor::PanelLayout::statusViewRequested, this, &EditorWindow::toggleStatusView);
   connect(&statusModel_, &node_editor::StatusModel::connectRequested, this, [this] { action("Connect"); });
   connect(&statusModel_, &node_editor::StatusModel::reconnectRequested, this, [this] { action("Reconnect"); });
   connect(&statusModel_, &node_editor::StatusModel::queueRequested, this, [this] { action("Queue"); });
+  connect(&statusModel_, &node_editor::StatusModel::reportRequested, this, [this](const QString &source, const QString &text) { reportBug({.source = source, .errorText = text}); });
   connect(&statusModel_, &node_editor::StatusModel::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(&editorCommands_, &node_editor::EditorCommands::commandRequested, this, [this](const QString &command) { action(command); });
-  connect(&editorCommands_, &node_editor::EditorCommands::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(&editorCommands_, &node_editor::EditorCommands::presentationRequested, this, &EditorWindow::presentation);
   connect(&selection_, &node_editor::Selection::nodeMenuRequested, this, &EditorWindow::showNodeMenu);
   connect(&runState_, &node_editor::RunState::authoredRequested, this, &EditorWindow::authoredAction);
@@ -313,6 +312,14 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&firstWorkflowGuide_, &node_editor::FirstWorkflowGuide::actionRequested, this, &EditorWindow::setupAction);
   connect(&nodeCatalog_, &node_editor::NodeCatalog::runtimesRequested, this, [this] { setupAction("dependencies"); });
   engine_ = new QQmlEngine(this);
+  // Panels are QQuickWidgets sized to their strip, so an overlay tooltip clips there.
+  // Ui.Tooltip hands its text to the window when the overlay cannot hold it.
+  if (auto *tooltips = engine_->singletonInstance<QObject *>("NodeTool.UiPrimitives", "TooltipHost")) {
+    tooltips->setProperty("routeToHost", true);
+    const auto *meta = tooltips->metaObject();
+    connect(tooltips, meta->method(meta->indexOfSignal("requested(QString)")), this,
+            metaObject()->method(metaObject()->indexOfMethod("showToolTip(QString)")));
+  }
   // The property editors, the inspector's history and the card editors reach
   // the resolver and the pickers through the property host.
   nodeInspector_.fields()->setServices({.media = &mediaResolver_,
@@ -704,12 +711,6 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   const QVariantMap catalogProperties{{"catalog", QVariant::fromValue(&nodeCatalog_)},
                                       {"packSetup", QVariant::fromValue(packSetup())}};
   catalogPanel_ = panel("Catalog", catalogProperties);
-  {
-    // Hover text goes up as a signal, and the window shows it.
-    const auto *root = catalogPanel_->rootObject()->metaObject();
-    connect(catalogPanel_->rootObject(), root->method(root->indexOfSignal("toolTipRequested(QString)")), this,
-            metaObject()->method(metaObject()->indexOfMethod("showToolTip(QString)")));
-  }
   catalogPanel_->setParent(dockHost_);
   catalogPanel_->setObjectName("catalog-panel");
   catalogPanel_->setFocusPolicy(Qt::StrongFocus);
@@ -1305,6 +1306,7 @@ void EditorWindow::showRunTrace() {
   if (content->rootObject()) {
     connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close()));
     connect(content->rootObject(), SIGNAL(askAgentRequested(QString,QString)), this, SLOT(askRunAgent(QString,QString)));
+    connect(content->rootObject(), SIGNAL(reportRequested(QString,QString)), this, SLOT(reportError(QString,QString)));
   }
   connect(dock, &QDockWidget::visibilityChanged, &runTrace_, &node_editor::RunTraceController::setActive);
   connect(this, &EditorWindow::documentEpochChanged, dock, &QDockWidget::close);
@@ -2130,10 +2132,8 @@ void EditorWindow::showDynamicPortDialog(const QString &id, bool output, const Q
 // the current type checked. A choice retypes through setDynamicInputType.
 void EditorWindow::showDynamicTypeMenu(const QString &id, const QString &name, const QRectF &sceneAnchor) {
     if (readOnly() || !selectNode(id)) { return; }
-    auto *menu = new QMenu(this);
-    menu->setObjectName("dynamic-slot-type-menu");
-    menu->setAttribute(Qt::WA_DeleteOnClose);
-    auto *controller = new node_editor::DynamicPortsController(&document_, menu);
+    // The controller lives as long as the menu, which keeps this pointer in its request.
+    const std::shared_ptr<node_editor::DynamicPortsController> controller(new node_editor::DynamicPortsController(&document_, nullptr));
     controller->setNodeMetadata(metadata_);
     controller->setSelectedNode(id);
     QString current;
@@ -2142,22 +2142,27 @@ void EditorWindow::showDynamicTypeMenu(const QString &id, const QString &name, c
         const auto row = entry.toMap();
         if (row.value("name").toString() == name) { current = row.value("typeKey").toString(); retypable = row.value("retypable").toBool(); }
     }
-    if (controller->readOnly() || !retypable) { menu->deleteLater(); return; }
+    if (controller->readOnly() || !retypable) { return; }
+    MenuBuilder menu;
     for (const auto &entry : controller->inputTypes()) {
         const auto key = entry.toMap().value("value").toString();
-        auto *choice = menu->addAction(key);
-        choice->setCheckable(true);
-        choice->setChecked(key == current);
-        connect(choice, &QAction::triggered, controller, [controller, name, key, current] {
+        menu.item("type:" + key, key, {}, [controller, name, key, current] {
             if (key != current) { controller->setPortType(name, key); }
-        });
+        }, RowOptions{.checked = key == current});
     }
-    connect(this, &EditorWindow::documentEpochChanged, menu, &QMenu::close);
-    connect(this, &EditorWindow::credentialsEpochChanged, menu, &QMenu::close);
-    connect(&dynamicPorts_, &node_editor::DynamicPortsController::changed, menu, [this, id, menu] {
-        if (dynamicPorts_.selectedNode() != id) { menu->close(); }
+    EntryMenuRequest request;
+    request.kind = "dynamic-slot-type-menu";
+    request.global = view_->viewport()->mapToGlobal(view_->mapFromScene(sceneAnchor.bottomLeft()));
+    request.entries = menu.entries();
+    request.actions = menu.actions();
+    request.keepAlive = controller;
+    const QPointer<QQuickWidget> host = showEntryMenu(request);
+    if (!host) { return; }
+    connect(&dynamicPorts_, &node_editor::DynamicPortsController::changed, host, [this, id, host] {
+        if (dynamicPorts_.selectedNode() != id) {
+            QMetaObject::invokeMethod(host->rootObject(), "dismiss");
+        }
     });
-    menu->popup(view_->viewport()->mapToGlobal(view_->mapFromScene(sceneAnchor.bottomLeft())));
 }
 
 void EditorWindow::clearDynamicPortDialogs() {
@@ -3424,14 +3429,18 @@ void EditorWindow::action(const QString &name) {
   if (name == "Canvas uploads") { showCanvasDrops(); return; }
   if (name == "Save local copy as") { saveLocalCopyAs(); return; }
   if (name == "Arrange selection") {
-    auto menu = new QMenu(this);
-    menu->setAttribute(Qt::WA_DeleteOnClose);
+    MenuBuilder menu;
     for (auto it = selectionActions.cbegin(); it != selectionActions.cend(); ++it) {
       const auto command = it.key();
-      auto item = menu->addAction(command, this, [this, command] { action(command); });
-      item->setEnabled(!readOnly() && selectedCount() >= 2);
+      menu.item(command, command, {}, [this, command] { action(command); },
+                RowOptions{.enabled = !readOnly() && selectedCount() >= 2});
     }
-    menu->popup(QCursor::pos());
+    EntryMenuRequest request;
+    request.kind = "arrange-selection-menu";
+    request.global = QCursor::pos();
+    request.entries = menu.entries();
+    request.actions = menu.actions();
+    showEntryMenu(request);
     return;
   }
   if (name == "Duplicate vertical") {
@@ -3642,17 +3651,23 @@ void EditorWindow::action(const QString &name) {
     return;
   }
   if (name == "Zoom presets") {
-    QMenu menu(this);
+    MenuBuilder menu;
     for (double zoom : {0.25, 0.5, 0.75, 1., 1.5, 2.}) {
-      auto entry = menu.addAction(QString::number(qRound(zoom * 100)) + "%");
-      entry->setCheckable(true); entry->setChecked(std::abs(view_->transform().m11()-zoom) < .01);
-      connect(entry, &QAction::triggered, this, [this, zoom] {
+      const auto label = QString::number(qRound(zoom * 100)) + "%";
+      menu.item("zoom:" + label, label, {}, [this, zoom] {
         // The menu is a user surface, so the preset animates.
         const QScopedValueRollback user(userViewInput_, true);
         zoomTo(zoom);
-      });
+      }, RowOptions{.checked = std::abs(view_->transform().m11() - zoom) < .01});
     }
-    menu.exec(viewportOverlay_->mapToGlobal(QPoint(0,0))); return;
+    EntryMenuRequest request;
+    request.kind = "zoom-presets-menu";
+    request.global = viewportOverlay_->mapToGlobal(QPoint(0, 0));
+    request.entries = menu.entries();
+    request.actions = menu.actions();
+    request.guardDocument = false;
+    showEntryMenu(request);
+    return;
   }
   if (name == "Fit selection") {
     fitSelection();
@@ -4141,13 +4156,19 @@ void EditorWindow::presentation(const QVariantMap &roles) {
   setPalette(palette);
   const auto css = [](const QColor &c) { return QStringLiteral("rgba(%1,%2,%3,%4)").arg(c.red()).arg(c.green()).arg(c.blue()).arg(c.alphaF()); };
   dockHost_->setStyleSheet(QStringLiteral("QMainWindow::separator { background: %1; width: 1px; height: 1px; }").arg(css(color("border"))));
-  setStyleSheet(QStringLiteral("QMenu { background: %1; color: %2; border: 1px solid %3; border-radius: 8px; padding: 4px; font-family: \"%4\"; font-size: 13px; }"
+  const auto px = [&](const char *name) { return roles.value(name).toInt(); };
+  // Menus render through Ui.ContextMenu. The QMenus left are the application
+  // menu bar's and the Examples menu, and the native tooltip that
+  // Ui.TooltipHost routes to (QToolTip) takes a widget style sheet too.
+  setStyleSheet(QStringLiteral("QMenu { background: %1; color: %2; border: %3px solid %4; border-radius: 8px; padding: 4px; font-family: \"%5\"; font-size: 13px; }"
                                "QMenu::item { padding: 6px 24px 6px 12px; border-radius: 6px; }"
-                               "QMenu::item:selected { background: %5; }"
-                               "QMenu::item:disabled { color: %6; }"
-                               "QMenu::separator { height: 1px; background: %3; margin: 4px 0; }"
-                               "QToolTip { background: %1; color: %2; border: 1px solid %3; font-family: \"%4\"; font-size: 11px; padding: 4px 8px; }")
-                    .arg(css(color("overlay")), css(color("text")), css(color("border")), roles.value("sans").toString(), css(color("field")), css(color("secondary"))));
+                               "QMenu::item:selected { background: %9; }"
+                               "QMenu::item:disabled { color: %10; }"
+                               "QMenu::separator { height: 1px; background: %4; margin: 4px 0; }"
+                               "QToolTip { background: %1; color: %2; border: %3px solid %4; font-family: \"%5\"; font-size: %6px; padding: %7px %8px; }")
+                    .arg(css(color("overlay")), css(color("text")), QString::number(px("borderWidth")), css(color("border")), roles.value("sans").toString(),
+                         QString::number(px("captionSize")), QString::number(px("spaceXs")), QString::number(px("spaceMd")), css(color("field")))
+                    .arg(css(color("secondary"))));
   // The application menu bar belongs to the window that owns the tabs. Where the
   // platform has no global menu bar, it draws above the tab strip in these colors.
   if (tabOwner_) {
@@ -4157,45 +4178,7 @@ void EditorWindow::presentation(const QVariantMap &roles) {
         "QMenuBar::item:selected { background: %5; }")
         .arg(css(color("panel")), css(color("text")), roles.value("sans").toString(), css(color("border")), css(color("field"))));
   }
-  CanvasTheme theme;
-  theme.canvas = color("canvas");
-  theme.grid = color("grid");
-  theme.node = color("node");
-  theme.reroutePaper = color("reroutePaper");
-  theme.rerouteBorder = color("rerouteBorder");
-  theme.groupHeader = color("groupHeader");
-  theme.groupFill = color("groupFill");
-  theme.zoomedTitle = color("zoomedTitle");
-  theme.previewSelected = color("previewSelected");
-  theme.outputSelected = color("outputSelected");
-    theme.subgraphAccent = color("subgraphAccent");
-  theme.divider = color("divider");
-  theme.field = color("field");
-  theme.checker = color("checker");
-  theme.primary = color("primary");
-  if (color("progress").isValid()) {
-      theme.progress = color("progress");
-  }
-  if (color("warning").isValid()) {
-      theme.warning = color("warning");
-  }
-  if (color("success").isValid()) {
-      theme.success = color("success");
-  }
-  if (color("info").isValid()) {
-      theme.info = color("info");
-  }
-  theme.selectionShadow = color("shadow");
-  for (const auto &[name, target] : {std::pair{"mediaScrim", &theme.mediaScrim}, std::pair{"mediaScrimInk", &theme.mediaScrimInk},
-                                     std::pair{"alphaBase", &theme.alphaBase}, std::pair{"alphaChecker", &theme.alphaChecker}}) {
-    if (color(name).isValid()) { *target = color(name); }
-  }
-  theme.textPrimary = color("text");
-  theme.textSecondary = color("secondary");
-  theme.sansFamily = roles.value("sans").toString();
-  if (roles.contains("mono")) {
-      theme.monoFamily = roles.value("mono").toString();
-  }
+  const auto theme = CanvasTheme::fromRoles(roles);
   QJsonObject style{{"NormalBoundaryColor", theme.divider.name(QColor::HexArgb)},
                     {"SelectedBoundaryColor", color("focus").name()},
                     {"FontColor", theme.textPrimary.name()},

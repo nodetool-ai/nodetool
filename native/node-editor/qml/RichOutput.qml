@@ -22,18 +22,18 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.preferredHeight: 0
         visible: richOutput.showCopy && richOutput.copyText.length > 0
-        z: 2
+        z: Ui.Metrics.layerOverlay
         RowLayout {
             anchors.top: parent.top
             anchors.right: parent.right
             spacing: Ui.Metrics.xs
             visible: outputHover.hovered || richOutput.copyStatus.length > 0
             Ui.Text { objectName: "output-copy-status"; visible: richOutput.copyStatus.length > 0; text: richOutput.copyStatus; role: Ui.Typography.SansCaption }
-            NodeButton {
+            Ui.EditorButton {
                 objectName: "output-copy"
                 text: "Copy"
                 accessibleName: "Copy output"
-                variant: NodeButton.Flat
+                variant: Ui.EditorButton.Outlined; flat: true
                 onClicked: richOutput.copyStatus = outputClipboard.copyText(richOutput.copyText) ? "Copied!" : "Could not copy the output"
             }
         }
@@ -45,8 +45,8 @@ ColumnLayout {
         visible: modelData.renderer === "pcm"
         Layout.fillWidth: true
         RowLayout {
-            NodeButton { objectName: "pcm-start-stop"; text: pcmOutput.controller && pcmOutput.controller.playing ? "Stop" : "Start"; accessibleName: text + " streaming audio"; enabled: !!pcmOutput.controller; onClicked: pcmOutput.controller.playing ? pcmOutput.controller.stop() : pcmOutput.controller.start() }
-            NodeButton { objectName: "pcm-restart"; text: "Restart"; accessibleName: "Restart streaming audio"; enabled: !!pcmOutput.controller; onClicked: pcmOutput.controller.restart() }
+            Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "pcm-start-stop"; text: pcmOutput.controller && pcmOutput.controller.playing ? "Stop" : "Start"; accessibleName: text + " streaming audio"; enabled: !!pcmOutput.controller; onClicked: pcmOutput.controller.playing ? pcmOutput.controller.stop() : pcmOutput.controller.start() }
+            Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "pcm-restart"; text: "Restart"; accessibleName: "Restart streaming audio"; enabled: !!pcmOutput.controller; onClicked: pcmOutput.controller.restart() }
         }
         LiveAudioVisualizer {
             objectName: "pcm-visualizer"
@@ -76,11 +76,11 @@ ColumnLayout {
     property bool expanded: false
     visible: modelData.renderer === "tool_call"
     Layout.fillWidth: true
-    NodeButton {
+    Ui.EditorButton {
         objectName: "output-tool-toggle"
         text: ["TOOL", modelData.toolName || "tool", tool.expanded ? "" : modelData.toolSummary, modelData.toolId ? (modelData.toolId.length > 12 ? modelData.toolId.slice(0, 8) + "…" : modelData.toolId) : "", tool.expanded ? "⌄" : "›"].filter(Boolean).join("  ")
         accessibleName: text + (tool.expanded ? " Hide arguments" : " Show arguments")
-        variant: NodeButton.Flat
+        variant: Ui.EditorButton.Outlined; flat: true
         onClicked: tool.expanded = !tool.expanded
     }
     Ui.TextArea {
@@ -138,7 +138,7 @@ Rectangle {
             Layout.alignment: Qt.AlignTop
             text: (modelData.statusLabel || "log").toUpperCase()
             role: Ui.Typography.SansCaption
-            color: agentStatus.accent
+            domainColor: agentStatus.accent
         }
         Ui.Text {
             objectName: "output-agent-status-text"

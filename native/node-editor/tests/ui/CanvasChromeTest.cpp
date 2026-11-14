@@ -1,3 +1,4 @@
+#include "../support/DarkCanvasTheme.h"
 #include "graph/EditorScene.h"
 #include "graph/NodeLayout.h"
 #include "graph/WorkflowGraphModel.h"
@@ -55,7 +56,7 @@ private:
             model.setRuntimeModel(&runtime);
             model.project(QJsonObject{{"id", "w"}, {"graph", QJsonObject{{"nodes", nodes}, {"edges", edges}}}},
                           QJsonArray{plain("t", false), plain("s", true)});
-            auto theme = scene.theme();
+            auto theme = nodetool::test::darkCanvasTheme();
             if (!dark) {
                 theme.canvas = QColor("#f6f6f8");
                 theme.node = QColor("#ffffff");

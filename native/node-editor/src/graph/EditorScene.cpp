@@ -2598,6 +2598,41 @@ void EditorScene::refreshRuntime() {
   else { animation_.stop(); phase_ = 0; }
 }
 
+CanvasTheme CanvasTheme::fromRoles(const QVariantMap &roles) {
+  const auto color = [&](const char *name) { return roles.value(name).value<QColor>(); };
+  CanvasTheme theme;
+  theme.canvas = color("canvas");
+  theme.grid = color("grid");
+  theme.node = color("node");
+  theme.reroutePaper = color("reroutePaper");
+  theme.rerouteBorder = color("rerouteBorder");
+  theme.divider = color("divider");
+  theme.field = color("field");
+  theme.textPrimary = color("text");
+  theme.textSecondary = color("secondary");
+  theme.checker = color("checker");
+  theme.subgraphAccent = color("subgraphAccent");
+  theme.primary = color("primary");
+  theme.progress = color("progress");
+  theme.success = color("success");
+  theme.warning = color("warning");
+  theme.info = color("info");
+  theme.controlWire = color("controlWire");
+  theme.groupHeader = color("groupHeader");
+  theme.groupFill = color("groupFill");
+  theme.zoomedTitle = color("zoomedTitle");
+  theme.previewSelected = color("previewSelected");
+  theme.outputSelected = color("outputSelected");
+  theme.selectionShadow = color("shadow");
+  theme.mediaScrim = color("mediaScrim");
+  theme.mediaScrimInk = color("mediaScrimInk");
+  theme.alphaBase = color("alphaBase");
+  theme.alphaChecker = color("alphaChecker");
+  theme.sansFamily = roles.value("sans").toString();
+  if (roles.contains("mono")) { theme.monoFamily = roles.value("mono").toString(); }
+  return theme;
+}
+
 void EditorScene::setTheme(const CanvasTheme &theme) {
   theme_ = theme;
   for (auto item : items()) { item->update(); }

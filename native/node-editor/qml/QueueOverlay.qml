@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 
 Ui.Surface {
@@ -306,11 +305,10 @@ Ui.Surface {
                 }
             }
         }
-        Basic.ScrollView {
+        Ui.ScrollArea {
             id: queueScroll
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
             ColumnLayout {
                 id: sections
                 width: queueScroll.availableWidth

@@ -2,6 +2,7 @@
 #include "../graph/BodyConnectionFixture.h"
 #include "graph/EditorScene.h"
 #include <QGraphicsView>
+#include "EntryMenuSupport.h"
 #include <QMenu>
 #include <QMenuBar>
 #include <QtTest>
@@ -570,16 +571,15 @@ private slots:
     void moreOpensDropdownWithDocumentedActions() {
         EditorWindow window; window.show(); QTest::qWait(50);
         window.action("More");
-        QTRY_VERIFY(window.findChild<QMenu *>("more-menu"));
+        QTRY_VERIFY(entry_menu::host(window, "more"));
         QVERIFY(!window.findChild<QDialog *>("command-panel"));
-        QStringList labels;
-        for (auto *item : window.findChild<QMenu *>("more-menu")->actions()) { labels << item->text(); }
+        auto labels = entry_menu::labels(entry_menu::host(window, "more"));
         // The More menu holds the document's own settings and views. The Node and
         // Workflow menus of the application menu hold the other commands.
         // Platforms other than macOS add the canvas navigation choice.
         labels.removeIf([](const QString &label) { return label.startsWith("Canvas navigation: "); });
         QCOMPARE(labels, (QStringList{"Instant Update: Off", "Save", "Version history", "Workflow metadata", "Server sync", "Canvas uploads", "Command menu"}));
-        window.findChild<QMenu *>("more-menu")->close();
+        closeMenu(window);
     }
 
     // File > Open Example lists the bundled workflows by their first tag. Each entry

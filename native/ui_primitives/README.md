@@ -5,6 +5,10 @@ directory with CMake and calls `nodetool_use_ui_primitives(target)` once for
 each executable that creates a QML engine. Import it as
 `import NodeTool.UiPrimitives as Ui`.
 
+`Ui.Theme` also carries the node graph tokens (`graphCanvas`, `graphNode`,
+`fieldSurface` and related names), documented in
+[DESIGN.md](DESIGN.md#graph-tokens).
+
 `Ui.Theme.preference` uses `Ui.Theme.System`, `Ui.Theme.Dark`, or
 `Ui.Theme.Light`. `systemScheme` uses `Ui.Theme.Unknown`,
 `Ui.Theme.Dark`, or `Ui.Theme.Light`. Unknown system appearance
@@ -19,9 +23,14 @@ Qt applies device pixel ratio separately.
 are keys in `Ui.Icons`, and `size` is a named `Ui.Metrics.icon*` value.
 `Ui.Text.domainColor` and `Ui.Icon.domainColor` accept a feature-owned
 semantic color for document or media visuals. Chrome uses `tone`.
+`Ui.Text.weight` takes `Font.Normal`, `Font.Medium`, or `Font.DemiBold` and
+defaults to the role's weight, as the web `Text` `weight` prop does. Other
+values warn and fall back to the role's weight. `Ui.Text.tight` sets a line
+height of 1 for single-line chrome rows. Do not set `font.weight` or
+`lineHeight` on `Ui.Text`.
 
 Buttons use `Ui.EditorButton.Compact`, `Standard`, or `Comfortable` density
-and `Ui.EditorButton.Default`, `Primary`, `Flat`, or `Destructive` variant. Compact and
+and `Ui.EditorButton.Default`, `Primary`, `Flat`, `Destructive`, or `Outlined` variant. Compact and
 standard controls have minimum heights of 28 and 32 logical pixels. Text may
 increase either height. `providerEntry` selects a provider logo in place of
 `iconName`.
@@ -46,8 +55,33 @@ target system; these samples do not describe every glyph in a script. See
 `accessibleName`, `enabled`, `readOnly`, `valid`, `errorText`, and `density`.
 It emits `valueCommitted(value)` only for a user choice. The caller owns the value.
 
-`Ui.TextArea.variant` is `Ui.TextArea.Field`, `Plain`, `Bubble`, `Code`, or `Quiet`.
-Quiet is transparent until hovered or focused. The role and inherited
+`Ui.TabBar` takes `tabs` entries `{label, value, iconName?, count?, active?, enabled?,
+disabledReason?, objectName?}`, `value`, `accessibleName`, and `appearance`
+(`Ui.TabBar.Underline` or `Filled`). A tab with `disabledReason` is disabled and
+shows the reason as a tooltip. `active` on an entry overrides the comparison with
+`value` for strips whose tabs toggle independently. Left and Right move focus,
+Home and End jump, Enter and Space choose. It emits `valueCommitted(value)`; the
+caller owns the value.
+
+`Ui.DocumentTabStrip` takes `tabs` entries `{title, closable?, renamable?, busy?,
+modified?, accent?}` and `currentIndex`, and scrolls horizontally. Tabs close from
+a close button or a middle click. It emits `tabActivated(index)`,
+`closeRequested(index)`, `contextMenuRequested(index, globalPosition)`,
+`renameRequested(index)`, `renameCommitted(index, title)`, and, when `reorderable`,
+`tabMoved(from, to, after)`. A double click on a `renamable` tab sets
+`renamingIndex`, which shows an inline field. A cut-off title shows its full text
+after `titleTooltipDelay`. The caller owns the order and `currentIndex`.
+`scrollOffset` and `scrolled(offset)` let the host keep the scroll position.
+`objectNameFor(role, index)` and `accessibleNameFor(tab)` let a host name the parts.
+
+`Ui.SegmentedControl` takes `options` entries `{label, value, iconName?, enabled?,
+reason?, objectName?}`, `value`, `accessibleName`, `density`, and `variant`
+(`Ui.SegmentedControl.Buttons` or `Tray`). Options have radio semantics. Arrow keys
+choose the previous or next enabled option. A disabled option shows `reason` as a
+tooltip. It emits `valueCommitted(value)` only for a user choice.
+
+`Ui.TextArea.variant` is `Ui.TextArea.Field`, `Plain`, `Bubble`, `Code`, `Quiet`,
+`Node`, or `NodeEditing`. Quiet is transparent until hovered or focused. The role and inherited
 `textFormat` choose type and rich text behavior.
 
 Presentation types:
@@ -58,12 +92,20 @@ Presentation types:
   actions.
 - `Ui.ListRow.active` supplies selection appearance; its default content holds
   the row's label and nested actions. It inherits button activation.
+  `flat: true` removes the padding and the minimum height, so the row only supplies activation
+  and the hover, selected, pressed, and focus background, and its children position against its size.
 - `Ui.Popover.openAt(item)` and `Ui.ContextMenu.openAt(item)` anchor to an item
   and return focus to it on close. Popup content and menu items are supplied by
   the caller. `Ui.Popover.contentItem` is its explicit body layout slot.
   `Ui.ContextMenu.popupAt(item, x, y)` opens at a point of an item and keeps the menu in the window.
   `Ui.MenuItem` inherits native menu-item and Action semantics. Its `reasonText` shows under the
   label while the item is disabled.
+  `Ui.ContextMenu.entries` builds the menu from data: a list of maps with `id`, `label`, `icon`,
+  `shortcut`, `tooltip`, `reason`, `enabled`, `destructive`, `checked` (a checkmark) and `submenu`
+  (a nested list). A map with only `separator: true` is a divider and one with only `header` is a
+  section label. A chosen entry emits `entryTriggered(id)`. Setting `entries` rebuilds the menu,
+  also while it is open. `Ui.MenuSeparator` and `Ui.MenuHeader` are the divider and section label
+  for hand-built menus.
 - `Ui.Dialog.contentItem` is its explicit body layout slot. The module owns the
   header, background, and focus behavior. `returnFocusTo` supplies the focus
   target on close.
@@ -71,7 +113,10 @@ Presentation types:
   and `delay` control the message and timing. One tooltip is visible at a time.
   Movement of the trigger or its ancestors dismisses it. Pointer presses,
   scrolling, key presses, and focus changes dismiss stale help. Use this
-  primitive instead of attached Qt tooltips. `Ui.ShortcutHint` renders its
+  primitive instead of attached Qt tooltips. A host whose panels are small
+  `QQuickWidget`s, where an overlay clips, sets `Ui.TooltipHost.routeToHost` and
+  connects `Ui.TooltipHost.requested(text)`. A tooltip that its overlay cannot place beside
+  its trigger then stays invisible and sends its text to the host, and an empty text hides it. `Ui.ShortcutHint` renders its
   inherited text in the mono caption role.
 
 `Ui.Slider` takes `value`, `from`, `to`, `stepSize`, `origin`, `resetValue`,
@@ -91,6 +136,15 @@ also accept `accessibleName`, `readOnly`, `enabled`, `valid`, `errorText`, and
 typed drafts until commit while retaining arrow-key previews.
 Enter in `TextField` and `NumberField` commits a valid draft, then emits
 `accepted()` for the host's default action.
+`Ui.TextField.variant` and `Ui.NumberField.variant` are `Field`, `Node`, or
+`NodeEditing`, and `Ui.TextArea` takes the same two node values. `Node` is the
+node editor field: a `Theme.fieldSurface` fill (`fieldSurfaceFocus` when focused,
+`fieldSurfaceDisabled` when disabled) with a transparent idle border, a focus
+border, and an error border when `valid` is false. `NodeEditing` is the editor
+overlaid on a field painted on a node card. It keeps `surfaceInput` and always
+shows the focus border, and on `NumberField` it also shows the error border for
+an unparsable draft. Neither variant changes padding or height. Use
+`Metrics.nodeFieldPadding` and `Metrics.nodeFieldHeight` for the inspector row.
 `cancelEdit()` discards the draft. Invalid focus loss cancels and restores the
 latest authoritative value. Hosts roll back previewed document changes.
 
@@ -100,12 +154,23 @@ semantics. They emit `checkedChangedByUser(bool)` only for user changes.
 when hidden, inactive, or reduced motion is selected. `Ui.Progress` is for
 determinate progress. `Ui.ScrollBar` retains native position, size,
 orientation, and policy.
+`Ui.ScrollArea` is a clipped scroll view with `Ui.ScrollBar` on both axes. Its content is as wide
+as the view unless `contentWidth` is set. `Ui.Chip` is a small read-only label with `text`,
+`variant` (`Chip.Scrim` over media, `Chip.Tone` on a control surface), `tone`, `ink`,
+`maximumWidth` and `elide`. It hides when `text` is empty.
 
 `EditorButton.menuButton` marks a menu trigger and `menuExpanded` reports its open state independently of `checked`. Set `trailingIconName` to a catalog identity for a trailing icon; the control handles mirrored layout and label elision. `textRole` selects the label's typography role; its default is `Typography.SansLabel`. `iconSize` takes a named `Metrics.icon*` value; its default is `Metrics.iconSm`.
+`EditorButton.Outlined` is the web editor button: accent ink on an accent outline, a 28 pixel height at any density,
+and a caption label in medium weight. With Outlined, `highlighted` fills it with the accent and `flat` drops
+the outline and uses secondary ink. A disabled Outlined button has no fill. `iconColor` takes a feature-owned
+icon color as `Ui.Icon.domainColor` does. Set `display: AbstractButton.IconOnly` on a button without a label so
+that it shows its `accessibleName` as a tooltip.
 
 `Status` and `Banner` take `status` (`Status.Success`, `Warning`, `Error`,
 `Info`) and `message`. `Banner` also accepts optional `actionText` and emits
-`actionTriggered()`, and wraps a long message. `Status.wrap` does the same for a
+`actionTriggered()`, and wraps a long message. `retryable` shows Retry and `reportable` shows
+Report. They emit `retryRequested()` and `reportRequested()`, and the host decides what they do.
+`Banner.textFormat` defaults to plain text, so server errors show literally. `Status.wrap` does the same for a
 standalone status; without it the message elides on one line. `EmptyState`
 exposes `title`, `message`, optional `actionText` and `actionTriggered()`. A
 positive `maxTextWidth` wraps and centers its text and action. `Progress` reports determinate progress;

@@ -9,7 +9,10 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE = Path(__file__).resolve().parents[1]
-ROOTS = ('native/timeline/qml', 'native/timeline/src', 'native/chat/qml', 'native/model-picker/qml', 'native/media/qml', 'native/entities/qml', 'native/storyboard/qml')
+ROOTS = ('native/timeline/qml', 'native/timeline/src', 'native/chat/qml', 'native/model-picker/qml', 'native/media/qml', 'native/entities/qml', 'native/storyboard/qml', 'native/node-editor/qml')
+# Roots still being migrated. A pending file under one does not fail --strict, so
+# its reviewed files are gated while the rest await review.
+MIGRATING = ('native/node-editor/qml/',)
 TOKEN = re.compile(r'''(?P<space>\s+)|(?P<comment>//[^\n]*|/\*[\s\S]*?\*/)|(?P<string>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(?P<ident>[A-Za-z_$][\w$]*)|(?P<number>0[xX][\da-fA-F]+|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)|(?P<punct>.)''')
 RAW_CONTROLS = {
     'Button', 'ToolButton', 'RoundButton', 'TextField', 'TextArea', 'ComboBox',
@@ -379,6 +382,11 @@ def inspect(text, filename, semantic_types=None, strict=False):
             role_font = name == 'font' and approved_role_font(values, ui_aliases)
             if name in {'font', 'font.family', 'font.pixelSize', 'font.pointSize', 'font.weight', 'font.bold', 'lineHeight', 'lineHeightMode'} and not measured_font and not role_font:
                 add('typography', 'independent font attribute ' + name)
+            if is_ui and short == 'Text' and name == 'weight' and (
+                    any(token.kind == 'number' for token in values) or
+                    any(values[i].value == 'Font' and values[i + 1].value == '.' and values[i + 2].value not in {'Normal', 'Medium', 'DemiBold'}
+                        for i in range(max(0, len(values) - 2)))):
+                add('typography', 'Ui.Text weight must be Font.Normal, Font.Medium or Font.DemiBold')
             if any(re.fullmatch(r'#[\da-fA-F]{3,8}', value) for value in strings) or any(
                     values[i].value == 'Qt' and values[i + 1].value == '.' and values[i + 2].value in {'rgba', 'hsla', 'hsva', 'color'}
                     for i in range(max(0, len(values) - 2))):
@@ -501,8 +509,12 @@ def main(argv=None):
     errors.extend('{}: stale inventory entry'.format(path) for path in sorted(entries.keys() - actual))
     used = set()
     wrappers = semantic_wrappers([ROOT / path for path in actual])
+    deferred = 0
     for path in sorted(actual & entries.keys()):
         entry = entries[path]
+        if entry['category'] == 'pending' and path.startswith(MIGRATING) and not args.report:
+            deferred += 1
+            continue
         if args.strict and (entry['category'] == 'pending' or entry.get('test_host') in {None, '', 'unreviewed'} or entry.get('replacement') in {None, '', 'unreviewed'}):
             errors.append('{}: pending inventory review'.format(path))
         enforce = entry['category'] != 'pending' or args.strict or args.report
@@ -528,6 +540,8 @@ def main(argv=None):
         if index not in used:
             errors.append('{}: stale or duplicate exception {}:{}'.format(exception.get('path'), exception.get('object'), exception.get('binding')))
     print('Inspected {} inventoried native QML files'.format(len(actual)))
+    if deferred:
+        print('{} files under a migrating root await review'.format(deferred))
     for error in errors:
         print(error, file=sys.stderr)
     return int(bool(errors))

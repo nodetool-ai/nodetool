@@ -79,7 +79,6 @@ public:
     // Opens or closes a status bar view: logs, queue, generations, trace or versions.
     Q_INVOKABLE void toggleStatusView(const QString &view) { emit statusViewRequested(view); }
     // Empty text hides the tool tip.
-    Q_INVOKABLE void showToolTip(const QString &text) { emit toolTipRequested(text); }
 
 signals:
     void panelsChanged();
@@ -92,7 +91,6 @@ signals:
     void togglePanelRequested();
     void miniMapRequested(bool visible);
     void statusViewRequested(const QString &view);
-    void toolTipRequested(const QString &text);
 
 private:
     Panels panels_;

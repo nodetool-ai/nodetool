@@ -1,3 +1,4 @@
+#include "../support/DarkCanvasTheme.h"
 #include "graph/CanvasMediaPresenter.h"
 #include "graph/EditorScene.h"
 #include "graph/InlinePropertyPresenter.h"
@@ -279,7 +280,7 @@ private slots:
     f.scene.setReducedMotion(true);
     for (const auto scheme : {2, 3}) {
       theme->setProperty("preference", scheme);
-      CanvasTheme canvas;
+      auto canvas = nodetool::test::darkCanvasTheme();
       canvas.canvas = theme->property("surfaceCanvas").value<QColor>();
       canvas.node = theme->property("surfacePanel").value<QColor>();
       canvas.field = theme->property("surfaceInput").value<QColor>();

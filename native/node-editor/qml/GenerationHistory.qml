@@ -23,9 +23,9 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.leftMargin: Ui.Metrics.lg
         Layout.rightMargin: Ui.Metrics.lg
-        NodeButton { objectName: "history-refresh"; text: "Refresh"; enabled: root.history && !root.history.loading; onClicked: root.history.refresh() }
-        NodeButton { objectName: "history-latest"; text: "Use latest"; enabled: !root.generations.readOnly && root.pinned !== ""; onClicked: { root.inspected = ""; root.generations.pinGeneration("") } }
-        NodeButton { objectName: "history-clear-replay"; text: "Clear replay"; enabled: !root.generations.readOnly && root.replay.length > 0; onClicked: root.generations.clearReplayGenerations() }
+        Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "history-refresh"; text: "Refresh"; enabled: root.history && !root.history.loading; onClicked: root.history.refresh() }
+        Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "history-latest"; text: "Use latest"; enabled: !root.generations.readOnly && root.pinned !== ""; onClicked: { root.inspected = ""; root.generations.pinGeneration("") } }
+        Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "history-clear-replay"; text: "Clear replay"; enabled: !root.generations.readOnly && root.replay.length > 0; onClicked: root.generations.clearReplayGenerations() }
     }
     Ui.Text {
         objectName: "history-status"
@@ -62,9 +62,9 @@ ColumnLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: Ui.Metrics.lg
                 Layout.rightMargin: Ui.Metrics.lg
-                NodeButton { objectName: "history-view-" + row.modelData.id; text: row.opened ? "Viewing" : "Preview"; onClicked: root.showGeneration(row.modelData.id, row.index) }
-                NodeButton { objectName: "history-pin-" + row.modelData.id; text: root.pinned === row.modelData.id ? "Unpin" : "Pin"; enabled: !root.generations.readOnly; onClicked: { root.showGeneration(row.modelData.id, row.index); root.generations.pinGeneration(root.pinned === row.modelData.id ? "" : row.modelData.id) } }
-                NodeButton { objectName: "history-replay-" + row.modelData.id; text: root.replay.includes(row.modelData.id) ? "Remove replay" : "Add replay"; enabled: !root.generations.readOnly; onClicked: root.generations.toggleReplayGeneration(row.modelData.id) }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "history-view-" + row.modelData.id; text: row.opened ? "Viewing" : "Preview"; onClicked: root.showGeneration(row.modelData.id, row.index) }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "history-pin-" + row.modelData.id; text: root.pinned === row.modelData.id ? "Unpin" : "Pin"; enabled: !root.generations.readOnly; onClicked: { root.showGeneration(row.modelData.id, row.index); root.generations.pinGeneration(root.pinned === row.modelData.id ? "" : row.modelData.id) } }
+                Ui.EditorButton { variant: Ui.EditorButton.Outlined; objectName: "history-replay-" + row.modelData.id; text: root.replay.includes(row.modelData.id) ? "Remove replay" : "Add replay"; enabled: !root.generations.readOnly; onClicked: root.generations.toggleReplayGeneration(row.modelData.id) }
             }
             Ui.Text { Layout.fillWidth: true; Layout.leftMargin: Ui.Metrics.lg; Layout.rightMargin: Ui.Metrics.lg; visible: row.opened && row.modelData.media.length === 0; text: row.modelData.text; role: Ui.Typography.MonoCaption; wrapMode: Text.WrapAnywhere }
             Ui.Text { Layout.leftMargin: Ui.Metrics.lg; visible: row.opened && row.modelData.truncated; text: "Preview shortened."; role: Ui.Typography.SansCaption }

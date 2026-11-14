@@ -125,9 +125,25 @@ private:
     static void hover(QQuickWidget *host, QQuickItem *item) {
         QVERIFY(host);
         QVERIFY(item);
+        // The window tooltip opens at the cursor, so park the cursor on the item as a real pointer would be.
+        // Moving it first lets the window system's enter and leave settle before the quick window sees the move.
+        QCursor::setPos(host->mapToGlobal(center(item)));
+        QCoreApplication::processEvents();
         QTest::mouseMove(host->quickWindow(), QPoint(2, 2));
         QTest::mouseMove(host->quickWindow(), center(item));
         QCoreApplication::processEvents();
+    }
+
+    // The text a user sees. A Ui.Tooltip that fits its panel overlay shows there. One that does not
+    // (a thin QQuickWidget) hands its text to the window, which shows it through QToolTip.
+    static QString shownTooltip(QQuickWidget *host) {
+        for (auto *object : host->rootObject()->findChildren<QObject *>()) {
+            if (object->property("followsTrigger").isValid() && object->property("visible").toBool()
+                && object->property("opacity").toReal() > 0) {
+                return object->property("text").toString();
+            }
+        }
+        return QToolTip::text();
     }
 
     static void openCatalog(EditorWindow &window) {
@@ -340,7 +356,7 @@ private slots:
             auto *entry = find(rail->rootObject(), tip.first);
             QVERIFY2(entry, qPrintable(tip.first));
             hover(rail, entry);
-            QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), tip.second, 1000);
+            QTRY_COMPARE_WITH_TIMEOUT(shownTooltip(rail), tip.second, 1000);
             const bool unavailable = !entry->property("unavailable").toString().isEmpty();
             QCOMPARE(entry->property("button").value<QObject *>()->property("enabled").toBool(), !unavailable);
         }
@@ -412,7 +428,7 @@ private slots:
         for (int i = 0; i < tabs.size(); ++i) {
             auto *tab = find(root, QString("status-%1").arg(tabs[i].toLower()));
             QCOMPARE(tab->property("label").toString(), tabs[i]);
-            QCOMPARE(tab->property("glyph").toString(), glyphs[i]);
+            QCOMPARE(tab->property("iconName").toString(), glyphs[i]);
         }
         QCOMPARE(find(root, "status-nodes-value")->property("text").toString(), QString("12"));
         QCOMPARE(find(root, "status-nodes-key")->property("text").toString(), QString("nodes"));
@@ -440,7 +456,7 @@ private slots:
         for (const auto &reason : reasons) {
             auto *tab = find(root, reason.first);
             hover(status, tab);
-            QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), reason.second, 1000);
+            QTRY_COMPARE_WITH_TIMEOUT(shownTooltip(status), reason.second, 1000);
             click(status, tab);
             QTest::qWait(30);
             QVERIFY(!window.outputVisible());
@@ -516,7 +532,7 @@ private slots:
         QTRY_COMPARE(find(root, "status-memory-value")->property("text").toString(), QString("63%"));
         // A started run shows the queue summary, and the tab expands the queue panel.
         auto *queue = find(root, "status-queue");
-        QCOMPARE(queue->property("unavailable").toString(), QString());
+        QCOMPARE(queue->property("disabledReason").toString(), QString());
         window.action("Run");
         QTRY_VERIFY_WITH_TIMEOUT(!commands.isEmpty(), 2000);
         QTRY_VERIFY(window.queueAvailable());
@@ -679,7 +695,7 @@ private slots:
         QVERIFY(link->mapToItem(catalog->rootObject(), QPointF()).x() > count->mapToItem(catalog->rootObject(), QPointF()).x());
         QCOMPARE(link->property("accessibleName").toString(), QStringLiteral("Nodes documentation"));
         hover(catalog, link);
-        QTRY_COMPARE_WITH_TIMEOUT(QToolTip::text(), QStringLiteral("Nodes documentation"), 1500);
+        QTRY_COMPARE_WITH_TIMEOUT(shownTooltip(catalog), QStringLiteral("Nodes documentation"), 1500);
         UrlCatcher catcher;
         QDesktopServices::setUrlHandler(QStringLiteral("https"), &catcher, "open");
         click(catalog, link);

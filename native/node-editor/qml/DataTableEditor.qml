@@ -200,7 +200,8 @@ ColumnLayout {
             onValueCommitted: value => root.valueType = value
         }
     }
-    NodeButton {
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined
         visible: root.kind === "dataframe"
         objectName: "data-table-add-column"
         text: "Add column"
@@ -222,16 +223,16 @@ ColumnLayout {
         visible: root.kind !== "dataframe" || root.columns.length > 0
         Layout.fillWidth: true
         spacing: Ui.Metrics.xs
-        NodeButton { objectName: "data-table-add-row"; variant: NodeButton.Flat; iconName: "add"; text: "Add row"; visible: root.writable; onClicked: root.addRow() }
-        NodeButton { objectName: "data-table-delete"; variant: NodeButton.Flat; iconName: "deleteOutline"; accessibleName: "Delete selected rows"; visible: root.writable; enabled: root.selected.length > 0; onClicked: root.deleteSelected() }
-        NodeButton { objectName: "data-table-duplicate"; variant: NodeButton.Flat; iconName: "duplicate"; accessibleName: "Duplicate selected rows"; visible: root.writable && root.expanded && root.kind !== "dict"; enabled: root.selected.length > 0; onClicked: root.duplicateSelected() }
-        NodeButton { objectName: "data-table-reset-sort"; variant: NodeButton.Flat; iconName: "reset"; accessibleName: "Reset sorting"; enabled: root.sortColumn >= 0; onClicked: root.resetSorting() }
-        NodeButton { objectName: "data-table-paste"; variant: NodeButton.Flat; text: "Paste"; accessibleName: "Paste rows from clipboard"; visible: root.writable && root.expanded && root.kind === "dataframe"; onClicked: root.paste() }
-        NodeButton { objectName: "data-table-copy-csv"; variant: NodeButton.Flat; text: "CSV"; accessibleName: "Copy as CSV"; visible: root.expanded && root.kind === "dataframe"; onClicked: root.copyCsv() }
-        NodeButton { objectName: "data-table-select-column"; variant: root.showSelect ? NodeButton.Outlined : NodeButton.Flat; iconName: "check"; accessibleName: "Show select column"; onClicked: root.showSelect = !root.showSelect }
-        NodeButton { objectName: "data-table-row-numbers"; variant: root.showRowNumbers ? NodeButton.Outlined : NodeButton.Flat; text: "#"; accessibleName: "Show row numbers"; visible: root.kind === "dataframe"; onClicked: root.showRowNumbers = !root.showRowNumbers }
-        NodeButton { objectName: "data-table-copy"; variant: NodeButton.Flat; iconName: "copy"; accessibleName: "Copy table data as JSON"; onClicked: root.copyJson() }
-        NodeButton { objectName: "data-table-expand"; variant: NodeButton.Flat; iconName: root.expanded ? "fullscreenExit" : "fullscreen"; accessibleName: root.expanded ? "Collapse table" : "Expand table"; visible: root.kind === "dataframe"; onClicked: { root.expanded = !root.expanded; if (!root.expanded) root.filterText = "" } }
+        Ui.EditorButton { objectName: "data-table-add-row"; variant: Ui.EditorButton.Outlined; flat: true; iconName: "add"; text: "Add row"; visible: root.writable; onClicked: root.addRow() }
+        Ui.EditorButton { objectName: "data-table-delete"; variant: Ui.EditorButton.Outlined; flat: true; iconName: "deleteOutline"; accessibleName: "Delete selected rows"; visible: root.writable; enabled: root.selected.length > 0; onClicked: root.deleteSelected() }
+        Ui.EditorButton { objectName: "data-table-duplicate"; variant: Ui.EditorButton.Outlined; flat: true; iconName: "duplicate"; accessibleName: "Duplicate selected rows"; visible: root.writable && root.expanded && root.kind !== "dict"; enabled: root.selected.length > 0; onClicked: root.duplicateSelected() }
+        Ui.EditorButton { objectName: "data-table-reset-sort"; variant: Ui.EditorButton.Outlined; flat: true; iconName: "reset"; accessibleName: "Reset sorting"; enabled: root.sortColumn >= 0; onClicked: root.resetSorting() }
+        Ui.EditorButton { objectName: "data-table-paste"; variant: Ui.EditorButton.Outlined; flat: true; text: "Paste"; accessibleName: "Paste rows from clipboard"; visible: root.writable && root.expanded && root.kind === "dataframe"; onClicked: root.paste() }
+        Ui.EditorButton { objectName: "data-table-copy-csv"; variant: Ui.EditorButton.Outlined; flat: true; text: "CSV"; accessibleName: "Copy as CSV"; visible: root.expanded && root.kind === "dataframe"; onClicked: root.copyCsv() }
+        Ui.EditorButton { objectName: "data-table-select-column"; variant: Ui.EditorButton.Outlined; flat: !root.showSelect; iconName: "check"; accessibleName: "Show select column"; onClicked: root.showSelect = !root.showSelect }
+        Ui.EditorButton { objectName: "data-table-row-numbers"; variant: Ui.EditorButton.Outlined; flat: !root.showRowNumbers; text: "#"; accessibleName: "Show row numbers"; visible: root.kind === "dataframe"; onClicked: root.showRowNumbers = !root.showRowNumbers }
+        Ui.EditorButton { objectName: "data-table-copy"; variant: Ui.EditorButton.Outlined; flat: true; iconName: "copy"; accessibleName: "Copy table data as JSON"; onClicked: root.copyJson() }
+        Ui.EditorButton { objectName: "data-table-expand"; variant: Ui.EditorButton.Outlined; flat: true; iconName: root.expanded ? "fullscreenExit" : "fullscreen"; accessibleName: root.expanded ? "Collapse table" : "Expand table"; visible: root.kind === "dataframe"; onClicked: { root.expanded = !root.expanded; if (!root.expanded) root.filterText = "" } }
     }
     Ui.TextField {
         objectName: "data-table-search"

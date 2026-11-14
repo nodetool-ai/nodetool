@@ -188,6 +188,10 @@ void EditorWindow::reportBug(node_editor::BugReportContext context) {
   QDesktopServices::openUrl(node_editor::bugReportUrl(context, system));
 }
 
+void EditorWindow::reportError(const QString &source, const QString &text) {
+  reportBug({.source = source, .errorText = text});
+}
+
 QVariantMap EditorWindow::costEstimate() const {
   if (!tabOwner_) { return activeEditor_->costEstimate(); }
   return costEstimate_;

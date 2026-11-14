@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
         append(id, state, source, framebuffer.copy(bounds), metrics(item), "live-property");
       };
       for (auto id : {"button-default", "button-primary", "button-disabled"}) {
-        captureQuick(id, root->findChild<QQuickItem *>(id), "native/node-editor/qml/NodeButton.qml");
+        captureQuick(id, root->findChild<QQuickItem *>(id), "native/ui_primitives/qml/EditorButton.qml");
       }
       for (auto id : {"text-label", "text-caption"}) {
         captureQuick(id, root->findChild<QQuickItem *>(id), "native/ui_primitives/qml/Text.qml");

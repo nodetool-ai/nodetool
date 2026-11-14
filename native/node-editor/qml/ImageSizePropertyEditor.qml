@@ -89,8 +89,8 @@ ColumnLayout {
     }
     RowLayout {
         spacing: Ui.Metrics.xs
-        NodeButton { text: "Swap"; enabled: root.writable; onClicked: root.swap() }
-        NodeButton { text: root.locked ? "Unlock ratio" : "Lock ratio"; enabled: root.writable; variant: root.locked ? NodeButton.Primary : NodeButton.Outlined; onClicked: root.toggleLock() }
+        Ui.EditorButton { variant: Ui.EditorButton.Outlined; text: "Swap"; enabled: root.writable; onClicked: root.swap() }
+        Ui.EditorButton { text: root.locked ? "Unlock ratio" : "Lock ratio"; enabled: root.writable; variant: Ui.EditorButton.Outlined; highlighted: root.locked; onClicked: root.toggleLock() }
     }
     Ui.Select {
         objectName: "image-size-preset-" + root.descriptor.name

@@ -85,7 +85,8 @@ ColumnLayout {
             }
         }
     }
-    NodeButton {
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined
         objectName: "color-custom-" + root.descriptor.name
         text: "Custom color…"
         enabled: root.writable

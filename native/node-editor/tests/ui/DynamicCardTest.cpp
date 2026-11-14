@@ -1,7 +1,7 @@
 #include "ui/EditorWindow.h"
 #include "graph/EditorScene.h"
 #include <QDialog>
-#include <QMenu>
+#include "EntryMenuSupport.h"
 #include <QDir>
 #include <QGraphicsView>
 #include <QQuickItem>
@@ -68,9 +68,8 @@ NodeRow dynamicRow(const WorkflowGraphModel &model, QtNodes::NodeId id, const QS
     for (const auto &row : model.layout(id).rows) { if (row.propertyName == name) { return row; } }
     return {};
 }
-QMenu *typeMenu(EditorWindow &window) {
-    for (auto *menu : window.findChildren<QMenu *>("dynamic-slot-type-menu")) { if (menu->isVisible()) { return menu; } }
-    return nullptr;
+QQuickWidget *typeMenu(EditorWindow &window) {
+    return entry_menu::host(window, "dynamic-slot-type-menu");
 }
 QQuickItem *find(QQuickItem *root, const QString &name) {
     if (!root) { return nullptr; }
@@ -350,16 +349,11 @@ private slots:
         QVERIFY(!row.typeChipRect.intersects(row.removeButtonRect));
         QVERIFY(row.typeChipRect.right() <= h.model->layout(h.id()).size.width());
         h.click(row.typeChipRect);
-        QMenu *menu = nullptr;
+        QQuickWidget *menu = nullptr;
         QTRY_VERIFY((menu = typeMenu(h.window)));
-        QAction *current = nullptr, *integer = nullptr;
-        for (auto *action : menu->actions()) {
-            if (action->isChecked()) { current = action; }
-            if (action->text() == "int") { integer = action; }
-        }
-        QVERIFY(current); QCOMPARE(current->text(), QString("str"));
-        QVERIFY(integer);
-        QTest::mouseClick(menu, Qt::LeftButton, {}, menu->actionGeometry(integer).center());
+        QCOMPARE(entry_menu::entry(menu, "str")["checked"].toBool(), true);
+        QCOMPARE(entry_menu::entry(menu, "int")["checked"].toBool(), false);
+        QVERIFY(entry_menu::click(menu, "type:int"));
         QTRY_COMPARE(h.window.document()->node("n")["dynamic_inputs"].toObject()["typed"].toObject()["type"].toObject()["type"].toString(), QString("int"));
         QVERIFY(h.window.document()->node("n")["dynamic_properties"].toObject()["typed"].isDouble());
         QCOMPARE(h.window.document()->undoStack()->count(), 1);
