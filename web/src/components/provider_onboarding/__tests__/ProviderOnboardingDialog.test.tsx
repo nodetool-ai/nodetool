@@ -105,6 +105,16 @@ describe("ProviderOnboardingDialog", () => {
     ).toBeGreaterThanOrEqual(2);
   });
 
+  it("offers the ChatGPT sign-in first when the blocked step makes images", () => {
+    mockUseProviderOnboardingStore.mockImplementation(
+      <T,>(selector: (s: typeof storeState) => T) =>
+        selector({ ...storeState, capability: "text_to_image" as never })
+    );
+    renderDialog();
+    const cards = screen.getAllByRole("article");
+    expect(cards[0]).toHaveAccessibleName("ChatGPT (Codex)");
+  });
+
   it("connects any provider from More providers, not only the curated list", async () => {
     renderDialog();
     expect(screen.queryByRole("article", { name: "OpenRouter" })).toBeNull();

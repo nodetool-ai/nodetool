@@ -50,7 +50,7 @@ export const subscriptionProviders = (): OnboardingProvider[] => {
     providers.push({
       ...codex,
       name: "ChatGPT",
-      tagline: "Chat with GPT models on your ChatGPT plan. Images need the Chrome extension."
+      tagline: "Chat and make images with GPT models on your ChatGPT plan."
     });
   }
   if (claude) {
