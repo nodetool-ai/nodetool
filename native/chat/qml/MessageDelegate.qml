@@ -23,6 +23,29 @@ ColumnLayout {
         }
     }
     readonly property bool userMessage: role === "user"
+    // The last row of the conversation: its reply keeps the action row
+    // showing and offers Retry, as Claude does.
+    property bool latest: false
+    // ChatView.tsx canResend: Edit, Retry and the version switcher wait for
+    // a running turn and need the server.
+    readonly property bool canResend: !!session && session.connectionStatus === "connected" && !session.historyLoading
+        && ["loading", "streaming", "stopping"].indexOf(session.turnStatus) < 0
+    readonly property var versionNav: session && session.versions ? (session.versions[messageId] || null) : null
+    property bool editingPrompt: false
+    function startEdit() {
+        promptEditor.text = root.text
+        root.editingPrompt = true
+        promptEditor.forceActiveFocus()
+        promptEditor.cursorPosition = promptEditor.length
+    }
+    function sendEdit() {
+        const edited = promptEditor.text.trim()
+        if (!edited || !root.canResend) { return; }
+        root.editingPrompt = false
+        root.session.resendFrom(root.messageId, edited)
+    }
+    onMessageIdChanged: editingPrompt = false
+    HoverHandler { id: rowHover }
     spacing: Ui.Metrics.md
     objectName: "message_" + messageId
     Ui.Dialog {
@@ -172,6 +195,9 @@ ColumnLayout {
                         // Qt.callLater can run after the delegate is released.
                         if (paged && paged.chatSession && textFormat === TextEdit.MarkdownText) {
                             paged.chatSession.styleMarkdownLinks(textDocument, linkColour)
+                            if (!paged.userBubble) {
+                                paged.chatSession.styleReadingRhythm(textDocument, Ui.Metrics.lg, Ui.Metrics.xs, Ui.Metrics.xl)
+                            }
                         }
                     }
                     onLinkColourChanged: Qt.callLater(updateLinkColour)
@@ -234,7 +260,7 @@ ColumnLayout {
     }
     Item {
         id: proseContainer
-        visible: root.text.length > 0
+        visible: root.text.length > 0 && !root.editingPrompt
         Layout.fillWidth: !root.userMessage
         Layout.maximumWidth: root.userMessage ? root.width * (root.width < ChatMetrics.narrow ? 0.88 : 0.75) : root.width
         Layout.alignment: root.userMessage ? Qt.AlignRight : Qt.AlignLeft
@@ -250,6 +276,50 @@ ColumnLayout {
             markdown: true
             userBubble: root.userMessage
             chatSession: root.session
+        }
+    }
+    ColumnLayout {
+        objectName: "promptEditor"
+        visible: root.editingPrompt
+        Layout.fillWidth: true
+        spacing: Ui.Metrics.sm
+        Ui.TextArea {
+            id: promptEditor
+            objectName: "promptEditorField"
+            Layout.fillWidth: true
+            accessibleName: qsTr("Edit message")
+            Keys.onPressed: event => {
+                if (event.key === Qt.Key_Escape) {
+                    root.editingPrompt = false
+                    event.accepted = true
+                } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier) && !inputMethodComposing) {
+                    root.sendEdit()
+                    event.accepted = true
+                }
+            }
+        }
+        Ui.Text {
+            role: Ui.Typography.SansCaption
+            tone: Ui.Text.Secondary
+            Layout.fillWidth: true
+            wrapMode: Text.Wrap
+            text: qsTr("Sending starts a new version. The current one stays available.")
+        }
+        RowLayout {
+            Layout.alignment: Qt.AlignRight
+            spacing: Ui.Metrics.sm
+            Ui.EditorButton {
+                objectName: "cancelEditButton"
+                text: qsTr("Cancel")
+                onClicked: root.editingPrompt = false
+            }
+            Ui.EditorButton {
+                objectName: "sendEditButton"
+                text: qsTr("Send")
+                variant: Ui.EditorButton.Primary
+                enabled: root.canResend && promptEditor.text.trim().length > 0
+                onClicked: root.sendEdit()
+            }
         }
     }
     Repeater {
@@ -858,6 +928,75 @@ ColumnLayout {
                     }
                 }
             }
+        }
+    }
+    // MessageView.tsx: Edit and Copy under a prompt, Copy and Retry under a
+    // reply, icon only, shown on hover. The latest reply and a message with
+    // versions keep the row showing.
+    RowLayout {
+        id: messageActions
+        objectName: "messageActions"
+        readonly property bool shown: rowHover.hovered || root.versionNav !== null || (root.latest && !root.userMessage)
+        visible: !root.editingPrompt && (root.text.length > 0 || root.versionNav !== null) && (root.userMessage || root.role === "assistant")
+        opacity: shown ? 1 : 0
+        Layout.alignment: root.userMessage ? Qt.AlignRight : Qt.AlignLeft
+        Layout.leftMargin: root.userMessage ? 0 : Ui.Metrics.md
+        spacing: Ui.Metrics.micro
+        Behavior on opacity {
+            enabled: !Ui.Theme.reducedMotion
+            NumberAnimation { duration: Ui.Metrics.motionQuick }
+        }
+        RowLayout {
+            objectName: "versionSwitcher"
+            visible: root.versionNav !== null
+            spacing: Ui.Metrics.none
+            Accessible.role: Accessible.Grouping
+            Accessible.name: root.versionNav ? qsTr("Version %1 of %2").arg(root.versionNav.index).arg(root.versionNav.count) : ""
+            Ui.ToolbarIconButton {
+                objectName: "previousVersionButton"
+                iconName: "chevronLeft"
+                text: qsTr("Previous version")
+                enabled: root.canResend && !!root.versionNav && root.versionNav.index > 1
+                onClicked: root.session.selectVersion(root.messageId, root.versionNav.index - 1)
+            }
+            Ui.Text {
+                objectName: "versionLabel"
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
+                text: root.versionNav ? root.versionNav.index + "/" + root.versionNav.count : ""
+            }
+            Ui.ToolbarIconButton {
+                objectName: "nextVersionButton"
+                iconName: "chevronRight"
+                text: qsTr("Next version")
+                enabled: root.canResend && !!root.versionNav && root.versionNav.index < root.versionNav.count
+                onClicked: root.session.selectVersion(root.messageId, root.versionNav.index + 1)
+            }
+        }
+        Ui.ToolbarIconButton {
+            objectName: "editMessageButton"
+            visible: root.userMessage && root.text.length > 0
+            iconName: "editOutlined"
+            text: qsTr("Edit")
+            enabled: root.canResend
+            disabledReason: qsTr("Wait for the reply to finish")
+            onClicked: root.startEdit()
+        }
+        Ui.ToolbarIconButton {
+            objectName: "copyMessageButton"
+            visible: root.text.length > 0
+            iconName: "copy"
+            text: qsTr("Copy")
+            onClicked: root.session.copyText(root.text)
+        }
+        Ui.ToolbarIconButton {
+            objectName: "retryReplyButton"
+            visible: !root.userMessage && root.latest
+            iconName: "refresh"
+            text: qsTr("Retry")
+            enabled: root.canResend
+            disabledReason: qsTr("Wait for the reply to finish")
+            onClicked: root.session.retryLatest()
         }
     }
     Ui.Text {

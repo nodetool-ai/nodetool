@@ -27,7 +27,7 @@ is not evidence of platform support.
 | Secret requests | Explicit declined/unsupported path allowed | No secret entry over chat socket |
 | Editor actions | Only advertised host capabilities | Unsupported actions return an error |
 | Timeline context and a supported edit | Required for timeline integration | Undo and save/reload through existing timeline commands |
-| Rewind, regeneration, sent-message editing | Deferred | No misleading controls |
+| Edit and Retry, with earlier versions kept | Required | Rewind-then-send and version-switch transport tests, delegate action tests |
 | Browser/editor-specific rich panels | Deferred | Readable preserved payload |
 | Durable native draft storage | Deferred | Drafts survive thread switching within the session |
 

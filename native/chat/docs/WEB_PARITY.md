@@ -38,10 +38,11 @@ and the [chat reducer](../../../web/src/core/chat/chatProtocol.ts).
 | Plan documents | matched | Object/string parsing, task/step counts, dependencies, instructions and execution notes follow the web parser cases. |
 | Secret requests | matched | The key can be entered and saved in chat through the server secret store, with settings and Not now as alternatives. |
 | Compaction | differs | Dedicated collapsed summaries omit the history prefix and use an explicit expansion button. |
+| Message actions and versions | differs | Edit and Copy under a prompt, Copy and Retry under the latest reply, the version switcher, the reply line height and block spacing, and the responding pulse follow the web. The model label and the timestamp are not shown. |
 | Error, stop and resume | differs | Native reconciles replay and shows turn errors, but exact web visual equivalence is unmeasured. |
 | Embedded Assistant layout | differs | Shared-theme fixture checks cover dock widths, with horizontal scrolling below 320 px; the running timeline shell remains untested. |
 
-The table contains 11 matched, 13 differs and 1 gap row.
+The table contains 11 matched, 14 differs and 1 gap row.
 
 ## Remaining decisions
 

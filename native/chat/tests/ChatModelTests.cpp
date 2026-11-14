@@ -442,6 +442,37 @@ private slots:
         QVERIFY(sections.first().toMap()["text"].toString().contains("[NodeTool](https://nodetool.ai)"));
         QVERIFY(sections.last().toMap()["text"].toString().contains("[NodeTool](https://nodetool.ai)"));
     }
+    // ChatThreadView.styles.ts: a reply reads at 165% line height with space
+    // between blocks, a small gap between list items and room above a heading.
+    void readingRhythmSpacesBlocks() {
+        QTextDocument document;
+        document.setMarkdown("Intro paragraph.\n\n## Heading\n\n- one\n- two\n- three\n\nClosing paragraph.\n");
+        const auto plain = document.toPlainText();
+        styleReadingRhythm(document, 12, 4, 16);
+        QList<QTextBlock> blocks;
+        for (auto block = document.begin(); block.isValid(); block = block.next()) { blocks.append(block); }
+        QCOMPARE(blocks.size(), 6);
+        for (const auto &block : blocks) {
+            QCOMPARE(block.blockFormat().lineHeightType(), int(QTextBlockFormat::ProportionalHeight));
+            QCOMPARE(block.blockFormat().lineHeight(), 165.0);
+        }
+        QCOMPARE(blocks[0].blockFormat().topMargin(), 0.0);
+        QCOMPARE(blocks[0].blockFormat().bottomMargin(), 12.0);
+        QCOMPARE(blocks[1].blockFormat().topMargin(), 16.0);
+        QCOMPARE(blocks[1].blockFormat().bottomMargin(), 8.0);
+        QCOMPARE(blocks[2].blockFormat().bottomMargin(), 0.0);
+        QCOMPARE(blocks[3].blockFormat().topMargin(), 4.0);
+        QCOMPARE(blocks[4].blockFormat().topMargin(), 4.0);
+        QCOMPARE(blocks[4].blockFormat().bottomMargin(), 12.0);
+        QCOMPARE(blocks[5].blockFormat().bottomMargin(), 0.0);
+        QCOMPARE(document.toPlainText(), plain);
+        // A second pass finds nothing to change, so it cannot loop with the
+        // view's text-changed handler.
+        int changes = 0;
+        QObject::connect(&document, &QTextDocument::contentsChange, &document, [&changes](int, int, int) { ++changes; });
+        styleReadingRhythm(document, 12, 4, 16);
+        QCOMPARE(changes, 0);
+    }
     // rehypeSanitizeChatHtml.ts keeps formatting and drops active content.
     void htmlIsSanitized() {
         const auto clean = sanitizeChatHtml(

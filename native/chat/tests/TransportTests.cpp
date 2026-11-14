@@ -24,6 +24,11 @@ public:
     bool holdHistory = false;
     bool holdUploads = false;
     bool failUploads = false;
+    // messages.list answers with these rows, messages.rewind with
+    // `rewound` as deleted_ids and messages.versions with `forks`.
+    QJsonArray history;
+    QJsonArray rewound;
+    QJsonArray forks;
     QPointer<QTcpSocket> uploadSocket;
     ChatServer() {
         connect(&http, &QTcpServer::newConnection, this, [this] {
@@ -67,8 +72,12 @@ public:
                             data = QJsonObject{{"messages", QJsonArray{QJsonObject{{"id", earlier ? "earlier" : "latest"}, {"role", "user"}, {"content", earlier ? "Earlier" : "Latest"}}}},
                                 {"next", earlier ? QJsonValue(QJsonValue::Null) : QJsonValue("cursor-one")}};
                         } else {
-                            data = QJsonObject{{"messages", QJsonArray{}}, {"next", QJsonValue::Null}};
+                            data = QJsonObject{{"messages", history}, {"next", QJsonValue::Null}};
                         }
+                    } else if (target.startsWith("/trpc/messages.rewind")) {
+                        data = QJsonObject{{"deleted_ids", rewound}};
+                    } else if (target.startsWith("/trpc/messages.versions")) {
+                        data = QJsonObject{{"forks", forks}};
                     } else if (target.startsWith("/trpc/threads.create")) {
                         data = QJsonObject{{"id", ThreadId}, {"title", "Created"}, {"project_id", "default"}};
                     } else {
@@ -495,6 +504,72 @@ private slots:
         server.emitEvent({{"type", "chunk"}, {"chat_seq", 2}, {"thread_id", ThreadId}, {"content", "Paris"}, {"done", true}});
         QTRY_COMPARE(session.messages()->rowCount(), 1);
         QVERIFY(session.error().isEmpty());
+    }
+    // Edit rewinds the thread on the server, drops the replaced turns from the
+    // view and sends the edited prompt. The versions the server reports put a
+    // switcher on the first message after the fork.
+    void editRewindsSendsAndShowsVersions() {
+        ChatServer server;
+        server.history = QJsonArray{
+            QJsonObject{{"id", "prompt"}, {"role", "user"}, {"content", QJsonArray{QJsonObject{{"type", "text"}, {"text", "Draft a title"}},
+                QJsonObject{{"type", "image_url"}, {"image", QJsonObject{{"uri", "asset://brief"}}}}}}},
+            QJsonObject{{"id", "reply"}, {"role", "assistant"}, {"content", "A Quiet Harbour"}}};
+        server.rewound = QJsonArray{"prompt", "reply"};
+        server.forks = QJsonArray{QJsonObject{{"after", ""}, {"first_message_id", "prompt"},
+            {"versions", QJsonArray{"older", QJsonValue::Null}}, {"active", 1}}};
+        QVERIFY(server.listen());
+        ChatSession session;
+        QSignalSpy versionsChanged(&session, &ChatSession::versionsChanged);
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_COMPARE(session.messages()->rowCount(), 2);
+        QTRY_VERIFY(session.versions().contains("prompt"));
+        QCOMPARE(session.versions()["prompt"].toMap()["index"].toInt(), 2);
+        QCOMPARE(session.versions()["prompt"].toMap()["count"].toInt(), 2);
+        QVERIFY(versionsChanged.size() > 0);
+        session.setProvider("test-provider");
+        session.setModel("test-model");
+        QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
+        session.resendFrom("prompt", "Draft a shorter title");
+        QTRY_COMPARE(server.count("command", "chat_message"), 1);
+        const auto rewind = std::find_if(server.requests.cbegin(), server.requests.cend(),
+                                         [](const auto& request) { return request.contains("/trpc/messages.rewind"); });
+        QVERIFY(rewind != server.requests.cend());
+        QVERIFY(rewind->contains("prompt"));
+        const auto sent = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "chat_message"; });
+        const auto content = sent["data"].toObject()["content"].toArray();
+        QCOMPARE(content.size(), 2);
+        QCOMPARE(content[0].toObject()["text"].toString(), QStringLiteral("Draft a shorter title"));
+        QCOMPARE(content[1].toObject()["type"].toString(), QStringLiteral("image_url"));
+        // The rewound rows left; only the edited prompt shows.
+        QCOMPARE(session.messages()->rowCount(), 1);
+        QCOMPARE(session.turnStatus(), QStringLiteral("loading"));
+        // A second Edit while the turn runs does nothing.
+        session.resendFrom(sent["data"].toObject()["id"].toString(), "Again");
+        QTest::qWait(100);
+        QCOMPARE(server.count("command", "chat_message"), 1);
+    }
+    void retryLatestSendsTheLastPromptAgain() {
+        ChatServer server;
+        server.history = QJsonArray{
+            QJsonObject{{"id", "first"}, {"role", "user"}, {"content", "One"}},
+            QJsonObject{{"id", "answer"}, {"role", "assistant"}, {"content", "First answer"}},
+            QJsonObject{{"id", "second"}, {"role", "user"}, {"content", "Two"}},
+            QJsonObject{{"id", "latest"}, {"role", "assistant"}, {"content", "Second answer"}}};
+        server.rewound = QJsonArray{"second", "latest"};
+        QVERIFY(server.listen());
+        ChatSession session;
+        session.connectToServer(server.url(), {});
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_COMPARE(session.messages()->rowCount(), 4);
+        session.setProvider("test-provider");
+        session.setModel("test-model");
+        QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
+        session.retryLatest();
+        QTRY_COMPARE(server.count("command", "chat_message"), 1);
+        const auto sent = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "chat_message"; });
+        QCOMPARE(sent["data"].toObject()["content"].toArray().first().toObject()["text"].toString(), QStringLiteral("Two"));
+        QCOMPARE(session.messages()->rowCount(), 3);
     }
     void renameThreadUpdatesTheServerAndTheList() {
         ChatServer server;

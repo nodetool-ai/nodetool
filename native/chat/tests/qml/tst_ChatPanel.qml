@@ -220,6 +220,8 @@ TestCase {
         property var responses: []
         function markdownPages(text) { return testSession.markdownPages(text) }
         function styleMarkdownLinks(document, colour) { testSession.styleMarkdownLinks(document, colour) }
+        function styleReadingRhythm(document, blockGap, itemGap, headingGap) { testSession.styleReadingRhythm(document, blockGap, itemGap, headingGap) }
+        function copyText(text) { responses = responses.concat([{copy: text}]) }
         function respondToAction(id, allow, feedback) { responses = responses.concat([{id: id, allow: allow, feedback: feedback}]) }
         function openProviderSettings() { responses = responses.concat([{settings: true}]) }
         function saveSecret(id, value) { responses = responses.concat([{id: id, secret: value}]) }
@@ -950,6 +952,93 @@ TestCase {
         compare(testSession.model, "")
         tryCompare(chooser, "activeFocus", true)
         compare(chooser.Accessible.expanded, false)
+    }
+    QtObject {
+        id: resendSession
+        property string connectionStatus: "connected"
+        property string turnStatus: "idle"
+        property bool historyLoading: false
+        property var versions: ({u2: {index: 2, count: 3}})
+        property var calls: []
+        property var resolvedMedia: ({})
+        property bool embeddedMedia: false
+        function markdownPages(text) { return testSession.markdownPages(text) }
+        function styleMarkdownLinks(document, colour) { testSession.styleMarkdownLinks(document, colour) }
+        function styleReadingRhythm(document, blockGap, itemGap, headingGap) { testSession.styleReadingRhythm(document, blockGap, itemGap, headingGap) }
+        function copyText(text) { calls = calls.concat([["copy", text]]) }
+        function resendFrom(id, text) { calls = calls.concat([["resend", id, text]]) }
+        function retryLatest() { calls = calls.concat([["retry"]]) }
+        function selectVersion(id, index) { calls = calls.concat([["version", id, index]]) }
+        function resolveImage(source) {}
+    }
+    function resendCard(properties) {
+        resendSession.calls = []
+        resendSession.turnStatus = "idle"
+        const card = createTemporaryObject(actionCard, test, Object.assign({
+            width: 700, text: "", status: "", parts: [], session: resendSession
+        }, properties))
+        verify(card !== null)
+        return card
+    }
+    function test_editSendsTheChangedPrompt() {
+        const card = resendCard({messageId: "u1", role: "user", text: "Draft a title"})
+        const edit = findChild(card, "editMessageButton")
+        verify(edit.visible)
+        verify(edit.enabled)
+        compare(findChild(card, "retryReplyButton").visible, false)
+        mouseClick(edit)
+        const field = findChild(card, "promptEditorField")
+        tryCompare(field, "visible", true)
+        compare(field.text, "Draft a title")
+        field.text = "Draft a shorter title"
+        mouseClick(findChild(card, "sendEditButton"))
+        compare(JSON.stringify(resendSession.calls), JSON.stringify([["resend", "u1", "Draft a shorter title"]]))
+        tryCompare(field, "visible", false)
+        // Escape leaves the prompt as it was.
+        mouseClick(edit)
+        tryCompare(field, "activeFocus", true)
+        keyClick(Qt.Key_Escape)
+        tryCompare(findChild(card, "promptEditor"), "visible", false)
+        compare(resendSession.calls.length, 1)
+    }
+    function test_copyAndRetryUnderTheLatestReply() {
+        const card = resendCard({messageId: "a1", role: "assistant", text: "A Quiet Harbour", latest: true})
+        const actions = findChild(card, "messageActions")
+        compare(actions.opacity, 1)
+        compare(findChild(card, "editMessageButton").visible, false)
+        mouseClick(findChild(card, "copyMessageButton"))
+        mouseClick(findChild(card, "retryReplyButton"))
+        compare(JSON.stringify(resendSession.calls), JSON.stringify([["copy", "A Quiet Harbour"], ["retry"]]))
+        resendSession.turnStatus = "streaming"
+        compare(findChild(card, "retryReplyButton").enabled, false)
+        mouseMove(test, test.width - 1, test.height - 1)
+        const earlier = resendCard({messageId: "a0", role: "assistant", text: "Earlier reply", latest: false})
+        compare(findChild(earlier, "retryReplyButton").visible, false)
+        tryCompare(findChild(earlier, "messageActions"), "opacity", 0)
+    }
+    function test_versionSwitcherMovesBetweenVersions() {
+        const card = resendCard({messageId: "u2", role: "user", text: "Second take"})
+        const switcher = findChild(card, "versionSwitcher")
+        verify(switcher.visible)
+        compare(findChild(card, "messageActions").opacity, 1)
+        compare(findChild(card, "versionLabel").text, "2/3")
+        compare(switcher.Accessible.name, "Version 2 of 3")
+        mouseClick(findChild(card, "previousVersionButton"))
+        mouseClick(findChild(card, "nextVersionButton"))
+        compare(JSON.stringify(resendSession.calls), JSON.stringify([["version", "u2", 1], ["version", "u2", 3]]))
+        const single = resendCard({messageId: "u9", role: "user", text: "Only take"})
+        compare(findChild(single, "versionSwitcher").visible, false)
+    }
+    function test_respondingPulseWhileAReplyStreams() {
+        testDriver.resetSession()
+        testDriver.stream("a", "Thinking about it")
+        tryCompare(testSession, "turnStatus", "streaming")
+        const pulse = findChild(panel, "chatRespondingPulse")
+        verify(pulse !== null)
+        tryCompare(pulse, "visible", true)
+        testDriver.stream("a", " done.", true)
+        tryCompare(testSession, "turnStatus", "idle")
+        tryCompare(pulse, "visible", false)
     }
     function test_messagesHaveNoCopyButtons() {
         testDriver.codeHistory("a", "int value = 0;\n")
