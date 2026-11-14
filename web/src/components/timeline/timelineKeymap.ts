@@ -114,7 +114,49 @@ export type TimelineAction =
   | "workspace1"
   | "workspace2"
   | "workspace3"
-  | "workspace4";
+  | "workspace4"
+  | "goToSequenceStart"
+  | "goToSequenceEnd"
+  | "prevCutAnyTrack"
+  | "nextCutAnyTrack"
+  | "goToSelectedStart"
+  | "goToSelectedEnd"
+  | "selectPrevClip"
+  | "selectNextClip"
+  | "nextGap"
+  | "prevGap"
+  | "slowShuttleBack"
+  | "slowShuttleForward"
+  | "playAround"
+  | "playInToOutWithRoll"
+  | "playToOut"
+  | "extendPrevEdit"
+  | "extendNextEdit"
+  | "slideLeft"
+  | "slideRight"
+  | "markSelection"
+  | "clearIn"
+  | "clearOut"
+  | "clearAllMarkers"
+  | "addRangeMarker"
+  | "addMarkerInOut"
+  | "expandAllTracks"
+  | "minimizeAllTracks"
+  | "audioTracksTaller"
+  | "audioTracksShorter"
+  | "clipVolumeDown"
+  | "clipVolumeUp"
+  | "clipVolumeDownMore"
+  | "clipVolumeUpMore"
+  | "panelSource"
+  | "panelTimeline"
+  | "panelProgram"
+  | "panelEffectControls"
+  | "panelInspector"
+  | "panelScript"
+  | "panelStoryboard"
+  | "nextPanel"
+  | "prevPanel";
 
 export interface KeyBinding {
   key: string;
@@ -187,8 +229,55 @@ const COMMON: Partial<Keymap> = {
   workspace1: [k("1", { alt: true, shift: true })],
   workspace2: [k("2", { alt: true, shift: true })],
   workspace3: [k("3", { alt: true, shift: true })],
-  workspace4: [k("4", { alt: true, shift: true })]
+  workspace4: [k("4", { alt: true, shift: true })],
+  // Home and End reach the sequence ends in both editors.
+  goToSequenceStart: [k("Home")],
+  goToSequenceEnd: [k("End")]
 };
+
+/** The Premiere keys the Final Cut preset leaves unbound. */
+export const PREMIERE_ONLY_ACTIONS: readonly TimelineAction[] = [
+  "prevCutAnyTrack",
+  "nextCutAnyTrack",
+  "goToSelectedStart",
+  "goToSelectedEnd",
+  "selectPrevClip",
+  "selectNextClip",
+  "nextGap",
+  "prevGap",
+  "slowShuttleBack",
+  "slowShuttleForward",
+  "playAround",
+  "playInToOutWithRoll",
+  "playToOut",
+  "extendPrevEdit",
+  "extendNextEdit",
+  "slideLeft",
+  "slideRight",
+  "markSelection",
+  "clearIn",
+  "clearOut",
+  "clearAllMarkers",
+  "addRangeMarker",
+  "addMarkerInOut",
+  "expandAllTracks",
+  "minimizeAllTracks",
+  "audioTracksTaller",
+  "audioTracksShorter",
+  "clipVolumeDown",
+  "clipVolumeUp",
+  "clipVolumeDownMore",
+  "clipVolumeUpMore",
+  "panelSource",
+  "panelTimeline",
+  "panelProgram",
+  "panelEffectControls",
+  "panelInspector",
+  "panelScript",
+  "panelStoryboard",
+  "nextPanel",
+  "prevPanel"
+];
 
 const PREMIERE: Keymap = {
   ...(COMMON as Keymap),
@@ -216,8 +305,8 @@ const PREMIERE: Keymap = {
   rippleDeleteSelected: [k("Delete", { shift: true }), k("Backspace", { shift: true })],
   duplicate: [k("d", { alt: true })],
   duplicateWithGap: [k("d", { alt: true, shift: true })],
-  nudgeLeft: [k("ArrowLeft", { alt: true })],
-  nudgeRight: [k("ArrowRight", { alt: true })],
+  nudgeLeft: [k("ArrowLeft", { alt: true }), k("ArrowLeft", { ctrl: true })],
+  nudgeRight: [k("ArrowRight", { alt: true }), k("ArrowRight", { ctrl: true })],
   nudgeLeftLarge: [k("ArrowLeft", { alt: true, shift: true })],
   nudgeRightLarge: [k("ArrowRight", { alt: true, shift: true })],
   extendEdit: [k("e")],
@@ -225,7 +314,7 @@ const PREMIERE: Keymap = {
   trimEditRight: [k("ArrowRight", { ctrl: true, alt: true })],
   trimEditLeftLarge: [k("ArrowLeft", { ctrl: true, alt: true, shift: true })],
   trimEditRightLarge: [k("ArrowRight", { ctrl: true, alt: true, shift: true })],
-  clearRange: [k("x", { ctrl: true, shift: true })],
+  clearRange: [k("x", { ctrl: true, shift: true }), k("x", { alt: true })],
   nextMarker: [k("m", { shift: true })],
   prevMarker: [k("m", { ctrl: true, shift: true })],
   zoomIn: [k("=")],
@@ -243,10 +332,53 @@ const PREMIERE: Keymap = {
   pasteInsert: [k("v", { ctrl: true, shift: true })],
   expandTracks: [k("=", { ctrl: true })],
   shrinkTracks: [k("-", { ctrl: true })],
-  // Premiere ships the loop toggle unbound; Shift+L sits next to the
-  // shuttle keys.
-  toggleLoop: [k("l", { shift: true })],
-  playInToOut: [k(" ", { ctrl: true, shift: true })]
+  // Premiere ships the loop toggle unbound and Shift+L shuttles slowly.
+  toggleLoop: [k("l", { ctrl: true, shift: true })],
+  playInToOut: [k(" ", { ctrl: true, shift: true })],
+  prevCutAnyTrack: [k("ArrowUp", { shift: true })],
+  nextCutAnyTrack: [k("ArrowDown", { shift: true })],
+  goToSelectedStart: [k("Home", { shift: true })],
+  goToSelectedEnd: [k("End", { shift: true })],
+  selectPrevClip: [k("ArrowUp", { ctrl: true })],
+  selectNextClip: [k("ArrowDown", { ctrl: true })],
+  nextGap: [k(";", { shift: true })],
+  prevGap: [k(";", { alt: true })],
+  slowShuttleBack: [k("j", { shift: true })],
+  slowShuttleForward: [k("l", { shift: true })],
+  playAround: [k("k", { shift: true })],
+  playInToOutWithRoll: [k(" ", { shift: true })],
+  playToOut: [k(" ", { ctrl: true })],
+  extendPrevEdit: [k("q", { shift: true })],
+  extendNextEdit: [k("w", { shift: true })],
+  slideLeft: [k(",", { alt: true })],
+  slideRight: [k(".", { alt: true })],
+  markSelection: [k("/")],
+  clearIn: [k("i", { alt: true })],
+  clearOut: [k("o", { alt: true })],
+  // Premiere clears the marker at the playhead on Alt+M, which switches
+  // the Video and DAW layouts here, so that key has no binding.
+  clearAllMarkers: [k("m", { ctrl: true, alt: true })],
+  addRangeMarker: [k("m", { alt: true, shift: true })],
+  addMarkerInOut: [k("m", { ctrl: true })],
+  expandAllTracks: [k("=", { shift: true })],
+  minimizeAllTracks: [k("-", { shift: true })],
+  audioTracksTaller: [k("=", { alt: true })],
+  audioTracksShorter: [k("-", { alt: true })],
+  clipVolumeDown: [k("[")],
+  clipVolumeUp: [k("]")],
+  clipVolumeDownMore: [k("[", { shift: true })],
+  clipVolumeUpMore: [k("]", { shift: true })],
+  // Premiere's panel keys, for the panels this editor has. Shift+1 (Project),
+  // Shift+6 (Audio Track Mixer) and Shift+7 (Effects) have none.
+  panelSource: [k("2", { shift: true })],
+  panelTimeline: [k("3", { shift: true })],
+  panelProgram: [k("4", { shift: true })],
+  panelEffectControls: [k("5", { shift: true })],
+  panelStoryboard: [k("8", { shift: true })],
+  panelInspector: [k("9", { shift: true })],
+  panelScript: [k("0", { shift: true })],
+  nextPanel: [k(".", { ctrl: true, shift: true })],
+  prevPanel: [k(",", { ctrl: true, shift: true })]
 };
 
 const FCP: Keymap = {
@@ -307,7 +439,8 @@ const FCP: Keymap = {
   expandTracks: [k("ArrowUp", { ctrl: true, alt: true })],
   shrinkTracks: [k("ArrowDown", { ctrl: true, alt: true })],
   toggleLoop: [k("l", { ctrl: true })],
-  playInToOut: [k("/")]
+  playInToOut: [k("/")],
+  ...(Object.fromEntries(PREMIERE_ONLY_ACTIONS.map((action) => [action, []])) as Partial<Keymap>)
 };
 
 export const TIMELINE_KEYMAPS: Record<TimelineKeyboardPreset, Keymap> = {

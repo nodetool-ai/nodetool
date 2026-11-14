@@ -115,6 +115,17 @@ public:
         return static_cast<int>(std::count_if(frames.cbegin(), frames.cend(), [&](const auto& frame) { return frame[field] == value; }));
     }
 };
+// True once the session has shown the action, so a test can answer it.
+bool hasAction(ChatSession& session, const QString& id) {
+    const auto* messages = qobject_cast<MessageModel*>(session.messages());
+    if (!messages) { return false; }
+    for (const auto& row : messages->snapshot()) {
+        for (const auto& part : row.toObject()["parts"].toArray()) {
+            if (part.toObject()["actionId"] == id) { return true; }
+        }
+    }
+    return false;
+}
 }
 class TransportTests : public QObject {
     Q_OBJECT
@@ -321,7 +332,8 @@ private slots:
                           {"tool_name", "write"}, {"message", "Change document?"}});
         server.emitEvent({{"type", "plan_approval_request"}, {"thread_id", ThreadId}, {"approval_id", "plan-kept"},
                           {"plan", QJsonObject{}}}, 20);
-        QTest::qWait(80);
+        QTRY_VERIFY(hasAction(session, "approval-auto"));
+        QTRY_VERIFY(hasAction(session, "plan-kept"));
         session.setPermissionMode("auto");
         QTRY_COMPARE(server.count("command", "set_permission_mode"), 1);
         const auto mode = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "set_permission_mode"; });
@@ -356,7 +368,8 @@ private slots:
                           {"tool_name", "write"}, {"message", "Change document?"}});
         server.emitEvent({{"type", "secret_request"}, {"thread_id", ThreadId}, {"approval_id", "secret-one"},
                           {"key", "OPENAI_API_KEY"}, {"reason", "Needed for images"}}, 20);
-        QTest::qWait(80);
+        QTRY_VERIFY(hasAction(session, "approval-chat"));
+        QTRY_VERIFY(hasAction(session, "secret-one"));
         session.allowActionForChat("secret-one");
         session.allowActionForChat("approval-chat");
         QTRY_COMPARE(server.count("type", "tool_approval_response"), 1);
