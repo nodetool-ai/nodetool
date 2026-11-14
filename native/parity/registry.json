@@ -1426,7 +1426,7 @@
         "native/node-editor/src/graph/EditorScene.cpp"
       ],
       "status": "partial",
-      "note": "Open: exact icon ink, custom colors, group-body pointer pass-through, Ctrl-held group selection.",
+      "note": "Open: exact icon ink.",
       "inventory": "F07"
     },
     "web/src/components/node/HandleColumn.tsx": {
