@@ -387,7 +387,7 @@ public:
       const bool dropTarget = group && scene_.dropGroup() == item.nodeId();
       auto hoverEdge = theme.primary;
       hoverEdge.setAlphaF(0.6);
-      if (dropTarget) { painter->setOpacity(painter->opacity() * 0.8); }
+      painter->setOpacity(painter->opacity() * scene_.groupOpacity(item.nodeId()));
       painter->setPen(group || item.isSelected() ? QPen(item.isSelected() ? theme.primary : dropTarget ? hoverEdge : border, group ? 1 / zoom : 1) : QPen(Qt::NoPen));
       painter->drawRoundedRect(QRectF(QPointF(), layout.size), 4, 4);
       if (group) {
@@ -1102,6 +1102,28 @@ EditorScene::EditorScene(WorkflowGraphModel &model, QObject *parent)
   // A selection fades every node and wire off the selected branch. Selection
   // changes apply at once. Graph edits apply once after the projection settles.
   connect(this, &QGraphicsScene::selectionChanged, this, &EditorScene::updateBranchDimming);
+  // A group takes the pointer while Alt is held and it holds a selected card.
+  connect(this, &QGraphicsScene::selectionChanged, this, [this] {
+    if (!altHeld_) { return; }
+    refreshGroupPointer();
+    for (const auto id : model_.allNodeIds()) {
+      if (!model_.isGroup(id)) { continue; }
+      if (auto *item = nodeGraphicsObject(id)) { item->update(); }
+    }
+    update();
+  });
+  // A box selection keeps a group only when the box encloses its frame.
+  connect(this, &QGraphicsScene::selectionChanged, this, [this] {
+    for (const auto view : views()) {
+      if (view->rubberBandRect().isNull()) { continue; }
+      keepEnclosedGroups(view->mapToScene(view->rubberBandRect()).boundingRect());
+      return;
+    }
+  });
+  // The drop hint appears a second after a dragged card reaches a group.
+  dropHintTimer_.setSingleShot(true);
+  dropHintTimer_.setInterval(dropHintDelayMs);
+  connect(&dropHintTimer_, &QTimer::timeout, this, [this] { update(); });
   const auto scheduleDimming = [this] {
     if (branchDimmingPending_) { return; }
     branchDimmingPending_ = true;
@@ -1304,8 +1326,68 @@ QRectF EditorScene::groupLabelRect(NodeId id, double zoom) {
   if (!item || !model_.isGroup(id)) { return {}; }
   const auto scale = groupLabelScale(zoom);
   const auto &layout = model_.layout(id);
+  // GroupNode.tsx sizes the label to its text, bounded by the group width, and
+  // the rest of the header strip neither selects nor drags the group.
+  const auto text = QFontMetricsF(canvasFont(theme_, 15, QFont::Medium)).horizontalAdvance(layout.title) * scale;
+  const auto width = std::min(text, double(layout.size.width()));
   return QRectF(item->scenePos() + QPointF(0, -5 / zoom - 32 * scale),
-                QSizeF(std::max(24.0 * scale, double(layout.size.width())), 32 * scale));
+                QSizeF(std::max(24.0 * scale, width), 32 * scale));
+}
+
+bool EditorScene::groupTakesPointer(NodeId id) const {
+  if (!altHeld_ || !model_.isGroup(id)) { return false; }
+  // Only a direct child counts, as GroupNode.tsx hasSelectedChild reads parentId.
+  const auto resource = model_.resourceId(id);
+  for (auto *item : selectedItems()) {
+    const auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
+    if (node && model_.nodeSnapshot(node->nodeId())["parent_id"].toString() == resource) { return true; }
+  }
+  return false;
+}
+
+double EditorScene::groupOpacity(NodeId id) const {
+  if (!model_.isGroup(id)) { return 1; }
+  return groupTakesPointer(id) ? 0.5 : dropGroup_ == id ? 0.8 : 1;
+}
+
+bool EditorScene::passesThroughGroup(NodeId id, const QPointF &scenePosition) {
+  if (!model_.isGroup(id) || groupTakesPointer(id)) { return false; }
+  const auto *item = nodeGraphicsObject(id);
+  return item && QRectF(item->scenePos(), model_.layout(id).size).contains(scenePosition);
+}
+
+void EditorScene::refreshGroupPointer() {
+  for (const auto id : model_.allNodeIds()) {
+    if (!model_.isGroup(id)) { continue; }
+    auto *item = nodeGraphicsObject(id);
+    // Taking the buttons from the grabbing item would end its drag, so a group
+    // dragged with Alt keeps moving when Alt or its child's selection goes.
+    if (!item || item == mouseGrabberItem()) { continue; }
+    item->setAcceptedMouseButtons(groupTakesPointer(id) ? Qt::AllButtons : Qt::NoButton);
+  }
+}
+
+void EditorScene::setAltHeld(bool held) {
+  if (altHeld_ == held) { return; }
+  altHeld_ = held;
+  refreshGroupPointer();
+  for (const auto id : model_.allNodeIds()) {
+    if (!model_.isGroup(id)) { continue; }
+    if (auto *item = nodeGraphicsObject(id)) { item->update(); }
+  }
+  update();
+}
+
+void EditorScene::keepEnclosedGroups(const QRectF &sceneArea) {
+  for (auto *item : selectedItems()) {
+    auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(item);
+    if (!node || !model_.isGroup(node->nodeId())) { continue; }
+    if (!sceneArea.contains(QRectF(node->scenePos(), model_.layout(node->nodeId()).size))) { node->setSelected(false); }
+  }
+}
+
+bool EditorScene::dropHintVisible() const {
+  return dropGroup_ != InvalidNodeId && dropClock_.isValid() && dropClock_.elapsed() >= dropHintDelayMs;
 }
 
 void EditorScene::restoreGroupOrder() {
@@ -1346,6 +1428,8 @@ void EditorScene::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
   for (auto *item : items(event->scenePos(), Qt::IntersectsItemShape, Qt::DescendingOrder)) {
     for (auto *parent = item; parent; parent = parent->parentItem()) {
       if (auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(parent)) {
+        // A right-click on a group body reaches an outer group or the pane.
+        if (passesThroughGroup(node->nodeId(), event->scenePos())) { break; }
         emit canvasContextMenuRequested(model_.resourceId(node->nodeId()), event->screenPos()); event->accept(); return;
       }
     }
@@ -1353,6 +1437,8 @@ void EditorScene::contextMenuEvent(QGraphicsSceneContextMenuEvent *event) {
   emit canvasContextMenuRequested({}, event->screenPos()); event->accept();
 }
 void EditorScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) {
+  setAltHeld(event->modifiers().testFlag(Qt::AltModifier));
+  refreshGroupPointer();
   if (!model_.readOnly() && event->button() == Qt::LeftButton && resetKnob(event->scenePos())) {
     event->accept();
     return;
@@ -1423,7 +1509,9 @@ void EditorScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent *event) {
       // A note below a card is the card's child item, so it is not the pane either.
       bool onCard = qgraphicsitem_cast<ConnectionGraphicsObject *>(item) != nullptr;
       for (auto *ancestor = item; ancestor && !onCard; ancestor = ancestor->parentItem()) {
-        onCard = qgraphicsitem_cast<NodeGraphicsObject *>(ancestor) != nullptr;
+        const auto *node = qgraphicsitem_cast<NodeGraphicsObject *>(ancestor);
+        // A group body is part of the pane for a double-click.
+        onCard = node && !passesThroughGroup(node->nodeId(), event->scenePos());
       }
       if (onCard) {
         pane = false;
@@ -1484,6 +1572,8 @@ bool EditorScene::beginReconnect(ConnectionId connection, PortType side) {
 }
 
 void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
+    setAltHeld(event->modifiers().testFlag(Qt::AltModifier));
+    refreshGroupPointer();
     footerPress_ = InvalidNodeId;
     outputFormPress_ = false;
     headerActionPress_ = false;
@@ -1619,6 +1709,8 @@ void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
       label = true;
       break;
     }
+    // A group body lets the press through to an outer group or the pane.
+    if (passesThroughGroup(id, point)) { continue; }
     // Do not resize a frame behind another card's body.
     if (bounds.contains(point)) { break; }
   }
@@ -1629,9 +1721,19 @@ void EditorScene::mousePressEvent(QGraphicsSceneMouseEvent *event) {
     return;
   }
   auto item = nodeGraphicsObject(target);
-  if (!item->isSelected() && !(event->modifiers() & Qt::ControlModifier)) { clearSelection(); }
+  // ReactFlowWrapper.tsx selectGroupFromLabel: Shift, Ctrl or Cmd adds the group
+  // to the selection, or takes a selected group out of it.
+  const bool additive = event->modifiers() & (Qt::ShiftModifier | Qt::ControlModifier | Qt::MetaModifier);
+  if (label && additive && item->isSelected()) {
+    item->setSelected(false);
+    event->accept();
+    restoreGroupOrder();
+    return;
+  }
+  if (!item->isSelected() && !additive) { clearSelection(); }
   item->setSelected(true);
   emit nodeSelected(target);
+  labelAdditive_ = additive;
   gesture_ = label ? Gesture::Label : Gesture::Resize;
   gestureNode_ = target;
   if (event->widget()) {
@@ -1717,6 +1819,11 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             model_.setDimensionsLinked(id, !row.checked);
             return true;
         }
+        if (row.kind == NodeRowKind::ListItem && row.parts.size() > 1 && local.y() < row.parts[1].bottom()) {
+            select();
+            model_.toggleListItem(id, row.selected);
+            return true;
+        }
         if (row.kind == NodeRowKind::Action) {
             if (row.action == QStringLiteral("addOutput")) {
                 if (layout.body == CardBody::Content) { emit outputFormRequested(resource); }
@@ -1729,6 +1836,12 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
             if (row.action == QStringLiteral("copyValue")) {
                 select();
                 QGuiApplication::clipboard()->setText(model_.nodeSnapshot(id)["data"].toObject()[row.value].toString());
+                return true;
+            }
+            // A List Generator row copies its whole item, as its CopyButton.
+            if (row.action == QStringLiteral("copyListItem")) {
+                select();
+                QGuiApplication::clipboard()->setText(row.value);
                 return true;
             }
             if (row.action == QStringLiteral("openDocument")) {
@@ -1802,6 +1915,19 @@ bool EditorScene::pressCardControl(NodeId id, const QPointF &local) {
                 model_.commit(model_.addDataframeColumnCommand(id, row.propertyName));
             } else if (row.action == QStringLiteral("toggleProperty")) {
                 model_.commit(model_.propertyCommand(id, row.propertyName, !row.checked));
+            } else if (row.action == QStringLiteral("previousFrame") || row.action == QStringLiteral("nextFrame")) {
+                // ExtractVideoFrameBody's step buttons move the extracted time one frame.
+                const auto time = node["data"].toObject()[QStringLiteral("time")].toDouble();
+                model_.commit(model_.propertyCommand(id, QStringLiteral("time"),
+                                                     steppedVideoTime(time, row.action == QStringLiteral("nextFrame") ? 1 : -1)));
+            } else if (row.action == QStringLiteral("removeCollectionItem")) {
+                auto items = node["data"].toObject()[QStringLiteral("items")].toArray();
+                if (row.selected >= 0 && row.selected < items.size()) {
+                    items.removeAt(row.selected);
+                    model_.commit(model_.propertyCommand(id, QStringLiteral("items"), items));
+                }
+            } else if (row.action == QStringLiteral("clearCollection")) {
+                model_.commit(model_.propertyCommand(id, QStringLiteral("items"), QJsonArray{}));
             } else if (row.action == QStringLiteral("resetCrop")) {
                 // CropBody's Reset selects the whole image, or 512 square before one arrives.
                 QSizeF bounds(512, 512);
@@ -2050,6 +2176,7 @@ void EditorScene::finishSlider(bool commit) {
     }
 }
 void EditorScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
+    setAltHeld(event->modifiers().testFlag(Qt::AltModifier));
     // The connectable styling covers every card, so a drag start repaints them.
     const bool drafting = draftEnd().node != InvalidNodeId;
     // A dragged wire draws above every card (QtNodes gives a connection z -1).
@@ -2296,7 +2423,18 @@ void EditorScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
       if (model_.commit && !model_.commit({{"op", "batch"}, {"commands", commands}})) { cancelGesture(); }
     }
     event->accept();
-  } else if (gesture == Gesture::Label) { event->accept(); }
+  } else if (gesture == Gesture::Label) {
+    // A plain click on a label, without a drag, selects the group alone, as
+    // React Flow's node click does after a press that kept a wider selection.
+    if (!labelAdditive_ && event->scenePos() == gestureOrigin_ && model_.nodeExists(id)) {
+      if (auto *item = nodeGraphicsObject(id)) {
+        clearSelection();
+        item->setSelected(true);
+        emit nodeSelected(id);
+      }
+    }
+    event->accept();
+  }
   else {
     BasicGraphicsScene::mouseReleaseEvent(event);
     endNodeDrag();
@@ -2360,6 +2498,14 @@ void EditorScene::trackNodeDrag(const QGraphicsSceneMouseEvent *event) {
   if (target == dropGroup_) { return; }
   const auto previous = dropGroup_;
   dropGroup_ = target;
+  if (target == InvalidNodeId) {
+    dropClock_.invalidate();
+    dropHintTimer_.stop();
+  } else {
+    dropClock_.start();
+    dropHintTimer_.start();
+  }
+  update();
   for (const auto id : {previous, target}) {
     if (auto *group = nodeGraphicsObject(id)) { group->update(); }
   }
@@ -2373,6 +2519,9 @@ void EditorScene::endNodeDrag() {
   const auto group = dropGroup_;
   dragNode_ = InvalidNodeId;
   dropGroup_ = InvalidNodeId;
+  dropClock_.invalidate();
+  dropHintTimer_.stop();
+  update();
   dragMoved_ = false;
   dragDetach_ = false;
   if (auto *item = nodeGraphicsObject(group)) { item->update(); }
@@ -2418,9 +2567,15 @@ void EditorScene::keyPressEvent(QKeyEvent *event) {
     event->accept();
     return;
   }
+  if (event->key() == Qt::Key_Alt) { setAltHeld(true); }
   BasicGraphicsScene::keyPressEvent(event);
 }
+void EditorScene::keyReleaseEvent(QKeyEvent *event) {
+  if (event->key() == Qt::Key_Alt) { setAltHeld(false); }
+  BasicGraphicsScene::keyReleaseEvent(event);
+}
 void EditorScene::focusOutEvent(QFocusEvent *event) {
+  setAltHeld(false);
   if (gesture_ != Gesture::None) { cancelGesture(); }
   BasicGraphicsScene::focusOutEvent(event);
 }
@@ -2474,6 +2629,41 @@ void EditorScene::drawBackground(QPainter *painter, const QRectF &rect) {
   painter->drawLines(axes, 2);
 }
 
+// GroupNode.tsx .help-text: a box centered over the group, its bottom edge
+// 32 px above the frame, scaled with the canvas like the rest of the group.
+void EditorScene::paintDropHint(QPainter *painter, const QRectF &frame) const {
+  const auto heading = tr("REMOVE NODES FROM GROUP");
+  const QStringList lines{tr("Drag out while holding Alt (Option ⌥ on Mac)"), tr("Shake rapidly, then drag out")};
+  const auto bold = canvasFont(theme_, 13, QFont::DemiBold);
+  const auto body = canvasFont(theme_, 13, QFont::Normal);
+  const QFontMetricsF boldMetrics(bold), bodyMetrics(body);
+  // The list indents its items 8 + 16 px, with a square marker in that space.
+  const double indent = 24;
+  double width = boldMetrics.horizontalAdvance(heading);
+  for (const auto &line : lines) { width = std::max(width, indent + bodyMetrics.horizontalAdvance(line)); }
+  const double lineHeight = bodyMetrics.height();
+  const QSizeF content(width, boldMetrics.height() + lineHeight * lines.size());
+  const QSizeF box(content.width() + 32, content.height() + 24);
+  const QRectF rect(frame.center().x() - box.width() / 2, frame.top() - 32 - box.height(), box.width(), box.height());
+  painter->save();
+  painter->setPen(QPen(theme_.divider, 1));
+  painter->setBrush(theme_.node);
+  painter->drawRoundedRect(rect, 4, 4);
+  painter->setPen(theme_.textPrimary);
+  painter->setFont(bold);
+  auto y = rect.top() + 12;
+  painter->drawText(QRectF(rect.left() + 16, y, content.width(), boldMetrics.height()), Qt::AlignLeft | Qt::AlignVCenter, heading);
+  y += boldMetrics.height();
+  painter->setFont(body);
+  for (const auto &line : lines) {
+    const double marker = 4;
+    painter->fillRect(QRectF(rect.left() + 16 + indent - 12, y + lineHeight / 2 - marker / 2, marker, marker), theme_.textPrimary);
+    painter->drawText(QRectF(rect.left() + 16 + indent, y, content.width() - indent, lineHeight), Qt::AlignLeft | Qt::AlignVCenter, line);
+    y += lineHeight;
+  }
+  painter->restore();
+}
+
 void EditorScene::drawForeground(QPainter *painter, const QRectF &) {
   painter->setRenderHint(QPainter::Antialiasing);
   painter->setRenderHint(QPainter::TextAntialiasing);
@@ -2486,7 +2676,7 @@ void EditorScene::drawForeground(QPainter *painter, const QRectF &) {
     const auto &layout = model_.layout(id);
     painter->save();
     // The label is part of the group, so it fades with it.
-    painter->setOpacity(painter->opacity() * item->opacity());
+    painter->setOpacity(painter->opacity() * item->opacity() * groupOpacity(id));
     painter->translate(item->scenePos() + QPointF(0, -5 / zoom));
     painter->scale(labelScale, labelScale);
     painter->setFont(canvasFont(theme_, 15, QFont::Medium));
@@ -2495,6 +2685,9 @@ void EditorScene::drawForeground(QPainter *painter, const QRectF &) {
     painter->drawText(QRectF(0, -32, width, 32), Qt::AlignLeft | Qt::AlignVCenter,
                       painter->fontMetrics().elidedText(layout.title, Qt::ElideRight, int(width)));
     painter->restore();
+  }
+  if (dropHintVisible()) {
+    if (const auto *group = nodeGraphicsObject(dropGroup_)) { paintDropHint(painter, QRectF(group->scenePos(), model_.layout(dropGroup_).size)); }
   }
   for (auto item : items()) {
     // A selected node names its handle-only inputs and its outputs outside the card.

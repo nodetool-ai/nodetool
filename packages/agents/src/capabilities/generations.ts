@@ -275,7 +275,7 @@ const awaitGeneration: CapabilityExport = {
       if (!row) return { error: `Generation ${id} was not found.` };
       if (TERMINAL.has(publicGenerationStatus(row)))
         return generationRecord(row);
-      if (run.context.signal?.aborted) break;
+      if (run.signal?.aborted || run.context.signal?.aborted) break;
     }
     return {
       ...generationRecord(row),

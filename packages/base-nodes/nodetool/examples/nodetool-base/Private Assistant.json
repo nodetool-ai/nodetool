@@ -22,7 +22,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🔒 Private Assistant\n\nA fully local Q&A assistant, meant to run on a local Ollama model. Paste your own notes, ask a question, and the model answers from your text only. With a local model there is no API key and no cloud call, so the document never leaves your machine.\n\n**How it works:** \"1️⃣ Document\", \"2️⃣ Question\" and \"3️⃣ Tone\" fill \"4️⃣ Build the prompt\", which wraps the document as the only allowed source. \"5️⃣ Local assistant\" runs with no tools and a system prompt that refuses to answer beyond the text. \"6️⃣ Answer\" shows its Markdown reply. Install [Ollama](https://ollama.com), pull a model such as llama3.2, qwen2.5 or gemma3, and pick it on \"5️⃣ Local assistant\".\n\n**Try this:** Ask \"2️⃣ Question\" something the notes do not cover, such as \"Who is the CEO?\", and confirm the assistant says the notes don't cover it."
+          "comment": "# Private Assistant\n\nA fully local Q&A assistant, meant to run on a local Ollama model. Paste your own notes, ask a question, and the model answers from your text only. With a local model there is no API key and no cloud call, so the document never leaves your machine.\n\n**How it works:** \"1 Document\", \"2 Question\" and \"3 Tone\" fill \"4 Build the prompt\", which wraps the document as the only allowed source. \"5 Local assistant\" runs with no tools and a system prompt that refuses to answer beyond the text. \"6 Answer\" shows its Markdown reply. Install [Ollama](https://ollama.com), pull a model such as llama3.2, qwen2.5 or gemma3, and pick it on \"5 Local assistant\".\n\n**Try this:** Ask \"2 Question\" something the notes do not cover, such as \"Who is the CEO?\", and confirm the assistant says the notes don't cover it."
         },
         "ui_properties": {
           "selected": false,
@@ -49,7 +49,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "1️⃣ Document",
+          "title": "1 Document",
           "position": {
             "x": 0,
             "y": 442
@@ -72,7 +72,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "2️⃣ Question",
+          "title": "2 Question",
           "position": {
             "x": 0,
             "y": 667
@@ -95,7 +95,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "3️⃣ Tone",
+          "title": "3 Tone",
           "position": {
             "x": 0,
             "y": 892
@@ -116,7 +116,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "4️⃣ Build the prompt",
+          "title": "4 Build the prompt",
           "position": {
             "x": 400,
             "y": 529
@@ -152,7 +152,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "5️⃣ Local assistant",
+          "title": "5 Local assistant",
           "position": {
             "x": 800,
             "y": 648
@@ -172,7 +172,7 @@
         },
         "ui_properties": {
           "selected": false,
-          "title": "6️⃣ Answer",
+          "title": "6 Answer",
           "position": {
             "x": 1220,
             "y": 679

@@ -5639,7 +5639,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 346,
-          "width": 300
+          "width": 300,
+          "subtitle": "A lighthouse on a basalt cliff at dusk, storm clouds rolling in, waves breaking white on the rocks below"
         },
         {
           "id": "gen",
@@ -8209,7 +8210,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 514,
-          "width": 300
+          "width": 300,
+          "subtitle": "A heat pump moves heat instead of making it. In winter it pulls warmth out of the cold outdoor air and pumps it indoors, which is why it ca…"
         },
         {
           "id": "ag",
@@ -8349,7 +8351,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 365,
-          "width": 300
+          "width": 300,
+          "subtitle": "A meal-kit service that delivers 20-minute vegetarian dinners for two, in recyclable packaging, with no subscription lock-in."
         },
         {
           "id": "ag",
@@ -10493,7 +10496,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 782,
-          "width": 220
+          "width": 220,
+          "subtitle": "How to keep houseplants alive while you are away for two weeks: group them together out of direct sun, water them deeply the day you leave,…"
         },
         {
           "id": "narrator",
@@ -12351,7 +12355,7 @@ export const templateEntries: TemplateEntry[] = [
           "y": 0,
           "width": 560,
           "isComment": true,
-          "subtitle": "🎬 Movie Posters From a title, genre, and visual style, design a batch of theatrical poster concepts. An art-direction agent writes the key-art brief — positioning, palette, typography — and that brief drives every post…"
+          "subtitle": "Movie Posters From a title, genre, and visual style, design a batch of theatrical poster concepts. An art-direction agent writes the key-art brief — positioning, palette, typography — and that brief drives every poster…"
         },
         {
           "id": "strategy_prompt_formatter",
@@ -13640,7 +13644,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 583,
-          "width": 300
+          "width": 300,
+          "subtitle": "Every morning, before the city wakes, the bakery on Elm Street lights its ovens. By six, the first loaves are cooling in the window, and th…"
         },
         {
           "id": "tts",
@@ -13654,7 +13659,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "mus",
           "type": "nodetool.audio.TextToMusic",
           "title": "Text To Music",
-          "x": 1180,
+          "x": 1580,
           "y": 596,
           "width": 300,
           "subtitle": "calm ambient bed, no percussion, unobtrusive"
@@ -13663,7 +13668,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "ov",
           "type": "nodetool.audio.OverlayAudio",
           "title": "Overlay Audio",
-          "x": 3100,
+          "x": 3480,
           "y": 472,
           "width": 300
         },
@@ -13671,7 +13676,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 3500,
+          "x": 3880,
           "y": 479,
           "width": 300
         },
@@ -13703,7 +13708,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "music-trim",
           "type": "nodetool.audio.Trim",
           "title": "Trim",
-          "x": 1580,
+          "x": 1960,
           "y": 743,
           "width": 280
         },
@@ -13711,7 +13716,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "music-level",
           "type": "lib.audio.Gain",
           "title": "Gain",
-          "x": 1960,
+          "x": 2340,
           "y": 634,
           "width": 280
         },
@@ -13719,7 +13724,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "music-start",
           "type": "nodetool.audio.FadeIn",
           "title": "Fade In",
-          "x": 2340,
+          "x": 2720,
           "y": 633,
           "width": 280
         },
@@ -13727,7 +13732,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "music-end",
           "type": "nodetool.audio.FadeOut",
           "title": "Fade Out",
-          "x": 2720,
+          "x": 3100,
           "y": 580,
           "width": 280
         }
@@ -13780,6 +13785,13 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "audio",
           "target": "music-trim",
           "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "voice-length",
+          "sourceHandle": "duration",
+          "target": "mus",
+          "targetHandle": "duration",
           "color": "any"
         },
         {
@@ -21059,7 +21071,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 601,
-          "width": 300
+          "width": 300,
+          "subtitle": "Hopeful and unhurried, like the first warm morning of spring"
         },
         {
           "id": "ag",
@@ -21440,7 +21453,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 380,
-          "width": 300
+          "width": 300,
+          "subtitle": "The tide comes in twice a day, and twice a day the harbour forgets its shape."
         },
         {
           "id": "scene",
@@ -21448,7 +21462,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 618,
-          "width": 300
+          "width": 300,
+          "subtitle": "Slow aerial shot over a small stone harbour at sunrise, the tide rising around moored fishing boats"
         },
         {
           "id": "tts",
@@ -22073,7 +22088,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 365,
-          "width": 300
+          "width": 300,
+          "subtitle": "A retired lighthouse keeper finds a message in a bottle addressed to her, written in her own handwriting and dated next week. Over one stor…"
         },
         {
           "id": "ag",
@@ -24263,7 +24279,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 346,
-          "width": 300
+          "width": 300,
+          "subtitle": "A night-shift janitor discovers that the office tower he cleans rearranges its floors every night at 3 a.m."
         },
         {
           "id": "ag",
@@ -25562,7 +25579,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 360,
-          "width": 300
+          "width": 300,
+          "subtitle": "Did you remember to book the train tickets?"
         },
         {
           "id": "b",
@@ -25570,7 +25588,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 612,
-          "width": 300
+          "width": 300,
+          "subtitle": "I did. Two window seats, leaving at nine."
         },
         {
           "id": "ta",
@@ -26147,7 +26166,8 @@ export const templateEntries: TemplateEntry[] = [
           "title": "String Input",
           "x": 0,
           "y": 463,
-          "width": 300
+          "width": 300,
+          "subtitle": "a cosy reading nook in a treehouse on a rainy afternoon"
         },
         {
           "id": "ag",

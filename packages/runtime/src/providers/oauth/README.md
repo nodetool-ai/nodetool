@@ -1,6 +1,7 @@
 # Provider OAuth authentication
 
-Two independent flows live here: the OpenAI/Codex login (below) and the
+Two independent flows live here: the OpenAI login and Sign in with ChatGPT
+(below), and the
 [Claude Code login](#claude-code-login-claude-subscription), which share the
 protocol primitives (PKCE, loopback listener, typed errors, redaction) but
 persist to different stores.
@@ -232,30 +233,46 @@ This subsystem (a localhost-callback flow that opens the OS browser) is the
 right fit for desktop/CLI hosts where the Node process can both open a browser
 and listen on loopback.
 
-The **web app** drives the same Codex flow from the API server, sharing this
-module's protocol layer (`OAuthClient` + PKCE + `LocalCallbackServer`). Because
-the public Codex client only permits the loopback redirect
-`http://localhost:1455/auth/callback`, the redirect cannot bounce through a
-server route. `localhost` resolves in the *browser's* machine, so the server
-finishes the login one of two ways:
+The **web app** drives Sign in with ChatGPT from the API server, following
+OpenAI's [published flow](https://developers.openai.com/cookbook/articles/sign-in-with-chatgpt).
+It shares this module's `LocalCallbackServer` and keeps the protocol steps in
+`packages/websocket/src/chatgpt-signin.ts`:
 
-- Backend: `packages/websocket/src/oauth-api.ts` exposes
-  `/api/oauth/openai/{start,complete,tokens,disconnect}`. `start` builds the
-  Codex authorization URL (`createCodexOAuthProvider`'s config — public client
-  id, no secret, Codex scopes/params) and records the pending login under its
-  CSRF state for 10 minutes. On a same-machine host it also binds a one-shot
-  `LocalCallbackServer` on port 1455 and completes the exchange in the
-  background. On a shared server — `isAuthEnforced()`, or `?manual=true` — it
-  binds nothing and answers `manual: true`: the browser lands on its own
-  localhost with the code in the address bar, and the user pastes that address
-  to `complete`, which checks the state against the requesting user and
-  exchanges the code server-side. Both paths persist tokens through the
-  encrypted `OAuthCredential` model. The published client id is overridable via
-  `CODEX_OAUTH_CLIENT_ID`.
-- Frontend: the provider cards in **Settings → API Keys** and the onboarding
-  dialog call `useOAuthConnection("openai")`, which opens the auth URL and polls
-  `/api/oauth/openai/tokens`. When `start` answers `manual: true` the card also
-  raises `OAuthManualCompletionDialog` to take the pasted address.
+- The first sign-in sends `client_id=dynamic_agent_client` with
+  `agent_name_hint=NodeTool` and `ext_agent_host_id`, a `urn:uuid:` kept in
+  `chatgpt-host.json` in the NodeTool data directory. The callback returns the
+  client id OpenAI issued, which the code exchange, refreshes and later
+  sign-ins use.
+- Scopes are `openid profile email offline_access resource.invoke
+  chatgpt.tokens.use.direct`, and the authorization request, code exchange
+  and refresh all send `resource=https://api.openai.com/v1`. Endpoints and the
+  JWKS come from OIDC discovery at `https://auth.openai.com`.
+- The ID token is verified (signature, issuer, audience = issued client id,
+  nonce), and the row is stored under provider `openai_chatgpt` with
+  `account_id = <issued client id>:<sub>`. A sign-in without
+  `chatgpt.tokens.use.direct` is kept, reported as a failure, and the next
+  attempt asks for consent again.
+- The redirect is `http://127.0.0.1:<port>/auth/callback`. Port 1455 is
+  preferred, with a free port as the fallback, because the guide allows the
+  port to change between sign-ins.
+
+`packages/websocket/src/oauth-api.ts` exposes
+`/api/oauth/openai/{start,complete,status,cancel,tokens,disconnect}`. On a
+same-machine host `start` binds the loopback listener and completes the
+exchange in the background. On a shared server — `isAuthEnforced()`, or
+`?manual=true` — it binds nothing and answers `manual: true`: the browser lands
+on its own 127.0.0.1 with the code in the address bar, and the user pastes that
+address to `complete`, which checks the state against the requesting user.
+`?reconsent=true` adds `prompt=consent`. `disconnect` revokes each refresh
+token and clears the tokens, but keeps the rows so the next sign-in reuses the
+issued client id. Refresh (`resolveCodexAccessToken` in `@nodetool-ai/models`)
+clears the tokens the same way on a terminal refresh error and keeps them
+through a transient one.
+
+The frontend provider cards call `useOAuthConnection("openai")`, which opens
+the auth URL and polls `/api/oauth/openai/tokens`. When `start` answers
+`manual: true` the card also raises `OAuthManualCompletionDialog` to take the
+pasted address.
 
 ## Claude Code login (Claude subscription)
 
@@ -301,7 +318,7 @@ Refresh also narrows the scope set: `org:create_api_key` is requested at login
 - **Manual** (`manualAuthUrl`) — the console shows `<code>#<state>` to paste
   back. The only option on a headless or remote host, and what the server's
   `start` offers on a shared deployment (`isAuthEnforced()`, or `?manual=true`),
-  the same way the Codex route does.
+  the same way the ChatGPT route does.
 
 They differ only in `redirect_uri`, which must match between the authorization
 request and the exchange — hence `waitForRedirect()` and

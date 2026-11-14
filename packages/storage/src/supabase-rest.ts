@@ -133,8 +133,21 @@ interface StorageRequestHeaders {
   [name: string]: string;
 }
 
+/**
+ * Whether a key holds a `.` or `..` segment. `encodeURIComponent` leaves both
+ * as they are, and `fetch` collapses them while parsing the URL, so
+ * `projects/p/../../other` would request a different object, or a different
+ * bucket, with the service key.
+ */
+export function hasDotSegment(key: string): boolean {
+  return key.split("/").some((segment) => segment === "." || segment === "..");
+}
+
 /** Encode an object key path segment-by-segment (slashes stay literal). */
 function encodeKey(key: string): string {
+  if (hasDotSegment(key)) {
+    throw new Error(`Invalid storage key: ${key}`);
+  }
   return key.split("/").map(encodeURIComponent).join("/");
 }
 

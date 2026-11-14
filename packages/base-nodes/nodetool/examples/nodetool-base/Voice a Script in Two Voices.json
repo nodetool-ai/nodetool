@@ -38,7 +38,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "line_a",
-          "value": "",
+          "value": "Did you remember to book the train tickets?",
           "description": "First speaker's line"
         },
         "ui_properties": {
@@ -59,7 +59,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "line_b",
-          "value": "",
+          "value": "I did. Two window seats, leaving at nine.",
           "description": "Second speaker's line"
         },
         "ui_properties": {

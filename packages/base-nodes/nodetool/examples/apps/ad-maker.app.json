@@ -675,7 +675,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "offer",
-              "value": "",
+              "value": "A meal-kit service that delivers 20-minute vegetarian dinners for two, in recyclable packaging, with no subscription lock-in.",
               "description": "What the page is selling"
             },
             "ui_properties": {
@@ -797,7 +797,7 @@
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "idea",
-              "value": "",
+              "value": "a cosy reading nook in a treehouse on a rainy afternoon",
               "description": "The idea, in plain words"
             },
             "ui_properties": {

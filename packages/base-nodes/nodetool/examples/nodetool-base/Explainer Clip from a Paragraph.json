@@ -38,7 +38,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "topic",
-          "value": "",
+          "value": "A heat pump moves heat instead of making it. In winter it pulls warmth out of the cold outdoor air and pumps it indoors, which is why it can deliver about three units of heat for every unit of electricity it uses.",
           "description": "What to explain"
         },
         "ui_properties": {

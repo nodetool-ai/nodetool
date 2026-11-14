@@ -549,7 +549,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "3️⃣ Product image"
+              "title": "3 Product image"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -571,7 +571,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "1️⃣ Product name"
+              "title": "1 Product name"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -593,7 +593,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "5️⃣ Product description"
+              "title": "5 Product description"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -615,7 +615,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "4️⃣ Target audience"
+              "title": "4 Target audience"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -639,7 +639,7 @@
               "width": 280,
               "selectable": true,
               "bypassed": false,
-              "title": "2️⃣ Scene count"
+              "title": "2 Scene count"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -696,7 +696,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "1️⃣ Campaign brief",
+              "title": "1 Campaign brief",
               "selectable": true,
               "bypassed": false
             },
@@ -718,7 +718,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "2️⃣ Target audience",
+              "title": "2 Target audience",
               "selectable": true,
               "bypassed": false
             },
@@ -740,7 +740,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "3️⃣ Key features",
+              "title": "3 Key features",
               "selectable": true,
               "bypassed": false
             },
@@ -765,7 +765,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "4️⃣ Product image",
+              "title": "4 Product image",
               "selectable": true,
               "bypassed": false
             },

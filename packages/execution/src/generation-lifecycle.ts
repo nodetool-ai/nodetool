@@ -213,6 +213,33 @@ function falRequestFingerprint(request: GenerationRequest): string {
 }
 
 /**
+ * Decide, before a provider is called, whether a generation may start.
+ * Throwing refuses it: the seam records the generation as failed with that
+ * message, and nothing is sent to the provider.
+ */
+export type GenerationAdmission = (request: GenerationRequest) => Promise<void>;
+
+/**
+ * Put `admit` in front of every generation `hooks` would accept. A host whose
+ * entrance has no run-level admission (an MCP session, an app run started
+ * from MCP) checks credits and quotas here, per call, with the provider and
+ * model the call resolved.
+ */
+export function withGenerationAdmission(
+  hooks: GenerationLifecycleHooks,
+  admit: GenerationAdmission
+): GenerationLifecycleHooks {
+  const accept = hooks.onGenerationAccepted;
+  return {
+    ...hooks,
+    onGenerationAccepted: async (input) => {
+      await admit(input.request);
+      return accept ? accept(input) : undefined;
+    }
+  };
+}
+
+/**
  * Build the durable hooks used by workflow ProcessingContexts.
  *
  * This factory lives in execution so runtime stays independent of models and

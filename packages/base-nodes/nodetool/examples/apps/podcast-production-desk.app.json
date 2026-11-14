@@ -1182,7 +1182,7 @@
             "id": "comment",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎙️ Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images.\n\n**How it works:** \"4️⃣ Transcribe the episode\" runs once on \"1️⃣ Episode audio\". The transcript and \"2️⃣ Show context\" fill four prompt nodes, one per writer branch. \"5️⃣ Write show notes & titles\" and \"6️⃣ Draft the newsletter\" are Agents that write Markdown. \"7️⃣ Generate social posts\" splits five posts into separate items. \"8️⃣ Pull the best quotes\" pulls as many verbatim quotes as \"3️⃣ Quote-card count\" (4). Each quote fills \"Build quote-card prompt\", and \"9️⃣ Render quote cards\" draws it as a 1:1 card. Four Preview nodes show the results. Pick a language model on the two Agents and the two list generators.\n\n**Try this:** Rewrite \"2️⃣ Show context\" for your own show and set \"3️⃣ Quote-card count\" to 6 to get six cards in your voice."
+              "comment": "# Podcast Repurposing Studio\n\nDrop in one episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images.\n\n**How it works:** \"4 Transcribe the episode\" runs once on \"1 Episode audio\". The transcript and \"2 Show context\" fill four prompt nodes, one per writer branch. \"5 Write show notes & titles\" and \"6 Draft the newsletter\" are Agents that write Markdown. \"7 Generate social posts\" splits five posts into separate items. \"8 Pull the best quotes\" pulls as many verbatim quotes as \"3 Quote-card count\" (4). Each quote fills \"Build quote-card prompt\", and \"9 Render quote cards\" draws it as a 1:1 card. Four Preview nodes show the results. Pick a language model on the two Agents and the two list generators.\n\n**Try this:** Rewrite \"2 Show context\" for your own show and set \"3 Quote-card count\" to 6 to get six cards in your voice."
             },
             "ui_properties": {
               "position": {
@@ -1216,7 +1216,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "1️⃣ Episode audio",
+              "title": "1 Episode audio",
               "selectable": true,
               "bypassed": false
             },
@@ -1238,7 +1238,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "2️⃣ Show context",
+              "title": "2 Show context",
               "selectable": true,
               "bypassed": false
             },
@@ -1262,7 +1262,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "3️⃣ Quote-card count",
+              "title": "3 Quote-card count",
               "selectable": true,
               "bypassed": false
             },
@@ -1289,7 +1289,7 @@
               "zIndex": 0,
               "width": 300,
               "height": 240,
-              "title": "4️⃣ Transcribe the episode",
+              "title": "4 Transcribe the episode",
               "selectable": true,
               "bypassed": false
             },
@@ -1351,7 +1351,7 @@
               "zIndex": 0,
               "width": 330,
               "height": 330,
-              "title": "5️⃣ Write show notes & titles",
+              "title": "5 Write show notes & titles",
               "selectable": true,
               "bypassed": false
             },
@@ -1372,7 +1372,7 @@
               "zIndex": 0,
               "width": 320,
               "height": 300,
-              "title": "📝 Show notes & titles",
+              "title": "Show notes & titles",
               "selectable": true,
               "bypassed": false
             },
@@ -1434,7 +1434,7 @@
               "zIndex": 0,
               "width": 330,
               "height": 330,
-              "title": "6️⃣ Draft the newsletter",
+              "title": "6 Draft the newsletter",
               "selectable": true,
               "bypassed": false
             },
@@ -1455,7 +1455,7 @@
               "zIndex": 0,
               "width": 320,
               "height": 300,
-              "title": "✉️ Newsletter edition",
+              "title": "Newsletter edition",
               "selectable": true,
               "bypassed": false
             },
@@ -1509,7 +1509,7 @@
               "zIndex": 0,
               "width": 330,
               "height": 245,
-              "title": "7️⃣ Generate social posts",
+              "title": "7 Generate social posts",
               "selectable": true,
               "bypassed": false
             },
@@ -1530,7 +1530,7 @@
               "zIndex": 0,
               "width": 300,
               "height": 260,
-              "title": "📣 Social posts",
+              "title": "Social posts",
               "selectable": true,
               "bypassed": false
             },
@@ -1584,7 +1584,7 @@
               "zIndex": 0,
               "width": 330,
               "height": 245,
-              "title": "8️⃣ Pull the best quotes",
+              "title": "8 Pull the best quotes",
               "selectable": true,
               "bypassed": false
             },
@@ -1639,7 +1639,7 @@
               "zIndex": 0,
               "width": 320,
               "height": 340,
-              "title": "9️⃣ Render quote cards",
+              "title": "9 Render quote cards",
               "selectable": true,
               "bypassed": false
             },
@@ -1660,7 +1660,7 @@
               "zIndex": 0,
               "width": 360,
               "height": 380,
-              "title": "🖼️ Quote cards",
+              "title": "Quote cards",
               "selectable": true,
               "bypassed": false
             },

@@ -245,7 +245,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&nodeInfo_, &node_editor::NodeInfo::tagSearchRequested, this, [this](const QString &tag) { openNodeMenuAt({}, tag); });
   connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
   connect(&nodeInspector_, &node_editor::NodeInspector::toolTipRequested, this, &EditorWindow::showToolTip);
-  connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitProperty);
+  // A field commits an edit that ended, which can arrive after the click that ended it selected another node.
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitFinishedEdit);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::removeRequested, this, &EditorWindow::removeProperty);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::pinRequested, this, &EditorWindow::pinGeneration);
@@ -1795,7 +1796,7 @@ void EditorWindow::syncInspector() {
 // Positions are the absolute ones the drag ends with.
 QJsonArray EditorWindow::dragGroupCommands(const QJsonObject &positions, QtNodes::NodeId groupId, bool detach) {
   QJsonArray commands;
-  if (readOnly() || (!detach && groupId == QtNodes::InvalidNodeId)) { return commands; }
+  if (readOnly()) { return commands; }
   QStringList dragged;
   for (const auto &id : selectedIds()) {
     const auto parent = document_.node(id)["parent_id"].toString();
@@ -1810,6 +1811,7 @@ QJsonArray EditorWindow::dragGroupCommands(const QJsonObject &positions, QtNodes
     }
     if (!detached.isEmpty()) { commands.append(QJsonObject{{"op", "detachNodes"}, {"ids", QJsonArray::fromStringList(detached)}}); }
   }
+  for (const auto &command : expandParentCommands(positions, dragged, detached)) { commands.append(command); }
   if (groupId == QtNodes::InvalidNodeId || !model_.nodeExists(groupId)) { return commands; }
   const auto group = model_.resourceId(groupId);
   QStringList joining;
@@ -1846,6 +1848,55 @@ QJsonArray EditorWindow::dragGroupCommands(const QJsonObject &positions, QtNodes
     ui["width"] = width;
     ui["height"] = height;
     commands.append(QJsonObject{{"op", "setNodeField"}, {"id", group}, {"field", "ui_properties"}, {"value", ui}});
+  }
+  return commands;
+}
+
+// React Flow expandParent, which useSurroundWithGroup.ts sets on every child:
+// a card dragged past its group's frame stays in the group, and the frame
+// grows to hold it. Past the left or top edge the frame moves out too, and
+// the other cards keep their place on the canvas.
+QJsonArray EditorWindow::expandParentCommands(const QJsonObject &positions, const QStringList &dragged, const QStringList &detached) {
+  QJsonArray commands;
+  QHash<QString, QtNodes::NodeId> nodeIds;
+  for (const auto id : model_.allNodeIds()) { nodeIds.insert(model_.resourceId(id), id); }
+  const auto absoluteOf = [&](const QString &id) {
+    const auto moved = positions.value(id).toObject();
+    return moved.isEmpty() ? model_.nodeData(nodeIds.value(id), QtNodes::NodeRole::Position).toPointF()
+                           : QPointF(moved["x"].toDouble(), moved["y"].toDouble());
+  };
+  QHash<QString, QRectF> grown;
+  QStringList order;
+  for (const auto &id : dragged) {
+    const auto parent = document_.node(id)["parent_id"].toString();
+    if (parent.isEmpty() || detached.contains(id) || !nodeIds.contains(parent) || !model_.isGroup(nodeIds.value(parent))) { continue; }
+    if (!grown.contains(parent)) {
+      grown.insert(parent, QRectF(absoluteOf(parent), model_.layout(nodeIds.value(parent)).size));
+      order.append(parent);
+    }
+    grown[parent] = grown[parent].united(QRectF(absoluteOf(id), model_.layout(nodeIds.value(id)).size));
+  }
+  for (const auto &parent : order) {
+    const auto groupId = nodeIds.value(parent);
+    const QRectF frame(absoluteOf(parent), model_.layout(groupId).size);
+    // Whole pixels: the card layout reads a fractional width as missing.
+    const auto united = grown.value(parent);
+    const QRectF bounds(QPointF(std::floor(united.left()), std::floor(united.top())),
+                        QPointF(std::ceil(united.right()), std::ceil(united.bottom())));
+    if (frame.contains(united)) { continue; }
+    auto ui = model_.uiProperties(groupId);
+    ui["width"] = bounds.width();
+    ui["height"] = bounds.height();
+    commands.append(QJsonObject{{"op", "setNodeField"}, {"id", parent}, {"field", "ui_properties"}, {"value", ui}});
+    if (bounds.topLeft() == frame.topLeft()) { continue; }
+    QJsonObject moved{{parent, QJsonObject{{"x", bounds.left()}, {"y", bounds.top()}}}};
+    for (const auto id : model_.allNodeIds()) {
+      if (model_.nodeSnapshot(id)["parent_id"].toString() != parent) { continue; }
+      const auto resource = model_.resourceId(id);
+      const auto at = absoluteOf(resource);
+      moved[resource] = QJsonObject{{"x", at.x()}, {"y", at.y()}};
+    }
+    commands.append(QJsonObject{{"op", "moveNodes"}, {"positions", moved}, {"space", "absolute"}});
   }
   return commands;
 }
@@ -2801,6 +2852,11 @@ void EditorWindow::setProperty(const QString &name, const QVariant &value) {
 bool EditorWindow::commitProperty(const QString &nodeId, const QString &name, const QVariant &value) {
   if (!tabOwner_) { return activeEditor_->commitProperty(nodeId, name, value); }
   if (nodeId.isEmpty() || nodeId != selected_) { return false; }
+  return commitFinishedEdit(nodeId, name, value);
+}
+bool EditorWindow::commitFinishedEdit(const QString &nodeId, const QString &name, const QVariant &value) {
+  if (!tabOwner_) { return activeEditor_->commitFinishedEdit(nodeId, name, value); }
+  if (nodeId.isEmpty() || document_.node(nodeId).isEmpty()) { return false; }
   if ((value.metaType().id() == QMetaType::Double || value.metaType().id() == QMetaType::Float) && !std::isfinite(value.toDouble())) { return false; }
   // A Workflow or App node's select commits a reference. The node stores the
   // id once the source and its graph have loaded.
@@ -3732,6 +3788,9 @@ void EditorWindow::action(const QString &name) {
     if (!p.isEmpty()) {
       openFileInTab(p);
     }
+  } else if (name == "Save" && session_.serverBound()) {
+    // A server workflow saves to the server, as closing its tab does. Save As keeps a local copy.
+    session_.save();
   } else if (name == "Save") {
     auto p = file_.isEmpty()
                  ? QFileDialog::getSaveFileName(this, tr("Save workflow"), {},
@@ -4051,6 +4110,11 @@ bool EditorWindow::confirmOpen() {
       tr("Save changes before opening another workflow?"),
       QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
   if (choice == QMessageBox::Save) {
+    if (session_.serverBound()) {
+      // The server save answers later, so the open waits for the user to retry.
+      session_.save();
+      return false;
+    }
     action("Save");
     return document_.undoStack()->isClean();
   }

@@ -443,6 +443,10 @@ bool WorkflowGraphModel::hasRuntimeOutput(NodeId id) const {
         return false;
     }
     const auto state = runtimeState(id);
+    // The List Generator lists its own items and a Collection shows its tiles. Only an error still shows below them.
+    if (body == CardBody::ListGenerator || body == CardBody::Collection) {
+        return !state["error"].toString().isEmpty();
+    }
     for (const auto *key : {"error", "text"}) {
         if (!state[key].toString().isEmpty()) {
             return true;
@@ -648,8 +652,10 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     const auto minimumWidth = isGroup(id) ? 200 : 30;
     const auto minimumHeight = isGroup(id) ? 200 : 40;
     result.minimumSize = QSize(minimumWidth, minimumHeight);
-    result.size = QSize(std::max(minimumWidth, ui["width"].toInt(isGroup(id) ? 400 : 300)),
-                        std::max(minimumHeight, ui["height"].toInt(isGroup(id) ? 300 : 160)));
+    // React Flow stores fractional sizes after a resize. toInt() would read
+    // those as missing and fall back to the default size.
+    result.size = QSize(std::max(minimumWidth, qRound(ui["width"].toDouble(isGroup(id) ? 400 : 300))),
+                        std::max(minimumHeight, qRound(ui["height"].toDouble(isGroup(id) ? 300 : 160))));
     return *layouts_.insert(id, result);
   }
   const auto type = node["type"].toString();
@@ -841,7 +847,8 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
                                  graphVariables_, previewTabs_.value(resourceId(id)), result.sources,
                                  histograms_.contains(resourceId(id)) ? std::optional(histograms_.value(resourceId(id))) : std::nullopt,
                                  painters_.value(resourceId(id)),
-                                 result.body == CardBody::Painter ? paintMask(resourceId(id), node["data"].toObject()) : QImage{}});
+                                 result.body == CardBody::Painter ? paintMask(resourceId(id), node["data"].toObject()) : QImage{},
+                                 runtimeState(id), expandedListItems_.value(resourceId(id)), &cardMedia_});
       if (canvasMediaNodes_.contains(resourceId(id))) {
           result.size.rheight() += nm::playbackHeight + nm::rowHeight;
       } else if (result.resultRect.isEmpty() && hasRuntimeOutput(id)) {
@@ -1450,7 +1457,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
   if (const auto metadata = catalogEntry(n["type"]); !metadata.isEmpty()) {
     QSet<QString> connectedInputs;
     if (type == PortType::In) {
-      for (const auto &value : edges_) {
+      for (const auto &value : incident_.value(n["id"].toString())) {
         const auto edge = value.toObject();
         if (edge["target"] == n["id"]) { connectedInputs.insert(edge["targetHandle"].toString()); }
       }
@@ -1499,7 +1506,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
     }
   }
   // Unknown incident names remain available without changing the document.
-  for (const auto &value : edges_) {
+  for (const auto &value : incident_.value(resourceId(id))) {
     const auto edge = value.toObject();
     const auto key = type == PortType::In ? "target" : "source";
     const auto handle = type == PortType::In ? "targetHandle" : "sourceHandle";
@@ -1689,6 +1696,17 @@ void WorkflowGraphModel::setPreviewTab(NodeId id, const QString &tab) {
         return;
     }
     previewTabs_.insert(resource, tab);
+    refreshRuntimeNode(resource);
+}
+void WorkflowGraphModel::toggleListItem(NodeId id, int index) {
+    const auto resource = resourceId(id);
+    if (resource.isEmpty() || index < 0) {
+        return;
+    }
+    auto &expanded = expandedListItems_[resource];
+    if (!expanded.remove(index)) {
+        expanded.insert(index);
+    }
     refreshRuntimeNode(resource);
 }
 void WorkflowGraphModel::setDimensionsLinked(NodeId id, bool linked) {
@@ -1891,8 +1909,9 @@ int WorkflowGraphModel::dropZoneAt(NodeId id, const QPointF &point) const {
     }
     const auto &rows = layout(id).rows;
     for (int i = 0; i < rows.size(); ++i) {
-        // A list's zone appends files, which the canvas does not do yet.
-        if (rows[i].kind == NodeRowKind::DropZone && !rows[i].mediaList && rows[i].rect.contains(point)) {
+        // A list's zone appends files, which the canvas does not do yet. A Collection's zone does.
+        if (rows[i].kind == NodeRowKind::DropZone && (!rows[i].mediaList || layout(id).body == CardBody::Collection)
+            && rows[i].rect.contains(point)) {
             return i;
         }
     }

@@ -76,7 +76,10 @@ private slots:
         key(Qt::Key_Left); QCOMPARE(clock.time(), 1500.0);
         key(Qt::Key_Right, Qt::ShiftModifier);
         QVERIFY(qAbs(clock.time() - 50 * 1000.0 / 30) < 1e-9);
-        clock.seek(6000); key(Qt::Key_Right); QCOMPARE(clock.time(), 6000.0);
+        // Frame step runs past the last clip (6000) to the sequence end (durationMs 10000).
+        clock.seek(6000); key(Qt::Key_Right);
+        QVERIFY(qAbs(clock.time() - 181 * 1000.0 / 30) < 1e-9);
+        clock.seek(10000); key(Qt::Key_Right); QCOMPARE(clock.time(), 10000.0);
         clock.seek(0); key(Qt::Key_Left); QCOMPARE(clock.time(), 0.0);
         clock.seek(1500); key(Qt::Key_L);
         const auto playingTime = clock.time(); key(Qt::Key_Right); QCOMPARE(clock.time(), playingTime);

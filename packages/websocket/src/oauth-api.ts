@@ -16,20 +16,37 @@ import {
   OAuthCredential,
   storeGoogleCredential,
   deleteGoogleCredentials,
-  GOOGLE_CREDENTIAL_PROVIDER
+  GOOGLE_CREDENTIAL_PROVIDER,
+  chatGptAccountKey,
+  discoverChatGptOAuth,
+  findChatGptRegistration,
+  isUsableChatGptCredential,
+  parseChatGptAccountKey,
+  type ChatGptOAuthEndpoints
 } from "@nodetool-ai/models";
 import {
-  OAuthClient,
+  CHATGPT_CALLBACK_HOST,
+  CHATGPT_CALLBACK_PATH,
+  CHATGPT_CALLBACK_PORT,
+  CHATGPT_CREDENTIAL_PROVIDER
+} from "@nodetool-ai/protocol";
+import {
+  AuthorizationDeniedError,
   LocalCallbackServer,
   ClaudeCodeLogin,
-  extractChatGptAccountId,
-  CODEX_OAUTH_CLIENT_ID,
-  CODEX_CALLBACK_PORT,
-  CODEX_CALLBACK_PATH,
-  DEFAULT_CODEX_OAUTH_CONFIG,
-  type OAuthTokens,
   type PendingClaudeCodeLogin
 } from "@nodetool-ai/runtime/oauth";
+import {
+  ChatGptSignInError,
+  buildChatGptAuthorizationUrl,
+  exchangeChatGptCode,
+  getChatGptHostId,
+  grantsChatGptPlanUsage,
+  parseChatGptRedirect,
+  resolveIssuedClientId,
+  revokeChatGptRefreshToken,
+  verifyChatGptIdToken
+} from "./chatgpt-signin.js";
 import { clearProviderCache } from "@nodetool-ai/runtime";
 import { isAdmin } from "./lib/admin.js";
 import {
@@ -53,20 +70,11 @@ const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const GITHUB_USER_URL = "https://api.github.com/user";
 const GITHUB_SCOPES = ["user:email", "read:user"];
 
-// OpenAI OAuth uses the public Codex CLI client (no client secret, no
-// per-deployment registration). The authorization server only accepts the
-// Codex-registered loopback redirect (http://localhost:1455/auth/callback), so
-// the browser is redirected to a local single-shot listener rather than back to
-// a server route. `localhost` resolves in the *browser's* machine, so binding
-// that port here only receives the code when the browser runs on this machine
-// too. On a shared server it does not, and the browser lands on its own
-// localhost with the code sitting in the address bar — so that host skips the
-// listener and the user pastes the address back instead.
-const OPENAI_USERINFO_URL =
-  process.env.OPENAI_OAUTH_USERINFO_URL ?? "https://auth.openai.com/userinfo";
-
-/** The Codex-registered loopback redirect the client id is bound to. */
-const CODEX_REDIRECT_URI = `http://localhost:${CODEX_CALLBACK_PORT}${CODEX_CALLBACK_PATH}`;
+/**
+ * `OAuthCredential.provider` of the earlier Codex CLI login. Those tokens were
+ * not issued for the public API; disconnect deletes them.
+ */
+const LEGACY_CODEX_CREDENTIAL_PROVIDER = "openai";
 
 const STATE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -862,107 +870,102 @@ async function handleGithubUser(
   }
 }
 
-// ── OpenAI (Codex) Endpoints ─────────────────────────────────────────
+// ── OpenAI (Sign in with ChatGPT) Endpoints ──────────────────────────
 //
-// The login uses the public Codex CLI OAuth client. Because the Codex client's
-// only registered redirect is the loopback http://localhost:1455/auth/callback,
-// the flow can't bounce back through a server route. Two ways to finish, both
-// from the one authorization request `start` creates:
+// Follows OpenAI's Sign in with ChatGPT flow (protocol steps in
+// `chatgpt-signin.ts`). The redirect must be an HTTP loopback address on
+// 127.0.0.1, so the flow can't bounce back through a server route. Two ways to
+// finish, both from the one authorization request `start` creates:
 //
-//  - **Loopback** — `start` binds a one-shot listener on port 1455 and finishes
-//    the exchange in the background. Only works when the browser runs on this
-//    machine (desktop, local dev).
-//  - **Manual** — the browser is redirected to its own localhost, where nothing
+//  - **Loopback** — `start` binds a one-shot listener on 127.0.0.1 (port 1455,
+//    or any free port when 1455 is taken) and finishes the exchange in the
+//    background. Only works when the browser runs on this machine (desktop,
+//    local dev).
+//  - **Manual** — the browser is redirected to its own 127.0.0.1, where nothing
 //    answers, and the user pastes the address back to `/complete`. The only
 //    option on a shared server, which is what `start` offers there.
 //
-// The UI reflects success by polling `/api/oauth/openai/tokens`.
+// The UI reflects success by polling `/api/oauth/openai/tokens`, and failure
+// by polling `/status`.
 
-/** How long a started login stays completable from a pasted address. */
-const CODEX_LOGIN_TTL_MS = 10 * 60 * 1000;
+/** How long a started login stays completable. */
+const CHATGPT_LOGIN_TTL_MS = 10 * 60 * 1000;
 
-/** Logins awaiting a pasted redirect address, keyed by their CSRF state. */
-export const pendingCodexLogins = new Map<
-  string,
-  { userId: string; codeVerifier: string; createdAt: number }
->();
+interface PendingChatGptLogin {
+  userId: string;
+  codeVerifier: string;
+  nonce: string;
+  redirectUri: string;
+  /** The issued client id of the account being signed in again, if any. */
+  savedClientId: string | null;
+  createdAt: number;
+}
 
-const codexLoginResults = new Map<string, {
+/** Logins awaiting their redirect, keyed by their CSRF state. */
+export const pendingChatGptLogins = new Map<string, PendingChatGptLogin>();
+
+interface ChatGptLoginResult {
   userId: string;
   status: "completed" | "failed" | "cancelled";
+  detail?: string;
   createdAt: number;
-}>();
+}
 
-function pruneExpiredCodexLogins(): void {
+const chatGptLoginResults = new Map<string, ChatGptLoginResult>();
+
+function pruneExpiredChatGptLogins(): void {
   const now = Date.now();
-  for (const [state, result] of codexLoginResults) {
-    if (now - result.createdAt > CODEX_LOGIN_TTL_MS) {
-      codexLoginResults.delete(state);
+  for (const [state, result] of chatGptLoginResults) {
+    if (now - result.createdAt > CHATGPT_LOGIN_TTL_MS) {
+      chatGptLoginResults.delete(state);
     }
   }
-  for (const [state, pending] of pendingCodexLogins) {
-    if (now - pending.createdAt > CODEX_LOGIN_TTL_MS) {
-      pendingCodexLogins.delete(state);
+  for (const [state, pending] of pendingChatGptLogins) {
+    if (now - pending.createdAt > CHATGPT_LOGIN_TTL_MS) {
+      pendingChatGptLogins.delete(state);
     }
   }
-}
-
-/**
- * Read `code` and `state` out of what the user pastes back — the whole address
- * the browser was sent to, or just its query string. The state is required: it
- * is the CSRF check, and a bare code cannot be tied to the login it belongs to.
- */
-export function parseCodexRedirect(input: string): {
-  code: string;
-  state: string;
-} {
-  let query = input.trim();
-  const questionMark = query.indexOf("?");
-  if (questionMark >= 0) {
-    query = query.slice(questionMark + 1);
-    const hash = query.indexOf("#");
-    if (hash >= 0) query = query.slice(0, hash);
-  }
-  const params = new URLSearchParams(query);
-
-  const error = params.get("error");
-  if (error) {
-    throw new Error(
-      params.get("error_description") || `Sign-in was refused: ${error}`
-    );
-  }
-  const code = params.get("code");
-  const state = params.get("state");
-  if (!code || !state) {
-    throw new Error(
-      "Paste the whole address the browser was sent to — it carries both the code and the state."
-    );
-  }
-  return { code, state };
-}
-
-/** Build the Codex OAuth client (public client id, no secret). */
-function codexOAuthClient(): OAuthClient {
-  const clientId = process.env.CODEX_OAUTH_CLIENT_ID || CODEX_OAUTH_CLIENT_ID;
-  return new OAuthClient({
-    config: { ...DEFAULT_CODEX_OAUTH_CONFIG, clientId }
-  });
 }
 
 /** The single in-flight login, so a re-click can supersede a stale listener. */
-let activeCodexLogin: {
+let activeChatGptLogin: {
   server: LocalCallbackServer;
   abort: AbortController;
   state: string;
 } | null = null;
 
-/** Abort and tear down any in-flight Codex login listener. Idempotent. */
-export async function closeActiveCodexCallbackServer(): Promise<void> {
-  const active = activeCodexLogin;
+/** Abort and tear down any in-flight ChatGPT login listener. Idempotent. */
+export async function closeActiveChatGptCallbackServer(): Promise<void> {
+  const active = activeChatGptLogin;
   if (!active) return;
-  activeCodexLogin = null;
+  activeChatGptLogin = null;
   active.abort.abort();
   await active.server.close().catch(() => {});
+}
+
+/** The fixed redirect a manual login uses; the browser's own 127.0.0.1. */
+const CHATGPT_MANUAL_REDIRECT_URI = `http://${CHATGPT_CALLBACK_HOST}:${CHATGPT_CALLBACK_PORT}${CHATGPT_CALLBACK_PATH}`;
+
+/** Bind the loopback listener on 1455, or on any free port when it is taken. */
+async function listenForChatGptCallback(): Promise<LocalCallbackServer> {
+  for (const port of [CHATGPT_CALLBACK_PORT, 0]) {
+    const server = new LocalCallbackServer({
+      host: CHATGPT_CALLBACK_HOST,
+      port,
+      path: CHATGPT_CALLBACK_PATH
+    });
+    try {
+      await server.listen();
+      return server;
+    } catch (err) {
+      if (port === 0) throw err;
+      logger.info("ChatGPT callback port is busy, using a free port", {
+        port,
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  }
+  throw new Error("unreachable");
 }
 
 async function handleOpenAIStart(
@@ -973,158 +976,194 @@ async function handleOpenAIStart(
 
   const userId = getUserId();
   const url = new URL(request.url);
-  const client = codexOAuthClient();
   const { codeVerifier, codeChallenge } = generatePkcePair();
   const state = generateState();
+  const nonce = generateState();
 
   // A shared server's users browse from their own machines, where the loopback
   // redirect lands — so binding it here would receive nothing. The caller can
   // also ask for the paste flow outright.
   const manual = url.searchParams.get("manual") === "true" || isAuthEnforced();
 
-  pruneExpiredCodexLogins();
-  pendingCodexLogins.set(state, { userId, codeVerifier, createdAt: Date.now() });
+  let endpoints: ChatGptOAuthEndpoints;
+  let hostId: string;
+  let registration: Awaited<ReturnType<typeof findChatGptRegistration>>;
+  try {
+    [endpoints, hostId, registration] = await Promise.all([
+      discoverChatGptOAuth(),
+      getChatGptHostId(),
+      findChatGptRegistration(userId)
+    ]);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return errorResponse(500, `Could not prepare the ChatGPT sign-in: ${message}`);
+  }
+  // Ask for consent again when the last sign-in did not grant plan usage, or
+  // when the user asks to enable it. Ordinary sign-ins never force consent.
+  const reconsent =
+    url.searchParams.get("reconsent") === "true" ||
+    (registration !== null && !registration.planScopeGranted);
 
   // A new attempt supersedes any listener left over from an abandoned one.
-  await closeActiveCodexCallbackServer();
+  await closeActiveChatGptCallbackServer();
+  pruneExpiredChatGptLogins();
 
+  let redirectUri = CHATGPT_MANUAL_REDIRECT_URI;
+  let server: LocalCallbackServer | null = null;
   if (!manual) {
-    const server = new LocalCallbackServer({
-      // Bind IPv4 explicitly: Node can resolve localhost to ::1 while the
-      // browser uses 127.0.0.1. Keep the registered redirect URI unchanged.
-      host: "127.0.0.1",
-      port: CODEX_CALLBACK_PORT,
-      path: CODEX_CALLBACK_PATH
-    });
     try {
-      await server.listen();
+      server = await listenForChatGptCallback();
     } catch (err) {
-      pendingCodexLogins.delete(state);
       const message = err instanceof Error ? err.message : String(err);
       return errorResponse(
         500,
-        `Could not start the OAuth callback listener on port ${CODEX_CALLBACK_PORT}: ${message}`
+        `Could not start the sign-in callback listener: ${message}`
       );
     }
-
-    const abort = new AbortController();
-    activeCodexLogin = { server, abort, state };
-    // Finish the exchange off the request path; the UI polls /tokens.
-    void completeCodexLogin({
-      server,
-      client,
-      state,
-      codeVerifier,
-      userId,
-      abort
-    });
+    redirectUri = server.redirectUri();
   }
 
-  const authUrl = client.buildAuthorizationUrl({
-    redirectUri: CODEX_REDIRECT_URI,
+  const pending: PendingChatGptLogin = {
+    userId,
+    codeVerifier,
+    nonce,
+    redirectUri,
+    savedClientId: registration?.clientId ?? null,
+    createdAt: Date.now()
+  };
+  pendingChatGptLogins.set(state, pending);
+
+  if (server) {
+    const abort = new AbortController();
+    activeChatGptLogin = { server, abort, state };
+    // Finish the exchange off the request path; the UI polls /tokens.
+    void completeChatGptLoopbackLogin({ server, state, pending, abort });
+  }
+
+  const authUrl = buildChatGptAuthorizationUrl({
+    authorizationEndpoint: endpoints.authorizationEndpoint,
+    clientId: pending.savedClientId,
+    redirectUri,
     state,
+    nonce,
     codeChallenge,
-    codeChallengeMethod: "S256"
+    hostId,
+    loginHint: registration?.email,
+    reconsent
   });
 
   return jsonResponse({
     auth_url: authUrl,
     manual,
-    redirect_uri: CODEX_REDIRECT_URI
+    redirect_uri: redirectUri
   });
 }
 
-/** Await the loopback redirect, exchange the code, and persist credentials. */
-async function completeCodexLogin(args: {
-  server: LocalCallbackServer;
-  client: OAuthClient;
-  state: string;
-  codeVerifier: string;
-  userId: string;
-  abort: AbortController;
-}): Promise<void> {
-  const { server, client, state, codeVerifier, userId, abort } = args;
-  try {
-    const { code } = await server.waitForCode({
-      expectedState: state,
-      timeoutMs: STATE_TTL_MS,
-      signal: abort.signal
-    });
+/**
+ * Exchange the code, verify the identity, and store the sign-in. Throws a
+ * user-facing error; a sign-in that did not grant plan usage is stored (so
+ * the next attempt reuses its registration and asks for consent) and then
+ * reported as a failure.
+ */
+async function finishChatGptLogin(args: {
+  pending: PendingChatGptLogin;
+  code: string;
+  returnedClientId: string | null | undefined;
+  signal?: AbortSignal;
+}): Promise<string> {
+  const { pending, code, returnedClientId, signal } = args;
+  const clientId = resolveIssuedClientId(pending.savedClientId, returnedClientId);
+  const endpoints = await discoverChatGptOAuth();
+  const tokens = await exchangeChatGptCode({
+    tokenEndpoint: endpoints.tokenEndpoint,
+    clientId,
+    code,
+    codeVerifier: pending.codeVerifier,
+    redirectUri: pending.redirectUri,
+    signal
+  });
+  const identity = await verifyChatGptIdToken({
+    idToken: tokens.idToken,
+    clientId,
+    nonce: pending.nonce,
+    endpoints
+  });
 
-    const tokens = await client.exchangeAuthorizationCode({
-      code,
-      codeVerifier,
-      redirectUri: CODEX_REDIRECT_URI,
-      signal: abort.signal
-    });
-
-    const accountId = await persistCodexTokens(tokens, userId);
-    codexLoginResults.set(state, { userId, status: "completed", createdAt: Date.now() });
-    logger.info("Codex OAuth login completed", { accountId });
-  } catch (err) {
-    codexLoginResults.set(state, {
-      userId,
-      status: abort.signal.aborted ? "cancelled" : "failed",
-      createdAt: Date.now()
-    });
-    logger.warn("Codex OAuth login did not complete", {
-      error: err instanceof Error ? err.message : String(err)
-    });
-  } finally {
-    pendingCodexLogins.delete(state);
-    await server.close().catch(() => {});
-    if (activeCodexLogin?.server === server) activeCodexLogin = null;
-  }
-}
-
-/** Store exchanged Codex tokens against a user; returns the account id used. */
-async function persistCodexTokens(
-  tokens: OAuthTokens,
-  userId: string
-): Promise<string> {
-  // Prefer the ChatGPT account id embedded in the Codex access-token JWT — it
-  // is the stable identity the ChatGPT backend addresses accounts by. Falls
-  // back to the OIDC `sub`, then to an opaque token-derived id.
-  const chatgptAccountId = extractChatGptAccountId(tokens.accessToken);
-  let accountId =
-    chatgptAccountId ?? String(Math.abs(hashCode(tokens.accessToken.slice(0, 24))));
-  // Best-effort OIDC userinfo for a friendly account label.
-  let username: string | null = null;
-  try {
-    const infoRes = await fetch(OPENAI_USERINFO_URL, {
-      headers: { Authorization: `${tokens.tokenType} ${tokens.accessToken}` }
-    });
-    if (infoRes.ok) {
-      const info = (await infoRes.json()) as Record<string, unknown>;
-      username =
-        (info.email as string) ?? (info.name as string) ?? (info.sub as string) ?? null;
-      if (!chatgptAccountId && isNonEmptyString(info.sub)) {
-        accountId = info.sub;
-      }
-    }
-  } catch {
-    // userinfo is optional — keep the fallback account id.
-  }
-
+  const accountId = chatGptAccountKey(clientId, identity.subject);
   await OAuthCredential.upsert({
-    user_id: userId,
-    provider: "openai",
+    user_id: pending.userId,
+    provider: CHATGPT_CREDENTIAL_PROVIDER,
     account_id: accountId,
     access_token: tokens.accessToken,
     refresh_token: tokens.refreshToken,
-    username,
+    username: identity.email ?? identity.name,
     token_type: tokens.tokenType,
     scope: tokens.scope,
     received_at: new Date(tokens.receivedAt).toISOString(),
-    expires_at:
-      tokens.expiresAt != null ? new Date(tokens.expiresAt).toISOString() : null
+    expires_at: new Date(tokens.expiresAt).toISOString()
   });
   // The chat agent holds a per-user provider set built from the credentials it
   // could resolve at the time. Without this the sign-in lands in the database
-  // and the agent goes on without Codex until the process restarts — which a
+  // and the agent goes on without ChatGPT until the process restarts — which a
   // production server does not do.
   clearProviderCache();
+
+  if (!grantsChatGptPlanUsage(tokens.scope)) {
+    throw new ChatGptSignInError(
+      "You signed in, but NodeTool was not allowed to use your ChatGPT plan. Sign in again and allow plan usage.",
+      "plan_usage_not_granted"
+    );
+  }
   return accountId;
+}
+
+/** Await the loopback redirect, then finish the login. */
+async function completeChatGptLoopbackLogin(args: {
+  server: LocalCallbackServer;
+  state: string;
+  pending: PendingChatGptLogin;
+  abort: AbortController;
+}): Promise<void> {
+  const { server, state, pending, abort } = args;
+  try {
+    const callback = await server.waitForCode({
+      expectedState: state,
+      timeoutMs: CHATGPT_LOGIN_TTL_MS,
+      signal: abort.signal
+    });
+    pendingChatGptLogins.delete(state);
+    const accountId = await finishChatGptLogin({
+      pending,
+      code: callback.code,
+      returnedClientId: callback.clientId,
+      signal: abort.signal
+    });
+    chatGptLoginResults.set(state, {
+      userId: pending.userId,
+      status: "completed",
+      createdAt: Date.now()
+    });
+    logger.info("ChatGPT sign-in completed", { clientId: accountId.split(":")[0] });
+  } catch (err) {
+    const detail =
+      err instanceof ChatGptSignInError || err instanceof AuthorizationDeniedError
+        ? err.message
+        : undefined;
+    const result: ChatGptLoginResult = {
+      userId: pending.userId,
+      status: abort.signal.aborted ? "cancelled" : "failed",
+      createdAt: Date.now()
+    };
+    if (detail) result.detail = detail;
+    chatGptLoginResults.set(state, result);
+    logger.warn("ChatGPT sign-in did not complete", {
+      error: err instanceof Error ? err.message : String(err)
+    });
+  } finally {
+    pendingChatGptLogins.delete(state);
+    await server.close().catch(() => {});
+    if (activeChatGptLogin?.server === server) activeChatGptLogin = null;
+  }
 }
 
 /** Complete a started login from the address the browser was redirected to. */
@@ -1144,15 +1183,15 @@ async function handleOpenAIComplete(
   const raw = isString(body.code) ? body.code : "";
   if (!raw.trim()) return errorResponse(400, "code is required");
 
-  let redirect: { code: string; state: string };
+  let redirect: ReturnType<typeof parseChatGptRedirect>;
   try {
-    redirect = parseCodexRedirect(raw);
+    redirect = parseChatGptRedirect(raw);
   } catch (err) {
     return errorResponse(400, err instanceof Error ? err.message : String(err));
   }
 
-  pruneExpiredCodexLogins();
-  const pending = pendingCodexLogins.get(redirect.state);
+  pruneExpiredChatGptLogins();
+  const pending = pendingChatGptLogins.get(redirect.state);
   const userId = getUserId();
   // An unknown state and another user's state are the same answer: this login
   // is not one we can finish, and saying which it was leaks the difference.
@@ -1162,25 +1201,24 @@ async function handleOpenAIComplete(
       "That sign-in expired or was never started here. Start it again and paste the new address."
     );
   }
-  pendingCodexLogins.delete(redirect.state);
+  pendingChatGptLogins.delete(redirect.state);
 
   // The code is spent; any loopback listener still up is waiting for nothing.
-  await closeActiveCodexCallbackServer();
+  await closeActiveChatGptCallbackServer();
 
   try {
-    const tokens = await codexOAuthClient().exchangeAuthorizationCode({
+    const accountId = await finishChatGptLogin({
+      pending,
       code: redirect.code,
-      codeVerifier: pending.codeVerifier,
-      redirectUri: CODEX_REDIRECT_URI
+      returnedClientId: redirect.clientId
     });
-    const accountId = await persistCodexTokens(tokens, userId);
-    logger.info("Codex OAuth login completed from a pasted address", {
-      accountId
+    logger.info("ChatGPT sign-in completed from a pasted address", {
+      clientId: accountId.split(":")[0]
     });
     return jsonResponse({ success: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    logger.warn("Codex OAuth code exchange failed", { error: message });
+    logger.warn("ChatGPT sign-in failed", { error: message });
     return errorResponse(400, message);
   }
 }
@@ -1196,13 +1234,17 @@ async function handleOpenAIStatus(
   if (!body || typeof body !== "object" || !("state" in body) || !isNonEmptyString(body.state)) {
     return errorResponse(400, "Login state is required");
   }
-  pruneExpiredCodexLogins();
+  pruneExpiredChatGptLogins();
   const userId = getUserId();
-  const result = codexLoginResults.get(body.state);
+  const result = chatGptLoginResults.get(body.state);
   if (result?.userId === userId) {
-    return jsonResponse({ status: result.status });
+    return jsonResponse(
+      result.detail
+        ? { status: result.status, detail: result.detail }
+        : { status: result.status }
+    );
   }
-  const pending = pendingCodexLogins.get(body.state);
+  const pending = pendingChatGptLogins.get(body.state);
   return jsonResponse({ status: pending?.userId === userId ? "pending" : "expired" });
 }
 
@@ -1217,25 +1259,33 @@ async function handleOpenAICancel(
   if (!body || typeof body !== "object" || !("state" in body) || !isNonEmptyString(body.state)) {
     return errorResponse(400, "Login state is required");
   }
-  const pending = pendingCodexLogins.get(body.state);
+  const pending = pendingChatGptLogins.get(body.state);
   if (pending?.userId === getUserId()) {
-    pendingCodexLogins.delete(body.state);
-    if (activeCodexLogin?.state === body.state) {
-      await closeActiveCodexCallbackServer();
+    pendingChatGptLogins.delete(body.state);
+    if (activeChatGptLogin?.state === body.state) {
+      await closeActiveChatGptCallbackServer();
     }
   }
   return jsonResponse({ success: true });
 }
 
+/** Signed-in ChatGPT accounts whose tokens can run requests on the plan. */
 async function handleOpenAITokens(getUserId: () => string): Promise<Response> {
   const userId = getUserId();
   const credentials = await OAuthCredential.listForUserAndProvider(
     userId,
-    "openai"
+    CHATGPT_CREDENTIAL_PROVIDER
   );
-  return jsonResponse({ tokens: credentials.map(toTokenMetadata) });
+  return jsonResponse({
+    tokens: credentials.filter(isUsableChatGptCredential).map(toTokenMetadata)
+  });
 }
 
+/**
+ * Revoke and clear the user's ChatGPT tokens. The rows stay, without tokens,
+ * so a later sign-in reuses each account's app registration. Rows left by the
+ * earlier Codex CLI login are deleted.
+ */
 async function handleOpenAIDisconnect(
   request: Request,
   getUserId: () => string
@@ -1246,13 +1296,44 @@ async function handleOpenAIDisconnect(
   const userId = getUserId();
   const credentials = await OAuthCredential.listForUserAndProvider(
     userId,
-    "openai"
+    CHATGPT_CREDENTIAL_PROVIDER
   );
+  const { revocationEndpoint } = await discoverChatGptOAuth();
+  let removed = 0;
+  let revocationUnconfirmed = false;
   for (const credential of credentials) {
+    const key = parseChatGptAccountKey(credential.account_id);
+    const refreshToken = await credential.getDecryptedRefreshToken();
+    if (!refreshToken) continue;
+    if (key) {
+      const revoked = await revokeChatGptRefreshToken({
+        revocationEndpoint,
+        refreshToken,
+        clientId: key.clientId
+      });
+      if (!revoked) revocationUnconfirmed = true;
+    }
+    await credential.clearTokens();
+    removed += 1;
+  }
+  const legacy = await OAuthCredential.listForUserAndProvider(
+    userId,
+    LEGACY_CODEX_CREDENTIAL_PROVIDER
+  );
+  for (const credential of legacy) {
     await credential.delete();
+    removed += 1;
   }
   clearProviderCache();
-  return jsonResponse({ success: true, removed: credentials.length });
+  const body: { success: true; removed: number; detail?: string } = {
+    success: true,
+    removed
+  };
+  if (revocationUnconfirmed) {
+    body.detail =
+      "NodeTool removed its tokens but could not confirm the disconnect with OpenAI. You can also disconnect NodeTool in ChatGPT's settings.";
+  }
+  return jsonResponse(body);
 }
 
 // ── Claude (subscription) Endpoints ──────────────────────────────────
@@ -1264,7 +1345,7 @@ async function handleOpenAIDisconnect(
 // reads it directly; a per-user DB row would be invisible to it.
 //
 // Two ways to finish, both from the one authorization request `start` creates,
-// mirroring the Codex flow above:
+// mirroring the ChatGPT flow above:
 //
 //  - **Loopback** — `start` binds the `claude` CLI's own callback port (54545)
 //    and finishes the exchange in the background. Only works when the browser
@@ -1597,7 +1678,7 @@ export async function handleOAuthRequest(
     case "/api/oauth/github/user":
       return handleGithubUser(request, getUserId);
 
-    // OpenAI (Codex)
+    // OpenAI (Sign in with ChatGPT)
     case "/api/oauth/openai/start":
       return handleOpenAIStart(request, getUserId);
     case "/api/oauth/openai/complete":

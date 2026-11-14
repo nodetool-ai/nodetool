@@ -67,6 +67,8 @@ private:
   void fetchAsset(const QString &);
   void downloadText(const QString &, const QUrl &);
   void finish(const QString &, const QJsonValue &);
+  // Appends a dropped asset to a Collection card's items.
+  void finishCollection(const QString &key, const Transfer &row);
   bool accepts(const QMimeData *) const;
   // The node, property and media type of the drop zone under a viewport point.
   QStringList dropZone(const QPoint &viewportPosition) const;
