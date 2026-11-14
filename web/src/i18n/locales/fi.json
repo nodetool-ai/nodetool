@@ -10693,6 +10693,8 @@
       "queuedCount_one": "{{count}} jonossa",
       "queuedCount_other": "{{count}} jonossa",
       "collapseQueue": "Tiivistä jono",
+      "moveQueue": "Siirrä jonoa",
+      "moveQueueHint": "Siirrä vetämällä. Nuolinäppäimet siirtävät, Home palauttaa.",
       "enqueued": "Lisätty jonoon"
     },
     "toolbar": {

@@ -844,6 +844,11 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(queueOverlay_->rootObject(), SIGNAL(showListChanged()), this, SLOT(schedulePanelChanged()));
   connect(queueOverlay_->rootObject(), SIGNAL(presentedChanged()), this, SLOT(layoutOverlays()));
   connect(queueOverlay_->rootObject(), SIGNAL(contentHeightChanged()), this, SLOT(layoutOverlays()));
+  connect(queueOverlay_->rootObject(), SIGNAL(moveRequested(double,double)), this, SLOT(moveQueue(double,double)));
+  connect(queueOverlay_->rootObject(), SIGNAL(moveFinished()), this, SLOT(finishQueueMove()));
+  connect(queueOverlay_->rootObject(), SIGNAL(nudgeRequested(double,double)), this, SLOT(nudgeQueue(double,double)));
+  connect(queueOverlay_->rootObject(), SIGNAL(resetPositionRequested()), this, SLOT(resetQueuePosition()));
+  queuePosition_ = node_editor::docked_overlay::fromVariant(QSettings().value("queueOverlay/position"));
   connect(&session_, &node_editor::WorkflowSession::stateChanged, this, [this] { layoutOverlays(); });
   shownQueueTimer_ = new QTimer(this);
   shownQueueTimer_->setSingleShot(true);
@@ -1930,12 +1935,14 @@ void EditorWindow::layoutOverlays() {
   toolbarOverlay_->setGeometry(std::max(0, (area.width() - toolbar.width()) / 2), std::max(0, area.height() - toolbar.height() - 20), toolbar.width(), toolbar.height());
   if (queueOverlay_ && queueOverlay_->rootObject()) {
     auto *queueRoot = queueOverlay_->rootObject();
-    const int desired = qCeil(queueRoot->property("contentHeight").toReal());
-    const QPoint origin = view_->mapTo(centralWidget(), QPoint(16, 16));
-    const int height = std::max(0, std::min(desired, this->height() - 112));
-    // Clear the native rail and catalog, and float above the output dock like the web overlay.
-    queueOverlay_->setGeometry(origin.x(), origin.y(), std::max(0, std::min(304, area.width() - 32)), height);
-    queueOverlay_->setVisible(queueRoot->property("presented").toBool() && height >= 36);
+    // The overlay stays inside the canvas, clear of the rail, the catalog and the
+    // output dock, as the web overlay stays inside its canvas host.
+    const auto canvas = queueArea();
+    const auto size = queueSize(canvas);
+    using namespace node_editor::docked_overlay;
+    const auto origin = queueDragPoint_ ? *queueDragPoint_ : place(queuePosition_.value_or(defaultPosition), canvas, size);
+    queueOverlay_->setGeometry(QRect(origin, size));
+    queueOverlay_->setVisible(queueRoot->property("presented").toBool() && size.height() >= 36);
     queueOverlay_->raise();
   }
   const auto corner = viewportOverlay_->sizeHint();

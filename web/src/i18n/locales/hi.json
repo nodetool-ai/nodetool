@@ -10693,6 +10693,8 @@
       "queuedCount_one": "{{count}} रजाई",
       "queuedCount_other": "{{count}} रजाई",
       "collapseQueue": "पतन कतार",
+      "moveQueue": "कतार खिसकाएँ",
+      "moveQueueHint": "खिसकाने के लिए खींचें। तीर कुंजियाँ इसे खिसकाती हैं, Home इसे रीसेट करता है।",
       "enqueued": "Enqueued"
     },
     "toolbar": {

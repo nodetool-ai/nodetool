@@ -10693,6 +10693,8 @@
       "queuedCount_one": "{{count}} i kø",
       "queuedCount_other": "{{count}} i kø",
       "collapseQueue": "Skjul køen",
+      "moveQueue": "Flytt køen",
+      "moveQueueHint": "Dra for å flytte. Piltastene flytter den, Home tilbakestiller den.",
       "enqueued": "I kø"
     },
     "toolbar": {

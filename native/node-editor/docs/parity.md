@@ -2081,10 +2081,17 @@ Running cards select the output lens only for the current workflow, using pointe
 Enter or Space activation. The selected card shows On canvas. Pinned canvas
 focus remains different from the web store.
 
-The overlay is 304 logical pixels wide at the canvas leading margin, beyond the
-native rail and catalog. Its maximum height is the window height minus 112 logical pixels. Like the web
-overlay, it floats above the output dock. Narrow
-canvases constrain its width to keep controls inside the viewport. Enter and exit
+The overlay is 304 logical pixels wide and starts 16 logical pixels inside the
+canvas's top-left corner, past the rail, the catalog and the document bar. It
+stays inside the canvas, so it never covers the output dock or its tabs, and
+narrow or short canvases shrink it. Dragging its header or grip moves it. The
+drop docks it to the nearer horizontal and vertical canvas edges, so it keeps
+that corner when the window or the docks resize, and a bottom-docked overlay
+grows upward. Arrow keys on the focused grip move it, Shift moves it further,
+and Home or a header double click returns it to the default corner. Both
+clients store the same `{anchorX, anchorY, x, y}` record: the native editor in
+QSettings `queueOverlay/position`, the web per user in local storage. The pure
+model is `src/ui/DockedOverlay.h` and `web/src/utils/dockedPanelPosition.ts`. Enter and exit
 use the primitive normal motion duration with retained exit content. Reduced
 motion removes transitions and progress animation. Elapsed clocks use server
 `started_at` when available, otherwise the locally observed running time. The
@@ -2092,7 +2099,9 @@ one-second timer stops when no live job runs.
 
 `QueueUiTest.cpp` uses pointer and keyboard events against QML and deterministic
 MsgPack events through EditorWindow. `NODETOOL_QUEUE_CAPTURE_DIR` enables dark
-and light captures at wide and narrow sizes, in both expansion states. F24 remains
+and light captures at wide and narrow sizes, in both expansion states, plus a
+capture after a drag. Its drag test covers the drop, the stored position, a
+narrower window, a second window and the grip's keys. F24 remains
 partial pending visual acceptance and pinned canvas focus parity. The expanded
 header centers counts with the title. Shared Surface shadows are disabled on the
 software renderer because the unblurred offset rectangle is clipped into dark

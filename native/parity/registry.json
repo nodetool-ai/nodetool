@@ -2105,7 +2105,7 @@
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Pinned focus and acceptance are open.",
+      "note": "The drag, the grip's keys, the canvas clamp and the stored position match. Pinned focus and acceptance are open.",
       "inventory": "F24"
     },
     "web/src/components/panels/RailAppMenu.tsx": {
