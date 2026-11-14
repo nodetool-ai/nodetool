@@ -246,6 +246,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
   connect(&nodeInspector_, &node_editor::NodeInspector::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitProperty);
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::finishedEditRequested, this, &EditorWindow::commitFinishedEdit);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::removeRequested, this, &EditorWindow::removeProperty);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::pinRequested, this, &EditorWindow::pinGeneration);
@@ -2723,6 +2724,11 @@ void EditorWindow::setProperty(const QString &name, const QVariant &value) {
 bool EditorWindow::commitProperty(const QString &nodeId, const QString &name, const QVariant &value) {
   if (!tabOwner_) { return activeEditor_->commitProperty(nodeId, name, value); }
   if (nodeId.isEmpty() || nodeId != selected_) { return false; }
+  return commitFinishedEdit(nodeId, name, value);
+}
+bool EditorWindow::commitFinishedEdit(const QString &nodeId, const QString &name, const QVariant &value) {
+  if (!tabOwner_) { return activeEditor_->commitFinishedEdit(nodeId, name, value); }
+  if (nodeId.isEmpty() || document_.node(nodeId).isEmpty()) { return false; }
   if ((value.metaType().id() == QMetaType::Double || value.metaType().id() == QMetaType::Float) && !std::isfinite(value.toDouble())) { return false; }
   // A Workflow or App node's select commits a reference. The node stores the
   // id once the source and its graph have loaded.
@@ -3619,6 +3625,9 @@ void EditorWindow::action(const QString &name) {
     if (!p.isEmpty()) {
       openFileInTab(p);
     }
+  } else if (name == "Save" && session_.serverBound()) {
+    // A server workflow saves to the server, as closing its tab does. Save As keeps a local copy.
+    session_.save();
   } else if (name == "Save") {
     auto p = file_.isEmpty()
                  ? QFileDialog::getSaveFileName(this, tr("Save workflow"), {},
@@ -3938,6 +3947,11 @@ bool EditorWindow::confirmOpen() {
       tr("Save changes before opening another workflow?"),
       QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
   if (choice == QMessageBox::Save) {
+    if (session_.serverBound()) {
+      // The server save answers later, so the open waits for the user to retry.
+      session_.save();
+      return false;
+    }
     action("Save");
     return document_.undoStack()->isClean();
   }

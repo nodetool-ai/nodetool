@@ -2332,6 +2332,33 @@ private slots:
         QCOMPARE(host.data("comp")["layers"].toArray()[1].toObject()["blend_mode"].toString(), QStringLiteral("normal"));
     }
 
+    // The dialog pins the size it shows, and its selection follows the layer when
+    // another layer is deleted from the card.
+    void compositorLayoutPinsShownSizeAndKeepsSelectedLayer() {
+        node_editor::CompositorLayoutEditor editor;
+        QList<QJsonObject> commands;
+        connect(&editor, &node_editor::CompositorLayoutEditor::commandRequested, this,
+                [&commands](const QJsonObject &command, const QString &) { commands.append(command); });
+        QJsonObject node{{"id", "comp"}, {"type", "nodetool.image.Compositor"},
+                         {"dynamic_properties", QJsonObject{{"image_0", QJsonValue::Null}, {"image_1", QJsonValue::Null},
+                                                            {"image_2", QJsonValue::Null}}}};
+        editor.setNode(node, {});
+        QCOMPARE(editor.canvas(), QSize(512, 512));
+        editor.setCanvasSize(512, 512);
+        QCOMPARE(commands.size(), 1);
+        QCOMPARE(commands[0]["op"].toString(), QStringLiteral("batch"));
+        node["data"] = QJsonObject{{"canvas_width", 512}, {"canvas_height", 512}};
+        editor.setNode(node, {});
+        editor.setCanvasSize(512, 512);
+        QCOMPARE(commands.size(), 1);
+        editor.select(2);
+        node["dynamic_properties"] = QJsonObject{{"image_1", QJsonValue::Null}, {"image_2", QJsonValue::Null}};
+        editor.setNode(node, {});
+        QCOMPARE(editor.selected(), 1);
+        node["dynamic_properties"] = QJsonObject{{"image_1", QJsonValue::Null}};
+        editor.setNode(node, {});
+        QCOMPARE(editor.selected(), -1);
+    }
     void compositorLayoutDialogTransformsLayers() {
         const auto png = [](const QSize &size, const QColor &color) {
             QImage image(size, QImage::Format_RGB32);

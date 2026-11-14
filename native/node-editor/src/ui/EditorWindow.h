@@ -315,6 +315,9 @@ public:
   void clearCatalogRecent();
   Q_INVOKABLE void setProperty(const QString &name, const QVariant &value);
   bool commitProperty(const QString &nodeId, const QString &name, const QVariant &value);
+  // commitProperty without the selection check, for an inspector edit that
+  // finished as the press that ended it selected another node.
+  bool commitFinishedEdit(const QString &nodeId, const QString &name, const QVariant &value);
   bool removeProperty(const QString &nodeId, const QString &name);
   Q_INVOKABLE void action(const QString &name);
   // An action that the user started from a button, menu or key. Zoom, fit and Focus

@@ -1450,7 +1450,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
   if (const auto metadata = catalogEntry(n["type"]); !metadata.isEmpty()) {
     QSet<QString> connectedInputs;
     if (type == PortType::In) {
-      for (const auto &value : edges_) {
+      for (const auto &value : incident_.value(n["id"].toString())) {
         const auto edge = value.toObject();
         if (edge["target"] == n["id"]) { connectedInputs.insert(edge["targetHandle"].toString()); }
       }
@@ -1499,7 +1499,7 @@ QJsonArray WorkflowGraphModel::ports(NodeId id, PortType type) const {
     }
   }
   // Unknown incident names remain available without changing the document.
-  for (const auto &value : edges_) {
+  for (const auto &value : incident_.value(resourceId(id))) {
     const auto edge = value.toObject();
     const auto key = type == PortType::In ? "target" : "source";
     const auto handle = type == PortType::In ? "targetHandle" : "sourceHandle";
