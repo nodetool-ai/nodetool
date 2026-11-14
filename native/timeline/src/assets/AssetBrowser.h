@@ -127,6 +127,7 @@ private:
                  std::shared_ptr<std::atomic_bool> queryCancel = {});
     void updateAsset(const QJsonObject& fields);
     QString projectId() const;
+    QString timelineId() const;
     void transferState(const QString& id, const QString& status, const QString& error = {});
     void importNext();
     QueuedImport takeNextImport();

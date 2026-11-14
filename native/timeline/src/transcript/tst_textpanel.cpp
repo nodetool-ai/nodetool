@@ -572,7 +572,7 @@ private slots:
         click("captionAdd");
         settle();
         QCOMPARE(undo->count(), 6);
-        QVERIFY(item("textStatus")->property("text").toString().contains("Move the playhead"));
+        QCOMPARE(item("textStatus")->property("text").toString(), QString("A caption needs an unlocked audio or video clip under the playhead, with no caption there yet. For words over a picture, use Add text in the timeline toolbar."));
         shot("captions-edited");
     }
     void captionsTabOffersAddWhenThereAreNoCaptions() {

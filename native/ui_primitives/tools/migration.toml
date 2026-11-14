@@ -2513,6 +2513,16 @@ qml_callers = ["native/timeline/qml/Inspector/ShapeSection.qml", "native/timelin
 replacement = "NodeTool.UiPrimitives: Ui.Text"
 
 [[file]]
+path = "native/timeline/src/edit/inspectorsections/AudioSection.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorPillInput"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
 path = "native/timeline/src/edit/inspectorsections/MediaSection.qml"
 category = "chrome"
 controls = ["InspectorSection", "InspectorRow", "InspectorSelect", "InspectorActionButton"]
