@@ -234,13 +234,16 @@ private slots:
         QTemporaryDir dir;
         TimelineModel model;
         QVERIFY(loadFixture(model));
-        QFile exists(dir.filePath("exists.wav"));
+        // The queue replaces an existing file (the save dialog confirmed it),
+        // but never a folder, so a folder at the output path fails the job.
+        QVERIFY(QDir(dir.path()).mkdir("exists.wav"));
+        QFile exists(dir.filePath("exists.wav/keep.txt"));
         QVERIFY(exists.open(QIODevice::WriteOnly));
         exists.write("keep"); exists.close();
         ExportQueue queue;
         queue.setTimeline(&model);
         queue.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
-        const auto a = queue.enqueue(exists.fileName(), wav);
+        const auto a = queue.enqueue(dir.filePath("exists.wav"), wav);
         const auto b = queue.enqueue(dir.filePath("good.wav"), wav);
         QVERIFY(!a.isEmpty()); QVERIFY(!b.isEmpty());
         QTRY_COMPARE_WITH_TIMEOUT(queue.activeCount(), 0, 30000);
@@ -248,6 +251,7 @@ private slots:
         QVERIFY(!queue.job(a).value("error").toString().isEmpty());
         QCOMPARE(queue.job(a).value("detail"), queue.job(a).value("error"));
         QCOMPARE(state(queue, b), QString("done"));
+        QVERIFY(QFileInfo(dir.filePath("exists.wav")).isDir());
         QCOMPARE(QFileInfo(exists.fileName()).size(), qint64(4));
         // A synchronous snapshot/staging failure must schedule the next item too.
         const auto c = queue.enqueue(dir.filePath("c.wav"), wav);
