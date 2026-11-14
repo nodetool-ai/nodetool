@@ -1186,7 +1186,12 @@ void GenerationController::resolve(const QString& clipId, const QString& takeId,
             if (!self) return;
             auto* const controller = self.data();
             controller->m_resolving = false;
-            if (!model || controller->m_timeline != model || model->documentGeneration() != generation) return;
+            if (!model || controller->m_timeline != model || model->documentGeneration() != generation) {
+                // An Apply that ends here would otherwise do nothing and say nothing.
+                if (applyResult) controller->setError("The timeline was reloaded while the take was loading. Apply it again.");
+                else emit controller->changed();
+                return;
+            }
             const QString path = QString::fromStdString(rawClip.value("mediaType").toString() == "audio" ? media.audioPath : media.mediaPath);
             if (!result.ok() || path.isEmpty() || !QFileInfo::exists(path)) { controller->setError("Candidate media could not be resolved."); return; }
             auto clips = model->clipsJson();

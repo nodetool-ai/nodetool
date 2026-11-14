@@ -42,6 +42,7 @@
 #include "audio/AudioMode.h"
 #include "server/FieldAudit.h"
 #include "server/SaveCli.h"
+#include "server/BundledServer.h"
 #include "server/ServerSource.h"
 
 #include "aiassist/AgentBridge.h"
@@ -737,6 +738,8 @@ int main(int argc, char** argv) {
 
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QGuiApplication app(argc, argv);
+    // A window opened from one that runs the bundled server keeps that server running.
+    nt::server::joinBundledServer();
     // NT_QMLPROF=PORT: accept `qmlprofiler --attach localhost -p PORT`.
     if (const int port = qEnvironmentVariableIntValue("NT_QMLPROF"); port > 0) {
         QQmlDebuggingEnabler::enableDebugging(true);
@@ -1461,6 +1464,8 @@ int main(int argc, char** argv) {
     // exit code 4 when no folder took them.
     const int rc = nt::app::exitCodeAfterLocalSave(localSaver.get(),
         nt::server::exitCodeAfterQuit(autosave.get(), app.exec(), 5000));
+    // The save above may need the bundled server, so it stops only now.
+    nt::server::stopBundledServer();
     if ((bench || parser.isSet(teardownOpt)) && !*completed) {
         std::fprintf(stderr, "error: the window closed before the %s finished; no report\n",
                      "bench");

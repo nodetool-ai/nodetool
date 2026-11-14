@@ -2,6 +2,7 @@
 #include "edit/ClipGestureController.h"
 #include "audio/LoopbackCapture.h"
 #include "playback/PlaybackClock.h"
+#include "server/BundledServer.h"
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QFileInfo>
@@ -203,8 +204,12 @@ QVariantList Preferences::recentTimelines() const {
         const QVariantMap entry = value.toObject().toVariantMap();
         if (!recentTimelineArguments(entry).isEmpty()) {
             if (entry.value("kind") == "server") {
-                entries.append(QVariantMap{{"kind", "server"}, {"label", entry.value("label")},
-                    {"server", safeServerUrl(QUrl(entry.value("server").toString()))}, {"timelineId", entry.value("timelineId")}});
+                QVariantMap server{{"kind", "server"}, {"label", entry.value("label")},
+                    {"server", safeServerUrl(QUrl(entry.value("server").toString()))}, {"timelineId", entry.value("timelineId")}};
+                if (entry.value("bundled").toBool()) {
+                    server.insert("bundled", true);
+                }
+                entries.append(server);
             } else {
                 entries.append(QVariantMap{{"kind", "file"}, {"label", entry.value("label")}, {"path", entry.value("path")}});
             }
@@ -240,12 +245,19 @@ void Preferences::addRecentFile(const QString& label, const QString& path) {
     addRecent({{"kind", "file"}, {"label", label}, {"path", QDir::cleanPath(QFileInfo(path).absoluteFilePath())}});
 }
 void Preferences::addRecentServer(const QString& label, const nt::server::SaveTarget& target) {
-    addRecent({{"kind", "server"}, {"label", label}, {"server", safeServerUrl(target.server)}, {"timelineId", target.timelineId}});
+    QVariantMap entry{{"kind", "server"}, {"label", label}, {"server", safeServerUrl(target.server)}, {"timelineId", target.timelineId}};
+    // The bundled server listens on a new port at every launch, so the entry names it, not its URL.
+    const QString bundled = safeServerUrl(nt::server::bundledServerUrl());
+    if (!bundled.isEmpty() && entry.value("server").toString() == bundled) {
+        entry.insert("bundled", true);
+    }
+    addRecent(entry);
 }
 void Preferences::clearRecentTimelines() { writeRecent({}); }
 QStringList recentTimelineArguments(const QVariantMap& entry) {
     if (entry.value("kind") == "server") {
-        const QString server = safeServerUrl(QUrl(entry.value("server").toString()));
+        const QString bundled = entry.value("bundled").toBool() ? safeServerUrl(nt::server::bundledServerUrl()) : QString();
+        const QString server = bundled.isEmpty() ? safeServerUrl(QUrl(entry.value("server").toString())) : bundled;
         const QString id = entry.value("timelineId").toString();
         return server.isEmpty() || id.isEmpty() ? QStringList() : QStringList{"--server", server, "--timeline", id};
     }
