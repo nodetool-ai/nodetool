@@ -393,12 +393,15 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     if (!runPanelTimer_->isActive()) { runPanelTimer_->start(); }
   });
   // After the lambda above, so the run output reads the run the runtime selected.
+  shownRunOutput_ = &runOutput_;
   runState_.setOutputModels(runOutput_.collections(), runOutput_.richEntries());
-  const auto syncRunOutput = [this] { runState_.setOutput(runOutput_.runs(), runOutput_.selectedRunId()); };
+  const auto syncRunOutput = [this] {
+    if (shownRunOutput_ == &runOutput_) { runState_.setOutput(runOutput_.runs(), runOutput_.selectedRunId()); }
+  };
   syncRunOutput();
   connect(&runOutput_, &node_editor::RunOutputModel::changed, this, syncRunOutput);
-  connect(&runState_, &node_editor::RunState::selectRunRequested, &runOutput_, &node_editor::RunOutputModel::selectRun);
-  connect(&runState_, &node_editor::RunState::clearOutputRequested, &runOutput_, &node_editor::RunOutputModel::clear);
+  connect(&runState_, &node_editor::RunState::selectRunRequested, this, [this](const QString &runId) { shownRunOutput_->selectRun(runId); });
+  connect(&runState_, &node_editor::RunState::clearOutputRequested, this, [this] { shownRunOutput_->clear(); });
   connect(&runState_, &node_editor::RunState::cancelRequested, &session_, &node_editor::WorkflowSession::cancelJob);
   connect(&runState_, &node_editor::RunState::reportJobRequested, this, &EditorWindow::reportJob);
   connect(&runState_, &node_editor::RunState::openJobWorkflowRequested, this, &EditorWindow::openWorkflow);
@@ -1713,6 +1716,10 @@ void EditorWindow::renameWorkflow(const QString &name) {
         activeEditor_->renameWorkflow(name);
         return;
     }
+    if (inlineChild_ && childParent_) {
+        workflowHost()->renameWorkflow(name);
+        return;
+    }
     if (!workflowRenamable()) {
         return;
     }
@@ -2543,8 +2550,10 @@ void EditorWindow::syncNodeCatalog() {
     nodeCatalog_.setReadOnly(readOnly());
 }
 void EditorWindow::syncChrome() {
-  workflowHeader_.setWorkflowName(workflowName());
-  workflowHeader_.setRenamable(workflowRenamable());
+  // The web document bar of a subgraph tab names the workflow (WorkflowDocumentBar.tsx).
+  const auto *host = (tabOwner_ || !activeEditor_ ? this : activeEditor_)->workflowHost();
+  workflowHeader_.setWorkflowName(host->workflowName());
+  workflowHeader_.setRenamable(host->workflowRenamable());
   workflowHeader_.setSaveStatus(documentSaveStatus());
   workflowHeader_.setHistory(canUndo(), canRedo());
   browser_.setCurrentId(document_.snapshot()["id"].toString());
@@ -2572,8 +2581,9 @@ void EditorWindow::syncChrome() {
                           .connectionDetail = connectionDetail(),
                           .connected = connectionState() == tr("Connected"),
                           .message = message(),
-                          .nodeCount = nodeCount(),
-                          .edgeCount = edgeCount(),
+                          // The web status bar counts the workflow, also from a subgraph tab (PanelBottom.tsx).
+                          .nodeCount = host->nodeCount(),
+                          .edgeCount = host->edgeCount(),
                           .queuedCount = queuedCount(),
                           .generatingCount = generationActivity()->counts().value("generating").toInt(),
                           .systemStats = systemStats()});
@@ -2586,11 +2596,48 @@ void EditorWindow::syncViewport() {
   viewport_.setMiniMapColorMode(miniMapColorMode());
 }
 void EditorWindow::syncRuns() {
-  editorCommands_.setRunning(shownRunActive());
-  runState_.setQueue(shownQueue());
-  runState_.setConnected(session_.connected());
-  runState_.setJobsError(session_.jobsError());
-  runState_.setWorkflowId(session_.workflow()["id"].toString());
+  // A subgraph surface shows the run state of the workflow it belongs to.
+  const auto *host = workflowHost();
+  editorCommands_.setRunning(host->shownRunActive());
+  runState_.setQueue(host->shownQueue());
+  runState_.setConnected(host->session_.connected());
+  runState_.setJobsError(host->session_.jobsError());
+  runState_.setWorkflowId(host->session_.workflow()["id"].toString());
+}
+EditorWindow *EditorWindow::workflowHost() {
+  auto *host = this;
+  while (host->inlineChild_ && host->childParent_) { host = host->childParent_; }
+  return host;
+}
+const EditorWindow *EditorWindow::workflowHost() const {
+  return const_cast<EditorWindow *>(this)->workflowHost();
+}
+void EditorWindow::followHostRuns() {
+  auto *host = workflowHost();
+  if (host == this) { return; }
+  connect(host, &EditorWindow::shownQueueChanged, this, &EditorWindow::syncRuns);
+  connect(&host->session_, &node_editor::WorkflowSession::stateChanged, this, &EditorWindow::syncRuns);
+  // The run output panel follows whichever surface ran last: the workflow for Run,
+  // this subgraph for Run selected.
+  const auto show = [this](node_editor::RunOutputModel *output) {
+    if (shownRunOutput_ != output) {
+      shownRunOutput_ = output;
+      runState_.setOutputModels(output->collections(), output->richEntries());
+    }
+    runState_.setOutput(output->runs(), output->selectedRunId());
+  };
+  connect(&host->runOutput_, &node_editor::RunOutputModel::changed, this, [show, host] { show(&host->runOutput_); });
+  connect(&runOutput_, &node_editor::RunOutputModel::changed, this, [show, this] { show(&runOutput_); });
+  QPointer<EditorWindow> self(this);
+  connect(host, &QObject::destroyed, this, [self] {
+    if (self && self->shownRunOutput_ != &self->runOutput_) {
+      self->shownRunOutput_ = &self->runOutput_;
+      self->runState_.setOutputModels(self->runOutput_.collections(), self->runOutput_.richEntries());
+      self->runState_.setOutput(self->runOutput_.runs(), self->runOutput_.selectedRunId());
+    }
+  });
+  if (!host->runOutput_.runs().isEmpty()) { show(&host->runOutput_); }
+  syncRuns();
 }
 void EditorWindow::syncNodeInspector() {
     const auto node = selection();
@@ -3657,6 +3704,12 @@ void EditorWindow::action(const QString &name) {
   }
   if (name == "Server Save") {
     session_.save();
+    return;
+  }
+  // The web run toolbar of a subgraph tab runs and stops the workflow (FloatingToolBar.tsx).
+  if ((name == "Run" || name == "Stop") && inlineChild_ && childParent_) {
+    flushChild();
+    workflowHost()->action(name);
     return;
   }
   if (readOnly() && (name == "Run" || name == "Delete" || name == "Paste" ||

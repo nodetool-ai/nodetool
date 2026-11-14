@@ -403,6 +403,15 @@ private:
   QPointer<EditorWindow> childParent_;
   QString childNode_;
     bool inlineChild_ = false;
+    // The workflow surface an inline subgraph surface belongs to, or this window.
+    // From a subgraph tab the web document bar, run toolbar, run output and
+    // status counts all use that workflow (WorkflowEditorSurface.tsx).
+    EditorWindow *workflowHost();
+    const EditorWindow *workflowHost() const;
+    // Shows the workflow host's run output in this subgraph surface's run interfaces.
+    void followHostRuns();
+    // The run output this surface's run interfaces show: its own, or its workflow host's.
+    node_editor::RunOutputModel *shownRunOutput_ = nullptr;
     QPointer<EditorWindow> shownSurface_;
     QTimer *childWriteTimer_ = nullptr;
   QJsonObject syncedChildGraph_;

@@ -1,4 +1,5 @@
 #include "NodeRuntimeModel.h"
+#include <QDateTime>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <cmath>
@@ -182,7 +183,7 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
     run.terminal = true;
     run.terminalStatus.clear();
     for (auto it = run.nodes.begin(); it != run.nodes.end(); ++it) {
-      for (const auto *key : {"status", "progress", "total"}) { it.value().remove(QLatin1String(key)); }
+      for (const auto *key : {"status", "progress", "total", "progressStarted"}) { it.value().remove(QLatin1String(key)); }
     }
     run.edges.clear();
     if (selected_ == jobId) { emit projectionChanged(); }
@@ -251,6 +252,10 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
     if (stopped) { return; }
     const auto progress = event["progress"].toDouble(-1), total = event["total"].toDouble(-1);
     if (!std::isfinite(progress) || !std::isfinite(total) || progress < 0 || total < 0) { return; }
+    // NodeProgress.tsx estimates the remaining time from when progress first showed.
+    if (!state.contains("progressStarted") || progress < state["progress"].toDouble()) {
+      state["progressStarted"] = double(QDateTime::currentMSecsSinceEpoch());
+    }
     state["progress"] = progress;
     state["total"] = total;
     if (state["status"].toString().isEmpty()) { state["status"] = "running"; }

@@ -38,6 +38,7 @@
 #include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <algorithm>
 #include <cmath>
+#include <QDateTime>
 #include <QPainterPathStroker>
 #include <memory>
 using namespace QtNodes;
@@ -213,6 +214,17 @@ QRectF iconSquare(const QRectF &rect) {
 
 // DynamicSlotTypePicker's compact Chip: the slot type color as text, a half
 // opacity border and a 12 percent fill.
+// NodeProgress.tsx: "3 / 10", with "(eta 12s)" once a rate is known.
+QString progressLabel(const QJsonObject &runtime) {
+    const auto progress = runtime["progress"].toDouble(), total = runtime["total"].toDouble();
+    auto label = QStringLiteral("%1 / %2").arg(progress).arg(total);
+    const auto elapsed = double(QDateTime::currentMSecsSinceEpoch()) - runtime["progressStarted"].toDouble();
+    if (runtime.contains("progressStarted") && elapsed > 0 && progress > 0) {
+        const auto eta = std::lround((total - progress) / (progress / elapsed) / 1000);
+        if (eta > 0) { label += QStringLiteral(" (eta %1s)").arg(eta); }
+    }
+    return label;
+}
 void paintTypeChip(QPainter *painter, const CanvasTheme &theme, const NodeRow &row) {
   painter->save();
   const auto accent = typeColor(row.typeChip.startsWith("list[") ? row.typeChip.mid(5, row.typeChip.size() - 6) : row.typeChip);
@@ -653,8 +665,7 @@ public:
           painter->setPen(theme.textSecondary);
           const QRectF count(nm::progressBarInset, box.height() - nm::progressLabelTop,
                              track.width(), nm::progressLabelTop - nm::progressBarTop);
-          painter->drawText(count, Qt::AlignLeft | Qt::AlignVCenter,
-                            QStringLiteral("%1 / %2").arg(runtime["progress"].toDouble()).arg(total));
+          painter->drawText(count, Qt::AlignLeft | Qt::AlignVCenter, progressLabel(runtime));
           painter->setPen(color);
           painter->setFont(canvasFont(theme, nm::fontValue, QFont::Normal));
       }
@@ -664,8 +675,9 @@ public:
             const QRectF track(inset, box.height() - bottomInset - nm::rowHeight - nm::padding,
                                box.width() - 2 * inset, nm::micro);
             painter->fillRect(track, theme.field);
-            painter->fillRect(QRectF(track.topLeft(), QSizeF(track.width() * fraction, track.height())), theme.subgraphAccent);
-            label = QString("%1 / %2").arg(runtime["progress"].toDouble()).arg(total);
+            // NodeProgress draws its bar in the secondary color on every card.
+            painter->fillRect(QRectF(track.topLeft(), QSizeF(track.width() * fraction, track.height())), theme.progress);
+            label = progressLabel(runtime);
         }
         painter->drawText(box.adjusted(inset, 0, -inset, -2 - bottomInset), Qt::AlignRight | Qt::AlignBottom, label);
         if (const auto report = reportErrorRect(model, item.nodeId(), layout); !report.isEmpty()) {
