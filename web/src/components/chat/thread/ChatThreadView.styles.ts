@@ -1,4 +1,4 @@
-import { css } from "@emotion/react";
+import { css, keyframes } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import {
   MOTION,
@@ -8,9 +8,13 @@ import {
   SPACING_PX,
   FONT_SIZE_SANS,
   FONT_WEIGHT,
-  Z_INDEX
+  Z_INDEX,
+  reducedMotion
 } from "../../ui_primitives";
-import { CHAT_COLUMN_MAX_WIDTH } from "../types/chat.types";
+import {
+  CHAT_COLUMN_MAX_WIDTH,
+  CHAT_READING_LINE_HEIGHT
+} from "../types/chat.types";
 
 /** Glyph column width and single-line row height for the tool-call timeline. */
 const TOOL_RAIL_WIDTH = 20;
@@ -19,6 +23,12 @@ const TOOL_ROW_HEIGHT = 22;
 /** Glyph geometry for the log-update rail: hairline width and dot diameter. */
 const LOG_RAIL_WIDTH = 2;
 const LOG_DOT_SIZE = 10;
+
+/** Breathing scale of the mark shown while a reply's text streams. */
+const writingPulse = keyframes({
+  "0%, 100%": { opacity: 0.35, transform: "scale(0.8)" },
+  "50%": { opacity: 1, transform: "scale(1)" }
+});
 
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
@@ -156,6 +166,33 @@ export const createStyles = (theme: Theme) => ({
 
     ".assistant .message-content": {
       borderRadius: BORDER_RADIUS.lg
+    },
+
+    // Reading rhythm of a reply, after claude.ai: open leading, a clear gap
+    // between blocks, and a little air between list items. The GitHub sheet's
+    // 1.5 leading and 16px block gap read as a dense document.
+    ".chat-message.assistant .markdown-body": {
+      lineHeight: CHAT_READING_LINE_HEIGHT
+    },
+    ".chat-message.assistant .markdown-body :is(p, ul, ol, blockquote, table, details)":
+      {
+        marginTop: 0,
+        marginBottom: theme.spacing(SPACING.lg)
+      },
+    ".chat-message.assistant .markdown-body li + li, .chat-message.assistant .markdown-body li > :is(ul, ol)":
+      {
+        marginTop: theme.spacing(SPACING.xs)
+      },
+    ".chat-message.assistant .markdown-body :is(h1, h2, h3, h4)": {
+      marginTop: theme.spacing(SPACING.xl),
+      marginBottom: theme.spacing(SPACING.md),
+      lineHeight: 1.3
+    },
+    ".chat-message.assistant .markdown-body > :first-child": {
+      marginTop: 0
+    },
+    ".chat-message.assistant .markdown-body > :last-child": {
+      marginBottom: 0
     },
 
     // Keep user->assistant transitions compact.
@@ -309,6 +346,21 @@ export const createStyles = (theme: Theme) => ({
     ".chat-status-row": {
       padding: theme.spacing(1, 4),
       minHeight: theme.spacing(6)
+    },
+
+    ".chat-status-row.writing": {
+      minHeight: theme.spacing(SPACING.xxl)
+    },
+
+    // A soft breathing dot on the reply's text edge while the words stream.
+    ".chat-status-pulse": {
+      display: "block",
+      width: SPACING_PX.md,
+      height: SPACING_PX.md,
+      borderRadius: BORDER_RADIUS.circle,
+      backgroundColor: theme.vars.palette.text.secondary,
+      animation: `${writingPulse} ${MOTION.pulse} infinite`,
+      ...reducedMotion({ animation: "none", opacity: 0.6 })
     },
 
     ".chat-status-label": {
@@ -612,24 +664,6 @@ export const createStyles = (theme: Theme) => ({
     ".chat-message.has-tool-calls .markdown": {
       marginTop: theme.spacing(SPACING.micro)
     },
-
-    ".chat-message.has-tool-calls .markdown-body p": {
-      margin: theme.spacing(SPACING.xs, SPACING.none)
-    },
-
-    ".chat-message.has-tool-calls .markdown-body p:first-of-type": {
-      marginTop: theme.spacing(SPACING.none)
-    },
-
-    ".chat-message.has-tool-calls .markdown-body p:last-child": {
-      marginBottom: 0
-    },
-
-    ".chat-message.has-tool-calls .markdown-body ul, .chat-message.has-tool-calls .markdown-body ol":
-      {
-        marginTop: theme.spacing(SPACING.xs),
-        marginBottom: theme.spacing(SPACING.xs)
-      },
 
     ".tool-section-header": {
       minHeight: theme.spacing(SPACING.xxl)
