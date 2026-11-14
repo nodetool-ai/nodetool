@@ -29,9 +29,8 @@ lean server uses the actor lifecycle in
 has no dependency on the full session's Python, model or provider integrations.
 These are the two canonical top-level server lifecycle owners. Public APIs keep
 their own graph preparation and result presentation. Nested execution can
-construct a child kernel runner with its inherited environment. Browser execution
-uses the portable `runWorkflow` API. Kernel tests and browser harnesses can
-construct the runner directly. `npm run check:execution-boundary` enumerates the
+construct a child kernel runner. Browser execution uses the portable
+`runWorkflow` API. `npm run check:execution-boundary` enumerates the
 exact permitted source files, rejects multiple constructions in an owner, and
 checks both kernel and execution-core imports, including aliases and namespaces.
 
@@ -63,11 +62,7 @@ and scratch-cleanup policies.
 
 The DSL keeps its explicit graph flags and output keys, secret resolver and
 registry precedence. Its preflight and cost recording remain disabled. Its
-result adapter continues throwing on failed runs and node error messages.
-
-Shared-server bridge bootstrap and metadata preparation remain host work.
-WebSocket graph preparation still precedes session normalization and hydration.
-Nested execution retains its parent context and output mapping.
+result adapter throws on failed runs and node error messages.
 
 ## Adapter changes
 
@@ -105,30 +100,7 @@ secret resolver and avoid adding persistence.
 
 ## Behavior verification
 
-The DSL differential tests retain the previous kernel path as a test oracle.
-They compare outputs, status, errors and retained messages for independent
-outputs, actor failure and an empty terminal. Job IDs and durations are excluded
-from comparison. Registry tests cover caller precedence, global precedence over
-builtin packs, builtin fallback and Python fallback with required secrets.
-Python tests stub the transport rather than starting a worker.
-
-Lifecycle tests cover bridge closure on completion, failure and partial setup,
-workspace cleanup on setup failure and execution errors, explicit cancellation
-and timeout. The cleanup test fails against the previous session when hydration
-throws after connecting the bridge. Existing runtime tests cover closure after
-local or remote bridge connection failures.
-
-Portable tests cover ordered delivery, terminal delivery after abort, queue
-draining, listener cleanup and abort before start. The cancellation terminal test
-fails against the previous portable runner. Message-buffer tests drain a large
-backlog and exercise overflow. Architecture tests exercise renamed and namespace
-imports while ignoring comments and types.
-
-No output, status, retained-message or exception differences were found in the
-representative DSL comparisons. Observable lifecycle changes are scratch cleanup
-after setup failure, shared-worker job boundaries in service runs, and portable
-terminal delivery after cancellation. Early portable iterator closure now
-cancels and waits for the run instead of leaving it executing without a consumer.
+The DSL differential tests keep the previous kernel path as an oracle and compare outputs, status, errors and retained messages. Job IDs and durations are excluded. They found no differences. Observable lifecycle changes are scratch cleanup after setup failure, shared-worker job boundaries in service runs, and portable terminal delivery after cancellation. Closing the portable iterator early now cancels the run and waits for it.
 
 ## Remaining duplication
 
@@ -136,6 +108,5 @@ The saved-workflow service and WebSocket host still prepare metadata before the
 session hydrates the graph. Moving that preparation requires preserving unknown
 nodes, list property types and each surface's output keys. Server preflight is
 also performed before lazy service bootstrap, using the shared preflight helper.
-Shared bridge bootstrap remains a host responsibility because its lifetime spans
-runs. Nested graph normalization and output mapping remain local to the child
-execution contract.
+Shared bridge bootstrap stays with the host because its lifetime spans runs.
+Nested graph normalization and output mapping stay local to the child.

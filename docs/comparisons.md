@@ -5,9 +5,9 @@ description: "How NodeTool differs from hosted AI platforms, and how it compares
 ---
 
 <p class="why-lead">
-  NodeTool is an open-source creative workspace. An agent builds a project
-  from one brief with image, video, audio, and text models. The result is an
-  editable storyboard, timeline, or graph, not a flat video file.
+  An agent builds a project from one brief with image, video, audio, and text
+  models. The result is an editable storyboard, timeline, or graph, not a flat
+  video file.
 </p>
 
 <div class="why-versus">
@@ -19,7 +19,7 @@ description: "How NodeTool differs from hosted AI platforms, and how it compares
       <li>Animate them in a video app</li>
       <li>Cut them with music in an editor</li>
     </ol>
-    <p class="why-path-foot">Four subscriptions, a downloads folder, and no record of the steps. One change means doing it all again.</p>
+    <p class="why-path-foot">One change means doing it all again.</p>
   </div>
   <div class="why-path why-path-new">
     <p class="why-path-label">With NodeTool</p>
@@ -28,7 +28,7 @@ description: "How NodeTool differs from hosted AI platforms, and how it compares
       <li>The agent drafts, boards, renders, and cuts</li>
       <li>Open the project and change any part</li>
     </ol>
-    <p class="why-path-foot">One project on your own keys. Every step stays editable and re-runnable.</p>
+    <p class="why-path-foot">One project on your own keys. Every step is editable and re-runnable.</p>
   </div>
 </div>
 
@@ -80,9 +80,8 @@ description: "How NodeTool differs from hosted AI platforms, and how it compares
   <p class="why-callout-kicker">Where NodeTool fits</p>
   <h3>Pick the model and the price</h3>
   <p>
-    FAL, Replicate, and KIE each sell Seedance at a different price. NodeTool
-    lets you pick the provider per node, and switching to a newer model such as
-    Veo or Kling is a model change on the node.
+    FAL, Replicate, and KIE each sell Seedance at a different price. You pick
+    the provider per node. Switching to Veo or Kling is a model change on the node.
   </p>
 </aside>
 
@@ -106,8 +105,6 @@ description: "How NodeTool differs from hosted AI platforms, and how it compares
 </div>
 
 ## Head-to-head
-
-Each page covers features, pricing, and when to pick which.
 
 <div class="why-vs-grid">
   <a class="why-vs" href="https://nodetool.ai/alternatives/comfyui">

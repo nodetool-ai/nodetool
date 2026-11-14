@@ -4,16 +4,7 @@ title: "Install NodeTool on Windows, macOS, or Linux"
 description: "Download NodeTool for Windows (Nodetool-Setup .exe), macOS (.dmg), or Linux (AppImage), then connect an AI provider so agents and media generation can run."
 ---
 
-Download the installer from [nodetool.ai](https://nodetool.ai) (`.dmg` on macOS, `.exe` on Windows, AppImage on Linux), open NodeTool, then connect a provider.
-
-## The short version
-
-1. Download NodeTool from [nodetool.ai](https://nodetool.ai).
-2. Run the installer: [macOS](#macos), [Windows](#windows), [Linux](#linux).
-3. Open NodeTool.
-4. [Connect an AI provider](#connect-an-ai-provider).
-
-Expected result: NodeTool opens, and the model dropdown in a node or chat lists at least one connected provider.
+Download the installer from [nodetool.ai](https://nodetool.ai) (`.dmg` on macOS, `.exe` on Windows, AppImage on Linux), open NodeTool, then [connect a provider](#connect-an-ai-provider). Expected result: NodeTool opens, and the model dropdown in a node or chat lists at least one connected provider.
 
 ---
 
@@ -58,7 +49,7 @@ Unsigned Flatpak builds are produced from every change: see [Flatpak CI Builds](
 
 ## Connect an AI provider
 
-Agents, chat, image, video, and speech nodes call a model. Without a connected provider they fail with a missing-provider error. Connect one before your first workflow, from the cloud, locally, or both.
+Agents, chat, image, video, and speech nodes fail with a missing-provider error until one provider is connected.
 
 **Cloud provider.** Open **Settings → Models & Providers**. Some providers sign in without a key: a Claude subscription (desktop app only), a ChatGPT account (Codex), and Hugging Face. For the rest, paste an API key created on the provider's site.
 
@@ -100,7 +91,7 @@ NodeTool starts without a Python environment. These pieces install on demand:
 - **Ollama** is a separate program from [ollama.com](https://ollama.com). NodeTool does not ship or start it. A `llama-server` you run yourself connects through `LLAMA_CPP_URL`. See [Providers](providers.md).
 - **Model weights.** Several GB each. Download from **Tools → Model Manager**.
 
-Without a graphics card or disk space, use a cloud provider: [Connect an AI provider](#connect-an-ai-provider), [Providers](providers.md), [Models & Providers](models-and-providers.md).
+Without a graphics card or disk space, use a cloud provider ([Providers](providers.md), [Models & Providers](models-and-providers.md)).
 
 ### What different tasks need
 
@@ -192,7 +183,7 @@ npm install -g @nodetool-ai/cli
 nodetool serve   # API on 127.0.0.1:7777; use --host and --port to change
 ```
 
-This runs every TypeScript node. Python nodes need a Python environment you set up yourself: see [Python nodes without the desktop app](#python-nodes-without-the-desktop-app) and the [CLI Reference](cli.md).
+This runs every TypeScript node. For Python nodes, see [Python nodes without the desktop app](#python-nodes-without-the-desktop-app) and the [CLI Reference](cli.md).
 
 **Docker.** Run the backend on your machine or a remote host:
 
@@ -212,11 +203,11 @@ npm run build:packages
 npm run dev
 ```
 
-Needs the Node.js version in `.nvmrc`. For Python nodes, set up a Python environment as described next.
+Needs the Node.js version in `.nvmrc`. Python nodes need the environment described next.
 
 ### Python nodes without the desktop app
 
-The desktop app manages Python. With the npm CLI or a source checkout, you create the environment yourself. The server runs `python -m nodetool.worker --stdio`, so `nodetool-core` and every pack you want must be installed in the interpreter it picks.
+With the npm CLI or a source checkout you create the Python environment yourself. The server runs `python -m nodetool.worker --stdio`, so `nodetool-core` and every pack you want must be installed in the interpreter it picks.
 
 On Linux and macOS, [install.sh](https://github.com/nodetool-ai/nodetool/blob/main/install.sh) does steps 1 to 3 below. It creates a Python 3.11 environment with ffmpeg in `~/.local/share/nodetool/conda_env` and installs `nodetool-core` plus the packs you name with `--pack` (`huggingface` or `mlx`):
 

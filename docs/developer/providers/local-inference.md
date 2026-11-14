@@ -4,7 +4,7 @@ title: "Local Inference (LM Studio, llama.cpp, vLLM): Add Models"
 description: "How to run local OpenAI-compatible inference servers with NodeTool — URL config, model discovery, and provider code paths."
 ---
 
-NodeTool ships three providers that talk to a local OpenAI-compatible HTTP server (a fourth, `node_llama_cpp`, runs in-process and is covered below): **LM Studio**, **llama.cpp** (`llama_cpp`), and **vLLM**. All three follow the same pattern: point NodeTool at the server's base URL, load a model in the server, and the model appears in the UI automatically via a `/v1/models` fetch.
+NodeTool ships three providers that talk to a local OpenAI-compatible HTTP server (a fourth, `node_llama_cpp`, runs in-process and is covered below): **LM Studio**, **llama.cpp** (`llama_cpp`), and **vLLM**.
 
 For local speech recognition, `whisper_cpp` runs GGML models in the backend
 and `whisper_cpp_server` calls a user-run whisper-server. See
@@ -17,9 +17,9 @@ and `whisper_cpp_server` calls a user-run whisper-server. See
 
 1. Start the local server and load a model.
 2. Set the server's base URL (env var or Settings → Integrations → Local Model Servers).
-3. Models appear in NodeTool automatically — no code change needed.
+3. Models appear in NodeTool through a `/v1/models` fetch. No code change is needed.
 
-The only time you touch code is when you are changing provider behavior (URL resolution, message normalization, tool-call handling) — see [Provider-level changes](#provider-level-changes-dev-path).
+Edit code only to change provider behavior (URL resolution, message normalization, tool-call handling). See [Provider-level changes](#provider-level-changes-dev-path).
 
 ## Where things live
 
@@ -39,27 +39,19 @@ Each provider implements `getAvailableLanguageModels()`, which calls `GET <baseU
 { "data": [{ "id": "model-name" }, ...] }
 ```
 
-llama.cpp also accepts a `models` top-level key as a fallback (`payload.data ?? payload.models ?? []`). The provider maps each `id` to a `LanguageModel` record; no static list exists in the codebase. Loading a new model in the server makes it visible in NodeTool on the next model-list refresh.
+llama.cpp also accepts a `models` top-level key as a fallback (`payload.data ?? payload.models ?? []`). The provider maps each `id` to a `LanguageModel` record. No static list exists in the codebase. A model loaded in the server appears on the next model-list refresh.
 
 **URL resolution order** (all three providers):
 
 1. `options.baseURL` (constructor arg — tests only)
 2. Secret store / env var (`LMSTUDIO_API_URL` / `LLAMA_CPP_URL` / `VLLM_BASE_URL`)
-3. Hard-coded default (LM Studio only — `http://127.0.0.1:1234`; llama.cpp and vLLM throw if unset)
+3. Hard-coded default (LM Studio only: `http://127.0.0.1:1234`, defined in `defaults.ts`. llama.cpp and vLLM throw if unset)
 
 Trailing slashes and a trailing `/v1` are stripped (`localServerRoot()`) before `/v1` is appended.
 
-**Default ports:**
-
-| Server | Default URL |
-|---|---|
-| LM Studio | `http://127.0.0.1:1234` (defined in `defaults.ts`) |
-| llama.cpp | none — must be set |
-| vLLM | none — must be set |
-
 ## Registration
 
-The three server providers and `node_llama_cpp` are registered in `packages/runtime/src/providers/index.ts` inside a guard that skips the cloud profile — `isCloudProfileActive()` reads `NODETOOL_NODE_PROFILE` and `NODETOOL_ENV`, so a self-hosted deployment setting `NODETOOL_NODE_PROFILE=full` keeps them registered while the commercial cloud does not:
+The three server providers and `node_llama_cpp` are registered in `packages/runtime/src/providers/index.ts` inside a guard that skips the cloud profile. `isCloudProfileActive()` reads `NODETOOL_NODE_PROFILE` and `NODETOOL_ENV`, so a self-hosted deployment setting `NODETOOL_NODE_PROFILE=full` keeps them registered while the commercial cloud does not:
 
 ```typescript
 if (!_cloudProfile) {
@@ -104,7 +96,7 @@ The third argument is the required kwargs. An empty value for a required key (`L
 **Default URL:** `http://127.0.0.1:1234`  
 **API key:** `lm-studio` (hard-coded default; override with `LMSTUDIO_API_KEY`)
 
-LM Studio's OpenAI-compatible server starts when you enable it in LM Studio → Local Server. Once running, NodeTool connects automatically with no URL config needed.
+Enable the server in LM Studio → Local Server. NodeTool then connects with no URL config.
 
 To use a different port:
 
@@ -123,7 +115,7 @@ Tool calls are always reported as supported (`hasToolSupport` returns `true`); w
 
 ### llama.cpp
 
-**Env var / settings key:** `LLAMA_CPP_URL` (required — no default)  
+**Env var / settings key:** `LLAMA_CPP_URL` (required, no default)  
 **API key:** optional `LLAMA_API_KEY` for a server started with `--api-key` (otherwise `sk-no-key-required` is sent)  
 **Context length:** optional `LLAMA_CPP_CONTEXT_LENGTH`. `llama-server` fixes its context size at launch and its API does not report it, so set this to the `--ctx-size` value for NodeTool to know the window.
 
@@ -141,7 +133,7 @@ export LLAMA_CPP_URL=http://127.0.0.1:8080
 
 `llama-server` constrains generation with a grammar built from the tool schemas, so tool calling is native for any model it serves. `LlamaProvider` returns `true` from `hasToolSupport` and does no prompt-level emulation.
 
-`LlamaProvider` extends `OpenAICompatProvider`, which supplies the chat path, sampling parameters, usage tracking, and message normalization — the same code LM Studio and vLLM ride. The provider itself only handles URL resolution, model listing, and context-length error detection.
+`LlamaProvider` extends `OpenAICompatProvider`, which supplies the chat path, sampling parameters, usage tracking, and message normalization. LM Studio and vLLM use the same code. The provider itself only handles URL resolution, model listing, and context-length error detection.
 
 ### llama.cpp in-process (`node_llama_cpp`)
 
@@ -149,7 +141,7 @@ export LLAMA_CPP_URL=http://127.0.0.1:8080
 
 ### vLLM
 
-**Env var / settings key:** `VLLM_BASE_URL` (required — no default)  
+**Env var / settings key:** `VLLM_BASE_URL` (required, no default)  
 **API key:** optional via `VLLM_API_KEY`; defaults to `sk-no-key-required`
 
 Start a vLLM server:
@@ -174,8 +166,6 @@ export VLLM_API_KEY=your-key
 
 ## Provider-level changes (dev path)
 
-You need to edit source only when changing how a provider works, not when adding models.
-
 | Change | File to edit |
 |---|---|
 | URL resolution or default port | `packages/runtime/src/providers/defaults.ts` and the constructor in the provider file |
@@ -184,19 +174,19 @@ You need to edit source only when changing how a provider works, not when adding
 | Registration kwargs (env var name, default value) | `packages/runtime/src/providers/index.ts` registration block |
 | Container env propagation | `getContainerEnv()` in the provider class |
 
-These providers do not load from `dist/` (unlike `base-nodes`, `node-sdk`), so no build step is needed — changes take effect on the next `npm run dev`.
+These providers do not load from `dist/` (unlike `base-nodes`, `node-sdk`), so no build step is needed. Changes take effect on the next `npm run dev`.
 
 ## Verify
 
 ```bash
-# 1. Check types and lint
+# 1. Types and lint
 npm run typecheck
 npm run lint
 
 # 2. Start the local server (example: llama.cpp on port 8080)
 ./llama-server --model /path/to/model.gguf --port 8080
 
-# 3. Set the URL and run a single node against it
+# 3. Run a single node against it
 export LLAMA_CPP_URL=http://127.0.0.1:8080
 npm run dev:nodetool -- node run nodetool.agents.Agent \
   --props '{"prompt": "What is 2+2?", "model": {"type": "language_model", "provider": "llama_cpp", "id": "your-model-id"}}' 

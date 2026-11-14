@@ -13,11 +13,11 @@ The **Model Manager** lists the local models NodeTool can run, searches the Hugg
 
 ## Opening the Manager
 
-Open the logo menu and choose **Model Manager**. It opens as a page tab at the `/models` route.
+Choose **Model Manager** in the logo menu. It opens at the `/models` route.
 
 ![Models Manager — Full View](assets/screenshots/models-list.png)
 
-The page has four sources, switched with the toggle at the top right.
+Four sources, switched with the toggle at the top right:
 
 | Source | What it shows |
 |---|---|
@@ -48,8 +48,6 @@ The left sidebar, **Model Categories**, filters by model type with a count for e
 
 ### Filters
 
-The filter bar above the list narrows the results.
-
 | Filter | Options |
 |---|---|
 | **I want to** | Chat & agents, Create images, Understand images, Transcribe speech, Generate speech & audio, Create video, Search & RAG |
@@ -61,12 +59,9 @@ Selecting an active goal or format chip again clears it. Changing the source or 
 
 ### Search and sort
 
-- **Search** matches model names and repository ids.
-- **Sort** by Best fit, Name, Size, Downloads, or Likes. The arrow button reverses the direction. Models that need a download or are unavailable always sort after ready ones.
+**Search** matches model names and repository ids. **Sort** by Best fit, Name, Size, Downloads, or Likes. The arrow button reverses the direction. Models that need a download or are unavailable always sort after ready ones.
 
 ### Reading a model row
-
-Each row can show these badges.
 
 - A **status** badge with the reason on hover, for example when a runtime the model needs is not installed.
 - A **fit** badge: **Fits your machine**, **Tight fit**, or **Needs ~N GB**. NodeTool estimates it from the model's size against the memory budget on the Get Started tab.
@@ -85,14 +80,13 @@ Each row can show these badges.
 
 ### Download details
 
-- Downloads continue in the background while you move around the app.
-- The Downloads dialog shows each file's progress.
+- Downloads continue in the background, and the Downloads dialog shows each file's progress.
 - The download connection reconnects automatically after a drop, up to 5 attempts with exponential backoff.
 - Gated Hub repos need a Hugging Face token. See [HuggingFace Integration](huggingface.md#authentication-and-gated-models).
 
 ### Storage location
 
-Hugging Face models use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. NodeTool resolves it the way the `huggingface_hub` library does: `HF_HUB_CACHE`, then `HUGGINGFACE_HUB_CACHE`, then `$HF_HOME/hub`, then `$XDG_CACHE_HOME/huggingface/hub`. Downloads, the **Installed** list, the downloaded badges, llama.cpp, whisper.cpp, and the Python worker all read the same directory. On Linux with `XDG_CACHE_HOME` set, as in the Flatpak build, the desktop app keeps using `~/.cache/huggingface/hub` when it already holds models. The full rule is under [`HF_HUB_CACHE`](configuration.md#environment-variables-index). Ollama keeps its models in its own directory. Transformers.js models download to `<data-dir>/transformers-js-cache`, or to `TRANSFORMERS_JS_CACHE_DIR` if set. On the desktop app, the Downloads dialog has **Open HuggingFace folder** and **Open Ollama folder** buttons.
+Hugging Face models use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. NodeTool resolves it the way the `huggingface_hub` library does: `HF_HUB_CACHE`, then `HUGGINGFACE_HUB_CACHE`, then `$HF_HOME/hub`, then `$XDG_CACHE_HOME/huggingface/hub`. Downloads, the **Installed** list, llama.cpp, whisper.cpp, and the Python worker all read the same directory. On Linux with `XDG_CACHE_HOME` set, as in the Flatpak build, the desktop app keeps using `~/.cache/huggingface/hub` when it already holds models. The full rule is under [`HF_HUB_CACHE`](configuration.md#environment-variables-index). Ollama keeps its models in its own directory. Transformers.js models download to `<data-dir>/transformers-js-cache`, or to `TRANSFORMERS_JS_CACHE_DIR` if set. On the desktop app, the Downloads dialog has **Open HuggingFace folder** and **Open Ollama folder** buttons.
 
 ---
 
@@ -113,13 +107,13 @@ Hugging Face models use the standard Hugging Face hub cache, `~/.cache/huggingfa
 
 ![Recommended Models Dialog](assets/screenshots/recommended-models.png)
 
-Many workflow nodes name recommended models. The **Recommended** source gathers them from the nodes you have installed and lists the ones you can download. If you have no nodes that run models, the list is empty.
+The **Recommended** source gathers the models named by your installed nodes. It is empty when you have no nodes that run models.
 
 ---
 
 ## Choosing a model in a node
 
-A model property opens a picker for its type. The title says which: **Select Language Model**, **Select Image Model**, **Select Video Model**, **Select TTS Model**, **Select ASR Model**, **Select Embedding Model**, **Select Music Model**, **Select Audio To Audio Model**, **Select HuggingFace Model**, or **Select Transformers.js Model**. The picker lists only models of that type, with a provider rail on the side.
+A model property opens a picker for its type, titled **Select Language Model**, **Select Image Model**, **Select Video Model**, **Select TTS Model**, **Select ASR Model**, **Select Embedding Model**, **Select Music Model**, **Select Audio To Audio Model**, **Select HuggingFace Model**, or **Select Transformers.js Model**. It lists only models of that type, with a provider rail on the side.
 
 - Provider icons show which providers have a key. A provider without one shows **API key required** and a **Connect this provider** action.
 - A provider can be disabled to hide its models from the picker.
@@ -130,7 +124,7 @@ A model property opens a picker for its type. The title says which: **Select Lan
 
 ### Cloud provider models
 
-Models from cloud providers appear in these pickers based on your configured keys. They run remotely and need no download. Configure keys in **Settings → Models & Providers**. See [Models & Providers](models-and-providers.md) for setup details.
+Cloud provider models appear in these pickers based on your configured keys and need no download. Configure keys in **Settings → Models & Providers**. See [Models & Providers](models-and-providers.md).
 
 ---
 

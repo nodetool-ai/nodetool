@@ -13,18 +13,11 @@ canonical_url: "https://nodetool.ai/templates/seo-content-engine"
 <p class="usecase-eyebrow">Use case · Content</p>
 
 One topic in, a keyword-targeted article batch out. A strategist agent plans
-the cluster, and every article arrives written, structured for search, and
-paired with an editorial hero image — the deliverable content agencies bill
-per article, produced by the batch at provider cost.
-
-Ranking rarely comes from one article. Search engines reward *clusters* —
-several pieces that own a topic together, each answering a different intent.
-Producing a cluster is what makes content expensive; this graph makes it one
-run.
+the topic cluster, and each article is written with a hero image.
 
 ## How it works
 
-The strategist plans once; everything after the list generator runs once per
+The strategist plans once. Everything after the list generator runs once per
 article.
 
 {% mermaid %}
@@ -44,10 +37,10 @@ graph LR
   briefs --> hero
 {% endmermaid %}
 
-1. **Feed in the campaign.** Who's publishing and which pages the articles
+1. **Feed in the campaign.** Who is publishing and which pages the articles
    support, who searches and the seed topics, and how many articles to
-   produce (2 to 10, default 4). *(e.g. "ultralight hiking shop · beginner hikers · trail runners
-   vs boots · 4 articles")*
+   produce (2 to 10, default 4).
+   *(e.g. "ultralight hiking shop · beginner hikers · trail runners vs boots · 4 articles")*
 2. **Plan the cluster.** A strategist agent picks the topic cluster, assigns
    one primary keyword per article with its search intent, and divides
    coverage so the articles don't compete with each other.
@@ -58,34 +51,31 @@ graph LR
    `title`, `meta_description`, `keywords`, and a Markdown `body` of 900 to
    1,200 words with an answer-first opening, the brief's section structure, a
    three-question FAQ, and one unforced CTA. The template previews each field
-   separately, so nothing is merged into one blob to paste into a CMS.
+   separately.
 5. **Render the heroes.** In parallel, each brief becomes a 16:9 editorial
    hero image with room left for a headline overlay.
 
 ## One run, one cluster
 
-Because every article comes from the same plan, the batch behaves like a
-cluster instead of a pile: keywords don't cannibalize, internal logic is
-consistent, and the voice section of the plan keeps ten articles sounding
-like one publication. Point the seed inputs at the next cluster and run it
-again.
+Every article comes from the same plan, so keywords don't cannibalize each
+other and the voice section of the plan keeps the batch in one voice. Point the
+seed inputs at the next cluster and run it again.
 
 ## Make it yours
 
-- **Retune the writer.** The article rules — length, structure, point of
-  view, FAQ — are a prompt, not a setting. Make it terse and technical or
-  warm and story-led.
-- **Raise the stakes per article.** Swap the writer's model up for money
-  pages, down for supporting pieces.
-- **Change the imagery.** The hero prompt controls the visual language —
-  photography, flat illustration, product-in-context.
-- **Chain the next step.** Add a Save Text node per article, or a translation
-  branch to ship each cluster in every market's language.
+- The article rules (length, structure, point of view, FAQ) are a prompt you can
+  edit. Make it terse and technical or warm and story-led.
+- Use a stronger writer model for money pages and a cheaper one for supporting
+  pieces.
+- The hero prompt controls the visual language: photography, flat
+  illustration, or product-in-context.
+- Add a Save Text node per article, or a translation branch to ship each
+  cluster in other languages.
 
 ## Models in this workflow
 
-Called with your own keys. The bill comes from the provider. The template
-ships with the defaults below and each is one dropdown.
+Calls use your own keys, so the provider bills you. The template ships with the
+defaults below, each a dropdown.
 
 | Role | Node | Shipped default | Also works with |
 | --- | --- | --- | --- |
@@ -99,6 +89,6 @@ See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to se
 ## Next steps
 
 - Open the template: **Examples** in the sidebar, **Workflows** tab, *SEO Content Engine*
-- [Ad Creative Factory]({{ '/use-cases/ad-creative-factory' | relative_url }}) — paid acquisition from the same brief-style inputs
-- [Podcast Repurposing Studio]({{ '/use-cases/podcast-repurposing-studio' | relative_url }}) — the content pack for what you've already recorded
+- [Ad Creative Factory]({{ '/use-cases/ad-creative-factory' | relative_url }}): paid acquisition from the same brief-style inputs
+- [Podcast Repurposing Studio]({{ '/use-cases/podcast-repurposing-studio' | relative_url }}): the content pack for what you've already recorded
 - [All use cases]({{ '/use-cases' | relative_url }})

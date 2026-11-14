@@ -6,12 +6,12 @@ description: "Run a workflow on a schedule, when a file changes, when a webhook 
 
 A trigger node starts one workflow run per event, with no editor open. Add the node, save the workflow, then click the bolt button in the floating toolbar and turn on **Workflow active**.
 
-| Node | Fires when | Key settings |
-|---|---|---|
-| Interval Trigger | A fixed number of seconds passes | Interval Seconds (60) |
-| File Watch Trigger | A file or folder changes on the server | Path, Patterns, Events |
-| Webhook Trigger | An HTTP request reaches `/api/webhooks/{token}` | none |
-| Manual Trigger | You click **Fire now** or call `triggers.fire` | Name |
+| Node | Fires when |
+|---|---|
+| Interval Trigger | A fixed number of seconds passes |
+| File Watch Trigger | A file or folder changes on the server |
+| Webhook Trigger | An HTTP request reaches `/api/webhooks/{token}` |
+| Manual Trigger | You click **Fire now** or call `triggers.fire` |
 
 ---
 
@@ -73,7 +73,7 @@ Outputs: `body`, `headers`, `query`, `method`, `path`, `timestamp`, `source`, `e
 
 ### Manual Trigger
 
-Fires only when you click **Fire now** in the trigger popover, or when something calls the `triggers.fire` procedure. It works as a stand-in while you build another trigger.
+Fires only when you click **Fire now** in the trigger popover, or when something calls the `triggers.fire` procedure.
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
@@ -136,9 +136,9 @@ The server disarms a trigger by itself in three cases.
 - **Expiry.** A registration with an expiry time turns off once that time passes.
 - **Run limit.** A registration with a maximum number of runs turns off after it reaches that number of successful runs.
 
-Neither the expiry nor the run limit can be set from the editor. Failures are the case you will meet.
+Neither the expiry nor the run limit can be set from the editor.
 
-A trigger that was disarmed this way shows **Stopped** in the popover with the reason and the line `Turn it back on to retry.` Turning it on clears the failure count and the reason, so the trigger starts fresh. If the cause is not fixed, it stops again after 5 more failures.
+A trigger that was disarmed this way shows **Stopped** in the popover with the reason and the line `Turn it back on to retry.` Fix the cause in the workflow, save, and turn the trigger on. That clears the failure count and the reason. If the cause is not fixed, it stops again after 5 more failures.
 
 ## The trigger popover
 
@@ -157,7 +157,7 @@ Click the bolt button in the toolbar to open it. It lists one block for each tri
 
 An error in the toggle or in **Fire now** appears as a notification, for example `Could not fire trigger: Trigger is not active`.
 
-**Fire now** sends an empty event payload. It is the quickest way to test the rest of the graph. To test a webhook with real data, send a request to its URL.
+**Fire now** sends an empty event payload. To test a webhook with real data, send a request to its URL.
 
 ## Calling a webhook
 
@@ -194,7 +194,7 @@ The `404`, `401`, and `410` responses, and the idempotency rules, are described 
 
 ## Where triggers run
 
-Triggers run inside the NodeTool server process, so the server must be running for any of them to fire. Nothing fires while the server is stopped.
+Triggers run inside the NodeTool server process. Nothing fires while the server is stopped.
 
 - **Desktop.** The server runs on your computer, so file watch triggers see your own folders. The webhook URL points at that local server, so an outside service can reach it only if you expose the port.
 - **Self-hosted.** The server watches folders on the machine it runs on, which inside a container is the container's filesystem. Mount the folder into the container. See [Self-Hosted Deployment](self-hosted-deployment.md).
@@ -211,8 +211,6 @@ The mobile app has no Triggers screen. Manage triggers on desktop or web.
 
 **The bolt button is missing.** The graph has no interval, file watch, webhook, or manual trigger node. The Wait node does not count.
 
-**The switch is off and says to save first.** The workflow has no registrations. Save it.
-
 **Nothing fires.**
 - Check that the trigger shows **Active**, not **Inactive**.
 - Check that the server is running and that `NODETOOL_DISABLE_TRIGGERS` is not set on it.
@@ -226,8 +224,6 @@ The mobile app has no Triggers screen. Manage triggers on desktop or web.
 
 **A webhook call returns `"duplicate": true`.** The request matched an earlier one, so no new run started. Change the body or the `x-webhook-id`.
 
-**The trigger shows Stopped.** Read **Last error**, fix the cause in the workflow, save, and turn the trigger back on.
-
-**The bolt is red but the trigger is armed.** The latest run failed. The trigger keeps running and stops after 5 failures in a row.
+**The trigger shows Stopped.** Read **Last error** and see [Automatic disarm](#automatic-disarm).
 
 **I clicked Fire now and nothing happened.** A run started, but the graph may have failed. Check the run history and the **Last error** line.

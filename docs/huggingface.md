@@ -6,8 +6,6 @@ description: "How NodeTool uses Hugging Face: the hosted Inference Providers nod
 
 # <img src="assets/icons/huggingface.svg" width="28" height="28" style="vertical-align: middle; display: inline-block;" alt="HuggingFace" /> HuggingFace Integration
 
-NodeTool uses Hugging Face in five ways. Each has different requirements.
-
 | Surface | Runs | Needs | Where it appears |
 |---|---|---|---|
 | **HuggingFace provider** | Hosted, on Hugging Face Inference Providers | `HF_TOKEN` | Generic nodes (chat, image, video, TTS, ASR, embeddings) |
@@ -20,7 +18,7 @@ NodeTool uses Hugging Face in five ways. Each has different requirements.
 
 The provider (id `huggingface`) routes generic nodes to Hugging Face Inference Providers through the `@huggingface/inference` client. It offers text-to-image, image-to-image, text-to-video, text-to-speech, speech recognition, and embeddings, plus chat. Tool calling is off.
 
-Model lists come from the Hub. For each task NodeTool asks for models with warm inference, sorted by likes, limited to 100, and caches the answer for 10 minutes. A token is required. Without one the provider does not register as configured. If the `@huggingface/inference` package is missing, the provider reports it instead of failing at the first call. See [Providers](providers.md#huggingface) for how it fits with other providers.
+Model lists come from the Hub. For each task NodeTool asks for models with warm inference, sorted by likes, limited to 100, and caches the answer for 10 minutes. A token is required. Without one the provider does not register as configured. If the `@huggingface/inference` package is missing, the provider reports it instead of failing at the first call.
 
 ## `huggingface.*` task nodes
 
@@ -35,7 +33,7 @@ Nineteen nodes call the Inference Providers router at `https://router.huggingfac
 
 Text to Image takes a prompt, negative prompt, width, height, guidance scale, inference steps, and seed. Node references are in the [`huggingface` namespace](nodes/huggingface/index.md).
 
-These nodes need a Hugging Face access token with the **Inference Providers** permission, stored as `HF_TOKEN`. `HUGGINGFACE_API_KEY` is also accepted. Without a token the node fails with `HF_TOKEN is not configured`.
+These nodes need a token with the **Inference Providers** permission, stored as `HF_TOKEN`. `HUGGINGFACE_API_KEY` is also accepted. Without one the node fails with `HF_TOKEN is not configured`.
 
 ## Transformers.js nodes (local ONNX)
 
@@ -55,7 +53,7 @@ The Model Manager recognizes the model types this pack uses, such as Flux (inclu
 
 ## Authentication and gated models
 
-Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens). Which token a feature reads depends on the feature.
+Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens). Each feature reads it from a different place.
 
 | Feature | Token source |
 |---|---|
@@ -83,7 +81,7 @@ Hub downloads use the standard Hugging Face hub cache, `~/.cache/huggingface/hub
 
 ## Troubleshooting
 
-**`HF_TOKEN is not configured`.** A `huggingface.*` node ran without a token. Add `HF_TOKEN` in Settings or the environment. The token needs the Inference Providers permission.
+**`HF_TOKEN is not configured`.** Add `HF_TOKEN` in Settings or the environment.
 
 **`@huggingface/inference is required for HuggingFaceProvider`.** The client package is missing. It is a dependency of `@nodetool-ai/runtime`, so a normal install has it. Reinstall NodeTool, or run `npm install` in a source checkout.
 
@@ -95,9 +93,6 @@ Hub downloads use the standard Hugging Face hub cache, `~/.cache/huggingface/hub
 
 ## Related documentation
 
-- [Models Manager](models-manager.md): browse, download, and delete local models
-- [Supported Models](models.md): local engines and model types
-- [Providers](providers.md): every provider and its key
 - [`huggingface` nodes](nodes/huggingface/index.md) and [`transformers` nodes](nodes/transformers/index.md): node reference
 - [Hugging Face provider guide](developer/providers/huggingface.md): how the provider is built
 - [Hugging Face Hub](https://huggingface.co/models)

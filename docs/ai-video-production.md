@@ -61,8 +61,6 @@ The result opens in the timeline, where each beat remains a separate clip.
 
 ### Storyboard: direct each shot before animation
 
-**Storyboard** gives shot-by-shot control and reference consistency.
-
 1. Describe the story in **What's your story?** and add creative context and
    references.
 2. Review **Your screenplay**. Edit scene headings, action, dialogue, and shot
@@ -75,10 +73,6 @@ The result opens in the timeline, where each beat remains a separate clip.
    model. **Add your own style** can build a look from one to three reference
    images.
 6. Render stills, approve the framing you want, then generate clips.
-
-A product close-up needs a product reference. A reference-based character or
-lifestyle shot needs the matching character, product, location, or style asset
-and a video model that accepts references.
 
 ### Script: write and cast the words first
 
@@ -151,7 +145,7 @@ In the timeline:
 
 The agent can collect one preview per destination into a draft. Ask it to show the draft, then tell it to **Use draft**. The whole draft is validated before it applies, so a failed or outdated choice leaves the timeline unchanged.
 
-Accepting a take changes only its destination. Other clips, the source script, and entities stay as they were, and other options remain until you remove them.
+Other options remain until you remove them.
 
 ## Retry failed generations
 
@@ -182,15 +176,12 @@ This example makes a three-beat social ad for a reusable water bottle.
    - Call to action: Product and character together with the final line.
 5. Request two takes for the product close-up and one take for the other beats.
    Choose a reference-capable video model and generate.
-6. Preview both close-up options. Choose **Set as current clip** (Storyboard) or
-   **Use take** (timeline) for the better one. Retry only the failed beat if a generation fails.
+6. Preview both close-up options and choose the better one. Retry only the failed beat if a generation fails.
 7. Continue in the timeline. Trim the accepted clips, adjust audio, add
    captions, and export the vertical cut.
 
-For an on-camera final line, first generate or record its speech in Script, prepare a source face video for the character, and connect an audio-driven model. Otherwise keep the line off-camera.
-
 ## Finish the cut
 
-Accepted takes are ordinary timeline media: trim, reorder, mix, caption, and export without touching unused candidates. See the [Video Editor](video-editor.md) for
+Accepted takes are ordinary timeline media. See the [Video Editor](video-editor.md) for
 timeline controls and [AI Timeline Editing](ai-timeline-editing.md) for
 generation history and local media edits.
