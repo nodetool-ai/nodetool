@@ -3,6 +3,7 @@ import {
   formatActionShortcut,
   withActionShortcut,
   resolveTimelineAction,
+  PREMIERE_ONLY_ACTIONS,
   TIMELINE_KEYMAPS,
   TIMELINE_KEYBOARD_PRESETS,
   type KeyEventLike
@@ -111,13 +112,42 @@ describe("resolveTimelineAction", () => {
     }
   });
 
-  it("binds every action in every preset", () => {
-    const actions = Object.keys(TIMELINE_KEYMAPS.premiere);
-    for (const preset of TIMELINE_KEYBOARD_PRESETS) {
-      for (const action of actions) {
-        expect(TIMELINE_KEYMAPS[preset][action as keyof typeof TIMELINE_KEYMAPS.premiere].length).toBeGreaterThan(0);
-      }
+  it("binds every action in Premiere, and in Final Cut all but the Premiere-only keys", () => {
+    const actions = Object.keys(TIMELINE_KEYMAPS.premiere) as (keyof typeof TIMELINE_KEYMAPS.premiere)[];
+    for (const action of actions) {
+      expect(TIMELINE_KEYMAPS.premiere[action].length).toBeGreaterThan(0);
+      expect(TIMELINE_KEYMAPS.fcp[action].length > 0).toBe(!PREMIERE_ONLY_ACTIONS.includes(action));
     }
+  });
+
+  it("binds Premiere's navigation, marker, track and panel keys", () => {
+    const premiere = (key: string, mods: Partial<KeyEventLike> = {}) =>
+      resolveTimelineAction(ev(key, mods), "premiere");
+    expect(premiere("Home")).toBe("goToSequenceStart");
+    expect(premiere("End", { shiftKey: true })).toBe("goToSelectedEnd");
+    expect(premiere("ArrowDown", { shiftKey: true })).toBe("nextCutAnyTrack");
+    expect(premiere("ArrowUp", { ctrlKey: true })).toBe("selectPrevClip");
+    expect(premiere(":", { shiftKey: true, code: "Semicolon" })).toBe("nextGap");
+    expect(premiere(";")).toBe("liftRange");
+    expect(premiere("L", { shiftKey: true })).toBe("slowShuttleForward");
+    expect(premiere("L", { ctrlKey: true, shiftKey: true })).toBe("toggleLoop");
+    expect(premiere("K", { shiftKey: true })).toBe("playAround");
+    expect(premiere(" ", { shiftKey: true })).toBe("playInToOutWithRoll");
+    expect(premiere("ArrowLeft", { ctrlKey: true })).toBe("nudgeLeft");
+    expect(premiere("x", { altKey: true })).toBe("clearRange");
+    expect(premiere("m", { ctrlKey: true })).toBe("addMarkerInOut");
+    expect(premiere("+", { shiftKey: true, code: "Equal" })).toBe("expandAllTracks");
+    expect(premiere("]")).toBe("clipVolumeUp");
+    expect(premiere("}", { shiftKey: true, code: "BracketRight" })).toBe("clipVolumeUpMore");
+    expect(premiere("@", { shiftKey: true, code: "Digit2" })).toBe("panelSource");
+    expect(premiere(">", { ctrlKey: true, shiftKey: true, code: "Period" })).toBe("nextPanel");
+    // Alt+M stays the Video/DAW switch rather than Premiere's Clear Marker.
+    expect(premiere("m", { altKey: true })).toBe("toggleDawMode");
+  });
+
+  it("Home and End reach the sequence ends in Final Cut too", () => {
+    expect(resolveTimelineAction(ev("Home"), "fcp")).toBe("goToSequenceStart");
+    expect(resolveTimelineAction(ev("End"), "fcp")).toBe("goToSequenceEnd");
   });
 
   it("no two actions share a binding inside a preset", () => {

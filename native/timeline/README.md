@@ -97,9 +97,12 @@ Tested on Arch Linux with GCC 16, CMake 4, Qt 6.12.0 from `aqtinstall`
 (`linux_gcc_64` with `qtshadertools`), the distribution's FFmpeg 9.0
 (`libavcodec` 63) with its headers, libva 2.24, the Vulkan loader and
 headers, and an NVIDIA RTX 3060 with `nvidia-vaapi-driver` 0.0.18 (direct
-backend) for VAAPI. The system FFmpeg builds as is; the LGPL build of
-`scripts/build-ffmpeg-lgpl.sh` is the packaging and CI choice, not a
-requirement. Run from `native/timeline/`:
+backend) for VAAPI. A system FFmpeg of 7.1 or later builds as is (the export
+code calls `avcodec_get_supported_config`, which 7.1 added, so Ubuntu 24.04's
+6.1 does not). The LGPL build of `scripts/build-ffmpeg-lgpl.sh` is the
+packaging and CI choice and works on any distribution: point `PKG_CONFIG_PATH`
+and `LD_LIBRARY_PATH` at `build-ffmpeg-lgpl/install/lib` before configuring.
+Run from `native/timeline/`:
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$HOME/qt/6.12.0/gcc_64
@@ -376,10 +379,16 @@ targets (a ripple still moves a group with its children), and a split or drop
 that would split or remove a clip owning a media track.
 
 ```bash
-node native/timeline/scripts/op-conformance.mjs   # needs build-m2/timeline-ops
+cmake --build build --target conformance-helpers  # timeline-ops and every suite's oracle
+node native/timeline/scripts/op-conformance.mjs   # defaults to build/timeline-ops
 ./build/tst_tracksui                               # gestures, keys, undo (offscreen)
 ./build/tst_editpreview                            # the preview draws an edit on the next frame
 ```
+
+The full build makes every helper the run needs. After a partial build,
+`conformance-helpers` builds just the app, `timeline-ops` and the oracle each
+suite in `scripts/conformance/suites/` calls. A missing helper stops the run
+before vitest starts and names the binary.
 
 `op-conformance.mjs` checks the native code against the TypeScript in four
 ways, through `timeline-ops` (one call per process, JSON in and out):
@@ -438,9 +447,11 @@ Tests: `tst_menus`, `tst_appshell_menus`, `menu_parity_report`.
 
 ### Keyboard presets
 
-`src/edit/KeymapOverlay.h` holds the Premiere keys. The preset uses Ctrl+K to split,
-Ctrl+Shift+L for loop, Shift+1 to Shift+9 for panels and Shift+= and Shift+- to
-expand and minimize tracks. A key the preset binds means that action alone, even
+The Premiere keys come from the web table, which binds Ctrl+Shift+L for loop,
+Shift+2 to Shift+0 for panels and Shift+= and Shift+- to expand and minimize
+tracks. `src/edit/KeymapOverlay.h` holds the keys only the native editor binds:
+Ctrl+K to split, Ctrl+Shift+E to export a frame, Alt+M to clear a marker, and
+Shift+1, Shift+6 and Shift+7 for the Library, Mixer and Effects panels. A key the preset binds means that action alone, even
 when it refuses, and a registered default key gives way to the preset.
 
 The first interactive launch shows a keyboard layout prompt, which does not block
