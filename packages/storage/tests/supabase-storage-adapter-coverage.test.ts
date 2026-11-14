@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { SupabaseStorageAdapter } from "../src/supabase-storage-adapter.js";
+import { UploadTooLargeError } from "../src/storage-limits.js";
 import type {
   SupabaseBucketApi,
   SupabaseObjectEntry,
@@ -77,6 +78,29 @@ describe("SupabaseStorageAdapter store", () => {
       adapter.store("k.txt", new Uint8Array([1]))
     ).rejects.toThrow('Supabase upload failed for "k.txt": Bucket full');
   });
+
+  it("raises UploadTooLargeError when the project size limit rejects it", async () => {
+    const { adapter } = makeAdapter({
+      upload: vi.fn(async () => ({
+        error: {
+          message: "The object exceeded the maximum allowed size",
+          status: 413
+        }
+      }))
+    });
+    const failure = adapter.store("m.glb", new Uint8Array(3));
+    await expect(failure).rejects.toBeInstanceOf(UploadTooLargeError);
+    await expect(failure).rejects.toMatchObject({ byteLength: 3, maxBytes: null });
+  });
+
+  it("keeps other upload failures as plain errors", async () => {
+    const { adapter } = makeAdapter({
+      upload: vi.fn(async () => ({ error: { message: "Bucket full", status: 400 } }))
+    });
+    await expect(
+      adapter.store("k.txt", new Uint8Array([1]))
+    ).rejects.not.toBeInstanceOf(UploadTooLargeError);
+  });
 });
 
 describe("SupabaseStorageAdapter uriForKey", () => {
@@ -112,6 +136,16 @@ describe("SupabaseStorageAdapter retrieve", () => {
     const { adapter } = makeAdapter();
     expect(await adapter.retrieve("supabase://uploads/")).toBeNull();
     expect(await adapter.retrieve("supabase:///key")).toBeNull();
+  });
+
+  it("returns null for a key with a dot segment and never downloads", async () => {
+    const download = vi.fn(async () => ({ data: null, error: null }));
+    const { adapter } = makeAdapter({ download });
+    expect(
+      await adapter.retrieve("supabase://uploads/projects/p/../../victim/a.png")
+    ).toBeNull();
+    expect(await adapter.retrieve("supabase://uploads/./a.png")).toBeNull();
+    expect(download).not.toHaveBeenCalled();
   });
 
   it("returns null when download reports an error", async () => {

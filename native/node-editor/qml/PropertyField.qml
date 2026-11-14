@@ -26,32 +26,44 @@ ColumnLayout {
         || (descriptor.kind === "list" && descriptor.nodeType === "nodetool.constant.List")
         || (descriptor.kind === "dict" && descriptor.nodeType === "nodetool.constant.Dict")
     function begin() { editNodeId = nodeId }
+    // An edit that ended waits one turn, so the Quick handler that published it
+    // returns first. A field loses focus before the press that took it selects
+    // another node, so the edit still lands on the node it was editing.
+    property var pendingCommit: null
     function commit(value) {
         if (!writable || editNodeId !== nodeId || host.selection !== editNodeId) return
-        const generation = commitGeneration
-        const target = host
-        const id = editNodeId
-        const name = descriptor.name
-        Qt.callLater(function() {
-            if (root.commitGeneration === generation && root.writable && root.host === target && root.nodeId === id && target.selection === id)
-                target.commitProperty(id, name, value)
-        })
+        const pending = { generation: commitGeneration, target: host, id: editNodeId, name: descriptor.name, value: value }
+        pendingCommit = pending
+        Qt.callLater(function() { root.flushCommit(pending) })
+    }
+    function flushCommit(pending) {
+        if (pendingCommit !== pending) return
+        pendingCommit = null
+        if (pending.generation !== commitGeneration) return
+        if (root.nodeId !== pending.id || root.writable)
+            pending.target.commitProperty(pending.id, pending.name, pending.value)
     }
     function cancelDraft() {
         ++commitGeneration
+        pendingCommit = null
         if (fieldLoader.item && fieldLoader.item.cancelEdit) fieldLoader.item.cancelEdit()
     }
-    function resetFieldScope() {
+    // A new selection or tab keeps the finished edit. A replaced document,
+    // new credentials, new fields for the same node or a field that turned
+    // read-only drop it.
+    function resetFieldScope(keepFinishedEdit) {
+        if (keepFinishedEdit && pendingCommit) flushCommit(pendingCommit)
+        pendingCommit = null
         ++commitGeneration; editNodeId = ""; multiline = false
         if (typeof fieldLoader === "undefined" || !fieldLoader || !fieldLoader.item) return
         if (fieldLoader.item.resetScope) fieldLoader.item.resetScope()
         else if (fieldLoader.item.cancelEdit) fieldLoader.item.cancelEdit()
     }
-    onDescriptorIdentityChanged: resetFieldScope()
-    onDocumentEpochChanged: resetFieldScope()
-    onCredentialsEpochChanged: resetFieldScope()
-    onHostChanged: resetFieldScope()
-    onWritableChanged: if (!writable) resetFieldScope()
+    onDescriptorIdentityChanged: resetFieldScope(pendingCommit !== null && pendingCommit.target.selection !== pendingCommit.id)
+    onDocumentEpochChanged: resetFieldScope(false)
+    onCredentialsEpochChanged: resetFieldScope(false)
+    onHostChanged: resetFieldScope(true)
+    onWritableChanged: if (!writable) resetFieldScope(false)
     function removeValue() {
         cancelDraft()
         if (!writable || host.selection !== nodeId) return

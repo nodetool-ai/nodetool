@@ -1296,7 +1296,7 @@
             "parent_id": null,
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🎨 Color Boost Video\n\nGrades a clip frame by frame, then reassembles it. Use it to see how per-frame image adjustments apply to video, with one input driving the saturation strength.\n\n**How it works:** \"2 Split into frames\" extracts frames 0 to 2 of \"1 Source video\" (three frames) and reports the frame rate. Each frame goes through \"3 Exposure & contrast\" (exposure 0.2, contrast 0.1, highlights -0.1, shadows 0.1) and \"4 Saturation & vibrance\" (vibrance 0.4). \"Grading intensity\" (0.5) sets that node's saturation, where 0 means no change and -1 drains most of the color. \"5 Reassemble video\" rebuilds the clip at the source frame rate for \"6 Graded output\". It runs locally with no model or key.\n\n**Try this:** Set \"end\" on \"2 Split into frames\" to -1 to grade the whole clip, then set \"Grading intensity\" to -1 to see the color drain out."
+              "comment": "# Color Boost Video\n\nGrades a clip frame by frame, then reassembles it. Use it to see how per-frame image adjustments apply to video, with one input driving the saturation strength.\n\n**How it works:** \"2 Split into frames\" extracts frames 0 to 2 of \"1 Source video\" (three frames) and reports the frame rate. Each frame goes through \"3 Exposure & contrast\" (exposure 0.2, contrast 0.1, highlights -0.1, shadows 0.1) and \"4 Saturation & vibrance\" (vibrance 0.4). \"Grading intensity\" (0.5) sets that node's saturation, where 0 means no change and -1 drains most of the color. \"5 Reassemble video\" rebuilds the clip at the source frame rate for \"6 Graded output\". It runs locally with no model or key.\n\n**Try this:** Set \"end\" on \"2 Split into frames\" to -1 to grade the whole clip, then set \"Grading intensity\" to -1 to see the color drain out."
             },
             "ui_properties": {
               "selected": false,
@@ -1324,7 +1324,7 @@
               }
             },
             "ui_properties": {
-              "title": "1️⃣ Source video",
+              "title": "1 Source video",
               "position": {
                 "x": 0,
                 "y": 442
@@ -1367,7 +1367,7 @@
               "end": -1
             },
             "ui_properties": {
-              "title": "2️⃣ Split into frames",
+              "title": "2 Split into frames",
               "position": {
                 "x": 380,
                 "y": 603
@@ -1389,7 +1389,7 @@
               "shadows": 0.1
             },
             "ui_properties": {
-              "title": "3️⃣ Exposure & contrast",
+              "title": "3 Exposure & contrast",
               "position": {
                 "x": 760,
                 "y": 557
@@ -1408,7 +1408,7 @@
               "vibrance": 0.4
             },
             "ui_properties": {
-              "title": "4️⃣ Saturation & vibrance",
+              "title": "4 Saturation & vibrance",
               "position": {
                 "x": 1140,
                 "y": 658
@@ -1425,7 +1425,7 @@
             "type": "nodetool.video.FrameToVideo",
             "data": {},
             "ui_properties": {
-              "title": "5️⃣ Reassemble video",
+              "title": "5 Reassemble video",
               "position": {
                 "x": 1520,
                 "y": 533
@@ -1445,7 +1445,7 @@
               "name": "graded_video"
             },
             "ui_properties": {
-              "title": "6️⃣ Graded output",
+              "title": "6 Graded output",
               "position": {
                 "x": 2036,
                 "y": 662

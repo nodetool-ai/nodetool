@@ -2,7 +2,7 @@
 import React, { useRef } from "react";
 import { SURFACES as SURFACE_COPY } from "@/data/agentsPage";
 
-interface Surface {
+export interface Surface {
   title: string;
   body: string;
   poster: string;
@@ -26,7 +26,8 @@ const SURFACES: Surface[] = SURFACE_COPY.map((surface) => ({
   ...MEDIA[surface.title],
 }));
 
-function SurfaceCard({ surface }: { surface: Surface }) {
+/** A product surface: poster at rest, its recorded clip on hover. */
+export function SurfaceCard({ surface }: { surface: Surface }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const play = () => {

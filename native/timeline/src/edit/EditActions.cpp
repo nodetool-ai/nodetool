@@ -319,13 +319,23 @@ bool clipFitsTrack(const QString& mediaType, const QString& trackType) {
     return trackType == u"video" || trackType == u"overlay";
 }
 
+namespace {
+// An empty target keeps the clip's track. Otherwise the track must exist, be
+// unlocked and take the clip's media type.
+bool canMoveToTrack(const EditDoc& doc, const QJsonObject& clip, const QString& toTrackId) {
+    if (toTrackId.isEmpty() || toTrackId == clipTrackId(clip)) return true;
+    for (const auto& track : doc.tracks) {
+        if (track.id == toTrackId) return !track.locked && clipFitsTrack(clip.value(u"mediaType").toString(), track.type);
+    }
+    return false;
+}
+}  // namespace
+
 ClipList moveClip(const EditDoc& doc, const QString& id, double deltaMs, const QString& toTrackId, bool linked) {
     const int i = doc.indexOf(id);
     if (i < 0 || isGroupId(doc, id) || !isEditable(doc, id, linked, true)) return doc.clips;
-    for (const auto& track : doc.tracks) {
-        if (!toTrackId.isEmpty() && track.id == toTrackId && track.locked) { return doc.clips; }
-    }
     const QJsonObject clip = doc.clips[static_cast<size_t>(i)];
+    if (!canMoveToTrack(doc, clip, toTrackId)) return doc.clips;
     double newStartMs = std::max(0.0, clipStartMs(clip) + deltaMs);
     double appliedDelta = newStartMs - clipStartMs(clip);
     // The gesture snaps before it calls; the store's own snap is off here.
@@ -371,11 +381,7 @@ ClipList moveSelectedClips(const EditDoc& doc, const QString& primaryClipId, con
     }
     const int pi = indexOfId(doc.clips, effectivePrimary);
     if (pi < 0) return doc.clips;
-    if (!toTrackId.isEmpty()) {
-        for (const auto& t : doc.tracks) {
-            if (t.id == toTrackId && t.locked) return doc.clips;
-        }
-    }
+    if (!canMoveToTrack(doc, doc.clips[static_cast<size_t>(pi)], toTrackId)) return doc.clips;
     QStringList roots;
     for (const QString& id : selectedIds) {
         if (editable.count(id)) roots.append(id);

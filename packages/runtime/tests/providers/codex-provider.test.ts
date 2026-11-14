@@ -3,21 +3,10 @@ import {
   CodexProvider,
   CODEX_FALLBACK_MODELS
 } from "../../src/providers/codex-provider.js";
-import { CODEX_BACKEND_BASE_URL } from "@nodetool-ai/protocol";
+import { CHATGPT_API_BASE_URL } from "@nodetool-ai/protocol";
 import { providerFailureDetail } from "../../src/providers/provider-error.js";
-import type { Message } from "../../src/providers/types.js";
 
 afterEach(() => vi.restoreAllMocks());
-
-/** Build a minimal unsigned JWT carrying a ChatGPT account id claim. */
-function fakeCodexJwt(accountId: string): string {
-  const payload = {
-    "https://api.openai.com/auth": { chatgpt_account_id: accountId }
-  };
-  const b64 = (obj: unknown) =>
-    Buffer.from(JSON.stringify(obj)).toString("base64url");
-  return `${b64({ alg: "none" })}.${b64(payload)}.`;
-}
 
 describe("CodexProvider", () => {
   it("requires an access token", () => {
@@ -30,12 +19,14 @@ describe("CodexProvider", () => {
     expect(provider.getContainerEnv()).toEqual({});
   });
 
-  it("points the OpenAI client at the Codex backend", () => {
-    const provider = new CodexProvider({
-      CODEX_ACCESS_TOKEN: fakeCodexJwt("acct-123")
-    });
+  it("points the OpenAI client at the public API without a Platform org or project", () => {
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const client = provider.getClient();
-    expect(client.baseURL).toBe(CODEX_BACKEND_BASE_URL);
+    expect(client.baseURL).toBe(CHATGPT_API_BASE_URL);
+    expect(client.baseURL).toBe("https://api.openai.com/v1");
+    expect(client.organization).toBeNull();
+    expect(client.project).toBeNull();
+    expect(client.maxRetries).toBe(0);
   });
 
   it("lists the account's models from the live /models endpoint", async () => {
@@ -43,13 +34,18 @@ describe("CodexProvider", () => {
       new Response(
         JSON.stringify({
           models: [
-            { slug: "gpt-5.5", display_name: "GPT-5.5" },
-            { slug: "codex-account-model", display_name: "Account model" },
+            { slug: "gpt-5.5", display_name: "GPT-5.5", visibility: "list" },
             {
-              slug: "codex-auto-review",
-              display_name: "Codex Auto Review",
+              slug: "account-model",
+              display_name: "Account model",
+              visibility: "list"
+            },
+            {
+              slug: "auto-review",
+              display_name: "Auto Review",
               visibility: "hide"
-            }
+            },
+            { slug: "unlisted", display_name: "Unlisted" }
           ]
         }),
         { status: 200, headers: { "content-type": "application/json" } }
@@ -57,14 +53,17 @@ describe("CodexProvider", () => {
     );
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const models = await provider.getAvailableLanguageModels();
-    expect(fetchSpy).toHaveBeenCalledWith(
-      `${CODEX_BACKEND_BASE_URL}/models?client_version=0.162.1`,
-      expect.any(Object)
-    );
+    const [url, init] = fetchSpy.mock.calls[0];
+    expect(String(url)).toBe("https://api.openai.com/v1/models");
+    expect(init?.headers).toEqual({
+      authorization: "Bearer tok",
+      "content-type": "application/json",
+      accept: "application/json"
+    });
     expect(models).toEqual([
       { id: "gpt-5.5", name: "GPT-5.5", provider: "codex" },
       {
-        id: "codex-account-model",
+        id: "account-model",
         name: "Account model",
         provider: "codex"
       }
@@ -184,132 +183,115 @@ describe("CodexProvider", () => {
     expect(emptyMessages).toHaveLength(0);
   });
 
-  it("keys every turn and tool round of a thread to one cache session", async () => {
-    const requests: Array<{
-      body: Record<string, unknown>;
-      headers: Record<string, string>;
-    }> = [];
-    vi.spyOn(globalThis, "fetch").mockImplementation(
-      async (_url, init?: RequestInit) => {
-        requests.push({
-          body: JSON.parse(String(init?.body)),
-          headers: init?.headers as Record<string, string>
-        });
-        return new Response(
-          `data: ${JSON.stringify({ type: "response.completed", response: {} })}\n\n`,
-          { status: 200, headers: { "content-type": "text/event-stream" } }
-        );
-      }
-    );
+  it("posts to the public Responses API with only the bearer token", async () => {
+    const requests: Array<{ url: string; init: RequestInit | undefined }> = [];
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+      requests.push({ url: String(url), init });
+      return new Response(
+        `data: ${JSON.stringify({ type: "response.completed", response: {} })}\n\n`,
+        { status: 200, headers: { "content-type": "text/event-stream" } }
+      );
+    });
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
-    const tools = [
-      {
-        name: "foo",
-        description: "Foo",
-        inputSchema: { type: "object", properties: {} }
-      }
-    ];
-    const turn1 = [
-      { role: "system" as const, content: "Be brief." },
-      { role: "user" as const, content: "call the tool" }
-    ];
-    const round2 = [
-      ...turn1,
-      {
-        role: "assistant" as const,
-        content: null,
-        toolCalls: [{ id: "c1", name: "foo", args: { a: 1 } }]
-      },
-      { role: "tool" as const, content: "result", toolCallId: "c1" }
-    ];
-    const turn2 = [
-      ...round2,
-      { role: "assistant" as const, content: "done" },
-      { role: "user" as const, content: "again" }
-    ];
-    for (const messages of [turn1, round2, turn2]) {
-      for await (const _ of provider.generateMessages({
-        messages,
-        tools,
-        model: "gpt-5.5",
-        threadId: "thread-1"
-      })) {
-        void _;
-      }
-    }
-    // Another thread with the same prompt gets its own key.
     for await (const _ of provider.generateMessages({
-      messages: turn1,
-      tools,
+      messages: [
+        { role: "system", content: "Be brief." },
+        { role: "user", content: "hi" }
+      ],
       model: "gpt-5.5",
-      threadId: "thread-2"
+      threadId: "thread-1"
     })) {
       void _;
     }
-
-    const keys = requests.map((r) => r.body.prompt_cache_key);
-    expect(keys[0]).toMatch(
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-    );
-    expect(keys.slice(0, 3)).toEqual([keys[0], keys[0], keys[0]]);
-    expect(keys[3]).not.toBe(keys[0]);
-    // The session header carries the same id, as the Codex CLI sends it.
-    expect(requests.map((r) => r.headers.session_id)).toEqual(keys);
-
-    // Each request's input is the previous one's plus what came after it, and
-    // the instructions and tools never move, so the prefix stays cached.
-    const [a, b, c] = requests.map((r) => r.body);
-    for (const [prev, next] of [
-      [a, b],
-      [b, c]
-    ]) {
-      const prevInput = prev.input as unknown[];
-      expect((next.input as unknown[]).slice(0, prevInput.length)).toEqual(
-        prevInput
-      );
-      expect(next.instructions).toBe(prev.instructions);
-      expect(next.tools).toEqual(prev.tools);
-    }
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url).toBe("https://api.openai.com/v1/responses");
+    expect(requests[0].init?.headers).toEqual({
+      authorization: "Bearer tok",
+      "content-type": "application/json",
+      accept: "text/event-stream"
+    });
+    const body = JSON.parse(String(requests[0].init?.body)) as Record<string, unknown>;
+    expect(body).toMatchObject({
+      model: "gpt-5.5",
+      instructions: "Be brief.",
+      store: false,
+      stream: true
+    });
+    expect(body).not.toHaveProperty("prompt_cache_key");
   });
 
-  it("keys threadless calls by their instructions", async () => {
-    const requests: Array<Record<string, unknown>> = [];
-    vi.spyOn(globalThis, "fetch").mockImplementation(
-      async (_url, init?: RequestInit) => {
-        requests.push(JSON.parse(String(init?.body)));
-        return new Response(
-          `data: ${JSON.stringify({ type: "response.completed", response: {} })}\n\n`,
-          { status: 200, headers: { "content-type": "text/event-stream" } }
-        );
-      }
+  it("explains a usage limit reported after the stream opened", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        `data: ${JSON.stringify({
+          type: "response.failed",
+          response: {
+            error: {
+              code: "subscription_sharing_usage_limit_exceeded",
+              message: "limit"
+            }
+          }
+        })}\n\n`,
+        { status: 200 }
+      )
     );
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
-    const run = async (messages: Message[]) => {
+    const run = async () => {
       for await (const _ of provider.generateMessages({
-        messages,
+        messages: [{ role: "user", content: "hi" }],
         model: "gpt-5.5"
       })) {
         void _;
       }
     };
-    await run([
-      { role: "system", content: "Summarize." },
-      { role: "user", content: "one" }
+    await expect(run()).rejects.toThrow(
+      /usage limit.*https:\/\/chatgpt\.com\/settings\/usage/
+    );
+  });
+
+  it("names the parameter a ChatGPT plan does not support", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: {
+            code: "subscription_sharing_unsupported_capability",
+            param: "tools[0]",
+            message: "unsupported"
+          }
+        }),
+        { status: 400 }
+      )
+    );
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    await expect(
+      provider.webSearch({ query: "q", model: "gpt-5.5" })
+    ).rejects.toThrow('does not support "tools[0]"');
+  });
+
+  it("ends the turn on response.incomplete", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        [
+          { type: "response.output_text.delta", delta: "Part" },
+          { type: "response.incomplete", response: {} }
+        ]
+          .map((e) => `data: ${JSON.stringify(e)}\n\n`)
+          .join(""),
+        { status: 200 }
+      )
+    );
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    const items = [];
+    for await (const item of provider.generateMessages({
+      messages: [{ role: "user", content: "hi" }],
+      model: "gpt-5.5"
+    })) {
+      items.push(item);
+    }
+    expect(items).toEqual([
+      { type: "chunk", content: "Part", done: false },
+      { type: "chunk", content: "", done: true }
     ]);
-    await run([
-      { role: "system", content: "Summarize." },
-      { role: "user", content: "two" }
-    ]);
-    await run([
-      { role: "system", content: "Translate." },
-      { role: "user", content: "one" }
-    ]);
-    await run([{ role: "user", content: "no system prompt" }]);
-    const keys = requests.map((r) => r.prompt_cache_key);
-    expect(keys[0]).toBeDefined();
-    expect(keys[1]).toBe(keys[0]);
-    expect(keys[2]).not.toBe(keys[0]);
-    expect(keys[3]).toBeUndefined();
   });
 
   it("extracts PNG bytes from the image_generation_call output item", async () => {
@@ -425,7 +407,7 @@ describe("CodexProvider.webSearch", () => {
       sources: [{ title: "Weather", url: "https://weather.example/a" }]
     });
     const [url, init] = fetchSpy.mock.calls[0];
-    expect(String(url)).toBe(`${CODEX_BACKEND_BASE_URL}/responses`);
+    expect(String(url)).toBe(`${CHATGPT_API_BASE_URL}/responses`);
     const sent = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(sent.model).toBe("gpt-5.5");
     expect(sent.tools).toEqual([{ type: "web_search" }]);

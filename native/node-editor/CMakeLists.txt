@@ -336,6 +336,8 @@ if(BUILD_TESTING)
  set_tests_properties(node_editor_navigation PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
  qt_add_executable(node_editor_group_authoring_tests tests/ui/GroupAuthoringTest.cpp)
  target_link_libraries(node_editor_group_authoring_tests PRIVATE node_editor_core Qt6::Test)
+target_compile_definitions(node_editor_group_authoring_tests PRIVATE
+    WINDOW_PARITY_FIXTURE="${CMAKE_CURRENT_SOURCE_DIR}/tests/ui/WindowParityFixture.json")
  nodetool_use_ui_primitives(node_editor_group_authoring_tests)
  add_test(NAME node_editor_group_authoring COMMAND node_editor_group_authoring_tests)
  set_tests_properties(node_editor_group_authoring PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")

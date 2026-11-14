@@ -116,6 +116,8 @@ public:
   // The Before/After and Mask preview tabs are view state too, as the web
   // bodies' useState, and never enter the document or undo.
   void setPreviewTab(QtNodes::NodeId id, const QString &tab);
+  // Opens or closes one item of a List Generator card. View state, not part of the document.
+  void toggleListItem(QtNodes::NodeId id, int index);
   // The command that writes a property, with the linked other dimension in the
   // same batch so one undo step reverts both.
   QJsonObject propertyCommand(QtNodes::NodeId id, const QString &name, const QJsonValue &value) const;
@@ -222,6 +224,7 @@ private:
   QTimer runningTimer_;
   QHash<QString, double> dimensionLinks_;
   QHash<QString, QString> previewTabs_;
+  QHash<QString, QSet<int>> expandedListItems_;
   // Names Set Variable nodes publish, read by the Prompt and Get Variable bodies.
   QStringList graphVariables_;
   QHash<QtNodes::NodeId, QPointF> positions_;

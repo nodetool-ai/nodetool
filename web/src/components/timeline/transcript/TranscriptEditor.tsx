@@ -451,9 +451,12 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
       let audioTrackId =
         voiceoverTrackId(base, docApi.getState().tracks) ?? "";
       if (!audioTrackId && edits.newDraftTexts.some((t) => t.trim())) {
+        const before = new Set(docApi.getState().tracks.map((track) => track.id));
         docApi.getState().addTrack("audio", t("batch2_24.transcript.voiceoverTrack"));
         audioTrackId =
-          docApi.getState().tracks.find((t) => t.type === "audio")
+          docApi
+            .getState()
+            .tracks.find((track) => track.type === "audio" && !before.has(track.id))
             ?.id ?? "";
       }
 

@@ -1,4 +1,5 @@
 import { validateGraph } from "@nodetool-ai/node-sdk";
+import type { GenerationAdmission } from "../generation-lifecycle.js";
 import { findMissingPacks } from "../missing-packs.js";
 import type { MissingPackDetails } from "@nodetool-ai/protocol";
 import { registerWorkflowRunTrace } from "./run-trace-lifecycle.js";
@@ -170,6 +171,12 @@ export interface WorkflowRunEnvironment {
    * job. Without it a saved-workflow run leaves no generations behind.
    */
   persistGeneration?: (generation: RunGeneration) => Promise<void>;
+  /**
+   * Checked before each provider call the run makes. A host whose entrance
+   * admitted nothing up front (an MCP session) passes its credit and quota
+   * check here.
+   */
+  admitGeneration?: GenerationAdmission;
 }
 
 /** One committed result of an auto-saving node in a saved-workflow run. */
@@ -922,7 +929,8 @@ export async function runWorkflow(
       workspace,
       storage: environment.storage ?? null,
       assetStorage: environment.assetStorage ?? null,
-      durableFalGenerations: true
+      durableFalGenerations: true,
+      admitGeneration: environment.admitGeneration
     });
     environment.configureContext?.(executionContext);
     if (environment.persistGeneration && !options.graph && workflowId) {

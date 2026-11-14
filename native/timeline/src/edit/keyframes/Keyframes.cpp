@@ -1329,7 +1329,12 @@ QJsonArray times(const QJsonObject& clip, const QStringList& ps) {
             continue;
         }
         for (const auto& k : c["keyframes"].toArray()) {
-            found.insert(std::floor(k.toObject()["t"].toDouble() * clip["durationMs"].toDouble() + 0.5));
+            const double t = k.toObject()["t"].toDouble();
+            // A key a trim cut off is kept but not shown.
+            if (t < -epsilon || t > 1 + epsilon) {
+                continue;
+            }
+            found.insert(std::floor(t * clip["durationMs"].toDouble() + 0.5));
         }
     }
     auto values = found.values();

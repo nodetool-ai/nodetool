@@ -133,7 +133,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a cinematic teaser. Use it to pitch a film idea as a short cut of animated shots.\n\n**How it works:** \"1️⃣ Logline\", \"2️⃣ Visual style\" and \"3️⃣ Shot count\" (6) feed \"4️⃣ Direct the storyboard\", the same Director node the Storyboard editor runs behind its Direct button. It writes the screenplay, camera direction and one style bible. \"5️⃣ One prompt per shot\" emits one prompt per shot. \"6️⃣ Render keyframes\" draws each as a 16:9 2K still, and \"7️⃣ Animate each keyframe (metered per second)\" turns it into a 4-second 720p clip. \"Collect video clips\" gathers the clips and \"🎬 Final trailer\" joins them for \"8️⃣ Trailer output\". Each model step uses your default model for its type, or the one you pick on the node. The animation step is usually billed per second and costs the most. A 6-shot trailer makes 6 video generations.\n\n**Try this:** Set \"3️⃣ Shot count\" to 3 for a cheaper test run and confirm the trailer has three clips."
+          "comment": "# Movie Trailer Generator\n\nType one logline and the canvas builds a cinematic teaser. Use it to pitch a film idea as a short cut of animated shots.\n\n**How it works:** \"1 Logline\", \"2 Visual style\" and \"3 Shot count\" (6) feed \"4 Direct the storyboard\", the same Director node the Storyboard editor runs behind its Direct button. It writes the screenplay, camera direction and one style bible. \"5 One prompt per shot\" emits one prompt per shot. \"6 Render keyframes\" draws each as a 16:9 2K still, and \"7 Animate each keyframe (metered per second)\" turns it into a 4-second 720p clip. \"Collect video clips\" gathers the clips and \"Final trailer\" joins them for \"8 Trailer output\". Each model step uses your default model for its type, or the one you pick on the node. The animation step is usually billed per second and costs the most. A 6-shot trailer makes 6 video generations.\n\n**Try this:** Set \"3 Shot count\" to 3 for a cheaper test run and confirm the trailer has three clips."
         },
         "ui_properties": {
           "position": {
@@ -163,7 +163,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Logline",
+          "title": "1 Logline",
           "selectable": true,
           "bypassed": false
         },
@@ -184,7 +184,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Visual style",
+          "title": "2 Visual style",
           "selectable": true,
           "bypassed": false
         },
@@ -209,7 +209,7 @@
           "selectable": true,
           "bypassed": false,
           "width": 280,
-          "title": "3️⃣ Shot count"
+          "title": "3 Shot count"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -242,7 +242,7 @@
           "bypassed": false,
           "width": 360,
           "height": 400,
-          "title": "4️⃣ Direct the storyboard"
+          "title": "4 Direct the storyboard"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -263,7 +263,7 @@
           "bypassed": false,
           "width": 320,
           "height": 260,
-          "title": "5️⃣ One prompt per shot"
+          "title": "5 One prompt per shot"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -293,7 +293,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 342,
-          "title": "6️⃣ Render keyframes",
+          "title": "6 Render keyframes",
           "selectable": true,
           "bypassed": false,
           "selected_generation": "133f0bef77d34f2bbb3cbc49a97b592b",
@@ -329,7 +329,7 @@
           "zIndex": 0,
           "width": 331,
           "height": 222,
-          "title": "7️⃣ Animate each keyframe (metered per second)",
+          "title": "7 Animate each keyframe (metered per second)",
           "selectable": true,
           "bypassed": false,
           "selected_generation": "8fb0f284a8e54876858f8155aff3dd5d",
@@ -378,7 +378,7 @@
           "zIndex": 0,
           "width": 320,
           "height": 280,
-          "title": "🎬 Final trailer",
+          "title": "Final trailer",
           "selectable": true,
           "bypassed": false
         },
@@ -398,7 +398,7 @@
             "x": 2792,
             "y": 714
           },
-          "title": "8️⃣ Trailer output",
+          "title": "8 Trailer output",
           "selectable": true
         }
       }

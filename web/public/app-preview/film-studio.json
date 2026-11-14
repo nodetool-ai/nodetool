@@ -854,7 +854,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "1️⃣ Brief",
+              "title": "1 Brief",
               "selectable": true,
               "bypassed": false
             },
@@ -872,7 +872,7 @@
                 "x": 3090,
                 "y": 591
               },
-              "title": "🎬 Rough cut",
+              "title": "Rough cut",
               "selectable": true
             },
             "dynamic_properties": {},

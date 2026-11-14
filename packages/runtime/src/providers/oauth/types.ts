@@ -60,6 +60,11 @@ export interface AuthorizationUrlParams {
 export interface AuthorizationResult {
   readonly code: string;
   readonly state: string;
+  /**
+   * `client_id` from the callback, when the authorization server issued one.
+   * Sign in with ChatGPT returns the client it registered for this install.
+   */
+  readonly clientId?: string;
 }
 
 /** Injectable clock so tests can control expiry math without real time. */

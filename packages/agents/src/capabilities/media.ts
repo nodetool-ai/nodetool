@@ -128,6 +128,7 @@ import {
   MAX_COMPARE_IMAGES,
   MAX_UNDERSTAND_VIDEO_TOKENS
 } from "./media.specs.js";
+import { ownedStorageReference } from "./storage-reference.js";
 
 const MAX_INLINE_TEXT_PREVIEW = 500;
 const MAX_ADHERENCE_QUESTIONS = 12;
@@ -2120,9 +2121,11 @@ const readMediaBytes: CapabilityExport = {
     }
     // A bare id is what an agent reaches for after reading `asset_id` off a
     // generation result; accept it rather than making that a failed round trip.
-    const ref = trimmed.includes("://")
-      ? { uri: trimmed }
-      : { uri: trimmed, asset_id: trimmed };
+    const owned = await ownedStorageReference(run.context, trimmed, run.projectId);
+    if (!owned.ok) return { error: owned.error };
+    const ref = owned.ref.includes("://")
+      ? { uri: owned.ref }
+      : { uri: owned.ref, asset_id: owned.ref };
     try {
       const bytes = await loadMediaRefBytes(ref, run.context);
       if (!bytes) {
@@ -2253,7 +2256,8 @@ async function stageInputs(
   context: ProcessingContext,
   workspace: Workspace,
   cwd: string,
-  raw: unknown
+  raw: unknown,
+  projectId: string | null | undefined
 ): Promise<{ staged: Record<string, number> } | { error: string }> {
   if (raw === undefined || raw === null) return { staged: {} };
   if (!isRecord(raw)) {
@@ -2300,7 +2304,9 @@ async function stageInputs(
       // `loadMediaRefBytes` reads `file://` URIs and absolute paths straight
       // off the host disk. A filesystem-shaped ref resolves through the
       // storage adapter alone, which keeps it inside the storage root.
-      const uri = ref.trim();
+      const owned = await ownedStorageReference(context, ref.trim(), projectId);
+      if (!owned.ok) throw new Error(owned.error);
+      const uri = owned.ref;
       bytes =
         filesystemPathForUri(uri) !== null
           ? ((await context.storage?.retrieve(uri)) ?? null)
@@ -2398,7 +2404,8 @@ async function prepareMediaPaths(
   workspace: Workspace,
   cwd: string,
   paths: readonly string[],
-  extraInputs: unknown
+  extraInputs: unknown,
+  projectId: string | null | undefined
 ): Promise<
   { resolved: Map<string, string>; staged: Record<string, number> } | { error: string }
 > {
@@ -2425,7 +2432,7 @@ async function prepareMediaPaths(
       resolved.set(item, item);
     }
   });
-  const stagedResult = await stageInputs(context, workspace, cwd, toStage);
+  const stagedResult = await stageInputs(context, workspace, cwd, toStage, projectId);
   if ("error" in stagedResult) return stagedResult;
   const local = [...new Set(resolved.values())];
   const refusal = await confineMediaPaths(local, cwd, MEDIA_PATH_REMEDY);
@@ -2463,7 +2470,8 @@ const mediaEdit: CapabilityExport = {
       workspace,
       cwd,
       mediaEditInputs(request),
-      params["inputs"]
+      params["inputs"],
+      run.projectId
     );
     if ("error" in prepared) return prepared;
     const local = (file: string | undefined): string | undefined =>
@@ -2546,7 +2554,8 @@ const mediaProbe: CapabilityExport = {
       workspace,
       cwd,
       [requested],
-      params["inputs"]
+      params["inputs"],
+      run.projectId
     );
     if ("error" in prepared) return prepared;
     const probePath = prepared.resolved.get(requested) ?? requested;

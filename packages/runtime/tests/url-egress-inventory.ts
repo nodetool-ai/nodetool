@@ -1100,9 +1100,9 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   ),
   fixedHost(
     "packages/models/src/codex-token.ts",
-    "Codex OAuth refresh",
+    "Sign in with ChatGPT discovery and refresh",
     "the user's refresh token",
-    "A constant token endpoint."
+    "OpenID discovery at auth.openai.com; endpoints must share that origin, else the documented constants."
   ),
   fixedHost(
     "packages/models/src/google-token.ts",
@@ -1163,6 +1163,12 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     "OAuth routes",
     "the OAuth code / token in flight",
     "HuggingFace, GitHub and OpenAI endpoints, all constants."
+  ),
+  fixedHost(
+    "packages/websocket/src/chatgpt-signin.ts",
+    "Sign in with ChatGPT code exchange and revocation",
+    "the OAuth code / refresh token in flight",
+    "Token and revocation endpoints from auth.openai.com discovery, checked to share that origin."
   ),
   fixedHost(
     "packages/websocket/src/routes/fal-credits.ts",

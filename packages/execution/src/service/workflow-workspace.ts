@@ -15,7 +15,11 @@ import {
   type Workspace,
   type WorkspaceChange
 } from "@nodetool-ai/runtime";
-import { createFalGenerationLifecycleHooks } from "../generation-lifecycle.js";
+import {
+  createFalGenerationLifecycleHooks,
+  withGenerationAdmission,
+  type GenerationAdmission
+} from "../generation-lifecycle.js";
 
 const log = createLogger("nodetool.execution.workspace");
 
@@ -191,8 +195,10 @@ export function buildWorkspaceExecutionContext(opts: {
   assetStorage?: StorageAdapter | null;
   /** Enable the execution-owned FAL durable lifecycle for this host. */
   durableFalGenerations?: boolean;
+  /** Checked before each provider call the run makes. */
+  admitGeneration?: GenerationAdmission;
 }): ProcessingContext {
-  const generationLifecycle = opts.durableFalGenerations
+  const durable = opts.durableFalGenerations
     ? createFalGenerationLifecycleHooks({
         userId: opts.userId,
         jobId: opts.jobId,
@@ -200,6 +206,9 @@ export function buildWorkspaceExecutionContext(opts: {
         publicUrl: process.env["NODETOOL_PUBLIC_URL"] ?? null
       })
     : undefined;
+  const generationLifecycle = opts.admitGeneration
+    ? withGenerationAdmission(durable ?? {}, opts.admitGeneration)
+    : durable;
   const context = new ProcessingContext({
     jobId: opts.jobId,
     workflowId: opts.workflowId ?? null,

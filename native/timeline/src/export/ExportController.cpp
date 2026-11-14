@@ -157,6 +157,8 @@ bool ExportController::startSnapshot(const QJsonObject& raw, const QString& outp
         m_job.reset(); m_staging.reset(); fail(QStringLiteral("Cannot create temporary export output")); return false;
     }
     QStringList args{snapshot.fileName(), "--export", path, "--cancel-file", m_job->filePath("cancel"), "--staging-directory", m_staging->path(), "--json"};
+    // Every editor export comes from a save dialog that already confirmed replacing the file.
+    args.append("--replace");
     args.append(nt::exporting::cliArguments(settings));
     m_process.start(m_executable.isEmpty() ? QCoreApplication::applicationFilePath() : m_executable, args);
     return true;

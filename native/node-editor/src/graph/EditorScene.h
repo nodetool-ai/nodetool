@@ -82,7 +82,7 @@ inline constexpr double disabledChipMargin = 6;
 QRectF disabledChipRect(const QRectF &header, double textWidth);
 // The web's branch-dimmed opacity for a node or wire off the selected branch,
 // styles/nodes.zoomed.css. Related items keep full opacity.
-inline constexpr double branchDimmedOpacity = 0.2;
+inline constexpr double branchDimmedOpacity = 0.6;
 // web config/constants.ts ZOOMED_OUT: at or below this zoom the web hides handles and
 // property rows, thickens wires and rings a selected card (nodes.zoomed.css).
 inline constexpr double zoomedOutThreshold = 0.35;
@@ -195,6 +195,22 @@ public:
     bool detach = false;
   };
   DragOutcome takeDragOutcome();
+  // GroupNode.tsx: a group's body lets the pointer through to the canvas and
+  // the cards inside, so a press there starts a box selection. Only the label,
+  // the resize edges and the corner handle take it. While Alt is held, a group
+  // that holds a selected card takes the pointer on its body too.
+  bool groupTakesPointer(QtNodes::NodeId id) const;
+  // The opacity GroupNode.tsx gives the whole group, label included: 0.5 while
+  // it takes the pointer, 0.8 while a dragged card is over it, otherwise 1.
+  double groupOpacity(QtNodes::NodeId id) const;
+  // useSelectionEvents.ts selectGroupsWithinSelection: a box selects a group
+  // only when it encloses the group's frame, while it selects cards it touches.
+  void keepEnclosedGroups(const QRectF &sceneArea);
+  // The "Remove nodes from group" hint GroupNode.tsx shows above the group a
+  // dragged card is over, once the card has stayed there for a second.
+  bool dropHintVisible() const;
+  static constexpr int dropHintDelayMs = 1000;
+  void setAltHeld(bool held);
 
 signals:
     void nodeDragChanged(bool active);
@@ -247,6 +263,7 @@ protected:
   void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
   void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
+  void keyReleaseEvent(QKeyEvent *event) override;
   void focusOutEvent(QFocusEvent *event) override;
   void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
   void drawBackground(QPainter *painter, const QRectF &rect) override;
@@ -328,6 +345,16 @@ private:
   Qt::Edges resizeEdges_;
   QSize minimumSize_;
   double eventZoom(const QGraphicsSceneMouseEvent *event) const;
+  // True when scenePosition is on the body of a group that lets the pointer through.
+  bool passesThroughGroup(QtNodes::NodeId id, const QPointF &scenePosition);
+  // Groups that let the pointer through accept no mouse button, so the scene
+  // leaves a press on their body unaccepted and the view starts a box selection.
+  void refreshGroupPointer();
+  void paintDropHint(QPainter *painter, const QRectF &frame) const;
+  bool altHeld_ = false;
+  bool labelAdditive_ = false;
+  QElapsedTimer dropClock_;
+  QTimer dropHintTimer_;
   QtNodes::NodeId dragNode_ = QtNodes::InvalidNodeId;
   QtNodes::NodeId dropGroup_ = QtNodes::InvalidNodeId;
   QPointF dragStart_;

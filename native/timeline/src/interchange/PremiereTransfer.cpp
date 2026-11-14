@@ -2,6 +2,7 @@
 
 #include "interchange/PremiereArchive.h"
 #include "server/ServerClient.h"
+#include "server/BundledServer.h"
 #include "server/ServerSource.h"
 
 #include <QCoreApplication>
@@ -348,7 +349,8 @@ void PremiereTransfer::dismiss() {
 bool PremiereTransfer::openImported() {
     if (m_importedId.isEmpty() || !m_target) return false;
     const QString server = m_target->server.toString(QUrl::RemoveUserInfo | QUrl::RemoveQuery | QUrl::RemoveFragment);
-    return QProcess::startDetached(QCoreApplication::applicationFilePath(), {QStringLiteral("--server"), server, QStringLiteral("--timeline"), m_importedId});
+    nt::server::noteBundledServerHandoff();
+    return QProcess::startDetached(nt::server::appRelaunchProgram(), {QStringLiteral("--server"), server, QStringLiteral("--timeline"), m_importedId});
 }
 
 bool PremiereTransfer::reveal(const QString& path) const {
