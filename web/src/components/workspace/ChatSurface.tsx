@@ -297,6 +297,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         noMessagesPlaceholder={noMessagesPlaceholder}
         centerEmptyState={!loadingThread}
         showNewChatButton
+        showTitleMenu
       />
     </FlexColumn>
   );

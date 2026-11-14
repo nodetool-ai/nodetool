@@ -32,6 +32,20 @@ Item {
         return qsTr("Good evening");
     }
     onEmptyCenteredChanged: if (emptyCentered) greetingHour = new Date().getHours()
+    readonly property bool titleMenuShown: !embedded && !!session && !!session.selectedThreadId && !emptyCentered
+    readonly property string threadLabel: session && session.threadTitle ? session.threadTitle : qsTr("Untitled chat")
+    property bool renamingTitle: false
+    function startTitleRename() {
+        renamingTitle = true
+        titleRenameField.text = threadLabel
+        titleRenameField.forceActiveFocus()
+        titleRenameField.selectAll()
+    }
+    function finishTitleRename() {
+        if (!renamingTitle) return
+        renamingTitle = false
+        session.renameThread(session.selectedThreadId, titleRenameField.text)
+    }
     objectName: "chatConversation"
     function savePosition() {
         if (session && session.selectedThreadId === previousThread) {
@@ -68,6 +82,7 @@ Item {
         }
     }
     function restorePosition() {
+        renamingTitle = false;
         const saved = scrollPositions[session.selectedThreadId];
         followBottom = saved ? saved.bottom : true;
         anchorIndex = saved && saved.index !== undefined ? saved.index : 0;
@@ -106,9 +121,51 @@ Item {
             role: Ui.Typography.SansBody
             Layout.fillWidth: true
             text: qsTr("Chat")
-            visible: !root.showBack
+            visible: !root.showBack && !root.titleMenuShown
             Layout.leftMargin: Ui.Metrics.lg
         }
+        // ChatTitleMenu.tsx: the thread's title with rename and delete, as
+        // claude.ai shows it above a conversation.
+        Ui.MenuButton {
+            id: titleButton
+            objectName: "chatTitleMenu"
+            visible: !root.showBack && root.titleMenuShown && !root.renamingTitle
+            Layout.leftMargin: Ui.Metrics.lg
+            Layout.maximumWidth: root.width / 2
+            text: root.threadLabel
+            accessibleName: qsTr("Conversation options for %1").arg(root.threadLabel)
+            variant: Ui.EditorButton.Flat
+            contentAlignment: Qt.AlignLeft
+            trailingIconName: "expandMore"
+            menu: titleMenu
+            Ui.ContextMenu {
+                id: titleMenu
+                Ui.MenuItem {
+                    objectName: "chatTitleRenameItem"
+                    text: qsTr("Rename")
+                    iconName: "rename"
+                    onTriggered: root.startTitleRename()
+                }
+                Ui.MenuItem {
+                    objectName: "chatTitleDeleteItem"
+                    text: qsTr("Delete")
+                    iconName: "deleteOutline"
+                    onTriggered: titleDeleteDialog.openFor(root.session.selectedThreadId, root.threadLabel)
+                }
+            }
+        }
+        Ui.TextField {
+            id: titleRenameField
+            objectName: "chatTitleRename"
+            visible: !root.showBack && root.renamingTitle
+            Layout.leftMargin: Ui.Metrics.lg
+            Layout.preferredWidth: root.width / 2
+            accessibleName: qsTr("Conversation name")
+            onAccepted: root.finishTitleRename()
+            onActiveFocusChanged: if (!activeFocus) root.finishTitleRename()
+            Keys.onEscapePressed: root.renamingTitle = false
+        }
+        Item { Layout.fillWidth: true; visible: !root.showBack && root.titleMenuShown }
         Item { Layout.fillWidth: true; visible: root.showBack }
         Ui.ToolbarIconButton {
             visible: root.showBack
@@ -339,4 +396,9 @@ Item {
         }
     }
     Component.onDestruction: savePosition()
+    DeleteThreadDialog {
+        id: titleDeleteDialog
+        objectName: "chatTitleDeleteDialog"
+        session: root.session
+    }
 }

@@ -1071,6 +1071,33 @@ TestCase {
         verify(prompt.mapToItem(conversation, 0, 0).y < top)
         testSession.selectThread("a")
     }
+    function test_titleMenuRenamesAndDeletes() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 3)
+        const conversation = findChild(panel, "chatConversation")
+        tryCompare(conversation, "titleMenuShown", true)
+        const button = findChild(conversation, "chatTitleMenu")
+        verify(button.visible)
+        compare(button.text, "First conversation")
+        conversation.startTitleRename()
+        const field = findChild(conversation, "chatTitleRename")
+        verify(field.visible)
+        verify(!button.visible)
+        compare(field.text, "First conversation")
+        keyClick(Qt.Key_Escape)
+        tryCompare(conversation, "renamingTitle", false)
+        verify(button.visible)
+        const dialog = findChild(conversation, "chatTitleDeleteDialog")
+        findChild(conversation, "chatTitleDeleteItem").triggered()
+        tryCompare(dialog, "visible", true)
+        compare(dialog.threadId, "a")
+        compare(dialog.label, "First conversation")
+        dialog.close()
+        testSession.selectThread("b")
+        tryCompare(conversation, "titleMenuShown", false)
+        testSession.selectThread("a")
+    }
     function test_messagesHaveNoCopyButtons() {
         testDriver.codeHistory("a", "int value = 0;\n")
         tryVerify(function() { return findVisible(panel, "message_code") !== null })

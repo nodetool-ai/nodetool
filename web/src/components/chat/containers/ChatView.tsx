@@ -30,6 +30,7 @@ import {
 import ChatThreadView from "../thread/ChatThreadView";
 import { isCompactionMessage } from "../message/CompactionCard";
 import ChatInputSection from "./ChatInputSection";
+import ChatTitleMenu from "./ChatTitleMenu";
 import ChatErrorBanner from "./ChatErrorBanner";
 import { TaskDock } from "../composer/TaskDock";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
@@ -104,6 +105,15 @@ const styles = (theme: Theme) =>
       right: getSpacingPx(SPACING.lg),
       zIndex: Z_INDEX.dropdown,
       "& svg": { fontSize: "var(--fontSizeNormal)" }
+    },
+    ".chat-overlay-title": {
+      position: "absolute",
+      top: getSpacingPx(SPACING.md),
+      left: getSpacingPx(SPACING.lg),
+      zIndex: Z_INDEX.dropdown,
+      maxWidth: "50%",
+      minWidth: 0,
+      "& .chat-title-button": { maxWidth: "100%", minWidth: 0 }
     },
     "&::before": {
       content: '""',
@@ -215,6 +225,12 @@ type ChatViewProps = {
    */
   showNewChatButton?: boolean;
   /**
+   * Show the thread title with a menu (rename, copy, delete) at the top of a
+   * conversation, as claude.ai does. Surfaces whose own header names the
+   * thread leave it off.
+   */
+  showTitleMenu?: boolean;
+  /**
    * Bind thread-scoped store reads (todos) to this thread instead of the
    * store's current one. Pass it when the surface renders a specific thread
    * (e.g. a workspace chat tab) that may not be `currentThreadId`. `null`
@@ -287,6 +303,7 @@ const ChatView = ({
   composerPlaceholder,
   hideModelPicker,
   showNewChatButton = false,
+  showTitleMenu = false,
   threadId,
   focusMessage
 }: ChatViewProps) => {
@@ -413,6 +430,11 @@ const ChatView = ({
       });
     }
   }, [messages, writeClipboard, addNotification, t]);
+
+  const titleMenuThreadId =
+    showTitleMenu && messages.length > 0 ? effectiveThreadId : null;
+  const showCopyButton =
+    !isMobile && messages.length > 0 && !titleMenuThreadId;
 
   const lastUserMessage = useMemo(() => {
     for (let index = messages.length - 1; index >= 0; index--) {
@@ -632,10 +654,17 @@ const ChatView = ({
           centerEmptyState && messages.length === 0 ? " empty-centered" : ""
         }`}
       >
-        {((!isMobile && messages.length > 0) ||
-          (showNewChatButton && onNewChat)) && (
+        {titleMenuThreadId && (
+          <div className="chat-overlay-title">
+            <ChatTitleMenu
+              threadId={titleMenuThreadId}
+              onCopyConversation={handleCopyConversation}
+            />
+          </div>
+        )}
+        {(showCopyButton || (showNewChatButton && onNewChat)) && (
           <FlexRow className="chat-overlay-actions" align="center" gap={SPACING.md}>
-            {!isMobile && messages.length > 0 && (
+            {showCopyButton && (
               <ToolbarIconButton
                 onClick={handleCopyConversation}
                 tooltip={t("i18n-next23.chat.actions.copyMarkdown")}
