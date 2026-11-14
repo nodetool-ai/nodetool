@@ -648,8 +648,10 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     const auto minimumWidth = isGroup(id) ? 200 : 30;
     const auto minimumHeight = isGroup(id) ? 200 : 40;
     result.minimumSize = QSize(minimumWidth, minimumHeight);
-    result.size = QSize(std::max(minimumWidth, ui["width"].toInt(isGroup(id) ? 400 : 300)),
-                        std::max(minimumHeight, ui["height"].toInt(isGroup(id) ? 300 : 160)));
+    // React Flow stores fractional sizes after a resize. toInt() would read
+    // those as missing and fall back to the default size.
+    result.size = QSize(std::max(minimumWidth, qRound(ui["width"].toDouble(isGroup(id) ? 400 : 300))),
+                        std::max(minimumHeight, qRound(ui["height"].toDouble(isGroup(id) ? 300 : 160))));
     return *layouts_.insert(id, result);
   }
   const auto type = node["type"].toString();
