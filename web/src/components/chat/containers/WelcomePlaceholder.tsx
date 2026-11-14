@@ -19,10 +19,12 @@ import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import { memo, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLanguageModelProviders } from "../../../hooks/useProviders";
+import useAuth from "../../../stores/useAuth";
 import { openProviderOnboarding } from "../../../stores/ProviderOnboardingStore";
 import { isElectron, isLocalhost } from "../../../lib/env";
 
 import { CHAT_COLUMN_MAX_WIDTH } from "../types/chat.types";
+import { dayPartFor, firstNameOf } from "../utils/greeting";
 
 import openaiIcon from "../../../icons/providers/openai.svg";
 import anthropicIcon from "../../../icons/providers/anthropic.svg";
@@ -61,7 +63,21 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       textAlign: "center",
-      gap: getSpacingPx(SPACING.lg)
+      gap: getSpacingPx(SPACING.xl)
+    },
+
+    // Claude's greeting: a mark and one quiet line, larger than a heading.
+    ".welcome-greeting": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: getSpacingPx(SPACING.md),
+      color: theme.vars.palette.text.primary,
+      fontSize: "var(--fontSizeGiant)",
+      fontWeight: 400,
+      lineHeight: 1.3,
+      margin: 0,
+      ".welcome-icon": { opacity: 1 }
     },
 
     ".welcome-icon": {
@@ -157,6 +173,11 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   const { t } = useTranslation();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const { providers, isLoading, error } = useLanguageModelProviders();
+  const firstName = useAuth((state) => firstNameOf(state.user));
+  const dayPart = dayPartFor(new Date().getHours());
+  const greeting = firstName
+    ? t(`i18n-next23.chat.welcome.greeting.${dayPart}Name`, { name: firstName })
+    : t(`i18n-next23.chat.welcome.greeting.${dayPart}`);
 
   const handleClick = useCallback(
     (suggestion: string) => {
@@ -238,13 +259,12 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
           </FlexColumn>
         ) : (
           <div className="chat-suggestions-block">
-            <AutoAwesomeIcon className="welcome-icon" />
-            <Text className="welcome-title">
-              {t("i18n-next23.chat.welcome.title")}
-            </Text>
-            <Text className="welcome-subtitle">
-              {t("i18n-next23.chat.welcome.subtitle")}
-            </Text>
+            <h1 className="welcome-greeting">
+              <AutoAwesomeIcon className="welcome-icon" aria-hidden />
+              <Text component="span" sx={{ font: "inherit", color: "inherit" }}>
+                {greeting}
+              </Text>
+            </h1>
             <div className="suggestions">
               {SUGGESTION_KEYS.map((key) => {
                 const suggestion = t(key);

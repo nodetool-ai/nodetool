@@ -13464,8 +13464,14 @@
         },
         "connectProviderTitle": "Koble til en AI-leverandør for å komme i gang",
         "connectProviderButton": "Koble til en leverandør",
-        "title": "Hvordan kan jeg hjelpe deg i dag?",
-        "subtitle": "Spør hva som helst, legg inn filer eller start med en av disse:"
+        "greeting": {
+          "morning": "God morgen",
+          "afternoon": "God ettermiddag",
+          "evening": "God kveld",
+          "morningName": "God morgen, {{name}}",
+          "afternoonName": "God ettermiddag, {{name}}",
+          "eveningName": "God kveld, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Oppgaver",

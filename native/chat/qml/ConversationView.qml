@@ -19,6 +19,19 @@ Item {
     // A reply is on its way: ChatThreadView.tsx shows a quiet pulse at the
     // end of the conversation in place of a status word.
     readonly property bool responding: !!session && (session.turnStatus === "loading" || session.turnStatus === "streaming")
+    // Claude's new chat: the greeting and the composer as one block in the
+    // middle of the panel (ChatView.tsx centerEmptyState).
+    readonly property bool emptyCentered: !embedded && !!session && !!session.selectedThreadId
+        && !session.historyLoading && messages.count === 0
+    // WelcomePlaceholder.tsx greeting: the time of day, refreshed when the
+    // conversation opens.
+    property int greetingHour: new Date().getHours()
+    function greeting(hour) {
+        if (hour >= 5 && hour < 12) { return qsTr("Good morning"); }
+        if (hour >= 12 && hour < 18) { return qsTr("Good afternoon"); }
+        return qsTr("Good evening");
+    }
+    onEmptyCenteredChanged: if (emptyCentered) greetingHour = new Date().getHours()
     objectName: "chatConversation"
     function savePosition() {
         if (session && session.selectedThreadId === previousThread) {
@@ -119,6 +132,12 @@ Item {
         anchors.bottom: parent.bottom
         anchors.margins: root.embedded ? Ui.Metrics.sm : Ui.Metrics.xl
         spacing: Ui.Metrics.md
+        // The two spacers hold the block a little above centre.
+        Item {
+            Layout.fillHeight: true
+            Layout.verticalStretchFactor: 2
+            visible: root.emptyCentered
+        }
         Ui.EditorButton {
             text: qsTr("Load earlier messages")
             visible: !!root.session && root.session.hasMoreHistory
@@ -132,7 +151,8 @@ Item {
             id: messages
             objectName: "chatMessages"
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.fillHeight: !root.emptyCentered
+            Layout.preferredHeight: root.emptyCentered ? emptyState.implicitHeight : -1
             clip: true
             spacing: Ui.Metrics.md
             reuseItems: true
@@ -216,31 +236,33 @@ Item {
                 }
             }
             ColumnLayout {
+                id: emptyState
                 anchors.centerIn: parent
                 width: parent.width - Ui.Metrics.xl * 2
                 visible: messages.count === 0 && !(root.session && root.session.historyLoading)
                 spacing: root.embedded ? Ui.Metrics.xs : Ui.Metrics.xl
                 Ui.Icon {
-                    visible: root.embedded
-                    name: "forum"
+                    visible: root.embedded || root.emptyCentered
+                    name: root.embedded ? "forum" : "autoAwesome"
                     size: ChatMetrics.emptyIcon
                     Layout.preferredWidth: ChatMetrics.emptyIcon
                     Layout.preferredHeight: ChatMetrics.emptyIcon
-                    opacity: 0.4
+                    opacity: root.embedded ? 0.4 : 1
                     Layout.alignment: Qt.AlignHCenter
                 }
                 Ui.Text {
                     role: root.embedded ? Ui.Typography.SansLabel : Ui.Typography.SansTitle
                     objectName: "chatHistoryEmptyPrompt"
                     Layout.fillWidth: true
-                    text: root.embedded ? qsTr("Start a conversation") : qsTr("What do you want to create?")
+                    text: root.embedded ? qsTr("Start a conversation") : root.greeting(root.greetingHour)
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
                 }
                 Ui.Text {
                     role: Ui.Typography.SansLabel
                     Layout.fillWidth: true
-                    text: root.embedded ? qsTr("Ask about this workflow, or type @ to reference an asset.") : root.session && root.session.selectedThreadId ? qsTr("Describe what you want to make below.") : qsTr("Start a new chat to work with an agent.")
+                    visible: !root.emptyCentered
+                    text: root.embedded ? qsTr("Ask about this workflow, or type @ to reference an asset.") : qsTr("Start a new chat to work with an agent.")
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
                     tone: Ui.Text.Secondary
@@ -276,6 +298,11 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             visible: !!root.session && !!root.session.selectedThreadId
             session: root.session
+        }
+        Item {
+            Layout.fillHeight: true
+            Layout.verticalStretchFactor: 3
+            visible: root.emptyCentered
         }
     }
     Connections {

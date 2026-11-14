@@ -13464,8 +13464,14 @@
         },
         "connectProviderTitle": "시작하려면 AI 제공업체를 연결하세요",
         "connectProviderButton": "공급자 연결",
-        "title": "오늘은 무엇을 도와드릴까요?",
-        "subtitle": "무엇이든 물어보고, 파일을 제출하거나, 다음 중 하나로 시작하세요."
+        "greeting": {
+          "morning": "좋은 아침이에요",
+          "afternoon": "좋은 오후예요",
+          "evening": "좋은 저녁이에요",
+          "morningName": "{{name}}님, 좋은 아침이에요",
+          "afternoonName": "{{name}}님, 좋은 오후예요",
+          "eveningName": "{{name}}님, 좋은 저녁이에요"
+        }
       },
       "taskDock": {
         "label": "작업",

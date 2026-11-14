@@ -1040,6 +1040,37 @@ TestCase {
         tryCompare(testSession, "turnStatus", "idle")
         tryCompare(pulse, "visible", false)
     }
+    // MediaChatComposer.tsx: the chat model sits beside Send, as in Claude.
+    function test_modelChooserSitsBesideSend() {
+        const composer = createTemporaryObject(sizedComposer, test, {width: 600})
+        const chooser = findChild(composer, "chooseChatModel")
+        const send = findChild(composer, "sendMessage")
+        verify(chooser !== null && send !== null)
+        compare(findChild(findChild(composer, "composerChips"), "chooseChatModel"), null)
+        const chooserCentre = chooser.mapToItem(composer, 0, chooser.height / 2).y
+        const sendCentre = send.mapToItem(composer, 0, send.height / 2).y
+        verify(Math.abs(chooserCentre - sendCentre) < 2, chooserCentre + " vs " + sendCentre)
+        verify(chooser.mapToItem(composer, chooser.width, 0).x <= send.mapToItem(composer, 0, 0).x)
+    }
+    // ChatView.tsx centerEmptyState: a new chat greets by the time of day
+    // and holds the composer in the middle of the panel.
+    function test_newChatGreetsWithCentredComposer() {
+        test.width = 1100
+        testSession.selectThread("b")
+        const conversation = findChild(panel, "chatConversation")
+        tryCompare(conversation, "emptyCentered", true)
+        const prompt = findChild(conversation, "chatHistoryEmptyPrompt")
+        verify(["Good morning", "Good afternoon", "Good evening"].indexOf(prompt.text) >= 0, prompt.text)
+        compare(conversation.greeting(8), "Good morning")
+        compare(conversation.greeting(13), "Good afternoon")
+        compare(conversation.greeting(22), "Good evening")
+        const composer = findChild(conversation, "chatComposer")
+        const top = composer.mapToItem(conversation, 0, 0).y
+        verify(top > conversation.height * 0.25 && top + composer.height < conversation.height * 0.85,
+               "composer at " + top + " of " + conversation.height)
+        verify(prompt.mapToItem(conversation, 0, 0).y < top)
+        testSession.selectThread("a")
+    }
     function test_messagesHaveNoCopyButtons() {
         testDriver.codeHistory("a", "int value = 0;\n")
         tryVerify(function() { return findVisible(panel, "message_code") !== null })

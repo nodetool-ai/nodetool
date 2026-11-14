@@ -970,27 +970,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
             )}
 
             {mode === "chat" && !hideModelPicker && (
-              <>
-                <ModelChip
-                  openRef={modelPickerRef}
-                  icon={null}
-                  label={chatProviderLabel}
-                  title={chatProviderLabel}
-                  picker={{
-                    kind: "language",
-                    selected: chatModel,
-                    allowedProviders,
-                    requireToolSupport,
-                    onPick: (model) => onModelChange?.(model)
-                  }}
-                />
-                <ReasoningSelector
-                  provider={chatModel?.provider}
-                  model={chatModel?.id}
-                  compact={isCompact}
-                />
-                <PermissionSelector threadId={threadId} compact={isCompact} />
-              </>
+              <PermissionSelector threadId={threadId} compact={isCompact} />
             )}
 
             <ModeChips mode={mode} openModelPickerRef={modelPickerRef} />
@@ -1004,6 +984,30 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                 spends it. Silent in chat mode and whenever no price can be
                 reached. */}
             {isMediaMode && !isBusy && <MediaCostEstimate mode={mode} />}
+            {/* As in Claude, the chat model sits beside Send, the button
+                that uses it. */}
+            {mode === "chat" && !hideModelPicker && (
+              <>
+                <ReasoningSelector
+                  provider={chatModel?.provider}
+                  model={chatModel?.id}
+                  compact={isCompact}
+                />
+                <ModelChip
+                  openRef={modelPickerRef}
+                  icon={null}
+                  label={chatProviderLabel}
+                  title={chatProviderLabel}
+                  picker={{
+                    kind: "language",
+                    selected: chatModel,
+                    allowedProviders,
+                    requireToolSupport,
+                    onPick: (model) => onModelChange?.(model)
+                  }}
+                />
+              </>
+            )}
             <VoiceInputControl
               onTranscript={handleVoiceTranscript}
               overlayHost={composeCardRef}

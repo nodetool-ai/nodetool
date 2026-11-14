@@ -431,63 +431,6 @@ Ui.Surface {
                     }
                 }
             }
-            Ui.EditorButton {
-                id: modelChooser
-                objectName: "chooseChatModel"
-                visible: !root.mediaMode
-                width: Math.min(implicitWidth, Math.max(Ui.Metrics.comfortable, root.width - Ui.Metrics.comfortable * 3))
-                variant: Ui.EditorButton.Flat
-                circular: true
-                text: root.session && root.session.model
-                      ? root.session.model + (root.session.modelCatalog.loaded && !root.session.modelCatalog.selectionAvailable ? qsTr(" (Unavailable)") : "")
-                      : qsTr("Default model")
-                accessibleName: qsTr("Choose provider and model")
-                trailingIconName: "arrowDropDown"
-                menuButton: true
-                menuExpanded: modelPickerLoader.item ? modelPickerLoader.item.visible : false
-                enabled: !!modelPickerLoader.item
-                onClicked: modelPickerLoader.item.openAt(modelChooser)
-            }
-            // ReasoningSelector.tsx renders only for a model that takes a reasoning level.
-            Ui.MenuButton {
-                id: reasoningChip
-                objectName: "reasoningChip"
-                visible: !root.mediaMode && !!root.session && !!root.session.reasoningSupported
-                readonly property var level: {
-                    const levels = root.session && root.session.reasoningLevels ? root.session.reasoningLevels : []
-                    for (let i = 0; i < levels.length; ++i) {
-                        if (levels[i].value === (root.session ? root.session.reasoningEffort : "")) {
-                            return levels[i]
-                        }
-                    }
-                    return {value: "", label: qsTr("Default")}
-                }
-                text: level.label
-                iconName: "memory"
-                description: qsTr("Reasoning: ") + level.label
-                accessibleName: qsTr("Reasoning level: ") + level.label
-                display: root.compact ? AbstractButton.IconOnly : AbstractButton.TextBesideIcon
-                circular: true
-                variant: Ui.EditorButton.Flat
-                menu: reasoningMenu
-                Ui.ContextMenu {
-                    id: reasoningMenu
-                    Instantiator {
-                        model: root.session && root.session.reasoningLevels ? root.session.reasoningLevels : []
-                        delegate: Ui.MenuItem {
-                            required property var modelData
-                            objectName: "reasoning-" + (modelData.value || "default")
-                            text: modelData.label
-                            accessibleName: modelData.label + ", " + modelData.description
-                            checkable: true
-                            checked: !!root.session && root.session.reasoningEffort === modelData.value
-                            onTriggered: root.session.reasoningEffort = modelData.value
-                        }
-                        onObjectAdded: (index, object) => reasoningMenu.insertItem(index, object)
-                        onObjectRemoved: (index, object) => reasoningMenu.removeItem(object)
-                    }
-                }
-            }
             // PermissionSelector.tsx: the thread's permission mode, dot only when narrow.
             Ui.MenuButton {
                 id: permissionChip
@@ -565,6 +508,65 @@ Ui.Surface {
             }
             Item {
                 Layout.fillWidth: true
+            }
+            // As in Claude, the chat model and its reasoning level sit beside
+            // Send, the button that uses them (MediaChatComposer.tsx).
+            Ui.EditorButton {
+                id: modelChooser
+                objectName: "chooseChatModel"
+                visible: !root.mediaMode
+                Layout.maximumWidth: Math.max(Ui.Metrics.comfortable, root.width - Ui.Metrics.comfortable * 4)
+                variant: Ui.EditorButton.Flat
+                circular: true
+                text: root.session && root.session.model
+                      ? root.session.model + (root.session.modelCatalog.loaded && !root.session.modelCatalog.selectionAvailable ? qsTr(" (Unavailable)") : "")
+                      : qsTr("Default model")
+                accessibleName: qsTr("Choose provider and model")
+                trailingIconName: "arrowDropDown"
+                menuButton: true
+                menuExpanded: modelPickerLoader.item ? modelPickerLoader.item.visible : false
+                enabled: !!modelPickerLoader.item
+                onClicked: modelPickerLoader.item.openAt(modelChooser)
+            }
+            // ReasoningSelector.tsx renders only for a model that takes a reasoning level.
+            Ui.MenuButton {
+                id: reasoningChip
+                objectName: "reasoningChip"
+                visible: !root.mediaMode && !!root.session && !!root.session.reasoningSupported
+                readonly property var level: {
+                    const levels = root.session && root.session.reasoningLevels ? root.session.reasoningLevels : []
+                    for (let i = 0; i < levels.length; ++i) {
+                        if (levels[i].value === (root.session ? root.session.reasoningEffort : "")) {
+                            return levels[i]
+                        }
+                    }
+                    return {value: "", label: qsTr("Default")}
+                }
+                text: level.label
+                iconName: "memory"
+                description: qsTr("Reasoning: ") + level.label
+                accessibleName: qsTr("Reasoning level: ") + level.label
+                display: root.compact ? AbstractButton.IconOnly : AbstractButton.TextBesideIcon
+                circular: true
+                variant: Ui.EditorButton.Flat
+                menu: reasoningMenu
+                Ui.ContextMenu {
+                    id: reasoningMenu
+                    Instantiator {
+                        model: root.session && root.session.reasoningLevels ? root.session.reasoningLevels : []
+                        delegate: Ui.MenuItem {
+                            required property var modelData
+                            objectName: "reasoning-" + (modelData.value || "default")
+                            text: modelData.label
+                            accessibleName: modelData.label + ", " + modelData.description
+                            checkable: true
+                            checked: !!root.session && root.session.reasoningEffort === modelData.value
+                            onTriggered: root.session.reasoningEffort = modelData.value
+                        }
+                        onObjectAdded: (index, object) => reasoningMenu.insertItem(index, object)
+                        onObjectRemoved: (index, object) => reasoningMenu.removeItem(object)
+                    }
+                }
             }
             Ui.ToolbarIconButton {
                 objectName: "sendMessage"

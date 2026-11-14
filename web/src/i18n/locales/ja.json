@@ -13464,8 +13464,14 @@
         },
         "connectProviderTitle": "AI プロバイダーに接続して始めましょう",
         "connectProviderButton": "プロバイダーに接続する",
-        "title": "今日はどのようにお手伝いできますか?",
-        "subtitle": "何か質問するか、ファイルをドロップするか、次のいずれかから始めてください。"
+        "greeting": {
+          "morning": "おはようございます",
+          "afternoon": "こんにちは",
+          "evening": "こんばんは",
+          "morningName": "{{name}}さん、おはようございます",
+          "afternoonName": "{{name}}さん、こんにちは",
+          "eveningName": "{{name}}さん、こんばんは"
+        }
       },
       "taskDock": {
         "label": "タスク",
