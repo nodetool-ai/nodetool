@@ -1,5 +1,7 @@
 /**
- * Mask, matte and subject-matte sections (D6, D2).
+ * Mask, matte and subject-matte sections (D6, D2). Mask and matte render in
+ * Effect Controls. The subject matte is generated, so it renders in the AI
+ * panel through {@link ClipSubjectMatte}.
  *
  * A mask is a shape in the layer's own normalized 0..1 space, so it rotates
  * and scales with the clip. A matte names another clip whose pixels drive this
@@ -418,12 +420,6 @@ export const ClipMaskMatte: React.FC<ClipMaskMatteProps> = memo(
           </>
         )}
 
-        {/* Only a moving picture has a subject to isolate — and the matte is
-            cut from the clip's own source, which a text or shape clip has
-            none of. */}
-        {!hideMatte && clip.mediaType === "video" && (
-          <SubjectMatteSection clip={clip} />
-        )}
       </>
     );
   }
@@ -761,6 +757,17 @@ const SubjectMatteSection: React.FC<{ clip: TimelineClip }> = memo(
   }
 );
 SubjectMatteSection.displayName = "SubjectMatteSection";
+
+/**
+ * "Isolate subject" for a video clip, and nothing for any other clip: only a
+ * moving picture has a subject to isolate, and the matte is cut from the
+ * clip's own source, which a text or shape clip has none of.
+ */
+export const ClipSubjectMatte: React.FC<{ clip: TimelineClip }> = memo(
+  ({ clip }) =>
+    clip.mediaType === "video" ? <SubjectMatteSection clip={clip} /> : null
+);
+ClipSubjectMatte.displayName = "ClipSubjectMatte";
 
 /** Commit a 0..1 field, ignoring anything that is not a number in range. */
 function commitUnit(raw: string, apply: (value: number) => void): void {

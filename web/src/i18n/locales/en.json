@@ -1617,7 +1617,11 @@
       "assistant": "Assistant",
       "history": "History",
       "code": "Code",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effect Controls",
+      "motion": "Motion",
+      "color": "Color",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "DAW mode has its own track view. Turn it off (Alt+M) to open the Timeline panel.",
@@ -20041,5 +20045,31 @@
     },
     "opening": "Opening…",
     "startFailed": "Could not open the starter: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "No clip selected",
+    "severalClips": "Several clips selected",
+    "effectControls": {
+      "empty": "Select a clip on the timeline to adjust its transform, opacity, effects and masks.",
+      "several": "Select one clip to adjust it."
+    },
+    "motion": {
+      "empty": "Select a clip on the timeline to animate it.",
+      "several": "Select one clip to animate it.",
+      "unsupportedTitle": "Nothing to animate",
+      "unsupported": "Select a video, image, text or shape clip to animate it."
+    },
+    "color": {
+      "empty": "Select a clip on the timeline to grade it.",
+      "several": "Select one clip to grade it.",
+      "unsupportedTitle": "This clip has no picture",
+      "unsupported": "Select a video, image, text or shape clip to grade it."
+    },
+    "ai": {
+      "empty": "Select a clip on the timeline to generate from it or edit it with AI.",
+      "several": "Select one clip to generate from it.",
+      "unsupportedTitle": "No AI tools for this clip",
+      "unsupported": "Select a video or image clip, or a generated clip."
+    }
   }
 }

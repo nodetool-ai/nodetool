@@ -1,4 +1,8 @@
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
+import AnimationOutlinedIcon from "@mui/icons-material/AnimationOutlined";
+import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import CodeIcon from "@mui/icons-material/Code";
 import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
@@ -28,9 +32,13 @@ export function timelinePanelRegistrations(dawMode: boolean, t?: TFunction): rea
     { id: "transcript", title: translate("batch2_27.panels.script", "Script"), icon: <SubtitlesOutlinedIcon {...icon} />, defaultRegion: "left" },
     { id: "storyboard", title: translate("batch2_27.panels.storyboard", "Storyboard"), icon: <DashboardOutlinedIcon {...icon} />, defaultRegion: "left" },
     { id: "inspector", title: translate("batch2_27.panels.inspector", "Inspector"), icon: <TuneOutlinedIcon {...icon} />, defaultRegion: "right" },
+    { id: "effectControls", title: translate("batch2_27.panels.effectControls", "Effect Controls"), icon: <LayersOutlinedIcon {...icon} />, defaultRegion: "right" },
+    { id: "motion", title: translate("batch2_27.panels.motion", "Motion"), icon: <AnimationOutlinedIcon {...icon} />, defaultRegion: "right" },
+    { id: "color", title: translate("batch2_27.panels.color", "Color"), icon: <PaletteOutlinedIcon {...icon} />, defaultRegion: "right" },
     { id: "shot", title: translate("batch2_27.panels.shot", "Shot"), icon: <MovieCreationOutlinedIcon {...icon} />, defaultRegion: "right" },
     { id: "instruments", title: translate("batch2_27.panels.instruments", "Instruments"), icon: <PianoOutlinedIcon {...icon} />, defaultRegion: "right" },
     { id: "assistant", title: translate("batch2_27.panels.assistant", "Assistant"), icon: <AutoAwesomeIcon {...icon} />, defaultRegion: "right" },
+    { id: "ai", title: translate("batch2_27.panels.ai", "AI"), icon: <AutoFixHighOutlinedIcon {...icon} />, defaultRegion: "right" },
     { id: "history", title: translate("batch2_27.panels.history", "History"), icon: <HistoryOutlinedIcon {...icon} />, defaultRegion: "right" },
     { id: "code", title: translate("batch2_27.panels.code", "Code"), icon: <CodeIcon {...icon} />, defaultRegion: "right" }
   ];

@@ -75,6 +75,7 @@ export function useClipMenuActions(
   const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
   const selectClip = useTimelineUIStore((s) => s.selectClip);
   const openPianoRoll = useTimelineUIStore((s) => s.openPianoRoll);
+  const setPanelTab = useTimelineUIStore((s) => s.setPanelTab);
   const playbackApi = useTimelinePlaybackStoreApi();
   const timelineApi = useTimelineStoreApi();
 
@@ -124,9 +125,11 @@ export function useClipMenuActions(
     navigate(`/editor/${clip.workflowId}?from=timeline:${sequenceId}:${clipId}`);
   }, [clip?.workflowId, clipId, navigate, sequenceId]);
 
+  // AI edit lives in the AI panel, which the desktop dock opens on request.
   const openAiEdit = useCallback(() => {
     selectClip(clipId);
-  }, [clipId, selectClip]);
+    setPanelTab("ai");
+  }, [clipId, selectClip, setPanelTab]);
 
   const detectClipBeats = useDetectClipBeats();
   const detectBeats = useCallback(() => {

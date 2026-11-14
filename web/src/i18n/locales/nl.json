@@ -1617,7 +1617,11 @@
       "assistant": "Assistent",
       "history": "Geschiedenis",
       "code": "Codeer",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effectinstellingen",
+      "motion": "Beweging",
+      "color": "Kleur",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "De DAW-modus heeft een eigen trackweergave. Schakel het uit (Alt+M) om het tijdlijnpaneel te openen.",
@@ -20041,5 +20045,31 @@
     },
     "opening": "Openen…",
     "startFailed": "Kan de starter niet openen: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Geen clip geselecteerd",
+    "severalClips": "Meerdere clips geselecteerd",
+    "effectControls": {
+      "empty": "Selecteer een clip op de tijdlijn om transformatie, dekking, effecten en maskers aan te passen.",
+      "several": "Selecteer één clip om hem aan te passen."
+    },
+    "motion": {
+      "empty": "Selecteer een clip op de tijdlijn om hem te animeren.",
+      "several": "Selecteer één clip om hem te animeren.",
+      "unsupportedTitle": "Niets te animeren",
+      "unsupported": "Selecteer een video-, afbeeldings-, tekst- of vormclip om hem te animeren."
+    },
+    "color": {
+      "empty": "Selecteer een clip op de tijdlijn om de kleuren te corrigeren.",
+      "several": "Selecteer één clip om de kleuren te corrigeren.",
+      "unsupportedTitle": "Deze clip heeft geen beeld",
+      "unsupported": "Selecteer een video-, afbeeldings-, tekst- of vormclip om de kleuren te corrigeren."
+    },
+    "ai": {
+      "empty": "Selecteer een clip op de tijdlijn om ermee te genereren of hem met AI te bewerken.",
+      "several": "Selecteer één clip om ermee te genereren.",
+      "unsupportedTitle": "Geen AI-tools voor deze clip",
+      "unsupported": "Selecteer een video- of afbeeldingsclip, of een gegenereerde clip."
+    }
   }
 }

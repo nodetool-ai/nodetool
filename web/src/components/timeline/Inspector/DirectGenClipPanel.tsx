@@ -2,14 +2,14 @@
 /**
  * DirectGenClipPanel
  *
- * Inspector panel for a direct-generation clip (text-to-image /
+ * AI panel content for a direct-generation clip (text-to-image /
  * image-to-image / text-to-video / image-to-video / text-to-audio). Mirrors the sketch
  * editor's `DirectGenLayerPanel`: prompt + model + (optional) source-clip
  * picker, with Generate/Cancel driven by the same `useGenerateClip` API
  * used elsewhere in the timeline.
  *
  * Workflow-bound clips render `GeneratedClipPanel` instead — dispatch
- * happens in `TimelineInspector`.
+ * happens in `TimelineAiPanel`.
  */
 
 import React, { memo, useCallback, useMemo, useRef } from "react";
@@ -79,8 +79,6 @@ import {
 import { GeneratedClipTopBar } from "./GeneratedClipTopBar";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
-import { ClipAdjustments } from "./ClipAdjustments";
-import { ClipVersionHistory } from "./ClipVersionHistory";
 
 interface VideoModelChange {
   type: "video_model";
@@ -624,10 +622,6 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
         </CollapsibleSection>
 
         {additionalSections}
-
-        <ClipVersionHistory clipId={clipId} />
-
-        <ClipAdjustments clip={clip} />
       </FlexColumn>
     </Panel>
   );

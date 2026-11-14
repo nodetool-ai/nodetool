@@ -1617,7 +1617,11 @@
       "assistant": "Assistent",
       "history": "Verlauf",
       "code": "Code",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effekteinstellungen",
+      "motion": "Bewegung",
+      "color": "Farbe",
+      "ai": "KI"
     },
     "unavailable": {
       "tracks": "Der DAW-Modus hat eine eigene Spuransicht. Deaktiviere ihn (Alt+M), um das Zeitleistenfenster zu öffnen.",
@@ -20041,5 +20045,31 @@
     },
     "opening": "Wird geöffnet…",
     "startFailed": "Der Einstieg konnte nicht geöffnet werden: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Kein Clip ausgewählt",
+    "severalClips": "Mehrere Clips ausgewählt",
+    "effectControls": {
+      "empty": "Wähle einen Clip in der Timeline aus, um Transformation, Deckkraft, Effekte und Masken anzupassen.",
+      "several": "Wähle einen einzelnen Clip aus, um ihn anzupassen."
+    },
+    "motion": {
+      "empty": "Wähle einen Clip in der Timeline aus, um ihn zu animieren.",
+      "several": "Wähle einen einzelnen Clip aus, um ihn zu animieren.",
+      "unsupportedTitle": "Nichts zu animieren",
+      "unsupported": "Wähle einen Video-, Bild-, Text- oder Formclip aus, um ihn zu animieren."
+    },
+    "color": {
+      "empty": "Wähle einen Clip in der Timeline aus, um seine Farben zu korrigieren.",
+      "several": "Wähle einen einzelnen Clip aus, um seine Farben zu korrigieren.",
+      "unsupportedTitle": "Dieser Clip hat kein Bild",
+      "unsupported": "Wähle einen Video-, Bild-, Text- oder Formclip aus, um seine Farben zu korrigieren."
+    },
+    "ai": {
+      "empty": "Wähle einen Clip in der Timeline aus, um daraus zu generieren oder ihn mit KI zu bearbeiten.",
+      "several": "Wähle einen einzelnen Clip aus, um daraus zu generieren.",
+      "unsupportedTitle": "Keine KI-Werkzeuge für diesen Clip",
+      "unsupported": "Wähle einen Video- oder Bildclip oder einen generierten Clip aus."
+    }
   }
 }

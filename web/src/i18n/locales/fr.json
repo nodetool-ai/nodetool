@@ -1628,7 +1628,11 @@
       "assistant": "Assistante",
       "history": "Histoire",
       "code": "Coder",
-      "storyboard": "Scénario"
+      "storyboard": "Scénario",
+      "effectControls": "Options d'effet",
+      "motion": "Mouvement",
+      "color": "Couleur",
+      "ai": "IA"
     },
     "unavailable": {
       "tracks": "Le mode DAW possède sa propre vue des pistes. Désactivez-le (Alt+M) pour ouvrir le panneau Chronologie.",
@@ -20352,5 +20356,31 @@
     },
     "opening": "Ouverture…",
     "startFailed": "Impossible d'ouvrir l'exemple : {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Aucun clip sélectionné",
+    "severalClips": "Plusieurs clips sélectionnés",
+    "effectControls": {
+      "empty": "Sélectionnez un clip dans la timeline pour régler sa transformation, son opacité, ses effets et ses masques.",
+      "several": "Sélectionnez un seul clip pour le régler."
+    },
+    "motion": {
+      "empty": "Sélectionnez un clip dans la timeline pour l'animer.",
+      "several": "Sélectionnez un seul clip pour l'animer.",
+      "unsupportedTitle": "Rien à animer",
+      "unsupported": "Sélectionnez un clip vidéo, image, texte ou forme pour l'animer."
+    },
+    "color": {
+      "empty": "Sélectionnez un clip dans la timeline pour l'étalonner.",
+      "several": "Sélectionnez un seul clip pour l'étalonner.",
+      "unsupportedTitle": "Ce clip n'a pas d'image",
+      "unsupported": "Sélectionnez un clip vidéo, image, texte ou forme pour l'étalonner."
+    },
+    "ai": {
+      "empty": "Sélectionnez un clip dans la timeline pour générer à partir de celui-ci ou le modifier avec l'IA.",
+      "several": "Sélectionnez un seul clip pour générer à partir de celui-ci.",
+      "unsupportedTitle": "Aucun outil IA pour ce clip",
+      "unsupported": "Sélectionnez un clip vidéo ou image, ou un clip généré."
+    }
   }
 }

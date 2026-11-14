@@ -15,6 +15,7 @@ import type { ClipColorEffect } from "@nodetool-ai/timeline";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { SPACING } from "../../../ui_primitives";
 import { TimelineInspector } from "../TimelineInspector";
+import { TimelineColorPanel, TimelineEffectControlsPanel, TimelineMotionPanel } from "../TimelineClipPanels";
 import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
@@ -98,7 +99,12 @@ const renderInspector = () =>
       >
         <MemoryRouter>
           <TimelineProvider>
-            <TimelineInspector />
+            <>
+              <TimelineInspector />
+              <TimelineEffectControlsPanel />
+              <TimelineMotionPanel />
+              <TimelineColorPanel />
+            </>
           </TimelineProvider>
         </MemoryRouter>
       </QueryClientProvider>
@@ -129,15 +135,16 @@ describe("TimelineInspector section headers", () => {
     expect(getComputedStyle(screen.getByText("Hidden").parentElement!).display).toBe("flex");
   });
 
-  it("toggles the color effect via the header checkbox without unfolding the section", async () => {
+  it("toggles the color effect via the header checkbox without folding the section", async () => {
     const user = userEvent.setup();
     renderInspector();
     const clip = seedImportedClip();
 
     const checkbox = screen.getByRole("checkbox", { name: /color enabled/i });
     expect(checkbox).toHaveAttribute("aria-checked", "false");
-    // Folds default to closed, so the section body is unmounted.
-    expect(screen.queryByLabelText("Brightness")).toBeNull();
+    // The Color panel holds one section, so it starts open, with the
+    // sliders disabled until the effect is on.
+    expect(screen.getByLabelText("Brightness")).toBeDisabled();
 
     await user.click(checkbox);
 
@@ -151,8 +158,8 @@ describe("TimelineInspector section headers", () => {
     expect(
       screen.getByRole("checkbox", { name: /color enabled/i })
     ).toHaveAttribute("aria-checked", "true");
-    // Checking the box must not toggle the fold open.
-    expect(screen.queryByLabelText("Brightness")).toBeNull();
+    // Checking the box must not toggle the fold closed.
+    expect(screen.getByLabelText("Brightness")).toBeEnabled();
   });
 
   it("resets the transform via the header action", async () => {

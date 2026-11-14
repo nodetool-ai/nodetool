@@ -1617,7 +1617,11 @@
       "assistant": "어시스턴트",
       "history": "역사",
       "code": "코드",
-      "storyboard": "스토리보드"
+      "storyboard": "스토리보드",
+      "effectControls": "효과 컨트롤",
+      "motion": "모션",
+      "color": "색상",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "DAW 모드에는 자체 트랙 뷰가 있습니다. 이 기능을 끄면(Alt+M) 타임라인 패널이 열립니다.",
@@ -20041,5 +20045,31 @@
     },
     "opening": "여는 중…",
     "startFailed": "시작 항목을 열 수 없습니다: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "선택한 클립이 없습니다",
+    "severalClips": "여러 클립이 선택되었습니다",
+    "effectControls": {
+      "empty": "타임라인에서 클립을 선택하면 변형, 불투명도, 효과, 마스크를 조정할 수 있습니다.",
+      "several": "조정할 클립을 하나만 선택하세요."
+    },
+    "motion": {
+      "empty": "타임라인에서 클립을 선택하면 애니메이션을 적용할 수 있습니다.",
+      "several": "애니메이션을 적용할 클립을 하나만 선택하세요.",
+      "unsupportedTitle": "애니메이션할 항목이 없습니다",
+      "unsupported": "비디오, 이미지, 텍스트 또는 도형 클립을 선택하세요."
+    },
+    "color": {
+      "empty": "타임라인에서 클립을 선택하면 색 보정을 할 수 있습니다.",
+      "several": "색 보정할 클립을 하나만 선택하세요.",
+      "unsupportedTitle": "이 클립에는 화면이 없습니다",
+      "unsupported": "비디오, 이미지, 텍스트 또는 도형 클립을 선택하세요."
+    },
+    "ai": {
+      "empty": "타임라인에서 클립을 선택하면 그 클립으로 생성하거나 AI로 편집할 수 있습니다.",
+      "several": "생성에 사용할 클립을 하나만 선택하세요.",
+      "unsupportedTitle": "이 클립에 사용할 AI 도구가 없습니다",
+      "unsupported": "비디오 또는 이미지 클립이나 생성된 클립을 선택하세요."
+    }
   }
 }

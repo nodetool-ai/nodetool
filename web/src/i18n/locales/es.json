@@ -1628,7 +1628,11 @@
       "assistant": "Asistente",
       "history": "Historia",
       "code": "Código",
-      "storyboard": "Guión gráfico"
+      "storyboard": "Guión gráfico",
+      "effectControls": "Controles de efectos",
+      "motion": "Movimiento",
+      "color": "Color",
+      "ai": "IA"
     },
     "unavailable": {
       "tracks": "El modo DAW tiene su propia vista de pista. Desactívelo (Alt+M) para abrir el panel Línea de tiempo.",
@@ -20352,5 +20356,31 @@
     },
     "opening": "Abriendo…",
     "startFailed": "No se pudo abrir el ejemplo: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Ningún clip seleccionado",
+    "severalClips": "Varios clips seleccionados",
+    "effectControls": {
+      "empty": "Selecciona un clip en la línea de tiempo para ajustar su transformación, opacidad, efectos y máscaras.",
+      "several": "Selecciona un solo clip para ajustarlo."
+    },
+    "motion": {
+      "empty": "Selecciona un clip en la línea de tiempo para animarlo.",
+      "several": "Selecciona un solo clip para animarlo.",
+      "unsupportedTitle": "Nada que animar",
+      "unsupported": "Selecciona un clip de vídeo, imagen, texto o forma para animarlo."
+    },
+    "color": {
+      "empty": "Selecciona un clip en la línea de tiempo para corregir su color.",
+      "several": "Selecciona un solo clip para corregir su color.",
+      "unsupportedTitle": "Este clip no tiene imagen",
+      "unsupported": "Selecciona un clip de vídeo, imagen, texto o forma para corregir su color."
+    },
+    "ai": {
+      "empty": "Selecciona un clip en la línea de tiempo para generar a partir de él o editarlo con IA.",
+      "several": "Selecciona un solo clip para generar a partir de él.",
+      "unsupportedTitle": "No hay herramientas de IA para este clip",
+      "unsupported": "Selecciona un clip de vídeo o imagen, o un clip generado."
+    }
   }
 }

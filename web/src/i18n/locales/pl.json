@@ -1639,7 +1639,11 @@
       "assistant": "Asystent",
       "history": "Historia",
       "code": "Kod",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Ustawienia efektów",
+      "motion": "Ruch",
+      "color": "Kolor",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "Tryb DAW ma własny widok ścieżki. Wyłącz tę opcję (Alt+M), aby otworzyć panel Oś czasu.",
@@ -20663,5 +20667,31 @@
     },
     "opening": "Otwieranie…",
     "startFailed": "Nie udało się otworzyć startera: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Nie wybrano klipu",
+    "severalClips": "Wybrano kilka klipów",
+    "effectControls": {
+      "empty": "Wybierz klip na osi czasu, aby dostosować jego transformację, krycie, efekty i maski.",
+      "several": "Wybierz jeden klip, aby go dostosować."
+    },
+    "motion": {
+      "empty": "Wybierz klip na osi czasu, aby go animować.",
+      "several": "Wybierz jeden klip, aby go animować.",
+      "unsupportedTitle": "Nie ma czego animować",
+      "unsupported": "Wybierz klip wideo, obrazu, tekstu lub kształtu, aby go animować."
+    },
+    "color": {
+      "empty": "Wybierz klip na osi czasu, aby skorygować jego kolory.",
+      "several": "Wybierz jeden klip, aby skorygować jego kolory.",
+      "unsupportedTitle": "Ten klip nie ma obrazu",
+      "unsupported": "Wybierz klip wideo, obrazu, tekstu lub kształtu, aby skorygować jego kolory."
+    },
+    "ai": {
+      "empty": "Wybierz klip na osi czasu, aby generować na jego podstawie lub edytować go za pomocą AI.",
+      "several": "Wybierz jeden klip, aby generować na jego podstawie.",
+      "unsupportedTitle": "Brak narzędzi AI dla tego klipu",
+      "unsupported": "Wybierz klip wideo lub obrazu albo wygenerowany klip."
+    }
   }
 }

@@ -3,12 +3,20 @@ import { createDockLayoutModel, type DockLayout } from "../dock/DockLayout";
 /** Every panel the timeline editor can dock. `program` and `tracks` are required. */
 export const TIMELINE_PANEL_IDS = [
   "program", "source", "tracks", "transcript", "storyboard",
-  "inspector", "shot", "instruments", "assistant", "history", "code"
+  "inspector", "effectControls", "motion", "color", "shot", "instruments",
+  "assistant", "ai", "history", "code"
 ] as const;
 export type TimelinePanelId = typeof TIMELINE_PANEL_IDS[number];
 
-/** The panels that share the right dock group in the built-in workspaces. */
-export const TIMELINE_SIDE_PANEL_IDS: readonly TimelinePanelId[] = ["inspector", "shot", "instruments", "assistant", "history", "code"];
+/**
+ * The panels that share the right dock group in the built-in workspaces, in
+ * the native editor's order: Effect Controls and Motion after the Inspector,
+ * AI after the Assistant.
+ */
+export const TIMELINE_SIDE_PANEL_IDS: readonly TimelinePanelId[] = [
+  "inspector", "effectControls", "motion", "color", "shot", "instruments",
+  "assistant", "ai", "history", "code"
+];
 
 /** Built-in workspaces in menu order. The first is the default, and Alt+Shift+1 to 4 switch to them. */
 export const TIMELINE_WORKSPACES = ["Editing", "Script", "Assistant", "Review"] as const;

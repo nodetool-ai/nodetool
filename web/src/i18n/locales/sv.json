@@ -1617,7 +1617,11 @@
       "assistant": "Assistent",
       "history": "Historia",
       "code": "Kod",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effektkontroller",
+      "motion": "Rörelse",
+      "color": "Färg",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "DAW-läget har sin egen spårvy. Stäng av den (Alt+M) för att öppna panelen Tidslinje.",
@@ -20041,5 +20045,31 @@
     },
     "opening": "Öppnar…",
     "startFailed": "Det gick inte att öppna startern: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Inget klipp markerat",
+    "severalClips": "Flera klipp markerade",
+    "effectControls": {
+      "empty": "Markera ett klipp på tidslinjen för att justera transformering, opacitet, effekter och masker.",
+      "several": "Markera ett enda klipp för att justera det."
+    },
+    "motion": {
+      "empty": "Markera ett klipp på tidslinjen för att animera det.",
+      "several": "Markera ett enda klipp för att animera det.",
+      "unsupportedTitle": "Inget att animera",
+      "unsupported": "Markera ett video-, bild-, text- eller formklipp för att animera det."
+    },
+    "color": {
+      "empty": "Markera ett klipp på tidslinjen för att färgkorrigera det.",
+      "several": "Markera ett enda klipp för att färgkorrigera det.",
+      "unsupportedTitle": "Klippet har ingen bild",
+      "unsupported": "Markera ett video-, bild-, text- eller formklipp för att färgkorrigera det."
+    },
+    "ai": {
+      "empty": "Markera ett klipp på tidslinjen för att generera från det eller redigera det med AI.",
+      "several": "Markera ett enda klipp för att generera från det.",
+      "unsupportedTitle": "Inga AI-verktyg för det här klippet",
+      "unsupported": "Markera ett video- eller bildklipp, eller ett genererat klipp."
+    }
   }
 }

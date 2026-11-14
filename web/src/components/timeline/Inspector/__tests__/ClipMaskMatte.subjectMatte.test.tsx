@@ -15,7 +15,7 @@ import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 import type { ClipGeneratedMatte, TimelineClip } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
-import { ClipMaskMatte } from "../ClipMaskMatte";
+import { ClipSubjectMatte } from "../ClipMaskMatte";
 import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 
@@ -64,7 +64,7 @@ const READY: ClipGeneratedMatte = {
 /** Reads the clip from the store, so a state change re-renders the section. */
 const Harness: React.FC = () => {
   const clip = useTimelineStore((s) => s.clips.find((c) => c.id === CLIP_ID));
-  return clip ? <ClipMaskMatte clip={clip} /> : null;
+  return clip ? <ClipSubjectMatte clip={clip} /> : null;
 };
 
 const renderSection = () =>
@@ -360,7 +360,7 @@ describe("Subject matte — the knobs write through the store", () => {
 describe("Subject matte — switching clips", () => {
   const SelectedHarness: React.FC<{ clipId: string }> = ({ clipId }) => {
     const clip = useTimelineStore((s) => s.clips.find((c) => c.id === clipId));
-    return clip ? <ClipMaskMatte clip={clip} /> : null;
+    return clip ? <ClipSubjectMatte clip={clip} /> : null;
   };
   const renderFor = (clipId: string) => (
     <ThemeProvider theme={mockTheme}>

@@ -1617,7 +1617,11 @@
       "assistant": "Assistent",
       "history": "Historie",
       "code": "Kode",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effektkontroller",
+      "motion": "Bevegelse",
+      "color": "Farge",
+      "ai": "KI"
     },
     "unavailable": {
       "tracks": "DAW-modus har sin egen sporvisning. Slå den av (Alt+M) for å åpne tidslinjepanelet.",
@@ -20041,5 +20045,31 @@
     },
     "opening": "Åpner…",
     "startFailed": "Kunne ikke åpne starteren: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Ingen klipp valgt",
+    "severalClips": "Flere klipp valgt",
+    "effectControls": {
+      "empty": "Velg et klipp på tidslinjen for å justere transformasjon, dekkevne, effekter og masker.",
+      "several": "Velg ett klipp for å justere det."
+    },
+    "motion": {
+      "empty": "Velg et klipp på tidslinjen for å animere det.",
+      "several": "Velg ett klipp for å animere det.",
+      "unsupportedTitle": "Ingenting å animere",
+      "unsupported": "Velg et video-, bilde-, tekst- eller formklipp for å animere det."
+    },
+    "color": {
+      "empty": "Velg et klipp på tidslinjen for å fargekorrigere det.",
+      "several": "Velg ett klipp for å fargekorrigere det.",
+      "unsupportedTitle": "Dette klippet har ikke bilde",
+      "unsupported": "Velg et video-, bilde-, tekst- eller formklipp for å fargekorrigere det."
+    },
+    "ai": {
+      "empty": "Velg et klipp på tidslinjen for å generere fra det eller redigere det med KI.",
+      "several": "Velg ett klipp for å generere fra det.",
+      "unsupportedTitle": "Ingen KI-verktøy for dette klippet",
+      "unsupported": "Velg et video- eller bildeklipp, eller et generert klipp."
+    }
   }
 }
