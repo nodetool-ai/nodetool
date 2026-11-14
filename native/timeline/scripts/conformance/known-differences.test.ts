@@ -4,8 +4,9 @@
  * - "splitClip preserves clip metadata and source references across both
  *   halves" checks `toBe` on nested objects. A value that crossed a process
  *   boundary is a copy, so the same case runs with deep equality. The same
- *   applies to "rateStretchClips leaves a time-remapped clip alone" and
- *   "slideClips leaves a group clip alone".
+ *   applies to "rateStretchClips leaves a time-remapped clip alone",
+ *   "slideClips leaves a group clip alone" and "slideClips slides adjacent
+ *   linked members by %s without trimming them".
  */
 import { describe, expect, it } from "vitest";
 import * as native from "./native-ops.ts";
@@ -79,5 +80,21 @@ describe("unchanged results, with deep equality", () => {
   it("slideClips leaves a group clip alone", () => {
     const grouped = [clip("g", { mediaType: "group" })];
     expect(native.slideClips(grouped, new Set(["g"]), 100)).toEqual(grouped);
+  });
+  it.each([100, -100])("slideClips slides adjacent linked members by %s without trimming them", (delta) => {
+    const clips = [
+      clip("prev", { startMs: 0, inPointMs: 500 }),
+      clip("a", { startMs: 1000, inPointMs: 500, linkId: "L" }),
+      clip("b", { startMs: 2000, inPointMs: 500, linkId: "L" }),
+      clip("next", { startMs: 3000, inPointMs: 500 }),
+      clip("other", { startMs: 1000, trackId: "a1" })
+    ];
+    const out = native.slideClips(clips, new Set(["a", "b"]), delta);
+    const byId = (id: string) => out.find((c: any) => c.id === id);
+    expect(byId("a")).toEqual({ ...clips[1], startMs: 1000 + delta });
+    expect(byId("b")).toEqual({ ...clips[2], startMs: 2000 + delta });
+    expect(byId("prev")).toMatchObject({ startMs: 0, durationMs: 1000 + delta });
+    expect(byId("next")).toMatchObject({ startMs: 3000 + delta, durationMs: 1000 - delta, inPointMs: 500 + delta });
+    expect(byId("other")).toEqual(clips[4]);
   });
 });

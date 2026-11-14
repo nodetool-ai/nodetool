@@ -9,6 +9,7 @@
 #include <cmath>
 #include <limits>
 #include <map>
+#include <vector>
 
 namespace nt::edit {
 
@@ -1066,10 +1067,12 @@ double outPointOf(const QJsonObject& c) {
     return numberOr(c, "outPointMs", in + clipDurationMs(c) * sourceRate(c));
 }
 
-SlidePlan planMember(const ClipList& clips, const QJsonObject& member, const SourceDurationFor& sourceDurationMsFor) {
+// The neighbours of one member: clips on its track that are not themselves
+// members, so a run of selected clips slides as one unit.
+SlidePlan planMember(const ClipList& clips, const QJsonObject& member, const IdSet& memberIds) {
     ClipList others;
     for (const auto& c : clips) {
-        if (clipTrackId(c) == clipTrackId(member) && clipId(c) != clipId(member) && !isGroupClip(c)) others.push_back(c);
+        if (clipTrackId(c) == clipTrackId(member) && !memberIds.count(clipId(c)) && !isGroupClip(c)) others.push_back(c);
     }
     SlidePlan p;
     for (const auto& c : others) {
@@ -1078,30 +1081,64 @@ SlidePlan planMember(const ClipList& clips, const QJsonObject& member, const Sou
     for (const auto& c : others) {
         if (!p.after && std::abs(clipStartMs(c) - clipEndMs(member)) <= TOUCH_MS) p.after = c;
     }
-    if (p.before) {
-        p.minDeltaMs = std::max(p.minDeltaMs, MIN_NEIGHBOUR_MS - clipDurationMs(*p.before));
-        const auto sourceMs = sourceDurationMsFor ? sourceDurationMsFor(*p.before) : std::nullopt;
-        if (sourceMs) {
-            p.maxDeltaMs = std::min(p.maxDeltaMs, (*sourceMs - outPointOf(*p.before)) / sourceRate(*p.before));
-        }
-    } else {
+    if (!p.before) {
         double gapStartMs = 0;
         for (const auto& c : others) {
             if (clipEndMs(c) <= clipStartMs(member) + TOUCH_MS) gapStartMs = std::max(gapStartMs, clipEndMs(c));
         }
-        p.minDeltaMs = std::max(p.minDeltaMs, gapStartMs - clipStartMs(member));
+        p.minDeltaMs = gapStartMs - clipStartMs(member);
     }
-    if (p.after) {
-        p.maxDeltaMs = std::min(p.maxDeltaMs, clipDurationMs(*p.after) - MIN_NEIGHBOUR_MS);
-        p.minDeltaMs = std::max(p.minDeltaMs, -(numberOr(*p.after, "inPointMs", 0.0) / sourceRate(*p.after)));
-    } else {
+    if (!p.after) {
         double gapEndMs = std::numeric_limits<double>::infinity();
         for (const auto& c : others) {
             if (clipStartMs(c) >= clipEndMs(member) - TOUCH_MS) gapEndMs = std::min(gapEndMs, clipStartMs(c));
         }
-        p.maxDeltaMs = std::min(p.maxDeltaMs, gapEndMs - clipEndMs(member));
+        p.maxDeltaMs = gapEndMs - clipEndMs(member);
     }
     return p;
+}
+
+// A neighbour trims its tail when a member follows it and its head when a
+// member precedes it. One between two members does both.
+struct NeighbourEdit {
+    QJsonObject clip;
+    bool head = false;
+    bool tail = false;
+};
+
+std::vector<NeighbourEdit> neighbourEdits(const std::vector<SlidePlan>& plans) {
+    std::vector<NeighbourEdit> edits;
+    auto edit = [&edits](const QJsonObject& clip) -> NeighbourEdit& {
+        for (auto& e : edits) {
+            if (clipId(e.clip) == clipId(clip)) return e;
+        }
+        edits.push_back({clip, false, false});
+        return edits.back();
+    };
+    for (const auto& p : plans) {
+        if (p.before) edit(*p.before).tail = true;
+        if (p.after) edit(*p.after).head = true;
+    }
+    return edits;
+}
+
+QJsonObject trimNeighbour(const NeighbourEdit& edit, double delta) {
+    if (!edit.head) return trimClip(edit.clip, QStringLiteral("end"), delta);
+    if (!edit.tail) return trimClip(edit.clip, QStringLiteral("start"), -delta);
+    // Grow first so a shared neighbour can move farther than its own length.
+    // Slice animations once from the original curve, never an intermediate window.
+    QJsonObject withoutAnimations = edit.clip;
+    withoutAnimations.remove(QStringLiteral("animations"));
+    const QJsonObject grown =
+        trimClip(withoutAnimations, delta > 0 ? QStringLiteral("end") : QStringLiteral("start"), std::abs(delta));
+    QJsonObject trimmed = trimClip(grown, delta > 0 ? QStringLiteral("start") : QStringLiteral("end"), -std::abs(delta));
+    if (edit.clip.contains(u"animations")) {
+        trimmed.insert(QStringLiteral("animations"),
+                       resliceSourceAnimations(edit.clip.value(u"animations").toArray(),
+                                               numberOr(trimmed, "inPointMs", 0.0), outPointOf(trimmed),
+                                               clipDurationMs(trimmed)));
+    }
+    return trimmed;
 }
 
 }  // namespace
@@ -1114,7 +1151,7 @@ double slideDeltaLimit(const ClipList& clips, const IdSet& memberIds, double del
     }
     if (members.empty()) return 0;
     std::vector<SlidePlan> plans;
-    for (const auto& m : members) plans.push_back(planMember(clips, m, sourceDurationMsFor));
+    for (const auto& m : members) plans.push_back(planMember(clips, m, memberIds));
     for (const auto& m : members) {
         if (isGroupClip(m) || hasTimeRemap(m)) return 0;
     }
@@ -1127,6 +1164,18 @@ double slideDeltaLimit(const ClipList& clips, const IdSet& memberIds, double del
         minDeltaMs = std::max(minDeltaMs, p.minDeltaMs);
         maxDeltaMs = std::min(maxDeltaMs, p.maxDeltaMs);
     }
+    for (const auto& [clip, head, tail] : neighbourEdits(plans)) {
+        const double rate = sourceRate(clip);
+        if (head) {
+            minDeltaMs = std::max({minDeltaMs, -numberOr(clip, "inPointMs", 0.0) / rate, -clipStartMs(clip)});
+            if (!tail) maxDeltaMs = std::min(maxDeltaMs, clipDurationMs(clip) - MIN_NEIGHBOUR_MS);
+        }
+        if (tail) {
+            if (!head) minDeltaMs = std::max(minDeltaMs, MIN_NEIGHBOUR_MS - clipDurationMs(clip));
+            const auto sourceMs = sourceDurationMsFor ? sourceDurationMsFor(clip) : std::nullopt;
+            if (sourceMs) maxDeltaMs = std::min(maxDeltaMs, (*sourceMs - outPointOf(clip)) / rate);
+        }
+    }
     if (minDeltaMs > maxDeltaMs) return 0;
     return std::min(maxDeltaMs, std::max(minDeltaMs, deltaMs));
 }
@@ -1136,13 +1185,13 @@ ClipList slideClips(const ClipList& clips, const IdSet& memberIds, double deltaM
     const double delta = slideDeltaLimit(clips, memberIds, deltaMs, sourceDurationMsFor);
     if (delta == 0) return clips;
     std::map<QString, QJsonObject> next;
+    std::vector<SlidePlan> plans;
     for (const auto& member : clips) {
         if (!memberIds.count(clipId(member))) continue;
-        const SlidePlan p = planMember(clips, member, sourceDurationMsFor);
+        plans.push_back(planMember(clips, member, memberIds));
         next[clipId(member)] = withStart(member, clipStartMs(member) + delta);
-        if (p.before) next[clipId(*p.before)] = trimClip(*p.before, QStringLiteral("end"), delta);
-        if (p.after) next[clipId(*p.after)] = trimClip(*p.after, QStringLiteral("start"), -delta);
     }
+    for (const auto& edit : neighbourEdits(plans)) next[clipId(edit.clip)] = trimNeighbour(edit, delta);
     ClipList out;
     for (const auto& c : clips) {
         auto it = next.find(clipId(c));

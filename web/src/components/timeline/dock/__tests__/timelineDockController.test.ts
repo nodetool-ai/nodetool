@@ -1,5 +1,6 @@
 import type { StoreApi } from "zustand";
 
+import { allDockGroups } from "../../../../stores/dock/DockLayout";
 import { createDockLayoutStore, type DockLayoutState } from "../../../../stores/dock/DockLayoutStore";
 import { timelineDockLayoutModel, type TimelinePanelId } from "../../../../stores/timeline/TimelineDockLayout";
 import type { DockMaximizeController } from "../../../dock/DockCanvas";
@@ -125,6 +126,28 @@ describe("timeline dock controller", () => {
     const { options, controller } = setup();
     controller.toggleProgramFullscreen();
     expect(options.requestProgramFullscreen).toHaveBeenCalledTimes(1);
+  });
+
+  it("cycles focus through the shown panel of each group, from the timeline when nothing has focus", () => {
+    const { store, options, controller } = setup();
+    const shown = allDockGroups(store.getState().layout).map((group) => group.activePanelId);
+    const tracksAt = allDockGroups(store.getState().layout).findIndex((group) => group.panels.includes("tracks"));
+    expect(controller.cyclePanel(1)).toBe(true);
+    expect(options.focusPanel).toHaveBeenLastCalledWith(shown[(tracksAt + 1) % shown.length]);
+    controller.cyclePanel(-1);
+    expect(options.focusPanel).toHaveBeenLastCalledWith(shown[(tracksAt - 1 + shown.length) % shown.length]);
+  });
+
+  it("cycles from the focused group, and stays in a maximized one", () => {
+    const groups = (s: StoreApi<DockLayoutState>) => allDockGroups(s.getState().layout);
+    const first = setup();
+    const ids = groups(first.store).map((group) => group.id);
+    const focused = setup({ focusedGroupId: () => ids[0] });
+    focused.controller.cyclePanel(1);
+    expect(focused.options.focusPanel).toHaveBeenLastCalledWith(groups(focused.store)[1].activePanelId);
+    first.canvas.set(ids[0]);
+    first.controller.cyclePanel(1);
+    expect(first.options.focusPanel).toHaveBeenLastCalledWith(groups(first.store)[0].activePanelId);
   });
 });
 

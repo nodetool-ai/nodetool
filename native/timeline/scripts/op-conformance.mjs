@@ -4,12 +4,16 @@
 //
 // 1. The package's own tests for trimClip, splitClip, rippleEdit,
 //    dropResolve and snapping run unchanged, with the operations they import
-//    answered by the native port (build-m2/timeline-ops).
+//    answered by the native port (build/timeline-ops).
 // 2. conformance/differential.test.ts: the same random clip arrays and edits
 //    through packages/timeline and the native operations.
 // 3. conformance/store-differential.test.ts: the web store's clip actions
 //    (TimelineStore.ts, run in jsdom) against the native EditActions.
 // 4. conformance/keymap-differential.test.ts: every preset's key resolution.
+//
+// Each suite in conformance/suites/ calls an oracle binary next to
+// timeline-ops; `cmake --build build --target conformance-helpers` builds them
+// all. A missing one stops the run before vitest starts (exit 2).
 //
 // The package tests the native code does not pass are skipped by name and
 // replaced (SKIPPED, conformance/known-differences.test.ts). The run exits 1
@@ -46,6 +50,20 @@ export async function loadSuites(directory, context) {
     }
   }
   return { runs, problems };
+}
+
+// The helper binaries the suites name in their env (absolute paths) that do
+// not exist, with the suite that needs each.
+export function missingHelpers(runs) {
+  const missing = [];
+  for (const run of runs) {
+    for (const [name, value] of Object.entries(run.env ?? {})) {
+      if (typeof value === "string" && path.isAbsolute(value) && !existsSync(value)) {
+        missing.push({ variable: name, path: value, tests: run.tests });
+      }
+    }
+  }
+  return missing;
 }
 
 export function checkSuiteReport(report, skipped = {}) {
@@ -88,9 +106,10 @@ const opt = (name, fallback) => {
   const i = argv.indexOf(name);
   return i >= 0 ? argv[i + 1] : fallback;
 };
-const bin = path.resolve(opt("--bin", path.join(here, "..", "build-m2", "timeline-ops")));
+const bin = path.resolve(opt("--bin", path.join(here, "..", "build", "timeline-ops")));
 if (!existsSync(bin)) {
   console.error(`no timeline-ops binary at ${bin}`);
+  console.error("build it with: cmake --build <build dir> --target conformance-helpers");
   process.exit(2);
 }
 
@@ -128,6 +147,10 @@ const SKIPPED = Object.fromEntries(
       "identity: `toBe` on nested objects; run with deep equality"],
     [["rateStretchClips", "leaves a time-remapped clip alone"], "identity: `toBe` on the unchanged clip; run with deep equality"],
     [["slideClips", "leaves a group clip alone"], "identity: `toBe` on the unchanged array; run with deep equality"],
+    [["slideClips", "slides adjacent linked members by 100 without trimming them"],
+      "identity: `toBe` on the untouched clip on another track; run with deep equality"],
+    [["slideClips", "slides adjacent linked members by -100 without trimming them"],
+      "identity: `toBe` on the untouched clip on another track; run with deep equality"],
   ].map(([parts, reason]) => [parts.join(" "), { parts, reason }])
 );
 const escape = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -145,6 +168,15 @@ const runs = [
 ];
 const extensions = await loadSuites(path.join(here, "conformance", "suites"), { bin });
 runs.push(...extensions.runs);
+const missing = missingHelpers(runs);
+if (missing.length > 0) {
+  for (const m of missing) {
+    console.error(`missing helper ${m.path} (${m.variable}) for ${m.tests.map((t) => path.relative(repo, t)).join(", ")}`);
+  }
+  console.error(`build them with: cmake --build ${path.dirname(bin)} --target conformance-helpers`);
+  rmSync(work, { recursive: true, force: true });
+  process.exit(2);
+}
 const reports = [];
 for (const [i, run] of runs.entries()) {
   const reportFile = path.join(work, `report-${i}.json`);

@@ -274,6 +274,8 @@ export interface TimelineMarkerInput {
   label?: string;
   color?: string;
   note?: string;
+  /** Length of a range marker. Absent or 0 places a point marker. */
+  durationMs?: number;
 }
 
 export interface TimelineStoreState {
@@ -2949,6 +2951,10 @@ export const createTimelineStore = (
             const clip = state.clips.find((c) => c.id === clipId);
             if (
               !clip ||
+              (toTrackId !== undefined &&
+                state.tracks.some(
+                  (track) => track.id === toTrackId && track.locked
+                )) ||
               !editableUserTargets(
                 state.clips,
                 state.tracks,
@@ -5133,6 +5139,9 @@ export const createTimelineStore = (
           });
           if (input.color !== undefined) marker.color = input.color;
           if (input.note !== undefined) marker.note = input.note;
+          if (input.durationMs !== undefined && input.durationMs > 0) {
+            marker.durationMs = Math.round(input.durationMs);
+          }
           set((state) => ({ markers: [...state.markers, marker] }));
           return marker;
         },

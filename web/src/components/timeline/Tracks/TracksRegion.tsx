@@ -73,6 +73,8 @@ import {
   MAX_MS_PER_PX,
   MIN_TRACK_HEADER_WIDTH_PX,
   MAX_TRACK_HEADER_WIDTH_PX,
+  MAX_VERTICAL_ZOOM,
+  MIN_VERTICAL_ZOOM,
   maxTrackHeaderWidthForViewport,
   type TimelineTool
 } from "../../../stores/timeline/TimelineUIStore";
@@ -111,7 +113,7 @@ import {
 } from "./TimelineScrollbar";
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
 import { ScriptLane, ScriptLaneHeader } from "./ScriptLane";
-import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
+import { FX_PANEL_HEIGHT_PX, steppedTrackHeightPx } from "./trackHeight";
 import { AutomationAddLaneHeader, AutomationLaneHeader } from "./automation/AutomationLaneHeader";
 import { AutomationLaneView } from "./automation/AutomationLaneView";
 import { AUTOMATION_FOOTER_HEIGHT_PX } from "./automation/automationLayout";
@@ -161,11 +163,18 @@ import {
 import { resolveTimelineAction } from "../timelineKeymap";
 import { useTimelineDock } from "../dock/timelineDockController";
 import type { TimelineAction } from "../timelineKeymap";
+import type { TimelinePanelId } from "../../../stores/timeline/TimelineDockLayout";
 import {
   clipsAtTime,
   editTimesMs,
+  extendEditMoves,
+  gapStartsMs,
   markClipRange,
-  neighbourEditMs
+  neighbourEditMs,
+  selectionSpanMs,
+  sequenceEndMs,
+  slowShuttleRate,
+  stepSelectionIds
 } from "./editPoints";
 import { clipEnabledPatch, isClipDisabled } from "./clipEnabled";
 import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMode";
@@ -207,6 +216,26 @@ const TOOL_FOR_ACTION: Record<
 };
 /** How much one expand or shrink keypress changes the track-height scale. */
 const TRACK_HEIGHT_STEP = 0.25;
+/** Premiere's default preroll and postroll for Play Around and the rolled in-to-out play. */
+const PREROLL_MS = 3000;
+const POSTROLL_MS = 2000;
+/** What Make Audio Tracks Taller / Shorter adds to each audio row. */
+const AUDIO_TRACK_HEIGHT_STEP_PX = 12;
+/** The volume step of [ and ], and of Shift+[ and Shift+]. */
+const VOLUME_STEP_DB = 1;
+const LARGE_VOLUME_STEP_DB = 6;
+/** A range marker added at the playhead is this long. */
+const RANGE_MARKER_MS = 1000;
+/** Premiere's panel keys, for the panels this editor has. */
+const PANEL_FOR_ACTION: Partial<Record<TimelineAction, TimelinePanelId>> = {
+  panelSource: "source",
+  panelTimeline: "tracks",
+  panelProgram: "program",
+  panelEffectControls: "inspector",
+  panelInspector: "inspector",
+  panelScript: "transcript",
+  panelStoryboard: "storyboard"
+};
 /** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
 const DUPLICATE_OFFSET_MS = 1000;
 /** Per-keypress zoom step (msPerPx smaller = zoomed in). */
@@ -442,6 +471,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
     const importVideoWithAudio = useVideoAudioImport();
     const arrowNudgeHistory = useTimelineHistoryBatch();
+    // The track-height scale Expand / Minimize All Tracks restores on a second press.
+    const zoomBeforeAllTracksRef = useRef<number | null>(null);
 
     const scrollableRef = useRef<HTMLDivElement>(null);
     const headerColumnRef = useRef<HTMLDivElement>(null);
@@ -1226,6 +1257,20 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             : sorted.filter((t) => t < liveMs - 1).at(-1);
           if (target !== undefined) playback.seek(target);
         };
+        // With linked selection on, the clips sharing a link with `ids`.
+        const withLinks = (ids: readonly string[]): string[] => {
+          if (!doc.linkedSelection) return [...ids];
+          const chosen = new Set(ids);
+          const links = new Set(
+            doc.clips
+              .filter((c) => chosen.has(c.id) && c.linkId !== undefined)
+              .map((c) => c.linkId)
+          );
+          for (const c of doc.clips) {
+            if (c.linkId !== undefined && links.has(c.linkId)) chosen.add(c.id);
+          }
+          return [...chosen];
+        };
         const shuttle = (dir: 1 | -1) => {
           const cur = playback.rate;
           const sameDir = playback.isPlaying && Math.sign(cur) === dir;
@@ -1813,11 +1858,266 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             }
             return;
           }
+
+          case "goToSequenceStart":
+            e.preventDefault();
+            playback.seek(0);
+            return;
+          case "goToSequenceEnd":
+            e.preventDefault();
+            playback.seek(sequenceEndMs(doc.clips));
+            return;
+          case "prevCutAnyTrack":
+          case "nextCutAnyTrack":
+            e.preventDefault();
+            seekToNeighbour(
+              editTimesMs(doc.clips, new Set(doc.tracks.map((t) => t.id))),
+              action === "nextCutAnyTrack"
+            );
+            return;
+          case "goToSelectedStart":
+          case "goToSelectedEnd": {
+            const span = selectionSpanMs(doc.clips, selectedClipIds);
+            if (!span) return;
+            e.preventDefault();
+            // The end key lands on the selection's last frame, not past it.
+            playback.seek(
+              action === "goToSelectedStart"
+                ? span.startMs
+                : Math.max(span.startMs, span.endMs - frameMs)
+            );
+            return;
+          }
+          case "selectPrevClip":
+          case "selectNextClip": {
+            e.preventDefault();
+            // With nothing selected, the clips under the playhead.
+            const picks =
+              selectedClipIds.size === 0
+                ? clipsAtTime(doc.clips, targetedTrackIds(doc), liveMs).map((c) => c.id)
+                : stepSelectionIds(
+                    doc.clips,
+                    doc.tracks,
+                    selectedClipIds,
+                    action === "selectNextClip"
+                  );
+            if (picks) setSelection(withLinks(picks));
+            return;
+          }
+          case "nextGap":
+          case "prevGap":
+            e.preventDefault();
+            seekToNeighbour(gapStartsMs(doc.clips), action === "nextGap");
+            return;
+          case "slowShuttleBack":
+          case "slowShuttleForward": {
+            e.preventDefault();
+            const dir = action === "slowShuttleForward" ? 1 : -1;
+            playback.setRate(slowShuttleRate(playback.isPlaying, playback.rate, dir));
+            if (!playback.isPlaying) playback.play();
+            playback.seek(liveMs);
+            return;
+          }
+          case "playAround":
+            e.preventDefault();
+            if (!e.repeat) {
+              playback.playSpan(liveMs - PREROLL_MS, liveMs + POSTROLL_MS, liveMs);
+            }
+            return;
+          case "playInToOutWithRoll":
+            e.preventDefault();
+            if (!e.repeat) {
+              playback.playSpan(
+                (playback.rangeInMs ?? 0) - PREROLL_MS,
+                (playback.rangeOutMs ?? sequenceEndMs(doc.clips)) + POSTROLL_MS
+              );
+            }
+            return;
+          case "playToOut":
+            e.preventDefault();
+            if (!e.repeat) {
+              playback.playSpan(liveMs, playback.rangeOutMs ?? sequenceEndMs(doc.clips));
+            }
+            return;
+          case "extendPrevEdit":
+          case "extendNextEdit": {
+            const unlocked = new Set(
+              [...targetedTrackIds(doc)].filter(
+                (id) => !doc.tracks.some((t) => t.id === id && t.locked)
+              )
+            );
+            const moves = extendEditMoves(
+              doc.clips,
+              doc.tracks,
+              unlocked,
+              liveMs,
+              action === "extendNextEdit"
+            );
+            if (moves.length === 0) return;
+            e.preventDefault();
+            runAsOneUndoEntry(docStore, () => {
+              for (const move of moves) {
+                const live = docStore.getState();
+                const left = live.clips.find((c) => c.id === move.leftId);
+                const right = live.clips.find((c) => c.id === move.rightId);
+                // A linked partner on an earlier track may have moved this edit already.
+                const edgeMs = left
+                  ? left.startMs + left.durationMs
+                  : (right?.startMs ?? move.edgeMs);
+                if (Math.abs(edgeMs - move.edgeMs) > 1) continue;
+                const delta = liveMs - move.edgeMs;
+                if (left && right) {
+                  live.rollClipEdge(left.id, "end", delta, getSourceCapMs(left));
+                } else if (left) {
+                  live.trimClipEnd(left.id, delta, getSourceCapMs(left));
+                } else if (right) {
+                  live.trimClipStart(right.id, -delta);
+                }
+              }
+            });
+            return;
+          }
+          case "slideLeft":
+          case "slideRight": {
+            const primary = doc.clips.find(
+              (c) => c.id === selectedClipIds.values().next().value
+            );
+            if (!primary) return;
+            e.preventDefault();
+            const delta =
+              frameStepMs(primary.startMs, action === "slideRight" ? 1 : -1) -
+              primary.startMs;
+            batchHeldKeyEdit(() => {
+              // A linked partner slides with its clip, so it is not slid twice.
+              const slid = new Set<string>();
+              for (const id of selectedClipIds) {
+                if (slid.has(id)) continue;
+                docStore.getState().slideClip(id, delta, getSourceCapMs);
+                for (const moved of withLinks([id])) slid.add(moved);
+              }
+            });
+            return;
+          }
+          case "markSelection": {
+            const span = selectionSpanMs(doc.clips, selectedClipIds);
+            if (!span) return;
+            e.preventDefault();
+            playback.clearRange();
+            playback.setRangeIn(span.startMs);
+            playback.setRangeOut(span.endMs);
+            return;
+          }
+          case "clearIn":
+            e.preventDefault();
+            playback.setRangeIn(null);
+            return;
+          case "clearOut":
+            e.preventDefault();
+            playback.setRangeOut(null);
+            return;
+          case "clearAllMarkers":
+            if (doc.markers.length === 0) return;
+            e.preventDefault();
+            runAsOneUndoEntry(docStore, () => {
+              for (const marker of doc.markers) docStore.getState().deleteMarker(marker.id);
+            });
+            return;
+          case "addRangeMarker":
+            e.preventDefault();
+            if (e.repeat) return;
+            doc.addMarker({
+              timeMs: liveMs,
+              durationMs: RANGE_MARKER_MS,
+              label: `Marker ${doc.markers.length + 1}`
+            });
+            return;
+          case "addMarkerInOut": {
+            const inMs = playback.rangeInMs;
+            const outMs = playback.rangeOutMs;
+            if (inMs === null || outMs === null || outMs <= inMs) return;
+            e.preventDefault();
+            if (e.repeat) return;
+            doc.addMarker({
+              timeMs: inMs,
+              durationMs: outMs - inMs,
+              label: `Marker ${doc.markers.length + 1}`
+            });
+            return;
+          }
+          case "expandAllTracks":
+          case "minimizeAllTracks": {
+            e.preventDefault();
+            if (e.repeat) return;
+            const zoom =
+              action === "expandAllTracks" ? MAX_VERTICAL_ZOOM : MIN_VERTICAL_ZOOM;
+            // The same key again restores the scale from before.
+            const restore = zoomBeforeAllTracksRef.current;
+            if (restore !== null && Math.abs(ui.verticalZoom - zoom) < 1e-6) {
+              ui.setVerticalZoom(restore);
+              zoomBeforeAllTracksRef.current = null;
+            } else {
+              if (restore === null) zoomBeforeAllTracksRef.current = ui.verticalZoom;
+              ui.setVerticalZoom(zoom);
+            }
+            return;
+          }
+          case "audioTracksTaller":
+          case "audioTracksShorter": {
+            e.preventDefault();
+            if (e.repeat) return;
+            const step =
+              action === "audioTracksTaller"
+                ? AUDIO_TRACK_HEIGHT_STEP_PX
+                : -AUDIO_TRACK_HEIGHT_STEP_PX;
+            runAsOneUndoEntry(docStore, () => {
+              for (const track of doc.tracks) {
+                if (track.type !== "audio") continue;
+                docStore
+                  .getState()
+                  .setTrackHeight(track.id, steppedTrackHeightPx(track, step));
+              }
+            });
+            return;
+          }
+          case "clipVolumeUp":
+          case "clipVolumeDown":
+          case "clipVolumeUpMore":
+          case "clipVolumeDownMore": {
+            if (selectedClipIds.size === 0) return;
+            e.preventDefault();
+            const db =
+              (action.startsWith("clipVolumeUp") ? 1 : -1) *
+              (action.endsWith("More") ? LARGE_VOLUME_STEP_DB : VOLUME_STEP_DB);
+            const ids = new Set(withLinks([...selectedClipIds]));
+            batchHeldKeyEdit(() => docStore.getState().setClipsGain(ids, db, "adjust"));
+            return;
+          }
+          case "panelSource":
+          case "panelTimeline":
+          case "panelProgram":
+          case "panelEffectControls":
+          case "panelInspector":
+          case "panelScript":
+          case "panelStoryboard": {
+            const panel = PANEL_FOR_ACTION[action];
+            if (!dock || !panel) return;
+            e.preventDefault();
+            if (!e.repeat) dock.openPanel(panel, { focus: true });
+            return;
+          }
+          case "nextPanel":
+          case "prevPanel":
+            if (!dock) return;
+            e.preventDefault();
+            if (!e.repeat) dock.cyclePanel(action === "nextPanel" ? 1 : -1);
+            return;
         }
       };
 
       const handleKeyUp = (e: KeyboardEvent) => {
-        if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        // The held-key batches: arrows nudge and trim, , and . slide, [ and ]
+        // change the volume.
+        if (["ArrowLeft", "ArrowRight", ",", ".", "<", ">", "[", "]", "{", "}"].includes(e.key)) {
           endArrowNudgeBatch();
         }
       };

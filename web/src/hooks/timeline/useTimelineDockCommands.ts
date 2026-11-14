@@ -16,7 +16,9 @@ export const TIMELINE_WORKSPACE_ACTIONS: readonly TimelineAction[] = ["workspace
 
 /** The keymap actions these commands replace, so the key replay list in the command menu skips them. */
 export const TIMELINE_DOCK_ACTIONS: ReadonlySet<TimelineAction> = new Set<TimelineAction>([
-  "maximizePanel", "toggleProgramFullscreen", "resetWorkspace", ...TIMELINE_WORKSPACE_ACTIONS
+  "maximizePanel", "toggleProgramFullscreen", "resetWorkspace", ...TIMELINE_WORKSPACE_ACTIONS,
+  // The panel keys: the dock lists every panel by name already.
+  "panelSource", "panelTimeline", "panelProgram", "panelEffectControls", "panelInspector", "panelScript", "panelStoryboard"
 ]);
 
 /**

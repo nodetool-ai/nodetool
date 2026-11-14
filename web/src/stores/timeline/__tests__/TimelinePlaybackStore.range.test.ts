@@ -38,4 +38,19 @@ describe("TimelinePlaybackStore — in/out range", () => {
     store.getState().setRangeIn(-50);
     expect(store.getState().rangeInMs).toBe(0);
   });
+
+  it("playSpan plays a bounded span from its start, and pause or Play In To Out ends it", () => {
+    const store = createTimelinePlaybackStore();
+    store.getState().playSpan(-500, 4000, 1000);
+    expect(store.getState().isPlaying).toBe(true);
+    expect(store.getState().getTimeMs()).toBe(0);
+    expect(store.getState().playingSpan).toEqual({ endMs: 4000, returnToMs: 1000 });
+    store.getState().pause();
+    expect(store.getState().playingSpan).toBeNull();
+    store.getState().playSpan(0, 2000);
+    expect(store.getState().playingSpan).toEqual({ endMs: 2000, returnToMs: null });
+    store.getState().playInToOut();
+    expect(store.getState().playingSpan).toBeNull();
+    expect(store.getState().playingInToOut).toBe(true);
+  });
 });

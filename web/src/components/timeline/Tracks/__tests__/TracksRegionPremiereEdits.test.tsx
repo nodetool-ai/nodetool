@@ -102,12 +102,12 @@ describe("Premiere layout edits", () => {
     expect(useTimelineUIStore.getState().verticalZoom).toBe(before);
   });
 
-  it("Shift+L toggles loop playback", () => {
+  it("Ctrl+Shift+L toggles loop playback", () => {
     setup();
     const before = useTimelineLayoutStore.getState().loopPlayback;
-    press({ key: "L", shiftKey: true });
+    press({ key: "L", ctrlKey: true, shiftKey: true });
     expect(useTimelineLayoutStore.getState().loopPlayback).toBe(!before);
-    press({ key: "L", shiftKey: true });
+    press({ key: "L", ctrlKey: true, shiftKey: true });
     expect(useTimelineLayoutStore.getState().loopPlayback).toBe(before);
   });
 

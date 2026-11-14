@@ -18,6 +18,20 @@ function clipsById(store: ReturnType<typeof createTimelineStore>) {
   return new Map(store.getState().clips.map((c) => [c.id, c]));
 }
 
+describe("moving onto a locked track", () => {
+  it("moveClip leaves the clip where it was", () => {
+    const store = createTimelineStore();
+    const v1 = makeTrack({ type: "video" });
+    const v2 = makeTrack({ type: "video", locked: true });
+    const a = makeClip({ id: "a", trackId: v1.id, startMs: 1000, durationMs: 2000 });
+    store.setState({ tracks: [v1, v2], clips: [a] });
+
+    store.getState().moveClip("a", 2000, v2.id);
+
+    expect(clipsById(store).get("a")).toEqual(a);
+  });
+});
+
 describe("resolveDrop and locks", () => {
   it("an overwrite drop leaves a locked clip in place", () => {
     const store = createTimelineStore();

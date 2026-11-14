@@ -85,6 +85,8 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { keys: ["Ctrl", "drag edge"], label: "Roll the cut with its neighbour", translationKey: "rollCut" },
       { keys: ["click edge"], label: "Select the edit point", translationKey: "selectEditPoint" },
       { action: "extendEdit", label: "Extend the edit point to the playhead" },
+      { action: "extendPrevEdit", label: "Extend the previous edit to the playhead" },
+      { action: "extendNextEdit", label: "Extend the next edit to the playhead" },
       { action: "trimEditLeft", label: "Trim edit point one frame back" },
       { action: "trimEditRight", label: "Trim edit point one frame on" },
       { action: "trimEditLeftLarge", label: "Trim edit point ten frames back" },
@@ -96,9 +98,15 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "applyDefaultAudioTransition", label: "Cross-fade the audio at the selected clips' edits" },
       { action: "speedDuration", label: "Speed and duration of selected clips" },
       { action: "audioGain", label: "Audio gain of selected clips" },
+      { action: "clipVolumeUp", label: "Raise clip volume by 1 dB" },
+      { action: "clipVolumeDown", label: "Lower clip volume by 1 dB" },
+      { action: "clipVolumeUpMore", label: "Raise clip volume by 6 dB" },
+      { action: "clipVolumeDownMore", label: "Lower clip volume by 6 dB" },
       { action: "selectAll", label: "Select all clips" },
       { action: "deselectAll", label: "Deselect all" },
       { action: "selectClipAtPlayhead", label: "Select the clips at the playhead" },
+      { action: "selectPrevClip", label: "Select the previous clip" },
+      { action: "selectNextClip", label: "Select the next clip" },
       { action: "toggleClipEnabled", label: "Enable or disable selected clips" },
       { action: "linkClips", label: "Link or unlink selected clips" },
       { action: "groupClips", label: "Group selected clips" },
@@ -122,6 +130,8 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "nudgeRight", label: "Nudge one frame on" },
       { action: "nudgeLeftLarge", label: "Nudge one second back" },
       { action: "nudgeRightLarge", label: "Nudge one second on" },
+      { action: "slideLeft", label: "Slide selected clips one frame back" },
+      { action: "slideRight", label: "Slide selected clips one frame on" },
       { keys: ["Alt", "drag"], label: "Disable snapping while moving or trimming", translationKey: "disableSnapping" },
       { keys: ["Ctrl", "drag clip"], label: "Insert on drop (push later clips right)", translationKey: "insertOnDrop" }
     ]
@@ -137,19 +147,38 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "shuttleBack", label: "Shuttle backwards (again: faster)" },
       { action: "shuttleStop", label: "Stop shuttle" },
       { action: "shuttleForward", label: "Shuttle forwards (again: faster)" },
+      { action: "slowShuttleBack", label: "Shuttle backwards slowly (again: faster)" },
+      { action: "slowShuttleForward", label: "Shuttle forwards slowly (again: faster)" },
       { action: "markIn", label: "Mark in" },
       { action: "markOut", label: "Mark out" },
       { action: "markClip", label: "Mark the clip (in and out around it)" },
+      { action: "markSelection", label: "Mark the selection (in and out around it)" },
       { action: "goToIn", label: "Go to in" },
       { action: "goToOut", label: "Go to out" },
+      { action: "goToSequenceStart", label: "Go to the sequence start" },
+      { action: "goToSequenceEnd", label: "Go to the sequence end" },
+      { action: "goToSelectedStart", label: "Go to the start of the selection" },
+      { action: "goToSelectedEnd", label: "Go to the last frame of the selection" },
       { action: "clearRange", label: "Clear in and out" },
+      { action: "clearIn", label: "Clear in" },
+      { action: "clearOut", label: "Clear out" },
       { action: "prevCut", label: "Previous cut" },
       { action: "nextCut", label: "Next cut" },
+      { action: "prevCutAnyTrack", label: "Previous cut on any track" },
+      { action: "nextCutAnyTrack", label: "Next cut on any track" },
+      { action: "prevGap", label: "Go to the previous gap in the sequence" },
+      { action: "nextGap", label: "Go to the next gap in the sequence" },
       { action: "addMarker", label: "Add marker at playhead" },
+      { action: "addRangeMarker", label: "Add a one-second range marker at the playhead" },
+      { action: "addMarkerInOut", label: "Add a marker from in to out" },
+      { action: "clearAllMarkers", label: "Clear all markers" },
       { action: "nextMarker", label: "Next marker" },
       { action: "prevMarker", label: "Previous marker" },
       { action: "toggleLoop", label: "Loop playback between in and out" },
       { action: "playInToOut", label: "Play from in to out" },
+      { action: "playInToOutWithRoll", label: "Play from in to out with preroll and postroll" },
+      { action: "playToOut", label: "Play from the playhead to out" },
+      { action: "playAround", label: "Play around the playhead" },
       { action: "matchFrame", label: "Match frame (open the source at this frame)" },
       { action: "revealInProject", label: "Reveal the clip's media in Assets" }
     ]
@@ -196,6 +225,10 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "zoomFit", label: "Zoom to fit content" },
       { action: "expandTracks", label: "Make tracks taller" },
       { action: "shrinkTracks", label: "Make tracks shorter" },
+      { action: "expandAllTracks", label: "Expand all tracks (again: restore)" },
+      { action: "minimizeAllTracks", label: "Minimize all tracks (again: restore)" },
+      { action: "audioTracksTaller", label: "Make audio tracks taller" },
+      { action: "audioTracksShorter", label: "Make audio tracks shorter" },
       { action: "toggleDawMode", label: "Switch between the video and DAW layouts" }
     ]
   },
@@ -208,7 +241,16 @@ export const TIMELINE_SHORTCUT_GROUPS: readonly Group[] = [
       { action: "workspace2", label: "Switch to the second workspace" },
       { action: "workspace3", label: "Switch to the third workspace" },
       { action: "workspace4", label: "Switch to the fourth workspace" },
-      { action: "resetWorkspace", label: "Reset to the saved workspace" }
+      { action: "resetWorkspace", label: "Reset to the saved workspace" },
+      { action: "panelSource", label: "Go to Source" },
+      { action: "panelTimeline", label: "Go to the Timeline" },
+      { action: "panelProgram", label: "Go to Program" },
+      { action: "panelEffectControls", label: "Go to Effect Controls" },
+      { action: "panelInspector", label: "Go to the Inspector" },
+      { action: "panelScript", label: "Go to Script" },
+      { action: "panelStoryboard", label: "Go to Storyboard" },
+      { action: "nextPanel", label: "Go to the next panel" },
+      { action: "prevPanel", label: "Go to the previous panel" }
     ]
   },
   {
@@ -245,6 +287,8 @@ const ShortcutRow: React.FC<{ row: Row; preset: TimelineKeyboardPreset }> = ({
     : row.keys
       ? [row.keys]
       : [];
+  // A row for a key the preset leaves unbound has nothing to show.
+  if (combos.length === 0) return null;
   return (
     <FlexRow
       align="center"
