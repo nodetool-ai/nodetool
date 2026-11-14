@@ -178,10 +178,12 @@
       "missing": "No native binding"
     },
     "newChat": {
-      "missing": "No native binding"
+      "native": "newChatConversation()",
+      "note": "Tools menu New Conversation. It opens the chat when it is closed. On the web, ChatView handles the key and the canvas chat window has no binding."
     },
     "focusChatComposer": {
-      "missing": "No native binding"
+      "native": "focusChatComposer()",
+      "note": "Tools menu Focus Chat Composer. It opens the chat when it is closed and, as ChatView.tsx, never takes a keystroke from a text field."
     },
     "runWorkflow": {
       "native": "Run"
@@ -304,7 +306,7 @@
       "native": "Cancel gesture"
     },
     "stopChatGeneration": {
-      "missing": "The native chat composer does not stop a reply on Escape"
+      "native": "session.stop()"
     },
     "assetViewerPrev": {
       "missing": "No native asset viewer"
@@ -2022,7 +2024,7 @@
         "native/node-editor/src/server/AccountJobs.cpp"
       ],
       "status": "partial",
-      "note": "Failed jobs offer Report. History rows show no output thumbnails, duration or short job id.",
+      "note": "History rows show the status tile, short job id, duration, output count and output thumbnails, open their workflow on click and offer Report on failure. Thumbnails open the output in the browser, as the web opens a new tab.",
       "inventory": "F24"
     },
     "web/src/components/panels/jobs/QueuePanel.tsx": {
@@ -2030,7 +2032,7 @@
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Opens at any time with the Active and History sections, filters and day groups, as a canvas overlay rather than a bottom panel view.",
+      "note": "Opens at any time with the Active and History sections, filters, day groups and the Could not load jobs state, as a canvas overlay rather than a bottom panel view. It shows no loading spinner before the first jobs page.",
       "inventory": "C11"
     },
     "web/src/components/panels/LogPanel.tsx": {
@@ -2642,6 +2644,387 @@
       ],
       "status": "partial",
       "note": "Workflow and ComfyUI examples, plus the native bundled examples. Apps, storyboard, timeline, sketch, 3D model and game examples are left out, since only workflow examples belong in the node editor. Dragging a card onto the canvas is not ported."
+    },
+    "web/src/components/chat/ChatListPanel.tsx": {
+      "native": [
+        "native/chat/qml/ThreadList.qml",
+        "native/chat/qml/Main.qml"
+      ],
+      "status": "partial",
+      "note": "Thread sidebar of the chat workspace. The standalone native chat app lists threads. The editor chat lists them in EditorChat.qml."
+    },
+    "web/src/components/chat/assistant/AssistantChatPanel.tsx": {
+      "native": [
+        "native/chat/qml/ChatPanel.qml"
+      ],
+      "status": "partial",
+      "note": "Agent panel embedded in other editors. The native timeline embeds ChatPanel. In the node editor only the Code assistant uses it, and that dialog is missing natively."
+    },
+    "web/src/components/chat/assistant/ResizableSideDock.tsx": {
+      "missing": "Side dock that holds an assistant chat beside the text editor modal and the Code assistant. The native text editor has no assistant dock."
+    },
+    "web/src/components/chat/composer/ComposerAttachDialog.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ],
+      "status": "partial",
+      "note": "The plus button opens a file dialog. The web dialog also picks library assets, workflows and other references in tabs. Typing @ picks assets in both."
+    },
+    "web/src/components/chat/composer/FilePreview.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ],
+      "status": "partial",
+      "note": "Attachments show name, upload progress and remove as a text row, without thumbnails."
+    },
+    "web/src/components/chat/composer/MediaAspectRatioMenu.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ],
+      "status": "partial",
+      "note": "Aspect ratios are a chip menu of labels, without the ratio shapes."
+    },
+    "web/src/components/chat/composer/MediaChatComposer.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ],
+      "status": "partial",
+      "note": "Enter sends, Shift+Enter adds a line, Escape stops, Up and Down recall prompts, and chips go icon-first below 520 px. Slash commands and skills, dictation, the cost estimate and the provider setup banner are missing. Scenario chat-composer.keys matches every intent and state check. Its screenshot differs because the web composer is one row with the send button beside the chips, and the Qt composer puts the send button on its own row."
+    },
+    "web/src/components/chat/composer/MediaControlChip.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ],
+      "status": "partial",
+      "note": "Chips are Ui.MenuButton and Ui.ChipMenu. Menu rows show no secondary descriptions."
+    },
+    "web/src/components/chat/composer/MediaCostEstimate.tsx": {
+      "missing": "The list price next to Generate. Native does not query generation prices."
+    },
+    "web/src/components/chat/composer/MediaModeMenu.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ],
+      "status": "partial",
+      "note": "Same modes and disabled Soon rows. Rows have no secondary descriptions, which needs a Ui.MenuItem change."
+    },
+    "web/src/components/chat/composer/MediaOptionMenu.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/MediaSettingChips.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/MentionedEntities.tsx": {
+      "missing": "Entity mentions in the prompt. The native @ picker lists assets only."
+    },
+    "web/src/components/chat/composer/ModeChips.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ],
+      "status": "partial",
+      "note": "Same chips in web order with the web defaults. Presets are missing."
+    },
+    "web/src/components/chat/composer/ModeProviderSetupBanner.tsx": {
+      "missing": "The banner that offers provider setup when the selected mode has no configured provider."
+    },
+    "web/src/components/chat/composer/ModeSelectChip.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ]
+    },
+    "web/src/components/chat/composer/ModelChip.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/model-picker/qml/ModelPicker.qml"
+      ]
+    },
+    "web/src/components/chat/composer/OptionChip.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ]
+    },
+    "web/src/components/chat/composer/PermissionSelector.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ChatSession.cpp"
+      ],
+      "status": "partial",
+      "note": "Plan, Default and Auto per thread, kept across sessions, sent with set_permission_mode, and Auto allows pending tool approvals. The menu has no subheader or secondary descriptions and the dot has one tone."
+    },
+    "web/src/components/chat/composer/ReasoningSelector.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/SelectModelBanner.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ],
+      "status": "partial",
+      "note": "A caption names the missing model and a refused send opens the picker. The web banner carries the picker inline."
+    },
+    "web/src/components/chat/composer/StopGenerationButton.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ]
+    },
+    "web/src/components/chat/composer/TaskDock.tsx": {
+      "missing": "The agent task list docked above the composer of the chat workspace (ChatView). The canvas chat has none on the web either."
+    },
+    "web/src/components/chat/composer/imageModelOptions.tsx": {
+      "native": [
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/mediaModes.tsx": {
+      "native": [
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/useTextareaAssetMention.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml",
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ],
+      "status": "partial",
+      "note": "Recent and Saved assets with keys as on the web, without thumbnails, entities or rename."
+    },
+    "web/src/components/chat/composer/useTextareaSkillMention.tsx": {
+      "missing": "The / menu of commands (/model, /mode) and skills."
+    },
+    "web/src/components/chat/composer/videoModelOptions.tsx": {
+      "native": [
+        "native/chat/src/runtime/ComposerRules.cpp"
+      ]
+    },
+    "web/src/components/chat/composer/voice/RecordingWaveform.tsx": {
+      "missing": "Dictation. Native has no voice input."
+    },
+    "web/src/components/chat/composer/voice/VoiceInputControl.tsx": {
+      "missing": "Dictation. Native has no voice input."
+    },
+    "web/src/components/chat/composer/voice/VoiceRecordingBar.tsx": {
+      "missing": "Dictation. Native has no voice input."
+    },
+    "web/src/components/chat/containers/ChatErrorBanner.tsx": {
+      "native": [
+        "native/chat/qml/ChatPanel.qml",
+        "native/chat/qml/ConversationView.qml"
+      ],
+      "status": "partial",
+      "note": "Turn errors and Retry show in the conversation. The thread list shows session errors."
+    },
+    "web/src/components/chat/containers/ChatInputSection.tsx": {
+      "native": [
+        "native/chat/qml/ChatComposer.qml"
+      ]
+    },
+    "web/src/components/chat/containers/ChatPanelHeader.tsx": {
+      "native": [
+        "native/node-editor/qml/EditorChat.qml"
+      ],
+      "status": "partial",
+      "note": "The editor chat header has title, threads, new conversation and close. Expand is hidden because native has no chat workspace tab."
+    },
+    "web/src/components/chat/containers/ChatView.tsx": {
+      "native": [
+        "native/chat/qml/ChatPanel.qml",
+        "native/chat/qml/Main.qml"
+      ],
+      "status": "partial",
+      "note": "The chat workspace. The standalone native chat app is its counterpart. The task dock and slash commands are missing."
+    },
+    "web/src/components/chat/containers/WelcomePlaceholder.tsx": {
+      "native": [
+        "native/chat/qml/ConversationView.qml"
+      ],
+      "status": "partial",
+      "note": "The empty conversation uses the web strings without suggestions."
+    },
+    "web/src/components/chat/controls/ScrollToBottomButton.tsx": {
+      "native": [
+        "native/chat/qml/ConversationView.qml"
+      ]
+    },
+    "web/src/components/chat/feedback/MediaPredictionStatus.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ],
+      "status": "partial",
+      "note": "Progress, cost and errors as rows, without shimmer. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/feedback/Progress.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ]
+    },
+    "web/src/components/chat/message/AgentExecutionView.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Tasks, steps, durations, the plan summary and the planning log, without the task inspector. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/ChatMarkdown.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/Markdown.cpp",
+        "native/chat/src/model/RichContent.cpp"
+      ],
+      "status": "partial",
+      "note": "Sanitized HTML, images, highlighting and math, with math rendered as Unicode text instead of KaTeX. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/CompactionCard.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ]
+    },
+    "web/src/components/chat/message/GenerationBatchProgress.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp",
+        "native/chat/src/model/RichContent.cpp"
+      ]
+    },
+    "web/src/components/chat/message/InlineResourcePreview.tsx": {
+      "accepted": "Previews sketch, timeline, 3D and game documents, whose editors are out of native scope (outOfScope). Native shows the resource chip."
+    },
+    "web/src/components/chat/message/MediaOutputGroup.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/qml/ChatMediaPlayer.qml"
+      ],
+      "status": "partial",
+      "note": "Image grid and embedded playback. No canvas insertion or drag. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/MessageContentRenderer.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ]
+    },
+    "web/src/components/chat/message/MessageView.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ],
+      "status": "partial",
+      "note": "Rewind, regeneration and sent-message editing are deferred. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/PlanApprovalCard.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ],
+      "status": "partial",
+      "note": "Run, revise and reject work, with single-line feedback. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/PlanDocument.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/PlanDocument.cpp"
+      ]
+    },
+    "web/src/components/chat/message/ResourceChip.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/Markdown.cpp"
+      ],
+      "status": "partial",
+      "note": "Markdown-link, bare and backticked resource URIs are chips. Legacy mentions are not. See native/chat/docs/WEB_PARITY.md."
+    },
+    "web/src/components/chat/message/SecretRequestCard.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/runtime/ChatSession.cpp"
+      ]
+    },
+    "web/src/components/chat/message/ToolApprovalCard.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ]
+    },
+    "web/src/components/chat/message/markdown_elements/CodeBlock.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/Markdown.cpp",
+        "native/chat/src/runtime/CodeHighlighter.cpp"
+      ]
+    },
+    "web/src/components/chat/message/markdown_elements/PreRenderer.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/Markdown.cpp"
+      ]
+    },
+    "web/src/components/chat/message/thought/ThoughtSection.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ]
+    },
+    "web/src/components/chat/message/toolCallIcon.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ],
+      "status": "partial",
+      "note": "Tool rows use buttons and surfaces instead of the web rail icons."
+    },
+    "web/src/components/chat/message/toolResults/SearchResults.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp",
+        "native/chat/src/model/RichContent.cpp"
+      ]
+    },
+    "web/src/components/chat/message/toolResults/ToolResult.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml",
+        "native/chat/src/model/MessageModel.cpp"
+      ]
+    },
+    "web/src/components/chat/message/toolResults/ToolResultJson.tsx": {
+      "native": [
+        "native/chat/qml/MessageDelegate.qml"
+      ]
+    },
+    "web/src/components/chat/thread/ChatThreadView.tsx": {
+      "native": [
+        "native/chat/qml/ConversationView.qml",
+        "native/chat/qml/MessageDelegate.qml"
+      ]
+    },
+    "web/src/components/chat/thread/EmptyThreadList.tsx": {
+      "native": [
+        "native/node-editor/qml/EditorChat.qml",
+        "native/chat/qml/ThreadList.qml"
+      ]
+    },
+    "web/src/components/chat/thread/ThreadItem.tsx": {
+      "native": [
+        "native/node-editor/qml/EditorChat.qml"
+      ],
+      "status": "partial",
+      "note": "Select and delete with the web confirmation and exit motion. Rename is missing."
+    },
+    "web/src/components/chat/thread/ThreadList.tsx": {
+      "native": [
+        "native/node-editor/qml/EditorChat.qml",
+        "native/chat/src/runtime/ChatSession.cpp"
+      ],
+      "status": "partial",
+      "note": "Search, date groups and delete. Thread headings follow the web eyebrow style."
     },
     "web/src/components/workflows/CreateWorkflowButton.tsx": {
       "native": [

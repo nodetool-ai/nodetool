@@ -147,6 +147,14 @@ const bool registered = [] {
         gestures.setSelection({id});
         return true;
     }});
+    // The toolbar's Add text: a title at the playhead, over every picture.
+    nt::wiring::registerKeyAction({"addTextAtPlayhead", "Add text", {}, [](ClipGestureController& gestures, const QVariantMap&) {
+        if (!gestures.timeline()) { return false; }
+        const auto id = newId();
+        if (gestures.timeline()->applyEdit("addTextOnTop", {{"atMs", gestures.clock() ? gestures.clock()->time() : 0.0}, {"clipId", id}}) == 0) { return false; }
+        gestures.setSelection({id});
+        return true;
+    }});
     return true;
 }();
 }

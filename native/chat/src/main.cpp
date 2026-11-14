@@ -1,4 +1,6 @@
 #include "runtime/ChatSession.h"
+#include <QSettings>
+#include <memory>
 #include "appearance/AppearanceSettings.h"
 #include <QCommandLineParser>
 #include <QFile>
@@ -30,6 +32,9 @@ int main(int argc, char *argv[]) {
                     QStringLiteral("file")});
   parser.process(app);
   nt::chat::ChatSession session;
+  if (!parser.isSet(QStringLiteral("replay"))) {
+    session.usePreferences(std::make_unique<QSettings>("NodeTool", "Chat"));
+  }
   if (parser.isSet(QStringLiteral("replay"))) {
     QFile file(parser.value(QStringLiteral("replay")));
     if (!file.open(QIODevice::ReadOnly) || file.size() > 16 * 1024 * 1024) {

@@ -3823,10 +3823,9 @@
           "lightingPlaceholder": "Hur scenen är upplyst",
           "shotHeader": "Skott {{count}}",
           "shotAction": "Skott {{count}} · Action",
-          "shotDialogue": "Skott {{count}} · Dialog",
-          "dialoguePlaceholder": "Dialog",
-          "addDialogue": "Lägg till dialog",
+          "dialogue": "Dialog",
           "seconds": "Sekunder",
+          "shotLength": "{{seconds}}s",
           "sceneHeader": "Scen {{count}}"
         },
         "fallback": {

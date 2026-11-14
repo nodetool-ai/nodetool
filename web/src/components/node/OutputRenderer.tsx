@@ -151,6 +151,7 @@ import {
   documentBytes,
   formatAudioChunkTimestamp,
   groupTextChunks,
+  hasNestedRecordValues,
   hashStringBounded,
   htmlFromData,
   isPdfBytes,
@@ -818,6 +819,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                   ))}
                 </Container>
               );
+            }
+            // A table cell can only show a scalar, so records that nest
+            // objects or arrays (a parsed SVG or XML tree, say) read as JSON.
+            if (hasNestedRecordValues(arr)) {
+              return <JSONRenderer value={arr} showActions={showTextActions} />;
             }
             // Rows are matched to columns by key, over the union of keys, and
             // null rows are tolerated (DataframeRenderer normalizes them).

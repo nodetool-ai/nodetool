@@ -15,6 +15,16 @@ qml_callers = ["native/chat/qml/ConversationView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.TextArea, Ui.Text, Ui.Progress, Ui.EditorButton, Ui.ToolbarIconButton"
 
 [[file]]
+path = "native/chat/qml/ChatMediaPlayer.qml"
+category = "chrome"
+controls = ["Ui.EditorButton", "Ui.Slider", "Ui.Text", "VideoOutput"]
+signals = []
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "build"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Slider, Ui.Text"
+
+[[file]]
 path = "native/chat/qml/ChatMetrics.qml"
 category = "chrome"
 controls = []
@@ -57,7 +67,7 @@ replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Dialog, Ui.Scroll
 [[file]]
 path = "native/chat/qml/MessageDelegate.qml"
 category = "chrome"
-controls = ["Ui.Text", "Ui.TextArea", "Ui.EditorButton", "Ui.ToolbarIconButton", "PagedText", "Ui.Surface", "Image", "Ui.TextField"]
+controls = ["Ui.Text", "Ui.TextArea", "Ui.EditorButton", "Ui.ToolbarIconButton", "PagedText", "Ui.Surface", "Image", "Ui.TextField", "Ui.Progress", "Flow", "Loader"]
 signals = []
 test_host = "node native/chat/scripts/check.mjs"
 test_scope = "interaction"
@@ -2513,6 +2523,16 @@ qml_callers = ["native/timeline/qml/Inspector/ShapeSection.qml", "native/timelin
 replacement = "NodeTool.UiPrimitives: Ui.Text"
 
 [[file]]
+path = "native/timeline/src/edit/inspectorsections/AudioSection.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorPillInput"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
 path = "native/timeline/src/edit/inspectorsections/MediaSection.qml"
 category = "chrome"
 controls = ["InspectorSection", "InspectorRow", "InspectorSelect", "InspectorActionButton"]
@@ -3580,3 +3600,11 @@ binding = "onDoubleClicked"
 rule = "manual-control"
 owner = "Program monitor effect mask overlay"
 reason = "A double click on a mask vertex converts it between a corner and a smooth point, as in Premiere. The overlay's one pointer target hit-tests vertices, tangents, the body and the feather and expansion handles."
+
+[[exception]]
+path = "native/chat/qml/MessageDelegate.qml"
+object = "root/Repeater[0]/partFrame/partContent/Flow[0]/Repeater[0]/tile/TapHandler[0]"
+binding = "onTapped"
+rule = "manual-control"
+owner = "Chat media grid"
+reason = "A media tile is a picture, as in MediaOutputGroup.tsx. Clicking it, or Space and Return when it has focus, opens the large preview, and the tile exposes itself as an accessible button."

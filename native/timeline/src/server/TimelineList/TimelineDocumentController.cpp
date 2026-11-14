@@ -116,7 +116,19 @@ void TimelineDocumentController::switchTo(const QString& source) {
     const auto id = url.fragment().sliced(QStringLiteral("timeline=").size());
     const auto server = url.adjusted(QUrl::RemoveFragment);
     const QVariantMap entry{{"kind", "server"}, {"server", server.toString()}, {"timelineId", id}};
-    const auto arguments = nt::app::recentTimelineArguments(entry);
+    auto arguments = nt::app::recentTimelineArguments(entry);
+    // The new window keeps this one's audio output and decoder, so a run
+    // started with --audio null (no sound device) does not die at launch.
+    const auto own = QCoreApplication::arguments();
+    for (qsizetype i = 1; i < own.size(); ++i) {
+        for (const auto& option : {QStringLiteral("audio"), QStringLiteral("decode")}) {
+            if (own[i] == "--" + option && i + 1 < own.size()) {
+                arguments << own[i] << own[i + 1];
+            } else if (own[i].startsWith("--" + option + "=")) {
+                arguments << own[i];
+            }
+        }
+    }
     QString label = QStringLiteral("Untitled video");
     for (const auto& value : m_list.documents()) {
         const auto row = value.toMap();

@@ -25,6 +25,7 @@ on:
       - "native/graph-runner/third_party/wgpu-native/**"
       - "native/graph-runner/unittests/gpu_share.cpp"
       - ".github/workflows/native-gpu-preview.yml"
+      - "docker/ci-native/**"
   push:
     branches: [main]
     paths:
@@ -46,10 +47,35 @@ env:
   QT_VERSION: "6.12.0"
 
 jobs:
+  # The Linux legs run in the native CI image (docker/ci-native/) instead of
+  # installing their system packages with apt.
+  ci-image:
+    uses: ./.github/workflows/ci-image.yml
+    with:
+      image: ci-native
+    permissions:
+      contents: read
+      packages: write
+
   linux:
     name: Linux Vulkan, ${{ matrix.name }}
+    needs: ci-image
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: read
+    # TSan and LeakSanitizer make calls Docker's default seccomp profile
+    # refuses (docker/ci/README.md).
+    container:
+      image: ${{ needs.ci-image.outputs.image }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --init --user 1001 --security-opt seccomp=unconfined
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -66,16 +92,6 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install system packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential cmake ninja-build pkg-config libclang-dev \
-            mesa-vulkan-drivers libvulkan-dev vulkan-validationlayers xvfb \
-            libgl1-mesa-dev libegl1 libfontconfig1 libdbus-1-3 libxkbcommon-dev libxkbcommon-x11-0 \
-            libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libxcb-xkb1 libxcb-image0 \
-            libxcb-render-util0 libxcb-randr0 libxcb-xfixes0 libxcb-sync1 libxcb-shm0 libxcb-glx0 libx11-xcb1
-
       - name: Install Qt
         run: |
           python -m pip install aqtinstall==3.3.0
@@ -89,6 +105,14 @@ jobs:
         with:
           path: ${{ runner.temp }}/wgpu-interop
           key: wgpu-interop-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('native/graph-runner/third_party/wgpu-native/**') }}
+
+      # The CI image has no Rust toolchain. rustup installs the one the
+      # wgpu-native checkout's rust-toolchain.toml names on first use.
+      - name: Install rustup
+        if: steps.wgpu-cache.outputs.cache-hit != 'true'
+        run: | # zizmor: ignore[github-path]
+          curl -sSf --retry 5 https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable --no-modify-path
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
       - name: Build wgpu-native with native interop
         if: steps.wgpu-cache.outputs.cache-hit != 'true'
@@ -105,9 +129,14 @@ jobs:
           cmake --build native/gpu-preview/build --parallel 4
 
       # The tests must share textures: a build that fell back to "none"
-      # would pass the refusal cases and prove nothing.
+      # would pass the refusal cases and prove nothing. The sanitizer options
+      # are the ones ctest gives this test (native/gpu-preview/tests/CMakeLists.txt):
+      # the graph runner's TSan suppressions ignore races among lavapipe's own
+      # threads, which the TSan leg reports in the CI image.
       - name: Check the sharing backend
         run: |
+          supp="$GITHUB_WORKSPACE/native/graph-runner/tools"
+          TSAN_OPTIONS="suppressions=$supp/tsan.supp" LSAN_OPTIONS="suppressions=$supp/lsan.supp:print_suppressions=0" \
           VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json \
             native/gpu-preview/build/tests/gr_gpu_share_tests --require-sharing | tee "$RUNNER_TEMP/share.log"
           grep -q "^sharing: Vulkan" "$RUNNER_TEMP/share.log"

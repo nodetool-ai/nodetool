@@ -1,4 +1,5 @@
 #pragma once
+#include <QDateTime>
 #include <QAbstractListModel>
 #include <QHash>
 #include <QJsonArray>
@@ -19,6 +20,9 @@ public:
   Q_INVOKABLE void toggleExpanded(int row);
   Q_INVOKABLE void setFeedback(int row, const QString &text);
   Q_INVOKABLE void toggleCall(int row, const QString &id);
+  // Opens or closes one named fold of a row, such as the code and the
+  // arguments of a tool approval (ToolApprovalCard.tsx).
+  Q_INVOKABLE void toggleFold(int row, const QString &fold);
 
 private:
   QHash<QString, QAbstractItemModel *> m_children;
@@ -54,6 +58,8 @@ public:
   void finishThinking();
   bool reduceNested(const QJsonObject &event);
   void addPart(const QJsonObject &part);
+  // A generation_batch_update: the live state of one generate_batch call.
+  void setBatch(const QJsonObject &update);
   bool addResolvedPart(const QString &messageId, const QJsonObject &part);
   void importHistory(const QJsonArray &, bool prepend = false);
   QJsonArray snapshot() const;
@@ -62,13 +68,19 @@ public:
 private:
   MessageModel *child(const QString &key);
   void attachChildren(PartModel *) const;
-  void treeRow(const QString &id, const QString &label, const QString &status, const QString &body = {}, bool expanded = false);
+  void treeRow(const QString &id, const QString &label, const QString &status, const QString &body = {}, bool expanded = false,
+               const QJsonObject &extra = {});
+  // ExecutionTree.tsx: the plan header counts tasks by status.
+  void summarizeExecution(const QString &key, MessageModel &run);
   QHash<QString, MessageModel *> m_children;
   QHash<QString, int> m_childCounts;
   QJsonArray m_nestedEvents;
   QSet<QString> m_eventIds;
   QHash<QString, QString> m_stepTasks;
   QHash<QString, QString> m_callSteps;
+  // When each task and step started, for the durations useExecutionTreeState.ts
+  // measures between its events.
+  QHash<QString, QDateTime> m_startedAt;
   int callOwner(const QString &id) const;
   QHash<QString, QList<qsizetype>> m_partOffsets;
   QHash<QString, QJsonObject> m_results;

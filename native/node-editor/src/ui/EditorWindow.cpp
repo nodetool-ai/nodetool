@@ -401,6 +401,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&runState_, &node_editor::RunState::clearOutputRequested, &runOutput_, &node_editor::RunOutputModel::clear);
   connect(&runState_, &node_editor::RunState::cancelRequested, &session_, &node_editor::WorkflowSession::cancelJob);
   connect(&runState_, &node_editor::RunState::reportJobRequested, this, &EditorWindow::reportJob);
+  connect(&runState_, &node_editor::RunState::openJobWorkflowRequested, this, &EditorWindow::openWorkflow);
+  connect(&runState_, &node_editor::RunState::openJobOutputRequested, this, &EditorWindow::openJobOutput);
   connect(&mediaResolver_, &node_editor::MediaResolver::resolved, this, [this](const QString &key, const QUrl &url) {
     if (!key.startsWith("node-image:")) { return; }
     const auto id = key.mid(11);
@@ -829,7 +831,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   toolbarOverlay_ = overlay("Toolbar", {{"commands", QVariant::fromValue(&editorCommands_)},
                                         {"runs", QVariant::fromValue(&runState_)}});
     initializeChat();
-  queueOverlay_ = overlay("QueueOverlay", {{"runs", QVariant::fromValue(&runState_)}});
+  queueOverlay_ = overlay("QueueOverlay", {{"runs", QVariant::fromValue(&runState_)},
+                                          {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
   queueOverlay_->setParent(centralWidget());
   queueOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
   connect(queueOverlay_->rootObject(), SIGNAL(expandedChanged()), this, SLOT(layoutOverlays()));
@@ -2586,6 +2589,7 @@ void EditorWindow::syncRuns() {
   editorCommands_.setRunning(shownRunActive());
   runState_.setQueue(shownQueue());
   runState_.setConnected(session_.connected());
+  runState_.setJobsError(session_.jobsError());
   runState_.setWorkflowId(session_.workflow()["id"].toString());
 }
 void EditorWindow::syncNodeInspector() {

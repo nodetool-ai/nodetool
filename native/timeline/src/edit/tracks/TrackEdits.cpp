@@ -347,4 +347,40 @@ QJsonObject patchTrack(QJsonObject doc, const QJsonObject& payload, const QStrin
     doc.insert("tracks", tracks);
     return doc;
 }
+// A title at a time, on the top track, so it draws over every picture. The
+// top track takes it when it is an unlocked video or overlay track with room
+// for the clip there. Otherwise a new overlay track goes on top.
+QJsonObject addTextOnTop(QJsonObject doc, const QJsonObject& payload) {
+    const double at = payload.value("atMs").toDouble(-1);
+    const double duration = payload.value("durationMs").toDouble(3000);
+    const auto text = payload.value("text").toString(QStringLiteral("Text"));
+    if (!std::isfinite(at) || at < 0 || !std::isfinite(duration) || duration <= 0 || text.isEmpty()) { return doc; }
+    auto tracks = doc.value("tracks").toArray();
+    auto clips = doc.value("clips").toArray();
+    QString trackId;
+    if (!tracks.isEmpty()) {
+        const auto top = tracks.first().toObject();
+        const auto type = top.value("type").toString();
+        bool free = !top.value("locked").toBool() && (type == "video" || type == "overlay");
+        for (qsizetype i = 0; free && i < clips.size(); ++i) {
+            const auto clip = clips[i].toObject();
+            if (clip.value("trackId") != top.value("id")) { continue; }
+            const double start = clip.value("startMs").toDouble();
+            free = start >= at + duration || start + clip.value("durationMs").toDouble() <= at;
+        }
+        if (free) { trackId = top.value("id").toString(); }
+    }
+    if (trackId.isEmpty()) {
+        doc = insertTrack(std::move(doc), {{"type", "overlay"}, {"name", "Titles"}, {"atIndex", 0}});
+        tracks = doc.value("tracks").toArray();
+        trackId = tracks.first().toObject().value("id").toString();
+    }
+    const auto id = payload.value("clipId").toString();
+    clips.append(QJsonObject{{"id", id.isEmpty() ? freshId() : id}, {"trackId", trackId}, {"name", text}, {"startMs", at},
+        {"durationMs", duration}, {"mediaType", "text"}, {"sourceType", "imported"}, {"status", "generated"},
+        {"locked", false}, {"versions", QJsonArray{}},
+        {"textStyle", QJsonObject{{"text", text}, {"fontSizePx", 96}, {"color", "#FFFFFF"}}}});
+    doc.insert("clips", clips);
+    return doc;
+}
 }

@@ -392,6 +392,7 @@ struct Entry {
     const char* label;
     const char* group;
     Handler handler;
+    QList<QKeySequence> defaultKeys = {};  // keys for presets that do not bind the action
 };
 
 const bool registered = [] {
@@ -471,9 +472,10 @@ const bool registered = [] {
             g.viewState()->setVerticalZoom(g.viewState()->verticalZoom() - TRACK_ZOOM_STEP);
             return true;
         }},
-        // The keys only the Premiere preset has.
-        {"goToSequenceStart", "Go to the sequence start", "Playback", [](C g, V) { g.clock()->seek(0); return true; }},
-        {"goToSequenceEnd", "Go to the sequence end", "Playback", [](C g, V) { g.clock()->seek(sequenceEnd(g)); return true; }},
+        // The keys only the Premiere preset has. Home and End reach the
+        // sequence ends under every preset that leaves those keys free.
+        {"goToSequenceStart", "Go to the sequence start", "Playback", [](C g, V) { g.clock()->seek(0); return true; }, {QKeySequence(Qt::Key_Home)}},
+        {"goToSequenceEnd", "Go to the sequence end", "Playback", [](C g, V) { g.clock()->seek(sequenceEnd(g)); return true; }, {QKeySequence(Qt::Key_End)}},
         {"prevCutAnyTrack", "Previous cut on any track", "Playback", [](C g, V) {
             seekToNeighbour(g, editTimes(g.editDoc(), std::nullopt), false);
             return true;
@@ -564,7 +566,7 @@ const bool registered = [] {
         {"clipVolumeDownMore", "Lower clip volume by 6 dB", "Editing", [](C g, V c) { return changeVolume(g, -LARGE_VOLUME_STEP_DB, c); }},
     };
     for (const auto& entry : entries) {
-        nt::wiring::registerKeyAction({QString::fromLatin1(entry.name), QString::fromUtf8(entry.label), {}, entry.handler,
+        nt::wiring::registerKeyAction({QString::fromLatin1(entry.name), QString::fromUtf8(entry.label), entry.defaultKeys, entry.handler,
                                        QString::fromUtf8(entry.group)});
     }
     return true;

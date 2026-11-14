@@ -2074,8 +2074,8 @@ workflow, and Escape stops active work before clearing canvas gestures.
 
 The queue starts collapsed with a status dot, one run name or a running count,
 an elapsed clock, an expand control and queued count. Expanded content groups
-Running, Enqueued and Cancelled cards. Completed and failed jobs stay in output
-history rather than the overlay. Cancelled jobs alone do not keep it visible.
+Running and Enqueued cards, then the History section described under C11, with
+completed, failed and cancelled jobs. Finished jobs alone do not keep it visible.
 Running cards select the output lens only for the current workflow, using pointer,
 Enter or Space activation. The selected card shows On canvas. Pinned canvas
 focus remains different from the web store.
@@ -2659,15 +2659,39 @@ the picker above the prompt, and the reasoning levels. No web capture of this
 surface exists, because the web preview routes do not include the composer.
 The comparison is against the web sources cited above.
 
-These differences remain. The native chip row wraps in the 420-pixel window,
-where the web goes icon-first on one line below 520 pixels. Native menu rows
-have no secondary descriptions or subheaders, because `Ui.MenuItem` shows a
-caption only for disabled rows. The picker is inline above the prompt and lists
-assets only, without web entities, rename or thumbnails. Presets, the cost
-estimate, the provider-setup banner, the permission selector, slash commands,
-prompt history, dictation and Enter-to-send are absent. Media settings,
-reasoning level and recent assets last for the session, where the web persists
-settings and the level. Thread headings have no letter spacing. F36 is not
+The composer follows the
+[handleKeyDown](../../../web/src/components/chat/composer/MediaChatComposer.tsx)
+order: IME composition, the mention picker, Escape to stop a reply, prompt
+history as [usePromptHistory](../../../web/src/components/chat/hooks/usePromptHistory.ts),
+then Enter to send and Shift+Enter for a line. Below the 520-pixel card width
+the mode, reasoning and permission chips show icons only, as `isCompact` does.
+The permission chip follows
+[PermissionSelector](../../../web/src/components/chat/composer/PermissionSelector.tsx):
+Plan, Default and Auto per thread, a new thread takes the last picked mode,
+`set_permission_mode` reaches the server, and Auto allows the thread's pending
+tool approvals. The reasoning level, the permission modes and each media
+mode's settings persist in `QSettings` group `chat-composer`, as the web
+persists them in `global-chat-storage` and `nodetool-media-generation`. The
+media mode itself is not kept. Tools menu New Conversation (Ctrl+Shift+O) and
+Focus Chat Composer (Ctrl+Shift+L) open the chat when it is closed. The thread
+list shows the [EmptyThreadList](../../../web/src/components/chat/thread/EmptyThreadList.tsx)
+titles and its headings use the web eyebrow letter spacing.
+
+The parity harness mounts `ChatComposer` on both sides. Scenario
+`chat-composer.keys` types a two-line prompt, sends it with Enter, stops the
+reply with Escape and recalls the prompt with ArrowUp, comparing the draft,
+the turn state and the send and stop intents. Every intent and state check
+matches. The screenshot differs, because the web composer is one row with the
+send button beside the chips and the Qt composer gives the send button its own
+row. The census covers
+`web/src/components/chat` in the components inventory.
+
+These differences remain. Native menu rows have no secondary descriptions or
+subheaders, because `Ui.MenuItem` shows a caption only for disabled rows, and
+the permission dot has one tone. The picker is inline above the prompt and
+lists assets only, without web entities, rename or thumbnails. Presets, the
+cost estimate, the provider-setup banner, the `/` menu of commands and skills,
+and dictation are absent. Threads cannot be renamed. F36 is not
 accepted.
 
 
@@ -3416,7 +3440,7 @@ panels is outside the chrome work.
 | C8 | Status Generations | Panel of generations across workflows, with a count of those running. | `GenerationsPanel.qml` in a bottom dock, fed by every tab's `prediction` messages and the server's `generations.list` (`GenerationActivity`). Tiles open their workflow, preset generations open as a workflow, and the tab counts running generations. Chat media turns are not listed. | Partial. Asserted by `GenerationsPanelTest` and `statusBarTabsOpenNativePanelsOrExplainWhyNot`. |
 | C9 | Status Workers | Remote runners the server provisions. | Disabled. | Open. |
 | C10 | Status Trace | Run trace spans. | Opens the native trace/log dock. | Partial. See [run trace evidence](#run-trace-evidence). |
-| C11 | Status Queue | Panel that opens at any time and shows an empty state. | Opens the queue overlay at any time with the Active section or its empty state, and the History section with filters, day groups and Report on failed jobs. The overlay floats on the canvas instead of filling the bottom panel. | Partial. Asserted by `queueOpensWithoutJobsAndReportsFailures`. |
+| C11 | Status Queue | Panel that opens at any time and shows an empty state. | Opens the queue overlay at any time with the Active section or its empty state, the History section with filters and day groups, and "Could not load jobs" when the jobs list fails. History rows follow `JobItem`: status tile, short job id with the full id on hover, duration, output count, clock, output thumbnails that open the output, a click that opens the job's workflow, and Report on failed jobs. The overlay floats on the canvas instead of filling the bottom panel, and it shows no loading spinner. | Partial. Asserted by `queueOpensWithoutJobsAndReportsFailures`, `queueHistoryRowsMatchJobItem` and `QueueDataTest::completedJobOutputsAndListErrors`. |
 | C12 | Status connection | Connected, Connecting, Offline or Idle, with a worker label for a remote server and a worker status indicator. | Connected, Offline or Idle. No Connecting state, worker label or indicator. | Open. |
 | C13 | Status tab strip | Scroll arrows when the tabs overflow. | No arrows. | Open. |
 

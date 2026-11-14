@@ -82,6 +82,10 @@ public:
     Q_INVOKABLE void askAgent(const QString &message);
     Q_SLOT void askRunAgent(const QString &runId, const QString &spanId = {});
     Q_SLOT void toggleChat();
+    // web/src/config/shortcuts.ts newChat and focusChatComposer, handled by
+    // ChatView.tsx. Both open the chat when it is closed.
+    void newChatConversation();
+    void focusChatComposer();
     void beginChatGeometry();
     void resetChatPosition();
     void changeChatGeometry(int dx, int dy, int edges, bool finished);
@@ -245,6 +249,8 @@ public:
     void openWorkflowDocument(const QJsonObject &workflow);
     // Opens the Report issue for a failed job in the queue history.
     void reportJob(const QString &jobId);
+    // Opens a queue job output's get_url in the browser, resolved against the server.
+    void openJobOutput(const QString &url);
     // A status bar tab: opens its panel, or closes it when it is the open one (PanelBottom.tsx).
     void toggleStatusView(const QString &view);
   QVariantMap selectionInfo() const;

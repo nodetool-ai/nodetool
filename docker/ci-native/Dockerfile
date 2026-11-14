@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1
 #
 # The Linux image the native CI jobs run in: the native timeline build and
-# sanitizer legs, the native UI primitives and the VST host. It carries the
+# sanitizer legs, the native UI primitives, the VST host, the graph runner and
+# the GPU preview. It carries the
 # system packages those jobs used to apt-get install at run time. Qt and the
 # LGPL FFmpeg build still install per job, because their versions live in the
 # workflows. See docker/ci/README.md for the tag scheme and container options.
@@ -45,6 +46,27 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       libx11-dev libxext-dev libxinerama-dev libxrandr-dev libxcursor-dev libfreetype6-dev \
       xfwm4 dbus-x11 x11-utils \
+ && rm -rf /var/lib/apt/lists/*
+
+# Graph runner: clang-scan-deps (clang-tools), which CMake runs to scan its
+# C++20 sources for modules under Clang, Meson and the libraries the pinned libvips, libwebp and
+# Tesseract builds link (FFmpeg, Cairo, Pango, image codecs, Leptonica), the
+# English Tesseract data its OCR tests read, and libsecret for the keychain
+# the backend packages load.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      clang-tools meson libsecret-1-0 libicu-dev libcurl4-openssl-dev \
+      libavformat-dev libavcodec-dev libavutil-dev libavfilter-dev libswscale-dev libswresample-dev \
+      libcairo2-dev libpango1.0-dev libglib2.0-dev libexpat1-dev libjpeg-turbo8-dev libpng-dev \
+      libtiff-dev librsvg2-dev libgif-dev liblcms2-dev libexif-dev libarchive-dev \
+      libleptonica-dev tesseract-ocr-eng \
+ && rm -rf /var/lib/apt/lists/*
+
+# GPU preview: libclang for bindgen in the wgpu-native build, the Vulkan
+# validation layer, and the xcb libraries Qt's xcb platform loads.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      libclang-dev vulkan-validationlayers libxcb-sync1 libxcb-shm0 libxcb-glx0 \
  && rm -rf /var/lib/apt/lists/*
 
 # Jobs run as the hosted runner's user (uid 1001), which owns the mounted

@@ -198,6 +198,14 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             spacing: Ui.Metrics.micro
             ToolButton {
+                objectName: "addTextButton"
+                anchors.verticalCenter: parent.verticalCenter
+                label: "Add text"
+                description: "Put words over the picture at the playhead"
+                iconName: "title"
+                onClicked: clipGestures.runAction("addTextAtPlayhead")
+            }
+            ToolButton {
                 objectName: "helpButton"
                 anchors.verticalCenter: parent.verticalCenter
                 label: "Keyboard shortcuts"

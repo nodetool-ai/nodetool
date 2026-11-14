@@ -314,6 +314,7 @@ private slots:
     }
     void init() {
         QSettings().remove("canvas-chat-dock");
+        QSettings().remove("chat-composer");
     }
     void geometryAndPersistence() {
         nodetool::EditorWindow window;
@@ -424,9 +425,15 @@ private slots:
             QTest::keyClick(surface(window)->quickWindow(), key);
         }
         QTRY_COMPARE(list->property("count").toInt(), 0);
+        // EmptyThreadList.tsx names an empty search result.
+        auto *empty = findItem(surface(window)->rootObject(), "editorThreadListEmpty");
+        QVERIFY(empty);
+        QTRY_VERIFY(empty->isVisible());
+        QCOMPARE(empty->property("title").toString(), QString("No matching conversations"));
         QTest::keyClick(surface(window)->quickWindow(), Qt::Key_A, Qt::ControlModifier);
         QTest::keyClick(surface(window)->quickWindow(), Qt::Key_Backspace);
         QTRY_COMPARE(list->property("count").toInt(), 1);
+        QVERIFY(!empty->isVisible());
         QTest::qWait(50);
         click(surface(window), QString("deleteThread") + ThreadId);
         QTest::qWait(100);
@@ -546,7 +553,9 @@ private slots:
         QCOMPARE(sent, expected);
         server.emitEvent({{"type", "chunk"}, {"thread_id", ThreadId}, {"content", "Working on your graph"}});
         QTRY_COMPARE(chat->turnStatus(), QString("streaming"));
-        click(surface(window), "sendMessage");
+        // shortcuts.ts stopChatGeneration: Escape in the composer stops the reply.
+        type(surface(window), "");
+        QTest::keyClick(surface(window)->quickWindow(), Qt::Key_Escape);
         QTRY_COMPARE(server.count("command", "stop"), 1);
         server.emitEvent({{"type", "generation_stopped"}, {"thread_id", ThreadId}});
         QTRY_COMPARE(chat->turnStatus(), QString("idle"));
@@ -558,8 +567,14 @@ private slots:
         QCOMPARE(window.document()->node("node-chat")["future"].toInt(), 42);
         window.document()->undo();
         QCOMPARE(window.document()->snapshot(), before);
-        type(surface(window), "Try again");
-        click(surface(window), "sendMessage");
+        // MediaChatComposer.tsx sends on Enter. Shift+Enter inserts a line.
+        type(surface(window), "Try");
+        QTest::keyClick(surface(window)->quickWindow(), Qt::Key_Return, Qt::ShiftModifier);
+        for (const auto character : QByteArray("again")) {
+            QTest::keyClick(surface(window)->quickWindow(), character);
+        }
+        QCOMPARE(chat->draft(), QString("Try\nagain"));
+        QTest::keyClick(surface(window)->quickWindow(), Qt::Key_Return);
         QTRY_COMPARE(server.count("command", "chat_message"), 2);
         server.emitEvent({{"type", "error"}, {"thread_id", ThreadId}, {"message", "Fixture failure"}});
         QTRY_VERIFY(!chat->error().isEmpty());
@@ -634,6 +649,8 @@ private slots:
             const auto spec = value.toObject();
             const auto name = spec["name"].toString();
             const auto mode = spec["mode"].toString();
+            // Each web case starts from fresh stores, so no saved level carries over.
+            QSettings().remove("chat-composer");
             ChatServer server;
             QVERIFY(server.listen());
             serveModels(server, cases);
@@ -830,6 +847,41 @@ private slots:
             return request.contains("threads.delete") && request.contains(older.toUtf8());
         }));
         setReducedMotion(widget, false);
+    }
+    // shortcuts.ts newChat and focusChatComposer, as ChatView.tsx handles them,
+    // and the permission mode PermissionSelector.tsx sends and keeps.
+    void shortcutsAndPermissionMode() {
+        ChatServer server;
+        QVERIFY(server.listen());
+        nodetool::EditorWindow window;
+        setup(window);
+        auto *chat = window.chatSession();
+        chat->connectToServer(server.url());
+        QTRY_COMPARE(chat->selectedThreadId(), QString(ThreadId));
+        QTRY_VERIFY(!chat->historyLoading());
+        auto *widget = surface(window);
+        auto *input = widget->rootObject()->findChild<QQuickItem *>("chatInput");
+        QVERIFY(input);
+        QVERIFY(!input->hasActiveFocus());
+        window.focusChatComposer();
+        QTRY_VERIFY(input->hasActiveFocus());
+        clickVisible(widget, "permissionChip");
+        clickVisible(widget, "permission-auto");
+        QTRY_COMPARE(chat->permissionMode(), QString("auto"));
+        QTRY_COMPARE(server.count("command", "set_permission_mode"), 1);
+        QCOMPARE(QSettings().value("chat-composer/lastPermissionMode").toString(), QString("auto"));
+        type(widget, "Plan it");
+        QTest::keyClick(widget->quickWindow(), Qt::Key_Return);
+        QTRY_COMPARE(server.count("command", "chat_message"), 1);
+        for (const auto &frame : server.frames) {
+            if (frame["command"] == "chat_message") {
+                QCOMPARE(frame["data"].toObject()["permission_mode"].toString(), QString("auto"));
+            }
+        }
+        const auto created = server.requests.size();
+        window.newChatConversation();
+        QTRY_VERIFY(std::any_of(server.requests.cbegin() + created, server.requests.cend(),
+            [](const QByteArray &request) { return request.contains("threads.create"); }));
     }
     void captures() {
         for (const bool dark : {true, false}) {
