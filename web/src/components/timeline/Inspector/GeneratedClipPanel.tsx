@@ -2,7 +2,7 @@
 /**
  * GeneratedClipPanel
  *
- * Inspector panel for a generated clip. Renders the bound workflow as a
+ * AI panel content for a generated clip. Renders the bound workflow as a
  * black box: only the workflow's `Input*` node properties are exposed,
  * plus the clip header and actions. To edit the workflow's graph, use
  * "Open in Node Editor" from the actions row.
@@ -49,8 +49,6 @@ import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import { GeneratedClipTopBar } from "./GeneratedClipTopBar";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
 import { usePersistedFold } from "./usePersistedFold";
-import { ClipAdjustments } from "./ClipAdjustments";
-import { ClipVersionHistory } from "./ClipVersionHistory";
 
 interface GeneratedClipPanelProps {
   clipId: string;
@@ -310,10 +308,6 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
           )}
 
           {additionalSections}
-
-          <ClipVersionHistory clipId={clipId} />
-
-          <ClipAdjustments clip={clip} />
         </FlexColumn>
       </Panel>
     );

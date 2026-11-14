@@ -78,6 +78,10 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import AnimationOutlinedIcon from "@mui/icons-material/AnimationOutlined";
+import PaletteOutlinedIcon from "@mui/icons-material/PaletteOutlined";
+import AutoFixHighOutlinedIcon from "@mui/icons-material/AutoFixHighOutlined";
 import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
 import MovieCreationOutlinedIcon from "@mui/icons-material/MovieCreationOutlined";
 
@@ -103,7 +107,11 @@ import {
 } from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
 import { PianoRollPanel } from "./pianoRoll/PianoRollPanel";
-import { useTimelineUIStore, useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
+import {
+  useTimelineUIStore,
+  useTimelineUIStoreApi,
+  type TimelineUIState
+} from "../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import {
   useAssetsSelectedAsset,
@@ -118,6 +126,12 @@ import { DawWorkspace } from "./daw/dock/DawWorkspace";
 import { FieldDensityContext } from "../ui_primitives";
 import { TimelineInstrumentsPanel } from "./TimelineInstrumentsPanel";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
+import {
+  TimelineAiPanel,
+  TimelineColorPanel,
+  TimelineEffectControlsPanel,
+  TimelineMotionPanel
+} from "./Inspector/TimelineClipPanels";
 import { SourceViewerPanel } from "./SourceViewerPanel";
 import MovieFilterOutlinedIcon from "@mui/icons-material/MovieFilterOutlined";
 import TimelineAgentPanel from "./TimelineAgentPanel";
@@ -376,10 +390,14 @@ const PreviewRegion: React.FC<{
 });
 PreviewRegion.displayName = "PreviewRegion";
 
-type InspectorTab = "inspector" | "shot" | "source" | "instrument" | "agent" | "history" | "script" | "code";
+type InspectorTab = TimelineUIState["panelTab"];
 
 const INSPECTOR_TABS = [
   { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon fontSize="small" /> },
+  { value: "effectControls", label: "Effect Controls", icon: <LayersOutlinedIcon fontSize="small" /> },
+  { value: "motion", label: "Motion", icon: <AnimationOutlinedIcon fontSize="small" /> },
+  { value: "color", label: "Color", icon: <PaletteOutlinedIcon fontSize="small" /> },
+  { value: "ai", label: "AI", icon: <AutoFixHighOutlinedIcon fontSize="small" /> },
   { value: "instrument", label: "Instruments", icon: <PianoOutlinedIcon fontSize="small" /> },
   { value: "source", label: "Source", icon: <MovieFilterOutlinedIcon fontSize="small" /> },
   { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon fontSize="small" /> },
@@ -431,7 +449,8 @@ const useAvailableInspectorTabs = (
     (item.value !== "instrument" || hasMidiTrack) &&
     (item.value !== "source" || hasSourceAsset)
   );
-  if (hasShotClip) tabs.splice(1, 0, SHOT_TAB);
+  // Shot follows the clip panels, as it does in the dock.
+  if (hasShotClip) tabs.splice(5, 0, SHOT_TAB);
   if (hasScript) tabs.push(SCRIPT_TAB);
   if (hasCode) tabs.push(CODE_TAB);
   const activeTab = tabs.some((item) => item.value === tab) ? tab : "inspector";
@@ -441,6 +460,10 @@ const useAvailableInspectorTabs = (
 /** The dock panel each `panelTab` request opens. The phone sheet shows the tab itself. */
 const PANEL_TAB_DOCK_ID: Record<InspectorTab, TimelinePanelId> = {
   inspector: "inspector",
+  effectControls: "effectControls",
+  motion: "motion",
+  color: "color",
+  ai: "ai",
   shot: "shot",
   source: "source",
   instrument: "instruments",
@@ -498,6 +521,14 @@ const MobilePanelSheet: React.FC<{
       <FlexColumn fullWidth sx={{ height: "52vh", minHeight: 0 }}>
         {activeTab === "inspector" ? (
           <TimelineInspector />
+        ) : activeTab === "effectControls" ? (
+          <TimelineEffectControlsPanel />
+        ) : activeTab === "motion" ? (
+          <TimelineMotionPanel />
+        ) : activeTab === "color" ? (
+          <TimelineColorPanel />
+        ) : activeTab === "ai" ? (
+          <TimelineAiPanel />
         ) : activeTab === "shot" ? (
           <TimelineShotPanel />
         ) : activeTab === "instrument" ? (
@@ -1022,9 +1053,13 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     { id: "transcript", node: <TimelineScriptPanel />, visible: (hasScript || !!linkedScriptId) && !dawActive },
     { id: "storyboard", node: <TimelineStoryboardPanel />, visible: !dawActive },
     { id: "inspector", node: <TimelineInspector /> },
+    { id: "effectControls", node: <TimelineEffectControlsPanel /> },
+    { id: "motion", node: <TimelineMotionPanel /> },
+    { id: "color", node: <TimelineColorPanel /> },
     { id: "shot", node: <TimelineShotPanel />, visible: hasShotClip },
     { id: "instruments", node: <TimelineInstrumentsPanel />, visible: hasMidiTrack },
     { id: "assistant", node: <TimelineAgentPanel /> },
+    { id: "ai", node: <TimelineAiPanel /> },
     { id: "history", node: <TimelineVersionHistoryPanel sequenceId={sequenceId} /> },
     { id: "code", node: <CodePanel />, visible: hasCode }
   ];

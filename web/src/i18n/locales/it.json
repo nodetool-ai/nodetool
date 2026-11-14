@@ -1628,7 +1628,11 @@
       "assistant": "Assistente",
       "history": "Storia",
       "code": "Codice",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Controllo effetti",
+      "motion": "Movimento",
+      "color": "Colore",
+      "ai": "IA"
     },
     "unavailable": {
       "tracks": "La modalità DAW ha la propria visualizzazione della traccia. Disattivalo (Alt+M) per aprire il pannello Timeline.",
@@ -20348,5 +20352,31 @@
     },
     "opening": "Apertura…",
     "startFailed": "Impossibile aprire l'esempio: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Nessuna clip selezionata",
+    "severalClips": "Più clip selezionate",
+    "effectControls": {
+      "empty": "Seleziona una clip nella timeline per regolarne trasformazione, opacità, effetti e maschere.",
+      "several": "Seleziona una sola clip per regolarla."
+    },
+    "motion": {
+      "empty": "Seleziona una clip nella timeline per animarla.",
+      "several": "Seleziona una sola clip per animarla.",
+      "unsupportedTitle": "Niente da animare",
+      "unsupported": "Seleziona una clip video, immagine, testo o forma per animarla."
+    },
+    "color": {
+      "empty": "Seleziona una clip nella timeline per correggerne il colore.",
+      "several": "Seleziona una sola clip per correggerne il colore.",
+      "unsupportedTitle": "Questa clip non ha immagine",
+      "unsupported": "Seleziona una clip video, immagine, testo o forma per correggerne il colore."
+    },
+    "ai": {
+      "empty": "Seleziona una clip nella timeline per generare da essa o modificarla con l'IA.",
+      "several": "Seleziona una sola clip per generare da essa.",
+      "unsupportedTitle": "Nessuno strumento IA per questa clip",
+      "unsupported": "Seleziona una clip video o immagine, oppure una clip generata."
+    }
   }
 }

@@ -1617,7 +1617,11 @@
       "assistant": "助手",
       "history": "历史记录",
       "code": "代码",
-      "storyboard": "故事板"
+      "storyboard": "故事板",
+      "effectControls": "效果控件",
+      "motion": "运动",
+      "color": "颜色",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "DAW 模式有自己的轨道视图。关闭 DAW 模式（Alt+M）以打开时间线面板。",
@@ -20037,5 +20041,31 @@
     },
     "opening": "正在打开…",
     "startFailed": "无法打开该入门项：{{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "未选择片段",
+    "severalClips": "已选择多个片段",
+    "effectControls": {
+      "empty": "在时间线上选择一个片段，以调整其变换、不透明度、效果和蒙版。",
+      "several": "选择单个片段进行调整。"
+    },
+    "motion": {
+      "empty": "在时间线上选择一个片段来为其添加动画。",
+      "several": "选择单个片段来为其添加动画。",
+      "unsupportedTitle": "没有可动画的内容",
+      "unsupported": "选择视频、图像、文本或形状片段来为其添加动画。"
+    },
+    "color": {
+      "empty": "在时间线上选择一个片段进行调色。",
+      "several": "选择单个片段进行调色。",
+      "unsupportedTitle": "此片段没有画面",
+      "unsupported": "选择视频、图像、文本或形状片段进行调色。"
+    },
+    "ai": {
+      "empty": "在时间线上选择一个片段，以基于它生成内容或用 AI 编辑它。",
+      "several": "选择单个片段以基于它生成内容。",
+      "unsupportedTitle": "此片段没有可用的 AI 工具",
+      "unsupported": "选择视频或图像片段，或已生成的片段。"
+    }
   }
 }

@@ -1617,7 +1617,11 @@
       "assistant": "Avustaja",
       "history": "Historia",
       "code": "Koodi",
-      "storyboard": "Kuvakäsikirjoitus"
+      "storyboard": "Kuvakäsikirjoitus",
+      "effectControls": "Tehosteasetukset",
+      "motion": "Liike",
+      "color": "Väri",
+      "ai": "Tekoäly"
     },
     "unavailable": {
       "tracks": "DAW-tilassa on oma raitanäkymänsä. Poista se käytöstä (Alt+M) avataksesi Aikajana-paneelin.",
@@ -20037,5 +20041,31 @@
     },
     "opening": "Avataan…",
     "startFailed": "Aloitusta ei voitu avata: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Leikettä ei ole valittu",
+    "severalClips": "Useita leikkeitä valittu",
+    "effectControls": {
+      "empty": "Valitse leike aikajanalta säätääksesi sen muunnosta, peittävyyttä, tehosteita ja maskeja.",
+      "several": "Valitse yksi leike säätääksesi sitä."
+    },
+    "motion": {
+      "empty": "Valitse leike aikajanalta animoidaksesi sen.",
+      "several": "Valitse yksi leike animoidaksesi sen.",
+      "unsupportedTitle": "Ei mitään animoitavaa",
+      "unsupported": "Valitse video-, kuva-, teksti- tai muotoleike animoidaksesi sen."
+    },
+    "color": {
+      "empty": "Valitse leike aikajanalta värimäärittääksesi sen.",
+      "several": "Valitse yksi leike värimäärittääksesi sen.",
+      "unsupportedTitle": "Tässä leikkeessä ei ole kuvaa",
+      "unsupported": "Valitse video-, kuva-, teksti- tai muotoleike värimäärittääksesi sen."
+    },
+    "ai": {
+      "empty": "Valitse leike aikajanalta luodaksesi siitä uutta tai muokataksesi sitä tekoälyllä.",
+      "several": "Valitse yksi leike luodaksesi siitä uutta.",
+      "unsupportedTitle": "Tälle leikkeelle ei ole tekoälytyökaluja",
+      "unsupported": "Valitse video- tai kuvaleike tai luotu leike."
+    }
   }
 }

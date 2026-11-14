@@ -7,7 +7,6 @@ import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
-import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 
 import { DEFAULT_MODEL3D_STYLE, hasTimeRemap } from "@nodetool-ai/timeline";
 import { useShallow } from "zustand/react/shallow";
@@ -51,30 +50,16 @@ import {
   parseSeconds,
   parseTimecode
 } from "./InspectorPrimitives.helpers";
-import { ClipAdjustments } from "./ClipAdjustments";
-import { ClipTracking } from "./ClipTracking";
-import { ClipReframe } from "./ClipReframe";
 import { ClipCaptionStyle } from "./ClipCaptionStyle";
 import { ClipStoryboardLink } from "./ClipStoryboardLink";
-import { ClipAnimations } from "./ClipAnimations";
-import { ClipAudioDrive } from "./ClipAudioDrive";
-import { ClipEffectsList } from "./ClipEffectsList";
 import { ClipGroupPanel } from "./ClipGroupPanel";
-import { ClipMaskMatte } from "./ClipMaskMatte";
-import { ClipCompositionInfo, ClipTimeRemapSection } from "./ClipTimeRemap";
-import { KeyframedPropertyRow } from "./KeyframedPropertyRow";
-import { OPACITY_ROW } from "./keyframeRows";
+import { ClipCompositionInfo } from "./ClipTimeRemap";
 import { ClipMidiSection } from "./ClipMidiSection";
 import { ClipModel3DSection } from "./ClipModel3DSection";
 import { ClipShapeSection } from "./ClipShapeSection";
 import { ClipTextStyleSection } from "./ClipTextStyleSection";
-import { GeneratedClipPanel } from "./GeneratedClipPanel";
-import { DirectGenClipPanel } from "./DirectGenClipPanel";
-import AIEditClipPanel from "./AIEditClipPanel";
-import ExtendClipPanel from "./ExtendClipPanel";
-import ImageToVideoPanel from "./ImageToVideoPanel";
+import { ClipTransitionSection } from "./ClipTransitionSection";
 import { ClipVersionHistory } from "./ClipVersionHistory";
-import LineDeliveryPanel from "./LineDeliveryPanel";
 import InspectorSearch from "./InspectorSearch";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -121,9 +106,6 @@ const TimelineInspectorContent: React.FC = memo(() => {
   const [mediaOpen, setMediaOpen] = usePersistedFold("media");
   const [groupOpen, setGroupOpen] = usePersistedFold("group");
   const [timingOpen, setTimingOpen] = usePersistedFold("timing");
-  // Shared with ClipAdjustments's own Render section — same persisted key,
-  // so the fold state agrees whichever branch is showing it.
-  const [renderOpen, setRenderOpen] = usePersistedFold("render");
 
   const clip = useTimelineStore((s) =>
     clipId ? (findClipById(s.clips, clipId) ?? null) : null
@@ -381,25 +363,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
 
   if (!clip) return null;
   const isMidi = clip.mediaType === "midi";
-  const aiEditSection = (
-    <>
-      {clip.mediaType === "video" && (
-        <>
-          <AIEditClipPanel key={`ai-edit-${clip.id}`} clipId={clip.id} />
-          <ExtendClipPanel key={`extend-${clip.id}`} clipId={clip.id} />
-        </>
-      )}
-      {clip.mediaType === "image" && (
-        <ImageToVideoPanel
-          key={`image-to-video-${clip.id}`}
-          clipId={clip.id}
-        />
-      )}
-    </>
-  );
-  const lineDeliverySection = (
-    <LineDeliveryPanel key={`line-delivery-${clip.id}`} clipId={clip.id} />
-  );
+  const isSounding = isMidi || clip.mediaType === "audio";
 
   // A group draws nothing, so the media/speed panel would be all blanks.
   if (clip.mediaType === "group") {
@@ -416,14 +380,14 @@ const TimelineInspectorContent: React.FC = memo(() => {
           accentColor={accentColor}
         />
         <ClipGroupPanel clip={clip} onUngroup={handleUngroupChildren} />
+        <ClipTransitionSection clip={clip} />
       </Panel>
     );
   }
 
-  // An adjustment draws nothing of its own: no transform, blend mode, media,
-  // generation or transition section applies. It keeps only what does — name
-  // and timing, opacity, its effect chain, the mask half of mask/matte (it is
-  // never a matte target), and its animations/keyframes.
+  // An adjustment draws nothing of its own: no media, generation or
+  // transition section applies. The Inspector keeps its name and timing.
+  // Opacity, effects and mask are in Effect Controls, animations in Motion.
   if (clip.mediaType === "adjustment") {
     return (
       <Panel
@@ -480,69 +444,13 @@ const TimelineInspectorContent: React.FC = memo(() => {
           </FlexColumn>
         </CollapsibleSection>
 
-        <InspectorDivider />
-
-        <CollapsibleSection
-          title={
-            <InspectorSectionTitle
-              title={t("pass3_30.timelineInspector.sections.render")}
-              icon={<LayersOutlinedIcon />}
-            />
-          }
-          open={renderOpen}
-          onToggle={setRenderOpen}
-          unmountOnExit
-        >
-          <FlexColumn css={sectionContentStyles(theme)}>
-            <KeyframedPropertyRow clip={clip} row={OPACITY_ROW} />
-          </FlexColumn>
-        </CollapsibleSection>
-
-        <ClipEffectsList clip={clip} />
-
-        <ClipMaskMatte clip={clip} hideMatte />
-
-        <ClipAnimations clip={clip} />
       </Panel>
     );
   }
 
-  // Direct-gen and workflow-bound generated clips keep their bespoke panels.
-  if (clip.sourceType === "generated") {
-    if (
-      clip.bindingKind === "text-to-image" ||
-      clip.bindingKind === "image-to-image" ||
-      clip.bindingKind === "text-to-video" ||
-      clip.bindingKind === "image-to-video" ||
-      clip.bindingKind === "text-to-audio" ||
-      clip.bindingKind === "text-to-music"
-    ) {
-      return (
-        <DirectGenClipPanel
-          clipId={clip.id}
-          additionalSections={
-            <>
-              {aiEditSection}
-              {lineDeliverySection}
-            </>
-          }
-        />
-      );
-    }
-    return (
-      <GeneratedClipPanel
-        clipId={clip.id}
-        additionalSections={
-          <>
-            {aiEditSection}
-            {lineDeliverySection}
-          </>
-        }
-      />
-    );
-  }
-
-  // ── Imported-clip inspector ─────────────────────────────────────────────
+  // ── Imported and generated clips ────────────────────────────────────────
+  // What the clip is. Its effects, motion, color and AI tools are in their
+  // own panels beside this one.
 
   return (
     <Panel
@@ -561,13 +469,9 @@ const TimelineInspectorContent: React.FC = memo(() => {
         <ClipStoryboardLink clip={clip} />
       </ClipIdentityCard>
 
-      {aiEditSection}
-
-      {lineDeliverySection}
-
-      {(clip.mediaType === "video" || clip.mediaType === "audio") && (
-        <ClipVersionHistory clipId={clip.id} />
-      )}
+      {(clip.sourceType === "generated" ||
+        clip.mediaType === "video" ||
+        clip.mediaType === "audio") && <ClipVersionHistory clipId={clip.id} />}
 
       {textStyle && <ClipTextStyleSection clip={clip} textStyle={textStyle} />}
 
@@ -730,21 +634,9 @@ const TimelineInspectorContent: React.FC = memo(() => {
 
       <ClipCaptionStyle clip={clip} />
 
-      <ClipAdjustments clip={clip} />
-
-      <ClipTracking clip={clip} />
-
-      {(clip.mediaType === "video" ||
-        clip.mediaType === "image" ||
-        clip.mediaType === "overlay") && <ClipReframe clip={clip} />}
-
-      {!isMidi && <ClipTimeRemapSection clip={clip} />}
+      {!isSounding && <ClipTransitionSection clip={clip} />}
 
       <ClipCompositionInfo clip={clip} />
-
-      {!isMidi && <ClipAnimations clip={clip} />}
-
-      <ClipAudioDrive key={`audio-drive-${clip.id}`} clip={clip} />
     </Panel>
   );
 });
