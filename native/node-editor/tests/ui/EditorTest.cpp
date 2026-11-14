@@ -637,6 +637,29 @@ private slots:
     QCOMPARE(window.selection(), QString("a"));
     QCOMPARE(synced.count(), 1);
   }
+  // The field loses focus before the canvas press selects the other card, so
+  // the typed value still lands on the card it was typed for.
+  void inspectorEditSurvivesCanvasClick() {
+    EditorWindow window;
+    loadPanelFixture(window);
+    QVERIFY(window.selectNode("a"));
+    QTest::qWait(150);
+    QQuickItem *field = nullptr;
+    QTRY_VERIFY((field = control(window, "Text")));
+    type(window, field, "typed before the click", 0);
+    auto *view = window.activeEditor()->findChild<QGraphicsView *>();
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    QtNodes::NodeId target = QtNodes::InvalidNodeId;
+    for (const auto id : model.allNodeIds()) { if (model.resourceId(id) == "b") { target = id; } }
+    auto *item = window.scene()->nodeGraphicsObject(target);
+    QVERIFY(item);
+    const auto header = item->sceneBoundingRect().topLeft() + QPointF(item->sceneBoundingRect().width() / 2, 12);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->mapFromScene(header));
+    QTRY_COMPARE(window.selection(), QString("b"));
+    QTRY_COMPARE(window.document()->node("a")["data"].toObject()["Text"], QJsonValue("typed before the click"));
+    QCOMPARE(window.document()->node("b")["data"].toObject()["Text"], QJsonValue("baseline"));
+    QCOMPARE(window.document()->undoStack()->count(), 1);
+  }
   // GenerationHistory copies the full document. A selection change reuses the copy.
   void selectionKeepsHistoryWorkflow() {
     EditorWindow window;
