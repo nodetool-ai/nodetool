@@ -637,6 +637,17 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "could erase the evidence of its own behaviour, so the threads " +
       "module is read-only by design — see capabilities/threads.ts."
   },
+  "messages.switchVersion": {
+    withheld:
+      "Switching versions rewrites which history a conversation holds. " +
+      "The threads module is read-only by design — see " +
+      "capabilities/threads.ts."
+  },
+  "messages.versions": {
+    elsewhere:
+      "get_thread returns the conversation as it stands; earlier versions " +
+      "are a view for the person in the chat."
+  },
   "models.all": { capability: "list_models" },
   "models.asr": {
     elsewhere:

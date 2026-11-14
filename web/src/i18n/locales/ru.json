@@ -13866,7 +13866,8 @@
         "sendMessage": "Не удалось отправить сообщение: {{error}}",
         "compact": "Не удалось сжать диалог: {{error}}",
         "copyConversation": "Не удалось скопировать диалог.",
-        "rewindConversation": "Не удалось откатить диалог: {{error}}"
+        "rewindConversation": "Не удалось откатить диалог: {{error}}",
+        "switchVersion": "Не удалось переключить версию: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Скопировано {{count}} сообщение в формате Markdown.",
@@ -18922,9 +18923,12 @@
       "result": "Результат",
       "copyResult": "Копировать результат",
       "editMessage": "Редактировать сообщение",
-      "editWarning": "Отправка заменит всё, что идёт после этого сообщения.",
+      "editWarning": "При отправке создаётся новая версия. Текущая остаётся доступной.",
       "editAndResend": "Изменить и отправить снова",
       "regenerate": "Сгенерировать заново",
+      "previousVersion": "Предыдущая версия",
+      "nextVersion": "Следующая версия",
+      "versionOf": "Версия {{index}} из {{count}}",
       "copyMessage": "Копировать сообщение",
       "enterCredential": "Введите учётные данные",
       "credentialSubtitle": "Сохраняется в хранилище секретов. Агент никогда не видит значение.",

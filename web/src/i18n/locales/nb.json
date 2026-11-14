@@ -13436,7 +13436,8 @@
         "sendMessage": "Kunne ikke sende meldingen: {{error}}",
         "compact": "Kunne ikke komprimere samtalen: {{error}}",
         "copyConversation": "Kunne ikke kopiere samtalen.",
-        "rewindConversation": "Kunne ikke spole tilbake samtalen: {{error}}"
+        "rewindConversation": "Kunne ikke spole tilbake samtalen: {{error}}",
+        "switchVersion": "Kunne ikke bytte versjon: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Kopierte {{count}} melding som Markdown.",
@@ -18308,9 +18309,12 @@
       "result": "Resultat",
       "copyResult": "Kopier resultatet",
       "editMessage": "Rediger melding",
-      "editWarning": "Sending erstatter alt etter denne meldingen.",
+      "editWarning": "Sending starter en ny versjon. Den nåværende er fortsatt tilgjengelig.",
       "editAndResend": "Rediger og send på nytt",
       "regenerate": "Regenerer",
+      "previousVersion": "Forrige versjon",
+      "nextVersion": "Neste versjon",
+      "versionOf": "Versjon {{index}} av {{count}}",
       "copyMessage": "Kopier melding",
       "enterCredential": "Skriv inn en legitimasjon",
       "credentialSubtitle": "Lagret i din hemmelige butikk. Agenten ser aldri verdien.",

@@ -35,6 +35,7 @@ import { TaskDock } from "../composer/TaskDock";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { getThreadRuntime } from "../../../core/chat/threadRuntime";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { useThreadVersions } from "../../../serverState/useThreadVersions";
 import { useCombo } from "../../../stores/KeyPressedStore";
 import { useClipboard } from "../../../hooks/browser/useClipboard";
 import { canTakeFocus, isTextInputActive } from "../../../utils/browser";
@@ -466,6 +467,31 @@ const ChatView = ({
   // into the history a rewind cuts.
   const canResend = !isBusy && !externalScroll && Boolean(effectiveThreadId);
 
+  // Edit and Retry keep the turns they replace as an earlier version, which
+  // the message where the versions part shows as "‹ 1/2 ›". A message the
+  // server never stored (a local placeholder) cannot be a fork yet.
+  const versionsSignature = useMemo(
+    () => messages.map((message) => message.id ?? "").join(","),
+    [messages]
+  );
+  const handleSwitchError = useCallback(
+    (error: unknown) => {
+      addNotification({
+        type: "error",
+        content: t("i18n-next23.chat.errors.switchVersion", {
+          error: error instanceof Error ? error.message : String(error)
+        })
+      });
+    },
+    [addNotification, t]
+  );
+  const { navByMessageId: versionNavByMessageId } = useThreadVersions(
+    effectiveThreadId,
+    versionsSignature,
+    canResend,
+    handleSwitchError
+  );
+
   // `/rewind` takes back the last prompt. A compaction record is stored as a
   // user message, but it is not a prompt the user can take back.
   const lastPrompt = useMemo(() => {
@@ -616,6 +642,9 @@ const ChatView = ({
               showTaskUpdate={false}
               externalScroll={externalScroll}
               onResendFrom={canResend ? handleResendFrom : undefined}
+              versionNavByMessageId={
+                canResend ? versionNavByMessageId : undefined
+              }
             />
           ) : (
             noMessagesPlaceholder ?? <div style={{ flex: 1 }} />

@@ -94,8 +94,10 @@ export const deleteOutput = z.object({
 export type DeleteOutput = z.infer<typeof deleteOutput>;
 
 // ── rewind ────────────────────────────────────────────────────────
-// Delete `message_id` and every later message in `thread_id`, so the next
+// Take `message_id` and every later message out of `thread_id`, so the next
 // turn continues from the history before it (Regenerate, edit a sent message).
+// The removed tail is kept as an earlier version (see `versions`), and
+// `deleted_ids` names the rows that left the conversation.
 export const rewindInput = z.object({
   thread_id: z.string().min(1),
   message_id: z.string().min(1)
@@ -106,3 +108,42 @@ export const rewindOutput = z.object({
   deleted_ids: z.array(z.string())
 });
 export type RewindOutput = z.infer<typeof rewindOutput>;
+
+// ── versions ──────────────────────────────────────────────────────
+// Each point in a thread where Edit or Retry left more than one version.
+export const versionsInput = z.object({
+  thread_id: z.string().min(1)
+});
+export type VersionsInput = z.infer<typeof versionsInput>;
+
+export const messageForkSchema = z.object({
+  /** Live message the versions follow; "" for the thread start. */
+  after: z.string(),
+  /** First live message after the fork, where the switcher belongs. */
+  first_message_id: z.string().nullable(),
+  /** Version ids in start order; null marks the live one. */
+  versions: z.array(z.string().nullable()),
+  /** Index of the live version, or -1 when nothing live follows. */
+  active: z.number().int()
+});
+export type MessageFork = z.infer<typeof messageForkSchema>;
+
+export const versionsOutput = z.object({
+  forks: z.array(messageForkSchema)
+});
+export type VersionsOutput = z.infer<typeof versionsOutput>;
+
+// ── switchVersion ─────────────────────────────────────────────────
+// Bring back the version `branch_id` after `after`. The tail it replaces is
+// kept as a version in turn.
+export const switchVersionInput = z.object({
+  thread_id: z.string().min(1),
+  after: z.string(),
+  branch_id: z.string().min(1)
+});
+export type SwitchVersionInput = z.infer<typeof switchVersionInput>;
+
+export const switchVersionOutput = z.object({
+  ok: z.literal(true)
+});
+export type SwitchVersionOutput = z.infer<typeof switchVersionOutput>;

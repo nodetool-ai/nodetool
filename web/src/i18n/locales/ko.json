@@ -13436,7 +13436,8 @@
         "sendMessage": "메시지를 보낼 수 없습니다: {{error}}",
         "compact": "대화를 압축할 수 없습니다: {{error}}",
         "copyConversation": "대화를 복사할 수 없습니다.",
-        "rewindConversation": "대화를 되돌릴 수 없습니다: {{error}}"
+        "rewindConversation": "대화를 되돌릴 수 없습니다: {{error}}",
+        "switchVersion": "버전을 전환하지 못했습니다: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "{{count}} 메시지를 Markdown으로 복사했습니다.",
@@ -18308,9 +18309,12 @@
       "result": "결과",
       "copyResult": "결과 복사",
       "editMessage": "메시지 편집",
-      "editWarning": "전송하면 이 메시지 이후의 모든 내용이 대체됩니다.",
+      "editWarning": "전송하면 새 버전이 만들어집니다. 현재 버전도 그대로 남습니다.",
       "editAndResend": "수정하고 다시 보내기",
       "regenerate": "재생성",
+      "previousVersion": "이전 버전",
+      "nextVersion": "다음 버전",
+      "versionOf": "버전 {{index}}/{{count}}",
       "copyMessage": "메시지 복사",
       "enterCredential": "자격증명을 입력하세요",
       "credentialSubtitle": "비밀 상점에 저장되었습니다. 에이전트는 값을 볼 수 없습니다.",

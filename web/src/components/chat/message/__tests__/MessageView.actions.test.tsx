@@ -246,15 +246,57 @@ describe("MessageView edit in place", () => {
     expect(onResend).toHaveBeenCalledWith(sent, "make it blue now");
   });
 
-  it("warns when later turns will be replaced", async () => {
+  it("says a new version starts when later turns follow", async () => {
     const user = userEvent.setup();
     renderView(sent, { onResend: jest.fn(), editRemovesLaterTurns: true });
 
     await user.click(screen.getByRole("button", { name: "Edit and resend" }));
 
     expect(
-      screen.getByText("Sending replaces everything after this message.")
+      screen.getByText(
+        "Sending starts a new version. The current one stays available."
+      )
     ).toBeInTheDocument();
+  });
+});
+
+describe("MessageView version switcher", () => {
+  const prompt = {
+    id: "0123456789abcdef0123456789abcdef",
+    role: "user",
+    thread_id: "thread-1",
+    content: "make it blue"
+  } as Message;
+
+  it("shows which version is live and steps to its neighbours", async () => {
+    const user = userEvent.setup();
+    const select = jest.fn();
+    renderView(prompt, { versionNav: { index: 2, count: 3, select } });
+
+    expect(
+      screen.getByRole("group", { name: "Version 2 of 3" })
+    ).toHaveTextContent("2/3");
+
+    await user.click(screen.getByRole("button", { name: "Previous version" }));
+    await user.click(screen.getByRole("button", { name: "Next version" }));
+    expect(select.mock.calls).toEqual([[1], [3]]);
+  });
+
+  it("cannot step past the first or last version", () => {
+    renderView(prompt, {
+      versionNav: { index: 1, count: 2, select: jest.fn() }
+    });
+
+    expect(
+      screen.getByRole("button", { name: "Previous version" })
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next version" })).toBeEnabled();
+  });
+
+  it("is absent where there is only one version", () => {
+    renderView(prompt);
+
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
   });
 });
 

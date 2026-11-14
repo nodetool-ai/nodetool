@@ -320,6 +320,11 @@ const USER_QUOTAS_DDL: readonly string[] = [
 const THREAD_KIND_DDL =
   "ALTER TABLE nodetool_threads ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat'";
 
+const MESSAGE_BRANCH_DDL: readonly string[] = [
+  "ALTER TABLE nodetool_messages ADD COLUMN branch_id TEXT",
+  "ALTER TABLE nodetool_messages ADD COLUMN branch_after TEXT"
+];
+
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
     user_id TEXT PRIMARY KEY NOT NULL,
@@ -337,7 +342,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...USER_QUOTAS_DDL,
   "ALTER TABLE nodetool_predictions ADD COLUMN key_source TEXT",
   ...USER_PERMISSIONS_DDL,
-  THREAD_KIND_DDL
+  THREAD_KIND_DDL,
+  ...MESSAGE_BRANCH_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4406,6 +4412,27 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // Keep kind: dropping it would turn Create sessions into empty chats.
+    }
+  },
+
+  // Edit and Retry keep the replaced tail of a conversation as an earlier
+  // version instead of deleting it, so the person can switch back to it.
+  {
+    version: "20261115_000000",
+    name: "add_message_branches",
+    createsTables: [],
+    modifiesTables: ["nodetool_messages"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_messages"))) return;
+      const columns = ["branch_id", "branch_after"];
+      for (const [index, column] of columns.entries()) {
+        if (!(await db.columnExists("nodetool_messages", column))) {
+          await db.execute(MESSAGE_BRANCH_DDL[index]);
+        }
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
     }
   }
 ];

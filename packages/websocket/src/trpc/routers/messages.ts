@@ -18,6 +18,10 @@ import {
   listOutput,
   rewindInput,
   rewindOutput,
+  versionsInput,
+  versionsOutput,
+  switchVersionInput,
+  switchVersionOutput,
   type MessageResponse
 } from "@nodetool-ai/protocol/api-schemas/messages.js";
 
@@ -89,5 +93,35 @@ export const messagesRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Message not found");
       }
       return { deleted_ids: deleted };
+    }),
+
+  versions: protectedProcedure
+    .input(versionsInput)
+    .output(versionsOutput)
+    .query(async ({ ctx, input }) => {
+      const thread = await Thread.find(ctx.userId, input.thread_id);
+      if (!thread) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Thread not found");
+      }
+      return { forks: await Message.versions(input.thread_id) };
+    }),
+
+  switchVersion: protectedProcedure
+    .input(switchVersionInput)
+    .output(switchVersionOutput)
+    .mutation(async ({ ctx, input }) => {
+      const thread = await Thread.find(ctx.userId, input.thread_id);
+      if (!thread) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Thread not found");
+      }
+      const switched = await Message.switchVersion(
+        input.thread_id,
+        input.after,
+        input.branch_id
+      );
+      if (!switched) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+      }
+      return { ok: true as const };
     })
 });

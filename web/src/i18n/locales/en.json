@@ -13436,7 +13436,8 @@
         "sendMessage": "Could not send the message: {{error}}",
         "compact": "Could not compact the conversation: {{error}}",
         "copyConversation": "Could not copy the conversation.",
-        "rewindConversation": "Could not rewind the conversation: {{error}}"
+        "rewindConversation": "Could not rewind the conversation: {{error}}",
+        "switchVersion": "Could not switch versions: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Copied {{count}} message as Markdown.",
@@ -18308,9 +18309,12 @@
       "result": "Result",
       "copyResult": "Copy result",
       "editMessage": "Edit message",
-      "editWarning": "Sending replaces everything after this message.",
+      "editWarning": "Sending starts a new version. The current one stays available.",
       "editAndResend": "Edit and resend",
       "regenerate": "Regenerate",
+      "previousVersion": "Previous version",
+      "nextVersion": "Next version",
+      "versionOf": "Version {{index}} of {{count}}",
       "copyMessage": "Copy message",
       "enterCredential": "Enter a credential",
       "credentialSubtitle": "Saved to your secret store. The agent never sees the value.",

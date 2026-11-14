@@ -13436,7 +13436,8 @@
         "sendMessage": "Nachricht konnte nicht gesendet werden: {{error}}",
         "compact": "Unterhaltung konnte nicht verdichtet werden: {{error}}",
         "copyConversation": "Unterhaltung konnte nicht kopiert werden.",
-        "rewindConversation": "Unterhaltung konnte nicht zurückgespult werden: {{error}}"
+        "rewindConversation": "Unterhaltung konnte nicht zurückgespult werden: {{error}}",
+        "switchVersion": "Version konnte nicht gewechselt werden: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "{{count}} Nachricht als Markdown kopiert.",
@@ -18308,9 +18309,12 @@
       "result": "Ergebnis",
       "copyResult": "Ergebnis kopieren",
       "editMessage": "Nachricht bearbeiten",
-      "editWarning": "Beim Senden wird alles nach dieser Nachricht ersetzt.",
+      "editWarning": "Beim Senden entsteht eine neue Version. Die aktuelle bleibt verfügbar.",
       "editAndResend": "Bearbeiten und erneut senden",
       "regenerate": "Neu generieren",
+      "previousVersion": "Vorherige Version",
+      "nextVersion": "Nächste Version",
+      "versionOf": "Version {{index}} von {{count}}",
       "copyMessage": "Nachricht kopieren",
       "enterCredential": "Anmeldedaten eingeben",
       "credentialSubtitle": "Im Secret-Speicher gesichert. Der Agent sieht den Wert nie.",

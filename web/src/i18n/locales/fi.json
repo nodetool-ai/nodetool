@@ -13436,7 +13436,8 @@
         "sendMessage": "Viestiä ei voitu lähettää: {{error}}",
         "compact": "Keskustelua ei voitu tiivistää: {{error}}",
         "copyConversation": "Keskustelua ei voitu kopioida.",
-        "rewindConversation": "Keskustelua ei voitu kelata taaksepäin: {{error}}"
+        "rewindConversation": "Keskustelua ei voitu kelata taaksepäin: {{error}}",
+        "switchVersion": "Version vaihtaminen epäonnistui: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Kopioitiin {{count}} viesti Markdownina.",
@@ -18308,9 +18309,12 @@
       "result": "Tulos",
       "copyResult": "Kopioi tulos",
       "editMessage": "Muokkaa viestiä",
-      "editWarning": "Lähettäminen korvaa kaiken tämän viestin jälkeen.",
+      "editWarning": "Lähettäminen aloittaa uuden version. Nykyinen versio säilyy.",
       "editAndResend": "Muokkaa ja lähetä uudelleen",
       "regenerate": "Luo uudelleen",
+      "previousVersion": "Edellinen versio",
+      "nextVersion": "Seuraava versio",
+      "versionOf": "Versio {{index}}/{{count}}",
       "copyMessage": "Kopioi viesti",
       "enterCredential": "Anna tunnistetieto",
       "credentialSubtitle": "Tallennetaan salaisuuksien säilöösi. Agentti ei koskaan näe arvoa.",

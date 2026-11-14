@@ -13436,7 +13436,8 @@
         "sendMessage": "Kon het bericht niet verzenden: {{error}}",
         "compact": "Kan het gesprek niet comprimeren: {{error}}",
         "copyConversation": "Kan het gesprek niet kopiëren.",
-        "rewindConversation": "Kan het gesprek niet terugspoelen: {{error}}"
+        "rewindConversation": "Kan het gesprek niet terugspoelen: {{error}}",
+        "switchVersion": "Kan niet van versie wisselen: {{error}}"
       },
       "notifications": {
         "copiedMessages_one": "Gekopieerd {{count}} bericht als Markdown.",
@@ -18308,9 +18309,12 @@
       "result": "Resultaat",
       "copyResult": "Kopieer resultaat",
       "editMessage": "Bericht bewerken",
-      "editWarning": "Verzenden vervangt alles na dit bericht.",
+      "editWarning": "Verzenden start een nieuwe versie. De huidige blijft beschikbaar.",
       "editAndResend": "Bewerken en opnieuw verzenden",
       "regenerate": "Regenereer",
+      "previousVersion": "Vorige versie",
+      "nextVersion": "Volgende versie",
+      "versionOf": "Versie {{index}} van {{count}}",
       "copyMessage": "Kopieer bericht",
       "enterCredential": "Voer een referentie in",
       "credentialSubtitle": "Opgeslagen in je geheime winkel. De agent ziet nooit de waarde ervan.",
