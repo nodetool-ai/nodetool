@@ -2,6 +2,7 @@
 #include <QJsonArray>
 #include <QSettings>
 #include <QTemporaryDir>
+#include <QSignalSpy>
 #include <QTest>
 
 using nt::modelpicker::Catalog;
@@ -107,6 +108,44 @@ private slots:
         QCOMPARE(catalog.selectedProvider(), QStringLiteral("alpha"));
         QVERIFY(!catalog.selectionAvailable());
         QVERIFY(catalog.constraints().isEmpty());
+    }
+    // Study 20: the native chat composer sent no model, and the server refused
+    // the first question. A host can start on the first usable model.
+    void selectFirstAvailablePrefersAUsableCloudModel() {
+        QTemporaryDir settings;
+        QSettings::setPath(QSettings::IniFormat, QSettings::UserScope, settings.path());
+        const auto query = [](const QString& procedure, QJsonObject input, Catalog::Completion done) {
+            if (procedure == "models.providers") {
+                done(QJsonArray{QJsonObject{{"provider", "ollama"}, {"access", "local_service"}, {"capabilities", QJsonArray{"generate_message"}}},
+                                QJsonObject{{"provider", "zeta"}, {"access", "remote_api"}, {"capabilities", QJsonArray{"generate_message"}}}}, {});
+            } else if (procedure == "models.llmByProvider" && input.value("provider").toString() == "ollama") {
+                done(QJsonArray{QJsonObject{{"id", "local-model"}}}, {});
+            } else if (procedure == "models.llmByProvider") {
+                done(QJsonArray{QJsonObject{{"id", "offline"}, {"execution", QJsonObject{{"state", "unavailable"}}}},
+                                QJsonObject{{"id", "cloud-model"}}}, {});
+            } else {
+                done(QJsonArray{}, {});
+            }
+        };
+        Catalog plain;
+        plain.setMode("chat");
+        plain.setIdentity("seed-off");
+        plain.setQuery(query);
+        QVERIFY(plain.loaded());
+        QCOMPARE(plain.selectedModelId(), QString());
+        Catalog seeded;
+        seeded.setMode("chat");
+        seeded.setIdentity("seed-on");
+        seeded.setSelectFirstAvailable(true);
+        QSignalSpy committed(&seeded, &Catalog::selectionCommitted);
+        seeded.setQuery(query);
+        QCOMPARE(seeded.selectedModelId(), QStringLiteral("cloud-model"));
+        QCOMPARE(seeded.selectedProvider(), QStringLiteral("zeta"));
+        QCOMPARE(committed.size(), 1);
+        QVERIFY(seeded.hasAnyAvailable());
+        seeded.clearSelection();
+        seeded.reload();
+        QCOMPARE(seeded.selectedModelId(), QString());
     }
     void rankingSetupAndDefault() {
         Catalog catalog;

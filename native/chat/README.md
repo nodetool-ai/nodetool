@@ -58,8 +58,14 @@ the mode, reasoning and permission chips show their icons only. A host that
 calls `ChatSession::usePreferences` keeps the reasoning level, the permission
 modes and the media settings across sessions. The model button opens the
 shared model picker. Server default clears the provider and model together. The
-picker loads models from the connected server and opens its provider settings
-page for setup. In a narrow dock, chat opens
+picker loads models from the connected server when the app connects, and the
+composer starts on the first usable model, a cloud provider's before a local
+one. A send with no usable model keeps the question and opens the model menu,
+or the API key dialog when the server lists no model. The standalone app's
+Settings dialog adds a provider key through `settings.secrets.upsert`, and the
+picker's setup entries open it. A host without that dialog opens the server's
+provider settings page. Each conversation row has a "⋯" menu and a right-click
+menu with Rename and Delete, and F2 and Delete work on a focused row. In a narrow dock, chat opens
 the conversation first. The Chats button opens the thread list.
 
 ## State and media bounds

@@ -57,7 +57,7 @@ replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.EditorButton, Ui.Text, Ui.T
 [[file]]
 path = "native/chat/qml/Main.qml"
 category = "chrome"
-controls = ["Ui.ToolbarIconButton", "ChatPanel", "Ui.Dialog", "Ui.ScrollBar", "Ui.Text", "Ui.Select", "Ui.EditorButton"]
+controls = ["Ui.ToolbarIconButton", "ChatPanel", "Ui.Dialog", "Ui.ScrollBar", "Ui.Text", "Ui.Select", "Ui.EditorButton", "ProviderKeyDialog"]
 signals = []
 test_host = "node native/chat/scripts/check.mjs"
 test_scope = "build/import"
@@ -75,14 +75,24 @@ qml_callers = ["native/chat/qml/ConversationView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextArea, Ui.EditorButton, Ui.ToolbarIconButton, Ui.Surface, Ui.TextField"
 
 [[file]]
+path = "native/chat/qml/ProviderKeyDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.Text", "Ui.Select", "Ui.TextField", "Ui.EditorButton"]
+signals = []
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "build/import"
+qml_callers = ["native/chat/qml/Main.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.Select, Ui.TextField, Ui.EditorButton"
+
+[[file]]
 path = "native/chat/qml/ThreadList.qml"
 category = "chrome"
-controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "ListView", "Ui.ScrollBar"]
+controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "ListView", "Ui.ScrollBar", "Ui.ToolbarIconButton", "Ui.TextField", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Dialog"]
 signals = ["threadOpened"]
 test_host = "node native/chat/scripts/check.mjs"
 test_scope = "build/import"
 qml_callers = ["native/chat/qml/ChatPanel.qml"]
-replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.ScrollBar"
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.ScrollBar, Ui.ToolbarIconButton, Ui.TextField, Ui.ContextMenu, Ui.MenuItem, Ui.Dialog"
 
 [[file]]
 path = "native/model-picker/qml/ModelPicker.qml"
