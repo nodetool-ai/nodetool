@@ -245,8 +245,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&nodeInfo_, &node_editor::NodeInfo::tagSearchRequested, this, [this](const QString &tag) { openNodeMenuAt({}, tag); });
   connect(&nodeInspector_, &node_editor::NodeInspector::runSelectedRequested, this, &EditorWindow::runSelectedNodes);
   connect(&nodeInspector_, &node_editor::NodeInspector::toolTipRequested, this, &EditorWindow::showToolTip);
-  connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitProperty);
-  connect(nodeInspector_.fields(), &node_editor::PropertyHost::finishedEditRequested, this, &EditorWindow::commitFinishedEdit);
+  // A field commits an edit that ended, which can arrive after the click that ended it selected another node.
+  connect(nodeInspector_.fields(), &node_editor::PropertyHost::commitRequested, this, &EditorWindow::commitFinishedEdit);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::removeRequested, this, &EditorWindow::removeProperty);
   connect(nodeInspector_.fields(), &node_editor::PropertyHost::toolTipRequested, this, &EditorWindow::showToolTip);
   connect(nodeInspector_.history(), &node_editor::GenerationReplay::pinRequested, this, &EditorWindow::pinGeneration);

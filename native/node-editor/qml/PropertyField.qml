@@ -48,8 +48,9 @@ ColumnLayout {
     function flushCommit(pending) {
         if (pendingCommit !== pending) return
         pendingCommit = null
-        if (pending.generation === commitGeneration && (root.nodeId !== pending.id || root.writable))
-            pending.target.commitFinishedEdit(pending.id, pending.name, pending.value)
+        if (pending.generation !== commitGeneration) return
+        if (root.nodeId !== pending.id || root.writable)
+            pending.target.commitProperty(pending.id, pending.name, pending.value)
     }
     function cancelDraft() {
         ++commitGeneration
@@ -57,7 +58,8 @@ ColumnLayout {
         if (fieldLoader.item && fieldLoader.item.cancelEdit) fieldLoader.item.cancelEdit()
     }
     // A new selection or tab keeps the finished edit. A replaced document,
-    // new credentials or a field that turned read-only drops it.
+    // new credentials, new fields for the same node or a field that turned
+    // read-only drop it.
     function resetFieldScope(keepFinishedEdit) {
         if (keepFinishedEdit && pendingCommit) flushCommit(pendingCommit)
         pendingCommit = null
@@ -66,7 +68,7 @@ ColumnLayout {
         if (fieldLoader.item.resetScope) fieldLoader.item.resetScope()
         else if (fieldLoader.item.cancelEdit) fieldLoader.item.cancelEdit()
     }
-    onDescriptorIdentityChanged: resetFieldScope(true)
+    onDescriptorIdentityChanged: resetFieldScope(pendingCommit !== null && pendingCommit.target.selection !== pendingCommit.id)
     onDocumentEpochChanged: resetFieldScope(false)
     onCredentialsEpochChanged: resetFieldScope(false)
     onHostChanged: resetFieldScope(true)

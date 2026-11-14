@@ -67,12 +67,6 @@ public:
     Q_INVOKABLE void commitProperty(const QString &nodeId, const QString &name, const QVariant &value) {
         emit commitRequested(nodeId, name, value);
     }
-    // A field edit that ended when the field lost focus. It lands on the node the
-    // field was editing, although the press that took the focus has meanwhile
-    // selected another node.
-    Q_INVOKABLE void commitFinishedEdit(const QString &nodeId, const QString &name, const QVariant &value) {
-        emit finishedEditRequested(nodeId, name, value);
-    }
     Q_INVOKABLE void removeProperty(const QString &nodeId, const QString &name) { emit removeRequested(nodeId, name); }
     // Empty text hides the tool tip.
     Q_INVOKABLE void showToolTip(const QString &text) { emit toolTipRequested(text); }
@@ -84,7 +78,6 @@ signals:
     void credentialsEpochChanged();
     void servicesChanged();
     void commitRequested(const QString &nodeId, const QString &name, const QVariant &value);
-    void finishedEditRequested(const QString &nodeId, const QString &name, const QVariant &value);
     void removeRequested(const QString &nodeId, const QString &name);
     void toolTipRequested(const QString &text);
 
