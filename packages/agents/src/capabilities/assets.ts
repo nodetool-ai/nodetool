@@ -882,6 +882,20 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
   let sourceRef: string | undefined;
   let storedAssetId: string | undefined;
 
+  // Screen a URL before the ownership check, so an unsafe storage-route URL is
+  // refused at the URL rather than looked up as an asset. The URL goes to the
+  // vision provider, not this host, but `save_asset` refuses the same URLs
+  // through `safeFetch`, and the two tools should agree.
+  if (/^https?:\/\//i.test(imageId) && !isSafePublicHttpsUrl(imageId)) {
+    return {
+      error:
+        `Refused to load image from "${imageId}". ` +
+        `Only public https:// URLs are handed to the vision provider — ` +
+        `plain http, localhost, and private or link-local addresses are refused. ` +
+        `Pass an asset id, an asset:// URI, or a data: URI instead.`
+    };
+  }
+
   if (
     requiresStoredAssetOwnership(imageId) &&
     !isRunProjectStorageReference(run, imageId)
@@ -900,22 +914,8 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
     sourceBytes = parsed.bytes;
     sourceMime = parsed.mimeType;
   } else if (/^https?:\/\//i.test(imageId)) {
-    // Screen it. This uri goes out as `image_content.uri` for the *provider* to
-    // fetch, so an unscreened one is not an SSRF against this host — the reach
-    // it buys is the provider's network, not ours. It was still the only
-    // model-supplied URL in this module that skipped the guard every other one
-    // meets: `save_asset` refuses exactly these through `safeFetch`, and a
-    // model that cannot tell which of two image tools screens its input is
-    // being taught that the boundary is arbitrary.
-    if (!isSafePublicHttpsUrl(imageId)) {
-      return {
-        error:
-          `Refused to load image from "${imageId}". ` +
-          `Only public https:// URLs are handed to the vision provider — ` +
-          `plain http, localhost, and private or link-local addresses are refused. ` +
-          `Pass an asset id, an asset:// URI, or a data: URI instead.`
-      };
-    }
+    // Screened above. This uri goes out as `image_content.uri` for the
+    // provider to fetch.
     passthroughUri = imageId;
   } else {
     try {
