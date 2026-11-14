@@ -102,7 +102,11 @@ const SETTLED_RUN_TTL_MS = 10 * 60_000;
  * complete; only the live typing of a very long stream is cut short.
  */
 export const MAX_BUFFERED_RUN_MESSAGES = 5_000;
-/** A running run nobody has polled for this long is cancelled and dropped. */
+/**
+ * A running run nobody has polled for this long is dropped from the registry.
+ * It is not cancelled: its polls may be landing on another replica, which
+ * tells the screen the run still finishes and shows up in the run history.
+ */
 const UNPOLLED_RUN_TTL_MS = 10 * 60_000;
 /** Media at or under this size is inlined as a `data:` URL. */
 const INLINE_MEDIA_LIMIT_BYTES = 8 * 1024 * 1024;
@@ -149,6 +153,8 @@ interface RunEntry {
   settledAt: number | null;
   /** When the run was started or last polled. */
   lastPolledAt: number;
+  /** Dropped from the registry while still running: buffer nothing more. */
+  detached: boolean;
 }
 
 const runs = new Map<string, RunEntry>();
@@ -158,7 +164,8 @@ function sweepSettledRuns(now = Date.now()): void {
     if (entry.settledAt !== null && now - entry.settledAt > SETTLED_RUN_TTL_MS) {
       runs.delete(id);
     } else if (entry.settledAt === null && now - entry.lastPolledAt > UNPOLLED_RUN_TTL_MS) {
-      entry.controller.abort();
+      entry.detached = true;
+      entry.messages.length = 0;
       runs.delete(id);
     }
   }
@@ -689,10 +696,12 @@ export function registerMiniAppMcpTools(server: McpServer, deps: MiniAppToolDeps
           listeners: new Set(),
           done: false,
           settledAt: null,
-          lastPolledAt: Date.now()
+          lastPolledAt: Date.now(),
+          detached: false
         };
         runs.set(runId, entry);
         const push = (message: Record<string, unknown>): void => {
+          if (entry.detached) return;
           if (bufferRunMessage(entry.messages, message)) wake(entry);
         };
         const settle = (status: string, error: string | null): void => {

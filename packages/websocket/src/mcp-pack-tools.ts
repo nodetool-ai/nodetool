@@ -21,14 +21,23 @@ export interface PackCliResult {
   readonly stderr: string;
 }
 
-export type PackCliRunner = (args: readonly string[]) => Promise<PackCliResult>;
+export type PackCliRunner = (
+  args: readonly string[],
+  signal?: AbortSignal
+) => Promise<PackCliResult>;
+
+/**
+ * How long one pack CLI call may run. An install downloads packages, so this
+ * is generous, but a stalled npm must not hold the MCP call forever.
+ */
+export const PACK_CLI_TIMEOUT_MS = 15 * 60_000;
 
 /** `NODETOOL_CLI` overrides the `nodetool` executable found on PATH. */
 export function resolveNodetoolCli(env: NodeJS.ProcessEnv = process.env): string | null {
   return env["NODETOOL_CLI"] || findOnPath("nodetool", env);
 }
 
-export const runPackCli: PackCliRunner = (args) => {
+export const runPackCli: PackCliRunner = (args, signal) => {
   const cli = resolveNodetoolCli();
   if (!cli) {
     return Promise.reject(new Error(
@@ -39,14 +48,22 @@ export const runPackCli: PackCliRunner = (args) => {
     const child = spawn(cli, ["packs", ...args], {
       stdio: ["ignore", "pipe", "pipe"],
       env: { ...process.env, CI: "1" },
-      shell: process.platform === "win32"
+      shell: process.platform === "win32",
+      // A cancelled MCP call or a stalled install stops the child.
+      timeout: PACK_CLI_TIMEOUT_MS,
+      ...(signal && { signal })
     });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
     child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
     child.on("error", reject);
-    child.on("close", (code) => resolve({ code: code ?? 1, stdout, stderr }));
+    child.on("close", (code, killedBy) => {
+      if (killedBy && !signal?.aborted) {
+        stderr += `\nThe nodetool CLI was stopped (${killedBy}) after ${PACK_CLI_TIMEOUT_MS / 60_000} minutes.`;
+      }
+      resolve({ code: code ?? 1, stdout, stderr });
+    });
   });
 };
 
@@ -75,13 +92,14 @@ export function registerPackMcpTools(server: McpServer, run: PackCliRunner = run
       action: z.enum(["list", "why", "doctor"]),
       target: z.string().optional().describe("Node type or pack id; required for why.")
     },
-    async ({ action, target }) => {
+    async ({ action, target }, extra) => {
+      const signal = extra?.signal;
       try {
-        if (action === "list") { return response(await run(["list", "--json"])); }
-        if (action === "doctor") { return response(await run(["doctor", "--json"])); }
+        if (action === "list") { return response(await run(["list", "--json"], signal)); }
+        if (action === "doctor") { return response(await run(["doctor", "--json"], signal)); }
         if (!target) { throw new Error("why requires target."); }
         assertIds([target]);
-        return response(await run(["why", target]));
+        return response(await run(["why", target], signal));
       } catch (err) { return failure(err); }
     }
   );
@@ -94,13 +112,14 @@ export function registerPackMcpTools(server: McpServer, run: PackCliRunner = run
       action: z.enum(["add", "remove", "repair"]),
       ids: z.array(z.string()).optional().describe("Pack or runtime library ids; required for add and remove.")
     },
-    async ({ action, ids = [] }) => {
+    async ({ action, ids = [] }, extra) => {
+      const signal = extra?.signal;
       try {
-        if (action === "repair") { return response(await run(["doctor", "--repair", "--json"]), RESTART_NOTICE); }
+        if (action === "repair") { return response(await run(["doctor", "--repair", "--json"], signal), RESTART_NOTICE); }
         if (ids.length === 0) { throw new Error(`${action} requires ids.`); }
         assertIds(ids);
         const args = action === "add" ? ["add", ...ids, "--yes"] : ["remove", ...ids];
-        return response(await run(args), RESTART_NOTICE);
+        return response(await run(args, signal), RESTART_NOTICE);
       } catch (err) { return failure(err); }
     }
   );

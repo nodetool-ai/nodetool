@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerPackMcpTools, type PackCliRunner } from "../src/mcp-pack-tools.js";
 
-type Handler = (args: Record<string, unknown>) => Promise<{ content: Array<{ text: string }>; isError: boolean }>;
+type Handler = (args: Record<string, unknown>, extra?: { signal?: AbortSignal }) => Promise<{ content: Array<{ text: string }>; isError: boolean }>;
 
 function setup(code = 0) {
   const handlers = new Map<string, Handler>();
@@ -16,14 +16,14 @@ describe("pack MCP tools", () => {
   it("lists packs as JSON", async () => {
     const { handlers, run } = setup();
     const res = await handlers.get("inspect_packs")!({ action: "list" });
-    expect(run).toHaveBeenCalledWith(["list", "--json"]);
+    expect(run.mock.calls[0]?.[0]).toEqual(["list", "--json"]);
     expect(res.isError).toBe(false);
   });
 
   it("installs with --yes and returns the restart notice", async () => {
     const { handlers, run } = setup();
     const res = await handlers.get("manage_packs")!({ action: "add", ids: ["fal", "@nodetool-ai/x"] });
-    expect(run).toHaveBeenCalledWith(["add", "fal", "@nodetool-ai/x", "--yes"]);
+    expect(run.mock.calls[0]?.[0]).toEqual(["add", "fal", "@nodetool-ai/x", "--yes"]);
     expect(res.content[0].text).toContain("Restart");
   });
 
@@ -31,7 +31,7 @@ describe("pack MCP tools", () => {
     const { handlers, run } = setup();
     await handlers.get("manage_packs")!({ action: "remove", ids: ["fal"] });
     await handlers.get("manage_packs")!({ action: "repair" });
-    expect(run.mock.calls).toEqual([[["remove", "fal"]], [["doctor", "--repair", "--json"]]]);
+    expect(run.mock.calls.map((call) => call[0])).toEqual([["remove", "fal"], ["doctor", "--repair", "--json"]]);
   });
 
   it("rejects ids that look like flags", async () => {
@@ -51,5 +51,13 @@ describe("pack MCP tools", () => {
     const res = await handlers.get("manage_packs")!({ action: "add", ids: ["fal"] });
     expect(res.isError).toBe(true);
     expect(res.content[0].text).not.toContain("Restart");
+  });
+
+  it("passes the call's signal to the CLI run", async () => {
+    const { handlers, run } = setup();
+    const controller = new AbortController();
+    await handlers.get("manage_packs")!({ action: "add", ids: ["fal"] }, { signal: controller.signal });
+    await handlers.get("inspect_packs")!({ action: "doctor" }, { signal: controller.signal });
+    expect(run.mock.calls.map((call) => call[1])).toEqual([controller.signal, controller.signal]);
   });
 });

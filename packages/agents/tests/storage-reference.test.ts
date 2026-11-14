@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
+  assetUriForBareId,
   isStorageReference,
   ownedStorageReference
 } from "../src/capabilities/storage-reference.js";
@@ -34,6 +35,30 @@ describe("isStorageReference", () => {
     expect(isStorageReference("asset://x")).toBe(false);
     expect(isStorageReference("https://example.com/x.png")).toBe(false);
   });
+
+  it("names an http(s) URL whose path is the storage route, on any host", () => {
+    // The file storage adapter reads the key from these URLs.
+    expect(isStorageReference("https://evil.test/api/storage/u/x.png")).toBe(true);
+    expect(isStorageReference("http://localhost:7777/api/storage/x.png")).toBe(true);
+    expect(isStorageReference("HTTPS://evil.test/api/storage/x.png")).toBe(true);
+    // Parsed, as the adapter parses it: dot segments resolve first.
+    expect(isStorageReference("https://evil.test/a/../api/storage/x.png")).toBe(true);
+    expect(isStorageReference("https://evil.test/a/%2e%2e/api/storage/x.png")).toBe(true);
+    expect(isStorageReference("https://evil.test/v1/api/storage/x.png")).toBe(false);
+  });
+});
+
+describe("assetUriForBareId", () => {
+  it("turns a full or short asset id into an asset URI", () => {
+    expect(assetUriForBareId(OWN_ID)).toBe(`asset://${OWN_ID}`);
+    expect(assetUriForBareId(OWN_ID.slice(0, 12))).toBe(`asset://${OWN_ID.slice(0, 12)}`);
+  });
+
+  it("leaves anything else unchanged", () => {
+    for (const value of ["notes.txt", "abc", `asset://${OWN_ID}`, "/tmp/x.png", OWN_ID.slice(0, 20)]) {
+      expect(assetUriForBareId(value)).toBe(value);
+    }
+  });
 });
 
 describe("ownedStorageReference", () => {
@@ -45,6 +70,25 @@ describe("ownedStorageReference", () => {
     );
     expect(decision.ok).toBe(false);
     expect(lookups).toEqual([OTHER_ID]);
+  });
+
+  it("refuses another user's object named by an http(s) storage-route URL", async () => {
+    const { context, lookups } = contextOwning([OWN_ID]);
+    for (const value of [
+      `https://evil.test/api/storage/victim-user/${OTHER_ID}.png`,
+      `http://localhost:7777/api/storage/${OTHER_ID}.png?x=1`,
+      `https://evil.test/projects/p1/%2e%2e/%2e%2e/api/storage/${OTHER_ID}.png`
+    ]) {
+      expect((await ownedStorageReference(context, value, "p1")).ok).toBe(false);
+    }
+    expect(lookups).toEqual([OTHER_ID, OTHER_ID, OTHER_ID]);
+  });
+
+  it("rewrites an owned http(s) storage-route URL to its asset", async () => {
+    const { context } = contextOwning([OWN_ID]);
+    expect(
+      await ownedStorageReference(context, `https://x.test/api/storage/u/${OWN_ID}.png`)
+    ).toEqual({ ok: true, ref: `asset://${OWN_ID}` });
   });
 
   it("refuses a legacy flat key the user does not own", async () => {

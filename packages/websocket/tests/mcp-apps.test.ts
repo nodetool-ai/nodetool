@@ -289,6 +289,46 @@ describe("mini apps as MCP Apps", () => {
     expect(types).toEqual(["output_update", "job_update"]);
   });
 
+  it("drops a run nobody polls for 10 minutes without cancelling it", async () => {
+    // Its polls may be reaching another replica, which tells the page the run
+    // still finishes. Cancelling it here would make that untrue.
+    const application = await fixture();
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let runSignal: AbortSignal | undefined;
+    const runWorkflow = vi.fn(async (context: ProcessingContext): Promise<AppServerRunOutcome> => {
+      runSignal = context.signal;
+      await gate;
+      return {
+        rawMessages: [],
+        report: { surface: "server", ok: true, status: "completed", error: null, durationMs: 1, summary: {} as AppServerRunOutcome["report"]["summary"], trace: null }
+      };
+    });
+    const client = await connectMiniApps("owner", runWorkflow, { firstCallMs: 10, pollMs: 10 });
+    const opened = await openApp(client, application.id);
+    const first = payload(
+      await client.callTool({
+        name: "run_app_operation",
+        arguments: { instance_id: opened.instance_id, operation_id: "main", params: {} }
+      })
+    );
+    expect(first.done).toBe(false);
+    await vi.waitFor(() => expect(runSignal).toBeDefined());
+
+    const now = Date.now();
+    const clock = vi.spyOn(Date, "now").mockReturnValue(now + 11 * 60_000);
+    try {
+      const gone = await client.callTool({ name: "poll_app_run", arguments: { run_id: first.run_id, cursor: 0 } });
+      expect(gone.isError).toBe(true);
+      expect(runSignal?.aborted).toBe(false);
+    } finally {
+      clock.mockRestore();
+      release();
+    }
+  });
+
   it("tells the page a run it cannot find is gone", async () => {
     const client = await connectMiniApps("owner", vi.fn());
     const result = await client.callTool({ name: "poll_app_run", arguments: { run_id: "missing", cursor: 0 } });

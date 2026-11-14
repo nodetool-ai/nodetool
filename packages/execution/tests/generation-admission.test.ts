@@ -5,6 +5,7 @@ import { withGenerationAdmission } from "../src/generation-lifecycle.js";
 type AcceptInput = Parameters<NonNullable<GenerationLifecycleHooks["onGenerationAccepted"]>>[0];
 
 const input = {
+  generationId: "gen-1",
   request: { provider: "nodetool", capability: "text_to_image", model: "m" }
 } as unknown as AcceptInput;
 
@@ -35,9 +36,10 @@ describe("withGenerationAdmission", () => {
   });
 
   it("works with no hooks to wrap", async () => {
-    const admit = vi.fn(async () => {});
+    const admit = vi.fn(async (_request: unknown, _generationId: string) => {});
     const hooks = withGenerationAdmission({}, admit);
     await expect(hooks.onGenerationAccepted!(input)).resolves.toBeUndefined();
     expect(admit).toHaveBeenCalledOnce();
+    expect(admit).toHaveBeenCalledWith(input.request, "gen-1");
   });
 });

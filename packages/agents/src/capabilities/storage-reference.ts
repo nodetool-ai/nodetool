@@ -9,6 +9,7 @@
  * model runs it through {@link ownedStorageReference} first.
  */
 
+import { isFullResourceId, isShortResourceId } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 /** Schemes whose URI names a key in a storage bucket. */
@@ -18,15 +19,40 @@ const STORAGE_ROUTE = "/api/storage/";
 /** Keys `storeOrInline` writes when a run has no asset store: unguessable. */
 const SANDBOX_KEY = /^sandbox\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[A-Za-z0-9]{1,8}$/;
 
+/**
+ * The storage-route path of an http(s) URL, or null. The file storage adapter
+ * reads the key from such a URL whatever its host, and `loadMediaRefBytes`
+ * asks storage before it fetches, so this form reads a bucket key too. The
+ * URL is parsed rather than matched, because the adapter reads the parsed
+ * pathname, where `/x/../api/storage/` is already `/api/storage/`.
+ */
+export function storageRoutePathOfUrl(value: string): string | null {
+  if (!/^https?:/i.test(value)) return null;
+  let pathname: string;
+  try {
+    pathname = new URL(value).pathname;
+  } catch {
+    return null;
+  }
+  return pathname.startsWith(STORAGE_ROUTE) ? pathname : null;
+}
+
 /** Whether a reference reads a storage key directly rather than an asset row. */
 export function isStorageReference(value: string): boolean {
-  return value.startsWith(STORAGE_ROUTE) || STORAGE_SCHEME.test(value);
+  return (
+    value.startsWith(STORAGE_ROUTE) ||
+    STORAGE_SCHEME.test(value) ||
+    storageRoutePathOfUrl(value) !== null
+  );
 }
 
 /** The storage key a reference names, without query or fragment. */
 function storageKeyOf(value: string): string {
-  const path = value.startsWith(STORAGE_ROUTE)
-    ? value.slice(STORAGE_ROUTE.length)
+  const routePath = value.startsWith(STORAGE_ROUTE)
+    ? value
+    : storageRoutePathOfUrl(value);
+  const path = routePath
+    ? routePath.slice(STORAGE_ROUTE.length)
     : value.slice(value.indexOf("://") + 3);
   return path.split(/[?#]/)[0] ?? "";
 }
@@ -36,6 +62,17 @@ function assetIdOfKey(key: string): string | null {
   const base = key.slice(key.lastIndexOf("/") + 1);
   const id = base.replace(/_thumb(?=\.[^.]+$)/, "").replace(/\.[^.]+$/, "");
   return id || null;
+}
+
+/**
+ * `asset://<id>` for a bare asset id, full or 12-character short, and the
+ * value unchanged otherwise. Without the scheme a bare id reads as a relative
+ * filesystem path, and the owner-checked `asset://` resolution never runs.
+ */
+export function assetUriForBareId(value: string): string {
+  return isFullResourceId(value) || isShortResourceId(value)
+    ? `asset://${value}`
+    : value;
 }
 
 export type StorageReferenceDecision =

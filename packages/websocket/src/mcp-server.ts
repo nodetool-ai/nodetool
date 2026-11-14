@@ -512,8 +512,12 @@ function sweepIdleSessions(now: number): void {
   }
 }
 
-/** Close a user's oldest sessions until opening one more keeps them at the cap. */
-function evictOverflowForUser(userId: string): void {
+/**
+ * Close a user's oldest idle sessions until opening one more keeps them at the
+ * cap. Returns false when their busy sessions alone fill it: those are never
+ * closed, so the new session must be refused instead.
+ */
+function evictOverflowForUser(userId: string): boolean {
   const owned = [...sessionOwners]
     .filter(([sessionId, owner]) => owner === userId && !isSessionBusy(sessionId))
     .map(([sessionId]) => sessionId);
@@ -521,7 +525,7 @@ function evictOverflowForUser(userId: string): void {
     ([sessionId, owner]) => owner === userId && isSessionBusy(sessionId)
   ).length;
   const overflow = owned.length + busy - (MCP_MAX_SESSIONS_PER_USER - 1);
-  if (overflow <= 0) return;
+  if (overflow <= 0) return true;
   const oldestFirst = owned.sort(
     (a, b) => (sessionLastSeen.get(a) ?? 0) - (sessionLastSeen.get(b) ?? 0)
   );
@@ -532,6 +536,7 @@ function evictOverflowForUser(userId: string): void {
     });
     closeSession(sessionId);
   }
+  return owned.length >= overflow;
 }
 
 /** Close every open HTTP session. For shutdown, and for tests that need a
@@ -569,18 +574,26 @@ function sessionNotFound(): Response {
   return new Response("Session not found", { status: 404 });
 }
 
+const SERVER_SESSIONS_FULL_MESSAGE =
+  "This server is holding its maximum number of MCP sessions. " +
+  "Close an existing session with DELETE /mcp, or retry later.";
+
+const USER_SESSIONS_BUSY_MESSAGE =
+  `Every one of your ${MCP_MAX_SESSIONS_PER_USER} MCP sessions has a call ` +
+  "running. Wait for one to finish, or close one with DELETE /mcp, then retry.";
+
 /** Refusal for an initialize the mount has no room for. Retryable: an idle
- * session frees a slot on the next sweep. */
-function sessionsExhausted(): Response {
+ * session frees a slot on the next sweep, and a busy one when its call ends. */
+function sessionsExhausted(
+  message: string = SERVER_SESSIONS_FULL_MESSAGE
+): Response {
   return new Response(
     JSON.stringify({
       jsonrpc: "2.0",
       id: null,
       error: {
         code: -32002,
-        message:
-          "This server is holding its maximum number of MCP sessions. " +
-          "Close an existing session with DELETE /mcp, or retry later."
+        message
       }
     }),
     {
@@ -800,7 +813,12 @@ async function routeMcpHttpRequest(
     // refuses rather than evicting a stranger's live session.
     const ownerUserId = scoped.agentToolsScope.userId;
     if (!(sessionId && pendingRevivals.has(sessionId))) {
-      evictOverflowForUser(ownerUserId);
+      if (!evictOverflowForUser(ownerUserId)) {
+        log.warn("Refusing MCP session: user's sessions are all busy", {
+          cap: MCP_MAX_SESSIONS_PER_USER
+        });
+        return sessionsExhausted(USER_SESSIONS_BUSY_MESSAGE);
+      }
       if (sessionTransports.size >= MCP_MAX_SESSIONS) {
         log.warn("Refusing MCP session: server session cap reached", {
           cap: MCP_MAX_SESSIONS
