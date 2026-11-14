@@ -447,6 +447,23 @@ regeneration adds those enforcement entries without removing existing coverage.
 Scoped compiler enforcement passes. The final main-targeted gate must verify
 the regenerated configuration before M1 merges.
 
+## Native model schema reconciliation
+
+The final main integration run at `062cc5b125` passes the aggregate quality
+gate but fails `gr_context_tests` and `gr_models_tests` under ASan/UBSan.
+Both report a missing `branch_id` column. The production message model had
+advanced beyond the native guest repository's frozen baseline and compatibility
+migrations. This is a SQL schema failure in the model/context fixtures.
+
+The repository now adds the nullable `branch_id` and `branch_after` columns
+inside its existing preparation transaction, following the production
+`20261115_000000` migration. It preserves partially migrated columns and rows.
+Targeted real-SQLite checks cover fresh and partial schemas, existing values
+and repeated application. The native fixture also writes branch metadata and
+checks it after reopening. Current main is reconciled into the isolated
+integration branch. Full native and sanitizer CI must pass the correction
+before M1 merges. Hardware deferrals and unfinished issues remain open.
+
 ## Provisional progress gate
 
 The user accepts [WP09's scoped M1 evidence](https://github.com/nodetool-ai/nodetool/issues/7400)
