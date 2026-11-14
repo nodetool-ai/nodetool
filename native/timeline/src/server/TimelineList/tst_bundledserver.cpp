@@ -133,13 +133,16 @@ private slots:
         entry.close();
         QFile node(backend.filePath(QStringLiteral("runtime/node")));
         QVERIFY(node.open(QIODevice::WriteOnly));
+        // socketserver.TCPServer, not http.server.HTTPServer: HTTPServer's bind
+        // calls socket.getfqdn(), a reverse lookup that can take longer than the
+        // test waits on macOS runners.
         node.write("#!/bin/sh\n"
-                   "exec python3 -c 'import http.server, os\n"
+                   "exec python3 -c 'import http.server, os, socketserver\n"
                    "class H(http.server.BaseHTTPRequestHandler):\n"
                    "    def do_GET(self):\n"
                    "        self.send_response(200); self.end_headers(); self.wfile.write(b\"ok\")\n"
                    "    def log_message(self, *a): pass\n"
-                   "http.server.HTTPServer((\"127.0.0.1\", int(os.environ[\"PORT\"])), H).serve_forever()'\n");
+                   "socketserver.TCPServer((\"127.0.0.1\", int(os.environ[\"PORT\"])), H).serve_forever()'\n");
         node.close();
         QVERIFY(node.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner));
     }
