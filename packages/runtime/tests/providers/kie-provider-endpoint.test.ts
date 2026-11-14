@@ -3,6 +3,7 @@
  * direct routes, uploadMedia, downloadMedia and fetchBillingCost. `fetch` is
  * stubbed at the provider boundary, so nothing reaches the network.
  */
+import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { KieProvider } from "../../src/providers/kie-provider.js";
 import {
@@ -221,8 +222,26 @@ describe("KieProvider endpoint calls", () => {
       expect(calls.filter((c) => c.url.includes("recordInfo"))).toEqual([]);
     });
 
+    it("polls when KIE_WEBHOOK_URL is set but no callback secret is", async () => {
+      process.env.KIE_WEBHOOK_URL = "https://hooks.example.com/";
+      vi.stubEnv("KIE_WEBHOOK_SECRET", "");
+      vi.stubEnv("SECRETS_MASTER_KEY", "");
+      const calls = stubFetch([
+        ["/jobs/createTask", json({ code: 200, data: { taskId: "task-p" } })],
+        ["/jobs/recordInfo", recordInfo({ state: "success", creditsConsumed: 1 })]
+      ]);
+      await provider().callEndpoint({ model: "m", input: { prompt: "x" } });
+      expect(calls[0].body).toEqual({ model: "m", input: { prompt: "x" } });
+      expect(hasPendingWebhook("task-p")).toBe(false);
+      vi.unstubAllEnvs();
+    });
+
     it("waits for KIE's callback when KIE_WEBHOOK_URL is set", async () => {
       process.env.KIE_WEBHOOK_URL = "https://hooks.example.com/";
+      vi.stubEnv("KIE_WEBHOOK_SECRET", "hook-secret");
+      const token = createHmac("sha256", "hook-secret")
+        .update("nodetool:kie-webhook:v1")
+        .digest("hex");
       const calls = stubFetch([
         ["/jobs/createTask", json({ code: 200, data: { taskId: "task-w" } })],
         ["/jobs/recordInfo", recordInfo({ state: "success", creditsConsumed: 4 })]
@@ -232,10 +251,14 @@ describe("KieProvider endpoint calls", () => {
       await vi.waitFor(() => expect(hasPendingWebhook("task-w")).toBe(true));
       expect(calls[0].body).toEqual({
         model: "m",
-        input: { prompt: "x", callBackUrl: "https://hooks.example.com/api/kie/webhook" }
+        input: {
+          prompt: "x",
+          callBackUrl: `https://hooks.example.com/api/kie/webhook?token=${token}`
+        }
       });
       resolveWebhook("task-w");
       const result = await pending;
+      vi.unstubAllEnvs();
 
       expect(calls.map((c) => c.method)).toEqual(["POST", "GET", "GET"]);
       expect(result.metadata).toEqual({ creditsConsumed: 4 });

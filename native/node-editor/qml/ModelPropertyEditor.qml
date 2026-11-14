@@ -141,7 +141,7 @@ ColumnLayout {
             Ui.Text {
                 objectName: "model-label-" + root.descriptor.name
                 role: Ui.Typography.SansLabel
-                lineHeight: 1
+                tight: true
                 text: root.fieldText.label
                 tone: !button.enabled ? Ui.Text.Disabled : root.fieldText.active ? Ui.Text.Primary : Ui.Text.Secondary
                 elide: Text.ElideRight
@@ -154,7 +154,7 @@ ColumnLayout {
                 id: secondaryText
                 objectName: "model-secondary-" + root.descriptor.name
                 role: Ui.Typography.SansCaption
-                lineHeight: 1
+                tight: true
                 text: root.fieldText.secondary
                 visible: text !== ""
                 tone: Ui.Text.Secondary

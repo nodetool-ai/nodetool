@@ -20,12 +20,16 @@ import {
   writeFile,
   mkdir,
   lstat,
-  realpath,
-  stat
+  realpath
 } from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { CapabilityExport, CapabilityModule } from "./types.js";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import type { ProcessingContext, Workspace } from "@nodetool-ai/runtime";
+import type {
+  CapabilityExport,
+  CapabilityModule,
+  CapabilityRun
+} from "./types.js";
 import {
   extractPdfTextSpec,
   extractPdfTablesSpec,
@@ -33,12 +37,16 @@ import {
   convertMarkdownToPdfSpec,
   convertDocumentSpec
 } from "./documents.specs.js";
-import { isString } from "../utils/type-guards.js";
+import { isNonBlankString, isString } from "../utils/type-guards.js";
 import {
   MAX_HOST_INPUT_BYTES,
   importOptionalLibrary
 } from "../host-modules/limits.js";
 import { convertDocumentBytes } from "./document-conversion.js";
+import {
+  isStorageReference,
+  ownedStorageReference
+} from "./storage-reference.js";
 
 /**
  * True when `candidate`'s real (symlink-resolved) path stays within the real
@@ -101,6 +109,124 @@ async function assertWithinWorkspace(
   }
 }
 
+/**
+ * The run's workspace when no folder backs it: a cloud deployment's
+ * storage-backed workspace. `resolveWorkspacePath` needs a real directory and
+ * throws on one of these, so its files go through the `Workspace` interface.
+ */
+function virtualWorkspace(context: ProcessingContext): Workspace | null {
+  const workspace = context.workspace;
+  return workspace && workspace.localDir === null && !context.workspaceDir
+    ? workspace
+    : null;
+}
+
+/** True when the run has no workspace of any kind to write a file into. */
+function hasNoWorkspace(context: ProcessingContext): boolean {
+  return context.workspace == null && context.workspaceDir == null;
+}
+
+/**
+ * Whether a document argument names an asset or a stored file rather than a
+ * workspace path. A PDF attached in chat reaches the model as
+ * `asset://<id>.pdf`, and a cloud chat has no workspace folder to copy it to.
+ */
+function isAssetReference(value: string): boolean {
+  return value.startsWith("asset://") || isStorageReference(value);
+}
+
+/**
+ * Read a document argument: an `asset://` URI or storage key from the asset
+ * store (owner-checked), a file in a virtual workspace through the
+ * `Workspace` interface, or a file in a local workspace with the
+ * symlink-resolved containment check.
+ */
+async function readDocumentBytes(
+  run: CapabilityRun,
+  raw: unknown,
+  field: string
+): Promise<Uint8Array> {
+  if (!isNonBlankString(raw)) {
+    throw new Error(`${field} is required and must be a non-empty string.`);
+  }
+  const value = raw.trim();
+  const context = run.context;
+  if (isAssetReference(value)) {
+    const owned = await ownedStorageReference(context, value, run.projectId);
+    if (!owned.ok) throw new Error(owned.error);
+    const bytes = await loadMediaRefBytes({ uri: owned.ref }, context);
+    if (!bytes || bytes.byteLength === 0) {
+      throw new Error(
+        `${value} resolved to no bytes. Pass the asset:// URI of a file this user owns.`
+      );
+    }
+    return bytes;
+  }
+  const workspace = virtualWorkspace(context);
+  if (workspace) {
+    const bytes = await workspace.read(value);
+    if (!bytes) throw new Error(`File not found in the workspace: ${value}`);
+    return bytes;
+  }
+  if (hasNoWorkspace(context)) {
+    throw new Error(
+      `No workspace is assigned, so ${value} cannot be read as a file. ` +
+        `Pass the document's asset:// URI instead.`
+    );
+  }
+  const filePath = context.resolveWorkspacePath(value);
+  await assertWithinWorkspace(context, filePath);
+  return readFile(filePath);
+}
+
+/**
+ * Write a tool's output file into the workspace and return the path to report
+ * back, or null when the run has no workspace to write into.
+ */
+async function writeDocumentOutput(
+  context: ProcessingContext,
+  raw: string,
+  data: Uint8Array | string,
+  contentType: string
+): Promise<string | null> {
+  const workspace = virtualWorkspace(context);
+  if (workspace) {
+    const key = workspace.key(raw);
+    await workspace.write(key, data, contentType);
+    return key;
+  }
+  if (hasNoWorkspace(context)) return null;
+  const outputFile = context.resolveWorkspacePath(raw);
+  await assertWithinWorkspace(context, await nearestExisting(dirname(outputFile)));
+  await mkdir(dirname(outputFile), { recursive: true });
+  await assertWithinWorkspace(context, outputFile);
+  if (typeof data === "string") {
+    await writeFile(outputFile, data, "utf-8");
+  } else {
+    await writeFile(outputFile, data);
+  }
+  return outputFile;
+}
+
+/** `path`, or its closest ancestor that exists. */
+async function nearestExisting(path: string): Promise<string> {
+  let current = path;
+  for (;;) {
+    try {
+      await lstat(current);
+      return current;
+    } catch {
+      const parent = dirname(current);
+      if (parent === current) return current;
+      current = parent;
+    }
+  }
+}
+
+/** Why an output file was returned inline instead of written. */
+const NO_WORKSPACE_NOTE =
+  "No workspace is assigned, so output_file was not written. The result is returned inline.";
+
 interface PdfExtraction {
   /** Per-page text arrays (one entry per page). */
   pages: string[];
@@ -111,12 +237,12 @@ interface PdfExtraction {
  * Extract text from a PDF buffer using @llamaindex/liteparse.
  * Returns per-page text so callers can slice by page range.
  */
-async function extractPdfPages(buffer: Buffer): Promise<PdfExtraction> {
+async function extractPdfPages(buffer: Uint8Array): Promise<PdfExtraction> {
   const { LiteParse } = await importOptionalLibrary<
     typeof import("@llamaindex/liteparse")
   >("documents", "@llamaindex/liteparse", "pdf-js");
   const parser = new LiteParse({ ocrEnabled: false });
-  const result = await parser.parse(buffer, true);
+  const result = await parser.parse(Buffer.from(buffer), true);
   const pages = result.pages.map((p) => p.text);
   return { pages, numPages: result.pages.length };
 }
@@ -128,11 +254,8 @@ async function extractPdfPages(buffer: Buffer): Promise<PdfExtraction> {
 const extractPdfText: CapabilityExport = {
   spec: extractPdfTextSpec,
   impl: async (run, params) => {
-    const context = run.context;
     try {
-      const filePath = context.resolveWorkspacePath(params["path"] as string);
-      await assertWithinWorkspace(context, filePath);
-      const buffer = await readFile(filePath);
+      const buffer = await readDocumentBytes(run, params["path"], "path");
       const { pages } = await extractPdfPages(buffer);
 
       const startPage = (params["start_page"] as number) ?? 0;
@@ -158,14 +281,8 @@ const extractPdfText: CapabilityExport = {
 const extractPdfTables: CapabilityExport = {
   spec: extractPdfTablesSpec,
   impl: async (run, params) => {
-    const context = run.context;
     try {
-      const filePath = context.resolveWorkspacePath(params["path"] as string);
-      const outputFile = context.resolveWorkspacePath(
-        params["output_file"] as string
-      );
-      await assertWithinWorkspace(context, filePath);
-      const buffer = await readFile(filePath);
+      const buffer = await readDocumentBytes(run, params["path"], "path");
       const { pages } = await extractPdfPages(buffer);
 
       const startPage = (params["start_page"] as number) ?? 0;
@@ -208,12 +325,17 @@ const extractPdfTables: CapabilityExport = {
         }
       }
 
-      await assertWithinWorkspace(context, outputFile);
-      const parentDir = dirname(outputFile);
-      await mkdir(parentDir, { recursive: true });
-      await writeFile(outputFile, JSON.stringify(allTables), "utf-8");
-
-      return { output_file: outputFile };
+      const requested = params["output_file"];
+      if (!isNonBlankString(requested)) return { tables: allTables };
+      const outputFile = await writeDocumentOutput(
+        run.context,
+        requested,
+        JSON.stringify(allTables),
+        "application/json"
+      );
+      return outputFile === null
+        ? { tables: allTables, note: NO_WORKSPACE_NOTE }
+        : { output_file: outputFile };
     } catch (e) {
       return { error: String(e instanceof Error ? e.message : e) };
     }
@@ -227,17 +349,12 @@ const extractPdfTables: CapabilityExport = {
 const convertPdfToMarkdown: CapabilityExport = {
   spec: convertPdfToMarkdownSpec,
   impl: async (run, params) => {
-    const context = run.context;
     try {
-      const inputFile = context.resolveWorkspacePath(
-        params["input_file"] as string
+      const buffer = await readDocumentBytes(
+        run,
+        params["input_file"],
+        "input_file"
       );
-      const outputFile = context.resolveWorkspacePath(
-        params["output_file"] as string
-      );
-
-      await assertWithinWorkspace(context, inputFile);
-      const buffer = await readFile(inputFile);
       const { pages } = await extractPdfPages(buffer);
 
       const startPage = (params["start_page"] as number) ?? 0;
@@ -251,12 +368,17 @@ const convertPdfToMarkdown: CapabilityExport = {
         mdText = pages.join("\n");
       }
 
-      await assertWithinWorkspace(context, outputFile);
-      const parentDir = dirname(outputFile);
-      await mkdir(parentDir, { recursive: true });
-      await writeFile(outputFile, mdText, "utf-8");
-
-      return { output_file: outputFile };
+      const requested = params["output_file"];
+      if (!isNonBlankString(requested)) return { markdown: mdText };
+      const outputFile = await writeDocumentOutput(
+        run.context,
+        requested,
+        mdText,
+        "text/markdown"
+      );
+      return outputFile === null
+        ? { markdown: mdText, note: NO_WORKSPACE_NOTE }
+        : { output_file: outputFile };
     } catch (e) {
       return { error: String(e instanceof Error ? e.message : e) };
     }
@@ -267,55 +389,39 @@ const convertPdfToMarkdown: CapabilityExport = {
 // convert_markdown_to_pdf / convert_document
 // ---------------------------------------------------------------------------
 
-/** `path`, or its closest ancestor that exists. */
-async function nearestExisting(path: string): Promise<string> {
-  let current = path;
-  for (;;) {
-    try {
-      await lstat(current);
-      return current;
-    } catch {
-      const parent = dirname(current);
-      if (parent === current) return current;
-      current = parent;
-    }
-  }
-}
-
 /**
- * Read `input_file`, convert it in process, and write `output_file`. Both
- * paths are checked against the workspace after resolving symlinks, and the
- * output's closest existing ancestor is checked before any directory is made.
+ * Read `input_file`, convert it in process, and write `output_file` into the
+ * workspace. The input may also be an `asset://` URI.
  */
 async function convertWorkspaceFile(
-  context: ProcessingContext,
+  run: CapabilityRun,
   params: Record<string, unknown>,
   fromFormat: string,
   toFormat: string
 ): Promise<Record<string, unknown>> {
   try {
-    const inputFile = context.resolveWorkspacePath(
-      params["input_file"] as string
-    );
-    const outputFile = context.resolveWorkspacePath(
-      params["output_file"] as string
-    );
-    await assertWithinWorkspace(context, inputFile);
-    await assertWithinWorkspace(context, await nearestExisting(dirname(outputFile)));
-    const { size } = await stat(inputFile);
-    if (size > MAX_HOST_INPUT_BYTES) {
+    const input = await readDocumentBytes(run, params["input_file"], "input_file");
+    if (input.byteLength > MAX_HOST_INPUT_BYTES) {
       throw new Error(
-        `${params["input_file"]} is ${size} bytes; conversion accepts at most ${MAX_HOST_INPUT_BYTES}`
+        `${String(params["input_file"])} is ${input.byteLength} bytes; conversion accepts at most ${MAX_HOST_INPUT_BYTES}`
       );
     }
-    const output = await convertDocumentBytes(
-      await readFile(inputFile),
-      fromFormat,
-      toFormat
+    const output = await convertDocumentBytes(input, fromFormat, toFormat);
+    const requested = params["output_file"];
+    if (!isNonBlankString(requested)) {
+      throw new Error("output_file is required and must be a non-empty string.");
+    }
+    const outputFile = await writeDocumentOutput(
+      run.context,
+      requested,
+      output,
+      "application/octet-stream"
     );
-    await mkdir(dirname(outputFile), { recursive: true });
-    await assertWithinWorkspace(context, outputFile);
-    await writeFile(outputFile, output);
+    if (outputFile === null) {
+      throw new Error(
+        "No workspace is assigned, so the converted file has nowhere to go. Configure a workspace first."
+      );
+    }
     return { output_file: outputFile, status: "success" };
   } catch (e) {
     return { error: String(e instanceof Error ? e.message : e) };
@@ -325,14 +431,14 @@ async function convertWorkspaceFile(
 const convertMarkdownToPdf: CapabilityExport = {
   spec: convertMarkdownToPdfSpec,
   impl: async (run, params) =>
-    convertWorkspaceFile(run.context, params, "markdown", "pdf")
+    convertWorkspaceFile(run, params, "markdown", "pdf")
 };
 
 const convertDocument: CapabilityExport = {
   spec: convertDocumentSpec,
   impl: async (run, params) =>
     convertWorkspaceFile(
-      run.context,
+      run,
       params,
       isString(params["from_format"]) ? params["from_format"] : "markdown",
       isString(params["to_format"]) ? params["to_format"] : "pdf"

@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
@@ -10,6 +9,8 @@ Rectangle {
     readonly property bool hasDetails: controller.view === "trace" ? !!controller.focusedSpanId : !!controller.selectedLog.id
     signal closeRequested()
     signal askAgentRequested(string runId, string spanId)
+    // Report on an error opens a prefilled bug report: the source label and the error text.
+    signal reportRequested(string source, string text)
     color: Ui.Theme.surfacePanel
     implicitWidth: Ui.Metrics.dialogWidth
     implicitHeight: Ui.Metrics.comfortable * 14
@@ -39,19 +40,33 @@ Rectangle {
             Ui.EditorButton { objectName: "trace-view"; text: qsTr("Trace"); onClicked: root.controller.view = "trace" }
             Ui.EditorButton { objectName: "trace-logs"; text: qsTr("Logs"); onClicked: root.controller.view = "logs" }
         }
+        Ui.Banner {
+            objectName: "trace-error"
+            Layout.fillWidth: true
+            visible: root.controller.error !== ""
+            status: Ui.Status.Error
+            message: root.controller.error
+            retryable: true
+            reportable: true
+            onRetryRequested: root.controller.refresh()
+            onReportRequested: root.reportRequested(qsTr("Run trace error"), root.controller.error)
+        }
         Ui.Text {
             objectName: "trace-state"
             Layout.fillWidth: true
+            visible: root.controller.error === ""
             textFormat: Text.PlainText
             wrapMode: Text.Wrap
-            text: root.controller.error || (!root.controller.configured ? qsTr("Connect to a server to inspect stored runs.") : root.controller.runsLoading ? qsTr("Loading runs…") : !root.controller.selectedRunId ? qsTr("No stored runs for this workflow.") : root.plain(root.controller.summary.statusLabel) + " · " + root.plain(root.controller.summary.line))
+            text: (!root.controller.configured ? qsTr("Connect to a server to inspect stored runs.") : root.controller.runsLoading ? qsTr("Loading runs…") : !root.controller.selectedRunId ? qsTr("No stored runs for this workflow.") : root.plain(root.controller.summary.statusLabel) + " · " + root.plain(root.controller.summary.line))
         }
-        Ui.Text {
+        Ui.Banner {
+            objectName: "trace-run-failure"
             Layout.fillWidth: true
             visible: root.controller.summary.failureVisible === true
-            textFormat: Text.PlainText; wrapMode: Text.Wrap
-            tone: Ui.Text.Error
-            text: root.plain(root.controller.summary.failureTitle) + "\n" + root.plain(root.controller.summary.failureMessage)
+            status: Ui.Status.Error
+            message: root.plain(root.controller.summary.failureTitle) + "\n" + root.plain(root.controller.summary.failureMessage)
+            reportable: true
+            onReportRequested: root.reportRequested(qsTr("Job failure"), message)
         }
         RowLayout {
             Layout.fillWidth: true
@@ -85,7 +100,7 @@ Rectangle {
             columns: width >= Ui.Metrics.dialogWidth * 1.5 && root.hasDetails ? 2 : 1
             rowSpacing: Ui.Metrics.md
             columnSpacing: Ui.Metrics.xl
-        Basic.ScrollView {
+        Ui.ScrollArea {
             id: viewport
             objectName: root.controller.view === "trace" ? "trace-list-scroll" : "trace-span-list-scroll"
             visible: root.controller.view === "trace"
@@ -99,8 +114,6 @@ Rectangle {
                 (root.controller.serverSpans.length ? Ui.Metrics.compact + Math.min(root.controller.serverSpans.length, 3) * Ui.Metrics.standard + Ui.Metrics.xs : 0)
                 + (root.controller.browserSpans.length ? Ui.Metrics.compact + Math.min(root.controller.browserSpans.length, 3) * Ui.Metrics.standard + Ui.Metrics.xs : 0)
                 + Ui.Metrics.md) : inspection.height / 2
-            clip: true
-            contentWidth: availableWidth
             ColumnLayout {
                 width: viewport.availableWidth
                 spacing: Ui.Metrics.sm
@@ -173,6 +186,7 @@ Rectangle {
             visible: root.controller.view === "trace" && !!root.controller.focusedSpanId
             controller: root.controller
             onAskAgentRequested: (runId, spanId) => root.askAgentRequested(runId, spanId)
+            onReportRequested: (source, text) => root.reportRequested(source, text)
         }
         TraceLogDetails {
             id: logDetails

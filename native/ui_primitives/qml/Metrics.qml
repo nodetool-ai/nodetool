@@ -24,6 +24,9 @@ QtObject {
     readonly property real standard: 32 * Theme.uiScale
     readonly property real small: 24 * Theme.uiScale
     readonly property real comfortable: 36 * Theme.uiScale
+    // Node editor inspector field: horizontal text inset and row height.
+    readonly property real nodeFieldPadding: 10 * Theme.uiScale
+    readonly property real nodeFieldHeight: 34 * Theme.uiScale
     readonly property real touch: 44 * Theme.uiScale
     readonly property real iconXs: 14 * Theme.uiScale
     readonly property real iconSm: 16 * Theme.uiScale

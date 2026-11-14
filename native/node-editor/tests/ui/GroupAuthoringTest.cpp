@@ -2,6 +2,11 @@
 #include "graph/EditorScene.h"
 #include "graph/WorkflowGraphModel.h"
 #include <QPainter>
+#include <QContextMenuEvent>
+#include <QSignalSpy>
+#include <QScopeGuard>
+#include <QFile>
+#include <QJsonDocument>
 #include <QSettings>
 #include <QGraphicsView>
 #include <QInputDialog>
@@ -295,7 +300,8 @@ private slots:
       if (static_cast<WorkflowGraphModel &>(model).resourceId(nodeId) == group) { frame = window.scene()->nodeGraphicsObject(nodeId); }
     }
     QVERIFY(frame);
-    const auto start = view->mapFromScene(frame->scenePos() + QPointF(10, 10));
+    // GroupNode.tsx drags a group by its label. Its body lets the pointer through.
+    const auto start = view->mapFromScene(window.scene()->groupLabelRect(frame->nodeId(), std::abs(view->transform().m11())).center());
     QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
     QTest::mouseMove(view->viewport(), start + QPoint(60, 35), 30);
     QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, start + QPoint(60, 35));
@@ -513,6 +519,287 @@ private slots:
     // A point inside the frame, clear of the card and the label: the frame's fill is lighter at full opacity.
     QVERIFY(hovered.pixelColor(110, 30) != plain.pixelColor(110, 30));
     QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, start + QPoint(0, 300));
+  }
+
+  // Real cards from the window parity fixture: Ctrl-click three cards, Ctrl+G
+  // draws a frame around them, and dragging the frame's label moves the frame,
+  // its cards and their wires together as one undo step.
+  void groupingRealCardsDrawsAFrameAndDraggingMovesIt() {
+    QFile file(QStringLiteral(WINDOW_PARITY_FIXTURE));
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const auto data = QJsonDocument::fromJson(file.readAll()).object();
+    EditorWindow window;
+    window.resize(1440, 900);
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    window.setCatalog(data["metadata"].toArray());
+    QVERIFY(window.document()->load(data["workflow"].toObject()).ok);
+    if (window.catalogVisible()) { window.action(QStringLiteral("Toggle nodes")); }
+    QTest::qWait(100);
+    window.fit();
+    QTest::qWait(150);
+    auto *view = window.findChild<QGraphicsView *>();
+    auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+    const auto capture = qEnvironmentVariable("NODETOOL_GROUP_CAPTURE_DIR");
+    const auto save = [&](const QString &name) {
+      if (capture.isEmpty()) { return; }
+      QDir().mkpath(capture);
+      QVERIFY(window.grab().save(capture + "/" + name + ".png"));
+    };
+    save("real-1-before");
+    const QStringList members{"prompt", "generate", "agent"};
+    // A card's header: the pointer selects the card, Ctrl adds it to the selection.
+    const auto header = [&](const QString &id) {
+      auto *item = itemFor(window, id);
+      return view->mapFromScene(item->scenePos() + QPointF(model.layout(item->nodeId()).size.width() / 2.0, 12));
+    };
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, header(members[0]));
+    for (int i = 1; i < members.size(); ++i) { QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::ControlModifier, header(members[i])); }
+    for (const auto &id : members) { QVERIFY2(itemFor(window, id)->isSelected(), qPrintable(id)); }
+    view->setFocus();
+    QTest::keyClick(view, Qt::Key_G, Qt::ControlModifier);
+    QTRY_VERIFY(!window.document()->node("prompt")["parent_id"].toString().isEmpty());
+    const auto group = window.document()->node("prompt")["parent_id"].toString();
+    for (const auto &id : members) { QCOMPARE(window.document()->node(id)["parent_id"].toString(), group); }
+    QVERIFY(window.document()->node("subject")["parent_id"].toString().isEmpty());
+    QTest::qWait(100);
+    // The frame encloses every member card and is drawn behind them.
+    auto *frame = itemFor(window, group);
+    QVERIFY(frame);
+    const QRectF bounds(frame->scenePos(), model.layout(frame->nodeId()).size);
+    for (const auto &id : members) {
+      auto *item = itemFor(window, id);
+      QVERIFY2(bounds.contains(QRectF(item->scenePos(), model.layout(item->nodeId()).size)), qPrintable(id));
+      QVERIFY(frame->zValue() < item->zValue());
+    }
+    // The frame paints: a point inside it, clear of every card, differs from the empty canvas.
+    QPointF empty = bounds.bottomLeft() + QPointF(8, -8);
+    const auto pixel = view->mapFromScene(empty);
+    QVERIFY(view->grab().toImage().pixelColor(pixel) != window.scene()->theme().canvas);
+    save("real-2-grouped");
+    const auto zoom = std::abs(view->transform().m11());
+    QHash<QString, QPointF> before;
+    for (const auto &id : QStringList{group, "prompt", "generate", "agent", "subject"}) { before[id] = absolute(window, id); }
+    const auto undoIndex = window.document()->undoStack()->index();
+    const auto start = view->mapFromScene(window.scene()->groupLabelRect(frame->nodeId(), zoom).center());
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    for (int step = 1; step <= 6; ++step) { QTest::mouseMove(view->viewport(), start + QPoint(25, 20) * step, 15); }
+    save("real-3-dragging");
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, start + QPoint(150, 120));
+    const QPointF delta(150 / zoom, 120 / zoom);
+    for (const auto &id : QStringList{group, "prompt", "generate", "agent"}) {
+      QTRY_VERIFY2(QLineF(absolute(window, id), before[id] + delta).length() < 1.5, qPrintable(id));
+    }
+    QCOMPARE(absolute(window, "subject"), before["subject"]);
+    // Children keep their positions relative to the group in the document.
+    QTRY_COMPARE(window.document()->undoStack()->index(), undoIndex + 1);
+    QCOMPARE(relative(window, "prompt") + absolute(window, group), absolute(window, "prompt"));
+    QTest::qWait(100);
+    // The moved frame still draws behind its cards.
+    for (const auto &id : members) { QVERIFY2(frame->zValue() < itemFor(window, id)->zValue(), qPrintable(id)); }
+    save("real-4-moved");
+    window.action("Undo");
+    for (const auto &id : QStringList{group, "prompt", "generate", "agent"}) { QTRY_COMPARE(absolute(window, id), before[id]); }
+    // React Flow expandParent: a card dragged past the frame stays in the group,
+    // which grows to hold it. Past the top-left the frame moves and its other
+    // cards keep their canvas place. Each drag is one undo step.
+    const auto frameRect = [&] { return QRectF(absolute(window, group), model.layout(itemFor(window, group)->nodeId()).size); };
+    const auto cardRect = [&](const QString &id) { return QRectF(absolute(window, id), model.layout(itemFor(window, id)->nodeId()).size); };
+    const auto dragCard = [&](const QString &id, const QPoint &by) {
+      window.scene()->clearSelection();
+      const auto from = header(id);
+      QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, from);
+      for (int step = 1; step <= 6; ++step) { QTest::mouseMove(view->viewport(), from + by * step / 6, 15); }
+      QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, from + by);
+      QTest::qWait(60);
+    };
+    const auto steps = window.document()->undoStack()->index();
+    dragCard("agent", QPoint(int(120 * zoom), int(260 * zoom)));
+    QTRY_COMPARE(window.document()->undoStack()->index(), steps + 1);
+    QCOMPARE(window.document()->node("agent")["parent_id"].toString(), group);
+    QTRY_VERIFY(frameRect().contains(cardRect("agent")));
+    QCOMPARE(absolute(window, group), before[group]);
+    const auto generate = absolute(window, "generate");
+    dragCard("prompt", QPoint(int(-120 * zoom), int(-160 * zoom)));
+    QTRY_COMPARE(window.document()->undoStack()->index(), steps + 2);
+    QCOMPARE(window.document()->node("prompt")["parent_id"].toString(), group);
+    QTRY_VERIFY(frameRect().contains(cardRect("prompt")));
+    QVERIFY(frameRect().contains(cardRect("agent")));
+    QCOMPARE(absolute(window, "generate"), generate);
+    QCOMPARE(relative(window, "generate") + absolute(window, group), generate);
+    QTest::qWait(100);
+    save("real-5-expanded");
+    window.action("Undo");
+    window.action("Undo");
+    for (const auto &id : QStringList{group, "prompt", "generate", "agent"}) { QTRY_COMPARE(absolute(window, id), before[id]); }
+  }
+
+  // GroupNode.tsx shows how to take cards out once a dragged card has stayed over the group for a second.
+  void dropHintShowsAfterASecondOverTheGroup() {
+    EditorWindow window;
+    loadDropFixture(window, false);
+    auto *view = window.findChild<QGraphicsView *>();
+    const auto start = pointOn(window, "card");
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    const auto target = view->mapFromScene(QPointF(260, 150));
+    for (int step = 1; step <= 8; ++step) { QTest::mouseMove(view->viewport(), start + (target - start) * step / 8, 15); }
+    QCOMPARE(window.scene()->dropGroup(), itemFor(window, "frame")->nodeId());
+    QVERIFY(!window.scene()->dropHintVisible());
+    // The box sits above the frame: the canvas there changes once the hint shows.
+    const auto above = view->mapFromScene(QPointF(150, -60));
+    const auto before = view->grab().toImage().pixelColor(above);
+    QTRY_VERIFY_WITH_TIMEOUT(window.scene()->dropHintVisible(), 2000);
+    view->viewport()->repaint();
+    QVERIFY(view->grab().toImage().pixelColor(above) != before);
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, target);
+    QVERIFY(!window.scene()->dropHintVisible());
+  }
+
+  // GroupNode.tsx sets pointer-events: none on the group body. A press there
+  // starts a box selection, and the box takes the cards it touches but not the
+  // group it does not enclose.
+  void groupBodyPressStartsABoxSelection() {
+    // Trackpad navigation draws a box on a pane drag. Mouse navigation pans instead.
+    QSettings().setValue("canvas/navigation", "trackpad");
+    const auto restore = qScopeGuard([] { QSettings().remove("canvas/navigation"); });
+    EditorWindow window;
+    loadDropFixture(window, true);
+    auto *view = window.findChild<QGraphicsView *>();
+    const auto frame = itemFor(window, "frame"), card = itemFor(window, "card");
+    const auto position = absolute(window, "frame");
+    const auto start = view->mapFromScene(QPointF(260, 210)), end = view->mapFromScene(QPointF(120, 110));
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    for (int step = 1; step <= 6; ++step) { QTest::mouseMove(view->viewport(), start + (end - start) * step / 6, 15); }
+    QVERIFY(!view->rubberBandRect().isNull());
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+    QTest::qWait(30);
+    QVERIFY(card->isSelected());
+    QVERIFY(!frame->isSelected());
+    QCOMPARE(absolute(window, "frame"), position);
+    QCOMPARE(window.document()->undoStack()->index(), 0);
+    // A click on the body is a click on the pane: it clears the selection.
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    QTRY_VERIFY(!card->isSelected());
+    QVERIFY(!frame->isSelected());
+  }
+
+  // With mouse navigation a pane drag pans the canvas, and so does a drag on a group body.
+  void groupBodyDragPansWithMouseNavigation() {
+    QSettings().setValue("canvas/navigation", "mouse");
+    const auto restore = qScopeGuard([] { QSettings().remove("canvas/navigation"); });
+    EditorWindow window;
+    loadDropFixture(window, true);
+    auto *view = window.findChild<QGraphicsView *>();
+    const auto position = absolute(window, "frame");
+    const auto start = view->mapFromScene(QPointF(260, 210));
+    const auto before = view->mapToScene(start);
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    for (int step = 1; step <= 4; ++step) { QTest::mouseMove(view->viewport(), start + QPoint(-20, -10) * step, 15); }
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, start + QPoint(-80, -40));
+    QTest::qWait(30);
+    QVERIFY(view->mapToScene(start) != before);
+    QCOMPARE(absolute(window, "frame"), position);
+    QVERIFY(!itemFor(window, "frame")->isSelected());
+  }
+
+  // useSelectionEvents.ts selectGroupsWithinSelection: a box that encloses the frame selects the group.
+  void boxEnclosingTheGroupSelectsIt() {
+    QSettings().setValue("canvas/navigation", "trackpad");
+    const auto restore = qScopeGuard([] { QSettings().remove("canvas/navigation"); });
+    EditorWindow window;
+    loadDropFixture(window, true);
+    auto *view = window.findChild<QGraphicsView *>();
+    // A box from the pane that touches the card but not the whole frame leaves the group out.
+    const auto start = view->mapFromScene(QPointF(-40, -80)), partial = view->mapFromScene(QPointF(120, 110));
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    for (int step = 1; step <= 6; ++step) { QTest::mouseMove(view->viewport(), start + (partial - start) * step / 6, 15); }
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, partial);
+    QTest::qWait(30);
+    QVERIFY(itemFor(window, "card")->isSelected());
+    QVERIFY(!itemFor(window, "frame")->isSelected());
+    const auto end = view->mapFromScene(QPointF(330, 270));
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
+    for (int step = 1; step <= 6; ++step) { QTest::mouseMove(view->viewport(), start + (end - start) * step / 6, 15); }
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, end);
+    QTest::qWait(30);
+    QVERIFY(itemFor(window, "frame")->isSelected());
+    QVERIFY(itemFor(window, "card")->isSelected());
+  }
+
+  // GroupNode.tsx: with Alt held, a group that holds a selected card dims to
+  // half opacity and its body selects and drags it.
+  void altMakesTheGroupOfASelectedCardTakeThePointer() {
+    EditorWindow window;
+    loadDropFixture(window, true);
+    auto *view = window.findChild<QGraphicsView *>();
+    auto *scene = window.scene();
+    const auto frame = itemFor(window, "frame");
+    const auto body = view->mapFromScene(QPointF(260, 210));
+    view->setFocus();
+    // Alt without a selected child changes nothing.
+    QTest::keyPress(view, Qt::Key_Alt);
+    QVERIFY(!scene->groupTakesPointer(frame->nodeId()));
+    QCOMPARE(scene->groupOpacity(frame->nodeId()), 1.0);
+    QVERIFY(window.selectNode("card"));
+    QVERIFY(scene->groupTakesPointer(frame->nodeId()));
+    QCOMPARE(scene->groupOpacity(frame->nodeId()), 0.5);
+    QTest::keyRelease(view, Qt::Key_Alt);
+    QVERIFY(!scene->groupTakesPointer(frame->nodeId()));
+    QCOMPARE(scene->groupOpacity(frame->nodeId()), 1.0);
+    const auto position = absolute(window, "frame");
+    const auto card = absolute(window, "card");
+    QTest::keyPress(view, Qt::Key_Alt);
+    QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::AltModifier, body);
+    QVERIFY(frame->isSelected());
+    for (int step = 1; step <= 4; ++step) { QTest::mouseMove(view->viewport(), body + QPoint(10, 8) * step, 15); }
+    QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::AltModifier, body + QPoint(40, 32));
+    QTest::keyRelease(view, Qt::Key_Alt);
+    QTRY_COMPARE(absolute(window, "frame"), position + QPointF(40, 32));
+    QCOMPARE(absolute(window, "card"), card + QPointF(40, 32));
+  }
+
+  // ReactFlowWrapper.tsx selectGroupFromLabel: Shift adds the group to the
+  // selection or takes it out, and a plain click selects the group alone.
+  void labelClickTogglesWithShiftAndSelectsAlone() {
+    EditorWindow window;
+    loadDropFixture(window, true);
+    auto *view = window.findChild<QGraphicsView *>();
+    auto *scene = window.scene();
+    const auto frame = itemFor(window, "frame"), card = itemFor(window, "card");
+    const auto label = scene->groupLabelRect(frame->nodeId(), std::abs(view->transform().m11()));
+    // The label is as wide as its text, so the header beyond it is not the label.
+    QVERIFY(label.width() < 150);
+    const auto point = view->mapFromScene(label.center());
+    QVERIFY(window.selectNode("card"));
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::ShiftModifier, point);
+    QVERIFY(frame->isSelected());
+    QVERIFY(card->isSelected());
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::ShiftModifier, point);
+    QVERIFY(!frame->isSelected());
+    QVERIFY(card->isSelected());
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::ShiftModifier, point);
+    QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+    QVERIFY(frame->isSelected());
+    QVERIFY(!card->isSelected());
+  }
+
+  // A right-click on the group body opens the pane menu, on the label the group menu.
+  void rightClickOnTheBodyReachesThePane() {
+    EditorWindow window;
+    loadDropFixture(window, true);
+    auto *view = window.findChild<QGraphicsView *>();
+    auto *scene = window.scene();
+    QSignalSpy menus(scene, &EditorScene::canvasContextMenuRequested);
+    const auto body = view->mapFromScene(QPointF(260, 210));
+    QContextMenuEvent onBody(QContextMenuEvent::Mouse, body, view->viewport()->mapToGlobal(body));
+    QApplication::sendEvent(view->viewport(), &onBody);
+    QCOMPARE(menus.size(), 1);
+    QCOMPARE(menus.at(0).at(0).toString(), QString());
+    const auto label = view->mapFromScene(scene->groupLabelRect(itemFor(window, "frame")->nodeId(), std::abs(view->transform().m11())).center());
+    QContextMenuEvent onLabel(QContextMenuEvent::Mouse, label, view->viewport()->mapToGlobal(label));
+    QApplication::sendEvent(view->viewport(), &onLabel);
+    QCOMPARE(menus.size(), 2);
+    QCOMPARE(menus.at(1).at(0).toString(), QString("frame"));
   }
 };
 QTEST_MAIN(GroupAuthoringTest)

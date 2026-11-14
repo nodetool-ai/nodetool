@@ -655,7 +655,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "1️⃣ Video topic",
+              "title": "1 Video topic",
               "selectable": true,
               "bypassed": false
             },
@@ -678,7 +678,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "2️⃣ Target audience",
+              "title": "2 Target audience",
               "selectable": true,
               "bypassed": false
             },
@@ -703,7 +703,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "3️⃣ How many hooks",
+              "title": "3 How many hooks",
               "selectable": true,
               "bypassed": false
             },
@@ -724,7 +724,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "🖼️ Thumbnail gallery",
+              "title": "Thumbnail gallery",
               "selectable": true,
               "bypassed": false
             },
@@ -746,7 +746,7 @@
               "zIndex": 0,
               "width": 360,
               "height": 300,
-              "title": "🪝 Hook ideas",
+              "title": "Hook ideas",
               "selectable": true,
               "bypassed": false
             },
@@ -768,7 +768,7 @@
               "zIndex": 0,
               "width": 360,
               "height": 320,
-              "title": "🖼️ Latest thumbnail",
+              "title": "Latest thumbnail",
               "selectable": true,
               "bypassed": false
             },

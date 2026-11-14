@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
@@ -42,11 +41,9 @@ Rectangle {
         function onWorkflowOpened() { root.lastError = "" }
         function onStateChanged() { if ((!root.bound && !root.conflicted) || root.serverState === "saved" || root.serverState === "reloaded") root.lastError = "" }
     }
-    Basic.ScrollView {
+    Ui.ScrollArea {
         anchors.fill: parent
         anchors.margins: Ui.Metrics.xl
-        clip: true
-        contentWidth: availableWidth
         ColumnLayout {
             id: content
             width: parent.width
@@ -107,13 +104,11 @@ Rectangle {
                     Layout.preferredWidth: 1
                     Layout.minimumWidth: 0
                     Ui.Text { text: "Local draft"; role: Ui.Typography.SansLabel }
-                    Basic.ScrollView {
+                    Ui.ScrollArea {
                         id: localScroll
                         objectName: "server-sync-local-scroll"
                         Layout.fillWidth: true
                         Layout.preferredHeight: Ui.Metrics.comfortable * 5
-                        clip: true
-                        contentWidth: availableWidth
                         Ui.TextArea {
                             width: localScroll.availableWidth
                             objectName: "server-sync-local"
@@ -130,13 +125,11 @@ Rectangle {
                     Layout.preferredWidth: 1
                     Layout.minimumWidth: 0
                     Ui.Text { text: "Server version"; role: Ui.Typography.SansLabel }
-                    Basic.ScrollView {
+                    Ui.ScrollArea {
                         id: remoteScroll
                         objectName: "server-sync-remote-scroll"
                         Layout.fillWidth: true
                         Layout.preferredHeight: Ui.Metrics.comfortable * 5
-                        clip: true
-                        contentWidth: availableWidth
                         Ui.TextArea {
                             width: remoteScroll.availableWidth
                             objectName: "server-sync-remote"

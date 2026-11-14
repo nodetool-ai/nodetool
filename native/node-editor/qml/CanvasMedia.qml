@@ -102,11 +102,11 @@ Item {
             anchors.margins: Ui.Metrics.xs
             spacing: Ui.Metrics.xs
             Ui.Text { visible: root.actionStatus.length > 0; text: root.actionStatus; role: Ui.Typography.SansCaption }
-            NodeButton { objectName: "preview-download"; text: "Download"; accessibleName: "Download preview output"; variant: NodeButton.Flat; enabled: root.actionText.length > 0
+            Ui.EditorButton { objectName: "preview-download"; text: "Download"; accessibleName: "Download preview output"; variant: Ui.EditorButton.Outlined; flat: true; enabled: root.actionText.length > 0
                 onClicked: { root.actionStatus = ""; downloadDialog.selectedFile = downloadDialog.currentFolder.toString() + "/" + root.actionName(); downloadDialog.open() } }
-            NodeButton { objectName: "preview-add-assets"; text: "Add to assets"; accessibleName: "Add preview output to assets"; variant: NodeButton.Flat; enabled: root.actionText.length > 0
+            Ui.EditorButton { objectName: "preview-add-assets"; text: "Add to assets"; accessibleName: "Add preview output to assets"; variant: Ui.EditorButton.Outlined; flat: true; enabled: root.actionText.length > 0
                 onClicked: { root.actionStatus = ""; if (root.resolver) root.resolver.saveTextToAssets(root.requestKey, root.actionText, root.actionName(), root.jsonOutput ? "application/json" : "text/plain") } }
-            NodeButton { objectName: "preview-copy"; text: "Copy"; accessibleName: "Copy preview output"; variant: NodeButton.Flat; enabled: root.actionText.length > 0
+            Ui.EditorButton { objectName: "preview-copy"; text: "Copy"; accessibleName: "Copy preview output"; variant: Ui.EditorButton.Outlined; flat: true; enabled: root.actionText.length > 0
                 onClicked: root.actionStatus = clipboard.copyText(root.actionText) ? "Copied!" : "Could not copy the output" }
         }
     }

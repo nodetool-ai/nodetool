@@ -10856,6 +10856,8 @@
       "queuedCount_one": "{{count}} in coda",
       "queuedCount_other": "{{count}} in coda",
       "collapseQueue": "Comprimi la coda",
+      "moveQueue": "Sposta coda",
+      "moveQueueHint": "Trascina per spostarla. Le frecce la spostano, Home la ripristina.",
       "enqueued": "In coda",
       "jobsRunning_many": "Lavori {{count}} in esecuzione",
       "queuedCount_many": "{{count}} in coda"

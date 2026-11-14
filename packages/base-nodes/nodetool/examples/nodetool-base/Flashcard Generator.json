@@ -22,7 +22,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🃏 Flashcard Generator\n\nEnter a topic and get study flashcards as structured front, back and category rows, plus the same deck in study order with a review schedule.\n\n**How it works:** \"Topic\" and \"Card count\" (5 by default, 3 to 15) fill \"Build prompt\". \"Generate flashcards\" is a DataGenerator that returns rows with front, back and category columns, shown raw in \"Flashcards\". The Code node \"Turn the cards into a study plan\" drops repeated questions, deals one card from each category in turn, and stamps each card with Leitner review days 0, 2 and 5. \"The deck in study order\" shows the result. The Code step runs locally, but \"Generate flashcards\" needs a language model picked.\n\n**Try this:** Set \"Card count\" to 12 and compare the two outputs. \"Flashcards\" keeps the model's order, while \"The deck in study order\" alternates categories and drops any duplicate fronts."
+          "comment": "# Flashcard Generator\n\nEnter a topic and get study flashcards as structured front, back and category rows, plus the same deck in study order with a review schedule.\n\n**How it works:** \"Topic\" and \"Card count\" (5 by default, 3 to 15) fill \"Build prompt\". \"Generate flashcards\" is a DataGenerator that returns rows with front, back and category columns, shown raw in \"Flashcards\". The Code node \"Turn the cards into a study plan\" drops repeated questions, deals one card from each category in turn, and stamps each card with Leitner review days 0, 2 and 5. \"The deck in study order\" shows the result. The Code step runs locally, but \"Generate flashcards\" needs a language model picked.\n\n**Try this:** Set \"Card count\" to 12 and compare the two outputs. \"Flashcards\" keeps the model's order, while \"The deck in study order\" alternates categories and drops any duplicate fronts."
         },
         "ui_properties": {
           "selected": false,
@@ -56,7 +56,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "1️⃣ Topic"
+          "title": "1 Topic"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -81,7 +81,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "2️⃣ Card count"
+          "title": "2 Card count"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -102,7 +102,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "3️⃣ Build prompt"
+          "title": "3 Build prompt"
         },
         "dynamic_properties": {
           "TOPIC": "Python Programming",
@@ -151,7 +151,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "4️⃣ Generate flashcards"
+          "title": "4 Generate flashcards"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -177,7 +177,7 @@
           "zIndex": 0,
           "width": 320,
           "selectable": true,
-          "title": "5️⃣ Turn the cards into a study plan"
+          "title": "5 Turn the cards into a study plan"
         },
         "dynamic_properties": {
           "cards": ""
@@ -226,7 +226,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "6️⃣ The deck in study order"
+          "title": "6 The deck in study order"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}

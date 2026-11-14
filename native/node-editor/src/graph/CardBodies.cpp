@@ -1,4 +1,6 @@
 #include "CardBodies.h"
+#include "CardMedia.h"
+#include "ModelLabels.h"
 #include "CompositorGeometry.h"
 #include "SynthModules.h"
 #include <QFont>
@@ -1595,6 +1597,263 @@ void layoutCrop(NodeLayout &layout, const CardBodyInput &input) {
 }
 } // namespace
 
+namespace {
+// ExtractVideoFrameBody.tsx: a 320 by 380 card whose preview fills the space
+// above a 24 px transport row and the Time / Frame / Timecode footer, each
+// value 12 px under its eyebrow. The time box is the web's 76 px frame field.
+constexpr int videoFrameWidth = 320;
+constexpr int videoFrameHeight = 380;
+constexpr double videoFieldWidth = 76;
+constexpr double videoFieldGap = 8;
+// ListGeneratorBody.tsx (340 px) and CollectionBody.tsx (320 px): 8 px body
+// padding, a 21 px header row and 6 px gaps. A list row pads its 18 px index
+// badge 6 px, and an expanded item shows at most 240 px of its text.
+constexpr int listGeneratorHeight = 340;
+constexpr int collectionHeight = 320;
+constexpr double listPadding = 8;
+constexpr double listGap = 6;
+constexpr double listHeaderHeight = 21;
+constexpr double listBadge = 18;
+constexpr double listRowHeight = 30;
+constexpr double listItemMaximum = 240;
+constexpr double listEmptyHeight = 60;
+// The collection grid: tiles at least 64 px wide, 6 px apart, with the remove
+// button 2 px inside the tile's corner.
+constexpr double collectionTileMinimum = 64;
+constexpr double collectionTileInset = 2;
+constexpr double collectionEmptyHeight = 80;
+
+double bodyLeft() { return nm::borderWidth + nm::padding + listPadding; }
+
+// The icon, title and accent of a body header, as the list and collection headers.
+NodeRow bodyCaption(const QString &icon, const QString &text, const QRectF &rect) {
+    auto row = controlRow(NodeRowKind::BodyCaption, {}, text, rect);
+    row.icon = icon;
+    return row;
+}
+
+void layoutExtractVideoFrame(NodeLayout &layout, const CardBodyInput &input) {
+    const auto ui = input.node["ui_properties"].toObject();
+    if (ui["width"].toDouble() <= 0) {
+        layout.size.setWidth(videoFrameWidth);
+    }
+    Column column(layout, input);
+    column.handles({QStringLiteral("video")});
+    const auto video = input.fields.value(QStringLiteral("video"));
+    const bool hasVideo = video.value("connected").toBool() || !cardMediaIdentity(fieldValue(video)).isEmpty();
+    // The native card has no player, so the preview shows the extracted frame after a run.
+    column.preview(hasVideo ? QObject::tr("Run to extract this frame") : QObject::tr("Connect a video"), QStringLiteral("movie"));
+    column.y += nm::bodyGap;
+    const auto time = std::max(0.0, column.number(QStringLiteral("time"), 0));
+    const auto button = double(nm::controlHeight);
+    const auto center = column.x + column.width / 2;
+    layout.rows.append(labelRow(videoTimecode(time), QRectF(column.x, column.y, center - button - nm::micro - column.x, button)));
+    layout.rows.append(iconAction(QStringLiteral("previousFrame"), {}, QStringLiteral("skipPrevious"),
+                                  QObject::tr("Previous frame"), QRectF(center - nm::micro / 2.0 - button, column.y, button, button)));
+    layout.rows.append(iconAction(QStringLiteral("nextFrame"), {}, QStringLiteral("skipNext"),
+                                  QObject::tr("Next frame"), QRectF(center + nm::micro / 2.0, column.y, button, button)));
+    column.y += button + nm::bodyGap;
+    // The footer: the time box the node extracts at, then the frame and timecode it reads as.
+    const auto eyebrow = [&](const QString &text, double left, double width) {
+        auto caption = labelRow(text.toUpper(), QRectF(left, column.y, width, nm::dimensionLabelHeight));
+        caption.textSize = nm::fontValue - nm::micro;
+        layout.rows.append(caption);
+    };
+    const auto frameLeft = column.x + videoFieldWidth + videoFieldGap;
+    const auto timecodeLeft = frameLeft + videoFieldWidth + videoFieldGap;
+    eyebrow(QObject::tr("Time (s)"), column.x, videoFieldWidth);
+    eyebrow(QObject::tr("Frame"), frameLeft, videoFieldWidth);
+    eyebrow(QObject::tr("Timecode"), timecodeLeft, column.x + column.width - timecodeLeft);
+    const auto boxY = column.y + nm::dimensionLabelHeight + nm::borderWidth;
+    const QRectF box(column.x, boxY, videoFieldWidth, nm::controlHeight);
+    layout.rows.append(numberBox(input.fields.value(QStringLiteral("time")), QStringLiteral("time"), box));
+    placePort(layout, input.inputs, QStringLiteral("time"), box.center().y());
+    layout.rows.append(labelRow(QString::number(qRound64(time * videoFrameRate)), QRectF(frameLeft, boxY, videoFieldWidth, nm::controlHeight)));
+    layout.rows.append(labelRow(videoTimecode(time), QRectF(timecodeLeft, boxY, column.x + column.width - timecodeLeft, nm::controlHeight)));
+    column.y = box.bottom();
+    column.finish(videoFrameHeight);
+}
+
+// The model text a NodeModelChips chip shows, as the generic card's model chip.
+void fillBodyModelChip(NodeRow &chip, const QVariantMap &field) {
+    const auto model = field["value"].toMap();
+    auto provider = model.value("provider").toString();
+    if (provider == QStringLiteral("empty")) {
+        provider.clear();
+    }
+    const auto details = model.value("name").toString().isEmpty() ? QVariantMap{} : model;
+    const auto text = nt::modelpicker::fieldLabel(field["modelType"].toString(), field["value"], details, provider);
+    chip.value = text.label;
+    chip.typeName = text.secondary;
+    chip.placeholder = !text.active;
+}
+
+void layoutListGenerator(NodeLayout &layout, const CardBodyInput &input) {
+    const auto x = bodyLeft();
+    const auto inner = layout.size.width() - 2 * x;
+    // The stacked HandleColumn: handle dots only, 28 px apart, levelled with the outputs.
+    int handles = 0;
+    for (const auto &name : input.metadata["input_fields"].toArray()) {
+        if (portIndex(input.inputs, name.toString()) >= 0) {
+            placePort(layout, input.inputs, name.toString(), nm::contentTop + nm::rowHeight / 2.0 + handles * nm::handleRowStep);
+            ++handles;
+        }
+    }
+    auto y = double(nm::contentTop);
+    if (handles > 0) {
+        y += handles * nm::rowHeight + (handles - 1) * (nm::handleRowStep - nm::rowHeight) + nm::chipGap;
+    }
+    const auto items = listGeneratorItems(input.runtime);
+    const bool running = input.runtime["status"].toString() == QStringLiteral("running");
+    const auto heading = !items.isEmpty() ? (items.size() == 1 ? QObject::tr("1 item") : QObject::tr("%1 items").arg(items.size()))
+                         : running        ? QObject::tr("Generating…")
+                                          : QObject::tr("List");
+    auto caption = bodyCaption(QStringLiteral("formatListNumbered"), heading, QRectF(x, y, inner, listHeaderHeight));
+    caption.checked = running;
+    layout.rows.append(caption);
+    y += listHeaderHeight + listGap;
+    // The flat, divided list. Each row is the badge, a one-line preview, Copy and the chevron.
+    const auto textLeft = listBadge + nm::padding + nm::chipGap;
+    const auto font = bodyFont(nm::fontLabel);
+    for (int i = 0; i < items.size(); ++i) {
+        const bool open = input.expandedItems.contains(i);
+        double height = listRowHeight;
+        if (open) {
+            const auto text = std::min(listItemMaximum, wrappedHeight(items[i], font, inner - textLeft - nm::chipGap, nm::hintLineHeight));
+            height += text + listGap;
+        }
+        const auto button = double(nm::headerButtonSize);
+        const auto chevron = double(nm::iconSize);
+        auto copy = iconAction(QStringLiteral("copyListItem"), {}, QStringLiteral("contentCopy"), QObject::tr("Copy item"),
+                               QRectF(x + inner - nm::chipGap - chevron - nm::micro - button, y + (listRowHeight - button) / 2, button, button));
+        copy.value = items[i];
+        layout.rows.append(copy);
+        auto row = controlRow(NodeRowKind::ListItem, {}, listItemPreview(items[i]), QRectF(x, y, inner, height));
+        row.value = items[i];
+        row.selected = i;
+        row.checked = open;
+        row.parts = {QRectF(x + nm::chipGap, y + (listRowHeight - listBadge) / 2, listBadge, listBadge),
+                     QRectF(x + textLeft, y, copy.rect.left() - nm::chipGap - x - textLeft, listRowHeight),
+                     QRectF(x + inner - nm::chipGap - chevron, y + (listRowHeight - chevron) / 2, chevron, chevron),
+                     QRectF(x + textLeft, y + listRowHeight, inner - textLeft - nm::chipGap, height - listRowHeight - listGap)};
+        // The last row has no divider under it.
+        row.bare = i + 1 == items.size();
+        layout.rows.append(row);
+        y += height + (row.bare ? 0 : nm::borderWidth);
+    }
+    if (items.isEmpty()) {
+        auto empty = bodyCaption({}, running ? QObject::tr("Generating items…") : QObject::tr("Run to generate a list"),
+                                 QRectF(x, y, inner, listEmptyHeight));
+        empty.placeholder = true;
+        layout.rows.append(empty);
+        y += listEmptyHeight;
+    }
+    // NodeModelChips under the list, then the body padding, card padding and border.
+    QVector<NodeRow> chips;
+    for (const auto &name : modelChipNames(input.metadata, input.node["ui_properties"].toObject())) {
+        const auto field = input.fields.value(name);
+        if (field.isEmpty() || field["connected"].toBool()) {
+            continue;
+        }
+        auto chip = controlRow(NodeRowKind::ModelChip, name, field["label"].toString(), {});
+        chip.bare = true;
+        fillBodyModelChip(chip, field);
+        chips.append(chip);
+    }
+    const auto chipsHeight = chips.size() * (nm::modelChipHeight + listGap);
+    const auto natural = int(std::ceil(y + chipsHeight + listPadding + nm::padding + nm::borderWidth));
+    const auto authored = input.node["ui_properties"].toObject()["height"].toInt();
+    const auto height = std::max(natural, authored > 0 ? authored : listGeneratorHeight);
+    layout.size.setHeight(height);
+    layout.flexHeight = height - natural;
+    // The list takes the extra height, so the chips stay at the bottom.
+    auto chipY = y + layout.flexHeight + listGap;
+    for (auto &chip : chips) {
+        chip.rect = QRectF(x, chipY, inner, nm::modelChipHeight);
+        chip.y = chip.fieldY = chipY;
+        chip.height = nm::modelChipHeight;
+        layout.rows.append(chip);
+        chipY += nm::modelChipHeight + listGap;
+    }
+}
+
+void layoutCollection(NodeLayout &layout, const CardBodyInput &input) {
+    const auto x = bodyLeft();
+    const auto inner = layout.size.width() - 2 * x;
+    const auto top = nm::contentTop - nm::chipGap + listPadding;
+    const auto value = fieldValue(input.fields.value(QStringLiteral("items")));
+    QJsonArray items;
+    for (const auto &item : QJsonValue::fromVariant(value).toArray()) {
+        if (item.isObject() && item.toObject()["type"].isString()) {
+            items.append(item);
+        }
+    }
+    const auto locked = collectionType(items);
+    // The drop zone spans the grid and comes first, so the tiles and buttons paint over it.
+    const auto gridTop = top + listHeaderHeight + listGap;
+    auto zone = controlRow(NodeRowKind::DropZone, QStringLiteral("items"), QObject::tr("Collection"), {});
+    zone.typeName = QStringLiteral("collection") + (locked.isEmpty() ? QString{} : QStringLiteral(":") + locked);
+    zone.mediaKind = locked == QStringLiteral("image") ? locked : QString{};
+    zone.mediaList = true;
+    zone.bare = true;
+    zone.placeholder = items.isEmpty();
+    zone.value = QObject::tr("Drop assets here");
+    zone.options = {QObject::tr("from the asset panel, files, or generation history")};
+    const int zoneIndex = int(layout.rows.size());
+    layout.rows.append(zone);
+    const int columns = std::max(1, int(std::floor((inner + listGap) / (collectionTileMinimum + listGap))));
+    const auto tile = (inner - (columns - 1) * listGap) / columns;
+    auto bottom = gridTop + collectionEmptyHeight;
+    QVector<CardMediaItem> media;
+    for (int i = 0; i < items.size(); ++i) {
+        const auto item = items[i].toObject();
+        auto row = controlRow(NodeRowKind::CollectionTile, QStringLiteral("items"), item["name"].toString(item["type"].toString()),
+                              QRectF(x + (i % columns) * (tile + listGap), gridTop + (i / columns) * (tile + listGap), tile, tile));
+        row.typeName = item["type"].toString();
+        row.selected = i;
+        const auto locator = item.toVariantMap();
+        if (zone.mediaKind == QStringLiteral("image")) {
+            const auto identity = cardMediaIdentity(locator);
+            auto loaded = input.media ? input.media->item(input.node["id"].toString(), QStringLiteral("items"), int(media.size()), identity)
+                                      : CardMediaItem{};
+            loaded.identity = identity;
+            loaded.locator = locator;
+            loaded.rect = row.rect;
+            media.append(loaded);
+            row.media = {loaded};
+        }
+        layout.rows.append(row);
+        const auto button = double(nm::headerButtonSize);
+        auto remove = iconAction(QStringLiteral("removeCollectionItem"), {}, QStringLiteral("close"),
+                                 QObject::tr("Remove item %1").arg(i + 1),
+                                 QRectF(row.rect.right() - collectionTileInset - button, row.rect.top() + collectionTileInset, button, button));
+        remove.selected = i;
+        layout.rows.append(remove);
+        bottom = row.rect.bottom();
+    }
+    const auto heading = items.isEmpty() ? QObject::tr("Collection") : items.size() == 1 ? QObject::tr("1 item") : QObject::tr("%1 items").arg(items.size());
+    auto caption = bodyCaption(QStringLiteral("collectionsBookmark"), heading, QRectF(x, top, inner, listHeaderHeight));
+    caption.typeName = locked;
+    layout.rows.append(caption);
+    if (!items.isEmpty()) {
+        const auto button = double(nm::headerButtonSize);
+        layout.rows.append(iconAction(QStringLiteral("clearCollection"), {}, QStringLiteral("clearAll"),
+                                      QObject::tr("Clear collection"), QRectF(x + inner - button, top, button, button)));
+    }
+    const auto natural = int(std::ceil(bottom + listPadding + nm::padding + nm::borderWidth));
+    const auto authored = input.node["ui_properties"].toObject()["height"].toInt();
+    const auto height = std::max(natural, authored > 0 ? authored : collectionHeight);
+    layout.size.setHeight(height);
+    layout.flexHeight = height - natural;
+    auto &target = layout.rows[zoneIndex];
+    target.media = media;
+    target.rect = QRectF(x, gridTop, inner, height - listPadding - nm::padding - nm::borderWidth - gridTop);
+    target.listZone = target.rect;
+    target.y = target.fieldY = target.rect.y();
+    target.height = target.rect.height();
+}
+} // namespace
+
 CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
     if (type == QStringLiteral("nodetool.text.Prompt")) {
         return CardBody::Prompt;
@@ -1661,6 +1920,16 @@ CardBody cardBodyFor(const QString &type, const QJsonObject &metadata) {
     }
     if (generators.contains(type)) {
         return CardBody::Generator;
+    }
+    // The video, list and collection bodies of bespokeRegistry.ts.
+    if (type == QStringLiteral("nodetool.video.ExtractFrame")) {
+        return CardBody::ExtractVideoFrame;
+    }
+    if (type == QStringLiteral("nodetool.generators.ListGenerator")) {
+        return CardBody::ListGenerator;
+    }
+    if (type == QLatin1String(collectionNodeType)) {
+        return CardBody::Collection;
     }
     return metadata["body"] == QStringLiteral("content_card") ? CardBody::Content : CardBody::Generic;
 }
@@ -2034,6 +2303,8 @@ bool bespokeHandle(CardBody body, const QJsonObject &metadata, const QString &na
         return false;
     case CardBody::GetVariable:
         return name == QStringLiteral("trigger");
+    case CardBody::ExtractVideoFrame:
+        return name == QStringLiteral("video");
     case CardBody::SynthModule:
         return synthModule(metadata["node_type"].toString())["inputs"].toArray().contains(name);
     case CardBody::AudioOut:
@@ -2209,6 +2480,15 @@ void layoutBespokeBody(NodeLayout &layout, const CardBodyInput &input) {
         break;
     case CardBody::Crop:
         layoutCrop(layout, input);
+        break;
+    case CardBody::ExtractVideoFrame:
+        layoutExtractVideoFrame(layout, input);
+        break;
+    case CardBody::ListGenerator:
+        layoutListGenerator(layout, input);
+        break;
+    case CardBody::Collection:
+        layoutCollection(layout, input);
         break;
     case CardBody::SynthModule:
         layoutSynthModule(layout, input);
@@ -2390,5 +2670,117 @@ QStringList promptVariables(const QString &text) {
         }
     }
     return names;
+}
+QString videoTimecode(double seconds, double fps) {
+    if (!std::isfinite(seconds) || seconds < 0 || fps <= 0) {
+        return QStringLiteral("00:00:00");
+    }
+    const auto rate = qint64(std::llround(fps));
+    const auto total = qint64(std::llround(seconds * fps));
+    const auto pad = [](qint64 n) { return QStringLiteral("%1").arg(n, 2, 10, QLatin1Char('0')); };
+    const auto frames = total % rate;
+    const auto whole = total / rate;
+    const auto ss = whole % 60, mm = (whole / 60) % 60, hh = whole / 3600;
+    return hh > 0 ? QStringLiteral("%1:%2:%3:%4").arg(pad(hh), pad(mm), pad(ss), pad(frames))
+                  : QStringLiteral("%1:%2:%3").arg(pad(mm), pad(ss), pad(frames));
+}
+
+double steppedVideoTime(double seconds, int frames, double fps) {
+    const auto frame = std::llround(std::max(0.0, seconds) * fps) + frames;
+    return std::max<long long>(0, frame) / fps;
+}
+
+QStringList listGeneratorItems(const QJsonObject &runtime) {
+    // pullString in ListGeneratorBody.tsx: a string, or an object's item, output or text data.
+    const auto pull = [](const QJsonValue &value) -> std::optional<QString> {
+        if (value.isString()) {
+            return value.toString();
+        }
+        const auto object = value.toObject();
+        for (const auto *key : {"item", "output"}) {
+            if (object[key].isString()) {
+                return object[key].toString();
+            }
+        }
+        if (object["type"] == QStringLiteral("text") && object["data"].isString()) {
+            return object["data"].toString();
+        }
+        return std::nullopt;
+    };
+    // The settled list on the output handle, from the run's outputs or its final result.
+    QJsonValue list = runtime["outputs"].toObject().value(QStringLiteral("output"));
+    if (!list.isArray()) {
+        list = runtime["result"].toObject().value(QStringLiteral("output"));
+    }
+    QStringList items;
+    if (list.isArray()) {
+        for (const auto &value : list.toArray()) {
+            if (const auto text = pull(value)) {
+                items.append(*text);
+            }
+        }
+    } else if (const auto text = pull(list)) {
+        items.append(*text);
+    }
+    return items;
+}
+
+QString listItemPreview(const QString &item) {
+    QString line;
+    for (const auto &candidate : item.split(QLatin1Char('\n'))) {
+        if (!candidate.trimmed().isEmpty()) {
+            line = candidate;
+            break;
+        }
+    }
+    static const QRegularExpression heading(QStringLiteral("^\\s{0,3}#{1,6}\\s+"));
+    static const QRegularExpression bullet(QStringLiteral("^\\s{0,3}[-*+]\\s+"));
+    static const QRegularExpression ordered(QStringLiteral("^\\s{0,3}\\d+\\.\\s+"));
+    static const QRegularExpression quote(QStringLiteral("^\\s{0,3}>\\s+"));
+    static const QRegularExpression emphasis(QStringLiteral("[*_`~]"));
+    for (const auto *pattern : {&heading, &bullet, &ordered, &quote, &emphasis}) {
+        line.remove(*pattern);
+    }
+    return line.trimmed();
+}
+
+QString collectionType(const QJsonArray &items) {
+    return items.isEmpty() ? QString{} : items.first().toObject()["type"].toString();
+}
+
+CollectionAppend appendCollectionItems(const QJsonArray &existing, const QJsonArray &incoming) {
+    CollectionAppend result;
+    result.items = existing;
+    if (incoming.isEmpty()) {
+        return result;
+    }
+    result.expected = existing.isEmpty() ? incoming.first().toObject()["type"].toString() : collectionType(existing);
+    // An item is the same asset when its asset id, or else its uri, matches.
+    const auto key = [](const QJsonObject &item) {
+        const auto asset = item["asset_id"].toString();
+        return asset.isEmpty() ? item["uri"].toString() : asset;
+    };
+    QSet<QString> seen;
+    for (const auto &item : existing) {
+        if (const auto id = key(item.toObject()); !id.isEmpty()) {
+            seen.insert(id);
+        }
+    }
+    for (const auto &value : incoming) {
+        const auto item = value.toObject();
+        if (item["type"].toString() != result.expected) {
+            continue;
+        }
+        const auto id = key(item);
+        if (!id.isEmpty() && seen.contains(id)) {
+            continue;
+        }
+        if (!id.isEmpty()) {
+            seen.insert(id);
+        }
+        result.items.append(item);
+        result.ok = true;
+    }
+    return result;
 }
 } // namespace nodetool

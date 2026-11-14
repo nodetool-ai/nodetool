@@ -122,7 +122,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎯 Cold Outreach Co-Pilot\n\nName a prospect or company and an agent researches them on the web, then drafts a personalized cold email that opens with a real, specific detail. The pieces come back as separate fields, ready for a CRM or email tool.\n\n**How it works:** \"3 Build research objective\" puts \"1 Prospect\" and \"2 Your offer\" into a task brief. \"4 Research + write outreach\" is an Agent with the web_search and browser tools. It returns company_summary, pain_points, subject, body and follow_up as typed outputs, each shown in its own Preview (\"Company summary\", \"Pain points\", \"Subject line\", \"Email body\", \"Follow-up\"). \"Agent thinking (live)\" streams its progress. The agent uses your default language model, or the one you pick on the node, and needs search access.\n\n**Try this:** Change \"1 Prospect\" to a company you know well and check whether the opening line of \"Email body\" cites a detail you recognize."
+          "comment": "# Cold Outreach Co-Pilot\n\nName a prospect or company and an agent researches them on the web, then drafts a personalized cold email that opens with a real, specific detail. The pieces come back as separate fields, ready for a CRM or email tool.\n\n**How it works:** \"3 Build research objective\" puts \"1 Prospect\" and \"2 Your offer\" into a task brief. \"4 Research + write outreach\" is an Agent with the web_search and browser tools. It returns company_summary, pain_points, subject, body and follow_up as typed outputs, each shown in its own Preview (\"Company summary\", \"Pain points\", \"Subject line\", \"Email body\", \"Follow-up\"). \"Agent thinking (live)\" streams its progress. The agent uses your default language model, or the one you pick on the node, and needs search access.\n\n**Try this:** Change \"1 Prospect\" to a company you know well and check whether the opening line of \"Email body\" cites a detail you recognize."
         },
         "ui_properties": {
           "position": {
@@ -154,7 +154,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Prospect",
+          "title": "1 Prospect",
           "selectable": true,
           "bypassed": false
         },
@@ -176,7 +176,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Your offer",
+          "title": "2 Your offer",
           "selectable": true,
           "bypassed": false
         },
@@ -197,7 +197,7 @@
           "zIndex": 0,
           "width": 340,
           "height": 460,
-          "title": "3️⃣ Build research objective",
+          "title": "3 Build research objective",
           "selectable": true,
           "bypassed": false
         },
@@ -239,7 +239,7 @@
           "zIndex": 0,
           "width": 316,
           "height": 465,
-          "title": "4️⃣ Research + write outreach",
+          "title": "4 Research + write outreach",
           "selectable": true,
           "bypassed": false
         },
@@ -293,7 +293,7 @@
           "zIndex": 0,
           "width": 403,
           "height": 225,
-          "title": "🏢 Company summary",
+          "title": "Company summary",
           "selectable": true,
           "bypassed": false
         },
@@ -314,7 +314,7 @@
           "zIndex": 0,
           "width": 565,
           "height": 360,
-          "title": "🩹 Pain points",
+          "title": "Pain points",
           "selectable": true,
           "bypassed": false
         },
@@ -336,7 +336,7 @@
           "zIndex": 0,
           "width": 530,
           "height": 120,
-          "title": "📌 Subject line",
+          "title": "Subject line",
           "selectable": true,
           "bypassed": false
         },
@@ -358,7 +358,7 @@
           "zIndex": 0,
           "width": 530,
           "height": 300,
-          "title": "✉️ Email body",
+          "title": "Email body",
           "selectable": true,
           "bypassed": false
         },
@@ -380,7 +380,7 @@
           "zIndex": 0,
           "width": 530,
           "height": 180,
-          "title": "⏰ Follow-up",
+          "title": "Follow-up",
           "selectable": true,
           "bypassed": false
         },
@@ -401,7 +401,7 @@
           "zIndex": 0,
           "width": 400,
           "height": 300,
-          "title": "🔴 Agent thinking (live)",
+          "title": "Agent thinking (live)",
           "selectable": true,
           "bypassed": false
         },

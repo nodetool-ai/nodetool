@@ -10693,6 +10693,8 @@
       "queuedCount_one": "{{count}} 个排队中",
       "queuedCount_other": "{{count}} 个排队中",
       "collapseQueue": "折叠队列",
+      "moveQueue": "移动队列",
+      "moveQueueHint": "拖动以移动。方向键移动，Home 键复位。",
       "enqueued": "排队中"
     },
     "toolbar": {

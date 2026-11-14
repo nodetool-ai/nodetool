@@ -10693,6 +10693,8 @@
       "queuedCount_one": "{{count}} in der Warteschlange",
       "queuedCount_other": "{{count}} in der Warteschlange",
       "collapseQueue": "Warteschlange einklappen",
+      "moveQueue": "Warteschlange verschieben",
+      "moveQueueHint": "Zum Verschieben ziehen. Pfeiltasten verschieben sie, Pos1 setzt sie zurück.",
       "enqueued": "Eingereiht"
     },
     "toolbar": {

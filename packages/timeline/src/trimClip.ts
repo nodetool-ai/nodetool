@@ -1,4 +1,5 @@
 import { resliceSourceAnimations } from "./animation/sourceCurves.js";
+import { retimeKeyframeAnimations, retimeKeyframeCurves } from "./keyframes.js";
 import { sourceRate } from "./sourceRate.js";
 import { assertNotTimeRemapped, isHoldRemap } from "./timeRemap.js";
 import type { TimelineClip } from "./types.js";
@@ -30,12 +31,13 @@ export function retimeCaption(
 /**
  * Move one edge of a clip.
  *
- * Animations ride along untouched — a clip-based curve is normalized over the
- * window, so a trim stretches its keyframes with the clip. The exception is a
+ * Hand-set keyframes (`keyframes.ts`) and `paramCurves` keep every key at its
+ * instant: their `t` is renormalized over the new clip, and a key the trim cut
+ * off stays stored outside 0..1, so trimming back out restores it. A
  * source-anchored custom animation (`custom.timeBase: "source"`), whose
- * keyframes name times in the media: those curves are re-sliced onto the
- * retained source window so the motion the trim kept is the motion that was
- * there (`animation/sourceCurves.ts`).
+ * keyframes name times in the media, is re-sliced onto the retained source
+ * window so the motion the trim kept is the motion that was there
+ * (`animation/sourceCurves.ts`). Other animations ride along untouched.
  */
 const NO_SOURCE_CLOCK: ReadonlySet<TimelineClip["mediaType"]> = new Set([
   "image",
@@ -118,12 +120,26 @@ export function trimClip(
   if (clip.caption && edge === "start") {
     next.caption = retimeCaption(clip.caption, clip.startMs - nextStartMs);
   }
+  const headMs = edge === "start" ? deltaMs : 0;
   if (clip.animations) {
-    next.animations = resliceSourceAnimations(
-      clip.animations,
-      nextInPointMs,
-      nextOutPointMs,
-      nextDurationMs
+    next.animations = retimeKeyframeAnimations(
+      resliceSourceAnimations(
+        clip.animations,
+        nextInPointMs,
+        nextOutPointMs,
+        nextDurationMs
+      ),
+      clip.durationMs,
+      nextDurationMs,
+      headMs
+    );
+  }
+  if (clip.paramCurves) {
+    next.paramCurves = retimeKeyframeCurves(
+      clip.paramCurves,
+      clip.durationMs,
+      nextDurationMs,
+      headMs
     );
   }
   return next;

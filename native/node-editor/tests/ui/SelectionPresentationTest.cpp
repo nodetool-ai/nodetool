@@ -17,10 +17,10 @@
 
 using namespace nodetool;
 
-// The web fades every node and wire off the selected branch to 0.2 and keeps
+// The web fades every node and wire off the selected branch to 0.6 and keeps
 // the zoom when a node is selected. Selection dims through item opacity, so
 // these tests read both the item opacity and the rendered pixels.
-//   web/src/styles/nodes.zoomed.css           .branch-dimmed 0.2, .branch-related 1
+//   web/src/styles/nodes.zoomed.css           .branch-dimmed 0.6, .branch-related 1
 //   web/src/components/node/reactFlowGraphModel.ts   branchNodeIds, markComprehensionEdges
 //   web/src/hooks/useClearInspectorOverlap.ts        the only viewport move on select
 class SelectionPresentationTest final : public QObject {
@@ -126,8 +126,8 @@ private:
         return image;
     }
 
-    // Mean per-channel distance from the canvas color. A card faded to 0.2 over
-    // the canvas keeps one fifth of its distance.
+    // Mean per-channel distance from the canvas color. A card faded to 0.6 over
+    // the canvas keeps about that share of its distance.
     static double ink(const QImage &image, const QColor &canvas) {
         double total = 0;
         for (int y = 0; y < image.height(); ++y) {
@@ -177,7 +177,7 @@ private slots:
     }
 
     // Selecting a node keeps the node and everything upstream or downstream of
-    // it at full opacity and fades the rest to the web's 0.2. A sibling of an
+    // it at full opacity and fades the rest to the web's 0.6. A sibling of an
     // upstream node is not on the branch.
     void unrelatedCardsAndWiresFadeToWebOpacity() {
         EditorWindow window;
@@ -196,9 +196,9 @@ private slots:
         for (const auto &wire : {std::pair{"up", "s"}, {"u1", "u2"}}) {
             QCOMPARE(wireOf(window, wire.first, wire.second)->opacity(), branchDimmedOpacity);
         }
-        // Pixels, not just the property: the card keeps a fifth of its ink.
-        QVERIFY(std::abs(cardInk(window, "s") / restSibling - 0.2) < 0.04);
-        QVERIFY(std::abs(cardInk(window, "u1") / restUnrelated - 0.2) < 0.04);
+        // Pixels, not just the property: the card keeps about 0.6 of its ink.
+        QVERIFY(std::abs(cardInk(window, "s") / restSibling - branchDimmedOpacity) < 0.06);
+        QVERIFY(std::abs(cardInk(window, "u1") / restUnrelated - branchDimmedOpacity) < 0.06);
         QVERIFY(std::abs(cardInk(window, "d2") / restRelated - 1.0) < 0.03);
     }
 

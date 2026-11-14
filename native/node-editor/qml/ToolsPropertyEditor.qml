@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls.Basic as Basic
 import NodeTool.UiPrimitives as Ui
 
 ColumnLayout {
@@ -53,7 +52,7 @@ ColumnLayout {
         id: toolsMenu
         Instantiator {
             model: root.entries
-            delegate: Basic.MenuItem {
+            delegate: Ui.MenuItem {
                 id: entry
                 required property var modelData
                 required property int index
@@ -61,8 +60,7 @@ ColumnLayout {
                 objectName: "tool-toggle-" + index
                 text: modelData.label
                 enabled: root.writable
-                leftPadding: Ui.Metrics.md
-                rightPadding: Ui.Metrics.md
+                implicitWidth: leftPadding + contentItem.implicitWidth + rightPadding
                 implicitHeight: Math.max(Ui.Metrics.compact, label.implicitHeight + Ui.Metrics.md)
                 // Kind icon first, label, then the selection box at the trailing edge, as in ToolsListProperty.tsx.
                 contentItem: RowLayout {
@@ -100,12 +98,6 @@ ColumnLayout {
                             tone: entry.enabled ? Ui.Text.OnAccent : Ui.Text.Disabled
                         }
                     }
-                }
-                background: Rectangle {
-                    color: entry.highlighted ? Ui.Theme.actionSelected : entry.hovered ? Ui.Theme.actionHover : "transparent"
-                    radius: Ui.Metrics.radiusControl
-                    border.width: entry.visualFocus ? Ui.Metrics.focus : 0
-                    border.color: Ui.Theme.borderFocus
                 }
                 onTriggered: root.toggle(modelData)
             }

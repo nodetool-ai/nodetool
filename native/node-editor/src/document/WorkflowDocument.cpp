@@ -255,6 +255,18 @@ QString validateNewEdge(const QJsonArray& nodes, const QJsonArray& edges, const 
     }
     return {};
 }
+// NodeStore.addEdge: a list input of one concrete type collects every wire that
+// lands on it. Any other handle keeps only the newest. Web isCollectType
+// excludes list[any], bare lists and unions. Control handles are separate.
+bool collectsEdges(const QJsonArray& nodes, const QJsonObject& edge, const QHash<QString, QJsonObject>& metadata) {
+    const auto targetHandle = edge.value("targetHandle").toString();
+    if (edge.value("edge_type") == "control" || edge.value("sourceHandle") == "__control__" || targetHandle == "__control__") { return true; }
+    const auto targetIndex = indexOf(nodes, edge.value("target").toString());
+    if (targetIndex < 0) { return true; }
+    const auto input = portType(nodes[targetIndex].toObject(), targetHandle, false, metadata);
+    const auto arguments = input.value("type_args").toArray();
+    return input.value("type") == "list" && arguments.size() == 1 && arguments.first().toObject().value("type") != "any";
+}
 QByteArray connectionKey(const QJsonObject& edge) {
     return QJsonDocument(QJsonArray{edge.value("source"), edge.value("target"),
         edge.value("sourceHandle"), edge.value("targetHandle")}).toJson(QJsonDocument::Compact);
@@ -642,13 +654,9 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
         if (unchanged) { return success(); }
         const auto sourceHandle = edge.value("sourceHandle").toString();
         const auto targetHandle = edge.value("targetHandle").toString();
-        const bool control = edge.value("edge_type") == "control" || sourceHandle == "__control__" || targetHandle == "__control__";
-        QJsonObject input;
         const auto targetIndex = indexOf(nodes, edge.value("target").toString());
-        if (!control && targetIndex >= 0) { input = portType(nodes[targetIndex].toObject(), targetHandle, false, metadata); }
-        const auto arguments = input.value("type_args").toArray();
-        // Web isCollectType excludes list[any], bare lists and unions.
-        const bool collect = !control && input.value("type") == "list" && arguments.size() == 1 && arguments.first().toObject().value("type") != "any";
+        const bool collect = targetIndex >= 0 && collectsEdges(nodes, edge, metadata)
+            && !(edge.value("edge_type") == "control" || sourceHandle == "__control__" || targetHandle == "__control__");
         QSet<qsizetype> replaced;
         QJsonArray remaining;
         for (qsizetype i = 0; i < edges.size(); ++i) {
@@ -679,6 +687,16 @@ EditResult edit(QJsonObject& workflow, const QJsonObject& command, const QHash<Q
             if (existing.value("source") == edge.value("source") && existing.value("target") == edge.value("target") && existing.value("sourceHandle") == edge.value("sourceHandle") && existing.value("targetHandle") == edge.value("targetHandle")) { return failure("Connection already exists"); }
         }
         if (edge.value("source") == edge.value("target")) { return failure("Self connections are unsupported"); }
+        // The newest wire into a single-value input replaces the one already there.
+        if (!collectsEdges(nodes, edge, metadata)) {
+            QJsonArray kept;
+            for (const auto& value : edges) {
+                const auto existing = value.toObject();
+                if (existing.value("target") == edge.value("target") && existing.value("targetHandle") == edge.value("targetHandle")) { continue; }
+                kept.append(value);
+            }
+            edges = kept;
+        }
         if (const auto error = validateNewEdge(nodes, edges, edge, metadata); !error.isEmpty()) { return failure(error); }
         edges.append(edge);
         for (qsizetype i = 0; i < nodes.size(); ++i) {
@@ -1316,6 +1334,15 @@ EditResult WorkflowDocument::applyCommand(const QJsonObject& command, const QStr
         // A wire that exposes a hidden input also changes the node, so it takes the batch path.
         if (auto exposed = node(target); exposeConnectedInput(exposed, edge.value("targetHandle").toString(), metadata_)) {
             return applyCommand(QJsonObject{{"op", "batch"}, {"commands", QJsonArray{command}}}, title);
+        }
+        // A wire that replaces the one into a single-value input also removes an edge.
+        if (!collectsEdges(QJsonArray{node(target)}, edge, metadata_)) {
+            for (const auto& existing : edgeValues_) {
+                if (existing.value("target") == edge.value("target") && existing.value("targetHandle") == edge.value("targetHandle")
+                    && existing.value("id") != edge.value("id")) {
+                    return applyCommand(QJsonObject{{"op", "batch"}, {"commands", QJsonArray{command}}}, title);
+                }
+            }
         }
         for (const auto& id : outgoing_.value(source)) {
             const auto& existing = edgeValues_[edgeIndices_.value(id)];

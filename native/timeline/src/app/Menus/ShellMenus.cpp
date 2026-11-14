@@ -4,6 +4,7 @@
 #include "wiring/w/SceneItems.h"
 #include "edit/ClipGestureController.h"
 #include "edit/Keymap.h"
+#include "server/BundledServer.h"
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QKeyEvent>
@@ -288,7 +289,8 @@ bool ShellMenus::trigger(const QString& action) {
         if (arguments.isEmpty() || (entry.value("kind") == "file" && !QFileInfo(entry.value("path").toString()).isFile())) {
             return false;
         }
-        return QProcess::startDetached(QCoreApplication::applicationFilePath(), arguments);
+        nt::server::noteBundledServerHandoff();
+        return QProcess::startDetached(nt::server::appRelaunchProgram(), arguments);
     }
     if (action == "openTimeline") {
         emit openTimelineRequested();

@@ -17,13 +17,16 @@ double round2(double value) { return std::round(value * 100) / 100; }
 CompositorLayoutEditor::CompositorLayoutEditor(QObject *parent) : QObject(parent) {}
 
 void CompositorLayoutEditor::setNode(const QJsonObject &node, const QHash<QString, CardMediaItem> &sources) {
+    // Layer keys (image_N) keep their numbers when another layer is deleted, so the
+    // selection follows its key rather than its position.
+    const auto selectedKey = keys_.value(selected_);
     node_ = node;
     nodeId_ = node["id"].toString();
     keys_ = compositorLayerKeys(node);
+    if (selected_ >= 0) { selected_ = int(keys_.indexOf(selectedKey)); }
     layers_ = compositorLayers(node);
     sources_ = sources;
     canvas_ = compositorCanvasSize(node, sources);
-    if (selected_ >= keys_.size()) { selected_ = -1; }
     if (drag_ && drag_->layer >= keys_.size()) { drag_.reset(); }
     if (opacityDraft_ && opacityDraft_->first >= keys_.size()) { opacityDraft_.reset(); }
     emit changed();
@@ -140,7 +143,11 @@ void CompositorLayoutEditor::select(int index) {
 void CompositorLayoutEditor::setCanvasSize(int width, int height) {
     width = std::clamp(width, 1, 16384);
     height = std::clamp(height, 1, 16384);
-    if (QSize(width, height) == canvas_) { return; }
+    // Compare with the stored size. canvas_ also follows the first image when none is stored.
+    const auto data = node_["data"].toObject();
+    if (data.value(QStringLiteral("canvas_width")).toDouble() == width && data.value(QStringLiteral("canvas_height")).toDouble() == height) {
+        return;
+    }
     emit commandRequested({{"op", "batch"}, {"commands", QJsonArray{propertyCommand(nodeId_, QStringLiteral("canvas_width"), width),
                                                                     propertyCommand(nodeId_, QStringLiteral("canvas_height"), height)}}},
                           tr("Resize canvas"));

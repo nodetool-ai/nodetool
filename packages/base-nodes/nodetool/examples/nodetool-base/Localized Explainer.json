@@ -63,7 +63,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "brief",
-          "value": "",
+          "value": "How to keep houseplants alive while you are away for two weeks: group them together out of direct sun, water them deeply the day you leave, and run a cotton wick from a jar of water into the thirstiest pots.",
           "description": "What this week's explainer is about."
         },
         "ui_properties": {

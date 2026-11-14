@@ -290,7 +290,8 @@ private slots:
     QVERIFY(window.selectNode("outer"));
     auto *frame = item(window, "outer");
     QVERIFY(frame);
-    const auto start = view->mapFromScene(frame->scenePos() + QPointF(12, 12));
+    // A group drags by its label. Its body lets the pointer through (GroupNode.tsx).
+    const auto start = view->mapFromScene(window.scene()->groupLabelRect(frame->nodeId(), std::abs(view->transform().m11())).center());
     QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, start);
     QTest::mouseMove(view->viewport(), start + QPoint(70, 45), 30);
     QTRY_VERIFY(layer->linkPath("ab") != path);

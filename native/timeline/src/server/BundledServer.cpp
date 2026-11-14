@@ -1,11 +1,15 @@
 #include "server/BundledServer.h"
 
 #include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QHostAddress>
+#include <QLockFile>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -13,12 +17,22 @@
 #include <QStandardPaths>
 #include <QTcpServer>
 #include <QTimer>
+#include <QWindow>
+
+#include <memory>
 
 namespace nt::server {
 namespace {
 
 constexpr int kStartTimeoutMs = 90000;
 constexpr int kStopTimeoutMs = 5000;
+// How long a window that is being opened has to join before an owner that
+// quits stops the server.
+constexpr qint64 kHandoffMs = 30000;
+constexpr int kUserPollMs = 250;
+
+const char* const kUsersVariable = "NT_BUNDLED_SERVER_USERS";
+const char* const kUrlVariable = "NT_BUNDLED_SERVER_URL";
 
 QString backendDir() {
     const QString env = qEnvironmentVariable("NT_BUNDLED_BACKEND_DIR");
@@ -61,22 +75,105 @@ bool healthy(QNetworkAccessManager& network, const QUrl& url) {
     return ok;
 }
 
-void stopOnQuit(QProcess* server) {
-    QObject::connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, server, [server] {
-        if (server->state() == QProcess::NotRunning) return;
+// True while another app process holds its lock in `dir`, or a window that
+// is being opened announced itself less than kHandoffMs ago. Removes the
+// locks of processes that are gone and expired announcements.
+bool otherUsers(const QString& dir) {
+    const QDir users(dir);
+    bool found = false;
+    for (const QFileInfo& entry : users.entryInfoList({QStringLiteral("*.lock")}, QDir::Files)) {
+        QLockFile lock(entry.filePath());
+        // Only a lock whose process is gone is stale, however old it is.
+        lock.setStaleLockTime(0);
+        if (lock.tryLock(0)) {
+            lock.unlock();
+        } else if (lock.error() == QLockFile::LockFailedError) {
+            found = true;
+        }
+    }
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    for (const QFileInfo& entry : users.entryInfoList({QStringLiteral("*.handoff")}, QDir::Files)) {
+        if (now - entry.lastModified().toMSecsSinceEpoch() < kHandoffMs) {
+            found = true;
+        } else {
+            QFile::remove(entry.filePath());
+        }
+    }
+    return found;
+}
+
+// UI thread only. The server process of a bundled server this process
+// started. Owned by its QCoreApplication parent. stopBundledServer() stops the
+// server after the last save. A process that ends another way kills it
+// when the application destroys the host.
+class BundledServerHost : public QObject {
+public:
+    BundledServerHost(QString usersDir, QObject* parent) : QObject(parent), m_usersDir(std::move(usersDir)) {
+        setObjectName(QStringLiteral("nt-bundled-server-host"));
+    }
+    // A member: the host owns the server process and kills it, if still running, when destroyed.
+    QProcess* process() { return &m_process; }
+
+    void stop() {
+        if (m_process.state() == QProcess::NotRunning) return;
+        if (otherUsers(m_usersDir)) {
+            waitForOtherUsers();
+        }
 #if defined(Q_OS_WIN)
         // terminate() posts WM_CLOSE, which a console process without a
         // window never receives.
-        server->kill();
+        m_process.kill();
 #else
-        server->terminate();
+        m_process.terminate();
 #endif
-        if (!server->waitForFinished(kStopTimeoutMs)) {
-            server->kill();
-            server->waitForFinished(kStopTimeoutMs);
+        if (!m_process.waitForFinished(kStopTimeoutMs)) {
+            m_process.kill();
+            m_process.waitForFinished(kStopTimeoutMs);
         }
-    });
-}
+        QDir(m_usersDir).removeRecursively();
+    }
+
+private:
+    // The windows go away at once. The process stays, holding the server and,
+    // in an AppImage, the mount it runs from, until the windows it opened close.
+    void waitForOtherUsers() {
+        if (qobject_cast<QGuiApplication*>(QCoreApplication::instance())) {
+            for (QWindow* window : QGuiApplication::topLevelWindows()) window->hide();
+        }
+        QEventLoop wait;
+        QTimer poll;
+        connect(&poll, &QTimer::timeout, &wait, [this, &wait] {
+            if (!otherUsers(m_usersDir) || m_process.state() == QProcess::NotRunning) wait.quit();
+        });
+        poll.start(kUserPollMs);
+        wait.exec();
+    }
+
+    QString m_usersDir;
+    QProcess m_process;
+};
+
+// UI thread only. This process's lock in the bundled server's users folder.
+// Owned by its QCoreApplication parent. The lock goes when the process exits,
+// or with the process if it ends without cleanup.
+class BundledServerUser : public QObject {
+public:
+    BundledServerUser(const QString& usersDir, QObject* parent)
+        : QObject(parent),
+          m_lock(std::make_unique<QLockFile>(
+              QDir(usersDir).filePath(QStringLiteral("%1.lock").arg(QCoreApplication::applicationPid())))) {
+        setObjectName(QStringLiteral("nt-bundled-server-user"));
+        m_lock->setStaleLockTime(0);
+        if (!m_lock->tryLock(0)) return;
+        // The window that announced itself has joined: its lock now keeps the server.
+        for (const QFileInfo& entry : QDir(usersDir).entryInfoList({QStringLiteral("*.handoff")}, QDir::Files)) {
+            QFile::remove(entry.filePath());
+        }
+    }
+
+private:
+    std::unique_ptr<QLockFile> m_lock;
+};
 
 }  // namespace
 
@@ -94,6 +191,10 @@ QUrl startBundledServer(QString* error) {
     }
     const QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     QDir().mkpath(dataDir);
+    const QString usersDir =
+        QDir(dataDir).filePath(QStringLiteral("server-users/%1").arg(QCoreApplication::applicationPid()));
+    QDir(usersDir).removeRecursively();
+    QDir().mkpath(usersDir);
 
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
     env.insert(QStringLiteral("PORT"), QString::number(port));
@@ -107,7 +208,10 @@ QUrl startBundledServer(QString* error) {
     }
     env.insert(QStringLiteral("NODETOOL_SHUTDOWN_GRACE_MS"), QString::number(kStopTimeoutMs - 1000));
 
-    auto* server = new QProcess(QCoreApplication::instance());
+    const QUrl url(QStringLiteral("http://127.0.0.1:%1").arg(port));
+    // Qt parent: the application. It stops the server at quit.
+    auto* host = new BundledServerHost(usersDir, QCoreApplication::instance());
+    QProcess* server = host->process();
     server->setProcessEnvironment(env);
     server->setWorkingDirectory(backend.absolutePath());
     server->setProcessChannelMode(QProcess::MergedChannels);
@@ -115,12 +219,10 @@ QUrl startBundledServer(QString* error) {
     server->start(node, {entry});
     if (!server->waitForStarted()) {
         *error = QStringLiteral("the bundled server did not start: %1").arg(server->errorString());
-        server->deleteLater();
+        host->deleteLater();
         return {};
     }
-    stopOnQuit(server);
 
-    const QUrl url(QStringLiteral("http://127.0.0.1:%1").arg(port));
     QNetworkAccessManager network;
     QElapsedTimer elapsed;
     elapsed.start();
@@ -129,17 +231,65 @@ QUrl startBundledServer(QString* error) {
             *error = QStringLiteral("the bundled server exited with code %1, see %2/server.log")
                          .arg(server->exitCode())
                          .arg(dataDir);
+            host->deleteLater();
             return {};
         }
-        if (healthy(network, url)) return url;
+        if (healthy(network, url)) {
+            qputenv("NODETOOL_SERVER_URL", url.toString().toUtf8());
+            qputenv(kUrlVariable, url.toString().toUtf8());
+            qputenv(kUsersVariable, QFile::encodeName(usersDir));
+            return url;
+        }
         QEventLoop pause;
         QTimer::singleShot(250, &pause, &QEventLoop::quit);
         pause.exec();
     }
+    // A server that never answered would otherwise run until the app quits.
+    host->stop();
+    host->deleteLater();
     *error = QStringLiteral("the bundled server did not answer /health in %1 s, see %2/server.log")
                  .arg(kStartTimeoutMs / 1000)
                  .arg(dataDir);
     return {};
+}
+
+void joinBundledServer() {
+    auto* app = QCoreApplication::instance();
+    const QString usersDir = qEnvironmentVariable(kUsersVariable);
+    if (!app || usersDir.isEmpty() || !QFileInfo(usersDir).isDir()) return;
+    if (app->findChild<QObject*>(QStringLiteral("nt-bundled-server-host"), Qt::FindDirectChildrenOnly) ||
+        app->findChild<QObject*>(QStringLiteral("nt-bundled-server-user"), Qt::FindDirectChildrenOnly)) {
+        return;
+    }
+    // Qt parent: the application.
+    new BundledServerUser(usersDir, app);
+}
+
+void stopBundledServer() {
+    auto* app = QCoreApplication::instance();
+    if (!app) return;
+    // Only startBundledServer() makes a child with this name.
+    if (auto* host = app->findChild<QObject*>(QStringLiteral("nt-bundled-server-host"), Qt::FindDirectChildrenOnly)) {
+        static_cast<BundledServerHost*>(host)->stop();
+    }
+}
+
+QUrl bundledServerUrl() {
+    return qEnvironmentVariableIsEmpty(kUsersVariable) ? QUrl() : QUrl(qEnvironmentVariable(kUrlVariable));
+}
+
+void noteBundledServerHandoff() {
+    const QString usersDir = qEnvironmentVariable(kUsersVariable);
+    if (usersDir.isEmpty() || !QFileInfo(usersDir).isDir()) return;
+    QFile marker(QDir(usersDir).filePath(QStringLiteral("%1-%2.handoff")
+        .arg(QCoreApplication::applicationPid()).arg(QDateTime::currentMSecsSinceEpoch())));
+    if (marker.open(QIODevice::WriteOnly)) marker.close();
+}
+
+QString appRelaunchProgram() {
+    const QString appImage = qEnvironmentVariable("APPIMAGE");
+    if (!appImage.isEmpty() && QFileInfo(appImage).isExecutable()) return appImage;
+    return QCoreApplication::applicationFilePath();
 }
 
 }  // namespace nt::server

@@ -10856,6 +10856,8 @@
       "queuedCount_one": "{{count}} na fila",
       "queuedCount_other": "{{count}} na fila",
       "collapseQueue": "Recolher fila",
+      "moveQueue": "Mover fila",
+      "moveQueueHint": "Arraste para mover. As setas a movem, Home a redefine.",
       "enqueued": "Enfileirado",
       "jobsRunning_many": "{{count}} trabalhos em execução",
       "queuedCount_many": "{{count}} na fila"

@@ -767,7 +767,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "1️⃣ Brief",
+              "title": "1 Brief",
               "selectable": true,
               "bypassed": false
             },
@@ -789,7 +789,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "2️⃣ Style",
+              "title": "2 Style",
               "selectable": true,
               "bypassed": false
             },
@@ -811,7 +811,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "3️⃣ Mood",
+              "title": "3 Mood",
               "selectable": true,
               "bypassed": false
             },
@@ -855,7 +855,7 @@
               },
               "zIndex": 0,
               "width": 280,
-              "title": "4️⃣ Variations",
+              "title": "4 Variations",
               "selectable": true,
               "bypassed": false
             },
@@ -887,7 +887,7 @@
               },
               "zIndex": 0,
               "width": 220,
-              "title": "1️⃣ Animal inspiration",
+              "title": "1 Animal inspiration",
               "selectable": true,
               "bypassed": false
             },
@@ -918,7 +918,7 @@
               },
               "zIndex": 0,
               "width": 220,
-              "title": "2️⃣ Art style",
+              "title": "2 Art style",
               "selectable": true,
               "bypassed": false
             },
@@ -970,7 +970,7 @@
               "width": 260,
               "selectable": true,
               "bypassed": false,
-              "title": "1️⃣ Source photo"
+              "title": "1 Source photo"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}

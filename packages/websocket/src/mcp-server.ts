@@ -374,10 +374,111 @@ const sessionOwners = new Map<string, string>();
 // oldest session when they are over their cap.
 const sessionLastSeen = new Map<string, number>();
 
+// Requests each session is still answering. Eviction skips a session with a
+// call in flight, because closing its transport drops that call's response.
+const sessionInFlight = new Map<string, number>();
+
 function forgetSession(sessionId: string): void {
   sessionTransports.delete(sessionId);
   sessionOwners.delete(sessionId);
   sessionLastSeen.delete(sessionId);
+  sessionInFlight.delete(sessionId);
+}
+
+function isSessionBusy(sessionId: string): boolean {
+  return (sessionInFlight.get(sessionId) ?? 0) > 0;
+}
+
+/** JSON-RPC error code for a request the client cancelled (LSP's value). */
+const REQUEST_CANCELLED_CODE = -32800;
+
+/** The ids of the JSON-RPC requests (not notifications) in a POST body. */
+export async function jsonRpcRequestIds(
+  request: Request
+): Promise<Array<string | number>> {
+  if (request.method !== "POST") return [];
+  let body: unknown;
+  try {
+    body = await request.clone().json();
+  } catch {
+    return [];
+  }
+  const messages = Array.isArray(body) ? body : [body];
+  const ids: Array<string | number> = [];
+  for (const message of messages) {
+    if (typeof message !== "object" || message === null) continue;
+    const { id, method } = message as { id?: unknown; method?: unknown };
+    if (typeof method !== "string") continue;
+    if (typeof id === "string" || typeof id === "number") ids.push(id);
+  }
+  return ids;
+}
+
+/**
+ * When the client drops the HTTP request before its response is sent, cancel
+ * the calls it carried as if the client had sent `notifications/cancelled`
+ * for each. The SDK aborts each handler's `extra.signal` on that
+ * notification, and the transport does not watch the request's own signal.
+ * Returns the function that removes the listener.
+ */
+async function cancelOnDisconnect(
+  transport: WebStandardStreamableHTTPServerTransport,
+  request: Request
+): Promise<() => void> {
+  const signal = request.signal;
+  const ids = await jsonRpcRequestIds(request);
+  if (ids.length === 0) return () => {};
+  const cancel = (): void => {
+    for (const requestId of ids) {
+      transport.onmessage?.({
+        jsonrpc: "2.0",
+        method: "notifications/cancelled",
+        params: { requestId, reason: "The client disconnected." }
+      });
+      // The SDK sends nothing for a cancelled call, and a JSON-response
+      // transport waits for every id in the batch before it answers. This
+      // error settles the pending response so the request (and its in-flight
+      // count) completes instead of hanging.
+      void transport
+        .send({
+          jsonrpc: "2.0",
+          id: requestId,
+          error: { code: REQUEST_CANCELLED_CODE, message: "Request cancelled" }
+        })
+        .catch(() => {
+          // Already answered: the call finished as the client left.
+        });
+    }
+  };
+  if (signal.aborted) {
+    cancel();
+    return () => {};
+  }
+  signal.addEventListener("abort", cancel, { once: true });
+  return () => signal.removeEventListener("abort", cancel);
+}
+
+/**
+ * Answer one request on a session, counting it as in flight until the
+ * response is ready, and touch the session again when it completes so a long
+ * call does not read as idle.
+ */
+async function handleSessionRequest(
+  sessionId: string,
+  transport: WebStandardStreamableHTTPServerTransport,
+  request: Request
+): Promise<Response> {
+  sessionInFlight.set(sessionId, (sessionInFlight.get(sessionId) ?? 0) + 1);
+  const stopOnDisconnect = await cancelOnDisconnect(transport, request);
+  try {
+    return await transport.handleRequest(request);
+  } finally {
+    stopOnDisconnect();
+    const remaining = (sessionInFlight.get(sessionId) ?? 1) - 1;
+    if (remaining > 0) sessionInFlight.set(sessionId, remaining);
+    else sessionInFlight.delete(sessionId);
+    touchSession(sessionId);
+  }
 }
 
 function touchSession(sessionId: string, now: number = Date.now()): void {
@@ -404,7 +505,7 @@ function closeSession(sessionId: string): void {
  * so an idle process holds no timer. */
 function sweepIdleSessions(now: number): void {
   for (const [sessionId, lastSeen] of sessionLastSeen) {
-    if (now - lastSeen > MCP_SESSION_IDLE_TTL_MS) {
+    if (now - lastSeen > MCP_SESSION_IDLE_TTL_MS && !isSessionBusy(sessionId)) {
       log.debug("Evicting idle MCP session", { sessionId });
       closeSession(sessionId);
     }
@@ -414,9 +515,12 @@ function sweepIdleSessions(now: number): void {
 /** Close a user's oldest sessions until opening one more keeps them at the cap. */
 function evictOverflowForUser(userId: string): void {
   const owned = [...sessionOwners]
-    .filter(([, owner]) => owner === userId)
+    .filter(([sessionId, owner]) => owner === userId && !isSessionBusy(sessionId))
     .map(([sessionId]) => sessionId);
-  const overflow = owned.length - (MCP_MAX_SESSIONS_PER_USER - 1);
+  const busy = [...sessionOwners].filter(
+    ([sessionId, owner]) => owner === userId && isSessionBusy(sessionId)
+  ).length;
+  const overflow = owned.length + busy - (MCP_MAX_SESSIONS_PER_USER - 1);
   if (overflow <= 0) return;
   const oldestFirst = owned.sort(
     (a, b) => (sessionLastSeen.get(a) ?? 0) - (sessionLastSeen.get(b) ?? 0)
@@ -677,7 +781,7 @@ async function routeMcpHttpRequest(
       if (isForeignSession(sessionId, options)) return sessionNotFound();
       const transport = sessionTransports.get(sessionId)!;
       touchSession(sessionId, now);
-      return transport.handleRequest(request);
+      return handleSessionRequest(sessionId, transport, request);
     }
 
     // A session this mount cannot bind to a user is refused here, at
@@ -720,7 +824,7 @@ async function routeMcpHttpRequest(
       if (revived instanceof Response) return revived;
       if (isForeignSession(sessionId, options)) return sessionNotFound();
       touchSession(sessionId, Date.now());
-      return revived.handleRequest(request);
+      return handleSessionRequest(sessionId, revived, request);
     }
 
     const transport = await openSessionTransport(scoped);

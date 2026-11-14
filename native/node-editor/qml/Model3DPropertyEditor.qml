@@ -21,6 +21,8 @@ ColumnLayout {
     property var asset: ({})
     signal valueCommitted(var value)
     signal scopeInvalidated()
+    // Report on an error opens a prefilled bug report: the source label and the error text.
+    signal reportRequested(string source, string text)
     spacing: Ui.Metrics.xs
     function cancelEdit() {
         if (controller) {
@@ -150,10 +152,13 @@ ColumnLayout {
             }
         }
     }
-    Ui.Text {
+    Ui.Banner {
+        objectName: "model3d-error"
+        Layout.fillWidth: true
         visible: root.error !== ""
-        text: root.error
-        role: Ui.Typography.SansCaption
-        tone: Ui.Text.Error
+        status: Ui.Status.Error
+        message: root.error
+        reportable: true
+        onReportRequested: root.reportRequested(qsTr("Model 3D error"), root.error)
     }
 }

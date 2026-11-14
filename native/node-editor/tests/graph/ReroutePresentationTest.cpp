@@ -1,3 +1,4 @@
+#include "../support/DarkCanvasTheme.h"
 #include "graph/WorkflowGraphModel.h"
 #include "graph/EditorScene.h"
 #include "graph/RerouteTypes.h"
@@ -84,7 +85,7 @@ private slots:
     QCOMPARE(forwarded.rerouteHandles.value("r"),QString("any"));
   }
   void nativePillDoubleClickMoveNoResizeAndPortDraft() {
-    WorkflowGraphModel model;EditorScene scene(model);model.project(fixture(),catalog());QGraphicsView view(&scene);view.resize(1000,600);view.setSceneRect(-400,-100,1200,500);view.show();QApplication::processEvents();
+    WorkflowGraphModel model;EditorScene scene(model);scene.setTheme(nodetool::test::darkCanvasTheme());model.project(fixture(),catalog());QGraphicsView view(&scene);view.resize(1000,600);view.setSceneRect(-400,-100,1200,500);view.show();QApplication::processEvents();
     const auto route=id(model,"r1");auto *item=scene.nodeGraphicsObject(route);QVERIFY(item);item->setSelected(true);
     QSignalSpy edit(&scene,&EditorScene::titleEditRequested);QSignalSpy loose(&scene,&EditorScene::looseWireDropped);
     const auto center=view.mapFromScene(item->scenePos()+QPointF(30,10));
@@ -98,7 +99,7 @@ private slots:
   }
   void contextOwnsCanonicalDataEdgeAndRejectsOthers() {
     for (const auto &kind:{QString("data"),QString("control"),QString("lineage"),QString("readonly")}) {
-      WorkflowGraphModel model;EditorScene scene(model);auto snapshot=fixture();auto edges=snapshot["edges"].toArray();auto selected=edges[1].toObject();
+      WorkflowGraphModel model;EditorScene scene(model);scene.setTheme(nodetool::test::darkCanvasTheme());auto snapshot=fixture();auto edges=snapshot["edges"].toArray();auto selected=edges[1].toObject();
       if (kind=="control" || kind=="lineage") { selected["edge_type"]=kind; }edges[1]=selected;snapshot["edges"]=edges;model.project(snapshot,catalog(),kind=="readonly");
       QGraphicsView view(&scene);view.resize(1000,600);view.show();
       ConnectionId connection{id(model,"r1"),0,id(model,"r2"),0};auto *wire=scene.connectionGraphicsObject(connection);QVERIFY(wire);
@@ -113,7 +114,7 @@ private slots:
     const auto prefix=qEnvironmentVariable("NODETOOL_REROUTE_CAPTURE");if (prefix.isEmpty()) { QSKIP("Set NODETOOL_REROUTE_CAPTURE to capture native scene fixtures"); }
     WorkflowGraphModel model;EditorScene scene(model);model.project(fixture(),catalog());
     for (const auto &scheme:{QString("dark"),QString("light")}) {
-      CanvasTheme theme;
+      auto theme = nodetool::test::darkCanvasTheme();
       if (scheme=="light") { theme.textPrimary=QColor("#18181b");theme.textSecondary=QColor("#5b5b66");theme.canvas=QColor("#f5f5f6");theme.node=QColor("#ffffff");theme.grid=QColor("#dcdce1");theme.reroutePaper=QColor("#ffffff");theme.rerouteBorder=QColor("#71717a");theme.primary=QColor("#2f62c4"); }
       scene.setTheme(theme);scene.nodeGraphicsObject(id(model,"r1"))->setSelected(true);
       QImage image(1100,420,QImage::Format_ARGB32_Premultiplied);image.fill(theme.canvas);QPainter painter(&image);scene.render(&painter,QRectF(0,0,1100,420),QRectF(-380,-30,1150,440));painter.end();QVERIFY(image.save(prefix+"-"+scheme+".png"));

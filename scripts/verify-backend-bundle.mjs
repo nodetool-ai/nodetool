@@ -620,6 +620,15 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
         nodeAvTarget
     );
   }
+  const nodeAvCli = (listFiles(path.join(modulesDir, "node-av", "binary")) ?? [])
+    .filter((f) => /^ffmpeg(\.exe)?$/i.test(f));
+  if (nodeAvCli.length > 0) {
+    errors.push(
+      `node-av/binary/${nodeAvCli[0]} is staged. It is the FFmpeg CLI that ` +
+        "node-av's postinstall downloads, and no package may ship it. " +
+        "pruneTargetedPackages in bundle-backend.mjs removes it."
+    );
+  }
 
   // esbuild's JS API throws "cannot be bundled" unless it runs from its own
   // lib/main.js, so an inlined copy leaves every npm sandbox module

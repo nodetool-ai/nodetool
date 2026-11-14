@@ -20,72 +20,50 @@ ColumnLayout {
     // A connected or preserved value explains itself in the hint below the label.
     readonly property string error: descriptor.editable === false || (descriptor.connected && !descriptor.appendStatic) ? "" : (descriptor.error || "")
     spacing: Ui.Metrics.xs
-    EditorRoles { id: roles }
-    // The web inspector field: a quiet translucent fill with no idle border.
-    component FieldFrame: Rectangle {
-        required property Item control
-        color: !control.enabled ? roles.fieldDisabled : control.activeFocus ? roles.fieldFocus : roles.field
-        radius: Ui.Metrics.radiusControl
-        border.width: control.activeFocus ? Ui.Metrics.focus : Ui.Metrics.border
-        border.color: control.valid === false ? Ui.Theme.borderError : control.activeFocus ? Ui.Theme.borderFocus : "transparent"
-    }
     // ListProperty.tsx and DictProperty.tsx show a table on the constant nodes only;
     // DataframeProperty.tsx shows one for every dataframe.
     readonly property bool tableKind: descriptor.kind === "dataframe"
         || (descriptor.kind === "list" && descriptor.nodeType === "nodetool.constant.List")
         || (descriptor.kind === "dict" && descriptor.nodeType === "nodetool.constant.Dict")
-    // A draft belongs to the node it was typed into. Moving the selection, or
-    // closing the inspector, finishes it there, as the web inspector keeps an
-    // edit when another node is clicked. Escape, a reset and a replaced document
-    // discard it. The token, not this delegate, carries the cancel state, so a
-    // commit still lands after the delegate is reused or destroyed.
-    property string editName: ""
-    property var editEpoch: 0
-    property var cancelToken: ({ cancelled: false })
-    function begin() {
-        if (!writable) return
-        editNodeId = nodeId; editName = descriptor.name || ""; editEpoch = host.documentEpoch
-    }
+    function begin() { editNodeId = nodeId }
+    // An edit that ended waits one turn, so the Quick handler that published it
+    // returns first. A field loses focus before the press that took it selects
+    // another node, so the edit still lands on the node it was editing.
+    property var pendingCommit: null
     function commit(value) {
-        if (editNodeId === "" || host.readOnly) return
-        const token = cancelToken, target = host, id = editNodeId, name = editName, epoch = editEpoch
-        Qt.callLater(function() {
-            if (!token.cancelled && !target.readOnly && target.documentEpoch === epoch)
-                target.commitProperty(id, name, value)
-        })
+        if (!writable || editNodeId !== nodeId || host.selection !== editNodeId) return
+        const pending = { generation: commitGeneration, target: host, id: editNodeId, name: descriptor.name, value: value }
+        pendingCommit = pending
+        Qt.callLater(function() { root.flushCommit(pending) })
     }
-    function cancelPending() {
-        cancelToken.cancelled = true
-        cancelToken = { cancelled: false }
-        ++commitGeneration
+    function flushCommit(pending) {
+        if (pendingCommit !== pending) return
+        pendingCommit = null
+        if (pending.generation !== commitGeneration) return
+        if (root.nodeId !== pending.id || root.writable)
+            pending.target.commitProperty(pending.id, pending.name, pending.value)
     }
     function cancelDraft() {
-        cancelPending()
+        ++commitGeneration
+        pendingCommit = null
         if (fieldLoader.item && fieldLoader.item.cancelEdit) fieldLoader.item.cancelEdit()
     }
-    function finishDraft() {
-        const item = typeof fieldLoader === "undefined" || !fieldLoader ? null : fieldLoader.item
-        if (item && item.editing === true && item.finishEdit) item.finishEdit()
-    }
-    function resetFieldScope(keepDraft) {
-        if (keepDraft) finishDraft()
-        else cancelPending()
-        editNodeId = ""; editName = ""; multiline = false
+    // A new selection or tab keeps the finished edit. A replaced document,
+    // new credentials, new fields for the same node or a field that turned
+    // read-only drop it.
+    function resetFieldScope(keepFinishedEdit) {
+        if (keepFinishedEdit && pendingCommit) flushCommit(pendingCommit)
+        pendingCommit = null
+        ++commitGeneration; editNodeId = ""; multiline = false
         if (typeof fieldLoader === "undefined" || !fieldLoader || !fieldLoader.item) return
-        const item = fieldLoader.item
-        if (item.resetScope) item.resetScope()
-        else if (item.cancelEdit) item.cancelEdit()
-        // A finished draft leaves its text in the reused field; show this node's value.
-        if (item.editing !== true && typeof item.text === "string" && typeof item.value === "string") item.text = item.value
+        if (fieldLoader.item.resetScope) fieldLoader.item.resetScope()
+        else if (fieldLoader.item.cancelEdit) fieldLoader.item.cancelEdit()
     }
-    // Selecting another node finishes the draft on the node it was typed into.
-    // A catalog change on the same node cancels it, as the field may now show another property.
-    onDescriptorIdentityChanged: resetFieldScope(editNodeId !== "" && editNodeId !== nodeId)
+    onDescriptorIdentityChanged: resetFieldScope(pendingCommit !== null && pendingCommit.target.selection !== pendingCommit.id)
     onDocumentEpochChanged: resetFieldScope(false)
     onCredentialsEpochChanged: resetFieldScope(false)
-    onHostChanged: resetFieldScope(false)
+    onHostChanged: resetFieldScope(true)
     onWritableChanged: if (!writable) resetFieldScope(false)
-    Component.onDestruction: finishDraft()
     function removeValue() {
         cancelDraft()
         if (!writable || host.selection !== nodeId) return
@@ -101,16 +79,20 @@ ColumnLayout {
         Layout.fillWidth: true
         spacing: Ui.Metrics.sm
         Ui.Text {
+            id: fieldLabel
             text: root.title + (root.descriptor.required ? " *" : "")
             role: Ui.Typography.SansLabel
-            font.weight: Font.Normal
+            weight: Font.Normal
             tone: root.writable ? Ui.Text.Secondary : Ui.Text.Disabled
             Layout.fillWidth: true
             wrapMode: Text.Wrap
             readonly property string helpText: root.descriptor.description || ""
             Accessible.description: helpText
-            HoverHandler {
-                onHoveredChanged: root.host.showToolTip(hovered ? parent.helpText : "")
+            HoverHandler { id: labelHover }
+            Ui.Tooltip {
+                trigger: fieldLabel
+                visible: labelHover.hovered && fieldLabel.helpText !== ""
+                text: fieldLabel.helpText
             }
         }
         // The web marks a value that differs from its default (property-input-container.value-changed).
@@ -119,7 +101,7 @@ ColumnLayout {
             visible: root.descriptor.changed === true
             Layout.preferredWidth: Ui.Metrics.sm
             Layout.preferredHeight: Ui.Metrics.sm
-            radius: width / 2
+            radius: Ui.Metrics.radiusPill
             color: Ui.Theme.accentPrimary
             Accessible.role: Accessible.StaticText
             Accessible.name: "Changed from default"
@@ -187,10 +169,10 @@ ColumnLayout {
             valid: true
             errorText: root.error
             topPadding: Ui.Metrics.sm; bottomPadding: Ui.Metrics.sm
-            leftPadding: 10; rightPadding: 10
-            implicitHeight: 34
+            leftPadding: Ui.Metrics.nodeFieldPadding; rightPadding: Ui.Metrics.nodeFieldPadding
+            implicitHeight: Ui.Metrics.nodeFieldHeight
             font.weight: Font.Normal
-            background: FieldFrame { control: parent }
+            variant: Ui.TextField.Node
             onEditStarted: root.begin()
             onValueCommitted: value => root.commit(value)
         }
@@ -204,7 +186,7 @@ ColumnLayout {
             implicitHeight: Math.max(contentHeight + Ui.Metrics.xl, Ui.Metrics.touch * 2)
             role: Ui.Typography.SansLabel
             font.weight: Font.Normal
-            background: FieldFrame { control: parent }
+            variant: Ui.TextArea.Node
             accessibleName: root.title
             enabled: root.writable
             valid: true
@@ -227,7 +209,7 @@ ColumnLayout {
             enabled: root.writable
             valid: (root.descriptor.kind !== "integer" || text.trim() === "" || Number.isInteger(Number(text)))
             errorText: root.error || "Enter a valid " + root.descriptor.kind + " within the allowed range."
-            background: FieldFrame { control: parent }
+            variant: Ui.NumberField.Node
             onEditStarted: root.begin()
             onValueCommitted: value => root.commit(value)
         }
@@ -295,9 +277,10 @@ ColumnLayout {
             writable: root.writable
             nodeId: root.nodeId
             onScopeInvalidated: {
-                root.cancelPending()
+                ++root.commitGeneration
                 root.editNodeId = ""
             }
+            onReportRequested: (source, text) => root.host.reportError(source, text)
             onValueCommitted: value => root.immediate(value)
         }
     }
@@ -310,7 +293,7 @@ ColumnLayout {
             writable: root.writable
             nodeId: root.nodeId
             onScopeInvalidated: {
-                root.cancelPending()
+                ++root.commitGeneration
                 root.editNodeId = ""
             }
             onValueCommitted: value => root.immediate(value)
@@ -326,7 +309,7 @@ ColumnLayout {
             writable: root.writable
             nodeId: root.nodeId
             onScopeInvalidated: {
-                root.cancelPending()
+                ++root.commitGeneration
                 root.editNodeId = ""
             }
             onValueCommitted: value => root.immediate(value)
@@ -358,7 +341,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             onScopeInvalidated: {
-                root.cancelPending()
+                ++root.commitGeneration
                 root.editNodeId = ""
             }
             onValueCommitted: value => root.immediate(value)
@@ -390,9 +373,8 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
-            onToolTipRequested: text => root.host.showToolTip(text)
             onScopeInvalidated: {
-                root.cancelPending()
+                ++root.commitGeneration
                 root.editNodeId = ""
             }
             onValueCommitted: value => root.immediate(value)
@@ -406,7 +388,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
-            onScopeInvalidated: { root.cancelPending(); root.editNodeId = "" }
+            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
             onValueCommitted: value => root.immediate(value)
         }
     }
@@ -418,7 +400,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
-            onScopeInvalidated: { root.cancelPending(); root.editNodeId = "" }
+            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
             onValueCommitted: value => root.immediate(value)
         }
     }
@@ -450,7 +432,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
-            onScopeInvalidated: { root.cancelPending(); root.editNodeId = "" }
+            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
             onValueCommitted: value => root.immediate(value)
         }
     }
@@ -464,8 +446,7 @@ ColumnLayout {
             value: root.effectiveValue
             writable: root.writable
             nodeId: root.nodeId
-            onToolTipRequested: text => root.host.showToolTip(text)
-            onScopeInvalidated: { root.cancelPending(); root.editNodeId = "" }
+            onScopeInvalidated: { ++root.commitGeneration; root.editNodeId = "" }
             onValueCommitted: value => root.immediate(value)
         }
     }
@@ -508,8 +489,8 @@ ColumnLayout {
         Layout.fillWidth: true
         wrapMode: Text.Wrap
     }
-    NodeButton {
-        variant: NodeButton.Flat
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined; flat: true
         leftPadding: 0
         Layout.alignment: Qt.AlignLeft
         visible: root.descriptor.kind === "text" && root.writable
@@ -525,8 +506,8 @@ ColumnLayout {
             || (root.descriptor.required === false && !root.descriptor.hasDefault)
             || root.descriptor.changed === true)
         spacing: Ui.Metrics.md
-        NodeButton {
-            variant: NodeButton.Flat
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined; flat: true
             leftPadding: 0
             onPressed: root.cancelDraft()
             text: "Set null"
@@ -534,8 +515,8 @@ ColumnLayout {
             enabled: !root.descriptor.hasValue || root.descriptor.value !== null
             onClicked: root.immediate(null)
         }
-        NodeButton {
-            variant: NodeButton.Flat
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined; flat: true
             leftPadding: 0
             onPressed: root.cancelDraft()
             text: "Clear value"
@@ -545,8 +526,8 @@ ColumnLayout {
                 root.removeValue()
             }
         }
-        NodeButton {
-            variant: NodeButton.Flat
+        Ui.EditorButton {
+            variant: Ui.EditorButton.Outlined; flat: true
             leftPadding: 0
             onPressed: root.cancelDraft()
             objectName: "reset-default"

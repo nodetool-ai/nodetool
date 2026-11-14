@@ -22,8 +22,9 @@ more than 1024 logical pixels therefore bends less than React Flow's.
 
 [`node_metrics`](src/graph/NodeLayout.h) and
 [`EditorRoles`](qml/EditorRoles.qml) hold the web values scoped to this editor.
-`NodeButton` and `PanelRow` are editor controls for the web's button and row
-styles. Other native apps keep the [native design](../ui_primitives/DESIGN.md).
+`Ui.EditorButton.Outlined` is the web's button style, and `Ui.ListRow` with `flat: true`
+is the web's row style. Other native apps keep
+the [native design](../ui_primitives/DESIGN.md).
 
 The panels form the `NodeTool.NodeEditor` QML module. No panel reads the editor
 window. The panels take small interface objects as required properties, such
@@ -318,8 +319,7 @@ server, and programmatic selection changes invalidate drafts and queued writes.
 Select a node to open the inspector's Params, I/O, and Help tabs for the full
 metadata-driven property controls. Titles, help, constraints, nullable values, and defaults come
 from the property descriptors. Ordinary strings use multiline editing unless metadata requests a single line.
-Single-line fields also offer multiline editing. Escape cancels the draft. Selecting another
-node, or the empty canvas, finishes the draft on the node it was typed into. Each committed field
+Single-line fields also offer multiline editing. Escape cancels the draft. Each committed field
 edit creates one undo step and is bound to its original node. Connected inputs are disabled with an explanation.
 Lists, dictionaries, records, and JSON have validated editors where their entry
 types are supported. Image/audio/video and generic asset properties offer authenticated library
@@ -544,9 +544,7 @@ keyboard commits and dark/light wide/narrow captures. Font, media-parameter,
 file/path, and folder-path editors remain unavailable, as do the web color
 modal's saved swatches/history, harmony/contrast tools, eyedropper, and gradients.
 
-Inspector field delegates persist across value updates. Selecting another
-node or the canvas finishes an open draft on its original node and property.
-A catalog change on the same node, including conditional fields replacing a
-same-kind slot, a credential epoch change, or a replaced workflow cancels
-drafts and queued commands.
+Inspector field delegates persist across value updates. Their identity and
+workflow/credential epochs cancel stale drafts and queued commands when the
+scope changes, including when conditional fields replace a same-kind slot.
 Image-size ratio lock survives ordinary dimension commits.

@@ -3,12 +3,15 @@
 // SettingsHeaderButton.tsx, inspector/RunSelectedNodesSection.tsx,
 // costs/WorkflowCostEstimatePanel.tsx and panels/PanelBottom.tsx.
 #include "EditorWindow.h"
+#include <QtMath>
+#include <QSettings>
 #include "graph/CanvasDropController.h"
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QGuiApplication>
 #include <QDateTime>
 #include <QDockWidget>
+#include <QGraphicsView>
 #include <QJsonDocument>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -188,6 +191,10 @@ void EditorWindow::reportBug(node_editor::BugReportContext context) {
   QDesktopServices::openUrl(node_editor::bugReportUrl(context, system));
 }
 
+void EditorWindow::reportError(const QString &source, const QString &text) {
+  reportBug({.source = source, .errorText = text});
+}
+
 QVariantMap EditorWindow::costEstimate() const {
   if (!tabOwner_) { return activeEditor_->costEstimate(); }
   return costEstimate_;
@@ -241,6 +248,66 @@ bool EditorWindow::queueVisible() const {
   if (!tabOwner_) { return activeEditor_->queueVisible(); }
   const auto *queue = queueOverlay_ ? queueOverlay_->rootObject() : nullptr;
   return queue && queue->property("presented").toBool() && queue->property("showList").toBool();
+}
+
+QRect EditorWindow::queueArea() const {
+  return {view_->mapTo(centralWidget(), QPoint(0, 0)), view_->size()};
+}
+
+QSize EditorWindow::queueSize(const QRect &area) const {
+  using node_editor::docked_overlay::margin;
+  constexpr int width = 304;
+  const auto *root = queueOverlay_ ? queueOverlay_->rootObject() : nullptr;
+  const int desired = root ? qCeil(root->property("contentHeight").toReal()) : 0;
+  return {std::clamp(area.width() - 2 * margin, 0, width), std::clamp(area.height() - 2 * margin, 0, desired)};
+}
+
+void EditorWindow::moveQueue(double dx, double dy) {
+  if (!queueOverlay_) { return; }
+  using namespace node_editor::docked_overlay;
+  const auto area = queueArea();
+  const auto size = queueSize(area);
+  const auto from = queueDragPoint_.value_or(queueOverlay_->pos());
+  const QPoint to = from + QPoint(qRound(dx), qRound(dy));
+  // Clamped at each step, so a pointer that went past an edge moves the
+  // overlay again as soon as it comes back toward it.
+  queueDragPoint_ = place({false, false, to.x() - area.left(), to.y() - area.top()}, area, size);
+  queueOverlay_->move(*queueDragPoint_);
+}
+
+void EditorWindow::finishQueueMove() {
+  if (!queueDragPoint_) { return; }
+  const auto area = queueArea();
+  const auto position = node_editor::docked_overlay::dockAt(*queueDragPoint_, area, queueSize(area));
+  queueDragPoint_.reset();
+  setQueuePosition(position);
+}
+
+void EditorWindow::nudgeQueue(double dx, double dy) {
+  if (!queueOverlay_) { return; }
+  const auto area = queueArea();
+  setQueuePosition(node_editor::docked_overlay::dockAt(queueOverlay_->pos() + QPoint(qRound(dx), qRound(dy)), area, queueSize(area)));
+}
+
+void EditorWindow::resetQueuePosition() { setQueuePosition(std::nullopt); }
+
+void EditorWindow::setQueuePosition(std::optional<node_editor::docked_overlay::Position> position) {
+  QSettings settings;
+  if (position) {
+    settings.setValue("queueOverlay/position", node_editor::docked_overlay::toVariant(*position));
+  } else {
+    settings.remove("queueOverlay/position");
+  }
+  // The position holds for every workflow tab, as the web keeps one per user.
+  const auto tabs = tabOwner_ ? tabOwner_->tabs_ : QList<EditorWindow *>{this};
+  for (auto *tab : tabs) {
+    tab->queuePosition_ = position;
+    tab->layoutOverlays();
+  }
+  if (!tabs.contains(this)) {
+    queuePosition_ = position;
+    layoutOverlays();
+  }
 }
 
 void EditorWindow::toggleQueue() {

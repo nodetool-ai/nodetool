@@ -135,6 +135,14 @@ else:
         for sample in ('Item { border.color: Qt.rgba(1, 1, 1, .5) }', 'Item { spacing: 4 }', 'Item { font.weight: 600 }', 'Item { property string x: `x` }'):
             self.assertTrue(audit(sample, 'invalid.qml'), sample)
 
+    def test_text_weight_and_tight_replace_raw_font_attributes(self):
+        header = 'import NodeTool.UiPrimitives as Ui\n'
+        for sample in ('Ui.Text { weight: Font.Normal; tight: true }', 'Ui.Text { weight: a ? Font.Medium : Font.DemiBold }'):
+            self.assertEqual(audit(header + sample, 'valid.qml'), [], sample)
+        for sample in ('Ui.Text { font.weight: Font.Normal }', 'Ui.Text { lineHeight: 1 }',
+                       'Ui.Text { weight: Font.Bold }', 'Ui.Text { weight: 600 }'):
+            self.assertTrue(any('typography' in issue for issue in audit(header + sample, 'invalid.qml')), sample)
+
     def test_metric_token_does_not_hide_literal_offset(self):
         for value in ('Ui.Metrics.none + 13', 'Ui.Metrics.sm + 13',
                       'Ui.Metrics.sm + 0xD', 'active ? Ui.Metrics.sm : 13',

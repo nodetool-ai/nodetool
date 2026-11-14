@@ -128,7 +128,7 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🖼️ Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations. Use it to compare several directions for the same subject in one run.\n\n**How it works:** \"5 Build art-direction brief\" combines \"1 Brief\", \"2 Style\" and \"3 Mood\". \"6 Art-director agent\" turns that into one art direction, so every variation shares a visual language. \"7 Write variation prompts\" asks for \"4 Variations\" (4, range 2 to 8) prompts from that direction and the style. \"8 Generate prompt list\" emits them one at a time, and \"9 Render each variation\" renders each at 1:1 into \"Concept Art\". Pick a language model on \"6 Art-director agent\" and \"8 Generate prompt list\", and an image model on \"9 Render each variation\".\n\n**Try this:** Set \"4 Variations\" to 6 and change \"3 Mood\" to \"ominous, decaying, hostile\" to get six variations in a darker direction."
+          "comment": "# Concept Art Iteration Board\n\nOne brief becomes a gallery of on-brief concept-art variations. Use it to compare several directions for the same subject in one run.\n\n**How it works:** \"5 Build art-direction brief\" combines \"1 Brief\", \"2 Style\" and \"3 Mood\". \"6 Art-director agent\" turns that into one art direction, so every variation shares a visual language. \"7 Write variation prompts\" asks for \"4 Variations\" (4, range 2 to 8) prompts from that direction and the style. \"8 Generate prompt list\" emits them one at a time, and \"9 Render each variation\" renders each at 1:1 into \"Concept Art\". Pick a language model on \"6 Art-director agent\" and \"8 Generate prompt list\", and an image model on \"9 Render each variation\".\n\n**Try this:** Set \"4 Variations\" to 6 and change \"3 Mood\" to \"ominous, decaying, hostile\" to get six variations in a darker direction."
         },
         "ui_properties": {
           "position": {
@@ -168,7 +168,7 @@
           "zIndex": 0,
           "width": 461,
           "height": 489,
-          "title": "9️⃣ Render each variation",
+          "title": "9 Render each variation",
           "selectable": true,
           "bypassed": false,
           "selected_generation": "8200a9c8-6d27-4298-9e02-19b2df7abfa0"
@@ -199,7 +199,7 @@
           "zIndex": 0,
           "width": 390,
           "height": 292,
-          "title": "8️⃣ Generate prompt list",
+          "title": "8 Generate prompt list",
           "selectable": true,
           "bypassed": false
         },
@@ -245,7 +245,7 @@
           "zIndex": 0,
           "width": 319,
           "height": 207,
-          "title": "6️⃣ Art-director agent",
+          "title": "6 Art-director agent",
           "selectable": true,
           "bypassed": false
         },
@@ -268,7 +268,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Brief",
+          "title": "1 Brief",
           "selectable": true,
           "bypassed": false
         },
@@ -290,7 +290,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Style",
+          "title": "2 Style",
           "selectable": true,
           "bypassed": false
         },
@@ -312,7 +312,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3️⃣ Mood",
+          "title": "3 Mood",
           "selectable": true,
           "bypassed": false
         },
@@ -338,7 +338,7 @@
           "zIndex": 0,
           "width": 418,
           "height": 563,
-          "title": "7️⃣ Write variation prompts",
+          "title": "7 Write variation prompts",
           "selectable": true,
           "bypassed": false
         },
@@ -368,7 +368,7 @@
           "zIndex": 0,
           "width": 377,
           "height": 571,
-          "title": "5️⃣ Build art-direction brief",
+          "title": "5 Build art-direction brief",
           "selectable": true,
           "bypassed": false
         },
@@ -416,7 +416,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "4️⃣ Variations",
+          "title": "4 Variations",
           "selectable": true,
           "bypassed": false
         },

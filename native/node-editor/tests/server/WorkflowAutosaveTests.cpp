@@ -7,6 +7,7 @@
 #include <QScopeGuard>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QElapsedTimer>
 #include <QtTest>
 using namespace nodetool::node_editor;
 static QJsonObject graphValue(const QJsonValue &value) {
@@ -337,6 +338,19 @@ private slots:
     session.detachServerWorkflow(); // Local file provenance also works for the same workflow id.
     session.setSnapshot(draft); http.finish(http.pending, http.pendingBody);
     QTest::qWait(20); QCOMPARE(session.workflow(), draft); QVERIFY(session.dirty()); QVERIFY(!session.serverBound()); QVERIFY(!session.saving());
+  }
+  // A rate-limit retry delays one save. It must not change the debounce of later edits.
+  void retryDelayDoesNotStickToLaterEdits() {
+    int fired = 0;
+    QObject context;
+    WorkflowAutosave autosave(&context, [&fired] { ++fired; });
+    autosave.setDelay(20);
+    autosave.later(60000);
+    autosave.cancel();
+    QElapsedTimer clock; clock.start();
+    autosave.changed();
+    QTRY_COMPARE_WITH_TIMEOUT(fired, 1, 2000);
+    QVERIFY2(clock.elapsed() < 1000, qPrintable(QString::number(clock.elapsed())));
   }
 };
 QTEST_GUILESS_MAIN(AutosaveTests)

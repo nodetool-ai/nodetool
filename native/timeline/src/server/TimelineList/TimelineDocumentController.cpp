@@ -2,6 +2,7 @@
 #include "TimelineLaunch.h"
 #include "app/Menus/ShellMenus.h"
 #include "app/Preferences/Preferences.h"
+#include "server/BundledServer.h"
 #include "server/ServerSource.h"
 #include <QCoreApplication>
 #include <QJsonArray>
@@ -146,8 +147,10 @@ void TimelineDocumentController::switchTo(const QString& source) {
         const auto bytes = QJsonDocument(QJsonArray::fromStringList(arguments)).toJson(QJsonDocument::Compact);
         started = file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size() && file.commit();
     } else {
+        // This process quits next, so the server must wait for the new window.
+        nt::server::noteBundledServerHandoff();
         QProcess child;
-        child.setProgram(QCoreApplication::applicationFilePath());
+        child.setProgram(nt::server::appRelaunchProgram());
         child.setArguments(arguments);
         child.setProcessEnvironment(timelineLaunchEnvironment(listTarget()));
         started = child.startDetached();

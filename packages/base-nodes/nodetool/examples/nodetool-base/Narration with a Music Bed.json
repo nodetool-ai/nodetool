@@ -18,7 +18,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Narration with a Music Bed\n\nVoices a script and mixes it over a generated music bed. Use it for a quick narrated spot with background music.\n\n**How it works:** \"Narrate\" reads the \"Script\". \"Normalize\" and a \"Gain\" of -3 dB set the voice level, and \"GetAudioInfo\" measures its length. \"Bed\" generates music, which \"Trim\" cuts to the voice length. A \"Gain\" of -18 dB, \"FadeIn\" and \"FadeOut\" sit it under the voice. \"Mix\" overlays both, and \"Narration\" plays the result.\n\n**Try this:** Pick models on \"Narrate\" and \"Bed\", then change the music prompt on \"Bed\", for example to \"warm acoustic guitar, slow tempo\"."
+          "comment": "# Narration with a Music Bed\n\nVoices a script and mixes it over a generated music bed. Use it for a quick narrated spot with background music.\n\n**How it works:** \"Narrate\" reads the \"Script\". \"Normalize\" and a \"Gain\" of -3 dB set the voice level, and \"GetAudioInfo\" measures its length. \"Bed\" generates music for that length, so a longer script gets a longer bed, and \"Trim\" cuts it to the exact voice length. A \"Gain\" of -18 dB, \"FadeIn\" and \"FadeOut\" sit it under the voice. \"Mix\" overlays both, and \"Narration\" plays the result.\n\n**Try this:** Pick models on \"Narrate\" and \"Bed\", then change the music prompt on \"Bed\", for example to \"warm acoustic guitar, slow tempo\"."
         },
         "ui_properties": {
           "position": {
@@ -38,7 +38,7 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "script",
-          "value": "",
+          "value": "Every morning, before the city wakes, the bakery on Elm Street lights its ovens. By six, the first loaves are cooling in the window, and the smell drifts three blocks in every direction. Nobody remembers who started the tradition. Everybody knows where to find breakfast.",
           "description": "The narration"
         },
         "ui_properties": {
@@ -100,7 +100,7 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1180,
+            "x": 1580,
             "y": 596
           },
           "zIndex": 0,
@@ -117,7 +117,7 @@
         "data": {},
         "ui_properties": {
           "position": {
-            "x": 3100,
+            "x": 3480,
             "y": 472
           },
           "zIndex": 0,
@@ -137,7 +137,7 @@
         },
         "ui_properties": {
           "position": {
-            "x": 3500,
+            "x": 3880,
             "y": 479
           },
           "zIndex": 0,
@@ -203,7 +203,7 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1580,
+            "x": 1960,
             "y": 743
           },
           "width": 280
@@ -220,7 +220,7 @@
         },
         "ui_properties": {
           "position": {
-            "x": 1960,
+            "x": 2340,
             "y": 634
           },
           "width": 280
@@ -237,7 +237,7 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2340,
+            "x": 2720,
             "y": 633
           },
           "width": 280
@@ -254,7 +254,7 @@
         },
         "ui_properties": {
           "position": {
-            "x": 2720,
+            "x": 3100,
             "y": 580
           },
           "width": 280
@@ -313,6 +313,13 @@
         "sourceHandle": "audio",
         "target": "music-trim",
         "targetHandle": "audio"
+      },
+      {
+        "id": "voice-length-mus",
+        "source": "voice-length",
+        "sourceHandle": "duration",
+        "target": "mus",
+        "targetHandle": "duration"
       },
       {
         "id": "voice-length-music-trim",

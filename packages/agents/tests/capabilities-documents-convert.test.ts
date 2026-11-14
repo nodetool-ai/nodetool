@@ -110,6 +110,8 @@ afterAll(async () => {
 
 function run() {
   const context = {
+    workspaceDir: workspace,
+    workspace: null,
     resolveWorkspacePath: (path: string) => resolve(workspace, path)
   } as unknown as ProcessingContext;
   return createCapabilityRun({ context, gate: UNGATED });

@@ -17,7 +17,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🧮 Data Generator\n\nDescribe the data you want and pick a row count. An AI returns structured rows matching your columns instead of a wall of prose.\n\n**How it works:** \"Topic\" and \"Row count\" (8 by default, 3 to 30) fill the placeholders in \"Build prompt\", which asks for exactly that many distinct rows. \"Generate rows\" is a DataGenerator with two columns, name and color, and returns a table that \"View table\" shows. Pick a language model on \"Generate rows\" before you run it.\n\n**Try this:** On \"Generate rows\", add a third column named \"season\" with type string. Run again and the table gains a season value for each vegetable."
+          "comment": "# Data Generator\n\nDescribe the data you want and pick a row count. An AI returns structured rows matching your columns instead of a wall of prose.\n\n**How it works:** \"Topic\" and \"Row count\" (8 by default, 3 to 30) fill the placeholders in \"Build prompt\", which asks for exactly that many distinct rows. \"Generate rows\" is a DataGenerator with two columns, name and color, and returns a table that \"View table\" shows. Pick a language model on \"Generate rows\" before you run it.\n\n**Try this:** On \"Generate rows\", add a third column named \"season\" with type string. Run again and the table gains a season value for each vegetable."
         },
         "ui_properties": {
           "position": {
@@ -49,7 +49,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "1️⃣ Topic"
+          "title": "1 Topic"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -74,7 +74,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "2️⃣ Row count"
+          "title": "2 Row count"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -95,7 +95,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "3️⃣ Build prompt"
+          "title": "3 Build prompt"
         },
         "dynamic_properties": {
           "TOPIC": "fresh vegetables, each with its typical color",
@@ -143,7 +143,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "4️⃣ Generate rows"
+          "title": "4 Generate rows"
         },
         "dynamic_properties": {}
       },
@@ -161,7 +161,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "5️⃣ View table",
+          "title": "5 View table",
           "selectable": true,
           "bypassed": false
         },

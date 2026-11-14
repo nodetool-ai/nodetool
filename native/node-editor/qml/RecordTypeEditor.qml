@@ -26,7 +26,8 @@ ColumnLayout {
         editStarted(); valueCommitted(next)
     }
     function addColumn() { publish(Table.addColumn(columns)) }
-    NodeButton {
+    Ui.EditorButton {
+        variant: Ui.EditorButton.Outlined
         objectName: "record-add-column"
         text: "Add column"
         iconName: "add"

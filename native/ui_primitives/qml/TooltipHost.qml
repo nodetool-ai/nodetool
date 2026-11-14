@@ -1,0 +1,10 @@
+pragma Singleton
+import QtQuick
+
+// How a host shows a tooltip that its overlay cannot hold, such as a panel hosted in a
+// QQuickWidget sized to a toolbar. A host sets `routeToHost`, connects `requested`, and shows
+// the text itself. An empty text hides it. Without a host, tooltips stay in the overlay.
+QtObject {
+    property bool routeToHost: false
+    signal requested(string text)
+}

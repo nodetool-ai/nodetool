@@ -145,7 +145,7 @@ describe("useOAuthConnection", () => {
     });
 
     await waitFor(() => expect(result.current.isConnected).toBe(true));
-    expect(result.current.label).toBe("OpenAI");
+    expect(result.current.label).toBe("ChatGPT");
     expect(result.current.canDisconnect).toBe(true);
   });
 
@@ -436,7 +436,7 @@ describe("useOAuthConnection", () => {
       expect(result.current.isConnecting).toBe(false);
       expect(mockAddNotification).toHaveBeenCalledWith(
         expect.objectContaining({
-          content: "Successfully connected to OpenAI",
+          content: "Successfully connected to ChatGPT",
           type: "success",
           alert: true
         })

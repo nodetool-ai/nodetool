@@ -5,8 +5,11 @@
  * whole clip: `preset: "custom"`, `role: "emphasis"`, no delay, duration equal
  * to the clip's, one curve per property. The sampler already knows how to
  * play such a curve (`animation/compile.ts`), so a keyframe set here renders
- * everywhere a preset does. Keyframe times are stored as `t` in 0..1 over the
- * clip, so trimming the clip stretches its keyframes with it.
+ * everywhere a preset does. Keyframe times are stored as `t` over the clip,
+ * 0..1 inside it. A trim keeps every keyframe at its instant
+ * ({@link retimeKeyframeCurves}), so a key the trim cut off sits outside 0..1:
+ * it is not shown, it still shapes the curve at the clip's edge, and trimming
+ * back out shows it again, as in Premiere.
  *
  * These are pure functions over one clip; the store wraps them.
  */
@@ -91,6 +94,8 @@ export function keyframeTimesMs(
       continue;
     }
     for (const kf of curve.keyframes) {
+      // A key a trim cut off is kept but not shown.
+      if (kf.t < -T_EPSILON || kf.t > 1 + T_EPSILON) continue;
       times.add(kf.t * clip.durationMs);
     }
   }
@@ -285,6 +290,56 @@ export function sliceCurve<Curve extends { keyframes: CurveKeyframe[] }>(
       t: Math.max(0, Math.min(1, (kf.t - fromT) / span))
     }))
   };
+}
+
+/**
+ * Curves normalized over a clip `fromDurationMs` long, renormalized over the
+ * clip a trim made of it: `headMs` is how much the trim added before the old
+ * start (negative when it cut the head). Every keyframe keeps its instant, and
+ * the ones now outside the clip are kept with `t` outside 0..1.
+ */
+export function retimeKeyframeCurves<Curve extends { keyframes: CurveKeyframe[] }>(
+  curves: readonly Curve[],
+  fromDurationMs: number,
+  toDurationMs: number,
+  headMs: number
+): Curve[] {
+  if (fromDurationMs <= 0 || toDurationMs <= 0) return [...curves];
+  if (fromDurationMs === toDurationMs && headMs === 0) return [...curves];
+  return curves.map((curve) => ({
+    ...curve,
+    keyframes: curve.keyframes.map((kf) => ({
+      ...kf,
+      t: (kf.t * fromDurationMs + headMs) / toDurationMs
+    }))
+  }));
+}
+
+/**
+ * `animations` after a trim from `fromDurationMs` to `toDurationMs` that added
+ * `headMs` before the old start: the hand-keyframe animation keeps every key
+ * at its instant and spans the new clip. Returns the same array when the clip
+ * has none.
+ */
+export function retimeKeyframeAnimations(
+  animations: ClipAnimation[],
+  fromDurationMs: number,
+  toDurationMs: number,
+  headMs: number
+): ClipAnimation[] {
+  if (!animations.some(isKeyframeAnimation)) return animations;
+  return animations.map((animation) =>
+    isKeyframeAnimation(animation) && animation.custom
+      ? {
+          ...animation,
+          durationMs: toDurationMs,
+          custom: {
+            ...animation.custom,
+            curves: retimeKeyframeCurves(animation.custom.curves, fromDurationMs, toDurationMs, headMs)
+          }
+        }
+      : animation
+  );
 }
 
 /** Whether `property` has at least one hand-set keyframe: its stopwatch is on. */

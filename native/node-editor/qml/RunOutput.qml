@@ -56,11 +56,11 @@ Rectangle {
                 onClicked: root.runs.askAgent(root.runs.selectedRunId)
             }
             Item { Layout.fillWidth: true }
-            NodeButton {
+            Ui.EditorButton {
                 objectName: "clear-run-history"
                 visible: root.hasRuns
                 text: "Clear history"
-                variant: NodeButton.Flat
+                variant: Ui.EditorButton.Outlined; flat: true
                 onClicked: root.runs.clearOutput()
             }
         }

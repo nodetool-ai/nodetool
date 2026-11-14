@@ -123,6 +123,11 @@ export {
   resolveCapabilityMessage,
   UNGATED
 } from "./capabilities/index.js";
+export {
+  isStorageReference,
+  ownedStorageReference,
+  type StorageReferenceDecision
+} from "./capabilities/storage-reference.js";
 export type {
   AvailableSecretsResolver,
   CapabilitySpec,

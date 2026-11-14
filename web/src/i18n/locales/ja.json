@@ -10693,6 +10693,8 @@
       "queuedCount_one": "{{count}} がキューに入れられました",
       "queuedCount_other": "{{count}} がキューに入れられました",
       "collapseQueue": "キューを折りたたむ",
+      "moveQueue": "キューを移動",
+      "moveQueueHint": "ドラッグで移動。矢印キーで移動、Home でリセット。",
       "enqueued": "キューに入れられました"
     },
     "toolbar": {

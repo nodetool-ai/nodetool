@@ -1,6 +1,5 @@
 pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.UiPrimitives as Ui
 
@@ -50,13 +49,11 @@ ColumnLayout {
             onClicked: root.controller.closeLog()
         }
     }
-    Basic.ScrollView {
+    Ui.ScrollArea {
         id: viewport
         objectName: "trace-log-details-scroll"
         Layout.fillWidth: true
         Layout.fillHeight: true
-        contentWidth: availableWidth
-        clip: true
         ColumnLayout {
             width: viewport.availableWidth
             spacing: Ui.Metrics.md
