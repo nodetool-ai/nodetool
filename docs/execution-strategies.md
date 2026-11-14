@@ -19,8 +19,6 @@ EOS               Format closes Output's inbox
 job_update        status: completed                  (RunResult.status: completed | failed | cancelled)
 ```
 
-Two mechanisms share the word "execution" and are easy to conflate. Workflow execution is the actor model above, with no per-job threads, subprocesses, or containers. Code execution is how the Code node runs user JavaScript in a QuickJS WebAssembly guest, which covers the code inside one node and not the workflow. See [Architecture](architecture.md) for the system overview and [Automatic Message Correlation](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) for the lineage model the scheduler uses.
-
 ## Workflow Execution: the actor model
 
 A workflow is a DAG. The one allowed cycle is a loop that closes on a `Loop` node's feedback input. The runtime lives in `packages/kernel/`:
@@ -30,8 +28,7 @@ A workflow is a DAG. The one allowed cycle is a loop that closes on a `Loop` nod
 - **`NodeInbox`** (`packages/kernel/src/inbox.ts`) buffers each node's inputs
   per handle and tracks how many upstream sources remain open.
 
-There is no `JobExecutionManager` and no pluggable "threaded / subprocess /
-docker" strategy. Async actors pass messages to each other's inboxes in one event loop.
+There are no per-job threads, subprocesses, or containers. Async actors pass messages to each other's inboxes in one event loop.
 
 ### What WorkflowRunner does
 
@@ -146,12 +143,11 @@ concurrent control calls doesn't drop a waiter.
 
 ## Code Execution: the sandboxed Code node
 
-Separately from workflow scheduling, the **Code node**
+The **Code node**
 (`nodetool.code.Code`, `packages/code-nodes/src/nodes/code-node.ts`) executes
-user JavaScript in a QuickJS WebAssembly guest — see
-`@nodetool-ai/agents/js-sandbox`. It isolates the *code in one node*, not the
-workflow, and runs the same way in the browser and on the server: no Docker, no
-subprocess, no host interpreter.
+user JavaScript in a QuickJS WebAssembly guest (`@nodetool-ai/agents/js-sandbox`).
+It isolates the code in one node and runs the same way in the browser and on the
+server: no Docker, no subprocess, no host interpreter.
 
 The guest gets standard JavaScript plus a fixed set of bridges: `fetch()`,
 `workspace`, `getSecret()`, `sleep()`, `progress()`, `crypto`, `format`, the
@@ -164,9 +160,7 @@ security model.
 
 ## Cancellation and shutdown
 
-- **Workflow**: `WorkflowRunner.cancel()` aborts the run-level `AbortController`
-  (observed by node code via `inputs.signal`) and closes every inbox so waiting
-  actors unblock; the job finalizes as `cancelled`.
+- **Workflow**: `cancel()` (see [Job outcomes](#job-outcomes)) is observed by node code via `inputs.signal`. The job finalizes as `cancelled`.
 - **Code node**: the QuickJS guest is torn down with its host call; the run's
   abort signal ends any in-flight bridge call.
 

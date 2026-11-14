@@ -7,7 +7,7 @@ title: "Transcribe Audio"
 
 Convert speech to text with Whisper. The workflow returns plain text, with no timestamps.
 
-1. **Audio Input** (`nodetool.input.AudioInput`) - Record your voice or upload an audio file
+1. **Audio Input** (`nodetool.input.AudioInput`) - Records or uploads audio
 2. **Automatic Speech Recognition** (`nodetool.text.AutomaticSpeechRecognition`) - Transcribes the audio. The template selects `openai/whisper-large-v3` on fal.ai. The node also takes a language code (empty detects it), a guiding prompt, and a temperature.
 3. **Output** - The `transcript` text
 
@@ -21,9 +21,7 @@ For timed segments or words, use `openai.audio.Transcribe`, which returns `text`
 
 ## How to Use
 
-- Record your voice or upload a file using the audio input
-- Click Run
-- Read the transcript in the output
+Record or upload audio on the input node, then run. The output node holds the transcript.
 
 ## Tags
 

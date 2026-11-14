@@ -5,12 +5,10 @@ parent: NodeTool Workflow Cookbook
 nav_order: 2
 ---
 
-Eight patterns for creative work worth running more than once. Each one names
-the graph, the nodes, and the shipped template closest to it.
-
-To build any of them: press Space to add a node, drag an output handle to an
-input handle, press Ctrl/⌘+Enter to run, and drop `Preview` nodes wherever you
-want to see an intermediate value.
+Eight graphs for creative work you run more than once. Each names the nodes and
+the closest shipped template. To build any of them, press Space to add a node, drag an output handle to an
+input handle, press Ctrl/⌘+Enter to run, and add `Preview` nodes to see
+intermediate values.
 
 <span id="pattern-1-brief-to-cut"></span>
 
@@ -36,8 +34,8 @@ graph LR
   brief --> dir --> batch --> chain --> cut --> render --> out
 {% endmermaid %}
 
-`ShotChain` seeds each shot from the previous clip's last frame, which is what
-holds continuity across a cut nobody is watching. Shot 1 has nothing to seed
+`ShotChain` seeds each shot from the previous clip's last frame, which holds
+continuity across shots. Shot 1 has nothing to seed
 from unless its screenplay shot carries a keyframe, so it runs text-to-video
 while the rest run image-to-video. On providers that publish those as separate
 model ids (kie does), fill in **Continuation Model** too. Leave it empty to
@@ -80,8 +78,8 @@ graph LR
   brief --> dir --> shots --> still --> clip --> collect --> cut --> render
 {% endmermaid %}
 
-A still costs cents and a clip costs dollars, so the keyframe is both a control
-point and a cheap thing to inspect after an unattended run. Anchoring every
+A still costs cents and a clip costs dollars, so the keyframe is a cheap
+checkpoint. Anchoring every
 keyframe to one style frame keeps thirty shots looking like one film. Generate
 the style frame first, then run the shot stills through `ImageToImage` against
 it.
@@ -170,9 +168,8 @@ graph LR
 {% endmermaid %}
 
 Lines already up to date are skipped, so a re-run after a copy edit pays for the
-changed lines only. That is what makes the whole chain worth wiring: the script
-is the source of truth, and the cut plus the subtitle file are both derived from
-it.
+changed lines only. The script is the source of truth, and the cut and the
+subtitle file are both derived from it.
 
 `ScriptToTimeline` raises an error when no line has a take, so voice first.
 `ScriptToSubtitles` writes SRT or WebVTT (`format`) with one cue per line or per
@@ -219,9 +216,9 @@ graph LR
   styles --> each --> img --> collect --> out
 {% endmermaid %}
 
-That is the whole-frame version. For a masked edit, send the same node's
+For a masked edit, send the same node's
 `mask` output alongside its `image` to `openai.image.EditImage`, which repaints
-the white areas and leaves the rest alone — the mask is painted once and every
+the white areas and leaves the rest alone. The mask is painted once and every
 variant reuses it.
 
 `SketchLayers` is the other half. It returns `layers` and `names` for each
@@ -243,8 +240,7 @@ ______________________________________________________________________
 ### Pattern 6 · Variant fan-out from one brief
 
 An agent turns a brief into a direction, a list generator writes N distinct
-prompts against it, and each prompt renders. The fan-out is the point: one input,
-a gallery out.
+prompts against it, and each prompt renders. One input gives a gallery.
 
 <video controls preload="metadata" poster="{{ '/assets/cookbook/variant-fan-out.jpg' | relative_url }}">
   <source src="{{ '/assets/cookbook/variant-fan-out.mp4' | relative_url }}" type="video/mp4">
@@ -275,8 +271,8 @@ on the prompt stream shows you what is coming before the images arrive.
 `nodetool.generators.ListGenerator`, `nodetool.image.TextToImage`,
 `nodetool.control.Collect`
 
-**Automate it when** you want variety to pick from — concepts, thumbnails,
-poster directions, a social kit.
+**Automate it when** you want variety to pick from, such as concepts, thumbnails,
+poster directions, or a social kit.
 
 **Templates**: *Concept Art Iteration Board*, *Hook & Thumbnail Factory*,
 *Movie Posters*, *Brand Asset Generator*
@@ -321,7 +317,7 @@ you give it, so a 16:9 clip resized to 1080 by 1920 is squashed, not cropped.
 
 Burned-in captions need timings, not prose: `AddSubtitles` takes
 `list[audio_chunk]`, which `openai.audio.Transcribe` returns as `segments` or
-`words`. `Transcript` is the text path — it feeds the copy, not the caption
+`words`. `Transcript` is the text path. It feeds the copy, not the caption
 burn.
 
 **Nodes**: `nodetool.constant.Timeline`, `nodetool.timeline.Transcript`,
@@ -343,8 +339,7 @@ ______________________________________________________________________
 
 ### Pattern 8 · Code node for the parts a model should not do
 
-Naming, ordering, deduping, packaging: deterministic work that a model does
-expensively and inconsistently. One `Code` node does it in JavaScript.
+Naming, ordering, deduping, and packaging are deterministic. One `Code` node does them in JavaScript.
 
 <video controls preload="metadata" poster="{{ '/assets/cookbook/code-glue.jpg' | relative_url }}">
   <source src="{{ '/assets/cookbook/code-glue.mp4' | relative_url }}" type="video/mp4">
@@ -361,9 +356,8 @@ graph LR
 {% endmermaid %}
 
 The body runs in the QuickJS sandbox and imports what it declares. Sandbox packs
-cover the file formats a delivery step usually needs —
-`@nodetool-ai/sandbox-subtitle` for SRT and VTT, `-csv`, `-zip`, `-yaml`,
-`-xlsx`. Validate a body before running the graph with
+cover file formats: `@nodetool-ai/sandbox-subtitle` for SRT and VTT, `-csv`,
+`-zip`, `-yaml`, `-xlsx`. Validate a body before running the graph with
 `nodetool validate <file>`, or author it against `validate_code` / `run_code` /
 `test_code`.
 
@@ -378,8 +372,7 @@ ______________________________________________________________________
 
 ### Leave it on the surface
 
-A graph earns its place by repeating. These do not repeat, and the surface is
-faster:
+These jobs do not repeat, so use the surface:
 
 | Job | Where it belongs |
 |---|---|
@@ -389,5 +382,5 @@ faster:
 | Rewriting a line and hearing it back | Script editor |
 | One hero image, one question about a document | Chat |
 
-Each surface is also drivable by the chat agent through its `ui_*` tools, and
-from outside over MCP — so "do it on the surface" does not mean "do it by hand".
+The chat agent can also drive each surface through its `ui_*` tools, and
+outside clients can over MCP.

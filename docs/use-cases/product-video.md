@@ -13,9 +13,8 @@ canonical_url: "https://nodetool.ai/use-cases/product-video"
 
 <p class="usecase-eyebrow">Use case · Marketing</p>
 
-Turn a campaign brief and a single product photo into a cinematic 16:9 product
-video. Your inputs feed a prompt, an agent directs the shot, and an image-to-video
-model renders a ready-to-post clip.
+A campaign brief and a single product photo feed a prompt. An agent directs the
+shot, and an image-to-video model renders a 16:9 clip.
 
 <div class="usecase-hero">
   <video src="{{ '/assets/use-cases/product_video_example.mp4' | relative_url }}" poster="{{ '/assets/use-cases/smartwatch.png' | relative_url }}" autoplay loop muted playsinline controls></video>
@@ -23,9 +22,8 @@ model renders a ready-to-post clip.
 
 ## How it works
 
-Four inputs and four nodes: a brief, an audience, a feature list, and the hero
-photo go in; a finished clip comes out. The shipped template is named *Product
-Video Generator* (**Examples** in the sidebar, **Workflows** tab).
+The inputs are a brief, an audience, a feature list, and the hero photo. The
+shipped template is named *Product Video Generator* (**Examples** in the sidebar, **Workflows** tab).
 
 {% mermaid %}
 graph LR
@@ -46,21 +44,19 @@ graph LR
 {% endmermaid %}
 
 1. **Feed in the campaign.** Three text inputs hold the brief, the target
-   audience, and the key features. A product photo goes in alongside them as the
-   hero shot. *(e.g. "Aurora Trail smart fitness watch · active millennials who
+   audience, and the key features. The product photo is the hero shot. *(e.g. "Aurora Trail smart fitness watch · active millennials who
    hike · GPS, heart-rate, adaptive coaching, water resistance")*
 2. **Assemble the prompt.** A Prompt node templates those inputs into a precise,
    rule-based request: one camera move, one subject action, lighting, color
    anchors, and hard constraints (no on-screen text, logos, or watermarks).
 3. **Direct the shot.** An agent turns the request into a concrete, cinematic
-   prompt with framing, lens, and motion cues — the part most people get wrong
-   by hand.
+   prompt with framing, lens, and motion cues.
 4. **Render the video.** An image-to-video model animates the product photo from
-   the agent's prompt into a finished, ready-to-post clip.
+   the agent's prompt into the clip.
 
 ## One photo in, a clip out
 
-The whole pipeline runs from a single product render. Same graph, any product.
+The pipeline runs from a single product render. Use the same graph for any product.
 
 <div class="usecase-gallery two">
   <figure>
@@ -75,20 +71,17 @@ The whole pipeline runs from a single product render. Same graph, any product.
 
 ## Make it yours
 
-- **Swap the video model.** Veo, Seedance, Kling, Runway. Change one node, the
-  rest of the graph stays exactly the same.
-- **Retune the agent.** Rewrite the system prompt for a luxury, playful, or
-  hyper-technical tone without touching the pipeline.
-- **Change the format.** Aspect ratio, resolution, and duration all live on the
-  video node. Go vertical for social in one click.
-- **Reuse for any product.** Drop in a new photo and brief, run it again. The
-  workflow is the reusable part, not the output.
+- Swap the video model (Veo, Seedance, Kling, Runway) by changing one node.
+- Rewrite the agent's system prompt for a luxury, playful, or technical tone
+  without touching the pipeline.
+- Aspect ratio, resolution, and duration live on the video node. Set vertical
+  for social.
+- Drop in a new photo and brief and run it again for another product.
 
 ## Models in this workflow
 
-Called with your own keys. The bill comes from the provider, and Veo bills per
-second of video. The template ships with these defaults and each is one
-dropdown.
+Calls use your own keys, so the provider bills you, and Veo bills per second of
+video. The template ships with these defaults, each a dropdown.
 
 | Model | Role | Provider |
 | --- | --- | --- |
@@ -99,8 +92,8 @@ See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to se
 
 ## Next steps
 
-- [Movie Trailer Generator]({{ '/use-cases/movie-trailer' | relative_url }}) — one logline to a cut teaser
-- [Color Boost Video]({{ '/workflows/color-boost-video' | relative_url }}) — polish footage on the canvas
+- [Movie Trailer Generator]({{ '/use-cases/movie-trailer' | relative_url }}): one logline to a cut teaser
+- [Color Boost Video]({{ '/workflows/color-boost-video' | relative_url }}): polish footage on the canvas
 - [All use cases]({{ '/use-cases' | relative_url }})
 </content>
 </invoke>

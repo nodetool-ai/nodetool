@@ -30,9 +30,9 @@ caller's verdict (see [Workflow Supervisor](../workflow-supervisor-design.md)).
 
 `WaitNode` (`nodetool.triggers.Wait`, in
 `packages/automation-nodes/src/nodes/triggers.ts`) does not suspend anything.
-It is an in-process delay: `process()` sleeps for `timeout_seconds` via
-`setTimeout`, then passes its input through. The run stays alive and in
-memory for the whole delay. Use it for rate-limiting and fixed delays.
+`process()` sleeps for `timeout_seconds` via `setTimeout`, then passes its
+input through. The run stays alive and in memory for the whole delay. Use it
+for rate-limiting and fixed delays.
 
 ```typescript
 import { WaitNode } from "@nodetool-ai/automation-nodes";
@@ -47,7 +47,7 @@ waitNode.input = { request_id: "REQ-123" };
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `timeout_seconds` | `int` (minimum 0) | `0` | Seconds to wait before continuing. `0` = **no wait** (pass through immediately). |
+| `timeout_seconds` | `int` (minimum 0) | `0` | Seconds to wait. `0` passes through immediately. |
 | `input` | `any` | `""` | Input data passed through to the output after the delay |
 
 ### WaitNode Output
@@ -62,14 +62,12 @@ After the delay, the WaitNode outputs:
 }
 ```
 
-> The output field names (`resumed_at`, `waited_seconds`) read like suspension
-> semantics, but they only reflect the `setTimeout` delay — nothing was
-> suspended.
+`resumed_at` and `waited_seconds` reflect only the `setTimeout` delay.
 
 
 ## Writing a trigger node
 
-A trigger node is how a node "waits" for an outside event. Set `static readonly isTrigger = true` on the class. When a run starts because an event arrived (the run request carries a `trigger_event` that targets the node), the kernel calls `emitTriggerEvent(event, outputs)` instead of the live-listening `genProcess()` loop. Without a trigger event, the node keeps its streaming behavior, which is what an in-editor live test uses.
+To wait for an outside event, write a trigger node. Set `static readonly isTrigger = true` on the class. When a run starts because an event arrived (the run request carries a `trigger_event` that targets the node), the kernel calls `emitTriggerEvent(event, outputs)` instead of the live-listening `genProcess()` loop. Without a trigger event, the node keeps its streaming behavior, which is what an in-editor live test uses.
 
 ```ts
 import type { StreamingOutputs, TriggerEvent } from "@nodetool-ai/node-sdk";
