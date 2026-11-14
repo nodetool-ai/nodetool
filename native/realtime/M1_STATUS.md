@@ -16,6 +16,7 @@ This work was originally stacked on
 Integration proceeds in that order: merge M0, then retarget and merge
 [M1 PR #7471](https://github.com/nodetool-ai/nodetool/pull/7471) into main.
 Merging the implementation does not close unfinished acceptance requirements.
+M0 merged as `634a251bc1` after its combined CI passed. M1 now targets main.
 
 ## Current M1 acceptance evidence
 
@@ -438,6 +439,13 @@ passes afterward. A schema-only edit also changes the real Turbo build hash.
 Targeted cache-input checks and scoped lint pass. Full Docker and combined
 integration CI must pass at the corrected revision before merge. This changes
 build inputs, not executor behavior or deferred milestone acceptance.
+
+The corrected Docker build passes in the full quality run at `d2330ba843`.
+That run also exposed drift in the generated anti-slop configuration: the new
+compiler package was absent from its measured-clean rule sets. Canonical
+regeneration adds those enforcement entries without removing existing coverage.
+Scoped compiler enforcement passes. The final main-targeted gate must verify
+the regenerated configuration before M1 merges.
 
 ## Provisional progress gate
 
