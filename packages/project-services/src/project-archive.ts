@@ -594,6 +594,11 @@ export async function importProjectArchive(
     // An external path names a file on the exporting machine. Kept, it would
     // let a file point an asset at any path on this one.
     row["external_path"] = null;
+    // The archive carries each asset's bytes under its storage key, and the
+    // import stores them there. A kept `workspace_path` would tie the row to
+    // whatever file has that path in the new folder, and deleting or renaming
+    // the asset would then delete or rename that file.
+    row["workspace_path"] = null;
   }
   // An import never publishes anything.
   for (const row of imported.workflows) row["access"] = "private";

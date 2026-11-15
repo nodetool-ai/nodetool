@@ -3,14 +3,13 @@ import {
   linkGenerationAssets
 } from "@nodetool-ai/execution";
 import { createLogger } from "@nodetool-ai/config";
-import { Asset } from "@nodetool-ai/models";
 import {
   buildAssetGenerationMetadata,
   isRawRgbaImage
 } from "@nodetool-ai/protocol";
 import { encodeRawRgbaToPng, fetchExternalMedia } from "@nodetool-ai/runtime";
 import { getAssetFileName } from "@nodetool-ai/asset-services/asset-paths";
-import { storeAssetWithThumbnail } from "@nodetool-ai/asset-services/thumbnail";
+import { saveProjectAsset } from "@nodetool-ai/asset-services/project-asset";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -271,8 +270,23 @@ async function readBytesFromUri(uri: string): Promise<Uint8Array | null> {
 }
 
 /**
- * Recursively find asset-like values in a result object and persist them as
- * Asset records in the database + on disk.
+ * The name an auto-saved output gets, which its file name is derived from:
+ * the node's title when it has one, else `<kind>_<node id prefix>`. A node
+ * without a title reports its type as its name.
+ */
+function outputAssetName(
+  kind: string,
+  opts: { nodeId: string; nodeName?: string; nodeType?: string }
+): string {
+  const title = opts.nodeName?.trim();
+  return title && title !== opts.nodeType
+    ? title
+    : `${kind}_${opts.nodeId.slice(0, 8)}`;
+}
+
+/**
+ * Recursively find asset-like values in a result object and persist each as
+ * an Asset record plus one file in `Generated/` of the run's project folder.
  *
  * Mutates the result in-place: sets `asset_id` and updates `uri` to
  * `asset://{id}.{ext}`.
@@ -282,8 +296,15 @@ export async function autoSaveAssets(
   opts: {
     userId: string;
     workflowId: string | null;
+    /**
+     * The run's project. Each saved output becomes a file in its folder. A
+     * run with no project of its own saves into Personal.
+     */
+    projectId?: string | null;
     jobId: string;
     nodeId: string;
+    /** The node's title. Names the saved files when it is not the node type. */
+    nodeName?: string;
     /**
      * Name of the node's primary output when it is a text/str type. When set and
      * the result carries a non-empty string there, it is persisted as a
@@ -316,6 +337,11 @@ export async function autoSaveAssets(
   // Prompt + settings lifted into each media asset's metadata: what produced
   // this, and what to re-run to get another one like it.
   const generationMeta = generationMetadata(opts.properties, opts.nodeType);
+  const provenance = {
+    workflow_id: opts.workflowId ?? null,
+    node_id: opts.nodeId,
+    job_id: opts.jobId
+  };
   // Generations the seam opened for this node that no asset names yet: the
   // node returned an inline ref, so the link is made here, on save
   // (docs/media-generation-tracking-design.md § 8, S3).
@@ -391,16 +417,6 @@ export async function autoSaveAssets(
         ? explicitMime
         : (ASSET_TYPE_MIME[assetType] ?? "application/octet-stream");
 
-    // Create Asset record
-    const asset = new Asset({
-      user_id: opts.userId,
-      workflow_id: opts.workflowId ?? null,
-      node_id: opts.nodeId,
-      job_id: opts.jobId,
-      name: `${assetType}_${opts.nodeId.slice(0, 8)}`,
-      content_type: contentType,
-      parent_id: null
-    });
     const mediaMeta: Record<string, unknown> = { ...generationMeta };
     if (opts.generationIndex != null) {
       mediaMeta.generation_index = opts.generationIndex;
@@ -411,21 +427,18 @@ export async function autoSaveAssets(
     if (outputName) {
       mediaMeta.output_name = outputName;
     }
-    if (Object.keys(mediaMeta).length > 0) {
-      asset.metadata = mediaMeta;
-    }
 
-    const fileName = getAssetFileName(asset.id, contentType);
     try {
-      await storeAssetWithThumbnail(
-        asset.user_id,
-        asset.id,
-        fileName,
+      const asset = await saveProjectAsset({
+        projectId: opts.projectId,
+        userId: opts.userId,
+        name: outputAssetName(assetType, opts),
+        contentType,
         bytes,
-        contentType
-      );
-      asset.size = bytes.length;
-      await asset.save();
+        provenance,
+        metadata: mediaMeta
+      });
+      const fileName = getAssetFileName(asset.id, asset.content_type);
       savedAssetIds.push(asset.id);
 
       // Mutate the result value in-place. For raw assets, also drop the raw
@@ -464,30 +477,19 @@ export async function autoSaveAssets(
       const previewText = new TextDecoder().decode(
         bytes.slice(0, TEXT_GENERATION_PREVIEW_CAP)
       );
-      const asset = new Asset({
-        user_id: opts.userId,
-        workflow_id: opts.workflowId ?? null,
-        node_id: opts.nodeId,
-        job_id: opts.jobId,
-        name: `text_${opts.nodeId.slice(0, 8)}`,
-        content_type: "text/plain",
-        parent_id: null
-      });
-      asset.metadata =
-        opts.generationIndex != null
-          ? { text: previewText, generation_index: opts.generationIndex }
-          : { text: previewText };
-      const fileName = `${asset.id}.txt`;
       try {
-        await storeAssetWithThumbnail(
-          asset.user_id,
-          asset.id,
-          fileName,
+        await saveProjectAsset({
+          projectId: opts.projectId,
+          userId: opts.userId,
+          name: outputAssetName("text", opts),
+          contentType: "text/plain",
           bytes,
-          "text/plain"
-        );
-        asset.size = bytes.length;
-        await asset.save();
+          provenance,
+          metadata:
+            opts.generationIndex != null
+              ? { text: previewText, generation_index: opts.generationIndex }
+              : { text: previewText }
+        });
       } catch (err) {
         log.warn("Auto-save text generation failed", {
           nodeId: opts.nodeId,
@@ -519,15 +521,6 @@ export async function autoSaveAssets(
       }
       if (serialized) {
         const bytes = new TextEncoder().encode(serialized);
-        const asset = new Asset({
-          user_id: opts.userId,
-          workflow_id: opts.workflowId ?? null,
-          node_id: opts.nodeId,
-          job_id: opts.jobId,
-          name: `json_${opts.nodeId.slice(0, 8)}`,
-          content_type: "application/json",
-          parent_id: null
-        });
         // Inline the full value only when it fits — a truncated JSON string
         // would not parse on reload. Oversized values reload from the bytes.
         const inline =
@@ -543,18 +536,16 @@ export async function autoSaveAssets(
         if (opts.generationIndex != null) {
           metadata.generation_index = opts.generationIndex;
         }
-        asset.metadata = metadata;
-        const fileName = `${asset.id}.json`;
         try {
-          await storeAssetWithThumbnail(
-            asset.user_id,
-            asset.id,
-            fileName,
+          await saveProjectAsset({
+            projectId: opts.projectId,
+            userId: opts.userId,
+            name: outputAssetName("json", opts),
+            contentType: "application/json",
             bytes,
-            "application/json"
-          );
-          asset.size = bytes.length;
-          await asset.save();
+            provenance,
+            metadata
+          });
         } catch (err) {
           log.warn("Auto-save JSON generation failed", {
             nodeId: opts.nodeId,

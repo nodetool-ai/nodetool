@@ -39,6 +39,17 @@ import {
 } from "../../lib/external-assets.js";
 import { EXTERNAL_FINGERPRINT_KEYS } from "../../lib/external-asset-lookup.js";
 import {
+  deleteProjectAssetFile,
+  renameProjectAssetFile,
+  replaceProjectAssetBytes,
+  type ProjectAssetFileChange
+} from "@nodetool-ai/asset-services/project-asset";
+import {
+  ProjectFolderUnavailableError,
+  WORKSPACE_FINGERPRINT_KEYS,
+  keepFingerprint
+} from "@nodetool-ai/asset-services/project-asset-file";
+import {
   localPathDenialMessage,
   resolveLocalPath
 } from "../../lib/local-file-access.js";
@@ -124,10 +135,29 @@ async function deleteAssetObjects(asset: AssetModel): Promise<void> {
   }
 }
 
-/** Delete an asset row together with the bytes it points at. */
+/**
+ * Delete an asset row together with the bytes it points at.
+ *
+ * An asset that is a file in its project folder loses that file first. When
+ * the folder cannot be reached this throws and the row stays, so the asset
+ * shows as missing instead of a file being left without its row.
+ */
 async function deleteAssetWithObjects(asset: AssetModel): Promise<void> {
+  await deleteProjectAssetFile(asset);
   await deleteAssetObjects(asset);
   await asset.delete();
+}
+
+/** Report an unreachable project folder with its reason. Other errors pass. */
+function rethrowFolderError(error: unknown): never {
+  if (error instanceof ProjectFolderUnavailableError) {
+    throwApiError(
+      ApiErrorCode.SERVICE_UNAVAILABLE,
+      error.message,
+      "PRECONDITION_FAILED"
+    );
+  }
+  throw error;
 }
 
 /**
@@ -749,6 +779,9 @@ export const assetsRouter = router({
       }
       assertWritable(asset);
       const isExternal = Boolean(asset.external_path);
+      // The asset is a file in its project folder: a rename renames the
+      // file and new data is written to it.
+      const hasProjectFile = Boolean(asset.workspace_path);
       if (isExternal && input.data != null) {
         // New bytes would land under the storage root and shadow the
         // referenced file, which the user still sees on disk.
@@ -786,7 +819,13 @@ export const assetsRouter = router({
       if (input.metadata !== undefined) {
         asset.metadata = isExternal
           ? withExternalFingerprint(input.metadata, asset.metadata)
-          : input.metadata;
+          : hasProjectFile
+            ? keepFingerprint(
+                input.metadata,
+                asset.metadata,
+                WORKSPACE_FINGERPRINT_KEYS
+              )
+            : input.metadata;
       }
       if (input.sketch_document_id !== undefined) {
         asset.sketch_document_id = input.sketch_document_id;
@@ -796,7 +835,10 @@ export const assetsRouter = router({
       }
       if (input.favorite !== undefined) asset.favorite = input.favorite;
       // An external asset's size is its file's, recorded by import or relink.
-      if (input.size !== undefined && !isExternal) asset.size = input.size;
+      // A project file's size is recorded when the file is written.
+      if (input.size !== undefined && !isExternal && !hasProjectFile) {
+        asset.size = input.size;
+      }
 
       if (input.expected_metadata !== undefined && input.data != null) {
         throwApiError(
@@ -805,49 +847,71 @@ export const assetsRouter = router({
         );
       }
 
-      if (input.data != null) {
-        const buf =
-          input.data_encoding === "base64"
-            ? Buffer.from(input.data, "base64")
-            : Buffer.from(input.data, "utf-8");
-        asset.size = buf.byteLength;
-        const fileName = getAssetFileName(asset.id, asset.content_type);
-        log.info("asset upload (update)", {
-          assetId: asset.id,
-          fileName,
-          contentType: asset.content_type,
-          bytes: buf.byteLength
-        });
-        try {
-          await storeAssetWithThumbnail(
-            asset.user_id,
-            asset.id,
+      // File changes wait for the row. Each is undone when the row is not
+      // saved, and what it replaced is removed only after the save.
+      const fileChanges: ProjectAssetFileChange[] = [];
+      try {
+        if (input.data != null) {
+          const buf =
+            input.data_encoding === "base64"
+              ? Buffer.from(input.data, "base64")
+              : Buffer.from(input.data, "utf-8");
+          const fileName = getAssetFileName(asset.id, asset.content_type);
+          log.info("asset upload (update)", {
+            assetId: asset.id,
             fileName,
-            new Uint8Array(buf),
-            asset.content_type
-          );
-        } catch (error) {
-          if (error instanceof UploadTooLargeError) {
-            throwApiError(
-              ApiErrorCode.ASSET_UPLOAD_FAILED,
-              uploadTooLargeMessage(error),
-              "PAYLOAD_TOO_LARGE"
+            contentType: asset.content_type,
+            bytes: buf.byteLength
+          });
+          try {
+            const replaced = await replaceProjectAssetBytes(
+              asset,
+              new Uint8Array(buf)
             );
+            if (replaced) {
+              fileChanges.push(replaced);
+            } else {
+              asset.size = buf.byteLength;
+              await storeAssetWithThumbnail(
+                asset.user_id,
+                asset.id,
+                fileName,
+                new Uint8Array(buf),
+                asset.content_type
+              );
+            }
+          } catch (error) {
+            if (error instanceof UploadTooLargeError) {
+              throwApiError(
+                ApiErrorCode.ASSET_UPLOAD_FAILED,
+                uploadTooLargeMessage(error),
+                "PAYLOAD_TOO_LARGE"
+              );
+            }
+            throw error;
           }
-          throw error;
         }
-      }
 
-      const saved =
-        input.expected_metadata !== undefined
-          ? await asset.saveIfMetadataMatches(input.expected_metadata)
-          : await asset.save();
-      if (saved === false) {
-        throwApiError(
-          ApiErrorCode.ALREADY_EXISTS,
-          "Asset metadata changed. Reload it and try again."
-        );
+        if (input.name !== undefined) {
+          const renamed = await renameProjectAssetFile(asset, input.name);
+          if (renamed) fileChanges.push(renamed);
+        }
+
+        const saved =
+          input.expected_metadata !== undefined
+            ? await asset.saveIfMetadataMatches(input.expected_metadata)
+            : await asset.save();
+        if (saved === false) {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            "Asset metadata changed. Reload it and try again."
+          );
+        }
+      } catch (error) {
+        for (const change of fileChanges.reverse()) await change.undo();
+        rethrowFolderError(error);
       }
+      for (const change of fileChanges) await change.commit();
       return toAssetResponse(asset);
     }),
 
@@ -862,11 +926,15 @@ export const assetsRouter = router({
       assertWritable(asset);
 
       let deletedAssetIds: string[];
-      if (asset.content_type === "folder") {
-        deletedAssetIds = await deleteFolderRecursive(ctx.userId, asset.id);
-      } else {
-        await deleteAssetWithObjects(asset);
-        deletedAssetIds = [asset.id];
+      try {
+        if (asset.content_type === "folder") {
+          deletedAssetIds = await deleteFolderRecursive(ctx.userId, asset.id);
+        } else {
+          await deleteAssetWithObjects(asset);
+          deletedAssetIds = [asset.id];
+        }
+      } catch (error) {
+        rethrowFolderError(error);
       }
       return { deleted_asset_ids: deletedAssetIds };
     }),

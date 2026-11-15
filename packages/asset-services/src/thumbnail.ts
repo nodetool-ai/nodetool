@@ -356,6 +356,30 @@ export async function generateThumbnailForStoredAsset(
 }
 
 /**
+ * Generate and store the thumbnail of an asset whose bytes the caller holds
+ * or has on this host, such as a file just written to a project folder. The
+ * thumbnail is a derived object in the asset store, never a file in the
+ * folder. Failures are logged and swallowed.
+ */
+export async function storeAssetThumbnail(
+  userId: string,
+  assetId: string,
+  contentType: string,
+  source: ThumbnailSource
+): Promise<void> {
+  const generator = thumbGeneratorFor(contentType);
+  if (!generator) return;
+  await storeThumbnail(
+    getAssetAdapter(),
+    userId,
+    assetId,
+    contentType,
+    generator,
+    () => Promise.resolve(source)
+  );
+}
+
+/**
  * Store an asset's bytes and, when applicable, generate and store a
  * thumbnail. Thumbnail failures are logged and swallowed — the original
  * upload still succeeds.

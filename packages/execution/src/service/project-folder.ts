@@ -28,8 +28,15 @@ import {
   setPersonalFolderProvider,
   type WorkspaceOrigin
 } from "@nodetool-ai/models";
-import { RESERVED_WORKSPACE_DIR, type Workspace } from "@nodetool-ai/runtime";
-import { nodetoolDirFromRow } from "./workflow-workspace.js";
+import {
+  RESERVED_WORKSPACE_DIR,
+  setProjectFolderResolver,
+  type Workspace
+} from "@nodetool-ai/runtime";
+import {
+  nodetoolDirFromRow,
+  resolveProjectWorkspace
+} from "./workflow-workspace.js";
 
 const log = createLogger("nodetool.execution.project-folder");
 
@@ -446,6 +453,13 @@ export async function ensurePersonalProject(userId: string): Promise<Project> {
 setPersonalFolderProvider(async (project) => {
   await ensureProjectFolder(project);
 });
+
+// Asset services read and write asset files in project folders. They sit
+// below this package, so they reach folders through the resolver installed
+// here. It is installed next to the Personal folder provider on purpose: a
+// run with no project resolves to Personal, and that resolves only once
+// Personal has been given its folder.
+setProjectFolderResolver(resolveProjectWorkspace);
 
 export interface ProjectFolderMigrationReport {
   /** Projects that had no folder when the migration reached them. */

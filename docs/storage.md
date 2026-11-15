@@ -59,6 +59,10 @@ TEMP_BUCKET=assets-temp
 
 Create the two buckets in the Supabase dashboard first. The key is a service role key, so keep it server-side.
 
+## Assets in project folders
+
+A workflow output or an asset a node saves is a file in its [project's folder](workspaces.md#assets-are-files-in-the-folder), not an object under `<user>/<asset id>.<ext>`. In a storage-backed folder the file is created with a conditional write (`If-None-Match: *` on S3, an upload without upsert on Supabase), so it cannot replace an existing object. An S3-compatible endpoint must support conditional writes. AWS S3, Cloudflare R2 and current MinIO do. Its thumbnail still goes to asset storage. A read of the asset's storage key finds no object there and is resolved through the asset row to the file: by path with the `file` backend, and through the project folder's storage with S3 or Supabase, where the signed URL names the file's own object.
+
 ## External assets
 
 On a local desktop or dev server with the `file` backend, an import at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) is not copied. The asset row stores `external_path`, the file stays where it is, and the server records its size and modification time (`externalAssetsAvailable()` in `src/lib/external-assets.ts`). If the file is missing or either value changed, the asset reads as offline until you relink it. `NODETOOL_ENV=production` and the S3 and Supabase backends never create external assets.

@@ -99,3 +99,9 @@ export const SQLITE_CORE_BASELINE_SQL = `
 
 export const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
 export const ASSET_FAVORITE_DDL = "ALTER TABLE nodetool_assets ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0";
+/**
+ * An asset is a file in its project's folder, and the row records the file's
+ * path relative to that folder. Added by a versioned migration in every
+ * schema owner, because the baseline above is frozen.
+ */
+export const ASSET_WORKSPACE_PATH_DDL = "ALTER TABLE nodetool_assets ADD COLUMN workspace_path TEXT";

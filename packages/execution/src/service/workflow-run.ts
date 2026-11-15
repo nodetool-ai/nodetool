@@ -183,8 +183,12 @@ export interface WorkflowRunEnvironment {
 export interface RunGeneration {
   userId: string;
   workflowId: string;
+  /** The run's project. A saved output becomes a file in its folder. */
+  projectId: string | null;
   jobId: string;
   nodeId: string;
+  /** The node's title, or its type when it has none. */
+  nodeName: string;
   nodeType: string;
   /** k-th generation of this node in this run. */
   index: number;
@@ -653,6 +657,16 @@ function copyRecords(value: unknown): unknown {
   );
 }
 
+/**
+ * The title the editor gave a graph node (`ui_properties.title`), or
+ * undefined when it has none. A saved output is named after it.
+ */
+export function graphNodeTitle(node: unknown): string | undefined {
+  if (!isRecord(node) || !isRecord(node["ui_properties"])) return undefined;
+  const title = node["ui_properties"]["title"];
+  return isString(title) && title.trim() ? title.trim() : undefined;
+}
+
 interface GenerationSaves {
   /** Resolves once every save started so far has finished. */
   settle: () => Promise<void>;
@@ -667,7 +681,13 @@ function saveGenerations(
   context: ProcessingContext,
   registry: NodeRegistry,
   persist: (generation: RunGeneration) => Promise<void>,
-  run: { userId: string; workflowId: string; jobId: string }
+  run: {
+    userId: string;
+    workflowId: string;
+    projectId: string | null;
+    jobId: string;
+  },
+  titles: ReadonlyMap<string, string>
 ): GenerationSaves {
   const pending: Promise<void>[] = [];
   const indexByNode = new Map<string, number>();
@@ -680,6 +700,7 @@ function saveGenerations(
       persist({
         ...run,
         nodeId: msg.node_id,
+        nodeName: titles.get(msg.node_id) ?? msg.node_name,
         nodeType: msg.node_type,
         index,
         outputs: Object.fromEntries(
@@ -948,7 +969,18 @@ export async function runWorkflow(
         executionContext,
         registry,
         environment.persistGeneration,
-        { userId, workflowId, jobId: job.id }
+        {
+          userId,
+          workflowId,
+          projectId: executionContext.projectId,
+          jobId: job.id
+        },
+        new Map(
+          runnableGraph.nodes.flatMap((node): Array<[string, string]> => {
+            const title = graphNodeTitle(node);
+            return title ? [[node.id, title]] : [];
+          })
+        )
       );
     }
     await registerWorkflowRunTrace(executionContext, { jobId: job.id, workflowId: workflowId || null, inlineGraph: Boolean(options.graph) });

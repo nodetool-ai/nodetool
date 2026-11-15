@@ -18,6 +18,7 @@ import type {
 } from "./storage-adapter.js";
 import { compareStorageKeys, normalizeStorageKey } from "./storage-keys.js";
 import { getMaxLocalUploadBytes } from "./storage-limits.js";
+import { getDefaultAssetsPath } from "@nodetool-ai/config";
 
 export function isWithinRoot(root: string, target: string): boolean {
   const rel = relative(root, target);
@@ -63,10 +64,43 @@ function stripUriSuffix(uri: string): string {
  */
 export type ExternalPathLookup = (key: string) => Promise<string | null>;
 
+let assetFolderLookup: ExternalPathLookup | null = null;
+
+/**
+ * Install the lookup that every adapter over the asset folder resolves a
+ * missed key through when it was built without one of its own.
+ *
+ * Many hosts build their own `FileStorageAdapter` over the asset folder: the
+ * CLI commands, the app and script runners. An asset whose bytes are a file
+ * in its project folder has no object under its key, so such an adapter
+ * could not read an asset the same run had just created. The host that
+ * installs asset persistence installs this with it.
+ *
+ * It applies only to an adapter rooted at the asset folder
+ * (`getDefaultAssetsPath()`). A workspace or a temp root never resolves a
+ * key through asset rows.
+ */
+export function setAssetFolderPathLookup(
+  lookup: ExternalPathLookup | null
+): void {
+  assetFolderLookup = lookup;
+}
+
+/** The real path of the asset folder, or its resolved path when it is absent. */
+function assetFolderRoot(): string {
+  const resolved = resolve(getDefaultAssetsPath());
+  try {
+    return realpathSync(resolved);
+  } catch {
+    return resolved;
+  }
+}
+
 export interface FileStorageAdapterOptions {
   /**
-   * Resolves keys of assets whose bytes stay outside the root (large local
-   * imports). Consulted only after the root misses, and only by reads:
+   * Resolves keys of assets whose bytes stay outside the root (a file in a
+   * project folder, a large local import). Consulted only after the root
+   * misses, and only by reads:
    * `retrieve`, `exists`, `stat`, and `localPath`. `store`, `storeFile`, and
    * `delete` never touch the external file.
    */
@@ -133,11 +167,22 @@ export class FileStorageAdapter implements StorageAdapter {
     return null;
   }
 
+  /**
+   * The lookup this adapter resolves a missed key through: its own, else the
+   * one installed for the asset folder when this adapter is rooted there.
+   */
+  private pathLookup(): ExternalPathLookup | null {
+    if (this.externalPathLookup) return this.externalPathLookup;
+    if (!assetFolderLookup) return null;
+    return this.rootDir === assetFolderRoot() ? assetFolderLookup : null;
+  }
+
   /** The in-place file behind `rel`, or null when the lookup has none. */
   private async externalPathFor(rel: string): Promise<string | null> {
-    if (!this.externalPathLookup) return null;
+    const lookup = this.pathLookup();
+    if (!lookup) return null;
     try {
-      return await this.externalPathLookup(rel);
+      return await lookup(rel);
     } catch {
       return null;
     }
@@ -174,6 +219,23 @@ export class FileStorageAdapter implements StorageAdapter {
     const rel = normalizeStorageKey(key);
     await r.write(rel, data);
     return this.uriForKey(rel);
+  }
+
+  async storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    _contentType?: string
+  ): Promise<string | null> {
+    const max = getMaxLocalUploadBytes();
+    if (data.byteLength > max) {
+      throw new Error(
+        `Upload for key "${key}" exceeds maximum size: ${data.byteLength} > ${max} bytes ` +
+          `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`
+      );
+    }
+    const r = await this.rootPromise;
+    const rel = normalizeStorageKey(key);
+    return (await r.create(rel, data)) ? this.uriForKey(rel) : null;
   }
 
   async retrieve(uri: string): Promise<Uint8Array | null> {

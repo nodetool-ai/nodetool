@@ -27,7 +27,7 @@ vi.mock("@nodetool-ai/runtime", async (orig) => {
 });
 
 vi.mock("@nodetool-ai/asset-services/asset-model-interface", () => ({
-  createAssetModelInterface: mocks.createAsset
+  createStoredAsset: mocks.createAsset
 }));
 
 vi.mock("../src/lib/asset-response.js", () => ({

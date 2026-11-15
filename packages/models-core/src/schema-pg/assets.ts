@@ -27,6 +27,8 @@ export const assets = pgTable(
     project_id: text("project_id").notNull().default("default"),
     // In-place file reference — see schema/assets.ts. Always null here.
     external_path: text("external_path"),
+    // File path inside the project folder — see schema/assets.ts.
+    workspace_path: text("workspace_path"),
     // Starred by the user — see schema/assets.ts.
     favorite: integerBoolean("favorite").notNull().default(sql`0`),
     created_at: text("created_at").notNull(),

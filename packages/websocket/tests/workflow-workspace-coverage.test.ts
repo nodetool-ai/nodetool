@@ -25,6 +25,8 @@ vi.mock("@nodetool-ai/models", () => ({
 vi.mock("@nodetool-ai/runtime", () => ({
   PERMISSION_GATE_CONTEXT_KEY: "nodetool_permission_gate",
   RESERVED_WORKSPACE_DIR: ".nodetool",
+  // Loading the folder service installs its resolver for asset services.
+  setProjectFolderResolver: () => {},
   headlessGate: (hostName: string) => ({
     mode: "auto",
     sessionAllow: new Set<string>(),

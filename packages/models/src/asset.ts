@@ -49,6 +49,12 @@ export class Asset extends DBModel {
    * the asset leaves the file alone. Null for every managed asset.
    */
   declare external_path: AssetRow["external_path"];
+  /**
+   * Path of this asset's file, relative to the folder of its project. Null
+   * for an asset whose bytes live at `external_path` or under the legacy
+   * storage key.
+   */
+  declare workspace_path: AssetRow["workspace_path"];
   /** The user starred this asset; the asset browser lists these as Favorites. */
   declare favorite: AssetRow["favorite"];
   declare created_at: AssetRow["created_at"];
@@ -72,6 +78,7 @@ export class Asset extends DBModel {
     this.timeline_id ??= null;
     this.project_id ??= "default";
     this.external_path ??= null;
+    this.workspace_path ??= null;
     this.favorite = Boolean(this.favorite);
     this.created_at ??= now;
     this.updated_at ??= now;
@@ -119,6 +126,7 @@ export class Asset extends DBModel {
       sketch_document_id: this.sketch_document_id, workflow_id: this.workflow_id,
       node_id: this.node_id, job_id: this.job_id, timeline_id: this.timeline_id,
       project_id: this.project_id, external_path: this.external_path,
+      workspace_path: this.workspace_path,
       favorite: this.favorite,
       created_at: this.created_at, updated_at: this.updated_at
     };
@@ -199,6 +207,28 @@ export class Asset extends DBModel {
       .from(assets)
       .where(
         and(eq(assets.user_id, userId), eq(assets.external_path, externalPath))
+      );
+    return rows.map((row) => new Asset(row));
+  }
+
+  /**
+   * The user's assets in `projectId` whose file is at `workspacePath`. More
+   * than one row is an integrity error the caller must not add to.
+   */
+  static async findByWorkspacePath(
+    userId: string,
+    projectId: string,
+    workspacePath: string
+  ): Promise<Asset[]> {
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          eq(assets.workspace_path, workspacePath)
+        )
       );
     return rows.map((row) => new Asset(row));
   }
@@ -614,4 +644,72 @@ export class Asset extends DBModel {
 
     return { assets: [folderDict] };
   }
+}
+
+/** A file move that waits for its asset row. */
+export interface AssetFileMove {
+  /** Remove the file at its old place. Call after the row is saved. */
+  commit(): Promise<void>;
+  /** Remove the copy and restore the asset's fields. Call when it was not. */
+  undo(): Promise<void>;
+}
+
+/**
+ * Moves the file of an asset into the folder of another project and sets
+ * `project_id` and `workspace_path` on the asset to match.
+ */
+export type AssetFileMover = (
+  asset: Asset,
+  projectId: string
+) => Promise<AssetFileMove>;
+
+let assetFileMover: AssetFileMover | null = null;
+
+/**
+ * Install what moves an asset's file between project folders. Folders are
+ * reached through `@nodetool-ai/asset-services`, which depends on this
+ * package, so it installs its mover here when it loads.
+ */
+export function setAssetFileMover(mover: AssetFileMover | null): void {
+  assetFileMover = mover;
+}
+
+/**
+ * Save `asset` as a member of `projectId`. Every change of an asset's project
+ * goes through here.
+ *
+ * `workspace_path` is relative to the folder of `project_id`. Changing the
+ * project alone would leave the file behind and point the row at whatever has
+ * the same path in the other folder. So an asset that is a file in its
+ * project folder has the file copied into the new folder first, under a name
+ * nothing there uses, then the row is saved with both fields, and only then
+ * is the old file removed.
+ *
+ * Throws when the file cannot be moved: no mover is installed on this host,
+ * a folder is unreachable, or the file is missing. The asset is then left in
+ * its project.
+ */
+export async function saveAssetInProject(
+  asset: Asset,
+  projectId: string
+): Promise<void> {
+  if (!asset.workspace_path || asset.project_id === projectId) {
+    asset.project_id = projectId;
+    await asset.save();
+    return;
+  }
+  if (!assetFileMover) {
+    throw new Error(
+      `Asset ${asset.id} is a file in its project folder and cannot change ` +
+        `project on this host: no asset file mover is installed`
+    );
+  }
+  const move = await assetFileMover(asset, projectId);
+  try {
+    await asset.save();
+  } catch (error) {
+    await move.undo();
+    throw error;
+  }
+  await move.commit();
 }

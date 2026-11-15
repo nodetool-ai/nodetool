@@ -1,5 +1,6 @@
 import {
   S3Client,
+  S3Error,
   type S3Api,
   type S3ClientOptions,
   type S3ListObjectsV2Input,
@@ -114,6 +115,48 @@ export class S3StorageAdapter implements StorageAdapter {
       }
       await this.getClient().putObject(put);
     } catch (err) {
+      throw new Error(
+        `S3 upload failed for s3://${this.bucket}/${objectKey}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        { cause: err }
+      );
+    }
+    return `s3://${this.bucket}/${objectKey}`;
+  }
+
+  /**
+   * A conditional put (`If-None-Match: *`). The store refuses it with 412
+   * when an object exists, and with 409 when another conditional put for the
+   * key is in flight. Both mean the key is taken. The endpoint must support
+   * conditional writes: AWS S3, Cloudflare R2 and current MinIO do.
+   */
+  async storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    contentType?: string
+  ): Promise<string | null> {
+    assertUploadWithinLimit(key, data.byteLength);
+    const objectKey = joinStorageKey(this.prefix ?? undefined, key);
+    try {
+      const put: S3PutObjectInput = {
+        bucket: this.bucket,
+        key: objectKey,
+        body: data,
+        cacheControl: objectCacheControl(),
+        ifNoneMatch: "*"
+      };
+      if (contentType) {
+        put.contentType = contentType;
+      }
+      await this.getClient().putObject(put);
+    } catch (err) {
+      if (
+        err instanceof S3Error &&
+        (err.statusCode === 412 || err.statusCode === 409)
+      ) {
+        return null;
+      }
       throw new Error(
         `S3 upload failed for s3://${this.bucket}/${objectKey}: ${
           err instanceof Error ? err.message : String(err)

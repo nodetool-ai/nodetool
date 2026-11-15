@@ -59,13 +59,13 @@ describe("SQLite repository", () => {
     const repository = createSqliteRepository(path);
     try {
       expect(await repository.get("assets", "alice", "legacy-asset")).toMatchObject({
-        metadata: { sketchDocumentId: "legacy-sketch" }, sketch_document_id: "legacy-sketch", updated_at: "historical-time", project_id: "default", favorite: false
+        metadata: { sketchDocumentId: "legacy-sketch" }, sketch_document_id: "legacy-sketch", updated_at: "historical-time", project_id: "default", favorite: false, workspace_path: null
       });
       const native = new Database(path);
       expect(native.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all()).toEqual([
         { name: "_nodetool_core_migrations" }, { name: "nodetool_assets" }, { name: "nodetool_jobs" }, { name: "nodetool_secrets" }, { name: "nodetool_workflows" }
       ]);
-      expect(native.prepare("SELECT COUNT(*) AS count FROM _nodetool_core_migrations").get()).toEqual({ count: 3 });
+      expect(native.prepare("SELECT COUNT(*) AS count FROM _nodetool_core_migrations").get()).toEqual({ count: 4 });
       native.close();
     } finally { repository.close(); rmSync(directory, { recursive: true, force: true }); }
   });
@@ -92,7 +92,9 @@ describe("SQLite repository", () => {
     const repository = createSqliteRepository(":memory:");
     try {
       const asset = await repository.put("assets", "alice", { name: "binary.bin", content_type: "application/octet-stream", size: 4, metadata: { decoder: null } });
-      expect(await repository.get("assets", "alice", asset.id)).toMatchObject({ size: 4, metadata: { decoder: null } });
+      expect(await repository.get("assets", "alice", asset.id)).toMatchObject({ size: 4, metadata: { decoder: null }, workspace_path: null });
+      const file = await repository.put("assets", "alice", { name: "fox in snow", project_id: "film", workspace_path: "Generated/fox-in-snow.png" });
+      expect(await repository.get("assets", "alice", file.id)).toMatchObject({ project_id: "film", workspace_path: "Generated/fox-in-snow.png" });
       const secret = await repository.put("secrets", "alice", { key: "OPENAI_API_KEY", encrypted_value: "encrypted-ciphertext" });
       expect(await repository.get("secrets", "bob", secret.id)).toBeNull();
       const job = await repository.put("jobs", "alice", { workflow_id: "workflow", status: "running" });

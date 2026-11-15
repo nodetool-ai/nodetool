@@ -64,6 +64,20 @@ export interface Workspace {
     data: Uint8Array | string,
     contentType?: string
   ): Promise<void>;
+  /**
+   * Write a file only when nothing is at `path`. Returns false when a file is
+   * there, and that file is left as it was.
+   *
+   * The check and the write are one step in the backend, so of two writers
+   * racing for one path, in this process or another, exactly one succeeds.
+   * `write` replaces whatever is there. Throws when the backend cannot make
+   * that guarantee, rather than fall back to a write that can overwrite.
+   */
+  writeNew(
+    path: string,
+    data: Uint8Array | string,
+    contentType?: string
+  ): Promise<boolean>;
   exists(path: string): Promise<boolean>;
   stat(path: string): Promise<WorkspaceStat | null>;
   /** Direct children of `path`, or every descendant when `recursive`. */
@@ -205,6 +219,11 @@ export function observeWorkspace(
       await inner.write(path, data, contentType);
       notify("write", path);
     },
+    async writeNew(path, data, contentType) {
+      const written = await inner.writeNew(path, data, contentType);
+      if (written) notify("write", path);
+      return written;
+    },
     async delete(path) {
       const removed = await inner.delete(path);
       if (removed) notify("delete", path);
@@ -232,4 +251,38 @@ export function observeWorkspace(
       notify("write", path);
     }
   };
+}
+
+/** A project's folder, or why it cannot be reached. */
+export type ProjectFolderResolution =
+  | { ok: true; projectId: string; workspace: Workspace }
+  | { ok: false; projectId: string | null; reason: string };
+
+/**
+ * Resolves a project to the {@link Workspace} that is its folder. A missing
+ * or loose project id names the user's Personal project.
+ */
+export type ProjectFolderResolver = (
+  projectId: string | null | undefined,
+  userId: string
+) => Promise<ProjectFolderResolution>;
+
+let projectFolderResolver: ProjectFolderResolver | null = null;
+
+/**
+ * Install the resolver every package below the host reaches project folders
+ * through. Project folders live in `@nodetool-ai/execution`, which installs
+ * `resolveProjectWorkspace` when it loads. Asset services sit below that
+ * package and read and write asset files through this resolver, so a folder
+ * is resolved by one set of rules on every path.
+ */
+export function setProjectFolderResolver(
+  resolver: ProjectFolderResolver | null
+): void {
+  projectFolderResolver = resolver;
+}
+
+/** The installed resolver, or null on a host that loads no project folders. */
+export function getProjectFolderResolver(): ProjectFolderResolver | null {
+  return projectFolderResolver;
 }

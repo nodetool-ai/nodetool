@@ -103,6 +103,7 @@ import { normalizeAssetContentType } from "./lib/asset-paths.js";
 import { toAssetResponse } from "./lib/asset-response.js";
 import {
   createAssetModelInterface,
+  createStoredAsset,
   updateAssetBytesModelInterface
 } from "./lib/asset-model-interface.js";
 import type { McpServerOptions } from "./mcp-server.js";
@@ -622,7 +623,7 @@ class ImportAssetTool extends Tool {
     let result: unknown;
     if (isString(path)) {
       const bytes = await readFile(path);
-      const asset = await createAssetModelInterface({
+      const asset = await createStoredAsset({
         userId: context.userId,
         name,
         contentType: isString(params["content_type"])
@@ -834,7 +835,7 @@ class RenderDemoSurfaceTool extends Tool {
         }
       );
       const bytes = await readFile(output);
-      const asset = await createAssetModelInterface({
+      const asset = await createStoredAsset({
         userId: context.userId,
         name: `${surface}-surface.mp4`,
         contentType: "video/mp4",
@@ -1492,7 +1493,7 @@ export function registerAgentMcpTools(
         const bytes = file_path
           ? await readFile(file_path)
           : Buffer.from(content_base64 ?? "", "base64");
-        const asset = await createAssetModelInterface({
+        const asset = await createStoredAsset({
           userId: scope.userId,
           name: assetName,
           contentType: normalizeAssetContentType(

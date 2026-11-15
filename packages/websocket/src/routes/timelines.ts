@@ -29,7 +29,7 @@ import { bridge, streamedResponse } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
 import { resolveAssetExportSource } from "../lib/asset-export.js";
 import { IMAGE_HEADER_BYTES, readImageSize } from "../lib/image-size.js";
-import { createAssetModelInterface } from "../lib/asset-model-interface.js";
+import { createStoredAsset } from "../lib/asset-model-interface.js";
 import {
   importTimelineBundle,
   unzipBounded,
@@ -250,7 +250,7 @@ async function storeOwnedAsset(
   userId: string,
   file: { bytes: Uint8Array; name: string; contentType: string }
 ): Promise<{ assetId: string }> {
-  const asset = await createAssetModelInterface({
+  const asset = await createStoredAsset({
     userId,
     name: file.name,
     contentType: file.contentType,

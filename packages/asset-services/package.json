@@ -58,6 +58,21 @@
       "types": "./dist/storage.d.ts",
       "import": "./dist/storage.js"
     },
+    "./project-asset": {
+      "nodetool-dev": "./src/project-asset.ts",
+      "types": "./dist/project-asset.d.ts",
+      "import": "./dist/project-asset.js"
+    },
+    "./project-asset-file": {
+      "nodetool-dev": "./src/project-asset-file.ts",
+      "types": "./dist/project-asset-file.d.ts",
+      "import": "./dist/project-asset-file.js"
+    },
+    "./project-asset-storage": {
+      "nodetool-dev": "./src/project-asset-storage.ts",
+      "types": "./dist/project-asset-storage.d.ts",
+      "import": "./dist/project-asset-storage.js"
+    },
     "./external-asset-lookup": {
       "nodetool-dev": "./src/external-asset-lookup.ts",
       "types": "./dist/external-asset-lookup.d.ts",

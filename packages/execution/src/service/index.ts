@@ -81,6 +81,7 @@ export {
   persistableOutputs,
   withoutInlineAssetBytes,
   modelSelectionErrors,
+  graphNodeTitle,
   MAX_INTERACTIVE_DECISIONS,
   MAX_INTERACTIVE_RETRIES_PER_NODE,
   MAX_INTERACTIVE_DECISION_TIMEOUT_MS

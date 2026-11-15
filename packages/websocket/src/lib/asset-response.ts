@@ -23,6 +23,9 @@ import {
   isExternalAssetOffline
 } from "./external-asset-lookup.js";
 import { videoProxyState } from "./video-proxy.js";
+import { getAssetAdapter } from "./storage.js";
+import { projectAssetFile } from "@nodetool-ai/asset-services/project-asset-file";
+import { storageKeyForUri } from "@nodetool-ai/asset-services/project-asset-storage";
 
 let cachedConfig: StorageConfig | null = null;
 let cachedBuilder: AssetUrlBuilder | null = null;
@@ -40,6 +43,29 @@ function assetUrlBuilder(): AssetUrlBuilder {
   return cachedBuilder;
 }
 
+/**
+ * The storage key `get_url` is built for. It is the asset's id key
+ * `<owner>/<assetId>.<ext>`, which the `/api/storage` route resolves through
+ * the asset row to a file in the project folder.
+ *
+ * An object store hands clients a signed URL of one object and has no route
+ * that could resolve a row. There, the URL of an asset whose file is in a
+ * storage-backed project folder is signed for the file's own object. The
+ * asset response stays the one place a client gets the URL from, so
+ * references remain the asset's id.
+ */
+async function assetUrlKey(asset: Asset, fileName: string): Promise<string> {
+  const idKey = assetObjectKey(asset.user_id, fileName);
+  if (!asset.workspace_path) return idKey;
+  const adapter = getAssetAdapter();
+  if (!adapter.createDownloadUrl) return idKey;
+  const file = await projectAssetFile(asset);
+  const fileKey = file
+    ? storageKeyForUri(adapter, file.workspace.uri(file.path))
+    : null;
+  return fileKey ?? idKey;
+}
+
 export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
   const isFolder = asset.content_type === "folder";
   const fileName = isFolder
@@ -55,9 +81,9 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
   const hasThumbnail = assetHasRasterThumbnail(asset.content_type);
   const [getUrl, thumbKeyUrl] = await Promise.all([
     fileName
-      ? buildUrl(assetObjectKey(asset.user_id, fileName), version).catch(
-          () => null
-        )
+      ? assetUrlKey(asset, fileName)
+          .then((key) => buildUrl(key, version))
+          .catch(() => null)
       : null,
     hasThumbnail
       ? buildUrl(
