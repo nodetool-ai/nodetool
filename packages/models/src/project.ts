@@ -63,7 +63,7 @@ export const PERSONAL_PROJECT_NAME = "Personal";
 const log = createLogger("nodetool.models.project");
 
 /** Gives a newly created Personal project its folder. */
-type PersonalFolderProvider = (project: Project) => Promise<unknown>;
+type PersonalFolderProvider = (project: Project) => Promise<void>;
 
 let personalFolderProvider: PersonalFolderProvider | null = null;
 
