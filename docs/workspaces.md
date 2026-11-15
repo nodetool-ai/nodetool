@@ -161,7 +161,7 @@ The file name is the workflow's name, and the file has no `name` field. Characte
 
 Every save of a workflow writes its file: the editor and its autosave, the REST and tRPC API, the agent's workflow tools, and restoring a version. The write happens in the `Workflow` model, after the row is saved. The row then records the file's path in `file_path` and the SHA-256 of its content in `file_hash`. Saving a workflow that did not change leaves the file byte-identical.
 
-Renaming a workflow renames its file. Deleting a workflow deletes its file. Moving a workflow to another project moves its file to that project's folder. A second workflow with the same name gets `<name>-2.workflow.json`. NodeTool creates a new file exclusively and never replaces a file it did not write for that workflow.
+Renaming a workflow renames its file. Deleting a workflow deletes its file. Moving a workflow to another project moves its file to that project's folder. A file edit NodeTool has not seen is kept as a version before the file leaves the old folder. When that edit is not valid, the move is refused with an error that names the file, and the workflow and its file stay where they are. A second workflow with the same name gets `<name>-2.workflow.json`. NodeTool creates a new file exclusively and never replaces a file it did not write for that workflow.
 
 A workflow is saved even when its folder cannot be reached. The file is written, and renamed when the name changed, the next time the folder is compared. The same holds for a workflow saved by a host that does not write project files, such as a CLI command run against the database. `file_hash` keeps naming the file as NodeTool last wrote or imported it, so the comparison can tell a file nobody touched, which it writes, from a file that was edited, which it imports.
 
@@ -218,7 +218,7 @@ The file name is the timeline's name, and the file has no `name` field. `documen
 
 Every save of a timeline writes its file: the editor's save, the tRPC and REST API, `edit_timeline`, `set_timeline_document` and the other agent tools that change a timeline, a finished storyboard, and restoring a version. The write happens in the `TimelineSequence` model, after the row is saved. The row records `file_path`, `file_hash` and `file_error` as a workflow row does. Recording them does not raise `revision` or `updated_at`.
 
-Renaming, deleting, a name that is taken, and a folder that cannot be reached behave as they do for a workflow. Moving a timeline to another project moves its file to that project's folder. Copying a timeline into another project writes a file for the copy.
+Renaming, deleting, a name that is taken, and a folder that cannot be reached behave as they do for a workflow. Moving a timeline to another project moves its file to that project's folder, and an unseen or invalid file edit is treated as it is for a workflow. Copying a timeline into another project writes a file for the copy.
 
 A save never replaces a file edit NodeTool has not seen, as for a workflow. A valid file that was edited since NodeTool last wrote or imported it is kept as a version named "File edit replaced by a save", with the settings the file had, before the save is written. A file that is not valid is left as it is, and its error is recorded in `file_error`. The timeline is saved in the database either way.
 

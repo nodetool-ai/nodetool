@@ -7,6 +7,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  DocumentFileMoveError,
   ModelObserver,
   Storyboard,
   TimelineSequence,
@@ -30,6 +31,10 @@ interface Call {
 }
 
 let calls: Call[];
+/** The project each row was in when the sync was asked whether it may leave. */
+let asked: string[];
+/** What the sync answers when it is asked. Null lets the row leave. */
+let refusal: string | null;
 
 /** A sync that records each call and files the row under its name. */
 function recordingSync(): void {
@@ -45,6 +50,10 @@ function recordingSync(): void {
     },
     async deleted(row) {
       calls.push({ kind: "deleted", id: row.id, name: row.name });
+    },
+    async leaving(row) {
+      asked.push(`${row.name} in ${row.project_id}, fps ${row.fps}`);
+      return refusal;
     }
   });
 }
@@ -69,6 +78,8 @@ async function reload(id: string): Promise<TimelineSequence> {
 beforeEach(() => {
   initTestDb();
   calls = [];
+  asked = [];
+  refusal = null;
   recordingSync();
 });
 
@@ -161,6 +172,55 @@ describe("the timeline file sync hook", () => {
       { project_id: "project-c", ...location }
     ]);
     expect((await reload(timeline.id)).project_id).toBe("default");
+  });
+
+  it("asks the sync before a move, with the stored row, and moves nothing when it refuses", async () => {
+    const timeline = await makeTimeline();
+    calls = [];
+    refusal = "The file was edited and is not valid.";
+
+    // The project router's move of one document.
+    await expect(
+      moveDocumentToProject(USER, "timeline", timeline.id, "project-b")
+    ).rejects.toThrow(DocumentFileMoveError);
+    await expect(
+      moveDocumentToProject(USER, "timeline", timeline.id, "project-b")
+    ).rejects.toThrow("The file was edited and is not valid.");
+    // A save of a loaded instance that changes the project and more.
+    const loaded = await reload(timeline.id);
+    loaded.project_id = "project-c";
+    loaded.fps = 12;
+    await expect(loaded.save()).rejects.toThrow(DocumentFileMoveError);
+    // The move of every document of a project.
+    await expect(
+      reassignProjectDocuments(USER, "project-a", "default")
+    ).rejects.toThrow(DocumentFileMoveError);
+
+    // Each time the sync saw the row as it is stored, in the project it is in.
+    expect(asked).toEqual(Array(4).fill("Cut in project-a, fps 30"));
+    // Nothing was written and no file was touched.
+    expect(calls).toEqual([]);
+    expect(await reload(timeline.id)).toMatchObject({
+      project_id: "project-a",
+      fps: 30,
+      revision: timeline.revision,
+      updated_at: timeline.updated_at,
+      file_path: "Timelines/Cut.timeline.json"
+    });
+
+    // A move within the project, and a save that keeps it, ask nothing.
+    asked = [];
+    await moveDocumentToProject(USER, "timeline", timeline.id, "project-a");
+    await (await reload(timeline.id)).save();
+    expect(asked).toEqual([]);
+
+    // Once the sync lets the row leave, the move goes through.
+    refusal = null;
+    expect(
+      await moveDocumentToProject(USER, "timeline", timeline.id, "project-b")
+    ).toBe(true);
+    expect(asked).toEqual(["Cut in project-a, fps 30"]);
+    expect((await reload(timeline.id)).project_id).toBe("project-b");
   });
 
   it("moves a timeline without raising revision or updated_at", async () => {

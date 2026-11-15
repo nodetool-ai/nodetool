@@ -545,6 +545,90 @@ async function deleteDocumentFile(
   await workspace.delete(path);
 }
 
+/**
+ * The edit NodeTool has not seen in the file `row` has at `path`, when the
+ * file is `row`'s own and was changed since it had the hash `fileHash`. Null
+ * when there is no file, the file is another document's, or it is untouched.
+ */
+async function unseenEditAt<Row extends DocumentRow, Fields>(
+  adapter: DocumentFileAdapter<Row, Fields>,
+  workspace: Workspace,
+  row: Row,
+  path: string,
+  fileHash: string | null
+): Promise<{ parsed: ParsedFile; text: string } | null> {
+  const current = await readText(workspace, path);
+  if (current === null) return null;
+  const parsed = parseDocumentFile(adapter, current);
+  if (parsed.ok && parsed.id !== null && parsed.id !== row.id) return null;
+  const text = documentFileText(adapter, row.id, adapter.fieldsOf(row));
+  if (current === text || hashOf(current) === fileHash) return null;
+  return { parsed, text };
+}
+
+/**
+ * Why `row` cannot leave the project whose folder is `workspace`: its file
+ * there holds an edit NodeTool has not seen and the edit is not valid. A move
+ * deletes the file, and an edit that cannot be read can be kept in no
+ * version. Null when the row may leave. Nothing is written but `file_error`.
+ */
+async function refusalToLeave<Row extends DocumentRow, Fields>(
+  adapter: DocumentFileAdapter<Row, Fields>,
+  workspace: Workspace,
+  row: Row,
+  path: string
+): Promise<string | null> {
+  const edit = await unseenEditAt(adapter, workspace, row, path, row.file_hash);
+  if (edit === null) return null;
+  let reason: string;
+  if (!edit.parsed.ok) {
+    reason = edit.parsed.error;
+  } else {
+    const content = await adapter.parse(edit.parsed.body, row, {
+      userId: row.user_id
+    });
+    if (content.ok) return null;
+    reason = content.error;
+  }
+  if (row.file_error !== reason) {
+    await adapter.setFileState(row.id, { file_error: reason });
+    row.file_error = reason;
+  }
+  return (
+    `Cannot move ${adapter.kind} "${row.name}" to another project: its file ` +
+    `${path} was edited and is not valid. ${reason}\n` +
+    "Fix the file or restore it, then move it again."
+  );
+}
+
+/**
+ * Delete the file `row` had at `path` in the project it left, where the row
+ * recorded the hash `fileHash` for it. An edit NodeTool has not seen is kept
+ * as a version first. A file whose edit is not valid is left in place: no
+ * version can keep it, and deleting it would lose it.
+ */
+async function deleteFileLeftBehind<Row extends DocumentRow, Fields>(
+  adapter: DocumentFileAdapter<Row, Fields>,
+  workspace: Workspace,
+  row: Row,
+  path: string,
+  fileHash: string | null
+): Promise<void> {
+  const edit = await unseenEditAt(adapter, workspace, row, path, fileHash);
+  if (edit !== null) {
+    const refusal = await keepUnseenEdit(adapter, row, edit.parsed, edit.text);
+    if (refusal !== null) {
+      log.warn(`Left the edited file of a moved ${adapter.kind} in place`, {
+        id: row.id,
+        path,
+        error: refusal
+      });
+      return;
+    }
+  }
+  await deleteDocumentFile(adapter, workspace, path, row.id);
+}
+
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -576,18 +660,65 @@ export function documentFileSync<Row extends DocumentRow, Fields>(
     }
   };
 
+  const removeLeftBehind = async (
+    row: Row,
+    previous: DocumentFileLocation,
+    fileHash: string | null
+  ): Promise<void> => {
+    try {
+      const folder = await documentFolder(row.user_id, previous.project_id);
+      if (!folder) return;
+      await withProjectFolderLock(row.user_id, folder.projectId, () =>
+        deleteFileLeftBehind(
+          adapter,
+          folder.workspace,
+          row,
+          previous.file_path,
+          fileHash
+        )
+      );
+    } catch (error) {
+      log.warn(`Could not delete the file of a moved ${adapter.kind}`, {
+        id: row.id,
+        error: describe(error)
+      });
+    }
+  };
+
   return {
+    async leaving(row) {
+      const path = row.file_path;
+      if (reconciling.getStore() || !path) return null;
+      try {
+        const folder = await documentFolder(row.user_id, row.project_id);
+        if (!folder) return null;
+        return await withProjectFolderLock(row.user_id, folder.projectId, () =>
+          refusalToLeave(adapter, folder.workspace, row, path)
+        );
+      } catch (error) {
+        // A folder that cannot be reached holds no file to compare, and its
+        // file cannot be deleted either.
+        log.debug(`Could not look at the file of a ${adapter.kind} before a move`, {
+          id: row.id,
+          error: describe(error)
+        });
+        return null;
+      }
+    },
+
     async saved(row, previous) {
       if (reconciling.getStore()) return;
       try {
         if (previous) {
           // The document changed project. Its path is relative to the folder
           // it left, so the row forgets it before the file there is deleted.
-          // A file left behind would be found there as a new document.
+          // A file left behind would be found there as a new document. An
+          // edit to that file NodeTool has not seen is kept as a version.
+          const previousHash = row.file_hash;
           const cleared = { file_path: null, file_hash: null, file_error: null };
           await adapter.setFileState(row.id, cleared);
           Object.assign(row, cleared);
-          await remove(row.user_id, previous, row.id);
+          await removeLeftBehind(row, previous, previousHash);
         }
         const folder = await documentFolder(row.user_id, row.project_id);
         if (folder) {

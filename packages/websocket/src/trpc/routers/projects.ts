@@ -47,6 +47,7 @@ import {
   hasProjectDocumentDependents,
   listProjectDocuments,
   moveDocumentToProject,
+  DocumentFileMoveError,
   summarizeProject,
   summarizeProjectDocumentPage
 } from "@nodetool-ai/models";
@@ -554,6 +555,12 @@ export const projectsRouter = router({
             error.message,
             "PRECONDITION_FAILED"
           );
+        }
+        // A document that is a file in its project folder is not moved while
+        // its file holds an edit that is not valid, since the move would
+        // delete the file. The caller is told which file.
+        if (error instanceof DocumentFileMoveError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
         }
         throw error;
       }

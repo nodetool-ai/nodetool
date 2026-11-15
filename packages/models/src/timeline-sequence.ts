@@ -24,9 +24,10 @@ import { getPortableDb } from "./db.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequenceVersion } from "./timeline-sequence-version.js";
 import { removeDocumentSharing } from "./document-sharing.js";
-import type {
-  DocumentFileLocation,
-  DocumentFileSync
+import {
+  assertDocumentFileMayLeave,
+  type DocumentFileLocation,
+  type DocumentFileSync
 } from "./document-file-sync.js";
 
 export class TimelineSequenceConflictError extends Error {
@@ -189,8 +190,22 @@ export class TimelineSequence extends DBModel {
 
   /** Every create and save of a timeline row writes its file afterwards. */
   protected override async persist(event: ModelChangeEvent): Promise<this> {
+    const previous = this.previousFile();
+    if (previous && timelineFileSync) {
+      // The save moves the timeline to another project. The stored row is
+      // asked first, because its file in the folder it leaves is deleted.
+      const [stored] = await getPortableDb()
+        .select()
+        .from(timelineSequences)
+        .where(eq(timelineSequences.id, this.id))
+        .limit(1);
+      await assertDocumentFileMayLeave(
+        timelineFileSync,
+        stored ? new TimelineSequence(stored) : null
+      );
+    }
     await super.persist(event);
-    await this.syncFile(this.previousFile());
+    await this.syncFile(previous);
     return this;
   }
 
@@ -291,7 +306,9 @@ export class TimelineSequence extends DBModel {
    * Point a timeline the caller owns at `projectId` and take its file along:
    * the file is removed from the folder the timeline left and written in the
    * folder it is now in. Content, `revision` and `updated_at` stay as they
-   * are. Returns false when the caller owns no such timeline.
+   * are. Returns false when the caller owns no such timeline. Throws
+   * `DocumentFileMoveError` and moves nothing when the file holds an edit
+   * NodeTool has not seen and that is not valid.
    */
   static async moveToProject(
     userId: string,
@@ -300,10 +317,7 @@ export class TimelineSequence extends DBModel {
   ): Promise<boolean> {
     const db = getPortableDb();
     const [before] = await db
-      .select({
-        project_id: timelineSequences.project_id,
-        file_path: timelineSequences.file_path
-      })
+      .select()
       .from(timelineSequences)
       .where(
         and(eq(timelineSequences.id, id), eq(timelineSequences.user_id, userId))
@@ -311,6 +325,12 @@ export class TimelineSequence extends DBModel {
       .limit(1);
     if (!before) return false;
     const moves = before.project_id !== projectId;
+    if (moves) {
+      await assertDocumentFileMayLeave(
+        timelineFileSync,
+        new TimelineSequence(before)
+      );
+    }
     const rows = await db
       .update(timelineSequences)
       .set({
