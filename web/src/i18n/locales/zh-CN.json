@@ -6136,7 +6136,16 @@
         "title": "新建项目",
         "confirm": "创建项目",
         "nameLabel": "项目名称",
-        "createError": "无法创建项目：{{error}}"
+        "createError": "无法创建项目：{{error}}",
+        "openFolder": "打开文件夹…",
+        "openFolderHint": "已有文件夹？将其作为项目打开。不会移动任何文件。",
+        "openFolderError": "无法打开文件夹：{{error}}"
+      },
+      "folder": {
+        "notFound": "找不到文件夹",
+        "notFoundDetail": "{{name}} 的文件夹已被移动、重命名，或位于未连接的驱动器上。在你重新定位之前，运行无法开始。",
+        "locate": "定位",
+        "locateError": "无法定位文件夹：{{error}}"
       },
       "home": {
         "homeTab": "主页",

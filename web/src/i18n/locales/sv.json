@@ -6136,7 +6136,16 @@
         "title": "Nytt projekt",
         "confirm": "Skapa projekt",
         "nameLabel": "Projektnamn",
-        "createError": "Kunde inte skapa projektet: {{error}}"
+        "createError": "Kunde inte skapa projektet: {{error}}",
+        "openFolder": "Öppna mapp…",
+        "openFolderHint": "Har du redan en mapp? Öppna den som ett projekt. Inga filer flyttas.",
+        "openFolderError": "Det gick inte att öppna mappen: {{error}}"
+      },
+      "folder": {
+        "notFound": "Mappen hittades inte",
+        "notFoundDetail": "Mappen för {{name}} har flyttats, bytt namn eller finns på en enhet som inte är ansluten. Körningar startar inte förrän du letar upp den.",
+        "locate": "Leta upp",
+        "locateError": "Det gick inte att leta upp mappen: {{error}}"
       },
       "home": {
         "homeTab": "Hem",

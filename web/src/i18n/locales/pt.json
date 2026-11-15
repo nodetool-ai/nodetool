@@ -6215,7 +6215,16 @@
         "title": "Novo projeto",
         "confirm": "Criar projeto",
         "nameLabel": "Nome do projeto",
-        "createError": "Não foi possível criar o projeto: {{error}}"
+        "createError": "Não foi possível criar o projeto: {{error}}",
+        "openFolder": "Abrir pasta…",
+        "openFolderHint": "Já tem uma pasta? Abra-a como projeto. Nenhum arquivo é movido.",
+        "openFolderError": "Não foi possível abrir a pasta: {{error}}"
+      },
+      "folder": {
+        "notFound": "Pasta não encontrada",
+        "notFoundDetail": "A pasta de {{name}} foi movida, renomeada ou está em uma unidade não conectada. As execuções não começam até você localizá-la.",
+        "locate": "Localizar",
+        "locateError": "Não foi possível localizar a pasta: {{error}}"
       },
       "home": {
         "homeTab": "Página inicial",

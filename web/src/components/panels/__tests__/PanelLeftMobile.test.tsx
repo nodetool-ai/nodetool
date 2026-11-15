@@ -184,6 +184,13 @@ jest.mock("../../workspaces/WorkspaceTree", () => ({
     <div data-testid="workspace-tree" data-project-id={props.projectId} />
   )
 }));
+jest.mock("../../projects/ProjectFolderNotice", () => ({
+  __esModule: true,
+  default: () => null,
+  ProjectFolderNoticeById: (props: { projectId?: string }) => (
+    <div data-testid="project-folder-notice" data-project-id={props.projectId} />
+  )
+}));
 jest.mock("../DocumentsTree", () => ({
   __esModule: true,
   default: (props: { projectId?: string }) => (

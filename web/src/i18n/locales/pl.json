@@ -6294,7 +6294,16 @@
         "title": "Nowy projekt",
         "confirm": "Utwórz projekt",
         "nameLabel": "Nazwa projektu",
-        "createError": "Nie można utworzyć projektu: {{error}}"
+        "createError": "Nie można utworzyć projektu: {{error}}",
+        "openFolder": "Otwórz folder…",
+        "openFolderHint": "Masz już folder? Otwórz go jako projekt. Żadne pliki nie zostaną przeniesione.",
+        "openFolderError": "Nie udało się otworzyć folderu: {{error}}"
+      },
+      "folder": {
+        "notFound": "Nie znaleziono folderu",
+        "notFoundDetail": "Folder projektu {{name}} został przeniesiony, zmienił nazwę lub jest na niepodłączonym dysku. Uruchomienia nie wystartują, dopóki go nie wskażesz.",
+        "locate": "Wskaż",
+        "locateError": "Nie udało się wskazać folderu: {{error}}"
       },
       "home": {
         "homeTab": "Dom",

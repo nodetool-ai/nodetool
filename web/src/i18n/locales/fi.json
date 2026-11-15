@@ -6136,7 +6136,16 @@
         "title": "Uusi projekti",
         "confirm": "Luo projekti",
         "nameLabel": "Projektin nimi",
-        "createError": "Projektia ei voitu luoda: {{error}}"
+        "createError": "Projektia ei voitu luoda: {{error}}",
+        "openFolder": "Avaa kansio…",
+        "openFolderHint": "Onko sinulla jo kansio? Avaa se projektina. Tiedostoja ei siirretä.",
+        "openFolderError": "Kansiota ei voitu avata: {{error}}"
+      },
+      "folder": {
+        "notFound": "Kansiota ei löydy",
+        "notFoundDetail": "Projektin {{name}} kansio on siirretty, nimetty uudelleen tai se on asemalla, joka ei ole yhdistettynä. Ajot eivät käynnisty ennen kuin paikannat sen.",
+        "locate": "Paikanna",
+        "locateError": "Kansiota ei voitu paikantaa: {{error}}"
       },
       "home": {
         "homeTab": "Koti",

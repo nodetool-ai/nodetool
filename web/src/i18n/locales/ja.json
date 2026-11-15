@@ -6136,7 +6136,16 @@
         "title": "新しいプロジェクト",
         "confirm": "プロジェクトの作成",
         "nameLabel": "プロジェクト名",
-        "createError": "プロジェクトを作成できませんでした: {{error}}"
+        "createError": "プロジェクトを作成できませんでした: {{error}}",
+        "openFolder": "フォルダを開く…",
+        "openFolderHint": "既存のフォルダがありますか？プロジェクトとして開けます。ファイルは移動しません。",
+        "openFolderError": "フォルダを開けませんでした: {{error}}"
+      },
+      "folder": {
+        "notFound": "フォルダが見つかりません",
+        "notFoundDetail": "{{name}} のフォルダが移動されたか、名前が変更されたか、接続されていないドライブにあります。場所を指定するまで実行は開始できません。",
+        "locate": "場所を指定",
+        "locateError": "フォルダの場所を指定できませんでした: {{error}}"
       },
       "home": {
         "homeTab": "ホーム",

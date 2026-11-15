@@ -12,6 +12,7 @@
 import { access, mkdir, rm, stat } from "node:fs/promises";
 import { constants } from "node:fs";
 import { isAbsolute, join } from "node:path";
+import { z } from "zod";
 import {
   createLogger,
   getProjectsDir,
@@ -45,6 +46,26 @@ export interface ProjectManifest {
   id: string;
   name: string;
 }
+
+/** The text of `.nodetool/project.json`, parsed and checked. */
+const projectManifestText = z
+  .string()
+  .transform((text, ctx) => {
+    try {
+      return JSON.parse(text) as object;
+    } catch {
+      ctx.addIssue({ code: "custom", message: "Not JSON" });
+      return z.NEVER;
+    }
+  })
+  .pipe(
+    z.object({
+      format: z.literal("nodetool.project"),
+      version: z.literal(1),
+      id: z.string().trim().min(1),
+      name: z.string()
+    })
+  );
 
 /** What the project API reports about a project's folder. */
 export interface ProjectFolderInfo {
@@ -152,6 +173,39 @@ async function writeManifest(
     `${JSON.stringify(projectManifest(project), null, 2)}\n`,
     "application/json"
   );
+}
+
+/** Write the folder's `.nodetool/project.json` for `project`. */
+export async function writeProjectManifest(
+  row: WorkspaceRow,
+  project: Project
+): Promise<void> {
+  await writeManifest(requireNodetoolDir(row), project);
+}
+
+/** Remove the folder's `.nodetool/project.json`, when it is there. */
+export async function removeProjectManifest(row: WorkspaceRow): Promise<void> {
+  await requireNodetoolDir(row).delete(PROJECT_MANIFEST_FILE);
+}
+
+/**
+ * The manifest a folder carries, or null when it has none.
+ *
+ * Throws {@link ProjectFolderError} when the file is there but is not a
+ * project manifest, so a caller never overwrites a file it cannot read.
+ */
+export async function readProjectManifest(
+  row: WorkspaceRow
+): Promise<ProjectManifest | null> {
+  const text = await requireNodetoolDir(row).readText(PROJECT_MANIFEST_FILE);
+  if (text === null) return null;
+  const manifest = projectManifestText.safeParse(text);
+  if (!manifest.success) {
+    throw new ProjectFolderError(
+      `The folder's ${PROJECT_MANIFEST_PATH} is not a NodeTool project file`
+    );
+  }
+  return manifest.data;
 }
 
 /**
@@ -389,7 +443,9 @@ export async function ensurePersonalProject(userId: string): Promise<Project> {
 // wherever that happens first, so every host that loads project folders installs
 // this. `ensureProjectFolder` reads the project row it was handed, never
 // `ensurePersonal`, so the call cannot recurse.
-setPersonalFolderProvider(ensureProjectFolder);
+setPersonalFolderProvider(async (project) => {
+  await ensureProjectFolder(project);
+});
 
 export interface ProjectFolderMigrationReport {
   /** Projects that had no folder when the migration reached them. */

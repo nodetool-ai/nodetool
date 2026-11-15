@@ -63,7 +63,7 @@ export const PERSONAL_PROJECT_NAME = "Personal";
 const log = createLogger("nodetool.models.project");
 
 /** Gives a newly created Personal project its folder. */
-type PersonalFolderProvider = (project: Project) => Promise<unknown>;
+type PersonalFolderProvider = (project: Project) => Promise<void>;
 
 let personalFolderProvider: PersonalFolderProvider | null = null;
 
@@ -548,6 +548,25 @@ export class Project extends DBModel {
       )
       .orderBy(projects.created_at, projects.id)
       .limit(limit);
+    return rows.map((row) => new Project(row));
+  }
+
+  /**
+   * Every live project of the user that has a folder, archived ones included.
+   * Opening a folder as a project compares it with each of their folders.
+   */
+  static async listWithFolder(userId: string): Promise<Project[]> {
+    const db = getPortableDb();
+    const rows = await db
+      .select()
+      .from(projects)
+      .where(
+        and(
+          eq(projects.user_id, userId),
+          isNull(projects.deleted_at),
+          isNotNull(projects.workspace_id)
+        )
+      );
     return rows.map((row) => new Project(row));
   }
 
