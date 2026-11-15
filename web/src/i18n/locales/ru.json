@@ -6717,7 +6717,16 @@
         "couldNotLoadDocuments": "Не удалось загрузить документы",
         "noDocuments": "Документов пока нет",
         "noMatchingDocuments": "Подходящих документов нет",
-        "searchProjectsAndDocuments": "Поиск проектов и документов"
+        "searchProjectsDocumentsAndChats": "Поиск проектов, документов и чатов",
+        "documentsAndChats": "Документы и чаты",
+        "chats": "Чаты",
+        "loadingChats": "Загрузка чатов…",
+        "couldNotLoadChats": "Не удалось загрузить чаты",
+        "noChats": "Чатов пока нет",
+        "noMatchingChats": "Нет подходящих чатов",
+        "allChats": "Все чаты",
+        "untitledChat": "Чат без названия",
+        "searchShort": "Поиск"
       },
       "rail": {
         "projects": "Проекты"

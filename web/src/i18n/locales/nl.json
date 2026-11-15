@@ -6525,7 +6525,16 @@
         "couldNotLoadDocuments": "Kan documenten niet laden",
         "noDocuments": "Nog geen documenten",
         "noMatchingDocuments": "Geen overeenkomende documenten",
-        "searchProjectsAndDocuments": "Zoek projecten en documenten"
+        "searchProjectsDocumentsAndChats": "Zoek projecten, documenten en chats",
+        "documentsAndChats": "Documenten en chats",
+        "chats": "Chats",
+        "loadingChats": "Chats laden…",
+        "couldNotLoadChats": "Chats konden niet worden geladen",
+        "noChats": "Nog geen chats",
+        "noMatchingChats": "Geen overeenkomende chats",
+        "allChats": "Alle chats",
+        "untitledChat": "Naamloze chat",
+        "searchShort": "Zoeken"
       },
       "rail": {
         "projects": "Projecten"

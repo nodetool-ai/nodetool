@@ -6525,7 +6525,16 @@
         "couldNotLoadDocuments": "Det gick inte att ladda dokument",
         "noDocuments": "Inga dokument ännu",
         "noMatchingDocuments": "Inga matchande dokument",
-        "searchProjectsAndDocuments": "Sök efter projekt och dokument"
+        "searchProjectsDocumentsAndChats": "Sök efter projekt, dokument och chattar",
+        "documentsAndChats": "Dokument och chattar",
+        "chats": "Chattar",
+        "loadingChats": "Läser in chattar…",
+        "couldNotLoadChats": "Det gick inte att läsa in chattar",
+        "noChats": "Inga chattar än",
+        "noMatchingChats": "Inga matchande chattar",
+        "allChats": "Alla chattar",
+        "untitledChat": "Namnlös chatt",
+        "searchShort": "Sök"
       },
       "rail": {
         "projects": "Projekt"

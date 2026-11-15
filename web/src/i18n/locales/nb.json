@@ -6525,7 +6525,16 @@
         "couldNotLoadDocuments": "Kunne ikke laste inn dokumenter",
         "noDocuments": "Ingen dokumenter ennå",
         "noMatchingDocuments": "Ingen samsvarende dokumenter",
-        "searchProjectsAndDocuments": "Søk i prosjekter og dokumenter"
+        "searchProjectsDocumentsAndChats": "Søk i prosjekter, dokumenter og chatter",
+        "documentsAndChats": "Dokumenter og chatter",
+        "chats": "Chatter",
+        "loadingChats": "Laster inn chatter…",
+        "couldNotLoadChats": "Kunne ikke laste inn chatter",
+        "noChats": "Ingen chatter ennå",
+        "noMatchingChats": "Ingen samsvarende chatter",
+        "allChats": "Alle chatter",
+        "untitledChat": "Chat uten tittel",
+        "searchShort": "Søk"
       },
       "rail": {
         "projects": "Prosjekter"

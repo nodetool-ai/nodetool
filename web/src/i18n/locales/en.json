@@ -6525,7 +6525,16 @@
         "couldNotLoadDocuments": "Could not load documents",
         "noDocuments": "No documents yet",
         "noMatchingDocuments": "No matching documents",
-        "searchProjectsAndDocuments": "Search projects and documents"
+        "searchProjectsDocumentsAndChats": "Search projects, documents and chats",
+        "documentsAndChats": "Documents and chats",
+        "chats": "Chats",
+        "loadingChats": "Loading chats…",
+        "couldNotLoadChats": "Could not load chats",
+        "noChats": "No chats yet",
+        "noMatchingChats": "No matching chats",
+        "allChats": "All chats",
+        "untitledChat": "Untitled chat",
+        "searchShort": "Search"
       },
       "rail": {
         "projects": "Projects"

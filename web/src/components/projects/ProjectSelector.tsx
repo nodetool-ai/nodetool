@@ -12,6 +12,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 import ErrorBanner from "../support/ErrorBanner";
 import {
@@ -48,9 +49,11 @@ import {
   useProjects
 } from "../../hooks/useProjects";
 import { useAuth } from "../../stores/useAuth";
+import { usePanelStore } from "../../stores/PanelStore";
 import { trpc, trpcClient } from "../../trpc/client";
 import { menuMaxHeight } from "../workspace/OpenMenu";
 import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
+import type { Thread } from "../../stores/ApiTypes";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import NewProjectDialog from "./NewProjectDialog";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
@@ -185,6 +188,9 @@ const selectorStyles = (theme: Theme, inline: boolean, mobile: boolean) =>
           }
   });
 
+/** The newest chats the menu lists; the Chats panel keeps the full list. */
+const MENU_CHAT_LIMIT = 20;
+
 /** A type glyph in a menu row's icon slot, centred so the labels align. */
 const MenuGlyph = ({ glyph, color }: { glyph: string; color: string }) => (
   <Box
@@ -263,7 +269,16 @@ const ProjectSelector = ({
     { id: documentsProjectId ?? "" },
     { enabled: open && showDocuments, staleTime: 15_000 }
   );
+  const chatsQuery = trpc.threads.list.useQuery(
+    { project_id: documentsProjectId ?? "", limit: MENU_CHAT_LIMIT },
+    {
+      enabled: open && showDocuments,
+      staleTime: 15_000,
+      trpc: { context: { skipBatch: true } }
+    }
+  );
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const handleViewChange = usePanelStore((state) => state.handleViewChange);
   const close = useCallback(() => {
     setOpen(false);
     setSearch("");
@@ -381,16 +396,44 @@ const ProjectSelector = ({
     [close, documentsProjectId, openTab]
   );
 
+  const chatTitle = useCallback(
+    (thread: Thread) =>
+      thread.title?.trim() || t("pass3_34.projects.selector.untitledChat"),
+    [t]
+  );
+
+  const openChat = useCallback(
+    (thread: Thread) => {
+      close();
+      openTab({
+        type: thread.kind === "create" ? "create" : "chat",
+        ref: thread.id,
+        mode: "view",
+        title: chatTitle(thread),
+        projectId: thread.project_id ?? documentsProjectId ?? undefined
+      });
+    },
+    [chatTitle, close, documentsProjectId, openTab]
+  );
+
+  const showAllChats = useCallback(() => {
+    close();
+    handleViewChange("chats");
+  }, [close, handleViewChange]);
+
   const needle = search.trim().toLowerCase();
   const matchingDocuments = (documentsQuery.data ?? [])
     .filter((document) => document.name.toLowerCase().includes(needle))
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const matchingChats = (chatsQuery.data?.threads ?? []).filter((thread) =>
+    chatTitle(thread).toLowerCase().includes(needle)
+  );
   const visibleProjects = (projects ?? []).filter(
     (project) =>
       !project.isPersonal && project.name.toLowerCase().includes(needle)
   );
   const searchLabel = showDocuments
-    ? t("pass3_34.projects.selector.searchProjectsAndDocuments")
+    ? t("pass3_34.projects.selector.searchProjectsDocumentsAndChats")
     : t("pass3_34.projects.selector.searchProjects");
 
   const projectsListRef = useRef<HTMLUListElement>(null);
@@ -403,14 +446,15 @@ const ProjectSelector = ({
   const handleSearchKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
       if (event.key !== "ArrowDown") return;
-      const target =
-        firstItem(projectsListRef.current) ??
-        firstItem(documentsListRef.current);
+      const lists = mobile
+        ? [documentsListRef.current, projectsListRef.current]
+        : [projectsListRef.current, documentsListRef.current];
+      const target = firstItem(lists[0]) ?? firstItem(lists[1]);
       if (!target) return;
       event.preventDefault();
       target.focus();
     },
-    []
+    [mobile]
   );
 
   // Left and right arrows move between the two columns.
@@ -445,6 +489,204 @@ const ProjectSelector = ({
     projectsListRef.current?.scrollTo({ top: 0 });
     documentsListRef.current?.scrollTo({ top: 0 });
   }, [needle]);
+
+  const projectHomeItem = (
+    <MenuItemPrimitive
+      label={t("pass3_34.projects.selector.projectHome")}
+      icon={<HomeRoundedIcon />}
+      onClick={openProjectHome}
+      dividerAfter={showDocuments}
+    />
+  );
+
+  const projectsColumn = (
+    <MenuList
+      ref={projectsListRef}
+      aria-label={t("pass3_34.projects.selector.projects")}
+      onKeyDown={handleColumnKeyDown}
+      sx={{
+        ...menuListStyles(theme),
+        // Stacked on a phone, each list keeps its full height so the shared
+        // scroll does not overlap them; side by side, each scrolls.
+        minHeight: { xs: "auto", sm: 0 },
+        overflowY: { xs: "visible", sm: "auto" },
+        borderRight:
+          showDocuments && !mobile
+            ? { sm: `1px solid ${theme.vars.palette.divider}` }
+            : undefined,
+        borderLeft:
+          showDocuments && mobile
+            ? { sm: `1px solid ${theme.vars.palette.divider}` }
+            : undefined
+      }}
+    >
+      {showDocuments && (
+        <ListSubheader>{t("pass3_34.projects.selector.projects")}</ListSubheader>
+      )}
+      {mobile && !showDocuments && projectHomeItem}
+      {!inline && (
+        <MenuItemPrimitive
+          label={t("pass3_34.projects.selector.newProject")}
+          icon={<AddOutlinedIcon />}
+          onClick={openNewProject}
+          color="primary"
+          dividerAfter
+        />
+      )}
+      <MenuItemPrimitive
+        label={t("pass3_34.projects.selector.personal")}
+        className="project-menu-item"
+        icon={<MenuGlyph glyph={PROJECT_GLYPH} color={PROJECT_COLOR} />}
+        selected={
+          activeProjectId === resolvedPersonalId ||
+          activeProjectId === null ||
+          activeProjectId === LOOSE_PROJECT_ID
+        }
+        onClick={selectPersonal}
+      />
+      {isPending && (
+        <LoadingSpinner
+          size="small"
+          text={t("pass3_34.projects.selector.loadingProjects")}
+        />
+      )}
+      {error && (
+        <ErrorBanner
+          sx={{ mx: SPACING.sm, my: SPACING.xs }}
+          report={{
+            source: "operation-failure",
+            summary: t("pass3_34.projects.selector.projectListLoadFailed"),
+            errorText: error.message
+          }}
+        >
+          {t("pass3_34.projects.selector.couldNotLoadProjects")}
+        </ErrorBanner>
+      )}
+      {visibleProjects.map((project) => (
+        <MenuItemPrimitive
+          key={project.id}
+          label={project.name}
+          className="project-menu-item"
+          icon={<MenuGlyph glyph={PROJECT_GLYPH} color={PROJECT_COLOR} />}
+          selected={project.id === activeProjectId}
+          onClick={() => selectProject(project)}
+        />
+      ))}
+      {!isPending && !error && visibleProjects.length === 0 && (
+        <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
+          {needle
+            ? t("pass3_34.projects.selector.noMatchingProjects")
+            : t("pass3_34.projects.selector.noNamedProjects")}
+        </Caption>
+      )}
+    </MenuList>
+  );
+
+  // The open project's work: its documents, then its chats, in one list so
+  // the arrow keys run through both sections.
+  const contentColumn = showDocuments ? (
+    <MenuList
+      ref={documentsListRef}
+      aria-label={t("pass3_34.projects.selector.documentsAndChats")}
+      onKeyDown={handleColumnKeyDown}
+      sx={{
+        ...menuListStyles(theme),
+        // Stacked on a phone, each list keeps its full height so the shared
+        // scroll does not overlap them; side by side, each scrolls.
+        minHeight: { xs: "auto", sm: 0 },
+        overflowY: { xs: "visible", sm: "auto" }
+      }}
+    >
+      {mobile && projectHomeItem}
+      <ListSubheader>{t("pass3_34.projects.selector.documents")}</ListSubheader>
+      {documentsQuery.isPending && (
+        <LoadingSpinner
+          size="small"
+          text={t("pass3_34.projects.selector.loadingDocuments")}
+        />
+      )}
+      {documentsQuery.error && (
+        <ErrorBanner
+          sx={{ mx: SPACING.sm, my: SPACING.xs }}
+          report={{
+            source: "operation-failure",
+            summary: t("pass3_34.projects.selector.couldNotLoadDocuments"),
+            errorText: documentsQuery.error.message
+          }}
+        >
+          {t("pass3_34.projects.selector.couldNotLoadDocuments")}
+        </ErrorBanner>
+      )}
+      {matchingDocuments.map((document) => (
+        <MenuItemPrimitive
+          key={`${document.type}:${document.ref}`}
+          label={document.name}
+          className="project-menu-item"
+          icon={
+            <MenuGlyph
+              glyph={TYPE_GLYPH[document.type]}
+              color={TYPE_COLOR[document.type]}
+            />
+          }
+          shortcut={relativeTime(document.updatedAt)}
+          onClick={() => openDocument(document)}
+        />
+      ))}
+      {documentsQuery.data && matchingDocuments.length === 0 && (
+        <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
+          {needle
+            ? t("pass3_34.projects.selector.noMatchingDocuments")
+            : t("pass3_34.projects.selector.noDocuments")}
+        </Caption>
+      )}
+      <ListSubheader>{t("pass3_34.projects.selector.chats")}</ListSubheader>
+      {chatsQuery.isPending && (
+        <LoadingSpinner
+          size="small"
+          text={t("pass3_34.projects.selector.loadingChats")}
+        />
+      )}
+      {chatsQuery.error && (
+        <ErrorBanner
+          sx={{ mx: SPACING.sm, my: SPACING.xs }}
+          report={{
+            source: "operation-failure",
+            summary: t("pass3_34.projects.selector.couldNotLoadChats"),
+            errorText: chatsQuery.error.message
+          }}
+        >
+          {t("pass3_34.projects.selector.couldNotLoadChats")}
+        </ErrorBanner>
+      )}
+      {matchingChats.map((thread) => {
+        const type = thread.kind === "create" ? "create" : "chat";
+        return (
+          <MenuItemPrimitive
+            key={thread.id}
+            label={chatTitle(thread)}
+            className="project-menu-item"
+            icon={<MenuGlyph glyph={TYPE_GLYPH[type]} color={TYPE_COLOR[type]} />}
+            shortcut={relativeTime(thread.updated_at)}
+            onClick={() => openChat(thread)}
+          />
+        );
+      })}
+      {chatsQuery.data && matchingChats.length === 0 && (
+        <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
+          {needle
+            ? t("pass3_34.projects.selector.noMatchingChats")
+            : t("pass3_34.projects.selector.noChats")}
+        </Caption>
+      )}
+      {chatsQuery.data?.next && (
+        <MenuItemPrimitive
+          label={t("pass3_34.projects.selector.allChats")}
+          icon={<ArrowForwardIcon />}
+          onClick={showAllChats}
+        />
+      )}
+    </MenuList>
+  ) : null;
 
   return (
     <FlexRow
@@ -550,7 +792,7 @@ const ProjectSelector = ({
         onClose={close}
         paperSx={{
           width: showDocuments
-            ? { xs: getSpacingPx(80), sm: getSpacingPx(160) }
+            ? { xs: getSpacingPx(100), sm: getSpacingPx(160) }
             : getSpacingPx(80),
           maxWidth: `calc(100vw - ${getSpacingPx(SPACING.xxxl)})`,
           maxHeight: open ? menuMaxHeight(anchorRef.current) : undefined,
@@ -561,6 +803,10 @@ const ProjectSelector = ({
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap"
+          },
+          // Finger-sized rows on touch screens.
+          "@media (pointer: coarse)": {
+            "& .MuiMenuItem-root": { minHeight: CONTROL.height.xl }
           }
         }}
       >
@@ -570,11 +816,15 @@ const ProjectSelector = ({
             borderBottom: `1px solid ${theme.vars.palette.divider}`
           }}
         >
-          <FieldDensityContext.Provider value="compact">
+          <FieldDensityContext.Provider value={mobile ? "normal" : "compact"}>
             <SearchInput
               value={search}
               onChange={setSearch}
-              placeholder={searchLabel}
+              // A phone's search field is too narrow for the full label; the
+              // accessible name keeps it.
+              placeholder={
+                mobile ? t("pass3_34.projects.selector.searchShort") : searchLabel
+              }
               ariaLabel={searchLabel}
               autoFocus
               fullWidth
@@ -598,139 +848,11 @@ const ProjectSelector = ({
             overflowY: { xs: "auto", sm: "hidden" }
           }}
         >
-          <MenuList
-            ref={projectsListRef}
-            aria-label={t("pass3_34.projects.selector.projects")}
-            onKeyDown={handleColumnKeyDown}
-            sx={{
-              ...menuListStyles(theme),
-              minHeight: 0,
-              overflowY: { xs: "visible", sm: "auto" },
-              borderRight: showDocuments
-                ? { sm: `1px solid ${theme.vars.palette.divider}` }
-                : undefined
-            }}
-          >
-            {showDocuments && (
-              <ListSubheader>{t("pass3_34.projects.selector.projects")}</ListSubheader>
-            )}
-            {mobile && (
-              <MenuItemPrimitive
-                label={t("pass3_34.projects.selector.projectHome")}
-                icon={<HomeRoundedIcon />}
-                onClick={openProjectHome}
-              />
-            )}
-            {!inline && (
-              <MenuItemPrimitive
-                label={t("pass3_34.projects.selector.newProject")}
-                icon={<AddOutlinedIcon />}
-                onClick={openNewProject}
-                color="primary"
-                dividerAfter
-              />
-            )}
-            <MenuItemPrimitive
-              label={t("pass3_34.projects.selector.personal")}
-              className="project-menu-item"
-              icon={<MenuGlyph glyph={PROJECT_GLYPH} color={PROJECT_COLOR} />}
-              selected={
-                activeProjectId === resolvedPersonalId ||
-                activeProjectId === null ||
-                activeProjectId === LOOSE_PROJECT_ID
-              }
-              onClick={selectPersonal}
-            />
-            {isPending && (
-              <LoadingSpinner
-                size="small"
-                text={t("pass3_34.projects.selector.loadingProjects")}
-              />
-            )}
-            {error && (
-              <ErrorBanner
-                sx={{ mx: SPACING.sm, my: SPACING.xs }}
-                report={{
-                  source: "operation-failure",
-                  summary: t("pass3_34.projects.selector.projectListLoadFailed"),
-                  errorText: error.message
-                }}
-              >
-                {t("pass3_34.projects.selector.couldNotLoadProjects")}
-              </ErrorBanner>
-            )}
-            {visibleProjects.map((project) => (
-              <MenuItemPrimitive
-                key={project.id}
-                label={project.name}
-                className="project-menu-item"
-                icon={<MenuGlyph glyph={PROJECT_GLYPH} color={PROJECT_COLOR} />}
-                selected={project.id === activeProjectId}
-                onClick={() => selectProject(project)}
-              />
-            ))}
-            {!isPending && !error && visibleProjects.length === 0 && (
-              <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
-                {needle
-                  ? t("pass3_34.projects.selector.noMatchingProjects")
-                  : t("pass3_34.projects.selector.noNamedProjects")}
-              </Caption>
-            )}
-          </MenuList>
-          {showDocuments && (
-            <MenuList
-              ref={documentsListRef}
-              aria-label={t("pass3_34.projects.selector.documents")}
-              onKeyDown={handleColumnKeyDown}
-              sx={{
-                ...menuListStyles(theme),
-                minHeight: 0,
-                overflowY: { xs: "visible", sm: "auto" }
-              }}
-            >
-              <ListSubheader>{t("pass3_34.projects.selector.documents")}</ListSubheader>
-              {documentsQuery.isPending && (
-                <LoadingSpinner
-                  size="small"
-                  text={t("pass3_34.projects.selector.loadingDocuments")}
-                />
-              )}
-              {documentsQuery.error && (
-                <ErrorBanner
-                  sx={{ mx: SPACING.sm, my: SPACING.xs }}
-                  report={{
-                    source: "operation-failure",
-                    summary: t("pass3_34.projects.selector.couldNotLoadDocuments"),
-                    errorText: documentsQuery.error.message
-                  }}
-                >
-                  {t("pass3_34.projects.selector.couldNotLoadDocuments")}
-                </ErrorBanner>
-              )}
-              {matchingDocuments.map((document) => (
-                <MenuItemPrimitive
-                  key={`${document.type}:${document.ref}`}
-                  label={document.name}
-                  className="project-menu-item"
-                  icon={
-                    <MenuGlyph
-                      glyph={TYPE_GLYPH[document.type]}
-                      color={TYPE_COLOR[document.type]}
-                    />
-                  }
-                  shortcut={relativeTime(document.updatedAt)}
-                  onClick={() => openDocument(document)}
-                />
-              ))}
-              {documentsQuery.data && matchingDocuments.length === 0 && (
-                <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
-                  {needle
-                    ? t("pass3_34.projects.selector.noMatchingDocuments")
-                    : t("pass3_34.projects.selector.noDocuments")}
-                </Caption>
-              )}
-            </MenuList>
-          )}
+          {/* The phone header has no home button and opens the menu to reach
+              the open project's work, so that column comes first there. */}
+          {mobile && contentColumn}
+          {projectsColumn}
+          {!mobile && contentColumn}
         </Box>
       </Popover>
       <NewProjectDialog open={newProjectOpen} onClose={closeNewProject} />

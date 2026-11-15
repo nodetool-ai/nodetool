@@ -39,6 +39,29 @@ const menuDocuments = {
   isPending: false,
   error: null
 };
+const menuChats = {
+  data: {
+    threads: [
+      {
+        id: "c1",
+        title: "Beacon tagline ideas",
+        kind: "chat",
+        project_id: "b",
+        updated_at: "2026-10-04T00:00:00Z"
+      },
+      {
+        id: "c2",
+        title: "",
+        kind: "create",
+        project_id: "b",
+        updated_at: "2026-10-01T00:00:00Z"
+      }
+    ],
+    next: "cursor"
+  },
+  isPending: false,
+  error: null
+};
 const createProject = jest.fn();
 const updateProject = jest.fn();
 jest.mock("../../../trpc/client", () => {
@@ -54,6 +77,9 @@ jest.mock("../../../trpc/client", () => {
         get: invalidate
       }
     }),
+    threads: {
+      list: { useQuery: () => ({ ...menuChats }) }
+    },
     projects: {
       list: { useQuery: () => ({ ...projects }) },
       documents: { useQuery: () => ({ ...menuDocuments }) },
@@ -290,13 +316,15 @@ describe("ProjectSelector", () => {
     expect(voiceover).toBeLessThan(cut);
 
     const search = screen.getByRole("textbox", {
-      name: "Search projects and documents"
+      name: "Search projects, documents and chats"
     });
     // "b" starts "Beacon": the menu type-ahead must not move focus there.
     await user.type(search, "beacon cut");
     expect(search).toHaveFocus();
     expect(search).toHaveValue("beacon cut");
-    expect(screen.getByRole("menu", { name: "Documents" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("menu", { name: "Documents and chats" })
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("menuitem", { name: /Beacon voiceover/ })
     ).not.toBeInTheDocument();
@@ -305,5 +333,61 @@ describe("ProjectSelector", () => {
     const state = useWorkspaceTabsStore.getState();
     const active = state.tabs.find((tab) => tab.id === state.activeTabId);
     expect(active).toMatchObject({ type: "timeline", ref: "t1", projectId: "b" });
+  });
+
+  it("lists the active project's chats after its documents and opens one", async () => {
+    const user = userEvent.setup();
+    useWorkspaceTabsStore.getState().setActiveProjectId("b");
+    renderSelector();
+    await user.click(screen.getByRole("button", { name: "Select project" }));
+
+    const items = screen
+      .getAllByRole("menuitem")
+      .map((item) => item.textContent ?? "");
+    const cut = items.findIndex((text) => text.includes("Beacon cut"));
+    const tagline = items.findIndex((text) =>
+      text.includes("Beacon tagline ideas")
+    );
+    expect(tagline).toBeGreaterThan(cut);
+    // An untitled chat still gets a readable row, and more chats than the
+    // menu holds lead to the Chats panel.
+    expect(
+      screen.getByRole("menuitem", { name: /Untitled chat/ })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "All chats" })).toBeInTheDocument();
+
+    await user.type(
+      screen.getByRole("textbox", { name: "Search projects, documents and chats" }),
+      "tagline"
+    );
+    expect(
+      screen.queryByRole("menuitem", { name: /Beacon cut/ })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: /Beacon tagline ideas/ }));
+
+    const state = useWorkspaceTabsStore.getState();
+    const active = state.tabs.find((tab) => tab.id === state.activeTabId);
+    expect(active).toMatchObject({ type: "chat", ref: "c1", projectId: "b" });
+  });
+
+  it("leads the phone menu with the open project's work, then the projects", async () => {
+    const user = userEvent.setup();
+    useWorkspaceTabsStore.getState().setActiveProjectId("b");
+    renderSelector(false, true);
+    await user.click(
+      screen.getByRole("button", { name: "Selected project: Beacon" })
+    );
+
+    const items = screen
+      .getAllByRole("menuitem")
+      .map((item) => item.textContent ?? "");
+    const home = items.findIndex((text) => text.includes("Project home"));
+    const tagline = items.findIndex((text) =>
+      text.includes("Beacon tagline ideas")
+    );
+    const newProject = items.findIndex((text) => text.includes("New project"));
+    expect(home).toBe(0);
+    expect(tagline).toBeGreaterThan(home);
+    expect(newProject).toBeGreaterThan(tagline);
   });
 });
