@@ -298,16 +298,19 @@ export class PeekNode extends BaseNode {
 
 /** Output handles IndexImageNode.process() emits. */
 type IndexImageNodeOutputs = {
-  output: null;
+  output: { type: "collection"; name: string };
 };
 
 export class IndexImageNode extends BaseNode {
   static readonly nodeType = "vector.IndexImage";
   static readonly title = "Index Image";
   static readonly description =
-    "Index a list of image assets or files.\n    vector, embedding, collection, RAG, index, image, batch";
+    "Index a list of image assets or files. Outputs the collection once indexing finishes, so a query can wait for it.\n    vector, embedding, collection, RAG, index, image, batch";
   static readonly inlineFields = ["index_id", "upsert"];
   static readonly inputFields = ["collection", "image", "metadata"];
+  static readonly metadataOutputTypes = {
+    output: "collection"
+  };
 
   @prop({
     type: "collection",
@@ -389,22 +392,25 @@ export class IndexImageNode extends BaseNode {
       }
     ]);
 
-    return { output: null };
+    return { output: { type: "collection", name } };
   }
 }
 
 /** Output handles IndexEmbeddingNode.process() emits. */
 type IndexEmbeddingNodeOutputs = {
-  output: null;
+  output: { type: "collection"; name: string };
 };
 
 export class IndexEmbeddingNode extends BaseNode {
   static readonly nodeType = "vector.IndexEmbedding";
   static readonly title = "Index Embedding";
   static readonly description =
-    "Index a single embedding vector into a collection with optional metadata. Creates a searchable entry that can be queried for similarity matching.\n    vector, index, embedding, storage, RAG";
+    "Index a single embedding vector into a collection with optional metadata. Creates a searchable entry that can be queried for similarity matching. Outputs the collection once indexing finishes, so a query can wait for it.\n    vector, index, embedding, storage, RAG";
   static readonly inlineFields = ["index_id"];
   static readonly inputFields = ["collection", "embedding", "metadata"];
+  static readonly metadataOutputTypes = {
+    output: "collection"
+  };
 
   @prop({
     type: "collection",
@@ -515,22 +521,25 @@ export class IndexEmbeddingNode extends BaseNode {
       ]);
     }
 
-    return { output: null };
+    return { output: { type: "collection", name } };
   }
 }
 
 /** Output handles IndexTextChunkNode.process() emits. */
 type IndexTextChunkNodeOutputs = {
-  output: null;
+  output: { type: "collection"; name: string };
 };
 
 export class IndexTextChunkNode extends BaseNode {
   static readonly nodeType = "vector.IndexTextChunk";
   static readonly title = "Index Text Chunk";
   static readonly description =
-    "Index a single text chunk.\n    vector, embedding, collection, RAG, index, text, chunk";
+    "Index a single text chunk. Outputs the collection once indexing finishes, so a query can wait for it.\n    vector, embedding, collection, RAG, index, text, chunk";
   static readonly inlineFields = ["document_id", "text"];
   static readonly inputFields = ["collection", "metadata"];
+  static readonly metadataOutputTypes = {
+    output: "collection"
+  };
 
   @prop({
     type: "collection",
@@ -580,7 +589,7 @@ export class IndexTextChunkNode extends BaseNode {
       { id: documentId, document: text, metadata: flattenMetadata(metadataRaw) }
     ]);
 
-    return { output: null };
+    return { output: { type: "collection", name } };
   }
 }
 
@@ -588,16 +597,19 @@ type AggregationMethod = "mean" | "max" | "min" | "sum";
 
 /** Output handles IndexAggregatedTextNode.process() emits. */
 type IndexAggregatedTextNodeOutputs = {
-  output: null;
+  output: { type: "collection"; name: string };
 };
 
 export class IndexAggregatedTextNode extends BaseNode {
   static readonly nodeType = "vector.IndexAggregatedText";
   static readonly title = "Index Aggregated Text";
   static readonly description =
-    "Index multiple text chunks at once with aggregated embeddings from Ollama.\n    vector, embedding, collection, RAG, index, text, chunk, batch, ollama";
+    "Index multiple text chunks at once with aggregated embeddings from Ollama. Outputs the collection once indexing finishes, so a query can wait for it.\n    vector, embedding, collection, RAG, index, text, chunk, batch, ollama";
   static readonly inlineFields = ["document", "document_id"];
   static readonly inputFields = ["collection", "metadata", "text_chunks"];
+  static readonly metadataOutputTypes = {
+    output: "collection"
+  };
 
   @prop({
     type: "collection",
@@ -722,22 +734,25 @@ export class IndexAggregatedTextNode extends BaseNode {
       }
     ]);
 
-    return { output: null };
+    return { output: { type: "collection", name } };
   }
 }
 
 /** Output handles IndexStringNode.process() emits. */
 type IndexStringNodeOutputs = {
-  output: null;
+  output: { type: "collection"; name: string };
 };
 
 export class IndexStringNode extends BaseNode {
   static readonly nodeType = "vector.IndexString";
   static readonly title = "Index String";
   static readonly description =
-    "Index a string with a Document ID to a collection.\n    vector, embedding, collection, RAG, index, text, string";
+    "Index a string with a Document ID to a collection. Outputs the collection once indexing finishes, so a query can wait for it.\n    vector, embedding, collection, RAG, index, text, string";
   static readonly inlineFields = ["text", "document_id"];
   static readonly inputFields = ["collection", "metadata"];
+  static readonly metadataOutputTypes = {
+    output: "collection"
+  };
 
   @prop({
     type: "collection",
@@ -784,7 +799,7 @@ export class IndexStringNode extends BaseNode {
     const collection = await getCollectionByName(name);
     await collection.upsert([{ id: documentId, document: text }]);
 
-    return { output: null };
+    return { output: { type: "collection", name } };
   }
 }
 

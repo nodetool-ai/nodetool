@@ -11,7 +11,7 @@ namespace: "vector"
 
 ## Description
 
-Index a single embedding vector into a collection with optional metadata. Creates a searchable entry that can be queried for similarity matching.
+Index a single embedding vector into a collection with optional metadata. Creates a searchable entry that can be queried for similarity matching. Outputs the collection once indexing finishes, so a query can wait for it.
     vector, index, embedding, storage, RAG
 
 ## Properties
@@ -25,7 +25,9 @@ Index a single embedding vector into a collection with optional metadata. Create
 
 ## Outputs
 
-_(none)_
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `collection` |  |
 
 ## Related Nodes
 

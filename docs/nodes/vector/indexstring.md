@@ -11,7 +11,7 @@ namespace: "vector"
 
 ## Description
 
-Index a string with a Document ID to a collection.
+Index a string with a Document ID to a collection. Outputs the collection once indexing finishes, so a query can wait for it.
     vector, embedding, collection, RAG, index, text, string
 
 ## Properties
@@ -25,7 +25,9 @@ Index a string with a Document ID to a collection.
 
 ## Outputs
 
-_(none)_
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `collection` |  |
 
 ## Related Nodes
 
