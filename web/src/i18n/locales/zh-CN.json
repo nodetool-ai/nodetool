@@ -6469,8 +6469,16 @@
         "exporting": "正在导出…",
         "deleteProject": "删除项目",
         "confirmDeleteTitle": "删除{{projectName}}？",
-        "confirmDeleteBody": "删除{{projectName}}及其所有文档、对话、生成的输出、资源、任务和项目文件。",
+        "confirmDeleteBody": "删除{{projectName}}及其所有文档、对话、任务和存储在项目文件夹之外的资源。",
         "deleteIrreversible": "此操作无法撤销。",
+        "deleteFolderTrash": "项目文件夹将移到废纸篓。",
+        "deleteFolderRemove": "项目文件夹及其中的所有文件将从云存储中删除。",
+        "deleteFolderKeep": "项目文件夹及其中的所有文件保留在原处。NodeTool 只移除其中的 .nodetool 文件夹。",
+        "deleteFolderMissing": "无法访问项目文件夹，因此 NodeTool 会保持其原样。",
+        "folderMovedAsideTo": "无法访问废纸篓。项目文件夹已移到 {{path}}。",
+        "folderMovedAside": "无法访问废纸篓。项目文件夹已移到项目目录中的 .trash 文件夹。",
+        "folderTrashFailedAt": "无法将项目文件夹移到废纸篓。它仍在 {{path}}。",
+        "folderTrashFailed": "无法将项目文件夹移到废纸篓。它仍在原处。",
         "error": "无法{{action}}{{projectName}}：{{error}}"
       }
     }

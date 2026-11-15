@@ -232,6 +232,24 @@ async function claimLocalFolder(parent: string, name: string): Promise<string> {
 }
 
 /**
+ * The directory new local project folders go in, as configured and unchecked.
+ * `fromUser` is true when the user's own setting names it.
+ */
+export async function configuredProjectsDir(
+  userId: string
+): Promise<{ dir: string; fromUser: boolean }> {
+  const configured =
+    (await Setting.find(userId, PROJECTS_DIR_SETTING))?.value.trim() || null;
+  const stored = isLocalDeployment() ? configured : null;
+  if (configured && !stored) {
+    log.warn("Ignoring a user's PROJECTS_DIR setting on a production server", {
+      userId
+    });
+  }
+  return { dir: getProjectsDir(stored), fromUser: stored !== null };
+}
+
+/**
  * The directory new local project folders go in, checked the way the
  * workspace router checks a folder a user adds: absolute, a directory, and
  * writable.
@@ -243,15 +261,7 @@ async function claimLocalFolder(parent: string, name: string): Promise<string> {
  * operator's directory or the default is created when missing.
  */
 async function projectsParent(userId: string): Promise<string> {
-  const configured =
-    (await Setting.find(userId, PROJECTS_DIR_SETTING))?.value.trim() || null;
-  const stored = isLocalDeployment() ? configured : null;
-  if (configured && !stored) {
-    log.warn("Ignoring a user's PROJECTS_DIR setting on a production server", {
-      userId
-    });
-  }
-  const parent = getProjectsDir(stored);
+  const { dir: parent, fromUser: stored } = await configuredProjectsDir(userId);
   if (!isAbsolute(parent)) {
     throw new ProjectFolderError("The projects folder must be an absolute path");
   }

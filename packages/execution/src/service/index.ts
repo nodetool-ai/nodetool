@@ -45,6 +45,7 @@ export {
   PROJECT_MANIFEST_PATH,
   PROJECTS_DIR_SETTING,
   ProjectFolderError,
+  configuredProjectsDir,
   describeProjectFolder,
   ensurePersonalProject,
   ensureProjectFolder,

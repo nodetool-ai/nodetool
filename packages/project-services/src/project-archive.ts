@@ -7,7 +7,15 @@
  *   records.json                 — every project row, table by table
  *                                  (`PROJECT_ARCHIVE_TABLES` in models)
  *   assets/<asset id><ext>       — stored bytes of each non-folder asset
- *   workspaces/<workspace id>/…  — every file in the project's workspaces
+ *   workspaces/<workspace id>/…  — every file in the project folder, and in
+ *                                  any other workspace filed under the
+ *                                  project, such as a game's
+ *
+ * The project folder is a workspace row of the project, so its files travel
+ * under `workspaces/`. `.nodetool/` is NodeTool's own and stays out: an
+ * imported project gets a manifest of its own. Storyboards, scripts, sketches,
+ * apps, JS scripts and chats live in the database and travel in
+ * `records.json`.
  *
  * Export copies rows whole, minus the owner and project columns, and the
  * workspace path, which only means something on the exporting machine.
@@ -612,6 +620,9 @@ export async function importProjectArchive(
     for (const [index, row] of imported.workspaces.entries()) {
       row["path"] = await workspacePath(userId, String(row["id"]));
       row["is_default"] = false;
+      // NodeTool makes this folder, whoever made the exported one. Deleting
+      // the imported project reads `origin` to decide what happens to it.
+      row["origin"] = "created";
       const opened = options.openWorkspace(new Workspace(row));
       if (!opened) {
         if (workspaceStorageKind() !== "cloud") await rm(String(row["path"]), { recursive: true, force: true });

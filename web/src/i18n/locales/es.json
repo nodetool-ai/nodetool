@@ -6564,8 +6564,16 @@
         "exporting": "Exportando…",
         "deleteProject": "Eliminar proyecto",
         "confirmDeleteTitle": "¿Eliminar {{projectName}}?",
-        "confirmDeleteBody": "Elimine {{projectName}} y todos sus documentos, conversaciones, resultados generados, activos, trabajos y archivos de proyecto.",
+        "confirmDeleteBody": "Elimine {{projectName}} y todos sus documentos, conversaciones, trabajos y activos almacenados fuera de la carpeta del proyecto.",
         "deleteIrreversible": "Esto no se puede deshacer.",
+        "deleteFolderTrash": "La carpeta del proyecto se mueve a la papelera.",
+        "deleteFolderRemove": "La carpeta del proyecto y todos sus archivos se eliminan del almacenamiento en la nube.",
+        "deleteFolderKeep": "La carpeta del proyecto se queda donde está con todos sus archivos. NodeTool solo elimina la carpeta .nodetool que contiene.",
+        "deleteFolderMissing": "No se puede acceder a la carpeta del proyecto, así que NodeTool la deja como está.",
+        "folderMovedAsideTo": "No se pudo acceder a la papelera. La carpeta del proyecto se movió a {{path}}.",
+        "folderMovedAside": "No se pudo acceder a la papelera. La carpeta del proyecto se movió a la carpeta .trash de la carpeta de proyectos.",
+        "folderTrashFailedAt": "No se pudo mover la carpeta del proyecto a la papelera. Sigue en {{path}}.",
+        "folderTrashFailed": "No se pudo mover la carpeta del proyecto a la papelera. Sigue donde estaba.",
         "error": "No se pudo {{action}} {{projectName}}: {{error}}"
       }
     }

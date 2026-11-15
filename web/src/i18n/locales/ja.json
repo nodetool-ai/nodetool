@@ -6469,8 +6469,16 @@
         "exporting": "エクスポート中…",
         "deleteProject": "プロジェクトの削除",
         "confirmDeleteTitle": "{{projectName}} を削除しますか?",
-        "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、生成された出力、アセット、ジョブ、プロジェクト ファイルを削除します。",
+        "confirmDeleteBody": "{{projectName}} とそのすべてのドキュメント、会話、ジョブ、プロジェクト フォルダーの外に保存されているアセットを削除します。",
         "deleteIrreversible": "これを元に戻すことはできません。",
+        "deleteFolderTrash": "プロジェクト フォルダーはゴミ箱に移動します。",
+        "deleteFolderRemove": "プロジェクト フォルダーとその中のすべてのファイルがクラウド ストレージから削除されます。",
+        "deleteFolderKeep": "プロジェクト フォルダーはすべてのファイルとともに元の場所に残ります。NodeTool はその中の .nodetool フォルダーだけを削除します。",
+        "deleteFolderMissing": "プロジェクト フォルダーにアクセスできないため、NodeTool はそのままにします。",
+        "folderMovedAsideTo": "ゴミ箱にアクセスできませんでした。プロジェクト フォルダーは {{path}} に移動しました。",
+        "folderMovedAside": "ゴミ箱にアクセスできませんでした。プロジェクト フォルダーはプロジェクト用フォルダー内の .trash フォルダーに移動しました。",
+        "folderTrashFailedAt": "プロジェクト フォルダーをゴミ箱に移動できませんでした。{{path}} に残っています。",
+        "folderTrashFailed": "プロジェクト フォルダーをゴミ箱に移動できませんでした。元の場所に残っています。",
         "error": "{{action}} {{projectName}} できませんでした: {{error}}"
       }
     }

@@ -6469,8 +6469,16 @@
         "exporting": "Exporteren…",
         "deleteProject": "Project verwijderen",
         "confirmDeleteTitle": "{{projectName}} verwijderen?",
-        "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, gegenereerde resultaten, activa, taken en projectbestanden.",
+        "confirmDeleteBody": "Verwijder {{projectName}} en al zijn documenten, gesprekken, taken en assets die buiten de projectmap zijn opgeslagen.",
         "deleteIrreversible": "Dit kan niet ongedaan worden gemaakt.",
+        "deleteFolderTrash": "De projectmap wordt naar de prullenbak verplaatst.",
+        "deleteFolderRemove": "De projectmap en alle bestanden erin worden uit de cloudopslag verwijderd.",
+        "deleteFolderKeep": "De projectmap blijft met alle bestanden op zijn plek. NodeTool verwijdert alleen de map .nodetool erin.",
+        "deleteFolderMissing": "De projectmap is niet bereikbaar, dus NodeTool laat hem ongemoeid.",
+        "folderMovedAsideTo": "De prullenbak was niet bereikbaar. De projectmap is verplaatst naar {{path}}.",
+        "folderMovedAside": "De prullenbak was niet bereikbaar. De projectmap is verplaatst naar de map .trash in de projectenmap.",
+        "folderTrashFailedAt": "De projectmap kon niet naar de prullenbak worden verplaatst. Hij staat nog op {{path}}.",
+        "folderTrashFailed": "De projectmap kon niet naar de prullenbak worden verplaatst. Hij blijft op zijn plek.",
         "error": "Kon {{action}} {{projectName}} niet: {{error}}"
       }
     }
