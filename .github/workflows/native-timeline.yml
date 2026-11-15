@@ -300,6 +300,7 @@ jobs:
         if: github.event_name != 'push'
         run: |
           node native/timeline/scripts/check-ci-prerequisites.mjs
+          node native/timeline/scripts/generate-tool-manifest.mjs --check
           node --test native/timeline/scripts/check-ci-prerequisites.test.mjs \
             native/timeline/scripts/measure-psnr.test.mjs \
             native/timeline/src/server/sync/sync-e2e-transport.test.mjs
