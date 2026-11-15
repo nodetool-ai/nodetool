@@ -22,6 +22,10 @@ const scratch = mkdtempSync(join(tmpdir(), "example-apps-e2e-"));
 // so both are set before anything below imports them.
 process.env["NODETOOL_ENABLE_FAKE_PROVIDER"] = "1";
 process.env["ASSET_FOLDER"] = join(scratch, "assets");
+// A run saves its outputs as files in its project folder, and these runs work
+// in Personal's. Keep that folder out of the real home and data directories.
+process.env["PROJECTS_DIR"] = join(scratch, "projects");
+process.env["NODETOOL_WORKSPACES_DIR"] = join(scratch, "workspaces");
 
 const APPS_DIR = resolve(
   dirname(fileURLToPath(import.meta.url)),
