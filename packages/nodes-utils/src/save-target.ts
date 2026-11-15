@@ -86,8 +86,13 @@ export function folderPathOf(raw: FolderValue): string {
 export interface SaveWorkspace {
   localDir: string | null;
   key(path: string): string;
-  exists(path: string): Promise<boolean>;
   write(path: string, data: Uint8Array | string, contentType?: string): Promise<void>;
+  /** Create a file only when nothing is at `path`. False when something is. */
+  writeNew(
+    path: string,
+    data: Uint8Array | string,
+    contentType?: string
+  ): Promise<boolean>;
 }
 
 export interface SaveFolderOptions {
@@ -247,21 +252,30 @@ export async function writeSavedFile(
 
   if (opts.saveToWorkspace === true && workspace) {
     const filename = requireFilename(opts.filename);
-    const target =
-      opts.overwrite === true
-        ? workspace.key(filename)
-        : await uniqueWorkspacePath(workspace, workspace.key(filename));
     const bytes =
       opts.bytes instanceof Uint8Array
         ? opts.bytes
         : new TextEncoder().encode(opts.bytes);
+    // A numbered name is claimed with an exclusive create, so two saves of
+    // one name, in this process or another, never write over each other.
+    const target =
+      opts.overwrite === true
+        ? workspace.key(filename)
+        : await claimWorkspacePath(
+            workspace,
+            workspace.key(filename),
+            bytes,
+            opts.contentType
+          );
     if (opts.context) {
+      // The asset takes the claimed file: its row points at that path, and
+      // the host writes the same bytes there again.
       await saveRunFileAsset(opts.context, bytes, {
         path: target,
         name: target.slice(target.lastIndexOf("/") + 1),
         contentType: opts.contentType ?? "application/octet-stream"
       });
-    } else {
+    } else if (opts.overwrite === true) {
       await workspace.write(target, bytes, opts.contentType);
     }
     // A local workspace reports the real path, which is what a user browsing
@@ -285,17 +299,23 @@ export async function writeSavedFile(
   return target;
 }
 
-/** `name.ext`, `name_1.ext`, … — the first one the workspace does not hold. */
-async function uniqueWorkspacePath(
+/**
+ * Write `bytes` to `name.ext`, or to `name_1.ext`, `name_2.ext`, … when the
+ * name is taken, and return the path written. Each candidate is created with
+ * `writeNew`, so an existing file is never replaced.
+ */
+async function claimWorkspacePath(
   workspace: SaveWorkspace,
-  filename: string
+  filename: string,
+  bytes: Uint8Array,
+  contentType: string | undefined
 ): Promise<string> {
-  if (!(await workspace.exists(filename))) return filename;
+  const slash = filename.lastIndexOf("/");
   const dot = filename.lastIndexOf(".");
-  const base = dot > 0 ? filename.slice(0, dot) : filename;
-  const ext = dot > 0 ? filename.slice(dot) : "";
-  for (let i = 1; ; i++) {
-    const candidate = `${base}_${i}${ext}`;
-    if (!(await workspace.exists(candidate))) return candidate;
+  const base = dot > slash + 1 ? filename.slice(0, dot) : filename;
+  const ext = dot > slash + 1 ? filename.slice(dot) : "";
+  for (let i = 0; ; i++) {
+    const candidate = i === 0 ? filename : `${base}_${i}${ext}`;
+    if (await workspace.writeNew(candidate, bytes, contentType)) return candidate;
   }
 }

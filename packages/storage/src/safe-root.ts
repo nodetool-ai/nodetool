@@ -32,6 +32,11 @@ export interface SafeRoot {
   /** Atomically create or replace a file, creating parent directories. */
   write(relativePath: string, data: Uint8Array): Promise<void>;
   /**
+   * Create a file only when nothing is at the path, creating parent
+   * directories. False when something is there, and it is left untouched.
+   */
+  create(relativePath: string, data: Uint8Array): Promise<boolean>;
+  /**
    * Atomically copy `sourcePath` (an absolute path outside the root is fine)
    * into the root. Rejects a symlinked or hardlinked source.
    */
@@ -336,11 +341,13 @@ class SafeRootImpl implements SafeRoot {
    * over the target. A symlink at the target itself is replaced, never
    * written through, and only when it points inside the root.
    */
-  private async replaceFile(
-    relativePath: string,
-    fill: (handle: FileHandle) => Promise<void>,
-    beforeCommit?: () => Promise<void>
-  ): Promise<void> {
+  /**
+   * Create the directories above `relativePath` and check each one: no
+   * symlinked component, and the last one inside the root.
+   */
+  private async ensureParent(
+    relativePath: string
+  ): Promise<{ parent: string; name: string }> {
     const segments = this.segments(relativePath);
     const name = segments.pop()!;
     let parent = this.dir;
@@ -362,7 +369,57 @@ class SafeRootImpl implements SafeRoot {
     if (!isInside(this.dir, await realpath(parent))) {
       throw new SafeRootError("outside-root", "directory is outside the root");
     }
+    return { parent, name };
+  }
 
+  /**
+   * Create a file only when nothing is at the path. False when something is,
+   * and that file is left untouched.
+   *
+   * The file is opened with `O_EXCL`, so the check and the create are one
+   * step for every process on the machine: of two writers racing for one
+   * name exactly one gets it. A symlink at the path, dangling or not, counts
+   * as taken. The bytes are written in place, since a rename would replace
+   * whatever another writer put there in the meantime.
+   */
+  async create(relativePath: string, data: Uint8Array): Promise<boolean> {
+    const { parent, name } = await this.ensureParent(relativePath);
+    const target = join(parent, name);
+    let handle: FileHandle;
+    try {
+      handle = await open(
+        target,
+        constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | noFollowFlag(),
+        0o600
+      );
+    } catch (error) {
+      if (errorCode(error) === "EEXIST") return false;
+      throw error;
+    }
+    try {
+      try {
+        // `open` applies the umask; set the mode the file should have.
+        await handle.chmod(0o600);
+        await handle.writeFile(data);
+        await handle.sync();
+      } finally {
+        await handle.close().catch(() => {});
+      }
+      await syncDirectory(parent);
+    } catch (error) {
+      // The exclusive open made this file, so it is this call's to remove.
+      await rm(target, { force: true }).catch(() => {});
+      throw error;
+    }
+    return true;
+  }
+
+  private async replaceFile(
+    relativePath: string,
+    fill: (handle: FileHandle) => Promise<void>,
+    beforeCommit?: () => Promise<void>
+  ): Promise<void> {
+    const { parent, name } = await this.ensureParent(relativePath);
     const target = join(parent, name);
     let mode = 0o600;
     try {

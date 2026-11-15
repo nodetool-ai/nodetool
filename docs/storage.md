@@ -61,7 +61,7 @@ Create the two buckets in the Supabase dashboard first. The key is a service rol
 
 ## Assets in project folders
 
-A new asset, whether a workflow output, an agent's output or an upload, is a file in its [project's folder](workspaces.md#assets-are-files-in-the-folder), not an object under `<user>/<asset id>.<ext>`. A direct upload to S3 or Supabase lands under that key first and is moved into the folder when the upload is finalized. Its thumbnail still goes to asset storage. A read of the asset's storage key finds no object there and is resolved through the asset row to the file: by path with the `file` backend, and through the project folder's storage with S3 or Supabase, where the signed URL names the file's own object.
+A new asset, whether a workflow output, an agent's output or an upload, is a file in its [project's folder](workspaces.md#assets-are-files-in-the-folder), not an object under `<user>/<asset id>.<ext>`. A direct upload to S3 or Supabase lands under that key first and is moved into the folder when the upload is finalized. In a storage-backed folder the file is created with a conditional write (`If-None-Match: *` on S3, an upload without upsert on Supabase), so it cannot replace an existing object. An S3-compatible endpoint must support conditional writes. AWS S3, Cloudflare R2 and current MinIO do. Its thumbnail still goes to asset storage. A read of the asset's storage key finds no object there and is resolved through the asset row to the file: by path with the `file` backend, and through the project folder's storage with S3 or Supabase, where the signed URL names the file's own object.
 
 ## External assets
 

@@ -230,8 +230,9 @@ function backoffMs(attempt: number): number {
  * Every request retries a thrown network error, a 429 and a 5xx. The Storage
  * service answers 5xx when its own database pool is exhausted ("Too many
  * connections issued to the database"), which clears within seconds. Every
- * operation here is safe to repeat: uploads from this package always upsert,
- * sign calls mint a fresh token, and the rest read or delete.
+ * operation here is safe to repeat: an upload upserts or, without `upsert`,
+ * is refused once an object exists, so a repeat never replaces anything. Sign
+ * calls mint a fresh token, and the rest read or delete.
  */
 export function createSupabaseStorageClient(
   supabaseUrl: string,

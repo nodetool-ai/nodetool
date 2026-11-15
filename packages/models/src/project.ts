@@ -551,6 +551,25 @@ export class Project extends DBModel {
     return rows.map((row) => new Project(row));
   }
 
+  /**
+   * Every live project of the user that has a folder, archived ones included.
+   * Opening a folder as a project compares it with each of their folders.
+   */
+  static async listWithFolder(userId: string): Promise<Project[]> {
+    const db = getPortableDb();
+    const rows = await db
+      .select()
+      .from(projects)
+      .where(
+        and(
+          eq(projects.user_id, userId),
+          isNull(projects.deleted_at),
+          isNotNull(projects.workspace_id)
+        )
+      );
+    return rows.map((row) => new Project(row));
+  }
+
   static async listByUser(
     userId: string,
     limit = 100,

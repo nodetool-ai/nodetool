@@ -104,6 +104,40 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     return `supabase://${this.bucket}/${key}`;
   }
 
+  /**
+   * An upload without `x-upsert`. Storage refuses it with 409 ("The resource
+   * already exists") when an object is under the key, and leaves that object
+   * as it was.
+   */
+  async storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    contentType?: string
+  ): Promise<string | null> {
+    assertUploadWithinLimit(key, data.byteLength);
+    const uploadOptions: SupabaseUploadOptions = {
+      upsert: false,
+      cacheControl: objectCacheControl()
+    };
+    if (contentType) {
+      uploadOptions.contentType = contentType;
+    }
+    const { error } = await this.getClient()
+      .storage.from(this.bucket)
+      .upload(key, data, uploadOptions);
+    if (error) {
+      if (error.status === 409 || /already exists/i.test(error.message)) {
+        return null;
+      }
+      const message = `Supabase upload failed for "${key}": ${error.message}`;
+      if (error.status === 413 || /maximum allowed size/i.test(error.message)) {
+        throw new UploadTooLargeError(message, data.byteLength, null);
+      }
+      throw new Error(message);
+    }
+    return `supabase://${this.bucket}/${key}`;
+  }
+
   uriForKey(key: string): string {
     return `supabase://${this.bucket}/${key}`;
   }

@@ -175,14 +175,17 @@ describe("writeSavedFile with the run's context", () => {
     setProjectFolderResolver(null);
   });
 
-  it("saves the file as an asset at its numbered name and writes it once", async () => {
+  it("claims a numbered name exclusively and saves the asset at it", async () => {
     const workspace = createLocalWorkspace(dir);
     setProjectFolderResolver(async () => ({ ok: true, projectId: "p1", workspace }));
-    const writes: string[] = [];
-    const write = workspace.write.bind(workspace);
-    workspace.write = async (target, data, contentType) => {
-      writes.push(target);
-      await write(target, data, contentType);
+    // Another writer already holds the first name.
+    await workspace.write("renders/still.png", new Uint8Array([9]));
+    const claims: string[] = [];
+    const writeNew = workspace.writeNew.bind(workspace);
+    workspace.writeNew = async (target, data, contentType) => {
+      const created = await writeNew(target, data, contentType);
+      claims.push(`${target}:${created}`);
+      return created;
     };
     const created: Array<{ path?: string | null; name: string }> = [];
     const context: RunFileAssetContext = {
@@ -197,30 +200,22 @@ describe("writeSavedFile with the run's context", () => {
       }
     };
 
-    const paths: string[] = [];
-    for (let i = 0; i < 2; i++) {
-      paths.push(
-        await writeSavedFile({
-          folder: "",
-          filename: "renders/still.png",
-          saveToWorkspace: true,
-          workspace,
-          context,
-          contentType: "image/png",
-          bytes: new Uint8Array([i])
-        })
-      );
-    }
+    const target = await writeSavedFile({
+      folder: "",
+      filename: "renders/still.png",
+      saveToWorkspace: true,
+      workspace,
+      context,
+      contentType: "image/png",
+      bytes: new Uint8Array([1])
+    });
 
-    expect(paths).toEqual([
-      path.join(dir, "renders/still.png"),
-      path.join(dir, "renders/still_1.png")
-    ]);
-    expect(created).toEqual([
-      { path: "renders/still.png", name: "still.png" },
-      { path: "renders/still_1.png", name: "still_1.png" }
-    ]);
-    expect(writes).toEqual(["renders/still.png", "renders/still_1.png"]);
+    expect(target).toBe(path.join(dir, "renders/still_1.png"));
+    expect(claims).toEqual(["renders/still.png:false", "renders/still_1.png:true"]);
+    expect(created).toEqual([{ path: "renders/still_1.png", name: "still_1.png" }]);
+    // The file that held the name first is untouched.
+    expect(await workspace.read("renders/still.png")).toEqual(new Uint8Array([9]));
+    expect(await workspace.read("renders/still_1.png")).toEqual(new Uint8Array([1]));
   });
 
   it("returns the real path for a local workspace", async () => {

@@ -6183,7 +6183,16 @@
         "title": "Nieuw project",
         "confirm": "Project aanmaken",
         "nameLabel": "Projectnaam",
-        "createError": "Kon het project niet aanmaken: {{error}}"
+        "createError": "Kon het project niet aanmaken: {{error}}",
+        "openFolder": "Map openen…",
+        "openFolderHint": "Heb je al een map? Open die als project. Er worden geen bestanden verplaatst.",
+        "openFolderError": "Kan de map niet openen: {{error}}"
+      },
+      "folder": {
+        "notFound": "Map niet gevonden",
+        "notFoundDetail": "De map van {{name}} is verplaatst, hernoemd of staat op een station dat niet is aangesloten. Runs starten pas als je de map zoekt.",
+        "locate": "Zoeken",
+        "locateError": "Kan de map niet vinden: {{error}}"
       },
       "home": {
         "homeTab": "Thuis",

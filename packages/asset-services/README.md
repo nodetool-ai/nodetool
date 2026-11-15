@@ -17,7 +17,13 @@ index row with `project_id` and `workspace_path`. It is the function behind
 nodes. With `path` the file is at that project-relative path; with `asset` an
 existing row gets the file, which is how a direct upload is finalized. `renameProjectAssetFile`,
 `replaceProjectAssetBytes` and `deleteProjectAssetFile` keep the file and the
-row together afterwards. See
+row together afterwards. A new file name is claimed with `Workspace.writeNew`,
+an exclusive create, so no save, rename or move replaces a file.
+
+`workspace_path` is relative to the folder of `project_id`. Change an asset's
+project only through `saveAssetInProject` from `@nodetool-ai/models`. It calls
+`moveProjectAssetFile`, which this package installs when it loads, to copy the
+file into the new folder before the row is saved. See
 [project folders, T3](../../docs/project-folders/prd.md#t3-assets-as-files).
 
 The folder is resolved through `getProjectFolderResolver` from
