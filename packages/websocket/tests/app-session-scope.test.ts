@@ -71,6 +71,7 @@ describe("isAppSessionCommandAllowed", () => {
       "get_node",
       "update_node_properties",
       "set_permission_mode",
+      "set_open_project",
       "set_mode",
       "clear_models",
       "stop"

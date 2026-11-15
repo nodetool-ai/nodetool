@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL } from "@nodetool-ai/models-core";
+import { SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL } from "@nodetool-ai/models-core";
 
 interface ColumnInfo {
   readonly name: string;
@@ -76,6 +76,13 @@ export function migrateSqliteCore(sqlite: Database.Database): void {
         version: "20261117_000000",
         up() {
           if (!hasColumn(sqlite, "nodetool_assets", "workspace_path")) { sqlite.exec(ASSET_WORKSPACE_PATH_DDL); }
+        }
+      },
+      {
+        // The SHA-256 of an asset's whole file, which a background job fills in.
+        version: "20261118_000000",
+        up() {
+          if (!hasColumn(sqlite, "nodetool_assets", "content_hash")) { sqlite.exec(ASSET_CONTENT_HASH_DDL); }
         }
       }
     ];

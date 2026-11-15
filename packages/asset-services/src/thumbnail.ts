@@ -380,6 +380,33 @@ export async function storeAssetThumbnail(
 }
 
 /**
+ * Replace the thumbnail of an asset whose file changed in place. The stored
+ * thumbnail is keyed by the asset id alone, so the old one is removed first:
+ * when no new one can be made, or `source` is null, the asset has no
+ * thumbnail instead of a picture of its previous contents. Failures are
+ * logged and swallowed.
+ */
+export async function refreshAssetThumbnail(
+  userId: string,
+  assetId: string,
+  contentType: string,
+  source: ThumbnailSource | null
+): Promise<void> {
+  const adapter = getAssetAdapter();
+  try {
+    await adapter.delete(
+      adapter.uriForKey(assetObjectKey(userId, thumbnailKey(assetId)))
+    );
+  } catch (err) {
+    log.warn("removing a stale thumbnail failed", {
+      assetId,
+      error: String(err)
+    });
+  }
+  if (source) await storeAssetThumbnail(userId, assetId, contentType, source);
+}
+
+/**
  * Store an asset's bytes and, when applicable, generate and store a
  * thumbnail. Thumbnail failures are logged and swallowed — the original
  * upload still succeeds.

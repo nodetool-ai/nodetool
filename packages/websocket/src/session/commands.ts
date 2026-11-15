@@ -120,6 +120,11 @@ export interface CommandRouterHost {
   setMode(mode: WebSocketMode): void;
   /** `clear_models` — the host's answer, unchanged by the move. */
   clearModels(): Promise<Record<string, unknown>>;
+  /**
+   * `set_open_project` — the project this connection has open, or null for
+   * none. The host watches the folder of an open project.
+   */
+  setOpenProject(projectId: string | null): Promise<void>;
   /** Abort every RPC still waiting on a provider (the host's `rpcAborts`). */
   cancelRpcCalls(): void;
   /** Cancel the tool and approval waiters scoped to a thread or job id. */
@@ -516,6 +521,15 @@ export class CommandRouter {
       }
       this.deps.host.setMode(mode);
       return { message: `Mode set to ${mode}` };
+    },
+
+    set_open_project: async ({ data }) => {
+      const projectId = data.project_id;
+      if (projectId !== null && !isNonEmptyString(projectId)) {
+        return { error: "project_id must be a project id or null" };
+      }
+      await this.deps.host.setOpenProject(projectId);
+      return { message: "Open project set", project_id: projectId };
     },
 
     set_permission_mode: async ({ data }) => {

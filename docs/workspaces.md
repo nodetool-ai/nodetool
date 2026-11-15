@@ -71,12 +71,12 @@ NodeTool never replaces a file when it picks a name. The file is created exclusi
 
 ### The asset index follows the folder
 
-NodeTool compares a project's folder with its asset rows when the project is opened and after NodeTool writes a file into the folder. It applies these rules:
+NodeTool compares a project's folder with its asset rows when the project is opened, after NodeTool writes a file into the folder, and, for a folder on this computer, when a file in it changes while the project is open. It applies these rules:
 
 | Folder | Asset row | Result |
 | --- | --- | --- |
 | The file is at the row's path and unchanged | Exists | Nothing changes. |
-| The file is at the row's path and changed | Exists | The row records the new size, modification time and partial hash. The asset keeps its ID. |
+| The file is at the row's path and changed | Exists | The row records the new size, modification time and partial hash. The asset keeps its ID. Its thumbnail is replaced, its video proxy is remade, and its waveform is computed again. |
 | The file is gone and exactly one file with no row has the same content | Exists | The row points at that file. A file moved or renamed outside NodeTool keeps its asset ID. |
 | The file is gone and no file, or more than one, has the same content | Exists | The asset is marked offline. It reports as missing and its URL serves nothing. |
 | An image, video, audio or 3D file | None | A row is created. No thumbnail is built. |
@@ -88,7 +88,42 @@ The comparison never deletes a row and never changes a file. It skips `.nodetool
 
 An offline asset comes back when a file appears at its path again, or when it is relinked. Relink (`assets.relinkExternal`) takes a path relative to the folder, or on a local server an absolute path. A file inside the folder is used where it is. A file outside the folder is copied in next to where the asset's file was. Removing an offline asset deletes its row.
 
-A change made outside NodeTool is picked up the next time the project is opened or NodeTool writes into the folder.
+#### Changes made in another app
+
+While a project is open, NodeTool watches its folder. A file saved, moved, renamed, added or deleted by another app is compared within a few seconds, and only the changed paths are looked at. The asset keeps its ID, and its thumbnail URL changes so that no cached picture of the old file is shown. The web app tells the server which project is open with the [`set_open_project`](websocket-api.md#set_open_project) command. The watcher stops when no client has the project open. A change made while the project is closed is picked up the next time it is opened.
+
+A folder in object storage is not watched, because only NodeTool writes to it. It is compared when the project is opened and after NodeTool writes into it.
+
+#### Same content, different files
+
+"The same content" is decided in two steps. Every comparison uses a partial fingerprint: the file's size and a hash of its first and last 1 MiB. A background job also reads each indexed file once, as a stream, and stores the SHA-256 of the whole file in `nodetool_assets.content_hash`. The job reads one file at a time and continues after a restart with the files that have no hash yet. A file that changes loses its hash until the job has read it again.
+
+When an asset's file is gone and exactly one file with no row has its partial fingerprint, the row points at that file. When several do, the stored SHA-256 decides: each candidate is read in full and the one that matches is the asset's file. When the asset has no SHA-256 yet, or no candidate matches, the asset is marked offline.
+
+Known limit: a single candidate is matched on the partial fingerprint alone, even when the asset has a SHA-256, because reading the whole candidate during a comparison would hold up every other change to the folder. A file that was deleted and replaced by a different file of equal size with equal first and last 1 MiB is therefore read as a move, and the asset points at the new file. The background job then stores the new file's SHA-256.
+
+#### The asset manifest
+
+Each project folder carries `.nodetool/assets.json`, next to `.nodetool/project.json`. It lists every asset whose file is in the folder:
+
+```json
+{
+  "format": "nodetool.assets",
+  "version": 1,
+  "assets": [
+    {
+      "id": "<asset-id>",
+      "path": "Generated/fox-in-snow.png",
+      "size": 482113,
+      "mtime": 1763232000000,
+      "partial_hash": "<sha-256 of the first and last 1 MiB plus the size>",
+      "content_hash": "<sha-256 of the whole file>"
+    }
+  ]
+}
+```
+
+`content_hash` is absent until the background job has read the file. NodeTool rewrites the manifest a moment after the index changes. New contents go to `.nodetool/assets.json.tmp` first and replace the manifest once they are complete, so an interrupted write leaves the previous manifest intact. The database stays the source NodeTool reads assets from. The manifest travels with the folder.
 
 ## Files in the left panel
 
