@@ -66,6 +66,12 @@
       "import": "./dist/scene.js",
       "default": "./dist/scene.js"
     },
+    "./transcript": {
+      "nodetool-dev": "./src/transcriptOps.ts",
+      "types": "./dist/transcriptOps.d.ts",
+      "import": "./dist/transcriptOps.js",
+      "default": "./dist/transcriptOps.js"
+    },
     "./dependencyHash.js": {
       "nodetool-dev": "./src/dependencyHash.ts",
       "types": "./dist/dependencyHash.d.ts",

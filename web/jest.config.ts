@@ -86,6 +86,8 @@ export default {
       "<rootDir>/../packages/timeline/src/testing/index.ts",
     "^@nodetool-ai/timeline/scene$":
       "<rootDir>/../packages/timeline/src/scene.ts",
+    "^@nodetool-ai/timeline/transcript$":
+      "<rootDir>/../packages/timeline/src/transcriptOps.ts",
     // node-sdk ships ESM-only dist; the cost-estimate subpath is a pure module
     // (protocol + pricing-bundle types only), so map it to src rather than
     // pull the heavy barrel (pack-loader, registry) into jsdom.
