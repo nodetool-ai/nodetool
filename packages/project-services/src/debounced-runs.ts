@@ -47,6 +47,27 @@ export class DebouncedRuns {
     this.scheduled.set(key, { timer, firstAt, run });
   }
 
+  /**
+   * Run `run` after `delayMs`, unless a run is already scheduled under `key`.
+   * A later {@link schedule} under the same key replaces it.
+   */
+  scheduleUnlessPending(
+    key: string,
+    delayMs: number,
+    run: () => Promise<void>
+  ): void {
+    if (this.scheduled.has(key)) return;
+    const timer = setTimeout(() => this.start(key), delayMs);
+    timer.unref?.();
+    this.scheduled.set(key, { timer, firstAt: Date.now(), run });
+  }
+
+  /** Drop every scheduled run that has not started. */
+  cancelAll(): void {
+    for (const entry of this.scheduled.values()) clearTimeout(entry.timer);
+    this.scheduled.clear();
+  }
+
   /** Drop the run scheduled under `key`, if it has not started. */
   cancel(key: string): void {
     const pending = this.scheduled.get(key);

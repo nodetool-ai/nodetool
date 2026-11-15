@@ -546,7 +546,8 @@ describe("the folder watcher", () => {
       ]);
 
       lists.mockClear();
-      await workspace.write("art/late.png", red);
+      // Its own content: a copy of an indexed file would wait for its row.
+      await workspace.write("art/late.png", Uint8Array.from([...red, 9]));
       for (let n = 0; n <= WATCH_MAX_PATHS; n++) {
         recorded.change(directoryOf(), `burst/file-${n}.txt`);
       }

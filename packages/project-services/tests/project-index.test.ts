@@ -49,10 +49,12 @@ import {
 import { ProjectAssetStorageAdapter } from "@nodetool-ai/asset-services/project-asset-storage";
 import { getAssetAdapter } from "@nodetool-ai/asset-services/storage";
 import {
+  COPY_GRACE_MS,
   OPEN_RECONCILE_INTERVAL_MS,
   ProjectIndex,
   RECONCILE_DEBOUNCE_MS,
   RECONCILE_MAX_WAIT_MS,
+  cancelProjectReconciles,
   ensureAssetForPath,
   flushProjectReconciles,
   reconcileProjectIndex,
@@ -166,6 +168,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await flushProjectReconciles();
+  cancelProjectReconciles();
   vi.useRealTimers();
   ModelObserver.clear();
   setProjectFolderResolver(null);
@@ -333,6 +336,125 @@ describe.each(["local", "storage"] as const)(
         expect(report.files).toBe(2);
         expect(report.created).toEqual([]);
         expect(await rowsOf()).toEqual([]);
+      });
+    });
+
+    describe("a move seen half done", () => {
+      it("gives the copy no row while the original is still there, and the asset follows the file once it is gone", async () => {
+        const asset = await saveImage("fox");
+        const workspace = folder(kind);
+        // `Workspace.move` and some sync clients copy first and delete after.
+        await workspace.copy("Generated/fox.png", "shots/hero.png");
+
+        const half = await reconcileProjectIndex(PROJECT, USER);
+
+        expect(half).toMatchObject({
+          created: [],
+          moved: [],
+          offline: [],
+          deferred: ["shots/hero.png"]
+        });
+        expect((await rowsOf()).map((row) => row.id)).toEqual([asset.id]);
+        expect((await reload(asset)).workspace_path).toBe("Generated/fox.png");
+
+        await workspace.delete("Generated/fox.png");
+        const done = await reconcileProjectIndex(PROJECT, USER);
+
+        expect(done).toMatchObject({
+          moved: [asset.id],
+          created: [],
+          offline: [],
+          deferred: []
+        });
+        const rows = await rowsOf();
+        expect(rows.map((row) => row.id)).toEqual([asset.id]);
+        expect(rows[0]?.workspace_path).toBe("shots/hero.png");
+        expect(isProjectAssetOffline(rows[0]!)).toBe(false);
+        expect(await bytesOf(asset)).toEqual(PNG);
+        // The only file is still there, under the one asset that owns it.
+        expect(await workspace.read("shots/hero.png")).toEqual(PNG);
+      });
+
+      it("points the row at the copy when the original goes while the scan runs", async () => {
+        const asset = await saveImage("fox");
+        const workspace = folder(kind);
+        await workspace.copy("Generated/fox.png", "shots/hero.png");
+        const list = vi.spyOn(Asset, "listProjectFiles");
+        list.mockImplementationOnce(async (userId, projectId) => {
+          list.mockRestore();
+          // The folder was listed with both files. The delete lands now.
+          await workspace.delete("Generated/fox.png");
+          return Asset.listProjectFiles(userId, projectId);
+        });
+
+        const report = await reconcileProjectIndex(PROJECT, USER);
+
+        expect(report).toMatchObject({
+          moved: [asset.id],
+          created: [],
+          offline: [],
+          deferred: []
+        });
+        const rows = await rowsOf();
+        expect(rows.map((row) => row.id)).toEqual([asset.id]);
+        expect(rows[0]?.workspace_path).toBe("shots/hero.png");
+        expect(await bytesOf(asset)).toEqual(PNG);
+      });
+
+      it("gives a copy that stays its own row once the wait is over, on its own", async () => {
+        vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+        const asset = await saveImage("fox");
+        const workspace = folder(kind);
+        await workspace.copy("Generated/fox.png", "Generated/fox copy.png");
+
+        const first = await reconcileProjectIndex(PROJECT, USER);
+        expect(first).toMatchObject({
+          created: [],
+          deferred: ["Generated/fox copy.png"]
+        });
+        // Still waiting shortly before the time is up.
+        await vi.advanceTimersByTimeAsync(COPY_GRACE_MS - 1_000);
+        const early = await reconcileProjectIndex(PROJECT, USER);
+        expect(early).toMatchObject({
+          created: [],
+          deferred: ["Generated/fox copy.png"]
+        });
+
+        // The follow-up reconcile runs without anything asking for it.
+        await vi.advanceTimersByTimeAsync(COPY_GRACE_MS);
+        await flushProjectReconciles();
+
+        const rows = await rowsOf();
+        expect(rows.map((row) => row.workspace_path).sort()).toEqual([
+          "Generated/fox copy.png",
+          "Generated/fox.png"
+        ]);
+        expect((await reload(asset)).workspace_path).toBe("Generated/fox.png");
+        expect(
+          (await reconcileProjectIndex(PROJECT, USER)).deferred
+        ).toEqual([]);
+      });
+
+      it("waits when two rows with the same content both lost their file to one copy", async () => {
+        const first = await saveImage("fox");
+        const second = await saveImage("wolf");
+        const workspace = folder(kind);
+        await workspace.copy("Generated/fox.png", "kept.png");
+        const list = vi.spyOn(Asset, "listProjectFiles");
+        list.mockImplementationOnce(async (userId, projectId) => {
+          list.mockRestore();
+          await workspace.delete("Generated/fox.png");
+          await workspace.delete("Generated/wolf.png");
+          return Asset.listProjectFiles(userId, projectId);
+        });
+
+        const report = await reconcileProjectIndex(PROJECT, USER);
+
+        // Neither row is guessed at, and the file gets no row of its own.
+        expect(report).toMatchObject({ moved: [], created: [] });
+        expect((await rowsOf()).map((row) => row.id).sort()).toEqual(
+          [first.id, second.id].sort()
+        );
       });
     });
 
@@ -511,7 +633,7 @@ describe.each(["local", "storage"] as const)(
       await workspace.write("node_modules/pkg/icon.png", PNG);
       await workspace.write("src/.cache/thumb.png", PNG);
       await workspace.write("src/app/node_modules/dep/pic.png", PNG);
-      await workspace.write("src/seen.png", PNG);
+      await workspace.write("src/seen.png", Uint8Array.from([...PNG, 1]));
       // A caller chose a path in a skipped directory for its asset.
       const hidden = await saveProjectAsset({
         projectId: PROJECT,
