@@ -34,7 +34,8 @@ import {
 import {
   migrateProjectFolders,
   nodetoolDirFromRow,
-  setWorkspaceCloudStorage
+  setWorkspaceCloudStorage,
+  workspaceFromRow
 } from "@nodetool-ai/execution/service";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { appRouter } from "../src/trpc/router.js";
@@ -779,9 +780,9 @@ describe("projects router: project folders", () => {
       expect(gameRow?.id).not.toBe(folder.id);
       expect(gameRow?.path).not.toBe(folder.path);
       expect(gameRow?.isManaged()).toBe(true);
-      expect(await filesOf(folder).list("", { recursive: true })).toEqual([
-        expect.objectContaining({ path: PROJECT_MANIFEST_PATH })
-      ]);
+      // Only the manifest, which listings leave out with the rest of `.nodetool/`.
+      expect(await filesOf(folder).list("", { recursive: true })).toEqual([]);
+      expect(await manifest(folder.id)).toMatchObject({ id: project.id });
     }
   );
 

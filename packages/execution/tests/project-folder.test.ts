@@ -325,7 +325,7 @@ describe.each(MODES)("project folders ($name)", (mode) => {
     expect(folder.origin).toBe("created");
     expect(folder.path).not.toBe(defaultRow.path);
     expect(await WorkspaceRow.find(USER, defaultRow.id)).toEqual(before);
-    expect(await rowFolder(defaultRow).exists(PROJECT_MANIFEST_PATH)).toBe(false);
+    expect(await nodetoolDir(defaultRow).exists(MANIFEST_FILE)).toBe(false);
     expect(await rowFolder(folder).exists("games/a/game.json")).toBe(false);
   });
 
@@ -381,10 +381,10 @@ describe("cloud project folders", () => {
       `workspaces/${USER}/projects/${sha256(`${project.id}:2`)}`
     );
     expect(folder?.isManaged()).toBe(true);
-    expect(await rowFolder(folder as WorkspaceRow).list("", { recursive: true })).toEqual([
-      expect.objectContaining({ path: PROJECT_MANIFEST_PATH })
-    ]);
-    expect(await rowFolder(gameRow).exists(PROJECT_MANIFEST_PATH)).toBe(false);
+    // Only the manifest, which listings leave out with the rest of `.nodetool/`.
+    expect(await rowFolder(folder as WorkspaceRow).list("", { recursive: true })).toEqual([]);
+    expect(await manifestOf(folder as WorkspaceRow)).toMatchObject({ id: project.id });
+    expect(await nodetoolDir(gameRow).exists(MANIFEST_FILE)).toBe(false);
   });
 
   it("leaves no row when the folder cannot be written", async () => {

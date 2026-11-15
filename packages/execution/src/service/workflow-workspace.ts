@@ -165,9 +165,12 @@ export async function resolveProjectWorkspace(
       );
     }
     if (!row.isAccessible()) {
-      const folder = row.isVirtual()
-        ? `the cloud folder of project "${project.name}"`
-        : row.path;
+      // A production server names no host path to its callers, the rule
+      // `isLocalDeployment` in project-folder.ts applies to the project API.
+      const folder =
+        row.isVirtual() || process.env["NODETOOL_ENV"] === "production"
+          ? `the folder of project "${project.name}"`
+          : row.path;
       return unresolved(project.id, `${PROJECT_FOLDER_NOT_FOUND}: ${folder}`);
     }
     const workspace = workspaceFromRow(row);

@@ -142,6 +142,22 @@ describe("resolveProjectWorkspace", () => {
     });
   });
 
+  it("names no host path on a production server", async () => {
+    const previous = process.env["NODETOOL_ENV"];
+    process.env["NODETOOL_ENV"] = "production";
+    try {
+      findOwned.mockResolvedValue({ id: "pA", name: "A", workspace_id: "ws1" });
+      workspaceFind.mockResolvedValue(folderRow("/srv/data/A", false));
+      expect(await resolveProjectWorkspace("pA", "user")).toMatchObject({
+        ok: false,
+        reason: 'Project folder not found: the folder of project "A"'
+      });
+    } finally {
+      if (previous === undefined) delete process.env["NODETOOL_ENV"];
+      else process.env["NODETOOL_ENV"] = previous;
+    }
+  });
+
   it("refuses a cloud folder when no cloud storage is configured", async () => {
     findOwned.mockResolvedValue({ id: "pA", name: "A", workspace_id: "ws1" });
     workspaceFind.mockResolvedValue(folderRow("workspaces/user/projects/x"));
