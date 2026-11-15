@@ -11,24 +11,20 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { WebSocketClientSession } from "../src/websocket-client-session.js";
 import type { MessageContent } from "@nodetool-ai/protocol";
 
-const storeMock = vi.fn(async () => undefined);
-vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
-  storeAssetWithThumbnail: (...args: unknown[]) => storeMock(...args)
-}));
-
 let assetSeq = 0;
-let latestAssetProps: Record<string, unknown> | null = null;
-vi.mock("@nodetool-ai/models", async (orig) => {
-  const actual = await orig<typeof import("@nodetool-ai/models")>();
-  class FakeAsset {
-    id = `asset-${++assetSeq}`;
-    size = 0;
-    constructor(public readonly props: Record<string, unknown>) {
-      latestAssetProps = props;
-    }
-    async save(): Promise<void> {}
-  }
-  return { ...actual, Asset: FakeAsset };
+let latestSave: Record<string, unknown> | null = null;
+/** Saves each image as one file in the chat project's folder (`saveProjectAsset`). */
+const storeMock = vi.fn(async (args: Record<string, unknown>) => {
+  latestSave = args;
+  return { id: `asset-${++assetSeq}` };
+});
+vi.mock("@nodetool-ai/asset-services/project-asset", async (orig) => {
+  const actual =
+    await orig<typeof import("@nodetool-ai/asset-services/project-asset")>();
+  return {
+    ...actual,
+    saveProjectAsset: (args: Record<string, unknown>) => storeMock(args)
+  };
 });
 
 describe("materializeAssistantImageContent", () => {
@@ -36,7 +32,7 @@ describe("materializeAssistantImageContent", () => {
 
   beforeEach(() => {
     assetSeq = 0;
-    latestAssetProps = null;
+    latestSave = null;
     storeMock.mockClear();
     runner = new WebSocketClientSession({
       resolveExecutor: () => ({
@@ -72,7 +68,15 @@ describe("materializeAssistantImageContent", () => {
     });
     // The raw base64 must not survive into the persisted block.
     expect(JSON.stringify(out)).not.toContain(b64);
-    expect(latestAssetProps).toMatchObject({ project_id: "project-a" });
+    // One file in `Generated/` of the chat's project: no directory or path
+    // is named, so the save takes the default.
+    expect(latestSave).toMatchObject({
+      projectId: "project-a",
+      userId: "user-9",
+      contentType: "image/png"
+    });
+    expect(latestSave).not.toHaveProperty("path");
+    expect(latestSave).not.toHaveProperty("directory");
   });
 
   it("leaves already-referenced and non-image blocks untouched", async () => {
@@ -101,9 +105,7 @@ describe("materializeAssistantImageContent", () => {
   it("isolates a storage failure to its block and keeps the rest of the turn", async () => {
     const b64ok = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64");
     const b64bad = Buffer.from([0xff, 0xd8]).toString("base64");
-    storeMock
-      .mockRejectedValueOnce(new Error("disk full"))
-      .mockResolvedValueOnce(undefined);
+    storeMock.mockRejectedValueOnce(new Error("disk full"));
     const content: MessageContent[] = [
       { type: "text", text: "two images" },
       {
@@ -131,7 +133,7 @@ describe("materializeAssistantImageContent", () => {
     });
     expect(out[2]).toEqual({
       type: "image_url",
-      image: { type: "image", asset_id: "asset-2", mimeType: "image/png" }
+      image: { type: "image", asset_id: "asset-1", mimeType: "image/png" }
     });
     expect(JSON.stringify(out)).not.toContain(b64bad);
     expect(JSON.stringify(out)).not.toContain(b64ok);

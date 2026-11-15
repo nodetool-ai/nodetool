@@ -11,7 +11,11 @@ import type { AssetInfoEntry } from "@nodetool-ai/runtime";
 import { storeAssetWithThumbnail } from "./thumbnail.js";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
 import { getAssetFileName, normalizeAssetContentType } from "./asset-paths.js";
-import { replaceProjectAssetBytes, saveProjectAsset } from "./project-asset.js";
+import {
+  replaceProjectAssetBytes,
+  saveProjectAsset,
+  type SaveProjectAssetArgs
+} from "./project-asset.js";
 
 export interface CreateAssetArgs {
   userId: string;
@@ -25,13 +29,19 @@ export interface CreateAssetArgs {
   parentId?: string | null;
   /** Stored on the row; the generation seam stamps `generation_id`. */
   metadata?: Record<string, unknown> | null;
+  /**
+   * Exact path in the project folder, when the caller named the file. The
+   * file is written there instead of under a free name in `Generated/`.
+   */
+  path?: string | null;
 }
 
 /**
  * The `createAsset` model interface behind `context.createAsset`: the bytes
- * become one file in `Generated/` of the run's project folder, and the row
- * names that file. A run with no project of its own saves into Personal.
- * Nothing is written under the legacy asset storage key.
+ * become one file in the run's project folder, at `path` when the caller
+ * named one and in `Generated/` otherwise, and the row names that file. A run
+ * with no project of its own saves into Personal. Nothing is written under
+ * the legacy asset storage key.
  *
  * A call without content creates a row and no file, as it always has.
  */
@@ -39,7 +49,7 @@ export async function createAssetModelInterface(
   args: CreateAssetArgs
 ): Promise<Asset> {
   if (!args.content) return createStoredAsset(args);
-  return saveProjectAsset({
+  const save: SaveProjectAssetArgs = {
     projectId: args.projectId,
     userId: args.userId,
     name: args.name,
@@ -57,13 +67,15 @@ export async function createAssetModelInterface(
       args.metadata && Object.keys(args.metadata).length > 0
         ? args.metadata
         : null
-  });
+  };
+  if (args.path) save.path = args.path;
+  return saveProjectAsset(save);
 }
 
 /**
  * Create an asset whose bytes go under the asset storage key
- * `<user>/<assetId>.<ext>`, outside any project folder. Agent tools, imports
- * and renders that call this directly have not moved to `saveProjectAsset`.
+ * `<user>/<assetId>.<ext>`, outside any project folder. `createAsset` uses it
+ * for a call with no content, which creates a row and no file.
  */
 export async function createStoredAsset(args: CreateAssetArgs): Promise<Asset> {
   const asset = new Asset({

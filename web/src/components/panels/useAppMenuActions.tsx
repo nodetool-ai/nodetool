@@ -9,7 +9,6 @@ import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
-import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
@@ -142,13 +141,6 @@ export const useAppMenuActions = (onFinish?: () => void): AppMenuAction[] => {
         icon: <LibraryBooksOutlinedIcon />,
         placement: "sidebar",
         onClick: () => openPage("collections")
-      },
-      {
-        key: "workspaces",
-        label: t("batch2_3.navigation.workspaces"),
-        icon: <FolderSpecialOutlinedIcon />,
-        placement: "sidebar",
-        onClick: () => openPage("workspaces")
       },
       {
         key: "memory",

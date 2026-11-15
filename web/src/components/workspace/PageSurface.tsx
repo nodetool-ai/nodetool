@@ -16,7 +16,6 @@ const PackagesPage = React.lazy(() => import("../packages/PackagesPage"));
 const CollectionsExplorer = React.lazy(
   () => import("../collections/CollectionsExplorer")
 );
-const WorkspacesPage = React.lazy(() => import("../workspaces/WorkspacesPage"));
 const SettingsPage = React.lazy(() => import("../menus/SettingsMenu"));
 const EntityLibrary = React.lazy(() => import("../entities/EntityLibrary"));
 const LipsyncStudio = React.lazy(() => import("../lipsync/LipsyncStudio"));
@@ -32,7 +31,6 @@ const PAGE_COMPONENTS = {
   models: ModelsPage,
   packages: PackagesPage,
   collections: CollectionsExplorer,
-  workspaces: WorkspacesPage,
   entities: EntityLibrary,
   lipsync: LipsyncStudio,
   effects: EffectsGallery,

@@ -22,7 +22,6 @@ describe("MorePanel", () => {
 
     expect(screen.getByText("Workflow tools")).toBeInTheDocument();
     expect(screen.getByText("Agent tools")).toBeInTheDocument();
-    expect(screen.getAllByText("Workspace")).toHaveLength(2);
     expect(
       screen.getByRole("button", { name: /Favorite nodes/ })
     ).toBeInTheDocument();
@@ -33,9 +32,7 @@ describe("MorePanel", () => {
     expect(
       screen.getByRole("button", { name: /Tutorials/ })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Workspaces/ })
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/workspace/i)).toBeNull();
   });
 
   it("lists Settings and Help once, and leaves Downloads to the logo menu", () => {
@@ -52,11 +49,10 @@ describe("MorePanel", () => {
 
     await user.type(
       screen.getByRole("textbox", { name: "Search all panels" }),
-      "workspace"
+      "skills"
     );
 
-    expect(screen.getByRole("button", { name: /^Workspace / })).toBeVisible();
-    expect(screen.getByRole("button", { name: /^Workspaces$/ })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Skills/ })).toBeVisible();
     expect(screen.queryByRole("button", { name: /Favorite nodes/ })).toBeNull();
     expect(screen.queryByText("Workflow tools")).toBeNull();
   });

@@ -159,7 +159,12 @@ export const createUploadOutput = z.object({
 export type CreateUploadOutput = z.infer<typeof createUploadOutput>;
 
 export const finalizeUploadInput = z.object({
-  asset_id: z.string().min(1)
+  asset_id: z.string().min(1),
+  /**
+   * Directory in the project folder the file was dropped on, relative to the
+   * folder. Omitted, the upload goes to `Imported/`.
+   */
+  directory: z.string().optional()
 });
 export type FinalizeUploadInput = z.infer<typeof finalizeUploadInput>;
 

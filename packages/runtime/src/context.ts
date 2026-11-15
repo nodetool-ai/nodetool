@@ -65,6 +65,7 @@ import {
 import { getNodeBuiltinSync, readPackageMedia } from "@nodetool-ai/config";
 import type { StorageAdapter, StorageEntry } from "@nodetool-ai/storage";
 import type {
+  AssetCreateParamsLike,
   AssetInfoEntry,
   AssetOutputMode,
   EntityUpsertResult,
@@ -343,6 +344,12 @@ export interface GenerationRequest extends ProviderPredictionRequest {
     name?: string;
     mime?: string;
     parentId?: string | null;
+    /**
+     * Exact path in the run's project folder for the saved file, when the
+     * caller named one. A result with several buffers numbers the rest
+     * (`shot.png`, `shot-2.png`).
+     */
+    path?: string;
   };
   /** Caller-side cancellation, chained with `cancel_generation`'s. */
   signal?: AbortSignal;
@@ -1836,7 +1843,7 @@ export class ProcessingContext implements RuntimeNodeContext {
       throw new Error("Asset content is required");
     }
     recordInvocationAsset();
-    return fn({
+    const createArgs: AssetCreateParamsLike = {
       userId: this.userId,
       workflowId: this.workflowId,
       jobId: this.jobId,
@@ -1847,7 +1854,9 @@ export class ProcessingContext implements RuntimeNodeContext {
       parentId: args.parentId ?? null,
       nodeId: args.nodeId ?? null,
       metadata: args.metadata ?? null
-    });
+    };
+    if (args.path) createArgs.path = args.path;
+    return fn(createArgs);
   }
 
   /**
