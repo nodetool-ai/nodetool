@@ -100,7 +100,6 @@ results rather than a review finding.
 | B129 | P2 | F7 (#7082) | `qml/effectcontrols/EffectControlsGraph.qml` | With more than 24 keys in view, handles show only around selected keys, and only when 24 or fewer keys are selected. | F7 |
 | B130 | P2 | F7 (#7082) | `qml/effectcontrols/EffectControlsDiamond.qml` | Diamonds are not keyboard focusable. Keyboard users reach keys through the navigator, Alt+K and the keyframe navigation keys. | F7 |
 | B131 | P2 | F7 (#7082) | `src/main.cpp` | `--select` with `--screenshot` left the Inspector and Effect Controls on "No selection". The cause is not established. | F7 |
-| B132 | P2 | F16 (#7091) | `src/remix/clip/RemixEdit.cpp` | Switching among retained remix takes of different lengths on the web and in the native Take panel restores the wrong window start, because the web never restores a clip's length on a take switch. Revert Remix is the exact path. | F16 |
 | B133 | P2 | F16 (#7091) | `src/remix/clip/RemixBackend.cpp` | Cancelling while the dialog is saving leaves one unused uploaded asset on the server, because the upload cannot be interrupted. | F16 |
 | B134 | P2 | F16 (#7091) | `src/remix/RemixDsp.cpp` | Planning runs on the GUI thread, bounded at about 289 candidate jumps per joint. It was not measured on a long, dense track. | F16 |
 | B135 | P2 | F16 (#7091) | `src/remix/clip/RemixEdit.cpp` | A remix of a clip whose existing overlap with the next clip is by design stays allowed when the result is not longer than the clip. Astra accepted this policy in round 2. | F16 |
