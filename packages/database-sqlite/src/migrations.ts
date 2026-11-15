@@ -73,13 +73,15 @@ export function migrateSqliteCore(sqlite: Database.Database): void {
         }
       },
       {
-        // The asset columns of a project folder. The repository selects every
-        // column the schema declares, so both must exist. Each is added only
-        // when absent, which keeps this safe beside any other migration that
-        // adds one of them.
-        version: "20261118_000000",
+        version: "20261117_000000",
         up() {
           if (!hasColumn(sqlite, "nodetool_assets", "workspace_path")) { sqlite.exec(ASSET_WORKSPACE_PATH_DDL); }
+        }
+      },
+      {
+        // The SHA-256 of an asset's whole file, which a background job fills in.
+        version: "20261118_000000",
+        up() {
           if (!hasColumn(sqlite, "nodetool_assets", "content_hash")) { sqlite.exec(ASSET_CONTENT_HASH_DDL); }
         }
       }

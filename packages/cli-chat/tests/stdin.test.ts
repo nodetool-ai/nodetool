@@ -31,7 +31,9 @@ vi.mock("node:readline", () => ({
 }));
 
 vi.mock("@nodetool-ai/models", () => ({
-  getSecret: vi.fn(async () => null)
+  getSecret: vi.fn(async () => null),
+  // Asset services install their file mover here when they load.
+  setAssetFileMover: vi.fn()
 }));
 
 vi.mock("@nodetool-ai/runtime", () => ({

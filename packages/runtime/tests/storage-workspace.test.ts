@@ -30,6 +30,7 @@ import {
 import {
   WorkspacePathError,
   WorkspaceReservedPathError,
+  observeWorkspace,
   type Workspace
 } from "../src/workspace.js";
 import { ProcessingContext } from "../src/context.js";
@@ -64,6 +65,50 @@ describe.each(backends)("Workspace over $name", ({ isLocal }) => {
   it("round-trips text", async () => {
     await workspace.write("notes.md", "hello");
     expect(await workspace.readText("notes.md")).toBe("hello");
+  });
+
+  it("writeNew creates a file and never replaces one", async () => {
+    expect(await workspace.writeNew("Generated/fox.txt", "first")).toBe(true);
+    expect(await workspace.writeNew("Generated/fox.txt", "second")).toBe(false);
+    expect(await workspace.readText("Generated/fox.txt")).toBe("first");
+
+    // A file `write` put there is not replaced either.
+    await workspace.write("notes.md", "kept");
+    expect(await workspace.writeNew("notes.md", "lost")).toBe(false);
+    expect(await workspace.readText("notes.md")).toBe("kept");
+  });
+
+  it("writeNew gives one path to exactly one of many racing writers", async () => {
+    const results = await Promise.all(
+      Array.from({ length: 12 }, (_, i) =>
+        workspace.writeNew("race.txt", `writer ${i}`)
+      )
+    );
+
+    const winners = results.flatMap((won, i) => (won ? [i] : []));
+    expect(winners).toHaveLength(1);
+    expect(await workspace.readText("race.txt")).toBe(`writer ${winners[0]}`);
+  });
+
+  it("writeNew refuses the reserved directory and a path outside the root", async () => {
+    await expect(
+      workspace.writeNew(".nodetool/project.json", "{}")
+    ).rejects.toBeInstanceOf(WorkspaceReservedPathError);
+    await expect(workspace.writeNew("../escape.txt", "x")).rejects.toBeInstanceOf(
+      WorkspacePathError
+    );
+  });
+
+  it("an observed workspace reports writeNew only when it wrote", async () => {
+    const changes: string[] = [];
+    const observed = observeWorkspace(workspace, (change) =>
+      changes.push(`${change.kind}:${change.path}`)
+    );
+
+    expect(await observed.writeNew("a.txt", "one")).toBe(true);
+    expect(await observed.writeNew("a.txt", "two")).toBe(false);
+
+    expect(changes).toEqual(["write:a.txt"]);
   });
 
   it("preserves and explicitly replaces a child execution workspace", async () => {
@@ -450,6 +495,34 @@ describe("Workspace over a local directory", () => {
 });
 
 describe("createWorkspace with a prefix", () => {
+  it("writeNew is exclusive within the prefix and independent across prefixes", async () => {
+    const shared = new InMemoryStorageAdapter();
+    const alice = createWorkspace(shared, { prefix: "workspaces/alice" });
+    const bob = createWorkspace(shared, { prefix: "workspaces/bob" });
+
+    expect(await alice.writeNew("Generated/fox.txt", "alice's")).toBe(true);
+    expect(await alice.writeNew("Generated/fox.txt", "again")).toBe(false);
+    expect(await bob.writeNew("Generated/fox.txt", "bob's")).toBe(true);
+
+    expect(await alice.readText("Generated/fox.txt")).toBe("alice's");
+    expect(await bob.readText("Generated/fox.txt")).toBe("bob's");
+  });
+
+  it("writeNew throws on storage with no exclusive create, and writes nothing", async () => {
+    const plain = new InMemoryStorageAdapter();
+    // A backend from before the operation existed: it can only `store`.
+    Object.defineProperty(plain, "storeIfAbsent", { value: undefined });
+    for (const workspace of [
+      new StorageWorkspace(plain),
+      createWorkspace(plain, { prefix: "workspaces/u1" })
+    ]) {
+      await expect(workspace.writeNew("fox.txt", "x")).rejects.toThrow(
+        /exclusive create|without replacing/
+      );
+      expect(await workspace.exists("fox.txt")).toBe(false);
+    }
+  });
+
   it("keeps each user's keys apart inside one bucket", async () => {
     const shared = new InMemoryStorageAdapter();
     const alice = createWorkspace(shared, { prefix: "workspaces/alice" });

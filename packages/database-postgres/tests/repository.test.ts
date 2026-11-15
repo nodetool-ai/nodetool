@@ -24,9 +24,9 @@ describe("PostgreSQL repository on the real embedded PostgreSQL engine", () => {
       expect(await repository.delete("workflows", "bob", workflow.id)).toBe(false);
       expect(await repository.get("workflows", "alice", workflow.id)).toMatchObject({ graph });
       const asset = await repository.put("assets", "alice", { name: "binary", metadata: { binary: true }, favorite: true });
-      expect(await repository.get("assets", "alice", asset.id)).toMatchObject({ metadata: { binary: true }, favorite: true });
-      const file = await repository.put("assets", "alice", { name: "fox.png", workspace_path: "Generated/fox.png", content_hash: "a".repeat(64) });
-      expect(await repository.get("assets", "alice", file.id)).toMatchObject({ workspace_path: "Generated/fox.png", content_hash: "a".repeat(64) });
+      expect(await repository.get("assets", "alice", asset.id)).toMatchObject({ metadata: { binary: true }, favorite: true, workspace_path: null, content_hash: null });
+      const file = await repository.put("assets", "alice", { name: "fox in snow", project_id: "film", workspace_path: "Generated/fox-in-snow.png", content_hash: "a".repeat(64) });
+      expect(await repository.get("assets", "alice", file.id)).toMatchObject({ project_id: "film", workspace_path: "Generated/fox-in-snow.png", content_hash: "a".repeat(64) });
       const secret = await repository.put("secrets", "alice", { key: "OPENAI_API_KEY", encrypted_value: "ciphertext" });
       expect(await repository.get("secrets", "bob", secret.id)).toBeNull();
       const job = await repository.put("jobs", "alice", { workflow_id: workflow.id, status: "running" });

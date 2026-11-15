@@ -37,6 +37,7 @@ import {
 import { lookupExternalAssetPath } from "@nodetool-ai/asset-services/external-asset-lookup";
 import {
   ProjectAssetRelinkError,
+  moveProjectAssetFile,
   relinkProjectAsset,
   renameProjectAssetFile,
   saveProjectAsset
@@ -682,6 +683,42 @@ describe.each(["local", "storage"] as const)(
       const rows = await rowsOf();
       expect(rows.map((row) => row.id)).toEqual([asset.id]);
       expect(rows[0]?.workspace_path).toBe("Generated/wolf.png");
+    });
+
+    it("leaves both folders alone while a move to another project waits for its row", async () => {
+      const OTHER = "project-b";
+      const asset = await saveImage("fox");
+      const change = await moveProjectAssetFile(asset, OTHER);
+      // The copy is in the other folder. The row still names this project.
+      expect(await folder(kind, OTHER).exists("Generated/fox.png")).toBe(true);
+
+      expect(await reconcileProjectIndex(OTHER, USER)).toMatchObject({
+        created: [],
+        deferred: []
+      });
+      expect(await rowsOf(OTHER)).toEqual([]);
+
+      await asset.save();
+      // The old file is still in this folder, and no row here names it.
+      expect(await folder(kind).exists("Generated/fox.png")).toBe(true);
+      expect(await reconcileProjectIndex(PROJECT, USER)).toMatchObject({
+        created: [],
+        offline: []
+      });
+      expect(await rowsOf(PROJECT)).toEqual([]);
+
+      await change.commit();
+      expect(await reconcileProjectIndex(PROJECT, USER)).toMatchObject({
+        files: 0,
+        created: []
+      });
+      expect(await reconcileProjectIndex(OTHER, USER)).toMatchObject({
+        unchanged: 1,
+        created: [],
+        offline: []
+      });
+      expect((await rowsOf(OTHER)).map((row) => row.id)).toEqual([asset.id]);
+      expect(await bytesOf(asset)).toEqual(PNG);
     });
 
     it("does not bring back a row that was deleted while the scan ran", async () => {

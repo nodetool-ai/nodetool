@@ -41,12 +41,9 @@ async function migrate<T extends PgQueryResultHKT>(database: PgDatabase<T>): Pro
     for (const [version, table, column, declaration] of [
       ["20261004_000003", "nodetool_jobs", "has_run_trace", JOB_TRACE_MARKER_DDL],
       ["20261006_000000", "nodetool_assets", "favorite", ASSET_FAVORITE_DDL],
-      // The asset columns of a project folder. The repository selects every
-      // column the schema declares, so both must exist. Each is added only
-      // when absent, which keeps this safe beside any other migration that
-      // adds one of them.
-      ["20261118_000000", "nodetool_assets", "workspace_path", ASSET_WORKSPACE_PATH_DDL],
-      ["20261118_000001", "nodetool_assets", "content_hash", ASSET_CONTENT_HASH_DDL]
+      ["20261117_000000", "nodetool_assets", "workspace_path", ASSET_WORKSPACE_PATH_DDL],
+      // The SHA-256 of an asset's whole file, which a background job fills in.
+      ["20261118_000000", "nodetool_assets", "content_hash", ASSET_CONTENT_HASH_DDL]
     ]) {
       if (!version || !table || !column || !declaration || applied.has(version)) { continue; }
       const existing = await db.select().from(informationColumns).where(and(eq(informationColumns.table_schema, "public"), eq(informationColumns.table_name, table), eq(informationColumns.column_name, column)));

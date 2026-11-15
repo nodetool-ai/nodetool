@@ -713,3 +713,71 @@ export class Asset extends DBModel {
     return { assets: [folderDict] };
   }
 }
+
+/** A file move that waits for its asset row. */
+export interface AssetFileMove {
+  /** Remove the file at its old place. Call after the row is saved. */
+  commit(): Promise<void>;
+  /** Remove the copy and restore the asset's fields. Call when it was not. */
+  undo(): Promise<void>;
+}
+
+/**
+ * Moves the file of an asset into the folder of another project and sets
+ * `project_id` and `workspace_path` on the asset to match.
+ */
+export type AssetFileMover = (
+  asset: Asset,
+  projectId: string
+) => Promise<AssetFileMove>;
+
+let assetFileMover: AssetFileMover | null = null;
+
+/**
+ * Install what moves an asset's file between project folders. Folders are
+ * reached through `@nodetool-ai/asset-services`, which depends on this
+ * package, so it installs its mover here when it loads.
+ */
+export function setAssetFileMover(mover: AssetFileMover | null): void {
+  assetFileMover = mover;
+}
+
+/**
+ * Save `asset` as a member of `projectId`. Every change of an asset's project
+ * goes through here.
+ *
+ * `workspace_path` is relative to the folder of `project_id`. Changing the
+ * project alone would leave the file behind and point the row at whatever has
+ * the same path in the other folder. So an asset that is a file in its
+ * project folder has the file copied into the new folder first, under a name
+ * nothing there uses, then the row is saved with both fields, and only then
+ * is the old file removed.
+ *
+ * Throws when the file cannot be moved: no mover is installed on this host,
+ * a folder is unreachable, or the file is missing. The asset is then left in
+ * its project.
+ */
+export async function saveAssetInProject(
+  asset: Asset,
+  projectId: string
+): Promise<void> {
+  if (!asset.workspace_path || asset.project_id === projectId) {
+    asset.project_id = projectId;
+    await asset.save();
+    return;
+  }
+  if (!assetFileMover) {
+    throw new Error(
+      `Asset ${asset.id} is a file in its project folder and cannot change ` +
+        `project on this host: no asset file mover is installed`
+    );
+  }
+  const move = await assetFileMover(asset, projectId);
+  try {
+    await asset.save();
+  } catch (error) {
+    await move.undo();
+    throw error;
+  }
+  await move.commit();
+}

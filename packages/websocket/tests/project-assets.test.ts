@@ -52,6 +52,7 @@ import {
 import { createWorkflowRuntimeEnvironment } from "@nodetool-ai/project-services/workflow-runtime-environment";
 import { ProjectAssetStorageAdapter } from "@nodetool-ai/asset-services/project-asset-storage";
 import { partialContentHash } from "@nodetool-ai/asset-services/project-asset-file";
+import { entityModelInterfaces } from "@nodetool-ai/document-services";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -192,6 +193,23 @@ async function bytesOf(asset: Asset): Promise<Uint8Array | null> {
     asset.content_type
   );
   return bytes ? new Uint8Array(bytes) : null;
+}
+
+/**
+ * Run a titled image node in a project and make its asset an entity, which is
+ * what the web moves between projects.
+ */
+async function entityIn(projectId: string, title: string): Promise<Asset> {
+  const before = new Set((await assetsOf(projectId)).map((row) => row.id));
+  await run((await workflowIn(projectId, FoxImage.nodeType, title)).id);
+  const asset = (await assetsOf(projectId)).find((row) => !before.has(row.id));
+  if (!asset) throw new Error("the run saved no asset");
+  asset.metadata = {
+    ...asset.metadata,
+    nodetool_entity: { kind: "character", name: title, descriptor: "a fox" }
+  };
+  await asset.save();
+  return asset;
 }
 
 async function assetsOf(projectId: string): Promise<Asset[]> {
@@ -567,6 +585,131 @@ describe.each(["local", "cloud"] as const)(
       expect(await Asset.find(USER, asset!.id)).toBeNull();
     });
 
+    // ── Moving an asset to another project moves its file ──────────────────
+
+    it("assigning an entity to another project moves its file there", async () => {
+      const a = await projectWithFolder(USER, "Film A");
+      const b = await projectWithFolder(USER, "Film B");
+      const hero = await entityIn(a.project.id, "hero");
+
+      await createCaller(makeCtx()).projects.assignDocument({
+        projectId: b.project.id,
+        type: "entity",
+        ref: hero.id
+      });
+
+      const row = await Asset.find(USER, hero.id);
+      expect(row?.project_id).toBe(b.project.id);
+      expect(row?.workspace_path).toBe("Generated/hero.png");
+      expect(await namesIn(b.folder)).toEqual(["Generated/hero.png"]);
+      // The old folder keeps no file without a row.
+      expect(await namesIn(a.folder)).toEqual([]);
+      expect(await bytesOf(row!)).toEqual(PNG);
+      expect(await serve((await toAssetResponse(row!)).get_url!)).toEqual(PNG);
+    });
+
+    it("a moved entity takes a free name beside a file of the same name and both keep their bytes", async () => {
+      const a = await projectWithFolder(USER, "Film A");
+      const b = await projectWithFolder(USER, "Film B");
+      const theirs = await entityIn(b.project.id, "hero");
+      await createCaller(makeCtx()).assets.update({
+        id: theirs.id,
+        data: Buffer.from(OTHER).toString("base64"),
+        data_encoding: "base64"
+      });
+      const mine = await entityIn(a.project.id, "hero");
+
+      await createCaller(makeCtx()).projects.assignDocument({
+        projectId: b.project.id,
+        type: "entity",
+        ref: mine.id
+      });
+
+      const moved = (await Asset.find(USER, mine.id))!;
+      const other = (await Asset.find(USER, theirs.id))!;
+      expect(moved.project_id).toBe(b.project.id);
+      expect(moved.workspace_path).toBe("Generated/hero-2.png");
+      expect(other.workspace_path).toBe("Generated/hero.png");
+      expect(await namesIn(b.folder)).toEqual([
+        "Generated/hero-2.png",
+        "Generated/hero.png"
+      ]);
+      expect(await namesIn(a.folder)).toEqual([]);
+      // Two rows, two files, and each serves its own bytes.
+      expect(await bytesOf(moved)).toEqual(PNG);
+      expect(await bytesOf(other)).toEqual(OTHER);
+    });
+
+    it("deleting a moved entity deletes its own file and leaves the other asset's bytes", async () => {
+      const a = await projectWithFolder(USER, "Film A");
+      const b = await projectWithFolder(USER, "Film B");
+      const theirs = await entityIn(b.project.id, "hero");
+      const mine = await entityIn(a.project.id, "hero");
+      const caller = createCaller(makeCtx());
+      await caller.projects.assignDocument({
+        projectId: b.project.id,
+        type: "entity",
+        ref: mine.id
+      });
+
+      await caller.assets.delete({ id: mine.id });
+
+      expect(await Asset.find(USER, mine.id)).toBeNull();
+      expect(await namesIn(b.folder)).toEqual(["Generated/hero.png"]);
+      const other = (await Asset.find(USER, theirs.id))!;
+      expect(other.workspace_path).toBe("Generated/hero.png");
+      expect(await bytesOf(other)).toEqual(PNG);
+    });
+
+    it("the agent entity capability moves the file when it changes the project", async () => {
+      const a = await projectWithFolder(USER, "Film A");
+      const b = await projectWithFolder(USER, "Film B");
+      const hero = await entityIn(a.project.id, "hero");
+      const context = new ProcessingContext({
+        jobId: "agent-job",
+        userId: USER,
+        projectId: a.project.id,
+        assetStorage: mocks.adapter,
+        storage: new InMemoryStorageAdapter()
+      });
+
+      const result = (await createCapabilityRun({
+        context,
+        gate: UNGATED
+      }).invoke("update_entity", {
+        entity_id: hero.id,
+        project_id: b.project.id
+      })) as { error?: string };
+
+      expect(result.error).toBeUndefined();
+      const row = (await Asset.find(USER, hero.id))!;
+      expect(row.project_id).toBe(b.project.id);
+      expect(await namesIn(b.folder)).toEqual(["Generated/hero.png"]);
+      expect(await namesIn(a.folder)).toEqual([]);
+      expect(await bytesOf(row)).toEqual(PNG);
+    });
+
+    it("an entity upsert that names another project moves the file", async () => {
+      const a = await projectWithFolder(USER, "Film A");
+      const b = await projectWithFolder(USER, "Film B");
+      const hero = await entityIn(a.project.id, "hero");
+
+      await entityModelInterfaces().upsertEntity?.({
+        userId: USER,
+        projectId: b.project.id,
+        kind: "character",
+        name: "hero",
+        descriptor: "a fox",
+        imageAssetId: hero.id
+      });
+
+      const row = (await Asset.find(USER, hero.id))!;
+      expect(row.project_id).toBe(b.project.id);
+      expect(await namesIn(b.folder)).toEqual(["Generated/hero.png"]);
+      expect(await namesIn(a.folder)).toEqual([]);
+      expect(await bytesOf(row)).toEqual(PNG);
+    });
+
     it("an asset id in the form the agent assets capability returns resolves to the file's bytes", async () => {
       const a = await projectWithFolder(USER, "Film A");
       await run((await workflowIn(a.project.id, FoxImage.nodeType, "fox in snow")).id);
@@ -685,6 +828,34 @@ describe("project asset files on a local disk", () => {
     expect(
       await bytesOf(asset)
     ).toEqual(PNG);
+  });
+
+  it("refuses to move an entity while the destination folder is unreachable, and keeps it whole", async () => {
+    const a = await projectWithFolder(USER, "Film A");
+    const b = await projectWithFolder(USER, "Film B");
+    await run((await workflowIn(a.project.id, FoxImage.nodeType, "hero")).id);
+    const [hero] = await assetsOf(a.project.id);
+    hero!.metadata = {
+      ...hero!.metadata,
+      nodetool_entity: { kind: "character", name: "hero", descriptor: "a fox" }
+    };
+    await hero!.save();
+    await fs.rm(b.folder.path, { recursive: true, force: true });
+
+    await expect(
+      createCaller(makeCtx()).projects.assignDocument({
+        projectId: b.project.id,
+        type: "entity",
+        ref: hero!.id
+      })
+    ).rejects.toThrow(/Project folder not found/);
+
+    const row = (await Asset.find(USER, hero!.id))!;
+    expect(row.project_id).toBe(a.project.id);
+    expect(row.workspace_path).toBe("Generated/hero.png");
+    expect(
+      await fs.readFile(path.join(a.folder.path, "Generated", "hero.png"))
+    ).toEqual(Buffer.from(PNG));
   });
 
   it("a run does not save into another folder when its project's folder is gone", async () => {

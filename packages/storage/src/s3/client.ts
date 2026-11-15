@@ -56,6 +56,11 @@ export interface S3PutObjectInput extends S3ObjectRef {
   body: Uint8Array;
   contentType?: string;
   cacheControl?: string;
+  /**
+   * Sent as `If-None-Match`. `"*"` makes the put conditional on no object
+   * existing under the key: the store answers 412 instead of replacing one.
+   */
+  ifNoneMatch?: string;
 }
 
 export interface S3PutObjectResult {
@@ -486,6 +491,7 @@ export class S3Client implements S3Api {
     const headers: Record<string, string> = {};
     if (input.contentType) headers["content-type"] = input.contentType;
     if (input.cacheControl) headers["cache-control"] = input.cacheControl;
+    if (input.ifNoneMatch) headers["if-none-match"] = input.ifNoneMatch;
     const response = await this.request({
       method: "PUT",
       bucket: input.bucket,
