@@ -24,7 +24,10 @@ import {
 } from "./external-asset-lookup.js";
 import { videoProxyState } from "./video-proxy.js";
 import { getAssetAdapter } from "./storage.js";
-import { projectAssetFile } from "@nodetool-ai/asset-services/project-asset-file";
+import {
+  isProjectAssetOffline,
+  projectAssetFile
+} from "@nodetool-ai/asset-services/project-asset-file";
 import { storageKeyForUri } from "@nodetool-ai/asset-services/project-asset-storage";
 
 let cachedConfig: StorageConfig | null = null;
@@ -122,9 +125,12 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
     project_id: asset.project_id,
     favorite: asset.favorite
   };
-  // Only assets that reference a file in place carry the flag.
+  // Only assets that reference a file in place carry the flag, and an asset
+  // whose file the reconciler found missing from its project folder.
   if (asset.external_path) {
     response.offline = await isExternalAssetOffline(asset);
+  } else if (isProjectAssetOffline(asset)) {
+    response.offline = true;
   }
   // Video on a local server: whether the preview may play the proxy. The URL
   // carries the source version, so a remade proxy is never served from cache.

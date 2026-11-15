@@ -78,6 +78,7 @@ import {
 } from "../../lib/project-document-copy.js";
 import { planProjectFolderDelete } from "@nodetool-ai/project-services/project-delete";
 import { deleteProjectForUser } from "../../lib/project-delete.js";
+import { reconcileProjectOnOpen } from "@nodetool-ai/project-services/project-index";
 import {
   ProjectFolderOpenError,
   openProjectFolder,
@@ -256,6 +257,18 @@ async function loadOwned(userId: string, id: string): Promise<Project> {
   return project;
 }
 
+/**
+ * Load a project a client is opening and reconcile its asset index with its
+ * folder in the background, so changes made to the folder while the project
+ * was closed show up. The reads a client makes when it opens a project call
+ * this: `get`, `documentPage` and `restoreTabs`.
+ */
+async function loadOpened(userId: string, id: string): Promise<Project> {
+  const project = await loadOwned(userId, id);
+  reconcileProjectOnOpen(project.id, userId);
+  return project;
+}
+
 export const projectsRouter = router({
   list: protectedProcedure
     .input(listInput)
@@ -306,7 +319,7 @@ export const projectsRouter = router({
     .output(projectDetail)
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const project = await loadOwned(ctx.userId, input.id);
+      const project = await loadOpened(ctx.userId, input.id);
       const summary = await summarizeProject(ctx.userId, project.id);
       return projectDetail.parse({
         project: await toResponse(project),
@@ -327,7 +340,7 @@ export const projectsRouter = router({
     .output(projectDocumentPage)
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      const project = await loadOwned(ctx.userId, input.id);
+      const project = await loadOpened(ctx.userId, input.id);
       return summarizeProjectDocumentPage(ctx.userId, project.id, {
         offset: input.offset,
         limit: input.limit
@@ -348,7 +361,7 @@ export const projectsRouter = router({
     .output(z.array(restorableTab))
     .query(async ({ ctx, input }) => {
       await prepareUser(ctx.userId);
-      await loadOwned(ctx.userId, input.id);
+      await loadOpened(ctx.userId, input.id);
       const valid = await Promise.all(
         input.tabs.map(async (tab) => ({
           tab,

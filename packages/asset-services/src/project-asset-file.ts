@@ -68,12 +68,13 @@ export async function requireProjectAssetFile(
 
 /**
  * The file `asset` keeps in its project folder, for readers. Null when the
- * asset has no `workspace_path` or its folder cannot be reached: a reader
- * reports both as missing bytes.
+ * asset has no `workspace_path`, its folder cannot be reached, or the
+ * reconciler marked it offline: a reader reports each as missing bytes.
  */
 export async function projectAssetFile(
-  asset: ProjectAssetFileFields
+  asset: ProjectAssetFileFields & { metadata?: Record<string, unknown> | null }
 ): Promise<ProjectAssetFile | null> {
+  if (isProjectAssetOffline(asset)) return null;
   try {
     return await requireProjectAssetFile(asset);
   } catch {
@@ -115,6 +116,34 @@ export const WORKSPACE_FINGERPRINT_KEYS = [
 
 /** Bytes hashed from each end of a file. */
 export const PARTIAL_HASH_SPAN = 1024 * 1024;
+
+/**
+ * The metadata key the reconciler sets to `true` on a row whose file is gone
+ * from the project folder. The row stays, every reader reports its bytes as
+ * missing, and relink or a file that comes back clears the mark.
+ */
+export const WORKSPACE_OFFLINE_KEY = "workspace_offline";
+
+/** Every metadata key the server owns on an asset in a project folder. */
+export const WORKSPACE_SERVER_KEYS = [
+  ...WORKSPACE_FINGERPRINT_KEYS,
+  WORKSPACE_OFFLINE_KEY
+] as const;
+
+/**
+ * Whether the reconciler found the file of `asset` missing from its project
+ * folder. Always false for an asset that keeps no file there. It reads the
+ * row only, so it costs nothing on an asset response.
+ */
+export function isProjectAssetOffline(asset: {
+  workspace_path: string | null;
+  metadata?: Record<string, unknown> | null;
+}): boolean {
+  return (
+    Boolean(asset.workspace_path) &&
+    asset.metadata?.[WORKSPACE_OFFLINE_KEY] === true
+  );
+}
 
 export interface WorkspaceFingerprint {
   workspace_size: number;
@@ -198,12 +227,37 @@ export async function partialContentHashOfFile(path: string): Promise<string> {
   }
 }
 
-/** `metadata` with the file fingerprint written over any earlier one. */
+/**
+ * {@link partialContentHash} of a file in a project folder. The file is read
+ * by range where the folder is a directory on this host. A storage-backed
+ * folder stages it first, and the staged copy is removed again, so pass a
+ * workspace whose scratch directory holds nothing a run still needs.
+ */
+export async function partialContentHashOfWorkspaceFile(
+  workspace: Workspace,
+  path: string
+): Promise<string> {
+  try {
+    return await partialContentHashOfFile(await workspace.materialize(path));
+  } finally {
+    await workspace.cleanupScratch?.();
+  }
+}
+
+/**
+ * `metadata` with the file fingerprint written over any earlier one. A
+ * fingerprint is recorded from a file that is there, so the offline mark goes.
+ */
 export function withWorkspaceFingerprint(
   metadata: Record<string, unknown> | null | undefined,
   fingerprint: WorkspaceFingerprint
 ): Record<string, unknown> {
-  return { ...metadata, ...fingerprint };
+  const kept = Object.fromEntries(
+    Object.entries(metadata ?? {}).filter(
+      ([key]) => key !== WORKSPACE_OFFLINE_KEY
+    )
+  );
+  return { ...kept, ...fingerprint };
 }
 
 /**

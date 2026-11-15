@@ -10,8 +10,8 @@
  */
 
 import { Buffer } from "node:buffer";
-import { stat } from "node:fs/promises";
-import { basename, isAbsolute } from "node:path";
+import { realpath, stat } from "node:fs/promises";
+import { basename, isAbsolute, relative, sep } from "node:path";
 import { Asset, Project } from "@nodetool-ai/models";
 import type { Asset as AssetModel } from "@nodetool-ai/models";
 import { createLogger } from "@nodetool-ai/config";
@@ -41,18 +41,26 @@ import { EXTERNAL_FINGERPRINT_KEYS } from "../../lib/external-asset-lookup.js";
 import {
   COLLECT_PATH_KEY,
   collectLinkedAssets,
+  ProjectAssetRelinkError,
   deleteProjectAssetFile,
+  relinkProjectAsset,
   renameProjectAssetFile,
   replaceProjectAssetBytes,
   saveProjectAsset,
   uploadDirectory,
-  type ProjectAssetFileChange
+  type ProjectAssetFileChange,
+  type ProjectAssetRelinkSource
 } from "@nodetool-ai/asset-services/project-asset";
 import {
   ProjectFolderUnavailableError,
-  WORKSPACE_FINGERPRINT_KEYS,
-  keepFingerprint
+  WORKSPACE_SERVER_KEYS,
+  keepFingerprint,
+  requireProjectFolder
 } from "@nodetool-ai/asset-services/project-asset-file";
+import {
+  WorkspacePathError,
+  WorkspaceReservedPathError
+} from "@nodetool-ai/runtime";
 import {
   localPathDenialMessage,
   resolveLocalPath
@@ -332,6 +340,77 @@ const EXTERNAL_OWNED_KEYS: readonly string[] = [
   ...EXTERNAL_FINGERPRINT_KEYS,
   COLLECT_PATH_KEY
 ];
+
+/**
+ * Refuse a replacement file of another media kind (audio for a video clip).
+ * The asset's URL takes its extension from the content type, which stays. A
+ * name with no known type is accepted.
+ */
+function assertSameMediaKind(asset: AssetModel, fileName: string): void {
+  const kind = (type: string) => type.split("/")[0];
+  const offered = normalizeAssetContentType("", fileName);
+  if (
+    offered !== "application/octet-stream" &&
+    kind(offered) !== kind(asset.content_type)
+  ) {
+    throwApiError(
+      ApiErrorCode.INVALID_INPUT,
+      `The new file is ${offered}, but this asset is ${asset.content_type}`
+    );
+  }
+}
+
+/**
+ * The file a relink of an asset in a project folder names. A relative path is
+ * a file in the folder. An absolute path is a file on this host, validated
+ * like any in-place reference (R5). When that file already lies in the
+ * folder it is used where it is, and otherwise it is copied in.
+ */
+async function projectRelinkSource(
+  asset: AssetModel,
+  path: string
+): Promise<ProjectAssetRelinkSource> {
+  if (!isAbsolute(path)) return { path };
+  const file = await resolveExternalFile(path);
+  const { workspace } = await requireProjectFolder(
+    asset.project_id,
+    asset.user_id
+  );
+  // The folder's directory is read only to spell a picked file's path
+  // relative to the folder. The file is then reached through the workspace.
+  const folderDir = workspace.localDir
+    ? await realpath(workspace.localDir).catch(() => null)
+    : null;
+  const inFolder = folderDir ? relative(folderDir, file.path) : "";
+  if (inFolder && !inFolder.startsWith("..") && !isAbsolute(inFolder)) {
+    return { path: inFolder.split(sep).join("/") };
+  }
+  return { localPath: file.path };
+}
+
+/** Point an asset in a project folder at another file. Keeps its id. */
+async function relinkProjectFile(
+  asset: AssetModel,
+  path: string
+): Promise<void> {
+  try {
+    const source = await projectRelinkSource(asset, path);
+    assertSameMediaKind(
+      asset,
+      basename("path" in source ? source.path : source.localPath)
+    );
+    await relinkProjectAsset(asset, source);
+  } catch (error) {
+    if (
+      error instanceof ProjectAssetRelinkError ||
+      error instanceof WorkspacePathError ||
+      error instanceof WorkspaceReservedPathError
+    ) {
+      throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+    }
+    rethrowFolderError(error);
+  }
+}
 
 /**
  * `next` with the external file fingerprint (`external_size`,
@@ -731,6 +810,9 @@ export const assetsRouter = router({
    * original, or the same path after the file changed. The id and `get_url`
    * stay the same (D5). The path is validated again (R5), and the new size,
    * mtime, and duration are recorded before the thumbnail is regenerated.
+   *
+   * An asset whose file is in its project folder is relinked the same way:
+   * to a file in the folder, or to a file outside it, which is copied in.
    */
   relinkExternal: protectedProcedure
     .input(relinkExternalInput)
@@ -741,44 +823,37 @@ export const assetsRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Asset not found");
       }
       assertWritable(asset);
-      if (!asset.external_path) {
+      if (asset.workspace_path) {
+        await relinkProjectFile(asset, input.path);
+        log.info("project asset relinked", {
+          assetId: asset.id,
+          bytes: asset.size
+        });
+      } else if (!asset.external_path) {
         throwApiError(
           ApiErrorCode.INVALID_INPUT,
           "Only an asset that references a file in place can be relinked"
         );
-      }
-      const file = await resolveExternalFile(input.path);
+      } else {
+        const file = await resolveExternalFile(input.path);
+        assertSameMediaKind(asset, basename(file.path));
 
-      // The URL's extension comes from the content type, so it stays. A file
-      // of another media kind (audio for a video clip) is refused. A name
-      // with no known type is accepted.
-      const kind = (type: string) => type.split("/")[0];
-      const offered = normalizeAssetContentType("", basename(file.path));
-      if (
-        offered !== "application/octet-stream" &&
-        kind(offered) !== kind(asset.content_type)
-      ) {
-        throwApiError(
-          ApiErrorCode.INVALID_INPUT,
-          `The new file is ${offered}, but this asset is ${asset.content_type}`
-        );
+        asset.external_path = file.path;
+        asset.size = file.size;
+        asset.duration = await probeAssetDurationSeconds(asset.content_type, {
+          path: file.path
+        });
+        asset.metadata = {
+          ...asset.metadata,
+          external_size: file.size,
+          external_mtime: file.mtimeMs
+        };
+        await asset.save();
+        log.info("external asset relinked", {
+          assetId: asset.id,
+          bytes: file.size
+        });
       }
-
-      asset.external_path = file.path;
-      asset.size = file.size;
-      asset.duration = await probeAssetDurationSeconds(asset.content_type, {
-        path: file.path
-      });
-      asset.metadata = {
-        ...asset.metadata,
-        external_size: file.size,
-        external_mtime: file.mtimeMs
-      };
-      await asset.save();
-      log.info("external asset relinked", {
-        assetId: asset.id,
-        bytes: file.size
-      });
 
       // Drop the previous file's thumbnail first, so a new file that yields
       // none does not keep showing the old one.
@@ -897,7 +972,7 @@ export const assetsRouter = router({
             ? keepFingerprint(
                 input.metadata,
                 asset.metadata,
-                WORKSPACE_FINGERPRINT_KEYS
+                WORKSPACE_SERVER_KEYS
               )
             : input.metadata;
       }

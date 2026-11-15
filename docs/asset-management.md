@@ -94,7 +94,7 @@ Assets are stored under `$XDG_DATA_HOME/nodetool/assets`, falling back to `~/.lo
 ## If it fails
 
 - **`Unsupported file type: <content type>`** when dragging an asset onto the canvas: no constant node exists for that type.
-- **Asset shows offline**: an externally referenced file moved or changed. Relink it. See [External assets](storage.md#external-assets).
+- **Asset shows offline**: an externally referenced file moved or changed. Relink it. See [External assets](storage.md#external-assets). An asset in a project folder shows offline when its file was deleted or moved out of the folder. See [the asset index follows the folder](workspaces.md#the-asset-index-follows-the-folder).
 
 ## Next Steps
 

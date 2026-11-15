@@ -12,6 +12,8 @@ vi.mock("@nodetool-ai/execution/service", () =>
 
 vi.mock("@nodetool-ai/models", () => ({
   LOOSE_PROJECT_ID: "default",
+  // Asset services install their file mover when they load.
+  setAssetFileMover: () => {},
   Project: {
     findOwned: (u: string, id: string) => findOwned(u, id),
     ensurePersonal: (u: string) => ensurePersonal(u)
