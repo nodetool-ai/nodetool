@@ -415,7 +415,9 @@ export class DesktopSession implements ParticipantSurface {
     const before = new Set((await this.windows()).map((w) => w.id));
     const logPath = join(this.opts.outDir, "private", "app.log");
     const { command, args } = this.opts.launch;
-    const app = spawn(command, args, { env: this.appEnv(), stdio: ["ignore", "pipe", "pipe"] });
+    // The app starts in the session's home folder, as a desktop launcher starts it,
+    // so a file dialog that opens on the working folder never shows the host's files.
+    const app = spawn(command, args, { cwd: this.home, env: this.appEnv(), stdio: ["ignore", "pipe", "pipe"] });
     this.app = app;
     this.appRunning = true;
     app.stdout?.on("data", (chunk: Buffer) => void appendFile(logPath, chunk));

@@ -1000,8 +1000,8 @@ NodeRow iconAction(const QString &action, const QString &name, const QString &ic
 void layoutCompareImages(NodeLayout &layout, const CardBodyInput &input) {
     // The card has no content that sizes it, so it takes its 300 by 250 minimum.
     const auto ui = input.node["ui_properties"].toObject();
-    layout.size.setWidth(std::max(nm::compareMinimumWidth, ui["width"].toInt()));
-    layout.size.setHeight(std::max(nm::compareMinimumHeight, ui["height"].toInt()));
+    layout.size.setWidth(std::max(nm::compareMinimumWidth, qRound(ui["width"].toDouble())));
+    layout.size.setHeight(std::max(nm::compareMinimumHeight, qRound(ui["height"].toDouble())));
     layout.minimumSize.setWidth(nm::compareMinimumWidth);
     layout.flexHeight = layout.size.height() - nm::compareMinimumHeight;
     // Both handles start under the header on the 28 px pitch, level with the outputs.
@@ -1105,7 +1105,7 @@ void layoutConstantString(NodeLayout &layout, const CardBodyInput &input) {
     const auto content = std::max<double>(nm::stringTextMinimum, 2 * nm::stringTextPadding + lines * nm::fontValue * nm::stringLineHeight);
     const auto overhead = nm::contentTop + inset;
     const auto natural = int(std::ceil(std::min<double>(overhead + content, nm::stringMaximumHeight)));
-    const auto height = std::max(natural, input.node["ui_properties"].toObject()["height"].toInt());
+    const auto height = std::max(natural, qRound(input.node["ui_properties"].toObject()["height"].toDouble()));
     layout.size.setHeight(height);
     // The card can shrink to the 60 px text area, which then scrolls.
     layout.flexHeight = height - int(overhead + nm::stringTextMinimum);
@@ -1762,7 +1762,7 @@ void layoutListGenerator(NodeLayout &layout, const CardBodyInput &input) {
     }
     const auto chipsHeight = chips.size() * (nm::modelChipHeight + listGap);
     const auto natural = int(std::ceil(y + chipsHeight + listPadding + nm::padding + nm::borderWidth));
-    const auto authored = input.node["ui_properties"].toObject()["height"].toInt();
+    const auto authored = qRound(input.node["ui_properties"].toObject()["height"].toDouble());
     const auto height = std::max(natural, authored > 0 ? authored : listGeneratorHeight);
     layout.size.setHeight(height);
     layout.flexHeight = height - natural;
@@ -1841,7 +1841,7 @@ void layoutCollection(NodeLayout &layout, const CardBodyInput &input) {
                                       QObject::tr("Clear collection"), QRectF(x + inner - button, top, button, button)));
     }
     const auto natural = int(std::ceil(bottom + listPadding + nm::padding + nm::borderWidth));
-    const auto authored = input.node["ui_properties"].toObject()["height"].toInt();
+    const auto authored = qRound(input.node["ui_properties"].toObject()["height"].toDouble());
     const auto height = std::max(natural, authored > 0 ? authored : collectionHeight);
     layout.size.setHeight(height);
     layout.flexHeight = height - natural;

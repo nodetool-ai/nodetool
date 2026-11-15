@@ -52,30 +52,45 @@ function typeMetaToString(
   return args.length > 0 ? `${tm.type}[${args.join(", ")}]` : tm.type;
 }
 
+/**
+ * Inputs a search row lists. Provider nodes carry dozens of properties, so a
+ * search for "3d" answered with every property of every match when the caller
+ * needed two node types. The full list is one `get_node_info` away.
+ */
+export const SEARCH_RESULT_MAX_INPUTS = 8;
+
 interface CompactSearchResult {
   type: string;
   title: string;
   description: string;
   score: number;
   inputs: Array<{ name: string; type: string }>;
+  /** Present when `inputs` was cut: how many the node declares. */
+  inputs_total?: number;
   outputs: Array<{ name: string; type: string }>;
 }
 
 function toCompact(meta: NodeMetadata, score: number): CompactSearchResult {
-  return {
+  const result: CompactSearchResult = {
     type: meta.node_type,
     title: meta.title,
     description: firstSentence(meta.description),
     score,
-    inputs: meta.properties.map((p: NodeMetadata["properties"][number]) => ({
-      name: p.name,
-      type: typeMetaToString(p.type)
-    })),
+    inputs: meta.properties
+      .slice(0, SEARCH_RESULT_MAX_INPUTS)
+      .map((p: NodeMetadata["properties"][number]) => ({
+        name: p.name,
+        type: typeMetaToString(p.type)
+      })),
     outputs: meta.outputs.map((o: NodeMetadata["outputs"][number]) => ({
       name: o.name,
       type: typeMetaToString(o.type)
     }))
   };
+  if (meta.properties.length > SEARCH_RESULT_MAX_INPUTS) {
+    result.inputs_total = meta.properties.length;
+  }
+  return result;
 }
 
 /**

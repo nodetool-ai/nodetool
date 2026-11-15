@@ -6,10 +6,11 @@
 #include <algorithm>
 
 namespace nodetool::node_editor {
-namespace {
-bool terminal(const QString &status) {
+bool isTerminalRunStatus(const QString &status) {
   return status == "completed" || status == "finished" || status == "failed" || status == "cancelled" || status == "timed_out" || status == "error";
 }
+namespace {
+bool terminal(const QString &status) { return isTerminalRunStatus(status); }
 constexpr qsizetype TextLimit = 65536;
 constexpr qsizetype ValueBudget = 131072;
 constexpr qsizetype CollectionLimit = 128;
@@ -220,7 +221,7 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
       run.truncated = true;
     }
     run.edges[id] = state;
-    if (selected_ == jobId) { emit projectionChanged(); }
+    if (selected_ == jobId) { emit edgeChanged(id); }
     return;
   }
   // Late node frames of a cancelled run are dropped, as handleNodeUpdate does on the web.

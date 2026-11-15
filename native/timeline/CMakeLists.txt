@@ -323,6 +323,19 @@ foreach(callback IN LISTS NT_TEST_CALLBACKS)
     cmake_language(CALL ${callback})
 endforeach()
 
+# What scripts/op-conformance.mjs and scripts/plan-conformance.mjs run: the
+# app, timeline-ops and the oracle each suite in scripts/conformance/suites/
+# names next to timeline-ops.
+add_custom_target(conformance-helpers)
+foreach(helper nodetool-timeline timeline-ops nt_assets_oracle nt_assist_oracle structure-ops targeting-ops
+        timeline-gizmo-oracle track-ops tst_clipaudio tst_inspectorprimitives tst_keyframes tst_reframe tst_speed
+        tst_sync tst_tempo tst_transitions)
+    if(NOT TARGET ${helper})
+        message(FATAL_ERROR "conformance-helpers: no target ${helper}")
+    endif()
+    add_dependencies(conformance-helpers ${helper})
+endforeach()
+
 if(NT_FUZZ)
     add_subdirectory(tests/fuzz)
 endif()

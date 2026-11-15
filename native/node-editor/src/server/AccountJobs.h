@@ -41,6 +41,9 @@ private:
     QJsonArray m_rows;
     // A completed job's outputs do not change, so each job is listed once.
     QHash<QString, QJsonArray> m_outputs;
+    // Names of workflows whose jobs came without one, kept across refreshes.
+    QHash<QString, QString> m_workflowNames;
+    QSet<QString> m_namesRequested;
     QSet<QString> m_outputsRequested;
     QString m_error;
     QSet<QString> m_stopping;

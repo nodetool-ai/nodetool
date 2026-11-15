@@ -73,8 +73,8 @@ Rectangle {
             Layout.fillWidth: true
             density: Ui.EditorButton.Compact
             value: root.picker.query
-            placeholderText: "Search compatible nodes"
-            accessibleName: "Search compatible nodes"
+            placeholderText: root.picker.keyboard ? "Search ports" : "Search compatible nodes"
+            accessibleName: root.picker.keyboard ? "Find compatible ports" : "Search compatible nodes"
             onValuePreviewed: value => root.picker.search(value, root.activationToken)
             Keys.priority: Keys.BeforeItem
             Keys.onPressed: event => {
@@ -94,7 +94,8 @@ Rectangle {
                 delegate: Ui.EditorButton {
                     required property var modelData
                     required property int index
-                    objectName: modelData.key === "fixed\ndelete-output" ? "compatible-delete-output" : "compatible-fixed-" + index
+                    objectName: modelData.key === "fixed\ndelete-output" ? "compatible-delete-output"
+                              : modelData.key === "fixed\ndisconnect" ? "compatible-disconnect" : "compatible-fixed-" + index
                     width: parent.width
                     text: modelData.label
                     contentAlignment: Qt.AlignLeft
@@ -142,7 +143,7 @@ Rectangle {
         Ui.Text {
             Layout.fillWidth: true
             visible: list.count === 0 && root.fixedRows.length === 0
-            text: "No compatible nodes match this search."
+            text: root.picker.keyboard ? "No compatible ports" : "No compatible nodes match this search."
             role: Ui.Typography.SansCaption
             tone: Ui.Text.Secondary
             wrapMode: Text.Wrap

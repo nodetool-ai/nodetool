@@ -162,3 +162,17 @@ for the same behavior.
 | `study-20-I7` | Native chat: the app reopens on the last conversation | 0 | `accept` | D1 to D3 and V1, ease 7 | 2026-11-14 |
 | `study-20-I8` | Native chat: "+" attaches a file through the system file dialog | 0 | `accept` | 3 of 3. C2 and C3 typed "@" first, which searches only the app's assets | 2026-11-14 |
 | `study-20-I9` | Native chat: picture mode and model choice are found from the composer chips | 0 | `accept` | 3 of 3 each, model switch ease 6, 4, 6 | 2026-11-14 |
+| `study-21-I1` | Native node editor: an inspector edit is lost when you click another node or the canvas | 4 | `fix` | A1, B1: 2 of 2 who left a field by clicking the canvas. The deferred commit required the node to stay selected. Fix in the study 21 PR: the draft finishes on the node it was typed into. V1 kept its draft across a node click | 2026-11-14 |
+| `study-21-I2` | Native node editor: Save opens a file dialog for a workflow kept on the server | 3 | `fix` | A1, C2, C3. Fix in the study 21 PR: Save on a server tab with no file saves to the server, and file dialogs start in Documents with the workflow's name. Rerun `undo-change` and `save-copy` | 2026-11-14 |
+| `study-21-I3` | Native node editor: input dots have no names until the node is selected | 2 | `fix` | C1 to C3. Fix in the study 21 PR: a hovered handle's node shows its port names. Scripted check only. Rerun `reconnect` | 2026-11-14 |
+| `study-21-I4` | Native node editor: the chat window hides part of an opened workflow | 2 | `fix` | C1, C3, and A2's crowded 1280 × 720 canvas. Fix in the study 21 PR: fit view leaves out the chat window. The 1280 × 720 layout is open | 2026-11-14 |
+| `study-21-I5` | Native node editor: a drag that misses a handle opens "Connect to a new node" | 2 | `research` | A1 to A3, V1. Measure the handle drop tolerance against the web | 2026-11-14 |
+| `study-21-I6` | Native node editor: dragging the empty canvas does not pan | 2 | `decide` | A2, C2, V1. Pan on an empty-canvas drag, or keep selection | 2026-11-14 |
+| `study-21-I7` | Native node editor: Examples cards ignore clicks, then open late | 3 | `research` | D1, D2. Cards move as server sections load above the built-in ones, and a built-in example opens with no busy sign | 2026-11-14 |
+| `study-21-I8` | Native node editor: the Projects rail icon did nothing | 2 | `fix` | Pilot lead 5, A1. Fix in the study 21 PR: it opens the project menu. Rail labels stay with study-1-I5 | 2026-11-14 |
+| `study-21-I9` | Native node editor: "most recent" spans chats, workflows and projects | 1 | `research` | D1 to D3 chose the open chat thread | 2026-11-14 |
+| `study-21-I10` | Native node editor: saving a copy is hard to find and named twice | 2 | `fix` | D3. Fix in the study 21 PR: the dialog is "Save As", starts in Documents and the status line names the file. Rerun `save-copy` with its own budget | 2026-11-14 |
+| `study-21-I11` | Native node editor: Concat gives no separator clue, and its inspector shows "This value is preserved. A dedicated editor is required." | 2 | `research` | A2, A3, V1 | 2026-11-14 |
+| `study-21-I12` | Native node editor: "+" and the first-workflow card start new work | 0 | `accept` | 3 of 3 and V1, ease 7 for A1 and V1 | 2026-11-14 |
+| `study-21-I13` | Native node editor: "+ Add output" and a drag to empty canvas add a second result | 0 | `accept` | B1 to B3 and V2 | 2026-11-14 |
+| `study-21-I14` | Native node editor: the Documents rail lists a workflow by name | 0 | `accept` | 9 of 9 in the B and C lanes | 2026-11-14 |

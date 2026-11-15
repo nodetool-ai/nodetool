@@ -996,17 +996,21 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // point. Otherwise the marks do not bound playback and the live content
       // end stops it. The store `durationMs` is only set on load and never
       // recomputed as clips change.
-      const loop = useTimelineLayoutStore.getState().loopPlayback;
+      // Play Around and Play To Out bound their own playback and never loop.
       const {
         rangeInMs: markedIn,
         rangeOutMs: markedOut,
-        playingInToOut
+        playingInToOut,
+        playingSpan
       } = playbackApi.getState();
+      const loop =
+        playingSpan === null && useTimelineLayoutStore.getState().loopPlayback;
       const ranged = loop || playingInToOut;
       const rangeIn = ranged ? markedIn : null;
       const rangeOut = ranged ? markedOut : null;
       const loopStartMs = rangeIn ?? 0;
-      const endMs = rangeOut ?? contentEndMs;
+      const endMs = playingSpan?.endMs ?? rangeOut ?? contentEndMs;
+      const returnToMs = playingSpan?.returnToMs ?? null;
       // Pressing Play while parked at the end restarts from the top (or the
       // in point).
       // Global playback speed, read fresh so a rate set before pressing play
@@ -1034,7 +1038,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         floorMs: loopStartMs,
         // Loop wraps at the end; otherwise the clock parks there.
         onReachEnd:
-          loop && endMs > loopStartMs
+          returnToMs !== null
+            ? () => {
+                // Play Around parks the playhead where it started.
+                const playback = playbackApi.getState();
+                playback.pause();
+                playback.seek(returnToMs);
+              }
+            : loop && endMs > loopStartMs
             ? () => {
                 // A loop wrap restarts at once: there is no scrub burst to
                 // wait out, and the debounce would stall picture and audio.

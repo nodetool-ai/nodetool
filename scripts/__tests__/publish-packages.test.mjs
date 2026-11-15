@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { RELEASE_REPOSITORY } from "../release/verify-staging.mjs";
 
@@ -106,7 +106,7 @@ describe("unmetDeps", () => {
       copyFileSync(new URL("../publish-packages.mjs", import.meta.url), join(root, "scripts", "publish-packages.mjs"));
       copyFileSync(new URL("../smoke-packed-cli.mjs", import.meta.url), join(root, "scripts", "smoke-packed-cli.mjs"));
       symlinkSync(new URL("../minimal-dependency-guard.mjs", import.meta.url), join(root, "scripts", "minimal-dependency-guard.mjs"));
-      for (const file of ["packed-registry.mjs", "packed-fal-fixture.mjs"]) {
+      for (const file of ["package-manager.mjs", "packed-registry.mjs", "packed-fal-fixture.mjs"]) {
         copyFileSync(new URL(`../${file}`, import.meta.url), join(root, "scripts", file));
       }
       for (const directory of ["release", "node-catalog", "fixtures"]) {
@@ -121,7 +121,7 @@ describe("unmetDeps", () => {
         const staging = join(root, "staging", name);
         mkdirSync(join(staging, "package"), { recursive: true });
         copyFileSync(join(dir, "package.json"), join(staging, "package/package.json"));
-        const packed = spawnSync("tar", ["-czf", join(tarballs, `${name}.tgz`), "-C", staging, "package"], { encoding: "utf8" });
+        const packed = spawnSync("tar", ["-czf", basename(join(tarballs, `${name}.tgz`)), "-C", staging, "package"], { cwd: dirname(join(tarballs, `${name}.tgz`)), encoding: "utf8" });
         expect(packed.status, packed.stderr).toBe(0);
       }
       writeFileSync(join(root, "bin", "npm"), `#!${process.execPath}\nif (process.argv[2] === 'pack') { console.log(JSON.stringify([{filename: process.cwd().split('/').at(-1) + '.tgz'}])); process.exit(0); } if (process.argv[2] === 'view') { if (process.argv[3] === 'agents@1.0.0') { console.log('"1.0.0"'); process.exit(0); } process.exit(1); } if (process.argv[3].endsWith('/image-editor.tgz')) process.exit(1); console.log('unexpected publish');`, { mode: 0o755 });

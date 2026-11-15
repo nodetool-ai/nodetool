@@ -1,5 +1,5 @@
 import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { realpathSync } from "node:fs";
@@ -79,15 +79,35 @@ beforeAll(async () => {
     "@typescript",
     nativePlatformPackage,
     "lib",
-    "tsc"
+    process.platform === "win32" ? "tsc.exe" : "tsc"
   );
-  await writeFile(nativeBin, NATIVE_TSC);
-  await chmod(nativeBin, 0o755);
-  await writeFile(
-    join(workDir, "node_modules", "@typescript", "typescript-win32-x64", "lib", "tsc.exe"),
-    "stub"
-  );
-});
+  if (process.platform === "win32") {
+    // A shebang is not executable on Windows. Build a real executable fixture
+    // with the C# compiler included in Windows' .NET Framework.
+    const source = join(workDir, "CompilerStub.cs");
+    await writeFile(source, `using System;
+using System.IO;
+using System.Web.Script.Serialization;
+class CompilerStub {
+  static int Main(string[] args) {
+    Console.WriteLine(new JavaScriptSerializer().Serialize(new {
+      args = args, cwd = Directory.GetCurrentDirectory(),
+      marker = Environment.GetEnvironmentVariable("STUB_TSC_MARKER"),
+      nodeOptions = Environment.GetEnvironmentVariable("NODE_OPTIONS") ?? ""
+    }));
+    return int.Parse(Environment.GetEnvironmentVariable("STUB_TSC_EXIT") ?? "0");
+  }
+}`);
+    const compiler = join(process.env.SystemRoot ?? "C:/Windows", "Microsoft.NET/Framework64/v4.0.30319/csc.exe");
+    execFileSync(compiler, ["/nologo", "/reference:System.Web.Extensions.dll", `/out:${nativeBin}`, source], { timeout: 30_000 });
+  } else {
+    await writeFile(nativeBin, NATIVE_TSC);
+    await chmod(nativeBin, 0o755);
+  }
+  if (process.platform !== "win32" || process.arch !== "x64") {
+    await writeFile(join(workDir, "node_modules", "@typescript", "typescript-win32-x64", "lib", "tsc.exe"), "stub");
+  }
+}, 35_000);
 afterAll(async () => {
   await rm(workDir, { recursive: true, force: true });
 });
@@ -109,7 +129,7 @@ function runRunner(version, env = {}, cwd = projectDir) {
     let stderr = "";
     child.stdout.on("data", (chunk) => (stdout += chunk));
     child.stderr.on("data", (chunk) => (stderr += chunk));
-    child.on("exit", (code, signal) => resolvePromise({ code, signal, stdout, stderr }));
+    child.on("close", (code, signal) => resolvePromise({ code, signal, stdout, stderr }));
   });
 }
 
@@ -144,7 +164,7 @@ describe("compiler selection", () => {
         "@typescript",
         `typescript-${process.platform}-${process.arch}`,
         "lib",
-        "tsc"
+        process.platform === "win32" ? "tsc.exe" : "tsc"
       )
     );
     expect(compiler.isJavaScript).toBe(false);
@@ -208,7 +228,9 @@ describe("run-tsc subprocess behavior", () => {
   });
 
   it("preserves a compiler signal as a non-zero command result", async () => {
-    await expect(runRunner("6", { STUB_TSC_SIGNAL: "SIGTERM" })).resolves.toMatchObject({ code: 143 });
+    // Windows reports forced termination as exit 1, without a POSIX signal.
+    await expect(runRunner("6", { STUB_TSC_SIGNAL: "SIGTERM" }))
+      .resolves.toMatchObject({ code: process.platform === "win32" ? 1 : 143 });
   });
 
   it("only adds the heap override for TypeScript 6", () => {

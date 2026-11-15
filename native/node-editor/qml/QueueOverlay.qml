@@ -5,11 +5,15 @@ import NodeTool.UiPrimitives as Ui
 Ui.Surface {
     id: root
     variant: Ui.Surface.Overlay
-    elevated: true
+    elevated: !docked
     property bool expanded: false
     // Set by the owner when the status bar opens the queue. An opened queue
     // shows with no active jobs, as the web QueuePanel does.
     property bool opened: false
+    // QueuePanel.qml fills the bottom panel with the list: always open, with
+    // no drag or collapse, and the header's button asks to close the panel.
+    property bool docked: false
+    signal closeRequested
     property string historyFilter: "all"
     property var retained: []
     property var localStarts: ({})
@@ -31,10 +35,10 @@ Ui.Surface {
         }))
     readonly property int runningCount: live.filter(job => job.status === "running").length
     readonly property bool hasJobs: live.some(job => ["running", "queued", "scheduled", "starting"].includes(job.status))
-    readonly property bool shown: hasJobs || opened
+    readonly property bool shown: hasJobs || opened || docked
     readonly property bool presented: shown || exitDelay.running
     // Without active jobs there is nothing to summarize, so the opened queue lists everything.
-    readonly property bool showList: expanded || (opened && !hasJobs)
+    readonly property bool showList: docked || expanded || (opened && !hasJobs)
     readonly property bool clockRunning: clock.running
     readonly property var rows: shown ? live : retained
     readonly property var running: rows.filter(job => job.status === "running")
@@ -87,6 +91,8 @@ Ui.Surface {
     }
     onShownChanged: {
         if (shown) {
+            // The day groups read the clock, which stands still while the queue is hidden.
+            now = Date.now();
             retained = live;
             exitDelay.stop();
         } else if (!Ui.Theme.reducedMotion) {
@@ -102,6 +108,13 @@ Ui.Surface {
         interval: 1000
         repeat: true
         running: root.runningCount > 0
+        onTriggered: root.now = Date.now()
+    }
+    // With nothing running, the shown history's day groups still move past midnight.
+    Timer {
+        interval: 60000
+        repeat: true
+        running: root.shown && root.runningCount === 0
         onTriggered: root.now = Date.now()
     }
     // isFailed and historyBucket in QueuePanel.tsx.
@@ -357,18 +370,22 @@ Ui.Surface {
             Layout.fillWidth: true
             HeaderDrag {
                 objectName: "queue-header-drag"
+                enabled: !root.docked
                 onMoved: (dx, dy) => root.moveRequested(dx, dy)
                 onFinished: root.moveFinished()
             }
             HoverHandler {
+                enabled: !root.docked
                 cursorShape: Qt.OpenHandCursor
             }
             // A double click returns the overlay to the default corner.
             TapHandler {
+                enabled: !root.docked
                 onDoubleTapped: root.resetPositionRequested()
             }
             MoveGrip {
                 objectName: "queue-header-move-grip"
+                visible: !root.docked
                 onNudge: (dx, dy) => root.nudgeRequested(dx, dy)
                 onReset: root.resetPositionRequested()
             }
@@ -405,11 +422,13 @@ Ui.Surface {
                 }
                 Ui.ToolbarIconButton {
                     objectName: "queue-collapse"
-                    iconName: "remove"
-                    accessibleName: root.hasJobs ? "Collapse queue" : "Close queue"
+                    iconName: root.docked ? "close" : "remove"
+                    accessibleName: root.hasJobs && !root.docked ? "Collapse queue" : "Close queue"
                     description: accessibleName
                     onClicked: {
-                        if (root.hasJobs) {
+                        if (root.docked) {
+                            root.closeRequested();
+                        } else if (root.hasJobs) {
                             root.expanded = false;
                         } else {
                             root.close();

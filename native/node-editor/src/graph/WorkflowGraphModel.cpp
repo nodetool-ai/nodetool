@@ -371,7 +371,15 @@ void WorkflowGraphModel::setRuntimeModel(node_editor::NodeRuntimeModel *runtime)
   runningSince_.clear();
   runningTimer_.stop();
   if (runtime_) {
-    connect(runtime_, &node_editor::NodeRuntimeModel::nodeChanged, this, [this](const QString &id) { refreshRuntimeNode(id); emit runtimeChanged(); });
+    connect(runtime_, &node_editor::NodeRuntimeModel::nodeChanged, this, [this](const QString &id) {
+      refreshRuntimeNode(id);
+      if (const auto found = ids_.constFind(id); found != ids_.cend() && nodes_.contains(*found)) { emit runtimeNodeChanged(*found); }
+    });
+    connect(runtime_, &node_editor::NodeRuntimeModel::edgeChanged, this, [this](const QString &edgeId) {
+      for (const auto &[connection, edge] : edgeByConnection_) {
+        if (edge["id"].toString() == edgeId) { emit runtimeEdgeChanged(connection); }
+      }
+    });
     // Previews stay across a run change. EditorWindow::syncRuntimePreviews
     // replaces or removes each one, so a card keeps its image until the next loads.
     connect(runtime_, &node_editor::NodeRuntimeModel::projectionChanged, this, [this] {
@@ -491,6 +499,7 @@ void WorkflowGraphModel::clearCardMedia() {
 void WorkflowGraphModel::setFocusedNode(const QString &resourceId) {
   if (resourceId == focusedNode_) { return; }
   const auto previous = std::exchange(focusedNode_, resourceId);
+  focusedHandle_ = {};
   if (!resourceId.isEmpty()) {
     focusHistory_.append(resourceId);
     while (focusHistory_.size() > 20) { focusHistory_.removeFirst(); }
@@ -502,6 +511,30 @@ void WorkflowGraphModel::setFocusedNode(const QString &resourceId) {
       emit nodeUpdated(*it);
     }
   }
+}
+void WorkflowGraphModel::setFocusedHandle(QtNodes::PortType side, const QString &name) {
+  if (focusedHandle_.side == side && focusedHandle_.name == name) { return; }
+  focusedHandle_ = name.isEmpty() ? FocusedHandle{} : FocusedHandle{side, name};
+  if (const auto node = ids_.value(focusedNode_, QtNodes::InvalidNodeId); node != QtNodes::InvalidNodeId) { emit nodeUpdated(node); }
+}
+bool WorkflowGraphModel::focusNextHandle(bool backwards) {
+  const auto node = ids_.value(focusedNode_, QtNodes::InvalidNodeId);
+  if (node == QtNodes::InvalidNodeId) { setFocusedHandle(QtNodes::PortType::None, {}); return false; }
+  QVector<FocusedHandle> handles;
+  for (const auto side : {QtNodes::PortType::In, QtNodes::PortType::Out}) {
+    const auto list = ports(node, side);
+    for (qsizetype i = 0; i < list.size(); ++i) {
+      if (portVisible(node, side, QtNodes::PortIndex(i))) { handles.append({side, list[i].toObject()["name"].toString()}); }
+    }
+  }
+  qsizetype index = -1;
+  for (qsizetype i = 0; i < handles.size(); ++i) {
+    if (handles[i].side == focusedHandle_.side && handles[i].name == focusedHandle_.name) { index = i; }
+  }
+  const auto next = index < 0 ? (backwards ? handles.size() - 1 : 0) : index + (backwards ? -1 : 1);
+  if (next < 0 || next >= handles.size()) { setFocusedHandle(QtNodes::PortType::None, {}); return false; }
+  setFocusedHandle(handles[next].side, handles[next].name);
+  return true;
 }
 bool WorkflowGraphModel::focusBack() {
   if (focusHistory_.size() < 2) { return false; }
@@ -862,7 +895,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
       // A body such as Compare Images sets a wider minimum than the 150 px corner limit.
       result.minimumSize = QSize(std::max(150, result.minimumSize.width()),
                                  result.body == CardBody::Preview ? nm::outputPlaceholderHeight : result.size.height() - result.flexHeight);
-      result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+      result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble())));
       addRenameControls();
       if (ui["collapsed"].toBool()) { result = collapsedLayout(result, ui); }
       return *layouts_.insert(id, result);
@@ -1422,7 +1455,7 @@ const NodeLayout &WorkflowGraphModel::layout(NodeId id) const {
     if (result.subgraph) { result.size.rheight() += nm::handleRowStep; }
   result.minimumSize = QSize(150, result.size.height());
   const auto natural = result.size.height();
-  result.size.setHeight(std::max(result.size.height(), ui["height"].toInt()));
+  result.size.setHeight(std::max(result.size.height(), qRound(ui["height"].toDouble())));
   stretchCodeField(result, result.size.height() - natural);
   stretchCardMedia(result, type);
   addRenameControls();

@@ -9,9 +9,10 @@ import { describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
 import { copyFileSync, cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 import { resolveWorkspaceDeps, resolveMcpServerVersion } from "../prepare-publish.mjs";
+import { packageManagerInvocation } from "../package-manager.mjs";
 
 describe("resolveWorkspaceDeps", () => {
   const versions = new Map([
@@ -47,7 +48,7 @@ describe("MCP release sidecar", () => {
     expect(() => resolveMcpServerVersion(pkg, { name: pkg.mcpName, packages: [{ registryType: "npm", identifier: "@nodetool-ai/cli" }] })).toThrow("no npm entry");
   });
 
-  it("packs the standalone MCP registry entry with the actual prerelease version", () => {
+  it("packs the standalone MCP registry entry with the actual prerelease version", { timeout: 30_000 }, () => {
     const root = mkdtempSync(join(tmpdir(), "mcp-prerelease-packed-"));
     const source = resolve(import.meta.dirname, "../..");
     try {
@@ -63,10 +64,11 @@ describe("MCP release sidecar", () => {
       cpSync(join(source, "packages/cli-mcp/dist"), join(packageRoot, "dist"), { recursive: true });
       const prepared = spawnSync(process.execPath, [join(root, "scripts/prepare-publish.mjs")], { cwd: root, encoding: "utf8" });
       expect(prepared.status, prepared.stdout + prepared.stderr).toBe(0);
-      const packed = spawnSync("npm", ["pack", "--json", "--pack-destination", root], { cwd: packageRoot, encoding: "utf8" });
+      const invocation = packageManagerInvocation("npm", ["pack", "--json", "--pack-destination", root]);
+      const packed = spawnSync(invocation.command, invocation.args, { cwd: packageRoot, encoding: "utf8" });
       expect(packed.status, packed.stdout + packed.stderr).toBe(0);
       const [artifact] = JSON.parse(packed.stdout);
-      const extracted = spawnSync("tar", ["-xOf", join(root, artifact.filename), "package/server.json"], { encoding: "utf8" });
+      const extracted = spawnSync("tar", ["-xOf", basename(join(root, artifact.filename)), "package/server.json"], { cwd: dirname(join(root, artifact.filename)), encoding: "utf8" });
       expect(extracted.status, extracted.stderr).toBe(0);
       const server = JSON.parse(extracted.stdout);
       expect(server.name).toBe("io.github.nodetool-ai/nodetool");

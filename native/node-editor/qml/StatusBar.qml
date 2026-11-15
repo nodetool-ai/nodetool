@@ -85,7 +85,7 @@ Rectangle {
                 { objectName: "status-logs", value: "logs", label: "Logs", iconName: "article", active: root.panels.outputVisible },
                 { objectName: "status-queue", value: "queue", label: "Queue", iconName: "playlistPlay", active: root.panels.queueVisible, count: root.status.queuedCount },
                 { objectName: "status-generations", value: "generations", label: "Generations", iconName: "autoAwesomeOutlined", active: root.panels.generationsVisible, count: root.status.generatingCount },
-                { objectName: "status-workers", value: "workers", label: "Workers", iconName: "memory", active: false, disabledReason: qsTr("Workers has no native panel yet.") },
+                { objectName: "status-workers", value: "workers", label: "Workers", iconName: "memory", active: root.panels.workersVisible },
                 { objectName: "status-versions", value: "versions", label: "Versions", iconName: "history", active: root.panels.versionsVisible },
                 { objectName: "status-trace", value: "trace", label: "Trace", iconName: "timeline", active: root.panels.traceVisible }
             ]

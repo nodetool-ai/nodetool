@@ -1617,7 +1617,11 @@
       "assistant": "Assistent",
       "history": "Verlauf",
       "code": "Code",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effekteinstellungen",
+      "motion": "Bewegung",
+      "color": "Farbe",
+      "ai": "KI"
     },
     "unavailable": {
       "tracks": "Der DAW-Modus hat eine eigene Spuransicht. Deaktiviere ihn (Alt+M), um das Zeitleistenfenster zu öffnen.",
@@ -13460,8 +13464,14 @@
         },
         "connectProviderTitle": "Verbinde einen KI-Anbieter, um loszulegen",
         "connectProviderButton": "Anbieter verbinden",
-        "title": "Wie kann ich dir heute helfen?",
-        "subtitle": "Frag einfach, füge Dateien hinzu oder starte mit einem dieser Vorschläge:"
+        "greeting": {
+          "morning": "Guten Morgen",
+          "afternoon": "Guten Tag",
+          "evening": "Guten Abend",
+          "morningName": "Guten Morgen, {{name}}",
+          "afternoonName": "Guten Tag, {{name}}",
+          "eveningName": "Guten Abend, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Aufgaben",
@@ -16831,7 +16841,49 @@
         "exitExpandedPreview": "Erweiterte Vorschau schließen",
         "moveOnePixel": "Clip um ein Pixel verschieben",
         "moveTenPixels": "Clip um zehn Pixel verschieben",
-        "resetTransform": "Transformation zurücksetzen"
+        "resetTransform": "Transformation zurücksetzen",
+        "extendPrevEdit": "Vorherigen Schnittpunkt bis zum Abspielkopf verlängern",
+        "extendNextEdit": "Nächsten Schnittpunkt bis zum Abspielkopf verlängern",
+        "selectPrevClip": "Vorherigen Clip auswählen",
+        "selectNextClip": "Nächsten Clip auswählen",
+        "clipVolumeUp": "Clip-Lautstärke um 1 dB erhöhen",
+        "clipVolumeDown": "Clip-Lautstärke um 1 dB senken",
+        "clipVolumeUpMore": "Clip-Lautstärke um 6 dB erhöhen",
+        "clipVolumeDownMore": "Clip-Lautstärke um 6 dB senken",
+        "slideLeft": "Ausgewählte Clips ein Bild zurück verschieben (Slide)",
+        "slideRight": "Ausgewählte Clips ein Bild vor verschieben (Slide)",
+        "slowShuttleBack": "Langsam rückwärts abspielen (erneut: schneller)",
+        "slowShuttleForward": "Langsam vorwärts abspielen (erneut: schneller)",
+        "goToSequenceStart": "Zum Anfang der Sequenz",
+        "goToSequenceEnd": "Zum Ende der Sequenz",
+        "goToSelectedStart": "Zum Anfang der Auswahl",
+        "goToSelectedEnd": "Zum letzten Bild der Auswahl",
+        "markSelection": "Auswahl markieren (In und Out darum setzen)",
+        "clearIn": "In löschen",
+        "clearOut": "Out löschen",
+        "prevCutAnyTrack": "Vorheriger Schnitt auf einer beliebigen Spur",
+        "nextCutAnyTrack": "Nächster Schnitt auf einer beliebigen Spur",
+        "prevGap": "Zur vorherigen Lücke in der Sequenz",
+        "nextGap": "Zur nächsten Lücke in der Sequenz",
+        "addRangeMarker": "Bereichsmarker von einer Sekunde am Abspielkopf hinzufügen",
+        "addMarkerInOut": "Marker von In bis Out hinzufügen",
+        "clearAllMarkers": "Alle Marker löschen",
+        "playAround": "Um den Abspielkopf herum abspielen",
+        "playInToOutWithRoll": "Von In bis Out mit Vor- und Nachlauf abspielen",
+        "playToOut": "Vom Abspielkopf bis Out abspielen",
+        "expandAllTracks": "Alle Spuren vergrößern (erneut: zurücksetzen)",
+        "minimizeAllTracks": "Alle Spuren minimieren (erneut: zurücksetzen)",
+        "audioTracksTaller": "Audiospuren höher machen",
+        "audioTracksShorter": "Audiospuren niedriger machen",
+        "panelSource": "Zur Quelle",
+        "panelTimeline": "Zur Timeline",
+        "panelProgram": "Zum Programm",
+        "panelEffectControls": "Zu den Effekteinstellungen",
+        "panelInspector": "Zum Inspektor",
+        "panelScript": "Zum Skript",
+        "panelStoryboard": "Zum Storyboard",
+        "nextPanel": "Zum nächsten Bedienfeld",
+        "prevPanel": "Zum vorherigen Bedienfeld"
       }
     },
     "vst": {
@@ -20041,5 +20093,31 @@
     },
     "opening": "Wird geöffnet…",
     "startFailed": "Der Einstieg konnte nicht geöffnet werden: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Kein Clip ausgewählt",
+    "severalClips": "Mehrere Clips ausgewählt",
+    "effectControls": {
+      "empty": "Wähle einen Clip in der Timeline aus, um Transformation, Deckkraft, Effekte und Masken anzupassen.",
+      "several": "Wähle einen einzelnen Clip aus, um ihn anzupassen."
+    },
+    "motion": {
+      "empty": "Wähle einen Clip in der Timeline aus, um ihn zu animieren.",
+      "several": "Wähle einen einzelnen Clip aus, um ihn zu animieren.",
+      "unsupportedTitle": "Nichts zu animieren",
+      "unsupported": "Wähle einen Video-, Bild-, Text- oder Formclip aus, um ihn zu animieren."
+    },
+    "color": {
+      "empty": "Wähle einen Clip in der Timeline aus, um seine Farben zu korrigieren.",
+      "several": "Wähle einen einzelnen Clip aus, um seine Farben zu korrigieren.",
+      "unsupportedTitle": "Dieser Clip hat kein Bild",
+      "unsupported": "Wähle einen Video-, Bild-, Text- oder Formclip aus, um seine Farben zu korrigieren."
+    },
+    "ai": {
+      "empty": "Wähle einen Clip in der Timeline aus, um daraus zu generieren oder ihn mit KI zu bearbeiten.",
+      "several": "Wähle einen einzelnen Clip aus, um daraus zu generieren.",
+      "unsupportedTitle": "Keine KI-Werkzeuge für diesen Clip",
+      "unsupported": "Wähle einen Video- oder Bildclip oder einen generierten Clip aus."
+    }
   }
 }

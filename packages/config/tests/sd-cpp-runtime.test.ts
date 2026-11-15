@@ -93,21 +93,24 @@ describe("sd-server release", () => {
   it("installs, reports and removes sd-server", async () => {
     const root = await tempDir();
     const installDir = join(root, "sd-cpp");
-    const archive = makeZip({ "sd-server": "#!/bin/sh\n", "libstable-diffusion.dylib": "lib" });
+    const platform = process.platform === "win32" ? "win32" : "darwin";
+    const executable = platform === "win32" ? "sd-server.exe" : "sd-server";
+    const archive = makeZip({ [executable]: "fixture executable", "library.bin": "lib" });
     const asset = {
       name: "test.zip",
       sha256: createHash("sha256").update(archive).digest("hex"),
       sizeBytes: archive.length
     };
     const status = await installSdCpp({
-      installDir, platform: "darwin", arch: "arm64", asset, fetchImpl: serve(archive)
+      installDir, platform, arch: platform === "win32" ? "x64" : "arm64", asset, fetchImpl: serve(archive)
     });
     expect(status).toEqual({ installed: true, version: SD_CPP_RELEASE_TAG });
-    expect(await readFile(sdServerPath(installDir, "darwin"), "utf8")).toBe("#!/bin/sh\n");
-    expect((await stat(sdServerPath(installDir, "darwin"))).mode & 0o111).not.toBe(0);
-    expect(await sdCppInstallStatus(installDir, "darwin")).toEqual({ installed: true, version: SD_CPP_RELEASE_TAG });
+    expect(await readFile(sdServerPath(installDir, platform), "utf8")).toBe("fixture executable");
+    // Windows file modes do not expose POSIX executable permission bits.
+    expect(((await stat(sdServerPath(installDir, platform))).mode & 0o111) !== 0).toBe(process.platform !== "win32");
+    expect(await sdCppInstallStatus(installDir, platform)).toEqual({ installed: true, version: SD_CPP_RELEASE_TAG });
     await uninstallSdCpp(installDir);
-    expect(await sdCppInstallStatus(installDir, "darwin")).toEqual({ installed: false });
+    expect(await sdCppInstallStatus(installDir, platform)).toEqual({ installed: false });
   });
 
   it("refuses an archive whose digest does not match and keeps the old install", async () => {

@@ -69,6 +69,7 @@ import {
   isString
 } from "../utils/type-guards.js";
 import { resolveProjectId, resolveReadProjectId } from "./project-scope.js";
+import { storageRoutePathOfUrl } from "./storage-reference.js";
 import { hasTemporaryImageHandle } from "../tools/image-injection.js";
 
 // ---------------------------------------------------------------------------
@@ -147,11 +148,14 @@ async function findRunAsset(
 }
 
 function assetIdFromReference(value: string): string | null {
+  const routePath = storageRoutePathOfUrl(value);
   let path: string;
   if (value.startsWith("asset://")) {
     path = value.slice("asset://".length);
   } else if (value.startsWith("/api/storage/")) {
     path = value.slice("/api/storage/".length);
+  } else if (routePath !== null) {
+    path = routePath.slice("/api/storage/".length);
   } else if (/^(?:memory|file|s3|supabase):\/\//.test(value)) {
     path = value.slice(value.indexOf("://") + 3);
   } else if (!value.includes("://") && !value.startsWith("/api/")) {
@@ -172,6 +176,7 @@ const scopedAssetStorageKey = (
 const requiresStoredAssetOwnership = (value: string): boolean =>
   value.startsWith("asset://") ||
   value.startsWith("/api/storage/") ||
+  storageRoutePathOfUrl(value) !== null ||
   /^(?:memory|file|s3|supabase):\/\//.test(value);
 
 /**
@@ -184,8 +189,17 @@ const isRunProjectStorageReference = (
   run: Parameters<CapabilityImpl>[0],
   value: string
 ): boolean => {
-  const path = value.split(/[?#]/)[0] ?? "";
-  if (path.split(/[\\/]/).some((segment) => segment === "..")) return false;
+  // An http(s) URL is read by its parsed pathname, where `%2e%2e` is already a
+  // dot segment. A storage adapter decodes the key, so check it decoded too.
+  let path = (storageRoutePathOfUrl(value) ?? value).split(/[?#]/)[0] ?? "";
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    return false;
+  }
+  if (path.split(/[\\/]/).some((segment) => segment === ".." || segment === ".")) {
+    return false;
+  }
   return path.includes(`projects/${resolveProjectId(run, {})}/`);
 };
 
@@ -868,6 +882,20 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
   let sourceRef: string | undefined;
   let storedAssetId: string | undefined;
 
+  // Screen a URL before the ownership check, so an unsafe storage-route URL is
+  // refused at the URL rather than looked up as an asset. The URL goes to the
+  // vision provider, not this host, but `save_asset` refuses the same URLs
+  // through `safeFetch`, and the two tools should agree.
+  if (/^https?:\/\//i.test(imageId) && !isSafePublicHttpsUrl(imageId)) {
+    return {
+      error:
+        `Refused to load image from "${imageId}". ` +
+        `Only public https:// URLs are handed to the vision provider — ` +
+        `plain http, localhost, and private or link-local addresses are refused. ` +
+        `Pass an asset id, an asset:// URI, or a data: URI instead.`
+    };
+  }
+
   if (
     requiresStoredAssetOwnership(imageId) &&
     !isRunProjectStorageReference(run, imageId)
@@ -886,22 +914,8 @@ const viewImageImpl: CapabilityImpl = async (run, params) => {
     sourceBytes = parsed.bytes;
     sourceMime = parsed.mimeType;
   } else if (/^https?:\/\//i.test(imageId)) {
-    // Screen it. This uri goes out as `image_content.uri` for the *provider* to
-    // fetch, so an unscreened one is not an SSRF against this host — the reach
-    // it buys is the provider's network, not ours. It was still the only
-    // model-supplied URL in this module that skipped the guard every other one
-    // meets: `save_asset` refuses exactly these through `safeFetch`, and a
-    // model that cannot tell which of two image tools screens its input is
-    // being taught that the boundary is arbitrary.
-    if (!isSafePublicHttpsUrl(imageId)) {
-      return {
-        error:
-          `Refused to load image from "${imageId}". ` +
-          `Only public https:// URLs are handed to the vision provider — ` +
-          `plain http, localhost, and private or link-local addresses are refused. ` +
-          `Pass an asset id, an asset:// URI, or a data: URI instead.`
-      };
-    }
+    // Screened above. This uri goes out as `image_content.uri` for the
+    // provider to fetch.
     passthroughUri = imageId;
   } else {
     try {

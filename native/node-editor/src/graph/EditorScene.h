@@ -332,6 +332,12 @@ private:
   QSet<QtNodes::NodeId> dimmedNodes_;
   bool beginReconnect(QtNodes::ConnectionId connection, QtNodes::PortType side);
   void refreshRuntime();
+  // A single node's or wire's run message repaints only that card and its wires,
+  // so the other cards keep their cached pixmaps.
+  void refreshRuntimeNode(QtNodes::NodeId id);
+  void refreshRuntimeEdge(QtNodes::ConnectionId id);
+  bool runtimeActive() const;
+  void updateAnimation(bool changedItemActive);
   void restoreGroupOrder();
   void cancelGesture();
   enum class Gesture { None, Label, Resize };

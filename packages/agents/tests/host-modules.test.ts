@@ -24,6 +24,7 @@ import {
   registeredSandboxHostModuleIds,
   sandboxHostModuleDrift
 } from "../src/host-modules/registry.js";
+import { assertSvgHasNoExternalResources } from "../src/host-modules/fabric.js";
 import { MAX_UNZIP_TOTAL_BYTES } from "../src/host-modules/zip.js";
 import {
   DEFAULT_SELECT_HTML_LIMIT,
@@ -1160,6 +1161,73 @@ describe("sandbox-fabric in the guest", () => {
     expect(result.success).toBe(true);
     expect(typeof result.result).toBe("string");
     expect(result.result).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("refuses an image source that is not an inline raster data URI", async () => {
+    for (const src of ["file:///etc/hostname", "http://127.0.0.1:1/x.png", "data:image/svg+xml;base64,PHN2Zy8+"]) {
+      const result = await run(
+        `import { render } from "@nodetool-ai/sandbox-fabric";
+         return await render({
+           width: 4,
+           height: 4,
+           objects: [{ type: "Image", src: ${JSON.stringify(src)} }]
+         });`,
+        "fabric"
+      );
+      expect(result.success).toBe(false);
+      expect(String(result.error)).toMatch(/inline data:image URI/);
+    }
+  });
+
+  it("refuses an external source nested in a clip path or pattern", async () => {
+    const result = await run(
+      `import { renderSVG } from "@nodetool-ai/sandbox-fabric";
+       return await renderSVG({
+         width: 4,
+         height: 4,
+         objects: [{ type: "rect", width: 4, height: 4,
+           fill: { type: "pattern", source: "file:///etc/hostname" } }]
+       });`,
+      "fabric"
+    );
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toMatch(/source must be an inline data:image URI/);
+  });
+
+  it("refuses an SVG that references an external resource", async () => {
+    for (const svg of [
+      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><image xlink:href="file:///etc/hostname"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><rect style="fill:url(http://127.0.0.1:1/p)"/></svg>',
+      '<svg xmlns="http://www.w3.org/2000/svg"><style>@import "file:///x.css";</style></svg>'
+    ]) {
+      const result = await run(
+        `import { loadSVG } from "@nodetool-ai/sandbox-fabric";
+         return await loadSVG(${JSON.stringify(svg)});`,
+        "fabric"
+      );
+      expect(result.success).toBe(false);
+      expect(String(result.error)).toMatch(/external resource|@import/);
+    }
+  });
+
+  it("passes an SVG with fragment references and an inline image", () => {
+    expect(() =>
+      assertSvgHasNoExternalResources(
+        "test",
+        '<svg xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g"/></defs>' +
+          '<rect fill="url(#g)"/><use href="#g"/><image href="data:image/png;base64,iVBORw0KGgo="/></svg>'
+      )
+    ).not.toThrow();
+  });
+
+  it("refuses an output larger than the pixel cap before rendering", async () => {
+    const result = await run(
+      `import { render } from "@nodetool-ai/sandbox-fabric";
+       return await render({ width: 8000, height: 8000 }, { multiplier: 4 });`,
+      "fabric"
+    );
+    expect(result.success).toBe(false);
+    expect(String(result.error)).toMatch(/at most 16777216 pixels/);
   });
 });
 

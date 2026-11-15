@@ -13,19 +13,19 @@ function peek(inputs, options) {
   return createNode("vector.Peek", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list[str]" }, defaultOutput: "output" });
 }
 function indexImage(inputs, options) {
-  return createNode("vector.IndexImage", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+  return createNode("vector.IndexImage", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "collection" }, defaultOutput: "output" });
 }
 function indexEmbedding(inputs, options) {
-  return createNode("vector.IndexEmbedding", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+  return createNode("vector.IndexEmbedding", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "collection" }, defaultOutput: "output" });
 }
 function indexTextChunk(inputs, options) {
-  return createNode("vector.IndexTextChunk", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+  return createNode("vector.IndexTextChunk", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "collection" }, defaultOutput: "output" });
 }
 function indexAggregatedText(inputs, options) {
-  return createNode("vector.IndexAggregatedText", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+  return createNode("vector.IndexAggregatedText", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "collection" }, defaultOutput: "output" });
 }
 function indexString(inputs, options) {
-  return createNode("vector.IndexString", inputs, { id: options?.id, outputNames: [], outputTypes: {} });
+  return createNode("vector.IndexString", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "collection" }, defaultOutput: "output" });
 }
 function queryImage(inputs, options) {
   return createNode("vector.QueryImage", inputs, { id: options?.id, outputNames: ["ids", "documents", "metadatas", "distances"], outputTypes: { "ids": "list[str]", "documents": "list[str]", "metadatas": "list[dict]", "distances": "list[float]" } });

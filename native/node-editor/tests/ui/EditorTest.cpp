@@ -365,6 +365,17 @@ private slots:
     QCOMPARE(w.document()->node("b")["data"].toObject()["Text"], QJsonValue("baseline"));
     QCOMPARE(w.document()->undoStack()->count(), 0);
   }
+  void propertyEscapeDiscardsDraft() {
+    EditorWindow w;
+    prepare(w);
+    auto field = control(w, "Text");
+    QVERIFY(field);
+    type(w, field, "discarded", Qt::Key_Escape);
+    select(w, "b");
+    QCoreApplication::processEvents();
+    QCOMPARE(w.document()->node("a")["data"].toObject()["Text"], QJsonValue("baseline"));
+    QCOMPARE(w.document()->undoStack()->count(), 0);
+  }
   void propertyDynamicUsesSeparateMap() {
     EditorWindow w;
     prepare(w);
@@ -682,8 +693,8 @@ private slots:
     auto panels = w.findChildren<QQuickWidget *>();
     // Rail, tabs, document header, status, catalog, node menu, browser, inspector, output, both toolbars,
     // viewport readout, mini-map controls, first-workflow guide, queue overlay, subgraph canvas strip, chat overlay, library,
-    // node info overlay.
-    QCOMPARE(panels.size(), 19);
+    // node info overlay, examples panel, price chip.
+    QCOMPARE(panels.size(), 21);
     for (auto p : panels) {
       QCOMPARE(p->status(), QQuickWidget::Ready);
     }
@@ -1166,6 +1177,14 @@ private slots:
     QFile local(path);
     QVERIFY(local.open(QIODevice::ReadOnly));
     QVERIFY(!QJsonDocument::fromJson(local.readAll()).object().contains("id"));
+    // UX study 21: Save on a server workflow with no file saves to the server, as
+    // Ctrl+S does on the web, instead of asking for a file.
+    w.addNode("N");
+    const auto before = requests.size();
+    w.action("Save");
+    QTRY_VERIFY(requests.size() > before);
+    QVERIFY(requests.last().startsWith("PUT /api/workflows/other "));
+    QVERIFY(w.localFilePath().isEmpty());
   }
   void reconnectActionRetainsRun() {
     QWebSocketServer server("test", QWebSocketServer::NonSecureMode);

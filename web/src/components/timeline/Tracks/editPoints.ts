@@ -103,3 +103,110 @@ export function markClipRange(
     outMs: Math.max(...marked.map((c) => c.startMs + c.durationMs))
   };
 }
+
+/** The end of the last clip, the sequence end the Premiere keys play to. */
+export function sequenceEndMs(clips: readonly TimelineClip[]): number {
+  return clips.reduce((end, c) => Math.max(end, c.startMs + c.durationMs), 0);
+}
+
+/** The span the selected clips cover, or null when nothing is selected. */
+export function selectionSpanMs(
+  clips: readonly TimelineClip[],
+  selectedIds: ReadonlySet<string>
+): { startMs: number; endMs: number } | null {
+  const selected = clips.filter((c) => selectedIds.has(c.id));
+  if (selected.length === 0) return null;
+  return {
+    startMs: Math.min(...selected.map((c) => c.startMs)),
+    endMs: Math.max(...selected.map((c) => c.startMs + c.durationMs))
+  };
+}
+
+/** Where each gap no track covers starts, counted from time 0. */
+export function gapStartsMs(clips: readonly TimelineClip[]): number[] {
+  const spans = clips
+    .filter((c) => !isGroupClip(c))
+    .map((c) => [c.startMs, c.startMs + c.durationMs] as const)
+    .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const starts: number[] = [];
+  let covered = 0;
+  for (const [start, end] of spans) {
+    if (start > covered) starts.push(covered);
+    covered = Math.max(covered, end);
+  }
+  return starts;
+}
+
+/**
+ * Select Next / Previous Clip: on each track of the selection, the clip after
+ * its last selected clip or before its first. Null when no track has one,
+ * so the selection stays at the end.
+ */
+export function stepSelectionIds(
+  clips: readonly TimelineClip[],
+  tracks: readonly Pick<TimelineTrack, "id">[],
+  selectedIds: ReadonlySet<string>,
+  next: boolean
+): string[] | null {
+  const picks: string[] = [];
+  for (const track of tracks) {
+    const lane = clips
+      .filter((c) => c.trackId === track.id && !isGroupClip(c))
+      .sort((a, b) => a.startMs - b.startMs);
+    let anchor = -1;
+    lane.forEach((c, i) => {
+      if (selectedIds.has(c.id) && (next || anchor < 0)) anchor = i;
+    });
+    if (anchor < 0) continue;
+    const pick = lane[anchor + (next ? 1 : -1)];
+    if (pick) picks.push(pick.id);
+  }
+  return picks.length > 0 ? picks : null;
+}
+
+/** One track's edit for Extend Previous / Next Edit To Playhead. */
+export interface ExtendEditMove {
+  /** The clip whose end is the edit, if any. */
+  leftId: string | undefined;
+  /** The clip whose start is the edit, if any. */
+  rightId: string | undefined;
+  edgeMs: number;
+}
+
+/**
+ * Extend Previous / Next Edit To Playhead: on each of `trackIds`, the nearest
+ * edit before or after `atMs`. A cut between two clips rolls, an edge beside
+ * a gap is trimmed, and nothing ripples.
+ */
+export function extendEditMoves(
+  clips: readonly TimelineClip[],
+  tracks: readonly Pick<TimelineTrack, "id">[],
+  trackIds: ReadonlySet<string>,
+  atMs: number,
+  next: boolean
+): ExtendEditMove[] {
+  const moves: ExtendEditMove[] = [];
+  for (const track of tracks) {
+    if (!trackIds.has(track.id)) continue;
+    const edgeMs = neighbourEditMs(clips, new Set([track.id]), atMs, next ? 1 : -1);
+    if (edgeMs === null) continue;
+    const lane = editableClips(clips, new Set([track.id]));
+    moves.push({
+      leftId: lane.find((c) => Math.abs(c.startMs + c.durationMs - edgeMs) <= AT_EDGE_MS)?.id,
+      rightId: lane.find((c) => Math.abs(c.startMs - edgeMs) <= AT_EDGE_MS)?.id,
+      edgeMs
+    });
+  }
+  return moves;
+}
+
+/** Slow shuttle: 10% of normal speed, and each further press adds 10%. */
+export function slowShuttleRate(
+  isPlaying: boolean,
+  rate: number,
+  direction: 1 | -1
+): number {
+  const sameWay = isPlaying && rate * direction > 0 && Math.abs(rate) < 1;
+  if (!sameWay) return direction * 0.1;
+  return direction * Math.min(1, Math.round(Math.abs(rate) * 10 + 1) / 10);
+}

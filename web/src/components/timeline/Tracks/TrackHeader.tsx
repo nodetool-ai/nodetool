@@ -79,7 +79,7 @@ import {
 } from "../../ui_primitives";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
-import { trackRowHeightPx } from "./trackHeight";
+import { MAX_TRACK_HEIGHT_PX, MIN_TRACK_HEIGHT_PX, trackRowHeightPx } from "./trackHeight";
 import { trackSupportsAutomation } from "./automation/automationTargets";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { useTimelineSimpleMode } from "../../../stores/timeline/TimelineEditorMode";
@@ -105,8 +105,6 @@ export const trackHeaderWidthCss = `var(${TRACK_HEADER_WIDTH_VAR}, ${TRACK_HEADE
  * handlers never react to a track being reordered.
  */
 const TRACK_DRAG_MIME = "application/x-nodetool-timeline-track";
-const MIN_TRACK_HEIGHT_PX = 48;
-const MAX_TRACK_HEIGHT_PX = 300;
 const RESIZE_HANDLE_HEIGHT_PX = 6;
 const RESIZE_KEY_STEP_PX = 8;
 const RESIZE_KEY_STEP_LARGE_PX = 32;

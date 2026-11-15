@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, normalize } from "node:path";
 import ts from "typescript";
 import { gameLoadCommand, gameSaveCommand } from "@nodetool-ai/protocol";
 import { GAME_SCRIPT_TYPES } from "../src/script-types.js";
@@ -25,7 +25,7 @@ describe("game script editor types", () => {
       await writeFile(types, GAME_SCRIPT_TYPES);
       await writeFile(script, '/** @type {GameScript} */\n((input) => ({ state: input.state, commands: [{ kind: "notACommand" }] }))');
       const program = ts.createProgram([types, script], { allowJs: true, checkJs: true, noEmit: true, skipLibCheck: true, target: ts.ScriptTarget.ES2020 });
-      expect(ts.getPreEmitDiagnostics(program).filter((diagnostic) => diagnostic.file?.fileName === script).length).toBeGreaterThan(0);
+      expect(ts.getPreEmitDiagnostics(program).filter((diagnostic) => normalize(diagnostic.file?.fileName ?? "") === script).length).toBeGreaterThan(0);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -50,8 +50,8 @@ describe("schema-derived 3D script declarations", () => {
       await writeFile(invalid, '/** @type {GameScript3D} */\n((input) => ({state:input.state,commands:[{kind:"shapeQuery",queryId:"area",shape:{kind:"sphere",halfExtents:{x:1,y:1,z:1}},position:{x:0,y:0,z:0}}]}))');
       const program = ts.createProgram([types, valid, invalid], { allowJs: true, checkJs: true, noEmit: true, skipLibCheck: true, target: ts.ScriptTarget.ES2020 });
       const diagnostics = ts.getPreEmitDiagnostics(program);
-      expect(diagnostics.filter((diagnostic) => diagnostic.file?.fileName === valid)).toEqual([]);
-      expect(diagnostics.some((diagnostic) => diagnostic.file?.fileName === invalid)).toBe(true);
+      expect(diagnostics.filter((diagnostic) => normalize(diagnostic.file?.fileName ?? "") === valid)).toEqual([]);
+      expect(diagnostics.some((diagnostic) => normalize(diagnostic.file?.fileName ?? "") === invalid)).toBe(true);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
 });
@@ -74,9 +74,9 @@ it("types 3D force commands and rejects incomplete or scalar vectors", async () 
       allowJs: true, checkJs: true, noEmit: true, strict: true, skipLibCheck: true, target: ts.ScriptTarget.ES2020
     });
     const diagnostics = ts.getPreEmitDiagnostics(program);
-    expect(diagnostics.filter((diagnostic) => diagnostic.file?.fileName === valid)).toEqual([]);
+    expect(diagnostics.filter((diagnostic) => normalize(diagnostic.file?.fileName ?? "") === valid)).toEqual([]);
     for (const invalid of [missingPoint, scalarTorque, wrongVector]) {
-      expect(diagnostics.some((diagnostic) => diagnostic.file?.fileName === invalid)).toBe(true);
+      expect(diagnostics.some((diagnostic) => normalize(diagnostic.file?.fileName ?? "") === invalid)).toBe(true);
     }
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
@@ -94,8 +94,8 @@ it("requires setProp values in both dimension editor contracts", async () => {
       await writeFile(invalid,`/** @type {${contract}} */\n(input)=>({state:input.state,commands:[{kind:"setProp",key:"a"}]})`);
       const program = ts.createProgram([declaration,valid,invalid],{allowJs:true,checkJs:true,noEmit:true,skipLibCheck:true,target:ts.ScriptTarget.ES2020});
       const diagnostics = ts.getPreEmitDiagnostics(program);
-      expect(diagnostics.filter(diagnostic=>diagnostic.file?.fileName===valid)).toEqual([]);
-      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalid)).toBe(true);
+      expect(diagnostics.filter(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===valid)).toEqual([]);
+      expect(diagnostics.some(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===invalid)).toBe(true);
     }
   } finally { await rm(directory,{recursive:true,force:true}); }
 });
@@ -113,8 +113,8 @@ it("declares optional input.params in both dimension editor contracts", async ()
       await writeFile(invalid,`/** @type {${contract}} */\n(input)=>({state:input.params.speed,commands:[]})`);
       const program = ts.createProgram([declaration,valid,invalid],{allowJs:true,checkJs:true,noEmit:true,strict:true,skipLibCheck:true,target:ts.ScriptTarget.ES2020});
       const diagnostics = ts.getPreEmitDiagnostics(program);
-      expect(diagnostics.filter(diagnostic=>diagnostic.file?.fileName===valid)).toEqual([]);
-      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalid)).toBe(true);
+      expect(diagnostics.filter(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===valid)).toEqual([]);
+      expect(diagnostics.some(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===invalid)).toBe(true);
     }
   } finally { await rm(directory,{recursive:true,force:true}); }
 });
@@ -135,9 +135,9 @@ it("types lifecycle-object scripts and timers in both dimension editor contracts
       await writeFile(invalidDestroy,`/** @type {${contract}} */\n({ onDestroy() { return { commands: [{ kind: "playAnimation", clip: "run" }] }; } })`);
       const program = ts.createProgram([declaration,valid,invalidCommand,invalidDestroy],{allowJs:true,checkJs:true,noEmit:true,strict:true,skipLibCheck:true,target:ts.ScriptTarget.ES2020});
       const diagnostics = ts.getPreEmitDiagnostics(program);
-      expect(diagnostics.filter(diagnostic=>diagnostic.file?.fileName===valid).map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))).toEqual([]);
-      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalidCommand)).toBe(true);
-      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalidDestroy)).toBe(true);
+      expect(diagnostics.filter(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===valid).map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))).toEqual([]);
+      expect(diagnostics.some(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===invalidCommand)).toBe(true);
+      expect(diagnostics.some(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===invalidDestroy)).toBe(true);
     }
   } finally { await rm(directory,{recursive:true,force:true}); }
 });
@@ -159,9 +159,9 @@ it("types typed emit commands and onEvent hooks in both dimension editor contrac
       await writeFile(invalidEvent,`/** @type {${contract}} */\n({ onEvent(input, event) { return { state: event.otherId.length }; } })`);
       const program = ts.createProgram([declaration,valid,invalidTarget,invalidEvent],{allowJs:true,checkJs:true,noEmit:true,strict:true,skipLibCheck:true,target:ts.ScriptTarget.ES2020});
       const diagnostics = ts.getPreEmitDiagnostics(program);
-      expect(diagnostics.filter(diagnostic=>diagnostic.file?.fileName===valid).map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))).toEqual([]);
-      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalidTarget)).toBe(true);
-      expect(diagnostics.some(diagnostic=>diagnostic.file?.fileName===invalidEvent)).toBe(true);
+      expect(diagnostics.filter(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===valid).map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))).toEqual([]);
+      expect(diagnostics.some(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===invalidTarget)).toBe(true);
+      expect(diagnostics.some(diagnostic=>normalize(diagnostic.file?.fileName ?? "")===invalidEvent)).toBe(true);
     }
   } finally { await rm(directory,{recursive:true,force:true}); }
 });

@@ -57,6 +57,8 @@ public:
     QHash<QString, QJsonObject> applications;
     QJsonObject comfySchema;
     QByteArray comfyRequest;
+    // The request heads of /api/workflows/<id>, to check the headers sent.
+    QList<QByteArray> workflowRequests;
 
     Server() {
         listen(QHostAddress::LocalHost);
@@ -110,6 +112,7 @@ private:
             send(socket, QJsonDocument(asset).toJson(QJsonDocument::Compact));
             return;
         } else if (target.startsWith("/api/workflows/")) {
+            workflowRequests.append(bytes.left(end));
             const auto workflow = workflows.value(QString::fromUtf8(target.mid(15)));
             send(socket, QJsonDocument(workflow).toJson(QJsonDocument::Compact), workflow.isEmpty() ? 404 : 200);
             return;
@@ -433,6 +436,11 @@ class CardBodiesTest final : public QObject {
             const auto loaded = window.document()->load(workflow);
             Q_ASSERT(loaded.ok);
             settle();
+            // Fit fills the canvas only while the chat is closed, which keeps the
+            // card bodies at the zoom their pixel assertions expect.
+            if (window.chatVisible()) {
+                window.toggleChat();
+            }
             window.fit();
             if (window.catalogVisible()) {
                 window.action(QStringLiteral("Toggle nodes"));
@@ -2455,6 +2463,17 @@ private slots:
         QVERIFY(rotation);
         QTRY_VERIFY(rotation->isVisible());
         QTRY_COMPARE(rotation->property("value").toDouble(), 45.0);
+        // Each layer row shows its input image (LayerRow.tsx).
+        for (int i = 0; i < 2; ++i) {
+            auto *thumb = find(quick->rootObject(), QStringLiteral("compositor-thumb-%1").arg(i));
+            QVERIFY(thumb);
+            QTRY_VERIFY(thumb->isVisible());
+            auto *picture = find(thumb, QStringLiteral("compositor-thumb-image-%1").arg(i));
+            QVERIFY(picture);
+            QVERIFY(picture->property("hasImage").toBool());
+            const auto image = picture->property("image").value<QImage>();
+            QCOMPARE(image.pixelColor(image.width() / 2, image.height() / 2), i == 0 ? QColor(Qt::red) : QColor(Qt::blue));
+        }
         if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
             QDir().mkpath(directory);
             // The panel's own framebuffer, since a widget grab can hold its previous frame.
@@ -2877,6 +2896,10 @@ private slots:
         QTRY_COMPARE(host.data("workflow")["workflow_id"].toString(), QStringLiteral("wf1"));
         QCOMPARE(host.data("workflow")["workflow_json"].toObject()["name"].toString(), QStringLiteral("Caption images"));
         QCOMPARE(host.undoCount(), undo + 1);
+        // The headers every native server client sends.
+        QVERIFY(!server.workflowRequests.isEmpty());
+        QVERIFY(server.workflowRequests.first().toLower().contains("x-user-id: 1"));
+        QVERIFY(server.workflowRequests.first().contains("Bearer card-token"));
         // The node derives its input from the workflow's String Input.
         QCOMPARE(host.window.document()->node("workflow")["dynamic_inputs"].toObject().keys(), QStringList{QStringLiteral("topic")});
         QCOMPARE(host.row("workflow", NodeRowKind::Field, "workflow_id")->value, QStringLiteral("Caption images"));

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 
+#include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
@@ -13,6 +14,8 @@
 namespace nodetool::node_editor {
 namespace {
 constexpr std::array<const char *, 2> ServerGroups{"workflows", "comfy"};
+// The cap WorkflowBrowser applies to a server answer.
+constexpr qint64 MaxResponseBytes = 32 * 1024 * 1024;
 
 QString groupLabel(const QString &group) {
     if (group == QLatin1String("workflows")) { return QObject::tr("Workflows"); }
@@ -53,6 +56,7 @@ void ExampleGallery::configure(const QUrl &origin, const QString &token, const Q
     error_.clear();
     openingKey_.clear();
     loading_ = false;
+    emit listChanged();
     emit changed();
 }
 
@@ -72,6 +76,7 @@ void ExampleGallery::setBundled(const QVariantList &examples) {
         bundled_.append(row);
     }
     std::ranges::sort(bundled_, [](const Row &a, const Row &b) { return a.name.localeAwareCompare(b.name) < 0; });
+    emit listChanged();
     emit changed();
 }
 
@@ -85,7 +90,8 @@ void ExampleGallery::setServerExamples(const QJsonArray &workflows) {
                 .name = workflow["name"].toString(),
                 .description = workflow["description"].toString(),
                 .thumbnail = workflow["thumbnail_url"].toString(),
-                .tags = stringList(workflow["tags"])};
+                .tags = stringList(workflow["tags"]),
+                .graph = workflow["graph"].toObject()};
         // isComfyExample in web/src/components/examples/useExampleGroups.ts.
         row.group = row.tags.contains(QStringLiteral("comfy")) ? QStringLiteral("comfy") : QStringLiteral("workflows");
         row.secondary = row.description.isEmpty()
@@ -96,13 +102,16 @@ void ExampleGallery::setServerExamples(const QJsonArray &workflows) {
         row.seed = id.endsWith(QStringLiteral(".json"), Qt::CaseInsensitive) ? id.chopped(5) : row.name;
         server_.append(row);
     }
+    emit listChanged();
     emit changed();
 }
 
 bool ExampleGallery::matchesSearch(const QString &text, const QString &query) {
     static const QStringList endings{"ing", "ify", "ed", "es", "e", "s"};
+    if (query.isEmpty()) { return true; }
     const auto haystack = text.toLower();
-    const auto words = query.toLower().split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+    static const QRegularExpression whitespace(QStringLiteral("\\s+"));
+    const auto words = query.toLower().split(whitespace, Qt::SkipEmptyParts);
     for (auto word : words) {
         for (const auto &ending : endings) {
             if (word.endsWith(ending) && word.size() - ending.size() >= 4) {
@@ -164,12 +173,14 @@ QVariantList ExampleGallery::groups() const {
 void ExampleGallery::setFilter(const QString &filter) {
     if (filter_ == filter) { return; }
     filter_ = filter;
+    emit listChanged();
     emit changed();
 }
 
 void ExampleGallery::setSearch(const QString &search) {
     if (search_ == search) { return; }
     search_ = search;
+    emit listChanged();
     emit changed();
 }
 
@@ -179,12 +190,18 @@ void ExampleGallery::refresh() {
     const auto serial = ++listSerial_;
     loading_ = true;
     error_.clear();
+    emit listChanged();
     emit changed();
     QNetworkRequest request(origin_.resolved(QUrl(QStringLiteral("/api/workflows/examples"))));
     request.setTransferTimeout(30000);
+    // As the other server clients: a redirect never carries the token elsewhere.
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
     request.setRawHeader("x-user-id", user_.toUtf8());
     auto *reply = network_.get(request);
+    connect(reply, &QNetworkReply::readyRead, this, [reply] {
+        if (reply->bytesAvailable() > MaxResponseBytes) { reply->abort(); }
+    });
     connect(reply, &QNetworkReply::finished, this, [this, reply, epoch, serial] {
         reply->deleteLater();
         if (epoch != epoch_ || serial != listSerial_) { return; }
@@ -194,11 +211,25 @@ void ExampleGallery::refresh() {
         if (reply->error() != QNetworkReply::NoError || status < 200 || status >= 300 ||
             !document.object()["workflows"].isArray()) {
             error_ = tr("Could not load the examples (HTTP %1)").arg(status);
+            emit listChanged();
             emit changed();
             return;
         }
         setServerExamples(document.object()["workflows"].toArray());
     });
+}
+
+QJsonObject ExampleGallery::graph(const QString &key) const {
+    for (const auto &row : server_) {
+        if (row.key == key) { return row.graph; }
+    }
+    for (const auto &row : bundled_) {
+        if (row.key != key) { continue; }
+        QFile file(row.resource);
+        if (!file.open(QIODevice::ReadOnly)) { return {}; }
+        return QJsonDocument::fromJson(file.readAll()).object()["graph"].toObject();
+    }
+    return {};
 }
 
 void ExampleGallery::open(const QString &key) {
@@ -238,6 +269,7 @@ void ExampleGallery::copy(const Row &row) {
     url.setQuery(query);
     QNetworkRequest request(url);
     request.setTransferTimeout(30000);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     if (!token_.isEmpty()) { request.setRawHeader("Authorization", "Bearer " + token_.toUtf8()); }
     request.setRawHeader("x-user-id", user_.toUtf8());

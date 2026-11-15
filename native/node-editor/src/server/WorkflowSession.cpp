@@ -606,6 +606,17 @@ void WorkflowSession::preflightCost(std::function<void(QJsonObject, QString)> do
             done(summary["cost"].toObject(), error);
           });
 }
+void WorkflowSession::providerCredits(const QString &provider, std::function<void(QJsonObject, QString)> done) {
+  request("GET", "/api/" + provider + "/credits", {}, [done = std::move(done)](QJsonObject response, int status, QString error) {
+    done(response, status == 204 ? QStringLiteral("No API key") : error);
+  });
+}
+void WorkflowSession::falPricingEstimate(const QString &endpointId, std::function<void(QJsonObject, QString)> done) {
+  const QJsonObject body{{"endpoint_id", endpointId}, {"estimate_type", "historical_api_price"}, {"call_quantity", 1}};
+  request("POST", "/api/fal/pricing/estimate", body, [done = std::move(done)](QJsonObject response, int status, QString error) {
+    done(response, status == 204 ? QStringLiteral("No estimate") : error);
+  });
+}
 void WorkflowSession::loadCatalog() {
   request("GET", "/api/nodes/metadata?fields=full", {},
           [this](QJsonObject o, int, QString error) {

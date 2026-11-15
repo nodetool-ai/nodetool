@@ -109,5 +109,11 @@ return { image: imageBytes };
 - **Host execution.** Fabric.js depends on canvas and DOM APIs that do not exist
   in the pure WebAssembly QuickJS guest. It runs on the host and passes plain
   serializable data across the sandbox boundary.
-- **Dimensions are bounded.** Canvas dimensions are clamped to a maximum of 8192
-  pixels to prevent excessive memory consumption.
+- **Dimensions are bounded.** Each side is at most 8192 pixels, and one output
+  is at most 4096 x 4096 pixels after the `multiplier` (width x height x
+  multiplier² ≤ 16,777,216).
+- **Images must be inline.** An image or pattern `src` must be a `data:image/…`
+  URI in PNG, JPEG, GIF, WebP, BMP or AVIF. URLs and file paths are refused.
+  Fetch a remote image first and pass its bytes as a data URI. `loadSVG`
+  refuses an SVG that references anything outside itself: only `#fragment`
+  references and inline raster images are allowed.

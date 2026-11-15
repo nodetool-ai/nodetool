@@ -9,11 +9,11 @@ test("agent skill tree requires .claude to link to the .agents directory", async
   const root = await mkdtemp(join(tmpdir(), "agent-skills-"));
   try {
     await mkdir(join(root, ".agents"));
-    await symlink(".agents", join(root, ".claude"));
+    await symlink(join(root, ".agents"), join(root, ".claude"), process.platform === "win32" ? "junction" : "dir");
     expect(await skillTreeLinkProblem(root)).toBeNull();
 
     await rm(join(root, ".claude"));
-    await symlink("missing", join(root, ".claude"));
+    await symlink(join(root, "missing"), join(root, ".claude"), process.platform === "win32" ? "junction" : "dir");
     expect(await skillTreeLinkProblem(root)).toMatch(/points at missing, not \.agents/);
 
     await rm(join(root, ".agents"), { recursive: true });

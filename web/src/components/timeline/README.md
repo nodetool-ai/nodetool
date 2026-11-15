@@ -90,11 +90,31 @@ panel titles and icons are in [`dock/timelinePanels.tsx`](dock/timelinePanels.ts
 | `transcript` | Script | Left |
 | `storyboard` | Storyboard | Left |
 | `inspector` | Inspector | Right |
+| `effectControls` | Effect Controls | Right |
+| `motion` | Motion | Right |
+| `color` | Color | Right |
 | `shot` | Shot | Right |
 | `instruments` | Instruments | Right |
 | `assistant` | Assistant | Right |
+| `ai` | AI | Right |
 | `history` | History | Right |
 | `code` | Code | Right |
+
+The right group follows the native editor's order and ids, and
+`native/timeline/qml/dock/DockLayout.js` ports the same list. Each clip control
+has one panel, all in
+[`Inspector/TimelineClipPanels.tsx`](Inspector/TimelineClipPanels.tsx) except
+the Inspector:
+
+- **Inspector**: what the clip is. Identity, takes, text, shape, 3D, MIDI,
+  Media, Timing, caption style and Transition.
+- **Effect Controls**: Render or Audio, Transform, Effects, Mask, Matte and
+  Time remap.
+- **Motion**: Animate and Audio drive.
+- **Color**: the Color section.
+- **AI**: the generation form of a generated clip, AI edit, Extend, Image to
+  video, line delivery, Subject matte, Smart reframe and Tracking. Native keeps
+  Smart reframe and Follow object in its Motion panel.
 
 `program` and `tracks` are required and cannot be hidden. Source, Shot,
 Instruments, Code and, when the sequence has one, Script open only when they
@@ -143,8 +163,9 @@ and the sketch editor) the shell drops to one column:
 - **TimelineDocumentBar** keeps Export as its one button. The Workspace menu
   and the panel toggles leave, and Video / DAW moves into the ⋮ menu with
   Settings, Save as asset and the other exports.
-- **Preview** takes the full width. Inspector, Assistant, History, and the
-  script transcript move into a bottom sheet opened from the status bar, so
+- **Preview** takes the full width. Inspector, Effect Controls, Motion,
+  Color, AI, Assistant, History, and the script transcript move into a bottom
+  sheet opened from the status bar, so
   preview and tracks — the two you need at once — stay stacked and both usable.
 - **Track headers** narrow to 132px and drop the reorder grip (HTML5 drag
   doesn't fire from touch) and the type glyph (the V1 / A1 chip already carries

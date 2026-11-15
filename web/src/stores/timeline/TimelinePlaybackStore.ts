@@ -57,6 +57,12 @@ export interface TimelinePlaybackState {
    */
   playingInToOut: boolean;
   /**
+   * A bounded play started by Play Around or Play To Out: it stops at
+   * `endMs` and then parks the playhead at `returnToMs` when that is set.
+   * Cleared on pause.
+   */
+  playingSpan: { endMs: number; returnToMs: number | null } | null;
+  /**
    * The editor's live audio graph, published by the preview that owns it so
    * the mixer's meters and the device views can reach the track channels and
    * live instruments. Null until the preview mounts.
@@ -71,6 +77,8 @@ export interface TimelinePlaybackState {
   play: () => void;
   /** Seek to the in point (or the start) and play to the out point. */
   playInToOut: () => void;
+  /** Play from `startMs` to `endMs`, then park at `returnToMs` when given. */
+  playSpan: (startMs: number, endMs: number, returnToMs?: number) => void;
   pause: () => void;
   stop: () => void;
   /** Set the in point; an out point at or before it is dropped. */
@@ -112,6 +120,7 @@ export const createTimelinePlaybackStore = (): TimelinePlaybackStoreApi => {
     rangeInMs: null,
     rangeOutMs: null,
     playingInToOut: false,
+    playingSpan: null,
     audioGraph: null,
 
     setCurrentTimeMs: (timeMs) => {
@@ -135,19 +144,47 @@ export const createTimelinePlaybackStore = (): TimelinePlaybackStoreApi => {
         emitTime(startMs);
         return {
           playingInToOut: true,
+          playingSpan: null,
           isPlaying: true,
           rate: 1,
           currentTimeMs: startMs,
           seekNonce: s.seekNonce + 1
         };
       }),
+    playSpan: (startMs, endMs, returnToMs) =>
+      set((s) => {
+        const from = Math.max(0, startMs);
+        liveTimeMs = from;
+        emitTime(from);
+        return {
+          playingInToOut: false,
+          playingSpan: {
+            endMs: Math.max(from, endMs),
+            returnToMs: returnToMs ?? null
+          },
+          isPlaying: true,
+          rate: 1,
+          currentTimeMs: from,
+          seekNonce: s.seekNonce + 1
+        };
+      }),
     // Sync reactive snapshot to the live position the moment playback stops.
     pause: () =>
-      set({ isPlaying: false, playingInToOut: false, currentTimeMs: liveTimeMs }),
+      set({
+        isPlaying: false,
+        playingInToOut: false,
+        playingSpan: null,
+        currentTimeMs: liveTimeMs
+      }),
     stop: () => {
       liveTimeMs = 0;
       emitTime(0);
-      set({ isPlaying: false, playingInToOut: false, currentTimeMs: 0 });
+      set({
+        isPlaying: false,
+        playingInToOut: false,
+        playingSpan: null,
+        currentTimeMs: 0
+      });
     },
 
     setRangeIn: (timeMs) =>

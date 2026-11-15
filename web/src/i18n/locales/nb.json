@@ -1617,7 +1617,11 @@
       "assistant": "Assistent",
       "history": "Historie",
       "code": "Kode",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effektkontroller",
+      "motion": "Bevegelse",
+      "color": "Farge",
+      "ai": "KI"
     },
     "unavailable": {
       "tracks": "DAW-modus har sin egen sporvisning. Slå den av (Alt+M) for å åpne tidslinjepanelet.",
@@ -13460,8 +13464,14 @@
         },
         "connectProviderTitle": "Koble til en AI-leverandør for å komme i gang",
         "connectProviderButton": "Koble til en leverandør",
-        "title": "Hvordan kan jeg hjelpe deg i dag?",
-        "subtitle": "Spør hva som helst, legg inn filer eller start med en av disse:"
+        "greeting": {
+          "morning": "God morgen",
+          "afternoon": "God ettermiddag",
+          "evening": "God kveld",
+          "morningName": "God morgen, {{name}}",
+          "afternoonName": "God ettermiddag, {{name}}",
+          "eveningName": "God kveld, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Oppgaver",
@@ -16831,7 +16841,49 @@
         "exitExpandedPreview": "Avslutt den utvidede forhåndsvisningen",
         "moveOnePixel": "Flytt klippet én piksel",
         "moveTenPixels": "Flytt klippet ti piksler",
-        "resetTransform": "Tilbakestill transformasjonen"
+        "resetTransform": "Tilbakestill transformasjonen",
+        "extendPrevEdit": "Forleng forrige redigering til spillehodet",
+        "extendNextEdit": "Forleng neste redigering til spillehodet",
+        "selectPrevClip": "Velg forrige klipp",
+        "selectNextClip": "Velg neste klipp",
+        "clipVolumeUp": "Øk klippvolumet med 1 dB",
+        "clipVolumeDown": "Senk klippvolumet med 1 dB",
+        "clipVolumeUpMore": "Øk klippvolumet med 6 dB",
+        "clipVolumeDownMore": "Senk klippvolumet med 6 dB",
+        "slideLeft": "Skyv valgte klipp ett bilde tilbake",
+        "slideRight": "Skyv valgte klipp ett bilde fram",
+        "slowShuttleBack": "Spol sakte bakover (igjen: raskere)",
+        "slowShuttleForward": "Spol sakte forover (igjen: raskere)",
+        "goToSequenceStart": "Gå til starten av sekvensen",
+        "goToSequenceEnd": "Gå til slutten av sekvensen",
+        "goToSelectedStart": "Gå til starten av utvalget",
+        "goToSelectedEnd": "Gå til siste bilde i utvalget",
+        "markSelection": "Merk utvalget (inn og ut rundt det)",
+        "clearIn": "Fjern inn",
+        "clearOut": "Fjern ut",
+        "prevCutAnyTrack": "Forrige kutt på et hvilket som helst spor",
+        "nextCutAnyTrack": "Neste kutt på et hvilket som helst spor",
+        "prevGap": "Gå til forrige mellomrom i sekvensen",
+        "nextGap": "Gå til neste mellomrom i sekvensen",
+        "addRangeMarker": "Legg til en områdemarkør på ett sekund ved spillehodet",
+        "addMarkerInOut": "Legg til en markør fra inn til ut",
+        "clearAllMarkers": "Fjern alle markører",
+        "playAround": "Spill rundt spillehodet",
+        "playInToOutWithRoll": "Spill fra inn til ut med forrull og etterrull",
+        "playToOut": "Spill fra spillehodet til ut",
+        "expandAllTracks": "Utvid alle spor (igjen: gjenopprett)",
+        "minimizeAllTracks": "Minimer alle spor (igjen: gjenopprett)",
+        "audioTracksTaller": "Gjør lydspor høyere",
+        "audioTracksShorter": "Gjør lydspor lavere",
+        "panelSource": "Gå til Kilde",
+        "panelTimeline": "Gå til tidslinjen",
+        "panelProgram": "Gå til Program",
+        "panelEffectControls": "Gå til Effektkontroller",
+        "panelInspector": "Gå til inspektøren",
+        "panelScript": "Gå til manuset",
+        "panelStoryboard": "Gå til storyboardet",
+        "nextPanel": "Gå til neste panel",
+        "prevPanel": "Gå til forrige panel"
       }
     },
     "vst": {
@@ -20041,5 +20093,31 @@
     },
     "opening": "Åpner…",
     "startFailed": "Kunne ikke åpne starteren: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Ingen klipp valgt",
+    "severalClips": "Flere klipp valgt",
+    "effectControls": {
+      "empty": "Velg et klipp på tidslinjen for å justere transformasjon, dekkevne, effekter og masker.",
+      "several": "Velg ett klipp for å justere det."
+    },
+    "motion": {
+      "empty": "Velg et klipp på tidslinjen for å animere det.",
+      "several": "Velg ett klipp for å animere det.",
+      "unsupportedTitle": "Ingenting å animere",
+      "unsupported": "Velg et video-, bilde-, tekst- eller formklipp for å animere det."
+    },
+    "color": {
+      "empty": "Velg et klipp på tidslinjen for å fargekorrigere det.",
+      "several": "Velg ett klipp for å fargekorrigere det.",
+      "unsupportedTitle": "Dette klippet har ikke bilde",
+      "unsupported": "Velg et video-, bilde-, tekst- eller formklipp for å fargekorrigere det."
+    },
+    "ai": {
+      "empty": "Velg et klipp på tidslinjen for å generere fra det eller redigere det med KI.",
+      "several": "Velg ett klipp for å generere fra det.",
+      "unsupportedTitle": "Ingen KI-verktøy for dette klippet",
+      "unsupported": "Velg et video- eller bildeklipp, eller et generert klipp."
+    }
   }
 }

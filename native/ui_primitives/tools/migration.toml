@@ -47,12 +47,12 @@ replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.T
 [[file]]
 path = "native/chat/qml/ConversationView.qml"
 category = "chrome"
-controls = ["Ui.Surface", "Ui.EditorButton", "Ui.Text", "Ui.ToolbarIconButton", "ListView", "Ui.ScrollBar", "Ui.BusyIndicator"]
+controls = ["Ui.Surface", "Ui.EditorButton", "Ui.Text", "Ui.ToolbarIconButton", "ListView", "Ui.ScrollBar", "Ui.BusyIndicator", "Ui.MenuButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.TextField", "DeleteThreadDialog"]
 signals = ["backRequested"]
 test_host = "node native/chat/scripts/check.mjs"
 test_scope = "build/import"
 qml_callers = ["native/chat/qml/ChatPanel.qml"]
-replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.EditorButton, Ui.Text, Ui.ToolbarIconButton, Ui.ScrollBar, Ui.BusyIndicator"
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.EditorButton, Ui.Text, Ui.ToolbarIconButton, Ui.ScrollBar, Ui.BusyIndicator, Ui.MenuButton, Ui.ContextMenu, Ui.MenuItem, Ui.TextField"
 
 [[file]]
 path = "native/chat/qml/Main.qml"
@@ -75,6 +75,16 @@ qml_callers = ["native/chat/qml/ConversationView.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextArea, Ui.EditorButton, Ui.ToolbarIconButton, Ui.Surface, Ui.TextField"
 
 [[file]]
+path = "native/chat/qml/DeleteThreadDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.Text", "Ui.EditorButton"]
+signals = []
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "interaction"
+qml_callers = ["native/chat/qml/ConversationView.qml", "native/chat/qml/ThreadList.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton"
+
+[[file]]
 path = "native/chat/qml/ProviderKeyDialog.qml"
 category = "chrome"
 controls = ["Ui.Dialog", "Ui.Text", "Ui.Select", "Ui.TextField", "Ui.EditorButton"]
@@ -87,12 +97,12 @@ replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.Select, Ui.TextFiel
 [[file]]
 path = "native/chat/qml/ThreadList.qml"
 category = "chrome"
-controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "ListView", "Ui.ScrollBar", "Ui.ToolbarIconButton", "Ui.TextField", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Dialog"]
+controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "ListView", "Ui.ScrollBar", "Ui.ToolbarIconButton", "Ui.TextField", "Ui.ContextMenu", "Ui.MenuItem", "DeleteThreadDialog"]
 signals = ["threadOpened"]
 test_host = "node native/chat/scripts/check.mjs"
 test_scope = "build/import"
 qml_callers = ["native/chat/qml/ChatPanel.qml"]
-replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.ScrollBar, Ui.ToolbarIconButton, Ui.TextField, Ui.ContextMenu, Ui.MenuItem, Ui.Dialog"
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.ScrollBar, Ui.ToolbarIconButton, Ui.TextField, Ui.ContextMenu, Ui.MenuItem"
 
 [[file]]
 path = "native/model-picker/qml/ModelPicker.qml"
@@ -4459,3 +4469,53 @@ binding = "onTapped"
 rule = "manual-control"
 owner = "Chat media grid"
 reason = "A media tile is a picture, as in MediaOutputGroup.tsx. Clicking it, or Space and Return when it has focus, opens the large preview, and the tile exposes itself as an accessible button."
+
+[[file]]
+path = "native/node-editor/qml/WorkersPanel.qml"
+category = "chrome"
+controls = []
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/WorkersPanelTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/node-editor/qml/WorkerProfilesDialog.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "native/node-editor/tests/ui/WorkersPanelTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/WorkersPanel.qml"]
+replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/node-editor/qml/WorkerApiKeyCard.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "native/node-editor/tests/ui/WorkersPanelTest.cpp"
+test_scope = "build/import"
+qml_callers = ["native/node-editor/qml/WorkerProfilesDialog.qml", "native/node-editor/qml/WorkersPanel.qml"]
+replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/node-editor/qml/ProviderPriceChip.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "native/node-editor/tests/ui/PriceChipTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives"
+
+[[file]]
+path = "native/node-editor/qml/QueuePanel.qml"
+category = "chrome"
+controls = []
+signals = ["closeRequested"]
+test_host = "native/node-editor/tests/ui/QueueUiTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives"

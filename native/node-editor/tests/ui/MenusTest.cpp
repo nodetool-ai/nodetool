@@ -13,6 +13,8 @@
 #include <QPainter>
 #include <QDialog>
 #include <QDockWidget>
+#include <QMimeData>
+#include <QDragEnterEvent>
 #include <QQuickWidget>
 #include <QQuickItem>
 #include <QFile>
@@ -337,6 +339,66 @@ private slots:
         QTRY_COMPARE(window.selectedCount(), 1);
         QVERIFY(window.scene()->nodeGraphicsObject(nodeId(window, "c"))->isSelected());
     }
+    // HandleTooltip.tsx: with a node focused, Tab walks its handles and Enter
+    // opens KeyboardConnectionPicker, which wires the handle to an existing port.
+    void keyboardHandleFocusOpensConnectionPicker() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "handles"}, {"graph", QJsonObject{{"nodes", QJsonArray{
+            node("a", "Fixed", 0, 0), node("b", "Fixed", 500, 0)}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1400, 1000);
+        window.show();
+        window.action("Reset zoom");
+        QTest::qWait(60);
+        auto &model = static_cast<WorkflowGraphModel &>(window.scene()->graphModel());
+        auto *canvas = view(window)->viewport();
+        view(window)->setFocus();
+        // Tab belongs to the window until a node has focus.
+        QTest::keyClick(canvas, Qt::Key_Tab);
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::None);
+        QTest::keyClick(canvas, Qt::Key_N, Qt::ControlModifier | Qt::AltModifier);
+        QTRY_COMPARE(model.focusedNode(), QString("a"));
+        QTest::keyClick(canvas, Qt::Key_Tab);
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::In);
+        QCOMPARE(model.focusedHandle().name, QString("in"));
+        QTest::keyClick(canvas, Qt::Key_Tab);
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::Out);
+        QCOMPARE(model.focusedHandle().name, QString("out"));
+        // Past the last handle the focus leaves the handles.
+        QTest::keyClick(canvas, Qt::Key_Tab);
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::None);
+        QTest::keyClick(canvas, Qt::Key_Backtab, Qt::ShiftModifier);
+        QCOMPARE(model.focusedHandle().name, QString("out"));
+        // Moving the node focus drops the handle focus.
+        QTest::keyClick(canvas, Qt::Key_Right, Qt::AltModifier);
+        QCOMPARE(model.focusedNode(), QString("b"));
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::None);
+        QTest::keyClick(canvas, Qt::Key_Left, Qt::AltModifier);
+        QTest::keyClick(canvas, Qt::Key_Backtab, Qt::ShiftModifier);
+        QCOMPARE(model.focusedHandle().name, QString("out"));
+        // Enter opens the picker instead of selecting the focused node.
+        QTest::keyClick(canvas, Qt::Key_Return);
+        QCOMPARE(window.selectedCount(), 0);
+        auto *picker = window.findChild<QQuickWidget *>("compatible-node-picker");
+        QVERIFY(picker);
+        QTRY_VERIFY(picker->isVisible());
+        QCOMPARE(picker->rootObject()->property("picker").value<QObject *>()->property("title").toString(), QString("Connect Out"));
+        // The first row is b's input. Enter in the search field picks it.
+        auto *search = picker->rootObject()->findChild<QQuickItem *>("compatible-search");
+        QVERIFY(search);
+        QTRY_VERIFY(search->hasActiveFocus());
+        QTest::keyClick(picker->quickWindow(), Qt::Key_Return);
+        QTRY_VERIFY(!picker->isVisible());
+        QCOMPARE(window.document()->edges().size(), 1);
+        const auto edge = window.document()->edges().first().toObject();
+        QCOMPARE(edge["source"].toString(), QString("a"));
+        QCOMPARE(edge["target"].toString(), QString("b"));
+        QCOMPARE(edge["targetHandle"].toString(), QString("in"));
+        // Escape clears the handle focus and keeps the node focus.
+        QTest::keyClick(canvas, Qt::Key_Escape);
+        QCOMPARE(model.focusedHandle().side, QtNodes::PortType::None);
+        QCOMPARE(model.focusedNode(), QString("a"));
+    }
     // shortcuts.ts: Ctrl+, opens settings and W opens the workflow settings.
     void settingsShortcuts() {
         EditorWindow window;
@@ -648,6 +710,60 @@ private slots:
         QTRY_VERIFY(window.examplesVisible());
         window.action("Toggle panel");
         QTRY_VERIFY(!window.examplesVisible());
+    }
+
+    // ExamplesPanel.tsx: dragging an example card onto the canvas pastes a copy
+    // of its graph with the first node at the drop point, as one undo step.
+    void examplesPanelDragPastesTheExampleGraph() {
+        EditorWindow window;
+        window.setCatalog(catalog());
+        QVERIFY(window.document()->load(QJsonObject{{"id", "target"}, {"graph", QJsonObject{{"nodes", QJsonArray{node("kept", "Fixed", 0, 0)}}, {"edges", QJsonArray{}}}}}));
+        window.resize(1200, 800);
+        window.show();
+        QTest::qWait(50);
+        window.action("Examples");
+        QTRY_VERIFY(window.examplesVisible());
+        auto *panel = qobject_cast<QQuickWidget *>(window.findChild<QDockWidget *>("examples-dock")->widget());
+        QVERIFY(panel && panel->rootObject());
+        auto *gallery = qobject_cast<node_editor::ExampleGallery *>(panel->rootObject()->property("gallery").value<QObject *>());
+        QVERIFY(gallery);
+        gallery->setServerExamples(QJsonArray{QJsonObject{{"id", "pair"}, {"name", "Pair"}, {"graph", QJsonObject{
+            {"nodes", QJsonArray{node("first", "Fixed", 100, 100), node("second", "Fixed", 500, 160)}},
+            {"edges", QJsonArray{QJsonObject{{"id", "e"}, {"source", "first"}, {"sourceHandle", "out"}, {"target", "second"}, {"targetHandle", "in"}}}}}}}});
+        QVERIFY(gallery->rows().first().toMap()["key"] == "server:pair");
+        auto *view = window.findChild<QGraphicsView *>();
+        const QPoint point(400, 300);
+        const auto expected = view->mapToScene(point);
+        QMimeData mime;
+        mime.setData(node_editor::ExampleGallery::DragMime, "server:pair");
+        QDragEnterEvent enter(QPointF(point), Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(view->viewport(), &enter);
+        QVERIFY(enter.isAccepted());
+        QDropEvent drop(point, Qt::CopyAction, &mime, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(view->viewport(), &drop);
+        QVERIFY(drop.isAccepted());
+        QCOMPARE(window.document()->nodes().size(), 3);
+        QCOMPARE(window.document()->edges().size(), 1);
+        QCOMPARE(window.document()->undoStack()->count(), 1);
+        QPointF first, second;
+        for (const auto &value : window.document()->nodes()) {
+            const auto added = value.toObject();
+            if (added["id"] == "kept") { continue; }
+            QVERIFY(added["id"] != "first" && added["id"] != "second");
+            const auto position = added["ui_properties"].toObject()["position"].toObject();
+            const QPointF at(position["x"].toDouble(), position["y"].toDouble());
+            if (first.isNull()) { first = at; } else { second = at; }
+        }
+        QCOMPARE(first, expected);
+        QCOMPARE(second - first, QPointF(400, 60));
+        // An unknown example is refused.
+        QMimeData unknown;
+        unknown.setData(node_editor::ExampleGallery::DragMime, "server:missing");
+        QDropEvent refused(point, Qt::CopyAction, &unknown, Qt::LeftButton, Qt::NoModifier);
+        QApplication::sendEvent(view->viewport(), &refused);
+        QVERIFY(!refused.isAccepted());
+        window.action("Undo");
+        QCOMPARE(window.document()->nodes().size(), 1);
     }
 
     // electron/src/menu.ts: the desktop app's menu, with the native entry for each item.

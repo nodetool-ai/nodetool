@@ -44,6 +44,15 @@
       ],
       "outputs": ["dist/**", "tsconfig.tsbuildinfo"]
     },
+    "@nodetool-ai/realtime-compiler#build": {
+      "inputs": [
+        "src/**",
+        "scripts/**",
+        "tsconfig*.json",
+        "package.json",
+        "$TURBO_ROOT$/native/realtime/schema/plan-v1.schema.json"
+      ]
+    },
     // The web app (workspace name `nodetool`) is built by Vite, which reads
     // config, HTML and static files outside `src/`, plus build-time env:
     // GIT_COMMIT_HASH / BUILD_NUMBER in vite.config.ts and VITE_* inlined

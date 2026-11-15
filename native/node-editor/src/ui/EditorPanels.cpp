@@ -246,8 +246,8 @@ bool EditorWindow::versionsVisible() const {
 
 bool EditorWindow::queueVisible() const {
   if (!tabOwner_) { return activeEditor_->queueVisible(); }
-  const auto *queue = queueOverlay_ ? queueOverlay_->rootObject() : nullptr;
-  return queue && queue->property("presented").toBool() && queue->property("showList").toBool();
+  const auto *dock = findChild<QDockWidget *>(QStringLiteral("queue-dock"));
+  return dock && !dock->isHidden();
 }
 
 QRect EditorWindow::queueArea() const {
@@ -312,14 +312,38 @@ void EditorWindow::setQueuePosition(std::optional<node_editor::docked_overlay::P
 
 void EditorWindow::toggleQueue() {
   if (!tabOwner_) { activeEditor_->toggleQueue(); return; }
-  auto *queue = queueOverlay_ ? queueOverlay_->rootObject() : nullptr;
-  if (!queue) { return; }
-  // The web Queue tab opens the queue at any time and closes it when it is the open view.
-  const bool open = !queueVisible();
-  queue->setProperty("opened", open);
-  queue->setProperty("expanded", open);
-  layoutOverlays();
+  // The web Queue tab opens QueuePanel in the bottom panel at any time and closes
+  // it when it is the open view. The canvas QueueOverlay still shows while jobs run.
+  if (auto *dock = findChild<QDockWidget *>(QStringLiteral("queue-dock")); dock && !dock->isHidden()) {
+    dock->close();
+  } else {
+    showQueue();
+  }
   schedulePanelChanged();
+}
+
+void EditorWindow::showQueue() {
+  for (auto *existing : findChildren<QDockWidget *>(QStringLiteral("queue-dock"))) { existing->close(); }
+  // Parented to the dock host and deleted when it closes.
+  auto *dock = new QDockWidget(tr("Queue"), dockHost_);
+  dock->setObjectName(QStringLiteral("queue-dock"));
+  dock->setAttribute(Qt::WA_DeleteOnClose);
+  dock->setTitleBarWidget(new QWidget(dock));
+  dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  outputDock_->hide();
+  auto *content = new QQuickWidget(engine_, dock);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties({{"runs", QVariant::fromValue(&runState_)},
+                                 {"resolver", QVariant::fromValue<QObject *>(&mediaResolver_)}});
+  content->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/QueuePanel.qml")));
+  dock->setWidget(content);
+  if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
+  // The status bar Queue tab shows whether the panel is open.
+  connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
+  dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
+  dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
+  dock->show();
 }
 
 bool EditorWindow::generationsVisible() const {
@@ -346,6 +370,39 @@ void EditorWindow::showGenerations() {
   if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
   connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
   // The status bar Generations tab shows whether the panel is open.
+  connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
+  connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
+  dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
+  dockHost_->resizeDocks({dock}, {height() / 2}, Qt::Vertical);
+  dock->show();
+}
+
+bool EditorWindow::workersVisible() const {
+  if (!tabOwner_) { return activeEditor_->workersVisible(); }
+  const auto *dock = findChild<QDockWidget *>(QStringLiteral("workers-dock"));
+  return dock && !dock->isHidden();
+}
+
+void EditorWindow::showWorkers() {
+  for (auto *existing : findChildren<QDockWidget *>(QStringLiteral("workers-dock"))) { existing->close(); }
+  auto *fleet = &tabOwner_->workers_;
+  // The tab's server and credentials. A tab with no server shows the empty state.
+  fleet->setServer(session_.serverUrl(), session_.token());
+  // Parented to the dock host and deleted when it closes.
+  auto *dock = new QDockWidget(tr("Workers"), dockHost_);
+  dock->setObjectName(QStringLiteral("workers-dock"));
+  dock->setAttribute(Qt::WA_DeleteOnClose);
+  dock->setTitleBarWidget(new QWidget(dock));
+  dock->setAllowedAreas(Qt::BottomDockWidgetArea);
+  outputDock_->hide();
+  auto *content = new QQuickWidget(engine_, dock);
+  content->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  content->setInitialProperties({{"fleet", QVariant::fromValue(fleet)}});
+  content->setSource(QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/NodeEditor/WorkersPanel.qml")));
+  dock->setWidget(content);
+  if (content->rootObject()) { connect(content->rootObject(), SIGNAL(closeRequested()), dock, SLOT(close())); }
+  connect(this, &EditorWindow::credentialsEpochChanged, dock, &QDockWidget::close);
+  // The status bar Workers tab shows whether the panel is open.
   connect(dock, &QDockWidget::visibilityChanged, this, &EditorWindow::schedulePanelChanged);
   connect(dock, &QObject::destroyed, this, &EditorWindow::schedulePanelChanged);
   dockHost_->addDockWidget(Qt::BottomDockWidgetArea, dock);
@@ -412,6 +469,9 @@ void EditorWindow::toggleStatusView(const QString &view) {
   } else if (view == "generations") {
     if (auto *dock = findChild<QDockWidget *>(QStringLiteral("generations-dock")); dock && !dock->isHidden()) { dock->close(); }
     else { showGenerations(); }
+  } else if (view == "workers") {
+    if (auto *dock = findChild<QDockWidget *>(QStringLiteral("workers-dock")); dock && !dock->isHidden()) { dock->close(); }
+    else { showWorkers(); }
   } else if (view == "trace") {
     if (auto *dock = findChild<QDockWidget *>(QStringLiteral("run-trace-dock")); dock && !dock->isHidden()) { dock->close(); }
     else { action(QStringLiteral("Run trace")); }

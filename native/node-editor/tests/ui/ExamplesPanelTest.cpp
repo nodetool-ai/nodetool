@@ -5,6 +5,9 @@
 #include "interfaces/ExampleGallery.h"
 #include "media/VideoFrameView.h"
 
+#include <functional>
+
+#include <QElapsedTimer>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -109,6 +112,8 @@ private:
         requests.append({first.value(0), first.value(1), buffer.mid(end + 4, length), user});
         buffer.clear();
         const auto response = responses.isEmpty() ? qMakePair(500, QByteArray("{}")) : responses.takeFirst();
+        // Status 0 sends the body as the whole response, such as a redirect.
+        if (response.first == 0) { socket->write(response.second); socket->disconnectFromHost(); return; }
         socket->write("HTTP/1.1 " + QByteArray::number(response.first) + " X\r\nContent-Type: application/json\r\nContent-Length: " +
                       QByteArray::number(response.second.size()) + "\r\nConnection: close\r\n\r\n" + response.second);
         socket->disconnectFromHost();
@@ -227,6 +232,20 @@ private slots:
         QVERIFY(groups[2].toMap()["error"].toString().isEmpty());
     }
 
+    // The bearer token never follows a redirect, as with the other server clients.
+    void serverRedirectIsNotFollowed() {
+        FakeServer server;
+        const auto elsewhere = server.origin().toString() + "/elsewhere";
+        server.responses = {{0, "HTTP/1.1 302 Found\r\nLocation: " + elsewhere.toUtf8() + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"},
+                            {200, R"({"workflows":[{"id":"x","name":"Moved"}]})"}};
+        ExampleGallery gallery;
+        gallery.configure(server.origin(), "secret-token", "1");
+        gallery.refresh();
+        QTRY_VERIFY(!gallery.loading());
+        QCOMPARE(server.requests.size(), 1);
+        QVERIFY(!gallery.groups().first().toMap().value("error").toString().isEmpty());
+    }
+
     void panelShowsCardsFiltersAndOpens() {
         ExampleGallery gallery;
         gallery.setBundled(bundled());
@@ -248,6 +267,8 @@ private slots:
         QVERIFY(named(root, "examples-section-comfy"));
         QVERIFY(named(root, "examples-section-builtin"));
         QVERIFY(named(root, "example-card-server:compare.json"));
+        // Each card carries the drag that pastes its graph on the canvas (MenusTest).
+        QVERIFY(named(root, "example-card-server:compare.json")->findChild<QObject *>("example-card-drag"));
         // With no server, the panel offers to connect.
         QVERIFY(named(root, "examples-connect")->isVisible());
         QMetaObject::invokeMethod(named(root, "examples-connect"), "actionTriggered");
@@ -274,6 +295,54 @@ private slots:
 
         click(view, named(root, "examples-close"));
         QTRY_COMPARE(closed.size(), 1);
+    }
+
+    // A server can list hundreds of ComfyUI examples. The panel builds only
+    // the cards near the view, so loading and scrolling stay fast.
+    void panelBuildsOnlyTheCardsNearTheView() {
+        QJsonArray many;
+        for (int i = 0; i < 600; ++i) {
+            const auto name = QStringLiteral("Comfy %1").arg(i, 3, 10, QLatin1Char('0'));
+            many.append(workflow(name + ".json", name, {"comfy"}));
+        }
+        ExampleGallery gallery;
+        gallery.setServerExamples(many);
+        QQuickView view;
+        view.setInitialProperties({{"gallery", QVariant::fromValue(&gallery)}});
+        view.setResizeMode(QQuickView::SizeRootObjectToView);
+        QElapsedTimer timer;
+        timer.start();
+        view.setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/ExamplesPanel.qml"));
+        QVERIFY(view.rootObject());
+        view.resize(360, 900);
+        view.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&view));
+        const auto loadMs = timer.elapsed();
+        auto *root = view.rootObject();
+        const auto cards = [root] {
+            int count = 0;
+            std::function<void(QQuickItem *)> walk = [&](QQuickItem *item) {
+                if (item->objectName().startsWith(QStringLiteral("example-card-"))) { ++count; }
+                for (auto *child : item->childItems()) { walk(child); }
+            };
+            walk(root);
+            return count;
+        };
+        QVERIFY(named(root, "example-card-server:Comfy 000.json"));
+        QVERIFY2(cards() < 100, qPrintable(QString::number(cards())));
+
+        auto *list = named(root, "examples-list");
+        QVERIFY(list);
+        timer.restart();
+        // ListView estimates contentHeight, so read it again at every step.
+        for (qreal y = 0; y < list->property("contentHeight").toReal(); y += 300) {
+            list->setProperty("contentY", y);
+            QCoreApplication::processEvents();
+        }
+        const auto scrollMs = timer.elapsed();
+        QVERIFY(named(root, "example-card-server:Comfy 599.json"));
+        QVERIFY2(cards() < 100, qPrintable(QString::number(cards())));
+        qInfo("600 cards: load %lld ms, full scroll %lld ms", static_cast<long long>(loadMs), static_cast<long long>(scrollMs));
     }
 };
 

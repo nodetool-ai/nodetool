@@ -1628,7 +1628,11 @@
       "assistant": "Assistente",
       "history": "Storia",
       "code": "Codice",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Controllo effetti",
+      "motion": "Movimento",
+      "color": "Colore",
+      "ai": "IA"
     },
     "unavailable": {
       "tracks": "La modalità DAW ha la propria visualizzazione della traccia. Disattivalo (Alt+M) per aprire il pannello Timeline.",
@@ -13676,8 +13680,14 @@
         },
         "connectProviderTitle": "Connetti un fornitore di intelligenza artificiale per iniziare",
         "connectProviderButton": "Connetti un fornitore",
-        "title": "Come posso aiutarti oggi?",
-        "subtitle": "Chiedi qualsiasi cosa, inserisci i file o inizia con uno di questi:"
+        "greeting": {
+          "morning": "Buongiorno",
+          "afternoon": "Buon pomeriggio",
+          "evening": "Buonasera",
+          "morningName": "Buongiorno, {{name}}",
+          "afternoonName": "Buon pomeriggio, {{name}}",
+          "eveningName": "Buonasera, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Compiti",
@@ -17123,7 +17133,49 @@
         "exitExpandedPreview": "Esci dall'anteprima espansa",
         "moveOnePixel": "Sposta la clip di un pixel",
         "moveTenPixels": "Sposta la clip di dieci pixel",
-        "resetTransform": "Reimposta la trasformazione"
+        "resetTransform": "Reimposta la trasformazione",
+        "extendPrevEdit": "Estendi il montaggio precedente fino all'indicatore di riproduzione",
+        "extendNextEdit": "Estendi il montaggio successivo fino all'indicatore di riproduzione",
+        "selectPrevClip": "Seleziona la clip precedente",
+        "selectNextClip": "Seleziona la clip successiva",
+        "clipVolumeUp": "Alza il volume della clip di 1 dB",
+        "clipVolumeDown": "Abbassa il volume della clip di 1 dB",
+        "clipVolumeUpMore": "Alza il volume della clip di 6 dB",
+        "clipVolumeDownMore": "Abbassa il volume della clip di 6 dB",
+        "slideLeft": "Fai scorrere le clip selezionate indietro di un fotogramma",
+        "slideRight": "Fai scorrere le clip selezionate avanti di un fotogramma",
+        "slowShuttleBack": "Riproduzione lenta all'indietro (di nuovo: più veloce)",
+        "slowShuttleForward": "Riproduzione lenta in avanti (di nuovo: più veloce)",
+        "goToSequenceStart": "Vai all'inizio della sequenza",
+        "goToSequenceEnd": "Vai alla fine della sequenza",
+        "goToSelectedStart": "Vai all'inizio della selezione",
+        "goToSelectedEnd": "Vai all'ultimo fotogramma della selezione",
+        "markSelection": "Marca la selezione (attacco e stacco attorno)",
+        "clearIn": "Cancella l'attacco",
+        "clearOut": "Cancella lo stacco",
+        "prevCutAnyTrack": "Taglio precedente su qualsiasi traccia",
+        "nextCutAnyTrack": "Taglio successivo su qualsiasi traccia",
+        "prevGap": "Vai allo spazio vuoto precedente della sequenza",
+        "nextGap": "Vai allo spazio vuoto successivo della sequenza",
+        "addRangeMarker": "Aggiungi un marcatore di intervallo di un secondo all'indicatore di riproduzione",
+        "addMarkerInOut": "Aggiungi un marcatore dall'attacco allo stacco",
+        "clearAllMarkers": "Cancella tutti i marcatori",
+        "playAround": "Riproduci attorno all'indicatore di riproduzione",
+        "playInToOutWithRoll": "Riproduci dall'attacco allo stacco con preroll e postroll",
+        "playToOut": "Riproduci dall'indicatore di riproduzione allo stacco",
+        "expandAllTracks": "Espandi tutte le tracce (di nuovo: ripristina)",
+        "minimizeAllTracks": "Riduci al minimo tutte le tracce (di nuovo: ripristina)",
+        "audioTracksTaller": "Rendi più alte le tracce audio",
+        "audioTracksShorter": "Rendi più basse le tracce audio",
+        "panelSource": "Vai a Sorgente",
+        "panelTimeline": "Vai alla timeline",
+        "panelProgram": "Vai a Programma",
+        "panelEffectControls": "Vai a Controllo effetti",
+        "panelInspector": "Vai all'Inspector",
+        "panelScript": "Vai alla sceneggiatura",
+        "panelStoryboard": "Vai allo storyboard",
+        "nextPanel": "Vai al pannello successivo",
+        "prevPanel": "Vai al pannello precedente"
       }
     },
     "vst": {
@@ -20352,5 +20404,31 @@
     },
     "opening": "Apertura…",
     "startFailed": "Impossibile aprire l'esempio: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Nessuna clip selezionata",
+    "severalClips": "Più clip selezionate",
+    "effectControls": {
+      "empty": "Seleziona una clip nella timeline per regolarne trasformazione, opacità, effetti e maschere.",
+      "several": "Seleziona una sola clip per regolarla."
+    },
+    "motion": {
+      "empty": "Seleziona una clip nella timeline per animarla.",
+      "several": "Seleziona una sola clip per animarla.",
+      "unsupportedTitle": "Niente da animare",
+      "unsupported": "Seleziona una clip video, immagine, testo o forma per animarla."
+    },
+    "color": {
+      "empty": "Seleziona una clip nella timeline per correggerne il colore.",
+      "several": "Seleziona una sola clip per correggerne il colore.",
+      "unsupportedTitle": "Questa clip non ha immagine",
+      "unsupported": "Seleziona una clip video, immagine, testo o forma per correggerne il colore."
+    },
+    "ai": {
+      "empty": "Seleziona una clip nella timeline per generare da essa o modificarla con l'IA.",
+      "several": "Seleziona una sola clip per generare da essa.",
+      "unsupportedTitle": "Nessuno strumento IA per questa clip",
+      "unsupported": "Seleziona una clip video o immagine, oppure una clip generata."
+    }
   }
 }

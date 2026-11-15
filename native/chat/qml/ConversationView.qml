@@ -19,6 +19,33 @@ Item {
     // A reply is on its way: ChatThreadView.tsx shows a quiet pulse at the
     // end of the conversation in place of a status word.
     readonly property bool responding: !!session && (session.turnStatus === "loading" || session.turnStatus === "streaming")
+    // Claude's new chat: the greeting and the composer as one block in the
+    // middle of the panel (ChatView.tsx centerEmptyState).
+    readonly property bool emptyCentered: !embedded && !!session && !!session.selectedThreadId
+        && !session.historyLoading && messages.count === 0
+    // WelcomePlaceholder.tsx greeting: the time of day, refreshed when the
+    // conversation opens.
+    property int greetingHour: new Date().getHours()
+    function greeting(hour) {
+        if (hour >= 5 && hour < 12) { return qsTr("Good morning"); }
+        if (hour >= 12 && hour < 18) { return qsTr("Good afternoon"); }
+        return qsTr("Good evening");
+    }
+    onEmptyCenteredChanged: if (emptyCentered) greetingHour = new Date().getHours()
+    readonly property bool titleMenuShown: !embedded && !!session && !!session.selectedThreadId && !emptyCentered
+    readonly property string threadLabel: session && session.threadTitle ? session.threadTitle : qsTr("Untitled chat")
+    property bool renamingTitle: false
+    function startTitleRename() {
+        renamingTitle = true
+        titleRenameField.text = threadLabel
+        titleRenameField.forceActiveFocus()
+        titleRenameField.selectAll()
+    }
+    function finishTitleRename() {
+        if (!renamingTitle) return
+        renamingTitle = false
+        session.renameThread(session.selectedThreadId, titleRenameField.text)
+    }
     objectName: "chatConversation"
     function savePosition() {
         if (session && session.selectedThreadId === previousThread) {
@@ -55,6 +82,7 @@ Item {
         }
     }
     function restorePosition() {
+        renamingTitle = false;
         const saved = scrollPositions[session.selectedThreadId];
         followBottom = saved ? saved.bottom : true;
         anchorIndex = saved && saved.index !== undefined ? saved.index : 0;
@@ -93,9 +121,51 @@ Item {
             role: Ui.Typography.SansBody
             Layout.fillWidth: true
             text: qsTr("Chat")
-            visible: !root.showBack
+            visible: !root.showBack && !root.titleMenuShown
             Layout.leftMargin: Ui.Metrics.lg
         }
+        // ChatTitleMenu.tsx: the thread's title with rename and delete, as
+        // claude.ai shows it above a conversation.
+        Ui.MenuButton {
+            id: titleButton
+            objectName: "chatTitleMenu"
+            visible: !root.showBack && root.titleMenuShown && !root.renamingTitle
+            Layout.leftMargin: Ui.Metrics.lg
+            Layout.maximumWidth: root.width / 2
+            text: root.threadLabel
+            accessibleName: qsTr("Conversation options for %1").arg(root.threadLabel)
+            variant: Ui.EditorButton.Flat
+            contentAlignment: Qt.AlignLeft
+            trailingIconName: "expandMore"
+            menu: titleMenu
+            Ui.ContextMenu {
+                id: titleMenu
+                Ui.MenuItem {
+                    objectName: "chatTitleRenameItem"
+                    text: qsTr("Rename")
+                    iconName: "rename"
+                    onTriggered: root.startTitleRename()
+                }
+                Ui.MenuItem {
+                    objectName: "chatTitleDeleteItem"
+                    text: qsTr("Delete")
+                    iconName: "deleteOutline"
+                    onTriggered: titleDeleteDialog.openFor(root.session.selectedThreadId, root.threadLabel)
+                }
+            }
+        }
+        Ui.TextField {
+            id: titleRenameField
+            objectName: "chatTitleRename"
+            visible: !root.showBack && root.renamingTitle
+            Layout.leftMargin: Ui.Metrics.lg
+            Layout.preferredWidth: root.width / 2
+            accessibleName: qsTr("Conversation name")
+            onAccepted: root.finishTitleRename()
+            onActiveFocusChanged: if (!activeFocus) root.finishTitleRename()
+            Keys.onEscapePressed: root.renamingTitle = false
+        }
+        Item { Layout.fillWidth: true; visible: !root.showBack && root.titleMenuShown }
         Item { Layout.fillWidth: true; visible: root.showBack }
         Ui.ToolbarIconButton {
             visible: root.showBack
@@ -119,6 +189,12 @@ Item {
         anchors.bottom: parent.bottom
         anchors.margins: root.embedded ? Ui.Metrics.sm : Ui.Metrics.xl
         spacing: Ui.Metrics.md
+        // The two spacers hold the block a little above centre.
+        Item {
+            Layout.fillHeight: true
+            Layout.verticalStretchFactor: 2
+            visible: root.emptyCentered
+        }
         Ui.EditorButton {
             text: qsTr("Load earlier messages")
             visible: !!root.session && root.session.hasMoreHistory
@@ -132,7 +208,8 @@ Item {
             id: messages
             objectName: "chatMessages"
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.fillHeight: !root.emptyCentered
+            Layout.preferredHeight: root.emptyCentered ? emptyState.implicitHeight : -1
             clip: true
             spacing: Ui.Metrics.md
             reuseItems: true
@@ -216,31 +293,33 @@ Item {
                 }
             }
             ColumnLayout {
+                id: emptyState
                 anchors.centerIn: parent
                 width: parent.width - Ui.Metrics.xl * 2
                 visible: messages.count === 0 && !(root.session && root.session.historyLoading)
                 spacing: root.embedded ? Ui.Metrics.xs : Ui.Metrics.xl
                 Ui.Icon {
-                    visible: root.embedded
-                    name: "forum"
+                    visible: root.embedded || root.emptyCentered
+                    name: root.embedded ? "forum" : "autoAwesome"
                     size: ChatMetrics.emptyIcon
                     Layout.preferredWidth: ChatMetrics.emptyIcon
                     Layout.preferredHeight: ChatMetrics.emptyIcon
-                    opacity: 0.4
+                    opacity: root.embedded ? 0.4 : 1
                     Layout.alignment: Qt.AlignHCenter
                 }
                 Ui.Text {
                     role: root.embedded ? Ui.Typography.SansLabel : Ui.Typography.SansTitle
                     objectName: "chatHistoryEmptyPrompt"
                     Layout.fillWidth: true
-                    text: root.embedded ? qsTr("Start a conversation") : qsTr("What do you want to create?")
+                    text: root.embedded ? qsTr("Start a conversation") : root.greeting(root.greetingHour)
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
                 }
                 Ui.Text {
                     role: Ui.Typography.SansLabel
                     Layout.fillWidth: true
-                    text: root.embedded ? qsTr("Ask about this workflow, or type @ to reference an asset.") : root.session && root.session.selectedThreadId ? qsTr("Describe what you want to make below.") : qsTr("Start a new chat to work with an agent.")
+                    visible: !root.emptyCentered
+                    text: root.embedded ? qsTr("Ask about this workflow, or type @ to reference an asset.") : qsTr("Start a new chat to work with an agent.")
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
                     tone: Ui.Text.Secondary
@@ -277,6 +356,11 @@ Item {
             visible: !!root.session && !!root.session.selectedThreadId
             session: root.session
         }
+        Item {
+            Layout.fillHeight: true
+            Layout.verticalStretchFactor: 3
+            visible: root.emptyCentered
+        }
     }
     Connections {
         target: root.session
@@ -312,4 +396,9 @@ Item {
         }
     }
     Component.onDestruction: savePosition()
+    DeleteThreadDialog {
+        id: titleDeleteDialog
+        objectName: "chatTitleDeleteDialog"
+        session: root.session
+    }
 }

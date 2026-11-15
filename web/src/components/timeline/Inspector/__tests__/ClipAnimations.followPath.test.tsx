@@ -13,7 +13,7 @@ import { makeClip, makeTrack } from "@nodetool-ai/timeline";
 import type { ClipShapeStyle, TimelineClip } from "@nodetool-ai/timeline";
 
 import mockTheme from "../../../../__mocks__/themeMock";
-import { TimelineInspector } from "../TimelineInspector";
+import { TimelineMotionPanel } from "../TimelineClipPanels";
 import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
@@ -28,7 +28,7 @@ const renderInspector = () =>
       <ThemeProvider theme={mockTheme}>
         <MemoryRouter>
           <TimelineProvider>
-            <TimelineInspector />
+            <TimelineMotionPanel />
           </TimelineProvider>
         </MemoryRouter>
       </ThemeProvider>

@@ -416,8 +416,10 @@ void closedRunningJobsCount() {
         if (Json::parse(call.argsJson).value("mode", "") == "instant")
           return "null";
         ++entered;
-        std::unique_lock lock(mutex);
-        changed.wait(lock, [&] { return release; });
+        {
+          std::unique_lock lock(mutex);
+          changed.wait(lock, [&] { return release; });
+        }
         if (call.cancelled())
           ++sawCancel;
         return "null";
@@ -452,7 +454,8 @@ void closedRunningJobsCount() {
     }
   });
   check(started, "slots return when the closed workers return");
-  check(sawCancel == 2, "closed workers saw cancelled()");
+  // One worker returns a slot before the other has necessarily observed stop.
+  check(eventually([&] { return sawCancel == 2; }), "closed workers saw cancelled()");
 }
 
 // 6. Completions run once and outside the job mutex: each one calls back

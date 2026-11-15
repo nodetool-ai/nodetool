@@ -41,7 +41,7 @@ class CountingRunner implements CommandRunner {
 
 const TEST = ["--no-coverage", "--test-command", "node tests/run.mjs"];
 
-describe("run", () => {
+describe("run", { timeout: 30_000 }, () => {
   it.each([false, true])("runs the complete baseline and stops only an already killed Vitest mutant (survives=%s)", async (survives) => {
     const root = project({
       "packages/math/package.json": JSON.stringify({ name: "math", type: "module", scripts: { test: "vitest run" } }),

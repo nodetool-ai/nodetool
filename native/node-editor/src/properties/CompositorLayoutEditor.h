@@ -2,6 +2,7 @@
 #include "graph/CardBodies.h"
 #include "graph/CompositorGeometry.h"
 #include "graph/EditorScene.h"
+#include <QImage>
 #include <QJsonObject>
 #include <QObject>
 #include <QPointer>
@@ -25,7 +26,7 @@ class CompositorLayoutEditor final : public QObject {
     Q_PROPERTY(int selected READ selected NOTIFY changed)
     // The selected layer's X, Y, Scale X, Scale Y and Rotation in degrees.
     Q_PROPERTY(QVariantMap transform READ transformFields NOTIFY changed)
-    // One entry per layer, image_0 first: {name, visible, opacity, blend}.
+    // One entry per layer, image_0 first: {name, key, visible, opacity, blend, ready}.
     Q_PROPERTY(QVariantList layers READ layerEntries NOTIFY changed)
     Q_PROPERTY(QVariantList blendModes READ blendModeEntries CONSTANT)
 public:
@@ -49,6 +50,9 @@ public:
     const QHash<QString, CardMediaItem> &sources() const { return sources_; }
     // A layer's image size, and its transform with the default filled in.
     QSizeF layerSize(int index) const;
+    // The layer's loaded input image, or a null image. Invokable, because a
+    // QImage inside a model entry's map does not survive the trip into QML.
+    Q_INVOKABLE QImage layerImage(int index) const;
     compositor::LayerTransform layerTransform(int index) const;
 
     // The stage's pointer, in canvas pixels. viewScale is screen pixels per

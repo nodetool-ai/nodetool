@@ -1617,7 +1617,11 @@
       "assistant": "Assistant",
       "history": "History",
       "code": "Code",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effect Controls",
+      "motion": "Motion",
+      "color": "Color",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "DAW mode has its own track view. Turn it off (Alt+M) to open the Timeline panel.",
@@ -13460,8 +13464,14 @@
         },
         "connectProviderTitle": "Connect an AI provider to get started",
         "connectProviderButton": "Connect a provider",
-        "title": "How can I help you today?",
-        "subtitle": "Ask anything, drop in files, or start with one of these:"
+        "greeting": {
+          "morning": "Good morning",
+          "afternoon": "Good afternoon",
+          "evening": "Good evening",
+          "morningName": "Good morning, {{name}}",
+          "afternoonName": "Good afternoon, {{name}}",
+          "eveningName": "Good evening, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Tasks",
@@ -16831,7 +16841,49 @@
         "exitExpandedPreview": "Exit the expanded preview",
         "moveOnePixel": "Move the clip one pixel",
         "moveTenPixels": "Move the clip ten pixels",
-        "resetTransform": "Reset the transform"
+        "resetTransform": "Reset the transform",
+        "extendPrevEdit": "Extend the previous edit to the playhead",
+        "extendNextEdit": "Extend the next edit to the playhead",
+        "selectPrevClip": "Select the previous clip",
+        "selectNextClip": "Select the next clip",
+        "clipVolumeUp": "Raise clip volume by 1 dB",
+        "clipVolumeDown": "Lower clip volume by 1 dB",
+        "clipVolumeUpMore": "Raise clip volume by 6 dB",
+        "clipVolumeDownMore": "Lower clip volume by 6 dB",
+        "slideLeft": "Slide selected clips one frame back",
+        "slideRight": "Slide selected clips one frame on",
+        "slowShuttleBack": "Shuttle backwards slowly (again: faster)",
+        "slowShuttleForward": "Shuttle forwards slowly (again: faster)",
+        "goToSequenceStart": "Go to the sequence start",
+        "goToSequenceEnd": "Go to the sequence end",
+        "goToSelectedStart": "Go to the start of the selection",
+        "goToSelectedEnd": "Go to the last frame of the selection",
+        "markSelection": "Mark the selection (in and out around it)",
+        "clearIn": "Clear in",
+        "clearOut": "Clear out",
+        "prevCutAnyTrack": "Previous cut on any track",
+        "nextCutAnyTrack": "Next cut on any track",
+        "prevGap": "Go to the previous gap in the sequence",
+        "nextGap": "Go to the next gap in the sequence",
+        "addRangeMarker": "Add a one-second range marker at the playhead",
+        "addMarkerInOut": "Add a marker from in to out",
+        "clearAllMarkers": "Clear all markers",
+        "playAround": "Play around the playhead",
+        "playInToOutWithRoll": "Play from in to out with preroll and postroll",
+        "playToOut": "Play from the playhead to out",
+        "expandAllTracks": "Expand all tracks (again: restore)",
+        "minimizeAllTracks": "Minimize all tracks (again: restore)",
+        "audioTracksTaller": "Make audio tracks taller",
+        "audioTracksShorter": "Make audio tracks shorter",
+        "panelSource": "Go to Source",
+        "panelTimeline": "Go to the Timeline",
+        "panelProgram": "Go to Program",
+        "panelEffectControls": "Go to Effect Controls",
+        "panelInspector": "Go to the Inspector",
+        "panelScript": "Go to Script",
+        "panelStoryboard": "Go to Storyboard",
+        "nextPanel": "Go to the next panel",
+        "prevPanel": "Go to the previous panel"
       }
     },
     "vst": {
@@ -20041,5 +20093,31 @@
     },
     "opening": "Opening…",
     "startFailed": "Could not open the starter: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "No clip selected",
+    "severalClips": "Several clips selected",
+    "effectControls": {
+      "empty": "Select a clip on the timeline to adjust its transform, opacity, effects and masks.",
+      "several": "Select one clip to adjust it."
+    },
+    "motion": {
+      "empty": "Select a clip on the timeline to animate it.",
+      "several": "Select one clip to animate it.",
+      "unsupportedTitle": "Nothing to animate",
+      "unsupported": "Select a video, image, text or shape clip to animate it."
+    },
+    "color": {
+      "empty": "Select a clip on the timeline to grade it.",
+      "several": "Select one clip to grade it.",
+      "unsupportedTitle": "This clip has no picture",
+      "unsupported": "Select a video, image, text or shape clip to grade it."
+    },
+    "ai": {
+      "empty": "Select a clip on the timeline to generate from it or edit it with AI.",
+      "several": "Select one clip to generate from it.",
+      "unsupportedTitle": "No AI tools for this clip",
+      "unsupported": "Select a video or image clip, or a generated clip."
+    }
   }
 }

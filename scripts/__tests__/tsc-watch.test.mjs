@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -69,6 +69,7 @@ describe("TypeScript 6 fallback watch mode", () => {
       }
     );
     let output = "";
+    const closed = new Promise((resolveClosed) => child.once("close", resolveClosed));
     child.stdout.on("data", (chunk) => (output += chunk));
     child.stderr.on("data", (chunk) => (output += chunk));
 
@@ -90,7 +91,12 @@ describe("TypeScript 6 fallback watch mode", () => {
       await waitForSuccessfulBuild(() => output, 5);
       expect(child.exitCode).toBeNull();
     } finally {
-      child.kill("SIGTERM");
+      if (process.platform === "win32" && child.pid) {
+        spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+      } else {
+        child.kill("SIGTERM");
+      }
+      await closed;
     }
   }, 30_000);
 });

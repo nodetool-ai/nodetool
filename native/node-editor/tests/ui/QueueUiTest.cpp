@@ -69,6 +69,15 @@ class QueueUiTest final : public QObject {
         }
         return nullptr;
     }
+    // The canvas overlay opened with no jobs, as its own list button leaves it.
+    static void openOverlay(EditorWindow &w) {
+        for (auto widget : w.findChildren<QQuickWidget *>()) {
+            if (widget->source().fileName() == "QueueOverlay.qml" && widget->rootObject()) {
+                widget->rootObject()->setProperty("opened", true);
+                widget->rootObject()->setProperty("expanded", true);
+            }
+        }
+    }
     static void click(QQuickWidget *widget, const QString &name) {
         QVERIFY(widget);
         auto item = find(widget->rootObject(), name);
@@ -136,7 +145,7 @@ private slots:
         window.resize(1200, 800);
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
-        window.toggleStatusView("queue");
+        openOverlay(window);
         QQuickWidget *queue = nullptr;
         QTRY_VERIFY((queue = panel(window, "QueueOverlay.qml")));
         auto *parent = queue->parentWidget();
@@ -174,7 +183,7 @@ private slots:
             other.resize(900, 700);
             other.show();
             QVERIFY(QTest::qWaitForWindowExposed(&other));
-            other.toggleStatusView("queue");
+            openOverlay(other);
             QQuickWidget *otherQueue = nullptr;
             QTRY_VERIFY((otherQueue = panel(other, "QueueOverlay.qml")));
             QTRY_COMPARE(canvasRect(other, otherQueue->parentWidget()).right() - otherQueue->geometry().right(), rightGap);
@@ -190,6 +199,36 @@ private slots:
         QTest::keyClick(queue->quickWindow(), Qt::Key_Home);
         QTRY_COMPARE(queue->pos(), canvasRect(window, parent).topLeft() + QPoint(16, 16));
         QVERIFY(!QSettings().contains("queueOverlay/position"));
+    }
+    // PanelBottom.tsx: the Queue tab opens QueuePanel in the bottom panel at any
+    // time, and the tab or the header's close button closes it again.
+    void queueTabOpensBottomPanel() {
+        EditorWindow window;
+        window.resize(1200, 800);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(!window.queueVisible());
+        window.toggleStatusView("queue");
+        QTRY_VERIFY(window.queueVisible());
+        auto *dock = window.findChild<QDockWidget *>("queue-dock");
+        QVERIFY(dock);
+        QQuickWidget *queue = nullptr;
+        QTRY_VERIFY((queue = panel(window, "QueuePanel.qml")));
+        // The list fills the panel: no drag grip and no collapse to a summary.
+        auto *list = find(queue->rootObject(), "queue-panel-list");
+        QVERIFY(list);
+        QVERIFY(list->property("showList").toBool());
+        QVERIFY(!find(queue->rootObject(), "queue-header-move-grip")->isVisible());
+        QCOMPARE(find(queue->rootObject(), "queue-collapse")->property("accessibleName").toString(), QString("Close queue"));
+        // The canvas overlay stays hidden while no job runs.
+        QVERIFY(!panel(window, "QueueOverlay.qml"));
+        QVERIFY(queue->height() > 200);
+        window.toggleStatusView("queue");
+        QTRY_VERIFY(!window.queueVisible());
+        window.toggleStatusView("queue");
+        QTRY_VERIFY((queue = panel(window, "QueuePanel.qml")));
+        click(queue, "queue-collapse");
+        QTRY_VERIFY(!window.queueVisible());
     }
     void roundedCorners() {
         RunOutputModel output;
@@ -305,6 +344,12 @@ private slots:
         const auto idleNow = root->property("now");
         QTest::qWait(1100);
         QCOMPARE(root->property("now"), idleNow);
+        // Opening the queue reads the clock, so its day groups are current.
+        root->setProperty("now", 0.0);
+        root->setProperty("opened", true);
+        QTRY_VERIFY(root->property("now").toDouble() > 0);
+        root->setProperty("opened", false);
+        QTRY_VERIFY(!root->property("presented").toBool());
         auto theme = widget.engine()->singletonInstance<QObject *>(
             "NodeTool.UiPrimitives", "Theme");
         QVERIFY(theme);

@@ -21,6 +21,9 @@ check(Object.keys(denied.interfaces).length === 0, 'default deny');
 throws(() => openModelRepository(`${root}/../outside.sqlite`, 'alice'), /outside the granted directory/);
 const models = createGuestModels({ userId: 'alice', databasePath: `${root}/models.sqlite`, assetStorage: storage, assetRoot: `${root}/assets` });
 const r = models.repository, api = models.interfaces;
+const archived = r.put('messages', { id: 'archived-fixture', thread_id: 'branch-fixture', role: 'assistant',
+  content: 'Earlier answer', branch_id: 'b'.repeat(32), branch_after: 'a'.repeat(32) });
+check(archived.branch_id === 'b'.repeat(32) && archived.branch_after === 'a'.repeat(32), 'message branch columns persist through the native repository');
 const call = (name, args) => api[name]({ ...args, userId: 'alice' });
 const asset = await call('createAsset', { name: 'note.txt', contentType: 'text/plain', content: new Uint8Array([65, 66]), metadata: { nested: { n: 1 } } });
 check(/^[a-f0-9]{32}$/.test(asset.id), 'full resource ID');
@@ -112,6 +115,7 @@ models.close(); bob.close();
 const reopened = createGuestModels({ userId: 'alice', databasePath: `${root}/models.sqlite`, assetStorage: storage });
 check((await reopened.interfaces.getAssetInfo({ userId: 'alice', assetId: asset.id })).name === 'changed.txt', 'persistent reopen');
 check((await reopened.resolveAssetBytes(asset.id))[0] === 67, 'persistent bytes reopen');
+check(reopened.repository.get('messages', archived.id).branch_after === archived.branch_after, 'message branch survives reopening');
 reopened.close();
 globalThis.__modelChecks = checks;
 

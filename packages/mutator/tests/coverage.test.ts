@@ -1,13 +1,13 @@
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { istanbulLines, parseLcov, readCoverageDir } from "../src/coverage.js";
 
 describe("parseLcov", () => {
   it("collects hit lines and resolves relative paths", () => {
     const map = parseLcov("SF:src/a.ts\nDA:1,1\nDA:2,0\nDA:3,5\nend_of_record\n", "/pkg");
-    expect([...(map.get("/pkg/src/a.ts") ?? [])]).toEqual([1, 3]);
+    expect([...(map.get(resolve("/pkg/src/a.ts")) ?? [])]).toEqual([1, 3]);
   });
 });
 

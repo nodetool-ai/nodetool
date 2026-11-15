@@ -94,7 +94,7 @@ export const listNodesSpec: CapabilitySpec = {
 export const searchNodesSpec: CapabilitySpec = {
   name: "search_nodes",
   description:
-    "Search for available nodes by keyword. Provider-specific nodes are hidden by default — set include_provider_nodes:true only when the user named a provider. Use namespace to scope to e.g. 'nodetool.control'.",
+    "Search for available nodes by keyword. Provider-specific nodes are hidden by default — set include_provider_nodes:true only when the user named a provider. Use namespace to scope to e.g. 'nodetool.control'. Each result lists at most 8 inputs (inputs_total says when there are more); call get_node_info for the full schema of the node you pick.",
   inputSchema: SEARCH_NODES_INPUT_SCHEMA,
   category: "read",
   userMessage: (params) => {

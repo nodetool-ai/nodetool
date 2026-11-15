@@ -11,7 +11,7 @@ namespace: "vector"
 
 ## Description
 
-Index a single text chunk.
+Index a single text chunk. Outputs the collection once indexing finishes, so a query can wait for it.
     vector, embedding, collection, RAG, index, text, chunk
 
 ## Properties
@@ -25,7 +25,9 @@ Index a single text chunk.
 
 ## Outputs
 
-_(none)_
+| Output | Type | Description |
+|--------|------|-------------|
+| output | `collection` |  |
 
 ## Related Nodes
 

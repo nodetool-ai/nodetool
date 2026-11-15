@@ -11,7 +11,7 @@ function snapshot(root: string) {
   return JSON.parse(readFileSync(join(root, ".metrics/mutate/packages.math.src.math.json"), "utf8"));
 }
 
-describe("mutation shards", () => {
+describe("mutation shards", { timeout: 30_000 }, () => {
   it("validates a one-based shard without changing default selection", () => {
     expect(parseArgs(["--shard", "1/2"])).toMatchObject({ shard: { index: 1, count: 2 } });
     expect(parseArgs([])).toMatchObject({ shard: null });

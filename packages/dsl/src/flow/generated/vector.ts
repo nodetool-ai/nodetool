@@ -72,6 +72,7 @@ export type IndexImageInputs = {
 };
 
 export interface IndexImageOutputs {
+  output: unknown;
 }
 
 export function indexImage(inputs: IndexImageInputs): Promise<IndexImageOutputs> {
@@ -87,6 +88,7 @@ export type IndexEmbeddingInputs = {
 };
 
 export interface IndexEmbeddingOutputs {
+  output: unknown;
 }
 
 export function indexEmbedding(inputs: IndexEmbeddingInputs): Promise<IndexEmbeddingOutputs> {
@@ -102,6 +104,7 @@ export type IndexTextChunkInputs = {
 };
 
 export interface IndexTextChunkOutputs {
+  output: unknown;
 }
 
 export function indexTextChunk(inputs: IndexTextChunkInputs): Promise<IndexTextChunkOutputs> {
@@ -119,6 +122,7 @@ export type IndexAggregatedTextInputs = {
 };
 
 export interface IndexAggregatedTextOutputs {
+  output: unknown;
 }
 
 export function indexAggregatedText(inputs: IndexAggregatedTextInputs): Promise<IndexAggregatedTextOutputs> {
@@ -134,6 +138,7 @@ export type IndexStringInputs = {
 };
 
 export interface IndexStringOutputs {
+  output: unknown;
 }
 
 export function indexString(inputs: IndexStringInputs): Promise<IndexStringOutputs> {

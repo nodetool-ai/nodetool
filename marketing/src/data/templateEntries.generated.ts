@@ -4150,14 +4150,14 @@ export const templateEntries: TemplateEntry[] = [
           "color": "any"
         },
         {
-          "source": "collection",
+          "source": "index_specs",
           "sourceHandle": "output",
           "target": "index_charging",
           "targetHandle": "collection",
           "color": "any"
         },
         {
-          "source": "collection",
+          "source": "index_charging",
           "sourceHandle": "output",
           "target": "index_warranty",
           "targetHandle": "collection",
@@ -4185,7 +4185,7 @@ export const templateEntries: TemplateEntry[] = [
           "color": "string"
         },
         {
-          "source": "collection",
+          "source": "index_warranty",
           "sourceHandle": "output",
           "target": "retrieve",
           "targetHandle": "collection",

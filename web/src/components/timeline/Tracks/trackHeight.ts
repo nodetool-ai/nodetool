@@ -8,6 +8,17 @@
 
 export const DEFAULT_TRACK_HEIGHT_PX = 64;
 export const FX_PANEL_HEIGHT_PX = 280;
+/** The range a track row can be resized to. */
+export const MIN_TRACK_HEIGHT_PX = 48;
+export const MAX_TRACK_HEIGHT_PX = 300;
+
+/** A track's stored height moved by `deltaPx`, kept within the resize range. */
+export function steppedTrackHeightPx(track: { heightPx?: number }, deltaPx: number): number {
+  return Math.min(
+    MAX_TRACK_HEIGHT_PX,
+    Math.max(MIN_TRACK_HEIGHT_PX, (track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) + deltaPx)
+  );
+}
 
 
 /** Default row height of a midi, audio or chord track in DAW mode. */

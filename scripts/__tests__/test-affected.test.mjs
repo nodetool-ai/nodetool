@@ -142,7 +142,7 @@ describe("buildPlan", () => {
     expect(steps[0].label).toBe("web: tests related to 1 changed file(s)");
     expect(steps[0].args).toContain("--findRelatedTests");
     expect(steps[0].args).toContain("--passWithNoTests");
-    expect(steps[0].args.at(-2)).toMatch(/web\/src\/utils\/ColorUtils\.ts$/);
+    expect(steps[0].args.at(-2).replaceAll("\\", "/")).toMatch(/web\/src\/utils\/ColorUtils\.ts$/);
   });
 
   it("runs an app's whole suite when a package it depends on changed", () => {
@@ -260,6 +260,8 @@ describe("buildPlan", () => {
     "native/gpu-preview/src/GpuPreviewItem.cpp",
     "native/node-editor/src/main.cpp",
     "native/model-picker/CMakeLists.txt",
+    "native/realtime/spike/buffered-audio/driver.cpp",
+    "native/realtime/spike/sync/analyze.mjs",
     "native/timeline/src/main.cpp"
   ])("selects the affected native ctest tests for %s", (file) => {
     expect(plan([file]).globalFiles).toEqual([]);

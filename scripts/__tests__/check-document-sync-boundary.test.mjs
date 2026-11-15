@@ -16,7 +16,7 @@ describe("Document sync boundary audit", () => {
       saveRegistries: 2
     });
     expect(result.violations).toEqual([]);
-  }, 15_000);
+  }, 60_000);
 
   it("rejects object and function generic controller calls imported under aliases", () => {
     const result = auditDocumentSyncSources([

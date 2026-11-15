@@ -1617,7 +1617,11 @@
       "assistant": "助手",
       "history": "历史记录",
       "code": "代码",
-      "storyboard": "故事板"
+      "storyboard": "故事板",
+      "effectControls": "效果控件",
+      "motion": "运动",
+      "color": "颜色",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "DAW 模式有自己的轨道视图。关闭 DAW 模式（Alt+M）以打开时间线面板。",
@@ -13460,8 +13464,14 @@
         },
         "connectProviderTitle": "连接 AI 提供商以开始使用",
         "connectProviderButton": "连接提供商",
-        "title": "今天我能帮你做什么？",
-        "subtitle": "可以随意提问、添加文件，或从以下示例开始："
+        "greeting": {
+          "morning": "早上好",
+          "afternoon": "下午好",
+          "evening": "晚上好",
+          "morningName": "{{name}}，早上好",
+          "afternoonName": "{{name}}，下午好",
+          "eveningName": "{{name}}，晚上好"
+        }
       },
       "taskDock": {
         "label": "任务",
@@ -16831,7 +16841,49 @@
         "exitExpandedPreview": "退出展开的预览",
         "moveOnePixel": "将片段移动一个像素",
         "moveTenPixels": "将片段移动十个像素",
-        "resetTransform": "重置变换"
+        "resetTransform": "重置变换",
+        "extendPrevEdit": "将上一个编辑点延伸到播放头",
+        "extendNextEdit": "将下一个编辑点延伸到播放头",
+        "selectPrevClip": "选择上一个片段",
+        "selectNextClip": "选择下一个片段",
+        "clipVolumeUp": "片段音量提高 1 dB",
+        "clipVolumeDown": "片段音量降低 1 dB",
+        "clipVolumeUpMore": "片段音量提高 6 dB",
+        "clipVolumeDownMore": "片段音量降低 6 dB",
+        "slideLeft": "将选中片段向后滑动一帧",
+        "slideRight": "将选中片段向前滑动一帧",
+        "slowShuttleBack": "慢速向后穿梭（再次按下加速）",
+        "slowShuttleForward": "慢速向前穿梭（再次按下加速）",
+        "goToSequenceStart": "转到序列开头",
+        "goToSequenceEnd": "转到序列结尾",
+        "goToSelectedStart": "转到所选内容开头",
+        "goToSelectedEnd": "转到所选内容的最后一帧",
+        "markSelection": "标记所选内容（在其周围设置入点和出点）",
+        "clearIn": "清除入点",
+        "clearOut": "清除出点",
+        "prevCutAnyTrack": "任意轨道上的上一个剪辑点",
+        "nextCutAnyTrack": "任意轨道上的下一个剪辑点",
+        "prevGap": "转到序列中的上一个间隙",
+        "nextGap": "转到序列中的下一个间隙",
+        "addRangeMarker": "在播放头处添加一秒的范围标记",
+        "addMarkerInOut": "添加从入点到出点的标记",
+        "clearAllMarkers": "清除所有标记",
+        "playAround": "播放播放头前后",
+        "playInToOutWithRoll": "带预卷和后卷从入点播放到出点",
+        "playToOut": "从播放头播放到出点",
+        "expandAllTracks": "展开所有轨道（再次按下还原）",
+        "minimizeAllTracks": "最小化所有轨道（再次按下还原）",
+        "audioTracksTaller": "增大音频轨道高度",
+        "audioTracksShorter": "减小音频轨道高度",
+        "panelSource": "转到源",
+        "panelTimeline": "转到时间轴",
+        "panelProgram": "转到节目",
+        "panelEffectControls": "转到效果控件",
+        "panelInspector": "转到检查器",
+        "panelScript": "转到脚本",
+        "panelStoryboard": "转到故事板",
+        "nextPanel": "转到下一个面板",
+        "prevPanel": "转到上一个面板"
       }
     },
     "vst": {
@@ -20041,5 +20093,31 @@
     },
     "opening": "正在打开…",
     "startFailed": "无法打开该入门项：{{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "未选择片段",
+    "severalClips": "已选择多个片段",
+    "effectControls": {
+      "empty": "在时间线上选择一个片段，以调整其变换、不透明度、效果和蒙版。",
+      "several": "选择单个片段进行调整。"
+    },
+    "motion": {
+      "empty": "在时间线上选择一个片段来为其添加动画。",
+      "several": "选择单个片段来为其添加动画。",
+      "unsupportedTitle": "没有可动画的内容",
+      "unsupported": "选择视频、图像、文本或形状片段来为其添加动画。"
+    },
+    "color": {
+      "empty": "在时间线上选择一个片段进行调色。",
+      "several": "选择单个片段进行调色。",
+      "unsupportedTitle": "此片段没有画面",
+      "unsupported": "选择视频、图像、文本或形状片段进行调色。"
+    },
+    "ai": {
+      "empty": "在时间线上选择一个片段，以基于它生成内容或用 AI 编辑它。",
+      "several": "选择单个片段以基于它生成内容。",
+      "unsupportedTitle": "此片段没有可用的 AI 工具",
+      "unsupported": "选择视频或图像片段，或已生成的片段。"
+    }
   }
 }

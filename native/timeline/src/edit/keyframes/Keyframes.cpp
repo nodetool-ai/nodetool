@@ -649,14 +649,10 @@ QJsonValue toggle(const QJsonObject& clip, const QString& row, const QJsonValue&
         }
         return setMany(clip, entries, ms);
     }
-    bool remaining = false;
-    for (const auto& t : times(clip, ps)) {
-        if (std::abs(t.toDouble() - ms) > 0.5) {
-            remaining = true;
-        }
-    }
-    return remaining ? QJsonValue(update(clip, ps, "remove", ms))
-                     : stopwatch(clip, row, at);
+    // Deleting the last key turns the stopwatch off and keeps the value, as
+    // the web's toggleRowKeyframeAt decides it: on what is left after removal.
+    const auto removed = update(clip, ps, "remove", ms);
+    return rowKeyed(merged(clip, removed), row) ? QJsonValue(removed) : stopwatch(clip, row, at);
 }
 QJsonValue commit(const QJsonObject& clip, const QString& row, int index, double value, const QJsonValue& at) {
     const auto specs = inputs(row);
@@ -1334,7 +1330,8 @@ QJsonArray times(const QJsonObject& clip, const QStringList& ps) {
             if (t < -epsilon || t > 1 + epsilon) {
                 continue;
             }
-            found.insert(std::floor(t * clip["durationMs"].toDouble() + 0.5));
+            // Unrounded, as keyframes.ts keyframeTimesMs returns them.
+            found.insert(t * clip["durationMs"].toDouble());
         }
     }
     auto values = found.values();

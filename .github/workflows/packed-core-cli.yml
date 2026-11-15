@@ -9,6 +9,7 @@ on:
       - 'scripts/fixtures/packed-fal-preload.mjs'
       - 'scripts/__tests__/packed-*.test.mjs'
       - 'scripts/packed-verification.mjs'
+      - 'scripts/package-manager.mjs'
       - 'scripts/test-affected.mjs'
       - 'scripts/ci-plan.mjs'
       - 'scripts/run-turbo.mjs'
@@ -123,6 +124,7 @@ jobs:
         run: npm --prefix mobile ci
       - name: Prepare Chromium crash capture
         if: matrix.task == 'test-packages-game'
+        shell: bash
         run: |
           crash_dir="$RUNNER_TEMP/chromium-crashes"
           mkdir -p "$crash_dir/cores" "$crash_dir/upload"
@@ -183,6 +185,7 @@ jobs:
         run: node scripts/packed-verification.mjs run "$RUNNER_TEMP/packed-verification.json" "$PACKED_TASK"
       - name: Diagnose Chromium cores and restore the core handler
         if: always() && matrix.task == 'test-packages-game'
+        shell: bash
         env:
           BUCKET_OUTCOME: ${{ steps.verification-bucket.outcome }}
           DEBUGINFOD_URLS: https://debuginfod.ubuntu.com

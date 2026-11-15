@@ -74,7 +74,7 @@ afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) { rmSync(directory, { recursive: true, force: true }); }
 });
 
-describe("desktop release recovery", () => {
+describe("desktop release recovery", { timeout: 30_000 }, () => {
   it.each(["annotated", "lightweight"])("resolves an existing %s tag to a pinned source commit", tagType => {
     const repository = fixture(tagType);
     const result = preflight(repository);

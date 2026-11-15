@@ -304,3 +304,34 @@ describe("spec text the shipped skills rely on", () => {
     }
   });
 });
+
+describe("search_nodes rows stay small", () => {
+  it("lists at most 8 inputs per result and reports the full count", async () => {
+    const wide = createMetadata({
+      node_type: "fal.three_d.Wide",
+      title: "Wide 3D",
+      description: "A node with many properties.",
+      namespace: "fal.three_d",
+      properties: Array.from({ length: 20 }, (_, i) => ({
+        name: `prop_${i}`,
+        type: { type: "str", type_args: [] },
+        title: `Prop ${i}`
+      })) as NodeMetadata["properties"]
+    });
+    const result = (await capTool("search_nodes", mockRegistry([wide])).process(
+      ctx,
+      { query: ["wide"], include_provider_nodes: true }
+    )) as { results: Record<string, unknown>[] };
+    const row = result.results[0];
+    expect((row.inputs as unknown[]).length).toBe(8);
+    expect(row.inputs_total).toBe(20);
+  });
+
+  it("omits inputs_total when every input fits", async () => {
+    const result = (await capTool("search_nodes", mockRegistry(NODES)).process(
+      ctx,
+      { query: ["resize"] }
+    )) as { results: Record<string, unknown>[] };
+    expect(result.results[0]).not.toHaveProperty("inputs_total");
+  });
+});

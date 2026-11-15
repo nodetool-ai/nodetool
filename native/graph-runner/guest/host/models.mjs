@@ -8,7 +8,7 @@ import { assets, jobs, workflows, resolveResourceId, ASSET_FAVORITE_DDL, JOB_TRA
 import { appSettings } from 'guest-real:@nodetool-ai/models/schema/settings.js';
 import { messages } from 'guest-real:@nodetool-ai/models/schema/messages.js';
 import { threads } from 'guest-real:@nodetool-ai/models/schema/threads.js';
-import { applySqliteBaseline } from './models-baseline.cjs';
+import { applySqliteBaseline, migrateMessageBranches } from './models-baseline.cjs';
 import { getAssetFileName } from '@nodetool-ai/protocol';
 import { normalizeAssetContentType } from 'guest-real:@nodetool-ai/asset-services/asset-paths.js';
 import { scripts } from 'guest-real:@nodetool-ai/models/schema/scripts.js';
@@ -48,6 +48,7 @@ export function openModelRepository(databasePath, userId) {
     client.pragma('busy_timeout = 5000');
     applySqliteBaseline(client);
     client.transaction(() => {
+      migrateMessageBranches(client);
       if (!client.pragma('table_info("nodetool_assets")').some((column) => column.name === 'favorite')) client.exec(ASSET_FAVORITE_DDL);
       if (!client.pragma('table_info("nodetool_jobs")').some((column) => column.name === 'has_run_trace')) client.exec(JOB_TRACE_MARKER_DDL);
       // The 20261110_000000 add_thread_kind migration in @nodetool-ai/models.

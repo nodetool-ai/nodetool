@@ -75,26 +75,38 @@ void AccountJobs::refresh(bool staleOnly) {
         }
         if (error.isEmpty()) {
             m_rows = data["jobs"].toArray();
+            // A refresh replaces the rows, so names fetched before fill in again
+            // and only workflows not asked about yet are fetched.
+            QSet<QString> workflows;
+            for (qsizetype i = 0; i < m_rows.size(); ++i) {
+                auto row = m_rows[i].toObject();
+                if (!row["name"].toString().isEmpty()) { continue; }
+                const auto id = row["workflow_id"].toString();
+                if (m_workflowNames.contains(id)) {
+                    row["name"] = m_workflowNames.value(id);
+                    m_rows[i] = row;
+                } else if (!id.isEmpty() && !m_namesRequested.contains(id)) {
+                    workflows.insert(id);
+                }
+            }
             m_error.clear();
             m_updated = QDateTime::currentMSecsSinceEpoch();
             emit changed();
             loadOutputs();
-            QSet<QString> workflows;
-            for (const auto &entry : m_rows) {
-                const auto row = entry.toObject();
-                if (row["name"].toString().isEmpty()) {
-                    workflows.insert(row["workflow_id"].toString());
-                }
-            }
             for (const auto &id : workflows) {
+                m_namesRequested.insert(id);
                 request("workflows.get", {{"id", id}}, false, [this, id](QJsonObject workflow, QString error) {
                     if (!error.isEmpty()) {
+                        // A later refresh asks again.
+                        m_namesRequested.remove(id);
                         return;
                     }
+                    const auto name = workflow["name"].toString("Untitled");
+                    m_workflowNames.insert(id, name);
                     for (qsizetype i = 0; i < m_rows.size(); ++i) {
                         auto row = m_rows[i].toObject();
                         if (row["workflow_id"] == id && row["name"].toString().isEmpty()) {
-                            row["name"] = workflow["name"].toString("Untitled");
+                            row["name"] = name;
                             m_rows[i] = row;
                         }
                     }

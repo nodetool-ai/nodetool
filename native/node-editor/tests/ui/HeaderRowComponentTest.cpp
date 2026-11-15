@@ -160,13 +160,13 @@ private slots:
         click(view, button("rail-panel"));
         QTRY_COMPARE(panel.size(), 1);
 
-        // A view with no native panel stays disabled, and its hover says why.
-        QVERIFY(!button("rail-projects")->isEnabled());
-        QTest::mouseMove(&view, centre(named(root, "rail-projects")));
-        auto *tip = button("rail-projects")->findChild<QObject *>("nativeButtonTooltip");
-        QVERIFY(tip);
-        QTRY_VERIFY(tip->property("visible").toBool());
-        QCOMPARE(tip->property("text").toString(), QString("Projects has no native surface yet. Switch projects from the project menu in the tab strip."));
+        // Projects opens the project menu. Its tooltip text is the button's
+        // accessible name (ChromeParityTest checks it shown on hover).
+        QCOMPARE(button("rail-projects")->property("accessibleName").toString(), QString("Switch or create a project"));
+        QSignalSpy projects(&panels, &PanelLayout::projectsRequested);
+        QVERIFY(button("rail-projects")->isEnabled());
+        click(view, button("rail-projects"));
+        QTRY_COMPARE(projects.size(), 1);
 
         panels.setPanels({.examples = true});
         QTRY_VERIFY(button("rail-examples")->property("active").toBool());

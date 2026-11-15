@@ -27,6 +27,12 @@ QJsonObject typeOf(const QJsonObject &port) {
   const auto value = port["type"];
   return value.isObject() ? value.toObject() : value.isString() ? QJsonObject{{"type",value}} : QJsonObject{};
 }
+// KeyboardConnectionPicker.tsx titleize: snake_case words, each capitalized.
+QString titleizedHandle(const QString &name) {
+  auto words=name.split('_');
+  for (auto &word:words) { if (!word.isEmpty()) { word[0]=word[0].toUpper(); } }
+  return words.join(' ');
+}
 QString nodeType(const QJsonObject &metadata) { return metadata["node_type"].toString(metadata["type"].toString()); }
 // web config/data_types.ts labelForType over NODETOOL_DATA_TYPES.
 QString labelForType(const QString &type) {
@@ -150,6 +156,7 @@ CompatibleNodePicker::~CompatibleNodePicker() {
 QQuickWidget *CompatibleNodePicker::widget() const { return widget_; }
 void CompatibleNodePicker::setCatalog(const QJsonArray &catalog) { cancel(); catalog_=catalog; compatibleCache_.clear(); }
 QString CompatibleNodePicker::title() const {
+  if (keyboard_) { return tr("Connect %1").arg(titleizedHandle(handle_)); }
   if (body_!=QtNodes::InvalidNodeId) { return port_==QtNodes::PortType::Out ? tr("Choose an input port"):tr("Choose an output port"); }
   return port_==QtNodes::PortType::Out ? tr("Connect to a new node") : tr("Connect from a new node");
 }
@@ -236,6 +243,89 @@ void CompatibleNodePicker::open(QtNodes::NodeId node,QtNodes::PortType port,
   candidates_=*cached; rowsValid_=false;
   buildFixed();
   showWidget();
+}
+void CompatibleNodePicker::openKeyboard(QtNodes::NodeId node,QtNodes::PortType port,
+    QtNodes::PortIndex index,const QPointF &position) {
+  cancel();
+  if (!initialize(node,port,index,position)) { return; }
+  keyboard_=true;
+  const auto cacheKey=QString::number(int(port))+QJsonDocument(type_).toJson(QJsonDocument::Compact);
+  auto cached=compatibleCache_.find(cacheKey);
+  if (cached==compatibleCache_.end()) { cached=compatibleCache_.insert(cacheKey,catalogCandidates()); }
+  candidates_=*cached; existing_=existingCandidates(); rowsValid_=false;
+  if (!connectedEdges().isEmpty()) {
+    const auto count=connectedEdges().size();
+    fixed_.append(FixedAction{"fixed\ndisconnect",count==1 ? tr("Disconnect 1 edge") : tr("Disconnect %1 edges").arg(count),
+                              {},{},{},{},false,true});
+  }
+  showWidget();
+}
+QStringList CompatibleNodePicker::connectedEdges() const {
+  QStringList ids;
+  const bool forward=port_==QtNodes::PortType::Out;
+  for (const auto &value:model_.edgeSnapshot()) {
+    const auto edge=value.toObject();
+    if (edge[forward ? "source":"target"].toString()==resource_ && edge[forward ? "sourceHandle":"targetHandle"].toString()==handle_) {
+      ids.append(edge["id"].toString());
+    }
+  }
+  return ids;
+}
+// KeyboardConnectionPicker.tsx: every compatible port on another node whose wire
+// the graph would accept. A wire that already exists or closes a cycle is left out.
+QVector<CompatibleNodePicker::Candidate> CompatibleNodePicker::existingCandidates() const {
+  QVector<Candidate> result;
+  const bool forward=port_==QtNodes::PortType::Out;
+  QHash<QString,QStringList> downstream;
+  QSet<QString> wired;
+  for (const auto &value:model_.edgeSnapshot()) {
+    const auto edge=value.toObject();
+    downstream[edge["source"].toString()].append(edge["target"].toString());
+    wired.insert(edge["source"].toString()+"\n"+edge["sourceHandle"].toString()+"\n"+edge["target"].toString()+"\n"+edge["targetHandle"].toString());
+  }
+  const auto reaches=[&](const QString &from,const QString &to) {
+    QStringList pending{from}; QSet<QString> visited;
+    while (!pending.isEmpty()) {
+      const auto id=pending.takeLast();
+      if (id==to) { return true; }
+      if (visited.contains(id)) { continue; }
+      visited.insert(id); pending.append(downstream.value(id));
+    }
+    return false;
+  };
+  struct Entry { QPointF position; QString resource; QtNodes::NodeId id; };
+  QVector<Entry> nodes;
+  for (const auto id:model_.allNodeIds()) {
+    if (id==node_ || model_.isGroup(id) || model_.isComment(id) || model_.metadata(id).isEmpty()) { continue; }
+    nodes.append({model_.nodeData(id,QtNodes::NodeRole::Position).toPointF(),model_.resourceId(id),id});
+  }
+  // allNodeIds is unordered. Reading order keeps the list stable between opens.
+  std::sort(nodes.begin(),nodes.end(),[](const Entry &a,const Entry &b) {
+    return a.position.y()!=b.position.y() ? a.position.y()<b.position.y()
+         : a.position.x()!=b.position.x() ? a.position.x()<b.position.x() : a.resource<b.resource;
+  });
+  for (const auto &entry:nodes) {
+    const auto snapshot=model_.nodeSnapshot(entry.id),metadata=model_.metadata(entry.id);
+    // Downstream of our output: the other node must not already reach this one.
+    if (forward ? reaches(entry.resource,resource_) : reaches(resource_,entry.resource)) { continue; }
+    // The title the card shows (node.data.title || metadata.title on the web).
+    const auto title=model_.layout(entry.id).title;
+    for (const auto &port:bodyPorts(snapshot,metadata,!forward)) {
+      if (port.name=="__control__" || handle_=="__control__") { continue; }
+      const bool compatible=forward ? node_editor::connectionTypesCompatible(type_,port.type)
+                                    : node_editor::connectionTypesCompatible(port.type,type_);
+      if (!compatible) { continue; }
+      const auto key=forward ? resource_+"\n"+handle_+"\n"+entry.resource+"\n"+port.name
+                             : entry.resource+"\n"+port.name+"\n"+resource_+"\n"+handle_;
+      if (wired.contains(key)) { continue; }
+      addCandidate(result,QVariantMap{{"key","existing\n"+entry.resource+"\n"+port.name},{"port",port.name},
+        {"type",snapshot["type"].toString()},{"label",title},{"portLabel",titleizedHandle(port.name)},
+        {"typeLabel",tr("Existing node")},{"existing",true}});
+      // The filter reads node title and handle title, as the web does.
+      result.last().text=(title+" "+titleizedHandle(port.name)).toCaseFolded();
+    }
+  }
+  return result;
 }
 void CompatibleNodePicker::showWidget() {
   active_=true;
@@ -324,6 +414,13 @@ QVariantList CompatibleNodePicker::rows() const {
       auto found=at.constFind(node.type);
       if (found==at.constEnd()) { found=at.insert(node.type,int(nodes.size())); nodes.append(node); ports.append(QVector<int>{}); }
       ports[found.value()].append(i);
+    }
+    if (keyboard_) {
+      // The web lists the existing ports first, filtered by node and handle title.
+      const auto terms=query_.simplified().toCaseFolded().split(' ',Qt::SkipEmptyParts);
+      for (const auto &candidate:existing_) {
+        if (std::all_of(terms.begin(),terms.end(),[&](const auto &term) { return candidate.text.contains(term); })) { rowsCache_.append(candidate.row); }
+      }
     }
     const auto recent=recentTypes ? recentTypes() : QStringList{};
     for (const int node:ranker_.rank(nodes,query_,recent)) {
@@ -442,7 +539,7 @@ void CompatibleNodePicker::buildFixed() {
 }
 QVariantList CompatibleNodePicker::fixedRows() const {
   QVariantList result;
-  if (body_!=QtNodes::InvalidNodeId || !query_.trimmed().isEmpty()) { return result; }
+  if (body_!=QtNodes::InvalidNodeId || (!keyboard_ && !query_.trimmed().isEmpty())) { return result; }
   for (const auto &action:fixed_) {
     result.append(QVariantMap{{"key",action.key},{"label",action.label},{"destructive",action.destructive}});
   }
@@ -452,6 +549,27 @@ void CompatibleNodePicker::setQuery(const QString &query) { if (query_!=query) {
 void CompatibleNodePicker::choose(const QString &key, int generation) {
   if (generation!=generation_) { return; }
   if (!current()) { cancel(); return; }
+  if (key=="fixed\ndisconnect" && keyboard_) {
+    // The dialog's Disconnect action removes every wire on the handle.
+    QJsonArray commands;
+    for (const auto &id:connectedEdges()) { commands.append(QJsonObject{{"op","removeEdge"},{"id",id}}); }
+    cancel();
+    if (applyCommand && !commands.isEmpty()) { applyCommand(QJsonObject{{"op","batch"},{"commands",commands}}); }
+    return;
+  }
+  if (key.startsWith("existing\n") && keyboard_) {
+    const auto parts=key.split('\n');
+    if (parts.size()!=3) { return; }
+    QtNodes::NodeId other=QtNodes::InvalidNodeId;
+    for (const auto id:model_.allNodeIds()) { if (model_.resourceId(id)==parts[1]) { other=id; } }
+    if (other==QtNodes::InvalidNodeId) { cancel(); return; }
+    const bool forward=port_==QtNodes::PortType::Out;
+    const auto command=bodyConnectionCommand(model_,forward ? node_:other,forward ? handle_:parts[2],
+        forward ? other:node_,forward ? parts[2]:handle_);
+    cancel();
+    if (applyCommand) { applyCommand(command); }
+    return;
+  }
   if (key.startsWith("fixed\n")) {
     if (!query_.trimmed().isEmpty()) { return; }
     const auto action=std::find_if(fixed_.cbegin(),fixed_.cend(),[&](const auto &a) { return a.key==key; });
@@ -597,7 +715,7 @@ void CompatibleNodePicker::deleteOutput(int generation) {
 void CompatibleNodePicker::cancel() {
   scene_.resetDraftConnection();
   ++generation_;
-  active_=false; candidates_.clear(); fixed_.clear(); rowsValid_=false; query_.clear(); body_=QtNodes::InvalidNodeId; bodyResource_.clear();
+  active_=false; keyboard_=false; existing_.clear(); candidates_.clear(); fixed_.clear(); rowsValid_=false; query_.clear(); body_=QtNodes::InvalidNodeId; bodyResource_.clear();
   if (widget_) { widget_->hide(); widget_->setEnabled(false); }
   emit changed();
 }

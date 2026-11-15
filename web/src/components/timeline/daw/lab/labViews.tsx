@@ -11,7 +11,7 @@ import { TimelineDocumentBar } from "../../TimelineDocumentBar";
 import WorkspaceTabBar from "../../../workspace/WorkspaceTabBar";
 import { WorkflowManagerProvider } from "../../../../contexts/WorkflowManagerContext";
 import { useWorkspaceTabsStore } from "../../../../stores/WorkspaceTabsStore";
-import { TimelineInspector } from "../../Inspector/TimelineInspector";
+import { TimelineEffectControlsPanel } from "../../Inspector/TimelineClipPanels";
 import { TracksRegion } from "../../Tracks/TracksRegion";
 import { HarmonyPanel } from "../harmony/HarmonyPanel";
 import { MixerView } from "../mixer/MixerView";
@@ -77,7 +77,7 @@ function HarmonyLabView(): React.JSX.Element {
 
 /**
  * A shape on a picture track with Position and Opacity keyframed, selected,
- * beside the inspector: the Premiere-style keyframe rows and the clip's
+ * beside Effect Controls: the Premiere-style keyframe rows and the clip's
  * diamonds. `&at=<ms>` parks the playhead.
  */
 function KeyframesLabView(): React.JSX.Element {
@@ -128,7 +128,7 @@ function KeyframesLabView(): React.JSX.Element {
         <TracksRegion heightPx={300} />
       </div>
       <div style={{ width: 340, flex: "none", overflow: "auto" }}>
-        <TimelineInspector />
+        <TimelineEffectControlsPanel />
       </div>
     </div>
   );
@@ -214,7 +214,8 @@ const EDITOR_LAB_SECTIONS = ["Setup", "Search", "Reveal", "Twist", "Friends"];
 /**
  * The whole editor over the lab song plus a picture track of five titled
  * shots, one marker per shot. `&mode=expert` opens Expert mode, otherwise
- * the editor opens in its default, Simple mode.
+ * the editor opens in its default, Simple mode. `&video=1` adds a video clip
+ * on a B-roll track, for the clip panels.
  */
 function EditorLabView(): React.JSX.Element {
   const utils = trpc.useUtils();
@@ -245,14 +246,26 @@ function EditorLabView(): React.JSX.Element {
         }
       })
     );
+    const withVideo = new URLSearchParams(window.location.search).get("video") === "1";
+    const broll = makeTrack({ type: "video", name: "B-roll" });
+    const video = makeClip({
+      name: "Bedroom wide",
+      sourceType: "imported",
+      mediaType: "video",
+      trackId: broll.id,
+      startMs: 0,
+      durationMs: shotMs,
+      width: 1920,
+      height: 1080
+    });
     utils.timeline.get.setData(
       { id: EDITOR_LAB_ID },
       {
         ...base,
         id: EDITOR_LAB_ID,
         name: "Under the Bed",
-        tracks: [picture, ...base.tracks],
-        clips: [...shots, ...base.clips],
+        tracks: withVideo ? [broll, picture, ...base.tracks] : [picture, ...base.tracks],
+        clips: withVideo ? [video, ...shots, ...base.clips] : [...shots, ...base.clips],
         markers: EDITOR_LAB_SECTIONS.map((label, index) => ({
           id: `lab-marker-${index}`,
           timeMs: index * shotMs,

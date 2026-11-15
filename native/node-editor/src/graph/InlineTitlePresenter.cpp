@@ -107,7 +107,9 @@ InlineTitlePresenter::InlineTitlePresenter(WorkflowGraphModel &model, EditorScen
     QGraphicsView &view, QQmlEngine *engine, QObject *parent)
     : QObject(parent), model_(model), scene_(scene), view_(view), engine_(engine) {
   connect(&scene_, &EditorScene::titleEditRequested, this, &InlineTitlePresenter::activate);
-  connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] { cancel(); clearNotes(); clearControls(); });
+  // The group and comment controls survive a projection. refresh() keeps the widget of
+  // each surviving node, because building one compiles a Quick scene.
+  connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, [this] { cancel(); clearNotes(); });
   connect(&model_, &WorkflowGraphModel::projectionChanged, this, [this] { QTimer::singleShot(0, this, &InlineTitlePresenter::refresh); });
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, [this](QtNodes::NodeId id) {
     if (const auto note = notes_.value(id); note && model_.nodeExists(id))
@@ -155,24 +157,43 @@ void InlineTitlePresenter::repositionControls() {
   }
 }
 void InlineTitlePresenter::refresh() {
-  clearControls();
   auto *editor = qobject_cast<EditorWindow *>(parent());
   QSet<QString> bypassedParents, parents;
   for (const auto id : model_.allNodeIds()) {
     parents.insert(model_.nodeSnapshot(id)["parent_id"].toString());
     if (model_.bypassed(id)) bypassedParents.insert(model_.nodeSnapshot(id)["parent_id"].toString());
   }
+  QSet<QtNodes::NodeId> shown;
   if (editor && engine_) for (const auto id : model_.allNodeIds()) {
     if (!model_.isGroup(id) && !model_.isComment(id)) continue;
-    auto *widget = new QQuickWidget(engine_, view_.viewport());
+    const auto resource = model_.resourceId(id);
+    const QVariantMap properties{{"hasChildren", parents.contains(resource)}, {"bypassed", bypassedParents.contains(resource)},
+      {"resourceId", resource}, {"group", model_.isGroup(id)}, {"epoch", QVariant::fromValue(editor->documentEpoch())},
+      {"credentials", QVariant::fromValue(editor->credentialsEpoch())}};
+    shown.insert(id);
+    auto *widget = controls_.value(id).data();
+    if (widget && widget->rootObject() && widget->objectName() == "authored-controls-" + resource) {
+      for (auto it = properties.cbegin(); it != properties.cend(); ++it) {
+        if (widget->rootObject()->property(it.key().toUtf8().constData()) != it.value()) widget->rootObject()->setProperty(it.key().toUtf8().constData(), it.value());
+      }
+      continue;
+    }
+    if (widget) { widget->hide(); widget->setEnabled(false); widget->deleteLater(); }
+    widget = new QQuickWidget(engine_, view_.viewport());
     controls_.insert(id, widget);
-    widget->setObjectName("authored-controls-" + model_.resourceId(id));
+    widget->setObjectName("authored-controls-" + resource);
     widget->setClearColor(Qt::transparent);
     widget->setResizeMode(QQuickWidget::SizeRootObjectToView);
-    widget->setInitialProperties({{"hasChildren", parents.contains(model_.resourceId(id))}, {"bypassed", bypassedParents.contains(model_.resourceId(id))}, {"commands", QVariant::fromValue(editor->editorCommands())}, {"runs", QVariant::fromValue(editor->runState())}, {"resourceId", model_.resourceId(id)},
-      {"group", model_.isGroup(id)}, {"epoch", QVariant::fromValue(editor->documentEpoch())},
-      {"credentials", QVariant::fromValue(editor->credentialsEpoch())}});
+    auto initial = properties;
+    initial.insert("commands", QVariant::fromValue(editor->editorCommands()));
+    initial.insert("runs", QVariant::fromValue(editor->runState()));
+    widget->setInitialProperties(initial);
     widget->setSource(QUrl("qrc:/qt/qml/NodeTool/NodeEditor/AuthoredControls.qml"));
+  }
+  for (auto it = controls_.begin(); it != controls_.end();) {
+    if (shown.contains(it.key())) { ++it; continue; }
+    if (auto *widget = it.value().data()) { widget->hide(); widget->setEnabled(false); widget->deleteLater(); }
+    it = controls_.erase(it);
   }
   clearNotes();
   for (const auto id : model_.allNodeIds()) {

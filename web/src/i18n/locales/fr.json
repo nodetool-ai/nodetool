@@ -1628,7 +1628,11 @@
       "assistant": "Assistante",
       "history": "Histoire",
       "code": "Coder",
-      "storyboard": "Scénario"
+      "storyboard": "Scénario",
+      "effectControls": "Options d'effet",
+      "motion": "Mouvement",
+      "color": "Couleur",
+      "ai": "IA"
     },
     "unavailable": {
       "tracks": "Le mode DAW possède sa propre vue des pistes. Désactivez-le (Alt+M) pour ouvrir le panneau Chronologie.",
@@ -13676,8 +13680,14 @@
         },
         "connectProviderTitle": "Connectez un fournisseur d'IA pour commencer",
         "connectProviderButton": "Connecter un fournisseur",
-        "title": "Comment puis-je vous aider aujourd'hui ?",
-        "subtitle": "Demandez n'importe quoi, déposez des fichiers ou commencez par l'un de ces éléments :"
+        "greeting": {
+          "morning": "Bonjour",
+          "afternoon": "Bon après-midi",
+          "evening": "Bonsoir",
+          "morningName": "Bonjour, {{name}}",
+          "afternoonName": "Bon après-midi, {{name}}",
+          "eveningName": "Bonsoir, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Tâches",
@@ -17123,7 +17133,49 @@
         "exitExpandedPreview": "Quitter l'aperçu développé",
         "moveOnePixel": "Déplacer le clip d'un pixel",
         "moveTenPixels": "Déplacez le clip de dix pixels",
-        "resetTransform": "Réinitialiser la transformation"
+        "resetTransform": "Réinitialiser la transformation",
+        "extendPrevEdit": "Étendre le montage précédent jusqu'à la tête de lecture",
+        "extendNextEdit": "Étendre le montage suivant jusqu'à la tête de lecture",
+        "selectPrevClip": "Sélectionner le clip précédent",
+        "selectNextClip": "Sélectionner le clip suivant",
+        "clipVolumeUp": "Augmenter le volume du clip de 1 dB",
+        "clipVolumeDown": "Baisser le volume du clip de 1 dB",
+        "clipVolumeUpMore": "Augmenter le volume du clip de 6 dB",
+        "clipVolumeDownMore": "Baisser le volume du clip de 6 dB",
+        "slideLeft": "Faire glisser les clips sélectionnés d'une image en arrière",
+        "slideRight": "Faire glisser les clips sélectionnés d'une image en avant",
+        "slowShuttleBack": "Lecture lente en arrière (encore : plus vite)",
+        "slowShuttleForward": "Lecture lente en avant (encore : plus vite)",
+        "goToSequenceStart": "Aller au début de la séquence",
+        "goToSequenceEnd": "Aller à la fin de la séquence",
+        "goToSelectedStart": "Aller au début de la sélection",
+        "goToSelectedEnd": "Aller à la dernière image de la sélection",
+        "markSelection": "Marquer la sélection (entrée et sortie autour)",
+        "clearIn": "Effacer l'entrée",
+        "clearOut": "Effacer la sortie",
+        "prevCutAnyTrack": "Coupe précédente sur n'importe quelle piste",
+        "nextCutAnyTrack": "Coupe suivante sur n'importe quelle piste",
+        "prevGap": "Aller au vide précédent de la séquence",
+        "nextGap": "Aller au vide suivant de la séquence",
+        "addRangeMarker": "Ajouter un marqueur de plage d'une seconde à la tête de lecture",
+        "addMarkerInOut": "Ajouter un marqueur de l'entrée à la sortie",
+        "clearAllMarkers": "Effacer tous les marqueurs",
+        "playAround": "Lire autour de la tête de lecture",
+        "playInToOutWithRoll": "Lire de l'entrée à la sortie avec pré-roll et post-roll",
+        "playToOut": "Lire de la tête de lecture jusqu'à la sortie",
+        "expandAllTracks": "Agrandir toutes les pistes (encore : rétablir)",
+        "minimizeAllTracks": "Réduire toutes les pistes (encore : rétablir)",
+        "audioTracksTaller": "Agrandir les pistes audio",
+        "audioTracksShorter": "Réduire les pistes audio",
+        "panelSource": "Aller à Source",
+        "panelTimeline": "Aller à la timeline",
+        "panelProgram": "Aller à Programme",
+        "panelEffectControls": "Aller aux options d'effet",
+        "panelInspector": "Aller à l'Inspecteur",
+        "panelScript": "Aller au Script",
+        "panelStoryboard": "Aller au Storyboard",
+        "nextPanel": "Aller au panneau suivant",
+        "prevPanel": "Aller au panneau précédent"
       }
     },
     "vst": {
@@ -20352,5 +20404,31 @@
     },
     "opening": "Ouverture…",
     "startFailed": "Impossible d'ouvrir l'exemple : {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Aucun clip sélectionné",
+    "severalClips": "Plusieurs clips sélectionnés",
+    "effectControls": {
+      "empty": "Sélectionnez un clip dans la timeline pour régler sa transformation, son opacité, ses effets et ses masques.",
+      "several": "Sélectionnez un seul clip pour le régler."
+    },
+    "motion": {
+      "empty": "Sélectionnez un clip dans la timeline pour l'animer.",
+      "several": "Sélectionnez un seul clip pour l'animer.",
+      "unsupportedTitle": "Rien à animer",
+      "unsupported": "Sélectionnez un clip vidéo, image, texte ou forme pour l'animer."
+    },
+    "color": {
+      "empty": "Sélectionnez un clip dans la timeline pour l'étalonner.",
+      "several": "Sélectionnez un seul clip pour l'étalonner.",
+      "unsupportedTitle": "Ce clip n'a pas d'image",
+      "unsupported": "Sélectionnez un clip vidéo, image, texte ou forme pour l'étalonner."
+    },
+    "ai": {
+      "empty": "Sélectionnez un clip dans la timeline pour générer à partir de celui-ci ou le modifier avec l'IA.",
+      "several": "Sélectionnez un seul clip pour générer à partir de celui-ci.",
+      "unsupportedTitle": "Aucun outil IA pour ce clip",
+      "unsupported": "Sélectionnez un clip vidéo ou image, ou un clip généré."
+    }
   }
 }

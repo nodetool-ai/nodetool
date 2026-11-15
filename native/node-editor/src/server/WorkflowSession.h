@@ -98,6 +98,7 @@ public:
   Q_INVOKABLE void keepLocalWorkflow();
   bool connected() const { return m_connected; }
   QUrl serverUrl() const { return m_base; }
+  QString token() const { return m_token; }
   Q_INVOKABLE void connectToServer(const QUrl &base, const QString &token,
                                    const QString &userId = "1");
   Q_INVOKABLE void disconnectFromServer();
@@ -149,6 +150,12 @@ public:
   void preflightCost(std::function<void(QJsonObject, QString)> done);
   // The account's generations.list page, newest first.
   void listGenerations(std::function<void(QJsonArray, QString)> done);
+  // The account balance from GET /api/<provider>/credits, provider fal or kie.
+  // done gets the response, or an error when the server sent none (no key, 204).
+  void providerCredits(const QString &provider, std::function<void(QJsonObject, QString)> done);
+  // A FAL endpoint's historical per-run cost (POST /api/fal/pricing/estimate).
+  // done gets the response, or an error when the server has no estimate.
+  void falPricingEstimate(const QString &endpointId, std::function<void(QJsonObject, QString)> done);
 signals:
   void workflowChanged();
   void generationsChanged();

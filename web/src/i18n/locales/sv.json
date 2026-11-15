@@ -1617,7 +1617,11 @@
       "assistant": "Assistent",
       "history": "Historia",
       "code": "Kod",
-      "storyboard": "Storyboard"
+      "storyboard": "Storyboard",
+      "effectControls": "Effektkontroller",
+      "motion": "Rörelse",
+      "color": "Färg",
+      "ai": "AI"
     },
     "unavailable": {
       "tracks": "DAW-läget har sin egen spårvy. Stäng av den (Alt+M) för att öppna panelen Tidslinje.",
@@ -13460,8 +13464,14 @@
         },
         "connectProviderTitle": "Anslut en AI-leverantör för att komma igång",
         "connectProviderButton": "Anslut en leverantör",
-        "title": "Hur kan jag hjälpa dig idag?",
-        "subtitle": "Fråga vad som helst, släpp in filer eller börja med något av följande:"
+        "greeting": {
+          "morning": "God morgon",
+          "afternoon": "God eftermiddag",
+          "evening": "God kväll",
+          "morningName": "God morgon, {{name}}",
+          "afternoonName": "God eftermiddag, {{name}}",
+          "eveningName": "God kväll, {{name}}"
+        }
       },
       "taskDock": {
         "label": "Uppgifter",
@@ -16831,7 +16841,49 @@
         "exitExpandedPreview": "Avsluta den utökade förhandsvisningen",
         "moveOnePixel": "Flytta klippet en pixel",
         "moveTenPixels": "Flytta klippet tio pixlar",
-        "resetTransform": "Återställ transformationen"
+        "resetTransform": "Återställ transformationen",
+        "extendPrevEdit": "Förläng föregående redigering till spelhuvudet",
+        "extendNextEdit": "Förläng nästa redigering till spelhuvudet",
+        "selectPrevClip": "Markera föregående klipp",
+        "selectNextClip": "Markera nästa klipp",
+        "clipVolumeUp": "Höj klippvolymen med 1 dB",
+        "clipVolumeDown": "Sänk klippvolymen med 1 dB",
+        "clipVolumeUpMore": "Höj klippvolymen med 6 dB",
+        "clipVolumeDownMore": "Sänk klippvolymen med 6 dB",
+        "slideLeft": "Skjut markerade klipp en bildruta bakåt",
+        "slideRight": "Skjut markerade klipp en bildruta framåt",
+        "slowShuttleBack": "Spola sakta bakåt (igen: snabbare)",
+        "slowShuttleForward": "Spola sakta framåt (igen: snabbare)",
+        "goToSequenceStart": "Gå till sekvensens början",
+        "goToSequenceEnd": "Gå till sekvensens slut",
+        "goToSelectedStart": "Gå till markeringens början",
+        "goToSelectedEnd": "Gå till markeringens sista bildruta",
+        "markSelection": "Markera urvalet (in och ut runt det)",
+        "clearIn": "Rensa in",
+        "clearOut": "Rensa ut",
+        "prevCutAnyTrack": "Föregående klipp på valfritt spår",
+        "nextCutAnyTrack": "Nästa klipp på valfritt spår",
+        "prevGap": "Gå till föregående lucka i sekvensen",
+        "nextGap": "Gå till nästa lucka i sekvensen",
+        "addRangeMarker": "Lägg till en intervallmarkör på en sekund vid spelhuvudet",
+        "addMarkerInOut": "Lägg till en markör från in till ut",
+        "clearAllMarkers": "Rensa alla markörer",
+        "playAround": "Spela runt spelhuvudet",
+        "playInToOutWithRoll": "Spela från in till ut med förrull och efterrull",
+        "playToOut": "Spela från spelhuvudet till ut",
+        "expandAllTracks": "Expandera alla spår (igen: återställ)",
+        "minimizeAllTracks": "Minimera alla spår (igen: återställ)",
+        "audioTracksTaller": "Gör ljudspåren högre",
+        "audioTracksShorter": "Gör ljudspåren lägre",
+        "panelSource": "Gå till Källa",
+        "panelTimeline": "Gå till tidslinjen",
+        "panelProgram": "Gå till Program",
+        "panelEffectControls": "Gå till Effektkontroller",
+        "panelInspector": "Gå till inspektören",
+        "panelScript": "Gå till manuset",
+        "panelStoryboard": "Gå till storyboarden",
+        "nextPanel": "Gå till nästa panel",
+        "prevPanel": "Gå till föregående panel"
       }
     },
     "vst": {
@@ -20041,5 +20093,31 @@
     },
     "opening": "Öppnar…",
     "startFailed": "Det gick inte att öppna startern: {{error}}"
+  },
+  "timelineClipPanels": {
+    "noClip": "Inget klipp markerat",
+    "severalClips": "Flera klipp markerade",
+    "effectControls": {
+      "empty": "Markera ett klipp på tidslinjen för att justera transformering, opacitet, effekter och masker.",
+      "several": "Markera ett enda klipp för att justera det."
+    },
+    "motion": {
+      "empty": "Markera ett klipp på tidslinjen för att animera det.",
+      "several": "Markera ett enda klipp för att animera det.",
+      "unsupportedTitle": "Inget att animera",
+      "unsupported": "Markera ett video-, bild-, text- eller formklipp för att animera det."
+    },
+    "color": {
+      "empty": "Markera ett klipp på tidslinjen för att färgkorrigera det.",
+      "several": "Markera ett enda klipp för att färgkorrigera det.",
+      "unsupportedTitle": "Klippet har ingen bild",
+      "unsupported": "Markera ett video-, bild-, text- eller formklipp för att färgkorrigera det."
+    },
+    "ai": {
+      "empty": "Markera ett klipp på tidslinjen för att generera från det eller redigera det med AI.",
+      "several": "Markera ett enda klipp för att generera från det.",
+      "unsupportedTitle": "Inga AI-verktyg för det här klippet",
+      "unsupported": "Markera ett video- eller bildklipp, eller ett genererat klipp."
+    }
   }
 }
