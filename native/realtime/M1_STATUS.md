@@ -515,6 +515,7 @@ shared-device operation, close issues or change PR merge ordering.
 | Swap-state continuity | [WP18 #7409](https://github.com/nodetool-ai/nodetool/issues/7409) | Unchanged audio paths preserve bytes, and changed paths satisfy the sink-ramp checks |
 | Browser audio sample parity | [WP24 #7415](https://github.com/nodetool-ai/nodetool/issues/7415) | Each qualified kernel meets its required native/Wasm agreement level |
 | Driver allocation audit and supported live preparation | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399) | Allocation evidence covers the required driver paths, and the live backend supports the compilation/error APIs required by the design |
+| Unfiltered software-driver verification | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399) | Driver-backed TSan passes without prebuilt-library exclusions, with the lavapipe queue-mutex report observed at `9c85c72ef3` resolved |
 | M0 hardware evidence and R1/R2 | [M0 dependencies](#unverified-m0-dependencies) | Mac/device measurements, calibrated physical recording and decisions specified by WP01–WP04 |
 | WP09 completion/merge before compiler integration qualification | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400), [PR #7471](https://github.com/nodetool-ai/nodetool/pull/7471) | Required verification and merge ordering complete, then compiler fixtures are reconciled with the merged contracts |
 
