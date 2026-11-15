@@ -27,7 +27,9 @@ export interface DocumentFileRow {
 
 /**
  * What a model calls after it wrote or deleted a row. Neither method throws:
- * a folder that cannot be reached must not fail the save of the row.
+ * a folder that cannot be reached must not fail the save of the row. A sync
+ * never replaces a file that was edited since it last wrote or read it
+ * without keeping that edit.
  */
 export interface DocumentFileSync<Row extends DocumentFileRow> {
   /**

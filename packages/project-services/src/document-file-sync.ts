@@ -26,10 +26,17 @@
  * | New file with an unknown ID | Create the document in this project. |
  * | New file whose ID belongs to another file | Assign a new ID and rewrite the file. |
  *
- * A row with no `file_hash` is newer than its file: it was never written, or
- * a write failed, or a host without this sync saved it. The reconcile writes
- * the file from the row. That is also the migration of documents from before
- * project folders.
+ * `file_hash` is the hash of the file as NodeTool last wrote or imported it.
+ * A file with that hash was not touched since, so it can be replaced. A file
+ * with any other hash holds an edit NodeTool has not seen, and nothing here
+ * replaces it without keeping it: a save keeps the file's content as a
+ * version before it writes, and leaves a file that fails validation alone.
+ *
+ * A row can be newer than its file: a write failed, or a host without this
+ * sync saved the row. The reconcile sees that the file is untouched and the
+ * row holds other content, and writes the file. A row with no `file_path`
+ * was never written, and the reconcile writes it too. That is also the
+ * migration of documents from before project folders.
  *
  * Edits made to a file between two reconcile passes are imported as one
  * change and leave one version.
@@ -100,6 +107,13 @@ export type DocumentFileState = Partial<
   Pick<DocumentRow, "file_path" | "file_hash" | "file_error">
 >;
 
+/**
+ * Why a version is kept. `before-import`: the row as it was before a file
+ * edit was imported. `replaced-file`: the content of a file edit that a save
+ * in NodeTool is about to replace.
+ */
+export type DocumentSnapshotReason = "before-import" | "replaced-file";
+
 /** What an adapter makes of a file's body: fields to store, or a refusal. */
 export type DocumentFileContent<Fields> =
   | { ok: true; fields: Fields }
@@ -140,8 +154,13 @@ export interface DocumentFileAdapter<Row extends DocumentRow, Fields> {
   list(userId: string, projectIds: readonly string[]): Promise<Row[]>;
   /** Whether any row, of any user, has exactly this ID. */
   exists(id: string): Promise<boolean>;
-  /** Keep the row's current content as a version. */
-  snapshot(row: Row): Promise<void>;
+  /**
+   * Keep the content `row` holds as a version. For `replaced-file` the row
+   * is a copy that carries the fields of the file being replaced, so an
+   * adapter reads the content from `row` either way. Without a reason it is
+   * `before-import`.
+   */
+  snapshot(row: Row, reason?: DocumentSnapshotReason): Promise<void>;
   /**
    * Store `fields`, and `name` when given, unless the row changed since it
    * was read. Returns the stored row, or null when it had changed.
@@ -383,6 +402,12 @@ const reconciling = new AsyncLocalStorage<true>();
  * one is deleted after it. A file with the content to be written is left
  * untouched, so saving without a change leaves it byte-identical.
  *
+ * The file on disk is compared with `file_hash` first. A file with another
+ * hash holds an edit NodeTool has not seen. When it is valid, its content is
+ * kept as a version and the file is then written. When it is not, the file
+ * is left as it is, its error is recorded, and `"kept"` is returned: the row
+ * is saved and the user's file is not lost.
+ *
  * `Workspace.write` replaces a file through a temporary file and a rename in
  * a local folder, and with one object write in a storage-backed one, so a
  * reader never sees half a file.
@@ -392,7 +417,7 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
   workspace: Workspace,
   projectId: string,
   row: Row
-): Promise<void> {
+): Promise<"written" | "kept"> {
   const text = documentFileText(adapter, row.id, adapter.fieldsOf(row));
   const stem = documentFileStem(row.name, adapter.untitled);
   let path = row.file_path;
@@ -403,6 +428,16 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
     if (parsed.ok && parsed.id !== null && parsed.id !== row.id) {
       path = null;
       current = null;
+    } else if (current !== text && hashOf(current) !== row.file_hash) {
+      // The file was edited since NodeTool last wrote or imported it.
+      const refusal = await keepUnseenEdit(adapter, row, parsed, text);
+      if (refusal !== null) {
+        if (row.file_error !== refusal) {
+          await adapter.setFileState(row.id, { file_error: refusal });
+          row.file_error = refusal;
+        }
+        return "kept";
+      }
     }
   }
 
@@ -449,6 +484,35 @@ async function writeDocumentFile<Row extends DocumentRow, Fields>(
   const state = { file_path: target, file_hash: hashOf(text), file_error: null };
   await adapter.setFileState(row.id, state);
   Object.assign(row, state);
+  return "written";
+}
+
+/**
+ * Keep the content of a file edit that is about to be replaced by `text`,
+ * the file text of `row`. Returns null when the file may be replaced: its
+ * content is the row's, or it was kept as a version. Returns the reason the
+ * file was refused when it is not valid, and the file must then stay.
+ */
+async function keepUnseenEdit<Row extends DocumentRow, Fields>(
+  adapter: DocumentFileAdapter<Row, Fields>,
+  row: Row,
+  parsed: ParsedFile,
+  text: string
+): Promise<string | null> {
+  if (!parsed.ok) return parsed.error;
+  const content = await adapter.parse(parsed.body, row);
+  if (!content.ok) return content.error;
+  // The same content in another layout is no edit to keep.
+  if (documentFileText(adapter, row.id, content.fields) === text) return null;
+  // A copy of the row that carries the file's fields, for the adapter to
+  // read the content from.
+  const edited: Row = Object.assign(
+    Object.create(Object.getPrototypeOf(row) as object) as Row,
+    row,
+    content.fields
+  );
+  await adapter.snapshot(edited, "replaced-file");
+  return null;
 }
 
 /** Delete the file at `path` when it is the file of document `id`. */
@@ -472,8 +536,8 @@ function describe(error: unknown): string {
 
 /**
  * The sync a model installs for a document kind. Neither method throws. A
- * file that could not be written leaves the row without a `file_hash`, and
- * the next reconcile writes it.
+ * file that could not be written is written by the next reconcile, which
+ * finds the row newer than its untouched file.
  */
 export function documentFileSync<Row extends DocumentRow, Fields>(
   adapter: DocumentFileAdapter<Row, Fields>
@@ -525,17 +589,9 @@ export function documentFileSync<Row extends DocumentRow, Fields>(
           error: describe(error)
         });
       }
-      // The row is now newer than its file, if it has one.
-      if (row.file_hash === null) return;
-      try {
-        await adapter.setFileState(row.id, { file_hash: null });
-        row.file_hash = null;
-      } catch (error) {
-        log.warn(`Could not mark the file of a ${adapter.kind} as stale`, {
-          id: row.id,
-          error: describe(error)
-        });
-      }
+      // The row is now newer than its file, if it has one. `file_hash` still
+      // names the file as last synced, and the reconcile writes the file once
+      // it finds the file untouched and the row changed.
     },
 
     async deleted(row) {
@@ -698,6 +754,96 @@ async function recordInvalid<Row extends DocumentRow, Fields>(
   row.file_error = error;
 }
 
+/**
+ * Whether `row` holds other content than its untouched file, or a name the
+ * file does not carry, so that the file is to be written from the row.
+ *
+ * A file NodeTool wrote has the row's text, which is compared first. A file
+ * that was imported keeps the layout it was written in, so its content is
+ * compared in the stored shape. A file name that differs from the row's
+ * name only by a collision suffix or by case is the name the row was given.
+ */
+async function rowIsNewer<Row extends DocumentRow, Fields>(
+  adapter: DocumentFileAdapter<Row, Fields>,
+  row: Row,
+  file: DocumentFile
+): Promise<boolean> {
+  const text = documentFileText(adapter, row.id, adapter.fieldsOf(row));
+  if (file.text !== text) {
+    const parsed = parseDocumentFile(adapter, file.text);
+    if (!parsed.ok) return false;
+    const content = await adapter.parse(parsed.body, row);
+    if (!content.ok) return false;
+    if (documentFileText(adapter, row.id, content.fields) !== text) return true;
+  }
+  const stem = documentFileStem(row.name, adapter.untitled).toLowerCase();
+  const name = nameOfFile(file.path, adapter.suffix).toLowerCase();
+  if (name === stem) return false;
+  const suffix = name.startsWith(`${stem}-`) ? name.slice(stem.length + 1) : "";
+  return !/^\d+$/.test(suffix);
+}
+
+/**
+ * Files whose path differs from a row's path in case only.
+ *
+ * macOS and Windows folders ignore case. A file renamed there from
+ * `Foo.workflow.json` to `foo.workflow.json` is listed under its new name
+ * and still read under the old one. Matched by exact path, the row would
+ * keep its path and the listed file would look like a copy of it.
+ */
+class RecasedFiles {
+  private readonly byLowerPath = new Map<string, string[]>();
+  private readonly rowPaths = new Set<string>();
+  private readonly listings = new Map<string, Promise<Set<string> | null>>();
+
+  constructor(
+    private readonly workspace: Workspace,
+    private readonly files: ReadonlyMap<string, DocumentFile>,
+    rows: readonly DocumentRow[],
+    private readonly places: ReadonlySet<string> | null
+  ) {
+    for (const path of files.keys()) {
+      const key = path.toLowerCase();
+      const bucket = this.byLowerPath.get(key);
+      if (bucket) bucket.push(path);
+      else this.byLowerPath.set(key, [path]);
+    }
+    for (const row of rows) if (row.file_path) this.rowPaths.add(row.file_path);
+  }
+
+  /**
+   * The one file that has the path of a row in another case, when no file
+   * is listed under the row's own path. Null otherwise: on a folder that
+   * keeps case apart, both can be files of their own.
+   */
+  async fileOf(path: string): Promise<string | null> {
+    const variants = (this.byLowerPath.get(path.toLowerCase()) ?? []).filter(
+      (other) => other !== path && !this.rowPaths.has(other)
+    );
+    const [variant] = variants;
+    if (variant === undefined || variants.length > 1) return null;
+    return (await this.isListed(path)) ? null : variant;
+  }
+
+  /** Whether the folder lists a file under exactly this path. */
+  private async isListed(path: string): Promise<boolean> {
+    // A whole scan lists every file, so the files are the listing.
+    if (this.places === null) return this.files.has(path);
+    const directory = directoryOf(path);
+    let listing = this.listings.get(directory);
+    if (!listing) {
+      listing = this.workspace.list(directory).then(
+        (entries) => new Set(entries.map((entry) => entry.path)),
+        () => null
+      );
+      this.listings.set(directory, listing);
+    }
+    const names = await listing;
+    // A directory that cannot be listed gives no reason to move the row.
+    return names === null || names.has(path);
+  }
+}
+
 /** A new ID no document has. */
 function newDocumentId(): string {
   return createTimeOrderedUuid();
@@ -718,18 +864,50 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
   const missing = new Map<string, Row>();
   /** Rows whose file is where the row says, by ID. */
   const present = new Map<string, Row>();
+  const recased = new RecasedFiles(workspace, files, rows, places);
 
   // Rows that have a file.
   for (const row of rows) {
     const path = row.file_path;
     if (!path) continue;
     if (inFlux(path)) continue;
+
+    // A file renamed in case only. A folder that ignores case still answers
+    // to the row's path, so the file must be matched before it can be taken
+    // for a copy of itself.
+    const variant = await recased.fileOf(path);
+    const variantFile = variant === null ? undefined : files.get(variant);
+    if (variant !== null && variantFile) {
+      const parsed = parseDocumentFile(adapter, variantFile.text);
+      if (parsed.ok && parsed.id === row.id && !owned.has(variant)) {
+        // The row's path is no file of its own on that folder.
+        files.delete(path);
+        owned.add(variant);
+        present.set(row.id, row);
+        const name = nameOfFile(variant, adapter.suffix);
+        const stored = await importFile(run, row, variantFile, parsed.body, {
+          rename:
+            documentFileStem(row.name, adapter.untitled) === name
+              ? undefined
+              : name
+        });
+        if (stored) {
+          present.set(stored.id, stored);
+          report.renamed.push(stored.id);
+        }
+        continue;
+      }
+    }
+
     let file = files.get(path);
     if (!file) {
-      // Outside the changed paths: the file is taken to be where it was.
+      // Outside the changed paths: the file is taken to be where it was. A
+      // row whose file is already missing counts too. A changed path that
+      // carries its ID has the row's path looked at again, finds it gone,
+      // and gives the file to the row instead of making a second document.
       const inScope = places === null || isAtOrUnder(path, places);
       if (!inScope) {
-        if (row.file_error !== DOCUMENT_FILE_MISSING) present.set(row.id, row);
+        present.set(row.id, row);
         continue;
       }
       // The file may have been written after the folder was listed.
@@ -745,6 +923,16 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
     owned.add(path);
     present.set(row.id, row);
     if (file.hash === row.file_hash) {
+      // The file is as NodeTool last wrote or imported it. The row may hold
+      // other content since, or another name, and the file is then written.
+      if (await rowIsNewer(adapter, row, file)) {
+        const outcome = await writeDocumentFile(adapter, workspace, projectId, row);
+        if (outcome === "written") {
+          if (row.file_path !== path) owned.add(row.file_path ?? path);
+          report.written.push(row.id);
+          continue;
+        }
+      }
       report.unchanged++;
       if (row.file_error !== null) {
         await adapter.setFileState(row.id, { file_error: null });
@@ -752,12 +940,8 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
       }
       continue;
     }
-    if (row.file_hash === null) {
-      // The row is newer than the file.
-      await writeDocumentFile(adapter, workspace, projectId, row);
-      report.written.push(row.id);
-      continue;
-    }
+    // Any other hash is an edit NodeTool has not seen, also for a row that
+    // was never synced with this folder (`file_hash` is null).
     const parsed = parseDocumentFile(adapter, file.text);
     if (!parsed.ok) {
       await recordInvalid(run, row, parsed.error);
@@ -874,6 +1058,7 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
 
   // Rows whose file is gone and was not found elsewhere.
   for (const row of missing.values()) {
+    // Never synced with this folder: there is no file of it to miss.
     if (row.file_hash === null) {
       await writeDocumentFile(adapter, workspace, projectId, row);
       report.written.push(row.id);
@@ -974,9 +1159,8 @@ export async function reconcileDocumentFiles(
 }
 
 /**
- * Write the file of every row of `projectId` that has none or is newer than
- * its file, and return how many were written. Nothing else is compared. A
- * second call writes nothing.
+ * Write the file of every row of `projectId` that has none, and return how
+ * many were written. Nothing else is compared. A second call writes nothing.
  */
 export async function writeMissingDocumentFiles(
   adapters: DocumentFileAdapters,
@@ -994,7 +1178,8 @@ export async function writeMissingDocumentFiles(
         projectIdsOfFolder(folder.projectId, userId)
       );
       for (const row of rows) {
-        if (row.file_path && row.file_hash !== null) continue;
+        // A row that has a path is compared with its file by the reconcile.
+        if (row.file_path) continue;
         await writeDocumentFile(adapter, workspace, folder.projectId, row);
         written++;
       }

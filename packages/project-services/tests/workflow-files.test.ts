@@ -51,6 +51,7 @@ import {
 } from "../src/project-index.js";
 import {
   WORKFLOW_FILE_EDIT_VERSION_NAME,
+  WORKFLOW_FILE_REPLACED_VERSION_NAME,
   migrateWorkflowFiles,
   setWorkflowFileNodeRegistry,
   workflowFileAdapter
@@ -213,6 +214,44 @@ function agentRun(kind: Kind): ReturnType<typeof createCapabilityRun> {
     postMessage: () => undefined
   } as unknown as ProcessingContext;
   return createCapabilityRun({ context, gate: UNGATED, nodeRegistry: registry });
+}
+
+/**
+ * `inner` as a folder that ignores case, as macOS and Windows folders do: a
+ * file answers to its path in any case, and a listing shows the name the
+ * file has.
+ */
+function ignoringCase(inner: Workspace): Workspace {
+  const actual = async (path: string): Promise<string> => {
+    const key = inner.key(path);
+    const slash = key.lastIndexOf("/");
+    const entries = await inner
+      .list(slash < 0 ? "" : key.slice(0, slash))
+      .catch(() => []);
+    const match = entries.find(
+      (entry) => entry.path.toLowerCase() === key.toLowerCase()
+    );
+    return match?.path ?? key;
+  };
+  const folded: Partial<Workspace> = {
+    read: async (path) => inner.read(await actual(path)),
+    readText: async (path) => inner.readText(await actual(path)),
+    stat: async (path) => inner.stat(await actual(path)),
+    exists: async (path) => inner.exists(await actual(path)),
+    write: async (path, data, type) => inner.write(await actual(path), data, type),
+    writeNew: async (path, data, type) =>
+      inner.writeNew(await actual(path), data, type),
+    delete: async (path) => inner.delete(await actual(path)),
+    materialize: async (path) => inner.materialize(await actual(path))
+  };
+  return new Proxy(inner, {
+    get(target, property, receiver): unknown {
+      const override = folded[property as keyof Workspace];
+      if (override) return override;
+      const value: unknown = Reflect.get(target, property, receiver);
+      return typeof value === "function" ? value.bind(target) : value;
+    }
+  });
 }
 
 /** Let the time a copy waits to be told apart from a move pass. */
@@ -486,9 +525,9 @@ describe.each(["local", "storage"] as const)("workflow files (%s folder)", (kind
         { graph: graphOf(node("a", "offline edit")) }
       );
 
-      // The row is saved and marked newer than its file.
+      // The row is saved. Its hash still names the file as last written.
       expect(saved?.graph.nodes[0]).toMatchObject({ data: { value: "offline edit" } });
-      expect((await reload(workflow.id)).file_hash).toBeNull();
+      expect((await reload(workflow.id)).file_hash).toBe(workflow.file_hash);
       expect((await jsonOf(kind, pathOf("Fox"))).graph.nodes[0]?.data.value).toBe(
         "hello"
       );
@@ -507,7 +546,7 @@ describe.each(["local", "storage"] as const)("workflow files (%s folder)", (kind
       );
     });
 
-    it("marks the row newer than its file when a host without the sync saves it", async () => {
+    it("writes the file of a row that a host without the sync saved", async () => {
       const workflow = await makeWorkflow("Fox");
       setWorkflowFileSync(null);
 
@@ -516,11 +555,11 @@ describe.each(["local", "storage"] as const)("workflow files (%s folder)", (kind
         workflow.updated_at,
         { graph: graphOf(node("a", "from the cli")) }
       );
-      expect(saved?.file_hash).toBeNull();
+      expect(saved?.file_hash).toBe(workflow.file_hash);
       const loaded = await reload(workflow.id);
       loaded.description = "saved without the sync";
       await loaded.save();
-      expect((await reload(workflow.id)).file_hash).toBeNull();
+      expect((await reload(workflow.id)).file_hash).toBe(workflow.file_hash);
 
       setWorkflowFileSync(documentFileSync(workflowFileAdapter));
       expect(await reconcile()).toMatchObject({ written: [workflow.id], imported: [] });
@@ -967,6 +1006,221 @@ describe.each(["local", "storage"] as const)("workflow files (%s folder)", (kind
     });
   });
 
+  describe("a file edit NodeTool has not seen", () => {
+    /** The versions of a workflow, as name and the value of its first node. */
+    async function versionsOf(id: string): Promise<Array<[string | null, unknown]>> {
+      const versions = await WorkflowVersion.listForWorkflow(id);
+      return versions.map((version) => [
+        version.name,
+        (version.graph.nodes[0] as TestNode | undefined)?.data.value
+      ]);
+    }
+
+    it("keeps the edit as a version when a save replaces the file", async () => {
+      // The file changes while no client has the project open, as after a
+      // `git pull`, and nothing reconciles it before the next save.
+      const workflow = await makeWorkflow("Fox");
+      await editFile(kind, pathOf("Fox"), (file) => {
+        file.graph.nodes[0]!.data.value = "pulled from git";
+      });
+
+      const updated = (await agentRun(kind).invoke("update_workflow", {
+        workflow_id: workflow.id,
+        graph: graphOf(node("a", "saved in NodeTool"))
+      })) as Record<string, unknown>;
+      expect(updated["error"]).toBeUndefined();
+
+      // The save is stored and written, and the edit it replaced is a version.
+      const stored = await reload(workflow.id);
+      expect(stored.graph.nodes[0]).toMatchObject({
+        data: { value: "saved in NodeTool" }
+      });
+      expect((await jsonOf(kind, pathOf("Fox"))).graph.nodes[0]?.data.value).toBe(
+        "saved in NodeTool"
+      );
+      expect(stored.file_hash).toBe(sha256(await textOf(kind, pathOf("Fox"))));
+      expect(await versionsOf(workflow.id)).toEqual([
+        [WORKFLOW_FILE_REPLACED_VERSION_NAME, "pulled from git"]
+      ]);
+      expect(await reconcile()).toMatchObject({ unchanged: 1, imported: [] });
+    });
+
+    it("keeps the edit when the workflow is renamed or a field outside the file is saved", async () => {
+      const renamed = await makeWorkflow("Fox");
+      const shared = await makeWorkflow("Owl");
+      await editFile(kind, pathOf("Fox"), (file) => {
+        file.graph.nodes[0]!.data.value = "fox edit";
+      });
+      await editFile(kind, pathOf("Owl"), (file) => {
+        file.graph.nodes[0]!.data.value = "owl edit";
+      });
+
+      // A rename writes the new file and deletes the old one.
+      await Workflow.updateFieldsIfUnchanged(renamed.id, renamed.updated_at, {
+        name: "Arctic fox"
+      });
+      // What `set_workflow_access` saves is not in the file at all.
+      await Workflow.updateFieldsIfUnchanged(shared.id, shared.updated_at, {
+        thumbnail: "thumb.png"
+      });
+
+      expect(await fileNames(kind)).toEqual([
+        "Arctic fox.workflow.json",
+        "Owl.workflow.json"
+      ]);
+      expect(await versionsOf(renamed.id)).toEqual([
+        [WORKFLOW_FILE_REPLACED_VERSION_NAME, "fox edit"]
+      ]);
+      expect(await versionsOf(shared.id)).toEqual([
+        [WORKFLOW_FILE_REPLACED_VERSION_NAME, "owl edit"]
+      ]);
+    });
+
+    it("keeps no version when the file holds the row's content in another layout", async () => {
+      const workflow = await makeWorkflow("Fox");
+      const compact = JSON.stringify(await jsonOf(kind, pathOf("Fox")));
+      await folder(kind).write(pathOf("Fox"), compact);
+
+      await Workflow.updateFieldsIfUnchanged(workflow.id, workflow.updated_at, {
+        thumbnail: "thumb.png"
+      });
+
+      expect(await versionsOf(workflow.id)).toEqual([]);
+      expect((await reload(workflow.id)).file_hash).toBe(
+        sha256(await textOf(kind, pathOf("Fox")))
+      );
+    });
+
+    it("leaves a file that failed validation alone when the workflow is saved", async () => {
+      const workflow = await makeWorkflow("Fox");
+      // The user's edit in progress: a node type that does not exist yet.
+      const inProgress = await editFile(kind, pathOf("Fox"), (file) => {
+        file.graph.nodes.push(node("b", "draft", "nodetool.missing.Node"));
+      });
+      expect(await reconcile()).toMatchObject({ invalid: [workflow.id] });
+      const refused = await reload(workflow.id);
+
+      const saved = await Workflow.updateFieldsIfUnchanged(
+        workflow.id,
+        refused.updated_at,
+        { graph: graphOf(node("a", "saved in NodeTool")) }
+      );
+      const renamed = await Workflow.updateFieldsIfUnchanged(
+        workflow.id,
+        saved?.updated_at ?? "",
+        { name: "Arctic fox" }
+      );
+
+      // The row is saved. The file is the user's, untouched and not renamed.
+      expect(renamed).toMatchObject({ name: "Arctic fox", file_path: pathOf("Fox") });
+      expect(renamed?.graph.nodes[0]).toMatchObject({
+        data: { value: "saved in NodeTool" }
+      });
+      expect(await fileNames(kind)).toEqual(["Fox.workflow.json"]);
+      expect(await textOf(kind, pathOf("Fox"))).toBe(inProgress);
+      const stored = await reload(workflow.id);
+      expect(stored.file_error).toBe(refused.file_error);
+      expect(stored.file_hash).toBe(workflow.file_hash);
+      // The reconcile leaves it alone as well.
+      expect(await reconcile()).toMatchObject({ invalid: [workflow.id], written: [] });
+      expect(await textOf(kind, pathOf("Fox"))).toBe(inProgress);
+
+      // Once the file is valid it is imported, and the saves made meanwhile
+      // are the version.
+      await editFile(kind, pathOf("Fox"), (file) => {
+        file.graph.nodes[1]!.type = KNOWN_NODE;
+      });
+      expect(await reconcile()).toMatchObject({ imported: [workflow.id] });
+      const imported = await reload(workflow.id);
+      expect(imported.graph.nodes.map((n) => (n as unknown as TestNode).data.value)).toEqual([
+        "hello",
+        "draft"
+      ]);
+      expect(imported.file_error).toBeNull();
+      expect(await versionsOf(workflow.id)).toEqual([
+        [WORKFLOW_FILE_EDIT_VERSION_NAME, "saved in NodeTool"]
+      ]);
+    });
+
+    it("records the error of an invalid file that a save finds first", async () => {
+      const workflow = await makeWorkflow("Fox");
+      await folder(kind).write(pathOf("Fox"), "{ half an edit");
+
+      const saved = await Workflow.updateFieldsIfUnchanged(
+        workflow.id,
+        workflow.updated_at,
+        { description: "saved" }
+      );
+
+      expect(saved?.file_error).toMatch(/^The file is not valid JSON/);
+      expect(await textOf(kind, pathOf("Fox"))).toBe("{ half an edit");
+      expect(await reload(workflow.id)).toMatchObject({
+        description: "saved",
+        file_hash: workflow.file_hash
+      });
+    });
+
+    it("imports the edit when a host without the sync saved the row as well", async () => {
+      const workflow = await makeWorkflow("Fox");
+      setWorkflowFileSync(null);
+      await Workflow.updateFieldsIfUnchanged(workflow.id, workflow.updated_at, {
+        graph: graphOf(node("a", "from the cli"))
+      });
+      setWorkflowFileSync(documentFileSync(workflowFileAdapter));
+      const edited = await editFile(kind, pathOf("Fox"), (file) => {
+        file.graph.nodes[0]!.data.value = "edited on disk";
+      });
+
+      const report = await reconcile();
+
+      // The file is not written from the row: it is imported, and what the
+      // other host saved is the version.
+      expect(report).toMatchObject({ imported: [workflow.id], written: [] });
+      expect(await textOf(kind, pathOf("Fox"))).toBe(edited);
+      expect((await reload(workflow.id)).graph.nodes[0]).toMatchObject({
+        data: { value: "edited on disk" }
+      });
+      expect(await versionsOf(workflow.id)).toEqual([
+        [WORKFLOW_FILE_EDIT_VERSION_NAME, "from the cli"]
+      ]);
+    });
+
+    it("keeps an invalid edit when a host without the sync saved the row as well", async () => {
+      const workflow = await makeWorkflow("Fox");
+      setWorkflowFileSync(null);
+      await Workflow.updateFieldsIfUnchanged(workflow.id, workflow.updated_at, {
+        graph: graphOf(node("a", "from the cli"))
+      });
+      setWorkflowFileSync(documentFileSync(workflowFileAdapter));
+      await folder(kind).write(pathOf("Fox"), "{ half an edit");
+
+      expect(await reconcile()).toMatchObject({ invalid: [workflow.id], written: [] });
+
+      expect(await textOf(kind, pathOf("Fox"))).toBe("{ half an edit");
+      expect((await reload(workflow.id)).graph.nodes[0]).toMatchObject({
+        data: { value: "from the cli" }
+      });
+    });
+
+    it("renames the file of a workflow that was renamed while the folder was away", async () => {
+      const workflow = await makeWorkflow("Fox");
+      unreachable = true;
+      await Workflow.updateFieldsIfUnchanged(workflow.id, workflow.updated_at, {
+        name: "Arctic fox"
+      });
+      unreachable = false;
+
+      expect(await reconcile()).toMatchObject({ written: [workflow.id], renamed: [] });
+
+      expect(await fileNames(kind)).toEqual(["Arctic fox.workflow.json"]);
+      expect(await reload(workflow.id)).toMatchObject({
+        name: "Arctic fox",
+        file_path: pathOf("Arctic fox")
+      });
+      expect(await reconcile()).toMatchObject({ unchanged: 1, written: [], created: [] });
+    });
+  });
+
   describe("duplicating and moving a file", () => {
     it("makes a second workflow with a new ID from a duplicated file", async () => {
       const workflow = await makeWorkflow("Fox");
@@ -1102,6 +1356,33 @@ describe.each(["local", "storage"] as const)("workflow files (%s folder)", (kind
     });
   });
 
+  describe("a row whose file is missing", () => {
+    it("gets its file back from a changed path alone, and makes no second workflow", async () => {
+      const workflow = await makeWorkflow("Fox");
+      const text = await textOf(kind, pathOf("Fox"));
+      await folder(kind).delete(pathOf("Fox"));
+      expect(await reconcile()).toMatchObject({ missing: [workflow.id] });
+
+      // The file comes back under another name, and the watcher names only
+      // the path that appeared.
+      await folder(kind).write(pathOf("Arctic fox"), text);
+      const report = await reconcileDocumentFiles(
+        [workflowFileAdapter],
+        PROJECT,
+        USER,
+        { paths: [pathOf("Arctic fox")] }
+      );
+
+      expect(report).toMatchObject({ renamed: [workflow.id], reassigned: [], created: [] });
+      expect(await rows()).toHaveLength(1);
+      expect(await reload(workflow.id)).toMatchObject({
+        name: "Arctic fox",
+        file_path: pathOf("Arctic fox"),
+        file_error: null
+      });
+    });
+  });
+
   describe("migration", () => {
     /** Workflows as a database from before project folders holds them. */
     async function legacyWorkflows(names: string[]): Promise<Workflow[]> {
@@ -1166,5 +1447,121 @@ describe.each(["local", "storage"] as const)("workflow files (%s folder)", (kind
       expect(await fileNames(kind)).toEqual(["Fox.workflow.json"]);
       expect(await reconcile()).toMatchObject({ unchanged: 1, written: [] });
     });
+  });
+});
+
+/**
+ * File names that differ in case only. The folder is the object store, whose
+ * keys keep case apart on every host, so the cases do not depend on the file
+ * system the tests run on. `ignoringCase` makes it answer as a macOS or
+ * Windows folder does.
+ */
+describe("workflow file names that differ in case only", () => {
+  const kind = "storage";
+  beforeEach(() => useFolders(kind));
+
+  describe("a folder that ignores case", () => {
+    beforeEach(() => {
+      workspaces.set(PROJECT, ignoringCase(kinds[kind](PROJECT)));
+    });
+
+    /** Rename the file in case only, as Finder or Explorer does. */
+    async function renameInCase(from: string, to: string): Promise<void> {
+      const inner = kinds[kind](PROJECT);
+      await inner.move(from, to);
+    }
+
+    it("follows a rename in case only and makes no second workflow", async () => {
+      const workflow = await makeWorkflow("Foo");
+      await renameInCase(pathOf("Foo"), pathOf("foo"));
+      // The old path still reads, which is what made the file look like a copy.
+      expect(await folder(kind).exists(pathOf("Foo"))).toBe(true);
+      expect(await fileNames(kind)).toEqual(["foo.workflow.json"]);
+
+      const report = await reconcile();
+
+      expect(report).toMatchObject({
+        renamed: [workflow.id],
+        deferred: [],
+        reassigned: [],
+        created: []
+      });
+      expect(await reload(workflow.id)).toMatchObject({
+        name: "foo",
+        file_path: pathOf("foo"),
+        file_error: null
+      });
+
+      passCopyGrace();
+      expect(await reconcile()).toMatchObject({
+        unchanged: 1,
+        renamed: [],
+        reassigned: [],
+        created: []
+      });
+      expect(await rows()).toHaveLength(1);
+      expect((await jsonOf(kind, pathOf("foo"))).id).toBe(workflow.id);
+      expect(await WorkflowVersion.listForWorkflow(workflow.id)).toHaveLength(0);
+    });
+
+    it("follows it when the watcher names both paths", async () => {
+      const workflow = await makeWorkflow("Foo");
+      await renameInCase(pathOf("Foo"), pathOf("foo"));
+
+      const report = await reconcileDocumentFiles(
+        [workflowFileAdapter],
+        PROJECT,
+        USER,
+        { paths: [pathOf("Foo"), pathOf("foo")] }
+      );
+
+      expect(report).toMatchObject({ renamed: [workflow.id], deferred: [], reassigned: [] });
+      passCopyGrace();
+      expect(
+        await reconcileDocumentFiles([workflowFileAdapter], PROJECT, USER, {
+          paths: [pathOf("Foo"), pathOf("foo")]
+        })
+      ).toMatchObject({ unchanged: 1, reassigned: [], created: [] });
+      expect(await rows()).toHaveLength(1);
+      expect(await reload(workflow.id)).toMatchObject({
+        name: "foo",
+        file_path: pathOf("foo")
+      });
+    });
+
+    it("imports an edit made with the rename", async () => {
+      const workflow = await makeWorkflow("Foo");
+      await renameInCase(pathOf("Foo"), pathOf("foo"));
+      await editFile(kind, pathOf("foo"), (file) => {
+        file.graph.nodes[0]!.data.value = "edited too";
+      });
+
+      expect(await reconcile()).toMatchObject({
+        renamed: [workflow.id],
+        imported: [workflow.id],
+        reassigned: []
+      });
+      expect((await reload(workflow.id)).graph.nodes[0]).toMatchObject({
+        data: { value: "edited too" }
+      });
+      expect(await rows()).toHaveLength(1);
+    });
+  });
+
+  it("keeps two files that differ in case apart on a folder that does not ignore it", async () => {
+    const upper = await makeWorkflow("Foo");
+    await folder(kind).copy(pathOf("Foo"), pathOf("foo"));
+
+    // Both files are listed, so the second is a copy and waits.
+    expect(await reconcile()).toMatchObject({
+      unchanged: 1,
+      renamed: [],
+      deferred: [pathOf("foo")]
+    });
+    passCopyGrace();
+    const report = await reconcile();
+    expect(report.reassigned).toHaveLength(1);
+    expect(await reload(upper.id)).toMatchObject({ name: "Foo", file_path: pathOf("Foo") });
+    expect(await rows()).toHaveLength(2);
   });
 });
