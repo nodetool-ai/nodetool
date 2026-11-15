@@ -30,6 +30,7 @@ import {
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 import type { Asset as AssetRow } from "@nodetool-ai/models";
+import type { ProjectAssetFileChange } from "@nodetool-ai/asset-services/project-asset";
 import {
   SVG_MIME,
   detectImageMime as sniffImageMime,
@@ -1122,8 +1123,10 @@ const updateAsset: CapabilityExport = {
     if (refusal) return { error: refusal };
 
     let touched = false;
-    if (isString(params["name"]) && params["name"]) {
-      asset.name = params["name"];
+    const name =
+      isString(params["name"]) && params["name"] ? params["name"] : null;
+    if (name) {
+      asset.name = name;
       touched = true;
     }
     if (isString(params["parent_id"]) && params["parent_id"]) {
@@ -1142,7 +1145,23 @@ const updateAsset: CapabilityExport = {
       return { error: "Nothing to update — pass name or parent_id." };
     }
 
-    await asset.save();
+    // An asset that is a file in its project folder is renamed on disk too.
+    // The file is copied to its new name before the row is saved and the old
+    // name removed after, so the row never names a file that is not there.
+    let renamed: ProjectAssetFileChange | null = null;
+    try {
+      if (name && asset.workspace_path) {
+        const { renameProjectAssetFile } = await import(
+          "@nodetool-ai/asset-services/project-asset"
+        );
+        renamed = await renameProjectAssetFile(asset, name);
+      }
+      await asset.save();
+    } catch (error) {
+      await renamed?.undo();
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
+    await renamed?.commit();
     return assetRecord(asset);
   }
 };

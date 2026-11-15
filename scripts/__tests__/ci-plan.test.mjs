@@ -7,8 +7,18 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { readFileSync } from "node:fs";
+
 import { computeAffected } from "../../packages/cli-harness/src/affected/affected.ts";
-import { QUEUE_ONLY_LEGS, buildCiPlan, deferToQueue, fullCiPlan } from "../ci-plan.mjs";
+import {
+  NODE_CATALOG_MANIFESTS,
+  NODE_CATALOG_PACKAGES,
+  QUEUE_ONLY_LEGS,
+  buildCiPlan,
+  deferToQueue,
+  fullCiPlan,
+  shardOf
+} from "../ci-plan.mjs";
 import { MOBILE_DEPS } from "../test-affected.mjs";
 
 const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
@@ -48,6 +58,17 @@ const PACKAGES = [
     internalDeps: ["@nodetool-ai/protocol"],
     ownedPaths: ["packages/system-skills"]
   },
+  { name: "@nodetool-ai/runtime", dir: "packages/runtime", internalDeps: ["@nodetool-ai/protocol"] },
+  {
+    name: "@nodetool-ai/cli-server",
+    dir: "packages/cli-server",
+    internalDeps: ["@nodetool-ai/websocket"]
+  },
+  {
+    name: "@nodetool-ai/reliability-harness",
+    dir: "reliability/harness",
+    internalDeps: ["@nodetool-ai/cli-server"]
+  },
   {
     name: "nodetool",
     dir: "web",
@@ -75,14 +96,73 @@ describe("buildCiPlan", () => {
       packages_agents: false,
       packages_nodes: false,
       packages_core: false,
+      packages_cli: false,
+      packages_engine: false,
       packages_game: false,
       integration: false,
       workflow_runner_e2e: false,
       tsc6: false,
       docker: false,
       blender: false,
+      node_catalog: false,
       turbo_affected: true
     });
+  });
+
+  it("splits the former core shard into core, cli and engine", () => {
+    expect(shardOf("@nodetool-ai/storage", "packages/storage")).toBe("test-packages-core");
+    expect(shardOf("@nodetool-ai/cli", "packages/cli")).toBe("test-packages-cli");
+    expect(shardOf("@nodetool-ai/cli-server", "packages/cli-server")).toBe("test-packages-cli");
+    expect(shardOf("@nodetool-ai/reliability-harness", "reliability/harness")).toBe("test-packages-cli");
+    expect(shardOf("@nodetool-ai/cli-game", "packages/cli-game")).toBe("test-packages-game");
+    expect(shardOf("@nodetool-ai/client", "packages/client")).toBe("test-packages-core");
+    expect(shardOf("@nodetool-ai/runtime", "packages/runtime")).toBe("test-packages-engine");
+    expect(shardOf("@nodetool-ai/runtime-core", "packages/runtime-core")).toBe("test-packages-core");
+
+    const cli = plan(["packages/cli-server/src/index.ts"]);
+    expect([cli.packages_cli, cli.packages_core, cli.packages_engine]).toEqual([true, false, false]);
+    const engine = plan(["packages/runtime/src/index.ts"]);
+    expect([engine.packages_cli, engine.packages_core, engine.packages_engine]).toEqual([false, false, true]);
+    // The reliability harness depends on cli-server, which depends on websocket.
+    const upstream = plan(["packages/storage/src/index.ts"]);
+    expect([upstream.packages_cli, upstream.packages_core, upstream.packages_engine]).toEqual([true, true, false]);
+  });
+
+  it("runs the macOS node catalog check only when the diff reaches a generator input", () => {
+    expect(NODE_CATALOG_PACKAGES.has("@nodetool-ai/image-nodes")).toBe(true);
+    expect(NODE_CATALOG_PACKAGES.has("@nodetool-ai/cli-server")).toBe(false);
+    expect(NODE_CATALOG_MANIFESTS.has("packages/cli-server/package.json")).toBe(true);
+    expect(NODE_CATALOG_MANIFESTS.has("packages/cli/package.json")).toBe(true);
+
+    // A pack the generator imports, and a package that pack depends on.
+    expect(plan(["packages/image-nodes/src/index.ts"]).node_catalog).toBe(true);
+    expect(plan(["packages/protocol/src/index.ts"]).node_catalog).toBe(true);
+    expect(plan(["packages/node-sdk/src/index.ts"]).node_catalog).toBe(true);
+    // A command feature is read through its manifest only.
+    expect(plan(["packages/cli-server/src/index.ts"]).node_catalog).toBe(false);
+    expect(plan(["packages/cli-server/package.json"]).node_catalog).toBe(true);
+    // The generator itself, which PATH_CHECKS keeps out of the global set.
+    const generator = plan(["scripts/node-catalog/tiers.mjs"]);
+    expect(generator.full).toBe(false);
+    expect(generator.node_catalog).toBe(true);
+    // Nothing the generator loads.
+    for (const file of ["web/src/components/Foo.tsx", "electron/src/main.ts", "packages/websocket/src/server.ts", "packages/storage/src/index.ts"]) {
+      expect(plan([file]).node_catalog, file).toBe(false);
+    }
+    expect(fullCiPlan().node_catalog).toBe(true);
+    expect(plan(["package-lock.json"]).node_catalog).toBe(true);
+  });
+
+  it("keeps the fail-safe plans in the workflows in step with fullCiPlan", () => {
+    const { turbo_affected: _, ...legs } = fullCiPlan();
+    for (const [file, count] of [[".github/workflows/test.yml", 1], [".github/workflows/quality-checks.yml", 1]]) {
+      const source = readFileSync(resolve(REPO_ROOT, file), "utf8");
+      const fallbacks = [...source.matchAll(/'(?:plan=)?(\{"full":true,[^']+\})'/g)].map(([, json]) => JSON.parse(json));
+      expect(fallbacks, file).toHaveLength(count);
+      for (const fallback of fallbacks) {
+        expect(fallback, file).toEqual(legs);
+      }
+    }
   });
 
   it("runs the Blender render suites only when blender-nodes itself changes", () => {
@@ -201,7 +281,8 @@ describe("buildCiPlan", () => {
     ]) {
       const p = plan([file]);
       expect(p.full).toBe(false);
-      expect(p.packages_core).toBe(true);
+      // node-sdk owns the packs and runs in the engine shard.
+      expect(p.packages_engine).toBe(true);
       expect(p.turbo_affected).toBe(false);
     }
   });
@@ -212,9 +293,7 @@ describe("buildCiPlan", () => {
   });
 
   it("selects nothing for documentation outside every workspace", () => {
-    // The node catalog check runs for every non-docs-only change; test.yml's
-    // docs-only input turns it off, as it did before the plan carried it.
-    const { turbo_affected: _, node_catalog: __, ...legs } = plan(["docs/index.md", "AGENTS.md"]);
+    const { turbo_affected: _, ...legs } = plan(["docs/index.md", "AGENTS.md"]);
     expect(Object.values(legs).filter((v) => v === true || v === "full" || v === "related")).toEqual([]);
   });
 });
@@ -288,6 +367,48 @@ describe("ci-plan run", () => {
   });
 });
 
+describe("ci-plan run with test arguments", () => {
+  it.each([
+    {
+      name: "appends them to a related-tests step, which already has a separator",
+      files: ["web/src/components/Foo.tsx"],
+      expected: [
+        "test", "--workspace=web", "--", "--findRelatedTests",
+        resolve(REPO_ROOT, "web/src/components/Foo.tsx"), "--passWithNoTests", "--shard=2/3"
+      ]
+    },
+    {
+      name: "adds the separator a full-suite step lacks",
+      files: ["packages/protocol/src/index.ts"],
+      expected: ["test", "--workspace=web", "--", "--shard=2/3"]
+    }
+  ])("$name", async ({ files, expected }) => {
+    const originalArgv = process.argv;
+    const base = "515bd2803fd393127783ba356c6c69b4c956febe";
+    const execFileSync = vi.fn((_command, args) => (args[0] === "diff" ? `${files.join("\n")}\n` : ""));
+    const spawnSync = vi.fn(() => ({ status: 0 }));
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.doMock("node:child_process", () => ({ execFileSync, spawnSync }));
+    vi.resetModules();
+    process.argv = [
+      process.execPath,
+      fileURLToPath(new URL("../ci-plan.mjs", import.meta.url)),
+      "run", "web", "--base", base, "--", "--shard=2/3"
+    ];
+    try {
+      await import("../ci-plan.mjs");
+      expect(spawnSync.mock.calls.map(([command, args]) => [command, args])).toEqual([["npm", expected]]);
+      expect(exit).toHaveBeenCalledWith(0);
+    } finally {
+      process.argv = originalArgv;
+      vi.doUnmock("node:child_process");
+      vi.restoreAllMocks();
+      vi.resetModules();
+    }
+  });
+});
+
 describe("deferToQueue", () => {
   it("turns off only the queue-only legs and names the ones it turned off", () => {
     const full = fullCiPlan();
@@ -304,15 +425,17 @@ describe("deferToQueue", () => {
   });
 
   it("keeps every required test leg on the pull request", () => {
-    for (const leg of ["web", "electron", "mobile", "packages_websocket", "packages_agents", "packages_nodes", "packages_core", "blender"]) {
+    for (const leg of ["web", "electron", "mobile", "packages_websocket", "packages_agents", "packages_nodes", "packages_core", "packages_cli", "packages_engine", "packages_game", "blender"]) {
       expect(QUEUE_ONLY_LEGS).not.toContain(leg);
     }
   });
 
   it("lists only legs the diff did not already leave off", () => {
-    const p = plan(["web/src/components/Foo.tsx"]);
+    const p = plan(["packages/image-nodes/src/index.ts"]);
     expect(p.node_catalog).toBe(true);
+    expect(p.integration).toBe(false);
     expect(deferToQueue(p).deferred_to_queue).toEqual(["node_catalog"]);
+    expect(deferToQueue(plan(["web/src/components/Foo.tsx"])).deferred_to_queue).toEqual([]);
   });
 
   it("is applied by the plan command only with --defer-to-queue", async () => {

@@ -731,3 +731,37 @@ export class FirstRunHomePage {
     );
   }
 }
+
+/** The Files section of the left rail: the open project's folder on disk. */
+export class ProjectFilesPage {
+  constructor(private readonly page: Page) {}
+
+  /** Opens `/workspace` with `projectId` as the active project. */
+  async open(projectId: string): Promise<void> {
+    await this.page.addInitScript(({ projectId }) => {
+      localStorage.setItem("workspace-tabs-storage", JSON.stringify({
+        version: 4,
+        state: {
+          tabs: [],
+          activeTabId: null,
+          activeProjectId: projectId,
+          personalProjectId: null,
+          projectSessions: { [projectId]: { tabIds: [], activeTabId: null, selectedChatThreadId: null } }
+        }
+      }));
+    }, { projectId });
+    await goto(this.page, "/workspace");
+  }
+
+  railButton(name: "Chats" | "Documents" | "Files"): Locator {
+    return this.page.getByRole("button", { name, exact: true });
+  }
+
+  heading(projectName: string): Locator {
+    return this.page.getByRole("heading", { name: projectName, exact: true });
+  }
+
+  tree(): Locator {
+    return this.page.getByLabel("Project files", { exact: true });
+  }
+}

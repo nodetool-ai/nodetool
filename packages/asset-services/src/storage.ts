@@ -7,7 +7,10 @@ import {
   FileStorageAdapter,
   type StorageAdapter
 } from "@nodetool-ai/storage";
-import { lookupExternalAssetPath } from "./external-asset-lookup.js";
+import {
+  installAssetFolderLookup,
+  lookupExternalAssetPath
+} from "./external-asset-lookup.js";
 import { ProjectAssetStorageAdapter } from "./project-asset-storage.js";
 
 let _assetAdapter: StorageAdapter | null = null;
@@ -23,6 +26,8 @@ let _tempAdapter: StorageAdapter | null = null;
 export function getAssetAdapter(): StorageAdapter {
   if (!_assetAdapter) {
     const config = loadAssetStorageConfig();
+    // Adapters other code builds over the same folder resolve the same way.
+    if (config.kind === "file") installAssetFolderLookup();
     _assetAdapter =
       config.kind === "file"
         ? new FileStorageAdapter(config.rootDir, {

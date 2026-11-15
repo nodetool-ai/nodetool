@@ -3,6 +3,7 @@ import { authHeader } from "../../lib/auth";
 import { restFetch } from "../../lib/rest-fetch";
 import { Asset, AssetList, AssetSearchResult } from "../ApiTypes";
 import { useAssetStore } from "../AssetStore";
+import { useWorkspaceTabsStore } from "../WorkspaceTabsStore";
 
 jest.mock("../../lib/rest-fetch", () => ({
   restFetch: jest.fn()
@@ -429,6 +430,56 @@ describe("AssetStore", () => {
           useAssetStore.getState().createAsset(file)
         ).rejects.toThrow();
         expect(finalizeMutate).not.toHaveBeenCalled();
+      });
+
+      it("hands finalize the directory the file was dropped on", async () => {
+        const file = new File(["test content"], "test.jpg", {
+          type: "image/jpeg"
+        });
+        await useAssetStore
+          .getState()
+          .createAsset(file, undefined, undefined, undefined, "drop", "project-a", "footage");
+        expect(finalizeMutate).toHaveBeenCalledWith({
+          asset_id: "direct-id",
+          directory: "footage"
+        });
+      });
+    });
+
+    describe("the project and directory a multipart upload names", () => {
+      const sentJson = (): Record<string, unknown> => {
+        const body = mockRestFetch.mock.calls[0][1].body as FormData;
+        return JSON.parse(String(body.get("json")));
+      };
+
+      beforeEach(() => {
+        mockRestFetch.mockResolvedValue({
+          ok: true,
+          json: jest.fn().mockResolvedValue({ id: "a1", parent_id: "" })
+        });
+      });
+
+      afterEach(() => {
+        useWorkspaceTabsStore.setState({ activeProjectId: null });
+      });
+
+      it("names the open project when the caller passes none", async () => {
+        useWorkspaceTabsStore.setState({ activeProjectId: "project-open" });
+        const file = new File(["x"], "a.txt", { type: "text/plain" });
+        await useAssetStore.getState().createAsset(file);
+        expect(sentJson()).toMatchObject({ project_id: "project-open" });
+        expect(sentJson()).not.toHaveProperty("directory");
+      });
+
+      it("sends the directory a file was dropped on", async () => {
+        const file = new File(["x"], "a.txt", { type: "text/plain" });
+        await useAssetStore
+          .getState()
+          .createAsset(file, undefined, undefined, undefined, "drop", "project-a", "footage");
+        expect(sentJson()).toMatchObject({
+          project_id: "project-a",
+          directory: "footage"
+        });
       });
     });
 

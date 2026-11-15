@@ -6,19 +6,24 @@ import isEqual from "../../utils/isEqual";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
-import { Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx, PanelHeader, EmptyState, EYEBROW } from "../ui_primitives";
+import { Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx, PanelHeader, EmptyState, ContextMenu, MenuItemPrimitive } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { RefreshButton, SettingsButton } from "../ui_primitives";
-import { openPageTab } from "../workspace/openPageTab";
+import { RefreshButton } from "../ui_primitives";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { usePanelStore } from "../../stores/PanelStore";
-import { useWorkspaceExplorer } from "../../hooks/useWorkspaceExplorer";
-import WorkspaceSelect from "./WorkspaceSelect";
+import { useProjectFolder } from "../../hooks/useProjectFolder";
+import { useAssetUpload } from "../../serverState/useAssetUpload";
+import { fileManagerKind } from "../../utils/platform";
+import {
+  folderEntryPath,
+  isReservedProjectEntry,
+  revealLabelKey
+} from "./projectFolderPaths";
 
 /** Props forwarded onto a rendered tree row. */
 interface TreeViewItemSlotProps {
@@ -44,40 +49,18 @@ const workspaceTreeStyles = (theme: Theme) =>
     overflow: "hidden",
     gap: getSpacingPx(SPACING.lg),
 
-    ".workspace-header": {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingBottom: getSpacingPx(SPACING.xs),
-      borderBottom: `1px solid ${theme.vars.palette.divider}`
-    },
-
-    ".workspace-header h6": {
-      ...EYEBROW,
-      color: theme.vars.palette.text.secondary
-    },
-
-    ".workspace-selector": {
-      display: "flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.md)
-    },
-
-    ".settings-button": {
-      color: theme.vars.palette.grey[400],
-      transition: `color ${MOTION.normal}`,
-      "&:hover": {
-        color: theme.vars.palette.primary.main
-      }
-    },
-
     ".file-tree-container": {
       flex: 1,
       overflowY: "auto",
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.md,
       padding: getSpacingPx(SPACING.md),
-      backgroundColor: theme.vars.palette.background.default
+      backgroundColor: theme.vars.palette.background.default,
+      transition: MOTION.border
+    },
+
+    ".file-tree-container.drop-active": {
+      borderColor: theme.vars.palette.primary.main
     },
 
     ".tree-actions": {
@@ -216,7 +199,10 @@ const fetchWorkspaceFiles = async (
     id: workspaceId,
     path
   });
-  return data.map((file) => fileToTreeItem(file, loadingLabel));
+  // `.nodetool/` is NodeTool's own data. It sits at the folder root only.
+  return data
+    .filter((file) => !isReservedProjectEntry(file))
+    .map((file) => fileToTreeItem(file, loadingLabel));
 };
 
 const findItemInTree = (
@@ -258,6 +244,26 @@ const updateTreeWithChildren = (
 /** How deep a workspace path sits, so parents can be merged before children. */
 const depthOf = (path: string): number => path.split("/").length;
 
+/**
+ * The project-folder directory a file dropped on `item` lands in: a folder
+ * row is that folder, a file row is the folder it is in, and anywhere else in
+ * the tree is the project folder itself (`.`).
+ */
+const dropDirectoryFor = (itemId: string | null, item: TreeViewItem | undefined): string => {
+  if (!itemId || itemId.endsWith("/loading") || itemId.endsWith("/error")) {
+    return ".";
+  }
+  if (item?.treeItemProps?.className === "folder-item") {
+    return itemId;
+  }
+  const slash = itemId.lastIndexOf("/");
+  return slash > 0 ? itemId.slice(0, slash) : ".";
+};
+
+/** True when a drag carries files from the OS rather than an in-app item. */
+const carriesFiles = (event: React.DragEvent): boolean =>
+  Array.from(event.dataTransfer.types).includes("Files");
+
 const shouldLoadChildren = (item: TreeViewItem | undefined, loadingLabel: string): boolean => {
   return Boolean(
     item?.children?.length === 1 && item.children[0].label === loadingLabel
@@ -265,12 +271,11 @@ const shouldLoadChildren = (item: TreeViewItem | undefined, loadingLabel: string
 };
 
 /**
- * Browser for the files in a workspace folder.
+ * The Files section: the tree of the selected project's folder.
  *
- * Independent of the graph editor: it shows whichever workspace the user
- * picked inside the active project, works with no workflow open, and changing
- * that pick moves only this tree — a workflow keeps whatever workspace its
- * runs write to.
+ * The folder is the one the project API reports (`folder.workspace_id`), so
+ * switching project moves the tree and nothing else does. It needs no workflow
+ * and no choice of folder. `.nodetool/` is hidden.
  */
 interface WorkspaceTreeProps {
   readonly projectId: string;
@@ -289,12 +294,12 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
 
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const setPanelVisibility = usePanelStore((state) => state.setVisibility);
+  const uploadAsset = useAssetUpload((state) => state.uploadAsset);
+  const [isDropActive, setIsDropActive] = useState(false);
 
-  const {
-    workspaceId,
-    setWorkspaceId,
-    isLoading: isLoadingWorkspaces
-  } = useWorkspaceExplorer(projectId);
+  const { folder, isLoading: isLoadingWorkspaces } =
+    useProjectFolder(projectId);
+  const workspaceId = folder?.workspace_id;
   const workspaceIdRef = useRef<string | undefined>(workspaceId);
   workspaceIdRef.current = workspaceId;
 
@@ -426,22 +431,47 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     }
   }, [selectedFilePath]);
 
-  const handleOpenInFolder = useCallback(async () => {
-    if (!selectedFilePath) { return; }
+  const revealPath = folder?.path ?? null;
+  const canReveal = Boolean(revealPath && window.api?.showItemInFolder);
+  const [menu, setMenu] = useState<{
+    x: number;
+    y: number;
+    itemId: string;
+  } | null>(null);
 
-    if (window.api?.shell?.showItemInFolder) {
-      await window.api.shell.showItemInFolder(selectedFilePath);
+  const handleContextMenu = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      if (!canReveal) {
+        return;
+      }
+      event.preventDefault();
+      const target = event.target as HTMLElement;
+      const treeItem = target.closest('[data-testid="tree-item"]');
+      const itemId = treeItem?.getAttribute("data-itemid") ?? "";
+      setMenu({
+        x: event.clientX,
+        y: event.clientY,
+        itemId:
+          itemId.endsWith("/loading") || itemId.endsWith("/error") ? "" : itemId
+      });
+    },
+    [canReveal]
+  );
+
+  const closeMenu = useCallback(() => setMenu(null), []);
+
+  const handleReveal = useCallback(() => {
+    if (revealPath && menu) {
+      void window.api?.showItemInFolder?.(
+        folderEntryPath(revealPath, menu.itemId)
+      );
     }
-  }, [selectedFilePath]);
+    setMenu(null);
+  }, [menu, revealPath]);
 
   const handleRefresh = useCallback(() => {
     refetchFiles();
   }, [refetchFiles]);
-
-  // Workspaces left the settings page — they are their own workspace tab now.
-  const handleManageWorkspace = useCallback(() => {
-    openPageTab("workspaces");
-  }, []);
 
   const handleTreeDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -454,6 +484,43 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     }
   }, [handleItemDoubleClick]);
 
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (!carriesFiles(e)) { return; }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+    setIsDropActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node | null)) { return; }
+    setIsDropActive(false);
+  }, []);
+
+  // A file dropped on the tree is uploaded into the project folder, into the
+  // directory it was dropped on, and becomes an asset there.
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (!carriesFiles(e)) { return; }
+      e.preventDefault();
+      setIsDropActive(false);
+      const treeItem = (e.target as HTMLElement).closest('[data-testid="tree-item"]');
+      const itemId = treeItem?.getAttribute("data-itemid") ?? null;
+      const directory = dropDirectoryFor(
+        itemId,
+        itemId ? findItemInTree(filesRef.current, itemId) : undefined
+      );
+      for (const file of Array.from(e.dataTransfer.files)) {
+        uploadAsset({
+          file,
+          project_id: projectId,
+          directory,
+          onCompleted: () => { void refetchFiles(); }
+        });
+      }
+    },
+    [projectId, refetchFiles, uploadAsset]
+  );
+
   const breadcrumbSegments =
     selectedFilePath && !selectedFilePath.includes("/loading")
       ? selectedFilePath.split("/").filter(Boolean)
@@ -462,7 +529,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
   return (
     <Box css={workspaceTreeStyles(theme)}>
       <PanelHeader
-        title={t("batch2_1.tree.title")}
+        title={t("projectFolder.tree.title")}
         docsTopic="workspaces"
         actions={
           <RefreshButton
@@ -473,25 +540,12 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         }
       />
 
-      <div className="workspace-selector">
-        <WorkspaceSelect
-          value={workspaceId}
-          onChange={setWorkspaceId}
-          projectId={projectId}
-        />
-        <SettingsButton
-          className="settings-button"
-          onClick={handleManageWorkspace}
-          tooltip={t("batch2_1.tree.manage")}
-        />
-      </div>
-
       {breadcrumbSegments.length > 0 && (
         <div className="breadcrumb">
           <span
             className="breadcrumb-segment"
             role="button"
-            aria-label={t("batch2_1.tree.goToRoot")}
+            aria-label={t("projectFolder.tree.goToRoot")}
             tabIndex={0}
             onClick={() => setSelectedFilePath("")}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setSelectedFilePath(""); } }}
@@ -509,14 +563,6 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
 
       {selectedFilePath && !selectedFilePath.includes("/loading") && (
         <div className="tree-actions">
-          <EditorButton
-            className="open-folder-button"
-            variant="outlined"
-            startIcon={<FolderOpenIcon />}
-            onClick={handleOpenInFolder}
-          >
-            {t("batch2_1.tree.openInFolder")}
-          </EditorButton>
           {Boolean(window.api?.shell?.openPath) && (
             <EditorButton
               className="open-folder-button"
@@ -530,7 +576,14 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
         </div>
       )}
 
-      <div className="file-tree-container">
+      <div
+        className={`file-tree-container${isDropActive ? " drop-active" : ""}`}
+        data-testid="workspace-file-drop"
+        onContextMenu={handleContextMenu}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {isLoadingWorkspaces || isLoadingFiles ? (
           <div className="skeleton-tree">
             <Skeleton variant="text" width="60%" height={24} />
@@ -544,10 +597,8 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
           <EmptyState
             size="small"
             icon={<FolderOpenIcon />}
-            title={t("batch2_1.tree.noneSelected")}
-            description={t("batch2_1.tree.selectOrCreate")}
-            actionText={t("batch2_1.tree.createWorkspace")}
-            onAction={handleManageWorkspace}
+            title={t("projectFolder.tree.noFolderTitle")}
+            description={t("projectFolder.tree.noFolderDescription")}
           />
         ) : files.length > 0 ? (
           <div onDoubleClick={handleTreeDoubleClick}>
@@ -561,7 +612,7 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
                 }
               }}
               items={files}
-              aria-label={t("batch2_1.tree.fileBrowser")}
+              aria-label={t("projectFolder.tree.fileBrowser")}
               selectedItems={selectedFilePath}
               sx={treeViewStyles(theme)}
               slotProps={{
@@ -577,11 +628,22 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
           <EmptyState
             size="small"
             icon={<FolderOpenIcon />}
-            title={t("batch2_1.tree.emptyTitle")}
-            description={t("batch2_1.tree.emptyDescription")}
+            title={t("projectFolder.tree.emptyTitle")}
+            description={t("projectFolder.tree.emptyDescription")}
           />
         )}
       </div>
+
+      <ContextMenu
+        open={menu !== null}
+        position={menu ? { x: menu.x, y: menu.y } : null}
+        onClose={closeMenu}
+      >
+        <MenuItemPrimitive
+          label={t(revealLabelKey(fileManagerKind()))}
+          onClick={handleReveal}
+        />
+      </ContextMenu>
     </Box>
   );
 };

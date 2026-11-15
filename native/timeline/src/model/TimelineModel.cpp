@@ -4,6 +4,7 @@
 #include "model/TimelineJson.h"
 #include "app/EditRegistry.h"
 
+#include <utility>
 #include <QHash>
 #include <QJsonDocument>
 #include <QUndoCommand>
@@ -274,6 +275,30 @@ bool TimelineModel::previewTrackEffects(const QJsonArray& tracks) {
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
     m_tracks->rebind(m_timeline.get());
     emit previewChanged();
+    return true;
+}
+
+bool TimelineModel::previewTrackHeight(const QString& trackId, double heightPx) {
+    auto next = *m_timeline;
+    auto tracks = next.raw.value("tracks").toArray();
+    bool found = false;
+    for (qsizetype i = 0; i < tracks.size(); ++i) {
+        auto track = tracks[i].toObject();
+        if (track.value("id").toString() != trackId) { continue; }
+        if (track.value("heightPx").toDouble(64) == heightPx) { return false; }
+        track.insert("heightPx", heightPx);
+        tracks[i] = track;
+        found = true;
+    }
+    if (!found) { return false; }
+    for (auto& track : next.tracks) {
+        if (QString::fromStdString(track.id) == trackId) { track.raw.insert("heightPx", heightPx); }
+    }
+    next.raw.insert("tracks", tracks);
+    next.revision = nt::nextTimelineRevision();
+    // The track rows point into the old snapshot until refresh compares them.
+    const auto previous = std::exchange(m_timeline, std::make_shared<const nt::Timeline>(std::move(next)));
+    if (!m_tracks->refresh(m_timeline.get())) { m_tracks->reset(m_timeline.get()); }
     return true;
 }
 

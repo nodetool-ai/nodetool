@@ -15,6 +15,9 @@
  * provider wiring.
  */
 
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import sharedGlobalSetup from "../globalSetup";
 
 export default async function journeysGlobalSetup(): Promise<
@@ -23,5 +26,20 @@ export default async function journeysGlobalSetup(): Promise<
   // Overridable so a failing journey can be re-run against real providers to
   // tell "the fake is wrong" apart from "the app is broken".
   process.env.NODETOOL_FAKE_PROVIDERS ??= "1";
-  return sharedGlobalSetup();
+  // Creating a project creates its folder. Point that at a temp directory so a
+  // journey never writes into the real home directory.
+  const ownsProjectsDir = process.env.PROJECTS_DIR === undefined;
+  const projectsDir = ownsProjectsDir
+    ? mkdtempSync(join(tmpdir(), "nodetool-journey-projects-"))
+    : undefined;
+  if (projectsDir) {
+    process.env.PROJECTS_DIR = projectsDir;
+  }
+  const teardown = await sharedGlobalSetup();
+  return async () => {
+    await teardown();
+    if (projectsDir) {
+      rmSync(projectsDir, { recursive: true, force: true });
+    }
+  };
 }

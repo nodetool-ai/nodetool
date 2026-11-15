@@ -21,6 +21,7 @@ vi.mock("@nodetool-ai/asset-services/storage", async (orig) => ({
   getAssetAdapter: () => mocks.adapter
 }));
 
+import { resolveProjectWorkspace } from "@nodetool-ai/execution/service";
 import { handleExtractAudio } from "../src/http-api.js";
 import { lookupExternalAssetPath } from "../src/lib/external-asset-lookup.js";
 
@@ -35,6 +36,25 @@ function post(): Request {
     method: "POST",
     headers: { "x-user-id": USER }
   });
+}
+
+/** The WAV's file in the project folder, and its local path when it has one. */
+async function wavFile(
+  assetId: string
+): Promise<{ workspacePath: string; bytes: Uint8Array; localPath: string | null }> {
+  const row = await Asset.find(USER, assetId);
+  if (!row?.workspace_path) throw new Error("the WAV has no project file");
+  const folder = await resolveProjectWorkspace(row.project_id, USER);
+  if (!folder.ok) throw new Error(folder.reason);
+  const bytes = await folder.workspace.read(row.workspace_path);
+  if (!bytes) throw new Error("the WAV's file is missing");
+  return {
+    workspacePath: row.workspace_path,
+    bytes,
+    localPath: folder.workspace.localDir
+      ? path.join(folder.workspace.localDir, row.workspace_path)
+      : null
+  };
 }
 
 interface ExtractBody {
@@ -79,7 +99,7 @@ async function externalVideo(filePath: string): Promise<Asset> {
 }
 
 describe("handleExtractAudio with a local file", () => {
-  it("extracts from the external file in place and stores the WAV from disk", async () => {
+  it("extracts from the external file in place and saves the WAV as a file in Generated/", async () => {
     const root = path.join(tmp, "storage-a");
     const adapter = new FileStorageAdapter(root, {
       externalPathLookup: lookupExternalAssetPath
@@ -95,21 +115,21 @@ describe("handleExtractAudio with a local file", () => {
     expect(body.asset?.content_type).toBe("audio/wav");
     expect(body.asset?.duration).toBeCloseTo(1, 1);
 
-    const wavPath = path.join(root, USER, `${body.asset!.id}.wav`);
-    const wav = await fs.readFile(wavPath);
-    expect(wav.subarray(0, 4).toString("ascii")).toBe("RIFF");
-    const pcm = await readPcm(wavPath, { sampleRate: 8000 });
+    const wav = await wavFile(body.asset!.id);
+    expect(wav.workspacePath).toBe("Generated/interview-take.mp4-(audio).wav");
+    expect(Buffer.from(wav.bytes).subarray(0, 4).toString("ascii")).toBe("RIFF");
+    const pcm = await readPcm(wav.localPath!, { sampleRate: 8000 });
     expect(rmsBetween(pcm, 0.1, 0.9)).toBeGreaterThan(0.05);
-    expect(body.asset?.size).toBe(wav.byteLength);
+    expect(body.asset?.size).toBe(wav.bytes.byteLength);
     // The WAV was thumbnailed from its file.
     await fs.access(path.join(root, USER, `${body.asset!.id}_thumb.jpg`));
-    // Neither the video nor the WAV was read back into memory.
+    // Neither the video nor the WAV was read back from the store.
     expect(retrieve).not.toHaveBeenCalled();
-    // The user's file is untouched and nothing was copied into the store.
+    // The user's file is untouched, and the store holds only the thumbnail.
     expect((await fs.stat(withAudio)).isFile()).toBe(true);
-    expect(await fs.readdir(path.join(root, USER))).toEqual(
-      [`${body.asset!.id}.wav`, `${body.asset!.id}_thumb.jpg`].sort()
-    );
+    expect(await fs.readdir(path.join(root, USER))).toEqual([
+      `${body.asset!.id}_thumb.jpg`
+    ]);
   });
 
   it("answers has_audio false for a video with no audio track", async () => {
@@ -125,7 +145,7 @@ describe("handleExtractAudio with a local file", () => {
 });
 
 describe("handleExtractAudio on a backend with no local file", () => {
-  it("loads the bytes into a temp input and stores the WAV bytes", async () => {
+  it("loads the bytes into a temp input and saves the WAV as a project file", async () => {
     const adapter = new InMemoryStorageAdapter();
     mocks.adapter = adapter;
     const video = (await Asset.create({
@@ -143,9 +163,8 @@ describe("handleExtractAudio on a backend with no local file", () => {
     expect(res.status).toBe(200);
     const body = (await res.json()) as ExtractBody;
     expect(body.has_audio).toBe(true);
-    const wav = await adapter.retrieve(
-      adapter.uriForKey(`${USER}/${body.asset!.id}.wav`)
-    );
-    expect(Buffer.from(wav!).subarray(0, 4).toString("ascii")).toBe("RIFF");
+    const wav = await wavFile(body.asset!.id);
+    expect(wav.workspacePath).toBe("Generated/clip.mp4-(audio).wav");
+    expect(Buffer.from(wav.bytes).subarray(0, 4).toString("ascii")).toBe("RIFF");
   });
 });
