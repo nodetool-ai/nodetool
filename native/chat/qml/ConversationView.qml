@@ -95,7 +95,13 @@ Item {
     }
     function anchorNewTurn(index) {
         messages.forceLayout();
-        const item = messages.itemAtIndex(index);
+        let item = messages.itemAtIndex(index);
+        if (!item) {
+            // A row just below the view may not have a delegate yet.
+            messages.positionViewAtIndex(index, ListView.End);
+            messages.forceLayout();
+            item = messages.itemAtIndex(index);
+        }
         if (!item || item.role !== "user") {
             return;
         }
@@ -449,7 +455,9 @@ Item {
             oldY = messages.contentY;
         }
         function onRowsInserted(parent, first, last) {
-            if (!prepending && first === last && last === messages.count - 1) {
+            // The view may count the new row only after this handler runs, so
+            // ask the model whether the row is its last.
+            if (!prepending && first === last && last === root.session.messages.rowCount() - 1) {
                 Qt.callLater(root.anchorNewTurn, last);
             }
             if (prepending) {
