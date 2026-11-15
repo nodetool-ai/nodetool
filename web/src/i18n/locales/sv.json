@@ -20142,5 +20142,13 @@
       "revealInExplorer": "Visa i Utforskaren",
       "revealInFileManager": "Visa i filhanteraren"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Resurskälla",
+    "projectTab": "Det här projektet",
+    "personalTab": "Personligt",
+    "personalHint": "När du väljer från Personligt kopieras filen till det här projektet.",
+    "copying": "Kopierar till det här projektet…",
+    "copyFailed": "Det gick inte att kopiera resursen till det här projektet."
   }
 }

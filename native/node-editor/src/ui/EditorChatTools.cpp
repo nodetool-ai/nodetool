@@ -482,8 +482,23 @@ void EditorWindow::initializeChatTools() {
                                 return;
                             }
                             for (auto *tab : owner->tabs_) {
-                                if (tab->document_.snapshot()["id"].toString() == id) {
-                                    chat_.completeHostTool(call, result.toVariantMap());
+                                const auto loaded = tab->document_.snapshot()["id"].toString();
+                                // An agent passes a 12-character prefix; the tab holds the full id.
+                                const bool prefix =
+                                    QRegularExpression("^[0-9a-f]{12}$").match(id).hasMatch() &&
+                                    QRegularExpression("^[0-9a-f]{32}$").match(loaded).hasMatch() &&
+                                    loaded.startsWith(id);
+                                if (loaded == id || prefix) {
+                                    auto reply = result;
+                                    for (const auto key : {QStringLiteral("id"), QStringLiteral("workflow_id")}) {
+                                        if (reply.contains(key)) {
+                                            reply[key] = loaded;
+                                        }
+                                    }
+                                    if (reply.contains("url")) {
+                                        reply["url"] = "workflow://" + loaded;
+                                    }
+                                    chat_.completeHostTool(call, reply.toVariantMap());
                                     timer->deleteLater();
                                     return;
                                 }

@@ -5,14 +5,19 @@
  * the server's import site for it, and the one place that tells the resolver
  * which object store backs a virtual workspace.
  */
+import type { Asset } from "@nodetool-ai/models";
 import {
   setWorkspaceChangeNotifier,
   setWorkspaceCloudStorage,
   usesCloudWorkspaces,
   type WorkspaceFileChange
 } from "@nodetool-ai/execution/service";
-import { scheduleWorkspaceReconcile } from "@nodetool-ai/project-services/project-index";
+import {
+  onProjectFileChanged,
+  scheduleWorkspaceReconcile
+} from "@nodetool-ai/project-services/project-index";
 import { getAssetAdapter } from "./storage.js";
+import { discardVideoProxy, scheduleVideoProxy } from "./video-proxy.js";
 import { notifyResourceChange } from "../resource-events.js";
 
 export {
@@ -45,6 +50,22 @@ export function initWorkspaceStorage(): void {
  */
 const WORKSPACE_CHANGE_COALESCE_MS = 400;
 
+/**
+ * Remake the proxy of a video whose file in the project folder has new
+ * contents. A proxy records the size and mtime of the file it was made from
+ * and is not played for another version, so the stale one is removed and a
+ * new one queued. The thumbnail is replaced by the reconcile, and waveform
+ * peaks are cached by the file's size and mtime, so neither needs a step
+ * here.
+ */
+async function remakeVideoProxy(
+  asset: Pick<Asset, "id" | "user_id" | "content_type">
+): Promise<void> {
+  if (!asset.content_type.startsWith("video/")) return;
+  await discardVideoProxy(asset);
+  scheduleVideoProxy(asset);
+}
+
 const pendingWorkspaceChanges = new Map<
   string,
   { userId: string; timer: NodeJS.Timeout }
@@ -60,9 +81,11 @@ const pendingWorkspaceChanges = new Map<
  *
  * A write into a project folder also reconciles that project's asset index,
  * debounced, so a media file an agent or a node wrote gets its asset row and
- * a file it moved keeps its asset.
+ * a file it moved keeps its asset. A file the reconcile finds changed gets
+ * its video proxy remade.
  */
 export function initWorkspaceChangeEvents(): void {
+  onProjectFileChanged(remakeVideoProxy);
   setWorkspaceChangeNotifier((change: WorkspaceFileChange) => {
     scheduleWorkspaceReconcile(change.workspaceId, change.userId);
     const pending = pendingWorkspaceChanges.get(change.workspaceId);

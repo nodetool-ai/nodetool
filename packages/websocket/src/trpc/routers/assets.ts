@@ -58,6 +58,11 @@ import {
   requireProjectFolder
 } from "@nodetool-ai/asset-services/project-asset-file";
 import {
+  AssetCopyError,
+  COPY_SOURCE_KEYS,
+  copyAssetToProject
+} from "@nodetool-ai/asset-services/copy-asset-to-project";
+import {
   WorkspacePathError,
   WorkspaceReservedPathError
 } from "@nodetool-ai/runtime";
@@ -106,7 +111,9 @@ import {
   recursiveInput,
   recursiveOutput,
   searchInput,
-  searchOutput
+  searchOutput,
+  copyToProjectInput,
+  copyToProjectOutput
 } from "@nodetool-ai/protocol/api-schemas/assets.js";
 import { isAssetSharedWithUser } from "../../lib/document-access.js";
 import { isFullResourceId } from "@nodetool-ai/protocol";
@@ -969,11 +976,10 @@ export const assetsRouter = router({
         asset.metadata = isExternal
           ? withExternalFingerprint(input.metadata, asset.metadata)
           : hasProjectFile
-            ? keepFingerprint(
-                input.metadata,
-                asset.metadata,
-                WORKSPACE_SERVER_KEYS
-              )
+            ? keepFingerprint(input.metadata, asset.metadata, [
+                ...WORKSPACE_SERVER_KEYS,
+                ...COPY_SOURCE_KEYS
+              ])
             : input.metadata;
       }
       if (input.sketch_document_id !== undefined) {
@@ -1062,6 +1068,37 @@ export const assetsRouter = router({
       }
       for (const change of fileChanges) await change.commit();
       return toAssetResponse(asset);
+    }),
+
+  /**
+   * Use an asset in a project (PRD D10). An asset of another project, such
+   * as Personal, is copied into the project's `Imported/` directory and the
+   * copy is returned, so the document stores an asset of its own project.
+   */
+  copyToProject: protectedProcedure
+    .input(copyToProjectInput)
+    .output(copyToProjectOutput)
+    .mutation(async ({ ctx, input }) => {
+      if (input.project_id !== "default") {
+        try {
+          await Project.requireOwned(ctx.userId, input.project_id);
+        } catch {
+          throwApiError(ApiErrorCode.INVALID_INPUT, "Project not found");
+        }
+      }
+      try {
+        const { asset, copied } = await copyAssetToProject({
+          userId: ctx.userId,
+          assetId: input.asset_id,
+          projectId: input.project_id
+        });
+        return { asset: await toAssetResponse(asset), copied };
+      } catch (error) {
+        if (error instanceof AssetCopyError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+        }
+        rethrowFolderError(error);
+      }
     }),
 
   delete: protectedProcedure

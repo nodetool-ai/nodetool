@@ -53,6 +53,7 @@ import {
 } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
+import { localizeProjectAssets, withCopiedAssets } from "./project-asset-copies.js";
 import { editWithRename, parseRename, renameOwned } from "./rename.js";
 import {
   encodeSketchLayerData,
@@ -1104,6 +1105,11 @@ async function applySketchEdit(
         "Use list_assets to find one, and pass its id as `image`."
     };
   }
+  // A layer image from another project is placed as its copy in this one.
+  const local = await localizeProjectAssets(run, existing.project_id, ops, [
+    "image"
+  ]);
+  if (isError(local)) return local;
 
   try {
     // Write by the resolved id: `sketchId` may be a 12-character prefix,
@@ -1123,7 +1129,7 @@ async function applySketchEdit(
         // first error hides every problem behind it.
         const applied: OpRecord[] = [];
         const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
-        for (const parsed of ops) {
+        for (const parsed of local.value) {
           try {
             const resolved = resolveSketchOp(state, parsed);
             const result = applyOp(state, parsed, SKETCH_BLEND_MODES);
@@ -1174,15 +1180,18 @@ async function applySketchEdit(
     const { records, layerSummary, activeLayerId } = mutated.result;
 
     const failed = records.filter((record) => !record.ok);
-    return {
-      image_document_id: existing.id,
-      updated_at: mutated.document.updated_at,
-      applied: records.length - failed.length,
-      failed: failed.length,
-      ops: records,
-      active_layer_id: activeLayerId,
-      layers: layerSummary
-    };
+    return withCopiedAssets(
+      {
+        image_document_id: existing.id,
+        updated_at: mutated.document.updated_at,
+        applied: records.length - failed.length,
+        failed: failed.length,
+        ops: records,
+        active_layer_id: activeLayerId,
+        layers: layerSummary
+      },
+      local.copies
+    );
   } catch (e) {
     if (e instanceof ImageDocumentConflictError) {
       return {

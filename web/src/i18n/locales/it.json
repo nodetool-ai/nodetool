@@ -20453,5 +20453,13 @@
       "revealInExplorer": "Mostra in Esplora file",
       "revealInFileManager": "Mostra nel gestore file"
     }
+  },
+  "assetPicker": {
+    "sourceTabs": "Origine della risorsa",
+    "projectTab": "Questo progetto",
+    "personalTab": "Personale",
+    "personalHint": "Scegliendo da Personale, il file viene copiato in questo progetto.",
+    "copying": "Copia in questo progetto…",
+    "copyFailed": "Impossibile copiare la risorsa in questo progetto."
   }
 }

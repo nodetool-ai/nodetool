@@ -208,6 +208,7 @@ implement is answered with `{"error": "Unknown command"}`.
 | [`get_status`](#get_status) | Report active runs |
 | [`set_mode`](#set_mode) | Choose binary or text frames |
 | [`clear_models`](#clear_models) | Unload cached models |
+| [`set_open_project`](#set_open_project) | Name the project this connection has open |
 | [`chat_message`](#chat_message), [`resume_chat`](#resume_chat), [`list_chat_turns`](#list_chat_turns), [`set_permission_mode`](#set_permission_mode) | Chat turns, see [Chat API](chat-api.md) |
 | [`inference`](#inference), [`stop`](#stop) | Direct streaming inference and stopping work |
 | [RPC commands](#rpc-commands) | `list_workflows`, `get_workflow`, `list_assets`, `get_asset`, `list_nodes`, `get_node`, `generate_media`, `generate_text`, `transcribe_audio`, `lookup_generations` |
@@ -423,6 +424,32 @@ nothing, because model lifetime belongs to the provider implementations.
 ```json
 { "command": "clear_models", "data": {} }
 ```
+
+### `set_open_project`
+
+Name the project this connection has open. `project_id` is a project ID,
+`"default"` for the Personal project, or `null` for none. A connection has one
+project open at a time, so a later command replaces the earlier one, and
+closing the connection clears it.
+
+While at least one connection has a project open, the server watches that
+project's folder and updates the asset index within seconds of a change made
+by another app. It stops watching when no connection has the project open. A
+folder in object storage is not watched. See
+[the asset index follows the folder](workspaces.md#the-asset-index-follows-the-folder).
+
+```json
+{ "command": "set_open_project", "data": { "project_id": "<project-id>" } }
+```
+
+```json
+{ "message": "Open project set", "project_id": "<project-id>" }
+```
+
+A missing or malformed `project_id` gets
+`{ "error": "project_id must be a project id or null" }`. A project the caller
+does not own, or whose folder cannot be reached, is acknowledged and not
+watched.
 
 ### `chat_message`
 

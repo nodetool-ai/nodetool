@@ -334,6 +334,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "linked assets, and their bytes are already readable through " +
       "read_asset, so nothing is withheld. Nothing headless calls it yet."
   },
+  "assets.copyToProject": {
+    elsewhere:
+      "Agent document writes copy an asset of another project into the " +
+      "run's project themselves (localizeDocumentAssets), so sandboxed " +
+      "code never needs to ask for the copy."
+  },
   "assets.createUpload": {
     elsewhere:
       "save_asset writes an asset from bytes, a workspace file or a " +

@@ -10,7 +10,7 @@
  * | Disk | Index | Action |
  * | --- | --- | --- |
  * | File present, fingerprint equal | Row | None. |
- * | File present, fingerprint differs | Row | Update the fingerprint. Keep the ID. |
+ * | File present, fingerprint differs | Row | Update the fingerprint. Invalidate thumbnail, peaks, and proxy. Keep the ID. |
  * | File absent, exactly one unindexed file has the same fingerprint | Row | Update `workspace_path` to that file. |
  * | File absent, no match or several matches | Row | Mark offline. |
  * | Image, video, audio, or 3D file present | No row | Create a row. Build no thumbnail. |
@@ -35,10 +35,23 @@
  * once. Rows are loaded in one query and compared through a path map, and a
  * moved file is found through a map of fingerprints, so the cost is linear in
  * the number of files.
+ *
+ * Several unindexed files can share a row's partial fingerprint, which covers
+ * only the first and last 1 MiB. When the row has the full hash the
+ * background job computes (`content_hash`), those files are hashed in full
+ * and the one that matches is the row's file. Without it the row goes
+ * offline, because nothing tells the files apart.
+ *
+ * A reconcile can be limited to a set of changed paths. The folder watcher
+ * does that: it then looks at those paths only and scans nothing else.
  */
 import { createLogger } from "@nodetool-ai/config";
 import { Asset, Project, Workspace as WorkspaceRow } from "@nodetool-ai/models";
-import { WorkspacePathError, type Workspace } from "@nodetool-ai/runtime";
+import {
+  WorkspacePathError,
+  isReservedWorkspaceKey,
+  type Workspace
+} from "@nodetool-ai/runtime";
 import { normalizeAssetContentType } from "@nodetool-ai/asset-services/asset-paths";
 import {
   isProjectAssetPathInFlux,
@@ -47,12 +60,24 @@ import {
 import {
   ProjectFolderUnavailableError,
   WORKSPACE_OFFLINE_KEY,
+  contentHashOfWorkspaceFile,
   isProjectAssetOffline,
   partialContentHashOfWorkspaceFile,
   requireProjectFolder,
   withWorkspaceFingerprint,
   type WorkspaceFingerprint
 } from "@nodetool-ai/asset-services/project-asset-file";
+import {
+  THUMBNAIL_SOURCE_MAX_BYTES,
+  assetHasRasterThumbnail,
+  refreshAssetThumbnail
+} from "@nodetool-ai/asset-services/thumbnail";
+import { DebouncedRuns } from "./debounced-runs.js";
+import { projectHashJob, scheduleProjectHashing } from "./project-hash-job.js";
+import {
+  flushAssetManifestWrites,
+  scheduleAssetManifestWrite
+} from "./project-manifest.js";
 
 const log = createLogger("nodetool.project-services.project-index");
 
@@ -121,6 +146,14 @@ function isInSkippedDirectory(path: string): boolean {
   return path.split("/").slice(0, -1).some(isSkippedDirectory);
 }
 
+/**
+ * Whether a change at `path` can never change the index: the path lies in
+ * the directory NodeTool reserves or in a directory the scan does not enter.
+ */
+export function isIgnoredProjectPath(path: string): boolean {
+  return isReservedWorkspaceKey(path) || isInSkippedDirectory(path);
+}
+
 /** The content type a file in a project folder gets from its name. */
 function contentTypeOfFile(path: string): string {
   const name = fileName(path);
@@ -138,9 +171,12 @@ function contentTypeOfFile(path: string): string {
  * `WorkspacePathError` and skipped. Any other listing failure ends the scan,
  * so a directory that could not be read never makes its files look deleted.
  */
-async function scanFolder(workspace: Workspace): Promise<Map<string, FolderFile>> {
-  const files = new Map<string, FolderFile>();
-  const directories = [""];
+async function scanFolder(
+  workspace: Workspace,
+  start = "",
+  files = new Map<string, FolderFile>()
+): Promise<Map<string, FolderFile>> {
+  const directories = [start];
   for (let next = directories.pop(); next !== undefined; next = directories.pop()) {
     let entries: Awaited<ReturnType<Workspace["list"]>>;
     try {
@@ -255,14 +291,27 @@ function createRow(
   });
 }
 
+/** A file a missing row is rematched to. */
+interface MovedFile {
+  file: FolderFile;
+  /**
+   * Whether the file's full hash was compared with the row's. A match by the
+   * partial fingerprint alone leaves the row's full hash to be computed anew.
+   */
+  verified: boolean;
+}
+
 /**
  * Unindexed files by size and then by partial hash. A file is hashed the
  * first time a missing row of its size asks, and only then, so a folder with
- * no missing rows hashes nothing here.
+ * no missing rows hashes nothing here. A file is read in full only when it
+ * shares its partial fingerprint with another candidate of a row that has a
+ * full hash.
  */
 class MovedFileIndex {
   private readonly bySize = new Map<number, FolderFile[]>();
   private readonly byHash = new Map<number, Map<string, FolderFile[]>>();
+  private readonly contentHashes = new Map<string, string | null>();
 
   constructor(
     private readonly workspace: Workspace,
@@ -275,8 +324,50 @@ class MovedFileIndex {
     }
   }
 
-  /** The unindexed files of `size` whose partial hash is `hash`. */
-  async find(size: number, hash: string): Promise<FolderFile[]> {
+  /**
+   * The unindexed files a missing row could have moved to: those of `size`
+   * whose partial hash is `hash`. When there are several and the row has a
+   * full hash, only those whose full hash equals `contentHash` remain.
+   */
+  async find(
+    size: number,
+    hash: string,
+    contentHash: string | null
+  ): Promise<MovedFile[]> {
+    const candidates = await this.withPartialHash(size, hash);
+    if (candidates.length < 2 || contentHash === null) {
+      return candidates.map((file) => ({ file, verified: false }));
+    }
+    const matches: MovedFile[] = [];
+    for (const file of candidates) {
+      if ((await this.contentHashOf(file)) === contentHash) {
+        matches.push({ file, verified: true });
+      }
+    }
+    return matches;
+  }
+
+  /** The SHA-256 of the whole file, read once per reconcile at most. */
+  private async contentHashOf(file: FolderFile): Promise<string | null> {
+    const known = this.contentHashes.get(file.path);
+    if (known !== undefined) return known;
+    let hash: string | null = null;
+    try {
+      hash = await contentHashOfWorkspaceFile(this.workspace, file.path);
+    } catch (error) {
+      log.debug("Could not hash a project file in full", {
+        path: file.path,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+    this.contentHashes.set(file.path, hash);
+    return hash;
+  }
+
+  private async withPartialHash(
+    size: number,
+    hash: string
+  ): Promise<FolderFile[]> {
     let hashed = this.byHash.get(size);
     if (!hashed) {
       hashed = new Map();
@@ -293,6 +384,199 @@ class MovedFileIndex {
   }
 }
 
+// ── What a reconcile looks at ───────────────────────────────────────────────
+
+/** The files and rows one reconcile compares. */
+interface ReconcileScope {
+  /** Files that are there, by path. */
+  files: Map<string, FolderFile>;
+  /** Rows whose file is one of `files`, or should be among them. */
+  rows: Asset[];
+  /** The project's other rows, which this reconcile does not compare. */
+  others: Asset[];
+}
+
+/** Time a path the folder refused is given before it is looked at again. */
+const REFUSED_PATH_RETRY_MS = 50;
+
+/**
+ * What is at `path` now: a file, a directory, or nothing. A path the folder
+ * refuses counts as nothing. It is asked twice, because a path inside a
+ * directory that is being created at that moment can be refused once.
+ */
+async function probePath(
+  workspace: Workspace,
+  path: string
+): Promise<FolderFile | "directory" | null> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      const info = await workspace.stat(path);
+      if (!info) return null;
+      return info.isDirectory
+        ? "directory"
+        : { path, size: info.size, modifiedAt: info.modifiedAt };
+    } catch (error) {
+      if (!(error instanceof WorkspacePathError) || attempt > 0) return null;
+      await new Promise((resolve) => setTimeout(resolve, REFUSED_PATH_RETRY_MS));
+    }
+  }
+}
+
+/** Whether `path` or one of the directories above it is in `directories`. */
+function isAtOrUnder(path: string, directories: ReadonlySet<string>): boolean {
+  if (directories.has(path)) return true;
+  for (let slash = path.lastIndexOf("/"); slash > 0; ) {
+    const parent = path.slice(0, slash);
+    if (directories.has(parent)) return true;
+    slash = parent.lastIndexOf("/");
+  }
+  return false;
+}
+
+/** The whole folder and every row of the project. */
+async function wholeFolder(
+  workspace: Workspace,
+  userId: string,
+  projectId: string
+): Promise<ReconcileScope> {
+  const files = await scanFolder(workspace);
+  const rows = await Asset.listProjectFiles(userId, projectId);
+  return { files, rows, others: [] };
+}
+
+/**
+ * The changed paths only. A path that is a file now is compared with its row.
+ * A path that is a directory now stands for every file below it, since a
+ * directory that was renamed or moved in reports itself and not its files. A
+ * path with nothing at it stands for the rows at and below it, whose files
+ * are gone. No other directory is listed and no other file is looked at.
+ *
+ * A row marked offline is compared wherever its file was. The file a changed
+ * path names may be the one that row lost, in an earlier set of changes or
+ * while the project was closed, and the row must get it back under its id.
+ */
+async function changedPaths(
+  workspace: Workspace,
+  userId: string,
+  projectId: string,
+  paths: Iterable<string>
+): Promise<ReconcileScope> {
+  const files = new Map<string, FolderFile>();
+  /** Changed paths that are not a file: rows at or below them are in scope. */
+  const places = new Set<string>();
+  for (const raw of new Set(paths)) {
+    let path: string;
+    try {
+      path = workspace.key(raw);
+    } catch {
+      // Outside the folder, or in the directory NodeTool reserves.
+      continue;
+    }
+    if (isInSkippedDirectory(path)) continue;
+    const found = await probePath(workspace, path);
+    if (found === null) {
+      places.add(path);
+    } else if (found === "directory") {
+      if (isSkippedDirectory(fileName(path))) continue;
+      places.add(path);
+      await scanFolder(workspace, path, files);
+    } else {
+      files.set(path, found);
+    }
+  }
+  const rows: Asset[] = [];
+  const others: Asset[] = [];
+  for (const asset of await Asset.listProjectFiles(userId, projectId)) {
+    const path = asset.workspace_path;
+    const inScope =
+      path !== null &&
+      (files.has(path) ||
+        isAtOrUnder(path, places) ||
+        isProjectAssetOffline(asset));
+    (inScope ? rows : others).push(asset);
+  }
+  return { files, rows, others };
+}
+
+/**
+ * Replace the thumbnail of an asset whose file changed. A storage-backed
+ * folder stages the file to read it, so a file too large to hold in memory
+ * loses its thumbnail and gets no new one.
+ */
+async function refreshThumbnail(
+  workspace: Workspace,
+  asset: Asset,
+  file: FolderFile
+): Promise<void> {
+  if (!assetHasRasterThumbnail(asset.content_type)) return;
+  try {
+    const readable =
+      workspace.localDir !== null || file.size <= THUMBNAIL_SOURCE_MAX_BYTES;
+    await refreshAssetThumbnail(
+      asset.user_id,
+      asset.id,
+      asset.content_type,
+      readable ? { path: await workspace.materialize(file.path) } : null
+    );
+  } catch (error) {
+    log.warn("Could not refresh the thumbnail of a changed file", {
+      assetId: asset.id,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  } finally {
+    await workspace.cleanupScratch?.();
+  }
+}
+
+// ── Changed files ───────────────────────────────────────────────────────────
+
+/** Told about an asset whose file in the project folder has new contents. */
+export type ProjectFileChangeListener = (asset: Asset) => void | Promise<void>;
+
+const fileChangeListeners = new Set<ProjectFileChangeListener>();
+
+/**
+ * Call `listener` for every asset whose file the reconcile found changed,
+ * after the row has its new fingerprint. A host registers what it derives
+ * from the file and keeps elsewhere, such as a video proxy. The thumbnail is
+ * replaced by the reconcile itself. Returns a function that removes the
+ * listener.
+ */
+export function onProjectFileChanged(
+  listener: ProjectFileChangeListener
+): () => void {
+  fileChangeListeners.add(listener);
+  return () => fileChangeListeners.delete(listener);
+}
+
+async function notifyFileChanged(assets: readonly Asset[]): Promise<void> {
+  for (const asset of assets) {
+    for (const listener of fileChangeListeners) {
+      try {
+        await listener(asset);
+      } catch (error) {
+        log.warn("A project file change listener failed", {
+          assetId: asset.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    }
+  }
+}
+
+// ── Reconcile ───────────────────────────────────────────────────────────────
+
+export interface ReconcileOptions {
+  /**
+   * Project-relative paths that changed. The reconcile then looks at these
+   * paths only: it lists no directory but a changed one and marks no row
+   * offline whose file is not at or below one of them. A row that is already
+   * offline is still pointed at a changed file that has its content. Without
+   * it the whole folder is scanned.
+   */
+  paths?: Iterable<string>;
+}
+
 /**
  * The rows whose file is present, by fingerprint, for telling whether a media
  * file with no row has the content of an indexed file. Each row's path is
@@ -302,10 +586,11 @@ class CopiedFiles {
   private byFingerprint: Map<string, Asset[]> | null = null;
   private readonly checked = new Map<string, { gone: Asset[] }>();
 
+  /** `isPresent` says whether the file at a row's path was there. */
   constructor(
     private readonly workspace: Workspace,
     private readonly rows: readonly Asset[],
-    private readonly indexed: ReadonlySet<string>
+    private readonly isPresent: (path: string) => boolean
   ) {}
 
   /**
@@ -321,7 +606,7 @@ class CopiedFiles {
       this.byFingerprint = new Map();
       for (const asset of this.rows) {
         const path = asset.workspace_path;
-        if (!path || !this.indexed.has(path)) continue;
+        if (!path || !this.isPresent(path)) continue;
         const recorded = recordedFingerprint(asset);
         if (recorded.size === null || recorded.hash === null) continue;
         const key = `${recorded.size}:${recorded.hash}`;
@@ -357,13 +642,16 @@ class CopiedFiles {
  */
 export async function reconcileProjectIndex(
   projectId: string | null | undefined,
-  userId: string
+  userId: string,
+  options: ReconcileOptions = {}
 ): Promise<ProjectIndexReport> {
   const folder = await requireProjectFolder(projectId, userId);
   const { workspace } = folder;
   const project = folder.projectId;
+  /** Rows whose file has new contents, for the change listeners. */
+  const changed: Asset[] = [];
 
-  return withProjectFolderLock(userId, project, async () => {
+  const report = await withProjectFolderLock(userId, project, async () => {
     const report: ProjectIndexReport = {
       projectId: project,
       files: 0,
@@ -378,8 +666,16 @@ export async function reconcileProjectIndex(
     const inFlux = (path: string): boolean =>
       isProjectAssetPathInFlux(userId, project, path);
 
-    const files = await scanFolder(workspace);
-    const rows = await Asset.listProjectFiles(userId, project);
+    const projectKey = scheduleKey(project, userId);
+    const waitingSince = waitingCopies.get(projectKey);
+    // A file waiting for its row is looked at with every set of changed
+    // paths: the delete that ends its move names only the file that went.
+    const { files, rows, others } = options.paths
+      ? await changedPaths(workspace, userId, project, [
+          ...options.paths,
+          ...[...(waitingSince?.keys() ?? [])].map(waitingPath)
+        ])
+      : await wholeFolder(workspace, userId, project);
     report.files = files.size;
 
     // Rows whose file is where they say.
@@ -416,8 +712,16 @@ export async function reconcileProjectIndex(
       if (hash === null) continue;
       asset.size = file.size;
       asset.metadata = withWorkspaceFingerprint(read, fingerprintOf(file, hash));
+      if (unchanged === null) {
+        // New contents. The full hash is of the old ones, and so is the
+        // thumbnail, which is replaced before the row announces the change:
+        // a client that hears of it must not fetch the old picture.
+        asset.content_hash = null;
+        await refreshThumbnail(workspace, asset, file);
+      }
       if (await asset.saveIfMetadataMatches(read)) {
         (wasOffline ? report.restored : report.updated).push(asset.id);
+        if (unchanged === null) changed.push(asset);
       }
     }
 
@@ -428,16 +732,16 @@ export async function reconcileProjectIndex(
       );
       const movedFiles = new MovedFileIndex(workspace, unindexed);
       // The one file each missing row could have moved to, when it has one.
-      const targets = new Map<Asset, { file: FolderFile; hash: string }>();
+      const targets = new Map<Asset, MovedFile & { hash: string }>();
       const claims = new Map<string, number>();
       for (const asset of missing) {
         const { size, hash } = recordedFingerprint(asset);
         if (size === null || hash === null) continue;
-        const found = await movedFiles.find(size, hash);
-        const file = found.length === 1 ? found[0] : undefined;
-        if (!file) continue;
-        targets.set(asset, { file, hash });
-        claims.set(file.path, (claims.get(file.path) ?? 0) + 1);
+        const found = await movedFiles.find(size, hash, asset.content_hash);
+        const target = found.length === 1 ? found[0] : undefined;
+        if (!target) continue;
+        targets.set(asset, { ...target, hash });
+        claims.set(target.file.path, (claims.get(target.file.path) ?? 0) + 1);
       }
       for (const asset of missing) {
         const target = targets.get(asset);
@@ -449,6 +753,9 @@ export async function reconcileProjectIndex(
             read,
             fingerprintOf(target.file, target.hash)
           );
+          // The partial fingerprint alone does not prove the middle of the
+          // file is the same, so the hash job reads the file again.
+          if (!target.verified) asset.content_hash = null;
           indexed.add(target.file.path);
           if (await asset.saveIfMetadataMatches(read)) {
             report.moved.push(asset.id);
@@ -464,9 +771,18 @@ export async function reconcileProjectIndex(
     }
 
     // Media files with no row get one. Other files wait for first use.
-    const copies = new CopiedFiles(workspace, rows, indexed);
-    const projectKey = scheduleKey(project, userId);
-    const waitingSince = waitingCopies.get(projectKey);
+    // A row this reconcile did not compare counts as present unless it is
+    // marked offline. Its path is looked at before a file is taken for a copy.
+    const otherPaths = new Set<string>();
+    for (const asset of others) {
+      const path = asset.workspace_path;
+      if (path && !isProjectAssetOffline(asset)) otherPaths.add(path);
+    }
+    const copies = new CopiedFiles(
+      workspace,
+      [...rows, ...others],
+      (path) => indexed.has(path) || otherPaths.has(path)
+    );
     const stillWaiting = new Map<string, number>();
     for (const file of files.values()) {
       if (indexed.has(file.path) || inFlux(file.path)) continue;
@@ -485,6 +801,8 @@ export async function reconcileProjectIndex(
             read,
             fingerprintOf(file, hash)
           );
+          // Matched by the partial fingerprint: the hash job reads it again.
+          moved.content_hash = null;
           indexed.add(file.path);
           originals.gone.length = 0;
           if (await moved.saveIfMetadataMatches(read)) {
@@ -492,7 +810,7 @@ export async function reconcileProjectIndex(
           }
           continue;
         }
-        const waitKey = `${file.path}\u0000${hash}`;
+        const waitKey = waitingKey(file.path, hash);
         const since = waitingSince?.get(waitKey) ?? Date.now();
         // Several rows lost their file at once: the next pass sorts them
         // out by the rule for missing files. Otherwise the copy waits.
@@ -513,9 +831,12 @@ export async function reconcileProjectIndex(
       waitingCopies.delete(projectKey);
     }
 
-    lastReconciled.set(projectKey, Date.now());
+    if (!options.paths) lastReconciled.set(projectKey, Date.now());
     return report;
   });
+
+  await notifyFileChanged(changed);
+  return report;
 }
 
 /**
@@ -561,58 +882,54 @@ export const OPEN_RECONCILE_INTERVAL_MS = 10_000;
  */
 export const COPY_GRACE_MS = 10_000;
 
-interface Scheduled {
-  timer: NodeJS.Timeout;
-  firstAt: number;
-  run: () => Promise<void>;
-}
-
-const scheduled = new Map<string, Scheduled>();
-const running = new Set<Promise<void>>();
 const lastReconciled = new Map<string, number>();
 /** Per project: when each waiting copy (`path`, NUL, hash) was first seen. */
 const waitingCopies = new Map<string, Map<string, number>>();
+
+function waitingKey(path: string, hash: string): string {
+  return `${path}\u0000${hash}`;
+}
+
+/** The path of a waiting copy, from its key. */
+function waitingPath(key: string): string {
+  return key.slice(0, key.indexOf("\u0000"));
+}
 
 function scheduleKey(projectId: string, userId: string): string {
   return `${userId}\u0000${projectId}`;
 }
 
-function start(key: string): void {
-  const entry = scheduled.get(key);
-  if (!entry) return;
-  clearTimeout(entry.timer);
-  scheduled.delete(key);
-  const done = entry.run().catch((error: unknown) => {
-    const message = error instanceof Error ? error.message : String(error);
-    // A folder that is away is reported where the project is shown.
-    if (error instanceof ProjectFolderUnavailableError) {
-      log.debug("Skipped reconciling a project folder", { reason: message });
-    } else {
-      log.warn("Reconciling a project folder failed", { error: message });
-    }
-  });
-  running.add(done);
-  void done.then(() => running.delete(done));
+/** Log what stopped a background reconcile. */
+export function logReconcileFailure(error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error);
+  // A folder that is away is reported where the project is shown.
+  if (error instanceof ProjectFolderUnavailableError) {
+    log.debug("Skipped reconciling a project folder", { reason: message });
+  } else {
+    log.warn("Reconciling a project folder failed", { error: message });
+  }
 }
 
+const reconciles = new DebouncedRuns({
+  debounceMs: RECONCILE_DEBOUNCE_MS,
+  maxWaitMs: RECONCILE_MAX_WAIT_MS,
+  onError: logReconcileFailure
+});
+
 /**
- * Run `run` once the calls under `key` have been quiet for
- * {@link RECONCILE_DEBOUNCE_MS}, and no later than
- * {@link RECONCILE_MAX_WAIT_MS} after the first of them.
+ * Reconcile as a background trigger does: bring the rows in line, then write
+ * the folder's asset manifest and hash the files that have no full hash yet,
+ * both in the background.
  */
-function schedule(key: string, run: () => Promise<void>): void {
-  const now = Date.now();
-  const pending = scheduled.get(key);
-  if (pending) clearTimeout(pending.timer);
-  const firstAt = pending?.firstAt ?? now;
-  const wait = Math.max(
-    0,
-    Math.min(RECONCILE_DEBOUNCE_MS, firstAt + RECONCILE_MAX_WAIT_MS - now)
-  );
-  const timer = setTimeout(() => start(key), wait);
-  // A pending reconcile must not hold the process open at shutdown.
-  timer.unref?.();
-  scheduled.set(key, { timer, firstAt, run });
+export async function reconcileInBackground(
+  projectId: string,
+  userId: string,
+  options: ReconcileOptions = {}
+): Promise<ProjectIndexReport> {
+  const report = await reconcileProjectIndex(projectId, userId, options);
+  scheduleAssetManifestWrite(report.projectId, userId);
+  scheduleProjectHashing(report.projectId, userId);
+  return report;
 }
 
 /** Reconcile the project's folder soon, debounced. Never throws. */
@@ -620,8 +937,8 @@ export function scheduleProjectReconcile(
   projectId: string,
   userId: string
 ): void {
-  schedule(`project\u0000${scheduleKey(projectId, userId)}`, async () => {
-    await reconcileProjectIndex(projectId, userId);
+  reconciles.schedule(`project\u0000${scheduleKey(projectId, userId)}`, async () => {
+    await reconcileInBackground(projectId, userId);
   });
 }
 
@@ -631,17 +948,13 @@ export function scheduleProjectReconcile(
  * still waiting.
  */
 function scheduleFollowUp(projectId: string, userId: string): void {
-  const key = `project\u0000${scheduleKey(projectId, userId)}`;
-  if (scheduled.has(key)) return;
-  const timer = setTimeout(() => start(key), COPY_GRACE_MS);
-  timer.unref?.();
-  scheduled.set(key, {
-    timer,
-    firstAt: Date.now(),
-    run: async () => {
-      await reconcileProjectIndex(projectId, userId);
+  reconciles.scheduleUnlessPending(
+    `project\u0000${scheduleKey(projectId, userId)}`,
+    COPY_GRACE_MS,
+    async () => {
+      await reconcileInBackground(projectId, userId);
     }
-  });
+  );
 }
 
 /**
@@ -665,25 +978,28 @@ export function scheduleWorkspaceReconcile(
   workspaceId: string,
   userId: string
 ): void {
-  schedule(`workspace\u0000${scheduleKey(workspaceId, userId)}`, async () => {
+  reconciles.schedule(`workspace\u0000${scheduleKey(workspaceId, userId)}`, async () => {
     const row = await WorkspaceRow.find(userId, workspaceId);
     if (!row) return;
     const project = await Project.findOwned(userId, row.project_id);
     if (!project || project.workspace_id !== row.id) return;
-    await reconcileProjectIndex(project.id, userId);
+    await reconcileInBackground(project.id, userId);
   });
 }
 
-/** Run every scheduled reconcile now and wait for all of them to finish. */
+/**
+ * Run every scheduled reconcile now and wait for it and for the work it
+ * starts in the background: the hash job and the manifest writes.
+ */
 export async function flushProjectReconciles(): Promise<void> {
-  for (const key of [...scheduled.keys()]) start(key);
-  while (running.size > 0) await Promise.all([...running]);
+  await reconciles.flush();
+  await projectHashJob.idle();
+  await flushAssetManifestWrites();
 }
 
 /** Drop every scheduled reconcile without running it. */
 export function cancelProjectReconciles(): void {
-  for (const entry of scheduled.values()) clearTimeout(entry.timer);
-  scheduled.clear();
+  reconciles.cancelAll();
 }
 
 /** The asset index of a project folder. */
@@ -693,6 +1009,7 @@ export const ProjectIndex = {
   schedule: scheduleProjectReconcile,
   scheduleForWorkspace: scheduleWorkspaceReconcile,
   onProjectOpen: reconcileProjectOnOpen,
+  onFileChanged: onProjectFileChanged,
   flush: flushProjectReconciles,
   cancel: cancelProjectReconciles
 } as const;
