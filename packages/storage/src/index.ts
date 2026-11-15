@@ -31,6 +31,7 @@ export { InMemoryStorageAdapter } from "./memory-storage-adapter.js";
 export { objectCacheControl } from "./cache-control.js";
 export {
   FileStorageAdapter,
+  setAssetFolderPathLookup,
   type ExternalPathLookup,
   type FileStorageAdapterOptions
 } from "./file-storage-adapter.js";
