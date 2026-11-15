@@ -24,7 +24,8 @@ jest.mock("../../../hooks/useProjects", () => ({
   useArchiveProject: () => ({ mutate: jest.fn(), isPending: false }),
   useRestoreProject: () => ({ mutate: jest.fn(), isPending: false }),
   useDeleteProject: () => ({ mutate: deleteProject, isPending: false }),
-  useExportProject: () => ({ mutate: jest.fn(), isPending: false })
+  useExportProject: () => ({ mutate: jest.fn(), isPending: false }),
+  useCollectProjectFiles: () => ({ mutate: jest.fn(), isPending: false })
 }));
 
 jest.mock("../../../stores/NotificationStore", () => ({
