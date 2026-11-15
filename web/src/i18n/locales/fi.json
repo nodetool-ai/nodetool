@@ -696,61 +696,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Työtila",
       "loading": "Ladataan…",
       "refresh": "Päivitä",
       "remove": "Poista",
       "cancel": "Peruuta"
     },
-    "page": {
-      "title": "Työtilat",
-      "subtitle": "Eristetyt kansiot, joissa agentit ja työnkulut voivat lukea, kirjoittaa ja järjestellä tiedostoja."
-    },
-    "folderPicker": {
-      "title": "Valitse työtilan kansio"
-    },
-    "notifications": {
-      "added": "Työtila lisätty",
-      "removed": "Työtila poistettu"
-    },
-    "errors": {
-      "loadTitle": "Työtiloja ei voitu ladata",
-      "loadSummary": "Työtilojen lataaminen epäonnistui",
-      "loadDescription": "Tarkista yhteys ja yritä uudelleen.",
-      "operation": "Työtilatoiminto epäonnistui: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Ei käytettävissä",
-      "defaultWorkspace": "Oletustyötila",
-      "setDefault": "Aseta oletukseksi",
-      "emptyTitle": "Työtiloja ei ole määritetty",
-      "emptyCanManage": "Lisää työtila, jotta agentit voivat käyttää paikallisia kansioita",
-      "emptyManaged": "Tämä käyttöönotto hallitsee työtilaasi puolestasi",
-      "adding": "Lisätään…",
-      "addWorkspace": "Lisää työtila",
-      "removeTitle": "Poistetaanko tämä työtila?",
-      "removeDescription": "Työtila poistetaan NodeToolista. Itse kansiota ei poisteta."
-    },
-    "select": {
-      "defaultWithPath": "Oletus ({{path}})",
-      "description": "Agentit lukevat ja kirjoittavat tiedostoja tähän suorituksen aikana, mukaan lukien tallennetut kuvat, tekstit, data ja muut tulosteet. Selaa tuloksia Työtila-paneelissa. Agentit voivat käyttää vain tämän kansion sisällä olevia tiedostoja. Oletus-asetukselle jätetty työnkulku käyttää oletustyötilaasi.",
-      "createNew": "Luo uusi työtila",
-      "addWorkspace": "Lisää työtila…"
-    },
     "tree": {
       "loading": "Ladataan…",
       "accessDenied": "⚠️ Pääsy estetty",
-      "title": "Työtilan selain",
-      "manage": "Hallitse työtiloja",
-      "goToRoot": "Siirry työtilan juureen",
-      "openInFolder": "Avaa kansiossa",
-      "openExternally": "Avaa ulkoisesti",
-      "noneSelected": "Työtilaa ei ole valittu",
-      "selectOrCreate": "Valitse työtila yläpuolelta tai luo uusi.",
-      "createWorkspace": "Luo työtila",
-      "fileBrowser": "Työtilan tiedostoselain",
-      "emptyTitle": "Työtila on tyhjä",
-      "emptyDescription": "Lisää tiedostoja työtilakansioosi, niin ne näkyvät täällä."
+      "openExternally": "Avaa ulkoisesti"
     }
   },
   "batch2_10": {
@@ -1760,7 +1714,6 @@
       "packageManager": "Pakettien hallinta",
       "assets": "Aineistot",
       "collections": "Kokoelmat",
-      "workspaces": "Työtilat",
       "memory": "Muisti",
       "settings": "Asetukset",
       "help": "Ohje",
@@ -6673,8 +6626,6 @@
       "runModeTool": "Työkalu",
       "runModeDescription": "Miten tämä työnkulku suoritetaan ja käynnistetään",
       "advanced": "Lisäasetukset",
-      "workspace": "Työtila",
-      "workspaceDescription": "Liitä työnkulkuun työtilakansio agentin käyttöön",
       "toolName": "Työkalun nimi",
       "toolNameDescription": "Tunniste API- ja työkalukäyttöön. Vain kirjaimia, numeroita ja alaviivoja.",
       "toolNamePlaceholder": "my_workflow_tool",
@@ -10697,9 +10648,9 @@
         "jsScripts": "JS-skriptit",
         "skills": "Taidot",
         "assets": "Aineistot",
-        "workspace": "Työtila",
         "library": "Kirjasto",
-        "more": "Lisää"
+        "more": "Lisää",
+        "files": "Tiedostot"
       },
       "categoryDescriptions": {
         "documents": "Selaa nykyisen projektin kaikkia dokumentteja.",
@@ -10719,9 +10670,9 @@
         "jsScripts": "Luo ja hallitse uudelleenkäytettävää JavaScript-koodia.",
         "skills": "Agentin taidot — tavoitteeseen sovitettuja markdown-ohjeita.",
         "assets": "Selaa nykyisessä kontekstissa käytettävissä olevia aineistoja.",
-        "workspace": "Selaa valitun työtilakansion tiedostoja.",
         "library": "Selaa nykyisen projektin aineistoja.",
-        "more": "Avaa lisää työnkulku-, editori-, kehittäjä- ja työtilapaneeleja."
+        "more": "Avaa lisää työnkulku-, editori- ja kehittäjäpaneeleja.",
+        "files": "Selaa projektikansion tiedostoja."
       }
     },
     "queue": {
@@ -14032,8 +13983,7 @@
       "search": "Hae kaikista paneeleista",
       "group": {
         "workflow-tools": "Työnkulkutyökalut",
-        "agent-tools": "Agenttityökalut",
-        "workspace": "Työtila"
+        "agent-tools": "Agenttityökalut"
       },
       "category": {
         "favorites": {
@@ -14051,10 +14001,6 @@
         "skills": {
           "label": "Taidot",
           "description": "Agenttitaidot — tavoitteeseen sovitettuja markdown-ohjeita."
-        },
-        "workspace-files": {
-          "label": "Työtila",
-          "description": "Selaa valitun työtilakansion tiedostoja."
         }
       }
     },
@@ -14710,9 +14656,6 @@
       "runGroup": {
         "groupRunning": "Ryhmä on käynnissä",
         "runGroup": "Suorita ryhmä"
-      },
-      "saveDestinationHint": {
-        "workspace": "Työtila"
       }
     }
   },
@@ -15931,9 +15874,9 @@
       "jsscripts": "JS-skriptit",
       "skills": "Taidot",
       "assets": "Aineistot",
-      "workspace-files": "Työtila",
       "library": "Kirjasto",
-      "more": "Lisää"
+      "more": "Lisää",
+      "files": "Tiedostot"
     }
   },
   "i18n-next55": {
@@ -16060,7 +16003,6 @@
         "models": "Mallien hallinta",
         "packages": "Pakettien hallinta",
         "collections": "Kokoelmat",
-        "workspaces": "Työtilat",
         "entities": "Entiteetit",
         "memory": "Muisti",
         "settings": "Asetukset",
@@ -18648,7 +18590,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Virheellinen työtilatiedoston viittaus"
+      "invalidReference": "Virheellinen tiedostoviittaus"
     }
   },
   "i18n-next109": {
@@ -20174,5 +20116,23 @@
     "saveFailed": "Käyttöoikeuden tallennus epäonnistui.",
     "loadFailed": "Työkaluluettelon lataus epäonnistui.",
     "noMatches": "Yksikään työkalu ei vastaa hakuasi."
+  },
+  "projectFolder": {
+    "name": "Projektikansio",
+    "picker": {
+      "title": "Valitse kansio"
+    },
+    "tree": {
+      "title": "Tiedostot",
+      "goToRoot": "Siirry projektikansion juureen",
+      "fileBrowser": "Projektin tiedostot",
+      "emptyTitle": "Projektikansio on tyhjä",
+      "emptyDescription": "Lisää tiedostoja projektikansioon, niin ne näkyvät tässä.",
+      "noFolderTitle": "Ei projektikansiota",
+      "noFolderDescription": "Tällä projektilla ei ole vielä kansiota.",
+      "revealInFinder": "Näytä Finderissa",
+      "revealInExplorer": "Näytä Resurssienhallinnassa",
+      "revealInFileManager": "Näytä tiedostonhallinnassa"
+    }
   }
 }

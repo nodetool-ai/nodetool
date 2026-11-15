@@ -337,6 +337,8 @@ describe("selectChecks", () => {
       "test-packages-agents": "packages_agents",
       "test-packages-nodes": "packages_nodes",
       "test-packages-core": "packages_core",
+      "test-packages-cli": "packages_cli",
+      "test-packages-engine": "packages_engine",
       "test-packages-game": "packages_game"
     };
     const files = [...new Set(SURFACES.flatMap(s => s.paths))]

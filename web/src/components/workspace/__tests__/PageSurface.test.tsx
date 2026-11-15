@@ -42,10 +42,6 @@ jest.mock("../../collections/CollectionsExplorer", () => ({
   __esModule: true,
   default: () => null
 }));
-jest.mock("../../workspaces/WorkspacesPage", () => ({
-  __esModule: true,
-  default: () => null
-}));
 jest.mock("../../entities/EntityLibrary", () => ({
   __esModule: true,
   default: () => null

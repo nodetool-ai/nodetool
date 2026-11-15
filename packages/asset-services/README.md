@@ -33,5 +33,9 @@ loads. A host that wires `createAssetModelInterface` must load that module.
 A key-based reader asks the asset store for `<owner>/<assetId>.<ext>`. When no
 object is there, the lookup in `external-asset-lookup` resolves the key through
 the asset row: `workspace_path` in the project folder, then `external_path`.
+`getAssetAdapter` is built with the lookup. A host that builds its own
+`FileStorageAdapter` over the asset folder, as the CLI commands do, gets it
+through `installAssetFolderLookup`, which `getAssetAdapter` and the CLI's
+`installLocalModelInterfaces` call.
 `createStoredAsset` remains for a `createAsset` call with no content, which
 creates a row and no file.

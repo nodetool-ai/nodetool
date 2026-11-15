@@ -696,61 +696,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "작업공간",
       "loading": "로드 중…",
       "refresh": "새로고침",
       "remove": "제거",
       "cancel": "취소"
     },
-    "page": {
-      "title": "작업공간",
-      "subtitle": "에이전트와 워크플로가 파일을 읽고, 쓰고, 구성할 수 있는 샌드박스 폴더입니다."
-    },
-    "folderPicker": {
-      "title": "작업공간 폴더 선택"
-    },
-    "notifications": {
-      "added": "작업공간이 추가됨",
-      "removed": "작업공간이 삭제됨"
-    },
-    "errors": {
-      "loadTitle": "작업공간을 로드할 수 없습니다.",
-      "loadSummary": "작업공간을 로드하지 못했습니다.",
-      "loadDescription": "연결을 확인하고 다시 시도하세요.",
-      "operation": "작업공간 작업 실패: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "접근 불가",
-      "defaultWorkspace": "기본 작업공간",
-      "setDefault": "기본값으로 설정",
-      "emptyTitle": "구성된 작업공간이 없습니다.",
-      "emptyCanManage": "에이전트가 로컬 폴더에 액세스할 수 있도록 작업 영역을 추가하세요.",
-      "emptyManaged": "이 배포는 사용자를 위해 작업공간을 관리합니다.",
-      "adding": "추가 중…",
-      "addWorkspace": "작업공간 추가",
-      "removeTitle": "이 작업공간을 삭제하시겠습니까?",
-      "removeDescription": "작업공간이 NodeTool에서 제거됩니다. 폴더 자체는 삭제되지 않습니다."
-    },
-    "select": {
-      "defaultWithPath": "기본값({{path}})",
-      "description": "에이전트는 실행 중에 저장된 이미지, 텍스트, 데이터 및 기타 출력을 포함하여 여기에서 파일을 읽고 씁니다. 작업 공간 패널에서 결과를 찾아보세요. 에이전트는 이 폴더 내의 파일에만 액세스할 수 있습니다. 기본값으로 설정된 워크플로는 기본 작업 영역을 사용합니다.",
-      "createNew": "새 작업공간 만들기",
-      "addWorkspace": "작업공간 추가…"
-    },
     "tree": {
       "loading": "로드 중…",
       "accessDenied": "⚠️ 접근이 거부되었습니다",
-      "title": "작업공간 탐색기",
-      "manage": "작업공간 관리",
-      "goToRoot": "작업공간 루트로 이동",
-      "openInFolder": "폴더에서 열기",
-      "openExternally": "외부에서 열기",
-      "noneSelected": "선택한 작업공간이 없습니다.",
-      "selectOrCreate": "위에서 작업공간을 선택하거나 새로 만드세요.",
-      "createWorkspace": "작업공간 만들기",
-      "fileBrowser": "작업공간 파일 브라우저",
-      "emptyTitle": "작업공간이 비어 있습니다.",
-      "emptyDescription": "여기서 파일을 보려면 작업공간 폴더에 파일을 추가하세요."
+      "openExternally": "외부에서 열기"
     }
   },
   "batch2_10": {
@@ -1760,7 +1714,6 @@
       "packageManager": "패키지 관리자",
       "assets": "자산",
       "collections": "컬렉션",
-      "workspaces": "작업공간",
       "memory": "메모리",
       "settings": "설정",
       "help": "도움말",
@@ -6673,8 +6626,6 @@
       "runModeTool": "도구",
       "runModeDescription": "이 워크플로가 실행되고 트리거될 수 있는 방법",
       "advanced": "고급",
-      "workspace": "작업공간",
-      "workspaceDescription": "에이전트 액세스를 위해 작업 영역 폴더를 이 워크플로와 연결하세요.",
       "toolName": "도구 이름",
       "toolNameDescription": "API/도구 사용에 대한 식별자입니다. 문자, 숫자, 밑줄만 가능합니다.",
       "toolNamePlaceholder": "my_workflow_tool",
@@ -10697,9 +10648,9 @@
         "jsScripts": "JS 스크립트",
         "skills": "기술",
         "assets": "자산",
-        "workspace": "작업공간",
         "library": "도서관",
-        "more": "더보기"
+        "more": "더보기",
+        "files": "파일"
       },
       "categoryDescriptions": {
         "documents": "현재 프로젝트의 모든 문서를 찾아보세요.",
@@ -10719,9 +10670,9 @@
         "jsScripts": "재사용 가능한 JavaScript 코드를 생성하고 관리합니다.",
         "skills": "상담원 기술 - 목표와 일치하는 마크다운 지침입니다.",
         "assets": "현재 컨텍스트에서 사용 가능한 자산을 찾아보세요.",
-        "workspace": "선택한 작업 공간 폴더에서 파일을 찾아보세요.",
         "library": "현재 프로젝트에서 자산을 찾아보세요.",
-        "more": "추가 워크플로, 편집기, 개발자 및 작업 영역 패널을 엽니다."
+        "more": "워크플로, 편집기, 개발자용 패널을 더 엽니다.",
+        "files": "프로젝트 폴더의 파일을 둘러봅니다."
       }
     },
     "queue": {
@@ -14032,8 +13983,7 @@
       "search": "모든 패널 검색",
       "group": {
         "workflow-tools": "워크플로 도구",
-        "agent-tools": "에이전트 도구",
-        "workspace": "작업공간"
+        "agent-tools": "에이전트 도구"
       },
       "category": {
         "favorites": {
@@ -14051,10 +14001,6 @@
         "skills": {
           "label": "기술",
           "description": "상담원 기술 - 목표와 일치하는 마크다운 지침입니다."
-        },
-        "workspace-files": {
-          "label": "작업공간",
-          "description": "선택한 작업 공간 폴더에서 파일을 찾아보세요."
         }
       }
     },
@@ -14710,9 +14656,6 @@
       "runGroup": {
         "groupRunning": "그룹이 실행 중입니다.",
         "runGroup": "그룹 실행"
-      },
-      "saveDestinationHint": {
-        "workspace": "작업공간"
       }
     }
   },
@@ -15931,9 +15874,9 @@
       "jsscripts": "JS 스크립트",
       "skills": "기술",
       "assets": "자산",
-      "workspace-files": "작업공간",
       "library": "도서관",
-      "more": "더보기"
+      "more": "더보기",
+      "files": "파일"
     }
   },
   "i18n-next55": {
@@ -16060,7 +16003,6 @@
         "models": "모델 관리자",
         "packages": "패키지 관리자",
         "collections": "컬렉션",
-        "workspaces": "작업공간",
         "entities": "엔터티",
         "memory": "메모리",
         "settings": "설정",
@@ -18648,7 +18590,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "잘못된 작업공간 파일 참조"
+      "invalidReference": "잘못된 파일 참조입니다"
     }
   },
   "i18n-next109": {
@@ -20174,5 +20116,23 @@
     "saveFailed": "이 권한을 저장하지 못했습니다.",
     "loadFailed": "도구 목록을 불러오지 못했습니다.",
     "noMatches": "검색과 일치하는 도구가 없습니다."
+  },
+  "projectFolder": {
+    "name": "프로젝트 폴더",
+    "picker": {
+      "title": "폴더 선택"
+    },
+    "tree": {
+      "title": "파일",
+      "goToRoot": "프로젝트 폴더 루트로 이동",
+      "fileBrowser": "프로젝트 파일",
+      "emptyTitle": "프로젝트 폴더가 비어 있습니다",
+      "emptyDescription": "프로젝트 폴더에 파일을 추가하면 여기에 표시됩니다.",
+      "noFolderTitle": "프로젝트 폴더 없음",
+      "noFolderDescription": "이 프로젝트에는 아직 폴더가 없습니다.",
+      "revealInFinder": "Finder에서 보기",
+      "revealInExplorer": "파일 탐색기에서 보기",
+      "revealInFileManager": "파일 관리자에서 보기"
+    }
   }
 }

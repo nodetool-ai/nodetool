@@ -333,8 +333,9 @@ is run only by `scripts/window-checks.sh`.
   names a recovery copy only through the controller's `keptCopy` and
   `recoveryError`.
 
-Not here yet: the web's per-change conflict merge in the banner (Accept and
-Discard, D34), and Retry on a failed save (the controller has no invokable
+A merge that refuses some of the server's changes lists each one with Accept
+and Discard in `ExternalConflictsBanner` (D34), as the web's ConflictBanner
+does. Not here yet: Retry on a failed save (the controller has no invokable
 save).
 
 ## Editing (M4)
