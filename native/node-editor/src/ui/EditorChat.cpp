@@ -42,6 +42,8 @@ void EditorWindow::initializeChat() {
     initializeChatTools();
     connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncChatContext);
     connect(this, &EditorWindow::tabsChanged, this, &EditorWindow::syncChatContext);
+    // A load or a first save gives the document its id with no panel change.
+    connect(&document_, &node_editor::WorkflowDocument::changed, this, &EditorWindow::syncChatContext);
     connect(&session_, &node_editor::WorkflowSession::credentialsChanged, this,
             [this](const QUrl &origin, const QString &token, const QString &) {
         chat_.disconnectFromServer();

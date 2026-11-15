@@ -197,7 +197,7 @@
   },
   {
     "name": "ui_get_graph",
-    "description": "Read a workflow graph (nodes and edges). Reads the open editor when the workflow has one, otherwise the saved workflow from the server — so a workflow created over the API is readable without opening it. `source` says which one answered.",
+    "description": "Read a workflow graph (nodes and edges). Reads the open editor when the workflow has one, otherwise the saved workflow from the server — so a workflow created over the API is readable without opening it. `source` says which one answered. In the editor, each node carries `last_run` (status, error, output) from the run the canvas shows.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -323,7 +323,7 @@
   },
   {
     "name": "ui_run_workflow",
-    "description": "Run a workflow by id.",
+    "description": "Run a workflow in the editor, where the user sees each node run. Pass `wait: true` to get the status, outputs keyed by output name, and node errors when the run ends.",
     "parameters": {
       "type": "object",
       "properties": {
@@ -338,6 +338,16 @@
             "type": "string"
           },
           "additionalProperties": {}
+        },
+        "wait": {
+          "description": "Wait for the run to end and return its status, outputs keyed by output name, and node errors. Default false returns only the job_id.",
+          "type": "boolean"
+        },
+        "timeout_seconds": {
+          "description": "With wait, the most seconds to wait (default 300). A run still going at the limit returns status \"running\" and keeps going.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1800
         }
       },
       "required": [

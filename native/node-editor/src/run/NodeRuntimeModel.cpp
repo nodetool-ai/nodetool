@@ -101,6 +101,10 @@ QString text(const QJsonValue &value) {
 }
 }
 NodeRuntimeModel::NodeRuntimeModel(QObject *parent) : QObject(parent) {}
+QJsonObject NodeRuntimeModel::runNodeState(const QString &jobId, const QString &nodeId) const {
+  const auto run = runs_.constFind(jobId);
+  return run == runs_.cend() ? QJsonObject{} : run->nodes.value(nodeId);
+}
 QJsonObject NodeRuntimeModel::nodeState(const QString &nodeId) const {
   const auto run = runs_.constFind(selected_);
   if (run == runs_.cend()) { return {}; }

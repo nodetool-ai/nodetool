@@ -12,6 +12,7 @@
 #include <QJsonDocument>
 #include <QNetworkReply>
 #include <QNetworkRequest>
+#include <QPointer>
 #include <QRegularExpression>
 #include <QTimer>
 #include <QUrlQuery>
@@ -237,6 +238,54 @@ QJsonObject handleType(const QJsonObject &node, const QJsonObject &meta, const Q
         }
     }
     return {};
+}
+// The fields of a runtime node state an agent can act on. The cards keep the rest.
+QJsonObject agentRunState(const QJsonObject &state) {
+    QJsonObject result;
+    for (const auto *key : {"status", "error"}) {
+        const auto value = state[QLatin1String(key)].toString();
+        if (!value.isEmpty()) {
+            result[QLatin1String(key)] = value;
+        }
+    }
+    const auto outputs = state["outputs"].toObject();
+    if (!outputs.isEmpty()) {
+        result["output"] = outputs.size() == 1 ? outputs.begin().value() : QJsonValue(outputs);
+    }
+    return result;
+}
+// web/src/lib/tools/builtin/runReport.ts buildRunReport.
+QJsonObject runReport(node_editor::WorkflowDocument &document, const node_editor::NodeRuntimeModel &runtime,
+                      const QString &jobId, const QString &status, const QString &jobError) {
+    QJsonObject outputs;
+    QJsonArray nodeErrors;
+    for (const auto &value : document.nodes()) {
+        const auto node = value.toObject();
+        const auto id = node["id"].toString();
+        const auto state = agentRunState(runtime.runNodeState(jobId, id));
+        const auto data = node["data"].toObject();
+        if (node["type"].toString().startsWith("nodetool.output.") && state.contains("output")) {
+            const auto name = data["properties"].toObject()["name"].toString();
+            outputs[name.isEmpty() ? id : name] = state["output"];
+        }
+        if (state.contains("error")) {
+            QJsonObject entry{{"node_id", id}, {"message", state["error"]}};
+            if (!data["title"].toString().isEmpty()) {
+                entry["title"] = data["title"];
+            }
+            nodeErrors.append(entry);
+        }
+    }
+    QJsonObject report{{"ok", true},
+                       {"workflow_id", document.snapshot()["id"]},
+                       {"job_id", jobId},
+                       {"status", status},
+                       {"outputs", outputs},
+                       {"node_errors", nodeErrors}};
+    if (!jobError.isEmpty()) {
+        report["error"] = jobError;
+    }
+    return report;
 }
 } // namespace
 
@@ -502,7 +551,23 @@ void EditorWindow::initializeChatTools() {
                 return;
             }
             if (name == "ui_get_graph") {
-                complete(graphResult(document, metadata));
+                auto result = graphResult(document, metadata);
+                // The canvas shows one run at a time; report that run on each node.
+                const auto shown = target->runtime_.selectedRunId();
+                if (!shown.isEmpty()) {
+                    auto nodes = result["nodes"].toArray();
+                    for (qsizetype i = 0; i < nodes.size(); ++i) {
+                        auto node = nodes[i].toObject();
+                        const auto state = agentRunState(target->runtime_.nodeState(node["id"].toString()));
+                        if (!state.isEmpty()) {
+                            node["last_run"] = state;
+                            nodes[i] = node;
+                        }
+                    }
+                    result["nodes"] = nodes;
+                    result["last_run_job_id"] = shown;
+                }
+                complete(result);
                 return;
             }
             if (name == "ui_search_nodes") {
@@ -660,7 +725,38 @@ void EditorWindow::initializeChatTools() {
                          "retrying.");
                     return;
                 }
-                complete({{"ok", true}, {"workflow_id", document.snapshot()["id"]}, {"job_id", job}});
+                if (!input["wait"].toBool()) {
+                    complete({{"ok", true}, {"workflow_id", document.snapshot()["id"]}, {"job_id", job}});
+                    return;
+                }
+                const auto seconds = input["timeout_seconds"].toInt(300);
+                // Owned by the target editor through its Qt parent. It ends the wait,
+                // and closing the tab destroys it with its connections and timer.
+                auto *waiter = new QObject(target);
+                const QPointer<EditorWindow> self(this);
+                const QPointer<EditorWindow> editor(target);
+                const auto finish = [self, editor, waiter, call, job](const QString &status, const QString &error) {
+                    if (!self || !editor || waiter->property("done").toBool()) {
+                        return;
+                    }
+                    waiter->setProperty("done", true);
+                    self->chat_.completeHostTool(
+                        call, runReport(editor->document_, editor->runtime_, job, status, error).toVariantMap());
+                    waiter->deleteLater();
+                };
+                connect(&target->session_, &node_editor::WorkflowSession::runEvent, waiter,
+                        [waiter, job, finish](const QString &id, const QJsonObject &event) {
+                    const auto status = event["status"].toString();
+                    if (id != job || event["type"] != "job_update" || !node_editor::isTerminalRunStatus(status)) {
+                        return;
+                    }
+                    const auto error = event["error"].toString();
+                    const auto reported = status == "failed" ? QStringLiteral("error") : status;
+                    // Node errors of a failed job can land after its terminal frame.
+                    QTimer::singleShot(0, waiter, [finish, reported, error] { finish(reported, error); });
+                });
+                QTimer::singleShot(std::clamp(seconds, 1, 1800) * 1000, waiter,
+                                   [finish] { finish(QStringLiteral("running"), QString()); });
                 return;
             }
             QJsonObject command;

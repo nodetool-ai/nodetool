@@ -14,6 +14,8 @@ public:
   explicit NodeRuntimeModel(QObject *parent = nullptr);
   QString selectedRunId() const { return selected_; }
   QJsonObject nodeState(const QString &nodeId) const;
+  // One node's state in the given run, shown or not. Empty for an unknown run or node.
+  QJsonObject runNodeState(const QString &jobId, const QString &nodeId) const;
   QJsonObject edgeState(const QString &edgeId) const;
   bool connected() const { return connected_; }
 public slots:

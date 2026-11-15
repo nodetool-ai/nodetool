@@ -204,6 +204,20 @@ class EditorChatToolsTest final : public QObject {
         return {{"id", id}, {"type", "fixture.Text"}, {"position", QJsonObject{{"x", 0}, {"y", 0}}}};
     }
   private slots:
+    void loadBindsChatContext() {
+        // A thread sent workflow_id null because the context only followed
+        // panel and tab changes, and a workflow load emits neither.
+        nodetool::EditorWindow window;
+        QVERIFY(window.document()->load(
+            {{"id", "workflow-loaded"},
+             {"name", "Loaded"},
+             {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}}));
+        const auto context = window.chatSession()->property("hostContext").toMap();
+        QCOMPARE(context["workflow_id"].toString(), QString("workflow-loaded"));
+        const auto focused = context["ui_context"].toMap()["focused"].toMap();
+        QCOMPARE(focused["id"].toString(), QString("workflow-loaded"));
+        QCOMPARE(focused["type"].toString(), QString("workflow"));
+    }
     void toolsAndUndo() {
         ChatServer server;
         nodetool::EditorWindow window;
@@ -437,6 +451,71 @@ class EditorChatToolsTest final : public QObject {
         QVERIFY2(result["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(result).toJson())));
         QVERIFY(!result["result"].toObject()["job_id"].toString().isEmpty());
         QVERIFY(!call(window, server, "ui_get_graph", {{"workflow_id", "not-open"}})["ok"].toBool());
+    }
+    void runWorkflowWaitReportsTheRun() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        QVERIFY(window.document()->load(
+            {{"id", "workflow-tools"},
+             {"graph",
+              QJsonObject{{"nodes",
+                           QJsonArray{QJsonObject{{"id", "step"}, {"type", "fixture.Text"},
+                                                  {"data", QJsonObject{{"title", "Step"}}}},
+                                      QJsonObject{{"id", "out"}, {"type", "nodetool.output.Output"},
+                                                  {"data", QJsonObject{{"properties", QJsonObject{{"name", "spiral"}}}}}}}},
+                          {"edges", QJsonArray{}}}}}));
+        window.session()->connectToServer(server.url(), {}, "fixture-user");
+        window.askAgent({});
+        QTRY_VERIFY(window.session()->connected());
+        QTRY_COMPARE(window.chatSession()->connectionStatus(), QString("connected"));
+        window.chatSession()->upsertThread({{"id", ThreadId}, {"workflow_id", "workflow-tools"}});
+        window.chatSession()->selectThread(ThreadId);
+        QTRY_VERIFY(!window.chatSession()->historyLoading());
+        QSignalSpy submitted(window.session(), &nodetool::node_editor::WorkflowSession::runSubmitted);
+        window.chatSession()->applyEvent({{"type", "tool_call"},
+                                          {"thread_id", ThreadId},
+                                          {"tool_call_id", "wait-run"},
+                                          {"name", "ui_run_workflow"},
+                                          {"args", QJsonObject{{"workflow_id", "workflow-tools"}, {"wait", true}}}});
+        QTRY_COMPARE(submitted.size(), 1);
+        const auto job = submitted.first().first().toString();
+        const auto answered = [&server] {
+            for (const auto &frame : server.frames) {
+                if (frame["tool_call_id"] == "wait-run" && frame["type"] == "tool_result") {
+                    return frame;
+                }
+            }
+            return QJsonObject{};
+        };
+        auto *session = window.session();
+        emit session->runEvent(job, {{"type", "job_update"}, {"job_id", job}, {"status", "running"}});
+        emit session->runEvent(job, {{"type", "output_update"}, {"job_id", job}, {"node_id", "out"},
+                                     {"output_name", "output"}, {"value", "first"}});
+        emit session->runEvent(job, {{"type", "node_update"}, {"job_id", job}, {"node_id", "step"},
+                                     {"status", "error"}, {"error", "inputs.size is undefined"}});
+        QTest::qWait(30);
+        QVERIFY(answered().isEmpty());
+        emit session->runEvent(job, {{"type", "job_update"}, {"job_id", job}, {"status", "failed"},
+                                     {"error", "Node step failed"}});
+        QTRY_VERIFY(!answered().isEmpty());
+        const auto report = answered()["result"].toObject();
+        QCOMPARE(report["job_id"].toString(), job);
+        QCOMPARE(report["status"].toString(), QString("error"));
+        QCOMPARE(report["error"].toString(), QString("Node step failed"));
+        QCOMPARE(report["outputs"].toObject()["spiral"].toString(), QString("first"));
+        const auto errors = report["node_errors"].toArray();
+        QCOMPARE(errors.size(), 1);
+        QCOMPARE(errors[0].toObject()["node_id"].toString(), QString("step"));
+        QCOMPARE(errors[0].toObject()["title"].toString(), QString("Step"));
+        const auto graph = call(window, server, "ui_get_graph", {{"workflow_id", "workflow-tools"}})["result"].toObject();
+        QCOMPARE(graph["last_run_job_id"].toString(), job);
+        for (const auto &value : graph["nodes"].toArray()) {
+            const auto node = value.toObject();
+            if (node["id"] == "step") {
+                QCOMPARE(node["last_run"].toObject()["error"].toString(), QString("inputs.size is undefined"));
+            }
+        }
     }
     void resourcePrefixes() {
         ChatServer server;

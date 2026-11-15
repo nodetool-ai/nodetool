@@ -128,7 +128,22 @@ export const uiRunWorkflowParams = {
   params: z
     .record(z.string(), z.unknown())
     .optional()
-    .describe("Optional workflow input parameters keyed by input-node name.")
+    .describe("Optional workflow input parameters keyed by input-node name."),
+  wait: z
+    .boolean()
+    .optional()
+    .describe(
+      "Wait for the run to end and return its status, outputs keyed by output name, and node errors. Default false returns only the job_id."
+    ),
+  timeout_seconds: z
+    .number()
+    .int()
+    .min(1)
+    .max(1800)
+    .optional()
+    .describe(
+      "With wait, the most seconds to wait (default 300). A run still going at the limit returns status \"running\" and keeps going."
+    )
 };
 
 export const uiSwitchTabParams = {
@@ -211,7 +226,7 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
   },
   ui_get_graph: {
     description:
-      "Get the workflow graph, source (editor or server), and document_revision. Pass this revision as based_on_revision on the next graph mutation to reject stale edits. No required arguments.",
+      "Get the workflow graph, source (editor or server), and document_revision. Pass this revision as based_on_revision on the next graph mutation to reject stale edits. In the editor, each node carries `last_run` (status, error, output) from the run the canvas shows. No required arguments.",
     parameters: uiGetGraphParams
   },
   ui_update_node_data: {
@@ -243,7 +258,7 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
   },
   ui_run_workflow: {
     description:
-      "Run a workflow. Required: `workflow_id`. Optional: `params` (input values).",
+      "Run a workflow in the editor, where the user sees each node run. Required: `workflow_id`. Optional: `params` (input values), `wait` (return status, outputs and node errors when the run ends), `timeout_seconds`.",
     parameters: uiRunWorkflowParams
   },
   ui_switch_tab: {
