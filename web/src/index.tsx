@@ -113,9 +113,6 @@ const IntegrationLinkPage = React.lazy(
 const ModelsPage = React.lazy(
   () => import("./components/hugging_face/model_list/ModelsPage")
 );
-const WorkspacesPage = React.lazy(
-  () => import("./components/workspaces/WorkspacesPage")
-);
 const PackagesPage = React.lazy(
   () => import("./components/packages/PackagesPage")
 );
@@ -169,6 +166,7 @@ const StudioAccountPage = React.lazy(
 );
 import {
   ChatThreadRedirect,
+  ProjectFilesRedirect,
   SettingsRedirect,
   WorkflowEditorRedirect
 } from "./components/workspace/RouteRedirects";
@@ -425,10 +423,12 @@ function getRoutes() {
       )
     },
     {
+      // The folder management page is gone: a project's folder is its Files
+      // section.
       path: "workspaces",
       element: (
         <ProtectedRoute>
-          <WorkspacesPage />
+          <ProjectFilesRedirect />
         </ProtectedRoute>
       )
     },
