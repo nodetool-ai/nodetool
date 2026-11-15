@@ -464,6 +464,22 @@ checks it after reopening. Current main is reconciled into the isolated
 integration branch. Full native and sanitizer CI must pass the correction
 before M1 merges. Hardware deferrals and unfinished issues remain open.
 
+## Private-device sanitizer tracking
+
+The full-host run at `919973f295` passes Release, ASan/UBSan and the aggregate
+quality gate. TSan passes the model/context correction and 64 other CTests,
+but reports an invalid mutex unlock in Mesa Gallium during the two offline GPU
+tests. Its allocation stack enters LLVM MCJIT. The inherited graph-host filter
+ignores LLVM calls while Gallium calls remain visible, which may hide one side
+of the mutex operations.
+
+The private-device GPU CTests and realtime CLI matrix now run with complete
+TSan tracking, without the legacy graph-host suppression file. Error and
+deadlock reporting remain enabled. A fresh CMake configuration confirms both
+CTest environments. Linux CI must verify this hypothesis before merge. No
+driver finding is suppressed or counted as passing, and driver allocation and
+hardware qualification remain deferred.
+
 ## Provisional progress gate
 
 The user accepts [WP09's scoped M1 evidence](https://github.com/nodetool-ai/nodetool/issues/7400)

@@ -280,6 +280,9 @@ jobs:
           env -u DISPLAY ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"
 
       - name: Verify realtime command dispatch
+        # Private realtime devices require both sides of driver mutex operations.
+        env:
+          TSAN_OPTIONS: halt_on_error=1:second_deadlock_stack=1
         run: node native/realtime/scripts/cli-check.mjs native/graph-runner/build/nodetool-graph-runner
 
       - name: Install Qt for the node editor

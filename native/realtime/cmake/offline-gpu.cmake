@@ -69,6 +69,10 @@ target_compile_definitions(realtime-offline-render-test PRIVATE NT_GPU_CATALOG="
 add_dependencies(realtime-offline-render-test realtime-gpu-catalog)
 add_test(NAME realtime-offline-render-export COMMAND realtime-offline-render-test)
 set_tests_properties(realtime-offline-render-export PROPERTIES TIMEOUT 300)
+# Private-device tests need complete driver mutex tracking. The full host's
+# legacy LLVM library filter can hide a lock whose Gallium unlock remains visible.
+set_tests_properties(realtime-offline-gpu realtime-offline-render-export PROPERTIES
+  ENVIRONMENT "TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1")
 target_link_libraries(nodetool_realtime_offline_gpu PUBLIC nodetool_realtime PRIVATE nt_realtime_wgpu)
 foreach(target nodetool_realtime_offline_gpu realtime-offline-render-test)
   if(MSVC)
