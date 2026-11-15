@@ -6621,8 +6621,16 @@
         "exporting": "Eksportuję…",
         "deleteProject": "Usuń projekt",
         "confirmDeleteTitle": "Usunąć {{projectName}}?",
-        "confirmDeleteBody": "Usuń {{projectName}} i wszystkie jego dokumenty, rozmowy, wygenerowane wyniki, zasoby, zadania i pliki projektu.",
+        "confirmDeleteBody": "Usuń {{projectName}} i wszystkie jego dokumenty, rozmowy, zadania oraz zasoby przechowywane poza folderem projektu.",
         "deleteIrreversible": "Tego nie można cofnąć.",
+        "deleteFolderTrash": "Folder projektu zostanie przeniesiony do kosza.",
+        "deleteFolderRemove": "Folder projektu i wszystkie jego pliki zostaną usunięte z magazynu w chmurze.",
+        "deleteFolderKeep": "Folder projektu pozostanie na swoim miejscu ze wszystkimi plikami. NodeTool usunie tylko znajdujący się w nim folder .nodetool.",
+        "deleteFolderMissing": "Folder projektu jest niedostępny, więc NodeTool pozostawi go bez zmian.",
+        "folderMovedAsideTo": "Kosz był niedostępny. Folder projektu przeniesiono do {{path}}.",
+        "folderMovedAside": "Kosz był niedostępny. Folder projektu przeniesiono do folderu .trash w folderze projektów.",
+        "folderTrashFailedAt": "Nie udało się przenieść folderu projektu do kosza. Pozostaje w {{path}}.",
+        "folderTrashFailed": "Nie udało się przenieść folderu projektu do kosza. Pozostaje na swoim miejscu.",
         "error": "Nie można {{action}} {{projectName}}: {{error}}"
       }
     }

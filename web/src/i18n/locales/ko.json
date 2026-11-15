@@ -6431,8 +6431,16 @@
         "exporting": "내보내는 중…",
         "deleteProject": "프로젝트 삭제",
         "confirmDeleteTitle": "{{projectName}}을 삭제하시겠습니까?",
-        "confirmDeleteBody": "{{projectName}} 및 해당 문서, 대화, 생성된 출력, 자산, 작업 및 프로젝트 파일을 모두 삭제합니다.",
+        "confirmDeleteBody": "{{projectName}} 및 해당 문서, 대화, 작업, 프로젝트 폴더 밖에 저장된 자산을 모두 삭제합니다.",
         "deleteIrreversible": "이 작업은 취소할 수 없습니다.",
+        "deleteFolderTrash": "프로젝트 폴더는 휴지통으로 이동합니다.",
+        "deleteFolderRemove": "프로젝트 폴더와 그 안의 모든 파일이 클라우드 저장소에서 삭제됩니다.",
+        "deleteFolderKeep": "프로젝트 폴더는 모든 파일과 함께 그 자리에 남습니다. NodeTool은 그 안의 .nodetool 폴더만 제거합니다.",
+        "deleteFolderMissing": "프로젝트 폴더에 접근할 수 없어 NodeTool이 그대로 둡니다.",
+        "folderMovedAsideTo": "휴지통에 접근할 수 없었습니다. 프로젝트 폴더를 {{path}}(으)로 옮겼습니다.",
+        "folderMovedAside": "휴지통에 접근할 수 없었습니다. 프로젝트 폴더를 프로젝트 폴더 위치의 .trash 폴더로 옮겼습니다.",
+        "folderTrashFailedAt": "프로젝트 폴더를 휴지통으로 옮기지 못했습니다. {{path}}에 그대로 있습니다.",
+        "folderTrashFailed": "프로젝트 폴더를 휴지통으로 옮기지 못했습니다. 그 자리에 그대로 있습니다.",
         "error": "{{action}} {{projectName}}을(를) 수행할 수 없습니다: {{error}}"
       }
     }

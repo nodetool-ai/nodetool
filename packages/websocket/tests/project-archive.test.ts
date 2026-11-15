@@ -10,6 +10,7 @@ import {
   emptyScriptDocument,
   Game,
   getPortableDb,
+  ImageDocument,
   Message,
   PERSONAL_PROJECT_KIND,
   Project,
@@ -27,6 +28,8 @@ import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   ensureProjectFolder,
+  isFolderMarkedCreated,
+  markFolderCreated,
   resolveProjectWorkspace
 } from "@nodetool-ai/execution/service";
 import { getAssetStorageKey } from "../src/lib/asset-paths.js";
@@ -265,6 +268,104 @@ describe("project files", () => {
     );
     expect(records).not.toContain(owner);
     expect(records).not.toContain(root);
+  });
+
+  it("exports the project folder's files with the storyboards, scripts, and sketches", async () => {
+    const project = (await Project.insertNew({
+      user_id: owner,
+      name: "Folder film"
+    }))!;
+    const previousDir = process.env["PROJECTS_DIR"];
+    process.env["PROJECTS_DIR"] = nodePath.join(root, "NodeTool");
+    let folder: Workspace;
+    try {
+      folder = await ensureProjectFolder(project);
+    } finally {
+      if (previousDir === undefined) delete process.env["PROJECTS_DIR"];
+      else process.env["PROJECTS_DIR"] = previousDir;
+    }
+    expect(folder.path).toBe(nodePath.join(root, "NodeTool", "Folder film"));
+    expect(project.workspace_id).toBe(folder.id);
+    const files = createLocalWorkspace(folder.path);
+    const take = new Uint8Array([0, 255, 254, 128, 10, 13]);
+    await files.write("footage/day 1/take.bin", take);
+    await files.write("Generated/fox-in-snow.txt", "fox");
+    const board = await Storyboard.create<Storyboard>({
+      user_id: owner,
+      project_id: project.id,
+      name: "Board",
+      document: JSON.stringify(storyboardDocument("none"))
+    });
+    const script = await Script.create<Script>({
+      user_id: owner,
+      project_id: project.id,
+      name: "Script",
+      document: JSON.stringify(emptyScriptDocument())
+    });
+    const sketch = await ImageDocument.create<ImageDocument>({
+      user_id: owner,
+      project_id: project.id,
+      name: "Sketch"
+    });
+
+    const { bytes, manifest } = await exportProject(owner, project.id);
+    const entries = unzipSync(bytes);
+
+    // The folder's files, under the folder's workspace, byte for byte.
+    const prefix = `workspaces/${folder.id}/`;
+    expect(
+      Object.keys(entries)
+        .filter((name) => name.startsWith("workspaces/"))
+        .sort()
+    ).toEqual([
+      `${prefix}Generated/fox-in-snow.txt`,
+      `${prefix}footage/day 1/take.bin`
+    ]);
+    expect(entries[`${prefix}footage/day 1/take.bin`]).toEqual(take);
+    expect(strFromU8(entries[`${prefix}Generated/fox-in-snow.txt`]!)).toBe(
+      "fox"
+    );
+    expect(manifest.workspace_files.map((f) => f.path).sort()).toEqual([
+      "Generated/fox-in-snow.txt",
+      "footage/day 1/take.bin"
+    ]);
+    // The documents that live in the database, not in the folder.
+    const records = JSON.parse(strFromU8(entries["records.json"]!)) as Record<
+      string,
+      Array<Record<string, unknown>>
+    >;
+    expect(records["storyboards"]!.map((row) => row["id"])).toEqual([board.id]);
+    expect(records["scripts"]!.map((row) => row["id"])).toEqual([script.id]);
+    expect(records["image_documents"]!.map((row) => row["id"])).toEqual([
+      sketch.id
+    ]);
+    expect(records["workspaces"]!.map((row) => row["id"])).toEqual([folder.id]);
+    expect(manifest.skipped).toEqual([]);
+  });
+
+  it("marks an imported folder as created by NodeTool, whoever made the exported one", async () => {
+    const seeded = await seedProject();
+    seeded.workspace.origin = "adopted";
+    await seeded.workspace.save();
+    const { bytes } = await exportProject(owner, seeded.projectId);
+
+    const result = await importProjectArchive(bytes, {
+      userId: importer,
+      storage,
+      openWorkspace,
+      workspacePath,
+      markCreatedFolder: markFolderCreated
+    });
+
+    const [imported] = await Workspace.listByProject(
+      importer,
+      result.project.id
+    );
+    if (!imported) throw new Error("the import made no workspace");
+    expect(imported.path).toContain(nodePath.join(root, "imported"));
+    expect(imported.origin).toBe("created");
+    // The record a delete requires before it moves the folder to the trash.
+    expect(await isFolderMarkedCreated(imported)).toBe(true);
   });
 
   it("imports as a new project with every id and reference rewritten", async () => {

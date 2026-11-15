@@ -10,7 +10,6 @@ import {
   mkdtemp,
   mkdir,
   writeFile,
-  access,
   readFile,
   rm
 } from "node:fs/promises";
@@ -211,12 +210,12 @@ describe("projects router", () => {
     ).resolves.toEqual([kept]);
   });
 
-  it("removes files from project workspaces", async () => {
+  it("removes a leftover workspace row and keeps its files", async () => {
     const project = await caller().projects.create({ name: "Aurora" });
     const directory = await mkdtemp(join(tmpdir(), "nodetool-project-delete-"));
     const file = join(directory, "draft.txt");
     await writeFile(file, "draft");
-    await Workspace.create<Workspace>({
+    const leftover = await Workspace.create<Workspace>({
       user_id: "user-1",
       project_id: project.id,
       name: "Project files",
@@ -225,7 +224,8 @@ describe("projects router", () => {
 
     try {
       await caller().projects.delete({ id: project.id });
-      await expect(access(file)).rejects.toThrow();
+      expect(await Workspace.find("user-1", leftover.id)).toBeNull();
+      expect(await readFile(file, "utf8")).toBe("draft");
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
@@ -251,11 +251,12 @@ describe("projects router", () => {
 
   it("makes deletion idempotent and refuses Personal", async () => {
     const project = await caller().projects.create({ name: "Aurora" });
+    await expect(
+      caller().projects.delete({ id: project.id })
+    ).resolves.toMatchObject({ ok: true });
+    // The retry finds the tombstone and no folder left to dispose of.
     await expect(caller().projects.delete({ id: project.id })).resolves.toEqual(
-      { ok: true }
-    );
-    await expect(caller().projects.delete({ id: project.id })).resolves.toEqual(
-      { ok: true }
+      { ok: true, folder: { action: "none", path: null } }
     );
     await expect(
       caller().projects.delete({ id: "personal:user-1" })
@@ -636,7 +637,8 @@ describe("projects router: project folders", () => {
       workspace_id: expect.any(String),
       path: join(root, "NodeTool", "My Film"),
       origin: "created",
-      is_accessible: true
+      is_accessible: true,
+      on_delete: "trash"
     });
     expect(second.folder?.path).toBe(join(root, "NodeTool", "My Film 2"));
     const written = JSON.parse(
@@ -681,7 +683,8 @@ describe("projects router: project folders", () => {
       workspace_id: expect.any(String),
       path: null,
       origin: "created",
-      is_accessible: true
+      is_accessible: true,
+      on_delete: "remove"
     });
     const stored = await Project.get<Project>(project.id);
     expect(await manifest(stored?.workspace_id ?? "")).toEqual({
@@ -718,11 +721,14 @@ describe("projects router: project folders", () => {
 
     const listed = await caller().projects.list({});
     const byName = new Map(listed.map((p) => [p.name, p]));
+    // The row predates project folders, so its `created` is the column
+    // default. The folder is one the user added, and a delete keeps it.
     expect(byName.get("Legacy")?.folder).toEqual({
       workspace_id: expect.any(String),
       path: olderDir,
       origin: "created",
-      is_accessible: true
+      is_accessible: true,
+      on_delete: "keep"
     });
     expect(byName.get("Personal")?.folder?.path).toBe(defaultRow.path);
     expect(await readFile(join(defaultRow.path, "draft.md"), "utf8")).toBe(
@@ -819,31 +825,6 @@ describe("projects router: project folders", () => {
     expect(await Workspace.find("user-1", defaultRow.id)).toEqual(before);
   });
 
-  it.each(["local", "cloud"] as const)(
-    "keeps the project folder's files when the project is deleted (%s)",
-    async (mode) => {
-      if (mode === "cloud") useCloud();
-      const project = await caller().projects.create({ name: "Doomed" });
-      const folder = await folderRow(project.id);
-      await filesOf(folder).write("footage/take.txt", "keep");
-      const extra = await Workspace.create<Workspace>({
-        user_id: "user-1",
-        project_id: project.id,
-        name: "extra",
-        path:
-          mode === "cloud"
-            ? "workspaces/user-1/extra"
-            : await mkdtemp(join(root, "extra-"))
-      });
-      await filesOf(extra).write("scratch.txt", "wipe");
-
-      await caller().projects.delete({ id: project.id });
-
-      expect(await filesOf(folder).readText("footage/take.txt")).toBe("keep");
-      expect(await filesOf(extra).exists("scratch.txt")).toBe(false);
-    }
-  );
-
   it("hides server paths from callers of a production server", async () => {
     process.env["NODETOOL_ENV"] = "production";
     process.env["NODETOOL_WORKSPACE_STORAGE"] = "local";
@@ -853,7 +834,8 @@ describe("projects router: project folders", () => {
       workspace_id: expect.any(String),
       path: null,
       origin: "created",
-      is_accessible: true
+      is_accessible: true,
+      on_delete: "trash"
     });
 
     await writeFile(join(root, "blocker"), "not a directory");
