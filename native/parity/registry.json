@@ -849,7 +849,7 @@
         "native/node-editor/qml/CompositorLayoutPanel.qml"
       ],
       "status": "partial",
-      "note": "Layer handles, live composite, layer rows, Add another layer and the Edit layout dialog (move, scale and rotate gizmo, transform fields, canvas size, layer stack) are native. The dialog's layer rows show names where the web shows thumbnails.",
+      "note": "Layer handles, live composite, layer rows, Add another layer and the Edit layout dialog (move, scale and rotate gizmo, transform fields, canvas size, layer stack) are native. The dialog's layer rows show each layer's image as a thumbnail, as LayerRow.tsx does.",
       "inventory": "W4"
     },
     "web/src/components/node_types/editing/ConstantSketchBody.tsx": {
@@ -1366,7 +1366,7 @@
         "native/node-editor/src/graph/CardBodies.cpp"
       ],
       "status": "partial",
-      "note": "Shell matches. No pricing footer.",
+      "note": "Shell matches. The pricing chip is ProviderPriceChip.qml.",
       "inventory": "W4"
     },
     "web/src/components/node/DynamicFalSchemaNode/FalSchemaLoader.tsx": {
@@ -1383,7 +1383,7 @@
         "native/node-editor/src/graph/CardBodies.cpp"
       ],
       "status": "partial",
-      "note": "Shell matches. No credits footer.",
+      "note": "Shell matches. The credits chip is ProviderPriceChip.qml.",
       "inventory": "W4"
     },
     "web/src/components/node/DynamicKieSchemaNode/KieSchemaLoader.tsx": {
@@ -1432,7 +1432,13 @@
       "inventory": "F05"
     },
     "web/src/components/node/FalPricingFooter.tsx": {
-      "missing": "FAL price chip and popover on selected FAL nodes. Not found natively."
+      "native": [
+        "native/node-editor/qml/ProviderPriceChip.qml",
+        "native/node-editor/src/graph/ProviderPricing.cpp",
+        "native/node-editor/src/ui/EditorPriceChip.cpp"
+      ],
+      "status": "partial",
+      "note": "The chip under the selected card, from the metadata or the bundled list price, and its popover with the pricing lines, the per-run estimate, the account credits, the API keys link and View on fal.ai. Native shows it for a single selected card only, does not fetch live prices, has no inspector variant, and draws the chip in the tone's text color instead of a filled tone."
     },
     "web/src/components/node/GhostNode.tsx": {
       "native": [
@@ -1508,7 +1514,13 @@
       "missing": "Time axis under keyframe model nodes. Native marks keyframe lists unsupported."
     },
     "web/src/components/node/KieCreditsFooter.tsx": {
-      "missing": "KIE credits chip and popover. Not found natively."
+      "native": [
+        "native/node-editor/qml/ProviderPriceChip.qml",
+        "native/node-editor/src/graph/ProviderPricing.cpp",
+        "native/node-editor/src/ui/EditorPriceChip.cpp"
+      ],
+      "status": "partial",
+      "note": "The chip on every selected KIE card, \"KIE credits\" without a bundled price, and its popover with the pricing lines or the no-price note, the account credits, the API keys link, View pricing and Top up. The Last run cost row is missing, and the FAL footer's differences apply."
     },
     "web/src/components/node/MediaAspectResizeControl.tsx": {
       "missing": "Media aspect resize is open.",

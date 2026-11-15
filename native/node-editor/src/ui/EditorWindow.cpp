@@ -75,6 +75,7 @@
 #include <QSet>
 #include <QTimer>
 #include <QToolTip>
+#include <QDesktopServices>
 #include <QUndoStack>
 #include <QVBoxLayout>
 #include <QNativeGestureEvent>
@@ -280,8 +281,8 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   // The document bar and the rail read the state every panel change carries.
   connect(this, &EditorWindow::panelChanged, this, &EditorWindow::syncChrome);
   connect(&workflowHeader_, &node_editor::WorkflowHeader::renameRequested, this, &EditorWindow::renameWorkflow);
-  connect(&workflowHeader_, &node_editor::WorkflowHeader::undoRequested, this, [this] { action("Undo"); });
-  connect(&workflowHeader_, &node_editor::WorkflowHeader::redoRequested, this, [this] { action("Redo"); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::undoRequested, this, [this] { documentHistory(false); });
+  connect(&workflowHeader_, &node_editor::WorkflowHeader::redoRequested, this, [this] { documentHistory(true); });
   connect(&workflowHeader_, &node_editor::WorkflowHeader::saveToServerRequested, this, [this] { action("Server Save"); });
   connect(&workflowHeader_, &node_editor::WorkflowHeader::serverSyncRequested, this, [this] { action("Server sync"); });
   connect(&workflowHeader_, &node_editor::WorkflowHeader::actionRequested, this, [this](const QString &name) {
@@ -890,6 +891,21 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   connect(&model_, &WorkflowGraphModel::nodeUpdated, this, followCard);
   connect(&model_, &WorkflowGraphModel::nodePositionUpdated, this, followCard);
   connect(scene_, &EditorScene::nodeDragChanged, this, followCard);
+  priceChipOverlay_ = overlay("ProviderPriceChip", {{"chip", QVariant::fromValue(&priceChip_)}});
+  priceChipOverlay_->setObjectName("price-chip-overlay");
+  // positionPriceChip sizes it to the chip and its popover.
+  priceChipOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
+  priceChipOverlay_->hide();
+  connect(&priceChip_, &node_editor::PriceChip::toggleRequested, this, &EditorWindow::togglePricePopover);
+  connect(&priceChip_, &node_editor::PriceChip::linkRequested, this, [this](const QString &url) {
+    priceChip_.close();
+    QDesktopServices::openUrl(QUrl(url));
+  });
+  // The chip keeps its right edge on the card's as its label and popover change its size.
+  if (auto *root = priceChipOverlay_->rootObject()) {
+    connect(root, SIGNAL(implicitWidthChanged()), this, SLOT(positionPriceChip()));
+    connect(root, SIGNAL(implicitHeightChanged()), this, SLOT(positionPriceChip()));
+  }
   // The node info panel follows its node the same way.
   nodeInfoOverlay_ = overlay("NodeInfoPanel", {{"info", QVariant::fromValue(&nodeInfo_)}});
   nodeInfoOverlay_->setObjectName("node-info-overlay");
@@ -926,6 +942,7 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
     const auto ids = selectedIds();
     const auto next = ids.size() == 1 ? ids.first() : QString{};
     if (selected_ != next) { selected_ = next; inspectorDismissed_ = false; syncInspector(); }
+    syncPriceChip();
     schedulePanelChanged();
     scheduleViewportSettle();
   };
@@ -1176,6 +1193,9 @@ EditorWindow::~EditorWindow() {
   // once their QQuickWidget part is gone.
   if (catalogPanel_) { catalogPanel_->removeEventFilter(this); }
   if (nodeMenu_) { nodeMenu_->removeEventFilter(this); }
+  // The price chip's size signals reposition it, so they stop before it dies.
+  if (priceChipOverlay_ && priceChipOverlay_->rootObject()) { priceChipOverlay_->rootObject()->disconnect(this); }
+  priceChipOverlay_ = nullptr;
   // Panels bind to members of this class and must die before those members.
   for (auto panel : findChildren<QQuickWidget *>()) {
     // native-rules #2: naked delete of a member that also has a Qt parent, order managed by hand
@@ -1698,11 +1718,18 @@ bool EditorWindow::canUndo() const {
     if (!tabOwner_) {
         return activeEditor_->canUndo();
     }
+    if (inlineChild_ && childParent_) {
+        // An edit still waiting to reach the workflow is the next step Undo removes.
+        return workflowHost()->canUndo() || hasPendingChildWrite();
+    }
     return menuActionEnabled(QStringLiteral("Undo"));
 }
 bool EditorWindow::canRedo() const {
     if (!tabOwner_) {
         return activeEditor_->canRedo();
+    }
+    if (inlineChild_ && childParent_) {
+        return !hasPendingChildWrite() && workflowHost()->canRedo();
     }
     return menuActionEnabled(QStringLiteral("Redo"));
 }
@@ -1983,6 +2010,7 @@ void EditorWindow::positionSelectionToolbar() {
   // editing state), so the 200 ms delay can show it after the editor was placed. A floating
   // toolbar changes the room the editor may take, so the editor lays out again.
   if (changed && inlineTitle_ && inlineTitle_->active()) { inlineTitle_->reposition(); }
+  positionPriceChip();
 }
 void EditorWindow::layoutOverlays() {
   if (!toolbarOverlay_ || !viewportOverlay_) { return; }

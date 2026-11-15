@@ -478,6 +478,61 @@ private slots:
     QTRY_COMPARE(window.runState()->outputRuns().size(), 1);
     QTRY_VERIFY(!window.runState()->queue().isEmpty());
   }
+  void documentBarUndoesTheWorkflowFromASubgraph() {
+    // WorkflowDocumentBar.tsx reads the workflow's NodeStore, so its Undo on a
+    // subgraph tab steps the workflow's history and the tab rebuilds from it.
+    EditorWindow window;
+    window.show();
+    window.setCatalog({QJsonObject{{"node_type", "nodetool.workflows.subgraph.Subgraph"}, {"title", "Subgraph"}}});
+    auto child = subgraph();
+    auto inner = graph();
+    auto nested = subgraph();
+    nested["id"] = "nested";
+    inner["nodes"] = QJsonArray{input(), nested};
+    child["data"] = QJsonObject{{"graph", inner}};
+    QVERIFY(window.document()->load(
+        {{"name", "Parent"}, {"graph", QJsonObject{{"nodes", QJsonArray{child}}, {"edges", QJsonArray{}}}}}));
+    auto parent = window.document();
+    const auto before = parent->node("child");
+    QVERIFY(window.selectNode("child"));
+    QVERIFY(click(window, "selection-open-child"));
+    QVERIFY(window.selectNode("nested"));
+    QVERIFY(click(window, "selection-open-child"));
+    auto surface = window.document();
+    QVERIFY(surface != parent);
+    QVERIFY(!window.workflowHeader()->canUndo());
+
+    QVERIFY(surface->applyCommand(
+        {{"op", "moveNodes"}, {"positions", QJsonObject{{"input", QJsonObject{{"x", 480}, {"y", 240}}}}}}));
+    // The pending write already counts as a step to undo.
+    QCoreApplication::processEvents();
+    QTRY_VERIFY(window.workflowHeader()->canUndo());
+    QTRY_VERIFY(parent->node("child") != before);
+    const auto after = parent->node("child");
+
+    window.workflowHeader()->undo();
+    QCOMPARE(parent->node("child"), before);
+    QCOMPARE(window.document(), surface);
+    QCOMPARE(surface->node("input")["ui_properties"].toObject().value("position"),
+             input()["ui_properties"].toObject().value("position"));
+    QCOMPARE(window.canvasStrips().size(), 2);
+    QTRY_VERIFY(window.workflowHeader()->canRedo());
+
+    window.workflowHeader()->redo();
+    QCOMPARE(parent->node("child"), after);
+    QCOMPARE(surface->node("input")["ui_properties"].toObject()["position"].toObject()["x"].toDouble(), 480.0);
+
+    // The rebuilt surface keeps writing back to the workflow.
+    QVERIFY(surface->applyCommand(
+        {{"op", "moveNodes"}, {"positions", QJsonObject{{"input", QJsonObject{{"x", 600}, {"y", 240}}}}}}));
+    QTRY_VERIFY(parent->node("child") != after);
+
+    // Ctrl+Z still undoes the canvas on screen, not the workflow.
+    const auto surfaceIndex = surface->undoStack()->index();
+    window.action("Undo");
+    QCOMPARE(surface->undoStack()->index(), surfaceIndex - 1);
+    QTRY_COMPARE(parent->node("child"), after);
+  }
   void replacementDiscardsPendingChildWriteback() {
       EditorWindow window;
       window.show();

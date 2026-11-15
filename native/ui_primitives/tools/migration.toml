@@ -4501,6 +4501,16 @@ qml_callers = ["native/node-editor/qml/WorkerProfilesDialog.qml", "native/node-e
 replacement = "NodeTool.UiPrimitives"
 
 [[file]]
+path = "native/node-editor/qml/ProviderPriceChip.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "native/node-editor/tests/ui/PriceChipTest.cpp"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives"
+
+[[file]]
 path = "native/node-editor/qml/QueuePanel.qml"
 category = "chrome"
 controls = []

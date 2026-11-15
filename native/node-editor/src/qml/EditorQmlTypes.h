@@ -10,6 +10,7 @@
 #include "interfaces/GenerationReplay.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInfo.h"
+#include "interfaces/PriceChip.h"
 #include "interfaces/NodeInspector.h"
 #include "interfaces/PanelLayout.h"
 #include "interfaces/StatusModel.h"
@@ -58,6 +59,13 @@ struct NodeInfoForeign {
     QML_FOREIGN(nodetool::node_editor::NodeInfo)
     QML_NAMED_ELEMENT(NodeInfo)
     QML_UNCREATABLE("A NodeInfo comes from its owner.")
+};
+
+struct PriceChipForeign {
+    Q_GADGET
+    QML_FOREIGN(nodetool::node_editor::PriceChip)
+    QML_NAMED_ELEMENT(PriceChip)
+    QML_UNCREATABLE("A PriceChip comes from its owner.")
 };
 
 struct PropertyHostForeign {

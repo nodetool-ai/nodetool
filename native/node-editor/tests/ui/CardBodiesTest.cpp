@@ -2463,6 +2463,17 @@ private slots:
         QVERIFY(rotation);
         QTRY_VERIFY(rotation->isVisible());
         QTRY_COMPARE(rotation->property("value").toDouble(), 45.0);
+        // Each layer row shows its input image (LayerRow.tsx).
+        for (int i = 0; i < 2; ++i) {
+            auto *thumb = find(quick->rootObject(), QStringLiteral("compositor-thumb-%1").arg(i));
+            QVERIFY(thumb);
+            QTRY_VERIFY(thumb->isVisible());
+            auto *picture = find(thumb, QStringLiteral("compositor-thumb-image-%1").arg(i));
+            QVERIFY(picture);
+            QVERIFY(picture->property("hasImage").toBool());
+            const auto image = picture->property("image").value<QImage>();
+            QCOMPARE(image.pixelColor(image.width() / 2, image.height() / 2), i == 0 ? QColor(Qt::red) : QColor(Qt::blue));
+        }
         if (const auto directory = qEnvironmentVariable("NODETOOL_CARD_BODY_CAPTURE_DIR"); !directory.isEmpty()) {
             QDir().mkpath(directory);
             // The panel's own framebuffer, since a widget grab can hold its previous frame.

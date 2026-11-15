@@ -2230,8 +2230,12 @@ document bar shows and renames the workflow, the status bar counts its nodes
 and edges, and Run and Stop flush the subgraph edits and run or stop the whole
 workflow on its session. The run toolbar, queue overlay and run output follow
 that run. Run selected still runs the selected inner nodes, and the run output
-shows whichever of the two ran last. Undo and redo stay with the shown canvas,
-while the web document bar buttons undo the workflow store. Subgraph card
+shows whichever of the two ran last. Ctrl+Z and Ctrl+Shift+Z undo the shown
+canvas, as the web canvas keys undo the subgraph's own store. The document bar's
+Undo and Redo step the workflow's history, as the web document bar reads the
+workflow store: pending inline edits flush first, and the subgraph surfaces
+between the workflow and the shown canvas rebuild from the graphs their nodes
+now store. Subgraph card
 progress uses the secondary progress color and the
 [NodeProgress](../../../web/src/components/node/NodeProgress.tsx) label with its
 remaining-time estimate, which every card progress band now shares.

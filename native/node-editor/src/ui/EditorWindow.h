@@ -12,6 +12,8 @@
 #include "interfaces/WorkerFleet.h"
 #include "interfaces/NodeCatalog.h"
 #include "interfaces/NodeInfo.h"
+#include "interfaces/PriceChip.h"
+#include "graph/ProviderPricing.h"
 #include "interfaces/NodeInspector.h"
 #include "interfaces/Notifications.h"
 #include "interfaces/PanelLayout.h"
@@ -133,6 +135,10 @@ public:
     void activateSurface(int index);
     bool closeSurface(int index);
     void flushChild();
+    bool hasPendingChildWrite() const;
+    // Rebuilds this inline surface and the surfaces between it and the
+    // workflow from the graphs their parent nodes now store.
+    void reloadChildChain();
     void closeChildSurfaces();
   void newTab();
   void activateTab(int index);
@@ -220,8 +226,12 @@ public:
   int edgeCount() const;
   int queuedCount() const;
   bool queueAvailable() const;
+    // The document bar's history. On an inline subgraph surface it is the
+    // workflow's history, as WorkflowDocumentBar.tsx reads the workflow's
+    // NodeStore, while Ctrl+Z keeps undoing the canvas on screen.
     bool canUndo() const;
     bool canRedo() const;
+    void documentHistory(bool redo);
     // The document bar's save readout, as web/src/components/ui_primitives/SaveStatus.tsx
     // names it: saved, saving, dirty, error or readOnly, plus the server's
     // conflict and deleted states.
@@ -620,6 +630,11 @@ private:
   void closeNodeInfo();
   void syncNodeInfo();
   void positionNodeInfo();
+  // The FAL or KIE price chip under the one selected card (FalPricingFooter.tsx,
+  // KieCreditsFooter.tsx), and its popover's account requests.
+  void syncPriceChip();
+  Q_SLOT void positionPriceChip();
+  void togglePricePopover();
   // Opens the node menu at a namespace path, with a search term.
   void openNodeMenuAt(const QStringList &path, const QString &term);
   void focusNode(const QString &resourceId);
@@ -667,6 +682,14 @@ private:
     // What this tab's node info overlay (NodeInfoPanel.qml) reads and does.
     // Owned by value, UI thread, destroyed with the tab after its panels.
     node_editor::NodeInfo nodeInfo_;
+    // What this tab's price chip overlay (ProviderPriceChip.qml) reads and does.
+    // Owned by value, UI thread, destroyed with the tab after its panels.
+    node_editor::PriceChip priceChip_;
+    // The bundled list prices, loaded on the first priced node. Owned by value, UI thread.
+    node_editor::PricingBundle pricingBundle_;
+    QString priceEstimateEndpoint_;
+    // Answers to an earlier popover opening are dropped.
+    quint64 priceRequest_ = 0;
     // What this tab's TabBar and CanvasTabStrip panels read and do, and what
     // its TabBar and notification list read about notifications. The tab
     // state lives in the root window; each tab copies it into its own objects.
@@ -783,6 +806,8 @@ private:
   // The node info panel, a child of view_ deleted by ~EditorWindow before
   // nodeInfo_. nodeInfoId_ is the node it shows, empty while it is hidden.
   QQuickWidget *nodeInfoOverlay_ = nullptr;
+  // The price chip, a child of view_ deleted by ~EditorWindow before priceChip_.
+  QQuickWidget *priceChipOverlay_ = nullptr;
   QString nodeInfoId_;
   // True while the selection toolbar floats over its card instead of the canvas top.
   bool selectionToolbarFloating_ = false;
