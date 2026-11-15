@@ -109,7 +109,13 @@ export const createStyles = (theme: Theme) => ({
     },
     ".chat-message.assistant": {
       padding: theme.spacing(3, 4),
-      borderRadius: BORDER_RADIUS.xl
+      borderRadius: BORDER_RADIUS.xl,
+      // The reply sits on the bare surface, so on a phone this inset is only
+      // empty width on top of the view's gutter.
+      [theme.breakpoints.down("sm")]: {
+        paddingLeft: theme.spacing(SPACING.md),
+        paddingRight: theme.spacing(SPACING.md)
+      }
     },
     // User message container (transparent, just for layout)
     ".user": {
@@ -362,7 +368,12 @@ export const createStyles = (theme: Theme) => ({
     // thread chrome. Only prose runs at the 15px body size.
     ".chat-status-row": {
       padding: theme.spacing(1, 4),
-      minHeight: theme.spacing(6)
+      minHeight: theme.spacing(6),
+      // Keeps the status on the reply's text edge, which moves in on phones.
+      [theme.breakpoints.down("sm")]: {
+        paddingLeft: theme.spacing(SPACING.md),
+        paddingRight: theme.spacing(SPACING.md)
+      }
     },
 
     ".chat-status-row.writing": {
