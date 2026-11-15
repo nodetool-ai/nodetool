@@ -777,6 +777,7 @@ bool ChatSession::dispatch(const QJsonArray &content) {
   s.error.clear();
   m_threads.setStatus(m_selected, s.status);
   emit stateChanged();
+  emit promptSent(m_selected);
   return true;
 }
 void ChatSession::resendFrom(const QString &messageId, const QString &text) {

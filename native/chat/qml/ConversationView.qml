@@ -81,8 +81,63 @@ Item {
             messages.positionViewAtEnd();
         }
     }
+    // useChatScrollAnchor.ts: a just-sent prompt is held near the top of the
+    // view while the reply grows into empty space reserved below it, as on
+    // claude.ai. The reserved tail is the footer's extra height.
+    property bool anchoringTurn: false
+    property real tailHeight: 0
+    property bool anchorSawReply: false
+    readonly property real contentEnd: messages.originY + messages.contentHeight - tailHeight
+    function releaseTurnAnchor() {
+        anchoringTurn = false;
+        anchorSawReply = false;
+        tailHeight = 0;
+    }
+    function anchorNewTurn(index) {
+        messages.forceLayout();
+        let item = messages.itemAtIndex(index);
+        if (!item) {
+            // A row just below the view may not have a delegate yet.
+            messages.positionViewAtIndex(index, ListView.End);
+            messages.forceLayout();
+            item = messages.itemAtIndex(index);
+        }
+        if (!item || item.role !== "user") {
+            return;
+        }
+        followBottom = false;
+        anchoringTurn = true;
+        anchorSawReply = false;
+        tailHeight = messages.height;
+        Qt.callLater(function () {
+            messages.forceLayout();
+            messages.positionViewAtIndex(index, ListView.Beginning);
+            messages.contentY = Math.max(messages.originY, messages.contentY - Ui.Metrics.xl);
+        });
+    }
+    // Once the reply outgrows the space under the prompt, keep its end in view.
+    function keepTurnInView() {
+        const overflow = contentEnd - (messages.contentY + messages.height);
+        if (overflow > 1) {
+            messages.contentY += overflow;
+        }
+    }
+    onRespondingChanged: {
+        if (responding) {
+            anchorSawReply = anchoringTurn;
+            return;
+        }
+        if (!anchoringTurn || !anchorSawReply) {
+            return;
+        }
+        // The turn settled: keep the prompt where it is and trim the reserved
+        // space to what holds this position.
+        anchorSawReply = false;
+        tailHeight = Math.max(0, messages.contentY + messages.height - (messages.originY + messages.contentHeight - tailHeight));
+    }
     function restorePosition() {
         renamingTitle = false;
+        releaseTurnAnchor();
         const saved = scrollPositions[session.selectedThreadId];
         followBottom = saved ? saved.bottom : true;
         anchorIndex = saved && saved.index !== undefined ? saved.index : 0;
@@ -215,12 +270,16 @@ Item {
             reuseItems: true
             model: root.session ? root.session.messages : null
             ScrollBar.vertical: Ui.ScrollBar {}
+            onMovementStarted: if (root.anchoringTurn) root.releaseTurnAnchor()
             onMovementEnded: {
                 root.followBottom = atYEnd;
                 root.captureAnchor();
             }
             onContentHeightChanged: {
-                if (root.followBottom) {
+                if (root.anchoringTurn) {
+                    Qt.callLater(root.keepTurnInView);
+                }
+                else if (root.followBottom) {
                     Qt.callLater(root.followLatest);
                 }
             }
@@ -234,12 +293,14 @@ Item {
             }
             footer: Item {
                 width: messages.width
-                height: root.responding ? Ui.Metrics.xxl : 0
-                visible: root.responding
+                objectName: "chatMessagesFooter"
+                height: (root.responding ? Ui.Metrics.xxl : 0) + root.tailHeight
+                visible: root.responding || root.tailHeight > 0
                 Ui.StatusDot {
                     id: respondingPulse
                     objectName: "chatRespondingPulse"
-                    anchors.verticalCenter: parent.verticalCenter
+                    visible: root.responding
+                    y: (Ui.Metrics.xxl - height) / 2
                     x: (parent.width - Math.min(parent.width, ChatMetrics.columnWidth)) / 2 + Ui.Metrics.xl
                     active: true
                     Accessible.role: Accessible.StatusBar
@@ -251,6 +312,27 @@ Item {
                         NumberAnimation { to: 0.35; duration: Ui.Metrics.motionSpin; easing.type: Easing.InOutQuad }
                         NumberAnimation { to: 1; duration: Ui.Metrics.motionSpin; easing.type: Easing.InOutQuad }
                     }
+                }
+            }
+            // ScrollToBottomButton.tsx: a round arrow floating over the end of
+            // the conversation while the reader is scrolled up. It sits over
+            // the messages so showing it never moves the composer.
+            Ui.EditorButton {
+                objectName: "chatScrollToLatest"
+                parent: messages
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Ui.Metrics.md
+                visible: !root.followBottom && !root.anchoringTurn && !messages.atYEnd
+                display: AbstractButton.IconOnly
+                circular: true
+                variant: Ui.EditorButton.Outlined
+                iconName: "arrowDownward"
+                text: qsTr("Latest messages")
+                onClicked: {
+                    root.releaseTurnAnchor();
+                    root.followBottom = true;
+                    messages.positionViewAtEnd();
                 }
             }
             delegate: Item {
@@ -334,15 +416,6 @@ Item {
             }
         }
         Ui.EditorButton {
-            Layout.alignment: Qt.AlignHCenter
-            visible: !root.followBottom
-            text: qsTr("Latest messages")
-            onClicked: {
-                root.followBottom = true;
-                messages.positionViewAtEnd();
-            }
-        }
-        Ui.EditorButton {
             objectName: "retryEditorChat"
             text: qsTr("Retry")
             visible: !!root.session && root.session.turnStatus === "error"
@@ -364,10 +437,19 @@ Item {
     }
     Connections {
         target: root.session
+        // Test doubles for the session may not declare promptSent.
+        ignoreUnknownSignals: true
         function onStateChanged() {
             if (root.session.selectedThreadId !== root.previousThread) {
                 root.savePosition();
                 root.restorePosition();
+            }
+        }
+        // Only a prompt sent from here is anchored: history loads and replays
+        // keep their scroll position.
+        function onPromptSent(threadId) {
+            if (threadId === root.session.selectedThreadId) {
+                Qt.callLater(root.anchorNewTurn, root.session.messages.rowCount() - 1);
             }
         }
     }
