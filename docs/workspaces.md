@@ -98,6 +98,8 @@ A folder in object storage is not watched, because only NodeTool writes to it. I
 
 When an asset's file is gone and exactly one file with no row has its partial fingerprint, the row points at that file. When several do, the stored SHA-256 decides: each candidate is read in full and the one that matches is the asset's file. When the asset has no SHA-256 yet, or no candidate matches, the asset is marked offline.
 
+Known limit: a single candidate is matched on the partial fingerprint alone, even when the asset has a SHA-256, because reading the whole candidate during a comparison would hold up every other change to the folder. A file that was deleted and replaced by a different file of equal size with equal first and last 1 MiB is therefore read as a move, and the asset points at the new file. The background job then stores the new file's SHA-256.
+
 #### The asset manifest
 
 Each project folder carries `.nodetool/assets.json`, next to `.nodetool/project.json`. It lists every asset whose file is in the folder:
@@ -146,7 +148,9 @@ Every save of a workflow writes its file: the editor and its autosave, the REST 
 
 Renaming a workflow renames its file. Deleting a workflow deletes its file. Moving a workflow to another project moves its file to that project's folder. A second workflow with the same name gets `<name>-2.workflow.json`. NodeTool creates a new file exclusively and never replaces a file it did not write for that workflow.
 
-A workflow is saved even when its folder cannot be reached. The row is then marked as newer than its file, and the file is written when the folder is next compared. The same holds for a workflow saved by a host that does not write project files, such as a CLI command run against the database.
+A workflow is saved even when its folder cannot be reached. The file is written, and renamed when the name changed, the next time the folder is compared. The same holds for a workflow saved by a host that does not write project files, such as a CLI command run against the database. `file_hash` keeps naming the file as NodeTool last wrote or imported it, so the comparison can tell a file nobody touched, which it writes, from a file that was edited, which it imports.
+
+A save never replaces a file edit NodeTool has not seen. Before it writes, the save compares the file with `file_hash`. When the file was edited since, for example by a `git pull` while the project was closed, the file's content is kept as a version named "File edit replaced by a save" and the save is then written. When the edited file is not valid, the file is left as it is and its error is recorded in `file_error`. The workflow is saved in the database either way.
 
 ### Editing the file updates the workflow
 
@@ -156,13 +160,13 @@ A workflow file can be edited by hand, replaced by git, or changed by an agent w
 | --- | --- |
 | Its hash equals `file_hash` | Nothing changes. |
 | Its hash differs and the file is valid | The workflow as it was is kept as a version named "Before file edit". The file's content is stored and open editors are told. |
-| Its hash differs and the file is not valid | The workflow is kept as it was. The reason is recorded in `file_error`. |
+| Its hash differs and the file is not valid | The workflow is kept as it was. The reason is recorded in `file_error`. The file is not written again until it is valid. |
 | The file is gone | `file_error` reads "File missing". The workflow is kept. Saving it in NodeTool writes the file again. |
-| The file was renamed or moved in the folder | The workflow follows it and takes the new file name as its name. |
+| The file was renamed or moved in the folder | The workflow follows it and takes the new file name as its name. A rename that changes only the case of the name counts, also in a folder that ignores case. |
 | A new file with an ID no workflow has | A workflow is created in this project. |
 | A new file with the ID of another workflow | The file gets a new ID, is rewritten with it, and becomes a new workflow. Duplicating a workflow file does this. |
 
-The whole file can be edited except `id`. A changed `id` in a file NodeTool knows is set back. A file without an `id` gets one.
+The whole file can be edited except `id`. A changed `id` in a file NodeTool knows is set back. A file without an `id` gets one. A `run_mode` that is missing or `null` reads as `workflow`.
 
 An edited graph passes the checks `update_workflow` runs before it is stored: unknown node types, providers and models the runtime does not have, and wiring handles left in property values. A refused file gives the error that tool gives. The agent's workflow tools remain the better way for an agent to change a workflow, because they return the error in the tool result. A node keeps the position the file gives it. A node the file gives no position is placed automatically.
 
@@ -170,7 +174,7 @@ All edits made to a file between two comparisons are stored as one change and le
 
 An exact copy of a workflow file waits 10 seconds before it becomes a workflow, as a copied media file does. When the original is gone by then, the copy is where the workflow moved to.
 
-A save in NodeTool replaces the file. An edit to the file that was not compared before that save is lost. Restoring a version in NodeTool writes the row and the file together, so the restored graph is not taken for a file edit.
+When a workflow was saved by a host that writes no files and its file was edited as well, the file is imported and the saved workflow is the version. Restoring a version in NodeTool writes the row and the file together, so the restored graph is not taken for a file edit.
 
 ### Workflows from before project folders
 

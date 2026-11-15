@@ -469,6 +469,10 @@ async function wholeFolder(
  * directory that was renamed or moved in reports itself and not its files. A
  * path with nothing at it stands for the rows at and below it, whose files
  * are gone. No other directory is listed and no other file is looked at.
+ *
+ * A row marked offline is compared wherever its file was. The file a changed
+ * path names may be the one that row lost, in an earlier set of changes or
+ * while the project was closed, and the row must get it back under its id.
  */
 async function changedPaths(
   workspace: Workspace,
@@ -504,7 +508,10 @@ async function changedPaths(
   for (const asset of await Asset.listProjectFiles(userId, projectId)) {
     const path = asset.workspace_path;
     const inScope =
-      path !== null && (files.has(path) || isAtOrUnder(path, places));
+      path !== null &&
+      (files.has(path) ||
+        isAtOrUnder(path, places) ||
+        isProjectAssetOffline(asset));
     (inScope ? rows : others).push(asset);
   }
   return { files, rows, others, places };
@@ -582,8 +589,9 @@ export interface ReconcileOptions {
   /**
    * Project-relative paths that changed. The reconcile then looks at these
    * paths only: it lists no directory but a changed one and marks no row
-   * offline whose file is not at or below one of them. Without it the whole
-   * folder is scanned.
+   * offline whose file is not at or below one of them. A row that is already
+   * offline is still pointed at a changed file that has its content. Without
+   * it the whole folder is scanned.
    */
   paths?: Iterable<string>;
 }

@@ -151,26 +151,31 @@ describe("the workflow file sync hook", () => {
     expect(events).toEqual([]);
   });
 
-  it("marks the row newer than its file when no sync is installed", async () => {
+  it("keeps the recorded file state when no sync is installed", async () => {
     const workflow = await makeWorkflow();
     expect(workflow.file_hash).toBe("hash of Fox");
     setWorkflowFileSync(null);
 
+    // The hash still names the file as it was last synced. A reconcile on a
+    // host that has the sync compares the file with it and never takes an
+    // edited file for an untouched one.
     const updated = await Workflow.updateFieldsIfUnchanged(
       workflow.id,
       workflow.updated_at,
       { description: "from a host that writes no files" }
     );
-    expect(updated?.file_hash).toBeNull();
-    expect((await reload(workflow.id)).file_path).toBe("Workflows/Fox.workflow.json");
-
-    recordingSync();
+    expect(updated).toMatchObject({
+      file_path: "Workflows/Fox.workflow.json",
+      file_hash: "hash of Fox"
+    });
     const again = await reload(workflow.id);
+    again.description = "saved without a sync";
     await again.save();
-    expect(again.file_hash).toBe("hash of Fox");
-    setWorkflowFileSync(null);
-    await again.save();
-    expect((await reload(workflow.id)).file_hash).toBeNull();
+    expect(await reload(workflow.id)).toMatchObject({
+      description: "saved without a sync",
+      file_path: "Workflows/Fox.workflow.json",
+      file_hash: "hash of Fox"
+    });
   });
 
   it("lists the projects that hold a workflow with no file", async () => {

@@ -267,7 +267,7 @@ describe("project files", () => {
     expect(records).not.toContain(root);
   });
 
-  it("imports a workflow as newer than its file, so the file is written from the row", async () => {
+  it("imports a workflow as never synced with a file of the new folder", async () => {
     const seeded = await seedProject();
     const [source] = await Workflow.listForProjects(owner, [seeded.projectId]);
     await Workflow.setFileState(source!.id, {

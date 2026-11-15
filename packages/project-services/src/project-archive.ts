@@ -604,8 +604,9 @@ export async function importProjectArchive(
     // An import never publishes anything.
     row["access"] = "private";
     // The hash is of the file in the folder the archive was made from. The
-    // imported row is what the workflow holds, so the reconcile of the new
-    // folder writes the file from it and reads nothing as an outside edit.
+    // imported row was never synced with a file of the new folder, so the
+    // reconcile writes its file when there is none and compares the content
+    // when there is one.
     row["file_hash"] = null;
     row["file_error"] = null;
   }

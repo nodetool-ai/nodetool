@@ -52,6 +52,8 @@ export const WORKFLOW_FILE_SUFFIX = ".workflow.json";
 export const WORKFLOW_FILE_FORMAT = "nodetool.workflow";
 /** The name of the version that keeps a workflow as it was before an import. */
 export const WORKFLOW_FILE_EDIT_VERSION_NAME = "Before file edit";
+/** The name of the version that keeps a file edit a save in NodeTool replaced. */
+export const WORKFLOW_FILE_REPLACED_VERSION_NAME = "File edit replaced by a save";
 
 /** The workflow fields a workflow file carries. */
 export interface WorkflowFileFields {
@@ -101,14 +103,16 @@ function refusalText(error: Record<string, unknown>): string {
 async function parseWorkflowFile(
   body: Record<string, unknown>
 ): Promise<DocumentFileContent<WorkflowFileFields>> {
-  const { description = "", tags = [], run_mode = null, settings = null } = body;
+  // A workflow with no run mode is a workflow, as the model reads it.
+  const { description = "", tags = [], settings = null } = body;
+  const run_mode = body["run_mode"] ?? "workflow";
   if (typeof description !== "string") {
     return { ok: false, error: '"description" must be a string' };
   }
   if (!Array.isArray(tags) || tags.some((tag) => typeof tag !== "string")) {
     return { ok: false, error: '"tags" must be a list of strings' };
   }
-  if (run_mode !== null && typeof run_mode !== "string") {
+  if (typeof run_mode !== "string") {
     return { ok: false, error: '"run_mode" must be a string or null' };
   }
   if (settings !== null && !isRecord(settings)) {
@@ -187,12 +191,17 @@ export const workflowFileAdapter: DocumentFileAdapter<
   // exact ID only.
   exists: async (id) => (await Workflow.getManyByIds([id])).has(id),
 
-  async snapshot(row) {
+  async snapshot(row, reason = "before-import") {
+    const replaced = reason === "replaced-file";
     await WorkflowVersion.create({
       workflow_id: row.id,
       user_id: row.user_id,
-      name: WORKFLOW_FILE_EDIT_VERSION_NAME,
-      description: "The workflow as it was before its file was edited",
+      name: replaced
+        ? WORKFLOW_FILE_REPLACED_VERSION_NAME
+        : WORKFLOW_FILE_EDIT_VERSION_NAME,
+      description: replaced
+        ? "The graph of the workflow file that a save in NodeTool replaced"
+        : "The workflow as it was before its file was edited",
       graph: row.graph,
       version: await WorkflowVersion.nextVersion(row.id),
       save_type: "checkpoint"

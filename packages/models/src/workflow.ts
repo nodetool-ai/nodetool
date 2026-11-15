@@ -118,8 +118,10 @@ export class Workflow extends DBModel {
   /** The workflow's file, relative to its project's folder. */
   declare file_path: string | null;
   /**
-   * SHA-256 of the file content last synced with this row. Null when the row
-   * is newer than its file, which the next reconcile then writes.
+   * SHA-256 of the file as NodeTool last wrote or imported it. A file with
+   * another hash holds an edit NodeTool has not seen. Null until the row is
+   * first synced with a file. A host with no file sync leaves it as it is,
+   * and the reconcile then finds the row newer than its untouched file.
    */
   declare file_hash: string | null;
   /** What the last reconcile found wrong with the file, or null. */
@@ -136,9 +138,6 @@ export class Workflow extends DBModel {
 
   /** Every create and save of a workflow row writes its file afterwards. */
   protected override async persist(event: ModelChangeEvent): Promise<this> {
-    // A host with no file sync cannot write the file. The hash is cleared so
-    // that a reconcile on a host that has one writes the file from this row.
-    if (!workflowFileSync) this.file_hash = null;
     await super.persist(event);
     await this.syncFile(this.previousFile());
     return this;
@@ -315,15 +314,12 @@ export class Workflow extends DBModel {
         previous = { project_id: before.project_id, file_path: before.file_path };
       }
     }
-    const changes: WorkflowUpdateFields & {
-      updated_at: string;
-      file_hash?: null;
-    } = { ...fields, updated_at: nextUpdatedAtAfter(expectedUpdatedAt) };
-    // See `persist`: without a file sync the row becomes newer than its file.
-    if (!workflowFileSync) changes.file_hash = null;
     const rows = await db
       .update(workflows)
-      .set(changes)
+      .set({
+        ...fields,
+        updated_at: nextUpdatedAtAfter(expectedUpdatedAt)
+      })
       .where(
         and(eq(workflows.id, id), eq(workflows.updated_at, expectedUpdatedAt))
       )
