@@ -266,6 +266,34 @@ describe.each(["local", "cloud"] as const)(
       expect(hidden.status).toBe(400);
     });
 
+    it("a file uploaded into a directory folder lands in that directory", async () => {
+      const { project, folder } = await projectWithFolder(USER, "Film");
+      const form = new FormData();
+      form.append(
+        "json",
+        JSON.stringify({
+          name: "fox.png",
+          content_type: "image/png",
+          parent_id: projectDirectoryId(project.id, "Shots"),
+          project_id: project.id
+        })
+      );
+      form.append("file", new File([PNG], "fox.png", { type: "image/png" }));
+      const response = await handleAssetsRoot(
+        new Request("http://localhost/api/assets", {
+          method: "POST",
+          headers: { "x-user-id": USER },
+          body: form
+        }),
+        {}
+      );
+      expect(response.status).toBe(200);
+      const created = (await response.json()) as { id: string; parent_id: string };
+      expect((await reload(created)).workspace_path).toBe("Shots/fox.png");
+      expect(created.parent_id).toBe(projectDirectoryId(project.id, "Shots"));
+      expect(await filesIn(folderOf(folder))).toEqual(["Shots/fox.png"]);
+    });
+
     it("moving an asset to a folder moves its file, and a rename that sends the parent back keeps it there", async () => {
       const { project, folder } = await projectWithFolder(USER, "Film");
       const workspace = folderOf(folder);

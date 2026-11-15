@@ -55,6 +55,7 @@ import {
   ProjectDirectoryResolver,
   directoryFolderId,
   directoryName,
+  directoryOfParentId,
   folderNameAsDirectory,
   isWithinDirectory,
   joinDirectory,
@@ -869,7 +870,10 @@ export const assetsRouter = router({
           name: asset.name,
           contentType: asset.content_type,
           bytes,
-          directory: uploadDirectory(input.directory),
+          directory: uploadDirectory(
+            input.directory ??
+              directoryOfParentId(asset.parent_id, asset.project_id)
+          ),
           parentId: asset.parent_id
         });
       } catch (error) {

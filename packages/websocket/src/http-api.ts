@@ -107,8 +107,7 @@ import {
   createProjectDirectory,
   loadProjectDirectoryIndex
 } from "@nodetool-ai/asset-services/project-asset-directories";
-import { ProjectFolderUnavailableError } from "@nodetool-ai/asset-services/project-asset-file";
-import { listsByDirectory } from "@nodetool-ai/protocol";
+import { directoryOfParentId, listsByDirectory } from "@nodetool-ai/protocol";
 import { scheduleVideoProxy } from "./lib/video-proxy.js";
 import {
   IMPORTED_DIRECTORY,
@@ -1295,7 +1294,11 @@ export async function handleAssetsRoot(
         userId,
         name: body.name,
         contentType: assetContentType,
-        directory: uploadDirectory(body.directory),
+        // A file dropped into a directory folder of the asset browser goes
+        // to that directory.
+        directory: uploadDirectory(
+          body.directory ?? directoryOfParentId(body.parent_id, body.project_id)
+        ),
         parentId: body.parent_id,
         metadata: Object.keys(metadata).length > 0 ? metadata : null,
         provenance: {
