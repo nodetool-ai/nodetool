@@ -212,7 +212,8 @@ Within a project, asset folders are directories. Rows with
 `content_type = "folder"` are replaced by directory listings. The fingerprint
 stored on each row is size, mtime, and a partial content hash (first and last
 1 MiB plus size). A full hash of multi-gigabyte footage is too slow to run on
-every scan.
+every scan, so a background job computes the full SHA-256 of each indexed
+file and stores it on the row. `Generated/` stays flat.
 
 The folder also carries `.nodetool/assets.json`, a manifest of asset ID,
 path, and fingerprint. The indexer writes it. The database remains the
@@ -239,6 +240,11 @@ the first two triggers.
 The scan skips `.nodetool/`, dot-directories, and `node_modules/`. It does
 not follow symlinks that leave the folder. It lists each directory once and
 compares by path map, so cost stays linear in file count.
+
+Rematching a moved file uses the full hash when both sides have one. Until
+the background job has hashed a file, the partial fingerprint decides, and
+two candidates with the same partial fingerprint leave the row offline for
+Relink instead of guessing.
 
 ### T5. Workflows and timelines as files
 
@@ -287,6 +293,13 @@ runtime keeps reading.
 | New file with an unknown ID | Create the document. |
 | New file whose ID belongs to another file | Assign a new ID and rewrite the file. This is the result of duplicating a file in Finder. |
 
+An agent may edit these files with its file tools, as a person may with a
+text editor. Every import runs the validation that `update_workflow` and
+`set_timeline_document` run, so a file edit cannot store a graph those tools
+would refuse. The whole file is editable except `id`, which the reconciler
+restores when it changes. The agent's workflow and timeline tools remain the
+recommended path because they report validation errors in the tool result.
+
 Version history stays in the database. Example and package workflows are
 global templates and are not written to any folder.
 
@@ -328,8 +341,9 @@ global templates and are not written to any folder.
 Each step is idempotent and safe to interrupt.
 
 1. Give every project a folder. A project that has one workspace keeps it.
-   A project with several keeps the first as its folder, and the others are
-   linked under it (see Q2). A project with none gets a new folder.
+   A project with several keeps the first, by creation time, as its folder.
+   The other rows and their files stay untouched and are no longer shown.
+   A project with none gets a new folder.
 2. Write `.nodetool/project.json` into each folder.
 3. Write a file for each workflow and timeline, and store `file_path` and
    `file_hash`.
@@ -372,13 +386,15 @@ selects them.
 - Team sharing and permissions.
 - Version control features beyond readable files.
 - Several folders in one project.
+- Native games. They keep their own per-project workspace (F6) and are not
+  moved into the project folder.
 
-## Open questions
+## Resolved questions
 
-| ID | Question | Resolve in |
+| ID | Question | Decision |
 | --- | --- | --- |
-| Q1 | Do native games keep their own workspace, or become a subfolder of the project folder? Games require a workspace ID today (F6). | P1 |
-| Q2 | A project that already has several workspaces: link the extra folders into the project folder, or ask the creator to pick one? | P1 |
-| Q3 | Does `Generated/` stay flat, or split by media type or date once it holds thousands of files? | P2 |
-| Q4 | Should a full content hash run in the background to make rematching exact for files that share size and edges? | P2 |
-| Q5 | Which fields of a workflow file may an agent edit directly through file tools, and does that edit pass the same validation as `update_workflow`? | P3 |
+| Q1 | Do native games move into the project folder? | No. Out of scope until their direction is clear. |
+| Q2 | What happens to a project with several workspaces? | The first one becomes the project folder. |
+| Q3 | Does `Generated/` split by type or date? | No. It stays flat. |
+| Q4 | Does a full content hash run in the background? | Yes. See T3 and T4. |
+| Q5 | How are direct edits to a workflow or timeline file validated? | With the same validation as the editing tools. See T5. |
