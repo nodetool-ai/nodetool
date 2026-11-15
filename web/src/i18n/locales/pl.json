@@ -20746,6 +20746,14 @@
       "revealInFileManager": "Pokaż w menedżerze plików"
     }
   },
+  "assetPicker": {
+    "sourceTabs": "Źródło zasobu",
+    "projectTab": "Ten projekt",
+    "personalTab": "Osobiste",
+    "personalHint": "Wybranie z Osobistych kopiuje plik do tego projektu.",
+    "copying": "Kopiowanie do tego projektu…",
+    "copyFailed": "Nie udało się skopiować zasobu do tego projektu."
+  },
   "assetFileStatus": {
     "missing": "Brak pliku",
     "missingTooltip": "Plik nie znajduje się tam, gdzie oczekuje go ten zasób. Połącz go ponownie z nową lokalizacją pliku lub usuń zasób.",

@@ -20124,6 +20124,14 @@
       "revealInFileManager": "파일 관리자에서 보기"
     }
   },
+  "assetPicker": {
+    "sourceTabs": "에셋 출처",
+    "projectTab": "이 프로젝트",
+    "personalTab": "개인",
+    "personalHint": "개인에서 선택하면 파일이 이 프로젝트로 복사됩니다.",
+    "copying": "이 프로젝트로 복사하는 중…",
+    "copyFailed": "에셋을 이 프로젝트로 복사하지 못했습니다."
+  },
   "assetFileStatus": {
     "missing": "없음",
     "missingTooltip": "이 에셋이 예상하는 위치에 파일이 없습니다. 파일의 새 위치에 다시 연결하거나 에셋을 제거하세요.",

@@ -26,7 +26,8 @@ import { videoProxyState } from "./video-proxy.js";
 import { getAssetAdapter } from "./storage.js";
 import {
   isProjectAssetOffline,
-  projectAssetFile
+  projectAssetFile,
+  projectAssetMtime
 } from "@nodetool-ai/asset-services/project-asset-file";
 import { storageKeyForUri } from "@nodetool-ai/asset-services/project-asset-storage";
 import {
@@ -117,13 +118,15 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
         ).catch(() => null)
       : null
   ]);
-  // A relink regenerates an external asset's thumbnail under the same key.
-  // The file's mtime in the URL keeps a cached thumbnail of the previous file
-  // from standing in for the new one. `get_url` stays unversioned (D5).
-  const externalMtime = externalAssetMtime(asset);
+  // The thumbnail is stored under the asset's id alone. A relink regenerates
+  // an external asset's thumbnail under that key, and the reconcile does the
+  // same for a project file another app saved over. The file's mtime in the
+  // URL keeps a cached thumbnail of the previous file from standing in for
+  // the new one. `get_url` stays unversioned (D5).
+  const fileMtime = externalAssetMtime(asset) ?? projectAssetMtime(asset);
   const thumbUrl =
-    thumbKeyUrl && externalMtime !== null
-      ? `${thumbKeyUrl}?v=${Math.trunc(externalMtime)}`
+    thumbKeyUrl && fileMtime !== null
+      ? `${thumbKeyUrl}?v=${Math.trunc(fileMtime)}`
       : thumbKeyUrl;
 
   const response: AssetResponse = {

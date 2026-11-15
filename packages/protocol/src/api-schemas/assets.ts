@@ -258,6 +258,23 @@ export const updateInput = z.object({
 });
 export type UpdateInput = z.infer<typeof updateInput>;
 
+// ── copyToProject ────────────────────────────────────────────────
+// Use an asset of another project, Personal included, in `project_id`. The
+// file is copied into the project's `Imported/` directory and the copy is
+// returned; the same unchanged source returns the same copy. An asset of the
+// project itself comes back as it is, with `copied: false`.
+export const copyToProjectInput = z.object({
+  asset_id: z.string().min(1),
+  project_id: z.string().min(1)
+});
+export type CopyToProjectInput = z.infer<typeof copyToProjectInput>;
+
+export const copyToProjectOutput = z.object({
+  asset: assetResponse,
+  copied: z.boolean()
+});
+export type CopyToProjectOutput = z.infer<typeof copyToProjectOutput>;
+
 // ── delete (DELETE /api/assets/:id) ──────────────────────────────
 // Cascading delete: folders remove all contents recursively. Response
 // carries every id that was deleted so clients can invalidate caches.

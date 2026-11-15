@@ -327,6 +327,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "starts billing them against its budget. A run that could cut a " +
       "release could spend money in someone else's name."
   },
+  "assets.copyToProject": {
+    elsewhere:
+      "Agent document writes copy an asset of another project into the " +
+      "run's project themselves (localizeDocumentAssets), so sandboxed " +
+      "code never needs to ask for the copy."
+  },
   "assets.createUpload": {
     elsewhere:
       "save_asset writes an asset from bytes, a workspace file or a " +

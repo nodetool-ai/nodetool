@@ -105,3 +105,9 @@ export const ASSET_FAVORITE_DDL = "ALTER TABLE nodetool_assets ADD COLUMN favori
  * schema owner, because the baseline above is frozen.
  */
 export const ASSET_WORKSPACE_PATH_DDL = "ALTER TABLE nodetool_assets ADD COLUMN workspace_path TEXT";
+/**
+ * The SHA-256 of the whole file an asset keeps in its project folder. A
+ * background job fills it in. Added by a versioned migration in every schema
+ * owner, as the column above is.
+ */
+export const ASSET_CONTENT_HASH_DDL = "ALTER TABLE nodetool_assets ADD COLUMN content_hash TEXT";

@@ -20435,6 +20435,14 @@
       "revealInFileManager": "Mostrar no gerenciador de arquivos"
     }
   },
+  "assetPicker": {
+    "sourceTabs": "Origem do recurso",
+    "projectTab": "Este projeto",
+    "personalTab": "Pessoal",
+    "personalHint": "Escolher em Pessoal copia o arquivo para este projeto.",
+    "copying": "Copiando para este projeto…",
+    "copyFailed": "Não foi possível copiar o recurso para este projeto."
+  },
   "assetFileStatus": {
     "missing": "Ausente",
     "missingTooltip": "O arquivo não está onde este recurso espera. Vincule-o novamente ao novo local do arquivo ou remova o recurso.",

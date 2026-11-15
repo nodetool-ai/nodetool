@@ -259,7 +259,17 @@ export function observeWorkspace(
 
 /** A project's folder, or why it cannot be reached. */
 export type ProjectFolderResolution =
-  | { ok: true; projectId: string; workspace: Workspace }
+  | {
+      ok: true;
+      projectId: string;
+      workspace: Workspace;
+      /**
+       * The folder's {@link RESERVED_WORKSPACE_DIR}, as a workspace rooted
+       * there. NodeTool writes its own files through it, such as the asset
+       * manifest. It is never handed to run code.
+       */
+      nodetoolDir?: Workspace | null;
+    }
   | { ok: false; projectId: string | null; reason: string };
 
 /**

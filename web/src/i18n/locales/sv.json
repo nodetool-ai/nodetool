@@ -20124,6 +20124,14 @@
       "revealInFileManager": "Visa i filhanteraren"
     }
   },
+  "assetPicker": {
+    "sourceTabs": "Resurskälla",
+    "projectTab": "Det här projektet",
+    "personalTab": "Personligt",
+    "personalHint": "När du väljer från Personligt kopieras filen till det här projektet.",
+    "copying": "Kopierar till det här projektet…",
+    "copyFailed": "Det gick inte att kopiera resursen till det här projektet."
+  },
   "assetFileStatus": {
     "missing": "Saknas",
     "missingTooltip": "Filen finns inte där den här resursen förväntar sig. Länka om den till filens nya plats eller ta bort resursen.",

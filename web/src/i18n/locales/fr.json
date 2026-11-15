@@ -20435,6 +20435,14 @@
       "revealInFileManager": "Afficher dans le gestionnaire de fichiers"
     }
   },
+  "assetPicker": {
+    "sourceTabs": "Source de la ressource",
+    "projectTab": "Ce projet",
+    "personalTab": "Personnel",
+    "personalHint": "Choisir dans Personnel copie le fichier dans ce projet.",
+    "copying": "Copie dans ce projet…",
+    "copyFailed": "Impossible de copier la ressource dans ce projet."
+  },
   "assetFileStatus": {
     "missing": "Manquant",
     "missingTooltip": "Le fichier n'est pas là où cette ressource l'attend. Reliez-la au nouvel emplacement du fichier ou retirez la ressource.",

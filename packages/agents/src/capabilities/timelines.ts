@@ -105,6 +105,11 @@ import { TIMELINE_NATIVE_MEDIA_CAPABILITIES } from "./timeline-native-media.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
+import {
+  localizeProjectAssets,
+  withCopiedAssets,
+  type AssetReferenceCopy
+} from "./project-asset-copies.js";
 import { editWithRename, parseRename, renameOwned } from "./rename.js";
 
 type ToolError = { error: string };
@@ -736,24 +741,30 @@ async function applyTimelineEdit(
       };
     }
 
+    // An asset of another project is stored as its copy in this one, in the
+    // document and in the ops an open editor merges.
+    const local = await localizeProjectAssets(run, sequence.project_id, {
+      document: next,
+      records,
+      ops: appliedOps.map(({ parsed, index }) => ({
+        tool: parsed.op,
+        input: resolveTimelineOpInput(
+          parsed.input,
+          document,
+          state,
+          records[index]?.result
+        )
+      }))
+    });
+    if (isError(local)) return local;
     const undo = appliedOps.some(({ parsed }) => parsed.op === `${TOOL_PREFIX}apply_take`)
       ? await TimelineSequenceVersion.snapshot(sequence, { saveType: "manual", name: "Before applying AI edit take" })
       : undefined;
     const saved = await TimelineSequence.updateDocumentIfUnchanged(
       sequence.id,
       sequence.updated_at,
-      next,
-      {
-        ops: appliedOps.map(({ parsed, index }) => ({
-          tool: parsed.op,
-          input: resolveTimelineOpInput(
-            parsed.input,
-            document,
-            state,
-            records[index]?.result
-          )
-        }))
-      }
+      local.value.document,
+      { ops: local.value.ops }
     ).catch(async (error: unknown) => {
       await undo?.delete();
       throw error;
@@ -768,7 +779,7 @@ async function applyTimelineEdit(
       updated_at: saved.updated_at,
       applied: records.length - failed.length,
       failed: failed.length,
-      ops: records,
+      ops: local.value.records,
       tracks: state.tracks,
       clips: state.clips.map((clip) => ({
         id: clip.id,
@@ -783,7 +794,7 @@ async function applyTimelineEdit(
     if (undo) {
       Object.assign(response, { undo_version: undo.version });
     }
-    return response;
+    return withCopiedAssets(response, local.copies);
   }
 
   return {
@@ -1032,7 +1043,16 @@ const setTimelineDocument: CapabilityExport = {
     if ("error" in canonical) {
       return { error: canonical.error, written: false, timeline_id: sequence.id };
     }
-    const { document } = canonical;
+    // An asset of another project is stored as its copy in this one.
+    const local = await localizeProjectAssets(
+      run,
+      sequence.project_id,
+      canonical.document
+    );
+    if (isError(local)) {
+      return { error: local.error, written: false, timeline_id: sequence.id };
+    }
+    const document = local.value;
 
     // Document-level fps/width/height are sequence settings, so opts win and a
     // document that carries them configures the sequence instead of having
@@ -1130,7 +1150,7 @@ const setTimelineDocument: CapabilityExport = {
       saved.toDocument(),
       { fps: saved.fps, width: saved.width, height: saved.height }
     );
-    return {
+    return withCopiedAssets({
       ok: true,
       written: true,
       timeline_id: saved.id,
@@ -1149,7 +1169,7 @@ const setTimelineDocument: CapabilityExport = {
         : 0,
       validation: after,
       summary: validationSummary(after)
-    };
+    }, local.copies);
   }
 };
 
@@ -2579,11 +2599,18 @@ function normalizeForceOption(
  * concurrent edit is reported rather than clobbered.
  */
 export async function writeTimelineCodeDocument(
+  run: CapabilityRun,
   sequence: TimelineSequence,
   authored: Record<string, unknown>,
   snapshotName: string
 ): Promise<
-  | { written: true; timeline_id: string; errors: string[]; warnings: string[] }
+  | {
+      written: true;
+      timeline_id: string;
+      errors: string[];
+      warnings: string[];
+      copied_assets?: AssetReferenceCopy[];
+    }
   | { written: false; error: string; errors: string[]; warnings: string[] }
 > {
   const canonical = await canonicalizeTimelineAssetIds(
@@ -2593,7 +2620,16 @@ export async function writeTimelineCodeDocument(
   if ("error" in canonical) {
     return { written: false, error: canonical.error, errors: [], warnings: [] };
   }
-  const { document } = canonical;
+  // An asset of another project is stored as its copy in this one.
+  const local = await localizeProjectAssets(
+    run,
+    sequence.project_id,
+    canonical.document
+  );
+  if (isError(local)) {
+    return { written: false, error: local.error, errors: [], warnings: [] };
+  }
+  const document = local.value;
   const { validateTimelineSequence } =
     await import("@nodetool-ai/execution/timeline-debug");
   const before: TimelineValidation = validateTimelineSequence(
@@ -2636,7 +2672,10 @@ export async function writeTimelineCodeDocument(
       warnings
     };
   }
-  return { written: true, timeline_id: saved.id, errors, warnings };
+  return withCopiedAssets(
+    { written: true as const, timeline_id: saved.id, errors, warnings },
+    local.copies
+  );
 }
 
 /**
@@ -2689,6 +2728,7 @@ async function bakeAndMergeTimelineCode(
   const scenes = sceneReport(merged.scenes, editedNames);
 
   const write = await writeTimelineCodeDocument(
+    run,
     sequence,
     mergedWithSource,
     "Before writing timeline code"
@@ -2702,13 +2742,16 @@ async function bakeAndMergeTimelineCode(
       scenes
     };
   }
-  return {
-    timeline_id: write.timeline_id,
-    errors: write.errors,
-    warnings: write.warnings,
-    conflicts: merged.conflicts,
-    scenes
-  };
+  return withCopiedAssets(
+    {
+      timeline_id: write.timeline_id,
+      errors: write.errors,
+      warnings: write.warnings,
+      conflicts: merged.conflicts,
+      scenes
+    },
+    write.copied_assets ?? []
+  );
 }
 
 /**
@@ -2766,6 +2809,7 @@ async function attachMatchingTimelineCode(
     { force: true }
   );
   const write = await writeTimelineCodeDocument(
+    run,
     sequence,
     {
       ...merged.document,

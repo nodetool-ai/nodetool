@@ -20124,6 +20124,14 @@
       "revealInFileManager": "在文件管理器中显示"
     }
   },
+  "assetPicker": {
+    "sourceTabs": "素材来源",
+    "projectTab": "此项目",
+    "personalTab": "个人",
+    "personalHint": "从“个人”中选择会将文件复制到此项目。",
+    "copying": "正在复制到此项目…",
+    "copyFailed": "无法将素材复制到此项目。"
+  },
   "assetFileStatus": {
     "missing": "缺失",
     "missingTooltip": "文件不在此素材期望的位置。请将其重新链接到文件的新位置，或移除该素材。",

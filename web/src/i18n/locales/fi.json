@@ -20124,6 +20124,14 @@
       "revealInFileManager": "Näytä tiedostonhallinnassa"
     }
   },
+  "assetPicker": {
+    "sourceTabs": "Aineiston lähde",
+    "projectTab": "Tämä projekti",
+    "personalTab": "Henkilökohtainen",
+    "personalHint": "Kun valitset Henkilökohtaisesta, tiedosto kopioidaan tähän projektiin.",
+    "copying": "Kopioidaan tähän projektiin…",
+    "copyFailed": "Aineistoa ei voitu kopioida tähän projektiin."
+  },
   "assetFileStatus": {
     "missing": "Puuttuu",
     "missingTooltip": "Tiedosto ei ole siellä, missä tämä aineisto odottaa sitä. Linkitä se tiedoston uuteen sijaintiin tai poista aineisto.",

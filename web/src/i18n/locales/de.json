@@ -20124,6 +20124,14 @@
       "revealInFileManager": "Im Dateimanager anzeigen"
     }
   },
+  "assetPicker": {
+    "sourceTabs": "Asset-Quelle",
+    "projectTab": "Dieses Projekt",
+    "personalTab": "Persönlich",
+    "personalHint": "Wenn du aus „Persönlich“ auswählst, wird die Datei in dieses Projekt kopiert.",
+    "copying": "Wird in dieses Projekt kopiert…",
+    "copyFailed": "Das Asset konnte nicht in dieses Projekt kopiert werden."
+  },
   "assetFileStatus": {
     "missing": "Fehlt",
     "missingTooltip": "Die Datei liegt nicht dort, wo dieses Asset sie erwartet. Verknüpfe es mit dem neuen Speicherort der Datei oder entferne das Asset.",

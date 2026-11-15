@@ -117,7 +117,13 @@ export const PROJECT_FOLDER_NOT_FOUND = "Project folder not found";
 
 /** A run's project folder, or why the run cannot have it. */
 export type ProjectWorkspaceResolution =
-  | { ok: true; projectId: string; workspace: Workspace }
+  | {
+      ok: true;
+      projectId: string;
+      workspace: Workspace;
+      /** The folder's reserved directory, see {@link nodetoolDirFromRow}. */
+      nodetoolDir?: Workspace | null;
+    }
   | { ok: false; projectId: string | null; reason: string };
 
 function unresolved(
@@ -180,7 +186,12 @@ export async function resolveProjectWorkspace(
         `${PROJECT_FOLDER_NOT_FOUND}: cloud folder storage is not configured`
       );
     }
-    return { ok: true, projectId: project.id, workspace };
+    return {
+      ok: true,
+      projectId: project.id,
+      workspace,
+      nodetoolDir: nodetoolDirFromRow(row)
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log.warn("Failed to resolve the project folder", {

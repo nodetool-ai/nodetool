@@ -2356,3 +2356,54 @@ describe("validateGraph — invalid_choice", () => {
     expect(issues).toEqual([]);
   });
 });
+
+describe("stream_into_output", () => {
+  const registry = fakeRegistry({
+    "nodetool.control.ForEach": meta("nodetool.control.ForEach", { input_list: "list" }, { output: "any" }, { is_streaming_output: true }),
+    "lib.image.Draw": meta("lib.image.Draw", { value: "any" }, { output: "image" }),
+    "nodetool.control.Collect": meta(
+      "nodetool.control.Collect",
+      { input_item: "any" },
+      { output: "list" },
+      { is_streaming_input: true } as Partial<NodeMetadata>
+    ),
+    "nodetool.output.Output": meta("nodetool.output.Output", { value: "any" }, {})
+  });
+  const nodes = (withCollect: boolean) => [
+    { id: "each", type: "nodetool.control.ForEach" },
+    { id: "draw", type: "lib.image.Draw" },
+    ...(withCollect ? [{ id: "collect", type: "nodetool.control.Collect" }] : []),
+    { id: "out", type: "nodetool.output.Output" }
+  ];
+  const edge = (id: string, source: string, sourceHandle: string, target: string, targetHandle: string) => ({
+    id, source, sourceHandle, target, targetHandle
+  });
+
+  it("reports when a For Each stream reaches an Output with no Collect", () => {
+    const report = validateGraph(
+      {
+        nodes: nodes(false),
+        edges: [edge("e1", "each", "output", "draw", "value"), edge("e2", "draw", "output", "out", "value")]
+      },
+      registry
+    );
+    const hits = report.issues.filter((i) => i.code === "stream_into_output");
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ severity: "info", nodeId: "out" });
+  });
+
+  it("stays silent when a Collect sits before the Output", () => {
+    const report = validateGraph(
+      {
+        nodes: nodes(true),
+        edges: [
+          edge("e1", "each", "output", "draw", "value"),
+          edge("e2", "draw", "output", "collect", "input_item"),
+          edge("e3", "collect", "output", "out", "value")
+        ]
+      },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "stream_into_output")).toEqual([]);
+  });
+});

@@ -20124,6 +20124,14 @@
       "revealInFileManager": "ファイルマネージャーで表示"
     }
   },
+  "assetPicker": {
+    "sourceTabs": "アセットの参照元",
+    "projectTab": "このプロジェクト",
+    "personalTab": "個人",
+    "personalHint": "個人から選ぶと、ファイルがこのプロジェクトにコピーされます。",
+    "copying": "このプロジェクトにコピーしています…",
+    "copyFailed": "アセットをこのプロジェクトにコピーできませんでした。"
+  },
   "assetFileStatus": {
     "missing": "見つかりません",
     "missingTooltip": "このアセットが参照する場所にファイルがありません。ファイルの新しい場所に再リンクするか、アセットを削除してください。",
