@@ -10,6 +10,7 @@ import {
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
+  computeEtag,
   createTimeOrderedUuid,
   nextUpdatedAtAfter
 } from "./base-model.js";
@@ -134,6 +135,23 @@ export class Workflow extends DBModel {
     await super.delete();
     await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: this.id });
     await workflowFileSync?.deleted(this);
+  }
+
+  /**
+   * The etag of the workflow, without the state of its file. Where the file
+   * is, its hash and what the last reconcile found wrong with it are records
+   * about the file and no content of the workflow. Recording them must not
+   * read as a change of the workflow to a client that holds its etag, such
+   * as an SDK client checking `workflow_etag` or an open editor.
+   */
+  override getEtag(): string {
+    const {
+      file_path: _path,
+      file_hash: _hash,
+      file_error: _error,
+      ...content
+    } = this.toRow();
+    return computeEtag(content);
   }
 
   /** Every create and save of a workflow row writes its file afterwards. */
