@@ -544,7 +544,10 @@ double frameStepMs(double ms, double frames, double fps) {
     const double frameMs = 1000.0 / std::max(1.0, fps);
     // Math.round: halves toward +infinity.
     const auto jsRound = [](double x) { return std::floor(x + 0.5); };
-    return jsRound(jsRound(ms / frameMs + frames) * frameMs);
+    // The whole ms at or just before the frame's time. A frame shows the clips
+    // with start <= time, so an edge rounded up would leave that frame on the
+    // wrong side of the cut.
+    return std::floor(jsRound(ms / frameMs + frames) * frameMs + 1e-6);
 }
 
 ClipList rateStretchClip(const EditDoc& doc, const QString& id, const QString& edge, double durationMs, bool linked) {

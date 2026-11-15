@@ -58,7 +58,6 @@ bool isKeyframeAnimation(const QJsonObject& a) {
 }
 
 constexpr double EPSILON_MS = 1e-6;
-constexpr double T_EPSILON = 1e-4;
 
 // keyframes.ts retimeKeyframeCurves: curves normalized over a clip `fromMs` long, renormalized
 // over the clip a trim made of it, `headMs` added before the old start. Every key keeps its
@@ -304,7 +303,10 @@ QJsonObject sliceKeyframeAnimation(const QJsonObject& animation, double fromT, d
         return next;
     }
     QJsonObject custom = animation.value(u"custom").toObject();
-    custom.insert(QStringLiteral("curves"), sliceCurves(custom.value(u"curves").toArray(), fromT, toT, T_EPSILON));
+    // Keys less than half a millisecond from a cut sit on it. durationMs is
+    // this half's length, so the source clip is durationMs / span long.
+    custom.insert(QStringLiteral("curves"), sliceCurves(custom.value(u"curves").toArray(), fromT, toT,
+        durationMs > 0 ? 0.5 * (toT - fromT) / durationMs : 1e-4));
     next.insert(QStringLiteral("custom"), custom);
     return next;
 }

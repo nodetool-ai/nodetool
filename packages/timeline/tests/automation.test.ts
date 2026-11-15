@@ -91,6 +91,13 @@ describe("automationBreakpoints", () => {
     expect(bps[bps.length - 1]).toEqual({ timeMs: 1000, value: 1 });
   });
 
+  it("cuts on the same grid wherever playback starts", () => {
+    const eased = points([0, 0], [1000, 1, "easeIn"]);
+    const fromZero = automationBreakpoints(eased, 0, { maxStepMs: 30 });
+    const fromInside = automationBreakpoints(eased, 245, { maxStepMs: 30 });
+    expect(fromInside.slice(1)).toEqual(fromZero.filter((bp) => bp.timeMs > 245));
+  });
+
   it("writes a hold as a jump at the later point's time", () => {
     expect(automationBreakpoints(points([0, 2], [1000, 8, "hold"]), 0)).toEqual([
       { timeMs: 0, value: 2 },
