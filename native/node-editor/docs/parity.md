@@ -228,7 +228,9 @@ stored with a clear recovery message and block execution rather than choosing a
 different generation. The native history list still differs from the web grouped
 thumbnail grid and single-view pager.
 
-Group runs expand runnable descendants recursively. Cached/live values sharing a
+A selected group's Run selected expands its runnable descendants recursively.
+The group header's Run and Disable all act on its direct children, as
+`GroupNode.tsx` does. Cached/live values sharing a
 typed-list input use ValueInput feeder nodes so the kernel retains every
 contributor. Scalar mixed inputs and cached/replay contributors sharing an input
 are refused. No refusal silently executes an unselected generator.
@@ -368,6 +370,7 @@ covers library drags.
 | 19 | Reconnect keeps the edge on its own handle, moves it to a valid handle, and deletes it elsewhere (`hooks/handlers/useEdgeHandlers.ts` 95-114, `NodeStore.ts` 920-988) | Implemented | Implemented |
 | 20 | A middle click on a wire deletes it (`useEdgeHandlers.ts` 116-126) | Missing. Middle press always panned | Implemented. A middle drag that starts on a wire still pans |
 | 21 | One undo step per connect. A dynamic slot and its wire share one (`NodeStore.ts` 992-994, `useConnectionHandlers.ts` 405-426) | Implemented. Picker node and wire also share one, where the web takes two | Implemented |
+| 22 | Tab reaches a focused node's handles, and Enter opens the keyboard connection picker: compatible ports on existing nodes, then new nodes, and Disconnect (`HandleTooltip.tsx` 189-212, `node/KeyboardConnectionPicker.tsx`, `node/keyboardConnection.ts`) | Missing | Implemented. Tab works while keyboard navigation has focused a node (Ctrl+Alt+N). The handle gets a warning ring, and the picker opens beside it. `CompatibleNodePickerTest::keyboardPickerListsExistingPortsAndDisconnects`, `MenusTest::keyboardHandleFocusOpensConnectionPicker` |
 
 Evidence: [BodyDropHostTest](../tests/ui/BodyDropHostTest.cpp)
 `dragMarksConnectableHandles` drags from a real output and reads the handle
@@ -1050,7 +1053,7 @@ Source identifiers below come from the web owners. Open rows describe the exact 
 | ConnectableNodes.tsx | `connectableNodes` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
 | ConnectableNodes.tsx | `noNodesMatch` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
 | ConnectableNodes.tsx | `searchNodes` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
-| ConnectionMatchMenu.tsx | `selectConnection` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
+| ConnectionMatchMenu.tsx | `selectConnection` | Mapped: a body drop that fits several ports lists them in the compatible picker (`CompatibleNodePicker::openBody`). |
 | EdgeContextMenu.tsx | `deleteConnection` | Open: this exact web action is not exposed by the native menus. Existing inspector functionality, where available, remains separate. |
 | EdgeContextMenu.tsx | `deleteEdge` | Mapped through this work: Delete edge. |
 | EdgeContextMenu.tsx | `deleteLink` | Mapped through this work: Delete link. |

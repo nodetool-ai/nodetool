@@ -837,8 +837,6 @@ EditorWindow::EditorWindow(QWidget *parent, EditorWindow *tabOwner)
   queueOverlay_->setParent(centralWidget());
   queueOverlay_->setResizeMode(QQuickWidget::SizeRootObjectToView);
   connect(queueOverlay_->rootObject(), SIGNAL(expandedChanged()), this, SLOT(layoutOverlays()));
-  // The status bar Queue tab shows whether the queue lists its jobs.
-  connect(queueOverlay_->rootObject(), SIGNAL(showListChanged()), this, SLOT(schedulePanelChanged()));
   connect(queueOverlay_->rootObject(), SIGNAL(presentedChanged()), this, SLOT(layoutOverlays()));
   connect(queueOverlay_->rootObject(), SIGNAL(contentHeightChanged()), this, SLOT(layoutOverlays()));
   connect(queueOverlay_->rootObject(), SIGNAL(moveRequested(double,double)), this, SLOT(moveQueue(double,double)));
@@ -3385,17 +3383,24 @@ void EditorWindow::authoredAction(const QString &id, const QString &command, qui
     return;
   }
   if (node["type"].toString() != "nodetool.workflows.base_node.Group" && node["type"].toString() != "nodetool.workflows.Group") return;
+  // GroupNode.tsx runs and disables the group's direct children. A nested
+  // group's own cards stay as they are, and run only as upstream inputs.
+  QStringList children;
+  bool bypassed = false;
+  for (const auto value : document_.nodes()) {
+    const auto child = value.toObject();
+    if (child["parent_id"].toString() != id) continue;
+    if (child["ui_properties"].toObject()["bypassed"].toBool()) bypassed = true;
+    const auto type = child["type"].toString();
+    if (!type.endsWith(".Group") && !type.endsWith(".Comment")) children.append(child["id"].toString());
+  }
+  if (children.isEmpty()) return;
   if (command == "run") {
     if (runActive() || !(session_.connected() || session_.localRunnerReady())) return;
-    const auto run = session_.runSelected(document_.snapshot(), {id}, metadata_);
+    const auto run = session_.runSelected(document_.snapshot(), children, metadata_);
     if (!run.isEmpty()) { run_ = run; schedulePanelChanged(); }
   } else if (command == "bypass") {
-    bool bypassed = false;
-    for (const auto value : document_.nodes()) {
-      const auto child = value.toObject();
-      if (child["parent_id"].toString() == id && child["ui_properties"].toObject()["bypassed"].toBool()) bypassed = true;
-    }
-    apply({{"op", "setDisabled"}, {"ids", QJsonArray{id}}, {"disabled", !bypassed}});
+    apply({{"op", "setDisabled"}, {"ids", QJsonArray::fromStringList(children)}, {"disabled", !bypassed}});
   }
 }
 
@@ -3940,6 +3945,41 @@ void EditorWindow::action(const QString &name) {
     }
   }
 }
+bool EditorWindow::pasteExample(const QString &key, const QPointF &at) {
+  const auto graph = exampleGallery_.graph(key);
+  const auto nodes = graph["nodes"].toArray();
+  if (nodes.isEmpty()) { return false; }
+  // The first top-level node lands at the drop point and the rest keep their places around it.
+  QPointF anchor;
+  for (const auto &value : nodes) {
+    const auto node = value.toObject();
+    if (!node["parent_id"].toString().isEmpty()) { continue; }
+    const auto position = node["ui_properties"].toObject()["position"].toObject();
+    anchor = QPointF(position["x"].toDouble(), position["y"].toDouble());
+    break;
+  }
+  QJsonObject fragment{{"nodes", nodes}, {"edges", graph["edges"].toArray()}};
+  if (graph.contains("links")) { fragment["links"] = graph["links"]; }
+  return apply({{"op", "paste"}, {"fragment", fragment},
+                {"offset", QJsonObject{{"x", at.x() - anchor.x()}, {"y", at.y() - anchor.y()}}}});
+}
+void EditorWindow::openFocusedHandlePicker() {
+  if (readOnly() || !compatiblePicker_) { return; }
+  const auto &handle = model_.focusedHandle();
+  for (const auto id : model_.allNodeIds()) {
+    if (model_.resourceId(id) != model_.focusedNode()) { continue; }
+    const auto ports = model_.ports(id, handle.side);
+    for (qsizetype i = 0; i < ports.size(); ++i) {
+      if (ports[i].toObject()["name"].toString() != handle.name) { continue; }
+      const auto *item = scene_->nodeGraphicsObject(id);
+      if (!item) { return; }
+      revealNode(model_.focusedNode());
+      const auto point = item->mapToScene(scene_->nodeGeometry().portPosition(id, handle.side, QtNodes::PortIndex(i)));
+      compatiblePicker_->openKeyboard(id, handle.side, QtNodes::PortIndex(i), point);
+      return;
+    }
+  }
+}
 bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
   // The catalog panel and the canvas column are watched only for these events. The
   // keyboard handling below is for the canvas.
@@ -3978,6 +4018,20 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
       drop->ignore(); return true;
     }
     if (event->type() != QEvent::Drop || addNodeAt(type, view_->mapToScene(drop->position().toPoint()))) {
+      drop->setDropAction(Qt::CopyAction); drop->accept();
+    } else { drop->ignore(); }
+    return true;
+  }
+  // ExamplesPanel.tsx drags an example card onto the canvas, which pastes a copy of
+  // its graph with the first node at the drop point (useDropHandler.ts pasteExampleGraph).
+  if (object == view_->viewport() && (event->type() == QEvent::DragEnter || event->type() == QEvent::DragMove || event->type() == QEvent::Drop)
+      && static_cast<QDropEvent *>(event)->mimeData()->hasFormat(node_editor::ExampleGallery::DragMime)) {
+    auto drop = static_cast<QDropEvent *>(event);
+    const auto key = QString::fromUtf8(drop->mimeData()->data(node_editor::ExampleGallery::DragMime));
+    if (readOnly() || key.isEmpty() || key.size() > 4096 || !(drop->possibleActions() & Qt::CopyAction)) {
+      drop->ignore(); return true;
+    }
+    if (event->type() != QEvent::Drop || pasteExample(key, view_->mapToScene(drop->position().toPoint()))) {
       drop->setDropAction(Qt::CopyAction); drop->accept();
     } else { drop->ignore(); }
     return true;
@@ -4120,6 +4174,24 @@ bool EditorWindow::eventFilter(QObject *object, QEvent *event) {
           positions.insert(resource, QJsonObject{{"x", position.x()}, {"y", position.y()}});
         }
         if (apply({{"op", "moveNodes"}, {"positions", positions}, {"space", "absolute"}})) { fitActive_ = false; }
+        return true;
+      }
+    }
+    // HandleTooltip.tsx: with a node focused, Tab and Shift+Tab walk its handles,
+    // and Enter or Space on a handle opens the keyboard connection picker.
+    const auto modifiers = key->modifiers() & ~Qt::KeypadModifier;
+    if (!model_.focusedNode().isEmpty() && (key->key() == Qt::Key_Tab || key->key() == Qt::Key_Backtab)
+        && !(modifiers & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
+      model_.focusNextHandle(key->key() == Qt::Key_Backtab || (modifiers & Qt::ShiftModifier));
+      return true;
+    }
+    if (model_.focusedHandle().side != QtNodes::PortType::None && modifiers == Qt::NoModifier) {
+      if (key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter || key->key() == Qt::Key_Space) {
+        openFocusedHandlePicker();
+        return true;
+      }
+      if (key->key() == Qt::Key_Escape) {
+        model_.setFocusedHandle(QtNodes::PortType::None, {});
         return true;
       }
     }

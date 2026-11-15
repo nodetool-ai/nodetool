@@ -52,6 +52,10 @@ private slots:
     QVERIFY(window.selectNode(inner));
     window.action("Group selection");
     const auto group = window.document()->node(inner)["parent_id"].toString();
+    // A card directly in the outer group beside the nested one.
+    QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{{"id", "direct"}, {"type", "fixture.Source"}, {"parent_id", group},
+        {"ui_properties", QJsonObject{{"position", QJsonObject{{"x", 20}, {"y", 400}}}}}}}}));
+    QCOMPARE(window.document()->node("direct")["parent_id"].toString(), group);
     QVERIFY(window.selectNode(group)); window.fit();
     QQuickWidget *controls = nullptr;
     QTRY_VERIFY((controls = window.findChild<QQuickWidget *>("authored-controls-" + group)));
@@ -73,8 +77,9 @@ private slots:
     QTest::mouseClick(controls, Qt::LeftButton, Qt::NoModifier, button->mapToScene(QPointF(button->width()/2, button->height()/2)).toPoint());
     QTRY_VERIFY(!requests.isEmpty());
     const auto nodes = requests.last()["data"].toObject()["graph"].toObject()["nodes"].toArray();
+    // GroupNode.tsx runs the group's direct children: the nested group's card stays out.
     QCOMPARE(nodes.size(), 1);
-    QCOMPARE(nodes.first().toObject()["id"].toString(), QString("source"));
+    QCOMPARE(nodes.first().toObject()["id"].toString(), QString("direct"));
     QTRY_VERIFY(!button->isEnabled());
     // RunGroupButton.tsx: the label turns to "Group is running" and the button shows a spinner while the workflow runs.
     QTRY_COMPARE(button->property("accessibleName").toString(), QString("Group is running"));
@@ -110,6 +115,28 @@ private slots:
     window.action("Group selection");
     window.fit();
     QTRY_VERIFY(window.findChild<QQuickWidget *>("authored-controls-" + window.document()->node(note)["parent_id"].toString()));
+  }
+  // GroupNode.tsx toggleBypassChildren: Disable all acts on the group's direct
+  // children. A nested group's cards keep their state.
+  void groupBypassActsOnDirectChildren() {
+    EditorWindow window;
+    QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{{"id", "source"}, {"type", "fixture.Source"}}}}));
+    QVERIFY(window.selectNode("source"));
+    window.action("Group selection");
+    const auto inner = window.document()->node("source")["parent_id"].toString();
+    QVERIFY(window.selectNode(inner));
+    window.action("Group selection");
+    const auto group = window.document()->node(inner)["parent_id"].toString();
+    QVERIFY(window.document()->applyCommand({{"op", "addNode"}, {"node", QJsonObject{{"id", "direct"}, {"type", "fixture.Source"}, {"parent_id", group}}}}));
+    const auto bypassed = [&](const QString &id) { return window.document()->node(id)["ui_properties"].toObject()["bypassed"].toBool(); };
+    window.runState()->runAuthored(group, "bypass", window.documentEpoch(), window.credentialsEpoch());
+    QVERIFY(bypassed("direct"));
+    QVERIFY(!bypassed("source"));
+    window.runState()->runAuthored(group, "bypass", window.documentEpoch(), window.credentialsEpoch());
+    QVERIFY(!bypassed("direct"));
+    // The inner group's own Disable all still reaches its card.
+    window.runState()->runAuthored(inner, "bypass", window.documentEpoch(), window.credentialsEpoch());
+    QVERIFY(bypassed("source"));
   }
   void groupDisabledStateReflectsRunnableChildren() {
     EditorWindow window;

@@ -1,5 +1,6 @@
 #pragma once
 #include <QJsonArray>
+#include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QObject>
 #include <QUrl>
@@ -68,6 +69,11 @@ public:
     Q_INVOKABLE void refresh();
     // Opens the example with this row key.
     Q_INVOKABLE void open(const QString &key);
+    // The example's graph, for a drag onto the canvas that pastes its nodes
+    // (the web "example-workflow" drag). Empty for an unknown key.
+    QJsonObject graph(const QString &key) const;
+    // The drag's MIME type. Its data is the row key.
+    static constexpr auto DragMime = "application/x-nodetool-example";
     Q_INVOKABLE void connectServer() { emit connectRequested(); }
     Q_INVOKABLE void close() { emit closeRequested(); }
 
@@ -91,6 +97,7 @@ private:
     struct Row {
         QString key, group, name, description, secondary, thumbnail, resource, packageName, seed;
         QStringList tags;
+        QJsonObject graph;
     };
     QVariantMap rowMap(const Row &row) const;
     bool shown(const Row &row) const;

@@ -29,6 +29,8 @@ class CompatibleNodePicker final : public QObject {
   Q_PROPERTY(int generation READ generation NOTIFY changed)
   // A dynamic output's menu also deletes it (web OutputContextMenu.tsx:93-124, :622-630).
   Q_PROPERTY(bool canDeleteOutput READ canDeleteOutput NOTIFY changed)
+  // Opened from a focused handle rather than a dropped wire.
+  Q_PROPERTY(bool keyboard READ keyboard NOTIFY changed)
 public:
   CompatibleNodePicker(WorkflowGraphModel &model, EditorScene &scene,
                        QGraphicsView &view, QQmlEngine *engine,
@@ -42,6 +44,7 @@ public:
   int generation() const { return generation_; }
   void choose(const QString &key) { choose(key, generation_); }
   bool active() const { return active_; }
+  bool keyboard() const { return keyboard_; }
   bool canDeleteOutput() const;
   QQuickWidget *widget() const;
   // Create `type` beside `source`'s output and wire the output into `targetPort` as one document step.
@@ -55,6 +58,11 @@ public slots:
   void openBody(QtNodes::NodeId node, QtNodes::PortType port,
                 QtNodes::PortIndex index, QtNodes::NodeId target,
                 const QPointF &position);
+  // KeyboardConnectionPicker.tsx: the handle's compatible ports on the nodes
+  // already in the graph, then the catalog's nodes, and Disconnect when the
+  // handle has wires. Opened with Enter on a Tab-focused handle.
+  void openKeyboard(QtNodes::NodeId node, QtNodes::PortType port,
+                    QtNodes::PortIndex index, const QPointF &position);
   void setQuery(const QString &query);
   void choose(const QString &key, int generation);
   void search(const QString &query, int generation);
@@ -97,6 +105,11 @@ private:
   int generation_ = 0;
   QtNodes::NodeId body_ = QtNodes::InvalidNodeId;
   QString bodyResource_;
+  // The keyboard picker's rows for ports of nodes already in the graph.
+  bool keyboard_ = false;
+  QVector<Candidate> existing_;
+  QVector<Candidate> existingCandidates() const;
+  QStringList connectedEdges() const;
   // One fixed row: the node it creates, the port that takes the wire, and its presets.
   struct FixedAction {
     QString key, label, type, port, receivingName;

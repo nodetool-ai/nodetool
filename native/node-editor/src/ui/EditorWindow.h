@@ -458,6 +458,7 @@ private:
   void showRunTrace();
   void showGenerations();
   void showWorkers();
+  void showQueue();
   // Loads a workflow document into this tab, with `file` as its file or none.
   bool openDocument(const QByteArray &json, const QString &file);
   void toggleQueue();
@@ -549,6 +550,10 @@ private:
   void revealSelection();
   // Moves the view the least distance that shows the card whole.
   void revealNode(const QString &resourceId);
+  // Opens the keyboard connection picker on the focused node's Tab-focused handle.
+  void openFocusedHandlePicker();
+  // Pastes the example's graph with its first top-level node at `at`, as one step.
+  bool pasteExample(const QString &key, const QPointF &at);
   // The view that fits every node, as the zoom and the scene point at the viewport center.
   struct ViewTarget { double zoom = 1; QPointF center; };
   ViewTarget fitTarget() const;

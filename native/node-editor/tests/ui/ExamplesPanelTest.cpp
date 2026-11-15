@@ -267,6 +267,8 @@ private slots:
         QVERIFY(named(root, "examples-section-comfy"));
         QVERIFY(named(root, "examples-section-builtin"));
         QVERIFY(named(root, "example-card-server:compare.json"));
+        // Each card carries the drag that pastes its graph on the canvas (MenusTest).
+        QVERIFY(named(root, "example-card-server:compare.json")->findChild<QObject *>("example-card-drag"));
         // With no server, the panel offers to connect.
         QVERIFY(named(root, "examples-connect")->isVisible());
         QMetaObject::invokeMethod(named(root, "examples-connect"), "actionTriggered");

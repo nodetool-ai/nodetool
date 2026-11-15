@@ -491,6 +491,7 @@ void WorkflowGraphModel::clearCardMedia() {
 void WorkflowGraphModel::setFocusedNode(const QString &resourceId) {
   if (resourceId == focusedNode_) { return; }
   const auto previous = std::exchange(focusedNode_, resourceId);
+  focusedHandle_ = {};
   if (!resourceId.isEmpty()) {
     focusHistory_.append(resourceId);
     while (focusHistory_.size() > 20) { focusHistory_.removeFirst(); }
@@ -502,6 +503,30 @@ void WorkflowGraphModel::setFocusedNode(const QString &resourceId) {
       emit nodeUpdated(*it);
     }
   }
+}
+void WorkflowGraphModel::setFocusedHandle(QtNodes::PortType side, const QString &name) {
+  if (focusedHandle_.side == side && focusedHandle_.name == name) { return; }
+  focusedHandle_ = name.isEmpty() ? FocusedHandle{} : FocusedHandle{side, name};
+  if (const auto node = ids_.value(focusedNode_, QtNodes::InvalidNodeId); node != QtNodes::InvalidNodeId) { emit nodeUpdated(node); }
+}
+bool WorkflowGraphModel::focusNextHandle(bool backwards) {
+  const auto node = ids_.value(focusedNode_, QtNodes::InvalidNodeId);
+  if (node == QtNodes::InvalidNodeId) { setFocusedHandle(QtNodes::PortType::None, {}); return false; }
+  QVector<FocusedHandle> handles;
+  for (const auto side : {QtNodes::PortType::In, QtNodes::PortType::Out}) {
+    const auto list = ports(node, side);
+    for (qsizetype i = 0; i < list.size(); ++i) {
+      if (portVisible(node, side, QtNodes::PortIndex(i))) { handles.append({side, list[i].toObject()["name"].toString()}); }
+    }
+  }
+  qsizetype index = -1;
+  for (qsizetype i = 0; i < handles.size(); ++i) {
+    if (handles[i].side == focusedHandle_.side && handles[i].name == focusedHandle_.name) { index = i; }
+  }
+  const auto next = index < 0 ? (backwards ? handles.size() - 1 : 0) : index + (backwards ? -1 : 1);
+  if (next < 0 || next >= handles.size()) { setFocusedHandle(QtNodes::PortType::None, {}); return false; }
+  setFocusedHandle(handles[next].side, handles[next].name);
+  return true;
 }
 bool WorkflowGraphModel::focusBack() {
   if (focusHistory_.size() < 2) { return false; }

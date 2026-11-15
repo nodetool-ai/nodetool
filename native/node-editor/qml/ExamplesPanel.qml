@@ -227,6 +227,17 @@ Rectangle {
         bottomPadding: Ui.Metrics.none
         implicitHeight: content.implicitHeight
         onClicked: root.gallery.open(modelData.key)
+        // ExampleCard in ExamplesPanel.tsx: drag onto the workflow canvas to add its nodes.
+        Drag.active: cardDrag.active
+        Drag.dragType: Drag.Automatic
+        Drag.supportedActions: Qt.CopyAction
+        Drag.mimeData: ({"application/x-nodetool-example": card.modelData.key})
+        DragHandler {
+            id: cardDrag
+            objectName: "example-card-drag"
+            target: null
+            enabled: !card.busy
+        }
         contentItem: ColumnLayout {
             id: content
             spacing: Ui.Metrics.none

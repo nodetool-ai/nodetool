@@ -405,7 +405,11 @@
       "inventory": "F03"
     },
     "web/src/components/context_menus/ConnectionMatchMenu.tsx": {
-      "missing": "Handle-to-handle match menu shown when a dropped wire fits several handles. No native counterpart found.",
+      "native": [
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp",
+        "native/node-editor/qml/CompatibleNodePicker.qml"
+      ],
+      "note": "A wire dropped on a card body that fits several ports lists those ports in the picker (CompatibleNodePicker::openBody), with search and arrow keys. One fitting port connects at once.",
       "inventory": "F03"
     },
     "web/src/components/context_menus/ContextMenuItem.tsx": {
@@ -1225,8 +1229,10 @@
     },
     "web/src/components/node/BypassGroupButton.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/qml/AuthoredControls.qml",
+        "native/node-editor/src/ui/EditorWindow.cpp"
       ],
+      "note": "Disable all and Enable all act on the group's direct children.",
       "inventory": "F07"
     },
     "web/src/components/node/CalendarEventView.tsx": {
@@ -1490,7 +1496,12 @@
       "inventory": "W1"
     },
     "web/src/components/node/KeyboardConnectionPicker.tsx": {
-      "missing": "Keyboard path to connect a handle (from the handle tooltip). Not found natively.",
+      "native": [
+        "native/node-editor/src/graph/CompatibleNodePicker.cpp",
+        "native/node-editor/src/ui/EditorWindow.cpp",
+        "native/node-editor/src/graph/WorkflowGraphModel.cpp"
+      ],
+      "note": "With a node focused (Ctrl+Alt+N), Tab and Shift+Tab walk its handles and Enter or Space opens the picker: compatible ports on existing nodes first, then the catalog, and Disconnect when the handle has wires. It opens beside the handle rather than as a dialog.",
       "inventory": "F42"
     },
     "web/src/components/node/KeyframeTimingStrip.tsx": {
@@ -1867,10 +1878,10 @@
     },
     "web/src/components/node/RunGroupButton.tsx": {
       "native": [
-        "native/node-editor/src/graph/EditorScene.cpp"
+        "native/node-editor/qml/AuthoredControls.qml",
+        "native/node-editor/src/ui/EditorWindow.cpp"
       ],
-      "status": "partial",
-      "note": "A group Run acts on every descendant where the web acts on direct children.",
+      "note": "Runs the group's direct children, as the web does.",
       "inventory": "F25"
     },
     "web/src/components/node/SaveDestinationHint.tsx": {
@@ -2044,10 +2055,11 @@
     },
     "web/src/components/panels/jobs/QueuePanel.tsx": {
       "native": [
+        "native/node-editor/qml/QueuePanel.qml",
         "native/node-editor/qml/QueueOverlay.qml"
       ],
       "status": "partial",
-      "note": "Opens at any time with the Active and History sections, filters, day groups and the Could not load jobs state, as a canvas overlay rather than a bottom panel view. It shows no loading spinner before the first jobs page.",
+      "note": "The status bar Queue tab opens the panel in the bottom dock at any time, with the Active and History sections, filters, day groups and the Could not load jobs state. It shows no loading spinner before the first jobs page.",
       "inventory": "C11"
     },
     "web/src/components/panels/LogPanel.tsx": {
@@ -2658,7 +2670,7 @@
         "native/node-editor/src/interfaces/ExampleGallery.cpp"
       ],
       "status": "partial",
-      "note": "Workflow and ComfyUI examples, plus the native bundled examples. Apps, storyboard, timeline, sketch, 3D model and game examples are left out, since only workflow examples belong in the node editor. Dragging a card onto the canvas is not ported."
+      "note": "Workflow and ComfyUI examples, plus the native bundled examples. Apps, storyboard, timeline, sketch, 3D model and game examples are left out, since only workflow examples belong in the node editor. Dragging a card onto the canvas pastes a copy of its graph with the first node at the drop point."
     },
     "web/src/components/chat/ChatListPanel.tsx": {
       "native": [
