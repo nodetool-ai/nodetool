@@ -97,7 +97,7 @@ What delete does to the project folder depends on who made it:
 | NodeTool created it in cloud storage | The folder and every file in it are deleted. |
 | You brought it | Every file stays where it is. NodeTool removes only the `.nodetool` folder inside it. |
 
-NodeTool treats a folder as its own only when it created the folder inside the projects folder or its managed data folder. A folder you added by hand before projects had folders counts as one you brought.
+NodeTool writes a record, `.nodetool/created.json`, into each folder it creates. A folder without that record counts as one you brought. That includes a folder you added by hand before projects had folders and a project folder created before this record existed.
 
 There is no rename control in the project list. Ask the agent to rename a project, as described next.
 

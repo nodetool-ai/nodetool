@@ -33,6 +33,8 @@ import {
 } from "@nodetool-ai/models";
 import {
   ensureProjectFolder,
+  isFolderMarkedCreated,
+  markFolderCreated,
   nodetoolDirFromRow,
   setWorkspaceCloudStorage,
   workspaceFromRow
@@ -177,6 +179,7 @@ describe("projects router: delete and archive", () => {
     await writeFile(join(path, "footage", "take.bin"), BINARY);
     const before = await digests(path);
     expect(Object.keys(before).sort()).toEqual([
+      ".nodetool/created.json",
       ".nodetool/project.json",
       "footage/take.bin"
     ]);
@@ -310,12 +313,15 @@ describe("projects router: delete and archive", () => {
     const prefix = `${managedWorkspaceKey("user-1")}/projects/${"a".repeat(64)}`;
     const { project, row } = await adoptFolder("Brought", prefix);
     expect(row.isManaged()).toBe(true);
+    // Even with the record NodeTool leaves in folders it creates.
+    await markFolderCreated(row);
     await filesOf(row).write("footage/take.bin", BINARY);
     await filesOf(row).write("notes.md", "keep me\r\n");
     const keysBefore = (await storage.list(`${prefix}/`)).entries
       .map((entry) => entry.key)
       .sort();
     expect(keysBefore).toEqual([
+      `${prefix}/.nodetool/created.json`,
       `${prefix}/.nodetool/project.json`,
       `${prefix}/footage/take.bin`,
       `${prefix}/notes.md`
@@ -331,14 +337,16 @@ describe("projects router: delete and archive", () => {
     expect(await filesOf(row).readText("notes.md")).toBe("keep me\r\n");
   });
 
-  it("keeps an adopted folder that sits inside the projects directory", async () => {
-    // Where NodeTool creates folders itself, so only the row's origin says
-    // this one was brought.
+  it("keeps an adopted folder even when it carries NodeTool's record", async () => {
+    // A folder NodeTool created, then opened again as a project the user
+    // brought. Only the row's origin says it was brought.
     const brought = join(projectsDir, "Old Shoot");
     await mkdir(brought, { recursive: true });
     await writeFile(join(brought, "take.bin"), BINARY);
     const before = await digests(brought);
-    const { project } = await adoptFolder("Old Shoot", brought);
+    const { project, row } = await adoptFolder("Old Shoot", brought);
+    await markFolderCreated(row);
+    expect(await isFolderMarkedCreated(row)).toBe(true);
 
     const result = await caller().projects.delete({ id: project.id });
 
@@ -359,6 +367,73 @@ describe("projects router: delete and archive", () => {
 
     expect(result.folder).toEqual({ action: "kept", path: added });
     expect(await digests(added)).toEqual(before);
+  });
+
+  it("keeps a legacy folder that sits directly inside the projects directory", async () => {
+    // A workspace the user added by hand before project folders existed, in
+    // the directory that later became PROJECTS_DIR. Its row reads `created`
+    // and its place is where NodeTool creates folders, but NodeTool did not
+    // make it.
+    const added = join(projectsDir, "site");
+    await mkdir(added, { recursive: true });
+    await writeFile(join(added, "index.bin"), BINARY);
+    const before = await digests(added);
+    const { project, row } = await adoptFolder("Site", added, "created");
+    expect(await isFolderMarkedCreated(row)).toBe(false);
+    expect(
+      (await caller().projects.get({ id: project.id })).project.folder
+    ).toMatchObject({ path: added, origin: "created", on_delete: "keep" });
+
+    const result = await caller().projects.delete({ id: project.id });
+
+    expect(result.folder).toEqual({ action: "kept", path: added });
+    expect(await digests(added)).toEqual(before);
+    expect(await exists(join(root, "xdg-data", "Trash", "files", "site"))).toBe(
+      false
+    );
+  });
+
+  it("keeps a user's folder that a project's folder row was repointed to", async () => {
+    // `workspace.update` changes a row's path and leaves `origin = created`.
+    const project = await caller().projects.create({ name: "Repointed" });
+    const made = join(projectsDir, "Repointed");
+    const own = join(projectsDir, "my own");
+    await mkdir(own, { recursive: true });
+    await writeFile(join(own, "take.bin"), BINARY);
+    const before = await digests(own);
+    const row = await folderRow(project.id);
+    row.path = own;
+    await row.save();
+
+    const result = await caller().projects.delete({ id: project.id });
+
+    expect(result.folder).toEqual({ action: "kept", path: own });
+    expect(await digests(own)).toEqual(before);
+    // The folder NodeTool made is no longer the row's, so it is left alone.
+    expect(await exists(join(made, ".nodetool", "created.json"))).toBe(true);
+  });
+
+  it("keeps a folder whose record names another project", async () => {
+    // A copy of a folder NodeTool created for a different project.
+    const other = await caller().projects.create({ name: "Original" });
+    const copy = join(projectsDir, "Copy");
+    await mkdir(join(copy, ".nodetool"), { recursive: true });
+    await writeFile(
+      join(copy, ".nodetool", "created.json"),
+      await readFile(
+        join(projectsDir, "Original", ".nodetool", "created.json")
+      )
+    );
+    await writeFile(join(copy, "take.bin"), BINARY);
+    const { project } = await adoptFolder("Copy", copy, "created");
+    expect(project.id).not.toBe(other.id);
+
+    const result = await caller().projects.delete({ id: project.id });
+
+    expect(result.folder).toEqual({ action: "kept", path: copy });
+    expect(await readFile(join(copy, "take.bin"))).toEqual(
+      Buffer.from(BINARY)
+    );
   });
 
   it("never moves the user's default workspace, whatever project it is filed under", async () => {
@@ -382,7 +457,8 @@ describe("projects router: delete and archive", () => {
     const nested = join(managedRoot, "projects", "b".repeat(64));
     await mkdir(nested, { recursive: true });
     await writeFile(join(nested, "game.json"), "{}");
-    const { project } = await adoptFolder("Rooted", managedRoot, "created");
+    const { project, row } = await adoptFolder("Rooted", managedRoot, "created");
+    await markFolderCreated(row);
 
     const result = await caller().projects.delete({ id: project.id });
 

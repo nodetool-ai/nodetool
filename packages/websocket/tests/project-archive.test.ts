@@ -28,6 +28,8 @@ import { createLocalWorkspace } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   ensureProjectFolder,
+  isFolderMarkedCreated,
+  markFolderCreated,
   resolveProjectWorkspace
 } from "@nodetool-ai/execution/service";
 import { getAssetStorageKey } from "../src/lib/asset-paths.js";
@@ -347,14 +349,23 @@ describe("project files", () => {
     await seeded.workspace.save();
     const { bytes } = await exportProject(owner, seeded.projectId);
 
-    const result = await importArchive(bytes);
+    const result = await importProjectArchive(bytes, {
+      userId: importer,
+      storage,
+      openWorkspace,
+      workspacePath,
+      markCreatedFolder: markFolderCreated
+    });
 
     const [imported] = await Workspace.listByProject(
       importer,
       result.project.id
     );
-    expect(imported?.path).toContain(nodePath.join(root, "imported"));
-    expect(imported?.origin).toBe("created");
+    if (!imported) throw new Error("the import made no workspace");
+    expect(imported.path).toContain(nodePath.join(root, "imported"));
+    expect(imported.origin).toBe("created");
+    // The record a delete requires before it moves the folder to the trash.
+    expect(await isFolderMarkedCreated(imported)).toBe(true);
   });
 
   it("imports as a new project with every id and reference rewritten", async () => {

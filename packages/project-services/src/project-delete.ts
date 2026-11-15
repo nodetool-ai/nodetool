@@ -14,7 +14,7 @@
  * their files are not touched.
  */
 import { rm, stat } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { join } from "node:path";
 import {
   createLogger,
   getManagedWorkspaceDir,
@@ -38,6 +38,7 @@ import {
 import { thumbnailKey } from "@nodetool-ai/asset-services/thumbnail";
 import {
   configuredProjectsDir,
+  isFolderMarkedCreated,
   isLocalDeployment,
   nodetoolDirFromRow,
   workspaceFromRow
@@ -128,11 +129,11 @@ async function deleteProjectAssetObjects(
  *
  * `origin` alone does not say so. Every row from before project folders got
  * `created` from the column default, including folders a user added by hand,
- * and a project that predates project folders kept such a row as its folder.
- * NodeTool creates a project folder in two places only: directly inside the
- * projects directory, and under its managed directory (or managed key prefix
- * in object storage). A `created` row anywhere else is treated as brought by
- * the user, so its files are never moved.
+ * and a row a user points at a folder of their own keeps it too. Where the
+ * folder sits says nothing either: a user's folder can lie inside the
+ * projects directory. The proof is the record `createFolder` writes into
+ * `.nodetool/` for the row's project. A folder without it is treated as
+ * brought by the user, so its files are never moved.
  *
  * The user's default workspace and the managed root are never a folder to
  * remove: loose work lands in the first, and every managed project folder and
@@ -144,10 +145,7 @@ async function madeByNodeTool(row: Workspace): Promise<boolean> {
     row.path === getManagedWorkspaceDir(row.user_id) ||
     row.path === managedWorkspaceKey(row.user_id);
   if (managedRoot) return false;
-  if (row.isManaged()) return true;
-  if (row.isVirtual()) return false;
-  const { dir } = await configuredProjectsDir(row.user_id);
-  return resolve(dirname(row.path)) === resolve(dir);
+  return isFolderMarkedCreated(row);
 }
 
 /** What deleting the project that owns this folder row does to the folder. */

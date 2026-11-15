@@ -49,12 +49,15 @@ export {
   describeProjectFolder,
   ensurePersonalProject,
   ensureProjectFolder,
+  isFolderMarkedCreated,
   isLocalDeployment,
+  markFolderCreated,
   migrateProjectFolders,
   projectFolderName,
   projectManifest
 } from "./project-folder.js";
 export type {
+  FolderCreatedMark,
   ProjectFolderInfo,
   ProjectFolderMigrationReport,
   ProjectManifest

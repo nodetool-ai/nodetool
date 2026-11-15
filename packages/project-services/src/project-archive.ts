@@ -442,6 +442,12 @@ export interface ImportProjectArchiveOptions {
    * `ensureProjectFolder`, which adopts the imported project workspace.
    */
   readonly ensureFolder?: (project: Project) => Promise<unknown>;
+  /**
+   * Records in an imported workspace's folder that NodeTool created it. The
+   * host passes `markFolderCreated`. Without the record, deleting the
+   * imported project keeps the folder as if the user had brought it.
+   */
+  readonly markCreatedFolder?: (row: Workspace) => Promise<void>;
   readonly maxBytes?: number;
 }
 
@@ -621,7 +627,8 @@ export async function importProjectArchive(
       row["path"] = await workspacePath(userId, String(row["id"]));
       row["is_default"] = false;
       // NodeTool makes this folder, whoever made the exported one. Deleting
-      // the imported project reads `origin` to decide what happens to it.
+      // the imported project reads `origin` and the record `markCreatedFolder`
+      // writes to decide what happens to it.
       row["origin"] = "created";
       const opened = options.openWorkspace(new Workspace(row));
       if (!opened) {
@@ -742,6 +749,9 @@ export async function importProjectArchive(
     // the import. The startup migration retries it, and a run reports the
     // missing folder rather than writing elsewhere.
     try {
+      for (const row of imported.workspaces) {
+        await options.markCreatedFolder?.(new Workspace(row));
+      }
       await options.ensureFolder?.(project);
     } catch (error) {
       log.warn("Could not give the imported project a folder", {
