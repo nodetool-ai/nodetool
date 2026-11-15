@@ -14,6 +14,7 @@ import {
   createWorkspace,
   headlessGate,
   observeWorkspace,
+  setProjectFolderResolver,
   type StorageAdapter,
   type Workspace,
   type WorkspaceChange
@@ -194,6 +195,11 @@ export async function resolveProjectWorkspace(
     );
   }
 }
+
+// Asset services read and write asset files in project folders. They sit
+// below this package, so they reach folders through the resolver installed
+// here, the way `setPersonalFolderProvider` reaches `ensureProjectFolder`.
+setProjectFolderResolver(resolveProjectWorkspace);
 
 /** True when this deployment keeps workspaces in object storage. */
 export function usesCloudWorkspaces(): boolean {

@@ -21,7 +21,7 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
-import { createAssetModelInterface } from "../../lib/asset-model-interface.js";
+import { createStoredAsset } from "../../lib/asset-model-interface.js";
 import { toAssetResponse } from "../../lib/asset-response.js";
 import {
   OpenverseError,
@@ -101,7 +101,7 @@ export const openverseRouter = router({
             landing_url: item.landing_url,
             source: item.source
           };
-          const asset = await createAssetModelInterface({
+          const asset = await createStoredAsset({
             userId: ctx.userId,
             name: openverseAssetName(item, contentType),
             contentType,

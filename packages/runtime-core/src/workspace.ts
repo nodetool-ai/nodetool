@@ -233,3 +233,37 @@ export function observeWorkspace(
     }
   };
 }
+
+/** A project's folder, or why it cannot be reached. */
+export type ProjectFolderResolution =
+  | { ok: true; projectId: string; workspace: Workspace }
+  | { ok: false; projectId: string | null; reason: string };
+
+/**
+ * Resolves a project to the {@link Workspace} that is its folder. A missing
+ * or loose project id names the user's Personal project.
+ */
+export type ProjectFolderResolver = (
+  projectId: string | null | undefined,
+  userId: string
+) => Promise<ProjectFolderResolution>;
+
+let projectFolderResolver: ProjectFolderResolver | null = null;
+
+/**
+ * Install the resolver every package below the host reaches project folders
+ * through. Project folders live in `@nodetool-ai/execution`, which installs
+ * `resolveProjectWorkspace` when it loads. Asset services sit below that
+ * package and read and write asset files through this resolver, so a folder
+ * is resolved by one set of rules on every path.
+ */
+export function setProjectFolderResolver(
+  resolver: ProjectFolderResolver | null
+): void {
+  projectFolderResolver = resolver;
+}
+
+/** The installed resolver, or null on a host that loads no project folders. */
+export function getProjectFolderResolver(): ProjectFolderResolver | null {
+  return projectFolderResolver;
+}

@@ -334,6 +334,14 @@ const PROJECT_FOLDER_DDL: readonly string[] = [
   "ALTER TABLE nodetool_workspaces ADD COLUMN origin TEXT NOT NULL DEFAULT 'created'"
 ];
 
+/**
+ * An asset is a file in its project's folder, and the row records the file's
+ * path relative to that folder. Shared by the migration and, through
+ * {@link POST_BASELINE_TABLE_DDL}, by `initTestDb`.
+ */
+const ASSET_WORKSPACE_PATH_DDL =
+  "ALTER TABLE nodetool_assets ADD COLUMN workspace_path TEXT";
+
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
     user_id TEXT PRIMARY KEY NOT NULL,
@@ -353,7 +361,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   ...USER_PERMISSIONS_DDL,
   THREAD_KIND_DDL,
   ...MESSAGE_BRANCH_DDL,
-  ...PROJECT_FOLDER_DDL
+  ...PROJECT_FOLDER_DDL,
+  ASSET_WORKSPACE_PATH_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4467,6 +4476,25 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // Keep both columns: dropping them would lose which folder is a project's.
+    }
+  },
+
+  // An asset is a file in its project's folder. `workspace_path` is that
+  // file's path relative to the folder. Rows from before keep null and read
+  // their bytes from `external_path` or the legacy storage key.
+  {
+    version: "20261117_000000",
+    name: "add_asset_workspace_path",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "workspace_path"))) {
+        await db.execute(ASSET_WORKSPACE_PATH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping it would lose where each asset's file is.
     }
   }
 ];

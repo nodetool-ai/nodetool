@@ -49,6 +49,12 @@ export class Asset extends DBModel {
    * the asset leaves the file alone. Null for every managed asset.
    */
   declare external_path: AssetRow["external_path"];
+  /**
+   * Path of this asset's file, relative to the folder of its project. Null
+   * for an asset whose bytes live at `external_path` or under the legacy
+   * storage key.
+   */
+  declare workspace_path: AssetRow["workspace_path"];
   /** The user starred this asset; the asset browser lists these as Favorites. */
   declare favorite: AssetRow["favorite"];
   declare created_at: AssetRow["created_at"];
@@ -72,6 +78,7 @@ export class Asset extends DBModel {
     this.timeline_id ??= null;
     this.project_id ??= "default";
     this.external_path ??= null;
+    this.workspace_path ??= null;
     this.favorite = Boolean(this.favorite);
     this.created_at ??= now;
     this.updated_at ??= now;
@@ -119,6 +126,7 @@ export class Asset extends DBModel {
       sketch_document_id: this.sketch_document_id, workflow_id: this.workflow_id,
       node_id: this.node_id, job_id: this.job_id, timeline_id: this.timeline_id,
       project_id: this.project_id, external_path: this.external_path,
+      workspace_path: this.workspace_path,
       favorite: this.favorite,
       created_at: this.created_at, updated_at: this.updated_at
     };
@@ -199,6 +207,28 @@ export class Asset extends DBModel {
       .from(assets)
       .where(
         and(eq(assets.user_id, userId), eq(assets.external_path, externalPath))
+      );
+    return rows.map((row) => new Asset(row));
+  }
+
+  /**
+   * The user's assets in `projectId` whose file is at `workspacePath`. More
+   * than one row is an integrity error the caller must not add to.
+   */
+  static async findByWorkspacePath(
+    userId: string,
+    projectId: string,
+    workspacePath: string
+  ): Promise<Asset[]> {
+    const rows = await getPortableDb()
+      .select()
+      .from(assets)
+      .where(
+        and(
+          eq(assets.user_id, userId),
+          eq(assets.project_id, projectId),
+          eq(assets.workspace_path, workspacePath)
+        )
       );
     return rows.map((row) => new Asset(row));
   }

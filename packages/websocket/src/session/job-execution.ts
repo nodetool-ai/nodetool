@@ -43,6 +43,7 @@ import {
   toRawGraphInput
 } from "@nodetool-ai/execution";
 import {
+  graphNodeTitle,
   persistableOutputs,
   withoutInlineAssetBytes
 } from "@nodetool-ai/execution/service";
@@ -2433,8 +2434,14 @@ export class JobExecutionManager {
                     {
                       userId,
                       workflowId: active.workflowId,
+                      projectId: active.context.projectId,
                       jobId: active.jobId,
                       nodeId,
+                      nodeName:
+                        graphNodeTitle(graphNodeMap.get(nodeId)) ??
+                        (isString(outbound.node_name)
+                          ? outbound.node_name
+                          : undefined),
                       textOutputName: primaryTextOutputName(meta),
                       generationIndex: arrivalIndex,
                       properties:
