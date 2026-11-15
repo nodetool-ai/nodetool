@@ -23,8 +23,9 @@ one-off maintenance triggers — is **none/maintenance**: useful, but not
 part of the release gate and not held to the Ring 0 flake budget.
 
 The only required status check on pull requests is `Quality Gate (npm run
-check) / quality` from `test.yml`. It reports on every pull request and merge
-queue entry, and it counts a leg skipped by the diff plan as a pass. Do not mark
+check) / quality` from `test.yml`. It reports on every pull request, whatever
+its base branch, and on every merge queue entry, and it counts a leg skipped by
+the diff plan as a pass. Do not mark
 any other check required. The other pull-request workflows filter by path or
 skip `merge_group`, so a required check from one of them never reports on a
 diff outside its paths and blocks the merge.
@@ -71,8 +72,8 @@ in fork pull requests, the jobs fall back to ccache with the Actions cache.
 
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
-| `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. A new push to a PR cancels that PR's running run. A push to `main` waits for the running `main` run instead of cancelling it, and diffs against the last `main` commit whose Test run passed. A nightly run and `merge_group` events are also wired | 0 | Required |
-| `quality-checks.yml` | Reusable gate: a lint static leg (lint plus dependency guards) plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples+packaged-backend smoke, plus the electron and mobile suites when the diff reaches them, five `test-packages-*` shards of the backend suite (the game suites run serially in their own), three web Jest shards or one related-tests leg, harness gate). The shipped-workflow integration tests and the workflow-runner browser E2E share one runner here too, so their failures fail the required check. The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly. CI installs no Blender, so the Blender render suites skip | 0 | Required (infra called by `test.yml`) |
+| `test.yml` | Quality gate (typecheck, lint, tests) via `quality-checks.yml`, scoped to the legs the diff reaches; skipped for prose-only and marketing-only diffs. Runs for every pull request, including one stacked on another branch. A new push to a PR cancels that PR's running run. A push to `main` waits for the running `main` run instead of cancelling it, and diffs against the last `main` commit whose Test run passed. A nightly run and `merge_group` events are also wired | 0 | Required |
+| `quality-checks.yml` | Reusable gate: a lint static leg (lint plus dependency guards) plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples+packaged-backend smoke, plus the electron and mobile suites when the diff reaches them, the `test-packages-*` shards of the backend suite (the game suites run serially in their own, the agents suite in three), three web Jest shards for the whole suite or for the related tests, harness gate). The shipped-workflow integration tests and the workflow-runner browser E2E share one runner here too, so their failures fail the required check. The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly. The macOS node catalog check runs when a diff reaches the catalog generator's inputs. CI installs no Blender, so the Blender render suites skip | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend. Nightly, dispatch, labeled PRs | 0 | Advisory on PRs with the `browser-suites` label |
 | `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack. Nightly, dispatch, labeled PRs | 1 | Advisory on PRs with the `browser-suites` label |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
@@ -116,7 +117,7 @@ in fork pull requests, the jobs fall back to ccache with the Actions cache.
 | `opencode.yml` | Interactive assistant on `/oc` comments | none/maintenance | Advisory |
 | `performance-optimization.yaml` | Weekly agent fixes React perf issues (memo, selectors) | none/maintenance | Advisory (`continue-on-error`) |
 | `publish.yaml` | Publish npm packages on a `v*` tag or manual dispatch, or resume a published release | none/maintenance | Required for its own job |
-| `packed-core-cli.yml` | Install the core-only CLI tarballs and verify workflows, MCP, HTTP startup, codecs and dependency isolation | 2 | Required for its own job |
+| `packed-core-cli.yml` | Install the core-only CLI tarballs and verify workflows, MCP, HTTP startup, codecs and dependency isolation. On pull requests that change a manifest, the lockfile or the packing scripts, and on every push to `main` that changes `packages/**` | 2 | Required for its own job |
 | `quality-assurance.yaml` | Daily agent fixes failing typecheck/lint/tests on `main` | none/maintenance | Advisory (`continue-on-error`) |
 | `quality-guard.yml` | Reusable pre/post quality-gate wrapper. No workflow calls it | none/maintenance | Unused |
 | `screenshots.yml` | Capture and commit documentation screenshots | none/maintenance | Manual |
@@ -194,6 +195,61 @@ Prose still gets its own checks: `docs-lint.yml` on any `**/*.md` (link check
 and `check-agents-docs.mjs`), and
 `docs-ci.yml` (site build plus link check) on `docs/**`.
 
+## Stacked pull requests
+
+`test.yml` has no `branches` filter on `pull_request`, so a pull request whose
+base is another branch runs the same gate, with the same job names, as one
+into `main`. The plan diffs against the base branch, so the legs test the
+stacked change alone.
+
+- A push starts one `Test` run for each pull request the branch heads. A push
+  to a base branch starts no run for the pull requests stacked on it.
+- Retargeting starts no run, because the trigger uses the default activity
+  types and those leave out `edited`. When the parent merges and GitHub
+  retargets the pull request to `main`, the required check from the run
+  against the old base is still on the head commit. Branch protection reads
+  it by name and commit, so the check is not left pending. Merge
+  `origin/main` and push to test against `main` itself.
+- Do not add `edited` to the trigger. A title or description edit would then
+  start a run in the pull request's concurrency group and cancel the gate.
+
+`packed-core-cli.yml` used to run a second copy of the gate's suites for
+stacked pull requests, because they had no `Test` run. Its `verification`
+matrix now runs on manual dispatch only.
+
+## Superseded and stuck runs
+
+A new push to a pull request cancels the pull request's running `Test` run.
+GitHub evaluates the `if` of every running job again when a run is cancelled
+and keeps a job whose `if` is still true. The job in `test.yml` that calls
+`quality-checks.yml` therefore uses `if: ${{ !cancelled() }}`, never
+`always()`. With `always()` every leg of a superseded run ran to its end, and
+the new run waited in the concurrency group for the last of them: in 14 of 17
+superseded runs sampled, no job was cancelled and the next run started 6 to 25
+minutes late. `scripts/__tests__/ci-runner-demand.test.mjs` pins the
+expression. The aggregate `quality` job inside the gate keeps `always()`, so
+a failed leg still fails the required check.
+
+A leg whose runner stops reporting does not answer a cancel. It holds the
+run, and the concurrency group, until its `timeout-minutes` plus about ten
+minutes. The `test-packages-nodes` leg did this in 4 of 222 runs. Each leg
+therefore carries its own `timeout` in the leg list, about twice its 95th
+percentile, where every `built` leg used to share 45 minutes. `harness-gate`
+keeps 60 minutes, which the nightly `--all` run needs. Raise a leg's timeout
+when its suite grows, and measure before you do:
+
+```bash
+gh api "repos/nodetool-ai/nodetool/actions/runs/<run id>/jobs?per_page=100" \
+  --jq '.jobs[] | [.name, .conclusion, .started_at, .completed_at] | @tsv'
+```
+
+If a run still does not end after a cancel, force it:
+`gh api -X POST repos/nodetool-ai/nodetool/actions/runs/<run id>/force-cancel`.
+
+Each leg is its own check, so a broken push shows red before the run ends:
+`lint` reports about seven minutes after the push. To stop waiting at the
+first failure, watch with `gh pr checks <number> --watch --fail-fast`.
+
 ## Legs chosen per diff
 
 `test.yml`'s `changes` job runs [`scripts/ci-plan.mjs`](../../scripts/ci-plan.mjs)
@@ -210,6 +266,21 @@ The planner reuses `buildPlan` from `scripts/test-affected.mjs`, the mapping
 - A changed file outside every workspace that is not documentation, or a
   change to the gate itself (`test.yml`, `quality-checks.yml`,
   `.github/actions/`, the two planner scripts), runs every leg.
+- The backend suite runs in these `test-packages-*` shards: `websocket`,
+  `agents`, `nodes`, `game`, `cli` (the CLI packages and the reliability
+  harness), `engine` (runtime, models, execution, kernel, node-sdk, protocol)
+  and `core` (everything else, plus the two root-level suites). `cli` and
+  `engine` were part of `core`, which took about twice as long as any other
+  leg. `scripts/__tests__/test-packages-shards.test.mjs` checks that the
+  shards' filters put every package in exactly one of them.
+- The agents suite runs as three vitest `--shard` legs, one test file at a
+  time. Its sequencer (`packages/agents/tests/_helpers/weighted-shards.ts`)
+  assigns the files by the durations in `tests/shard-seconds.json`, because
+  vitest's split by file count put the three longest files in one shard.
+  A file without an entry is still assigned to a shard.
+- The `nodes` shard runs four packages at a time, one for each core of the
+  runner. Without a limit Turbo ran up to ten at once, each with a vitest
+  worker per core, and tests failed against wall-clock timeouts.
 - Each `test-packages-*` shard runs when the diff affects a package in its
   slice, and applies Turbo's `--affected` inside it when the plan's
   `turbo_affected` is true. Turbo attributes a file outside every workspace
@@ -221,13 +292,23 @@ The planner reuses `buildPlan` from `scripts/test-affected.mjs`, the mapping
   The shard then runs its whole slice, and turbo's task hashes decide what
   reruns. Each owner lists its directory in its `test` inputs in `turbo.json`.
 - Web runs three `--shard`ed Jest legs when a package it depends on changed,
-  one `--findRelatedTests` leg when only files under `web/src` changed (test
-  setup and `__mocks__` excepted), and nothing otherwise. Electron and mobile
-  share one leg that runs the step `buildPlan` chose for each.
+  three `--findRelatedTests` legs with the same `--shard` split when only
+  files under `web/src` changed (test setup and `__mocks__` excepted), and
+  nothing otherwise. One related-tests leg ran about 940 suites for a change
+  to a widely imported file and took longer than the full suite's shards.
+  Electron and mobile share one leg that runs the step `buildPlan` chose for
+  each.
 - Integration tests run when the diff reaches `base-nodes`, the
   workflow-runner browser suite when it reaches `workflow-runner`, and the
   TypeScript 6 build when a manifest, tsconfig, lockfile or `.nvmrc` changes.
 - The `docker` leg runs when the image's own files change, never on push.
+- The macOS node catalog check runs when the diff reaches an input of the
+  catalog generator (`reachesNodeCatalog` in `scripts/ci-plan.mjs`): a pack
+  the generator imports or a package it depends on, `node-sdk`, the catalog
+  package, a pack's or the CLI's `package.json`, or the generator's own
+  files. The Linux check runs in the `typecheck` leg of every run. A diff
+  that reaches none of these inputs cannot change the generated bytes, and
+  the leg waited up to 15 minutes for one of the few macOS runners.
 
 The base commit is the PR base, the merge group base, or the commit before a
 push. Pushes to `main` therefore test only their own diff, and they are never
@@ -307,7 +388,7 @@ layered on top, a package whose inputs and dependency builds are unchanged
 replays its last pass. `--affected` prunes first, so this mostly pays in the
 nightly full run. The archive is kept apart from
 `.turbo/cache` itself because that directory also holds the ~650 MB of restored
-build outputs, and four shards saving it per commit would evict the
+build outputs, and every shard saving it per commit would evict the
 node_modules and build caches from the repository's 10 GB.
 
 ## Scheduled agent workflows
