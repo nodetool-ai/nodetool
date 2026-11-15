@@ -258,9 +258,14 @@ jobs:
             -R '^realtime-offline-(gpu|render-export)$' --no-tests=error --output-on-failure
 
       - name: Verify realtime command dispatch
-        # Use the existing host filters with LLVM tracking restored.
+        # Match the unfiltered private CTests, including their serial TSan driver.
+        env:
+          RT_SANITIZER: ${{ matrix.name }}
         run: |
-          TSAN_OPTIONS="halt_on_error=1:second_deadlock_stack=1:suppressions=$GITHUB_WORKSPACE/native/graph-runner/build/realtime/private-device-tsan.supp" \
+          if [[ "$RT_SANITIZER" == 'TSan' ]]; then
+            export LP_NUM_THREADS=0 MESA_SHADER_CACHE_DISABLE=true
+          fi
+          TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1 \
             node native/realtime/scripts/cli-check.mjs native/graph-runner/build/nodetool-graph-runner
 
       # A pull request runs only the tests that depend on its changed files:

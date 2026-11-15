@@ -69,16 +69,15 @@ target_compile_definitions(realtime-offline-render-test PRIVATE NT_GPU_CATALOG="
 add_dependencies(realtime-offline-render-test realtime-gpu-catalog)
 add_test(NAME realtime-offline-render-export COMMAND realtime-offline-render-test)
 set_tests_properties(realtime-offline-render-export PROPERTIES TIMEOUT 300)
-# Retain the host's existing prebuilt-library filters, except LLVM. Ignoring
-# LLVM hides a lock whose Gallium unlock remains visible in the private device.
-set(_rt_host_tsan "${CMAKE_CURRENT_LIST_DIR}/../../graph-runner/tools/tsan.supp")
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_rt_host_tsan}")
-file(STRINGS "${_rt_host_tsan}" _rt_tsan_lines)
-list(FILTER _rt_tsan_lines EXCLUDE REGEX "^called_from_lib:libLLVM[.]so$")
-list(JOIN _rt_tsan_lines "\n" _rt_tsan_filters)
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/private-device-tsan.supp" "${_rt_tsan_filters}\n")
+# Track both sides of driver mutex operations. TSan uses serial software
+# rendering without the uninstrumented driver's worker/cache queues. Release
+# and ASan retain normal driver threading; threaded-driver qualification is open.
 set_tests_properties(realtime-offline-gpu realtime-offline-render-export PROPERTIES
-  ENVIRONMENT "TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1:suppressions=${CMAKE_CURRENT_BINARY_DIR}/private-device-tsan.supp")
+  ENVIRONMENT "TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1")
+if(CMAKE_CXX_FLAGS MATCHES "-fsanitize=[^ ]*thread")
+  set_property(TEST realtime-offline-gpu realtime-offline-render-export APPEND PROPERTY
+    ENVIRONMENT "LP_NUM_THREADS=0" "MESA_SHADER_CACHE_DISABLE=true")
+endif()
 target_link_libraries(nodetool_realtime_offline_gpu PUBLIC nodetool_realtime PRIVATE nt_realtime_wgpu)
 foreach(target nodetool_realtime_offline_gpu realtime-offline-render-test)
   if(MSVC)

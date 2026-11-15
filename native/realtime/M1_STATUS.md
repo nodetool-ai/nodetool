@@ -491,6 +491,16 @@ A fresh CMake inventory verifies both GPU test environments. Comparing active
 filter entries proves exactly the LLVM exclusion was removed and none added.
 Both targeted Windows Release GPU CTests pass with the generated configuration.
 
+The narrower filter attempt at `087c9a6202` still fails both GPU checks with
+an LLVM/Vulkan lock-order report. It is not passing evidence. The private tests
+and realtime CLI now use unfiltered TSan with Mesa's
+[documented serial rendering mode](https://docs.mesa3d.org/envvars.html#envvar-LP_NUM_THREADS)
+and on-disk shader caching disabled. This avoids relying on synchronization in
+uninstrumented worker/cache queues. Release and ASan/UBSan retain ordinary
+driver threading. TSan error and deadlock detection remain enabled. CI must
+verify this bounded configuration before merge, and threaded driver verification
+remains deferred.
+
 ## Provisional progress gate
 
 The user accepts [WP09's scoped M1 evidence](https://github.com/nodetool-ai/nodetool/issues/7400)
@@ -515,7 +525,7 @@ shared-device operation, close issues or change PR merge ordering.
 | Swap-state continuity | [WP18 #7409](https://github.com/nodetool-ai/nodetool/issues/7409) | Unchanged audio paths preserve bytes, and changed paths satisfy the sink-ramp checks |
 | Browser audio sample parity | [WP24 #7415](https://github.com/nodetool-ai/nodetool/issues/7415) | Each qualified kernel meets its required native/Wasm agreement level |
 | Driver allocation audit and supported live preparation | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399) | Allocation evidence covers the required driver paths, and the live backend supports the compilation/error APIs required by the design |
-| Unfiltered software-driver verification | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399) | Driver-backed TSan passes without prebuilt-library exclusions, with the lavapipe queue-mutex report observed at `9c85c72ef3` resolved |
+| Unfiltered threaded software-driver verification | [WP08 #7399](https://github.com/nodetool-ai/nodetool/issues/7399) | Driver-backed TSan passes with normal driver threading and no prebuilt-library exclusions, with the queue-mutex and LLVM/Vulkan reports resolved |
 | M0 hardware evidence and R1/R2 | [M0 dependencies](#unverified-m0-dependencies) | Mac/device measurements, calibrated physical recording and decisions specified by WP01–WP04 |
 | WP09 completion/merge before compiler integration qualification | [WP09 #7400](https://github.com/nodetool-ai/nodetool/issues/7400), [PR #7471](https://github.com/nodetool-ai/nodetool/pull/7471) | Required verification and merge ordering complete, then compiler fixtures are reconciled with the merged contracts |
 
