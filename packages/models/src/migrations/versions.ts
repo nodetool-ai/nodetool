@@ -7,7 +7,11 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL } from "@nodetool-ai/models-core";
+import {
+  JOB_TRACE_MARKER_DDL,
+  ASSET_FAVORITE_DDL,
+  ASSET_WORKSPACE_PATH_DDL
+} from "@nodetool-ai/models-core";
 import { RUN_TRACES_DDL, applyRunTraceRls } from "./run-traces.js";
 
 import {
@@ -333,14 +337,6 @@ const PROJECT_FOLDER_DDL: readonly string[] = [
   "ALTER TABLE projects ADD COLUMN workspace_id TEXT",
   "ALTER TABLE nodetool_workspaces ADD COLUMN origin TEXT NOT NULL DEFAULT 'created'"
 ];
-
-/**
- * An asset is a file in its project's folder, and the row records the file's
- * path relative to that folder. Shared by the migration and, through
- * {@link POST_BASELINE_TABLE_DDL}, by `initTestDb`.
- */
-const ASSET_WORKSPACE_PATH_DDL =
-  "ALTER TABLE nodetool_assets ADD COLUMN workspace_path TEXT";
 
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (

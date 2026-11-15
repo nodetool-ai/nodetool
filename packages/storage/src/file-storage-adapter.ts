@@ -176,6 +176,23 @@ export class FileStorageAdapter implements StorageAdapter {
     return this.uriForKey(rel);
   }
 
+  async storeIfAbsent(
+    key: string,
+    data: Uint8Array,
+    _contentType?: string
+  ): Promise<string | null> {
+    const max = getMaxLocalUploadBytes();
+    if (data.byteLength > max) {
+      throw new Error(
+        `Upload for key "${key}" exceeds maximum size: ${data.byteLength} > ${max} bytes ` +
+          `(set NODETOOL_MAX_UPLOAD_BYTES to raise the limit)`
+      );
+    }
+    const r = await this.rootPromise;
+    const rel = normalizeStorageKey(key);
+    return (await r.create(rel, data)) ? this.uriForKey(rel) : null;
+  }
+
   async retrieve(uri: string): Promise<Uint8Array | null> {
     const key = this.keyFromUri(uri);
     if (!key) return null;

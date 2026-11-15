@@ -143,6 +143,34 @@ describe("S3Client operations", () => {
     expect(result.etag).toBe('"d41d8cd9"');
   });
 
+  it("putObject signs If-None-Match and reports a refused conditional put as 412", async () => {
+    const fetchFn = mockFetch();
+    await client(fetchFn).putObject({
+      bucket: "b",
+      key: "k",
+      body: new Uint8Array([1]),
+      ifNoneMatch: "*"
+    });
+    const headers = requestOf(fetchFn).init.headers as Record<string, string>;
+    expect(headers["if-none-match"]).toBe("*");
+    // A header outside the signature can be stripped in transit, which would
+    // turn the conditional put into one that replaces the object.
+    expect(headers.authorization).toMatch(/SignedHeaders=[^,]*if-none-match/);
+
+    const refused = mockFetch({
+      status: 412,
+      body: "<Error><Code>PreconditionFailed</Code><Message>At least one of the pre-conditions you specified did not hold</Message></Error>"
+    });
+    await expect(
+      client(refused).putObject({
+        bucket: "b",
+        key: "k",
+        body: new Uint8Array([1]),
+        ifNoneMatch: "*"
+      })
+    ).rejects.toMatchObject({ code: "PreconditionFailed", statusCode: 412 });
+  });
+
   it("headObject sends HEAD and parses metadata", async () => {
     const fetchFn = mockFetch({
       headers: { "content-length": "42", "content-type": "image/png" }

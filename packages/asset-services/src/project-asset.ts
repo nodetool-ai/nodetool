@@ -12,7 +12,8 @@
  * that names it, and an old file is removed only after the row has moved on.
  */
 import { createLogger } from "@nodetool-ai/config";
-import { Asset } from "@nodetool-ai/models";
+import { Asset, setAssetFileMover } from "@nodetool-ai/models";
+import { readFile } from "node:fs/promises";
 import { getAssetFileName } from "@nodetool-ai/protocol";
 import type { Workspace } from "@nodetool-ai/runtime";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
@@ -172,21 +173,28 @@ function joinPath(directory: string, fileName: string): string {
 }
 
 /**
- * A path in `directory` for `stem` that no file and no asset row uses:
- * `stem.ext`, then `stem-2.ext`, `stem-3.ext` and so on.
+ * Write `bytes` to a new file in `directory` named after `stem`, and return
+ * its path: `stem.ext`, or `stem-2.ext`, `stem-3.ext` and so on when the name
+ * is in use. An existing file is never replaced.
  *
- * The directory is listed once and names compare without case, because
- * macOS and Windows folders ignore it. A name is also skipped when an asset
- * row still records it although its file is gone, so a new asset never takes
- * over the path of one that is missing.
+ * Each candidate is written with `Workspace.writeNew`, an exclusive create.
+ * When another writer, in this process or another one sharing the database,
+ * took the name first, the create fails and the next name is tried, so two
+ * saves of one name always end as two files.
+ *
+ * The directory is listed once to skip names already taken, and names
+ * compare without case, because macOS and Windows folders ignore it. A name
+ * is also skipped when an asset row still records it although its file is
+ * gone, so a new asset never takes over the path of one that is missing.
  */
-async function freeFilePath(
+async function claimFile(
   workspace: Workspace,
-  userId: string,
-  projectId: string,
+  owner: { userId: string; projectId: string },
   directory: string,
   stem: string,
-  extension: string
+  extension: string,
+  bytes: Uint8Array,
+  contentType: string
 ): Promise<string> {
   const taken = new Set(
     (await workspace.list(directory)).map((entry) => entry.name.toLowerCase())
@@ -196,14 +204,29 @@ async function freeFilePath(
     const fileName = `${n === 1 ? stem : `${stem}-${n}`}${suffix}`;
     if (taken.has(fileName.toLowerCase())) continue;
     const path = workspace.key(joinPath(directory, fileName));
-    if (await workspace.exists(path)) continue;
-    const rows = await Asset.findByWorkspacePath(userId, projectId, path);
+    const rows = await Asset.findByWorkspacePath(
+      owner.userId,
+      owner.projectId,
+      path
+    );
     if (rows.length > 0) continue;
-    return path;
+    if (await workspace.writeNew(path, bytes, contentType)) return path;
   }
   throw new Error(
     `No free file name for "${stem}${suffix}" in ${directory || "the project folder"}`
   );
+}
+
+/** The bytes of a file an asset row names. Throws when the file is gone. */
+async function readFileOf(
+  workspace: Workspace,
+  path: string
+): Promise<Uint8Array> {
+  const bytes = await workspace.read(path);
+  if (bytes === null) {
+    throw new Error(`The file ${path} is not in the project folder`);
+  }
+  return bytes;
 }
 
 async function fingerprintOf(
@@ -261,27 +284,34 @@ export async function saveProjectAsset(
 
   return withFolderLock(args.userId, projectId, async () => {
     const exactPath = args.path !== undefined ? workspace.key(args.path) : null;
-    const directory = (args.directory ?? GENERATED_DIRECTORY).trim();
-    const path =
-      exactPath ??
-      (await freeFilePath(
-        workspace,
-        args.userId,
-        projectId,
-        directory ? workspace.key(directory) : "",
-        projectAssetFileStem(args.name, contentType),
-        assetFileExtension(contentType)
-      ));
     // A file the caller named may already have its asset. That row is
     // updated, so one file never has two rows that could each delete it.
     const existing = exactPath
       ? await Asset.findByWorkspacePath(args.userId, projectId, exactPath)
       : [];
 
-    if ("bytes" in source) {
-      await workspace.write(path, source.bytes, contentType);
+    let path: string;
+    if (exactPath) {
+      // The caller chose this file, so it is replaced.
+      path = exactPath;
+      if ("bytes" in source) {
+        await workspace.write(path, source.bytes, contentType);
+      } else {
+        await workspace.absorb(source.path, path);
+      }
     } else {
-      await workspace.absorb(source.path, path);
+      const directory = (args.directory ?? GENERATED_DIRECTORY).trim();
+      path = await claimFile(
+        workspace,
+        { userId: args.userId, projectId },
+        directory ? workspace.key(directory) : "",
+        projectAssetFileStem(args.name, contentType),
+        assetFileExtension(contentType),
+        "bytes" in source
+          ? source.bytes
+          : new Uint8Array(await readFile(source.path)),
+        contentType
+      );
     }
 
     try {
@@ -358,9 +388,10 @@ export interface ProjectAssetFileChange {
  * extension. Null when the asset keeps no file in a project folder or the
  * file name does not change.
  *
- * The file is copied to its new name first and the old one is removed on
- * `commit`, so the row never names a file that is not there. Throws when the
- * project folder cannot be reached or the file is missing.
+ * The file is copied to its new name first, with an exclusive create that
+ * never replaces a file, and the old one is removed on `commit`, so the row
+ * never names a file that is not there. Throws when the project folder
+ * cannot be reached or the file is missing.
  */
 export async function renameProjectAssetFile(
   asset: Asset,
@@ -380,15 +411,15 @@ export async function renameProjectAssetFile(
   if (nextStem === stem) return null;
 
   return withFolderLock(asset.user_id, asset.project_id, async () => {
-    const to = await freeFilePath(
+    const to = await claimFile(
       workspace,
-      asset.user_id,
-      asset.project_id,
+      { userId: asset.user_id, projectId: asset.project_id },
       directory,
       nextStem,
-      extension
+      extension,
+      await readFileOf(workspace, from),
+      asset.content_type
     );
-    await workspace.copy(from, to);
     const info = await workspace.stat(to);
     const previous = { path: asset.workspace_path, metadata: asset.metadata };
     asset.workspace_path = to;
@@ -435,17 +466,21 @@ export async function replaceProjectAssetBytes(
 
   return withFolderLock(asset.user_id, asset.project_id, async () => {
     const moves = extension.toLowerCase() !== wanted;
-    const to = moves
-      ? await freeFilePath(
-          workspace,
-          asset.user_id,
-          asset.project_id,
-          directory,
-          stem,
-          wanted
-        )
-      : from;
-    await workspace.write(to, bytes, asset.content_type);
+    let to = from;
+    if (moves) {
+      to = await claimFile(
+        workspace,
+        { userId: asset.user_id, projectId: asset.project_id },
+        directory,
+        stem,
+        wanted,
+        bytes,
+        asset.content_type
+      );
+    } else {
+      // The asset's own file, replaced in place.
+      await workspace.write(to, bytes, asset.content_type);
+    }
     const previous = {
       path: asset.workspace_path,
       metadata: asset.metadata,
@@ -505,3 +540,91 @@ export async function deleteProjectAssetFile(asset: Asset): Promise<boolean> {
     file.workspace.delete(file.path)
   );
 }
+
+// ── Move between projects ───────────────────────────────────────────────────
+
+/**
+ * Move the file of `asset` into the folder of `projectId`, and set the
+ * asset's `project_id` and `workspace_path` to match. Save the row, then call
+ * `commit`. Call `undo` when the row was not saved.
+ *
+ * `workspace_path` is relative to the folder of `project_id`, so the two
+ * change together or not at all. The file is copied into the same directory
+ * of the new folder with an exclusive create: a file already there under
+ * that name is never replaced, and the copy takes a suffixed name instead.
+ * The old file is removed on `commit`, after the row names the new one.
+ *
+ * `project_id` becomes the id of the project that owns the destination
+ * folder. For a loose or missing project id that is Personal, so a row with a
+ * file always names the project whose folder holds it.
+ *
+ * Throws when either folder cannot be reached or the file is missing. The
+ * asset then keeps its project and its file.
+ */
+export async function moveProjectAssetFile(
+  asset: Asset,
+  projectId: string
+): Promise<ProjectAssetFileChange> {
+  const previous = {
+    projectId: asset.project_id,
+    path: asset.workspace_path,
+    metadata: asset.metadata
+  };
+  const restore = (): void => {
+    asset.project_id = previous.projectId;
+    asset.workspace_path = previous.path;
+    asset.metadata = previous.metadata;
+  };
+  const source = await requireProjectAssetFile(asset);
+  const destination = await requireProjectFolder(projectId, asset.user_id);
+  if (!source) {
+    asset.project_id = projectId;
+    return { commit: async () => {}, undo: async () => restore() };
+  }
+  const current = await requireProjectFolder(asset.project_id, asset.user_id);
+  if (current.projectId === destination.projectId) {
+    // Both ids name one folder, such as the loose id and Personal's.
+    asset.project_id = destination.projectId;
+    return { commit: async () => {}, undo: async () => restore() };
+  }
+
+  return withFolderLock(asset.user_id, destination.projectId, async () => {
+    const { directory, stem, extension } = splitPath(source.path);
+    const to = await claimFile(
+      destination.workspace,
+      { userId: asset.user_id, projectId: destination.projectId },
+      directory,
+      stem,
+      extension,
+      await readFileOf(source.workspace, source.path),
+      asset.content_type
+    );
+    const info = await destination.workspace.stat(to);
+    asset.project_id = destination.projectId;
+    asset.workspace_path = to;
+    if (info && asset.metadata && "workspace_mtime" in asset.metadata) {
+      asset.metadata = { ...asset.metadata, workspace_mtime: info.modifiedAt };
+    }
+    return {
+      commit: () =>
+        removeFile(
+          source.workspace,
+          source.path,
+          "Could not remove a moved asset's file from its old project folder"
+        ),
+      undo: async () => {
+        restore();
+        await removeFile(
+          destination.workspace,
+          to,
+          "Could not remove the copy of an asset whose move was not saved"
+        );
+      }
+    };
+  });
+}
+
+// Every change of an asset's project goes through `saveAssetInProject` in
+// `@nodetool-ai/models`, which sits below this package and reaches project
+// folders through the mover installed here.
+setAssetFileMover(moveProjectAssetFile);

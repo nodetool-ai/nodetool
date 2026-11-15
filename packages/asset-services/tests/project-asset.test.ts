@@ -12,7 +12,12 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Asset, initTestDb, ModelObserver } from "@nodetool-ai/models";
+import {
+  Asset,
+  initTestDb,
+  ModelObserver,
+  saveAssetInProject
+} from "@nodetool-ai/models";
 import {
   createLocalWorkspace,
   createWorkspace,
@@ -38,6 +43,7 @@ import {
   GENERATED_DIRECTORY,
   IMPORTED_DIRECTORY,
   deleteProjectAssetFile,
+  moveProjectAssetFile,
   projectAssetFileStem,
   renameProjectAssetFile,
   replaceProjectAssetBytes,
@@ -319,6 +325,203 @@ describe.each(["local", "storage"] as const)(
       // One listing finds the free name. Nothing is probed once per taken name.
       expect(exists.mock.calls.length).toBeLessThanOrEqual(2);
       expect(lookups.mock.calls.length).toBeLessThanOrEqual(2);
+    });
+
+    // ── F9: a save never replaces a file ───────────────────────────────────
+
+    it("does not replace a file another process wrote after the name was chosen", async () => {
+      await fox({ name: "seed" });
+      const workspace = folder().workspace;
+      const theirs = new Uint8Array([4, 2]);
+      // The second process writes the same name in the window between this
+      // save's directory listing and its write, and has no row yet.
+      const list = workspace.list.bind(workspace);
+      vi.spyOn(workspace, "list").mockImplementationOnce(async (path, opts) => {
+        const entries = await list(path, opts);
+        await workspace.write("Generated/fox-in-snow.png", theirs);
+        return entries;
+      });
+
+      const mine = await fox();
+
+      expect(mine.workspace_path).toBe("Generated/fox-in-snow-2.png");
+      expect(await workspace.read("Generated/fox-in-snow.png")).toEqual(theirs);
+      expect(
+        await retrieveAssetBytes(assetStore, USER, mine.id, mine.content_type)
+      ).toEqual(PNG);
+    });
+
+    it("gives two processes that chose the same name two files", async () => {
+      await fox({ name: "seed" });
+      const workspace = folder().workspace;
+      // Neither process sees the other: each lists the directory before
+      // either writes, and no row exists yet for either file.
+      vi.spyOn(workspace, "list").mockResolvedValue([]);
+      vi.spyOn(Asset, "findByWorkspacePath").mockResolvedValue([]);
+
+      const first = await fox({ bytes: new Uint8Array([1]) });
+      const second = await fox({ bytes: new Uint8Array([2]) });
+      vi.restoreAllMocks();
+      vi.mocked(getAssetAdapter).mockReturnValue(assetStore);
+
+      expect(first.workspace_path).toBe("Generated/fox-in-snow.png");
+      expect(second.workspace_path).toBe("Generated/fox-in-snow-2.png");
+      expect(
+        await retrieveAssetBytes(assetStore, USER, first.id, first.content_type)
+      ).toEqual(new Uint8Array([1]));
+      expect(
+        await retrieveAssetBytes(assetStore, USER, second.id, second.content_type)
+      ).toEqual(new Uint8Array([2]));
+    });
+
+    it("does not replace a file that appears while an asset is renamed onto its name", async () => {
+      const asset = await fox();
+      const workspace = folder().workspace;
+      const theirs = new Uint8Array([4, 2]);
+      const list = workspace.list.bind(workspace);
+      vi.spyOn(workspace, "list").mockImplementationOnce(async (path, opts) => {
+        const entries = await list(path, opts);
+        await workspace.write("Generated/red-fox.png", theirs);
+        return entries;
+      });
+
+      const change = await renameProjectAssetFile(asset, "red fox");
+      await asset.save();
+      await change?.commit();
+
+      expect(asset.workspace_path).toBe("Generated/red-fox-2.png");
+      expect(await workspace.read("Generated/red-fox.png")).toEqual(theirs);
+      expect(
+        await retrieveAssetBytes(assetStore, USER, asset.id, asset.content_type)
+      ).toEqual(PNG);
+    });
+
+    // ── F8: an asset's file moves with it to another project ───────────────
+
+    it("moves the file into the other project's folder with the asset", async () => {
+      const asset = await fox();
+
+      await saveAssetInProject(asset, "project-b");
+
+      const row = await Asset.find(USER, asset.id);
+      expect(row?.project_id).toBe("project-b");
+      expect(row?.workspace_path).toBe("Generated/fox-in-snow.png");
+      expect(await folder("project-b").files()).toEqual(["Generated/fox-in-snow.png"]);
+      // No file is left behind without a row.
+      expect(await folder().files()).toEqual([]);
+      expect(
+        await retrieveAssetBytes(assetStore, USER, asset.id, asset.content_type)
+      ).toEqual(PNG);
+    });
+
+    it("takes a free name when the other project already has a file of that name", async () => {
+      const theirs = await fox({
+        projectId: "project-b",
+        bytes: new Uint8Array([7, 7])
+      });
+      const mine = await fox();
+
+      await saveAssetInProject(mine, "project-b");
+
+      expect((await Asset.find(USER, mine.id))?.workspace_path).toBe(
+        "Generated/fox-in-snow-2.png"
+      );
+      expect((await Asset.find(USER, theirs.id))?.workspace_path).toBe(
+        "Generated/fox-in-snow.png"
+      );
+      expect(await folder("project-b").files()).toEqual([
+        "Generated/fox-in-snow-2.png",
+        "Generated/fox-in-snow.png"
+      ]);
+      // Each asset serves its own bytes, never the other's.
+      expect(
+        await retrieveAssetBytes(assetStore, USER, mine.id, mine.content_type)
+      ).toEqual(PNG);
+      expect(
+        await retrieveAssetBytes(assetStore, USER, theirs.id, theirs.content_type)
+      ).toEqual(new Uint8Array([7, 7]));
+      expect(await folder().files()).toEqual([]);
+    });
+
+    it("deleting a moved asset deletes its own file and leaves the other asset's", async () => {
+      const theirs = await fox({
+        projectId: "project-b",
+        bytes: new Uint8Array([7, 7])
+      });
+      const mine = await fox();
+      await saveAssetInProject(mine, "project-b");
+
+      const moved = (await Asset.find(USER, mine.id))!;
+      expect(await deleteProjectAssetFile(moved)).toBe(true);
+      await moved.delete();
+
+      expect(await folder("project-b").files()).toEqual(["Generated/fox-in-snow.png"]);
+      expect(
+        await retrieveAssetBytes(assetStore, USER, theirs.id, theirs.content_type)
+      ).toEqual(new Uint8Array([7, 7]));
+    });
+
+    it("leaves the asset and its file where they were when the row cannot be saved", async () => {
+      const asset = await fox();
+      vi.spyOn(Asset.prototype, "save").mockRejectedValueOnce(new Error("disk full"));
+
+      await expect(saveAssetInProject(asset, "project-b")).rejects.toThrow("disk full");
+
+      expect(asset.project_id).toBe(PROJECT);
+      expect(asset.workspace_path).toBe("Generated/fox-in-snow.png");
+      expect(await folder().files()).toEqual(["Generated/fox-in-snow.png"]);
+      expect(await folder("project-b").files()).toEqual([]);
+      expect((await Asset.find(USER, asset.id))?.project_id).toBe(PROJECT);
+    });
+
+    it("keeps both files until the moved row is saved", async () => {
+      const asset = await fox();
+
+      const move = await moveProjectAssetFile(asset, "project-b");
+
+      expect(asset.project_id).toBe("project-b");
+      expect(await folder().files()).toEqual(["Generated/fox-in-snow.png"]);
+      expect(await folder("project-b").files()).toEqual(["Generated/fox-in-snow.png"]);
+      await asset.save();
+      await move.commit();
+      expect(await folder().files()).toEqual([]);
+    });
+
+    it("refuses the move when a folder cannot be reached or the file is gone", async () => {
+      const asset = await fox();
+      unreachable = "project-b";
+      await expect(saveAssetInProject(asset, "project-b")).rejects.toBeInstanceOf(
+        ProjectFolderUnavailableError
+      );
+      unreachable = null;
+      await folder().workspace.delete("Generated/fox-in-snow.png");
+      await expect(saveAssetInProject(asset, "project-b")).rejects.toThrow(
+        /not in the project folder/
+      );
+
+      const row = await Asset.find(USER, asset.id);
+      expect(row?.project_id).toBe(PROJECT);
+      expect(row?.workspace_path).toBe("Generated/fox-in-snow.png");
+      expect(folders.get("project-b") ? await folder("project-b").files() : []).toEqual([]);
+    });
+
+    it("changes only the project of an asset that keeps no file in a folder", async () => {
+      const legacy = await createStoredAsset({
+        userId: USER,
+        projectId: PROJECT,
+        name: "old",
+        contentType: "image/png",
+        content: PNG
+      });
+
+      await saveAssetInProject(legacy, "project-b");
+
+      const row = await Asset.find(USER, legacy.id);
+      expect(row?.project_id).toBe("project-b");
+      expect(row?.workspace_path).toBeNull();
+      expect(
+        await retrieveAssetBytes(assetStore, USER, legacy.id, legacy.content_type)
+      ).toEqual(PNG);
     });
 
     it("does not reuse the path of an asset whose file is gone", async () => {

@@ -66,6 +66,7 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { getAssetAdapter } from "../../lib/storage.js";
+import { ProjectFolderUnavailableError } from "@nodetool-ai/asset-services/project-asset-file";
 import {
   copyProjectDocument,
   ProjectCopyError
@@ -470,12 +471,27 @@ export const projectsRouter = router({
           "Cannot move a referenced document or entity. Copy it into the destination project instead."
         );
       }
-      const moved = await moveDocumentToProject(
-        ctx.userId,
-        input.type,
-        input.ref,
-        input.projectId
-      );
+      let moved: boolean;
+      try {
+        moved = await moveDocumentToProject(
+          ctx.userId,
+          input.type,
+          input.ref,
+          input.projectId
+        );
+      } catch (error) {
+        // An entity that is a file in its project folder takes the file
+        // along. With a folder unreachable nothing moves, and the caller is
+        // told which folder.
+        if (error instanceof ProjectFolderUnavailableError) {
+          throwApiError(
+            ApiErrorCode.SERVICE_UNAVAILABLE,
+            error.message,
+            "PRECONDITION_FAILED"
+          );
+        }
+        throw error;
+      }
       if (!moved) {
         throwApiError(
           ApiErrorCode.NOT_FOUND,

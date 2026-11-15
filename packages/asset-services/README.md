@@ -14,7 +14,13 @@ through named subpaths. Full server compatibility exports delegate here.
 index row with `project_id` and `workspace_path`. It is the function behind
 `context.createAsset` and workflow output auto-save. `renameProjectAssetFile`,
 `replaceProjectAssetBytes` and `deleteProjectAssetFile` keep the file and the
-row together afterwards. See
+row together afterwards. A new file name is claimed with `Workspace.writeNew`,
+an exclusive create, so no save, rename or move replaces a file.
+
+`workspace_path` is relative to the folder of `project_id`. Change an asset's
+project only through `saveAssetInProject` from `@nodetool-ai/models`. It calls
+`moveProjectAssetFile`, which this package installs when it loads, to copy the
+file into the new folder before the row is saved. See
 [project folders, T3](../../docs/project-folders/prd.md#t3-assets-as-files).
 
 The folder is resolved through `getProjectFolderResolver` from
