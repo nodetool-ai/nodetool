@@ -159,6 +159,11 @@ the user can undo it:
   \`status\`, \`outputs\` keyed by output name, and \`node_errors\`. Fix a
   failure in place and run again; do not save a copy. \`ui_get_graph\` also
   shows each node's \`last_run\`.
+- When you finish a change, call \`ui_focus_nodes\` with the nodes you added
+  or changed, so the user sees them.
+- To take back your own edit, call \`ui_undo\` with the \`document_revision\`
+  your last edit returned. It refuses when the user edited after you; then
+  read the graph and fix it with the edit tools.
 - If the graph already has nodes and the request is a new workflow, call
   \`ui_new_workflow({name})\` and build in the tab it opens, with the
   \`workflow_id\` it returns. Change the existing graph only when the user
@@ -405,7 +410,9 @@ const WORKFLOW_GRAPH_UI_TOOL_NAMES: ReadonlySet<string> = new Set([
   "ui_run_workflow",
   "ui_open_workflow",
   "ui_new_workflow",
-  "ui_apply_graph_patch"
+  "ui_apply_graph_patch",
+  "ui_focus_nodes",
+  "ui_undo"
 ]);
 
 /**

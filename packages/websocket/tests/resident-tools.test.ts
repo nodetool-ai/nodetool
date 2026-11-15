@@ -72,6 +72,8 @@ describe("resident toolbelt", () => {
     expect(editorRule).toBeLessThan(section.indexOf("nodetool.workflows.validate"));
     expect(section).toContain("ui_new_workflow");
     expect(section).toContain("wait: true");
+    expect(section).toContain("ui_focus_nodes");
+    expect(section).toContain("ui_undo");
   });
 
   it("does not add UI tools when no document has focus", () => {

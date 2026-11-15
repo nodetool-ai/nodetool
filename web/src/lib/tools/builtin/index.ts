@@ -21,6 +21,7 @@ import "./setNodeTitle";
 import "./moveNode";
 import "./getGraph";
 import "./applyGraphPatch";
+import "./canvasActions";
 import "./deleteNode";
 import "./deleteEdge";
 

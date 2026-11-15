@@ -155,6 +155,31 @@ export const uiApplyGraphPatchParams = {
   based_on_revision: basedOnWorkflowRevisionSchema
 };
 
+export const uiFocusNodesParams = {
+  node_ids: z
+    .array(z.string())
+    .min(1)
+    .describe("Ids of the nodes to select and frame on the canvas."),
+  workflow_id: optionalWorkflowIdSchema
+};
+
+export const uiUndoParams = {
+  based_on_revision: z
+    .string()
+    .regex(/^graph:[a-f0-9]{64}$/)
+    .describe(
+      "The document_revision your last graph edit returned. If the graph changed after it, nothing is undone."
+    ),
+  steps: z
+    .number()
+    .int()
+    .min(1)
+    .max(20)
+    .optional()
+    .describe("How many of your own edits to undo, newest first (default 1). A ui_apply_graph_patch call is one edit."),
+  workflow_id: optionalWorkflowIdSchema
+};
+
 export const uiNewWorkflowParams = {
   name: z
     .string()
@@ -299,6 +324,16 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
     description:
       "Apply several graph edits as one undo step, in this order: delete_edge_ids, delete_node_ids, add_nodes, update_nodes, move_nodes, add_edges. Each entry takes the arguments of the matching single-edit tool. If one entry fails, no edit is applied and the error names the entry.",
     parameters: uiApplyGraphPatchParams
+  },
+  ui_focus_nodes: {
+    description:
+      "Select nodes and frame them on the canvas, so the user sees what you changed. Required: `node_ids`.",
+    parameters: uiFocusNodesParams
+  },
+  ui_undo: {
+    description:
+      "Undo your own last graph edits in the editor. Required: `based_on_revision`, the document_revision your last edit returned. Refuses when the user edited the graph after that. Optional: `steps`.",
+    parameters: uiUndoParams
   },
   ui_new_workflow: {
     description:

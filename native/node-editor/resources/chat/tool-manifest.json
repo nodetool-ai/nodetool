@@ -377,6 +377,37 @@
     }
   },
   {
+    "name": "ui_focus_nodes",
+    "description": "Select nodes and frame them on the canvas, so the user sees what you changed. Required: `node_ids`.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "node_ids": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids of the nodes to select and frame on the canvas."
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "node_ids"
+      ]
+    }
+  },
+  {
     "name": "ui_get_graph",
     "description": "Read a workflow graph (nodes and edges). Reads the open editor when the workflow has one, otherwise the saved workflow from the server — so a workflow created over the API is readable without opening it. `source` says which one answered. In the editor, each node carries `last_run` (status, error, output) from the run the canvas shows.",
     "parameters": {
@@ -672,6 +703,40 @@
       },
       "required": [
         "tab_index"
+      ]
+    }
+  },
+  {
+    "name": "ui_undo",
+    "description": "Undo your own last graph edits in the editor. Required: `based_on_revision`, the document_revision your last edit returned. Refuses when the user edited the graph after that. Optional: `steps`.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "based_on_revision": {
+          "type": "string",
+          "pattern": "^graph:[a-f0-9]{64}$",
+          "description": "The document_revision your last graph edit returned. If the graph changed after it, nothing is undone."
+        },
+        "steps": {
+          "description": "How many of your own edits to undo, newest first (default 1). A ui_apply_graph_patch call is one edit.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "workflow_id": {
+          "description": "Optional workflow id; when omitted/null, the current workflow is used.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "based_on_revision"
       ]
     }
   },

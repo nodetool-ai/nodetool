@@ -573,6 +573,36 @@ class EditorChatToolsTest final : public QObject {
         QVERIFY(failed["error"].toString().startsWith("add_edges[0]: "));
         QCOMPARE(window.document()->snapshot()["graph"], before["graph"]);
     }
+    void focusAndUndo() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        QVERIFY(call(window, server, "ui_add_node", add("a"))["ok"].toBool());
+        const auto last = call(window, server, "ui_add_node", add("b"))["result"].toObject();
+
+        const auto focused = call(window, server, "ui_focus_nodes", {{"node_ids", QJsonArray{"b", "gone"}}});
+        QVERIFY2(focused["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(focused).toJson())));
+        QCOMPARE(focused["result"].toObject()["focused"].toArray(), QJsonArray{"b"});
+        QCOMPARE(focused["result"].toObject()["missing"].toArray(), QJsonArray{"gone"});
+        // The chat context reports the canvas selection.
+        QTRY_COMPARE(window.chatSession()->property("hostContext").toMap()["ui_context"].toMap()["selection"]
+                         .toMap()["node_ids"].toStringList(),
+                     QStringList{"b"});
+        QVERIFY(!call(window, server, "ui_focus_nodes", {{"node_ids", QJsonArray{"gone"}}})["ok"].toBool());
+
+        const auto undone = call(window, server, "ui_undo", {{"based_on_revision", last["document_revision"]}});
+        QVERIFY2(undone["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(undone).toJson())));
+        QCOMPARE(undone["result"].toObject()["undone"].toInt(), 1);
+        QCOMPARE(window.document()->nodeCount(), 1);
+
+        const QJsonValue current =
+            call(window, server, "ui_get_graph", {})["result"].toObject().value("document_revision");
+        QVERIFY(window.document()->applyCommand({{"op", "patchChatData"}, {"id", "a"},
+                                                 {"data", QJsonObject{{"title", "Renamed by the user"}}}}));
+        const auto before = window.document()->snapshot();
+        QVERIFY(!call(window, server, "ui_undo", {{"based_on_revision", current}})["ok"].toBool());
+        QCOMPARE(window.document()->snapshot(), before);
+    }
     void resourcePrefixes() {
         ChatServer server;
         nodetool::EditorWindow window;
@@ -646,7 +676,8 @@ class EditorChatToolsTest final : public QObject {
                                       "ui_delete_edge",    "ui_update_node_data", "ui_search_nodes",
                                       "ui_search_models",  "ui_switch_tab",       "ui_copy",
                                       "ui_paste",          "ui_open_workflow",    "ui_run_workflow",
-                                      "ui_open_document",  "ui_new_workflow",     "ui_apply_graph_patch"};
+                                      "ui_open_document",  "ui_new_workflow",     "ui_apply_graph_patch",
+                                      "ui_focus_nodes",    "ui_undo"};
         QCOMPARE(web.size(), implemented.size());
         ChatServer server;
         nodetool::EditorWindow window;

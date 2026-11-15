@@ -2,6 +2,7 @@
 #include "EditorChatSearch.h"
 #include "document/ConnectionTypes.h"
 #include "graph/BodyConnectionRules.h"
+#include "graph/EditorScene.h"
 #include "graph/NodeCreation.h"
 #include "properties/CodeInference.h"
 #include <QApplication>
@@ -17,6 +18,7 @@
 #include <QTimer>
 #include <QUrlQuery>
 #include <QUuid>
+#include <QtNodes/internal/NodeGraphicsObject.hpp>
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -312,6 +314,8 @@ void EditorWindow::initializeChatTools() {
         {"ui_open_workflow", {"workflow_id"}},
         {"ui_new_workflow", {}},
         {"ui_apply_graph_patch", {}},
+        {"ui_focus_nodes", {"node_ids"}},
+        {"ui_undo", {"based_on_revision"}},
         {"ui_run_workflow", {"workflow_id"}},
         {"ui_open_document", {"type", "id"}}};
     // The manifest is the web registry's own JSON schema for these tools,
@@ -385,6 +389,7 @@ void EditorWindow::initializeChatTools() {
                 const bool valid =
                     key == "position" ? value.isObject() || (name == "ui_add_node" && value.isString())
                     : key == "data"   ? value.isObject()
+                    : key == "node_ids" ? value.isArray() && !value.toArray().isEmpty()
                     : key == "tab_index"
                         ? value.isDouble()
                         : value.isString() && (!key.endsWith("id") || !value.toString().isEmpty());
@@ -618,6 +623,52 @@ void EditorWindow::initializeChatTools() {
                 complete(result);
                 return;
             }
+            if (name == "ui_focus_nodes") {
+                if (!input["node_ids"].isArray() || input["node_ids"].toArray().isEmpty()) {
+                    fail("Invalid input: node_ids");
+                    return;
+                }
+                target->ensureProjected();
+                QJsonArray focused;
+                QJsonArray missing;
+                QList<QtNodes::NodeId> matches;
+                for (const auto &value : input["node_ids"].toArray()) {
+                    const auto wanted = value.toString();
+                    bool found = false;
+                    for (auto modelId : target->model_.allNodeIds()) {
+                        if (target->model_.resourceId(modelId) == wanted) {
+                            matches.append(modelId);
+                            found = true;
+                            break;
+                        }
+                    }
+                    (found ? focused : missing).append(wanted);
+                }
+                if (matches.isEmpty()) {
+                    QStringList names;
+                    for (const auto &value : missing) {
+                        names << value.toString();
+                    }
+                    fail("No node found for " + names.join(", ") + ". Read ui_get_graph for the node ids.");
+                    return;
+                }
+                // The empty selection between these steps would sync the inspector too.
+                target->selectingNode_ = true;
+                target->scene_->clearSelection();
+                target->selectingNode_ = false;
+                for (auto modelId : matches) {
+                    if (auto *item = target->scene_->nodeGraphicsObject(modelId)) {
+                        item->setSelected(true);
+                    }
+                }
+                target->fitSelection();
+                QJsonObject result{{"ok", true}, {"focused", focused}};
+                if (!missing.isEmpty()) {
+                    result["missing"] = missing;
+                }
+                complete(result);
+                return;
+            }
             if (name == "ui_search_nodes") {
                 // web/src/lib/tools/builtin/searchNodes.ts execute.
                 const auto query = input["query"].toString().trimmed();
@@ -760,6 +811,24 @@ void EditorWindow::initializeChatTools() {
                 input["based_on_revision"] != documentRevision(document)) {
                 fail("document_revision_conflict: The editor graph changed since your read. Read "
                      "ui_get_graph again and retry.");
+                return;
+            }
+            if (name == "ui_undo") {
+                if (input["based_on_revision"] != documentRevision(document)) {
+                    fail("document_revision_conflict: The graph changed after your last edit, so nothing was "
+                         "undone. Read ui_get_graph and change the graph with the edit tools instead.");
+                    return;
+                }
+                const auto undone = std::min(std::clamp(input["steps"].toInt(1), 1, 20),
+                                             document.undoStack()->index());
+                if (undone == 0) {
+                    fail("There is no edit to undo.");
+                    return;
+                }
+                for (int step = 0; step < undone; ++step) {
+                    document.undo();
+                }
+                complete({{"ok", true}, {"undone", undone}, {"document_revision", documentRevision(document)}});
                 return;
             }
             if (name == "ui_run_workflow") {
