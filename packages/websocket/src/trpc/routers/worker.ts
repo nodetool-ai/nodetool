@@ -233,7 +233,11 @@ export const workerRouter = router({
 
   comfyPresets: protectedProcedure
     .output(z.array(comfyPresetOutput))
-    .query(() => (isProductionServer() ? [] : [...COMFY_PRESETS])),
+    .query(() =>
+      isProductionServer()
+        ? []
+        : COMFY_PRESETS.map((preset) => ({ ...preset, gpus: [...preset.gpus] }))
+    ),
 
   startComfyPreset: localProcedure
     .input(z.object({ presetId: z.string().min(1) }))
