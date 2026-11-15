@@ -3,6 +3,7 @@
 #include <QHash>
 #include <QSet>
 #include <QTimer>
+#include <functional>
 #include <optional>
 #include "interfaces/DocumentTabs.h"
 #include "ui/DockedOverlay.h"
@@ -49,6 +50,7 @@
 #include <QPointer>
 class QTimer;
 class QDialog;
+class QMenu;
 class QQmlEngine;
 class QQuickWidget;
 class QDockWidget;
@@ -106,6 +108,9 @@ public:
     // useStartComfyWorkflow: a new Comfy workflow on the server, opened in a tab.
     void newComfyWorkflow();
     bool comfyWorkflowOpen() const { return comfyWorkflow_; }
+    // The cost confirmation before renting a ComfyUI worker. A test answers it
+    // instead of the dialog.
+    void setComfyRentConfirm(std::function<bool(const QVariantMap &)> confirm) { comfyRentConfirm_ = std::move(confirm); }
     // The Generations panel's list, shared by every tab and held by the root window.
     node_editor::GenerationActivity *generationActivity() { return tabOwner_ ? &tabOwner_->generations_ : &generations_; }
     // The root window has no panels of its own, so it returns the active tab's.
@@ -635,6 +640,9 @@ private:
     void reloadComfyCatalog();
     void syncComfyTarget();
     void showComfyTargetMenu();
+    void addComfyRentActions(QMenu &menu);
+    bool confirmComfyRent(const QVariantMap &preset);
+    std::function<bool(const QVariantMap &)> comfyRentConfirm_;
     // The root window's generations, which every tab's Generations panel reads
     // through generationActivity(). Owned by value, UI thread, destroyed with
     // the root window after its tabs and their panels.

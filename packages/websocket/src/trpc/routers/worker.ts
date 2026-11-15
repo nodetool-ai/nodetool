@@ -134,6 +134,8 @@ const comfyPresetOutput = z.object({
   id: z.string(),
   label: z.string(),
   profileName: z.string(),
+  /** GPUs tried in order, so the UI can name the card before the user rents. */
+  gpus: z.array(z.string()),
   hourlyUsd: z.object({ min: z.number(), max: z.number() }),
   maxLifetimeMinutes: z.number()
 });

@@ -7,6 +7,8 @@
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QPointer>
 #include <QQuickWidget>
 
@@ -17,6 +19,7 @@ void EditorWindow::installComfy() {
         // The root window owns the target, so it reports its errors and opens
         // the workflows it creates.
         connect(&comfy_, &node_editor::ComfyBackend::errorOccurred, this, [this](const QString &message) { notify(QStringLiteral("error"), message); });
+        connect(&comfy_, &node_editor::ComfyBackend::noticeOccurred, this, [this](const QString &message) { notify(QStringLiteral("success"), message); });
         connect(&comfy_, &node_editor::ComfyBackend::workflowCreated, this, &EditorWindow::openWorkflow);
         return;
     }
@@ -66,7 +69,7 @@ void EditorWindow::reloadComfyCatalog() {
 }
 
 void EditorWindow::syncComfyTarget() {
-    editorCommands_.setComfyTarget(comfyWorkflow_ ? comfyBackend()->label() : QString{});
+    editorCommands_.setComfyTarget(comfyWorkflow_ ? comfyBackend()->toolbarLabel() : QString{});
 }
 
 void EditorWindow::showComfyTargetMenu() {
@@ -124,10 +127,82 @@ void EditorWindow::showComfyTargetMenu() {
                                                serverUrl.isEmpty() ? QStringLiteral("http://127.0.0.1:8188") : serverUrl, &ok);
         if (self && ok && !url.trimmed().isEmpty()) { comfy->selectServer(url); }
     });
+    addComfyRentActions(menu);
     // The menu opens above the toolbar, as the web anchors it.
     auto anchor = toolbarOverlay_ ? toolbarOverlay_->mapToGlobal(QPoint(0, 0)) : QCursor::pos();
     anchor.ry() -= menu.sizeHint().height();
     menu.exec(anchor);
+}
+
+// Renting a ComfyUI worker without leaving the target control: pick a preset,
+// confirm its price, and the target switches once ComfyUI answers. Rented
+// workers are released from the same menu.
+void EditorWindow::addComfyRentActions(QMenu &menu) {
+    auto *comfy = comfyBackend();
+    const auto rented = comfy->rentedWorkers();
+    if (!comfy->renting() && comfy->rentPresets().isEmpty() && rented.isEmpty()) { return; }
+    menu.addSeparator();
+    QPointer<EditorWindow> self(this);
+    if (comfy->renting()) {
+        auto *status = menu.addAction(comfy->rentLabel());
+        status->setObjectName(QStringLiteral("comfy-rent-status"));
+        status->setEnabled(false);
+        auto *cancel = menu.addAction(tr("Cancel and release the worker"));
+        cancel->setObjectName(QStringLiteral("comfy-rent-cancel"));
+        connect(cancel, &QAction::triggered, comfy, &node_editor::ComfyBackend::cancelRent);
+    } else if (comfy->rentKeyMissing()) {
+        auto *key = menu.addAction(tr("Rent a ComfyUI worker: add a RunPod API key…"));
+        key->setObjectName(QStringLiteral("comfy-rent-key"));
+        connect(key, &QAction::triggered, this, [self] {
+            if (self) { self->showWorkers(); }
+        });
+    } else if (!comfy->rentPresets().isEmpty()) {
+        menu.addAction(tr("Rent a ComfyUI worker on RunPod"))->setEnabled(false);
+        for (const auto &value : comfy->rentPresets()) {
+            const auto preset = value.toMap();
+            const auto id = preset["id"].toString();
+            const auto price = preset["price"].toString();
+            auto *action = menu.addAction(price.isEmpty() ? tr("Rent %1…").arg(preset["label"].toString())
+                                                          : tr("Rent %1 (%2)…").arg(preset["label"].toString(), price));
+            action->setObjectName(QStringLiteral("comfy-rent-") + id);
+            connect(action, &QAction::triggered, this, [self, id, preset] {
+                if (self && self->confirmComfyRent(preset)) { self->comfyBackend()->rentWorker(id); }
+            });
+        }
+    }
+    for (const auto &value : rented) {
+        const auto worker = value.toMap();
+        const auto id = worker["id"].toString();
+        const auto name = worker["name"].toString();
+        QString text = tr("Release %1").arg(name);
+        if (!worker["cost"].toString().isEmpty()) { text += QStringLiteral(" ") + tr("(%1 so far)").arg(worker["cost"].toString()); }
+        auto *release = menu.addAction(text + QStringLiteral("…"));
+        release->setObjectName(QStringLiteral("comfy-release-") + id);
+        release->setToolTip(worker["current"].toBool() ? tr("Comfy workflows run on this worker now") : worker["status"].toString());
+        connect(release, &QAction::triggered, this, [self, id, name] {
+            if (!self) { return; }
+            QMessageBox box(QMessageBox::Question, tr("Release worker"),
+                            tr("Release %1? The worker is terminated, its billing ends, and the models it downloaded are deleted.").arg(name),
+                            QMessageBox::Cancel, self);
+            auto *ok = box.addButton(tr("Release worker"), QMessageBox::AcceptRole);
+            box.setDefaultButton(ok);
+            box.exec();
+            if (self && box.clickedButton() == ok) { self->comfyBackend()->releaseWorker(id); }
+        });
+    }
+    connect(menu.addAction(tr("Manage workers…")), &QAction::triggered, this, [self] {
+        if (self) { self->showWorkers(); }
+    });
+}
+
+bool EditorWindow::confirmComfyRent(const QVariantMap &preset) {
+    if (comfyRentConfirm_) { return comfyRentConfirm_(preset); }
+    QMessageBox box(QMessageBox::Question, tr("Rent a ComfyUI worker"), preset["confirm"].toString(), QMessageBox::Cancel, this);
+    const auto price = preset["price"].toString();
+    auto *ok = box.addButton(price.isEmpty() ? tr("Rent worker") : tr("Rent for %1").arg(price), QMessageBox::AcceptRole);
+    box.setDefaultButton(QMessageBox::Cancel);
+    box.exec();
+    return box.clickedButton() == ok;
 }
 
 void EditorWindow::newComfyWorkflow() {

@@ -147,6 +147,15 @@ describe("worker router", () => {
     });
   });
 
+  it("comfyPresets names each preset's GPUs for the rent confirmation", async () => {
+    const caller = createCaller(makeCtx(manager, repoint));
+    const presets = await caller.worker.comfyPresets();
+    expect(presets.length).toBeGreaterThan(0);
+    for (const preset of presets) {
+      expect(preset.gpus.length).toBeGreaterThan(0);
+    }
+  });
+
   // ── provision / stop / reconcile ────────────────────────
   it("provision delegates to manager.provision(profileName)", async () => {
     manager.provision.mockResolvedValue(makeInstance());
