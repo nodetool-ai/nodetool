@@ -14,7 +14,8 @@ import {
   Script,
   Storyboard,
   TimelineSequence,
-  entityFromAsset
+  entityFromAsset,
+  saveAssetInProject
 } from "@nodetool-ai/models";
 import {
   ENTITY_METADATA_KEY,
@@ -105,9 +106,11 @@ async function writeEntityMarker(
 
   asset.metadata = { ...(asset.metadata ?? {}), [ENTITY_METADATA_KEY]: marker };
   if (args.projectId) {
-    asset.project_id = args.projectId;
+    // Takes the asset's file along when it is a file in its project folder.
+    await saveAssetInProject(asset, args.projectId);
+  } else {
+    await asset.save();
   }
-  await asset.save();
 
   const entity = entityFromAsset(asset);
   if (!entity) {

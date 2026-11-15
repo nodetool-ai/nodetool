@@ -15,6 +15,8 @@
  *   unassigned     (query)    — ProjectDocumentRef[] in the loose bucket
  *   thread         (mutation) — { threadId } (the project's agent thread)
  *   create         (mutation) — ProjectResponse (creates the project folder)
+ *   openFolder     (mutation) — ProjectResponse (adopts an existing folder)
+ *   relocate       (mutation) — ProjectResponse (points at a moved folder)
  *   update         (mutation) — ProjectResponse
  *   delete         (mutation) — { ok: true, folder } (what happened to the folder)
  *   assignDocument (mutation) — { ok: true }
@@ -54,12 +56,14 @@ import {
   copyProjectDocumentOutput,
   createProjectInput,
   deleteProjectOutput,
+  openProjectFolderInput,
   patchProjectInput,
   projectDetail,
   projectDocumentPage,
   projectDocumentPageInput,
   projectDocumentRef,
   projectResponse,
+  relocateProjectInput,
   type ProjectResponse
 } from "@nodetool-ai/protocol/api-schemas/projects.js";
 import { ApiErrorCode } from "../../error-codes.js";
@@ -67,12 +71,18 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { getAssetAdapter } from "../../lib/storage.js";
+import { ProjectFolderUnavailableError } from "@nodetool-ai/asset-services/project-asset-file";
 import {
   copyProjectDocument,
   ProjectCopyError
 } from "../../lib/project-document-copy.js";
 import { planProjectFolderDelete } from "@nodetool-ai/project-services/project-delete";
 import { deleteProjectForUser } from "../../lib/project-delete.js";
+import {
+  ProjectFolderOpenError,
+  openProjectFolder,
+  relocateProjectFolder
+} from "../../lib/project-folder-open.js";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
 
 const log = createLogger("nodetool.websocket.projects");
@@ -217,6 +227,27 @@ async function toResponse(project: Project): Promise<ProjectResponse> {
         }
       : null
   });
+}
+
+const FOLDER_OPEN_ERROR_CODES = {
+  forbidden: ApiErrorCode.FORBIDDEN,
+  invalid: ApiErrorCode.INVALID_INPUT,
+  conflict: ApiErrorCode.ALREADY_EXISTS,
+  not_found: ApiErrorCode.NOT_FOUND
+} as const;
+
+/** Run a folder open or relocate, answering its refusals as API errors. */
+async function withFolderErrors(
+  action: () => Promise<Project>
+): Promise<ProjectResponse> {
+  try {
+    return await toResponse(await action());
+  } catch (error) {
+    if (error instanceof ProjectFolderOpenError) {
+      throwApiError(FOLDER_OPEN_ERROR_CODES[error.code], error.message);
+    }
+    throw error;
+  }
 }
 
 async function loadOwned(userId: string, id: string): Promise<Project> {
@@ -404,6 +435,28 @@ export const projectsRouter = router({
       return toResponse(existing);
     }),
 
+  /**
+   * Open an existing local folder as a project, without moving a file. Local
+   * installs only. See `openProjectFolder` for the `.nodetool/project.json`
+   * cases.
+   */
+  openFolder: protectedProcedure
+    .input(openProjectFolderInput)
+    .output(projectResponse)
+    .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      return withFolderErrors(() => openProjectFolder(ctx.userId, input));
+    }),
+
+  /** Point a project whose folder moved at its new place. Local installs only. */
+  relocate: protectedProcedure
+    .input(relocateProjectInput)
+    .output(projectResponse)
+    .mutation(async ({ ctx, input }) => {
+      await prepareUser(ctx.userId);
+      return withFolderErrors(() => relocateProjectFolder(ctx.userId, input));
+    }),
+
   update: protectedProcedure
     .input(updateInput)
     .output(projectResponse)
@@ -480,12 +533,27 @@ export const projectsRouter = router({
           "Cannot move a referenced document or entity. Copy it into the destination project instead."
         );
       }
-      const moved = await moveDocumentToProject(
-        ctx.userId,
-        input.type,
-        input.ref,
-        input.projectId
-      );
+      let moved: boolean;
+      try {
+        moved = await moveDocumentToProject(
+          ctx.userId,
+          input.type,
+          input.ref,
+          input.projectId
+        );
+      } catch (error) {
+        // An entity that is a file in its project folder takes the file
+        // along. With a folder unreachable nothing moves, and the caller is
+        // told which folder.
+        if (error instanceof ProjectFolderUnavailableError) {
+          throwApiError(
+            ApiErrorCode.SERVICE_UNAVAILABLE,
+            error.message,
+            "PRECONDITION_FAILED"
+          );
+        }
+        throw error;
+      }
       if (!moved) {
         throwApiError(
           ApiErrorCode.NOT_FOUND,

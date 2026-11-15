@@ -8,6 +8,25 @@ export interface StorageAdapter {
   /** Store an asset and return a URI. */
   store(key: string, data: Uint8Array, contentType?: string): Promise<string>;
 
+  /**
+   * Store an object only when none exists under `key`. Returns its URI, or
+   * null when the key was taken, in which case nothing is written and the
+   * existing object is untouched.
+   *
+   * The check and the write are one step in the backend, so two writers
+   * racing for one key, in this process or another, cannot both succeed and
+   * neither replaces the other. `store` gives no such guarantee.
+   *
+   * Optional so a test double need not implement it. A caller that needs the
+   * guarantee must treat its absence as "not supported", never fall back to
+   * `store`.
+   */
+  storeIfAbsent?(
+    key: string,
+    data: Uint8Array,
+    contentType?: string
+  ): Promise<string | null>;
+
   /** Retrieve an asset by URI (as returned by store). */
   retrieve(uri: string): Promise<Uint8Array | null>;
 

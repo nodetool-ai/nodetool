@@ -974,6 +974,18 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Same grouping surface as `projects.create`. The whole list of " +
       "rollups `projects.get` returns one at a time."
   },
+  "projects.openFolder": {
+    withheld:
+      "Takes an absolute host path and makes that folder a project, which " +
+      "a run could then list and write through its workspace. That is " +
+      "host-path read and write, the risk `workspace.create` is withheld for."
+  },
+  "projects.relocate": {
+    withheld:
+      "Points a project at an absolute host path, which a run could then " +
+      "list and write through its workspace. That is host-path read and " +
+      "write, the risk `workspace.update` is withheld for."
+  },
   "projects.restore": {
     elsewhere: "`update_project` with `archived: false` restores a project."
   },

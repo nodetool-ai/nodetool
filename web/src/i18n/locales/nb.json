@@ -6183,7 +6183,16 @@
         "title": "Nytt prosjekt",
         "confirm": "Lag prosjekt",
         "nameLabel": "Prosjektnavn",
-        "createError": "Kunne ikke opprette prosjektet: {{error}}"
+        "createError": "Kunne ikke opprette prosjektet: {{error}}",
+        "openFolder": "Åpne mappe…",
+        "openFolderHint": "Har du allerede en mappe? Åpne den som et prosjekt. Ingen filer flyttes.",
+        "openFolderError": "Kunne ikke åpne mappen: {{error}}"
+      },
+      "folder": {
+        "notFound": "Fant ikke mappen",
+        "notFoundDetail": "Mappen til {{name}} er flyttet, har fått nytt navn eller ligger på en stasjon som ikke er tilkoblet. Kjøringer starter ikke før du finner den.",
+        "locate": "Finn",
+        "locateError": "Kunne ikke finne mappen: {{error}}"
       },
       "home": {
         "homeTab": "Hjem",

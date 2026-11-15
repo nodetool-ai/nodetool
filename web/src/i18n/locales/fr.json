@@ -6262,7 +6262,16 @@
         "title": "Nouveau projet",
         "confirm": "Créer un projet",
         "nameLabel": "Nom du projet",
-        "createError": "Impossible de créer le projet : {{error}}"
+        "createError": "Impossible de créer le projet : {{error}}",
+        "openFolder": "Ouvrir un dossier…",
+        "openFolderHint": "Vous avez déjà un dossier ? Ouvrez-le comme projet. Aucun fichier n'est déplacé.",
+        "openFolderError": "Impossible d'ouvrir le dossier : {{error}}"
+      },
+      "folder": {
+        "notFound": "Dossier introuvable",
+        "notFoundDetail": "Le dossier de {{name}} a été déplacé, renommé ou se trouve sur un disque non connecté. Les exécutions ne démarrent pas tant que vous ne l'avez pas localisé.",
+        "locate": "Localiser",
+        "locateError": "Impossible de localiser le dossier : {{error}}"
       },
       "home": {
         "homeTab": "Accueil",

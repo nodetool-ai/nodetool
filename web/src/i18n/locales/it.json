@@ -6262,7 +6262,16 @@
         "title": "Nuovo progetto",
         "confirm": "Crea progetto",
         "nameLabel": "Nome del progetto",
-        "createError": "Impossibile creare il progetto: {{error}}"
+        "createError": "Impossibile creare il progetto: {{error}}",
+        "openFolder": "Apri cartella…",
+        "openFolderHint": "Hai già una cartella? Aprila come progetto. Nessun file viene spostato.",
+        "openFolderError": "Impossibile aprire la cartella: {{error}}"
+      },
+      "folder": {
+        "notFound": "Cartella non trovata",
+        "notFoundDetail": "La cartella di {{name}} è stata spostata, rinominata o si trova su un'unità non collegata. Le esecuzioni non partono finché non la individui.",
+        "locate": "Individua",
+        "locateError": "Impossibile individuare la cartella: {{error}}"
       },
       "home": {
         "homeTab": "Casa",

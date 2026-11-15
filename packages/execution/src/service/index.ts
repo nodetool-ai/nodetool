@@ -54,7 +54,10 @@ export {
   markFolderCreated,
   migrateProjectFolders,
   projectFolderName,
-  projectManifest
+  projectManifest,
+  readProjectManifest,
+  removeProjectManifest,
+  writeProjectManifest
 } from "./project-folder.js";
 export type {
   FolderCreatedMark,

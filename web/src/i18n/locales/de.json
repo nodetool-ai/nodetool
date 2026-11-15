@@ -6183,7 +6183,16 @@
         "title": "Neues Projekt",
         "confirm": "Projekt erstellen",
         "nameLabel": "Projektname",
-        "createError": "Projekt konnte nicht erstellt werden: {{error}}"
+        "createError": "Projekt konnte nicht erstellt werden: {{error}}",
+        "openFolder": "Ordner öffnen…",
+        "openFolderHint": "Sie haben schon einen Ordner? Öffnen Sie ihn als Projekt. Es werden keine Dateien verschoben.",
+        "openFolderError": "Der Ordner konnte nicht geöffnet werden: {{error}}"
+      },
+      "folder": {
+        "notFound": "Ordner nicht gefunden",
+        "notFoundDetail": "Der Ordner von {{name}} wurde verschoben, umbenannt oder liegt auf einem nicht verbundenen Laufwerk. Läufe starten erst, wenn Sie ihn suchen.",
+        "locate": "Suchen",
+        "locateError": "Der Ordner konnte nicht gefunden werden: {{error}}"
       },
       "home": {
         "homeTab": "Startseite",

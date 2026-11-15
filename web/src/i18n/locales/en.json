@@ -6183,7 +6183,16 @@
         "title": "New project",
         "confirm": "Create project",
         "nameLabel": "Project name",
-        "createError": "Could not create the project: {{error}}"
+        "createError": "Could not create the project: {{error}}",
+        "openFolder": "Open folder…",
+        "openFolderHint": "Already have a folder? Open it as a project. No files move.",
+        "openFolderError": "Could not open the folder: {{error}}"
+      },
+      "folder": {
+        "notFound": "Folder not found",
+        "notFoundDetail": "The folder of {{name}} was moved, renamed, or is on a drive that is not connected. Runs cannot start until you locate it.",
+        "locate": "Locate",
+        "locateError": "Could not locate the folder: {{error}}"
       },
       "home": {
         "homeTab": "Home",

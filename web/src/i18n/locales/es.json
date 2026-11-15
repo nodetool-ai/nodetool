@@ -6262,7 +6262,16 @@
         "title": "Nuevo proyecto",
         "confirm": "Crear proyecto",
         "nameLabel": "Nombre del proyecto",
-        "createError": "No se pudo crear el proyecto: {{error}}"
+        "createError": "No se pudo crear el proyecto: {{error}}",
+        "openFolder": "Abrir carpeta…",
+        "openFolderHint": "¿Ya tienes una carpeta? Ábrela como proyecto. No se mueve ningún archivo.",
+        "openFolderError": "No se pudo abrir la carpeta: {{error}}"
+      },
+      "folder": {
+        "notFound": "Carpeta no encontrada",
+        "notFoundDetail": "La carpeta de {{name}} se movió, se renombró o está en una unidad no conectada. Las ejecuciones no empiezan hasta que la localices.",
+        "locate": "Localizar",
+        "locateError": "No se pudo localizar la carpeta: {{error}}"
       },
       "home": {
         "homeTab": "Inicio",
