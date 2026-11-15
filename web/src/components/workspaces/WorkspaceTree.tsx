@@ -24,6 +24,14 @@ import {
   revealLabelKey
 } from "./projectFolderPaths";
 
+/** File names of the documents that open in their own editor from Files. */
+const DOCUMENT_FILE_SUFFIXES = [".workflow.json", ".timeline.json"] as const;
+
+const isDocumentFile = (path: string): boolean => {
+  const lower = path.toLowerCase();
+  return DOCUMENT_FILE_SUFFIXES.some((suffix) => lower.endsWith(suffix));
+};
+
 /** Props forwarded onto a rendered tree row. */
 interface TreeViewItemSlotProps {
   className?: string;
@@ -371,8 +379,9 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
     [loadItemChildren]
   );
 
-  // Double-click opens the file as a workspace tab. Handing it to the OS is a
-  // secondary action on the selected file ("Open Externally"), Electron only.
+  // Double-click opens the file as a workspace tab. A workflow or timeline
+  // file opens its document's editor. Handing it to the OS is a secondary
+  // action on the selected file ("Open Externally"), Electron only.
   const handleItemDoubleClick = useCallback(
     async (_event: React.MouseEvent, itemId: string) => {
       const wsId = workspaceIdRef.current;
@@ -383,6 +392,26 @@ const WorkspaceTree: React.FC<WorkspaceTreeProps> = ({ projectId }) => {
       if (item?.treeItemProps?.className === "folder-item") {
         await loadItemChildren(itemId);
         return;
+      }
+      if (isDocumentFile(itemId)) {
+        const document = await trpcClient.projects.documentByFile
+          .query({ id: projectId, path: itemId })
+          .catch((error: unknown) => {
+            // The file still opens, as a file.
+            console.warn("Could not find the document of a file", error);
+            return null;
+          });
+        if (document) {
+          openTab({
+            type: document.type,
+            ref: document.ref,
+            mode: "edit",
+            title: document.name,
+            projectId
+          });
+          setPanelVisibility(false);
+          return;
+        }
       }
       openTab({
         type: "workspace-file",
