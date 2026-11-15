@@ -502,6 +502,68 @@ describe.each(["local", "cloud"] as const)(
       ).toMatchObject({ unchanged: 1, created: [], reassigned: [] });
     });
 
+    it("keeps an unseen file edit as a version when the timeline is moved", async () => {
+      const a = await projectWithFolder(USER, "Film A");
+      const b = await projectWithFolder(USER, "Film B");
+      const caller = createCaller(makeCtx());
+      const fox = await createFox(caller, a.project.id, "first");
+      // Edited outside NodeTool, and nothing reconciles it before the move.
+      await editOnDisk(a.folder, "first", "edited before the move");
+
+      await caller.projects.assignDocument({
+        type: "timeline",
+        ref: fox.id,
+        projectId: b.project.id
+      });
+
+      expect(await timelineFiles(a.folder)).toEqual([]);
+      expect(await timelineFiles(b.folder)).toEqual([PATH]);
+      expect(await clipNameInFile(b.folder, PATH)).toBe("first");
+      expect(clipName(await reload(fox.id))).toBe("first");
+      const [kept] = await TimelineSequenceVersion.listForTimeline(fox.id, {
+        saveType: "manual"
+      });
+      expect(kept?.name).toBe("File edit replaced by a save");
+      expect(
+        (JSON.parse(kept?.document ?? "{}") as TimelineFileJson["document"]).clips[0]
+          ?.name
+      ).toBe("edited before the move");
+    });
+
+    it("refuses to move a timeline whose file holds an edit that is not valid", async () => {
+      const a = await projectWithFolder(USER, "Film A");
+      const b = await projectWithFolder(USER, "Film B");
+      const caller = createCaller(makeCtx());
+      const fox = await createFox(caller, a.project.id, "first");
+      const before = await reload(fox.id);
+      await folderOf(a.folder).write(PATH, "{ half an edit");
+
+      await expect(
+        caller.projects.assignDocument({
+          type: "timeline",
+          ref: fox.id,
+          projectId: b.project.id
+        })
+      ).rejects.toMatchObject({
+        code: "BAD_REQUEST",
+        message: expect.stringContaining(
+          `Cannot move timeline "Fox" to another project: its file ${PATH} was edited and is not valid. The file is not valid JSON`
+        )
+      });
+
+      // The timeline and the user's file are where they were.
+      expect(await folderOf(a.folder).readText(PATH)).toBe("{ half an edit");
+      expect(await timelineFiles(b.folder)).toEqual([]);
+      const stored = await reload(fox.id);
+      expect(stored).toMatchObject({
+        project_id: a.project.id,
+        file_path: PATH,
+        revision: before.revision,
+        updated_at: before.updated_at
+      });
+      expect(stored.file_error).toMatch(/^The file is not valid JSON/);
+    });
+
     it("writes the file of a timeline copied into another project", async () => {
       const a = await projectWithFolder(USER, "Film A");
       const b = await projectWithFolder(USER, "Film B");

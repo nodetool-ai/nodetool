@@ -21,9 +21,10 @@ import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import { WorkflowShare } from "./workflow-share.js";
 import { WorkflowVersion } from "./workflow-version.js";
 import { TriggerRegistration } from "./trigger-registration.js";
-import type {
-  DocumentFileLocation,
-  DocumentFileSync
+import {
+  assertDocumentFileMayLeave,
+  type DocumentFileLocation,
+  type DocumentFileSync
 } from "./document-file-sync.js";
 import type { GraphLink } from "@nodetool-ai/protocol";
 import type { WorkflowRunMode } from "@nodetool-ai/protocol/api-schemas/workflows.js";
@@ -156,8 +157,22 @@ export class Workflow extends DBModel {
 
   /** Every create and save of a workflow row writes its file afterwards. */
   protected override async persist(event: ModelChangeEvent): Promise<this> {
+    const previous = this.previousFile();
+    if (previous && workflowFileSync) {
+      // The save moves the workflow to another project. The stored row is
+      // asked first, because its file in the folder it leaves is deleted.
+      const [stored] = await getPortableDb()
+        .select()
+        .from(workflows)
+        .where(eq(workflows.id, this.id))
+        .limit(1);
+      await assertDocumentFileMayLeave(
+        workflowFileSync,
+        stored ? new Workflow(stored) : null
+      );
+    }
     await super.persist(event);
-    await this.syncFile(this.previousFile());
+    await this.syncFile(previous);
     return this;
   }
 
@@ -317,18 +332,17 @@ export class Workflow extends DBModel {
   ): Promise<Workflow | null> {
     const db = getPortableDb();
     // A change of project leaves the file in the folder the workflow was in.
-    // The row is read first so the file can be taken along.
+    // The row is read first so the file can be taken along, and so that a
+    // file edit that would be lost with the file refuses the move.
     let previous: DocumentFileLocation | null = null;
     if (workflowFileSync && fields.project_id !== undefined) {
       const [before] = await db
-        .select({
-          project_id: workflows.project_id,
-          file_path: workflows.file_path
-        })
+        .select()
         .from(workflows)
         .where(eq(workflows.id, id))
         .limit(1);
       if (before?.file_path && before.project_id !== fields.project_id) {
+        await assertDocumentFileMayLeave(workflowFileSync, new Workflow(before));
         previous = { project_id: before.project_id, file_path: before.file_path };
       }
     }
