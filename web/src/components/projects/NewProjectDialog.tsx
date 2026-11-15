@@ -36,7 +36,9 @@ interface OpenFolderActionProps {
 
 /**
  * "Open folder", which makes a folder the user already has into a project.
- * Renders nothing on a server that refuses host folders.
+ * It states what a folder from another machine brings and what stays behind,
+ * since chats and database documents are not files in the folder. Renders
+ * nothing on a server that refuses host folders.
  */
 const OpenFolderAction = ({
   name,
@@ -80,6 +82,9 @@ const OpenFolderAction = ({
     <FlexColumn gap={SPACING.sm} align="flex-start">
       <Caption color="secondary">
         {t("pass3_32.projects.newProject.openFolderHint")}
+      </Caption>
+      <Caption color="secondary">
+        {t("pass3_32.projects.newProject.openFolderTravels")}
       </Caption>
       <EditorButton
         variant="outlined"

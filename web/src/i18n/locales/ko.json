@@ -6186,6 +6186,7 @@
         "createError": "프로젝트를 생성할 수 없습니다: {{error}}",
         "openFolder": "폴더 열기…",
         "openFolderHint": "이미 폴더가 있나요? 프로젝트로 여세요. 파일은 이동하지 않습니다.",
+        "openFolderTravels": "다른 컴퓨터에서 복사한 폴더는 워크플로, 타임라인, 에셋과 함께 열립니다. 채팅, 스토리보드, 스크립트, 스케치, 앱, JS 스크립트는 폴더와 함께 옮겨지지 않습니다.",
         "openFolderError": "폴더를 열 수 없습니다: {{error}}"
       },
       "folder": {

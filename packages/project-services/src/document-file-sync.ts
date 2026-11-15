@@ -96,6 +96,11 @@ const WINDOWS_RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
 /** An ID a file may carry. Anything else is replaced by a new ID. */
 const DOCUMENT_ID = /^[A-Za-z0-9][A-Za-z0-9_:.-]{0,127}$/;
 
+/** Whether `id` is an ID a document file may carry. */
+export function isDocumentFileId(id: string): boolean {
+  return DOCUMENT_ID.test(id);
+}
+
 /** A row of a document kind that lives in the project folder. */
 export interface DocumentRow extends DocumentFileRow {
   name: string;

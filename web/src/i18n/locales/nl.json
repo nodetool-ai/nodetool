@@ -6186,6 +6186,7 @@
         "createError": "Kon het project niet aanmaken: {{error}}",
         "openFolder": "Map openen…",
         "openFolderHint": "Heb je al een map? Open die als project. Er worden geen bestanden verplaatst.",
+        "openFolderTravels": "Een map van een andere computer opent met zijn workflows, tijdlijnen en assets. Chats, storyboards, scripts, schetsen, apps en JS-scripts gaan niet mee met de map.",
         "openFolderError": "Kan de map niet openen: {{error}}"
       },
       "folder": {

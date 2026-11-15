@@ -6265,6 +6265,7 @@
         "createError": "No se pudo crear el proyecto: {{error}}",
         "openFolder": "Abrir carpeta…",
         "openFolderHint": "¿Ya tienes una carpeta? Ábrela como proyecto. No se mueve ningún archivo.",
+        "openFolderTravels": "Una carpeta copiada desde otro equipo se abre con sus flujos de trabajo, líneas de tiempo y recursos. Los chats, storyboards, guiones, bocetos, apps y scripts JS no viajan con la carpeta.",
         "openFolderError": "No se pudo abrir la carpeta: {{error}}"
       },
       "folder": {

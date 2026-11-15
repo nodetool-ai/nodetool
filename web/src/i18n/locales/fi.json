@@ -6186,6 +6186,7 @@
         "createError": "Projektia ei voitu luoda: {{error}}",
         "openFolder": "Avaa kansio…",
         "openFolderHint": "Onko sinulla jo kansio? Avaa se projektina. Tiedostoja ei siirretä.",
+        "openFolderTravels": "Toiselta koneelta kopioitu kansio avautuu työnkulkuineen, aikajanoineen ja resursseineen. Keskustelut, kuvakäsikirjoitukset, käsikirjoitukset, luonnokset, sovellukset ja JS-skriptit eivät siirry kansion mukana.",
         "openFolderError": "Kansiota ei voitu avata: {{error}}"
       },
       "folder": {

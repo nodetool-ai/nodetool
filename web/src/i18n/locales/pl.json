@@ -6344,6 +6344,7 @@
         "createError": "Nie można utworzyć projektu: {{error}}",
         "openFolder": "Otwórz folder…",
         "openFolderHint": "Masz już folder? Otwórz go jako projekt. Żadne pliki nie zostaną przeniesione.",
+        "openFolderTravels": "Folder skopiowany z innego komputera otwiera się ze swoimi przepływami pracy, osiami czasu i zasobami. Czaty, storyboardy, scenariusze, szkice, aplikacje i skrypty JS nie są przenoszone razem z folderem.",
         "openFolderError": "Nie udało się otworzyć folderu: {{error}}"
       },
       "folder": {

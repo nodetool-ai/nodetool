@@ -42,6 +42,7 @@ export type {
 } from "./workflow-workspace.js";
 
 export {
+  PROJECT_MANIFEST_FILE,
   PROJECT_MANIFEST_PATH,
   PROJECTS_DIR_SETTING,
   ProjectFolderError,

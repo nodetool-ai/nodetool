@@ -20,6 +20,10 @@ import {
   type ProjectCopyDocument,
   type ProjectDocumentType
 } from "@nodetool-ai/models";
+import {
+  assetIdFromLocator,
+  remapResourceIds
+} from "@nodetool-ai/project-services/id-remap";
 import { FileStorageAdapter, type StorageAdapter } from "@nodetool-ai/storage";
 import {
   existingAssetUri,
@@ -145,28 +149,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function assetIdFromLocator(locator: string): string | null {
-  if (!locator.startsWith("asset://")) return null;
-  const rest = locator.slice("asset://".length).split(/[?#]/)[0];
-  const last = rest.includes("/")
-    ? rest.slice(rest.lastIndexOf("/") + 1)
-    : rest;
-  const id = last.replace(/\.[^.]+$/, "");
-  return id || null;
-}
-
-function remapAssetLocator(
-  locator: string,
-  ids: ReadonlyMap<string, string>
-): string {
-  const assetId = assetIdFromLocator(locator);
-  if (!assetId) return locator;
-  const copiedId = ids.get(assetId);
-  if (!copiedId) return locator;
-  const prefix = locator.slice(0, locator.lastIndexOf(assetId));
-  return `${prefix}${copiedId}${locator.slice(prefix.length + assetId.length)}`;
-}
-
 function addRef(value: unknown, target: Set<string>): void {
   if (typeof value === "string" && value.length > 0) target.add(value);
   if (Array.isArray(value)) {
@@ -226,30 +208,11 @@ function findReferences(value: unknown): References {
   return { assetIds, documents };
 }
 
-function cloneAndRemap(
-  value: unknown,
-  ids: ReadonlyMap<string, string>
-): unknown {
-  if (typeof value === "string") {
-    if (value.startsWith("asset://")) return remapAssetLocator(value, ids);
-    return ids.get(value) ?? value;
-  }
-  if (Array.isArray(value))
-    return value.map((item) => cloneAndRemap(item, ids));
-  if (!isRecord(value)) return value;
-  return Object.fromEntries(
-    Object.entries(value).map(([key, child]) => [
-      key,
-      cloneAndRemap(child, ids)
-    ])
-  );
-}
-
 function cloneMetadata(
   metadata: Record<string, unknown> | null,
   ids: ReadonlyMap<string, string>
 ): Record<string, unknown> | null {
-  const copied = cloneAndRemap(metadata, ids);
+  const copied = remapResourceIds(metadata, ids);
   if (copied === null) return null;
   if (!isRecord(copied))
     throw new ProjectCopyError("Asset metadata was invalid");
@@ -343,7 +306,7 @@ function copiedDocument(
   ids: ReadonlyMap<string, string>,
   now: string
 ): ProjectCopyDocument {
-  const document = JSON.stringify(cloneAndRemap(documentPayload(source), ids));
+  const document = JSON.stringify(remapResourceIds(documentPayload(source), ids));
   const base = {
     id: destinationId,
     user_id: source.row.user_id,
