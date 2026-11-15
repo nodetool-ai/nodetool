@@ -30,6 +30,7 @@ import {
   type ProcessingContext
 } from "@nodetool-ai/runtime";
 import type { Asset as AssetRow } from "@nodetool-ai/models";
+import type { ProjectAssetFileChange } from "@nodetool-ai/asset-services/project-asset";
 import {
   SVG_MIME,
   detectImageMime as sniffImageMime,
@@ -1147,12 +1148,14 @@ const updateAsset: CapabilityExport = {
     // An asset that is a file in its project folder is renamed on disk too.
     // The file is copied to its new name before the row is saved and the old
     // name removed after, so the row never names a file that is not there.
-    const { renameProjectAssetFile } = await import(
-      "@nodetool-ai/asset-services/project-asset"
-    );
-    let renamed: Awaited<ReturnType<typeof renameProjectAssetFile>> = null;
+    let renamed: ProjectAssetFileChange | null = null;
     try {
-      if (name) renamed = await renameProjectAssetFile(asset, name);
+      if (name && asset.workspace_path) {
+        const { renameProjectAssetFile } = await import(
+          "@nodetool-ai/asset-services/project-asset"
+        );
+        renamed = await renameProjectAssetFile(asset, name);
+      }
       await asset.save();
     } catch (error) {
       await renamed?.undo();

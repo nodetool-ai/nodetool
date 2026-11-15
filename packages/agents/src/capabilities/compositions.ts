@@ -449,11 +449,13 @@ const deleteComposition: CapabilityExport = {
     // A composition saved as a file in its project folder loses the file
     // first. An unreachable folder throws and keeps the row, so the file is
     // never left behind without one.
-    const { deleteProjectAssetFile } = await import(
-      "@nodetool-ai/asset-services/project-asset"
-    );
     try {
-      await deleteProjectAssetFile(asset);
+      if (asset.workspace_path) {
+        const { deleteProjectAssetFile } = await import(
+          "@nodetool-ai/asset-services/project-asset"
+        );
+        await deleteProjectAssetFile(asset);
+      }
     } catch (error) {
       return { error: error instanceof Error ? error.message : String(error) };
     }
