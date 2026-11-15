@@ -24,7 +24,11 @@
  */
 import { stat } from "node:fs/promises";
 import { Asset } from "@nodetool-ai/models";
-import { assetKeyOwner, normalizeStorageKey } from "@nodetool-ai/storage";
+import {
+  assetKeyOwner,
+  normalizeStorageKey,
+  setAssetFolderPathLookup
+} from "@nodetool-ai/storage";
 import { getAssetFileName } from "./asset-paths.js";
 import { isRuntimeScratchKey } from "./scratch-keys.js";
 import { isFiniteNumber } from "@nodetool-ai/protocol";
@@ -174,4 +178,17 @@ export async function lookupExternalAssetPath(
   return found.fullId && asset.external_path
     ? verifiedExternalPath(asset)
     : null;
+}
+
+/**
+ * Let every `FileStorageAdapter` over the asset folder resolve a missed key
+ * through {@link lookupExternalAssetPath}.
+ *
+ * The server's asset store is built with the lookup. The CLI commands and the
+ * app and script runners build their own adapter over the same folder, and
+ * without this they could not read back an asset a run saved as a file in
+ * its project folder. Call it wherever asset persistence is installed.
+ */
+export function installAssetFolderLookup(): void {
+  setAssetFolderPathLookup(lookupExternalAssetPath);
 }

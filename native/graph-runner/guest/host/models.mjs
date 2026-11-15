@@ -58,6 +58,9 @@ export function openModelRepository(databasePath, userId) {
       migrateMessageBranches(client);
       // The 20261110_000000 add_thread_kind migration in @nodetool-ai/models.
       if (!client.pragma('table_info("nodetool_threads")').some((column) => column.name === 'kind')) client.exec("ALTER TABLE nodetool_threads ADD COLUMN kind TEXT NOT NULL DEFAULT 'chat'");
+      // The 20261116_000000 add_project_folder migration in @nodetool-ai/models.
+      // nodetool_workspaces, the migration's other table, is not mapped here.
+      if (!client.pragma('table_info("projects")').some((column) => column.name === 'workspace_id')) client.exec('ALTER TABLE projects ADD COLUMN workspace_id TEXT');
     })();
     db = drizzle(client);
   } catch (error) {
