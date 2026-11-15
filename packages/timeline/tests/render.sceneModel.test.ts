@@ -777,3 +777,35 @@ describe("matte fade redraw", () => {
     expect(hasActiveAnimation(settled, 2000, canvas, undefined, clips)).toBe(false);
   });
 });
+
+describe("param curves in the render plan", () => {
+  it("draws keyed crop and radius at the frame and recomputes the next frame", () => {
+    const tracks = [track({ id: "v", index: 0 })];
+    const clips = [
+      clip({
+        id: "c",
+        trackId: "v",
+        startMs: 0,
+        durationMs: 1000,
+        paramCurves: [
+          { property: "cropTop", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 0.5 }] },
+          { property: "borderRadius", keyframes: [{ t: 0, value: 0 }, { t: 1, value: 20 }] }
+        ]
+      })
+    ];
+    const result = computeActiveLayersWithHorizon(tracks, clips, 500);
+    expect(result.layers[0].crop).toEqual({ left: 0, right: 0, top: 0.25, bottom: 0 });
+    expect(result.layers[0].borderRadius).toBe(10);
+    expect(result.nextChangeMs).toBe(501);
+  });
+
+  it("orders a track's layers by keyed depth", () => {
+    const tracks = [track({ id: "v", index: 0 })];
+    const clips = [
+      clip({ id: "a", trackId: "v", startMs: 0, durationMs: 1000 }),
+      clip({ id: "b", trackId: "v", startMs: 0, durationMs: 1000,
+        paramCurves: [{ property: "depthPx", keyframes: [{ t: 0, value: 0 }, { t: 1, value: -200 }] }] })
+    ];
+    expect(computeActiveLayers(tracks, clips, 100).map((l) => l.clipId)).toEqual(["b", "a"]);
+  });
+});

@@ -5,6 +5,8 @@ import { makeClip, makeTrack } from "../src/defaults.js";
 import {
   effectCurveName,
   joinParamCurves,
+  keyedClipAt,
+  paramCurveAt,
   paramCurvesForEffects,
   parseEffectCurveName
 } from "../src/paramCurves.js";
@@ -180,5 +182,47 @@ describe("the set_effects op", () => {
     const outcome = await applyTimelineOp(state, { op: "set_effects", target: "Shot", effects: [] }, context);
     expect(outcome.state.clips[0].effects).toBeUndefined();
     expect(outcome.state.clips[0].paramCurves?.map((c) => c.property)).toEqual(["volumeDb"]);
+  });
+});
+
+describe("keyed values at a time", () => {
+  it("reads a curve over the clip, eased by the later key", () => {
+    const keyed = clip({ startMs: 1000, paramCurves: [curve("borderRadius", [0, 0], [1, 40, "easeIn"])] });
+    expect(paramCurveAt(keyed, "borderRadius", 500)).toBe(0);
+    expect(paramCurveAt(keyed, "borderRadius", 2000)).toBeCloseTo(curveValueAtT(keyed.paramCurves![0].keyframes, 0.5));
+    expect(paramCurveAt(keyed, "cropLeft", 2000)).toBeUndefined();
+  });
+
+  it("applies crop, radius, perspective, depth and effect keys as the native editor does", () => {
+    const base = clip({
+      crop: { left: 0, right: 0.2, top: 0, bottom: 0 },
+      transform: { position: { x: 0, y: 0 }, scale: { x: 1, y: 1 }, rotation: 0, anchor: { x: 0.5, y: 0.5 }, depthPx: 10 },
+      effects: [{ id: "b", type: "blur", enabled: true, radius: 2 } as never],
+      paramCurves: [
+        curve("cropLeft", [0, 0], [1, 0.9]),
+        curve("borderRadius", [0, -5]),
+        curve("perspective", [0, 800]),
+        curve("depthPx", [0, 0], [1, 100]),
+        curve(effectCurveName("b", "radius"), [0, 0], [1, 20]),
+        curve("volumeDb", [0, -6])
+      ]
+    });
+    const at = keyedClipAt(base, 1000);
+    // Left 0.45 and right 0.2 fit. At the end, 0.9 and 0.2 scale to leave 5%.
+    expect(at.crop).toEqual({ left: 0.45, right: 0.2, top: 0, bottom: 0 });
+    const end = keyedClipAt(base, 2000).crop!;
+    expect(end.left + end.right).toBeCloseTo(0.95);
+    expect(at.borderRadius).toBe(0);
+    expect(at.transform?.perspective).toBe(800);
+    expect(at.transform?.depthPx).toBe(60);
+    expect((at.effects![0] as unknown as { radius: number }).radius).toBe(10);
+    expect(base.effects![0]).toMatchObject({ radius: 2 });
+  });
+
+  it("returns the clip itself when nothing it draws is keyed", () => {
+    const audioOnly = clip({ paramCurves: [curve("volumeDb", [0, -6], [1, 0])] });
+    expect(keyedClipAt(audioOnly, 1000)).toBe(audioOnly);
+    const plain = clip();
+    expect(keyedClipAt(plain, 1000)).toBe(plain);
   });
 });

@@ -88,7 +88,11 @@ private slots:
         auto* separator = item("trackResize-v"); QVERIFY(separator); QCOMPARE(separator->height(), 6.0);
         const auto before = doc(); const auto from = center(separator); const auto to = from + QPoint(0, delta);
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        const double startHeight = track("v").value("heightPx").toDouble(64);
         QTest::mouseMove(view.get(), to, 20); QCOMPARE(model.undoStack()->count(), 0);
+        // B64: the row follows the pointer before release.
+        QCOMPARE(track("v").value("heightPx").toDouble(), expected);
+        QTRY_VERIFY(qAbs(center(item("trackResize-v")).y() - from.y() - (expected - startHeight) * zoom) <= 1);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, to);
         QCOMPARE(track("v").value("heightPx").toDouble(), expected); QCOMPARE(model.undoStack()->count(), 1);
         click("undoButton"); QCOMPARE(doc(), before);
