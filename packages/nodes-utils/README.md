@@ -58,13 +58,16 @@ const full = path.join(dir, "file.txt");
 ### Saving a file from a node
 
 ```ts
-// Writes into the run's workspace folder while `save_to_workspace` is on, and
-// numbers the name (`out_1.png`) rather than overwriting what is there.
-const target = await resolveSaveTarget({
+// Writes into the run's project folder while `save_to_workspace` is on, and
+// numbers the name (`out_1.png`) rather than overwriting what is there. With
+// the run's context the file is also an asset, written once with its row.
+const target = await writeSavedFile({
   folder: this.folder,
   filename: dateName(String(this.filename || "out.png")),
   saveToWorkspace: this.save_to_workspace,
-  workspaceDir: context?.workspaceDir
+  workspace: context?.workspace,
+  context: context ?? null,
+  bytes
 });
 ```
 

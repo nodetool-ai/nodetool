@@ -21,7 +21,12 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
-import { createStoredAsset } from "../../lib/asset-model-interface.js";
+// Installs the project folder resolver `saveProjectAsset` reaches folders through.
+import "../../lib/workflow-workspace.js";
+import {
+  IMPORTED_DIRECTORY,
+  saveProjectAsset
+} from "@nodetool-ai/asset-services/project-asset";
 import { toAssetResponse } from "../../lib/asset-response.js";
 import {
   OpenverseError,
@@ -101,11 +106,13 @@ export const openverseRouter = router({
             landing_url: item.landing_url,
             source: item.source
           };
-          const asset = await createStoredAsset({
+          // An Openverse pick is an import: a file in `Imported/`.
+          const asset = await saveProjectAsset({
             userId: ctx.userId,
             name: openverseAssetName(item, contentType),
             contentType,
-            content: bytes,
+            bytes,
+            directory: IMPORTED_DIRECTORY,
             parentId,
             projectId,
             metadata: { openverse: record }

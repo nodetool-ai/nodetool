@@ -133,6 +133,7 @@ export class SaveModel3DFileNode extends BaseNode {
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
+      context: context ?? null,
       overwrite: this.overwrite,
       bytes
     });

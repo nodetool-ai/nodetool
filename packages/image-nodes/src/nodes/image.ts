@@ -572,6 +572,8 @@ export class SaveImageFileImageNode extends BaseNode {
       saveToWorkspace: this.save_to_workspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
+      context: context ?? null,
+      contentType: inferImageMime(filename, bytes),
       overwrite: this.overwrite,
       bytes
     });
