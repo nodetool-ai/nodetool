@@ -168,6 +168,16 @@ describe("admitCodeAction", () => {
     expect(gate.sessionAllow.has(EXECUTE_CODE_TOOL_NAME)).toBe(true);
   });
 
+  it("skips the auto-mode prompt when the user saved Always allow for code", async () => {
+    const { gate, asked } = makeGate("auto", "deny");
+    const admission = await admitCodeAction(
+      { ...gate, alwaysAllow: new Set([EXECUTE_CODE_TOOL_NAME]) },
+      highAction
+    );
+    expect(admission.allowed).toBe(true);
+    expect(asked).toHaveLength(0);
+  });
+
   it("reads an unlabeled action as high risk", async () => {
     const { gate, asked } = makeGate("auto", "deny");
     const admission = await admitCodeAction(gate, {

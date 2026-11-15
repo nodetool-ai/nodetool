@@ -354,10 +354,10 @@ private slots:
         const auto sent = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "chat_message"; });
         QCOMPARE(sent["data"].toObject()["permission_mode"].toString(), QStringLiteral("auto"));
     }
-    // ToolApprovalCard.tsx and SecretRequestCard.tsx: Allow for this chat
-    // sends allow_for_chat, and a saved key goes to settings.secrets.upsert
+    // ToolApprovalCard.tsx and SecretRequestCard.tsx: Always allow sends
+    // allow_always, and a saved key goes to settings.secrets.upsert
     // before the request is answered with saved.
-    void allowForChatAndSavedSecretReachTheServer() {
+    void allowAlwaysAndSavedSecretReachTheServer() {
         ChatServer server;
         QVERIFY(server.listen());
         ChatSession session;
@@ -370,12 +370,12 @@ private slots:
                           {"key", "OPENAI_API_KEY"}, {"reason", "Needed for images"}}, 20);
         QTRY_VERIFY(hasAction(session, "approval-chat"));
         QTRY_VERIFY(hasAction(session, "secret-one"));
-        session.allowActionForChat("secret-one");
-        session.allowActionForChat("approval-chat");
+        session.allowActionAlways("secret-one");
+        session.allowActionAlways("approval-chat");
         QTRY_COMPARE(server.count("type", "tool_approval_response"), 1);
         const auto allowed = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["type"] == "tool_approval_response"; });
         QCOMPARE(allowed["approval_id"].toString(), QStringLiteral("approval-chat"));
-        QCOMPARE(allowed["decision"].toString(), QStringLiteral("allow_for_chat"));
+        QCOMPARE(allowed["decision"].toString(), QStringLiteral("allow_always"));
         session.saveSecret("secret-one", "   ");
         session.saveSecret("secret-one", " sk-test ");
         QTRY_COMPARE(server.count("type", "secret_request_response"), 1);

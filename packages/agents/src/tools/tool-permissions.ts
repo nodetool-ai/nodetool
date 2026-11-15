@@ -22,9 +22,13 @@ import type { PermissionCategory } from "@nodetool-ai/runtime";
 // on the context they build. Re-exported here so every existing import of
 // these names keeps resolving through this module.
 export {
+  APPROVAL_DECISIONS,
   decidePermission,
+  grantsStandingApproval,
   headlessDenialReason,
-  headlessGate
+  headlessGate,
+  isApprovingDecision,
+  isPreapproved
 } from "@nodetool-ai/runtime";
 export type {
   ApprovalDecision,

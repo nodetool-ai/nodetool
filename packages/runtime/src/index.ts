@@ -377,10 +377,14 @@ export type {
 } from "./cost-reconciler.js";
 export * from "./google/index.js";
 export {
+  APPROVAL_DECISIONS,
   PERMISSION_GATE_CONTEXT_KEY,
   decidePermission,
+  grantsStandingApproval,
   headlessDenialReason,
-  headlessGate
+  headlessGate,
+  isApprovingDecision,
+  isPreapproved
 } from "./permission-gate.js";
 export type {
   ApprovalDecision,

@@ -1,5 +1,5 @@
 import { registerChatRunTrace, registerWorkflowRunTrace, withRegisteredRunTrace, settleRegisteredRunTrace } from "@nodetool-ai/execution";
-import { getRunTraceScope, suppressRunTraceContent } from "@nodetool-ai/runtime";
+import { APPROVAL_DECISIONS, getRunTraceScope, suppressRunTraceContent } from "@nodetool-ai/runtime";
 import {
   TRACE_RESTRICTED_CAPABILITY_MODULES,
   missingPackDetailsOf,
@@ -8,6 +8,7 @@ import {
 import { trace, SpanStatusCode } from "@opentelemetry/api";
 import { settleRunTrace, registerRunTraceParent, registerRunTraceParents, threadHasTraceContentTools } from "@nodetool-ai/models";
 import { capabilityModuleOf, listCapabilitySpecs } from "@nodetool-ai/agents";
+import { loadAlwaysAllowedTools, setToolRule } from "../tool-permission-rules.js";
 import { createLogger } from "@nodetool-ai/config";
 import { randomUUID } from "node:crypto";
 import {
@@ -1330,6 +1331,36 @@ export class ChatTurnHandler {
   }
 
   /**
+   * The user's saved "Always allow" rules. A read failure is logged and
+   * answered with no rules, so every tool asks rather than the turn failing.
+   */
+  private async loadToolRules(userId: string): Promise<Set<string>> {
+    try {
+      return await loadAlwaysAllowedTools(userId);
+    } catch (err) {
+      log.warn("Saved tool rules unavailable for this turn", {
+        error: err instanceof Error ? err.message : String(err)
+      });
+      return new Set<string>();
+    }
+  }
+
+  /**
+   * Save an "Always allow" answer. The call it answered runs either way: a
+   * failed write costs the user a prompt next chat, not this action.
+   */
+  private async saveAlwaysAllow(userId: string, ruleKey: string): Promise<void> {
+    try {
+      await setToolRule(userId, ruleKey, "always_allow");
+    } catch (err) {
+      log.warn("Could not save an Always allow rule", {
+        rule: ruleKey,
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  }
+
+  /**
    * Round-trip a permission approval to the client and resolve with the
    * user's decision. Emits a `tool_approval_request`, then waits for the
    * matching `tool_approval_response` (resolved via {@link approvalBridge}).
@@ -1358,14 +1389,7 @@ export class ChatTurnHandler {
         threadId
       );
       const decision = response.decision;
-      if (
-        decision === "allow" ||
-        decision === "allow_for_chat" ||
-        decision === "deny"
-      ) {
-        return decision;
-      }
-      return "deny";
+      return APPROVAL_DECISIONS.find((known) => known === decision) ?? "deny";
     } catch {
       // Cancelled (generation stopped) — treat as a denial.
       return "deny";
@@ -2079,15 +2103,27 @@ export class ChatTurnHandler {
     const codeactClock = createSandboxClock();
     const liveMode = { value: permissionMode };
     this.chatTurnPermissionMode.set(threadId, liveMode);
+    // The user's saved "Always allow" rules, read once per turn so a change on
+    // the Settings page reaches the next message. An "Always allow" answered
+    // during this turn adds to the same set as well as saving the rule.
+    const alwaysAllow = await this.loadToolRules(userId);
     const chatGate: PermissionGateOptions = {
       get mode() {
         return liveMode.value;
       },
       sessionAllow,
+      alwaysAllow,
       requestApproval: async (
         request: ApprovalRequest
-      ): Promise<ApprovalDecision> =>
-        this.requestToolApproval(threadId, request),
+      ): Promise<ApprovalDecision> => {
+        const decision = await this.requestToolApproval(threadId, request);
+        if (decision === "allow_always") {
+          const ruleKey = request.ruleKey ?? request.toolName;
+          alwaysAllow.add(ruleKey);
+          await this.saveAlwaysAllow(userId, ruleKey);
+        }
+        return decision;
+      },
       clock: codeactClock
     };
     // The single-node runner is a closure only this package can build, so

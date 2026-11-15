@@ -13415,8 +13415,9 @@
         },
         "showCode": "Afficher le code",
         "showArguments": "Afficher les arguments",
-        "allow": "Autoriser",
-        "allowForChat": "Autoriser ce chat",
+        "allowOnce": "Autoriser une fois",
+        "allowAlways": "Toujours autoriser",
+        "allowAlwaysHint": "Exécuter {{tool}} sans demander à partir de maintenant. Vous pouvez modifier ce choix dans Paramètres › Autorisations.",
         "deny": "Refuser"
       }
     }
@@ -20430,5 +20431,17 @@
       "unsupportedTitle": "Aucun outil IA pour ce clip",
       "unsupported": "Sélectionnez un clip vidéo ou image, ou un clip généré."
     }
+  },
+  "toolPermissions": {
+    "tab": "Autorisations",
+    "title": "Autorisations des outils",
+    "sidebarCategory": "Outils",
+    "intro": "Choisissez les outils que l’assistant peut utiliser sans demander. Un outil réglé sur Demander affiche une invite dans le chat avant de s’exécuter.",
+    "modes": "En mode par défaut, chaque outil réglé sur Demander affiche d’abord une invite. En mode auto, les outils s’exécutent sans demander, sauf une action de code qui supprime, publie ou dépense de l’argent. Réglez Execute code sur Toujours autoriser pour supprimer aussi cette invite. Le mode plan bloque toute modification, quelle que soit la règle.",
+    "alwaysAllow": "Toujours autoriser",
+    "ask": "Demander",
+    "saveFailed": "Impossible d’enregistrer cette autorisation.",
+    "loadFailed": "Impossible de charger la liste des outils.",
+    "noMatches": "Aucun outil ne correspond à votre recherche."
   }
 }

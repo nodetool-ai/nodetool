@@ -1,6 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../__mocks__/themeMock";
 import { useSettingsPageStore } from "../../../stores/SettingsPageStore";
 import { useSettingsStore } from "../../../stores/SettingsStore";
@@ -95,9 +96,13 @@ import SettingsPage from "../SettingsMenu";
 
 const renderSettings = () =>
   render(
-    <ThemeProvider theme={mockTheme}>
-      <SettingsPage />
-    </ThemeProvider>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <ThemeProvider theme={mockTheme}>
+        <SettingsPage />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 
 describe("SettingsPage", () => {

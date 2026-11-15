@@ -13203,8 +13203,9 @@
         },
         "showCode": "Toon code",
         "showArguments": "Toon argumenten",
-        "allow": "Toestaan",
-        "allowForChat": "Sta deze chat toe",
+        "allowOnce": "Eén keer toestaan",
+        "allowAlways": "Altijd toestaan",
+        "allowAlwaysHint": "{{tool}} voortaan uitvoeren zonder te vragen. Je kunt dit wijzigen in Instellingen › Machtigingen.",
         "deny": "Ontkennen"
       }
     }
@@ -20119,5 +20120,17 @@
       "unsupportedTitle": "Geen AI-tools voor deze clip",
       "unsupported": "Selecteer een video- of afbeeldingsclip, of een gegenereerde clip."
     }
+  },
+  "toolPermissions": {
+    "tab": "Machtigingen",
+    "title": "Toolmachtigingen",
+    "sidebarCategory": "Tools",
+    "intro": "Kies welke tools de assistent zonder te vragen mag gebruiken. Een tool op Vragen toont eerst een vraag in de chat.",
+    "modes": "In de standaardmodus vraagt elke tool op Vragen eerst om toestemming. In de automatische modus draaien tools zonder te vragen, behalve een codeactie die verwijdert, publiceert of geld uitgeeft. Zet Execute code op Altijd toestaan om ook die vraag uit te zetten. De planmodus blokkeert elke wijziging, ongeacht de regel.",
+    "alwaysAllow": "Altijd toestaan",
+    "ask": "Vragen",
+    "saveFailed": "Deze machtiging kon niet worden opgeslagen.",
+    "loadFailed": "De lijst met tools kon niet worden geladen.",
+    "noMatches": "Geen tools komen overeen met je zoekopdracht."
   }
 }

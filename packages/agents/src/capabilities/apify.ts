@@ -72,6 +72,7 @@ import {
   MAX_FILES_PER_RUN
 } from "../apify/assets.js";
 import { provenanceOf, resolveApifyToken, runActor } from "../apify/run.js";
+import { grantsStandingApproval, isPreapproved } from "../tools/tool-permissions.js";
 import { isRecord, isString } from "../utils/type-guards.js";
 
 /**
@@ -115,14 +116,15 @@ function signalOf(run: CapabilityRun): AbortSignal | undefined {
 function approverFor(run: CapabilityRun) {
   return async (actorId: string, reason: string): Promise<boolean> => {
     const key = `run_apify_actor:${actorId}`;
-    if (run.gate.sessionAllow.has(key)) return true;
+    if (isPreapproved(run.gate, key)) return true;
     const decision = await run.gate.requestApproval({
       toolName: "run_apify_actor",
       category: "external",
       args: { actor_id: actorId },
-      message: reason
+      message: reason,
+      ruleKey: key
     });
-    if (decision === "allow_for_chat") {
+    if (grantsStandingApproval(decision)) {
       run.gate.sessionAllow.add(key);
       return true;
     }
