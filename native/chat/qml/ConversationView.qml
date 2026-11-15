@@ -81,6 +81,44 @@ Item {
             messages.positionViewAtEnd();
         }
     }
+    // useChatScrollAnchor.ts free-scrolling: once the reader scrolls, the
+    // reader owns the position. New messages, streaming and layout changes
+    // above the view never move it; only scrolling back to the end, the jump
+    // button or switching threads hands it back.
+    readonly property bool userScrolling: messages.moving || messageScrollBar.pressed
+    readonly property bool nearEnd: contentEnd - (messages.contentY + messages.height) < ChatMetrics.followThreshold
+    function enterFreeScrolling() {
+        if (anchoringTurn) {
+            releaseTurnAnchor();
+        }
+        followBottom = false;
+    }
+    function settleScroll() {
+        followBottom = nearEnd;
+        captureAnchor();
+    }
+    // Content that reflows above the viewport is compensated for, so the row
+    // the reader is looking at stays where it is.
+    function holdViewport() {
+        if (followBottom || anchoringTurn || userScrolling) {
+            return;
+        }
+        const item = messages.itemAtIndex(anchorIndex);
+        if (!item) {
+            return;
+        }
+        const target = item.y + anchorOffset;
+        if (Math.abs(target - messages.contentY) > 1) {
+            messages.contentY = target;
+        }
+    }
+    function loadEarlierNearTop() {
+        if (!followBottom && !anchoringTurn && session && session.hasMoreHistory
+                && session.connectionStatus === "connected"
+                && messages.contentY - messages.originY < ChatMetrics.loadEarlierThreshold) {
+            session.loadMore();
+        }
+    }
     // useChatScrollAnchor.ts: a just-sent prompt is held near the top of the
     // view while the reply grows into empty space reserved below it, as on
     // claude.ai. The reserved tail is the footer's extra height.
@@ -269,11 +307,25 @@ Item {
             spacing: Ui.Metrics.md
             reuseItems: true
             model: root.session ? root.session.messages : null
-            ScrollBar.vertical: Ui.ScrollBar {}
-            onMovementStarted: if (root.anchoringTurn) root.releaseTurnAnchor()
-            onMovementEnded: {
-                root.followBottom = atYEnd;
-                root.captureAnchor();
+            ScrollBar.vertical: Ui.ScrollBar {
+                id: messageScrollBar
+                objectName: "chatMessagesScrollBar"
+                onPressedChanged: {
+                    if (pressed) {
+                        root.enterFreeScrolling();
+                    }
+                    else {
+                        root.settleScroll();
+                    }
+                }
+            }
+            // Flickable reports drags, flicks and wheel scrolling as movement.
+            onMovementStarted: root.enterFreeScrolling()
+            onMovementEnded: root.settleScroll()
+            onContentYChanged: {
+                if (root.userScrolling) {
+                    Qt.callLater(root.loadEarlierNearTop);
+                }
             }
             onContentHeightChanged: {
                 if (root.anchoringTurn) {
@@ -281,6 +333,9 @@ Item {
                 }
                 else if (root.followBottom) {
                     Qt.callLater(root.followLatest);
+                }
+                else {
+                    Qt.callLater(root.holdViewport);
                 }
             }
             onWidthChanged: {
@@ -323,7 +378,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: Ui.Metrics.md
-                visible: !root.followBottom && !root.anchoringTurn && !messages.atYEnd
+                visible: !root.followBottom && !root.anchoringTurn && !root.nearEnd
                 display: AbstractButton.IconOnly
                 circular: true
                 variant: Ui.EditorButton.Outlined
