@@ -75,10 +75,9 @@ import {
   isIgnoredProjectPath,
   probePath,
   scanFolder,
-  scheduleFollowUp,
   type ReconcileOptions,
   type ScannedFolder
-} from "./project-index.js";
+} from "./project-folder-scan.js";
 
 const log = createLogger("nodetool.project-services.document-file-sync");
 
@@ -637,6 +636,13 @@ export interface DocumentReconcileOptions extends ReconcileOptions {
    * missing, since NodeTool may have written the file since.
    */
   scanned?: ScannedFolder;
+  /**
+   * Called when a file waits to be told apart from a move, so that the
+   * caller can reconcile again once the wait is over. The triggers of the
+   * asset index pass it. Without it the file is looked at by the next
+   * reconcile, whenever that runs.
+   */
+  onDeferred?: () => void;
 }
 
 /**
@@ -695,6 +701,7 @@ interface KindReconcile<Row extends DocumentRow, Fields> {
   projectId: string;
   userId: string;
   report: DocumentFilesReport;
+  onDeferred?: () => void;
 }
 
 /**
@@ -1051,7 +1058,7 @@ async function reconcileKind<Row extends DocumentRow, Fields>(
   }
   if (stillWaiting.size > 0) {
     waitingCopies.set(projectKey, stillWaiting);
-    scheduleFollowUp(projectId, userId);
+    run.onDeferred?.();
   } else {
     waitingCopies.delete(projectKey);
   }
@@ -1148,7 +1155,14 @@ export async function reconcileDocumentFiles(
         }
         report.files += files.size;
         await reconcileKind(
-          { adapter, workspace, projectId: project, userId, report },
+          {
+            adapter,
+            workspace,
+            projectId: project,
+            userId,
+            report,
+            onDeferred: options.onDeferred
+          },
           files,
           scope.places
         );

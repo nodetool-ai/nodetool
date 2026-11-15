@@ -1322,6 +1322,24 @@ describe.each(["local", "storage"] as const)("workflow files (%s folder)", (kind
       });
     });
 
+    it("comes back for a copy that waited, without another trigger", async () => {
+      const workflow = await makeWorkflow("Fox");
+      await folder(kind).copy(pathOf("Fox"), pathOf("Fox copy"));
+
+      scheduleProjectReconcile(PROJECT, USER);
+      await flushProjectReconciles();
+      expect(await rows()).toHaveLength(1);
+
+      // The reconcile scheduled its own follow-up for when the wait is over.
+      passCopyGrace();
+      await flushProjectReconciles();
+
+      const all = await rows();
+      expect(all).toHaveLength(2);
+      const copy = all.find((row) => row.id !== workflow.id);
+      expect(copy).toMatchObject({ name: "Fox copy", file_path: pathOf("Fox copy") });
+    });
+
     it("looks only at the changed paths it is given", async () => {
       const fox = await makeWorkflow("Fox");
       const owl = await makeWorkflow("Owl");
