@@ -217,6 +217,8 @@ signals:
 private:
   struct State {
     bool reconciling = false;
+    // An earlier page is on its way; scrolling to the top asks only once.
+    bool loadingEarlier = false;
     bool reloadHistory = false;
     bool uncertainReplay = false;
     QJsonArray bufferedEvents;

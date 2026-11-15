@@ -14,6 +14,9 @@ Item {
     property var scrollPositions: ({})
     property string previousThread: ""
     property bool followBottom: true
+    // The row the reader was looking at when following stopped, so reflow
+    // that comes later holds that view rather than an older one.
+    onFollowBottomChanged: if (!followBottom && !anchoringTurn) captureAnchor()
     property int anchorIndex: 0
     property real anchorOffset: 0
     // A reply is on its way: ChatThreadView.tsx shows a quiet pulse at the
@@ -72,13 +75,57 @@ Item {
         }
     }
     function restoreAnchor() {
+        const offset = anchorOffset;
+        holdingViewport = true;
         messages.forceLayout();
-        messages.positionViewAtIndex(anchorIndex, ListView.Beginning);
-        messages.contentY += anchorOffset;
+        messages.positionViewAtIndex(Math.max(0, anchorIndex), ListView.Beginning);
+        messages.contentY += offset;
+        holdingViewport = false;
     }
     function followLatest() {
         if (followBottom) {
             messages.positionViewAtEnd();
+        }
+    }
+    // useChatScrollAnchor.ts free-scrolling: once the reader scrolls, the
+    // reader owns the position. New messages, streaming and layout changes
+    // above the view never move it; only scrolling back to the end, the jump
+    // button or switching threads hands it back.
+    readonly property bool userScrolling: messages.moving || messageScrollBar.pressed
+    readonly property bool nearEnd: contentEnd - (messages.contentY + messages.height) < ChatMetrics.followThreshold
+    function enterFreeScrolling() {
+        if (anchoringTurn) {
+            releaseTurnAnchor();
+        }
+        followBottom = false;
+    }
+    function settleScroll() {
+        followBottom = nearEnd;
+        captureAnchor();
+    }
+    // Content that reflows above the viewport is compensated for, so the row
+    // the reader is looking at stays where it is.
+    function holdViewport() {
+        if (followBottom || anchoringTurn || userScrolling) {
+            return;
+        }
+        const item = messages.itemAtIndex(anchorIndex);
+        if (!item) {
+            return;
+        }
+        const target = item.y + anchorOffset;
+        if (Math.abs(target - messages.contentY) > 1) {
+            holdingViewport = true;
+            messages.contentY = target;
+            holdingViewport = false;
+        }
+    }
+    property bool holdingViewport: false
+    function loadEarlierNearTop() {
+        if (!followBottom && !anchoringTurn && session && session.hasMoreHistory
+                && session.connectionStatus === "connected"
+                && messages.contentY - messages.originY < ChatMetrics.loadEarlierThreshold) {
+            session.loadMore();
         }
     }
     // useChatScrollAnchor.ts: a just-sent prompt is held near the top of the
@@ -269,11 +316,31 @@ Item {
             spacing: Ui.Metrics.md
             reuseItems: true
             model: root.session ? root.session.messages : null
-            ScrollBar.vertical: Ui.ScrollBar {}
-            onMovementStarted: if (root.anchoringTurn) root.releaseTurnAnchor()
-            onMovementEnded: {
-                root.followBottom = atYEnd;
-                root.captureAnchor();
+            ScrollBar.vertical: Ui.ScrollBar {
+                id: messageScrollBar
+                objectName: "chatMessagesScrollBar"
+                onPressedChanged: {
+                    if (pressed) {
+                        root.enterFreeScrolling();
+                    }
+                    else {
+                        root.settleScroll();
+                    }
+                }
+            }
+            // Flickable reports drags, flicks and wheel scrolling as movement.
+            onMovementStarted: root.enterFreeScrolling()
+            onMovementEnded: root.settleScroll()
+            onContentYChanged: {
+                if (root.userScrolling) {
+                    Qt.callLater(root.loadEarlierNearTop);
+                }
+                // A position set in code, such as positionViewAtIndex, becomes
+                // the reader's position, so reflow keeps it instead of
+                // returning to the last scrolled one.
+                else if (!root.followBottom && !root.anchoringTurn && !root.holdingViewport) {
+                    root.captureAnchor();
+                }
             }
             onContentHeightChanged: {
                 if (root.anchoringTurn) {
@@ -281,6 +348,9 @@ Item {
                 }
                 else if (root.followBottom) {
                     Qt.callLater(root.followLatest);
+                }
+                else {
+                    Qt.callLater(root.holdViewport);
                 }
             }
             onWidthChanged: {
@@ -323,7 +393,7 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: Ui.Metrics.md
-                visible: !root.followBottom && !root.anchoringTurn && !messages.atYEnd
+                visible: !root.followBottom && !root.anchoringTurn && !root.nearEnd
                 display: AbstractButton.IconOnly
                 circular: true
                 variant: Ui.EditorButton.Outlined
@@ -463,9 +533,19 @@ Item {
             oldHeight = messages.contentHeight;
             oldY = messages.contentY;
         }
+        // Replaced content leaves no row to hold, so the position on screen
+        // becomes the anchor.
+        function onModelReset() {
+            root.anchorIndex = -1;
+            if (!root.followBottom && !root.anchoringTurn) {
+                Qt.callLater(root.captureAnchor);
+            }
+        }
         function onRowsInserted(parent, first, last) {
             if (prepending) {
-                root.anchorIndex += last - first + 1;
+                if (root.anchorIndex >= 0) {
+                    root.anchorIndex += last - first + 1;
+                }
                 Qt.callLater(function () {
                     messages.contentY = oldY + messages.contentHeight - oldHeight;
                 });
