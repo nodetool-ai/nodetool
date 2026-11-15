@@ -356,6 +356,28 @@ private slots:
     // Any other graph is unchanged.
     const QJsonObject plain{{"nodes", QJsonArray{QJsonObject{{"id", "a"}, {"type", "test.Source"}}}}};
     QCOMPARE(exposeComfyInterface(plain), plain);
+    QVERIFY(isComfyGraph(QJsonObject{{"nodes", nodes}}));
+    QVERIFY(isComfyGraph(QJsonObject{{"nodes", mixed}}));
+    QVERIFY(!isComfyGraph(plain));
+  }
+  // SubgraphTabsStore.ts buildSubgraphWorkflow: a subgraph of ComfyUI nodes
+  // runs as one Comfy job, so its surface edits it as a Comfy workflow.
+  void comfySubgraphSurfaceEditsAsComfyWorkflow() {
+    EditorWindow window;
+    window.show();
+    auto child = subgraph();
+    child["data"] = QJsonObject{{"graph", QJsonObject{
+        {"nodes", QJsonArray{QJsonObject{{"id", "1"}, {"type", "comfy.CLIPTextEncode"}, {"data", QJsonObject{{"text", "a fox"}}}}}},
+        {"edges", QJsonArray{}}}}};
+    QVERIFY(window.document()->load(
+        {{"name", "Host"},
+         {"graph", QJsonObject{{"nodes", QJsonArray{child}}, {"edges", QJsonArray{}}}}}));
+    auto parent = window.document();
+    QVERIFY(window.selectNode("child"));
+    QVERIFY(click(window, "selection-open-child"));
+    QVERIFY(window.document() != parent);
+    QCOMPARE(window.document()->snapshot()["run_mode"].toString(), QString("comfy"));
+    QVERIFY(parent->snapshot()["run_mode"].toString() != QLatin1String("comfy"));
   }
   void stripCloseCascadeAndRestore() {
       QTemporaryDir files;

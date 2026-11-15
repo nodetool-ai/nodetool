@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Add a workflow node",
     "addSubgraph": "Add subgraph",
     "addSubgraphTooltip": "Add an inline subgraph node",
+    "addComfySubgraph": "Add Comfy subgraph",
+    "addComfySubgraphTooltip": "Add a subgraph of ComfyUI nodes that runs as one Comfy job",
     "addApp": "Add app",
     "addAppTooltip": "Run a mini app as a node",
     "property": "Property",

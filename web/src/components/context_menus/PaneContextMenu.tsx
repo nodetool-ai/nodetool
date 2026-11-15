@@ -38,6 +38,8 @@ import {
   APP_NODE_TYPE
 } from "../../constants/nodeTypes";
 import { shallow } from "zustand/shallow";
+import { comfyStarterGraph } from "../../lib/comfy/comfyStarterGraph";
+import { starterCheckpointForTarget } from "../../hooks/useStartComfyWorkflow";
 import {
   CONSTANT_NODE_OPTIONS,
   INPUT_NODE_OPTIONS
@@ -192,6 +194,34 @@ const PaneContextMenu: React.FC = () => {
       menuPosition,
       closeAllMenus
     ]
+  );
+
+  // A subgraph that starts as ComfyUI's text-to-image graph. It holds only
+  // ComfyUI nodes, so its tab offers the Comfy catalog and it runs as one
+  // Comfy job, with the derived prompt input and image output on the node.
+  const handleCreateComfySubgraph = useCallback(
+    (event?: React.MouseEvent) => {
+      if (!event) {
+        return;
+      }
+      const metadata = getMetadata(SUBGRAPH_NODE_TYPE);
+      if (!metadata) {
+        console.error(`Metadata not found for node type: ${SUBGRAPH_NODE_TYPE}`);
+        return;
+      }
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: menuPosition?.x || event.clientX,
+        y: menuPosition?.y || event.clientY
+      });
+      closeAllMenus();
+      void starterCheckpointForTarget().then((checkpoint) => {
+        const graph = comfyStarterGraph({ checkpoint });
+        const newNode = createNode(metadata, position, { graph });
+        newNode.data.title = "Comfy subgraph";
+        addNode(newNode);
+      });
+    },
+    [getMetadata, createNode, addNode, reactFlowInstance, menuPosition, closeAllMenus]
   );
 
   const handleOpenConstantMenu = useCallback(
@@ -361,6 +391,12 @@ const PaneContextMenu: React.FC = () => {
           label={t("screen_editor.addSubgraph")}
           IconComponent={<SchemaIcon />}
           tooltip={t("screen_editor.addSubgraphTooltip")}
+        />
+        <ContextMenuItem
+          onClick={handleCreateComfySubgraph}
+          label={t("screen_editor.addComfySubgraph")}
+          IconComponent={<SchemaIcon />}
+          tooltip={t("screen_editor.addComfySubgraphTooltip")}
         />
         <ContextMenuItem
           onClick={handleCreateNode(APP_NODE_TYPE)}

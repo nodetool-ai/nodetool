@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "ワークフローノードを追加する",
     "addSubgraph": "サブグラフの追加",
     "addSubgraphTooltip": "インラインサブグラフノードを追加する",
+    "addComfySubgraph": "Comfy サブグラフを追加",
+    "addComfySubgraphTooltip": "1 つの Comfy ジョブとして実行される ComfyUI ノードのサブグラフを追加",
     "addApp": "アプリを追加",
     "addAppTooltip": "ミニアプリをノードとして実行する",
     "property": "プロパティ",

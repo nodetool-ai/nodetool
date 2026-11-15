@@ -109,6 +109,9 @@ public:
     node_editor::ComfyBackend *comfyBackend() { return tabOwner_ ? &tabOwner_->comfy_ : &comfy_; }
     // useStartComfyWorkflow: a new Comfy workflow on the server, opened in a tab.
     void newComfyWorkflow();
+    // PaneContextMenu "Add Comfy subgraph": a Subgraph node holding the Comfy
+    // starter graph, with its derived ports, in one undo step.
+    void addComfySubgraphAt(const QPointF &position);
     bool comfyWorkflowOpen() const { return comfyWorkflow_; }
     // The cost confirmation before renting a ComfyUI worker. A test answers it
     // instead of the dialog.

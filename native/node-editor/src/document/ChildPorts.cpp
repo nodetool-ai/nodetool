@@ -87,6 +87,8 @@ QJsonObject comfyNodePosition(const QJsonObject &node) {
 }
 } // namespace
 
+bool isComfyGraph(const QJsonObject &graph) { return isComfyGraph(graph["nodes"].toArray()); }
+
 QJsonObject exposeComfyInterface(const QJsonObject &graph) {
   const auto nodes = graph["nodes"].toArray();
   if (!isComfyGraph(nodes)) { return graph; }

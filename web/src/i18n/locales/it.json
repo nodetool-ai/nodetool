@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Aggiungi un nodo del flusso di lavoro",
     "addSubgraph": "Aggiungi sottografo",
     "addSubgraphTooltip": "Aggiungi un nodo sottografo in linea",
+    "addComfySubgraph": "Aggiungi sottografo Comfy",
+    "addComfySubgraphTooltip": "Aggiunge un sottografo di nodi ComfyUI eseguito come un unico job Comfy",
     "addApp": "Aggiungi app",
     "addAppTooltip": "Esegui una mini app come nodo",
     "property": "Proprietà",

@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "添加工作流节点",
     "addSubgraph": "添加子图",
     "addSubgraphTooltip": "添加内嵌子图节点",
+    "addComfySubgraph": "添加 Comfy 子图",
+    "addComfySubgraphTooltip": "添加一个由 ComfyUI 节点组成、作为单个 Comfy 任务运行的子图",
     "addApp": "添加应用",
     "addAppTooltip": "将迷你应用作为节点运行",
     "property": "属性",

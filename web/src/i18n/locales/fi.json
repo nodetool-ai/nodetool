@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Lisää työnkulkusolmu",
     "addSubgraph": "Lisää aligraafi",
     "addSubgraphTooltip": "Lisää upotettu aligraafisolmu",
+    "addComfySubgraph": "Lisää Comfy-aligraafi",
+    "addComfySubgraphTooltip": "Lisää ComfyUI-solmujen aligraafi, joka ajetaan yhtenä Comfy-työnä",
     "addApp": "Lisää sovellus",
     "addAppTooltip": "Suorita miniapp solmuna",
     "property": "Ominaisuus",

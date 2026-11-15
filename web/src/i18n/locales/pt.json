@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Adicione um nó de fluxo de trabalho",
     "addSubgraph": "Adicionar subgráfico",
     "addSubgraphTooltip": "Adicione um nó de subgráfico embutido",
+    "addComfySubgraph": "Adicionar subgrafo Comfy",
+    "addComfySubgraphTooltip": "Adiciona um subgrafo de nós do ComfyUI executado como um único trabalho Comfy",
     "addApp": "Adicionar aplicativo",
     "addAppTooltip": "Execute um miniaplicativo como um nó",
     "property": "Propriedade",

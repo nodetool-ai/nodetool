@@ -1,5 +1,7 @@
 import { memo, useCallback, useEffect } from "react";
+import { useStore } from "zustand";
 import { ReactFlowProvider } from "@xyflow/react";
+import { COMFY_RUN_MODE } from "@nodetool-ai/protocol";
 
 import NodeEditor from "../node_editor/NodeEditor";
 import SubgraphTabStrip from "./SubgraphTabStrip";
@@ -20,6 +22,7 @@ import {
 } from "../../stores/SubgraphTabsStore";
 import type { NodeStore } from "../../stores/NodeStore";
 import type { NodeData } from "../../stores/NodeData";
+import { useComfyCatalogForCanvas } from "../../serverState/useComfyNodeMetadata";
 
 /** How long the inner graph must be still before it is written back. */
 const WRITE_BACK_DEBOUNCE_MS = 300;
@@ -146,6 +149,13 @@ const SubgraphTabContent = ({ tab, active }: SubgraphTabContentProps) => {
   const parentStore = useWorkflowManager((state) =>
     state.getNodeStore(tab.workflowId)
   );
+  // A subgraph of ComfyUI nodes is edited like a Comfy workflow, so its node
+  // menu needs the Comfy target's catalog.
+  const isComfy = useStore(
+    tab.store,
+    (state) => state.workflow.run_mode === COMFY_RUN_MODE
+  );
+  useComfyCatalogForCanvas(isComfy);
   // The subgraph opened from this one that is active or holds the active one,
   // however deep.
   const nested = useSubgraphTabsStore((state) =>

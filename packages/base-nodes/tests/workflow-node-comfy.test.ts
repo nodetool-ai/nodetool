@@ -7,6 +7,7 @@ import { ComfyCloudGraphNode, type ComfyPrompt, type ComfyTransport } from "@nod
 import { registerBaseNodes } from "../src/index.js";
 
 const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
+const SUBGRAPH_NODE_TYPE = "nodetool.workflows.subgraph.Subgraph";
 
 /** Fake the Comfy Cloud transport and catalog; returns the submitted prompts. */
 function fakeComfyCloud(): ComfyPrompt[] {
@@ -54,56 +55,67 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/**
+ * Run a parent workflow whose node `wf` wraps a Comfy graph: a StringInput
+ * feeds its derived `prompt` input and an Output reads its `output`.
+ */
+async function runParent(wrapper: { type: string; properties: Record<string, unknown> }) {
+  const registry = new NodeRegistry();
+  registerBaseNodes(registry);
+  const resolver = createGraphNodeTypeResolver(registry);
+
+  // The ports the editor derives for the stored graph (extractDynamicIO).
+  const parent = {
+    nodes: [
+      { id: "in", type: "nodetool.input.StringInput", properties: { name: "subject", value: "a fox" } },
+      {
+        id: "wf",
+        ...wrapper,
+        dynamic_inputs: { prompt: { type: "str", optional: true, type_args: [] } },
+        dynamic_outputs: { output: { type: "any", optional: false, type_args: [] } }
+      },
+      { id: "out", type: "nodetool.output.Output", properties: { name: "image" } }
+    ],
+    edges: [
+      { id: "e1", source: "in", sourceHandle: "output", target: "wf", targetHandle: "prompt", edge_type: "data" },
+      { id: "e2", source: "wf", sourceHandle: "output", target: "out", targetHandle: "value", edge_type: "data" }
+    ]
+  };
+  const loaded = await Graph.loadFromDict(parent, {
+    resolver,
+    skipErrors: false,
+    allowUndefinedProperties: true
+  });
+
+  const fake = createFakeContext({
+    jobId: "j",
+    secretResolver: (key) => (key === "COMFY_API_KEY" ? "ck" : null)
+  });
+  const context = fake.context;
+  context.setResolveExecutor((node) => registry.resolve(node as never));
+  context.setResolveNodeType(resolver.resolveNodeType);
+  const messages: ProcessingMessage[] = [];
+  context.addMessageListener((msg) => messages.push(msg));
+
+  const runner = new WorkflowRunner("j", {
+    resolveExecutor: (node) => registry.resolve(node),
+    executionContext: context
+  });
+  const result = await runner.run(
+    { job_id: "j", params: {} },
+    { nodes: [...loaded.nodes], edges: [...loaded.edges] }
+  );
+  return { result, messages };
+}
+
 /** A Comfy workflow embedded in a normal workflow through the Workflow node. */
 describe("Workflow node running a Comfy workflow", () => {
   it("feeds the parent's prompt into the Comfy job and returns its saved image", async () => {
     const submitted = fakeComfyCloud();
-    const registry = new NodeRegistry();
-    registerBaseNodes(registry);
-    const resolver = createGraphNodeTypeResolver(registry);
-
-    // The ports the editor derives for the stored graph (extractDynamicIO).
-    const parent = {
-      nodes: [
-        { id: "in", type: "nodetool.input.StringInput", properties: { name: "subject", value: "a fox" } },
-        {
-          id: "wf",
-          type: WORKFLOW_NODE_TYPE,
-          properties: { workflow_id: "comfy-wf", workflow_json: storedComfyWorkflow() },
-          dynamic_inputs: { prompt: { type: "str", optional: true, type_args: [] } },
-          dynamic_outputs: { output: { type: "any", optional: false, type_args: [] } }
-        },
-        { id: "out", type: "nodetool.output.Output", properties: { name: "image" } }
-      ],
-      edges: [
-        { id: "e1", source: "in", sourceHandle: "output", target: "wf", targetHandle: "prompt", edge_type: "data" },
-        { id: "e2", source: "wf", sourceHandle: "output", target: "out", targetHandle: "value", edge_type: "data" }
-      ]
-    };
-    const loaded = await Graph.loadFromDict(parent, {
-      resolver,
-      skipErrors: false,
-      allowUndefinedProperties: true
+    const { result, messages } = await runParent({
+      type: WORKFLOW_NODE_TYPE,
+      properties: { workflow_id: "comfy-wf", workflow_json: storedComfyWorkflow() }
     });
-
-    const fake = createFakeContext({
-      jobId: "j",
-      secretResolver: (key) => (key === "COMFY_API_KEY" ? "ck" : null)
-    });
-    const context = fake.context;
-    context.setResolveExecutor((node) => registry.resolve(node as never));
-    context.setResolveNodeType(resolver.resolveNodeType);
-    const messages: ProcessingMessage[] = [];
-    context.addMessageListener((msg) => messages.push(msg));
-
-    const runner = new WorkflowRunner("j", {
-      resolveExecutor: (node) => registry.resolve(node),
-      executionContext: context
-    });
-    const result = await runner.run(
-      { job_id: "j", params: {} },
-      { nodes: [...loaded.nodes], edges: [...loaded.edges] }
-    );
 
     expect(result.status, result.error ?? "").toBe("completed");
     expect(submitted).toHaveLength(1);
@@ -115,3 +127,20 @@ describe("Workflow node running a Comfy workflow", () => {
     );
   });
 });
+
+/** An inline subgraph of ComfyUI nodes, as the editor's Comfy subgraph makes. */
+describe("Subgraph node holding ComfyUI nodes", () => {
+  it("runs the subgraph as one Comfy job with the parent's prompt", async () => {
+    const submitted = fakeComfyCloud();
+    const { result } = await runParent({
+      type: SUBGRAPH_NODE_TYPE,
+      properties: { graph: storedComfyWorkflow().graph }
+    });
+
+    expect(result.status, result.error ?? "").toBe("completed");
+    expect(submitted).toHaveLength(1);
+    expect(submitted[0]?.["6"]?.inputs.text).toBe("a fox");
+    expect(result.outputs.image).toEqual([expect.objectContaining({ type: "image" })]);
+  });
+});
+

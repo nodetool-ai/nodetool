@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Dodaj węzeł przepływu pracy",
     "addSubgraph": "Dodaj podpunkt",
     "addSubgraphTooltip": "Dodaj wbudowany węzeł podgrafu",
+    "addComfySubgraph": "Dodaj podgraf Comfy",
+    "addComfySubgraphTooltip": "Dodaj podgraf węzłów ComfyUI uruchamiany jako jedno zadanie Comfy",
     "addApp": "Dodaj aplikację",
     "addAppTooltip": "Uruchom miniaplikację jako węzeł",
     "property": "Własność",
