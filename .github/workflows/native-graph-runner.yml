@@ -19,6 +19,7 @@ on:
       - "native/node-editor/**"
       - "packages/audio-nodes/**"
       - "packages/kernels/**"
+      - "native/realtime/**"
       - ".github/workflows/native-graph-runner.yml"
       - "docker/ci-native/**"
   push:
@@ -30,6 +31,7 @@ on:
       - "native/node-editor/**"
       - "packages/audio-nodes/**"
       - "packages/kernels/**"
+      - "native/realtime/**"
       - ".github/workflows/native-graph-runner.yml"
 
 permissions:
@@ -200,7 +202,8 @@ jobs:
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_C_FLAGS="$SAN_FLAGS" -DCMAKE_CXX_FLAGS="$SAN_FLAGS" \
             -DCMAKE_EXE_LINKER_FLAGS="$SAN_FLAGS" -DCMAKE_SHARED_LINKER_FLAGS="$SAN_FLAGS" \
-            -DGR_TEST_TESSDATA=/usr/share/tesseract-ocr/5/tessdata
+            -DGR_TEST_TESSDATA=/usr/share/tesseract-ocr/5/tessdata \
+            -DNODETOOL_GRAPH_RUNNER_REALTIME=ON
 
       - name: Build
         id: native_build
@@ -215,6 +218,14 @@ jobs:
           node guest/build.mjs
           node guest/host/gpu-catalog.mjs build/gpu-catalog.json
           ./build/nodetool-graph-runner compile --bundle build/guest.js --out build/guest.bin
+
+      - name: Select software Vulkan adapter
+        run: |
+          set -euo pipefail
+          driver=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)
+          test -n "$driver"
+          echo "VK_ICD_FILENAMES=$driver" >> "$GITHUB_ENV"
+          echo "VK_DRIVER_FILES=$driver" >> "$GITHUB_ENV"
 
       - name: Check Linux signal-effect parity
         if: matrix.name == 'Release'
@@ -238,6 +249,30 @@ jobs:
             native/graph-runner/build/parity/result.json
             native/graph-runner/build/audio-parity.log
           if-no-files-found: error
+
+      # Catch private-driver tracking regressions before the long host suite.
+      - name: Check private realtime GPU mutex tracking
+        if: matrix.name == 'TSan'
+        run: |
+          env -u DISPLAY ctest --test-dir native/graph-runner/build \
+            -R '^realtime-offline-(gpu|render-export)$' --no-tests=error --output-on-failure
+
+      - name: Check provider job-state ordering
+        if: matrix.name == 'Release'
+        run: |
+          ctest --test-dir native/graph-runner/build -R '^gr_provider_job_state_tests$' \
+            --repeat until-fail:20 --no-tests=error --output-on-failure
+
+      - name: Verify realtime command dispatch
+        # Match the unfiltered private CTests, including their serial TSan driver.
+        env:
+          RT_SANITIZER: ${{ matrix.name }}
+        run: |
+          if [[ "$RT_SANITIZER" == 'TSan' ]]; then
+            export LP_NUM_THREADS=0 MESA_SHADER_CACHE_DISABLE=true
+          fi
+          TSAN_OPTIONS=halt_on_error=1:second_deadlock_stack=1 \
+            node native/realtime/scripts/cli-check.mjs native/graph-runner/build/nodetool-graph-runner
 
       # A pull request runs only the tests that depend on its changed files:
       # the selection of `npm run test:affected:native`, read from this
@@ -266,7 +301,7 @@ jobs:
         run: |
           sel=()
           if [[ -n "$NT_TEST_FILTER" ]]; then sel=(-R "$NT_TEST_FILTER"); fi
-          ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"
+          env -u DISPLAY ctest --test-dir build --output-on-failure --timeout 900 "${sel[@]}"
 
       - name: Install Qt for the node editor
         id: editor_qt

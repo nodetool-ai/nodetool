@@ -174,6 +174,28 @@ it("keeps the bucket exit status when Chromium diagnostics run", () => {
   }
 });
 
+it("runs Chromium diagnostic steps in Bash and skips crash inspection after success", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
+  const steps = workflow.jobs.verification.steps;
+  const prepare = steps.find(step => step.name === "Prepare Chromium crash capture");
+  const diagnose = steps.find(step => step.name === "Diagnose Chromium cores and restore the core handler");
+  expect(prepare.shell).toBe("bash");
+  expect(diagnose.shell).toBe("bash");
+  const root = mkdtempSync(join(tmpdir(), "chromium-diagnostic-shell-"));
+  try {
+    const result = spawnSync(diagnose.shell, ["--noprofile", "--norc", "-eo", "pipefail", "-c", diagnose.run], {
+      env: { ...process.env, RUNNER_TEMP: root, BUCKET_OUTCOME: "success" },
+      encoding: "utf8",
+      timeout: 5000
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).not.toContain("Captured");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 it("bounds verification test concurrency without changing build scheduling", () => {
   const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/packed-core-cli.yml", import.meta.url), "utf8"));
   const job = workflow.jobs.verification;

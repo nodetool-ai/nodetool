@@ -3,6 +3,7 @@
   "private": true,
   "workspaces": [
     "packages/protocol",
+    "packages/realtime-compiler",
     "packages/analytics",
     "packages/gpu",
     "packages/timeline",

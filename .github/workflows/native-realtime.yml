@@ -1,0 +1,140 @@
+name: Native realtime core
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "native/realtime/**"
+      - "native/graph-runner/guest/host/gpu-catalog.mjs"
+      - "packages/gpu/**"
+      - "packages/realtime-compiler/**"
+      - ".github/workflows/native-realtime.yml"
+  push:
+    branches: [main]
+    paths:
+      - "native/realtime/**"
+      - "native/graph-runner/guest/host/gpu-catalog.mjs"
+      - "packages/gpu/**"
+      - "packages/realtime-compiler/**"
+      - ".github/workflows/native-realtime.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-realtime-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  offline:
+    name: Offline exports / ${{ matrix.mode }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [release, sanitize]
+    env:
+      ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install build and adapter dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++ mesa-vulkan-drivers libsecret-1-0
+      - name: Set up package dependencies
+        uses: ./.github/actions/setup-build
+        with:
+          package-media: "false"
+          build-packages: "false"
+      - name: Build shader catalog dependencies
+        run: |
+          npm run build --workspace=packages/protocol
+          npm run build --workspace=packages/gpu
+          npm run build --workspace=packages/realtime-compiler
+          npm run test --workspace=packages/realtime-compiler
+      - name: Check browser comparison guards
+        run: |
+          node --test native/realtime/spike/browser/headers.test.mjs
+          python3 -m unittest discover -s native/realtime/spike/browser -p 'test_*.py'
+      - name: Select lavapipe
+        shell: bash
+        run: |
+          set -euo pipefail
+          driver=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)
+          test -n "$driver"
+          echo "VK_ICD_FILENAMES=$driver" >> "$GITHUB_ENV"
+          echo "VK_DRIVER_FILES=$driver" >> "$GITHUB_ENV"
+      - name: Configure offline sanitizers
+        if: matrix.mode == 'sanitize'
+        run: |
+          cmake -S native/realtime -B native/realtime/build-gpu \
+            -DCMAKE_BUILD_TYPE=Release -DNT_REALTIME_BUILD_SPIKES=OFF -DNT_REALTIME_OFFLINE_GPU=ON \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined" \
+            -DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=undefined"
+      - name: Verify offline exports and required test inventory
+        run: env -u DISPLAY node native/realtime/scripts/check.mjs
+      - name: Verify compiler snapshot through the native loader and renderer
+        run: env -u DISPLAY npm run test:native --workspace=packages/realtime-compiler -- "$GITHUB_WORKSPACE/native/realtime/build-gpu/nodetool-realtime"
+      - name: Cache pinned wasm32 SDK
+        if: matrix.mode == 'release'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: native/realtime/build/wp10/emsdk
+          key: rt-q8-emsdk-7.0.0-linux-v1
+      - name: Prepare pinned browser toolchain
+        if: matrix.mode == 'release'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk=native/realtime/build/wp10/emsdk
+          if [ ! -d "$sdk/.git" ]; then
+            git clone --depth 1 --branch 7.0.0 https://github.com/emscripten-core/emsdk.git "$sdk"
+          fi
+          test "$(git -C "$sdk" rev-parse HEAD)" = 1693ce7359fc9694f198694f902a2cc061239b86
+          python3 "$sdk/emsdk.py" install 7.0.0
+          python3 "$sdk/emsdk.py" activate 7.0.0
+          mkdir -p native/realtime/build/wp10/port
+          curl --fail --location --retry 3 https://github.com/google/dawn/releases/download/v20260423.175430/emdawnwebgpu_pkg-v20260423.175430.zip -o native/realtime/build/wp10/port.zip
+          echo '42784f70b67197c614322f9fabb0f1dc64228a0de10e88f99941fa9d29bee9ad6683f4651d4eefd5a7a9fbd1f976eb522b190b683219ed1793e9b531c602ffa6  native/realtime/build/wp10/port.zip' | sha512sum --check
+          unzip -q native/realtime/build/wp10/port.zip -d native/realtime/build/wp10/port
+          npx playwright install --with-deps chromium
+      - name: Verify wasm32 fixtures and benchmark guards
+        if: matrix.mode == 'release'
+        env:
+          SPIKE_BROWSER: chromium
+        run: |
+          python3 native/realtime/spike/browser/build_candidate.py --sdk native/realtime/build/wp10/emsdk --native-build native/realtime/build-gpu --port native/realtime/build/wp10/port/emdawnwebgpu_pkg/emdawnwebgpu.port.py --out native/realtime/build/wp10/candidate
+          node native/realtime/spike/browser/verify.mjs native/realtime/build/wp10/candidate native/realtime/build-gpu/nodetool-realtime
+          python3 native/realtime/spike/browser/build_candidate.py --sdk native/realtime/build/wp10/emsdk --native-build native/realtime/build-gpu --port native/realtime/build/wp10/port/emdawnwebgpu_pkg/emdawnwebgpu.port.py --out native/realtime/build/wp10/benchmark --benchmark
+          node native/realtime/spike/browser/benchmark.mjs native/realtime/build/wp10/benchmark native/realtime/build/wp10/ci-benchmark.json
+  core:
+    name: Core / ${{ matrix.preset }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [release, sanitize, tsan]
+    env:
+      ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+      TSAN_OPTIONS: halt_on_error=1
+    defaults:
+      run:
+        working-directory: native/realtime
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }} --no-tests=error

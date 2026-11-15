@@ -24,21 +24,42 @@ between this plan and the design is a defect in this plan. Fix the plan.
   in the design, section 19, in the same pull request.
 - A work package that changes a design decision updates the design in the same
   pull request and names the changed decision.
-- Do not start a work package before its dependencies are merged. A package
-  can start on a stub of a dependency only when the issue says so.
+- Start after dependencies merge, or record an implementation-order deferral
+  under [provisional progress](#provisional-progress-and-deferred-work). Name
+  the dependency, available contract, remaining evidence and owning issue.
 
 ## Milestones
 
 | Milestone | Design phase | Goal | Gate to the next milestone |
 |---|---|---|---|
 | RT M0: Spike | P0 | Measure the risky parts outside the product | WP04 report merged. R1 and R2 decided. Section 13 budgets replaced by measured values |
-| RT M1: Headless core | P1 | `native/realtime` runs plans offline | Section 15 tests pass, except stall, swap state and audio parity. Q8 decided |
+| RT M1: Headless core | P1 | `native/realtime` runs plans offline | [Provisional P1 evidence](graph-runner-realtime.md#152-provisional-m1-progress-gate) passes. Deferred requirements remain open under their owning issues |
 | RT M2: Live engine | P2 | Device, surface, clocks and params in real time | Stall test passes. `live bench` meets section 13 |
 | RT M3: Editor integration | P3 | Compiler, descriptors, slots, editor picture | The example of section 1 runs in the editor. Swap state test passes |
 | RT M4: Creative nodes | P4 | Custom shaders, analysis taps, feedback | Tap and feedback fixtures pass the frame goldens |
 | RT M5: Browser | P5 | Browser executors | Audio parity in the browser. P1 frame fixtures meet level 2 |
 | RT M6: Export and logs | P6 | Export, capture, batch taps, session log | Export plays in sync. A log replay repeats a session |
 | RT M7: Data kernels | P7 | User and pack kernels in isolated mode | Loader tests pass. An endless-loop kernel causes no underrun |
+
+## Provisional progress and deferred work
+
+The user authorizes independent implementation to advance while blocking work
+is explicitly deferred. For provisional M1, use the scoped evidence of WP09
+and the Wasm/Q8 requirements of WP10, as defined in the
+[design's progress gate](graph-runner-realtime.md#152-provisional-m1-progress-gate).
+
+Record each deferred requirement in the
+[acceptance ledger](../../native/realtime/M1_STATUS.md#deferred-acceptance-work),
+with its owning issue, missing evidence and the boundary on work that can proceed.
+Keep unfinished issues and milestones open. A deferral does not satisfy a test,
+qualify a platform or enable live/shared-device use. It changes implementation
+order. Required verification and the existing PR merge order still apply.
+
+The next independent track is WP16's pure compiler and IR snapshots, using
+WP09's current schema/loader/offline contracts while WP09 remains open. Node
+descriptors, runner/editor integration and live-device behavior stay with their
+assigned work packages. Reconcile compiler fixtures with the merged dependency
+before claiming that integration is qualified.
 
 ## Work packages
 
@@ -108,7 +129,7 @@ Parallel tracks after M1:
 | Q5. Live descriptors on existing image nodes | WP17 |
 | Q6. First tap policy for live-to-batch loops | WP27 |
 | Q7. Browser render loop thread | WP25 |
-| Q8. Browser render executor | WP10 |
+| Q8. Browser render executor: C++/Wasm, selected from the [WP10 comparison](../../native/realtime/spike/browser/README.md) | WP10 |
 | Q9. Metered mode for user kernels | WP28 |
 | Q10. Editor control for the sync policy | WP20 |
 

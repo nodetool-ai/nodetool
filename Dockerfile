@@ -42,6 +42,8 @@ COPY turbo.json ./
 # exporter (web/src/components/timeline/render), so the sources come along.
 COPY web/src/ web/src/
 COPY web/vite-node-stubs/ web/vite-node-stubs/
+# The realtime compiler bundles this canonical native schema during its build.
+COPY native/realtime/schema/plan-v1.schema.json native/realtime/schema/plan-v1.schema.json
 
 RUN npm run build:packages
 
