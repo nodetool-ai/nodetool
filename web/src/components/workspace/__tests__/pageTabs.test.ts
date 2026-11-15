@@ -13,7 +13,6 @@ describe("PAGE_TAB_TITLES", () => {
       "models",
       "packages",
       "collections",
-      "workspaces",
       "effects",
       "settings"
     ];
