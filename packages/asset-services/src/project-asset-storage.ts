@@ -9,6 +9,7 @@
  * (`externalPathLookup`). An object store has no path to hand out, so it
  * reads the bytes instead.
  */
+import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type {
   DownloadUrlOptions,
   StorageAdapter,
@@ -156,4 +157,22 @@ export class ProjectAssetStorageAdapter implements StorageAdapter {
     const file = await this.fileFor(uri);
     return file ? localProjectAssetPath(file) : null;
   }
+}
+
+/**
+ * `adapter` without the lookup through asset rows: a key is answered only
+ * from the object stored under it.
+ *
+ * The asset store answers a key that has no object, or whose object could
+ * not be read, from the file its asset row points at. A caller that is about
+ * to delete an object must know what is under the key itself, so it reads,
+ * stats and deletes through this view. An adapter that has no such lookup is
+ * returned as it is.
+ */
+export function storedObjectsOf(adapter: StorageAdapter): StorageAdapter {
+  if (adapter instanceof ProjectAssetStorageAdapter) return adapter.inner;
+  if (adapter instanceof FileStorageAdapter) {
+    return new FileStorageAdapter(adapter.rootDir);
+  }
+  return adapter;
 }

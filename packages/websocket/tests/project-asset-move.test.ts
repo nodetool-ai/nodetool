@@ -89,6 +89,8 @@ class ObjectStore extends InMemoryStorageAdapter {
   }
 }
 
+/** The bucket of the cloud mode, below the lookup through asset rows. */
+let objectStore: ObjectStore | null = null;
 let folders: ProjectFolderFixture;
 let tmpDir: string;
 let storageRoot: string;
@@ -160,6 +162,7 @@ afterEach(async () => {
   ModelObserver.clear();
   setWorkspaceCloudStorage(null);
   mocks.adapter = null;
+  objectStore = null;
   await folders.cleanup();
   await fs.rm(tmpDir, { recursive: true, force: true });
 });
@@ -194,6 +197,7 @@ describe.each(["local", "cloud"] as const)(
         // The server hands project folders the asset store itself, so one
         // bucket holds both.
         const store = new ObjectStore();
+        objectStore = store;
         const adapter = new ProjectAssetStorageAdapter(store);
         mocks.adapter = adapter;
         setWorkspaceCloudStorage(adapter);
@@ -283,6 +287,137 @@ describe.each(["local", "cloud"] as const)(
         parent_id: projectDirectoryId(project.id, "Shots")
       });
       expect(inShots.assets.map((asset) => asset.id)).toEqual([fox.id]);
+    });
+
+    it("a bytes update sent while the asset moves is kept, and the asset serves the new bytes", async () => {
+      const { project, folder } = await projectWithFolder(USER, "Film");
+      const notes = await legacyAsset(
+        project.id,
+        "notes",
+        null,
+        UPLOAD,
+        "text/plain"
+      );
+      await ageRows();
+      const updated = new TextEncoder().encode("shot list, second draft");
+      const key = getAssetStorageKey(USER, notes.id, "text/plain");
+      const store = mocks.adapter;
+      if (!store) throw new Error("no asset store");
+      const objectUri = store.uriForKey(key);
+      const caller = createCaller(makeCtx());
+
+      // Without the folder lock, the update's store under the legacy key
+      // runs whenever it likes. This holds it back until the move is about
+      // to delete the object, which is the moment that loses the bytes.
+      let openGate = (): void => {};
+      const gate = new Promise<void>((resolve) => {
+        openGate = resolve;
+      });
+      let updateStored = (): void => {};
+      const stored = new Promise<void>((resolve) => {
+        updateStored = resolve;
+      });
+      const storeObject = store.store.bind(store);
+      vi.spyOn(store, "store").mockImplementation(
+        async (storeKey, data, contentType) => {
+          if (storeKey !== key) return storeObject(storeKey, data, contentType);
+          await gate;
+          const uri = await storeObject(storeKey, data, contentType);
+          updateStored();
+          return uri;
+        }
+      );
+      const sleep = (ms: number): Promise<void> =>
+        new Promise((resolve) => setTimeout(resolve, ms));
+
+      // The update is sent when the move first reads the object, so the
+      // request loads the row before the move names the file on it.
+      let update: Promise<unknown> | null = null;
+      const beforeRead = async (uri: string): Promise<void> => {
+        if (uri !== objectUri || update) return;
+        update = caller.assets.update({
+          id: notes.id,
+          data: Buffer.from(updated).toString("base64"),
+          data_encoding: "base64"
+        });
+        await sleep(20);
+      };
+      // The move's delete of the object lets the held store go first.
+      const beforeDelete = async (uri: string): Promise<void> => {
+        if (uri !== objectUri) return;
+        openGate();
+        await Promise.race([stored, sleep(200)]);
+      };
+      if (mode === "local") {
+        const { retrieve, delete: remove } = FileStorageAdapter.prototype;
+        vi.spyOn(FileStorageAdapter.prototype, "retrieve").mockImplementation(
+          async function (this: FileStorageAdapter, uri: string) {
+            await beforeRead(uri);
+            return retrieve.call(this, uri);
+          }
+        );
+        vi.spyOn(FileStorageAdapter.prototype, "delete").mockImplementation(
+          async function (this: FileStorageAdapter, uri: string) {
+            await beforeDelete(uri);
+            return remove.call(this, uri);
+          }
+        );
+      } else {
+        const bucket = objectStore;
+        if (!bucket) throw new Error("no object store");
+        const retrieve = bucket.retrieve.bind(bucket);
+        const remove = bucket.delete.bind(bucket);
+        vi.spyOn(bucket, "retrieve").mockImplementation(async (uri) => {
+          await beforeRead(uri);
+          return retrieve(uri);
+        });
+        vi.spyOn(bucket, "delete").mockImplementation(async (uri) => {
+          await beforeDelete(uri);
+          return remove(uri);
+        });
+      }
+
+      await caller.projects.get({ id: project.id });
+      await projectAssetMoveJob.idle();
+      expect(update).not.toBeNull();
+      await update;
+
+      // The asset serves the new bytes, from its file in the folder.
+      const row = await reload(notes);
+      expect(row.workspace_path).toBe("notes.txt");
+      expect(await folderOf(folder).read("notes.txt")).toEqual(updated);
+      const response = await toAssetResponse(row);
+      expect(response.size).toBe(updated.byteLength);
+      expect(await serve(response.get_url ?? "")).toEqual(updated);
+      // Nothing is left under the key, where it would shadow the file.
+      expect(await rawExists(key)).toBe(false);
+    });
+
+    it("a bytes update of an asset that has not moved yet is stored under its key with the row", async () => {
+      const { project } = await projectWithFolder(USER, "Film");
+      const notes = await legacyAsset(
+        project.id,
+        "notes",
+        null,
+        UPLOAD,
+        "text/plain"
+      );
+      const updated = new TextEncoder().encode("shot list, second draft");
+      const caller = createCaller(makeCtx());
+
+      const response = await caller.assets.update({
+        id: notes.id,
+        name: "notes v2",
+        data: Buffer.from(updated).toString("base64"),
+        data_encoding: "base64"
+      });
+
+      const row = await reload(notes);
+      expect(row.workspace_path).toBeNull();
+      expect(row.name).toBe("notes v2");
+      expect(row.size).toBe(updated.byteLength);
+      expect(response.name).toBe("notes v2");
+      expect(await serve(response.get_url ?? "")).toEqual(updated);
     });
 
     it("a project with nothing to move reports no move", async () => {

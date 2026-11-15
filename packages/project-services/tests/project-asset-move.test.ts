@@ -50,6 +50,7 @@ import {
   getAssetThumbnailKey,
   retrieveAssetBytes
 } from "@nodetool-ai/asset-services/asset-paths";
+import { updateAssetBytesModelInterface } from "@nodetool-ai/asset-services/asset-model-interface";
 import { lookupExternalAssetPath } from "@nodetool-ai/asset-services/external-asset-lookup";
 import {
   legacyAssetStagingName,
@@ -220,14 +221,9 @@ async function folderFiles(
 }
 
 function newJob(
-  afterStep?: (step: LegacyAssetMoveStep, assetId: string) => void | Promise<void>,
-  storage?: StorageAdapter
+  afterStep?: (step: LegacyAssetMoveStep, assetId: string) => void | Promise<void>
 ): ProjectAssetMoveJob {
-  return new ProjectAssetMoveJob({
-    settleMs: 0,
-    afterStep,
-    storage: storage ? () => storage : undefined
-  });
+  return new ProjectAssetMoveJob({ settleMs: 0, afterStep });
 }
 
 function sha256(bytes: Uint8Array): string {
@@ -271,16 +267,36 @@ function folderWriting(
   });
 }
 
-/** The asset store with every read of an object failing, as an outage does. */
-function storeFailingReads(real: StorageAdapter): StorageAdapter {
-  return new Proxy(real, {
-    get(target, property) {
-      if (property === "retrieve") return async () => null;
-      const value: unknown = Reflect.get(target, property);
-      return typeof value === "function" ? value.bind(target) : value;
-    }
-  });
+/**
+ * Make the stored object of `asset` unreadable where the asset store itself
+ * fails: below the lookup that answers a missed key from the folder file.
+ * The object is still there and `stat` still finds it. Returns what makes it
+ * readable again.
+ */
+async function makeUnreadable(
+  kind: Kind,
+  asset: Asset
+): Promise<() => Promise<void>> {
+  const key = getAssetStorageKey(USER, asset.id, asset.content_type);
+  if (kind === "local") {
+    // The file store refuses to read a file that has a second name.
+    const alias = join(root, `alias-${asset.id}`);
+    await link(join(root, "assets", key), alias);
+    return () => rm(alias);
+  }
+  // An object store answers a failed read with null.
+  const uri = rawStore.uriForKey(key);
+  const retrieve = rawStore.retrieve.bind(rawStore);
+  const failing = vi
+    .spyOn(rawStore, "retrieve")
+    .mockImplementation(async (asked) =>
+      asked === uri ? null : retrieve(asked)
+    );
+  return async () => failing.mockRestore();
 }
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
 /** A job that dies after `step` of the `nth` asset that reaches it. */
 function jobKilledAfter(step: LegacyAssetMoveStep, nth = 1): ProjectAssetMoveJob {
@@ -832,12 +848,11 @@ describe.each(["local", "storage"] as const)(
       await folder(kind).write("fox.png", creators);
       const before = (await reload(asset)).toRow();
 
-      // Every read of the asset store fails. The store answers null, as it
-      // does for a key with no object.
-      const report = await newJob(
-        undefined,
-        storeFailingReads(assetStore)
-      ).run(PROJECT, USER);
+      // The read of the object fails. The store answers null, as it does
+      // for a key with no object.
+      const makeReadable = await makeUnreadable(kind, asset);
+      const report = await newJob().run(PROJECT, USER);
+      await makeReadable();
 
       expect(report.moved).toEqual([]);
       expect(report.withoutBytes).toEqual([]);
@@ -859,15 +874,122 @@ describe.each(["local", "storage"] as const)(
       const asset = await legacyAsset({ name: "fox", bytes: content });
       await jobKilledAfter("switched").run(PROJECT, USER);
 
-      const report = await newJob(
-        undefined,
-        storeFailingReads(assetStore)
-      ).run(PROJECT, USER);
+      // The asset store answers a key it cannot read from the folder file.
+      // That answer must not pass for the object.
+      const makeReadable = await makeUnreadable(kind, asset);
+      const viaStore = await readById(asset);
+      expect(Buffer.from(viaStore ?? []).equals(Buffer.from(content))).toBe(true);
+      const report = await newJob().run(PROJECT, USER);
+      await makeReadable();
 
       expect(report.moved).toEqual([]);
       expect(report.failed).toEqual([asset.id]);
       const stored = await storedObject(asset);
       expect(Buffer.from(stored ?? []).equals(Buffer.from(content))).toBe(true);
+
+      // Readable again, the object is the one that was copied and goes.
+      expect((await newJob().run(PROJECT, USER)).moved).toEqual([asset.id]);
+      expect(await storedKeys()).toEqual([]);
+    });
+
+    it("a bytes update that loaded the row before the move named the file is not lost to the delete", async () => {
+      const content = bytesOf(++seq, 4096);
+      const updated = bytesOf(++seq, 4096);
+      const asset = await legacyAsset({
+        name: "notes",
+        contentType: "text/plain",
+        bytes: content
+      });
+      const key = getAssetStorageKey(USER, asset.id, "text/plain");
+      const objectUri = rawAssets.uriForKey(key);
+
+      // Without the folder lock, the update's store under the legacy key
+      // runs whenever it likes. This holds it back until the move is about
+      // to delete the object, which is the moment that loses the bytes.
+      let openGate = (): void => {};
+      const gate = new Promise<void>((resolve) => {
+        openGate = resolve;
+      });
+      let updateStored = (): void => {};
+      const stored = new Promise<void>((resolve) => {
+        updateStored = resolve;
+      });
+      const store = assetStore.store.bind(assetStore);
+      vi.spyOn(assetStore, "store").mockImplementation(
+        async (storeKey, data, contentType) => {
+          if (storeKey !== key) return store(storeKey, data, contentType);
+          await gate;
+          const uri = await store(storeKey, data, contentType);
+          updateStored();
+          return uri;
+        }
+      );
+      // The move's delete of the object lets the held store go first.
+      const beforeDelete = async (uri: string): Promise<void> => {
+        if (uri !== objectUri) return;
+        openGate();
+        await Promise.race([stored, sleep(200)]);
+      };
+      if (kind === "local") {
+        const remove = FileStorageAdapter.prototype.delete;
+        vi.spyOn(FileStorageAdapter.prototype, "delete").mockImplementation(
+          async function (this: FileStorageAdapter, uri: string) {
+            await beforeDelete(uri);
+            return remove.call(this, uri);
+          }
+        );
+      } else {
+        const remove = rawStore.delete.bind(rawStore);
+        vi.spyOn(rawStore, "delete").mockImplementation(async (uri) => {
+          await beforeDelete(uri);
+          return remove(uri);
+        });
+      }
+
+      let update: Promise<unknown> = Promise.resolve();
+      const job = newJob(async (step) => {
+        if (step !== "verified") return;
+        // The update loads the row now: before the move names the file.
+        update = updateAssetBytesModelInterface({
+          userId: USER,
+          assetId: asset.id,
+          content: updated
+        });
+        await sleep(20);
+      });
+      await job.run(PROJECT, USER);
+      await update;
+
+      // The asset reads the new bytes, from its file in the folder.
+      const read = await readById(asset);
+      expect(Buffer.from(read ?? []).equals(Buffer.from(updated))).toBe(true);
+      const row = await reload(asset);
+      expect(row.workspace_path).toBe("notes.txt");
+      const file = await folder(kind).read("notes.txt");
+      expect(Buffer.from(file ?? []).equals(Buffer.from(updated))).toBe(true);
+      expect(await folderFiles(kind)).toEqual(["notes.txt"]);
+      // Nothing was stored under the key, where it would shadow the file.
+      expect(await storedKeys()).toEqual([]);
+    });
+
+    it("a bytes update of an asset with no file in the folder is stored under its key and moved later", async () => {
+      const updated = bytesOf(++seq, 4096);
+      const asset = await legacyAsset({ name: "notes", contentType: "text/plain" });
+
+      await updateAssetBytesModelInterface({
+        userId: USER,
+        assetId: asset.id,
+        content: updated
+      });
+
+      const stored = await storedObject(asset);
+      expect(Buffer.from(stored ?? []).equals(Buffer.from(updated))).toBe(true);
+      expect((await reload(asset)).workspace_path).toBeNull();
+      expect((await reload(asset)).size).toBe(updated.byteLength);
+
+      expect((await newJob().run(PROJECT, USER)).moved).toEqual([asset.id]);
+      const file = await folder(kind).read("notes.txt");
+      expect(Buffer.from(file ?? []).equals(Buffer.from(updated))).toBe(true);
     });
 
     it("points a row whose stored object is gone at the file its move recorded, and at no other", async () => {

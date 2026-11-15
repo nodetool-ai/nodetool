@@ -46,7 +46,14 @@
  *
  * A legacy object that cannot be read is not a missing one. The asset store
  * answers a failed read like a missing key, so absence is confirmed with a
- * `stat` of every legacy key before the asset is treated as having none.
+ * `stat` of every legacy key before the asset is treated as having none. The
+ * store is read through `storedObjectsOf`, because the store itself answers
+ * a key it cannot read from the file the row points at.
+ *
+ * A bytes update of an asset with no file in the folder stores its bytes and
+ * saves its row under the same folder lock (`storeLegacyAssetBytes`), so it
+ * never lands between this module's last read of the legacy object and the
+ * delete.
  *
  * External assets, folder rows and assets of another project are never
  * touched. Thumbnails and other derived objects stay in the asset store.
@@ -78,6 +85,7 @@ import {
   withWorkspaceFingerprint,
   type WorkspaceFingerprint
 } from "./project-asset-file.js";
+import { storedObjectsOf } from "./project-asset-storage.js";
 import {
   assetFileExtension,
   claimFile,
@@ -202,9 +210,8 @@ type LegacyObject =
   | { state: "absent" };
 
 /**
- * The legacy object of `asset`. Call it only for a row with no
- * `workspace_path` and no `external_path`: the asset store then has nothing
- * but the object to answer with.
+ * The legacy object of `asset`, read from `storage`, which must be the view
+ * of the asset store that answers only from stored objects.
  *
  * The store answers a failed read with null, as it does for a missing key.
  * So a key is taken for empty only when `stat` finds nothing under it, and an
@@ -274,7 +281,9 @@ class LegacyAssetMove {
     private readonly options: LegacyAssetMoveOptions
   ) {
     this.workspace = options.workspace;
-    this.storage = options.storage;
+    // A key the store cannot read must not be answered from the folder file,
+    // which would pass for the object and let it be deleted.
+    this.storage = storedObjectsOf(options.storage);
   }
 
   private async step(step: LegacyAssetMoveStep): Promise<void> {
@@ -565,7 +574,6 @@ class LegacyAssetMove {
       !isProjectAssetOffline(asset) &&
       (await statFile(this.workspace, path)) !== null;
     if (!present) {
-      // With the file gone, the store answers a key only from its own object.
       for (const uri of uris) {
         if (await this.storage.stat(uri)) {
           return {
@@ -581,7 +589,6 @@ class LegacyAssetMove {
     let fileBytes: Uint8Array | null | undefined;
     const deletable: string[] = [];
     for (const uri of uris) {
-      // A key with no object of its own is answered from the file.
       const stored = await this.storage.retrieve(uri);
       if (stored === null) {
         if ((await this.storage.stat(uri)) === null) continue;

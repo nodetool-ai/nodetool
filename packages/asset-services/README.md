@@ -59,7 +59,11 @@ verifies the copy byte for byte, names the file on the row with
 `Asset.saveFilePlacementIf`, deletes the legacy object while it still has the
 recorded hash, and then removes what it recorded. A call that finds a recorded
 target continues that move. It never deletes a file at a target, and it never
-deletes a legacy object it could not read or that changed after the copy. The
+deletes a legacy object it could not read or that changed after the copy. It
+reads legacy objects through `storedObjectsOf`, the asset store without the
+lookup that answers a missed key from the folder file. A bytes update of an
+asset with no file in the folder goes through `storeLegacyAssetBytes`, which
+stores the bytes and saves the row under the folder lock the move holds. The
 job in
 [`@nodetool-ai/project-services`](../project-services/src/project-asset-move-job.ts)
 runs it for every asset of a project and deletes the folder rows that are left

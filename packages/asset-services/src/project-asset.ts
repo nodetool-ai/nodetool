@@ -19,6 +19,8 @@ import type { Workspace } from "@nodetool-ai/runtime";
 import { probeAssetDurationSeconds } from "./asset-duration.js";
 import { normalizeAssetContentType } from "./asset-paths.js";
 import {
+  WORKSPACE_SERVER_KEYS,
+  keepFingerprint,
   partialContentHash,
   partialContentHashOfFile,
   partialContentHashOfWorkspaceFile,
@@ -575,7 +577,7 @@ function relocateProjectAssetFile(
 /**
  * Write new bytes to the file of `asset`. Null when the asset keeps no file
  * in a project folder, and the caller then stores the bytes under the asset
- * key as before.
+ * key through {@link storeLegacyAssetBytes}.
  *
  * `asset.content_type` is the type of the new bytes. When its extension is
  * the file's, the file is overwritten in place. Otherwise the bytes go to a
@@ -671,6 +673,49 @@ export async function replaceProjectAssetBytes(
         }
       }
     };
+  });
+}
+
+/** What {@link storeLegacyAssetBytes} did with the bytes. */
+export type LegacyAssetBytesUpdate =
+  /** `store` ran: the bytes are under the asset's storage key. */
+  | "stored"
+  /** The asset has a file in its project folder by now. Nothing was stored. */
+  | "moved";
+
+/**
+ * Store new bytes for an asset that keeps none in a project folder. `store`
+ * writes them under the asset's storage key and saves the row.
+ *
+ * The move of existing assets into their project folder copies the object
+ * under that key, names the file on the row and then deletes the object, all
+ * under the project's folder lock. `store` runs under the same lock, so new
+ * bytes never land between the move's last look at the object and its
+ * delete, and the row is never saved over the one the move wrote.
+ *
+ * The row is read again inside the lock. When the move has named a file on
+ * it since the caller loaded `asset`, nothing is stored under the key, where
+ * the bytes would shadow that file: `asset` takes the file's path and
+ * fingerprint, and the caller writes the bytes with
+ * {@link replaceProjectAssetBytes}.
+ */
+export function storeLegacyAssetBytes(
+  asset: Asset,
+  store: () => Promise<void>
+): Promise<LegacyAssetBytesUpdate> {
+  return withProjectFolderLock(asset.user_id, asset.project_id, async () => {
+    const current = await Asset.find(asset.user_id, asset.id);
+    if (current?.workspace_path) {
+      asset.workspace_path = current.workspace_path;
+      asset.metadata = keepFingerprint(
+        asset.metadata ?? {},
+        current.metadata,
+        WORKSPACE_SERVER_KEYS
+      );
+      return "moved";
+    }
+    await store();
+    return "stored";
   });
 }
 
