@@ -875,7 +875,7 @@ ColumnLayout {
                     }
                     Ui.EditorButton {
                         visible: partFrame.kind !== "secret_request"
-                        text: partFrame.kind === "plan_approval_request" ? qsTr("Run this plan") : qsTr("Allow")
+                        text: partFrame.kind === "plan_approval_request" ? qsTr("Run this plan") : qsTr("Allow once")
                         enabled: !!root && !!root.session && root.session.connectionStatus === "connected"
                         onClicked: {
                             root.session.respondToAction(partFrame.part.actionId, true);
@@ -908,11 +908,11 @@ ColumnLayout {
                         onClicked: { root.session.saveSecret(partFrame.part.actionId, secretValue.text); secretValue.text = "" }
                     }
                     Ui.EditorButton {
-                        objectName: "allowForChat"
+                        objectName: "allowAlways"
                         visible: partFrame.kind === "tool_approval_request"
-                        text: qsTr("Allow for this chat")
+                        text: qsTr("Always allow")
                         enabled: !!root && !!root.session && root.session.connectionStatus === "connected"
-                        onClicked: root.session.allowActionForChat(partFrame.part.actionId)
+                        onClicked: root.session.allowActionAlways(partFrame.part.actionId)
                     }
                     Ui.EditorButton {
                         visible: partFrame.kind === "secret_request"

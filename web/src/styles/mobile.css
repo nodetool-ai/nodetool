@@ -206,8 +206,10 @@
   }
 
   /* Chat Input Section Mobile Styles */
+  /* The chat view already keeps the phone gutter; a second inset here made
+     the composer narrower than the thread. */
   .mobile .chat-input-section {
-    padding: var(--spacing-md) var(--spacing-md) 0 var(--spacing-md) !important;
+    padding: var(--spacing-md) 0 0 !important;
   }
 
   /* Show chat composer action buttons on mobile (send/stop/new) */
@@ -402,11 +404,10 @@
   .mobile .chat-thread-view-root {
     contain: layout style !important;
     padding: 1em 0 !important;
-    margin-right: var(--spacing-md) !important;
   }
 
   .mobile .scrollable-message-wrapper {
-    padding: 0 0.25em !important;
+    padding: 0 !important;
     scrollbar-width: thin !important;
   }
 
@@ -476,8 +477,6 @@
 
   /* ChatView Mobile Styles */
   .mobile .chat-view .chat-thread-container {
-    padding-left: var(--spacing-md) !important;
-    padding-right: var(--spacing-md) !important;
     padding-bottom: var(--spacing-md) !important;
   }
 
@@ -673,7 +672,7 @@
 
   /* Chat View */
   .mobile .chat-view {
-    padding: 0 var(--spacing-xl) var(--spacing-md) var(--spacing-xl) !important; /* was 14px 14px */
+    padding: 0 var(--spacing-md) var(--spacing-md) !important;
   }
   .mobile .chat-view .chat-thread-container {
     scrollbar-width: none;

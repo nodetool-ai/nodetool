@@ -570,7 +570,7 @@ so a client that handles chat or the editor bridge sends them.
 |---|---|---|
 | `ping` | | Server replies `pong` |
 | `tool_result` | `tool_call` | `tool_call_id`, `result` |
-| `tool_approval_response` | `tool_approval_request` | `approval_id`, `decision` (`"allow"`, `"allow_for_chat"`, or `"deny"`) |
+| `tool_approval_response` | `tool_approval_request` | `approval_id`, `decision` (`"allow"`, `"allow_always"`, `"allow_for_chat"`, or `"deny"`) |
 | `plan_approval_response` | | `approval_id`. Resolves a waiting approval by id. The server sends no plan approval request frame today |
 | `secret_request_response` | `secret_request` | `approval_id`, `status` (`"saved"` or `"declined"`). The secret value never travels in this frame |
 | `client_tools_manifest` | | `tools`, the frontend tools this editor offers |

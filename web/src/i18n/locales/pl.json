@@ -13631,8 +13631,9 @@
         },
         "showCode": "Pokaż kod",
         "showArguments": "Pokaż argumenty",
-        "allow": "Zezwól",
-        "allowForChat": "Zezwól na ten czat",
+        "allowOnce": "Zezwól raz",
+        "allowAlways": "Zawsze zezwalaj",
+        "allowAlwaysHint": "Uruchamiaj {{tool}} bez pytania od teraz. Możesz to zmienić w Ustawienia › Uprawnienia.",
         "deny": "Odmów"
       }
     }
@@ -20745,5 +20746,17 @@
       "unsupportedTitle": "Brak narzędzi AI dla tego klipu",
       "unsupported": "Wybierz klip wideo lub obrazu albo wygenerowany klip."
     }
+  },
+  "toolPermissions": {
+    "tab": "Uprawnienia",
+    "title": "Uprawnienia narzędzi",
+    "sidebarCategory": "Narzędzia",
+    "intro": "Wybierz, których narzędzi asystent może używać bez pytania. Narzędzie ustawione na Pytaj wyświetla prośbę w czacie przed uruchomieniem.",
+    "modes": "W trybie domyślnym każde narzędzie ustawione na Pytaj najpierw prosi o zgodę. W trybie automatycznym narzędzia działają bez pytania, z wyjątkiem akcji kodu, która usuwa, publikuje lub wydaje pieniądze. Ustaw Execute code na Zawsze zezwalaj, aby wyłączyć także tę prośbę. Tryb planu blokuje każdą zmianę, niezależnie od reguły.",
+    "alwaysAllow": "Zawsze zezwalaj",
+    "ask": "Pytaj",
+    "saveFailed": "Nie udało się zapisać tego uprawnienia.",
+    "loadFailed": "Nie udało się wczytać listy narzędzi.",
+    "noMatches": "Żadne narzędzie nie pasuje do wyszukiwania."
   }
 }

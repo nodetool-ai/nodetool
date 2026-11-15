@@ -37,7 +37,7 @@ it("maps the legacy tab index onto a section", () => {
 });
 
 it("falls back to general for an out-of-range tab index", () => {
-  renderAt("/settings?tab=5");
+  renderAt("/settings?tab=99");
 
   expect(useSettingsPageStore.getState().section).toBe("general");
 });

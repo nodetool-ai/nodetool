@@ -13419,8 +13419,9 @@
         },
         "showCode": "Mostrar código",
         "showArguments": "Mostrar argumentos",
-        "allow": "Permitir",
-        "allowForChat": "Permitir este bate-papo",
+        "allowOnce": "Permitir uma vez",
+        "allowAlways": "Permitir sempre",
+        "allowAlwaysHint": "Executar {{tool}} sem perguntar a partir de agora. Você pode mudar isso em Configurações › Permissões.",
         "deny": "Negar"
       }
     }
@@ -20434,5 +20435,17 @@
       "unsupportedTitle": "Nenhuma ferramenta de IA para este clipe",
       "unsupported": "Selecione um clipe de vídeo ou imagem, ou um clipe gerado."
     }
+  },
+  "toolPermissions": {
+    "tab": "Permissões",
+    "title": "Permissões de ferramentas",
+    "sidebarCategory": "Ferramentas",
+    "intro": "Escolha quais ferramentas o assistente pode usar sem perguntar. Uma ferramenta definida como Perguntar mostra um aviso no chat antes de ser executada.",
+    "modes": "No modo padrão, cada ferramenta definida como Perguntar pede confirmação primeiro. No modo automático, as ferramentas são executadas sem perguntar, exceto uma ação de código que exclui, publica ou gasta dinheiro. Defina Execute code como Permitir sempre para remover também esse aviso. O modo plano bloqueia qualquer alteração, seja qual for a regra.",
+    "alwaysAllow": "Permitir sempre",
+    "ask": "Perguntar",
+    "saveFailed": "Não foi possível salvar esta permissão.",
+    "loadFailed": "Não foi possível carregar a lista de ferramentas.",
+    "noMatches": "Nenhuma ferramenta corresponde à sua busca."
   }
 }

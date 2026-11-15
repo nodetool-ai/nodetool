@@ -225,7 +225,7 @@ TestCase {
         function respondToAction(id, allow, feedback) { responses = responses.concat([{id: id, allow: allow, feedback: feedback}]) }
         function openProviderSettings() { responses = responses.concat([{settings: true}]) }
         function saveSecret(id, value) { responses = responses.concat([{id: id, secret: value}]) }
-        function allowActionForChat(id) { responses = responses.concat([{id: id, forChat: true}]) }
+        function allowActionAlways(id) { responses = responses.concat([{id: id, always: true}]) }
         property var resolvedMedia: ({})
         property bool embeddedMedia: false
         function resolveImage(source) {}
@@ -297,7 +297,7 @@ TestCase {
         testDriver.resetSession()
         testDriver.replay("plans-approvals", 1, 1)
         tryVerify(() => findVisible(panel, "approvalFold_arguments") !== null)
-        verify(findText(panel, "Allow for this chat") !== null)
+        verify(findText(panel, "Always allow") !== null)
         verify(findText(panel, "Hide arguments") === null)
         mouseClick(findVisible(panel, "approvalFold_arguments"))
         tryVerify(() => findText(panel, "Hide arguments") !== null)
@@ -856,7 +856,7 @@ TestCase {
     function test_structuredPartsRenderThroughCppModel() {
         testDriver.approval("a")
         tryVerify(function() { return findText(panel, "Allow this action?") !== null }, 5000)
-        tryVerify(function() { return findText(panel, "Allow") !== null }, 5000)
+        tryVerify(function() { return findText(panel, "Allow once") !== null }, 5000)
         tryVerify(function() { return findText(panel, "Deny") !== null }, 5000)
     }
     function test_scrollAnchorSurvivesThreadSwitch() {

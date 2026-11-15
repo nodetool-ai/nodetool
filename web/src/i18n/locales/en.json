@@ -13207,8 +13207,9 @@
         },
         "showCode": "Show code",
         "showArguments": "Show arguments",
-        "allow": "Allow",
-        "allowForChat": "Allow for this chat",
+        "allowOnce": "Allow once",
+        "allowAlways": "Always allow",
+        "allowAlwaysHint": "Run {{tool}} without asking from now on. You can change this in Settings › Permissions.",
         "deny": "Deny"
       }
     }
@@ -20123,5 +20124,17 @@
       "unsupportedTitle": "No AI tools for this clip",
       "unsupported": "Select a video or image clip, or a generated clip."
     }
+  },
+  "toolPermissions": {
+    "tab": "Permissions",
+    "title": "Tool permissions",
+    "sidebarCategory": "Tools",
+    "intro": "Choose which tools the assistant can use without asking. A tool set to Ask shows a prompt in the chat before it runs.",
+    "modes": "In Default mode, every tool set to Ask prompts first. In Auto mode, tools run without asking, except a code action that deletes, publishes or spends money. Set Execute code to Always allow to stop that prompt too. Plan mode blocks every change, whatever the rule.",
+    "alwaysAllow": "Always allow",
+    "ask": "Ask",
+    "saveFailed": "Could not save this permission.",
+    "loadFailed": "Could not load the tool list.",
+    "noMatches": "No tools match your search."
   }
 }

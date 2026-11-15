@@ -98,7 +98,13 @@ signals:
   void projectionAboutToChange();
   // Emitted after every projection, after modelReset() or the incremental signals.
   void projectionChanged();
+  // The shown run changed as a whole: a run switch, a reset, a connection or a
+  // terminal status. Listeners refresh every card.
   void runtimeChanged();
+  // One node's run state changed. Its card is already invalidated through nodeUpdated.
+  void runtimeNodeChanged(QtNodes::NodeId id);
+  // One wire's run state changed: its flow, status or item counter.
+  void runtimeEdgeChanged(QtNodes::ConnectionId id);
 public:
   QString resourceId(QtNodes::NodeId id) const;
   QtNodes::NodeFlags nodeFlags(QtNodes::NodeId) const override {

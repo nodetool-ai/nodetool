@@ -13207,8 +13207,9 @@
         },
         "showCode": "Vis kode",
         "showArguments": "Vis argumenter",
-        "allow": "Tillat",
-        "allowForChat": "Tillat denne chatten",
+        "allowOnce": "Tillat én gang",
+        "allowAlways": "Tillat alltid",
+        "allowAlwaysHint": "Kjør {{tool}} uten å spørre fra nå av. Du kan endre dette under Innstillinger › Tillatelser.",
         "deny": "Nekter"
       }
     }
@@ -20123,5 +20124,17 @@
       "unsupportedTitle": "Ingen KI-verktøy for dette klippet",
       "unsupported": "Velg et video- eller bildeklipp, eller et generert klipp."
     }
+  },
+  "toolPermissions": {
+    "tab": "Tillatelser",
+    "title": "Verktøytillatelser",
+    "sidebarCategory": "Verktøy",
+    "intro": "Velg hvilke verktøy assistenten kan bruke uten å spørre. Et verktøy satt til Spør viser et spørsmål i chatten før det kjøres.",
+    "modes": "I standardmodus spør hvert verktøy satt til Spør først. I automodus kjøres verktøy uten å spørre, unntatt en kodehandling som sletter, publiserer eller bruker penger. Sett Execute code til Tillat alltid for å slå av også det spørsmålet. Planmodus blokkerer alle endringer, uansett regel.",
+    "alwaysAllow": "Tillat alltid",
+    "ask": "Spør",
+    "saveFailed": "Kunne ikke lagre tillatelsen.",
+    "loadFailed": "Kunne ikke laste inn verktøylisten.",
+    "noMatches": "Ingen verktøy samsvarer med søket ditt."
   }
 }

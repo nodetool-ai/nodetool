@@ -13207,8 +13207,9 @@
         },
         "showCode": "Näytä koodi",
         "showArguments": "Näytä argumentit",
-        "allow": "Salli",
-        "allowForChat": "Salli tässä keskustelussa",
+        "allowOnce": "Salli kerran",
+        "allowAlways": "Salli aina",
+        "allowAlwaysHint": "Suorita {{tool}} tästä lähtien kysymättä. Voit muuttaa tätä kohdassa Asetukset › Käyttöoikeudet.",
         "deny": "Estä"
       }
     }
@@ -20123,5 +20124,17 @@
       "unsupportedTitle": "Tälle leikkeelle ei ole tekoälytyökaluja",
       "unsupported": "Valitse video- tai kuvaleike tai luotu leike."
     }
+  },
+  "toolPermissions": {
+    "tab": "Käyttöoikeudet",
+    "title": "Työkalujen käyttöoikeudet",
+    "sidebarCategory": "Työkalut",
+    "intro": "Valitse, mitä työkaluja avustaja saa käyttää kysymättä. Kysy-tilaan asetettu työkalu näyttää kysymyksen keskustelussa ennen suoritusta.",
+    "modes": "Oletustilassa jokainen Kysy-tilaan asetettu työkalu kysyy ensin. Automaattitilassa työkalut suoritetaan kysymättä, paitsi koodiaktio, joka poistaa, julkaisee tai kuluttaa rahaa. Aseta Execute code tilaan Salli aina, niin myös tämä kysymys jää pois. Suunnittelutila estää kaikki muutokset säännöstä riippumatta.",
+    "alwaysAllow": "Salli aina",
+    "ask": "Kysy",
+    "saveFailed": "Käyttöoikeuden tallennus epäonnistui.",
+    "loadFailed": "Työkaluluettelon lataus epäonnistui.",
+    "noMatches": "Yksikään työkalu ei vastaa hakuasi."
   }
 }

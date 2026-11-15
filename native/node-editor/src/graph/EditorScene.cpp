@@ -1070,6 +1070,8 @@ EditorScene::EditorScene(WorkflowGraphModel &model, QObject *parent)
     }
   });
   connect(&model_, &WorkflowGraphModel::runtimeChanged, this, &EditorScene::refreshRuntime);
+  connect(&model_, &WorkflowGraphModel::runtimeNodeChanged, this, &EditorScene::refreshRuntimeNode);
+  connect(&model_, &WorkflowGraphModel::runtimeEdgeChanged, this, &EditorScene::refreshRuntimeEdge);
   connect(&model_, &WorkflowGraphModel::projectionAboutToChange, this, &EditorScene::resetDraftConnection);
   // Runs after a reset rebuilds every item and after an incremental projection
   // adds items, so new and reparented frames get their hierarchy order.
@@ -1146,6 +1148,8 @@ EditorScene::EditorScene(WorkflowGraphModel &model, QObject *parent)
   };
   connect(&model_, &WorkflowGraphModel::projectionChanged, this, scheduleDimming);
   connect(&model_, &WorkflowGraphModel::runtimeChanged, this, scheduleDimming);
+  // The untaken branch of an If or Switch follows edge reports, not node states.
+  connect(&model_, &WorkflowGraphModel::runtimeEdgeChanged, this, scheduleDimming);
   connect(&model_, &AbstractGraphModel::connectionCreated, this, scheduleDimming);
   connect(&model_, &AbstractGraphModel::connectionDeleted, this, scheduleDimming);
   connect(&model_, &AbstractGraphModel::nodeCreated, this, scheduleDimming);
@@ -2599,17 +2603,48 @@ void EditorScene::setReducedMotion(bool reduced) {
   refreshRuntime();
 }
 void EditorScene::refreshRuntime() {
-  bool active = false;
   for (auto id : model_.allNodeIds()) {
-    active = active || model_.runningShown(id);
-    for (const auto &edge : model_.allConnectionIds(id)) { active = active || model_.runtimeWireFlowing(edge); }
     if (auto node = nodeGraphicsObject(id)) { node->update(); }
     for (const auto &edge : model_.allConnectionIds(id)) {
       if (auto wire = connectionGraphicsObject(edge)) { wire->update(); }
     }
   }
-  if (active && !reducedMotion_ && model_.runtimeConnected()) { animation_.start(); }
-  else { animation_.stop(); phase_ = 0; }
+  updateAnimation(runtimeActive());
+}
+bool EditorScene::runtimeActive() const {
+  for (auto id : model_.allNodeIds()) {
+    if (model_.runningShown(id)) { return true; }
+    for (const auto &edge : model_.allConnectionIds(id)) {
+      if (model_.runtimeWireFlowing(edge)) { return true; }
+    }
+  }
+  return false;
+}
+// A changed item that animates starts the timer without a scan. Otherwise only a
+// running timer needs the scan, to stop once nothing animates.
+void EditorScene::updateAnimation(bool changedItemActive) {
+  if (reducedMotion_ || !model_.runtimeConnected()) {
+    animation_.stop();
+    phase_ = 0;
+  } else if (changedItemActive) {
+    if (!animation_.isActive()) { animation_.start(); }
+  } else if (animation_.isActive() && !runtimeActive()) {
+    animation_.stop();
+    phase_ = 0;
+  }
+}
+void EditorScene::refreshRuntimeNode(NodeId id) {
+  if (auto node = nodeGraphicsObject(id)) { node->update(); }
+  bool active = model_.runningShown(id);
+  for (const auto &edge : model_.allConnectionIds(id)) {
+    if (auto wire = connectionGraphicsObject(edge)) { wire->update(); }
+    active = active || model_.runtimeWireFlowing(edge);
+  }
+  updateAnimation(active);
+}
+void EditorScene::refreshRuntimeEdge(ConnectionId id) {
+  if (auto wire = connectionGraphicsObject(id)) { wire->update(); }
+  updateAnimation(model_.runtimeWireFlowing(id));
 }
 
 CanvasTheme CanvasTheme::fromRoles(const QVariantMap &roles) {

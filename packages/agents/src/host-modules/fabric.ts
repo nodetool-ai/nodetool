@@ -31,7 +31,7 @@ export const MAX_FABRIC_DIMENSION = 8192;
  */
 export const MAX_FABRIC_OUTPUT_PIXELS = 4096 * 4096;
 
-/** Scene keys whose string value Fabric loads as an image or pattern source. */
+/** Scene keys whose value Fabric loads as an image or pattern source. */
 const RESOURCE_KEYS = new Set(["src", "href", "xlink:href", "source", "url"]);
 
 /** Inline raster images, the only resource a scene may name. */
@@ -47,6 +47,10 @@ const MAX_SCENE_DEPTH = 64;
  * containment and SSRF guard. Only inline raster `data:` images pass. An SVG
  * `data:` image is refused too, since its own references would load the same
  * way. Fetch remote images with `fetch` and pass their bytes as a data URI.
+ *
+ * A resource key must hold a string. Fabric assigns the value to an image's
+ * `src` as is, and an array or other value stringifies to whatever URL it
+ * holds, so a check on strings alone let `src: ["file:///..."]` through.
  */
 export function assertNoExternalResources(where: string, value: unknown, depth = 0): void {
   if (depth > MAX_SCENE_DEPTH) {
@@ -58,6 +62,9 @@ export function assertNoExternalResources(where: string, value: unknown, depth =
   }
   if (value === null || typeof value !== "object") return;
   for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    if (RESOURCE_KEYS.has(key) && child !== null && child !== undefined && !isString(child)) {
+      throw new Error(`${where}: ${key} must be a string`);
+    }
     if (RESOURCE_KEYS.has(key) && isString(child) && child.trim() !== "" &&
       !INLINE_RASTER_IMAGE.test(child.trim())) {
       throw new Error(
@@ -103,6 +110,95 @@ function assertOutputPixels(where: string, width: number, height: number, multip
   if (width * height * multiplier * multiplier > MAX_FABRIC_OUTPUT_PIXELS) {
     throw new Error(
       `${where}: width x height x multiplier\u00b2 must be at most ${MAX_FABRIC_OUTPUT_PIXELS} pixels`
+    );
+  }
+}
+
+/** Max Fabric objects in one scene, nested groups and clip paths included. */
+export const MAX_FABRIC_OBJECTS = 2000;
+
+/** Max shadow blur radius, in scene pixels. */
+export const MAX_FABRIC_SHADOW_BLUR = 100;
+
+/**
+ * Max output pixels summed over every shadow and image filter in a scene.
+ *
+ * Each shadow or filter costs roughly one full pass over the area it covers,
+ * on the host's main thread, and the pixel cap alone does not bound that: 20
+ * full-canvas shadows with a large blur on a 4096 x 4096 canvas took over
+ * three minutes. Counting every effect at the full output size is an upper
+ * bound. It allows two effects at the largest output and more on a smaller
+ * canvas, up to {@link MAX_FABRIC_EFFECTS}.
+ */
+export const MAX_FABRIC_EFFECT_PIXELS = 2 * MAX_FABRIC_OUTPUT_PIXELS;
+
+/**
+ * Max shadows and image filters in one scene, whatever its size. Each effect
+ * also has a fixed cost: 256 blurred shadows on a 512 x 512 canvas took 13
+ * seconds.
+ */
+export const MAX_FABRIC_EFFECTS = 32;
+
+/** The blur radius of a Fabric shadow, given as an object or a CSS-like string. */
+function shadowBlur(shadow: unknown): number {
+  if (isString(shadow)) {
+    const numbers = (shadow.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+    return numbers.length >= 3 ? Math.abs(numbers[numbers.length - 1] ?? 0) : 0;
+  }
+  if (shadow !== null && typeof shadow === "object") {
+    const blur = Number((shadow as Record<string, unknown>).blur ?? 0);
+    return Number.isFinite(blur) ? Math.abs(blur) : Infinity;
+  }
+  return 0;
+}
+
+/**
+ * Refuse a scene whose render would hold the host thread too long: too many
+ * objects, a shadow blur over the limit, or more shadows and image filters
+ * than the output size allows. Fabric renders and encodes synchronously, and
+ * host modules run on the server's main thread.
+ */
+export function assertRenderBudget(
+  where: string,
+  scene: unknown,
+  outputPixels: number
+): void {
+  let objects = 0;
+  let effects = 0;
+  const visit = (value: unknown, depth: number): void => {
+    if (depth > MAX_SCENE_DEPTH) {
+      throw new Error(`${where}: scene is nested deeper than ${MAX_SCENE_DEPTH} levels`);
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) visit(item, depth + 1);
+      return;
+    }
+    if (value === null || typeof value !== "object") return;
+    const record = value as Record<string, unknown>;
+    if (isString(record.type)) {
+      objects += 1;
+      if (record.shadow !== null && record.shadow !== undefined) {
+        if (shadowBlur(record.shadow) > MAX_FABRIC_SHADOW_BLUR) {
+          throw new Error(`${where}: shadow blur must be at most ${MAX_FABRIC_SHADOW_BLUR}`);
+        }
+        effects += 1;
+      }
+      if (Array.isArray(record.filters)) {
+        effects += record.filters.filter((f) => f !== null && f !== undefined).length;
+      }
+      if (record.resizeFilter !== null && record.resizeFilter !== undefined) {
+        effects += 1;
+      }
+    }
+    for (const child of Object.values(record)) visit(child, depth + 1);
+  };
+  visit(scene, 0);
+  if (objects > MAX_FABRIC_OBJECTS) {
+    throw new Error(`${where}: a scene may hold at most ${MAX_FABRIC_OBJECTS} objects`);
+  }
+  if (effects > MAX_FABRIC_EFFECTS || effects * outputPixels > MAX_FABRIC_EFFECT_PIXELS) {
+    throw new Error(
+      `${where}: too many shadows and image filters for this output size (at most ${MAX_FABRIC_EFFECTS}, and shadows and filters x width x height x multiplier\u00b2 at most ${MAX_FABRIC_EFFECT_PIXELS} pixels)`
     );
   }
 }
@@ -254,6 +350,7 @@ export async function render(
     600
   );
   assertOutputPixels(where, width, height, multiplierOf(opts));
+  assertRenderBudget(where, scene, width * height * multiplierOf(opts) ** 2);
 
   const fabricLib = await loadFabric(where);
   const canvas = new fabricLib.StaticCanvas(
@@ -315,6 +412,7 @@ export async function renderSVG(
     600
   );
   assertOutputPixels(where, width, height, 1);
+  assertRenderBudget(where, scene, width * height);
 
   const fabricLib = await loadFabric(where);
   const canvas = new fabricLib.StaticCanvas(
@@ -359,6 +457,7 @@ export async function toDataURL(
     600
   );
   assertOutputPixels(where, width, height, multiplierOf(opts));
+  assertRenderBudget(where, scene, width * height * multiplierOf(opts) ** 2);
 
   const fabricLib = await loadFabric(where);
   const canvas = new fabricLib.StaticCanvas(
@@ -415,8 +514,18 @@ export async function loadSVG(svg: unknown): Promise<FabricSvgScene> {
   }
 
   const result = await parseFn(svgText);
+  // Fabric returns class instances (and null for elements it skips). Those
+  // cannot cross the worker boundary, so hand back their plain JSON, the same
+  // shape `render` and `loadFromJSON` take.
   return {
-    objects: result.objects,
+    objects: result.objects
+      .filter((object) => object !== null && object !== undefined)
+      .map((object) => {
+        const toObject = (object as { toObject?: unknown }).toObject;
+        return isFunction(toObject)
+          ? (toObject as () => unknown).call(object)
+          : object;
+      }),
     options: result.options
   };
 }

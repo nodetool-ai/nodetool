@@ -221,7 +221,7 @@ void NodeRuntimeModel::ingest(QString jobId, const QJsonObject event) {
       run.truncated = true;
     }
     run.edges[id] = state;
-    if (selected_ == jobId) { emit projectionChanged(); }
+    if (selected_ == jobId) { emit edgeChanged(id); }
     return;
   }
   // Late node frames of a cancelled run are dropped, as handleNodeUpdate does on the web.
