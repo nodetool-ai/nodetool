@@ -7,8 +7,14 @@ import {
   resolveSaveFolder,
   resolveSaveTarget,
   saveFilename,
-  uniqueFilePath
+  uniqueFilePath,
+  writeSavedFile
 } from "../src/save-target.js";
+import {
+  createLocalWorkspace,
+  setProjectFolderResolver,
+  type RunFileAssetContext
+} from "@nodetool-ai/runtime";
 
 let dir: string;
 
@@ -161,5 +167,71 @@ describe("an empty filename", () => {
         workspaceDir: path.join(dir, "ws")
       })
     ).rejects.toThrow(/empty filename/);
+  });
+});
+
+describe("writeSavedFile with the run's context", () => {
+  afterEach(() => {
+    setProjectFolderResolver(null);
+  });
+
+  it("saves the file as an asset at its numbered name and writes it once", async () => {
+    const workspace = createLocalWorkspace(dir);
+    setProjectFolderResolver(async () => ({ ok: true, projectId: "p1", workspace }));
+    const writes: string[] = [];
+    const write = workspace.write.bind(workspace);
+    workspace.write = async (target, data, contentType) => {
+      writes.push(target);
+      await write(target, data, contentType);
+    };
+    const created: Array<{ path?: string | null; name: string }> = [];
+    const context: RunFileAssetContext = {
+      userId: "u1",
+      projectId: "p1",
+      workspace,
+      hasModelInterface: () => true,
+      createAsset: async (args) => {
+        created.push({ path: args.path, name: args.name });
+        await workspace.write(args.path ?? "", args.content);
+        return { id: `asset-${created.length}` };
+      }
+    };
+
+    const paths: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      paths.push(
+        await writeSavedFile({
+          folder: "",
+          filename: "renders/still.png",
+          saveToWorkspace: true,
+          workspace,
+          context,
+          contentType: "image/png",
+          bytes: new Uint8Array([i])
+        })
+      );
+    }
+
+    expect(paths).toEqual([
+      path.join(dir, "renders/still.png"),
+      path.join(dir, "renders/still_1.png")
+    ]);
+    expect(created).toEqual([
+      { path: "renders/still.png", name: "still.png" },
+      { path: "renders/still_1.png", name: "still_1.png" }
+    ]);
+    expect(writes).toEqual(["renders/still.png", "renders/still_1.png"]);
+  });
+
+  it("returns the real path for a local workspace", async () => {
+    const workspace = createLocalWorkspace(dir);
+    const target = await writeSavedFile({
+      folder: "",
+      filename: "note.txt",
+      saveToWorkspace: true,
+      workspace,
+      bytes: "hello"
+    });
+    expect(target).toBe(path.join(dir, "note.txt"));
   });
 });

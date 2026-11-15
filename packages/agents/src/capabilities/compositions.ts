@@ -446,6 +446,17 @@ const deleteComposition: CapabilityExport = {
     if (!asset || !isRecord(asset.metadata?.[COMPOSITION_METADATA_KEY])) {
       return { error: `Composition ${id} was not found.` };
     }
+    // A composition saved as a file in its project folder loses the file
+    // first. An unreachable folder throws and keeps the row, so the file is
+    // never left behind without one.
+    const { deleteProjectAssetFile } = await import(
+      "@nodetool-ai/asset-services/project-asset"
+    );
+    try {
+      await deleteProjectAssetFile(asset);
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) };
+    }
     await asset.delete();
     return { ok: true, composition_id: id };
   }

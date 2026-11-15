@@ -309,7 +309,8 @@ describe("useAssetUpload", () => {
         "parent-1",
         expect.any(Function),
         undefined,
-        "current-project"
+        "current-project",
+        undefined
       );
     });
   });

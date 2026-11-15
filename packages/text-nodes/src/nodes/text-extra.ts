@@ -539,6 +539,7 @@ export class SaveTextFileNode extends BaseNode {
       saveToWorkspace,
       workspace: context?.workspace,
       workspaceDir: context?.workspaceDir,
+      context: context ?? null,
       bytes: text
     });
     // The output `uri` is a portable, URI-style path (forward slashes) so

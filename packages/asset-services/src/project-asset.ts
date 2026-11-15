@@ -34,6 +34,17 @@ export const GENERATED_DIRECTORY = "Generated";
 /** Where imported files go. */
 export const IMPORTED_DIRECTORY = "Imported";
 
+/**
+ * The directory an uploaded file is saved in: the directory it was dropped on
+ * in the Files tree, relative to the project folder, with `.` naming the
+ * folder itself. An upload that names none goes to {@link IMPORTED_DIRECTORY}.
+ */
+export function uploadDirectory(dropped: string | null | undefined): string {
+  if (dropped === null || dropped === undefined) return IMPORTED_DIRECTORY;
+  const trimmed = dropped.trim();
+  return trimmed === "." || trimmed === "/" ? "" : trimmed || IMPORTED_DIRECTORY;
+}
+
 /** File name used when an asset name has no character a file can carry. */
 const UNNAMED_FILE = "asset";
 /** Longest file name stem, in characters, before the collision suffix. */
@@ -74,6 +85,12 @@ export type SaveProjectAssetArgs = {
   parentId?: string | null;
   /** Stored on the row next to the file fingerprint. */
   metadata?: Record<string, unknown> | null;
+  /**
+   * A row that already exists and gets this file, instead of a new row: an
+   * upload whose row was created before its bytes arrived. It must belong to
+   * `userId`, and `path` must not name a file another row already has.
+   */
+  asset?: Asset;
 } & ({ bytes: Uint8Array } | { localPath: string });
 
 /** The extension an asset of `contentType` is stored with. */
@@ -274,9 +291,18 @@ export async function saveProjectAsset(
       ));
     // A file the caller named may already have its asset. That row is
     // updated, so one file never has two rows that could each delete it.
-    const existing = exactPath
+    const atPath = exactPath
       ? await Asset.findByWorkspacePath(args.userId, projectId, exactPath)
       : [];
+    if (args.asset) {
+      if (args.asset.user_id !== args.userId) {
+        throw new Error("The asset belongs to another user");
+      }
+      if (atPath.some((row) => row.id !== args.asset?.id)) {
+        throw new Error(`Another asset already has the file ${exactPath}`);
+      }
+    }
+    const existing = args.asset ? [args.asset] : atPath;
 
     if ("bytes" in source) {
       await workspace.write(path, source.bytes, contentType);
@@ -321,6 +347,7 @@ export async function saveProjectAsset(
       if (!existing[0] || provenance.timeline_id !== undefined) {
         asset.timeline_id = provenance.timeline_id ?? null;
       }
+      asset.project_id = projectId;
       await storeAssetThumbnail(asset.user_id, asset.id, contentType, source);
       await asset.save();
       return asset;

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import WorkspaceTree from "../WorkspaceTree";
 import { useWorkspaceExplorerStore } from "../../../stores/WorkspaceExplorerStore";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { usePanelStore } from "../../../stores/PanelStore";
+import { useAssetUpload } from "../../../serverState/useAssetUpload";
 
 const defaultWorkspace = {
   id: "ws-default",
@@ -139,5 +140,62 @@ describe("WorkspaceTree", () => {
     // placeholder the refetched root carries.
     expect(screen.getByText("one.md")).toBeInTheDocument();
     expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+  });
+});
+
+describe("WorkspaceTree file drop", () => {
+  const uploadAsset = jest.fn();
+  const original = useAssetUpload.getState().uploadAsset;
+
+  beforeEach(() => {
+    uploadAsset.mockReset();
+    useAssetUpload.setState({ uploadAsset });
+    listFiles.mockReset();
+    listFiles.mockResolvedValue([
+      { name: "footage", path: "footage", is_dir: true, size: 0 },
+      { name: "notes.md", path: "notes.md", is_dir: false, size: 12 }
+    ]);
+    useWorkspaceExplorerStore.getState().setBrowsedWorkspaceId(null);
+  });
+
+  afterEach(() => {
+    useAssetUpload.setState({ uploadAsset: original });
+  });
+
+  const drop = (target: Element, file: File): void => {
+    const dataTransfer = { types: ["Files"], files: [file], dropEffect: "none" };
+    fireEvent.dragOver(target, { dataTransfer });
+    fireEvent.drop(target, { dataTransfer });
+  };
+
+  it("uploads a file dropped on a folder into that folder of the project", async () => {
+    renderTree();
+    const folder = await screen.findByText("footage");
+    const file = new File([new Uint8Array([1])], "take 1.mov", { type: "video/quicktime" });
+
+    drop(folder, file);
+
+    expect(uploadAsset).toHaveBeenCalledTimes(1);
+    expect(uploadAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ file, project_id: "project-a", directory: "footage" })
+    );
+  });
+
+  it("uploads a file dropped on a file row into the folder that file is in", async () => {
+    renderTree();
+    const file = new File([new Uint8Array([1])], "a.png", { type: "image/png" });
+
+    drop(await screen.findByText("notes.md"), file);
+
+    expect(uploadAsset).toHaveBeenCalledWith(
+      expect.objectContaining({ project_id: "project-a", directory: "." })
+    );
+  });
+
+  it("ignores a drag that carries no files", async () => {
+    renderTree();
+    const folder = await screen.findByText("footage");
+    fireEvent.drop(folder, { dataTransfer: { types: ["text/plain"], files: [] } });
+    expect(uploadAsset).not.toHaveBeenCalled();
   });
 });

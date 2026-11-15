@@ -42,6 +42,8 @@ import {
   deleteProjectAssetFile,
   renameProjectAssetFile,
   replaceProjectAssetBytes,
+  saveProjectAsset,
+  uploadDirectory,
   type ProjectAssetFileChange
 } from "@nodetool-ai/asset-services/project-asset";
 import {
@@ -550,14 +552,47 @@ export const assetsRouter = router({
       asset.size = stat.size;
       await asset.save();
 
-      // The bytes are already in the bucket, so a thumbnail costs one download
-      // back into this process. The generator skips objects above
-      // THUMBNAIL_SOURCE_MAX_BYTES, so a multi-gigabyte video goes without.
-      await generateThumbnailForStoredAsset(
-        asset.user_id,
-        asset.id,
-        asset.content_type
-      );
+      // The client wrote to the storage key, which is outside any project
+      // folder. The bytes move into the folder: the file is written and the
+      // row saved before the object under the key is removed, so a failure
+      // leaves the asset readable from the key as before.
+      const uri = adapter.uriForKey(key);
+      try {
+        const bytes = await adapter.retrieve(uri);
+        if (!bytes) throw new Error("The uploaded object is not readable");
+        await saveProjectAsset({
+          asset,
+          projectId: asset.project_id,
+          userId: asset.user_id,
+          name: asset.name,
+          contentType: asset.content_type,
+          bytes,
+          directory: uploadDirectory(input.directory),
+          parentId: asset.parent_id
+        });
+      } catch (error) {
+        log.warn("upload kept under its storage key", {
+          assetId: asset.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // The bytes are already in the bucket, so a thumbnail costs one
+        // download back into this process. The generator skips objects above
+        // THUMBNAIL_SOURCE_MAX_BYTES, so a multi-gigabyte video goes without.
+        await generateThumbnailForStoredAsset(
+          asset.user_id,
+          asset.id,
+          asset.content_type
+        );
+        return toAssetResponse(asset);
+      }
+      try {
+        await adapter.delete(uri);
+      } catch (error) {
+        log.warn("could not remove an upload moved into its project folder", {
+          assetId: asset.id,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
 
       return toAssetResponse(asset);
     }),

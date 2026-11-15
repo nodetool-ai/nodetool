@@ -13,9 +13,12 @@ import type { TextToVideoParams } from "@nodetool-ai/runtime";
 
 import { WebSocketClientSession } from "../src/websocket-client-session.js";
 
-vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
-  storeAssetWithThumbnail: vi.fn(async () => undefined)
-}));
+// The fallback store saves one file in the chat project's folder.
+vi.mock("@nodetool-ai/asset-services/project-asset", async (orig) => {
+  const actual =
+    await orig<typeof import("@nodetool-ai/asset-services/project-asset")>();
+  return { ...actual, saveProjectAsset: vi.fn(async () => ({ id: "asset-1" })) };
+});
 
 vi.mock("@nodetool-ai/models", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/models")>();
