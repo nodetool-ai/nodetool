@@ -46,6 +46,22 @@ const OP_PARSERS: { [N in TimelineOpName]: OpParser<N> } = {
     op: "set_notes",
     ...parseContract(contracts.ui_timeline_set_notes, args)
   }),
+  set_track: (args) => ({
+    op: "set_track",
+    ...parseContract(contracts.ui_timeline_set_track, args)
+  }),
+  ripple_delete: (args) => ({
+    op: "ripple_delete",
+    ...parseContract(contracts.ui_timeline_ripple_delete, args)
+  }),
+  close_gap: (args) => ({
+    op: "close_gap",
+    ...parseContract(contracts.ui_timeline_close_gap, args)
+  }),
+  cut_transcript: (args) => ({
+    op: "cut_transcript",
+    ...parseContract(contracts.ui_timeline_cut_transcript, args)
+  }),
   set_tempo: (args) => ({
     op: "set_tempo",
     ...parseContract(contracts.ui_timeline_set_tempo, args)

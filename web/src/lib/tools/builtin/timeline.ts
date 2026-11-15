@@ -945,6 +945,73 @@ FrontendToolRegistry.register({
   }
 });
 
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_set_track"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("set_track", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_ripple_delete"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("ripple_delete", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_close_gap"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("close_gap", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...shared("ui_timeline_cut_transcript"),
+  async execute({ timeline_id, ...args }) {
+    const result = await getTimelineAgentHandler(timeline_id).applyOp(
+      timelineOpFromToolArgs("cut_transcript", args)
+    );
+    return { ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_timeline_undo",
+  description:
+    "Undo the last edits on the specified timeline sequence, the same as Ctrl+Z in the editor, or redo them with `redo: true`. One agent tool call is one undo step, so `steps` counts tool calls. Edits the user made are on the same history, so read ui_timeline_get_state first when you are not sure what the last step was.",
+  parameters: z.object({
+    timeline_id: timelineIdParam,
+    steps: z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .optional()
+      .describe("How many steps to undo or redo. Default 1."),
+    redo: z
+      .boolean()
+      .optional()
+      .describe("Redo instead of undo.")
+  }),
+  async execute({ timeline_id, steps, redo }) {
+    const result = await getTimelineAgentHandler(timeline_id).undo({
+      steps: steps ?? 1,
+      redo: redo ?? false
+    });
+    return { ok: true, ...result, url: docUrl("timeline", timeline_id) };
+  }
+});
+
 /** Ops one `ui_timeline_edit` call may carry — the headless cap (D-batch). */
 const MAX_TIMELINE_EDIT_OPS = 60;
 const TIMELINE_TOOL_PREFIX = "ui_timeline_";
