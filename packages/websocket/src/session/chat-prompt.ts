@@ -156,10 +156,10 @@ the user can undo it:
   \`status\`, \`outputs\` keyed by output name, and \`node_errors\`. Fix a
   failure in place and run again; do not save a copy. \`ui_get_graph\` also
   shows each node's \`last_run\`.
-- If the graph already has nodes and the request is a new workflow, save an
-  empty one with \`nodetool.workflows.create(name, {nodes: [], edges: []})\`,
-  open it with \`ui_open_workflow\`, and build in that tab. Change the existing
-  graph only when the user asks for that.
+- If the graph already has nodes and the request is a new workflow, call
+  \`ui_new_workflow({name})\` and build in the tab it opens, with the
+  \`workflow_id\` it returns. Change the existing graph only when the user
+  asks for that.
 Use the loop below only when no workflow is open or the user asks for a saved
 workflow without the editor.
 
@@ -400,7 +400,8 @@ const WORKFLOW_GRAPH_UI_TOOL_NAMES: ReadonlySet<string> = new Set([
   "ui_search_nodes",
   "ui_search_models",
   "ui_run_workflow",
-  "ui_open_workflow"
+  "ui_open_workflow",
+  "ui_new_workflow"
 ]);
 
 /**

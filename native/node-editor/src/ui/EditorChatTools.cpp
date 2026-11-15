@@ -310,6 +310,7 @@ void EditorWindow::initializeChatTools() {
         {"ui_copy", {"text"}},
         {"ui_paste", {}},
         {"ui_open_workflow", {"workflow_id"}},
+        {"ui_new_workflow", {}},
         {"ui_run_workflow", {"workflow_id"}},
         {"ui_open_document", {"type", "id"}}};
     // The manifest is the web registry's own JSON schema for these tools,
@@ -457,35 +458,29 @@ void EditorWindow::initializeChatTools() {
                     }
                 }
             }
-            if ((name == "ui_open_workflow" || name == "ui_open_document") && !target) {
-                const auto id = name == "ui_open_document" ? input["id"].toString() : workflowId;
+            // Opens a workflow by id and completes the call with `result` once its
+            // tab has loaded it.
+            const auto openAndComplete = [this, owner, account](const QString &call, const QString &id,
+                                                                const QJsonObject &result) {
                 const auto epoch = account->epoch;
+                // Qt parent: this window. The timer deletes itself when it finishes.
                 auto *timer = new QTimer(this);
                 timer->setInterval(20);
                 // native-rules #1: shared_ptr<int> counter shared by lambda copies, no justification comment
                 auto elapsed = std::make_shared<int>(0);
                 connect(timer, &QTimer::timeout, this,
-                        [this, owner, timer, elapsed, id, call, name, account, epoch] {
+                        [this, owner, timer, elapsed, id, call, result, account, epoch] {
                             *elapsed += timer->interval();
                             if (account->epoch != epoch) {
                                 timer->deleteLater();
                                 return;
                             }
                             for (auto *tab : owner->tabs_) {
-                                if (tab->document_.snapshot()["id"].toString() != id) {
-                                    continue;
+                                if (tab->document_.snapshot()["id"].toString() == id) {
+                                    chat_.completeHostTool(call, result.toVariantMap());
+                                    timer->deleteLater();
+                                    return;
                                 }
-                                QJsonObject result{{"ok", true}, {"workflow_id", id}};
-                                if (name == "ui_open_document") {
-                                    result = {{"ok", true},
-                                              {"type", "workflow"},
-                                              {"id", id},
-                                              {"already_open", false},
-                                              {"url", "workflow://" + id}};
-                                }
-                                chat_.completeHostTool(call, result.toVariantMap());
-                                timer->deleteLater();
-                                return;
                             }
                             if (*elapsed >= 15000) {
                                 chat_.completeHostTool(call, {}, "Workflow editor did not load");
@@ -494,6 +489,58 @@ void EditorWindow::initializeChatTools() {
                         });
                 owner->openWorkflow(id);
                 timer->start();
+            };
+            if ((name == "ui_open_workflow" || name == "ui_open_document") && !target) {
+                const auto id = name == "ui_open_document" ? input["id"].toString() : workflowId;
+                openAndComplete(call, id,
+                                name == "ui_open_document"
+                                    ? QJsonObject{{"ok", true},
+                                                  {"type", "workflow"},
+                                                  {"id", id},
+                                                  {"already_open", false},
+                                                  {"url", "workflow://" + id}}
+                                    : QJsonObject{{"ok", true}, {"workflow_id", id}});
+                return;
+            }
+            if (name == "ui_new_workflow") {
+                if (input.contains("name") && !input["name"].isString()) {
+                    fail("Invalid input: name");
+                    return;
+                }
+                if (account->origin.isEmpty()) {
+                    fail("Connect to a server to create a workflow");
+                    return;
+                }
+                const auto title = input["name"].toString().trimmed();
+                QNetworkRequest request(account->origin.resolved(QUrl("/api/workflows")));
+                request.setTransferTimeout(30000);
+                request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+                request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
+                                     QNetworkRequest::ManualRedirectPolicy);
+                if (!account->token.isEmpty()) {
+                    request.setRawHeader("Authorization", "Bearer " + account->token.toUtf8());
+                }
+                request.setRawHeader("x-user-id", account->user.toUtf8());
+                const QJsonObject body{{"name", title.isEmpty() ? QStringLiteral("New Workflow") : title},
+                                       {"access", "private"},
+                                       {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}};
+                auto *reply = network->post(request, QJsonDocument(body).toJson(QJsonDocument::Compact));
+                const auto epoch = account->epoch;
+                connect(reply, &QNetworkReply::finished, this,
+                        [this, reply, call, account, epoch, openAndComplete] {
+                    reply->deleteLater();
+                    if (account->epoch != epoch) {
+                        return;
+                    }
+                    const auto created = QJsonDocument::fromJson(reply->readAll()).object();
+                    const auto id = created["id"].toString();
+                    if (reply->error() != QNetworkReply::NoError || id.isEmpty()) {
+                        chat_.completeHostTool(call, {}, "Could not create the workflow: " + reply->errorString());
+                        return;
+                    }
+                    openAndComplete(call, id,
+                                    {{"ok", true}, {"workflow_id", id}, {"url", "workflow://" + id}});
+                });
                 return;
             }
             if (!target) {

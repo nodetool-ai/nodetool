@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { uiOpenWorkflowParams, uiRunWorkflowParams, uiSwitchTabParams, uiCopyParams } from "@nodetool-ai/protocol";
+import { uiNewWorkflowParams, uiOpenWorkflowParams, uiRunWorkflowParams, uiSwitchTabParams, uiCopyParams } from "@nodetool-ai/protocol";
 import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { FrontendToolRegistry } from "../frontendTools";
 import { openDocument } from "./openDocument";
@@ -57,6 +57,24 @@ FrontendToolRegistry.register({
     // editor store alone reported success with no tab on screen.
     const opened = await openDocument("workflow", workflow_id, ctx);
     return { ok: true, workflow_id: opened.id };
+  }
+});
+
+FrontendToolRegistry.register({
+  name: "ui_new_workflow",
+  description:
+    "Create an empty workflow, open it in a new editor tab, and switch to it. " +
+    "Returns its `workflow_id` for the graph tools.",
+  parameters: z.object(uiNewWorkflowParams),
+  async execute({ name }, ctx) {
+    const state = ctx.getState();
+    const draft = { ...state.newWorkflow(), name: name?.trim() || "New Workflow" };
+    state.addWorkflow(draft);
+    // The server creates the row on this first save: the update route upserts
+    // when no expected_updated_at is sent.
+    await state.saveWorkflow(draft);
+    const opened = await openDocument("workflow", draft.id, ctx);
+    return { ok: true, workflow_id: opened.id, url: opened.url };
   }
 });
 

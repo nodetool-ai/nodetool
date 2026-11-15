@@ -123,6 +123,13 @@ export const uiOpenWorkflowParams = {
   workflow_id: z.string().describe("Id of the workflow to open.")
 };
 
+export const uiNewWorkflowParams = {
+  name: z
+    .string()
+    .optional()
+    .describe('Name of the new workflow (default "New Workflow").')
+};
+
 export const uiRunWorkflowParams = {
   workflow_id: z.string().describe("Id of the workflow to run."),
   params: z
@@ -255,6 +262,11 @@ export const uiToolSchemas: Record<string, UiToolSchema> = {
     description:
       "Open a workflow tab and switch to it. Required: `workflow_id`.",
     parameters: uiOpenWorkflowParams
+  },
+  ui_new_workflow: {
+    description:
+      "Create an empty workflow, open it in a new editor tab, and switch to it. Returns its `workflow_id` for the graph tools. Optional: `name`.",
+    parameters: uiNewWorkflowParams
   },
   ui_run_workflow: {
     description:

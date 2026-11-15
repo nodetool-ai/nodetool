@@ -44,6 +44,7 @@ describe("resident toolbelt", () => {
       "ui_add_node",
       "ui_connect_nodes",
       "ui_run_workflow",
+      "ui_new_workflow",
       "ui_workflow_plan",
       "ui_app_add_component"
     ];
@@ -55,6 +56,7 @@ describe("resident toolbelt", () => {
       "ui_add_node",
       "ui_connect_nodes",
       "ui_run_workflow",
+      "ui_new_workflow",
       "ui_workflow_plan"
     ]);
     expect(
@@ -68,7 +70,7 @@ describe("resident toolbelt", () => {
     const editorRule = section.indexOf("ui_add_node");
     expect(editorRule).toBeGreaterThan(-1);
     expect(editorRule).toBeLessThan(section.indexOf("nodetool.workflows.validate"));
-    expect(section).toContain("ui_open_workflow");
+    expect(section).toContain("ui_new_workflow");
     expect(section).toContain("wait: true");
   });
 

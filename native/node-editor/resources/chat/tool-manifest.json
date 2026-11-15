@@ -265,6 +265,19 @@
     }
   },
   {
+    "name": "ui_new_workflow",
+    "description": "Create an empty workflow, open it in a new editor tab, and switch to it. Returns its `workflow_id` for the graph tools.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Name of the new workflow (default \"New Workflow\").",
+          "type": "string"
+        }
+      }
+    }
+  },
+  {
     "name": "ui_open_document",
     "description": "Open a document in the workspace as a tab so the other ui_* tools can act on it. Use this to show a document to the user. For edits to a closed timeline, storyboard, script or sketch, use its server edit capability. Types: workflow, timeline, storyboard, script, jsscript, sketch, app, svg, audio. The id is the document's id (from list_timelines, list_sketches, list_storyboards, list_scripts, list_js_scripts, a resource link, or the user); for svg and audio it is the asset id. Documents open in edit mode; already-open documents are focused rather than duplicated. Returns once the editor has loaded and the document's tools are usable.",
     "parameters": {

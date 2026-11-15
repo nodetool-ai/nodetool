@@ -320,6 +320,7 @@ describe("uiToolSchemas registry", () => {
     "ui_move_node",
     "ui_set_node_title",
     "ui_open_workflow",
+    "ui_new_workflow",
     "ui_run_workflow",
     "ui_switch_tab",
     "ui_copy",
@@ -332,8 +333,8 @@ describe("uiToolSchemas registry", () => {
     );
   });
 
-  it("has exactly 15 tools registered", () => {
-    expect(Object.keys(uiToolSchemas)).toHaveLength(15);
+  it("has exactly 16 tools registered", () => {
+    expect(Object.keys(uiToolSchemas)).toHaveLength(16);
   });
 
   it("every registered tool has description and parameters", () => {

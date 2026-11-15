@@ -16,6 +16,7 @@
 #include <algorithm>
 namespace {
 constexpr auto ThreadId = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const QString CreatedWorkflowId = QStringLiteral("dddddddddddddddddddddddddddddddd");
 class ChatServer : public QObject {
   public:
     QTcpServer http;
@@ -70,6 +71,20 @@ class ChatServer : public QObject {
                                          : QByteArray("HTTP/1.1 200 OK\r\n")) +
                             "Content-Type: application/json\r\nConnection: close\r\nContent-Length: " +
                             QByteArray::number(body.size()) + "\r\n\r\n" + body);
+                        socket->disconnectFromHost();
+                        return;
+                    }
+                    if (target.startsWith("/api/workflows")) {
+                        const auto body = QJsonDocument(QJsonObject{
+                                              {"id", CreatedWorkflowId},
+                                              {"name", "Spiral"},
+                                              {"access", "private"},
+                                              {"updated_at", "2026-11-15T00:00:00Z"},
+                                              {"graph", QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}}}})
+                                              .toJson(QJsonDocument::Compact);
+                        socket->write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: "
+                                      "close\r\nContent-Length: " +
+                                      QByteArray::number(body.size()) + "\r\n\r\n" + body);
                         socket->disconnectFromHost();
                         return;
                     }
@@ -517,6 +532,22 @@ class EditorChatToolsTest final : public QObject {
             }
         }
     }
+    void newWorkflowOpensASavedTab() {
+        ChatServer server;
+        nodetool::EditorWindow window;
+        setup(window, server);
+        window.session()->connectToServer(server.url(), {}, "fixture-user");
+        QTRY_VERIFY(window.session()->connected());
+        const auto result = call(window, server, "ui_new_workflow", {{"name", "Spiral"}});
+        QVERIFY2(result["ok"].toBool(), qPrintable(QString::fromUtf8(QJsonDocument(result).toJson())));
+        QCOMPARE(result["result"].toObject()["workflow_id"].toString(), CreatedWorkflowId);
+        const auto post = std::find_if(server.requests.cbegin(), server.requests.cend(), [](const QByteArray &request) {
+            return request.startsWith("POST /api/workflows ");
+        });
+        QVERIFY(post != server.requests.cend());
+        QVERIFY(post->contains("\"name\":\"Spiral\""));
+        QCOMPARE(window.document()->snapshot()["id"].toString(), CreatedWorkflowId);
+    }
     void resourcePrefixes() {
         ChatServer server;
         nodetool::EditorWindow window;
@@ -590,7 +621,7 @@ class EditorChatToolsTest final : public QObject {
                                       "ui_delete_edge",    "ui_update_node_data", "ui_search_nodes",
                                       "ui_search_models",  "ui_switch_tab",       "ui_copy",
                                       "ui_paste",          "ui_open_workflow",    "ui_run_workflow",
-                                      "ui_open_document"};
+                                      "ui_open_document",  "ui_new_workflow"};
         QCOMPARE(web.size(), implemented.size());
         ChatServer server;
         nodetool::EditorWindow window;
