@@ -72,9 +72,12 @@ Item {
         }
     }
     function restoreAnchor() {
+        const offset = anchorOffset;
+        holdingViewport = true;
         messages.forceLayout();
         messages.positionViewAtIndex(anchorIndex, ListView.Beginning);
-        messages.contentY += anchorOffset;
+        messages.contentY += offset;
+        holdingViewport = false;
     }
     function followLatest() {
         if (followBottom) {
@@ -109,9 +112,12 @@ Item {
         }
         const target = item.y + anchorOffset;
         if (Math.abs(target - messages.contentY) > 1) {
+            holdingViewport = true;
             messages.contentY = target;
+            holdingViewport = false;
         }
     }
+    property bool holdingViewport: false
     function loadEarlierNearTop() {
         if (!followBottom && !anchoringTurn && session && session.hasMoreHistory
                 && session.connectionStatus === "connected"
@@ -325,6 +331,12 @@ Item {
             onContentYChanged: {
                 if (root.userScrolling) {
                     Qt.callLater(root.loadEarlierNearTop);
+                }
+                // A position set in code, such as positionViewAtIndex, becomes
+                // the reader's position, so reflow keeps it instead of
+                // returning to the last scrolled one.
+                else if (!root.followBottom && !root.anchoringTurn && !root.holdingViewport) {
+                    root.captureAnchor();
                 }
             }
             onContentHeightChanged: {

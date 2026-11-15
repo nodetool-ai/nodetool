@@ -1219,6 +1219,36 @@ TestCase {
         tryCompare(view, "atYEnd", true)
         compare(conversation.followBottom, true)
     }
+    // A position set in code, such as a jump to a row, is the reader's
+    // position too, so the next reflow keeps it.
+    function test_codePositionSurvivesReflow() {
+        test.width = 1100
+        testSession.selectThread("a")
+        testDriver.history("a", 30)
+        const conversation = findChild(panel, "chatConversation")
+        const view = findChild(panel, "chatMessages")
+        tryCompare(view, "count", 30)
+        conversation.followBottom = true
+        view.positionViewAtEnd()
+        wait(30)
+        // The reader stops a little above the end, close enough that the
+        // streaming reply stays instantiated.
+        conversation.enterFreeScrolling()
+        view.contentY = conversation.contentEnd - view.height - 400
+        conversation.settleScroll()
+        compare(conversation.followBottom, false)
+        view.contentY -= view.height / 2
+        const placed = view.contentY
+        const heightBefore = view.contentHeight
+        for (let i = 0; i < 20; ++i) {
+            testDriver.stream("a", "More streamed text that grows the reply. ", false)
+            wait(10)
+        }
+        verify(view.contentHeight > heightBefore, "the reply grew the content")
+        wait(50)
+        verify(Math.abs(view.contentY - placed) < 1, "moved from " + placed + " to " + view.contentY)
+        testDriver.stream("a", "", true)
+    }
     // Dragging the scroll bar hands the position to the reader too, and
     // letting go near the end follows new content again.
     function test_scrollBarDragStopsFollowing() {
