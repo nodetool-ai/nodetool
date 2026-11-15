@@ -461,6 +461,7 @@ export type {
 } from "./prediction.js";
 
 export { Workspace } from "./workspace.js";
+export type { WorkspaceOrigin } from "./workspace.js";
 export { Game, AmbiguousGameIdError, InvalidGameDocumentError, MissingGameDraftSourceError } from "./game.js";
 
 export { RunEvent } from "./run-event.js";

@@ -6,6 +6,19 @@ import { timelineTrack } from "./timeline.js";
 // free text ("spot", "trailer", "report") rather than an enum: the taxonomy is
 // the user's, not ours.
 
+/**
+ * The project's folder. `path` is the absolute directory, or null for a cloud
+ * project, whose folder is a key prefix in object storage. `origin` is
+ * `created` when NodeTool made the folder and `adopted` when the user brought
+ * it.
+ */
+export const projectFolder = z.object({
+  path: z.string().nullable(),
+  origin: z.enum(["created", "adopted"]),
+  is_accessible: z.boolean()
+});
+export type ProjectFolder = z.infer<typeof projectFolder>;
+
 export const projectResponse = z.object({
   id: z.string(),
   name: z.string(),
@@ -14,6 +27,8 @@ export const projectResponse = z.object({
   archivedAt: z.string().nullable(),
   /** The conversation that builds it, or null while nobody has asked for one. */
   threadId: z.string().nullable(),
+  /** Null only while a project from before project folders awaits migration. */
+  folder: projectFolder.nullable(),
   createdAt: z.string(),
   updatedAt: z.string()
 });

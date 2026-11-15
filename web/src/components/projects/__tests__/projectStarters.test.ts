@@ -49,6 +49,7 @@ const summary = (
       isPersonal: false,
       archivedAt: null,
       threadId: null,
+      folder: null,
       createdAt: "",
       updatedAt: ""
     },

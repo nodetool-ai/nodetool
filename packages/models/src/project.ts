@@ -14,10 +14,12 @@ import {
   and,
   desc,
   eq,
+  gt,
   inArray,
   isNotNull,
   isNull,
-  notInArray
+  notInArray,
+  or
 } from "drizzle-orm";
 import {
   DBModel,
@@ -232,6 +234,8 @@ export class Project extends DBModel {
   declare archived_at: string | null;
   declare deleted_at: string | null;
   declare thread_id: string | null;
+  /** The workspace row that is this project's folder, or null before it has one. */
+  declare workspace_id: string | null;
   declare created_at: string;
   declare updated_at: string;
 
@@ -242,6 +246,7 @@ export class Project extends DBModel {
     this.name ??= "Untitled project";
     this.kind ??= "";
     this.thread_id ??= null;
+    this.workspace_id ??= null;
     this.archived_at ??= null;
     this.deleted_at ??= null;
     this.created_at ??= now;
@@ -446,6 +451,73 @@ export class Project extends DBModel {
     return row ? new Project(row as Record<string, unknown>) : null;
   }
 
+  /**
+   * Record `workspaceId` as the project's folder unless another caller already
+   * recorded one.
+   *
+   * The write applies only while the column still holds `expected` (null, or
+   * a row id that no longer exists), so two callers racing (a create and the
+   * startup migration) settle on one folder. Answers the folder the project
+   * ends up with, or null when the project is gone.
+   */
+  static async claimWorkspace(
+    userId: string,
+    id: string,
+    workspaceId: string,
+    expected: string | null = null
+  ): Promise<string | null> {
+    const db = getPortableDb();
+    const rows = await db
+      .update(projects)
+      // `updated_at` is left alone: naming the folder is bookkeeping.
+      .set({ workspace_id: workspaceId })
+      .where(
+        and(
+          eq(projects.id, id),
+          eq(projects.user_id, userId),
+          expected === null
+            ? isNull(projects.workspace_id)
+            : eq(projects.workspace_id, expected)
+        )
+      )
+      .returning();
+    if (rows.length > 0) return workspaceId;
+    const current = await Project.get<Project>(id);
+    return current?.user_id === userId ? current.workspace_id : null;
+  }
+
+  /**
+   * Live projects of every user that have no folder yet, in creation order,
+   * starting after the `after` cursor.
+   */
+  static async listWithoutFolder(
+    limit: number,
+    after?: { created_at: string; id: string }
+  ): Promise<Project[]> {
+    const db = getPortableDb();
+    const rows = await db
+      .select()
+      .from(projects)
+      .where(
+        and(
+          isNull(projects.workspace_id),
+          isNull(projects.deleted_at),
+          after
+            ? or(
+                gt(projects.created_at, after.created_at),
+                and(
+                  eq(projects.created_at, after.created_at),
+                  gt(projects.id, after.id)
+                )
+              )
+            : undefined
+        )
+      )
+      .orderBy(projects.created_at, projects.id)
+      .limit(limit);
+    return rows.map((row) => new Project(row));
+  }
+
   static async listByUser(
     userId: string,
     limit = 100,
@@ -493,6 +565,7 @@ export class Project extends DBModel {
         archived_at: project.archived_at,
         deleted_at: project.deleted_at,
         thread_id: project.thread_id,
+        workspace_id: project.workspace_id,
         created_at: project.created_at,
         updated_at: project.updated_at
       })
