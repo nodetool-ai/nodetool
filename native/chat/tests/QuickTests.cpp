@@ -80,6 +80,9 @@ public:
         }
         m_session->importHistory(thread, rows);
     }
+    Q_INVOKABLE void userTurn(const QString& thread, const QString& id, const QString& text) {
+        m_session->applyEvent({{"type", "message"}, {"thread_id", thread}, {"id", id}, {"role", "user"}, {"content", text}});
+    }
     Q_INVOKABLE void longHistory(const QString& thread) {
         m_session->importHistory(thread, {QJsonObject{{"id", "long"}, {"role", "assistant"}, {"content", QString(10000, QLatin1Char('x'))}}});
     }

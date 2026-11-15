@@ -293,6 +293,28 @@ describe("ChatView", () => {
       expect(screen.getByText("Messages: 1")).toBeInTheDocument();
     });
 
+    it("lets a conversation scroll across the whole panel", () => {
+      const messages: Message[] = [
+        {
+          id: "1",
+          type: "message",
+          role: "user",
+          content: [{ type: "text", text: "Hello" }]
+        }
+      ];
+      const { rerender } = renderWithProviders(
+        <ChatView {...baseProps} messages={[]} />
+      );
+      const container = () =>
+        screen.getByTestId("chat-input-section").ownerDocument.querySelector(
+          ".chat-thread-container"
+        );
+      expect(container()).not.toHaveClass("has-thread");
+
+      rerender(<ChatView {...baseProps} messages={messages} />);
+      expect(container()).toHaveClass("has-thread");
+    });
+
     it("renders messages with different roles correctly", () => {
       const messages: Message[] = [
         {
