@@ -71,6 +71,11 @@ QVariantList CompositorLayoutEditor::layerEntries() const {
     return entries;
 }
 
+QImage CompositorLayoutEditor::layerImage(int index) const {
+    const auto source = sources_.constFind(keys_.value(index));
+    return source == sources_.cend() || source->state != CardMediaState::Ready ? QImage() : source->image;
+}
+
 QVariantList CompositorLayoutEditor::blendModeEntries() const {
     QVariantList modes;
     for (const auto &[value, label] : compositorBlendModes()) { modes.append(QVariantMap{{"value", value}, {"label", label}}); }

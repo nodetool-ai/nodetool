@@ -229,6 +229,71 @@ void EditorWindow::flushChild() {
         childParent_->flushChild();
     }
 }
+bool EditorWindow::hasPendingChildWrite() const {
+    for (const auto *level = this; level; level = level->inlineChild_ ? level->childParent_.data() : nullptr) {
+        if (level->childWriteTimer_ && level->childWriteTimer_->isActive()) {
+            return true;
+        }
+    }
+    return false;
+}
+void EditorWindow::documentHistory(bool redo) {
+    if (!tabOwner_) {
+        activeEditor_->documentHistory(redo);
+        return;
+    }
+    const auto name = redo ? QStringLiteral("Redo") : QStringLiteral("Undo");
+    if (!inlineChild_ || !childParent_) {
+        action(name);
+        return;
+    }
+    flushChild();
+    workflowHost()->action(name);
+    reloadChildChain();
+}
+void EditorWindow::reloadChildChain() {
+    QList<EditorWindow *> chain;
+    for (auto *level = this; level->inlineChild_ && level->childParent_; level = level->childParent_) {
+        chain.prepend(level);
+    }
+    bool parentReloaded = false;
+    for (auto *level : chain) {
+        auto *parent = level->childParent_.data();
+        if (parentReloaded) {
+            // The parent's load started a new document epoch. Its open surfaces
+            // follow it and rebuild from the stored graph when shown.
+            for (auto *tab : tabOwner_->tabs_) {
+                if (tab->childParent_ == parent) {
+                    tab->childParentEpoch_ = parent->documentEpoch_;
+                }
+            }
+        }
+        if (level->childParentEpoch_ != parent->documentEpoch_) {
+            return;
+        }
+        const auto node = parent->document_.node(level->childNode_);
+        if (node.isEmpty()) {
+            // The history step removed the subgraph node, so its surface closes.
+            closeSurface(tabOwner_->tabs_.indexOf(this));
+            return;
+        }
+        const auto stored = node_editor::childGraph(node);
+        parentReloaded = stored != level->syncedChildGraph_;
+        if (!parentReloaded) {
+            continue;
+        }
+        if (level == this) {
+            closeChildSurfaces();
+        }
+        auto snapshot = level->document_.snapshot();
+        snapshot["graph"] = stored;
+        level->childSyncing_ = true;
+        (void)level->document_.load(snapshot);
+        level->childSyncing_ = false;
+        level->syncedChildGraph_ = stored;
+    }
+    schedulePanelChanged();
+}
 void EditorWindow::closeChildSurfaces() {
     if (!tabOwner_) {
         return;
