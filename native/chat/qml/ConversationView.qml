@@ -443,6 +443,13 @@ Item {
                 root.restorePosition();
             }
         }
+        // Only a prompt sent from here is anchored: history loads and replays
+        // keep their scroll position.
+        function onPromptSent(threadId) {
+            if (threadId === root.session.selectedThreadId) {
+                Qt.callLater(root.anchorNewTurn, root.session.messages.rowCount() - 1);
+            }
+        }
     }
     Connections {
         target: root.session ? root.session.messages : null
@@ -455,11 +462,6 @@ Item {
             oldY = messages.contentY;
         }
         function onRowsInserted(parent, first, last) {
-            // The view may count the new row only after this handler runs, so
-            // ask the model whether the row is its last.
-            if (!prepending && first === last && last === root.session.messages.rowCount() - 1) {
-                Qt.callLater(root.anchorNewTurn, last);
-            }
             if (prepending) {
                 root.anchorIndex += last - first + 1;
                 Qt.callLater(function () {
