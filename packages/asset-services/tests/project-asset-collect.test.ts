@@ -22,7 +22,8 @@ import {
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import {
   COLLECT_PATH_KEY,
-  collectLinkedAssets
+  collectLinkedAssets,
+  isProjectAssetPathInFlux
 } from "../src/project-asset.js";
 import {
   ProjectFolderUnavailableError,
@@ -228,6 +229,24 @@ describe.each(["local", "storage"] as const)(
       expect(result.copied[0]?.id).toBe(first!.id);
       expect((await Asset.find(USER, second!.id))?.name).toBe("hero take.mp4");
       expect(await files()).toContain("Imported/hero-take.mp4");
+    });
+
+    it("keeps the reconciler off the reserved file until its row names it", async () => {
+      await link("take.mp4", "bytes");
+      const seen: boolean[] = [];
+      const absorb = vi.spyOn(workspace, "absorb");
+      absorb.mockImplementationOnce(async (from, to) => {
+        seen.push(isProjectAssetPathInFlux(USER, PROJECT, to));
+        absorb.mockRestore();
+        await workspace.absorb(from, to);
+      });
+
+      const result = await collectLinkedAssets({ projectId: PROJECT, userId: USER });
+
+      expect(seen).toEqual([true]);
+      expect(
+        isProjectAssetPathInFlux(USER, PROJECT, result.copied[0]!.workspace_path)
+      ).toBe(false);
     });
 
     it("copies into the file it reserved when a run stopped during the copy", async () => {

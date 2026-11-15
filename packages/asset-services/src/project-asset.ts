@@ -1030,23 +1030,29 @@ async function collectOne(
   }
 
   let path: string | null = null;
+  // The reserved file has no row until the copy is verified. Holding its
+  // path keeps the reconciler from indexing it as a second asset.
+  let release: (() => void) | null = null;
   try {
     const sourceHash = await partialContentHashOfFile(source);
-    path = await withFolderLock(asset.user_id, projectId, async () => {
-      const pending = await pendingCollectPath(workspace, asset, projectId);
-      if (pending) return pending;
+    const reserved = await withProjectFolderLock(asset.user_id, projectId, async () => {
       // An empty file reserves the name. The bytes are copied outside the
       // lock, so a long copy does not hold up other saves to this folder.
-      return claimFile(
-        workspace,
-        { userId: asset.user_id, projectId },
-        workspace.key(IMPORTED_DIRECTORY),
-        projectAssetFileStem(asset.name, asset.content_type),
-        assetFileExtension(asset.content_type),
-        new Uint8Array(0),
-        asset.content_type
-      );
+      const claimed =
+        (await pendingCollectPath(workspace, asset, projectId)) ??
+        (await claimFile(
+          workspace,
+          { userId: asset.user_id, projectId },
+          workspace.key(IMPORTED_DIRECTORY),
+          projectAssetFileStem(asset.name, asset.content_type),
+          assetFileExtension(asset.content_type),
+          new Uint8Array(0),
+          asset.content_type
+        ));
+      return { claimed, hold: holdPaths(asset.user_id, projectId, [claimed]) };
     });
+    path = reserved.claimed;
+    release = reserved.hold;
     await setCollectPath(asset, path);
 
     await workspace.absorb(source, path);
@@ -1091,6 +1097,8 @@ async function collectOne(
       }
     }
     return { kind: "failed", asset: { ...label, reason } };
+  } finally {
+    release?.();
   }
 }
 
