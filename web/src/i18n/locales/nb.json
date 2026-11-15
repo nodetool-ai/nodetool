@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Legg til en arbeidsflytnode",
     "addSubgraph": "Legg til subgraf",
     "addSubgraphTooltip": "Legg til en innebygd subgrafnode",
+    "addComfySubgraph": "Legg til Comfy-undergraf",
+    "addComfySubgraphTooltip": "Legg til en undergraf av ComfyUI-noder som kjøres som én Comfy-jobb",
     "addApp": "Legg til app",
     "addAppTooltip": "Kjør en mini-app som en node",
     "property": "Eiendom",

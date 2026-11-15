@@ -127,6 +127,9 @@ public:
     // useStartComfyWorkflow: the starter graph on one of the saved server's
     // checkpoints, saved as a new Comfy workflow. Emits workflowCreated.
     Q_INVOKABLE void createWorkflow(const QString &projectId = {});
+    // The starter graph as a NodeTool graph of comfy.* nodes, from POST
+    // /api/comfy/import-graph. `done` gets the graph or the error.
+    void starterGraph(std::function<void(QJsonObject, QString)> done);
 signals:
     void changed();
     // The target changed, so a loaded Comfy catalog is stale.

@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Workflow-Knoten hinzufügen",
     "addSubgraph": "Untergraph hinzufügen",
     "addSubgraphTooltip": "Inline-Untergraph-Knoten hinzufügen",
+    "addComfySubgraph": "Comfy-Untergraph hinzufügen",
+    "addComfySubgraphTooltip": "Untergraph aus ComfyUI-Knoten hinzufügen, der als ein Comfy-Job läuft",
     "addApp": "App hinzufügen",
     "addAppTooltip": "Mini-App als Knoten ausführen",
     "property": "Eigenschaft",

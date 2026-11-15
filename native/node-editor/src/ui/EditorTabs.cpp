@@ -988,6 +988,11 @@ void EditorWindow::openChild() {
                                                : tr("Linked workflow")));
   workflow["graph"] =
       graph.isEmpty() ? QJsonObject{{"nodes", QJsonArray{}}, {"edges", QJsonArray{}}} : graph;
+  // A subgraph of ComfyUI nodes runs as one Comfy job, so its surface edits
+  // it as a Comfy workflow (buildSubgraphWorkflow in SubgraphTabsStore.ts).
+  if (key == "graph" && node_editor::isComfyGraph(graph)) {
+    workflow["run_mode"] = QStringLiteral("comfy");
+  }
   (void)child->document_.load(workflow);
   child->childSyncing_ = false;
     child->childWriteTimer_ = new QTimer(child);

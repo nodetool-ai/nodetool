@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Ajouter un nœud de workflow",
     "addSubgraph": "Ajouter un sous-graphique",
     "addSubgraphTooltip": "Ajouter un nœud de sous-graphe en ligne",
+    "addComfySubgraph": "Ajouter un sous-graphe Comfy",
+    "addComfySubgraphTooltip": "Ajoute un sous-graphe de nœuds ComfyUI exécuté comme une seule tâche Comfy",
     "addApp": "Ajouter une application",
     "addAppTooltip": "Exécuter une mini-application en tant que nœud",
     "property": "Propriété",

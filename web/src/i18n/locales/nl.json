@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Voeg een werkstroomknooppunt toe",
     "addSubgraph": "Subgrafiek toevoegen",
     "addSubgraphTooltip": "Voeg een inline subgraafknooppunt toe",
+    "addComfySubgraph": "Comfy-subgraaf toevoegen",
+    "addComfySubgraphTooltip": "Voeg een subgraaf van ComfyUI-nodes toe die als één Comfy-taak draait",
     "addApp": "App toevoegen",
     "addAppTooltip": "Voer een mini-app uit als knooppunt",
     "property": "Eigendom",

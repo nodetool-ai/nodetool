@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { COMFY_RUN_MODE, isComfyGraph } from "@nodetool-ai/protocol";
 import { createNodeStore, type NodeStore } from "./NodeStore";
 import type { Workflow } from "./ApiTypes";
 
@@ -115,6 +116,11 @@ const cleanupTabStore = (tab: SubgraphTab): void => {
   }
 };
 
+/**
+ * The synthetic workflow a subgraph tab edits. A subgraph that holds ComfyUI
+ * nodes runs as one Comfy job (`collapseComfyGraph`), so its tab edits it the
+ * way a Comfy workflow is edited: the node menu offers ComfyUI node classes.
+ */
 const buildSubgraphWorkflow = (
   key: string,
   label: string,
@@ -123,6 +129,9 @@ const buildSubgraphWorkflow = (
   ({
     id: key,
     name: label,
+    ...(isComfyGraph({ nodes: graph.nodes as ReadonlyArray<{ type?: unknown }> })
+      ? { run_mode: COMFY_RUN_MODE }
+      : {}),
     access: "private",
     description: "",
     thumbnail: "",

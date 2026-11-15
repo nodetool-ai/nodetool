@@ -265,6 +265,12 @@ public:
         };
         typed("add-workflow", tr("Add workflow"), "accountTree", "nodetool.workflows.workflow_node.Workflow", tr("Add a workflow node"));
         typed("add-subgraph", tr("Add subgraph"), "schema", "nodetool.workflows.subgraph.Subgraph", tr("Add an inline subgraph node"));
+        {
+            const bool known = w.knownNodeType(QStringLiteral("nodetool.workflows.subgraph.Subgraph"));
+            menu.item("add-comfy-subgraph", tr("Add Comfy subgraph"), "schema", [this] { w.addComfySubgraphAt(scene_); },
+                {.tooltip = tr("Add a subgraph of ComfyUI nodes that runs as one Comfy job"),
+                 .reason = editable ? tr("Not in the node catalog") : w.readOnlyReason(), .enabled = editable && known});
+        }
         typed("add-app", tr("Add app"), "apps", "nodetool.workflows.app_node.App", tr("Run a mini app as a node"));
         return menu;
     }

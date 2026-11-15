@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "워크플로 노드 추가",
     "addSubgraph": "하위 그래프 추가",
     "addSubgraphTooltip": "인라인 하위 그래프 노드 추가",
+    "addComfySubgraph": "Comfy 하위 그래프 추가",
+    "addComfySubgraphTooltip": "하나의 Comfy 작업으로 실행되는 ComfyUI 노드 하위 그래프 추가",
     "addApp": "앱 추가",
     "addAppTooltip": "미니 앱을 노드로 실행",
     "property": "재산",

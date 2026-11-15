@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "एक वर्कफ़्लो नोड जोड़ें",
     "addSubgraph": "सबग्राफ जोड़ें",
     "addSubgraphTooltip": "एक इनलाइन सबग्राफ नोड जोड़ें",
+    "addComfySubgraph": "Comfy सबग्राफ़ जोड़ें",
+    "addComfySubgraphTooltip": "ComfyUI नोड्स का सबग्राफ़ जोड़ें जो एक Comfy जॉब के रूप में चलता है",
     "addApp": "ऐप जोड़ें",
     "addAppTooltip": "एक नोड के रूप में एक मिनी ऐप चलाएं",
     "property": "संपत्ति",

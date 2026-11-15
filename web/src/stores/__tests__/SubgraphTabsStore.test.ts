@@ -238,4 +238,40 @@ describe("SubgraphTabsStore", () => {
       expect(useSubgraphTabsStore.getState().activeKey).toBe(activeKey);
     });
   });
+
+  describe("Comfy subgraphs", () => {
+    const openWith = (nodeId: string, nodes: unknown[]): string =>
+      useSubgraphTabsStore.getState().openTab({
+        workflowId: "wf-1",
+        nodeId,
+        label: "Subgraph",
+        initialGraph: { nodes, edges: [] }
+      });
+    const runMode = (key: string): string | null | undefined =>
+      useSubgraphTabsStore.getState().getTab(key)?.store.getState().workflow
+        .run_mode;
+
+    it("edits a subgraph of ComfyUI nodes as a Comfy workflow", () => {
+      let key = "";
+      act(() => {
+        key = openWith("comfy", [
+          { id: "1", type: "comfy.CLIPTextEncode", data: { text: "a fox" } },
+          { id: "2", type: "nodetool.output.Output", data: { name: "out" } }
+        ]);
+      });
+      expect(runMode(key)).toBe("comfy");
+    });
+
+    it("keeps any other subgraph a normal workflow", () => {
+      let key = "";
+      act(() => {
+        key = openWith("plain", [
+          { id: "1", type: "comfy.CLIPTextEncode", data: {} },
+          { id: "2", type: "nodetool.text.Concat", data: {} }
+        ]);
+      });
+      expect(runMode(key)).not.toBe("comfy");
+    });
+  });
 });
+

@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Добавить узел рабочего процесса",
     "addSubgraph": "Добавить подграф",
     "addSubgraphTooltip": "Добавить встроенный узел-подграф",
+    "addComfySubgraph": "Добавить подграф Comfy",
+    "addComfySubgraphTooltip": "Добавить подграф из узлов ComfyUI, который выполняется как одно задание Comfy",
     "addApp": "Добавить приложение",
     "addAppTooltip": "Запустить мини-приложение как узел",
     "property": "Свойство",

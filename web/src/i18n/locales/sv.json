@@ -295,6 +295,8 @@
     "addWorkflowTooltip": "Lägg till en arbetsflödesnod",
     "addSubgraph": "Lägg till subgraf",
     "addSubgraphTooltip": "Lägg till en inline subgrafnod",
+    "addComfySubgraph": "Lägg till Comfy-undergraf",
+    "addComfySubgraphTooltip": "Lägg till en undergraf av ComfyUI-noder som körs som ett Comfy-jobb",
     "addApp": "Lägg till app",
     "addAppTooltip": "Kör en miniapp som en nod",
     "property": "Egendom",
