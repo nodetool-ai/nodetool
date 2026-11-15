@@ -55,6 +55,12 @@ export class Asset extends DBModel {
    * storage key.
    */
   declare workspace_path: AssetRow["workspace_path"];
+  /**
+   * SHA-256 of the whole file at `workspace_path`, in hex. Null until the
+   * background hash job has read the file, and again from the moment the
+   * file's fingerprint changes.
+   */
+  declare content_hash: AssetRow["content_hash"];
   /** The user starred this asset; the asset browser lists these as Favorites. */
   declare favorite: AssetRow["favorite"];
   declare created_at: AssetRow["created_at"];
@@ -79,6 +85,7 @@ export class Asset extends DBModel {
     this.project_id ??= "default";
     this.external_path ??= null;
     this.workspace_path ??= null;
+    this.content_hash ??= null;
     this.favorite = Boolean(this.favorite);
     this.created_at ??= now;
     this.updated_at ??= now;
@@ -117,6 +124,45 @@ export class Asset extends DBModel {
     return true;
   }
 
+  /**
+   * Record `contentHash` as the SHA-256 of this asset's file, but only while
+   * the persisted metadata still matches `expectedMetadata`. The metadata
+   * holds the file's fingerprint, so a hash computed from a file that changed
+   * while it was read is never stored. Only `content_hash` is written: the
+   * row's other columns and `updated_at` stay as they are, and no change
+   * event is sent, because no client reads the hash.
+   */
+  async recordContentHash(
+    contentHash: string,
+    expectedMetadata: Record<string, unknown> | null
+  ): Promise<boolean> {
+    const connection = getDatabase();
+    const table = connection.schema.assets;
+    const owner = and(eq(table.id, this.id), eq(table.user_id, this.user_id));
+    const current = connection.dialect === "sqlite"
+      ? await connection.db.select({ metadata: connection.schema.assets.metadata })
+        .from(connection.schema.assets).where(owner).limit(1)
+      : await connection.db.select({ metadata: connection.schema.assets.metadata })
+        .from(connection.schema.assets).where(owner).limit(1);
+    if (!current[0] || !isDeepStrictEqual(current[0].metadata, expectedMetadata)) {
+      return false;
+    }
+    // Guard with the stored key order so an intervening write still loses the CAS.
+    const stored = current[0].metadata;
+    const condition = and(owner,
+      stored === null ? isNull(table.metadata) : eq(table.metadata, stored));
+    const updated = connection.dialect === "sqlite"
+      ? await connection.db.update(connection.schema.assets)
+        .set({ content_hash: contentHash })
+        .where(condition).returning({ id: connection.schema.assets.id })
+      : await connection.db.update(connection.schema.assets)
+        .set({ content_hash: contentHash })
+        .where(condition).returning({ id: connection.schema.assets.id });
+    if (updated.length === 0) return false;
+    this.content_hash = contentHash;
+    return true;
+  }
+
   override toRow(): AssetInsert & Record<string, unknown> {
     return {
       id: this.id, user_id: this.user_id, parent_id: this.parent_id,
@@ -127,6 +173,7 @@ export class Asset extends DBModel {
       node_id: this.node_id, job_id: this.job_id, timeline_id: this.timeline_id,
       project_id: this.project_id, external_path: this.external_path,
       workspace_path: this.workspace_path,
+      content_hash: this.content_hash,
       favorite: this.favorite,
       created_at: this.created_at, updated_at: this.updated_at
     };

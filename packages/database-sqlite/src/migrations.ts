@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL } from "@nodetool-ai/models-core";
+import { SQLITE_CORE_BASELINE_SQL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ASSET_WORKSPACE_PATH_DDL, ASSET_CONTENT_HASH_DDL } from "@nodetool-ai/models-core";
 
 interface ColumnInfo {
   readonly name: string;
@@ -70,6 +70,17 @@ export function migrateSqliteCore(sqlite: Database.Database): void {
         version: "20261006_000000",
         up() {
           if (!hasColumn(sqlite, "nodetool_assets", "favorite")) { sqlite.exec(ASSET_FAVORITE_DDL); }
+        }
+      },
+      {
+        // The asset columns of a project folder. The repository selects every
+        // column the schema declares, so both must exist. Each is added only
+        // when absent, which keeps this safe beside any other migration that
+        // adds one of them.
+        version: "20261118_000000",
+        up() {
+          if (!hasColumn(sqlite, "nodetool_assets", "workspace_path")) { sqlite.exec(ASSET_WORKSPACE_PATH_DDL); }
+          if (!hasColumn(sqlite, "nodetool_assets", "content_hash")) { sqlite.exec(ASSET_CONTENT_HASH_DDL); }
         }
       }
     ];

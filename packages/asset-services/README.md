@@ -34,4 +34,11 @@ and `projectAssetFile` then answers null, so every reader reports the bytes as
 missing. `relinkProjectAsset` points such an asset at another file under the
 same id. Asset writers and the reconcile share `withProjectFolderLock`, and a
 path whose row is still being saved is reported by `isProjectAssetPathInFlux`.
+The fingerprint in the row's metadata covers the file's size, mtime and a hash
+of its first and last 1 MiB. `nodetool_assets.content_hash` holds the SHA-256
+of the whole file. `contentHashOfWorkspaceFile` computes it as a stream, the
+hash job in `project-services` stores it, and every writer here that replaces
+an asset's bytes sets it back to null. `refreshAssetThumbnail` replaces the
+thumbnail of a file that changed in place, and `projectAssetMtime` versions
+the thumbnail URL.
 See [the asset index follows the folder](../../docs/workspaces.md#the-asset-index-follows-the-folder).

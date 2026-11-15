@@ -99,3 +99,7 @@ export const SQLITE_CORE_BASELINE_SQL = `
 
 export const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
 export const ASSET_FAVORITE_DDL = "ALTER TABLE nodetool_assets ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0";
+/** The path of an asset's file in its project folder. See schema/assets.ts. */
+export const ASSET_WORKSPACE_PATH_DDL = "ALTER TABLE nodetool_assets ADD COLUMN workspace_path TEXT";
+/** The SHA-256 of an asset's whole project file. See schema/assets.ts. */
+export const ASSET_CONTENT_HASH_DDL = "ALTER TABLE nodetool_assets ADD COLUMN content_hash TEXT";

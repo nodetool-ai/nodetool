@@ -34,6 +34,10 @@ export const assets = sqliteTable(
     // `project_id`. Bytes are read from there before `external_path` and the
     // legacy storage key. Null for every asset created before project folders.
     workspace_path: text("workspace_path"),
+    // SHA-256 of the whole file at `workspace_path`, in hex. A background job
+    // fills it in after the row exists. Null until then, and again from the
+    // moment the file's fingerprint changes.
+    content_hash: text("content_hash"),
     // The user starred this asset. Drives the asset browser's Favorites view.
     favorite: integer("favorite", { mode: "boolean" }).notNull().default(false),
     created_at: text("created_at").notNull(),

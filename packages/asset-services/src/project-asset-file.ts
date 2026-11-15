@@ -8,6 +8,7 @@
  * importable from the key-miss lookup the asset store itself is built with.
  */
 import { createHash } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { open } from "node:fs/promises";
 import { getProjectFolderResolver, type Workspace } from "@nodetool-ai/runtime";
 
@@ -40,7 +41,12 @@ export class ProjectFolderUnavailableError extends Error {
 export async function requireProjectFolder(
   projectId: string | null | undefined,
   userId: string
-): Promise<{ projectId: string; workspace: Workspace }> {
+): Promise<{
+  projectId: string;
+  workspace: Workspace;
+  /** The folder's `.nodetool/` directory, for NodeTool's own files. */
+  nodetoolDir: Workspace | null;
+}> {
   const resolve = getProjectFolderResolver();
   if (!resolve) {
     throw new ProjectFolderUnavailableError(
@@ -49,7 +55,11 @@ export async function requireProjectFolder(
   }
   const folder = await resolve(projectId, userId);
   if (!folder.ok) throw new ProjectFolderUnavailableError(folder.reason);
-  return { projectId: folder.projectId, workspace: folder.workspace };
+  return {
+    projectId: folder.projectId,
+    workspace: folder.workspace,
+    nodetoolDir: folder.nodetoolDir ?? null
+  };
 }
 
 /**
@@ -143,6 +153,20 @@ export function isProjectAssetOffline(asset: {
     Boolean(asset.workspace_path) &&
     asset.metadata?.[WORKSPACE_OFFLINE_KEY] === true
   );
+}
+
+/**
+ * The mtime the row recorded for the file of `asset` in its project folder,
+ * or null for an asset that keeps no file there. It versions what is derived
+ * from the file and stored under the asset's id alone, such as the thumbnail.
+ */
+export function projectAssetMtime(asset: {
+  workspace_path: string | null;
+  metadata?: Record<string, unknown> | null;
+}): number | null {
+  if (!asset.workspace_path) return null;
+  const mtime = asset.metadata?.["workspace_mtime"];
+  return typeof mtime === "number" ? mtime : null;
 }
 
 export interface WorkspaceFingerprint {
@@ -239,6 +263,46 @@ export async function partialContentHashOfWorkspaceFile(
 ): Promise<string> {
   try {
     return await partialContentHashOfFile(await workspace.materialize(path));
+  } finally {
+    await workspace.cleanupScratch?.();
+  }
+}
+
+/** Bytes read from a file at a time while its full hash is computed. */
+const CONTENT_HASH_CHUNK = 1024 * 1024;
+
+/**
+ * SHA-256 of a whole file on this host, in hex. The file is read as a stream
+ * of {@link CONTENT_HASH_CHUNK} pieces, so memory use does not grow with the
+ * file, and the event loop runs between pieces. Rejects with the signal's
+ * reason when `signal` aborts.
+ */
+export async function contentHashOfFile(
+  path: string,
+  signal?: AbortSignal
+): Promise<string> {
+  const hash = createHash("sha256");
+  const stream = createReadStream(path, {
+    highWaterMark: CONTENT_HASH_CHUNK,
+    signal
+  });
+  for await (const chunk of stream) hash.update(chunk as Uint8Array);
+  return hash.digest("hex");
+}
+
+/**
+ * {@link contentHashOfFile} of a file in a project folder. A folder that is a
+ * directory on this host is read in place. A storage-backed folder stages the
+ * file first, as {@link partialContentHashOfWorkspaceFile} does, and the
+ * staged copy is removed again.
+ */
+export async function contentHashOfWorkspaceFile(
+  workspace: Workspace,
+  path: string,
+  signal?: AbortSignal
+): Promise<string> {
+  try {
+    return await contentHashOfFile(await workspace.materialize(path), signal);
   } finally {
     await workspace.cleanupScratch?.();
   }

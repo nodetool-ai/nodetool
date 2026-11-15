@@ -7,7 +7,12 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL } from "@nodetool-ai/models-core";
+import {
+  JOB_TRACE_MARKER_DDL,
+  ASSET_FAVORITE_DDL,
+  ASSET_WORKSPACE_PATH_DDL,
+  ASSET_CONTENT_HASH_DDL
+} from "@nodetool-ai/models-core";
 import { RUN_TRACES_DDL, applyRunTraceRls } from "./run-traces.js";
 
 import {
@@ -334,14 +339,6 @@ const PROJECT_FOLDER_DDL: readonly string[] = [
   "ALTER TABLE nodetool_workspaces ADD COLUMN origin TEXT NOT NULL DEFAULT 'created'"
 ];
 
-/**
- * An asset is a file in its project's folder, and the row records the file's
- * path relative to that folder. Shared by the migration and, through
- * {@link POST_BASELINE_TABLE_DDL}, by `initTestDb`.
- */
-const ASSET_WORKSPACE_PATH_DDL =
-  "ALTER TABLE nodetool_assets ADD COLUMN workspace_path TEXT";
-
 const USER_PERMISSIONS_DDL: readonly string[] = [
   `CREATE TABLE IF NOT EXISTS nodetool_user_permissions (
     user_id TEXT PRIMARY KEY NOT NULL,
@@ -362,7 +359,8 @@ export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OU
   THREAD_KIND_DDL,
   ...MESSAGE_BRANCH_DDL,
   ...PROJECT_FOLDER_DDL,
-  ASSET_WORKSPACE_PATH_DDL
+  ASSET_WORKSPACE_PATH_DDL,
+  ASSET_CONTENT_HASH_DDL
 ];
 
 export const migrations: MigrationDef[] = [
@@ -4495,6 +4493,24 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // The column stays: dropping it would lose where each asset's file is.
+    }
+  },
+
+  // The SHA-256 of an asset's whole file in its project folder. A background
+  // job fills it in, so every row starts with null.
+  {
+    version: "20261118_000000",
+    name: "add_asset_content_hash",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "content_hash"))) {
+        await db.execute(ASSET_CONTENT_HASH_DDL);
+      }
+    },
+    async down() {
+      // The column stays: a dropped hash costs a full read of every file.
     }
   }
 ];
