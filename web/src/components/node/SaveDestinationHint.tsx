@@ -4,7 +4,15 @@ import FolderIcon from "@mui/icons-material/FolderOutlined";
 
 import { Caption, FlexRow, SPACING, getSpacingPx } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
-import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
+import { useProjectFolder } from "../../hooks/useProjectFolder";
+import {
+  LOOSE_PROJECT_ID,
+  useWorkspaceTabsStore
+} from "../../stores/WorkspaceTabsStore";
+
+/** The last segment of a host path, or null for a folder in cloud storage. */
+const folderName = (path: string | null): string | null =>
+  path ? (path.split(/[\\/]/).filter(Boolean).pop() ?? null) : null;
 
 interface SaveDestinationHintProps {
   data: NodeData;
@@ -13,22 +21,24 @@ interface SaveDestinationHintProps {
 /**
  * Where a save node with "Save to workspace" on will put its file.
  *
- * The toggle points at the run's workspace, which is chosen elsewhere (the
- * workspace chip in the composer) — a node showing the toggle without naming
- * the folder leaves the user guessing. There is always one: a workflow that
- * names none saves into the user's default workspace.
+ * Runs work in the folder of their project, so the hint names the active
+ * project's folder. A node showing the toggle without naming the folder leaves
+ * the user guessing.
  */
 const SaveDestinationHint: React.FC<SaveDestinationHintProps> = React.memo(
   ({ data }) => {
     const { t } = useTranslation();
     const savesToWorkspace = data?.properties?.save_to_workspace === true;
-    const { workspace } = useCurrentWorkspace();
+    const projectId = useWorkspaceTabsStore(
+      (state) =>
+        state.activeProjectId ?? state.personalProjectId ?? LOOSE_PROJECT_ID
+    );
+    const { folder, projectName } = useProjectFolder(projectId);
 
     if (!savesToWorkspace) return null;
 
-    // Only while the list is still loading — the server creates a default
-    // workspace, so "none" is a transient state, not a configuration error.
-    const missing = !workspace;
+    // Only while the project list is still loading: every project has a folder.
+    const label = folder ? (folderName(folder.path) ?? projectName) : null;
     return (
       <FlexRow
         className="save-destination-hint"
@@ -47,11 +57,9 @@ const SaveDestinationHint: React.FC<SaveDestinationHintProps> = React.memo(
             textOverflow: "ellipsis",
             whiteSpace: "nowrap"
           }}
-          title={workspace?.path ?? undefined}
+          title={folder?.path ?? undefined}
         >
-          {missing
-            ? t("i18n-next36.nodeEditor.saveDestinationHint.workspace")
-            : workspace.name || workspace.path}
+          {label ?? t("projectFolder.name")}
         </Caption>
       </FlexRow>
     );

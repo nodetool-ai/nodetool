@@ -31,7 +31,7 @@ export type LeftPanelView =
   | "favorites"
   | "assets"
   | "library"
-  | "workspace-files"
+  | "files"
   | "nodes"
   | "more";
 export type PanelView = LeftPanelView;
@@ -67,7 +67,7 @@ const VALID_VIEWS: LeftPanelView[] = [
   "favorites",
   "assets",
   "library",
-  "workspace-files",
+  "files",
   "nodes",
   "more"
 ];
@@ -154,6 +154,9 @@ export const usePanelStore = createResizablePanelStore<
       patch.activeView = "workflows";
     } else if (raw === "assets") {
       patch.activeView = "library";
+    } else if (raw === "workspace-files") {
+      // The Files section replaced the workspace browser.
+      patch.activeView = "files";
     } else if (raw === "search") {
       patch.activeView = "nodes";
       patch.activeNodeCategory = "all";

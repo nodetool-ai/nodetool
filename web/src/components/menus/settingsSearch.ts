@@ -64,7 +64,7 @@ const GENERAL_KEYWORDS = [
 ];
 
 const INTEGRATION_KEYWORDS = [
-  "folders assets workspace directory storage",
+  "folders assets project folder directory storage",
   "connected accounts telegram discord messaging",
   "mcp servers claude desktop",
   "browser extension chrome",

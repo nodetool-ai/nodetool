@@ -92,7 +92,6 @@ describe("sandbox API coverage", () => {
       "credits.topup",
       "users.create",
       "worker.provision",
-      "workspace.create",
       "threads.delete",
       "assets.delete"
     ];

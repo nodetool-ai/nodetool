@@ -22,7 +22,7 @@ export function useFolderPicker() {
     if (hasNativeDialog() && window.api?.dialog) {
       try {
         const result = await window.api.dialog.openFolder({
-          title: t("batch2_1.folderPicker.title")
+          title: t("projectFolder.picker.title")
         });
         if (!result.canceled && result.filePaths.length > 0) {
           return result.filePaths[0];
@@ -58,7 +58,7 @@ export function useFolderPicker() {
       open={isOpen}
       onClose={handleCancel}
       onConfirm={handleConfirm}
-      title={t("batch2_1.folderPicker.title")}
+      title={t("projectFolder.picker.title")}
       initialPath="~"
       selectionMode="directory"
     />

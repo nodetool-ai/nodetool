@@ -20,10 +20,6 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
       getNodeStore: () => ({ getState: () => ({ getWorkflow: () => liveWorkflow }) })
     })
 }));
-jest.mock("../../workspaces/WorkspaceSelect", () => ({
-  __esModule: true,
-  default: () => null
-}));
 
 const workflow = (name: string): Workflow =>
   stub<Workflow>({
@@ -71,5 +67,16 @@ describe("WorkflowForm", () => {
         description: "new description"
       })
     );
+  });
+
+  it("has no workspace setting: runs work in the project folder", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <WorkflowForm workflow={workflow("Any")} onClose={jest.fn()} />
+      </ThemeProvider>
+    );
+
+    expect(screen.queryByText(/workspace/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: /workspace/i })).toBeNull();
   });
 });

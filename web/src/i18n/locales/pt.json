@@ -702,61 +702,15 @@
   },
   "batch2_1": {
     "common": {
-      "workspace": "Espaço de trabalho",
       "loading": "Carregando…",
       "refresh": "Atualizar",
       "remove": "Remover",
       "cancel": "Cancelar"
     },
-    "page": {
-      "title": "Espaços de trabalho",
-      "subtitle": "Pastas em área restrita nas quais agentes e fluxos de trabalho podem ler, gravar e organizar arquivos."
-    },
-    "folderPicker": {
-      "title": "Selecione a pasta do espaço de trabalho"
-    },
-    "notifications": {
-      "added": "Espaço de trabalho adicionado",
-      "removed": "Espaço de trabalho removido"
-    },
-    "errors": {
-      "loadTitle": "Não foi possível carregar os espaços de trabalho",
-      "loadSummary": "Falha ao carregar espaços de trabalho",
-      "loadDescription": "Verifique sua conexão e tente novamente.",
-      "operation": "Falha na operação do espaço de trabalho: {{error}}"
-    },
-    "manager": {
-      "inaccessible": "Inacessível",
-      "defaultWorkspace": "Espaço de trabalho padrão",
-      "setDefault": "Definir como padrão",
-      "emptyTitle": "Nenhum espaço de trabalho configurado",
-      "emptyCanManage": "Adicione um espaço de trabalho para permitir que os agentes acessem pastas locais",
-      "emptyManaged": "Esta implantação gerencia seu espaço de trabalho para você",
-      "adding": "Adicionando…",
-      "addWorkspace": "Adicionar espaço de trabalho",
-      "removeTitle": "Remover este espaço de trabalho?",
-      "removeDescription": "O espaço de trabalho será removido do NodeTool. A pasta em si não será excluída."
-    },
-    "select": {
-      "defaultWithPath": "Padrão ({{path}})",
-      "description": "Os agentes leem e gravam arquivos aqui durante a execução, incluindo imagens salvas, texto, dados e outras saídas. Navegue pelos resultados no painel Espaço de trabalho. Os agentes só podem acessar arquivos dentro desta pasta. Um fluxo de trabalho deixado em Padrão usa seu espaço de trabalho padrão.",
-      "createNew": "Criar novo espaço de trabalho",
-      "addWorkspace": "Adicionar espaço de trabalho…"
-    },
     "tree": {
       "loading": "Carregando…",
       "accessDenied": "⚠️ Acesso negado",
-      "title": "Explorador de espaço de trabalho",
-      "manage": "Gerenciar espaços de trabalho",
-      "goToRoot": "Vá para a raiz do espaço de trabalho",
-      "openInFolder": "Abrir na pasta",
-      "openExternally": "Abrir externamente",
-      "noneSelected": "Nenhum espaço de trabalho selecionado",
-      "selectOrCreate": "Selecione um espaço de trabalho acima ou crie um.",
-      "createWorkspace": "Criar espaço de trabalho",
-      "fileBrowser": "Navegador de arquivos do espaço de trabalho",
-      "emptyTitle": "O espaço de trabalho está vazio",
-      "emptyDescription": "Adicione arquivos à pasta do seu espaço de trabalho para vê-los aqui."
+      "openExternally": "Abrir externamente"
     }
   },
   "batch2_10": {
@@ -1772,7 +1726,6 @@
       "packageManager": "Gerenciador de pacotes",
       "assets": "Ativos",
       "collections": "Coleções",
-      "workspaces": "Espaços de trabalho",
       "memory": "Memória",
       "settings": "Configurações",
       "help": "Ajuda",
@@ -6752,8 +6705,6 @@
       "runModeTool": "Ferramenta",
       "runModeDescription": "Como esse fluxo de trabalho é executado e pode ser acionado",
       "advanced": "Avançado",
-      "workspace": "Espaço de trabalho",
-      "workspaceDescription": "Associe uma pasta do espaço de trabalho a este fluxo de trabalho para acesso do agente",
       "toolName": "Nome da ferramenta",
       "toolNameDescription": "Identificador para uso de API/ferramenta. Somente letras, números e sublinhados.",
       "toolNamePlaceholder": "minha_ferramenta_fluxo de trabalho",
@@ -10842,9 +10793,9 @@
         "jsScripts": "Scripts JS",
         "skills": "Habilidades",
         "assets": "Ativos",
-        "workspace": "Espaço de trabalho",
         "library": "Biblioteca",
-        "more": "Mais"
+        "more": "Mais",
+        "files": "Arquivos"
       },
       "categoryDescriptions": {
         "documents": "Navegue por todos os documentos do projeto atual.",
@@ -10864,9 +10815,9 @@
         "jsScripts": "Crie e gerencie código JavaScript reutilizável.",
         "skills": "Habilidades do agente — instruções de redução correspondentes ao objetivo.",
         "assets": "Procure ativos disponíveis no contexto atual.",
-        "workspace": "Navegue pelos arquivos na pasta do espaço de trabalho selecionado.",
         "library": "Procure ativos no projeto atual.",
-        "more": "Abra painéis adicionais de fluxo de trabalho, editor, desenvolvedor e espaço de trabalho."
+        "more": "Abra mais painéis de fluxo de trabalho, editor e desenvolvedor.",
+        "files": "Navegue pelos arquivos da pasta do projeto."
       }
     },
     "queue": {
@@ -14256,8 +14207,7 @@
       "search": "Pesquisar todos os painéis",
       "group": {
         "workflow-tools": "Ferramentas de fluxo de trabalho",
-        "agent-tools": "Ferramentas de agente",
-        "workspace": "Espaço de trabalho"
+        "agent-tools": "Ferramentas de agente"
       },
       "category": {
         "favorites": {
@@ -14275,10 +14225,6 @@
         "skills": {
           "label": "Habilidades",
           "description": "Habilidades do agente — instruções de redução correspondentes ao objetivo."
-        },
-        "workspace-files": {
-          "label": "Espaço de trabalho",
-          "description": "Navegue pelos arquivos na pasta do espaço de trabalho selecionado."
         }
       }
     },
@@ -14947,9 +14893,6 @@
       "runGroup": {
         "groupRunning": "O grupo está em execução",
         "runGroup": "Executar grupo"
-      },
-      "saveDestinationHint": {
-        "workspace": "Espaço de trabalho"
       }
     }
   },
@@ -16188,9 +16131,9 @@
       "jsscripts": "Scripts JS",
       "skills": "Habilidades",
       "assets": "Ativos",
-      "workspace-files": "Espaço de trabalho",
       "library": "Biblioteca",
-      "more": "Mais"
+      "more": "Mais",
+      "files": "Arquivos"
     }
   },
   "i18n-next55": {
@@ -16321,7 +16264,6 @@
         "models": "Gerente de modelo",
         "packages": "Gerenciador de pacotes",
         "collections": "Coleções",
-        "workspaces": "Espaços de trabalho",
         "entities": "Entidades",
         "memory": "Memória",
         "settings": "Configurações",
@@ -18938,7 +18880,7 @@
   },
   "i18n-next110": {
     "workspaceFile": {
-      "invalidReference": "Referência de arquivo de espaço de trabalho inválida"
+      "invalidReference": "Referência de arquivo inválida"
     }
   },
   "i18n-next109": {
@@ -20467,6 +20409,24 @@
     "saveFailed": "Não foi possível salvar esta permissão.",
     "loadFailed": "Não foi possível carregar a lista de ferramentas.",
     "noMatches": "Nenhuma ferramenta corresponde à sua busca."
+  },
+  "projectFolder": {
+    "name": "Pasta do projeto",
+    "picker": {
+      "title": "Selecionar uma pasta"
+    },
+    "tree": {
+      "title": "Arquivos",
+      "goToRoot": "Ir para a raiz da pasta do projeto",
+      "fileBrowser": "Arquivos do projeto",
+      "emptyTitle": "A pasta do projeto está vazia",
+      "emptyDescription": "Adicione arquivos à pasta do projeto para vê-los aqui.",
+      "noFolderTitle": "Sem pasta de projeto",
+      "noFolderDescription": "Este projeto ainda não tem uma pasta.",
+      "revealInFinder": "Mostrar no Finder",
+      "revealInExplorer": "Mostrar no Explorador de Arquivos",
+      "revealInFileManager": "Mostrar no gerenciador de arquivos"
+    }
   },
   "assetPicker": {
     "sourceTabs": "Origem do recurso",
